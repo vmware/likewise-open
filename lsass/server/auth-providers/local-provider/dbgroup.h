@@ -1,4 +1,3 @@
-
 DWORD
 LsaProviderLocal_DbFindGroupByName(
     HANDLE  hDb,
@@ -8,7 +7,6 @@ LsaProviderLocal_DbFindGroupByName(
     PVOID*  ppGroupInfo
     );
 
-
 DWORD
 LsaProviderLocal_DbFindGroupByName_0(
     HANDLE  hDb,
@@ -16,7 +14,6 @@ LsaProviderLocal_DbFindGroupByName_0(
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
     );
-
 
 DWORD
 LsaProviderLocal_DbFindGroupByName_1(
@@ -34,31 +31,13 @@ LsaProviderLocal_DbGetGroupsForUser_0(
     PVOID** pppGroupInfoList
     );
 
+
 DWORD
 LsaProviderLocal_DbGetGroupsForUser_1(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-
-
-DWORD
-LsaProviderLocal_DbFindGroupByName_0_Unsafe(
-    HANDLE  hDb,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
-    );
-
-
-DWORD
-LsaProviderLocal_DbFindGroupByName_1_Unsafe(
-    HANDLE  hDb,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
@@ -105,3 +84,44 @@ LsaProviderLocal_DbEnumGroups(
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );
+
+DWORD
+LsaProviderLocal_DbFindGroupById(
+    HANDLE  hDb,
+    gid_t   gid,
+    DWORD   dwGroupInfoLevel,
+    PVOID*  ppGroupInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindGroupById_0(
+    HANDLE hDb,
+    gid_t  gid,
+    PVOID* ppGroupInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindGroupById_1(
+    HANDLE hDb,
+    gid_t  gid,
+    PVOID* ppGroupInfo
+    );
+
+
+DWORD
+LsaProviderLocal_DbFindGroupById_0_Unsafe(
+    HANDLE hDb,
+    gid_t  gid,
+    PVOID* ppGroupInfo
+    );;
+
+
+DWORD
+LsaProviderLocal_DbFindGroupById_1_Unsafe(
+    HANDLE hDb,
+    gid_t  gid,
+    PVOID* ppGroupInfo
+    );
+

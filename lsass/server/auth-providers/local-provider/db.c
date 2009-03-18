@@ -56,7 +56,7 @@
 #define LOCAL_USER_SID_FORMAT "S-1-22-1-%ld"
 #define LOCAL_GROUP_SID_FORMAT "S-1-22-2-%ld"
 
-static
+
 DWORD
 LsaProviderLocal_DbCheckGroupMembershipRecord_Unsafe(
     HANDLE   hDb,
@@ -121,7 +121,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbGetNextAvailableUid_Unsafe(
     HANDLE hDb,
@@ -180,7 +180,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbGetNextAvailableGid_Unsafe(
     HANDLE hDb,
@@ -385,7 +385,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
     PSTR*  ppszResult,
@@ -468,7 +468,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
     PSTR*  ppszResult,
@@ -559,7 +559,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbWriteMembersToGroupInfo_1(
     PSTR*  ppszResult,
@@ -618,509 +618,13 @@ error:
     goto cleanup;
 }
 
-static
-DWORD
-LsaProviderLocal_DbFindGroupById_0_Unsafe(
-    HANDLE hDb,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    DWORD nExpectedCols = 2;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 0;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_GROUP_0_BY_GID,  gid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (!nRows) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-          
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    *ppGroupInfo = *ppGroupInfoList;
-    *ppGroupInfoList = NULL;
-    
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-    
-    return dwError;
-    
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-    
-    *ppGroupInfo = NULL;
-    
-    goto cleanup;
-}
-
-static
-DWORD
-LsaProviderLocal_DbFindGroupById_1_Unsafe(
-    HANDLE hDb,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    DWORD nExpectedCols = 3;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 1;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD iGroup = 0;
-    
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_GROUP_1_BY_GID,  gid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    if (!nRows) {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-          
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
-    {
-        PLSA_GROUP_INFO_1 pGroupInfo = *(ppGroupInfoList + iGroup);
-        
-        if (pszQuery) {
-            sqlite3_free(pszQuery);
-            pszQuery = NULL;
-        }
-    
-        if (ppszResult) {
-            sqlite3_free_table(ppszResult);
-            ppszResult = NULL;
-        }
-    
-        // Find the group members
-        nRows = 0;
-        nCols = 0;
-        nExpectedCols = 1;
-        pszQuery = sqlite3_mprintf(DB_QUERY_FIND_GROUP_MEMBERS_BY_GID,
-                                   pGroupInfo->gid);
-
-        dwError = sqlite3_get_table(pDbHandle,
-                                    pszQuery,
-                                    &ppszResult,
-                                    &nRows,
-                                    &nCols,
-                                    &pszError
-                                   );
-        BAIL_ON_LSA_ERROR(dwError);
-    
-        if (nRows) {
-            if (nCols != nExpectedCols) {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-          
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        pGroupInfo
-                        );
-            BAIL_ON_LSA_ERROR(dwError);
-        } else {
-            pGroupInfo->ppszMembers = NULL;
-        }
-    }
-   
-    *ppGroupInfo = *ppGroupInfoList;
-    *ppGroupInfoList = NULL;
-    
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-    
-    if (ppGroupInfoList) {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-    
-    return dwError;
-    
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-    
-    *ppGroupInfo = NULL;
-    
-    goto cleanup;
-}
-
-static
-DWORD
-LsaProviderLocal_DbFindGroupById_0(
-    HANDLE hDb,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    dwError = LsaProviderLocal_DbFindGroupById_0_Unsafe(
-                       hDb,
-                       gid,
-                       ppGroupInfo
-                       );
-    
-    LEAVE_RW_READER_LOCK;
- 
-    return dwError;
-}
-
-static
-DWORD
-LsaProviderLocal_DbFindGroupById_1(
-    HANDLE hDb,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    dwError = LsaProviderLocal_DbFindGroupById_1_Unsafe(
-                       hDb,
-                       gid,
-                       ppGroupInfo
-                       );
-    
-    LEAVE_RW_READER_LOCK;
- 
-    return dwError;
-}
-
-DWORD
-LsaProviderLocal_DbFindGroupById(
-    HANDLE  hDb,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
-    )
-{
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-    
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-        {
-            dwError = LsaProviderLocal_DbFindGroupById_0(hDb, gid, ppGroupInfo);
-            break;
-        }
-        case 1:
-        {
-            dwError = LsaProviderLocal_DbFindGroupById_1(hDb, gid, ppGroupInfo);
-            break;
-        }
-    }
-
-    return dwError;
-}
-
-
-DWORD
-LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
-    HANDLE  hDb,
-    uid_t uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 3;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 0;
-    
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_GROUPS_0_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        goto cleanup;
-    }
-    
-    if ((nCols != nExpectedCols)) {
-       dwError = LSA_ERROR_DATA_ERROR;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pdwGroupsFound = dwNumGroupsFound;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-        
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    return dwError;
-        
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-    
-    if (ppGroupInfoList) {
-       LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-        
-    *pppGroupInfoList = NULL;
-    *pdwGroupsFound = 0;
-
-    goto cleanup;
-}
-
-DWORD
-LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
-    HANDLE  hDb,
-    uid_t uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 3;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD iGroup = 0;
-    
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_GROUPS_1_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        goto cleanup;
-    }
-    
-    if ((nCols != nExpectedCols)) {
-       dwError = LSA_ERROR_DATA_ERROR;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
-    {
-        PLSA_GROUP_INFO_1 pGroupInfo = *(ppGroupInfoList + iGroup);
-        
-        if (pszQuery) {
-            sqlite3_free(pszQuery);
-            pszQuery = NULL;
-        }
-    
-        if (ppszResult) {
-            sqlite3_free_table(ppszResult);
-            ppszResult = NULL;
-        }
-    
-        // Find the group members
-        nRows = 0;
-        nCols = 0;
-        nExpectedCols = 1;
-        pszQuery = sqlite3_mprintf(DB_QUERY_FIND_GROUP_MEMBERS_BY_GID,
-                                   pGroupInfo->gid);
-
-        dwError = sqlite3_get_table(pDbHandle,
-                                    pszQuery,
-                                    &ppszResult,
-                                    &nRows,
-                                    &nCols,
-                                    &pszError
-                                   );
-        BAIL_ON_LSA_ERROR(dwError);
-    
-        if (nRows) {
-            if (nCols != nExpectedCols) {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-          
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        pGroupInfo
-                        );
-            BAIL_ON_LSA_ERROR(dwError);
-        } else {
-            pGroupInfo->ppszMembers = NULL;
-        }
-    }
-
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pdwGroupsFound = dwNumGroupsFound;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-        
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    return dwError;
-        
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-    
-    if (ppGroupInfoList) {
-       LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-        
-    *pppGroupInfoList = NULL;
-    *pdwGroupsFound = 0;
-
-    goto cleanup;
-}
 
 
 
 
 
-static
+
+
 DWORD
 LsaProviderLocal_DbWriteToUserInfo_0_Unsafe(
         PSTR* ppszResult,
@@ -1239,7 +743,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
         PSTR* ppszResult,
@@ -1360,7 +864,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
     PSTR* ppszResult,
@@ -1554,7 +1058,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbFindUserById_0_Unsafe(
     HANDLE  hDb,
@@ -1637,7 +1141,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbFindUserById_0(
     HANDLE hDb,
@@ -1660,7 +1164,7 @@ LsaProviderLocal_DbFindUserById_0(
     return dwError;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbFindUserById_1(
     HANDLE hDb,
@@ -1781,7 +1285,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbFindUserById_2(
     HANDLE hDb,
@@ -1905,38 +1409,6 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbFindUserById(
-    HANDLE hDb,
-    uid_t  uid,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-    
-    switch(dwUserInfoLevel)
-    {
-        case 0:
-        {
-            dwError = LsaProviderLocal_DbFindUserById_0(hDb, uid, ppUserInfo);
-            break;
-        }
-        case 1:
-        {
-            dwError = LsaProviderLocal_DbFindUserById_1(hDb, uid, ppUserInfo);
-            break;
-        }
-        case 2:
-        {
-            dwError = LsaProviderLocal_DbFindUserById_2(hDb, uid, ppUserInfo);
-            break;
-        }
-    }
-
-    return dwError;
-}
-
-DWORD
 LsaProviderLocal_DbGetGroupsForUser(
     HANDLE  hDb,
     uid_t   uid,
@@ -1975,7 +1447,7 @@ LsaProviderLocal_DbGetGroupsForUser(
     return dwError;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbFindUserByName_0_Unsafe(
     HANDLE hDb,
@@ -2059,7 +1531,7 @@ error:
 }
 
 
-static
+
 DWORD
 LsaProviderLocal_DbUpdateHash_Unsafe(
     HANDLE hDb,
@@ -2126,7 +1598,7 @@ error:
     goto cleanup;   
 }
 
-static
+
 DWORD
 LsaProviderLocal_DbUpdateNTHash_Unsafe(
     HANDLE hDb,
@@ -3419,7 +2891,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DetermineNumberUsersWithPrimaryGroup_Unsafe(
     HANDLE hDb,
@@ -3477,7 +2949,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DetermineNumberGroupMembers(
     HANDLE hDb,
@@ -3535,7 +3007,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaProviderLocal_DetermineGroupCanBeDeleted_Unsafe(
     HANDLE hDb,
