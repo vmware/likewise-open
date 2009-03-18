@@ -111,7 +111,7 @@ SamDbFreeAttributeValues(
     {
         PATTRIBUTE_VALUE pAttrValue = &pAttrValues[iValue];
 
-        if ((pAttrValue->Type == SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING) &&
+        if ((pAttrValue->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) &&
             (pAttrValue->pwszStringValue))
         {
             DirectoryFreeMemory(pAttrValue->pwszStringValue);

@@ -1,35 +1,6 @@
 #ifndef __SAMDB_H__
 #define __SAMDB_H__
 
-#include <lw/rbtree.h>
-#include <sqlite3.h>
-#include <dsprovider.h>
-#include <samdbstructs.h>
-#include <samdbdefs.h>
-
-
-#define SAMDB_ATTR_TAG_USER_NAME            "user-name"
-#define SAMDB_ATTR_TAG_USER_FULLNAME        "user-full-name"
-#define SAMDB_ATTR_TAG_UID                  "uid"
-#define SAMDB_ATTR_TAG_USER_SID             "user-sid"
-#define SAMDB_ATTR_TAG_USER_PASSWORD        "user-password"
-#define SAMDB_ATTR_TAG_GECOS                "user-gecos"
-#define SAMDB_ATTR_TAG_USER_PRIMARY_GROUP   "user-primary-group"
-#define SAMDB_ATTR_TAG_HOMEDIR              "user-home-directory"
-#define SAMDB_ATTR_TAG_PASSWORD_CHANGE_TIME "user-password-change-time"
-#define SAMDB_ATTR_TAG_ACCOUNT_EXPIRY       "user-account-expiry"
-#define SAMDB_ATTR_TAG_USER_INFO_FLAGS      "user-info-flags"
-#define SAMDB_ATTR_TAG_USER_LM_HASH         "user-lm-hash"
-#define SAMDB_ATTR_TAG_USER_NT_HASH         "user-nt-hash"
-#define SAMDB_ATTR_TAG_GROUP_NAME           "group-name"
-#define SAMDB_ATTR_TAG_GID                  "gid"
-#define SAMDB_ATTR_TAG_GROUP_SID            "group-sid"
-#define SAMDB_ATTR_TAG_GROUP_PASSWORD       "group-password"
-#define SAMDB_ATTR_TAG_GROUP_MEMBERS        "group-members"
-#define SAMDB_ATTR_TAG_DOMAIN_NAME          "domain-name"
-#define SAMDB_ATTR_TAG_DOMAIN_SID           "domain-sid"
-#define SAMDB_ATTR_TAG_DOMAIN_NETBIOS_NAME  "domain-netbios-name"
-
 typedef enum
 {
     SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME = 1,

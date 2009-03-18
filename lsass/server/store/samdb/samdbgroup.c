@@ -98,33 +98,33 @@ SamDbAddGroupAttrLookups(
     DWORD dwError = 0;
     struct {
         PSTR pszAttrName;
-        SAMDB_ATTRIBUTE_TYPE attrType;
+        DIRECTORY_ATTR_TYPE attrType;
         BOOL bIsMandatory;
     } groupAttrs[] =
     {
         {
-            SAMDB_ATTR_TAG_GROUP_NAME,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_GROUP_NAME,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_GID,
-            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            DIRECTORY_ATTR_TAG_GID,
+            DIRECTORY_ATTR_TYPE_INTEGER,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_GROUP_SID,
-            SAMDB_ATTRIBUTE_TYPE_SID,
+            DIRECTORY_ATTR_TAG_GROUP_SID,
+            DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_GROUP_PASSWORD,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_GROUP_PASSWORD,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_GROUP_MEMBERS,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_GROUP_MEMBERS,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             FALSE
         }
     };

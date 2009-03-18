@@ -153,73 +153,73 @@ SamDbAddUserAttrLookups(
     DWORD dwError = 0;
     struct {
         PSTR pszAttrName;
-        SAMDB_ATTRIBUTE_TYPE attrType;
+        DIRECTORY_ATTR_TYPE attrType;
         BOOL bIsMandatory;
     } userAttrs[] =
     {
         {
-            SAMDB_ATTR_TAG_USER_NAME,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_USER_NAME,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_USER_FULLNAME,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_USER_FULLNAME,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_UID,
-            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            DIRECTORY_ATTR_TAG_UID,
+            DIRECTORY_ATTR_TYPE_INTEGER,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_USER_SID,
-            SAMDB_ATTRIBUTE_TYPE_SID,
+            DIRECTORY_ATTR_TAG_USER_SID,
+            DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_USER_PRIMARY_GROUP,
-            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP,
+            DIRECTORY_ATTR_TYPE_INTEGER,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_USER_PASSWORD,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_USER_PASSWORD,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_GECOS,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_GECOS,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_HOMEDIR,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_HOMEDIR,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_PASSWORD_CHANGE_TIME,
-            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME,
+            DIRECTORY_ATTR_TYPE_INTEGER,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_ACCOUNT_EXPIRY,
-            SAMDB_ATTRIBUTE_TYPE_DATETIME,
+            DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY,
+            DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_USER_INFO_FLAGS,
-            SAMDB_ATTRIBUTE_TYPE_ULONG,
+            DIRECTORY_ATTR_TAG_USER_INFO_FLAGS,
+            DIRECTORY_ATTR_TYPE_INTEGER,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_USER_LM_HASH,
-            SAMDB_ATTRIBUTE_TYPE_OCTET_STREAM,
+            DIRECTORY_ATTR_TAG_USER_LM_HASH,
+            DIRECTORY_ATTR_TYPE_OCTET_STREAM,
             FALSE
         },
         {
-            SAMDB_ATTR_TAG_USER_NT_HASH,
-            SAMDB_ATTRIBUTE_TYPE_OCTET_STREAM,
+            DIRECTORY_ATTR_TAG_USER_NT_HASH,
+            DIRECTORY_ATTR_TYPE_OCTET_STREAM,
             FALSE
         }
     };

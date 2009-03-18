@@ -133,26 +133,26 @@ SamDbAddDomainAttrLookups(
     DWORD dwError = 0;
     struct {
         PSTR pszAttrName;
-        SAMDB_ATTRIBUTE_TYPE      attrType;
+        DIRECTORY_ATTR_TYPE      attrType;
         SAMDB_DOMAIN_TABLE_COLUMN colType;
         BOOL bIsMandatory;
     } domainAttrs[] =
     {
         {
-            SAMDB_ATTR_TAG_DOMAIN_NAME,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_DOMAIN_NAME,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_DOMAIN_SID,
-            SAMDB_ATTRIBUTE_TYPE_SID,
+            DIRECTORY_ATTR_TAG_DOMAIN_SID,
+            DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
             SAMDB_DOMAIN_TABLE_COLUMN_MACHINE_SID,
             TRUE
         },
         {
-            SAMDB_ATTR_TAG_DOMAIN_NETBIOS_NAME,
-            SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING,
+            DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_NETBIOS_NAME,
             TRUE
         }
@@ -255,7 +255,7 @@ SamDbAddDomain(
                 }
 
                 pAttrValue = &Modifications[iMod].pAttributeValues[0];
-                if (pAttrValue->Type != SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING)
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
@@ -278,7 +278,7 @@ SamDbAddDomain(
                 }
 
                 pAttrValue = &Modifications[iMod].pAttributeValues[0];
-                if (pAttrValue->Type != SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING)
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);

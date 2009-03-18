@@ -34,9 +34,9 @@
 #include <sqlite3.h>
 #include <uuid/uuid.h>
 
+#include <lw/base.h>
+
 #include "lsa/lsa.h"
-#include <lw/ntstatus.h>
-#include <lw/rbtree.h>
 
 #include "lsadef.h"
 #include "lsautils.h"

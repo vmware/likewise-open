@@ -1,21 +1,6 @@
 #ifndef __SAMDBSTRUCTS_H__
 #define __SAMDBSTRUCTS_H__
 
-typedef enum
-{
-    SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING = 1,
-    SAMDB_ATTRIBUTE_TYPE_ANSI_STRING,
-    SAMDB_ATTRIBUTE_TYPE_SID,
-    SAMDB_ATTRIBUTE_TYPE_USHORT,
-    SAMDB_ATTRIBUTE_TYPE_SHORT,
-    SAMDB_ATTRIBUTE_TYPE_ULONG,
-    SAMDB_ATTRIBUTE_TYPE_LONG,
-    SAMDB_ATTRIBUTE_TYPE_ULONG64,
-    SAMDB_ATTRIBUTE_TYPE_LONG64,
-    SAMDB_ATTRIBUTE_TYPE_DATETIME,
-    SAMDB_ATTRIBUTE_TYPE_OCTET_STREAM
-} SAMDB_ATTRIBUTE_TYPE;
-
 typedef struct _SAMDB_INTERLOCKED_COUNTER
 {
     pthread_mutex_t  mutex;
@@ -35,10 +20,10 @@ typedef struct _SAM_DB_INSTANCE_LOCK
 
 typedef struct _SAMDB_ATTRIBUTE_LOOKUP_ENTRY
 {
-    PWSTR                pwszAttributeName;
-    SAMDB_ATTRIBUTE_TYPE attrType;
-    DWORD                dwId;
-    BOOLEAN              bIsMandatory;
+    PWSTR               pwszAttributeName;
+    DIRECTORY_ATTR_TYPE attrType;
+    DWORD               dwId;
+    BOOLEAN             bIsMandatory;
 
 } SAMDB_ATTRIBUTE_LOOKUP_ENTRY, *PSAMDB_ATTRIBUTE_LOOKUP_ENTRY;
 

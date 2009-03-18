@@ -306,24 +306,24 @@ SamDbAddLocalDomain(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
-                    SAMDB_ATTR_TAG_DOMAIN_SID,
+                    DIRECTORY_ATTR_TAG_DOMAIN_SID,
                     &mods[0].pwszAttributeName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     mods[0].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[0].ulNumValues = 1;
-    avMachineSID.Type = SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING;
+    avMachineSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avMachineSID.pwszStringValue = pwszMachineSID;
     mods[0].pAttributeValues = &avMachineSID;
 
     dwError = LsaMbsToWc16s(
-                    SAMDB_ATTR_TAG_DOMAIN_NETBIOS_NAME,
+                    DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME,
                     &mods[1].pwszAttributeName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     mods[1].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[1].ulNumValues = 1;
-    avNetBIOSName.Type = SAMDB_ATTRIBUTE_TYPE_UNICODE_STRING;
+    avNetBIOSName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avNetBIOSName.pwszStringValue = pwszNetBIOSName;
     mods[1].pAttributeValues = &avNetBIOSName;
 
