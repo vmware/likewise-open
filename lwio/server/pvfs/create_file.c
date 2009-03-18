@@ -848,6 +848,14 @@ PvfsCreateFileOverwriteIf(
                                            pszRelativeFilename);
         BAIL_ON_NT_STATUS(ntError);
 
+        /* Need a new share mode anyways */
+
+        ntError = PvfsCheckShareMode(pszDiskFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess,
+                                     &pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsAccessCheckDir(pSecCtx,
                                      pszDiskDirname,
                                      Args.DesiredAccess,
