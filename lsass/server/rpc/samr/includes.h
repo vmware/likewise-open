@@ -53,7 +53,7 @@
 
 #include <lsa/lsa.h>
 #include <lsarpcsrv.h>
-#include <svcctl-register.h>
+#include <rpcctl-register.h>
 
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>

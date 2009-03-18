@@ -10,7 +10,7 @@
 #include <lsa/lsa.h>
 #include <lsarpcsrv.h>
 
-#include "svcctl-register.h"
+#include "rpcctl-register.h"
 #include "externs.h"
 
 

@@ -21,7 +21,7 @@ RpcSvcBindRpcInterface(
     rpc_binding_vector_p_t pSrvBinding,
     rpc_if_handle_t SrvInterface,
     PENDPOINT pEndPoints,
-    PSTR pszSrvDescription
+    PCSTR pszSrvDescription
     );
 
 
