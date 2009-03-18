@@ -99,25 +99,4 @@ SamDbInterlockedCounter(
     return dwCounter;
 }
 
-VOID
-SamDbFreeAttributeValues(
-    PATTRIBUTE_VALUE pAttrValues,
-    DWORD            dwNumValues
-    )
-{
-    DWORD iValue = 0;
-
-    for (; iValue < dwNumValues; iValue++)
-    {
-        PATTRIBUTE_VALUE pAttrValue = &pAttrValues[iValue];
-
-        if ((pAttrValue->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) &&
-            (pAttrValue->pwszStringValue))
-        {
-            DirectoryFreeMemory(pAttrValue->pwszStringValue);
-        }
-    }
-
-    DirectoryFreeMemory(pAttrValues);
-}
 

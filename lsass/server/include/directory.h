@@ -43,6 +43,7 @@ typedef struct _ATTRIBUTE_VALUE {
     union {
         ULONG uLongValue;
         PWSTR pwszStringValue;
+        PSTR  pszStringValue;
         BOOL  bBooleanValue;
         POCTET_STRING pOctetString;
     };
@@ -151,6 +152,12 @@ DWORD
 DirectoryDeleteObject(
     HANDLE hBindHandle,
     PWSTR ObjectDN
+    );
+
+VOID
+DirectoryFreeAttributeValues(
+    PATTRIBUTE_VALUE pAttrValues,
+    DWORD            dwNumValues
     );
 
 #endif /* __DIRECTORY_H__ */

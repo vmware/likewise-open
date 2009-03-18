@@ -2,6 +2,7 @@ provider_LTLIBRARIES = libdsapi.la
 
 libdsapi_la_SOURCES = \
         diradd.c    \
+        dirattr.c   \
         dirbind.c   \
         dirclose.c  \
         dirdel.c    \

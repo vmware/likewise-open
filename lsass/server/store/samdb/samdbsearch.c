@@ -226,7 +226,7 @@ error:
 
     if (pDirectoryValues)
     {
-        SamDbFreeAttributeValues(pDirectoryValues, dwNumAttrs);
+        DirectoryFreeAttributeValues(pDirectoryValues, dwNumAttrs);
     }
 
     goto cleanup;
