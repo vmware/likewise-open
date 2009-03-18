@@ -36,12 +36,14 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <pthread.h>
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <lwrpc/allocate.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 
@@ -51,6 +53,8 @@
 
 #include "lsa_srv.h"
 #include "lsadefs.h"
+#include "lsa_contexthandle.h"
+#include "lsa_memory.h"
 #include "lsa.h"
 #include "lsa_h.h"
 

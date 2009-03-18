@@ -45,14 +45,20 @@ LsaInitializeRpcSrv(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
-    pthread_mutex_init(&gLsaDataMutex, NULL);
+    pthread_mutex_init(&gLsaSrvDataMutex, NULL);
+
+    status = LsaSrvInitMemory();
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = RpcSvcRegisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
     *ppFnTable      = &gLsaRpcFuncTable;
+
+    bLsaSrvInitialised = TRUE;
 
 error:
     return dwError;
@@ -66,9 +72,17 @@ LsaShutdownRpcSrv(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcUnregisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
+
+    status = LsaSrvDestroyMemory();
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pthread_mutex_destroy(&gLsaSrvDataMutex);
+
+    bLsaSrvInitialised = FALSE;
 
 error:
     return dwError;
@@ -81,12 +95,12 @@ LsaRpcStartServer(
     )
 {
     PCSTR pszDescription = "Local Security Authority";
-    const ENDPOINT EndPoints[] = {
+
+    ENDPOINT EndPoints[] = {
         { "ncacn_np",      "\\\\pipe\\\\lsarpc" },
         { "ncacn_ip_tcp",  NULL },
         { NULL,            NULL }
     };
-
     DWORD dwError = 0;
 
     dwError = RpcSvcBindRpcInterface(gpLsaSrvBinding,
