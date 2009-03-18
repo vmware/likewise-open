@@ -9,10 +9,21 @@ enum SamrContextType {
 };
 
 
+typedef struct samr_generic_context {
+    enum SamrContextType    Type;
+} GENERIC_CONTEXT, *PGENERIC_CONTEXT;
+
+
 typedef struct samr_connect_context {
     enum SamrContextType    Type;
     PACCESS_TOKEN           pUserToken;
 } CONNECT_CONTEXT, *PCONNECT_CONTEXT;
+
+
+void
+CONNECT_HANDLE_rundown(
+    void *hContext
+    );
 
 
 #endif /* _SAMR_CONTEXT_HANDLE_H_ */

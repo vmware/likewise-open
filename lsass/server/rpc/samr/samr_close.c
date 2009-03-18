@@ -44,8 +44,38 @@ SamrSrvClose(
     /* [out, context_handle] */ void **hOut
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PGENERIC_CONTEXT pContext = NULL;
+
+    pContext = (PGENERIC_CONTEXT)hIn;
+
+    switch (pContext->Type) {
+    case SamrContextConnect:
+        CONNECT_HANDLE_rundown(hIn);
+        break;
+
+    case SamrContextDomain:
+        break;
+
+    case SamrContextAccount:
+        break;
+
+    default:
+        /* Something is seriously wrong if we get a context
+           we haven't created */
+        status = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    *hOut = NULL;
+
+cleanup:
     return status;
+
+error:
+    *hOut = hIn;
+    goto cleanup;
 }
 
 
