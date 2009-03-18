@@ -102,6 +102,7 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
     BOOLEAN bScanned;
     DWORD dwIndex;
     DWORD dwNumEntries;
+    ULONG ulAllocated;
     PPVFS_DIRECTORY_ENTRY pDirEntries;
 
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;

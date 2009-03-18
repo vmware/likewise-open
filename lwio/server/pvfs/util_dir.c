@@ -74,7 +74,7 @@ PvfsFreeDirectoryContext(
 
     for (i=0; i<pDirCtx->dwNumEntries; i++)
     {
-        PVFS_SAFE_FREE_MEMORY(pDirCtx->pDirEntries[i].pszFilename);
+        RtlCStringFree(&pDirCtx->pDirEntries[i].pszFilename);
     }
 
 
@@ -97,9 +97,14 @@ PvfsDirContextAddEntry(
     DWORD dwCurrent = 0;
     PPVFS_DIRECTORY_ENTRY pList = NULL;
 
-    ntError = PvfsReallocateMemory((PVOID*)&pDirCtx->pDirEntries,
-                                   sizeof(PVFS_DIRECTORY_ENTRY)*(pDirCtx->dwNumEntries+1));
-    BAIL_ON_NT_STATUS(ntError);
+    if ((pDirCtx->ulAllocated == 0) ||
+        ((pDirCtx->dwNumEntries+1) == pDirCtx->ulAllocated))
+    {
+        pDirCtx->ulAllocated += 256;
+        ntError = PvfsReallocateMemory((PVOID*)&pDirCtx->pDirEntries,
+                                       sizeof(PVFS_DIRECTORY_ENTRY)*pDirCtx->ulAllocated);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     dwCurrent = pDirCtx->dwNumEntries;
     pList = pDirCtx->pDirEntries;
@@ -223,7 +228,7 @@ PvfsEnumerateDirectory(
     }
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pszPattern);
+    RtlCStringFree(&pszPattern);
 
     return ntError;
 
