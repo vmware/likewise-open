@@ -44,12 +44,13 @@
 //Character indices to use in PRINT_TABLE option.
 //This allows printing a user-readable table to stdout that 80 characters wide.
 #define TABLOC_ID 0
-#define TABLOC_TYPE     (TABLOC_ID+7)
-#define TABLOC_DATE     (TABLOC_TYPE+20)
-#define TABLOC_TIME     (TABLOC_DATE+16)
-#define TABLOC_SOURCE   (TABLOC_TIME+14)
-#define TABLOC_CATEGORY (TABLOC_SOURCE+25)
-#define TABLOC_DATA     (TABLOC_CATEGORY+16)
+#define TABLOC_TYPE      (TABLOC_ID+8)
+#define TABLOC_DATE      (TABLOC_TYPE+16)
+#define TABLOC_TIME      (TABLOC_DATE+13)
+#define TABLOC_SOURCE    (TABLOC_TIME+14)
+#define TABLOC_CATEGORY  (TABLOC_SOURCE+20)
+#define TABLOC_SOURCE_ID (TABLOC_CATEGORY+25)
+#define TABLOC_USER      (TABLOC_SOURCE_ID+10)
 #define TABLOC_BORDER " | "
 
 //
@@ -68,6 +69,7 @@ typedef enum
     EVENT_USER, //7
     EVENT_COMPUTER, //8
     EVENT_DESCRIPTION, //9
+    EVENT_DATA, //10
     EVENT_FIELD_TYPE_SENTINEL
 } EventFieldType;
 
@@ -432,19 +434,19 @@ ExportEventRecord (
     if (pRecord == NULL) return -1;
     if (fpExport == NULL) return -1;
 
-    //CSV fields: Type,Date,Time,Source,Category,SourceID,User,Computer,Description
+    //CSV fields: Type,Date,Time,Source,Category,SourceID,User,Computer,Description,Data
 
     time_t eventTimeStruct = (time_t) pRecord->dwEventDateTime;
 
     strftime(eventDate, 255, "%F", localtime(&eventTimeStruct));
     strftime(eventTime, 255, "%r", localtime(&eventTimeStruct));
 
-    fprintf(fpExport, "%s,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\", \"%s\"\n",
+    fprintf(fpExport, "%s,%s,%s,%s,%s,%s,%d,%s,%s,\"%s\",\"%s\"\n",
         IsNullOrEmptyString(pRecord->pszEventTableCategoryId) ? "<null>" : (PSTR)pRecord->pszEventTableCategoryId,
         eventDate, //PSTR
         eventTime, //PSTR
         IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventSource,
-        IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventType,
+        IsNullOrEmptyString(pRecord->pszEventType) ? "<null>" : (PSTR)pRecord->pszEventType,
         IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventCategory,
         pRecord->dwEventSourceId, //DWORD
         IsNullOrEmptyString(pRecord->pszUser) ? "<null>" : (PSTR)pRecord->pszUser,
@@ -503,17 +505,19 @@ PrintEventRecordTableRow (
     sprintf(buf+TABLOC_CATEGORY, "%s%s", TABLOC_BORDER,
         IsNullOrEmptyString(pRecord->pszEventCategory) ? "<null>" : (PSTR)pRecord->pszEventCategory);
     
-    sprintf(buf+TABLOC_DATA, "%s%s", TABLOC_BORDER,
-        IsNullOrEmptyString(pRecord->pszData) ? "<null>" : (PSTR)pRecord->pszData);
-            
+    sprintf(buf+TABLOC_SOURCE_ID, "%s%d", TABLOC_BORDER,
+        pRecord->dwEventSourceId);
 
-    for (i = 0; i <= TABLOC_DATA; i++) {
+    sprintf(buf+TABLOC_USER, "%s%s", TABLOC_BORDER,
+        IsNullOrEmptyString(pRecord->pszUser) ? "<null>" : (PSTR)pRecord->pszUser);
+
+    for (i = 0; i <= TABLOC_USER; i++)
+    {
         if (buf[i] == (char)0)
         {
             buf[i] = ' ';
         }
     }
-
 
     fprintf(fp, "%s\n", buf);
 
@@ -717,11 +721,11 @@ ParseAndAddEvents(
                 }
 
                 /* Sometimes the description field has newlines
-                * Sometimes, the value is quoted.
-                * If it was quoted, we would receive it as a quoted
-                * string - otherwise, we have to concatenate any
-                * remaining tokens until we get to a date.
-                */
+                 * Sometimes, the value is quoted.
+                 * If it was quoted, we would receive it as a quoted
+                 * string - otherwise, we have to concatenate any
+                 * remaining tokens until we get to a date.
+                 */
                 while (eventToken.dwToken != TOKEN_EOF) {
                     dwError = GetNextToken(pLexerState, &eventToken);
                     BAIL_ON_EVT_ERROR(dwError);
@@ -759,6 +763,59 @@ ParseAndAddEvents(
                 EVT_LOG_VERBOSE("Event Description: %s",
                         IsNullOrEmptyString((PSTR)pEventRecord->pszDescription) ?
                         NULL_STR : (PSTR)pEventRecord->pszDescription);
+                break;
+            }  //end case EventDescription
+            case EVENT_DATA:
+            {
+                if (!IsNullOrEmptyString(eventToken.szToken)) {
+                    dwError = EVTAllocateString( eventToken.szToken,
+                                                 (PSTR*)&pEventRecord->pszData);
+                    BAIL_ON_EVT_ERROR(dwError);
+                }
+
+                /* Sometimes the data field has newlines
+                 * Sometimes, the value is quoted.
+                 * If it was quoted, we would receive it as a quoted
+                 * string - otherwise, we have to concatenate any
+                 * remaining tokens until we get to a date.
+                 */
+                while (eventToken.dwToken != TOKEN_EOF) {
+                    dwError = GetNextToken(pLexerState, &eventToken);
+                    BAIL_ON_EVT_ERROR(dwError);
+
+                    if (!bEventTableCategoryIdInCSV &&
+                        IsDate(eventToken.szToken)) {
+                        PushbackToken(pLexerState, &eventToken);
+                        break;
+                    }
+                    if (bEventTableCategoryIdInCSV &&
+                        strlen(eventToken.szToken) == 1 &&
+                        isdigit((int)eventToken.szToken[0]) &&
+                        atoi(eventToken.szToken) >= 0 ) {
+                        PushbackToken(pLexerState, &eventToken);
+                        break;
+                    }
+
+                    if (IsNullOrEmptyString(eventToken.szToken)) {
+                        continue;
+                    }
+
+                    if (IsNullOrEmptyString(pEventRecord->pszData)) {
+                        dwError = EVTAllocateString(eventToken.szToken, (PSTR*)&pEventRecord->pszData);
+                        BAIL_ON_EVT_ERROR(dwError);
+                    }
+                    else {
+                        dwError = EVTReallocMemory(pEventRecord->pszData,
+                                    (PVOID*)&pEventRecord->pszData,
+                                    strlen(pEventRecord->pszData) + strlen(eventToken.szToken)+1);
+                        BAIL_ON_EVT_ERROR(dwError);
+
+                        strcat(pEventRecord->pszData, eventToken.szToken);
+                    }
+                }
+                EVT_LOG_VERBOSE("Event Data: %s",
+                        IsNullOrEmptyString((PSTR)pEventRecord->pszData) ?
+                        NULL_STR : (PSTR)pEventRecord->pszData);
 
                 iToken = 0;
 
@@ -767,7 +824,7 @@ ParseAndAddEvents(
                 rowCounter++;
 
                 break;
-            }  //end case EventDescription
+            }  //end case EventData
 
 
         } //end switch
@@ -833,7 +890,7 @@ PrintEventRecords(
     printf("Event Record: (%d/%d) (%d total)\n", iRecord+1, nRecords, ++totalRecordsLocal);
     printf("========================================\n");
     printf("Event Record ID......... %d\n", pRecord->dwEventRecordId);
-    printf("Event Table Category.............. %s\n",
+    printf("Event Table Category.... %s\n",
             IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (char*) (pRecord->pszEventTableCategoryId));
     printf("Event Type.............. %s\n",
             IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (char*) (pRecord->pszEventType));
@@ -850,6 +907,8 @@ PrintEventRecords(
             IsNullOrEmptyString(pRecord->pszComputer) ? "<null>" : (char*) (pRecord->pszComputer));
     printf("Event Description....... %s\n",
             IsNullOrEmptyString(pRecord->pszDescription) ? "<null>" : (char*) (pRecord->pszDescription));
+    printf("Event Data.............. %s\n",
+            IsNullOrEmptyString(pRecord->pszData) ? "<null>" : (char*) (pRecord->pszData));
     printf("========================================\n");
 
     }
@@ -883,21 +942,24 @@ PrintEventRecordsTable(
     sprintf(buf+TABLOC_TIME,     "%sTime", TABLOC_BORDER);
     sprintf(buf+TABLOC_SOURCE,   "%sSource", TABLOC_BORDER);
     sprintf(buf+TABLOC_CATEGORY, "%sCategory", TABLOC_BORDER);
-    sprintf(buf+TABLOC_DATA,     "%sData", TABLOC_BORDER);
+    sprintf(buf+TABLOC_SOURCE_ID,"%sEvent", TABLOC_BORDER);
+    sprintf(buf+TABLOC_USER,"%sUser", TABLOC_BORDER);
 
-    for (i = 0; i <= TABLOC_DATA; i++) {
-    if (buf[i] == (char)0) {
-        buf[i] = ' ';
+    for (i = 0; i <= TABLOC_USER; i++)
+    {
+        if (buf[i] == (char)0)
+        {
+            buf[i] = ' ';
+        }
     }
-    }
-
 
     fprintf(output, "%s\n", buf);
 
-    for (i = 0; i < nRecords; i++) {
-    dwError = PrintEventRecordTableRow(&(eventRecords[i]), output);
-    BAIL_ON_EVT_ERROR(dwError);
-    totalRecordsLocal++;
+    for (i = 0; i < nRecords; i++)
+    {
+        dwError = PrintEventRecordTableRow(&(eventRecords[i]), output);
+        BAIL_ON_EVT_ERROR(dwError);
+        totalRecordsLocal++;
     }
 
 
@@ -946,7 +1008,8 @@ ReadAndExportEvents(
     fprintf(fpExport, "EventSourceId,");
     fprintf(fpExport, "User,");
     fprintf(fpExport, "Computer,");
-    fprintf(fpExport, "Description\n");
+    fprintf(fpExport, "Description,");
+    fprintf(fpExport, "Data\n");
 
 
     do
