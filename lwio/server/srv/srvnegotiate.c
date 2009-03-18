@@ -299,10 +299,10 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
                 COM_NEGOTIATE,
                 0,
                 TRUE,
-                0,
                 pSmbRequest->pSMBHeader->tid,
                 pSmbRequest->pSMBHeader->pid,
                 0,
+                pSmbRequest->pSMBHeader->mid,
                 FALSE,
                 pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
