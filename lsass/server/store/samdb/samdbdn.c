@@ -54,14 +54,18 @@ SamDbParseDN(
 {
     DWORD dwError = 0;
     wchar16_t wszUsersToken[sizeof(USERS_TOKEN)];
-    DWORD dwLenUsersToken = sizeof(USERS_TOKEN) - 1;
     wchar16_t wszGroupsToken[sizeof(GROUPS_TOKEN)];
-    DWORD dwLenGroupsToken = sizeof(GROUPS_TOKEN) - 1;
     wchar16_t wszDot[2];
+    PWSTR pwszObjectNameCursor = NULL;
     PWSTR pwszObjectName = NULL;
     PWSTR pwszDomain = NULL;
     PWSTR pwszDomainCursor = NULL;
+#if 0
+    /* ifdef-ed to fix errors caused by unused variables */
+    DWORD dwLenGroupsToken = sizeof(GROUPS_TOKEN) - 1;
+    DWORD dwLenUsersToken = sizeof(USERS_TOKEN) - 1;
     DWORD dwDomainLen = 0;
+#endif
     DWORD dwDomainOffset = 0;
     DWORD dwDomainLenAllocated = 0;
     DWORD dwDomainLenAvailable = 0;
@@ -79,7 +83,8 @@ SamDbParseDN(
     wcstowc16s(wszGroupsToken, GROUPS_TOKEN_L, sizeof(wszGroupsToken));
     wcstowc16s(wszDot, L".", 1);
 
-    dwAvailableLen = wc16slen(pwszObjectNameCursor);
+    dwAvailableLen = wc16slen(pwszObjectDN);
+    pwszObjectNameCursor = pwszObjectDN;
 
     do
     {
@@ -169,7 +174,7 @@ SamDbParseDN(
 
                     dwError = LsaReallocMemory(
                                     pwszDomain,
-                                    &pwszDomain,
+                                    (PVOID*)&pwszDomain,
                                     dwNewLen * sizeof(wchar16_t));
                     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -184,7 +189,7 @@ SamDbParseDN(
 
                 if (dwDomainOffset)
                 {
-                    *pwszDomainCursor++ = wszDot;
+                    *pwszDomainCursor++ = wszDot[0];
                     dwDomainOffset++;
                     dwDomainLenAvailable--;
                 }
@@ -299,7 +304,7 @@ SamDbGetDnToken(
         dwLenUsed++;
     }
 
-    if (dwAvailableLen && *pwszObjectNameCursor == wszComma)
+    if (dwAvailableLen && (*pwszObjectNameCursor) == wszComma[0])
     {
         dwLenUsed++;
     }
@@ -313,7 +318,7 @@ cleanup:
 
 error:
 
-    *pDnToken = NULL;
+    memset(pDnToken, 0, sizeof(*pDnToken));
     *pdwLenUsed = 0;
 
     goto cleanup;

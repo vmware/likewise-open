@@ -16,6 +16,7 @@ libsamdb_la_SOURCES =     \
         samdbopen.c       \
         samdbsearch.c     \
         samdbattrlookup.c \
+        samdbdn.c         \
         samdbuser.c
 
 libsamdb_la_CPPFLAGS = \
