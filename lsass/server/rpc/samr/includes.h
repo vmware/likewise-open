@@ -36,6 +36,7 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <pthread.h>
 
 #include <dce/rpc.h>
@@ -58,6 +59,7 @@
 #include <secdesc/sectypes.h>
 #include "samrdefs.h"
 #include "samr_contexthandle.h"
+#include "samr_memory.h"
 #include "samr.h"
 #include "samr_h.h"
 
