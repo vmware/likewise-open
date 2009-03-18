@@ -130,12 +130,8 @@ PvfsFreeFCB(
     PPVFS_FCB pFcb
     )
 {
-    if (pFcb->pszFilename) {
-        RtlCStringFree(&pFcb->pszFilename);
-    }
-
+    RtlCStringFree(&pFcb->pszFilename);
     pthread_mutex_destroy(&pFcb->ControlBlock);
-
     PvfsFreeMemory(pFcb);
 
     return STATUS_SUCCESS;
