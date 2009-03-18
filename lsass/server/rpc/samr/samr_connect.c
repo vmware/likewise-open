@@ -53,6 +53,8 @@ NTSTATUS SamrSrvConnect(
                                    NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    pConn->Type = SamrContextConnect;
+
     *hConn = (CONNECT_HANDLE)pConn;
 
 cleanup:

@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS SamrSrvConnect2(
+NTSTATUS
+SamrSrvConnect2(
     /* [in] */ handle_t hBinding,
     /* [in] */ uint32 size,
     /* [in] */ const wchar16_t *system_name,
@@ -53,6 +54,8 @@ NTSTATUS SamrSrvConnect2(
                                    sizeof(*pConn),
                                    NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
+
+    pConn->Type = SamrContextConnect;
 
     *hConn = (CONNECT_HANDLE)pConn;
 
