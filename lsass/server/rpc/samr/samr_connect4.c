@@ -45,12 +45,26 @@ SamrConnect4(
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PCONNECT_CONTEXT pConn = NULL;
+
+    status = SamrSrvAllocateMemory((void**)&pConn,
+                                   sizeof(*pConn),
+                                   NULL);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *hConn = (CONNECT_HANDLE)pConn;
 
 cleanup:
     return status;
 
 error:
+    if (pConn) {
+        SamrSrvFreeMemory(pConn);
+    }
+
+    *hConn = NULL;
     goto cleanup;
 }
 
