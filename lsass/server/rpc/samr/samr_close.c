@@ -37,19 +37,15 @@
 #include "includes.h"
 
 
-NTSTATUS SamrSrvClose(
+NTSTATUS
+SamrSrvClose(
     /* [in] */ handle_t hBinding,
     /* [in, context_handle] */ void *hIn,
     /* [out, context_handle] */ void **hOut
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 

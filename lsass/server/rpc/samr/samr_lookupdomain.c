@@ -45,12 +45,7 @@ NTSTATUS SamrSrvLookupDomain(
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 

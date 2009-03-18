@@ -49,7 +49,9 @@ NTSTATUS SamrSrvConnect2(
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConn = NULL;
 
-    status = SamrSrvAllocateMemory(&pConn, sizeof(*pConn), NULL);
+    status = SamrSrvAllocateMemory((void**)&pConn,
+                                   sizeof(*pConn),
+                                   NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *hConn = (CONNECT_HANDLE)pConn;

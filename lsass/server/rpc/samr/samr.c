@@ -550,6 +550,8 @@ NTSTATUS __SamrGetUserPwInfo(
     /* [out] */ PwInfo *info
     )
 {
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
 }
 
 
