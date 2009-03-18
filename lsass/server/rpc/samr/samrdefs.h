@@ -1,5 +1,5 @@
-#ifndef _SAMRDEFS_H_
-#define _SAMRDEFS_H_
+#ifndef _SAMRSRVDEFS_H_
+#define _SAMRSRVDEFS_H_
 
 #ifdef _DCE_IDL_
 typedef [context_handle] void* CONNECT_HANDLE;
@@ -56,7 +56,7 @@ typedef void* CONNECT_HANDLE;
 
 
 
-#endif /* _SAMRDEFS_H_ */
+#endif /* _SAMRSRVDEFS_H_ */
 
 
 /*
