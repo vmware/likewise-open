@@ -1,6 +1,12 @@
 #include "includes.h"
 
 static
+VOID
+SamDbFreeAttributeLookup(
+    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
+    );
+
+static
 int
 SamDbCompareAttributeLookupKeys(
     PVOID pKey1,
@@ -10,14 +16,7 @@ SamDbCompareAttributeLookupKeys(
 static
 VOID
 SamDbFreeAttributeLookupData(
-    PVOID pData,
-    PVOID pUserData
-    );
-
-static
-VOID
-SamDbFreeAttributeLookupEntry(
-    PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pLookupEntry
+    PVOID pData
     );
 
 DWORD
@@ -128,8 +127,7 @@ SamDbCompareAttributeLookupKeys(
 static
 VOID
 SamDbFreeAttributeLookupData(
-    PVOID pData,
-    PVOID pUserData
+    PVOID pData
     )
 {
     SamDbFreeAttributeLookupEntry((PSAMDB_ATTRIBUTE_LOOKUP_ENTRY)pData);
@@ -140,10 +138,10 @@ SamDbFreeAttributeLookupEntry(
     PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pLookupEntry
     )
 {
-    if (pEntry->pwszAttributeName)
+    if (pLookupEntry->pwszAttributeName)
     {
-        DirectoryFreeMemory(pEntry->pwszAttributeName);
+        DirectoryFreeMemory(pLookupEntry->pwszAttributeName);
     }
 
-    DirectoryFreeMemory(pEntry);
+    DirectoryFreeMemory(pLookupEntry);
 }
