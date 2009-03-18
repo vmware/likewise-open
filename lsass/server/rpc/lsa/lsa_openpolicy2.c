@@ -47,11 +47,25 @@ LsaSrvOpenPolicy2(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PPOLICY_CONTEXT pPol = NULL;
+
+    status = LsaSrvAllocateMemory((void**)&pPol,
+                                  sizeof(*pPol),
+                                  NULL);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *hPolicy = pPol;
 
 cleanup:
     return status;
 
 error:
+    if (pPol) {
+        LsaSrvFreeMemory(pPol);
+    }
+
+    *hPolicy = NULL;
     goto cleanup;
 }
 
