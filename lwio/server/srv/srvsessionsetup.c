@@ -73,7 +73,7 @@ SrvProcessSessionSetup(
 
     ntStatus = SrvMarshallSessionSetupResponse(
                     pConnection,
-		    pSmbRequest,
+                    pSmbRequest,
                     pSmbRequest->pSMBHeader->mid,
                     pSecurityBlob,
                     ulSecurityBlobLength,
@@ -109,6 +109,8 @@ SrvProcessSessionSetup(
         }
 
         pSmbResponse->pSMBHeader->uid = pSession->uid;
+
+        SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_READY);
     }
 
     *ppSmbResponse = pSmbResponse;

@@ -126,6 +126,8 @@ SrvProcessNegotiate(
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_NEGOTIATE);
+
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
@@ -378,6 +380,11 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
             pDataCursor += ulSessionKeyLength;
             byteCount += ulSessionKeyLength;
         }
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pResponseHeader->byteCount = byteCount;

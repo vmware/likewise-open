@@ -231,6 +231,43 @@ SrvWorkerExecute(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
+    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+
+    switch (pContext->pRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
+
+            if (SrvConnectionGetState(pConnection) != SMB_SRV_CONN_STATE_INITIAL)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
+
+            break;
+
+        case COM_SESSION_SETUP_ANDX:
+
+            {
+                SMB_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+
+                if ((connState != SMB_SRV_CONN_STATE_NEGOTIATE) &&
+                    (connState != SMB_SRV_CONN_STATE_READY))
+                {
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+                }
+            }
+
+            break;
+
+        default:
+
+            if (SrvConnectionGetState(pConnection) != SMB_SRV_CONN_STATE_READY)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pContext->pRequest->pSMBHeader->command)
     {

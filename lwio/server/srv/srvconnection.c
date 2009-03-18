@@ -219,6 +219,38 @@ SrvConnectionSetInvalid(
     SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
+SMB_SRV_CONN_STATE
+SrvConnectionGetState(
+    PSMB_SRV_CONNECTION pConnection
+    )
+{
+    SMB_SRV_CONN_STATE connState = SMB_SRV_CONN_STATE_INITIAL;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    connState = pConnection->state;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return connState;
+}
+
+VOID
+SrvConnectionSetState(
+    PSMB_SRV_CONNECTION pConnection,
+    SMB_SRV_CONN_STATE  connState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    pConnection->state = connState;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+}
+
 NTSTATUS
 SrvConnectionReadPacket(
     PSMB_SRV_CONNECTION pConnection,
