@@ -64,7 +64,7 @@ cleanup:
     return dwError;
 
 error:
-    SamrDestroyMemory();
+    SamrSrvDestroyMemory();
 
     goto cleanup;
 }
@@ -100,12 +100,12 @@ SamrRpcStartServer(
     )
 {
     PCSTR pszDescription = "Security Accounts Manager";
-    const ENDPOINT EndPoints[] = {
+
+    ENDPOINT EndPoints[] = {
         { "ncacn_np",      "\\\\pipe\\\\samr" },
         { "ncacn_ip_tcp",  NULL },
         { NULL,            NULL }
     };
-
     DWORD dwError = 0;
 
     dwError = RpcSvcBindRpcInterface(gpSamrSrvBinding,
