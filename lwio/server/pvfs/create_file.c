@@ -237,6 +237,7 @@ PvfsCreateFileSupersede(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
@@ -376,6 +377,7 @@ PvfsCreateFileCreate(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
@@ -488,6 +490,7 @@ PvfsCreateFileOpen(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
@@ -615,6 +618,7 @@ PvfsCreateFileOpenIf(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
@@ -732,6 +736,7 @@ PvfsCreateFileOverwrite(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;
@@ -885,6 +890,7 @@ PvfsCreateFileOverwriteIf(
     /* Save our state */
 
     pCcb->fd = fd;
+    pCcb->ShareFlags = Args.ShareAccess;
     pCcb->AccessGranted = GrantedAccess;
     pCcb->CreateOptions = Args.CreateOptions;
     pCcb->pszFilename = pszDiskFilename;

@@ -48,12 +48,6 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-CheckShareFlagsAndAccess(
-    IN PPVFS_FCB pFcb,
-    IN FILE_SHARE_FLAGS ShareAccess,
-    IN ACCESS_MASK DesiredAccess
-    );
 
 /* Code */
 
@@ -74,9 +68,9 @@ PvfsCheckShareMode(
     ntError = PvfsFindFCB(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
 
-        ntError = CheckShareFlagsAndAccess(pFcb,
-                                           SharedAccess,
-                                           DesiredAccess);
+        ntError = PvfsEnforceShareMode(pFcb,
+                                       SharedAccess,
+                                       DesiredAccess);
         BAIL_ON_NT_STATUS(ntError);
 
         *ppFcb = pFcb;
@@ -90,14 +84,9 @@ PvfsCheckShareMode(
 
     /* If not found, then add one */
 
-    /* LOCK_WRITE_ACCESS(gTable) */
-
-    /* Find and check again */
-
-    ntError = PvfsCreateFCB(&pFcb, pszFilename);
+    ntError = PvfsCreateFCB(&pFcb, pszFilename,
+                            SharedAccess, DesiredAccess);
     BAIL_ON_NT_STATUS(ntError);
-
-    /* UNLOCK_WRITE_ACCESS(gTable) */
 
     *ppFcb = pFcb;
     ntError = STATUS_SUCCESS;
@@ -113,11 +102,12 @@ error:
     goto cleanup;
 }
 
+
 /***********************************************************
  **********************************************************/
 
-static NTSTATUS
-CheckShareFlagsAndAccess(
+NTSTATUS
+PvfsEnforceShareMode(
     IN PPVFS_FCB pFcb,
     IN FILE_SHARE_FLAGS ShareAccess,
     IN ACCESS_MASK DesiredAccess
@@ -125,25 +115,82 @@ CheckShareFlagsAndAccess(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_CCB_LIST_NODE pCursor = NULL;
-    ACCESS_MASK AccessMask = DesiredAccess;
+    BOOLEAN bLocked = FALSE;
 
-    RtlMapGenericMask(&AccessMask, &gPvfsFileGenericMapping);
+    /* If the caller wants exclusive access, fail if we have any
+       open instances already */
+
+    if (ShareAccess == 0) {
+        ntError = pFcb->pCcbList ? STATUS_SUCCESS : STATUS_SHARING_VIOLATION;
+        goto cleanup;
+    }
+
+    RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
     PvfsReaderLockFCB(pFcb);
+    bLocked = TRUE;
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
          pCursor = PvfsNextCCBFromList(pFcb, pCursor))
     {
-        ;
-        ;
+        ACCESS_MASK Mask = pCursor->pCcb->AccessGranted;
+        FILE_SHARE_FLAGS Flags = pCursor->pCcb->ShareFlags;
+
+        /* File was previously opened for exclusive access */
+
+        if (Flags == 0) {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        /* Check incoming Desired Access */
+
+        if ((DesiredAccess & FILE_READ_DATA) && !(Flags & FILE_SHARE_READ))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        if ((DesiredAccess & FILE_WRITE_DATA) && !(Flags & FILE_SHARE_WRITE))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        if ((DesiredAccess & DELETE) && !(Flags & FILE_SHARE_DELETE))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        /* Check incoming File ShareAccess */
+
+        if ((ShareAccess & FILE_SHARE_READ) && (Mask & FILE_WRITE_DATA))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        if ((ShareAccess & FILE_SHARE_WRITE) && (Mask & FILE_READ_DATA))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
+
+        if ((ShareAccess & FILE_SHARE_DELETE) &&
+            (Mask & (DELETE|FILE_READ_DATA|FILE_WRITE_DATA)))
+        {
+            ntError = STATUS_SHARING_VIOLATION;
+            break;
+        }
     }
-
-
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PvfsReaderUnlockFCB(pFcb);
+    if (bLocked) {
+        PvfsReaderUnlockFCB(pFcb);
+    }
 
     return ntError;
 

@@ -78,7 +78,9 @@ PvfsFindFCB(
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename
+    IN  PSTR pszFilename,
+    IN  FILE_SHARE_FLAGS SharedAccess,
+    IN  ACCESS_MASK DesiredAccess
     );
 
 NTSTATUS

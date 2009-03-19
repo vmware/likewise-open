@@ -274,6 +274,13 @@ PvfsCheckShareMode(
     OUT PPVFS_FCB *ppFcb
     );
 
+NTSTATUS
+PvfsEnforceShareMode(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    );
+
 
 #endif /* __PVFS_H__ */
 

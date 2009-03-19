@@ -156,7 +156,7 @@ typedef struct _PVFS_CCB
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
-    FILE_SHARE_FLAGS ShareAccess;
+    FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
 
     /* Handle for Directory enumeraqtion */

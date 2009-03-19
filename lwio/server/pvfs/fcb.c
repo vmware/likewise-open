@@ -269,8 +269,8 @@ PvfsDestroyFCBTable(
 /*******************************************************
  ******************************************************/
 
-NTSTATUS
-PvfsFindFCB(
+static NTSTATUS
+_PvfsFindFCB(
     PPVFS_FCB *ppFcb,
     PSTR pszFilename
     )
@@ -278,10 +278,6 @@ PvfsFindFCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
     LONG NewRefCount = 0;
-
-    ENTER_READER_RW_LOCK(&gFcbTable.rwLock);
-
-    /* LOCK_READ_ACCESS(gTable) */
 
     ntError = LwRtlRBTreeFind(gFcbTable.pFcbTree,
                               (PVOID)pszFilename,
@@ -297,13 +293,30 @@ PvfsFindFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LEAVE_READER_RW_LOCK(&gFcbTable.rwLock);
-
     return ntError;
 
 error:
     goto cleanup;
 }
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsFindFCB(
+    PPVFS_FCB *ppFcb,
+    PSTR pszFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ENTER_READER_RW_LOCK(&gFcbTable.rwLock);
+    ntError = _PvfsFindFCB(ppFcb, pszFilename);
+    LEAVE_READER_RW_LOCK(&gFcbTable.rwLock);
+
+    return ntError;
+}
+
 
 /*******************************************************
  ******************************************************/
@@ -315,11 +328,9 @@ PvfsAddFCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
     ntError = LwRtlRBTreeAdd(gFcbTable.pFcbTree,
                              (PVOID)pFcb->pszFilename,
                              (PVOID)pFcb);
-    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -335,11 +346,30 @@ error:
 NTSTATUS
 PvfsCreateFCB(
     OUT PPVFS_FCB *ppFcb,
-    IN  PSTR pszFilename
+    IN  PSTR pszFilename,
+    IN  FILE_SHARE_FLAGS SharedAccess,
+    IN  ACCESS_MASK DesiredAccess
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
+
+    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
+
+    /* Protect against adding a duplicate */
+
+    ntError = _PvfsFindFCB(&pFcb, pszFilename);
+    if (ntError == STATUS_SUCCESS) {
+
+        ntError = PvfsEnforceShareMode(pFcb,
+                                       SharedAccess,
+                                       DesiredAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        *ppFcb = pFcb;
+
+        goto cleanup;
+    }
 
     ntError = PvfsAllocateFCB(&pFcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -358,9 +388,14 @@ PvfsCreateFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
+
     return ntError;
 
 error:
+    if (pFcb) {
+        PvfsReleaseFCB(pFcb);
+    }
     goto cleanup;
 }
 
