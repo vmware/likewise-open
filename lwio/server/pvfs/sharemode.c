@@ -166,16 +166,22 @@ PvfsEnforceShareMode(
 
         /* Check incoming File ShareAccess */
 
-        if ((ShareAccess & FILE_SHARE_READ) && (Mask & FILE_WRITE_DATA))
+        if (ShareAccess & FILE_SHARE_WRITE)
         {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
+            if ((Mask & FILE_READ_DATA) && !(ShareAccess & FILE_SHARE_READ))
+            {
+                ntError = STATUS_SHARING_VIOLATION;
+                break;
+            }
         }
 
-        if ((ShareAccess & FILE_SHARE_WRITE) && (Mask & FILE_READ_DATA))
+        if (ShareAccess & FILE_SHARE_READ)
         {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
+            if ((Mask & FILE_WRITE_DATA) && !(ShareAccess & FILE_SHARE_WRITE))
+            {
+                ntError = STATUS_SHARING_VIOLATION;
+                break;
+            }
         }
 
         if ((ShareAccess & FILE_SHARE_DELETE) &&
