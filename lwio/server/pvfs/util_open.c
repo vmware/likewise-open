@@ -177,6 +177,7 @@ MapPosixOpenAccess(
     int iUnixMode = 0;
     ACCESS_MASK ReadPerm = (FILE_GENERIC_READ|FILE_GENERIC_EXECUTE);
     ACCESS_MASK WritePerm = (FILE_GENERIC_WRITE|DELETE|WRITE_DAC|WRITE_OWNER);
+    ACCESS_MASK AppendPerm = (FILE_APPEND_DATA|SYNCHRONIZE);
     BOOLEAN bRead = FALSE;
     BOOLEAN bWrite = FALSE;
 
@@ -203,11 +204,9 @@ MapPosixOpenAccess(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-#if 0 /* disabled */
-        if (Access & FILE_APPEND_DATA) {
+        if ((Access & AppendPerm) == AppendPerm) {
             iUnixMode |= O_APPEND;
         }
-#endif
     }
 
     *unixFlags |= iUnixMode;
