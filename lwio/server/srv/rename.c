@@ -195,7 +195,7 @@ SrvExecuteRename(
                     &oldName,
                     pSecurityDescriptor,
                     pSecurityQOS,
-                    GENERIC_READ,
+                    DELETE,
                     0,
                     FILE_ATTRIBUTE_NORMAL,
                     0,
