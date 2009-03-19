@@ -234,7 +234,7 @@ PvfsSetFileBasicInfo(
 
     /* Save for "sticky" WriteTime sematics */
 
-    if (WriteTime != 0) {
+    if (WriteTime != 0 && pCcb->pFcb) {
         pCcb->pFcb->LastWriteTime = WriteTime;
     }
 

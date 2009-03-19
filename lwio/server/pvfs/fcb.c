@@ -190,8 +190,12 @@ PvfsReleaseFCB(
     {
         PvfsRemoveFCB(pFcb);
 
-        ntError = SetLastWriteTime(pFcb);
-        /* Don't fail */
+        /* sticky write times */
+
+        if (pFcb->LastWriteTime != 0) {
+            ntError = SetLastWriteTime(pFcb);
+            /* Don't fail */
+        }
 
         PvfsFreeFCB(pFcb);
     }
