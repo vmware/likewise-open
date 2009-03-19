@@ -16,7 +16,12 @@ libdsapi_la_SOURCES = \
 libdsapi_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1 \
 	-I@top_srcdir@/server/include \
-        -I@top_srcdir@/server/store/include
+    -I@top_srcdir@/server/store/include
+
+libdsapi_la_LIBADD = \
+	@LWBASE_LIBS@
 
 libdsapi_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic
+	@LWBASE_LDFLAGS@
+
+
