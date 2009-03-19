@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: SamrClose function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_close.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrClose function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 
@@ -46,9 +57,9 @@ SamrSrvClose(
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PGENERIC_CONTEXT pContext = NULL;
+    PSAMR_GENERIC_CONTEXT pContext = NULL;
 
-    pContext = (PGENERIC_CONTEXT)hIn;
+    pContext = (PSAMR_GENERIC_CONTEXT)hIn;
 
     switch (pContext->Type) {
     case SamrContextConnect:
