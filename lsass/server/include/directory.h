@@ -87,6 +87,62 @@ typedef struct _DIRECTORY_ENTRY{
 #define NT_SECURITY_DESCRIPTOR_DATA(pValue) = pValue->pNTSecurityDescriptor->pBytes;
 
 DWORD
+DirectoryOpen(
+    PHANDLE phDirectory
+    );
+
+DWORD
+DirectoryBind(
+    HANDLE hDirectory,
+    PWSTR  pwszDistinguishedName,
+    PWSTR  pwszCredentials,
+    ULONG  ulMethod
+    );
+
+DWORD
+DirectoryAddObject(
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD attributes[]
+    );
+
+DWORD
+DirectoryModifyObject(
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
+    );
+
+DWORD
+DirectorySearch(
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PATTRIBUTE_VALUE* ppDirectoryEntries,
+    PDWORD            pdwNumValues
+    );
+
+DWORD
+DirectoryDeleteObject(
+    HANDLE hBindHandle,
+    PWSTR  pwszObjectDN
+    );
+
+VOID
+DirectoryClose(
+    HANDLE hDirectory
+    );
+
+VOID
+DirectoryFreeAttributeValues(
+    PATTRIBUTE_VALUE pAttrValues,
+    DWORD            dwNumValues
+    );
+
+DWORD
 DirectoryAllocateMemory(
     size_t sSize,
     PVOID* ppMemory
@@ -130,54 +186,6 @@ VOID
 DirectoryFreeStringArray(
     PWSTR* ppStringArray,
     DWORD  dwCount
-    );
-
-DWORD
-DirectoryOpen(
-    PHANDLE phDirectory
-    );
-
-DWORD
-DirectoryAddObject(
-    HANDLE        hDirectory,
-    PWSTR         pwszObjectDN,
-    DIRECTORY_MOD attributes[]
-    );
-
-DWORD
-DirectoryModifyObject(
-    HANDLE        hDirectory,
-    PWSTR         pwszObjectDN,
-    DIRECTORY_MOD modifications[]
-    );
-
-DWORD
-DirectorySearch(
-    HANDLE            hDirectory,
-    PWSTR             pwszBase,
-    ULONG             ulScope,
-    PWSTR             pwszFilter,
-    PWSTR             wszAttributes[],
-    ULONG             ulAttributesOnly,
-    PATTRIBUTE_VALUE* ppDirectoryEntries,
-    PDWORD            pdwNumValues
-    );
-
-DWORD
-DirectoryDeleteObject(
-    HANDLE hBindHandle,
-    PWSTR  pwszObjectDN
-    );
-
-VOID
-DirectoryFreeAttributeValues(
-    PATTRIBUTE_VALUE pAttrValues,
-    DWORD            dwNumValues
-    );
-
-VOID
-DirectoryClose(
-    HANDLE hDirectory
     );
 
 #endif /* __DIRECTORY_H__ */

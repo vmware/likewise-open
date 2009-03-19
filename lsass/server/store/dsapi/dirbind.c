@@ -49,14 +49,29 @@
 #include "includes.h"
 
 DWORD
-DirBind(
+DirectoryBind(
     HANDLE hDirectory,
-    PWSTR  DistinguishedName,
-    PWSTR  Credential,
+    PWSTR  pwszDistinguishedName,
+    PWSTR  pwszCredentials,
     ULONG  ulMethod
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryBind(
+                    pContext->hBindHandle,
+                    pwszDistinguishedName,
+                    pwszCredentials,
+                    ulMethod);
+
+error:
 
     return dwError;
 }
