@@ -154,14 +154,14 @@ DirectoryLoadProvider(
 
     dlerror();
 
-    pProvider->pLibHandle = dlopen(pProvider->pProviderInfo->pszProviderPath,
-                                    RTLD_NOW | RTLD_GLOBAL);
+    pProvider->pLibHandle = dlopen(pProviderInfo->pszProviderPath,
+				   RTLD_NOW | RTLD_GLOBAL);
     if (pProvider->pLibHandle == NULL)
     {
         PSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Failed to open directory provider at path [%s]",
-                       pProvider->pProviderInfo->pszProviderPath);
+			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
         if (!IsNullOrEmptyString(pszError))
@@ -182,7 +182,7 @@ DirectoryLoadProvider(
         PSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Invalid directory provider at path [%s]",
-                       pProvider->pProviderInfo->pszProviderPath);
+			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
         if (!IsNullOrEmptyString(pszError))
@@ -203,7 +203,7 @@ DirectoryLoadProvider(
         PSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Invalid directory provider at path [%s]",
-                       pProvider->pProviderInfo->pszProviderPath);
+			    pProviderInfo->pszProviderPath);
 
         pszError = dlerror();
         if (!IsNullOrEmptyString(pszError))
