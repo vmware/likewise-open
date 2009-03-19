@@ -38,21 +38,28 @@ typedef struct _OCTET_STRING {
     PBYTE pBytes;
 } OCTET_STRING, *POCTET_STRING;
 
-typedef struct _ATTRIBUTE_VALUE {
+typedef struct _ATTRIBUTE_VALUE
+{
     ULONG Type;
-    union {
+
+    union
+    {
         ULONG uLongValue;
         PWSTR pwszStringValue;
         PSTR  pszStringValue;
         BOOL  bBooleanValue;
         POCTET_STRING pOctetString;
     };
+
 } ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
 
-typedef struct _DIRECTORY_ATTRIBUTE {
-    PWSTR pwszAttributeName;
-    ULONG ulNumValues;
-    PATTRIBUTE_VALUE * ppAttributeValues;
+typedef struct _DIRECTORY_ATTRIBUTE
+{
+    PWSTR            pwszAttributeName;
+
+    ULONG            ulNumValues;
+    PATTRIBUTE_VALUE pAttributeValues;
+
 } DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
 
 typedef ULONG DIR_MOD_FLAGS;
@@ -61,16 +68,20 @@ typedef ULONG DIR_MOD_FLAGS;
 #define DIR_MOD_FLAGS_REPLACE 0x1
 #define DIR_MOD_FLAGS_DELETE  0x2
 
-typedef struct _DIRECTORY_MOD {
+typedef struct _DIRECTORY_MOD
+{
     DIR_MOD_FLAGS    ulOperationFlags;
     PWSTR            pwszAttributeName;
     ULONG            ulNumValues;
     PATTRIBUTE_VALUE pAttributeValues;
+
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
 
-typedef struct _DIRECTORY_ENTRY{
-    ULONG ulNumAttributes;
-    PDIRECTORY_ATTRIBUTE * ppDirectoryAttributes;
+typedef struct _DIRECTORY_ENTRY
+{
+    ULONG                ulNumAttributes;
+    PDIRECTORY_ATTRIBUTE pDirectoryAttributes;
+
 } DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 
 #define ENTRY(i, ppDirectoryEntry) = *(ppDirectoryEntry + i)
@@ -121,8 +132,8 @@ DirectorySearch(
     PWSTR             pwszFilter,
     PWSTR             wszAttributes[],
     ULONG             ulAttributesOnly,
-    PATTRIBUTE_VALUE* ppDirectoryEntries,
-    PDWORD            pdwNumValues
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     );
 
 DWORD
@@ -134,6 +145,12 @@ DirectoryDeleteObject(
 VOID
 DirectoryClose(
     HANDLE hDirectory
+    );
+
+VOID
+DirectoryFreeEntries(
+    PDIRECTORY_ENTRY pEntries,
+    DWORD            dwNumEntries
     );
 
 VOID

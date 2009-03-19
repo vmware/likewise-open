@@ -87,6 +87,13 @@
        from samdbdomains     \
       where Name = %Q"
 
+#define DB_QUERY_FIND_ALL_DOMAINS \
+    "select DomainRecordId,  \
+            ObjectSID,       \
+            Name,            \
+            NetbiosName      \
+       from samdbdomains"
+
 DWORD
 SamDbInitDomainTable(
     PSAM_DB_CONTEXT pDbContext
@@ -355,10 +362,11 @@ error:
 }
 
 DWORD
-SamDbFindDomain(
-    HANDLE hDirectory,
-    PWSTR  pwszDomainName,
-    PSAM_DB_DOMAIN_INFO* ppDomainInfo
+SamDbFindDomains(
+    HANDLE                hDirectory,
+    PWSTR                 pwszDomainName,
+    PSAM_DB_DOMAIN_INFO** pppDomainInfoList,
+    PDWORD                pdwNumDomains
     )
 {
     DWORD   dwError = 0;
@@ -376,18 +384,29 @@ SamDbFindDomain(
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    dwError = LsaWc16sToMbs(
-                    pwszDomainName,
-                    &pszDomainName);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (pwszDomainName)
+    {
+        dwError = LsaWc16sToMbs(
+                        pwszDomainName,
+                        &pszDomainName);
+        BAIL_ON_SAMDB_ERROR(dwError);
 
-    LsaStrToUpper(pszDomainName);
+        LsaStrToUpper(pszDomainName);
+    }
 
     SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirContext->rwLock);
 
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_FIND_DOMAIN,
-                    pszDomainName);
+    if (pszDomainName)
+    {
+        pszQuery = sqlite3_mprintf(
+                        DB_QUERY_FIND_DOMAIN,
+                        pszDomainName);
+    }
+    else
+    {
+        pszQuery = sqlite3_mprintf(
+                        DB_QUERY_FIND_ALL_DOMAINS);
+    }
 
     dwError = sqlite3_get_table(
                     pDirContext->pDbContext->pDbHandle,
@@ -398,29 +417,20 @@ SamDbFindDomain(
                     &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (!nRows)
+    if (nRows)
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = SamDbBuildDomainInfo(
+                        ppszResult,
+                        nRows,
+                        nCols,
+                        nExpectedCols,
+                        &ppDomainInfoList,
+                        &dwNumDomainsFound);
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwError = SamDbBuildDomainInfo(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppDomainInfoList,
-                    &dwNumDomainsFound);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    if (dwNumDomainsFound != 1)
-    {
-        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    *ppDomainInfo = ppDomainInfoList[0];
-    ppDomainInfoList[0] = NULL;
+    *pppDomainInfoList = ppDomainInfoList;
+    *pdwNumDomains = dwNumDomainsFound;
 
 cleanup:
 
@@ -435,20 +445,21 @@ cleanup:
         DirectoryFreeMemory(pszDomainName);
     }
 
-    if (ppDomainInfoList)
-    {
-        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomainsFound);
-    }
-
     return dwError;
 
 error:
 
-    *ppDomainInfo = NULL;
+    *pppDomainInfoList = NULL;
+    *pdwNumDomains = 0;
 
     if (pszError)
     {
         sqlite3_free(pszError);
+    }
+
+    if (ppDomainInfoList)
+    {
+        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomainsFound);
     }
 
     goto cleanup;

@@ -32,14 +32,14 @@ typedef DWORD (*PFNDIRECTORYMODIFY)(
                     );
 
 typedef DWORD (*PFNDIRECTORYSEARCH)(
-                    HANDLE hDirectory,
-                    PWSTR  pwszBase,
-                    ULONG  ulScope,
-                    PWSTR  pwszFilter,
-                    PWSTR  wszAttributes[],
-                    ULONG  ulAttributesOnly,
-                    PATTRIBUTE_VALUE * ppDirectoryValues,
-                    PDWORD pdwNumValues
+                    HANDLE            hDirectory,
+                    PWSTR             pwszBase,
+                    ULONG             ulScope,
+                    PWSTR             pwszFilter,
+                    PWSTR             wszAttributes[],
+                    ULONG             ulAttributesOnly,
+                    PDIRECTORY_ENTRY* ppDirectoryEntries,
+                    PDWORD            pdwNumEntries
                     );
 
 typedef DWORD (*PFNDIRECTORYDELETE)(

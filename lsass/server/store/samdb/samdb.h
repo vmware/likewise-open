@@ -76,10 +76,11 @@ SamDbModifyGroup(
     );
 
 DWORD
-SamDbFindDomain(
-    HANDLE hDirectory,
-    PWSTR  pwszDomainName,
-    PSAM_DB_DOMAIN_INFO* ppDomainInfo
+SamDbFindDomains(
+    HANDLE                hDirectory,
+    PWSTR                 pwszDomainName,
+    PSAM_DB_DOMAIN_INFO** pppDomainInfoList,
+    PDWORD                pdwNumDomains
     );
 
 DWORD
@@ -136,48 +137,57 @@ SamDbFreeDomainInfo(
 
 DWORD
 SamDbSearchObject(
-    HANDLE hDirectory,
-    PWSTR  pwszBase,
-    ULONG  ulScope,
-    PWSTR  pwszFilter,
-    PWSTR  pwszAttributes[],
-    ULONG  ulAttributesOnly,
-    PATTRIBUTE_VALUE* ppDirectoryValues,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             pwszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     );
-
 
 DWORD
 SamDbSearchUsers(
-    HANDLE hDirectory,
-    PWSTR  pwszBase,
-    ULONG  ulScope,
-    PWSTR  pwszAttributes[],
-    ULONG  ulAttributesOnly,
-    PATTRIBUTE_VALUE * ppDirectoryValues,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     );
 
 DWORD
 SamDbSearchGroups(
-    HANDLE hDirectory,
-    PWSTR Base,
-    ULONG Scope,
-    PWSTR Attributes[],
-    ULONG AttributesOnly,
-    PATTRIBUTE_VALUE * ppDirectoryValues,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     );
 
 DWORD
 SamDbSearchDomains(
-    HANDLE hDirectory,
-    PWSTR Base,
-    ULONG Scope,
-    PWSTR Attributes[],
-    ULONG AttributesOnly,
-    PATTRIBUTE_VALUE * ppDirectoryValues,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
+SamDbBuildDomainDirectoryEntries(
+    PSAM_DIRECTORY_CONTEXT pDirContext,
+    PWSTR                  wszAttributes[],
+    ULONG                  ulAttributesOnly,
+    PSAM_DB_DOMAIN_INFO*   ppDomainInfoList,
+    DWORD                  dwNumDomains,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries
     );
 
 DWORD

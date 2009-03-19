@@ -50,6 +50,48 @@
 #include "includes.h"
 
 VOID
+DirectoryFreeEntries(
+    PDIRECTORY_ENTRY pEntries,
+    DWORD            dwNumEntries
+    )
+{
+    DWORD iEntry = 0;
+
+    for (; iEntry < dwNumEntries; iEntry++)
+    {
+        PDIRECTORY_ENTRY pEntry = &pEntries[iEntry];
+
+        if (pEntry->pDirectoryAttributes)
+        {
+            DWORD iDirAttr = 0;
+
+            for (; iDirAttr < pEntry->ulNumAttributes; iDirAttr++)
+            {
+                PDIRECTORY_ATTRIBUTE pDirAttr = NULL;
+
+                pDirAttr = &pEntry->pDirectoryAttributes[iDirAttr];
+
+                if (pDirAttr->pwszAttributeName)
+                {
+                    DirectoryFreeStringW(pDirAttr->pwszAttributeName);
+                }
+
+                if (pDirAttr->pAttributeValues)
+                {
+                    DirectoryFreeAttributeValues(
+                            pDirAttr->pAttributeValues,
+                            pDirAttr->ulNumValues);
+                }
+            }
+
+            DirectoryFreeMemory(pEntry->pDirectoryAttributes);
+        }
+    }
+
+    DirectoryFreeMemory(pEntries);
+}
+
+VOID
 DirectoryFreeAttributeValues(
     PATTRIBUTE_VALUE pAttrValues,
     DWORD            dwNumValues

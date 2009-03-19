@@ -56,8 +56,8 @@ DirectorySearch(
     PWSTR             pwszFilter,
     PWSTR             wszAttributes[],
     ULONG             ulAttributesOnly,
-    PATTRIBUTE_VALUE* ppDirectoryEntries,
-    PDWORD            pdwNumValues
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
     )
 {
     DWORD dwError = 0;
@@ -77,7 +77,7 @@ DirectorySearch(
                     wszAttributes,
                     ulAttributesOnly,
                     ppDirectoryEntries,
-                    pdwNumValues);
+                    pdwNumEntries);
 
 error:
 
