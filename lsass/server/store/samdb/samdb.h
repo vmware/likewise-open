@@ -41,10 +41,24 @@ SamDbAddUser(
     );
 
 DWORD
+SamDbNumUsersInDomain_inlock(
+    HANDLE hDirectory,
+    PSTR   pszDomainName,
+    PDWORD pdwNumUsers
+    );
+
+DWORD
 SamDbAddGroup(
     HANDLE hDirectory,
     PWSTR  pwszObjectName,
     DIRECTORY_MOD Modifications[]
+    );
+
+DWORD
+SamDbNumGroupsInDomain_inlock(
+    HANDLE hDirectory,
+    PSTR   pszDomainName,
+    PDWORD pdwNumUsers
     );
 
 DWORD

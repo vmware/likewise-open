@@ -36,6 +36,13 @@
           delete from samdbgroupmembers where GroupRecordId = old.GroupRecordId;   \
      end"
 
+#define DB_QUERY_NUM_GROUPS_IN_DOMAIN \
+    "select count(*) \
+       from samdbgroups  sdg, \
+            samdbdomains sdd  \
+      where sdg.DomainRecordId = sdd.DomainRecordId \
+        and sdd.Name = %Q"
+
 DWORD
 SamDbInitGroupTable(
     PSAM_DB_CONTEXT pDbContext
@@ -201,6 +208,81 @@ cleanup:
     return dwError;
 
 error:
+
+    goto cleanup;
+}
+
+DWORD
+SamDbNumGroupsInDomain_inlock(
+    HANDLE hDirectory,
+    PSTR   pszDomainName,
+    PDWORD pdwNumGroups
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    int   nRows = 0;
+    int   nCols = 0;
+    PSTR* ppszResult = NULL;
+    DWORD dwNumGroups = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_NUM_GROUPS_IN_DOMAIN,
+                    pszDomainName);
+
+    dwError = sqlite3_get_table(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows)
+    {
+        dwNumGroups = 0;
+        goto done;
+    }
+
+    if (nCols != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwNumGroups = atoi(ppszResult[1]);
+
+done:
+
+    *pdwNumGroups = dwNumGroups;
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult)
+    {
+        sqlite3_free_table(ppszResult);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwNumGroups = 0;
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
 
     goto cleanup;
 }

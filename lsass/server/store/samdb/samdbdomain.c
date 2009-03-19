@@ -94,6 +94,9 @@
             NetbiosName      \
        from samdbdomains"
 
+#define DB_QUERY_DELETE_DOMAIN \
+    "delete from samdbdomains where Name = %Q"
+
 DWORD
 SamDbInitDomainTable(
     PSAM_DB_CONTEXT pDbContext
@@ -590,9 +593,84 @@ SamDbDeleteDomain(
     PWSTR  pwszObjectName
     )
 {
-    DWORD dwError = 0;
+    DWORD   dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    PSTR    pszDomainName = NULL;
+    BOOLEAN bInLock = FALSE;
+    DWORD   dwNumGroups = 0;
+    DWORD   dwNumUsers = 0;
+    PSTR    pszQuery = NULL;
+    PSTR    pszError = NULL;
+
+    dwError = LsaWc16sToMbs(
+                    pwszObjectName,
+                    &pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    LsaStrToUpper(pszDomainName);
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pContext->rwLock);
+
+    dwError = SamDbNumGroupsInDomain_inlock(
+                    hDirectory,
+                    pszDomainName,
+                    &dwNumGroups);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumGroups)
+    {
+        dwError = LSA_ERROR_DOMAIN_IN_USE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = SamDbNumUsersInDomain_inlock(
+                    hDirectory,
+                    pszDomainName,
+                    &dwNumUsers);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumUsers)
+    {
+        dwError = LSA_ERROR_DOMAIN_IN_USE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_DELETE_DOMAIN,
+                    pszDomainName);
+
+    dwError = sqlite3_exec(
+                    pContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    NULL,
+                    NULL,
+                    &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pContext->rwLock);
+
+    if (pszDomainName)
+    {
+        DirectoryFreeString(pszDomainName);
+    }
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
 
     return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
 }
 
 VOID
