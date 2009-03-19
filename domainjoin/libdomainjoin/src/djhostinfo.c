@@ -810,8 +810,11 @@ FixNetworkInterfaces(
             {"/etc/sysconfig/network", "ifcfg-eth-id-[^.]*$"},
             {"/etc/sysconfig/network", "ifcfg-eth0[^.]*$"},
             {"/etc/sysconfig/network", "ifcfg-eth-bus[^.]*$"},
-            //SLES 10.1 on zSeries uses /etc/sysconfig/network/ifcfg-qeth-bus-ccw-0.0.0500
-            {"/etc/sysconfig/network", "ifcfg-qeth-bus[^.]*$"},
+            //SLES 10.1 on zSeries uses one of:
+            //  /etc/sysconfig/network/ifcfg-qeth-bus-ccw-0.0.0500
+            //  /etc/sysconfig/network/ifcfg-ctc-bus-ccw-0.0.0004
+            {"/etc/sysconfig/network", "ifcfg-qeth-bus.*\\.[0-9]\\+$"},
+            {"/etc/sysconfig/network", "ifcfg-ctc-bus.*\\.[0-9]\\+$"},
             // Redhat uses /etc/sysconfig/network-scripts/ifcfg-eth<number>
             {"/etc/sysconfig/network-scripts", "ifcfg-eth[^.]*$"},
             {NULL, NULL}
