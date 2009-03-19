@@ -240,10 +240,26 @@ pam_sm_setcred(
     const char*   argv[]
     )
 {
+    DWORD       dwError = 0;
+    PLSA_PAM_CONFIG pConfig = NULL;
+
+    dwError = LsaPamReadConfigFile(&pConfig);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaPamSetLogLevel(pConfig->dwLogLevel);
     LSA_LOG_PAM_DEBUG("pam_sm_setcred::begin");
+
+
+cleanup:
+    if (pConfig)
+    {
+        LsaPamFreeConfig(pConfig);
+    }
 
     LSA_LOG_PAM_DEBUG("pam_sm_setcred::end");
 
-    return 0;
-}
+    return PAM_IGNORE;
 
+error:
+    goto cleanup;
+}
