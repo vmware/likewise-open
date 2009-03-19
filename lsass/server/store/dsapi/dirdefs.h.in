@@ -8,7 +8,33 @@ typedef enum
 
 #define SAM_DB_PROVIDER_PATH "@providerdir@/libsamdb@MOD_EXT@"
 
+#define DIRECTORY_LOG_ERROR(szFmt, ...)
+#define DIRECTORY_LOG_WARNING(szFmt, ...)
+#define DIRECTORY_LOG_INFO(szFmt, ...)
+#define DIRECTORY_LOG_VERBOSE(szFmt, ...)
+#define DIRECTORY_LOG_DEBUG(szFmt, ...)
+
 #define BAIL_ON_DIRECTORY_ERROR(dwError) \
     if (dwError) goto error;
+
+#define DIRECTORY_LOCK_MUTEX(bInLock, mutex) \
+	if (!bInLock) { \
+	   int thr_err = pthread_mutex_lock(mutex); \
+	   if (thr_err) { \
+	       DIRECTORY_LOG_ERROR("Failed to lock mutex. Aborting program"); \
+	       abort(); \
+	   } \
+	   bInLock = TRUE; \
+	}
+
+#define DIRECTORY_UNLOCK_MUTEX(bInLock, mutex) \
+	if (bInLock) { \
+	   int thr_err = pthread_mutex_unlock(mutex); \
+	   if (thr_err) { \
+	       DIRECTORY_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
+	       abort(); \
+	   } \
+	   bInLock = FALSE; \
+	}
 
 #endif /* _DIR_DEFS_H__ */

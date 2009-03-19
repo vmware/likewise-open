@@ -6,6 +6,7 @@ libdsapi_la_SOURCES = \
         dirbind.c     \
         dirclose.c    \
         dirdel.c      \
+        dirglobals.c  \
         dirmem.c      \
         dirmodify.c   \
         diropen.c     \

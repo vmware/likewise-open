@@ -32,7 +32,7 @@
 #include "lsasystem.h"
 
 #include "lsa/lsa.h"
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 
 #include "lsautils.h"
 #include "lsaunistr.h"
@@ -44,6 +44,7 @@
 #include "dirstructs.h"
 #include "dirprovider.h"
 
+#include "direxterns.h"
 
 /*
 local variables:
