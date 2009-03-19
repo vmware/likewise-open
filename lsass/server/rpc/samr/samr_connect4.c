@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: SamrConnect4 function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_connect4.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrConnect4 function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 

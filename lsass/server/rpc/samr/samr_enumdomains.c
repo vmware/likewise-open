@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: SamrEnumDomains function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_enumdomains.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrEnumDomains function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 
