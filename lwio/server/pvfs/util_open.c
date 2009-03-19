@@ -199,14 +199,13 @@ MapPosixOpenAccess(
             iUnixMode = O_RDONLY;
         } else if (bWrite) {
             iUnixMode = O_WRONLY;
+        } else if (Access == AppendPerm) {
+            iUnixMode |= O_APPEND;
         } else {
             ntError = STATUS_ACCESS_DENIED;
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        if ((Access & AppendPerm) == AppendPerm) {
-            iUnixMode |= O_APPEND;
-        }
     }
 
     *unixFlags |= iUnixMode;
