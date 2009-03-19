@@ -139,35 +139,34 @@ DirectoryOpen(
 
 DWORD
 DirectoryAddObject(
-    HANDLE hBindHandle,
-    PWSTR ObjectDN,
-    DIRECTORY_MOD Attributes[]
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD attributes[]
     );
-
 
 DWORD
 DirectoryModifyObject(
-    HANDLE hBindHandle,
-    PWSTR ObjectDN,
-    DIRECTORY_MOD Modifications[]
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
     );
 
 DWORD
 DirectorySearch(
-    HANDLE hDirectory,
-    PWSTR Base,
-    ULONG Scope,
-    PWSTR Filter,
-    PWSTR Attributes[],
-    ULONG AttributesOnly,
-    PATTRIBUTE_VALUE * ppDirectoryEntries,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PATTRIBUTE_VALUE* ppDirectoryEntries,
+    PDWORD            pdwNumValues
     );
 
 DWORD
 DirectoryDeleteObject(
     HANDLE hBindHandle,
-    PWSTR ObjectDN
+    PWSTR  pwszObjectDN
     );
 
 VOID
@@ -176,7 +175,7 @@ DirectoryFreeAttributeValues(
     DWORD            dwNumValues
     );
 
-DWORD
+VOID
 DirectoryClose(
     HANDLE hDirectory
     );

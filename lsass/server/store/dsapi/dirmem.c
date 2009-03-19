@@ -122,7 +122,7 @@ DirectoryAllocateString(
     if (!pszInputString)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
     sByteLen = strlen(pszInputString);
@@ -130,7 +130,7 @@ DirectoryAllocateString(
     dwError = DirectoryAllocateMemory(
                 sByteLen,
                 (PVOID *)&pszOutputString);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
 
     if (sByteLen)
     {
@@ -168,7 +168,7 @@ DirectoryAllocateStringW(
     if (!pwszInputString)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
     sByteLen = wc16slen(pwszInputString) * sizeof(wchar16_t);
@@ -176,7 +176,7 @@ DirectoryAllocateStringW(
     dwError = DirectoryAllocateMemory(
                 sByteLen + sizeof(wchar16_t),
                 (PVOID *)&pwszOutputString);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
 
     if (sByteLen)
     {

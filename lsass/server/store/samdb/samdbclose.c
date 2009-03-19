@@ -1,22 +1,14 @@
 #include "includes.h"
 
-DWORD
+VOID
 SamDbClose(
     HANDLE hDirectory
     )
 {
-    DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    if (!pDirContext)
+    if (pDirContext)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
+        SamDbFreeDirectoryContext(pDirContext);
     }
-
-    SamDbFreeDirectoryContext(pDirContext);
-
-error:
-
-    return dwError;
 }

@@ -237,7 +237,7 @@ SamDbAddGroupAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
     );
 
-DWORD
+VOID
 SamDbClose(
     HANDLE hDirectory
     );

@@ -54,6 +54,53 @@ DirectoryOpen(
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = NULL;
+    PDIRECTORY_PROVIDER pProvider = NULL;
+
+    if (!phDirectory)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = DirectoryGetProvider(&pProvider);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(DIRECTORY_CONTEXT),
+                    (PVOID*)&pContext);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    dwError = pProvider->pProviderFnTbl->pfnDirectoryOpen(
+                    &pContext->hBindHandle);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    InterlockedIncrement(&pProvider->refCount);
+
+    pContext->pProvider = pProvider;
+
+    *phDirectory = (HANDLE)pContext;
+
+cleanup:
+
+    if (pProvider)
+    {
+        DirectoryReleaseProvider(pProvider);
+    }
 
     return dwError;
+
+error:
+
+    if (phDirectory)
+    {
+        *phDirectory = NULL;
+    }
+
+    if (pContext)
+    {
+        DirectoryClose(pContext);
+    }
+
+    goto cleanup;
 }

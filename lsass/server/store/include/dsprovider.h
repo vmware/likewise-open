@@ -47,7 +47,7 @@ typedef DWORD (*PFNDIRECTORYDELETE)(
                     PWSTR  pwszObjectDN
                     );
 
-typedef DWORD (*PFNDIRECTORYCLOSE)(
+typedef VOID (*PFNDIRECTORYCLOSE)(
                     HANDLE hDirectory
                     );
 

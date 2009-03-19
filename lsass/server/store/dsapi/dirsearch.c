@@ -50,17 +50,36 @@
 
 DWORD
 DirectorySearch(
-    HANDLE hDirectory,
-    PWSTR Base,
-    ULONG Scope,
-    PWSTR Filter,
-    PWSTR Attributes[],
-    ULONG AttributesOnly,
-    PATTRIBUTE_VALUE * ppDirectoryValues,
-    PDWORD pdwNumValues
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PATTRIBUTE_VALUE* ppDirectoryEntries,
+    PDWORD            pdwNumValues
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectorySearch(
+                    pContext->hBindHandle,
+                    pwszBase,
+                    ulScope,
+                    pwszFilter,
+                    wszAttributes,
+                    ulAttributesOnly,
+                    ppDirectoryEntries,
+                    pdwNumValues);
+
+error:
 
     return dwError;
 }

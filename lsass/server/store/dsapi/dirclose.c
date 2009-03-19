@@ -48,14 +48,23 @@
  */
 #include "includes.h"
 
-DWORD
+VOID
 DirectoryClose(
     HANDLE hDirectory
     )
 {
-    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
 
+    if (pContext)
+    {
+        if (pContext->hBindHandle)
+        {
+            pContext->pProvider->pProviderFnTbl->pfnDirectoryClose(pContext->hBindHandle);
 
-    return dwError;
+            DirectoryReleaseProvider(pContext->pProvider);
+        }
+
+        DirectoryFreeMemory(pContext);
+    }
 }
 

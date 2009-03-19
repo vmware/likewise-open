@@ -8,13 +8,6 @@ typedef struct _DIRECTORY_PROVIDER_INFO
 
 } DIRECTORY_PROVIDER_INFO, *PDIRECTORY_PROVIDER_INFO;
 
-typedef struct _DIRECTORY_CONTEXT
-{
-    DirectoryType directoryType;
-    HANDLE        hBindHandle;
-
-} DIRECTORY_CONTEXT, *PDIRECTORY_CONTEXT;
-
 typedef struct _DIRECTORY_PROVIDER
 {
     LONG refCount;
@@ -27,6 +20,13 @@ typedef struct _DIRECTORY_PROVIDER
     PDIRECTORY_PROVIDER_INFO pProviderInfo;
 
 } DIRECTORY_PROVIDER, *PDIRECTORY_PROVIDER;
+
+typedef struct _DIRECTORY_CONTEXT
+{
+    HANDLE              hBindHandle;
+    PDIRECTORY_PROVIDER pProvider;
+
+} DIRECTORY_CONTEXT, *PDIRECTORY_CONTEXT;
 
 typedef struct _DIRECTORY_GLOBALS
 {

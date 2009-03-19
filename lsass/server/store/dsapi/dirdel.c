@@ -51,10 +51,24 @@
 DWORD
 DirectoryDeleteObject(
     HANDLE hDirectory,
-    PWSTR ObjectDN
+    PWSTR  pwszObjectDN
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+    PDIRECTORY_PROVIDER pProvider = (pContext ? pContext->pProvider : NULL);
+
+    if (!pContext || !pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pProvider->pProviderFnTbl->pfnDirectoryDelete(
+                    pContext->hBindHandle,
+                    pwszObjectDN);
+
+error:
 
     return dwError;
 }

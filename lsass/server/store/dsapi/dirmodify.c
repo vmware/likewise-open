@@ -50,12 +50,26 @@
 
 DWORD
 DirectoryModifyObject(
-    HANDLE hBindHandle,
-    PWSTR ObjectDN,
-    DIRECTORY_MOD Modifications[]
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryModify(
+                    pContext->hBindHandle,
+                    pwszObjectDN,
+                    modifications);
+
+error:
 
     return dwError;
 }

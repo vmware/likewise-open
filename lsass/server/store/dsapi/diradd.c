@@ -50,12 +50,26 @@
 
 DWORD
 DirectoryAddObject(
-    HANDLE hBindHandle,
-    PWSTR ObjectDN,
-    DIRECTORY_MOD Attributes[]
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD attributes[]
     )
 {
     DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryAdd(
+                    pContext->hBindHandle,
+                    pwszObjectDN,
+                    attributes);
+
+error:
 
     return dwError;
 }
