@@ -217,7 +217,10 @@ SamDbParseDN(
 
                     dwDomainLenAvailable += dwLenIncrement;
 
-                    memset((PBYTE)pwszDomainCursor, 0, dwDomainLenAvailable * sizeof(wchar16_t));
+                    memset(
+                        (PBYTE)pwszDomainCursor,
+                        0,
+                        dwDomainLenAvailable * sizeof(wchar16_t));
                 }
 
                 if (dwDomainOffset)

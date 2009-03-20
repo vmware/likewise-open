@@ -218,12 +218,14 @@ error:
 DWORD
 SamDbAddDomain(
     HANDLE hDirectory,
-    PWSTR  pwszObjectName,
+    PWSTR  pwszObjectDN,
     DIRECTORY_MOD Modifications[]
     )
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PWSTR pwszObjectName = NULL;
+    PWSTR pwszDomainName = NULL;
     PSTR pszDomainName = NULL;
     PSTR pszDomainSID = NULL;
     PSTR pszNetBIOSName = NULL;
@@ -232,18 +234,32 @@ SamDbAddDomain(
     BOOLEAN bInLock = FALSE;
     DWORD dwNumMods = 0;
     DWORD iMod = 0;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    while (Modifications[dwNumMods].pwszAttributeName &&
-           Modifications[dwNumMods].pAttributeValues) {
+    while (Modifications[dwNumMods].pwszAttrName &&
+           Modifications[dwNumMods].pAttrValues) {
         dwNumMods++;
+    }
+
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszObjectName,
+                    &pwszDomainName,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_DOMAIN)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
 
     dwError = LsaWc16sToMbs(
-                    pwszObjectName,
+                    pwszDomainName,
                     &pszDomainName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -255,7 +271,7 @@ SamDbAddDomain(
 
         ntStatus = LwRtlRBTreeFind(
                         pDirContext->pAttrLookup->pAttrTree,
-                        Modifications[iMod].pwszAttributeName,
+                        Modifications[iMod].pwszAttrName,
                         (PVOID*)&pLookupEntry);
         if (ntStatus)
         {
@@ -274,7 +290,7 @@ SamDbAddDomain(
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
-                pAttrValue = &Modifications[iMod].pAttributeValues[0];
+                pAttrValue = &Modifications[iMod].pAttrValues[0];
                 if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     dwError = LSA_ERROR_INVALID_PARAMETER;
@@ -297,7 +313,7 @@ SamDbAddDomain(
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
-                pAttrValue = &Modifications[iMod].pAttributeValues[0];
+                pAttrValue = &Modifications[iMod].pAttrValues[0];
                 if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
                 {
                     dwError = LSA_ERROR_INVALID_PARAMETER;
@@ -356,6 +372,14 @@ cleanup:
     if (pszNetBIOSName)
     {
         DirectoryFreeMemory(pszNetBIOSName);
+    }
+    if (pwszObjectName)
+    {
+        DirectoryFreeMemory(pwszObjectName);
+    }
+    if (pwszDomainName)
+    {
+        DirectoryFreeMemory(pwszDomainName);
     }
     if (pszQuery)
     {
@@ -588,18 +612,40 @@ error:
 DWORD
 SamDbModifyDomain(
     HANDLE        hDirectory,
-    PWSTR         pwszObjectName,
+    PWSTR         pwszObjectDN,
     DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
     // PSAM_DIRECTORY_CONTEXT pContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
     PSTR    pszDomainName = NULL;
-    DWORD   dwNumMods = sizeof(modifications)/sizeof(modifications[0]);
+    PWSTR   pwszObjectName = NULL;
+    PWSTR   pwszDomainName = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    DWORD   dwNumMods = 0;
     DWORD   iMod = 0;
 
+    while (modifications[dwNumMods].pwszAttrName &&
+           modifications[dwNumMods].pAttrValues)
+    {
+        dwNumMods++;
+    }
+
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszObjectName,
+                    &pwszDomainName,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_DOMAIN)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
     dwError = LsaWc16sToMbs(
-                    pwszObjectName,
+                    pwszDomainName,
                     &pszDomainName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -618,6 +664,14 @@ cleanup:
     {
         DirectoryFreeString(pszDomainName);
     }
+    if (pwszObjectName)
+    {
+        DirectoryFreeMemory(pwszObjectName);
+    }
+    if (pwszDomainName)
+    {
+        DirectoryFreeMemory(pwszDomainName);
+    }
 
     return dwError;
 
@@ -629,11 +683,14 @@ error:
 DWORD
 SamDbDeleteDomain(
     HANDLE hDirectory,
-    PWSTR  pwszObjectName
+    PWSTR  pwszObjectDN
     )
 {
     DWORD   dwError = 0;
     PSAM_DIRECTORY_CONTEXT pContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    PWSTR   pwszObjectName = NULL;
+    PWSTR   pwszDomainName = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSTR    pszDomainName = NULL;
     BOOLEAN bInLock = FALSE;
     DWORD   dwNumGroups = 0;
@@ -641,8 +698,21 @@ SamDbDeleteDomain(
     PSTR    pszQuery = NULL;
     PSTR    pszError = NULL;
 
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszObjectName,
+                    &pwszDomainName,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_DOMAIN)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
     dwError = LsaWc16sToMbs(
-                    pwszObjectName,
+                    pwszDomainName,
                     &pszDomainName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -694,7 +764,14 @@ cleanup:
     {
         DirectoryFreeString(pszDomainName);
     }
-
+    if (pwszObjectName)
+    {
+        DirectoryFreeMemory(pwszObjectName);
+    }
+    if (pwszDomainName)
+    {
+        DirectoryFreeMemory(pwszDomainName);
+    }
     if (pszQuery)
     {
         sqlite3_free(pszQuery);

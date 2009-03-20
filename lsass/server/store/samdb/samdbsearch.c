@@ -212,11 +212,11 @@ SamDbBuildDomainDirectoryEntries(
     for (; iDomain < dwNumDomains; iDomain++)
     {
         PDIRECTORY_ENTRY pDirEntry = &pDirectoryEntries[iDomain];
-        PSAM_DB_DOMAIN_INFO pDomainInfo = *(ppDomainInfoList + iDomain);
+        PSAM_DB_DOMAIN_INFO pDomInfo = *(ppDomainInfoList + iDomain);
 
         dwError = DirectoryAllocateMemory(
                         sizeof(DIRECTORY_ATTRIBUTE) * dwNumAttrs,
-                        (PVOID*)&pDirEntry->pDirectoryAttributes);
+                        (PVOID*)&pDirEntry->pAttributes);
         BAIL_ON_SAMDB_ERROR(dwError);
 
         pDirEntry->ulNumAttributes = dwNumAttrs;
@@ -226,7 +226,7 @@ SamDbBuildDomainDirectoryEntries(
             NTSTATUS ntStatus = 0;
             PWSTR pwszAttrName = wszAttributes[iAttr];
             PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pEntry = NULL;
-            PDIRECTORY_ATTRIBUTE pDirAttr = &pDirEntry->pDirectoryAttributes[iAttr];
+            PDIRECTORY_ATTRIBUTE pDirAttr = &pDirEntry->pAttributes[iAttr];
             PATTRIBUTE_VALUE pAttrValue = NULL;
 
             ntStatus = LwRtlRBTreeFind(
@@ -241,17 +241,17 @@ SamDbBuildDomainDirectoryEntries(
 
             dwError = DirectoryAllocateStringW(
                             pEntry->pwszAttributeName,
-                            &pDirAttr->pwszAttributeName);
+                            &pDirAttr->pwszName);
             BAIL_ON_SAMDB_ERROR(dwError);
 
             dwError = DirectoryAllocateMemory(
                             sizeof(ATTRIBUTE_VALUE),
-                            (PVOID*)&pDirAttr->pAttributeValues);
+                            (PVOID*)&pDirAttr->pValues);
             BAIL_ON_SAMDB_ERROR(dwError);
 
             pDirAttr->ulNumValues = 1;
 
-            pAttrValue = &pDirAttr->pAttributeValues[0];
+            pAttrValue = &pDirAttr->pValues[0];
 
             switch (pEntry->dwId)
             {
@@ -260,10 +260,10 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
                     {
-                        pAttrValue->pwszStringValue = pDomainInfo->pwszNetBIOSName;
-                        pDomainInfo->pwszNetBIOSName = NULL;
+                        pAttrValue->pwszStringValue = pDomInfo->pwszNetBIOSName;
+                        pDomInfo->pwszNetBIOSName = NULL;
                     }
 
                     break;
@@ -273,10 +273,10 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
                     {
-                        pAttrValue->pwszStringValue = pDomainInfo->pwszDomainSID;
-                        pDomainInfo->pwszDomainSID = NULL;
+                        pAttrValue->pwszStringValue = pDomInfo->pwszDomainSID;
+                        pDomInfo->pwszDomainSID = NULL;
                     }
 
                     break;
@@ -286,10 +286,10 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
                     {
-                        pAttrValue->pwszStringValue = pDomainInfo->pwszDomainName;
-                        pDomainInfo->pwszDomainName = NULL;
+                        pAttrValue->pwszStringValue = pDomInfo->pwszDomainName;
+                        pDomInfo->pwszDomainName = NULL;
                     }
 
                     break;

@@ -95,7 +95,7 @@
     "create trigger samdbusers_delete_record                   \
      after delete on samdbusers                                \
      begin                                                     \
-          delete from samdbgroupmembers where UserRecordId = old.UserRecordId;   \
+          delete from samdbgroupmembers where UserRecordId = old.UserRecordId; \
      end"
 
 #define DB_QUERY_NUM_USERS_IN_DOMAIN \

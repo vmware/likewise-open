@@ -55,10 +55,10 @@ typedef struct _ATTRIBUTE_VALUE
 
 typedef struct _DIRECTORY_ATTRIBUTE
 {
-    PWSTR            pwszAttributeName;
+    PWSTR            pwszName;
 
     ULONG            ulNumValues;
-    PATTRIBUTE_VALUE pAttributeValues;
+    PATTRIBUTE_VALUE pValues;
 
 } DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
 
@@ -71,16 +71,16 @@ typedef ULONG DIR_MOD_FLAGS;
 typedef struct _DIRECTORY_MOD
 {
     DIR_MOD_FLAGS    ulOperationFlags;
-    PWSTR            pwszAttributeName;
+    PWSTR            pwszAttrName;
     ULONG            ulNumValues;
-    PATTRIBUTE_VALUE pAttributeValues;
+    PATTRIBUTE_VALUE pAttrValues;
 
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
 
 typedef struct _DIRECTORY_ENTRY
 {
     ULONG                ulNumAttributes;
-    PDIRECTORY_ATTRIBUTE pDirectoryAttributes;
+    PDIRECTORY_ATTRIBUTE pAttributes;
 
 } DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 

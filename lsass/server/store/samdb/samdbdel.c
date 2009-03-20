@@ -7,10 +7,12 @@ SamDbDeleteObject(
     )
 {
     DWORD dwError = 0;
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     PWSTR pwszObjectName = NULL;
     PWSTR pwszDomain = NULL;
     SAMDB_ENTRY_TYPE entryType = 0;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
     dwError = SamDbParseDN(
                     pwszObjectDN,
@@ -77,14 +79,3 @@ SamDbDeleteUser(
     return dwError;
 }
 
-
-DWORD
-SamDbDeleteGroup(
-    HANDLE hDirectory,
-    PWSTR pszObjectName
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}

@@ -61,7 +61,7 @@ DirectoryFreeEntries(
     {
         PDIRECTORY_ENTRY pEntry = &pEntries[iEntry];
 
-        if (pEntry->pDirectoryAttributes)
+        if (pEntry->pAttributes)
         {
             DWORD iDirAttr = 0;
 
@@ -69,22 +69,22 @@ DirectoryFreeEntries(
             {
                 PDIRECTORY_ATTRIBUTE pDirAttr = NULL;
 
-                pDirAttr = &pEntry->pDirectoryAttributes[iDirAttr];
+                pDirAttr = &pEntry->pAttributes[iDirAttr];
 
-                if (pDirAttr->pwszAttributeName)
+                if (pDirAttr->pwszName)
                 {
-                    DirectoryFreeStringW(pDirAttr->pwszAttributeName);
+                    DirectoryFreeStringW(pDirAttr->pwszName);
                 }
 
-                if (pDirAttr->pAttributeValues)
+                if (pDirAttr->pValues)
                 {
                     DirectoryFreeAttributeValues(
-                            pDirAttr->pAttributeValues,
+                            pDirAttr->pValues,
                             pDirAttr->ulNumValues);
                 }
             }
 
-            DirectoryFreeMemory(pEntry->pDirectoryAttributes);
+            DirectoryFreeMemory(pEntry->pAttributes);
         }
     }
 
@@ -148,7 +148,7 @@ DirectoryGetEntryAttributeSingle(
     }
 
     if (pEntry->ulNumAttributes) {
-        pAttribute = &(pEntry->pDirectoryAttributes[0]);
+        pAttribute = &(pEntry->pAttributes[0]);
     }
 
     *ppAttribute = pAttribute;
@@ -184,9 +184,9 @@ DirectoryGetEntryAttributeByName(
     }
 
     for (i = 0; i < pEntry->ulNumAttributes; i++) {
-        pAttribute = &(pEntry->pDirectoryAttributes[i]);
+        pAttribute = &(pEntry->pAttributes[i]);
 
-        if (wc16scmp(pAttribute->pwszAttributeName,
+        if (wc16scmp(pAttribute->pwszName,
                      pwszAttrName) == 0) {
             pAttrFound = pAttribute;
             break;
@@ -220,7 +220,7 @@ DirectoryGetAttributeValue(
     }
 
     if (pAttribute->ulNumValues) {
-        pValue = &(pAttribute->pAttributeValues[0]);
+        pValue = &(pAttribute->pValues[0]);
     }
 
     *ppAttrValue = pValue;

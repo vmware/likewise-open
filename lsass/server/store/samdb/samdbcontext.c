@@ -25,7 +25,7 @@ SamDbBuildDirectoryContext(
 
     dwError = SamDbAcquireDbInstanceLock(
                     pDbInstanceLock,
-                    &pDirContext->pDbContext->pDbInstanceLock);
+                    &pDirContext->pDbContext->pDbLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbAcquireAttributeLookup(
@@ -78,9 +78,9 @@ SamDbFreeDirectoryContext(
 
     if (pDirContext->pDbContext)
     {
-        if (pDirContext->pDbContext->pDbInstanceLock)
+        if (pDirContext->pDbContext->pDbLock)
         {
-            SamDbReleaseDbInstanceLock(pDirContext->pDbContext->pDbInstanceLock);
+            SamDbReleaseDbInstanceLock(pDirContext->pDbContext->pDbLock);
         }
 
         if (pDirContext->pAttrLookup)

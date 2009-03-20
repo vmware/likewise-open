@@ -10,8 +10,10 @@ SamDbModifyObject(
     DWORD dwError = 0;
     PWSTR pwszObjectName = NULL;
     PWSTR pwszDomain = NULL;
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     SAMDB_ENTRY_TYPE entryType = 0;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
     dwError = SamDbParseDN(
                     pwszObjectDN,

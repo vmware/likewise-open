@@ -3,9 +3,10 @@
 #define DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE \
     "create table samdbgroupmembers (         \
                     GroupRecordId  integer,   \
-                    UserRecordId   integer,   \
+                    MemberRecordId integer,   \
+                    MemberType     integer,   \
                     DomainRecordId integer,   \
-                    unique(DomainRecordId, GroupRecordId, UserRecordId) \
+                    unique(DomainRecordId,GroupRecordId, MemberRecordId) \
                     )"
 
 #define DB_QUERY_CREATE_GROUPS_TABLE \
@@ -21,6 +22,25 @@
                     unique(DomainRecordId, Name)        \
                     )"
 
+#define DB_QUERY_INSERT_GROUP \
+    "INSERT INTO samdbgroups \
+        (                    \
+            GroupRecordId,   \
+            DomainRecordId,  \
+            ObjectSID,       \
+            Gid,             \
+            Name,            \
+            Passwd           \
+        )                    \
+     VALUES (                \
+            NULL,            \
+            %d,              \
+            %Q,              \
+            %d,              \
+            %Q,              \
+            %Q               \
+        )"
+
 #define DB_QUERY_CREATE_GROUPS_INSERT_TRIGGER                  \
     "create trigger samdbgroups_createdtime                    \
      after insert on samdbgroups                               \
@@ -33,7 +53,7 @@
     "create trigger samdbgroups_delete_record                  \
      after delete on samdbgroups                               \
      begin                                                     \
-          delete from samdbgroupmembers where GroupRecordId = old.GroupRecordId;   \
+       delete from samdbgroupmembers where GroupRecordId = old.GroupRecordId; \
      end"
 
 #define DB_QUERY_NUM_GROUPS_IN_DOMAIN \
@@ -42,6 +62,20 @@
             samdbdomains sdd  \
       where sdg.DomainRecordId = sdd.DomainRecordId \
         and sdd.Name = %Q"
+
+#define DB_QUERY_NUM_MEMBERS_IN_GROUP \
+    "select count(*) \
+       from samdbgroupmembers sgm, \
+            samdbgroups sdg \
+      where sdg.Name = %Q \
+        and sdg.GroupRecordId = sgm.GroupRecordId \
+        and sdg.DomainRecordId = %d"
+
+#define DB_QUERY_DELETE_GROUP \
+    "delete \
+       from samdbgroups sdg \
+      where sdg.Name = %Q \
+        and sdg.DomainRecordId = %d"
 
 DWORD
 SamDbInitGroupTable(
@@ -106,6 +140,7 @@ SamDbAddGroupAttrLookups(
     struct {
         PSTR pszAttrName;
         DIRECTORY_ATTR_TYPE attrType;
+        SAMDB_GROUP_TABLE_COLUMN colType;
         BOOL bIsMandatory;
         BOOL bIsModifiable;
     } groupAttrs[] =
@@ -113,30 +148,35 @@ SamDbAddGroupAttrLookups(
         {
             DIRECTORY_ATTR_TAG_GROUP_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_GROUP_TABLE_COLUMN_NAME,
             TRUE,
             FALSE
         },
         {
             DIRECTORY_ATTR_TAG_GID,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            SAMDB_GROUP_TABLE_COLUMN_GID,
             TRUE,
             FALSE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            SAMDB_GROUP_TABLE_COLUMN_SID,
             TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_PASSWORD,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_GROUP_TABLE_COLUMN_PASSWORD,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_MEMBERS,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_GROUP_TABLE_COLUMN_MEMBERS,
             FALSE,
             TRUE
         }
@@ -159,6 +199,7 @@ SamDbAddGroupAttrLookups(
 
         pAttrEntry->bIsMandatory = groupAttrs[iAttr].bIsMandatory;
         pAttrEntry->bIsModifiable = groupAttrs[iAttr].bIsModifiable;
+        pAttrEntry->dwId = groupAttrs[iAttr].colType;
         pAttrEntry->attrType = groupAttrs[iAttr].attrType;
 
         dwError = LwRtlRBTreeAdd(
@@ -187,34 +228,238 @@ error:
 DWORD
 SamDbAddGroup(
     HANDLE        hDirectory,
-    PWSTR         pwszObjectName,
-    DIRECTORY_MOD Modifications[]
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
-    DWORD dwNumModifications = 0;
-    DWORD iModification = 0;
+    PWSTR pwszGroupName = NULL;
+    PWSTR pwszDomain = NULL;
+    PSTR  pszGroupName = NULL;
+    PSTR  pszGroupSID = NULL;
+    PSTR  pszPassword = NULL;
+    DWORD dwGID = 0;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    BOOLEAN bInLock = FALSE;
+    DWORD dwNumMods = 0;
+    DWORD iMod = 0;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
+    DWORD dwNumDomains = 0;
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    if (!pDirContext || !pwszObjectName || !*pwszObjectName)
+    while (modifications[dwNumMods].pwszAttrName &&
+                    modifications[dwNumMods].pAttrValues)
+    {
+        dwNumMods++;
+    }
+
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszGroupName,
+                    &pwszDomain,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_GROUP)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwNumModifications = sizeof(Modifications)/sizeof(Modifications[0]);
-    for (; iModification < dwNumModifications; iModification++)
+    dwError = SamDbFindDomains(
+                    hDirectory,
+                    pwszDomain,
+                    &ppDomainInfoList,
+                    &dwNumDomains);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumDomains != 1)
     {
-        // PDIRECTORY_MOD pMod = &Modifications[iModification];
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
 
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    dwError = LsaWc16sToMbs(
+                    pwszGroupName,
+                    &pszGroupName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    for (; iMod < dwNumMods; iMod++)
+    {
+        NTSTATUS ntStatus = 0;
+        PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pLookupEntry = NULL;
+        PATTRIBUTE_VALUE pAttrValue = NULL;
+
+        ntStatus = LwRtlRBTreeFind(
+                        pDirContext->pAttrLookup->pAttrTree,
+                        modifications[iMod].pwszAttrName,
+                        (PVOID*)&pLookupEntry);
+        if (ntStatus)
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        switch (pLookupEntry->dwId)
+        {
+            case SAMDB_GROUP_TABLE_COLUMN_NAME:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszGroupName);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_GROUP_TABLE_COLUMN_GID:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwGID = pAttrValue->uLongValue;
+
+                break;
+
+            case SAMDB_GROUP_TABLE_COLUMN_SID:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszGroupSID);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_GROUP_TABLE_COLUMN_PASSWORD:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszPassword);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_GROUP_TABLE_COLUMN_MEMBERS:
+
+                // TODO: Validate and add group members in transaction
+
+                break;
+
+            default:
+
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+        }
+    }
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_INSERT_GROUP,
+                    ppDomainInfoList[0]->ulDomainRecordId,
+                    pszGroupSID,
+                    dwGID,
+                    pszGroupName,
+                    pszPassword);
+
+    dwError = sqlite3_exec(pDirContext->pDbContext->pDbHandle,
+                           pszQuery,
+                           NULL,
+                           NULL,
+                           &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
 cleanup:
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
+
+    if (pszGroupName)
+    {
+        DirectoryFreeMemory(pszGroupName);
+    }
+    if (pszGroupSID)
+    {
+        DirectoryFreeMemory(pszGroupSID);
+    }
+    if (pszPassword)
+    {
+        DirectoryFreeMemory(pszPassword);
+    }
+    if (ppDomainInfoList)
+    {
+        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomains);
+    }
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
 
     return dwError;
 
 error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
 
     goto cleanup;
 }
@@ -294,6 +539,196 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbNumMembersInGroup_inlock(
+    HANDLE hDirectory,
+    PSTR   pszGroupName,
+    DWORD  dwDomainRecordId,
+    PDWORD pdwNumGroupMembers
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    int   nRows = 0;
+    int   nCols = 0;
+    PSTR* ppszResult = NULL;
+    DWORD dwNumGroupMembers = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_NUM_MEMBERS_IN_GROUP,
+                    pszGroupName,
+                    dwDomainRecordId);
+
+    dwError = sqlite3_get_table(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows)
+    {
+        dwNumGroupMembers = 0;
+        goto done;
+    }
+
+    if (nCols != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwNumGroupMembers = atoi(ppszResult[1]);
+
+done:
+
+    *pdwNumGroupMembers = dwNumGroupMembers;
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult)
+    {
+        sqlite3_free_table(ppszResult);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwNumGroupMembers = 0;
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SamDbDeleteGroup(
+    HANDLE hDirectory,
+    PWSTR  pwszObjectDN
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PWSTR pwszObjectName = NULL;
+    PWSTR pwszDomainName = NULL;
+    PSTR  pszGroupName = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    BOOLEAN bInLock = FALSE;
+    DWORD dwNumGroupMembers = 0;
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
+    DWORD dwNumDomains = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    dwError = SamDbParseDN(
+                    pwszObjectDN,
+                    &pwszObjectName,
+                    &pwszDomainName,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_GROUP)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = SamDbFindDomains(
+                    hDirectory,
+                    pwszDomainName,
+                    &ppDomainInfoList,
+                    &dwNumDomains);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumDomains == 0)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = LsaWc16sToMbs(
+                    pwszObjectName,
+                    &pszGroupName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    dwError = SamDbNumMembersInGroup_inlock(
+                    hDirectory,
+                    pszGroupName,
+                    ppDomainInfoList[0]->ulDomainRecordId,
+                    &dwNumGroupMembers);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumGroupMembers)
+    {
+        dwError = LSA_ERROR_GROUP_IN_USE;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_DELETE_GROUP,
+                    pszGroupName,
+                    ppDomainInfoList[0]->ulDomainRecordId);
+
+    dwError = sqlite3_exec(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    NULL,
+                    NULL,
+                    &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
+
+    if (pwszObjectName)
+    {
+        DirectoryFreeMemory(pwszObjectName);
+    }
+    if (pwszDomainName)
+    {
+        DirectoryFreeMemory(pwszDomainName);
+    }
+    if (pszGroupName)
+    {
+        DirectoryFreeString(pszGroupName);
+    }
+
+    return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
 
 /*
 local variables:
@@ -303,3 +738,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

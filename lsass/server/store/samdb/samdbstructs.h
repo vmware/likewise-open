@@ -38,7 +38,7 @@ typedef struct _SAMDB_ATTRIBUTE_LOOKUP
 
 typedef struct _SAM_DB_CONTEXT
 {
-    PSAM_DB_INSTANCE_LOCK pDbInstanceLock;
+    PSAM_DB_INSTANCE_LOCK pDbLock;
 
     sqlite3* pDbHandle;
 
