@@ -121,10 +121,13 @@ DWORD
     LSA_FIND_FLAGS FindFlags,
     DWORD   dwGroupInfoLevel,
     PVOID*  ppGroupInfo
-    );
+    )
+{
+
+}
 
 DWORD
-(*GETGROUPSFORUSER)(
+ActiveDirectoryGetGroupsForUser(
     HANDLE  hProvider,
     uid_t   uid,
     LSA_FIND_FLAGS
@@ -132,41 +135,244 @@ DWORD
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderGetGroupsForUser(
+                    hMiniProvider,
+                    uid,
+                    FindFlags,
+                    dwGroupInfoLevel,
+                    pdwGroupsFound,
+                    pppGroupInfoList
+                    );
+    return dwError;
+}
 
 DWORD
-(*BEGIN_ENUM_USERS)(
+ActiveDirectoryBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
-    );
+    )
+{
+    DWORD dwError = 0;
 
-DWORD (*ENUMUSERS) (
+    dwError = MiniProviderBeginEnumUsers(
+                    hProvider,
+                    dwConnectMode,
+                    dwInfoLevel,
+                    FindFlags,
+                    phResume
+                    );
+    return (dwError);
+}
+
+DWORD
+ActiveDirectoryEnumUsers(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxUsers,
     PDWORD  pdwUsersFound,
     PVOID** pppUserInfoList
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderEnumUsers(
+                    hProvider,
+                    dwConnectMode,
+                    dwInfoLevel,
+                    FindFlags,
+                    phResume
+                    );
+
+    return dwError;
+
+}
 
 VOID
-(*END_ENUM_USERS)(
+ActiveDirectoryEndEnumUsers(
     HANDLE hProvider,
     HANDLE hResume
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderEndEnumUsers(
+                    hMiniProvider,
+                    dwConnectMode,
+                    hResume
+                    );
+    return dwError;
+}
 
 DWORD
-(*BEGIN_ENUM_GROUPS)(
+ActiveDirectoryBeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckGroupMembersOnline,
     LSA_FIND_FLAGS FindFlags,
     PHANDLE phResume
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderBeginEnumGroups(
+                    hMiniProvider,
+                    dwConnectMode,
+                    dwInfoLevel,
+                    bCheckGroupMembersOnline,
+                    FindFlags,
+                    phResume
+                    );
+    return dwError;
+}
+
+DWORD
+ActiveDirectoryEnumGroups(
+    HANDLE  hProvider,
+    HANDLE  hResume,
+    DWORD   dwMaxNumGroups,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderEnumGroups(
+                    hMiniProvider,
+                    dwConnectState,
+                    hResume,
+                    dwMaxNumGroups,
+                    pdwGroupsFound,
+                    pppGroupInfoList
+                    );
+    return (dwError);
+}
+
+VOID
+ActiveDirectoryEndEnumGroups
+    HANDLE hProvider,
+    HANDLE hResume
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MiniProviderEndEnumGroups(
+                    hMiniProvider,
+                    dwConnectState,
+                    hResume
+                    );
+    return dwError;
+}
+
+DWORD
+ActiveDirectoryChangePassword(
+    HANDLE hProvider,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword,
+    PCSTR  pszOldPassword
+    )
+{
+
+}
+
+DWORD
+ActiveDirectoryAddUser(
+    HANDLE hProvider,
+    DWORD  dwUserInfoLevel,
+    PVOID  pUserInfo
+    )
+{
+    DWORD dwError = 0;
+
+    return LSA_NOT_SUPPORTED;
+}
+
+
+DWORD
+ActiveDirectoryModifyUser(
+    HANDLE hProvider,
+    PLSA_USER_MOD_INFO pUserModInfo
+    )
+{
+
+}
+DWORD
+ActiveDirectoryDeleteUser(
+    HANDLE hProvider,
+    uid_t  uid
+    );
+DWORD
+ActiveDirectoryAddGroup(
+    HANDLE hProvider,
+    DWORD  dwGroupInfoLevel,
+    PVOID  pGroupInfo
     );
 
 DWORD
-(*ENUMGROUPS) (
+ActiveDirectoryDeleteGroup(
+    HANDLE hProvider,
+    gid_t  gid
+    )
+{
+
+}
+
+DWORD
+ActiveDirectoryOpenSession(
+    HANDLE hProvider,
+    PCSTR  pszLoginId
+    )
+{
+
+}
+
+DWORD
+ActiveDirectoryCloseSession(
+    HANDLE hProvider,
+    PCSTR  pszLoginId
+    )
+{
+
+}
+
+DWORD
+ActiveDirectoryGetNamesBySidList(
+    HANDLE hProvider,
+    size_t sCount,
+    PSTR*  ppszSidList,
+    PSTR**          pppszDomainNames,
+    PSTR**          pppszSamAccounts,
+    ADAccountType** ppTypes
+    )
+{
+
+}
+
+DWORD
+(*LOOKUP_NSS_ARTEFACT_BY_KEY)(
+    HANDLE hProvider,
+    PCSTR  pszKeyName, PCSTR
+    pszMapName, DWORD  dwInfoLevel,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PVOID* ppNSSArtefactInfo
+    );
+
+DWORD
+(*BEGIN_ENUM_NSS_ARTEFACTS)(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PCSTR   pszMapName,
+    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
+    PHANDLE phResume
+    );
+
+DWORD
+(*ENUMNSS_ARTEFACTS) (
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxNumGroups,
@@ -174,43 +380,25 @@ DWORD
     PVOID** pppGroupInfoList
     );
 
-VOID (*END_ENUM_GROUPS)( HANDLE hProvider, HANDLE hResume);
-
-DWORD (*CHANGEPASSWORD) ( HANDLE hProvider, PCSTR  pszLoginId, PCSTR  pszPassword, PCSTR  pszOldPassword);
+VOID
+(*END_ENUM_NSS_ARTEFACTS)( HANDLE hProvider, HANDLE hResume);
 
 DWORD
-(*ADDUSER) ( HANDLE hProvider, DWORD  dwUserInfoLevel, PVOID  pUserInfo);
+(*GET_STATUS)( HANDLE hProvider, PLSA_AUTH_PROVIDER_STATUS* ppAuthProviderStatus);
 
-DWORD (*MODIFYUSER)( HANDLE hProvider, PLSA_USER_MOD_INFO pUserModInfo);
-DWORD (*DELETEUSER) ( HANDLE hProvider, uid_t  uid);
-DWORD (*ADDGROUP) ( HANDLE hProvider, DWORD  dwGroupInfoLevel, PVOID  pGroupInfo);
+VOID
+(*FREE_STATUS)( PLSA_AUTH_PROVIDER_STATUS pAuthProviderStatus);
 
-DWORD (*DELETEGROUP) ( HANDLE hProvider, gid_t  gid);
+DWORD
+(*REFRESH_CONFIGURATION)();
 
-DWORD (*OPENSESSION) ( HANDLE hProvider, PCSTR  pszLoginId);
+DWORD
+(*PROVIDER_IO_CONTROL) ( HANDLE hProvider, uid_t  peerUid, gid_t  peerGID, DWORD  dwIoControlCode, DWORD  dwInputBufferSize, PVOID  pInputBuffer, DWORD* pdwOutputBufferSize, PVOID* ppOutputBuffer);
 
-DWORD (*CLOSESESSION) ( HANDLE hProvider, PCSTR  pszLoginId);
+DWORD
+(*INITIALIZEPROVIDER)( PCSTR pszConfigFilePath, PSTR* ppszProviderName, PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable);
 
-DWORD (*GETNAMESBYSIDLIST) ( HANDLE          hProvider, size_t          sCount, PSTR*           ppszSidList, PSTR**          pppszDomainNames, PSTR**          pppszSamAccounts, ADAccountType** ppTypes);
-
-DWORD (*LOOKUP_NSS_ARTEFACT_BY_KEY)( HANDLE hProvider, PCSTR  pszKeyName, PCSTR  pszMapName, DWORD  dwInfoLevel, LSA_NIS_MAP_QUERY_FLAGS dwFlags, PVOID* ppNSSArtefactInfo);
-
-DWORD (*BEGIN_ENUM_NSS_ARTEFACTS)( HANDLE  hProvider, DWORD   dwInfoLevel, PCSTR   pszMapName, LSA_NIS_MAP_QUERY_FLAGS dwFlags, PHANDLE phResume);
-
-DWORD (*ENUMNSS_ARTEFACTS) ( HANDLE  hProvider, HANDLE  hResume, DWORD   dwMaxNumGroups, PDWORD  pdwGroupsFound, PVOID** pppGroupInfoList);
-
-VOID (*END_ENUM_NSS_ARTEFACTS)( HANDLE hProvider, HANDLE hResume);
-
-DWORD (*GET_STATUS)( HANDLE hProvider, PLSA_AUTH_PROVIDER_STATUS* ppAuthProviderStatus);
-
-VOID (*FREE_STATUS)( PLSA_AUTH_PROVIDER_STATUS pAuthProviderStatus);
-
-DWORD (*REFRESH_CONFIGURATION)();
-
-DWORD (*PROVIDER_IO_CONTROL) ( HANDLE hProvider, uid_t  peerUid, gid_t  peerGID, DWORD  dwIoControlCode, DWORD  dwInputBufferSize, PVOID  pInputBuffer, DWORD* pdwOutputBufferSize, PVOID* ppOutputBuffer);
-
-DWORD (*INITIALIZEPROVIDER)( PCSTR pszConfigFilePath, PSTR* ppszProviderName, PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable);
-
-DWORD (*SHUTDOWNPROVIDER)( PSTR pszProviderName, PLSA_PROVIDER_FUNCTION_TABLE pFnTable);
+DWORD
+(*SHUTDOWNPROVIDER)( PSTR pszProviderName, PLSA_PROVIDER_FUNCTION_TABLE pFnTable);
 
 
