@@ -52,6 +52,15 @@ CONNECT_HANDLE_rundown(
     void *hContext
     )
 {
+    PCONNECT_CONTEXT pConn = (PCONNECT_CONTEXT)hContext;
+
+    if (pConn->hDirectory) {
+        DirectoryClose(pConn->hDirectory);
+    }
+
+    /*
+      free access token
+    */
 }
 
 
