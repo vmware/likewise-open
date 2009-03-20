@@ -158,7 +158,7 @@ SamDbAddDomainAttrLookups(
         },
         {
             DIRECTORY_ATTR_TAG_DOMAIN_SID,
-            DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_MACHINE_SID,
             TRUE,
             TRUE
