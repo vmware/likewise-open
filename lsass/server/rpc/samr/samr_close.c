@@ -56,7 +56,6 @@ SamrSrvClose(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PSAMR_GENERIC_CONTEXT pContext = NULL;
 
     pContext = (PSAMR_GENERIC_CONTEXT)hIn;

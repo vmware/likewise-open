@@ -45,7 +45,6 @@ NTSTATUS SamrSrvConnect(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PCONNECT_CONTEXT pConn = NULL;
 
     status = SamrSrvAllocateMemory((void**)&pConn,
