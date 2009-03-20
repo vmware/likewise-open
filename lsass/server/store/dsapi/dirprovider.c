@@ -158,7 +158,7 @@ DirectoryLoadProvider(
 				   RTLD_NOW | RTLD_GLOBAL);
     if (pProvider->pLibHandle == NULL)
     {
-        PSTR pszError = NULL;
+        PCSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Failed to open directory provider at path [%s]",
 			    pProviderInfo->pszProviderPath);
@@ -179,7 +179,7 @@ DirectoryLoadProvider(
                                         DIRECTORY_SYMBOL_NAME_INITIALIZE_PROVIDER);
     if (pfnInitProvider == NULL)
     {
-        PSTR pszError = NULL;
+        PCSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Invalid directory provider at path [%s]",
 			    pProviderInfo->pszProviderPath);
@@ -200,7 +200,7 @@ DirectoryLoadProvider(
                                         DIRECTORY_SYMBOL_NAME_SHUTDOWN_PROVIDER);
     if (pProvider->pfnShutdown == NULL)
     {
-        PSTR pszError = NULL;
+        PCSTR pszError = NULL;
 
         DIRECTORY_LOG_ERROR("Invalid directory provider at path [%s]",
 			    pProviderInfo->pszProviderPath);
