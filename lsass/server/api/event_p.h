@@ -47,9 +47,11 @@
 #ifndef __EVENT_P_H__
 #define __EVENT_P_H__
 
+
 VOID
 LsaSrvWriteLoginSuccessEvent(  
     HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     );
@@ -57,6 +59,7 @@ LsaSrvWriteLoginSuccessEvent(
 VOID
 LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     );
@@ -64,14 +67,23 @@ LsaSrvWriteLoginFailedEvent(
 VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
+    PCSTR  pszProvider,
+    PCSTR  pszLoginId
+    );
+
+VOID
+LsaSrvWriteUserPWChangeSuccessEvent(
+    HANDLE hServer,
+    PCSTR  pszProvider,
+    PCSTR  pszLoginId
+    );
+
+VOID
+LsaSrvWriteUserPWChangeFailureEvent(
+    HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     );
 
-VOID
-LsaSrvWriteLogoutFailedEvent(
-    HANDLE hServer,
-    PCSTR  pszLoginId,
-    DWORD  dwErrCode
-    );
 #endif /* __EVENT_P_H__ */

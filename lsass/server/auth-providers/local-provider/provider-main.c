@@ -85,7 +85,7 @@ LsaInitializeProvider(
 
     if (LsaProviderLocal_EventlogEnabled())
     {
-        LsaLocalProviderLogServiceStartEvent();
+        LsaLocalProviderLogServiceStartEvent(dwError);
     }
 
     *ppszProviderName = (PSTR)gpszLocalProviderName;
@@ -96,6 +96,11 @@ cleanup:
     return dwError;
 
 error:
+
+    if (LsaProviderLocal_EventlogEnabled())
+    {
+        LsaLocalProviderLogServiceStartEvent(dwError);
+    }
 
     LsaProviderLocal_FreeConfigContents(&config);
 
@@ -973,13 +978,6 @@ LsaProviderLocal_ChangePassword(
                     pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (LsaProviderLocal_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeSuccessEvent(
-                pszLoginId,
-                "Local");
-    }
-
 cleanup:
 
     if (pUserInfo) {
@@ -998,14 +996,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (LsaProviderLocal_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeFailureEvent(
-                pszLoginId,
-                "Local",
-                dwError);
-    }
 
     goto cleanup;
 }
@@ -1080,7 +1070,7 @@ LsaProviderLocal_AddUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaProviderLocal_EventlogEnabled()){
-        LsaLocalProviderLogUserAddEvent(pLoginInfo->pszName);
+        LsaLocalProviderLogUserAddEvent(pLoginInfo->pszName, ((PLSA_USER_INFO_0)pUserInfo)->uid);
     }
 
 cleanup:
@@ -1160,7 +1150,8 @@ LsaProviderLocal_DeleteUser(
                     uid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (LsaProviderLocal_EventlogEnabled()){
+    if (LsaProviderLocal_EventlogEnabled())
+    {
         LsaLocalProviderLogUserDeleteEvent(uid);
     }
 
@@ -1227,6 +1218,10 @@ LsaProviderLocal_AddGroup(
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (LsaProviderLocal_EventlogEnabled()){
+        LsaLocalProviderLogGroupAddEvent(pLoginInfo->pszName, ((PLSA_GROUP_INFO_0)pGroupInfo)->gid);
+    }
+
 cleanup:
 
     if (hDb != (HANDLE)NULL) {
@@ -1267,6 +1262,10 @@ LsaProviderLocal_DeleteGroup(
                     hDb,
                     gid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (LsaProviderLocal_EventlogEnabled()){
+        LsaLocalProviderLogGroupDeleteEvent(gid);
+    }
 
 cleanup:
 
@@ -1613,6 +1612,8 @@ LsaProviderLocal_RefreshConfiguration(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LsaLocalProviderLogConfigReloadEvent();
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszConfigFilePath);
@@ -1659,14 +1660,14 @@ LsaProviderLocal_ProviderIoControl(
 
 VOID
 LsaLocalProviderLogServiceStartEvent(
-    VOID
+    DWORD dwErrCode
     )
 {
     DWORD dwError = 0;
     HANDLE hDb = (HANDLE)NULL;
     int nUserCount = 0;
     int nGroupCount = 0;
-
+    PSTR pszData = NULL;
     PSTR pszDescription = NULL;
 
     dwError = LsaProviderLocal_DbOpen(&hDb);
@@ -1684,20 +1685,83 @@ LsaLocalProviderLogServiceStartEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "Local provider starts successfully. Details: Current number of local accounts in DB are: [%d].",
-                 nUserCount + nGroupCount);
+                 "Likewise authentication service provider initialization %s.\r\n\r\n" \
+                 "     Authentication provider:        %s\r\n\r\n" \
+                 "     Current number of local users:  %d\r\n" \
+                 "     Current number of local groups: %d",
+                 dwErrCode ? "failed" : "succeeded",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
+                 nUserCount,
+                 nGroupCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaSrvLogServiceSuccessEvent(
-            SERVICESTART_EVENT_CATEGORY,
-            pszDescription,
-            "<null>");
+    if (dwErrCode)
+    {
+        dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LsaSrvLogServiceFailureEvent(
+                 LSASS_EVENT_FAILED_PROVIDER_INITIALIZATION,
+                 SERVICE_EVENT_CATEGORY,
+                 pszDescription,
+                 pszData);
+    }
+    else
+    {
+        LsaSrvLogServiceSuccessEvent(
+                 LSASS_EVENT_SUCCESSFUL_PROVIDER_INITIALIZATION,
+                 SERVICE_EVENT_CATEGORY,
+                 pszDescription,
+                 NULL);
+    }
 
 cleanup:
 
     if (hDb != (HANDLE)NULL) {
         LsaProviderLocal_DbClose(hDb);
     }
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+LsaLocalProviderLogConfigReloadEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
+                 "     Authentication provider:       %s\r\n\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     Password change interval:      %d\r\n" \
+                 "     Password change warning time : %d\r\n" \
+                 "     Enable event log:              %s",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
+                 gLocalConfig.dwPasswdChangeInterval,
+                 gLocalConfig.dwPasswdChangeWarningTime,
+                 gLocalConfig.bEnableEventLog ? "true" : "false");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             LSASS_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
 
     LSA_SAFE_FREE_STRING(pszDescription);
 
@@ -1710,7 +1774,8 @@ error:
 
 VOID
 LsaLocalProviderLogUserAddEvent(
-    PCSTR pszUsername
+    PCSTR pszUsername,
+    uid_t uid
     )
 {
     DWORD dwError = 0;
@@ -1718,14 +1783,20 @@ LsaLocalProviderLogUserAddEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "A local user account was created for user '%s'.",
-                 LSA_SAFE_LOG_STRING(pszUsername));
+                 "User account created.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     UID:                     %d",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
+                 LSA_SAFE_LOG_STRING(pszUsername),
+                 uid);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaSrvLogServiceSuccessEvent(
-            GENERAL_EVENT_CATEGORY,
+            LSASS_EVENT_ADD_USER_ACCOUNT,
+            ACCOUNT_MANAGEMENT_EVENT_CATEGORY,
             pszDescription,
-            "<null>");
+            NULL);
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszDescription);
@@ -1746,14 +1817,18 @@ LsaLocalProviderLogUserDeleteEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "A local user account was deleted for user with uid '%d'.",
+                 "User account deleted.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     UID: %d",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
                  uid);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaSrvLogServiceSuccessEvent(
-            GENERAL_EVENT_CATEGORY,
+            LSASS_EVENT_DELETE_USER_ACCOUNT,
+            ACCOUNT_MANAGEMENT_EVENT_CATEGORY,
             pszDescription,
-            "<null>");
+            NULL);
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszDescription);
@@ -1764,6 +1839,72 @@ error:
     goto cleanup;
 }
 
+VOID
+LsaLocalProviderLogGroupAddEvent(
+    PCSTR pszGroupname,
+    gid_t gid
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Group created.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Group name:  %s\r\n" \
+                 "     GID: %d",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
+                 LSA_SAFE_LOG_STRING(pszGroupname),
+                 gid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_ADD_GROUP,
+            ACCOUNT_MANAGEMENT_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+    goto cleanup;
+}
+
+VOID
+LsaLocalProviderLogGroupDeleteEvent(
+    gid_t gid
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Group deleted.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     GID: %d",
+                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
+                 gid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_DELETE_GROUP,
+            ACCOUNT_MANAGEMENT_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

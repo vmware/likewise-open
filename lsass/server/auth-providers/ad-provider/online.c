@@ -2500,13 +2500,6 @@ AD_OnlineChangePassword(
     dwError = AD_StoreAsExpiredObject(&pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeSuccessEvent(
-                pszLoginId,
-                gpszADProviderName);
-    }
-
     // Ignore errors because password change succeeded
     LsaUmModifyUser(
         pUserInfo->uid,
@@ -2535,14 +2528,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (AD_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeFailureEvent(
-                pszLoginId,
-                gpszADProviderName,
-                dwError);
-    }
 
     goto cleanup;
 }

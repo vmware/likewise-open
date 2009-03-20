@@ -351,6 +351,10 @@ LsaProviderLocal_ProviderIoControl(
 
 VOID
 LsaLocalProviderLogServiceStartEvent(
+    DWORD dwError);
+
+VOID
+LsaLocalProviderLogConfigReloadEvent(
     VOID);
 
 VOID
@@ -360,12 +364,24 @@ LsaProviderLocalLogUserPWChangeSuccessEvent(
 
 VOID
 LsaLocalProviderLogUserAddEvent(
-    PCSTR pszUsername
+    PCSTR pszUsername,
+    uid_t uid
     );
 
 VOID
 LsaLocalProviderLogUserDeleteEvent(
     uid_t uid
+    );
+
+VOID
+LsaLocalProviderLogGroupAddEvent(
+    PCSTR pszGroupname,
+    gid_t gid
+    );
+
+VOID
+LsaLocalProviderLogGroupDeleteEvent(
+    gid_t gid
     );
 
 #endif /* __PROVIDER_MAIN_H__ */

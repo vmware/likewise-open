@@ -72,16 +72,34 @@ LsaSrvAuthenticateUser(
                                             hProvider,
                                             pszLoginId,
                                             pszPassword);
-        if (!dwError) {
-           break;
+        if (!dwError)
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginSuccessEvent(hServer,
+                                             pProvider->pszName,
+                                             pszLoginId,
+                                             dwError);
+            }
+            break;
         }
         else if ((dwError == LSA_ERROR_NOT_HANDLED) |
-                 (dwError == LSA_ERROR_NO_SUCH_USER)) {
-           LsaSrvCloseProvider(pProvider, hProvider);
-           hProvider = (HANDLE)NULL;
-           continue;
-        } else {
-           BAIL_ON_LSA_ERROR(dwError);
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+            continue;
+        }
+        else
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginFailedEvent(hServer,
+                                            pProvider->pszName,
+                                            pszLoginId,
+                                            dwError);
+            }
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
@@ -114,17 +132,13 @@ cleanup:
 
 error:
 
-    if (LsaSrvEventlogEnabled()){
-        LsaSrvWriteLoginFailedEvent(
-            hServer,
-            pszLoginId,
-            dwError);
-    }
     if (dwError == LSA_ERROR_NOT_HANDLED ||
-                   dwError == LSA_ERROR_NO_SUCH_USER) {
+        dwError == LSA_ERROR_NO_SUCH_USER)
+    {
         LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
     }
-    else {
+    else
+    {
         LSA_LOG_ERROR("Failed authenticate user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
     }
 
@@ -204,6 +218,14 @@ LsaSrvAuthenticateUserEx(
                                             ppUserInfo);
         if (!dwError)
 	{
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginSuccessEvent(hServer,
+                                             pProvider->pszName,
+		                             pUserParams && pUserParams->pszAccountName ?
+		                             pUserParams->pszAccountName : "",
+                                             dwError);
+            }
             break;
         }
         else if ((dwError == LSA_ERROR_NOT_HANDLED) |
@@ -212,7 +234,17 @@ LsaSrvAuthenticateUserEx(
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
             continue;
-        } else {
+        }
+        else
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginFailedEvent(hServer,
+                                            pProvider->pszName,
+		                            pUserParams && pUserParams->pszAccountName ?
+		                            pUserParams->pszAccountName : "",
+                                            dwError);
+            }
 	    BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -245,15 +277,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (LsaSrvEventlogEnabled())
-    {
-        LsaSrvWriteLoginFailedEvent(
-            hServer,
-            pUserParams && pUserParams->pszAccountName ?
-	        pUserParams->pszAccountName : "(no name)",
-            dwError);
-    }
 
     if (dwError == LSA_ERROR_NOT_HANDLED ||
                    dwError == LSA_ERROR_NO_SUCH_USER)
@@ -327,13 +350,6 @@ cleanup:
 
 error:
 
-    if (LsaSrvEventlogEnabled()){
-        LsaSrvWriteLoginFailedEvent(
-            hServer,
-            pszLoginId,
-            dwError);
-    }
-
     goto cleanup;
 }
 
@@ -365,16 +381,36 @@ LsaSrvCheckUserInList(
                                             hProvider,
                                             pszLoginId,
                                             pszListName);
-        if (!dwError) {
-           break;
+        if (!dwError)
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginSuccessEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId,
+                    dwError);
+            }
+            break;
         }
         else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER)) {
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
            LsaSrvCloseProvider(pProvider, hProvider);
            hProvider = (HANDLE)NULL;
            continue;
-        } else {
-           BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginFailedEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId,
+                    dwError);
+            }
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
@@ -391,13 +427,6 @@ cleanup:
     return(dwError);
 
 error:
-
-    if (LsaSrvEventlogEnabled()){
-        LsaSrvWriteLoginFailedEvent(
-            hServer,
-            pszLoginId,
-            dwError);
-    }
 
     goto cleanup;
 }
@@ -432,16 +461,35 @@ LsaSrvChangePassword(
                                         pszLoginId,
                                         pszPassword,
                                         pszOldPassword);
-        if (!dwError) {
-           break;
+        if (!dwError)
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteUserPWChangeSuccessEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId);
+            }
+            break;
         }
         else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER)) {
-           LsaSrvCloseProvider(pProvider, hProvider);
-           hProvider = (HANDLE)NULL;
-           continue;
-        } else {
-           BAIL_ON_LSA_ERROR(dwError);
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+            continue;
+        }
+        else
+        {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteUserPWChangeFailureEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId,
+                    dwError);
+            }
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
