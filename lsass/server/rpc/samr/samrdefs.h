@@ -11,7 +11,8 @@ typedef void* CONNECT_HANDLE;
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
         if ((status) != STATUS_SUCCESS) {                \
-            dwError = NtStatusToUnixErrno((status));     \
+            LSA_LOG_ERROR("Error: NTSTATUS = 0x%08x",    \
+                          (status));                     \
             goto error;                                  \
         }                                                \
     } while (0)
@@ -22,6 +23,31 @@ typedef void* CONNECT_HANDLE;
     do {                                                 \
         if ((ptr) == NULL) {                             \
             status = STATUS_NO_MEMORY;                   \
+            LSA_LOG_ERROR("Error: out of memory");       \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#ifdef BAIL_ON_LSA_ERROR
+#undef BAIL_ON_LSA_ERROR
+#endif
+
+
+#define BAIL_ON_LSA_ERROR(err)                           \
+    do {                                                 \
+        if ((err) != 0) {                                \
+            switch ((err)) {                             \
+            case LSA_ERROR_SAM_DATABASE_ERROR:           \
+                status = STATUS_SAM_INIT_FAILURE;        \
+                break;                                   \
+                                                         \
+            default:                                     \
+                status = STATUS_UNSUCCESSFUL;            \
+            }                                            \
+                                                         \
+            LSA_LOG_ERROR("Error at %s:%d [code: %d]",   \
+                          __FILE__, __LINE__, (err));    \
             goto error;                                  \
         }                                                \
     } while (0)

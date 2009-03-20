@@ -118,6 +118,7 @@ SamrRpcStartServer(
         { NULL,            NULL }
     };
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcBindRpcInterface(gpSamrSrvBinding,
                                      samr_v1_0_s_ifspec,
@@ -136,6 +137,7 @@ SamrRpcStopServer(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = RpcSvcUnbindRpcInterface(gpSamrSrvBinding,
                                        samr_v1_0_s_ifspec);
