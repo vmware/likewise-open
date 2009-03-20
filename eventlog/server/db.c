@@ -846,10 +846,6 @@ SrvQueryEventLog(
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-
-    dwError = EVTCompressWhitespace(szQuery);
-    BAIL_ON_EVT_ERROR(dwError);
-
     EVT_LOG_INFO("evtdb: SrvQueryEventLog: query={%s}\n\n", szQuery);
 
 
