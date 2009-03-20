@@ -10,8 +10,11 @@
 #define SAMDB_LOG_VERBOSE(errtext)
 #define SAMDB_LOG_DEBUG(errtext)
 
-#define BAIL_ON_SAMDB_ERROR(dwError) \
-    if (dwError) goto error;
+#define BAIL_ON_SAMDB_ERROR(dwError)                  \
+    if (dwError) {                                    \
+        dwError = LSA_ERROR_SAM_DATABASE_ERROR;       \
+        goto error;                                   \
+    }
 
 #define SAMDB_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \
@@ -74,3 +77,12 @@ typedef enum
 
 #endif /* __SAMDBDEFS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
