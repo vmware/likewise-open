@@ -120,8 +120,7 @@ SamDbSearchDomains(
                         &entryType);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        if ((entryType != SAMDB_ENTRY_TYPE_DOMAIN) ||
-            (pwszObjectName || *pwszObjectName))
+        if (entryType != SAMDB_ENTRY_TYPE_DOMAIN)
         {
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_SAMDB_ERROR(dwError);
@@ -193,13 +192,22 @@ SamDbBuildDomainDirectoryEntries(
     DWORD dwError = 0;
     DWORD iDomain = 0;
     DWORD iAttr = 0;
-    DWORD dwNumAttrs = sizeof(wszAttributes)/sizeof(wszAttributes[0]);
+    DWORD dwNumAttrs = 0;
     PDIRECTORY_ENTRY pDirectoryEntries = NULL;
 
     dwError = DirectoryAllocateMemory(
                     sizeof(DIRECTORY_ENTRY) * dwNumDomains,
                     (PVOID*)&pDirectoryEntries);
     BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (ulAttributesOnly) {
+        while (wszAttributes[dwNumAttrs]) {
+            dwNumAttrs++;
+        }
+    } else {
+        /* total number of attributes in SAM_DB_DOMAIN_INFO */
+        dwNumAttrs = 3;
+    }
 
     for (; iDomain < dwNumDomains; iDomain++)
     {
@@ -228,7 +236,7 @@ SamDbBuildDomainDirectoryEntries(
             if (ntStatus)
             {
                 dwError = LSA_ERROR_INVALID_PARAMETER;
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_LSA_ERROR(dwError);
             }
 
             dwError = DirectoryAllocateStringW(
@@ -251,7 +259,8 @@ SamDbBuildDomainDirectoryEntries(
 
                     pAttrValue->Type = pEntry->attrType;
 
-                    if (!ulAttributesOnly)
+                    if (!ulAttributesOnly ||
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
                     {
                         pAttrValue->pwszStringValue = pDomainInfo->pwszNetBIOSName;
                         pDomainInfo->pwszNetBIOSName = NULL;
@@ -263,7 +272,8 @@ SamDbBuildDomainDirectoryEntries(
 
                     pAttrValue->Type = pEntry->attrType;
 
-                    if (!ulAttributesOnly)
+                    if (!ulAttributesOnly ||
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
                     {
                         pAttrValue->pwszStringValue = pDomainInfo->pwszDomainSID;
                         pDomainInfo->pwszDomainSID = NULL;
@@ -275,7 +285,8 @@ SamDbBuildDomainDirectoryEntries(
 
                     pAttrValue->Type = pEntry->attrType;
 
-                    if (!ulAttributesOnly)
+                    if (!ulAttributesOnly ||
+                        !wc16scmp(wszAttributes[0], pDirAttr->pwszAttributeName))
                     {
                         pAttrValue->pwszStringValue = pDomainInfo->pwszDomainName;
                         pDomainInfo->pwszDomainName = NULL;
@@ -447,3 +458,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
