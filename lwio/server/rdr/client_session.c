@@ -33,69 +33,53 @@
 /* @todo: support internationalized principals */
 NTSTATUS
 SMBSrvClientSessionCreate(
-    IN PSMB_SOCKET pSocket,
+    IN OUT PSMB_SOCKET* ppSocket,
     IN PCSTR pszPrincipal,
     OUT PSMB_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
     PSMB_SESSION pSession = NULL;
-    BOOLEAN bAddedByPrincipal = FALSE;
+    BOOLEAN bInLock = FALSE;
+    PSMB_SOCKET pSocket = *ppSocket;
 
-    ntStatus = SMBSocketFindSessionByPrincipal(
-                    pSocket,
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    ntStatus = SMBHashGetValue(
+                    pSocket->pSessionHashByPrincipal,
                     pszPrincipal,
-                    &pSession);
+                    (PVOID *) &pSession);
+
     if (!ntStatus)
     {
-        goto done;
+        pSession->refCount++;
+        SMBSocketRelease(pSocket);
+        *ppSocket = NULL;
     }
-
-    ntStatus = SMBSessionCreate(&pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSession->pSocket = pSocket;
-
-    SMB_SAFE_FREE_MEMORY(pSession->pszPrincipal);
-
-    /* Principal is trusted */
-    ntStatus = SMBStrndup(
-                    pszPrincipal,
-                    strlen(pszPrincipal) + 1,
-                    &pSession->pszPrincipal);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBSrvClientSocketAddSessionByPrincipal(pSocket, pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bAddedByPrincipal = TRUE;
-
-    ntStatus = SessionSetup(
-                    pSocket,
-                    &pSession->uid,
-                    &pSession->pSessionKey,
-                    &pSession->dwSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pSocket->pSessionKey && pSession->pSessionKey)
+    else
     {
-        ntStatus = SMBAllocateMemory(
-                        pSession->dwSessionKeyLength,
-                        (PVOID*)&pSocket->pSessionKey);
+        ntStatus = SMBSessionCreate(&pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        memcpy(pSocket->pSessionKey, pSession->pSessionKey, pSession->dwSessionKeyLength);
+        pSession->pSocket = pSocket;
 
-        pSocket->dwSessionKeyLength = pSession->dwSessionKeyLength;
+        /* Principal is trusted */
+        ntStatus = SMBStrndup(
+            pszPrincipal,
+            strlen(pszPrincipal) + 1,
+            &pSession->pszPrincipal);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBHashSetValue(
+                    pSocket->pSessionHashByPrincipal,
+                    pSession->pszPrincipal,
+                    pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        *ppSocket = NULL;
     }
 
-    /* Set state and awake any waiting threads */
-    SMBSessionSetState(pSession, SMB_RESOURCE_STATE_VALID);
-
-    ntStatus = SMBSrvClientSocketAddSessionByUID(pSocket, pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-done:
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     *ppSession = pSession;
 
@@ -105,23 +89,17 @@ cleanup:
 
 error:
 
-    *ppSession = NULL;
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (pSession)
     {
-        if (bAddedByPrincipal)
-        {
-            SMBSrvClientSocketRemoveSessionByPrincipal(pSocket, pSession);
-        }
-
-        SMBSessionInvalidate(pSession, ERROR_SMB, ntStatus);
-
         SMBSessionRelease(pSession);
     }
 
+    *ppSession = NULL;
+
     goto cleanup;
 }
-
 
 /* Must be called with the session mutex held */
 NTSTATUS
@@ -180,7 +158,7 @@ SMBSrvClientSessionAddTreeById(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     /* No need to check for a race here; the path hash is always checked
        first */
@@ -192,7 +170,7 @@ SMBSrvClientSessionAddTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -210,7 +188,7 @@ SMBSrvClientSessionRemoveTreeById(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashRemoveKey(
                     pSession->pTreeHashByTID,
@@ -221,7 +199,7 @@ SMBSrvClientSessionRemoveTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -239,7 +217,7 @@ SMBSrvClientSessionAddTreeByPath(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     /* @todo: check for race */
     ntStatus = SMBHashSetValue(
@@ -250,7 +228,7 @@ SMBSrvClientSessionAddTreeByPath(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -268,14 +246,14 @@ SMBSrvClientSessionRemoveTreeByPath(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 

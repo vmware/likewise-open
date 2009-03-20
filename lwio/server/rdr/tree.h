@@ -29,8 +29,7 @@ SMBTreeSetState(
 NTSTATUS
 SMBTreeInvalidate(
     PSMB_TREE      pTree,
-    SMB_ERROR_TYPE errorType,
-    uint32_t       error
+    NTSTATUS ntStatus
     );
 
 NTSTATUS
@@ -53,4 +52,9 @@ SMBTreeFindLockedResponseByMID(
     PSMB_TREE      pTree,
     uint16_t       wMid,
     PSMB_RESPONSE* ppResponse
+    );
+
+VOID
+SMBTreeFree(
+    PSMB_TREE pTree
     );

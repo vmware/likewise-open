@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = librdr.sys.la
 
 librdr_sys_la_SOURCES =   \
-    client_reaper.c       \
     client_session.c      \
     client_socket.c       \
     client_tree.c         \
@@ -29,6 +28,7 @@ librdr_sys_la_SOURCES =   \
     socket.c              \
     tree.c                \
     writefile.c           \
+    reaper.c              \
     lwio-semaphore.c      \
     rdrdriver.c           \
     rdrcreate.c           \

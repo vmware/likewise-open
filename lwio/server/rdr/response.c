@@ -72,8 +72,6 @@ SMBResponseCreate(
     bDestroyMutex = TRUE;
 
     pResponse->state = SMB_RESOURCE_STATE_INITIALIZING;
-    pResponse->error.type = ERROR_SMB;
-    pResponse->error.smb = SMB_ERROR_SUCCESS;
 
     ntStatus = pthread_cond_init(&pResponse->event, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -134,15 +132,13 @@ SMBResponseFree(
 }
 
 VOID
-SMBResponseInvalidate(
+SMBResponseInvalidate_InLock(
     PSMB_RESPONSE pResponse,
-    SMB_ERROR_TYPE errorType,
-    uint32_t networkError
+    NTSTATUS ntStatus
     )
 {
     pResponse->state = SMB_RESOURCE_STATE_INVALID;
-    pResponse->error.type = errorType;
-    pResponse->error.smb  = networkError;
+    pResponse->error = ntStatus;
 
     pthread_cond_broadcast(&pResponse->event);
 }

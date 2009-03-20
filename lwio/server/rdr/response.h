@@ -11,10 +11,9 @@ SMBResponseFree(
     );
 
 VOID
-SMBResponseInvalidate(
+SMBResponseInvalidate_InLock(
     PSMB_RESPONSE pResponse,
-    SMB_ERROR_TYPE errorType,
-    uint32_t networkError
+    NTSTATUS ntStatus
     );
 
 VOID

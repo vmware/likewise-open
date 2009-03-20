@@ -85,16 +85,9 @@ SMBSocketFindSessionByUID(
     PSMB_SESSION* ppSession
     );
 
-static
-VOID
-SMBSocketFree(
-    PSMB_SOCKET pSocket
-    );
-
 
 NTSTATUS
 SMBSocketCreate(
-    IN struct addrinfo* address,
     IN PCSTR pszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
     OUT PSMB_SOCKET* ppSocket
@@ -103,11 +96,7 @@ SMBSocketCreate(
     NTSTATUS ntStatus = 0;
     SMB_SOCKET *pSocket = NULL;
     BOOLEAN bDestroyCondition = FALSE;
-    BOOLEAN bDestroySessionCondition = FALSE;
-    BOOLEAN bDestroyHashLock = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
-    BOOLEAN bDestroyWriteMutex = FALSE;
-    BOOLEAN bDestroySessionMutex = FALSE;
 
     ntStatus = SMBAllocateMemory(
                 sizeof(SMB_SOCKET),
@@ -119,28 +108,19 @@ SMBSocketCreate(
     pthread_mutex_init(&pSocket->mutex, NULL);
     bDestroyMutex = TRUE;
 
-    pSocket->state = SMB_RESOURCE_STATE_INITIALIZING;
-    pSocket->error.type = ERROR_SMB;
-    pSocket->error.smb = SMB_ERROR_SUCCESS;
-
     ntStatus = pthread_cond_init(&pSocket->event, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
-    ntStatus = pthread_cond_init(&pSocket->sessionEvent, NULL);
+    ntStatus = pthread_cond_init(&pSocket->event, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    bDestroySessionCondition = TRUE;
-
-    pSocket->refCount = 2;  /* One for reaper */
+    pSocket->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
     pSocket->lastActiveTime = time(NULL);
-
-    pthread_mutex_init(&pSocket->writeMutex, NULL);
-    bDestroyWriteMutex = TRUE;
 
     pSocket->fd = 0;
 
@@ -151,8 +131,6 @@ SMBSocketCreate(
                     (char **) &pSocket->pszHostname);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSocket->address = *address->ai_addr;
-
     pSocket->maxBufferSize = 0;
     pSocket->maxRawSize = 0;
     pSocket->sessionKey = 0;
@@ -161,11 +139,6 @@ SMBSocketCreate(
     pSocket->securityBlobLen = 0;
 
     pSocket->hPacketAllocator = gRdrRuntime.hPacketAllocator;
-
-    ntStatus = pthread_rwlock_init(&pSocket->hashLock, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyHashLock = TRUE;
 
     ntStatus = SMBHashCreate(
                     19,
@@ -182,9 +155,6 @@ SMBSocketCreate(
                     NULL,
                     &pSocket->pSessionHashByUID);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pthread_mutex_init(&pSocket->sessionMutex, NULL);
-    bDestroySessionMutex = TRUE;
 
     /* The reader thread will immediately block waiting for initialization */
     ntStatus = pthread_create(
@@ -216,32 +186,10 @@ error:
             pthread_cond_destroy(&pSocket->event);
         }
 
-        if (bDestroySessionCondition)
-        {
-            pthread_cond_destroy(&pSocket->sessionEvent);
-        }
-
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSocket->hashLock);
-        }
-
-        if (bDestroyWriteMutex)
-        {
-            pthread_mutex_destroy(&pSocket->writeMutex);
-        }
-
-        if (bDestroySessionMutex)
-        {
-            pthread_mutex_destroy(&pSocket->sessionMutex);
-        }
-
         if (bDestroyMutex)
         {
             pthread_mutex_destroy(&pSocket->mutex);
         }
-
-        SMBFreeMemory(pSocket);
 
         SMBFreeMemory(pSocket);
     }
@@ -345,6 +293,22 @@ SMBSocketIsSignatureRequired(
     return bIsRequired;
 }
 
+static
+ULONG
+SMBSocketGetNextSequence_inlock(
+    PSMB_SOCKET pSocket
+    )
+{
+    DWORD dwSequence = 0;
+
+    dwSequence = pSocket->dwSequence;
+    // Next for response
+    // Next for next message
+    pSocket->dwSequence += 2;
+
+    return dwSequence;
+}
+
 ULONG
 SMBSocketGetNextSequence(
     PSMB_SOCKET pSocket
@@ -356,10 +320,7 @@ SMBSocketGetNextSequence(
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    dwSequence = pSocket->dwSequence;
-    // Next for response
-    // Next for next message
-    pSocket->dwSequence += 2;
+    dwSequence = SMBSocketGetNextSequence_inlock(pSocket);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
@@ -401,13 +362,6 @@ SMBSocketSend(
         bSemaphoreAcquired = TRUE;
     }
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->writeMutex);
-
-    if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
-    {
-        pPacket->sequence = SMBSocketGetNextSequence(pSocket);
-    }
-
     if (pPacket->allowSignature)
     {
         bIsSignatureRequired = SMBSocketIsSignatureRequired(pSocket);
@@ -420,6 +374,15 @@ SMBSocketSend(
 
     SMBPacketHTOLSmbHeader(pPacket->pSMBHeader);
 
+    pPacket->haveSignature = bIsSignatureRequired;
+
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
+    {
+        pPacket->sequence = SMBSocketGetNextSequence_inlock(pSocket);
+    }
+
     if (bIsSignatureRequired)
     {
         ntStatus = SMBPacketSign(
@@ -430,12 +393,12 @@ SMBSocketSend(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pPacket->haveSignature = bIsSignatureRequired;
-
     writtenLen = write(
                     pSocket->fd,
                     pPacket->pRawBuffer,
                     pPacket->bufferUsed);
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (writtenLen < 0)
     {
@@ -445,7 +408,7 @@ SMBSocketSend(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->writeMutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -462,7 +425,7 @@ error:
 
     if (pSocket != NULL)
     {
-        SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
+        SMBSocketInvalidate(pSocket, ntStatus);
     }
 
     goto cleanup;
@@ -487,7 +450,7 @@ SMBSocketReceiveAndUnmarshall(
 
     if (len != readLen)
     {
-        ntStatus = EPIPE;
+        ntStatus = STATUS_END_OF_FILE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -505,7 +468,7 @@ SMBSocketReceiveAndUnmarshall(
 
     if(pPacket->pNetBIOSHeader->len != readLen)
     {
-        ntStatus = EPIPE;
+        ntStatus = STATUS_END_OF_FILE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -547,7 +510,7 @@ SMBSocketReaderMain(
     /* Wait for thread to become ready */
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    while (pSocket->state == SMB_RESOURCE_STATE_INITIALIZING)
+    while (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
     {
         pthread_cond_wait(&pSocket->event, &pSocket->mutex);
     }
@@ -556,7 +519,7 @@ SMBSocketReaderMain(
 
     /* When the ref. count drops to zero, pthread_cancel() breaks out of this
        loop */
-    while (pSocket->state == SMB_RESOURCE_STATE_VALID)
+    while (pSocket->state < RDR_SOCKET_STATE_TEARDOWN)
     {
         int ret = 0;
         fd_set fdset;
@@ -566,11 +529,11 @@ SMBSocketReaderMain(
         ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
         if (ret == -1)
         {
-            ntStatus = errno;
+            ntStatus = UnixErrnoToNtStatus(errno);
         }
         else if (ret != 1)
         {
-            ntStatus = EFAULT;
+            ntStatus = STATUS_ASSERTION_FAILURE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -666,7 +629,7 @@ SMBSocketFindAndSignalResponse(
 
         pSocket->pSessionPacket = pPacket;
 
-        pthread_cond_broadcast(&pSocket->sessionEvent);
+        pthread_cond_broadcast(&pSocket->event);
 
         SMB_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
 
@@ -689,7 +652,7 @@ SMBSocketFindAndSignalResponse(
         assert(!pSession->pTreePacket);
         pSession->pTreePacket = pPacket;
 
-        pthread_cond_broadcast(&pSession->treeEvent);
+        pthread_cond_broadcast(&pSession->event);
 
         SMB_UNLOCK_MUTEX(bSessionInLock, &pSession->mutex);
 
@@ -752,10 +715,7 @@ SMBSocketFindSessionByUID(
     /* It is not necessary to ref. the socket here because we're guaranteed
        that the reader thread dies before the socket is destroyed */
     NTSTATUS ntStatus = 0;
-    BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
-
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByUID,
@@ -763,13 +723,11 @@ SMBSocketFindSessionByUID(
                     (PVOID *) &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMBSessionAddReference(pSession);
+    pSession->refCount++;
 
     *ppSession = pSession;
 
 cleanup:
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
 
     return ntStatus;
 
@@ -780,8 +738,6 @@ error:
     goto cleanup;
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-reaper. */
 VOID
 SMBSocketAddReference(
     PSMB_SOCKET pSocket
@@ -789,27 +745,40 @@ SMBSocketAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     pSocket->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
 /* @todo: catch signals? */
 /* @todo: set socket option NODELAY for better performance */
 NTSTATUS
 SMBSocketConnect(
-    PSMB_SOCKET pSocket,
-    struct addrinfo *ai
+    PSMB_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = 0;
-    int fd;
+    int fd = -1;
     fd_set fdset;
     struct timeval tv = { .tv_sec = 10, .tv_usec = 0 };
     int ret = 0;
     BOOLEAN bInLock = FALSE;
+    struct addrinfo *ai = NULL;
+    struct addrinfo hints;
+    int s;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    s = getaddrinfo(pSocket->pszHostname, "445", &hints, &ai);
+    if (s != 0)
+    {
+        ntStatus = LwUnixErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     if ((fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0)
     {
@@ -835,26 +804,29 @@ SMBSocketConnect(
     ret = select(fd + 1, NULL, &fdset, &fdset, &tv);
     if (ret == 0)
     {
-        ntStatus = ETIMEDOUT;
+        ntStatus = STATUS_IO_TIMEOUT;
     }
     else if (ret == -1)
     {
-        ntStatus = errno;
+        ntStatus = UnixErrnoToNtStatus(errno);
     }
     else if (ret != 1)
     {
-        ntStatus = EFAULT;
+        ntStatus = STATUS_ASSERTION_FAILURE;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    pSocket->state = SMB_RESOURCE_STATE_VALID;
+    /* We are done connecting -- go to negotiation stage */
+    pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
     pSocket->fd = fd;
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    fd = -1;
+    memcpy(&pSocket->address, &ai->ai_addr, ai->ai_addrlen);
 
     pthread_cond_broadcast(&pSocket->event);
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
 cleanup:
 
@@ -862,12 +834,12 @@ cleanup:
 
 error:
 
-    if (fd < 0)
+    if (fd >= 0)
     {
         close(fd);
     }
 
-    SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
+    SMBSocketInvalidate(pSocket, ntStatus);
 
     goto cleanup;
 }
@@ -898,15 +870,15 @@ SMBSocketRead(
         ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, &tv);
         if (ret == 0)
         {
-            ntStatus = ETIMEDOUT;
+            ntStatus = STATUS_IO_TIMEOUT;
         }
         else if (ret == -1)
         {
-            ntStatus = errno;
+            ntStatus = UnixErrnoToNtStatus(errno);
         }
         else if (ret != 1)
         {
-            ntStatus = EFAULT;
+            ntStatus = STATUS_ASSERTION_FAILURE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -932,7 +904,7 @@ cleanup:
 
 error:
 
-    SMBSocketInvalidate(pSocket, ERROR_SMB, ntStatus);
+    SMBSocketInvalidate(pSocket, ntStatus);
 
     goto cleanup;
 }
@@ -940,18 +912,14 @@ error:
 VOID
 SMBSocketInvalidate(
     PSMB_SOCKET pSocket,
-    SMB_ERROR_TYPE errorType,
-    uint32_t networkError
+    NTSTATUS ntStatus
     )
 {
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    SMBSocketInvalidate_InLock(
-                    pSocket,
-                    errorType,
-                    networkError);
+    SMBSocketInvalidate_InLock(pSocket, ntStatus);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
@@ -959,26 +927,19 @@ SMBSocketInvalidate(
 VOID
 SMBSocketInvalidate_InLock(
     PSMB_SOCKET pSocket,
-    SMB_ERROR_TYPE errorType,
-    uint32_t networkError
+    NTSTATUS ntStatus
     )
 {
-    pSocket->state = SMB_RESOURCE_STATE_INVALID;
-    /* mark permanent error, continue */
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
-    pSocket->error.type = errorType;
-    pSocket->error.smb = networkError;
+    pSocket->state = RDR_SOCKET_STATE_ERROR;
+    pSocket->error = ntStatus;
 
     pthread_cond_broadcast(&pSocket->event);
-
-    pthread_cond_broadcast(&pSocket->sessionEvent);
 }
 
 VOID
 SMBSocketSetState(
     PSMB_SOCKET        pSocket,
-    SMB_RESOURCE_STATE state
+    RDR_SOCKET_STATE   state
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -1004,6 +965,7 @@ SMBSocketReceiveResponse(
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
     PSMB_PACKET pPacket = NULL;
+    int err = 0;
 
     // TODO-The pSocket->pSessionPacket stuff needs to go away
     // so that this function can go away.
@@ -1021,15 +983,15 @@ SMBSocketReceiveResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        ntStatus = pthread_cond_timedwait(
-                        &pSocket->sessionEvent,
-                        &pSocket->mutex,
-                        &ts);
-        if (ntStatus == ETIMEDOUT)
+        err = pthread_cond_timedwait(
+            &pSocket->event,
+            &pSocket->mutex,
+            &ts);
+        if (err == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                ntStatus = 0;
+                err = 0;
                 goto retry_wait;
             }
 
@@ -1038,11 +1000,12 @@ retry_wait:
              */
             if (SMBSocketTimedOut_InLock(pSocket))
             {
-                SMBSocketInvalidate_InLock(pSocket, ERROR_SMB, ETIMEDOUT);
+                ntStatus = STATUS_IO_TIMEOUT;
+                SMBSocketInvalidate_InLock(pSocket, ntStatus);
             }
             else
             {
-                ntStatus = SMB_ERROR_SUCCESS;
+                ntStatus = STATUS_SUCCESS;
             }
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1087,7 +1050,7 @@ SMBSocketFindSessionByPrincipal(
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
@@ -1101,7 +1064,7 @@ SMBSocketFindSessionByPrincipal(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -1126,25 +1089,71 @@ SMBSocketRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
-    pSocket->refCount--;
-    assert(pSocket->refCount >= 0);
+    assert(pSocket->refCount > 0);
 
-    if (!pSocket->refCount)
+    /* If the socket is no longer referenced and
+       it is not usable, free it immediately.
+       Otherwise, allow the reaper to collect it
+       asynchronously */
+    if (--pSocket->refCount == 0 &&
+        pSocket->state != RDR_SOCKET_STATE_READY)
     {
+        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                         pSocket->pszHostname);
         SMBSocketFree(pSocket);
-
-        bInLock = FALSE;
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
-/* @todo: pthread_join on socket reader thread */
-static
+NTSTATUS
+SMBSocketWaitReady(
+    PSMB_SOCKET pSocket
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    while (pSocket->state != RDR_SOCKET_STATE_READY)
+    {
+        if (pSocket->state == RDR_SOCKET_STATE_ERROR)
+        {
+            ntStatus = pSocket->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+    }
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SMBSocketWaitSessionSetup(
+    PSMB_SOCKET pSocket
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    while (pSocket->bSessionSetupInProgress)
+    {
+        if (pSocket->state == RDR_SOCKET_STATE_ERROR)
+        {
+            ntStatus = pSocket->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+    }
+
+error:
+
+    return ntStatus;
+}
+
 VOID
 SMBSocketFree(
     PSMB_SOCKET pSocket
@@ -1152,6 +1161,7 @@ SMBSocketFree(
 {
     assert(!pSocket->refCount);
 
+    /* FIXME: blargh */
     pthread_cancel(pSocket->readerThread);
 
     pthread_join(pSocket->readerThread, NULL);
@@ -1168,8 +1178,6 @@ SMBSocketFree(
 
     pthread_cond_destroy(&pSocket->event);
 
-    pthread_rwlock_destroy(&pSocket->hashLock);
-
     SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
     SMB_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
 
@@ -1179,10 +1187,6 @@ SMBSocketFree(
 
     assert(!pSocket->pSessionPacket);
 
-    pthread_cond_destroy(&pSocket->sessionEvent);
-
-    pthread_mutex_destroy(&pSocket->writeMutex);
-    pthread_mutex_destroy(&pSocket->sessionMutex);
     pthread_mutex_destroy(&pSocket->mutex);
 
     SMB_SAFE_FREE_MEMORY(pSocket->pSessionKey);

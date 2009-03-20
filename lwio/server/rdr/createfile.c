@@ -94,7 +94,7 @@ RdrCreateFileEx(
     if (!pSecurityToken ||
         pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5)
     {
-        ntStatus = EACCES;
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -396,7 +396,6 @@ RdrTransactCreateFile(
     pHeader->createOptions = createOptions;
     pHeader->impersonationLevel = 0x2; /* FIXME */
 
-    /* @todo: handle buffer size restart with ERESTART */
     ntStatus = WireMarshallCreateRequestData(
                 packet.pData,
                 packet.bufferLen - packet.bufferUsed,

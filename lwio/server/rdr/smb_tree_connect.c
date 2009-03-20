@@ -63,7 +63,6 @@ TreeConnect(
     uint32_t packetByteCount = 0;
     TREE_CONNECT_REQUEST_HEADER *pHeader = NULL;
     SMB_PACKET *pResponsePacket = NULL;
-    BOOLEAN bInLock = FALSE;
 
     /* @todo: make initial length configurable */
     ntStatus = SMBPacketBufferAllocate(
@@ -120,11 +119,6 @@ TreeConnect(
     ntStatus = SMBPacketMarshallFooter(&packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Because there's no MID, only one TREE_CONNECT_ANDX packet can be
-       outstanding. */
-    /* @todo: test multiple session setups with multiple MIDs */
-    SMB_LOCK_MUTEX(bInLock, &pSession->treeMutex);
-
     ntStatus = SMBSocketSend(pSession->pSocket, &packet);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -154,8 +148,6 @@ cleanup:
                 packet.pRawBuffer,
                 packet.bufferLen);
     }
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->treeMutex);
 
     return ntStatus;
 

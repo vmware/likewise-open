@@ -67,19 +67,7 @@ RdrDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
-    NTSTATUS ntStatus = 0;
-    int EE = 0;
-
-    IO_LOG_ENTER_LEAVE("");
-
     RdrShutdown();
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-
-cleanup:
-
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
-
-    return;
 }
 
 NTSTATUS
@@ -89,7 +77,6 @@ RdrDriverDispatch(
     )
 {
     NTSTATUS ntStatus = 0;
-    int EE = 0;
 
     switch (pIrp->Type)
     {
@@ -168,11 +155,8 @@ RdrDriverDispatch(
         break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
     }
 
-cleanup:
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
     return ntStatus;
 }
 
@@ -183,33 +167,30 @@ DriverEntry(
     )
 {
     NTSTATUS ntStatus = 0;
-    int EE = 0;
     IO_DEVICE_HANDLE deviceHandle = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
         ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
                                   RdrDriverShutdown,
                                   RdrDriverDispatch);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(&deviceHandle,
                               DriverHandle,
                               "rdr",
                               NULL);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrInitialize();
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-cleanup:
-
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+error:
 
     return ntStatus;
 }
@@ -224,8 +205,7 @@ RdrInitialize(
 
     memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
 
-    pthread_rwlock_init(&gRdrRuntime.socketHashLock, NULL);
-    gRdrRuntime.pSocketHashLock = &gRdrRuntime.socketHashLock;
+    pthread_mutex_init(&gRdrRuntime.socketHashLock, NULL);
 
     ntStatus = SMBPacketCreateAllocator(
                     10,
@@ -235,7 +215,7 @@ RdrInitialize(
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrReaperStart();
+    ntStatus = RdrReaperInit(&gRdrRuntime);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -251,16 +231,13 @@ RdrShutdown(
 {
     NTSTATUS ntStatus = 0;
 
+    ntStatus = RdrReaperShutdown(&gRdrRuntime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RdrSocketShutdown();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrReaperStop();
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (gRdrRuntime.pSocketHashLock)
-    {
-        pthread_rwlock_destroy(gRdrRuntime.pSocketHashLock);
-    }
+    pthread_mutex_destroy(&gRdrRuntime.socketHashLock);
 
     if (gRdrRuntime.hPacketAllocator != (HANDLE)NULL)
     {

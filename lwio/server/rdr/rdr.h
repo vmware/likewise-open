@@ -55,6 +55,7 @@
 
 #include <openssl/md5.h>
 
+#include <lw/base.h>
 #include <lwio/lwio.h>
 
 #include <lw/ntstatus.h>
@@ -90,7 +91,6 @@
 #include "client_socket.h"
 #include "client_session.h"
 #include "client_tree.h"
-#include "client_reaper.h"
 
 #include "externs.h"
 
@@ -318,6 +318,41 @@ RdrTransactReadFile(
 void
 RdrReleaseFile(
     PSMB_CLIENT_FILE_HANDLE pFile
+    );
+
+NTSTATUS
+SMBSocketWaitReady(
+    PSMB_SOCKET pSocket
+    );
+
+NTSTATUS
+SMBSessionWaitReady(
+    PSMB_SESSION pSession
+    );
+
+NTSTATUS
+SMBTreeWaitReady(
+    PSMB_TREE pTree
+    );
+
+NTSTATUS
+SMBSocketWaitSessionSetup(
+    PSMB_SOCKET pSocket
+    );
+
+NTSTATUS
+SMBSessionWaitTreeConnect(
+    PSMB_SESSION pSession
+    );
+
+NTSTATUS
+RdrReaperInit(
+    PRDR_GLOBAL_RUNTIME pRuntime
+    );
+
+NTSTATUS
+RdrReaperShutdown(
+    PRDR_GLOBAL_RUNTIME pRuntime
     );
 
 #endif /* __RDR_H__ */

@@ -33,8 +33,31 @@
 static
 NTSTATUS
 SMBSrvClientTreeCreate(
-    IN PSMB_SESSION pSession,
+    IN OUT PSMB_SESSION* ppSession,
     IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
+    );
+
+static
+NTSTATUS
+RdrAcquireNegotiatedSocket(
+    PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    );
+
+static
+NTSTATUS
+RdrAcquireEstablishedSession(
+    IN OUT PSMB_SOCKET* ppSocket,
+    PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
+    );
+
+static
+NTSTATUS
+RdrAcquireConnectedTree(
+    IN OUT PSMB_SESSION* ppSession,
+    IN PCSTR pszSharename,
     OUT PSMB_TREE* ppTree
     );
 
@@ -51,24 +74,22 @@ SMBSrvClientTreeOpen(
     PSMB_SESSION pSession = NULL;
     PSMB_TREE pTree = NULL;
 
-    ntStatus = SMBSrvClientSocketCreate(
-                    pszHostname,
-                    &pSocket);
+    ntStatus = RdrAcquireNegotiatedSocket(
+        pszHostname,
+        &pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientSessionCreate(
-                    pSocket,
-                    pszPrincipal,
-                    &pSession);
+    ntStatus = RdrAcquireEstablishedSession(
+        &pSocket,
+        pszPrincipal,
+        &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBSrvClientTreeCreate(
-                    pSession,
-                    pszSharename,
-                    &pTree);
+    ntStatus = RdrAcquireConnectedTree(
+        &pSession,
+        pszSharename,
+        &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    SMBTreeAddReference(pTree);
 
     *ppTree = pTree;
 
@@ -98,67 +119,231 @@ error:
 
 static
 NTSTATUS
-SMBSrvClientTreeCreate(
-    IN PSMB_SESSION pSession,
-    IN PCSTR pszPath,
+RdrAcquireNegotiatedSocket(
+    IN PCSTR pszHostname,
+    OUT PSMB_SOCKET* ppSocket
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_SOCKET pSocket = NULL;
+    BOOLEAN bInSocketLock = FALSE;
+
+    ntStatus = SMBSrvClientSocketCreate(
+                    pszHostname,
+                    &pSocket);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Poke the reaper since we have a new socket around */
+    pthread_cond_signal(&gRdrRuntime.reaperEvent);
+
+    SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+
+    if (pSocket->state == RDR_SOCKET_STATE_NOT_READY)
+    {
+        /* We're the first thread to use this socket.
+           Go through the connect/negotiate procedure */
+        pSocket->state = RDR_SOCKET_STATE_CONNECTING;
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+
+        ntStatus = SMBSocketConnect(pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = Negotiate(pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = SMBSocketWaitReady(pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    }
+
+    *ppSocket = pSocket;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSocket = NULL;
+
+    SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+
+    if (pSocket)
+    {
+        SMBSocketRelease(pSocket);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrAcquireEstablishedSession(
+    PSMB_SOCKET* ppSocket,
+    PCSTR pszPrincipal,
+    OUT PSMB_SESSION* ppSession
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_SESSION pSession = NULL;
+    BOOLEAN bInSessionLock = FALSE;
+    BOOLEAN bInSocketLock = FALSE;
+
+    ntStatus = SMBSrvClientSessionCreate(
+        ppSocket,
+        pszPrincipal,
+        &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+
+    if (pSession->state == RDR_SESSION_STATE_NOT_READY)
+    {
+        /* Begin initializing session */
+        pSession->state = RDR_SESSION_STATE_INITIALIZING;
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+
+        /* Exclude other session setups on this socket */
+        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        ntStatus = SMBSocketWaitSessionSetup(pSession->pSocket);
+        BAIL_ON_NT_STATUS(ntStatus);
+        pSession->pSocket->bSessionSetupInProgress = TRUE;
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+
+        ntStatus = SessionSetup(
+                    pSession->pSocket,
+                    &pSession->uid,
+                    &pSession->pSessionKey,
+                    &pSession->dwSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!pSession->pSocket->pSessionKey && pSession->pSessionKey)
+        {
+            ntStatus = SMBAllocateMemory(
+                pSession->dwSessionKeyLength,
+                (PVOID*)&pSession->pSocket->pSessionKey);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            memcpy(pSession->pSocket->pSessionKey, pSession->pSessionKey, pSession->dwSessionKeyLength);
+
+            pSession->pSocket->dwSessionKeyLength = pSession->dwSessionKeyLength;
+        }
+
+        ntStatus = SMBSrvClientSocketAddSessionByUID(
+            pSession->pSocket,
+            pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Wake up anyone waiting for session to be ready */
+        SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+        pSession->state = RDR_SESSION_STATE_READY;
+        pthread_cond_broadcast(&pSession->event);
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+
+        /* Wake up anyone waiting for session setup exclusion */
+        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        pSession->pSocket->bSessionSetupInProgress = FALSE;
+        pthread_cond_broadcast(&pSession->pSocket->event);
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+    }
+    else
+    {
+        /* Wait for session to be ready */
+        ntStatus = SMBSessionWaitReady(pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    }
+
+    *ppSession = pSession;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSession = NULL;
+
+    SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+
+    if (pSession)
+    {
+        SMBSessionRelease(pSession);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+RdrAcquireConnectedTree(
+    IN OUT PSMB_SESSION* ppSession,
+    IN PCSTR pszSharename,
     OUT PSMB_TREE* ppTree
     )
 {
-    DWORD     ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_TREE pTree = NULL;
-    PWSTR     pwszPath = NULL;
-    BOOLEAN   bAddedTreeByPath = FALSE;
+    BOOLEAN bInTreeLock = FALSE;
+    BOOLEAN bInSessionLock = FALSE;
+    PWSTR pwszPath = NULL;
 
-    ntStatus = SMBSessionFindTreeByPath(
-                    pSession,
-                    pszPath,
-                    &pTree);
-    if (!ntStatus)
+    ntStatus = SMBSrvClientTreeCreate(
+        ppSession,
+        pszSharename,
+        &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SMB_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
+
+    if (pTree->state == RDR_TREE_STATE_NOT_READY)
     {
-        goto done;
+        pTree->state = RDR_TREE_STATE_INITIALIZING;
+        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+
+        /* Exclude other tree connects in this session */
+        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        ntStatus = SMBSessionWaitTreeConnect(pTree->pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+        pTree->pSession->bTreeConnectInProgress = TRUE;
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+
+        ntStatus = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = TreeConnect(pTree->pSession, pwszPath, &pTree->tid);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBSrvClientSessionAddTreeById(pTree->pSession, pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SMB_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
+        pTree->state = RDR_TREE_STATE_READY;
+        pthread_cond_broadcast(&pTree->event);
+        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+
+        /* Wake up anyone waiting for tree connect exclusion */
+        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        pTree->pSession->bTreeConnectInProgress = FALSE;
+        pthread_cond_broadcast(&pTree->pSession->event);
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
     }
+    else
+    {
+        ntStatus = SMBTreeWaitReady(pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBTreeCreate(&pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pTree->pSession = pSession;
-
-    SMB_SAFE_FREE_MEMORY(pTree->pszPath);
-
-    /* Path is trusted */
-    ntStatus = SMBStrndup(
-                    pszPath,
-                    strlen(pszPath) + 1,
-                    &pTree->pszPath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBSrvClientSessionAddTreeByPath(pSession, pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bAddedTreeByPath = TRUE;
-
-    /* @todo: once we can hash Unicode case-insensitively, we can remove this
-       hack and go fully Unicode-native */
-    ntStatus = SMBMbsToWc16s((char *) pszPath, &pwszPath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = TreeConnect(pSession, pwszPath, &pTree->tid);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Set state and awake any waiting threads */
-    /* @todo: move into TreeConenct */
-    SMBTreeSetState(pTree, SMB_RESOURCE_STATE_VALID);
-
-    ntStatus = SMBSrvClientSessionAddTreeById(pSession, pTree);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-done:
+        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+    }
 
     *ppTree = pTree;
 
 cleanup:
-
-    SMB_SAFE_FREE_MEMORY(pwszPath);
 
     return ntStatus;
 
@@ -166,15 +351,81 @@ error:
 
     *ppTree = NULL;
 
+    SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+    SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+
     if (pTree)
     {
-        if (bAddedTreeByPath)
-        {
-            SMBSrvClientSessionRemoveTreeByPath(pSession, pTree);
-        }
+        SMBTreeRelease(pTree);
+    }
 
-        SMBTreeInvalidate(pTree, ERROR_SMB, ntStatus);
+    goto cleanup;
+}
 
+static
+NTSTATUS
+SMBSrvClientTreeCreate(
+    IN OUT PSMB_SESSION* ppSession,
+    IN PCSTR pszPath,
+    OUT PSMB_TREE* ppTree
+    )
+{
+    DWORD     ntStatus = 0;
+    PSMB_TREE pTree = NULL;
+    BOOLEAN   bInLock = FALSE;
+    PSMB_SESSION pSession = *ppSession;
+
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+
+    ntStatus = SMBHashGetValue(
+                pSession->pTreeHashByPath,
+                pszPath,
+                (PVOID *) &pTree);
+
+    if (!ntStatus)
+    {
+        pTree->refCount++;
+        SMBSessionRelease(pSession);
+        *ppSession = NULL;
+    }
+    else
+    {
+        ntStatus = SMBTreeCreate(&pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pTree->pSession = pSession;
+
+        ntStatus = SMBStrndup(
+            pszPath,
+            strlen(pszPath) + 1,
+            &pTree->pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SMBHashSetValue(
+            pSession->pTreeHashByPath,
+            pTree->pszPath,
+            pTree);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        *ppSession = NULL;
+    }
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+
+    *ppTree = pTree;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+
+    *ppTree = NULL;
+
+    if (pTree)
+    {
         SMBTreeRelease(pTree);
     }
 

@@ -33,7 +33,6 @@
 
 NTSTATUS
 SMBSocketCreate(
-    IN struct addrinfo* address,
     IN PCSTR pszHostname,
     IN BOOLEAN bUseSignedMessagesIfSupported,
     OUT PSMB_SOCKET* ppSocket
@@ -41,8 +40,7 @@ SMBSocketCreate(
 
 NTSTATUS
 SMBSocketConnect(
-    PSMB_SOCKET      pSocket,
-    struct addrinfo *ai
+    PSMB_SOCKET      pSocket
     );
 
 VOID
@@ -53,21 +51,19 @@ SMBSocketAddReference(
 VOID
 SMBSocketInvalidate(
     PSMB_SOCKET    pSocket,
-    SMB_ERROR_TYPE errorType,
-    uint32_t       error
+    NTSTATUS ntStatus
     );
 
 VOID
 SMBSocketInvalidate_InLock(
     PSMB_SOCKET pSocket,
-    SMB_ERROR_TYPE errorType,
-    uint32_t networkError
+    NTSTATUS ntStatus
     );
 
 VOID
 SMBSocketSetState(
     PSMB_SOCKET        pSocket,
-    SMB_RESOURCE_STATE state
+    RDR_SOCKET_STATE   state
     );
 
 BOOLEAN
@@ -127,6 +123,11 @@ SMBSocketFindSessionByPrincipal(
 
 VOID
 SMBSocketRelease(
+    PSMB_SOCKET pSocket
+    );
+
+VOID
+SMBSocketFree(
     PSMB_SOCKET pSocket
     );
 

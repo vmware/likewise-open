@@ -540,9 +540,9 @@ WireUnmarshallTransactionParameterData(
 
     if (dataLen)
     {
-        if (ulOffset % 4)
+        if (ulOffset % 2)
         {
-            USHORT usAlignment = (4 - (ulOffset % 4));
+            USHORT usAlignment = (2 - (ulOffset % 2));
 
             if (ulNumBytesAvailable < usAlignment)
             {

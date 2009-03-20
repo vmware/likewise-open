@@ -185,6 +185,9 @@ Negotiate(
            pSecurityBlob,
            pSocket->securityBlobLen);
 
+    pSocket->state = RDR_SOCKET_STATE_READY;
+    pthread_cond_broadcast(&pSocket->event);;
+
 cleanup:
 
     SMB_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
