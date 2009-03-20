@@ -18,7 +18,7 @@
                     Passwd         text,                \
                     CreatedTime    date,                \
                     unique(DomainRecordId, Gid),        \
-                    unique(DomainRecordId, Name),       \
+                    unique(DomainRecordId, Name)        \
                     )"
 
 #define DB_QUERY_CREATE_GROUPS_INSERT_TRIGGER                  \
@@ -293,3 +293,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

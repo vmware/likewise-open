@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -75,7 +75,7 @@
                 NTOwf_4          integer,             \
                 CreatedTime      date,                \
                 unique(DomainRecordId, Uid),          \
-                unique(DomainRecordId, Name),         \
+                unique(DomainRecordId, Name)          \
                )"
 
 
@@ -378,3 +378,11 @@ error:
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
