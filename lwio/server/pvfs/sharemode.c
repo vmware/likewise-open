@@ -146,34 +146,35 @@ PvfsEnforceShareMode(
 
         /* Check incoming Desired Access */
 
-        if ((DesiredAccess & FILE_READ_DATA) && !(Flags & FILE_SHARE_READ))
+        /* If we are not asking for read/write/delete access, then
+           we cannot conflict */
+
+        if ((DesiredAccess & (FILE_READ_DATA|FILE_WRITE_DATA|DELETE)) == 0) {
+            continue;
+        }
+
+        if ((DesiredAccess & FILE_READ_DATA) &&
+            ((Mask & FILE_READ_DATA) && !(Flags & FILE_SHARE_READ)))
         {
             ntError = STATUS_SHARING_VIOLATION;
             break;
         }
 
-        if ((DesiredAccess & FILE_WRITE_DATA) && !(Flags & FILE_SHARE_WRITE))
+        if ((DesiredAccess & FILE_WRITE_DATA) &&
+            ((Mask & FILE_WRITE_DATA) && !(Flags & FILE_SHARE_WRITE)))
         {
             ntError = STATUS_SHARING_VIOLATION;
             break;
         }
 
-        if ((DesiredAccess & DELETE) && !(Flags & FILE_SHARE_DELETE))
+        if ((DesiredAccess & DELETE) &&
+            ((Mask & DELETE) && !(Flags & FILE_SHARE_DELETE)))
         {
             ntError = STATUS_SHARING_VIOLATION;
             break;
         }
 
         /* Check incoming File ShareAccess */
-
-        if (ShareAccess & FILE_SHARE_WRITE)
-        {
-            if ((Mask & FILE_READ_DATA) && !(ShareAccess & FILE_SHARE_READ))
-            {
-                ntError = STATUS_SHARING_VIOLATION;
-                break;
-            }
-        }
 
         if (ShareAccess & FILE_SHARE_READ)
         {
@@ -184,11 +185,23 @@ PvfsEnforceShareMode(
             }
         }
 
-        if ((ShareAccess & FILE_SHARE_DELETE) &&
-            (Mask & (DELETE|FILE_READ_DATA|FILE_WRITE_DATA)))
+        if (ShareAccess & FILE_SHARE_WRITE)
         {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
+            if ((Mask & FILE_READ_DATA) && !(ShareAccess & FILE_SHARE_READ))
+            {
+                ntError = STATUS_SHARING_VIOLATION;
+                break;
+            }
+        }
+
+        if (ShareAccess & FILE_SHARE_DELETE)
+        {
+            if ((Mask & (FILE_READ_DATA|FILE_WRITE_DATA|DELETE)) &&
+                !(ShareAccess &(FILE_SHARE_READ|FILE_SHARE_WRITE)))
+            {
+                ntError = STATUS_SHARING_VIOLATION;
+                break;
+            }
         }
     }
     BAIL_ON_NT_STATUS(ntError);
