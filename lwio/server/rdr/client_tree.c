@@ -133,9 +133,6 @@ RdrAcquireNegotiatedSocket(
                     &pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Poke the reaper since we have a new socket around */
-    pthread_cond_signal(&gRdrRuntime.reaperEvent);
-
     SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     if (pSocket->state == RDR_SOCKET_STATE_NOT_READY)

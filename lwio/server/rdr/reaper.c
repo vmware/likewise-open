@@ -45,6 +45,7 @@ RdrReaperInit(
     pthread_cond_init(&pRuntime->reaperEvent, NULL);
 
     pRuntime->expirationTime = 10;
+    pRuntime->nextWakeupTime = INVALID_TIME;
 
     pthread_create(
         &pRuntime->reaperThread,
@@ -71,6 +72,24 @@ RdrReaperShutdown(
     return ntStatus;
 }
 
+VOID
+RdrReaperPoke(
+    PRDR_GLOBAL_RUNTIME pRuntime,
+    time_t lastActiveTime
+    )
+{
+    time_t nextWakeupTime = lastActiveTime + pRuntime->expirationTime;
+
+    pthread_mutex_lock(&pRuntime->reaperMutex);
+    if (pRuntime->nextWakeupTime == INVALID_TIME ||
+        pRuntime->nextWakeupTime > nextWakeupTime)
+    {
+        pRuntime->nextWakeupTime = nextWakeupTime;
+        pthread_cond_signal(&pRuntime->reaperEvent);
+    }
+    pthread_mutex_unlock(&pRuntime->reaperMutex);
+}
+
 static
 void*
 RdrReaperThread(
@@ -80,38 +99,43 @@ RdrReaperThread(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PRDR_GLOBAL_RUNTIME pRuntime = pData;
     time_t currentTime = 0;
-    time_t nextWakeupTime = INVALID_TIME;
     BOOLEAN bInReaperLock = FALSE;
     struct timespec wakeTime = {0};
+    time_t nextWakeupTime = INVALID_TIME;
 
     SMB_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
     while (!pRuntime->bShutdown)
     {
-        if (nextWakeupTime != INVALID_TIME)
+        if (pRuntime->nextWakeupTime != INVALID_TIME)
         {
-            do
-            {
-                wakeTime.tv_sec = nextWakeupTime;
-                wakeTime.tv_nsec = 0;
+            /* If we have a pending wakeup time, sleep for that long */
+            wakeTime.tv_sec = pRuntime->nextWakeupTime;
+            wakeTime.tv_nsec = 0;
 
-                pthread_cond_timedwait(
-                    &pRuntime->reaperEvent,
-                    &pRuntime->reaperMutex,
-                    &wakeTime
-                    );
-
-                currentTime = time(NULL);
-            } while (!pRuntime->bShutdown && currentTime < nextWakeupTime);
+            pthread_cond_timedwait(
+                &pRuntime->reaperEvent,
+                &pRuntime->reaperMutex,
+                &wakeTime
+                );
         }
         else
         {
+            /* Sleep until someone pokes us with a new wakeup time */
             pthread_cond_wait(&pRuntime->reaperEvent, &pRuntime->reaperMutex);
-            currentTime = time(NULL);
         }
 
-        if (!pRuntime->bShutdown)
+        currentTime = time(NULL);
+
+        /* Run reaping algorithm if we are scheduled for a wakeup and the wakeup has passed */
+        if (!pRuntime->bShutdown && pRuntime->nextWakeupTime != INVALID_TIME && currentTime >= pRuntime->nextWakeupTime)
         {
+            /* Clear wakeup time */
+            pRuntime->nextWakeupTime = INVALID_TIME;
+
+            /* Run reaping algorithm outside the reaper lock to avoid blocking pokes */
+            SMB_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+
             nextWakeupTime = INVALID_TIME;
 
             ntStatus = RdrReaperReapGlobal(
@@ -119,10 +143,24 @@ RdrReaperThread(
                 currentTime,
                 &nextWakeupTime);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            SMB_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+
+            /* Someone may have poked us with a new wakeup time while we did not hold
+               the reaper lock, so choose either it or the value we calculated ourselves
+               as appropriate */
+            if (nextWakeupTime != INVALID_TIME &&
+                (pRuntime->nextWakeupTime == INVALID_TIME ||
+                 pRuntime->nextWakeupTime > nextWakeupTime))
+            {
+                pRuntime->nextWakeupTime = nextWakeupTime;
+            }
         }
     }
 
 error:
+
+    SMB_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
     return NULL;
 }
@@ -206,6 +244,7 @@ RdrReaperIsExpired(
     return lastActivity + expirationTime >= currentTime;
 }
 
+static
 VOID
 RdrReaperUpdateNextWakeTime(
     time_t lastActivity,
@@ -219,6 +258,7 @@ RdrReaperUpdateNextWakeTime(
         *pNextWakeupTime = lastActivity + expirationTime;
     }
 }
+
 
 static
 NTSTATUS
@@ -277,33 +317,46 @@ cleanup:
         {
             pSocket = *pSocketIter;
 
-            if (--pSocket->refCount == 0 &&
-                RdrReaperIsExpired(pSocket->lastActiveTime,
-                                   currentTime,
-                                   expirationTime))
+            if (--pSocket->refCount == 0)
             {
-                SMBHashRemoveKey(
-                    pRuntime->pSocketHashByName,
-                    pSocket->pszHostname
-                    );
+                if (RdrReaperIsExpired(pSocket->lastActiveTime,
+                                       currentTime,
+                                       expirationTime))
+                {
+                    /* Ref count is 0 and socket has expired,
+                       so remove it from the hash and leave it
+                       in list to be freed */
+                    SMBHashRemoveKey(
+                        pRuntime->pSocketHashByName,
+                        pSocket->pszHostname
+                        );
+                }
+                else
+                {
+                    /* Ref count is 0 but the socket has not expired,
+                       so take it out of the list so it is not freed
+                       and calculate when it will expire */
+                    *pSocketIter = NULL;
+
+                    RdrReaperUpdateNextWakeTime(
+                        pSocket->lastActiveTime,
+                        expirationTime,
+                        pNextWakeupTime);
+
+                }
             }
             else
             {
-                /* Socket is not to be reaped, so take it
-                   out of the list and calculate the next
-                   wakeup time */
+                /* Ref count is not 0, so take it out of list
+                   so it it not freed */
                 *pSocketIter = NULL;
-
-                RdrReaperUpdateNextWakeTime(
-                    pSocket->lastActiveTime,
-                    expirationTime,
-                    pNextWakeupTime);
             }
         }
 
         SMB_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
     }
 
+    /* Free everything that was left in the list */
     for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
     {
         pSocket = *pSocketIter;
@@ -382,31 +435,34 @@ cleanup:
         {
             pSession = *pSessionIter;
 
-            if (--pSession->refCount == 0 &&
-                RdrReaperIsExpired(pSession->lastActiveTime,
-                                   currentTime,
-                                   expirationTime))
+            if (--pSession->refCount == 0)
             {
-                SMBHashRemoveKey(
-                    pSocket->pSessionHashByUID,
-                    &pSession->uid
+                if (RdrReaperIsExpired(pSession->lastActiveTime,
+                                       currentTime,
+                                       expirationTime))
+                {
+                    SMBHashRemoveKey(
+                        pSocket->pSessionHashByUID,
+                        &pSession->uid
+                        );
+                    SMBHashRemoveKey(
+                        pSocket->pSessionHashByPrincipal,
+                        pSession->pszPrincipal
                     );
-                SMBHashRemoveKey(
-                    pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal
-                    );
+                }
+                else
+                {
+                    *pSessionIter = NULL;
+
+                    RdrReaperUpdateNextWakeTime(
+                        pSession->lastActiveTime,
+                        expirationTime,
+                        pNextWakeupTime);
+                }
             }
             else
             {
-                /* Session is not to be reaped, so take it
-                   out of the list and calculate the next
-                   wakeup time */
                 *pSessionIter = NULL;
-
-                RdrReaperUpdateNextWakeTime(
-                    pSession->lastActiveTime,
-                    expirationTime,
-                    pNextWakeupTime);
             }
         }
 
@@ -466,32 +522,38 @@ cleanup:
         {
             pTree = *pTreeIter;
 
-            if (pTree->refCount == 0 &&
-                RdrReaperIsExpired(pTree->lastActiveTime,
-                                   currentTime,
-                                   expirationTime))
+            if (pTree->refCount == 0)
             {
-                /* We can't remove the tree from
-                   the TID hash because the receiver
-                   thread will need it to deliver the
-                   tree disconnect response.  It will
-                   be removed in a separate pass.  We
-                   can still remove it from the path
-                   hash to prevent anyone else trying
-                   to use it for new requests */
-                SMBHashRemoveKey(
-                    pSession->pTreeHashByPath,
-                    pTree->pszPath
-                    );
+                if (RdrReaperIsExpired(pTree->lastActiveTime,
+                                       currentTime,
+                                       expirationTime))
+                {
+                    /* We can't remove the tree from
+                       the TID hash because the receiver
+                       thread will need it to deliver the
+                       tree disconnect response.  It will
+                       be removed in a separate pass.  We
+                       can still remove it from the path
+                       hash to prevent anyone else trying
+                       to use it for new requests */
+                    SMBHashRemoveKey(
+                        pSession->pTreeHashByPath,
+                        pTree->pszPath
+                        );
+                }
+                else
+                {
+                    *pTreeIter = NULL;
+
+                    RdrReaperUpdateNextWakeTime(
+                        pTree->lastActiveTime,
+                        expirationTime,
+                        pNextWakeupTime);
+                }
             }
             else
             {
                 *pTreeIter = NULL;
-
-                RdrReaperUpdateNextWakeTime(
-                    pTree->lastActiveTime,
-                    expirationTime,
-                    pNextWakeupTime);
             }
         }
     }

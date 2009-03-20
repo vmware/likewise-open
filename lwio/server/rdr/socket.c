@@ -1073,15 +1073,6 @@ error:
     goto cleanup;
 }
 
-/** @todo: keep unused sockets around for a little while when daemonized.
-  * To avoid writing frequently to shared cache lines, perhaps set a bit
-  * when the hash transitions to non-empty, then periodically sweep for
-  * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-  * down the parent.
-  */
-/* This function does not decrement the reference count of the parent
-   socket on destruction.  The reaper thread manages that with proper forward
-   locking. */
 VOID
 SMBSocketRelease(
     PSMB_SOCKET pSocket
@@ -1097,12 +1088,18 @@ SMBSocketRelease(
        it is not usable, free it immediately.
        Otherwise, allow the reaper to collect it
        asynchronously */
-    if (--pSocket->refCount == 0 &&
-        pSocket->state != RDR_SOCKET_STATE_READY)
+    if (--pSocket->refCount == 0)
     {
-        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                         pSocket->pszHostname);
-        SMBSocketFree(pSocket);
+        if (pSocket->state != RDR_SOCKET_STATE_READY)
+        {
+            SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                             pSocket->pszHostname);
+            SMBSocketFree(pSocket);
+        }
+        else
+        {
+            RdrReaperPoke(&gRdrRuntime, pSocket->lastActiveTime);
+        }
     }
 
     SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);

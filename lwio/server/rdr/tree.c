@@ -278,16 +278,22 @@ SMBTreeRelease(
 
     assert(pTree->refCount > 0);
 
-    if (--pTree->refCount == 0 &&
-        pTree->state != RDR_TREE_STATE_READY)
+    if (--pTree->refCount == 0)
     {
-        SMBHashRemoveKey(
-            pTree->pSession->pTreeHashByPath,
-            pTree->pszPath);
-        SMBHashRemoveKey(
-            pTree->pSession->pTreeHashByTID,
-            &pTree->tid);
-        SMBTreeFree(pTree);
+        if (pTree->state != RDR_TREE_STATE_READY)
+        {
+            SMBHashRemoveKey(
+                pTree->pSession->pTreeHashByPath,
+                pTree->pszPath);
+            SMBHashRemoveKey(
+                pTree->pSession->pTreeHashByTID,
+                &pTree->tid);
+            SMBTreeFree(pTree);
+        }
+        else
+        {
+            RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
+        }
     }
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);

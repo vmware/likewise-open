@@ -207,16 +207,22 @@ SMBSessionRelease(
 
     assert(pSession->refCount > 0);
 
-    if (--pSession->refCount == 0 &&
-        pSession->state != RDR_SESSION_STATE_READY)
+    if (--pSession->refCount == 0)
     {
-        SMBHashRemoveKey(
-            pSession->pSocket->pSessionHashByPrincipal,
-            pSession->pszPrincipal);
-        SMBHashRemoveKey(
-            pSession->pSocket->pSessionHashByUID,
-            &pSession->uid);
-        SMBSessionFree(pSession);
+        if (pSession->state != RDR_SESSION_STATE_READY)
+        {
+            SMBHashRemoveKey(
+                pSession->pSocket->pSessionHashByPrincipal,
+                pSession->pszPrincipal);
+            SMBHashRemoveKey(
+                pSession->pSocket->pSessionHashByUID,
+                &pSession->uid);
+            SMBSessionFree(pSession);
+        }
+        else
+        {
+            RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
+        }
     }
 
     SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);

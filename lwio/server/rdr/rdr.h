@@ -355,4 +355,10 @@ RdrReaperShutdown(
     PRDR_GLOBAL_RUNTIME pRuntime
     );
 
+VOID
+RdrReaperPoke(
+    PRDR_GLOBAL_RUNTIME pRuntime,
+    time_t lastActiveTime
+    );
+
 #endif /* __RDR_H__ */

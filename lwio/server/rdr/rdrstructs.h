@@ -261,6 +261,7 @@ typedef struct _RDR_GLOBAL_RUNTIME
     pthread_cond_t    reaperEvent;
     pthread_t reaperThread;
     time_t expirationTime;
+    time_t nextWakeupTime;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif
