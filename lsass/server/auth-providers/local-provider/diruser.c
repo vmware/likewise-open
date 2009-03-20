@@ -166,7 +166,7 @@ LsaProviderLocal_DbEnumUsers_0(
 cleanup:
 
     if (pszQuery) {
-        sqlite3_free(pszQuery);
+        DirectoryFreeString(pszQuery);
     }
 
     if (pEntries) {
@@ -271,16 +271,6 @@ LsaProviderLocal_DbFindUserByName_1(
                               &dwCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = DirectorySearch(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
@@ -335,7 +325,7 @@ LsaProviderLocal_DbFindUserByName_1(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -394,16 +384,6 @@ LsaProviderLocal_DbFindUserByName_2(
     pszQuery = DirectoryMPrintf(DB_QUERY_FIND_USER_2_BY_NAME,
                                pszUserName);
 
-    dwError = DirectorySearch(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = DirectorySearch(pConn->hDirectory,
                               pwszBase,
                               dwScope,
@@ -413,6 +393,7 @@ LsaProviderLocal_DbFindUserByName_2(
                               &pEntries,
                               &dwCount);
     BAIL_ON_LSA_ERROR(dwError);
+
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
@@ -467,7 +448,7 @@ LsaProviderLocal_DbFindUserByName_2(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -530,16 +511,6 @@ LsaProviderLocal_DbEnumUsers_1(
                     dwLimit,
                     dwOffset
                     );
-
-    dwError = DirectorySearch(
-                    pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = DirectorySearch(pConn->hDirectory,
                               pwszBase,
@@ -604,7 +575,7 @@ LsaProviderLocal_DbEnumUsers_1(
 cleanup:
 
     if (pszQuery) {
-        sqlite3_free(pszQuery);
+        DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -742,7 +713,7 @@ LsaProviderLocal_DbEnumUsers_2(
 cleanup:
 
     if (pszQuery) {
-        sqlite3_free(pszQuery);
+        DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -921,7 +892,7 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -1002,7 +973,7 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
         PLSA_GROUP_INFO_1 pGroupInfo = *(ppGroupInfoList + iGroup);
 
         if (pszQuery) {
-            sqlite3_free(pszQuery);
+            DirectoryFreeString(pszQuery);
             pszQuery = NULL;
         }
 
@@ -1061,7 +1032,7 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -1154,7 +1125,7 @@ LsaProviderLocal_DbFindUserById_0_Unsafe(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -1302,7 +1273,7 @@ LsaProviderLocal_DbFindUserById_1(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -1434,7 +1405,7 @@ LsaProviderLocal_DbFindUserById_2(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (ppszResult) {
@@ -1556,7 +1527,7 @@ LsaProviderLocal_DbUpdateHash_Unsafe(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     return dwError;
@@ -1765,7 +1736,7 @@ LsaProviderLocal_DbAddUser(
 cleanup:
 
     if (pszQuery) {
-       sqlite3_free(pszQuery);
+       DirectoryFreeString(pszQuery);
     }
 
     if (bReleaseLock) {
