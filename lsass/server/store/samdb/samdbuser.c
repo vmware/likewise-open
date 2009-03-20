@@ -78,6 +78,56 @@
                 unique(DomainRecordId, Name)          \
                )"
 
+#define DB_QUERY_INSERT_USER  \
+    "INSERT INTO samdbusers   \
+        (                     \
+            UserRecordId,     \
+            DomainRecordId,   \
+            ObjectSID,        \
+            Uid,              \
+            Name,             \
+            Passwd,           \
+            Gid,              \
+            UserInfoFlags,    \
+            Gecos,            \
+            HomeDir,          \
+            Shell,            \
+            PasswdChangeTime, \
+            FullName,         \
+            AccountExpiry,    \
+            LMOwf_1,          \
+            LMOwf_2,          \
+            LMOwf_3,          \
+            LMOwf_4,          \
+            NTOwf_1,          \
+            NTOwf_2,          \
+            NTOwf_3,          \
+            NTOwf_4           \
+        )                     \
+     VALUES (                 \
+            NULL,             \
+            %d,               \
+            %Q,               \
+            %d,               \
+            %Q,               \
+            %Q,               \
+            %d,               \
+            %d,               \
+            %Q,               \
+            %Q,               \
+            %Q,               \
+            %d,               \
+            %Q,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d,               \
+            %d                \
+        )"
 
 #define DB_QUERY_CREATE_USERS_INSERT_TRIGGER                   \
     "create trigger samdbusers_createdtime                     \
@@ -87,8 +137,8 @@
           set CreatedTime = DATETIME('NOW')                    \
           where rowid = new.rowid;                             \
                                                                \
-          insert into samdbgroupmembers (UserRecordId, GroupRecordId) \
-          values (new.UserRecordId, new.GroupRecordId);        \
+          insert into samdbgroupmembers (UserRecordId, GroupRecordId, 1) \
+          values (new.UserRecordId, new.GroupRecordId, new.MemberType);  \
      end"
 
 #define DB_QUERY_CREATE_USERS_DELETE_TRIGGER                   \
@@ -104,6 +154,12 @@
             samdbdomains sdd  \
       where sdu.DomainRecordId = sdd.DomainRecordId \
         and sdd.Name = %Q"
+
+#define DB_QUERY_DELETE_USER \
+    "delete \
+       from samdbusers sdu \
+      where sdu.Name = %Q \
+        and sdu.DomainRecordId = %d"
 
 DWORD
 SamDbInitUserTable(
@@ -160,6 +216,7 @@ SamDbAddUserAttrLookups(
     struct {
         PSTR pszAttrName;
         DIRECTORY_ATTR_TYPE attrType;
+        SAMDB_USER_TABLE_COLUMN colType;
         BOOL bIsMandatory;
         BOOL bIsModifiable;
     } userAttrs[] =
@@ -167,78 +224,98 @@ SamDbAddUserAttrLookups(
         {
             DIRECTORY_ATTR_TAG_USER_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_NAME,
             TRUE,
             FALSE
         },
         {
             DIRECTORY_ATTR_TAG_USER_FULLNAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_FULL_NAME,
             TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_UID,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            SAMDB_USER_TABLE_COLUMN_UID,
             TRUE,
             FALSE
         },
         {
             DIRECTORY_ATTR_TAG_USER_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            SAMDB_USER_TABLE_COLUMN_SID,
             TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            SAMDB_USER_TABLE_COLUMN_GID,
             TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_PASSWORD,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_PASSWORD,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GECOS,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_GECOS,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_HOMEDIR,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_HOMEDIR,
+            TRUE,
+            TRUE
+        },
+        {
+            DIRECTORY_ATTR_TAG_SHELL,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_SHELL,
             TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            SAMDB_USER_TABLE_COLUMN_PASSWORD_CHANGE_TIME,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY,
             DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            SAMDB_USER_TABLE_COLUMN_ACCOUNT_EXPIRY,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_INFO_FLAGS,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            SAMDB_USER_TABLE_COLUMN_USER_INFO_FLAGS,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_LM_HASH,
             DIRECTORY_ATTR_TYPE_OCTET_STREAM,
+            SAMDB_USER_TABLE_COLUMN_LM_HASH,
             FALSE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_NT_HASH,
             DIRECTORY_ATTR_TYPE_OCTET_STREAM,
+            SAMDB_USER_TABLE_COLUMN_NT_HASH,
             FALSE,
             TRUE
         }
@@ -286,20 +363,173 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 SamDbAddUser(
     HANDLE        hDirectory,
-    PWSTR         pwszObjectName,
-    DIRECTORY_MOD Modifications[]
+    PWSTR         pwszUserDN,
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    DWORD dwNumMods = 0;
+    DWORD iMod = 0;
+    PWSTR pwszUserName = NULL;
+    PWSTR pwszDomain = NULL;
+    PSTR  pszError = NULL;
+    PSTR  pszQuery = NULL;
+    PSTR  pszUserName = NULL;
+    PSTR  pszUserSID = NULL;
+    PSTR  pszPassword = NULL;
+    PSTR  pszHomedir = NULL;
+    PSTR  pszShell = NULL;
+    PSTR  pszGecos = NULL;
+    PSTR  pszFullName = NULL;
+    DWORD dwPasswdChangeTime = 0;
+    DWORD dwUID = 0;
+    DWORD dwGID = 0;
+    DWORD dwAccountExpiry = 0;
+    DWORD dwUserInfoFlags = 0;
+    DWORD dwLMOwf[4] = {0, 0, 0, 0};
+    DWORD dwNTOwf[4] = {0, 0, 0, 0};
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
+    DWORD dwNumDomains = 0;
+    BOOLEAN bInLock = FALSE;
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
+    while (modifications[dwNumMods].pwszAttrName &&
+           modifications[dwNumMods].pAttrValues)
+    {
+        dwNumMods++;
+    }
+
+    dwError = SamDbParseDN(
+                    pwszUserDN,
+                    &pwszUserName,
+                    &pwszDomain,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_USER)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = SamDbFindDomains(
+                    hDirectory,
+                    pwszDomain,
+                    &ppDomainInfoList,
+                    &dwNumDomains);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumDomains != 1)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserName,
+                    &pszUserName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    for (; iMod < dwNumMods; iMod++)
+    {
+        NTSTATUS ntStatus = 0;
+        PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pLookupEntry = NULL;
+        // PATTRIBUTE_VALUE pAttrValue = NULL;
+
+        ntStatus = LwRtlRBTreeFind(
+                        pDirContext->pAttrLookup->pAttrTree,
+                        modifications[iMod].pwszAttrName,
+                        (PVOID*)&pLookupEntry);
+        if (ntStatus)
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        switch (pLookupEntry->dwId)
+        {
+            // TODO:
+
+            default:
+
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+        }
+    }
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_INSERT_USER,
+                    ppDomainInfoList[0]->ulDomainRecordId,
+                    pszUserSID,
+                    dwUID,
+                    pszUserName,
+                    pszPassword,
+                    dwGID,
+                    dwUserInfoFlags,
+                    pszGecos,
+                    pszHomedir,
+                    pszShell,
+                    dwPasswdChangeTime,
+                    pszFullName,
+                    dwAccountExpiry,
+                    dwLMOwf[0],
+                    dwLMOwf[1],
+                    dwLMOwf[2],
+                    dwLMOwf[3],
+                    dwNTOwf[0],
+                    dwNTOwf[1],
+                    dwNTOwf[2],
+                    dwNTOwf[3]);
+
+    dwError = sqlite3_exec(pDirContext->pDbContext->pDbHandle,
+                           pszQuery,
+                           NULL,
+                           NULL,
+                           &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
+
+    DIRECTORY_FREE_STRING(pszUserName);
+    DIRECTORY_FREE_STRING(pszUserSID);
+    DIRECTORY_FREE_STRING(pszPassword);
+    DIRECTORY_FREE_STRING(pszGecos);
+    DIRECTORY_FREE_STRING(pszFullName);
+    DIRECTORY_FREE_STRING(pszHomedir);
+    DIRECTORY_FREE_STRING(pszShell);
+
+    if (ppDomainInfoList)
+    {
+        SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomains);
+    }
+
     return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -377,6 +607,105 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbDeleteUser(
+    HANDLE hDirectory,
+    PWSTR  pwszUserDN
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PWSTR pwszUserName = NULL;
+    PWSTR pwszDomainName = NULL;
+    PSTR  pszUserName = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    BOOLEAN bInLock = FALSE;
+    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
+    DWORD dwNumDomains = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    dwError = SamDbParseDN(
+                    pwszUserDN,
+                    &pwszUserName,
+                    &pwszDomainName,
+                    &entryType);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (entryType != SAMDB_ENTRY_TYPE_USER)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = SamDbFindDomains(
+                    hDirectory,
+                    pwszDomainName,
+                    &ppDomainInfoList,
+                    &dwNumDomains);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (dwNumDomains == 0)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserName,
+                    &pszUserName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_DELETE_USER,
+                    pszUserName,
+                    ppDomainInfoList[0]->ulDomainRecordId);
+
+    dwError = sqlite3_exec(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    NULL,
+                    NULL,
+                    &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
+
+    if (pwszUserName)
+    {
+        DirectoryFreeMemory(pwszUserName);
+    }
+    if (pwszDomainName)
+    {
+        DirectoryFreeMemory(pwszDomainName);
+    }
+    if (pszUserName)
+    {
+        DirectoryFreeString(pszUserName);
+    }
+
+    return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
 
 /*
 local variables:

@@ -19,6 +19,7 @@ typedef ULONG DIRECTORY_ATTR_TYPE;
 #define DIRECTORY_ATTR_TAG_GECOS                "user-gecos"
 #define DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP   "user-primary-group"
 #define DIRECTORY_ATTR_TAG_HOMEDIR              "user-home-directory"
+#define DIRECTORY_ATTR_TAG_SHELL                "user-shell"
 #define DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME "user-password-change-time"
 #define DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY       "user-account-expiry"
 #define DIRECTORY_ATTR_TAG_USER_INFO_FLAGS      "user-info-flags"
@@ -96,6 +97,11 @@ typedef struct _DIRECTORY_ENTRY
 #define OCTET_STRING_DATA(pValue) = pValue->pOctetString->pBytes;
 #define NT_SECURITY_DESCRIPTOR_LENGTH(pValue) = pValue->pNTSecurityDescriptor->ulNumBytes;
 #define NT_SECURITY_DESCRIPTOR_DATA(pValue) = pValue->pNTSecurityDescriptor->pBytes;
+
+#define DIRECTORY_FREE_STRING(pszStr) \
+    if (pszStr) { \
+        DirectoryFreeString(pszStr); \
+    }
 
 DWORD
 DirectoryOpen(

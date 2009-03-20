@@ -68,14 +68,4 @@ error:
     return dwError;
 }
 
-DWORD
-SamDbDeleteUser(
-    HANDLE hDirectory,
-    PWSTR pszObjectName
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
 

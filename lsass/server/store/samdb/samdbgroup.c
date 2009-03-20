@@ -429,6 +429,11 @@ SamDbAddGroup(
 
 cleanup:
 
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
 
     if (pszGroupName)
@@ -446,10 +451,6 @@ cleanup:
     if (ppDomainInfoList)
     {
         SamDbFreeDomainInfoList(ppDomainInfoList, dwNumDomains);
-    }
-    if (pszQuery)
-    {
-        sqlite3_free(pszQuery);
     }
 
     return dwError;
