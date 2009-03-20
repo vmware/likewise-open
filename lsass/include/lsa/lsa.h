@@ -237,7 +237,7 @@
 #define LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR             0x808D // 32909
 #define LSA_ERROR_RPC_SERVER_RUNTIME_ERROR                  0x808E // 32910
 #define LSA_ERROR_DOMAIN_IN_USE                             0x808F // 32911
-#define LSA_ERROR_SAM_DATABASE_INIT_ERROR                   0x8090 // 32912
+#define LSA_ERROR_SAM_DATABASE_ERROR                        0x8090 // 32912
 #define LSA_ERROR_SAM_INIT_ERROR                            0x8091 // 32913
 #define LSA_ERROR_SENTINEL                                  0x8092 // 32914
 
