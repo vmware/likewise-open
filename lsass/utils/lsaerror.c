@@ -337,9 +337,13 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR                   : 32909
     "RPC Server Registration error",
     // LSA_ERROR_RPC_SERVER_RUNTIME_ERROR                        : 32910
-    "RPC Server runtime errro",
+    "RPC Server runtime error",
     // LSA_ERROR_DOMAIN_IN_USE                                   : 32911
-    "The domain is in use"
+    "The domain is in use",
+    // LSA_ERROR_SAM_DATABASE_ERROR                              : 32912
+    "SAM database error",
+    // LSA_ERROR_SAM_INIT_ERROR                                  : 32913
+    "Error when initializing SAM subsystem"
 };
 
 size_t
