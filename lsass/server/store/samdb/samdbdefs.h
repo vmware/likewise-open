@@ -10,11 +10,8 @@
 #define SAMDB_LOG_VERBOSE(errtext)
 #define SAMDB_LOG_DEBUG(errtext)
 
-#define BAIL_ON_SAMDB_ERROR(dwError)                  \
-    if (dwError) {                                    \
-        dwError = LSA_ERROR_SAM_DATABASE_ERROR;       \
-        goto error;                                   \
-    }
+#define BAIL_ON_SAMDB_ERROR(dwError) \
+    if (dwError) goto error;
 
 #define SAMDB_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \
