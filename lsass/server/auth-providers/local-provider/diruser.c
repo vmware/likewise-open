@@ -404,6 +404,15 @@ LsaProviderLocal_DbFindUserByName_2(
                         );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
@@ -532,6 +541,15 @@ LsaProviderLocal_DbEnumUsers_1(
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
         dwError = LSA_ERROR_NO_MORE_USERS;
         BAIL_ON_LSA_ERROR(dwError);
@@ -661,6 +679,15 @@ LsaProviderLocal_DbEnumUsers_2(
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
         dwError = LSA_ERROR_NO_MORE_USERS;
         BAIL_ON_LSA_ERROR(dwError);
@@ -861,6 +888,15 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
                                );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
         goto cleanup;
     }
@@ -991,6 +1027,15 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
                                    );
         BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
         if (nRows) {
             if (nCols != nExpectedCols) {
                 dwError = LSA_ERROR_DATA_ERROR;
@@ -1074,6 +1119,15 @@ LsaProviderLocal_DbFindUserById_0_Unsafe(
                         );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
@@ -1187,6 +1241,15 @@ LsaProviderLocal_DbFindUserById_1(
                         );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
@@ -1308,6 +1371,15 @@ LsaProviderLocal_DbFindUserById_2(
                         );
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = DirectorySearch(pConn->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              DB_QUERY_FIND_USERS_0_LIMIT,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwCount);
+    BAIL_ON_LSA_ERROR(dwError);
     if (!nRows) {
        dwError = LSA_ERROR_NO_SUCH_USER;
        BAIL_ON_LSA_ERROR(dwError);
