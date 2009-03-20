@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: SamrConnect2 function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_connect2.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrConnect2 function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 
@@ -55,6 +66,9 @@ SamrSrvConnect2(
                                    NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    dwError = DirectoryOpen(&pConn->hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->Type = SamrContextConnect;
 
     *hConn = (CONNECT_HANDLE)pConn;
@@ -63,6 +77,10 @@ cleanup:
     return status;
 
 error:
+    if (pConn->hDirectory) {
+        DirectoryClose(pConn->hDirectory);
+    }
+
     if (pConn) {
         SamrSrvFreeMemory(pConn);
     }
