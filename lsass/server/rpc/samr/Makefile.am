@@ -17,9 +17,6 @@ libsamr_srv_la_SOURCES = \
     samr_close.c \
     samr_contexthandle.c
 
-LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
-LSASS_INCLUDES = -I$(top_srcdir)/include
-RPCCTL_INCLUDES = -I$(rpc_srcdir)/rpcctl
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
@@ -30,9 +27,9 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 libsamr_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
     $(FEATURETEST_FLAGS) \
-    $(LSASS_SRV_INCLUDES) \
-    $(LSASS_INCLUDES) \
-    $(RPCCTL_INCLUDES) \
+    -I$(srv_srcdir)/include \
+    -I$(top_srcdir)/include \
+    -I$(rpc_srcdir)/rpcctl \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
@@ -43,6 +40,7 @@ libsamr_srv_la_LIBADD = \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
+    $(srv_srcdir)/store/dsapi/libdsapi.la \
     libsamr_ss.la
 
 libsamr_ss_la_SOURCES = samr_sstub.c
