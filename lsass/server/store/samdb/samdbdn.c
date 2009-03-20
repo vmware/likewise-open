@@ -124,7 +124,40 @@ SamDbParseDN(
                     dwParseState = SAMDB_DN_PARSE_STATE_USER_OR_GROUP;
 
                 }
+                else if (token.tokenType == SAMDB_DN_TOKEN_TYPE_DC)
+                {
+                    DWORD dwLenIncrement = 0;
+                    DWORD dwNewLen = 0;
 
+                    if (entryType == SAMDB_ENTRY_TYPE_UNKNOWN)
+                    {
+                        entryType = SAMDB_ENTRY_TYPE_DOMAIN;
+                    }
+
+                    dwLenIncrement = LSA_MAX(token.dwLen + 2, 256);
+                    dwNewLen = dwDomainLenAllocated + dwLenIncrement;
+
+                    dwError = LsaAllocateMemory(
+                                    dwNewLen * sizeof(wchar16_t),
+                                    (PVOID*)&pwszDomain);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    pwszDomainCursor = pwszDomain;
+
+                    dwDomainLenAllocated = dwNewLen;
+                    dwDomainLenAvailable += dwLenIncrement;
+
+                    memset((PBYTE)pwszDomainCursor, 0,
+                           dwDomainLenAvailable * sizeof(wchar16_t));
+
+                    memcpy((PBYTE)pwszDomainCursor,
+                           (PBYTE)token.pwszToken,
+                           token.dwLen * sizeof(wchar16_t));
+
+                    pwszDomainCursor += token.dwLen;
+                    dwDomainOffset += token.dwLen;
+                    dwDomainLenAvailable -= token.dwLen;
+                }
                 break;
 
             case SAMDB_DN_PARSE_STATE_USER_OR_GROUP:
@@ -324,3 +357,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
