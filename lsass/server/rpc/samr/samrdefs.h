@@ -7,6 +7,12 @@ typedef [context_handle] void* CONNECT_HANDLE;
 typedef void* CONNECT_HANDLE;
 #endif
 
+#ifdef _DCE_IDL_
+typedef [context_handle] void* DOMAIN_HANDLE;
+#else
+typedef void* DOMAIN_HANDLE;
+#endif
+
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \

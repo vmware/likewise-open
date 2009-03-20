@@ -64,6 +64,14 @@ CONNECT_HANDLE_rundown(
 }
 
 
+void
+DOMAIN_HANDLE_rundown(
+    void *hContext
+    )
+{
+}
+
+
 /*
 local variables:
 mode: c

@@ -67,8 +67,21 @@ typedef struct samr_connect_context {
 } CONNECT_CONTEXT, *PCONNECT_CONTEXT;
 
 
+typedef struct samr_domain_context {
+    enum SamrContextType Type;
+    PWSTR                pwszDomainName;
+    PSID                 pDomainSid;
+} DOMAIN_CONTEXT, *PDOMAIN_CONTEXT;
+
+
 void
 CONNECT_HANDLE_rundown(
+    void *hContext
+    );
+
+
+void
+DOMAIN_HANDLE_rundown(
     void *hContext
     );
 
