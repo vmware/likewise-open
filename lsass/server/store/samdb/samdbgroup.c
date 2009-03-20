@@ -5,8 +5,8 @@
                     GroupRecordId  integer,   \
                     MemberRecordId integer,   \
                     MemberType     integer,   \
-                    DomainRecordId integer,   \
-                    unique(DomainRecordId,GroupRecordId, MemberRecordId) \
+                    unique(GroupRecordId, MemberRecordId, MemberType) \
+                    check (MemberType == 0 OR MemberType == 1) \
                     )"
 
 #define DB_QUERY_CREATE_GROUPS_TABLE \
