@@ -47,7 +47,7 @@
  */
 
 DWORD
-LikewiseOpenOpenMiniProvider
+LikewiseEnterpriseOpenMiniProvider
     uid_t peerUID,
     gid_t peerGID,
     PHANDLE phMiniProvider
@@ -60,7 +60,7 @@ LikewiseOpenOpenMiniProvider
 }
 
 VOID
-LikewiseOpenCloseHandle
+LikewiseEnterpriseCloseHandle
     HANDLE hMiniProvider
     )
 {
@@ -97,7 +97,7 @@ DWORD
     );
 
 DWORD
-LikewiseOpenLookupUserById(
+LikewiseEnterpriseLookupUserById(
     HANDLE  hMiniProvider,
     uid_t   uid,
     DWORD   dwUserInfoLevel,
@@ -108,7 +108,7 @@ LikewiseOpenLookupUserById(
 }
 
 DWORD
-LikewiseOpenLookupGroupByName(
+LikewiseEnterpriseLookupGroupByName(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     PCSTR   pszLoginId,
@@ -123,7 +123,7 @@ LikewiseOpenLookupGroupByName(
 }
 
 DWORD
-LikewiseOpenLookupGroupById(
+LikewiseEnterpriseLookupGroupById(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     gid_t   gid,
@@ -138,7 +138,7 @@ LikewiseOpenLookupGroupById(
 }
 
 DWORD
-LikewiseOpenGetGroupsForUser(
+LikewiseEnterpriseGetGroupsForUser(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     uid_t   uid,
@@ -155,7 +155,7 @@ LikewiseOpenGetGroupsForUser(
 }
 
 DWORD
-LikewiseOpenBeginEnumUsers(
+LikewiseEnterpriseBeginEnumUsers(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     DWORD   dwInfoLevel,
@@ -170,7 +170,7 @@ LikewiseOpenBeginEnumUsers(
 }
 
 DWORD
-LikewiseOpenEnumUsers(
+LikewiseEnterpriseEnumUsers(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     HANDLE  hResume,
@@ -185,7 +185,7 @@ LikewiseOpenEnumUsers(
 }
 
 VOID
-LikewiseOpenEndEnumUsers(
+LikewiseEnterpriseEndEnumUsers(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     HANDLE hResume
@@ -197,7 +197,7 @@ LikewiseOpenEndEnumUsers(
 }
 
 DWORD
-LikewiseOpenBeginEnumGroups(
+LikewiseEnterpriseBeginEnumGroups(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     DWORD   dwInfoLevel,
@@ -212,7 +212,7 @@ LikewiseOpenBeginEnumGroups(
 }
 
 DWORD
-LikewiseOpenEnumGroups(
+LikewiseEnterpriseEnumGroups(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     HANDLE  hResume,
@@ -227,7 +227,7 @@ LikewiseOpenEnumGroups(
 }
 
 VOID
-LikewiseOpenEndEnumGroups
+LikewiseEnterpriseEndEnumGroups
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     HANDLE hResume
@@ -239,7 +239,7 @@ LikewiseOpenEndEnumGroups
 }
 
 DWORD
-LikewiseOpenChangePassword(
+LikewiseEnterpriseChangePassword(
     HANDLE hMiniProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword,
@@ -250,7 +250,7 @@ LikewiseOpenChangePassword(
 }
 
 DWORD
-LikewiseOpenGetNamesBySidList(
+LikewiseEnterpriseGetNamesBySidList(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     size_t sCount,
@@ -264,7 +264,7 @@ LikewiseOpenGetNamesBySidList(
 }
 
 DWORD
-LikewiseOpenLookupNssArtefactByKey
+LikewiseEnterpriseLookupNssArtefactByKey
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     PCSTR  pszKeyName, PCSTR
@@ -278,7 +278,7 @@ LikewiseOpenLookupNssArtefactByKey
 }
 
 DWORD
-LikewiseOpenBeginEnumNssArtefacts(
+LikewiseEnterpriseBeginEnumNssArtefacts(
     HANDLE  hMiniProvider,
     DWORD   dwConnectMode,
     DWORD   dwInfoLevel,
@@ -292,7 +292,7 @@ LikewiseOpenBeginEnumNssArtefacts(
 }
 
 DWORD
-LikewiseOpenEnumNssArtefacts(
+LikewiseEnterpriseEnumNssArtefacts(
     HANDLE  hMiniProvider,
     DWORD dwConnectMode,
     HANDLE  hResume,
@@ -305,7 +305,7 @@ LikewiseOpenEnumNssArtefacts(
 }
 
 VOID
-LikewiseOpenEndEnumNssArtefacts(
+LikewiseEnterpriseEndEnumNssArtefacts(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     HANDLE hResume
