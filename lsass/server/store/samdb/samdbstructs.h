@@ -24,6 +24,7 @@ typedef struct _SAMDB_ATTRIBUTE_LOOKUP_ENTRY
     DIRECTORY_ATTR_TYPE attrType;
     DWORD               dwId;
     BOOLEAN             bIsMandatory;
+    BOOLEAN             bIsModifiable;
 
 } SAMDB_ATTRIBUTE_LOOKUP_ENTRY, *PSAMDB_ATTRIBUTE_LOOKUP_ENTRY;
 

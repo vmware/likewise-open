@@ -161,72 +161,86 @@ SamDbAddUserAttrLookups(
         PSTR pszAttrName;
         DIRECTORY_ATTR_TYPE attrType;
         BOOL bIsMandatory;
+        BOOL bIsModifiable;
     } userAttrs[] =
     {
         {
             DIRECTORY_ATTR_TAG_USER_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            TRUE
+            TRUE,
+            FALSE
         },
         {
             DIRECTORY_ATTR_TAG_USER_FULLNAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_UID,
             DIRECTORY_ATTR_TYPE_INTEGER,
-            TRUE
+            TRUE,
+            FALSE
         },
         {
             DIRECTORY_ATTR_TAG_USER_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP,
             DIRECTORY_ATTR_TYPE_INTEGER,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_PASSWORD,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GECOS,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_HOMEDIR,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME,
             DIRECTORY_ATTR_TYPE_INTEGER,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY,
             DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_INFO_FLAGS,
             DIRECTORY_ATTR_TYPE_INTEGER,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_LM_HASH,
             DIRECTORY_ATTR_TYPE_OCTET_STREAM,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_USER_NT_HASH,
             DIRECTORY_ATTR_TYPE_OCTET_STREAM,
-            FALSE
+            FALSE,
+            TRUE
         }
     };
     DWORD dwNumAttrs = sizeof(userAttrs)/sizeof(userAttrs[0]);
@@ -246,6 +260,7 @@ SamDbAddUserAttrLookups(
         BAIL_ON_SAMDB_ERROR(dwError);
 
         pAttrEntry->bIsMandatory = userAttrs[iAttr].bIsMandatory;
+        pAttrEntry->bIsModifiable = userAttrs[iAttr].bIsModifiable;
         pAttrEntry->attrType = userAttrs[iAttr].attrType;
 
         dwError = LwRtlRBTreeAdd(

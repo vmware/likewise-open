@@ -107,32 +107,38 @@ SamDbAddGroupAttrLookups(
         PSTR pszAttrName;
         DIRECTORY_ATTR_TYPE attrType;
         BOOL bIsMandatory;
+        BOOL bIsModifiable;
     } groupAttrs[] =
     {
         {
             DIRECTORY_ATTR_TAG_GROUP_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            TRUE
+            TRUE,
+            FALSE
         },
         {
             DIRECTORY_ATTR_TAG_GID,
             DIRECTORY_ATTR_TYPE_INTEGER,
-            TRUE
+            TRUE,
+            FALSE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_PASSWORD,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            FALSE
+            FALSE,
+            TRUE
         },
         {
             DIRECTORY_ATTR_TAG_GROUP_MEMBERS,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            FALSE
+            FALSE,
+            TRUE
         }
     };
     DWORD dwNumAttrs = sizeof(groupAttrs)/sizeof(groupAttrs[0]);
@@ -152,6 +158,7 @@ SamDbAddGroupAttrLookups(
         BAIL_ON_SAMDB_ERROR(dwError);
 
         pAttrEntry->bIsMandatory = groupAttrs[iAttr].bIsMandatory;
+        pAttrEntry->bIsModifiable = groupAttrs[iAttr].bIsModifiable;
         pAttrEntry->attrType = groupAttrs[iAttr].attrType;
 
         dwError = LwRtlRBTreeAdd(

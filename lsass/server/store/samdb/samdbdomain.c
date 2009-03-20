@@ -146,24 +146,28 @@ SamDbAddDomainAttrLookups(
         DIRECTORY_ATTR_TYPE      attrType;
         SAMDB_DOMAIN_TABLE_COLUMN colType;
         BOOL bIsMandatory;
+        BOOL bIsModifiable;
     } domainAttrs[] =
     {
         {
             DIRECTORY_ATTR_TAG_DOMAIN_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME,
-            TRUE
+            TRUE,
+            FALSE
         },
         {
             DIRECTORY_ATTR_TAG_DOMAIN_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
             SAMDB_DOMAIN_TABLE_COLUMN_MACHINE_SID,
+            TRUE,
             TRUE
         },
         {
             DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_NETBIOS_NAME,
+            TRUE,
             TRUE
         }
     };
@@ -184,6 +188,7 @@ SamDbAddDomainAttrLookups(
         BAIL_ON_SAMDB_ERROR(dwError);
 
         pAttrEntry->bIsMandatory = domainAttrs[iAttr].bIsMandatory;
+        pAttrEntry->bIsModifiable = domainAttrs[iAttr].bIsModifiable;
         pAttrEntry->attrType = domainAttrs[iAttr].attrType;
         pAttrEntry->dwId = domainAttrs[iAttr].colType;
 
@@ -577,14 +582,43 @@ error:
 
 DWORD
 SamDbModifyDomain(
-    HANDLE hDirectory,
-    PWSTR pszObjectName,
-    DIRECTORY_MOD Modifications[]
+    HANDLE        hDirectory,
+    PWSTR         pwszObjectName,
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
+    // PSAM_DIRECTORY_CONTEXT pContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+    PSTR    pszDomainName = NULL;
+    DWORD   dwNumMods = sizeof(modifications)/sizeof(modifications[0]);
+    DWORD   iMod = 0;
+
+    dwError = LsaWc16sToMbs(
+                    pwszObjectName,
+                    &pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    LsaStrToUpper(pszDomainName);
+
+    for (; iMod < dwNumMods; iMod++)
+    {
+        // PDIRECTORY_MOD pMod = &modifications[iMod];
+
+        // TODO:
+    }
+
+cleanup:
+
+    if (pszDomainName)
+    {
+        DirectoryFreeString(pszDomainName);
+    }
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
