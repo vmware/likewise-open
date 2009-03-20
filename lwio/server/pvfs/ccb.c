@@ -74,11 +74,11 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->ControlMutex, NULL);
     pthread_rwlock_init(&pCCB->LockTable.rwLock, NULL);
 
-    PvfsInitializeInterlockedCounter(&pCCB->cRef);
+    pCCB->RefCount = 0;
 
     /* Add initial ref count */
 
-    PvfsInterlockedIncrement(&pCCB->cRef);
+    InterlockedIncrement(&pCCB->RefCount);
 
     *ppCCB = pCCB;
 
@@ -129,8 +129,7 @@ PvfsReleaseCCB(
     PPVFS_CCB pCCB
     )
 {
-    PvfsInterlockedDecrement(&pCCB->cRef);
-    if (PvfsInterlockedCounter(&pCCB->cRef) == 0)
+    if (InterlockedDecrement(&pCCB->RefCount) == 0)
     {
         PvfsFreeCCB(pCCB);
     }
@@ -155,7 +154,7 @@ PvfsAcquireCCBInternal(
     PVFS_BAIL_ON_INVALID_CCB(pCCB, ntError);
 
     if (bIncRef) {
-        PvfsInterlockedIncrement(&pCCB->cRef);
+        InterlockedIncrement(&pCCB->RefCount);
     }
 
     *ppCCB = pCCB;

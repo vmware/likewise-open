@@ -168,7 +168,7 @@ typedef struct _PVFS_CCB
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
     pthread_mutex_t ControlMutex;   /* Use for CCB SetFileInfo operations */
 
-    PVFS_INTERLOCKED_ULONG cRef;
+    LONG RefCount;
 
     /* Open fd to the File or Directory */
     int fd;

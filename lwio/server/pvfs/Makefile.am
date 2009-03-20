@@ -21,7 +21,6 @@ libpvfs_sys_la_SOURCES = \
     alloc.c \
     ccb.c \
     fcb.c \
-    synchronize.c \
     errno.c \
     syswrap.c \
     util_open.c \
