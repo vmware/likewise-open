@@ -131,3 +131,110 @@ DirectoryFreeAttributeValues(
 
     DirectoryFreeMemory(pAttrValues);
 }
+
+
+DWORD
+DirectoryGetEntryAttributeSingle(
+    PDIRECTORY_ENTRY pEntry,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_ATTRIBUTE pAttribute = NULL;
+
+    if (pEntry == NULL || ppAttribute == NULL) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pEntry->ulNumAttributes) {
+        pAttribute = &(pEntry->pDirectoryAttributes[0]);
+    }
+
+    *ppAttribute = pAttribute;
+
+error:
+    return dwError;
+}
+
+
+DWORD
+DirectoryGetEntryAttributeByName(
+    PDIRECTORY_ENTRY pEntry,
+    PCWSTR pwszAttributeName,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszAttrName = NULL;
+    PDIRECTORY_ATTRIBUTE pAttribute = NULL;
+    PDIRECTORY_ATTRIBUTE pAttrFound = NULL;
+    DWORD i = 0;
+
+    if (pEntry == NULL || ppAttribute == NULL ||
+        pwszAttributeName == NULL) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pwszAttrName = wc16sdup(pwszAttributeName);
+    if (pwszAttrName == NULL) {
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (i = 0; i < pEntry->ulNumAttributes; i++) {
+        pAttribute = &(pEntry->pDirectoryAttributes[i]);
+
+        if (wc16scmp(pAttribute->pwszAttributeName,
+                     pwszAttrName) == 0) {
+            pAttrFound = pAttribute;
+            break;
+        }
+    }
+
+    *ppAttribute = pAttrFound;
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pwszAttrName);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+DirectoryGetAttributeValue(
+    PDIRECTORY_ATTRIBUTE pAttribute,
+    PATTRIBUTE_VALUE *ppAttrValue
+    )
+{
+    DWORD dwError = 0;
+    PATTRIBUTE_VALUE pValue = NULL;
+
+    if (pAttribute == NULL || ppAttrValue == NULL) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pAttribute->ulNumValues) {
+        pValue = &(pAttribute->pAttributeValues[0]);
+    }
+
+    *ppAttrValue = pValue;
+
+error:
+    return dwError;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
