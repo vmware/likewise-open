@@ -138,6 +138,31 @@ typedef struct _PVFS_FCB
 
 } PVFS_FCB, *PPVFS_FCB;
 
+
+typedef DWORD PVFS_LOCK_FLAGS;
+
+#define PVFS_LOCK_EXCLUSIVE            0x00000001
+#define PVFS_LOCK_BLOCK                0x00000002
+
+typedef struct _PVFS_LOCK_ENTRY
+{
+    BOOLEAN bExclusive;
+    ULONG Key;
+    LONG64 Offset;
+    LONG64 Length;
+
+} PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
+
+typedef struct _PVFS_LOCK_TABLE
+{
+    pthread_rwlock_t rwLock;
+
+    ULONG NumberOfLocks;
+    ULONG ListSize;
+    PPVFS_LOCK_ENTRY pLocks;
+
+} PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
+
 typedef struct _PVFS_CCB
 {
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
@@ -162,6 +187,8 @@ typedef struct _PVFS_CCB
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
+    PVFS_LOCK_TABLE LockTable;
+
 } PVFS_CCB, *PPVFS_CCB;
 
 typedef struct _PVFS_IRP_CONTEXT
@@ -178,7 +205,6 @@ struct _InfoLevelDispatchEntry {
     NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
                    PPVFS_IRP_CONTEXT pIrpContext);
 };
-
 
 #endif    /* _PVFS_STRUCTS_H */
 

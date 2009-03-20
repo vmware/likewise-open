@@ -64,6 +64,11 @@ PvfsLockControl(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
+    IRP_ARGS_LOCK_CONTROL Args = pIrp->Args.LockControl;
+    LONG64 Offset = Args.ByteOffset;
+    LONG64 Length = Args.Length;
+    ULONG Key = Args.Key;
+    PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
 
     /* Sanity checks */
@@ -76,13 +81,36 @@ PvfsLockControl(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    switch(pIrp->Args.LockControl.LockControl) {
+    /* Either READ or WRITE access is ok */
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
+    if (ntError == STATUS_ACCESS_DENIED) {
+        ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (Args.ExclusiveLock) {
+        Flags |= PVFS_LOCK_EXCLUSIVE;
+    }
+    if (!Args.FailImmediately) {
+        Flags |= PVFS_LOCK_BLOCK;
+    }
+
+    switch(Args.LockControl) {
     case IO_LOCK_CONTROL_LOCK:
+        ntError = PvfsLockFile(pCcb, &Key, Offset, Length, Flags);
+        break;
+
     case IO_LOCK_CONTROL_UNLOCK:
+        ntError = PvfsUnlockFile(pCcb, FALSE, NULL, Offset, Length);
+        break;
+
     case IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY:
+        ntError = PvfsUnlockFile(pCcb, TRUE, &Key, Offset, Length);
+        break;
+
     case IO_LOCK_CONTROL_UNLOCK_ALL:
-        /* Grant all locks and unlocks for now */
-        ntError = STATUS_SUCCESS;
+        ntError = PvfsUnlockFile(pCcb, TRUE, NULL, Offset, Length);
         break;
 
     default:

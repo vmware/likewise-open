@@ -281,6 +281,25 @@ PvfsEnforceShareMode(
     IN ACCESS_MASK DesiredAccess
     );
 
+/* From locking.c */
+
+NTSTATUS
+PvfsLockFile(
+    PPVFS_CCB pCcb,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    );
+
+NTSTATUS
+PvfsUnlockFile(
+    PPVFS_CCB pCcb,
+    BOOLEAN bUnlockAll,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length
+    );
 
 #endif /* __PVFS_H__ */
 

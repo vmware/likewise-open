@@ -30,6 +30,7 @@ libpvfs_sys_la_SOURCES = \
     string.c \
     wildcard.c \
     sharemode.c \
+    locking.c \
     acl.c \
     acl_xattr.c \
     attrib.c \
