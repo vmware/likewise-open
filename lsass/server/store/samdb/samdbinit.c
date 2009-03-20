@@ -239,7 +239,7 @@ SamDbAddMachineDomain(
 
     dwError = LsaAllocateStringPrintf(
                     &pszMachineSID,
-                    "S-1-5-21-%ul-%ul-%ul",
+                    "S-1-5-21-%lu-%lu-%lu",
                     ulSubAuth[0],
                     ulSubAuth[1],
                     ulSubAuth[2]);
@@ -285,7 +285,7 @@ SamDbAddLocalDomain(
     PWSTR     pwszNetBIOSName = NULL;
     ATTRIBUTE_VALUE avMachineSID = {0};
     ATTRIBUTE_VALUE avNetBIOSName = {0};
-    DIRECTORY_MOD mods[2];
+    DIRECTORY_MOD mods[3];
     ULONG     iMod = 0;
 
     memset(mods, 0, sizeof(mods));
@@ -361,3 +361,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
