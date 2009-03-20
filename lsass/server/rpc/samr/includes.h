@@ -29,11 +29,12 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Abstract: Samr interface (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -43,7 +44,10 @@
 #include <dce/dcethread.h>
 #include <compat/rpcstatus.h>
 #include <wc16str.h>
+#include <wc16printf.h>
 #include <lw/ntstatus.h>
+#include <lw/rtlmemory.h>
+#include <lw/security-api.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
@@ -52,8 +56,11 @@
 #include <lwrpc/aliasinfo.h>
 
 #include <lsa/lsa.h>
+#include <lsautils.h>
+#include <lsaunistr.h>
 #include <lsarpcsrv.h>
 #include <rpcctl-register.h>
+#include <directory.h>
 
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>
