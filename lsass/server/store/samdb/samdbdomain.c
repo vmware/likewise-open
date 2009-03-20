@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -230,10 +230,15 @@ SamDbAddDomain(
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     BOOLEAN bInLock = FALSE;
-    DWORD dwNumMods = sizeof(Modifications)/sizeof(Modifications[0]);
+    DWORD dwNumMods = 0;
     DWORD iMod = 0;
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    while (Modifications[dwNumMods].pwszAttributeName &&
+           Modifications[dwNumMods].pAttributeValues) {
+        dwNumMods++;
+    }
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
 
@@ -397,7 +402,7 @@ SamDbFindDomains(
         dwError = LsaWc16sToMbs(
                         pwszDomainName,
                         &pszDomainName);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
         LsaStrToUpper(pszDomainName);
     }
@@ -747,3 +752,13 @@ SamDbFreeDomainInfo(
     }
     DirectoryFreeMemory(pDomainInfo);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
