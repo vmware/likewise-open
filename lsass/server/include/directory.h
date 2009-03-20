@@ -160,6 +160,25 @@ DirectoryFreeAttributeValues(
     );
 
 DWORD
+DirectoryGetEntryAttributeSingle(
+    PDIRECTORY_ENTRY pEntry,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    );
+
+DWORD
+DirectoryGetEntryAttributeByName(
+    PDIRECTORY_ENTRY pEntry,
+    PCWSTR pwszAttributeName,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    );
+
+DWORD
+DirectoryGetAttributeValue(
+    PDIRECTORY_ATTRIBUTE pAttribute,
+    PATTRIBUTE_VALUE *ppAttrValue
+    );
+
+DWORD
 DirectoryAllocateMemory(
     size_t sSize,
     PVOID* ppMemory
