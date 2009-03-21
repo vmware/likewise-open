@@ -330,6 +330,7 @@ SamDbAddUserAttrLookups(
         pAttrEntry->bIsMandatory = userAttrs[iAttr].bIsMandatory;
         pAttrEntry->bIsModifiable = userAttrs[iAttr].bIsModifiable;
         pAttrEntry->attrType = userAttrs[iAttr].attrType;
+        pAttrEntry->dwId = userAttrs[iAttr].colType;
 
         dwError = LwRtlRBTreeAdd(
                         pAttrLookup->pAttrTree,
