@@ -847,7 +847,6 @@ AC_CONFIG_FILES([Makefile
                  server/rpc/rpcctl/Makefile
                  server/rpc/lsa/Makefile
                  server/rpc/samr/Makefile
-                 server/rpc/sam/Makefile
                  server/store/Makefile
 		 server/store/samdb/Makefile
 		 server/store/dsapi/Makefile
