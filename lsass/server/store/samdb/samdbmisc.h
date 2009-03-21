@@ -70,5 +70,19 @@ SamDbInterlockedCounter(
     PSAMDB_INTERLOCKED_COUNTER pCounter
     );
 
+DWORD
+SamDbComputeLMHash(
+    PCSTR pszPassword,
+    PBYTE pHash,
+    DWORD dwHashByteLen
+    );
+
+DWORD
+SamDbComputeNTHash(
+    PCSTR pszPassword,
+    PBYTE pHash,
+    DWORD dwHashByteLen
+    );
+
 #endif /* __SAMDB_MISC_H__ */
 

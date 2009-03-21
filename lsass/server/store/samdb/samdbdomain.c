@@ -153,22 +153,22 @@ SamDbAddDomainAttrLookups(
             DIRECTORY_ATTR_TAG_DOMAIN_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_DOMAIN_NAME,
-            TRUE,
-            FALSE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_IMMUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_DOMAIN_SID,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_MACHINE_SID,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_IMMUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_DOMAIN_TABLE_COLUMN_NETBIOS_NAME,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_MUTABLE
         }
     };
     DWORD dwNumAttrs = sizeof(domainAttrs)/sizeof(domainAttrs[0]);

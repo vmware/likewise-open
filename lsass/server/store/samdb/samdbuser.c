@@ -57,7 +57,7 @@
                 Uid              integer,             \
                 Name             text,                \
                 Passwd           text,                \
-                Gid              integer,             \
+                GroupRecordId    integer,             \
                 UserInfoFlags    integer,             \
                 Gecos            text,                \
                 HomeDir          text,                \
@@ -87,7 +87,7 @@
             Uid,              \
             Name,             \
             Passwd,           \
-            Gid,              \
+            GroupRecordId,    \
             UserInfoFlags,    \
             Gecos,            \
             HomeDir,          \
@@ -154,6 +154,11 @@
             samdbdomains sdd  \
       where sdu.DomainRecordId = sdd.DomainRecordId \
         and sdd.Name = %Q"
+
+#define DB_QUERY_MAX_UID_BY_DOMAIN \
+    "select max(Uid) \
+       from samdbusers sdu \
+      where sdu.DomainRecordId = %d"
 
 #define DB_QUERY_DELETE_USER \
     "delete \
@@ -225,99 +230,85 @@ SamDbAddUserAttrLookups(
             DIRECTORY_ATTR_TAG_USER_NAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_NAME,
-            TRUE,
-            FALSE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_IMMUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_USER_FULLNAME,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_FULL_NAME,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_UID,
             DIRECTORY_ATTR_TYPE_INTEGER,
             SAMDB_USER_TABLE_COLUMN_UID,
-            TRUE,
-            FALSE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_IMMUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_USER_SID,
             DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
             SAMDB_USER_TABLE_COLUMN_SID,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_IMMUTABLE
         },
         {
-            DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP,
-            DIRECTORY_ATTR_TYPE_INTEGER,
-            SAMDB_USER_TABLE_COLUMN_GID,
-            TRUE,
-            TRUE
+            DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
+            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            SAMDB_USER_TABLE_COLUMN_PRIMARY_GROUP,
+            ATTR_IS_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_USER_PASSWORD,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_PASSWORD,
-            FALSE,
-            TRUE
+            ATTR_IS_NOT_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_GECOS,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_GECOS,
-            FALSE,
-            TRUE
+            ATTR_IS_NOT_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_HOMEDIR,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_HOMEDIR,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_SHELL,
             DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             SAMDB_USER_TABLE_COLUMN_SHELL,
-            TRUE,
-            TRUE
+            ATTR_IS_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME,
             DIRECTORY_ATTR_TYPE_INTEGER,
             SAMDB_USER_TABLE_COLUMN_PASSWORD_CHANGE_TIME,
-            FALSE,
-            TRUE
+            ATTR_IS_NOT_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY,
             DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             SAMDB_USER_TABLE_COLUMN_ACCOUNT_EXPIRY,
-            FALSE,
-            TRUE
+            ATTR_IS_NOT_MANDATORY,
+            ATTR_IS_MUTABLE
         },
         {
             DIRECTORY_ATTR_TAG_USER_INFO_FLAGS,
             DIRECTORY_ATTR_TYPE_INTEGER,
             SAMDB_USER_TABLE_COLUMN_USER_INFO_FLAGS,
-            FALSE,
-            TRUE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_LM_HASH,
-            DIRECTORY_ATTR_TYPE_OCTET_STREAM,
-            SAMDB_USER_TABLE_COLUMN_LM_HASH,
-            FALSE,
-            TRUE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_NT_HASH,
-            DIRECTORY_ATTR_TYPE_OCTET_STREAM,
-            SAMDB_USER_TABLE_COLUMN_NT_HASH,
-            FALSE,
-            TRUE
+            ATTR_IS_NOT_MANDATORY,
+            ATTR_IS_MUTABLE
         }
     };
     DWORD dwNumAttrs = sizeof(userAttrs)/sizeof(userAttrs[0]);
@@ -376,6 +367,7 @@ SamDbAddUser(
     DWORD iMod = 0;
     PWSTR pwszUserName = NULL;
     PWSTR pwszDomain = NULL;
+    PSTR  pszDomainSID = NULL;
     PSTR  pszError = NULL;
     PSTR  pszQuery = NULL;
     PSTR  pszUserName = NULL;
@@ -387,11 +379,11 @@ SamDbAddUser(
     PSTR  pszFullName = NULL;
     DWORD dwPasswdChangeTime = 0;
     DWORD dwUID = 0;
-    DWORD dwGID = 0;
-    DWORD dwAccountExpiry = 0;
+    DWORD dwPrimaryGroupRecordId = 0;
+    LONG64 qwAccountExpiry = 0;
     DWORD dwUserInfoFlags = 0;
-    DWORD dwLMOwf[4] = {0, 0, 0, 0};
-    DWORD dwNTOwf[4] = {0, 0, 0, 0};
+    BYTE  lmHash[16] = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
+    BYTE  ntHash[16] = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
     DWORD dwNumDomains = 0;
@@ -442,7 +434,7 @@ SamDbAddUser(
     {
         NTSTATUS ntStatus = 0;
         PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pLookupEntry = NULL;
-        // PATTRIBUTE_VALUE pAttrValue = NULL;
+        PATTRIBUTE_VALUE pAttrValue = NULL;
 
         ntStatus = LwRtlRBTreeFind(
                         pDirContext->pAttrLookup->pAttrTree,
@@ -456,7 +448,203 @@ SamDbAddUser(
 
         switch (pLookupEntry->dwId)
         {
-            // TODO:
+            case SAMDB_USER_TABLE_COLUMN_USER_INFO_FLAGS:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwUserInfoFlags = pAttrValue->uLongValue;
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_FULL_NAME:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszFullName);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_GECOS:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszGecos);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_HOMEDIR:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszHomedir);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_SHELL:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszShell);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_PASSWORD:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszPassword);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_PASSWORD_CHANGE_TIME:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwPasswdChangeTime = pAttrValue->uLongValue;
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_ACCOUNT_EXPIRY:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                qwAccountExpiry = pAttrValue->llValue;
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_PRIMARY_GROUP:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = SamDbFindGroupRecordId_inlock(
+                                hDirectory,
+                                ppDomainInfoList[0],
+                                pAttrValue->pwszStringValue,
+                                &dwPrimaryGroupRecordId);
+                BAIL_ON_SAMDB_ERROR(dwError);
 
             default:
 
@@ -467,6 +655,36 @@ SamDbAddUser(
         }
     }
 
+    dwError = SamDbGetNextAvailableUID_inlock(
+                    hDirectory,
+                    ppDomainInfoList[0]->ulDomainRecordId,
+                    &dwUID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaWc16sToMbs(
+                    ppDomainInfoList[0]->pwszDomainSID,
+                    &pszDomainSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszUserSID,
+                    "%s-%d",
+                    pszDomainSID,
+                    dwUID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbComputeLMHash(
+                    pszPassword,
+                    &lmHash[0],
+                    sizeof(lmHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbComputeNTHash(
+                    pszPassword,
+                    &ntHash[0],
+                    sizeof(ntHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_INSERT_USER,
                     ppDomainInfoList[0]->ulDomainRecordId,
@@ -474,22 +692,22 @@ SamDbAddUser(
                     dwUID,
                     pszUserName,
                     pszPassword,
-                    dwGID,
+                    dwPrimaryGroupRecordId,
                     dwUserInfoFlags,
                     pszGecos,
                     pszHomedir,
                     pszShell,
                     dwPasswdChangeTime,
                     pszFullName,
-                    dwAccountExpiry,
-                    dwLMOwf[0],
-                    dwLMOwf[1],
-                    dwLMOwf[2],
-                    dwLMOwf[3],
-                    dwNTOwf[0],
-                    dwNTOwf[1],
-                    dwNTOwf[2],
-                    dwNTOwf[3]);
+                    qwAccountExpiry,
+                    *((PDWORD)&lmHash[0]),
+                    *((PDWORD)&lmHash[4]),
+                    *((PDWORD)&lmHash[8]),
+                    *((PDWORD)&lmHash[12]),
+                    *((PDWORD)&ntHash[0]),
+                    *((PDWORD)&ntHash[4]),
+                    *((PDWORD)&ntHash[8]),
+                    *((PDWORD)&ntHash[12]));
 
     dwError = sqlite3_exec(pDirContext->pDbContext->pDbHandle,
                            pszQuery,
@@ -509,6 +727,7 @@ cleanup:
 
     DIRECTORY_FREE_STRING(pszUserName);
     DIRECTORY_FREE_STRING(pszUserSID);
+    DIRECTORY_FREE_STRING(pszDomainSID);
     DIRECTORY_FREE_STRING(pszPassword);
     DIRECTORY_FREE_STRING(pszGecos);
     DIRECTORY_FREE_STRING(pszFullName);
@@ -598,6 +817,81 @@ cleanup:
 error:
 
     *pdwNumUsers = 0;
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SamDbGetNextAvailableUID_inlock(
+    HANDLE hDirectory,
+    DWORD  dwDomainRecordId,
+    PDWORD pdwUID
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    int   nRows = 0;
+    int   nCols = 0;
+    PSTR* ppszResult = NULL;
+    DWORD dwMaxUID = 0;
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    pszQuery = sqlite3_mprintf(
+                    DB_QUERY_MAX_UID_BY_DOMAIN,
+                    dwDomainRecordId);
+
+    dwError = sqlite3_get_table(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows)
+    {
+        dwMaxUID = SAMDB_MIN_UID - 1;
+        goto done;
+    }
+
+    if (nCols != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwMaxUID = atoi(ppszResult[1]);
+
+done:
+
+    *pdwUID = dwMaxUID + 1;
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult)
+    {
+        sqlite3_free_table(ppszResult);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwUID = 0;
 
     if (pszError)
     {

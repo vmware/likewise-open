@@ -99,4 +99,59 @@ SamDbInterlockedCounter(
     return dwCounter;
 }
 
+DWORD
+SamDbComputeLMHash(
+    PCSTR pszPassword,
+    PBYTE pHash,
+    DWORD dwHashByteLen
+    )
+{
+    DWORD dwError = 0;
 
+    if (!pHash || (dwHashByteLen != 16))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    memset(pHash, 0, dwHashByteLen);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+SamDbComputeNTHash(
+    PCSTR pszPassword,
+    PBYTE pHash,
+    DWORD dwHashByteLen
+    )
+{
+    DWORD dwError = 0;
+
+    if (!pHash || (dwHashByteLen != 16))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    memset(pHash, 0, dwHashByteLen);
+
+    if (pszPassword)
+    {
+        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}

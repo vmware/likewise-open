@@ -24,7 +24,7 @@ typedef enum
     SAMDB_USER_TABLE_COLUMN_NAME = 1,
     SAMDB_USER_TABLE_COLUMN_UID,
     SAMDB_USER_TABLE_COLUMN_SID,
-    SAMDB_USER_TABLE_COLUMN_GID,
+    SAMDB_USER_TABLE_COLUMN_PRIMARY_GROUP,
     SAMDB_USER_TABLE_COLUMN_PASSWORD,
     SAMDB_USER_TABLE_COLUMN_GECOS,
     SAMDB_USER_TABLE_COLUMN_HOMEDIR,
@@ -114,6 +114,13 @@ SamDbSearchUsers(
     );
 
 DWORD
+SamDbGetNextAvailableUID_inlock(
+    HANDLE hDirectory,
+    DWORD  dwDomainRecordId,
+    PDWORD pdwUID
+    );
+
+DWORD
 SamDbDeleteUser(
     HANDLE hDirectory,
     PWSTR  pwszUserDN
@@ -164,6 +171,21 @@ SamDbSearchGroups(
     ULONG             ulAttributesOnly,
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
+    );
+
+DWORD
+SamDbFindGroupRecordId_inlock(
+    HANDLE              hDirectory,
+    PSAM_DB_DOMAIN_INFO pDefaultDomainInfo,
+    PWSTR               pwszGroupDN,
+    PDWORD              pdwGroupRecordId
+    );
+
+DWORD
+SamDbGetNextAvailableGID_inlock(
+    HANDLE hDirectory,
+    DWORD  dwDomainRecordId,
+    PDWORD pdwGID
     );
 
 DWORD

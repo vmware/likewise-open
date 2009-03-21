@@ -31,6 +31,7 @@
 #include "config.h"
 #include "lsasystem.h"
 
+#include <openssl/md4.h>
 #include <sqlite3.h>
 #include <uuid/uuid.h>
 

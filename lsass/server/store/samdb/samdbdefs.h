@@ -72,6 +72,14 @@ typedef enum
 
 } SAMDB_ENTRY_TYPE, *PSAMDB_ENTRY_TYPE;
 
+#define ATTR_IS_MANDATORY     TRUE
+#define ATTR_IS_NOT_MANDATORY FALSE
+#define ATTR_IS_MUTABLE       TRUE
+#define ATTR_IS_IMMUTABLE     FALSE
+
+#define SAMDB_MIN_GID 1000
+#define SAMDB_MIN_UID 1000
+
 #endif /* __SAMDBDEFS_H__ */
 
 
