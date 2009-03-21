@@ -85,6 +85,7 @@ PvfsAllocateFCB(
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
     pthread_rwlock_init(&pFcb->rwLock, NULL);
+    pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
 
     /* Add initial ref count */
 
@@ -138,6 +139,7 @@ PvfsFreeFCB(
     RtlCStringFree(&pFcb->pszFilename);
     pthread_mutex_destroy(&pFcb->ControlBlock);
     pthread_rwlock_destroy(&pFcb->rwLock);
+    pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
     PvfsFreeMemory(pFcb);
 
@@ -415,16 +417,19 @@ PvfsAddCCBToFCB(
                                  sizeof(PVFS_CCB_LIST_NODE));
     BAIL_ON_NT_STATUS(ntError);
 
-    ENTER_MUTEX(&pFcb->ControlBlock);
+    ENTER_WRITER_RW_LOCK(&pFcb->rwLock);
 
     /* Add to the front of the list */
 
     pCcbNode->pCcb  = pCcb;
     pCcbNode->pNext = pFcb->pCcbList;
+    if (pFcb->pCcbList) {
+        pFcb->pCcbList->pPrevious = pCcbNode;
+    }
 
     pFcb->pCcbList  = pCcbNode;
 
-    LEAVE_MUTEX(&pFcb->ControlBlock);
+    LEAVE_WRITER_RW_LOCK(&pFcb->rwLock);
 
     pCcb->pFcb = pFcb;
 
@@ -467,8 +472,15 @@ PvfsRemoveCCBFromFCB(
 
     if (pCursor == pFcb->pCcbList) {
         pFcb->pCcbList = pCursor->pNext;
+        if (pFcb->pCcbList) {
+            pFcb->pCcbList->pPrevious = NULL;
+        }
     } else {
         pTmp->pNext = pCursor->pNext;
+        if (pCursor->pNext) {
+            pCursor->pNext->pPrevious = pTmp;
+        }
+
     }
 
     PvfsFreeMemory(pCursor);
@@ -487,28 +499,6 @@ error:
 /*******************************************************
  ******************************************************/
 
-VOID
-PvfsReaderLockFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    ENTER_READER_RW_LOCK(&pFcb->rwLock);
-}
-
-/*******************************************************
- ******************************************************/
-
-VOID
-PvfsReaderUnlockFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    LEAVE_READER_RW_LOCK(&pFcb->rwLock);
-}
-
-/*******************************************************
- ******************************************************/
-
 PPVFS_CCB_LIST_NODE
 PvfsNextCCBFromList(
     PPVFS_FCB pFcb,
@@ -520,6 +510,22 @@ PvfsNextCCBFromList(
     }
 
     return pCurrent->pNext;
+}
+
+/*******************************************************
+ ******************************************************/
+
+PPVFS_CCB_LIST_NODE
+PvfsPreviousCCBFromList(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB_LIST_NODE pCurrent
+    )
+{
+    if (pCurrent == NULL) {
+        return NULL;
+    }
+
+    return pCurrent->pPrevious;
 }
 
 /*

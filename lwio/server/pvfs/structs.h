@@ -119,6 +119,7 @@ struct _PVFS_CCB;
 typedef struct _PVFS_CCB_LIST_NODE
 {
     struct _PVFS_CCB_LIST_NODE  *pNext;
+    struct _PVFS_CCB_LIST_NODE  *pPrevious;
     struct _PVFS_CCB            *pCcb;
 
 } PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
@@ -127,9 +128,10 @@ typedef struct _PVFS_CCB_LIST_NODE
 typedef struct _PVFS_FCB
 {
     LONG RefCount;
-    pthread_mutex_t ControlBlock;  /* For ensuring atomic operations
+    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
-    pthread_rwlock_t rwLock;       /* For managing the CCB list */
+    pthread_rwlock_t rwLock;        /* For managing the CCB list */
+    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in the CCB list */
 
     PSTR pszFilename;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
@@ -153,13 +155,21 @@ typedef struct _PVFS_LOCK_ENTRY
 
 } PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
 
+typedef struct _PVFS_LOCK_LIST
+{
+    ULONG NumberOfLocks;
+    ULONG ListSize;
+    PPVFS_LOCK_ENTRY pLocks;
+
+} PVFS_LOCK_LIST, *PPVFS_LOCK_LIST;
+
+
 typedef struct _PVFS_LOCK_TABLE
 {
     pthread_rwlock_t rwLock;
 
-    ULONG NumberOfLocks;
-    ULONG ListSize;
-    PPVFS_LOCK_ENTRY pLocks;
+    PVFS_LOCK_LIST ExclusiveLocks;
+    PVFS_LOCK_LIST SharedLocks;
 
 } PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
 

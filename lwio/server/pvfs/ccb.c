@@ -112,6 +112,13 @@ PvfsFreeCCB(
         PvfsReleaseFCB(pCCB->pFcb);
     }
 
+    if (pCCB->LockTable.ExclusiveLocks.pLocks) {
+        PvfsFreeMemory(pCCB->LockTable.ExclusiveLocks.pLocks);
+    }
+    if (pCCB->LockTable.SharedLocks.pLocks) {
+        PvfsFreeMemory(pCCB->LockTable.SharedLocks.pLocks);
+    }
+
     pthread_rwlock_destroy(&pCCB->LockTable.rwLock);
     pthread_mutex_destroy(&pCCB->FileMutex);
     pthread_mutex_destroy(&pCCB->ControlMutex);

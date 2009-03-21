@@ -300,6 +300,15 @@ PvfsUnlockFile(
     LONG64 Length
     );
 
+NTSTATUS
+PvfsCanReadWriteFile(
+    PPVFS_CCB pCcb,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    );
+
 #endif /* __PVFS_H__ */
 
 

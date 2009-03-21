@@ -51,7 +51,17 @@
 
 static NTSTATUS
 CanLock(
-    PPVFS_LOCK_TABLE pLocks,
+    PPVFS_LOCK_TABLE pLockTable,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    BOOLEAN bExclusive,
+    BOOLEAN bAllowOverlaps
+    );
+
+static NTSTATUS
+AddLock(
+    PPVFS_CCB pCcb,
     PULONG pKey,
     LONG64 Offset,
     LONG64 Length,
@@ -59,14 +69,13 @@ CanLock(
     );
 
 static NTSTATUS
-AddLock(
-    PPVFS_LOCK_TABLE pLocks,
+StoreLock(
+    PPVFS_LOCK_TABLE pLockTable,
     PULONG pKey,
     LONG64 Offset,
     LONG64 Length,
     BOOLEAN bExclusive
     );
-
 
 /* Code */
 
@@ -84,41 +93,53 @@ PvfsLockFile(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bFcbLocked = FALSE;
     PPVFS_CCB_LIST_NODE pCursor = NULL;
     PPVFS_FCB pFcb = pCcb->pFcb;
     BOOLEAN bExclusive = FALSE;
+    BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN bBrlWriteLocked = FALSE;
 
     if (Flags & PVFS_LOCK_EXCLUSIVE) {
         bExclusive = TRUE;
     }
 
-    PvfsReaderLockFCB(pCcb->pFcb);
-    bFcbLocked = TRUE;
+    /* Read lock so no one can add a CCB to the list */
+
+    ENTER_READER_RW_LOCK(&pFcb->rwLock);
+    bFcbReadLocked = TRUE;
+
+    /* Store the pending lock */
+
+    ENTER_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    bBrlWriteLocked = TRUE;
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
          pCursor = PvfsNextCCBFromList(pFcb, pCursor))
     {
-        PPVFS_LOCK_TABLE pLockTable = &pCursor->pCcb->LockTable;
-
         /* We'll deal with ourselves in AddLock() */
 
         if (pCcb == pCursor->pCcb) {
             continue;
         }
 
-        ntError = CanLock(pLockTable, pKey, Offset, Length, bExclusive);
+        ntError = CanLock(&pCursor->pCcb->LockTable,
+                          pKey, Offset, Length, bExclusive, FALSE);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = AddLock(&pCcb->LockTable, pKey, Offset, Length, bExclusive);
+    ntError = AddLock(pCcb, pKey, Offset, Length, bExclusive);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (bFcbLocked) {
-        PvfsReaderUnlockFCB(pCcb->pFcb);
+    if (bBrlWriteLocked) {
+        LEAVE_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    }
+
+    if (bFcbReadLocked) {
+        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
     }
 
     return ntError;
@@ -139,16 +160,125 @@ PvfsUnlockFile(
     LONG64 Length
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_INVALID_LOCK_SEQUENCE;
+    PPVFS_FCB pFcb = pCcb->pFcb;
+    PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
+    PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
+    PPVFS_LOCK_ENTRY pEntry = NULL;
+    ULONG i = 0;
 
-    BAIL_ON_NT_STATUS(ntError);
+    ENTER_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+
+    /* Exclusive Locks */
+
+    for (i=0; i<pExclLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pExclLocks->pLocks[i];
+
+        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        {
+            if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+                RtlMoveMemory(pEntry, pEntry+1,
+                              sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+            }
+            pExclLocks->NumberOfLocks--;
+
+            ntError = STATUS_SUCCESS;
+            goto cleanup;
+        }
+    }
+
+    /* Shared Locks */
+
+    for (i=0; i<pSharedLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pSharedLocks->pLocks[i];
+
+        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        {
+            if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+                RtlMoveMemory(pEntry, pEntry+1,
+                              sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+            }
+            pExclLocks->NumberOfLocks--;
+
+            ntError = STATUS_SUCCESS;
+            goto cleanup;
+        }
+    }
 
 cleanup:
+    LEAVE_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+
+    return ntError;
+}
+
+/**************************************************************
+ FIXME!!!!!
+ *************************************************************/
+
+NTSTATUS
+PvfsCanReadWriteFile(
+    PPVFS_CCB pCcb,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    PPVFS_FCB pFcb = pCcb->pFcb;
+    BOOLEAN bExclusive = FALSE;
+    BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN bBrlReadLocked = FALSE;
+
+    if (Flags & PVFS_LOCK_EXCLUSIVE) {
+        bExclusive = TRUE;
+    }
+
+    /* Read lock so no one can add a CCB to the list */
+
+    ENTER_READER_RW_LOCK(&pFcb->rwLock);
+    bFcbReadLocked = TRUE;
+
+    /* Store the pending lock */
+
+    ENTER_READER_RW_LOCK(&pFcb->rwBrlLock);
+    bBrlReadLocked = TRUE;
+
+    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
+         pCursor;
+         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    {
+        /* We'll deal with ourselves in AddLock() */
+
+        if (pCcb == pCursor->pCcb) {
+            continue;
+        }
+
+        ntError = CanLock(&pCursor->pCcb->LockTable,
+                          pKey, Offset, Length, bExclusive, TRUE);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    if (bBrlReadLocked) {
+        LEAVE_READER_RW_LOCK(&pFcb->rwBrlLock);
+    }
+
+    if (bFcbReadLocked) {
+        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
+    }
+
     return ntError;
 
 error:
     goto cleanup;
 }
+
 
 
 /**************************************************************
@@ -156,16 +286,62 @@ error:
 
 static NTSTATUS
 CanLock(
-    PPVFS_LOCK_TABLE pLocks,
+    PPVFS_LOCK_TABLE pLockTable,
     PULONG pKey,
     LONG64 Offset,
     LONG64 Length,
-    BOOLEAN bExclusive
+    BOOLEAN bExclusive,
+    BOOLEAN bAllowOverlaps
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    ULONG i = 0;
+    PPVFS_LOCK_LIST pExclLocks = &pLockTable->ExclusiveLocks;
+    PPVFS_LOCK_LIST pSharedLocks = &pLockTable->SharedLocks;
+    PPVFS_LOCK_ENTRY pEntry = NULL;
 
-    BAIL_ON_NT_STATUS(ntError);
+    /* Trivial case */
+
+    if ((pExclLocks->NumberOfLocks == 0) && (pSharedLocks->NumberOfLocks == 0))
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    /* Exclusive Locks */
+
+    for (i=0; i<pExclLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pExclLocks->pLocks[i];
+
+        /* No overlaps ever allowed for exclusive locks */
+
+        if ((Offset >= pEntry->Offset) &&
+            (Offset <= (pEntry->Offset + pEntry->Length)))
+        {
+            ntError = STATUS_FILE_LOCK_CONFLICT;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    /* Shared Locks */
+
+    for (i=0; i<pSharedLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pSharedLocks->pLocks[i];
+
+        if ((Offset >= pEntry->Offset) &&
+            (Offset <= (pEntry->Offset + pEntry->Length)))
+        {
+            /* Owning CCB can overlap shared locks only */
+            if (bExclusive || !bAllowOverlaps) {
+                ntError = STATUS_FILE_LOCK_CONFLICT;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+    }
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -173,13 +349,14 @@ cleanup:
 error:
     goto cleanup;
 }
+
 
 /**************************************************************
  *************************************************************/
 
 static NTSTATUS
 AddLock(
-    PPVFS_LOCK_TABLE pLocks,
+    PPVFS_CCB pCcb,
     PULONG pKey,
     LONG64 Offset,
     LONG64 Length,
@@ -187,8 +364,18 @@ AddLock(
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_LOCK_TABLE pLockTable = &pCcb->LockTable;
 
+    /* See if we can lock the region.  Allow overlaps since we
+       own the lock table */
+
+    ntError = CanLock(pLockTable, pKey, Offset, Length, bExclusive, TRUE);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = StoreLock(pLockTable, pKey, Offset, Length, bExclusive);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = STATUS_SUCCESS;
 
 cleanup:
     return ntError;
@@ -197,6 +384,61 @@ error:
     goto cleanup;
 }
 
+
+/**************************************************************
+ *************************************************************/
+
+static NTSTATUS
+StoreLock(
+    PPVFS_LOCK_TABLE pLockTable,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    BOOLEAN bExclusive
+    )
+{
+    NTSTATUS ntError= STATUS_SUCCESS;
+    ULONG NewListSize = 0;
+    PPVFS_LOCK_ENTRY pLocks = NULL;
+    ULONG NumLocks = 0;
+    PPVFS_LOCK_LIST pList = NULL;
+
+    if (bExclusive) {
+        pList = &pLockTable->ExclusiveLocks;
+    } else {
+        pList = &pLockTable->SharedLocks;
+    }
+
+    if (pList->NumberOfLocks == pList->ListSize)
+    {
+        NewListSize = pList->ListSize + 64;
+        ntError = PvfsReallocateMemory((PVOID*)&pList->pLocks,
+                                       sizeof(PVFS_LOCK_ENTRY)*NewListSize);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pList->ListSize = NewListSize;
+    }
+
+    pLocks   = pList->pLocks;
+    NumLocks = pList->NumberOfLocks;
+
+    pLocks[NumLocks].bExclusive = bExclusive;
+    pLocks[NumLocks].Offset     = Offset;
+    pLocks[NumLocks].Length     = Length;
+    pLocks[NumLocks].Key        = pKey ? *pKey : 0;
+
+    NumLocks++;
+
+    pList->NumberOfLocks = NumLocks;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

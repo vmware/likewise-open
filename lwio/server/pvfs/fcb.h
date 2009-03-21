@@ -96,16 +96,6 @@ PvfsRemoveCCBFromFCB(
     PPVFS_CCB pCcb
     );
 
-VOID
-PvfsReaderLockFCB(
-    PPVFS_FCB pFcb
-    );
-
-VOID
-PvfsReaderUnlockFCB(
-    PPVFS_FCB pFcb
-    );
-
 
 PPVFS_CCB_LIST_NODE
 PvfsNextCCBFromList(
@@ -113,6 +103,11 @@ PvfsNextCCBFromList(
     PPVFS_CCB_LIST_NODE pCurrent
     );
 
+PPVFS_CCB_LIST_NODE
+PvfsPreviousCCBFromList(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB_LIST_NODE pCurrent
+    );
 
 #endif   /* _PVFS_FCB_H */
 
