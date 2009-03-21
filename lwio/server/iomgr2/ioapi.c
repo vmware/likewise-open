@@ -704,7 +704,7 @@ IoUnlockFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_QUERY_VOLUME_INFORMATION;
+    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
     ioStatusBlock.Status = status;
