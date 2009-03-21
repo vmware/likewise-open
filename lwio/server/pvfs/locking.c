@@ -198,9 +198,9 @@ PvfsUnlockFile(
         {
             if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
                 RtlMoveMemory(pEntry, pEntry+1,
-                              sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+                              sizeof(PVFS_LOCK_ENTRY)* ((pSharedLocks->NumberOfLocks-i)-1));
             }
-            pExclLocks->NumberOfLocks--;
+            pSharedLocks->NumberOfLocks--;
 
             ntError = STATUS_SUCCESS;
             goto cleanup;
