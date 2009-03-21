@@ -23,8 +23,6 @@ typedef ULONG DIRECTORY_ATTR_TYPE;
 #define DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME  "user-password-change-time"
 #define DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY        "user-account-expiry"
 #define DIRECTORY_ATTR_TAG_USER_INFO_FLAGS       "user-info-flags"
-#define DIRECTORY_ATTR_TAG_USER_LM_HASH          "user-lm-hash"
-#define DIRECTORY_ATTR_TAG_USER_NT_HASH          "user-nt-hash"
 #define DIRECTORY_ATTR_TAG_GROUP_NAME            "group-name"
 #define DIRECTORY_ATTR_TAG_GID                   "gid"
 #define DIRECTORY_ATTR_TAG_GROUP_SID             "group-sid"
