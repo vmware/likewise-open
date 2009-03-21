@@ -127,7 +127,7 @@ PvfsEnforceShareMode(
 
     RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
-    PvfsReaderLockFCB(pFcb);
+    ENTER_READER_RW_LOCK(&pFcb->rwLock);
     bLocked = TRUE;
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
@@ -208,7 +208,7 @@ PvfsEnforceShareMode(
 
 cleanup:
     if (bLocked) {
-        PvfsReaderUnlockFCB(pFcb);
+        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
     }
 
     return ntError;
