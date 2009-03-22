@@ -99,6 +99,7 @@
 #include "srvecho.h"
 #include "srvtcon.h"
 #include "createX.h"
+#include "srvopenX.h"
 #include "srvread.h"
 #include "srvreadx.h"
 #include "srvwrite.h"

@@ -295,6 +295,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_OPEN_ANDX:
+
+            ntStatus = SrvProcessOpenAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_NT_CREATE_ANDX:
 
             ntStatus = SrvProcessNTCreateAndX(

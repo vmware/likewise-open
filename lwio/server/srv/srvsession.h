@@ -27,6 +27,12 @@ SrvSessionCreateTree(
     PSMB_SRV_TREE*   ppTree
     );
 
+NTSTATUS
+SrvSessionGetNamedPipeClientPrincipal(
+    PSMB_SRV_SESSION pSession,
+    PIO_ECP_LIST     pEcpList
+    );
+
 VOID
 SrvSessionRelease(
     PSMB_SRV_SESSION pSession

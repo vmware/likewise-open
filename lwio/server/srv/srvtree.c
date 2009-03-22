@@ -212,6 +212,23 @@ error:
     goto cleanup;
 }
 
+BOOLEAN
+SrvTreeIsNamedPipe(
+    PSMB_SRV_TREE pTree
+    )
+{
+    BOOLEAN bResult = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+
+    bResult = (pTree->pShareInfo->service == SHARE_SERVICE_NAMED_PIPE);
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+
+    return bResult;
+}
+
 VOID
 SrvTreeRelease(
     PSMB_SRV_TREE pTree

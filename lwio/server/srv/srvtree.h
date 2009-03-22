@@ -36,6 +36,11 @@ SrvTreeRemoveFile(
     USHORT        fid
     );
 
+BOOLEAN
+SrvTreeIsNamedPipe(
+    PSMB_SRV_TREE pTree
+    );
+
 VOID
 SrvTreeRelease(
     PSMB_SRV_TREE pTree

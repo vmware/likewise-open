@@ -570,6 +570,61 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pSessionKey = pConnection->pSessionKey;
+    ULONG ulSessionKeyLength = pConnection->ulSessionKeyLength;
+
+    if (pSessionKey != NULL)
+    {
+        ntStatus = IoRtlEcpListInsert(pEcpList,
+                                      IO_ECP_TYPE_SESSION_KEY,
+                                      pSessionKey,
+                                      ulSessionKeyLength,
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
+    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
+
+    ntStatus = IoRtlEcpListInsert(pEcpList,
+                                  IO_ECP_TYPE_PEER_ADDRESS,
+                                  pAddr,
+                                  ulAddrLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection

@@ -307,6 +307,14 @@ typedef USHORT SMB_DEVICE_STATE;
 #define SMB_DEVICE_STATE_NO_SUBSTREAMS  0x2
 #define SMB_DEVICE_STATE_NO_REPARSE_TAG 0x4
 
+typedef UCHAR SMB_BUFFER_FORMAT;
+
+#define SMB_BUFFER_FORMAT_DATA_BLOCK    0x1
+#define SMB_BUFFER_FORMAT_DIALECT       0x2 /* null terminated string */
+#define SMB_BUFFER_FORMAT_PATHNAME      0x3 /* null terminated string */
+#define SMB_BUFFER_FORMAT_ASCII         0x4 /* null terminated string */
+#define SMB_BUFFER_FORMAT_VARIABLE      0x5
+
 typedef struct
 {
     uchar8_t        smb[4];     /* Contains 0xFF, 'SMB' */
@@ -531,6 +539,20 @@ typedef enum
     SECURITY_EFFECTIVE_ONLY   = 0x00080000
 } SECURITY_FLAGS;
 
+typedef struct
+{
+    USHORT usDay   : 5; /* 1 to 31 */
+    USHORT usMonth : 4; /* 1 to 12 */
+    USHORT usYear  : 7; /* 0 to 119 yields years 1980 to 2099 */
+} __attribute__((__packed__)) SMB_DATE, *PSMB_DATE;
+
+typedef struct
+{
+    USHORT TwoSeconds : 5; /* 0 to 29 */
+    USHORT Minutes    : 6; /* 0 to 59 */
+    USHORT Hours      : 5; /* 0 to 23 */
+} __attribute__((__packed__)) SMB_TIME, *PSMB_TIME;
+
 typedef struct {
 
     USHORT   usPid;
@@ -657,6 +679,43 @@ typedef struct {
 
     /* Name immediately follows */
 }  __attribute__((__packed__))  CREATE_REQUEST_HEADER, *PCREATE_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer         */
+    USHORT   usFlags;
+    USHORT   usDesiredAccess;
+    USHORT   usSearchAttributes;
+    USHORT   usFileAttributes;
+    SMB_TIME creationTime;
+    SMB_DATE creationDate;
+    USHORT   usOpenFunction;
+    ULONG    ulAllocationSize;
+    ULONG    ulReserved[2];
+    USHORT   usByteCount;
+
+    // UCHAR  ucBufferFormat;
+    // STRING pwszFileName;
+
+} __attribute__((__packed__)) OPEN_REQUEST_HEADER, *POPEN_REQUEST_HEADER;
+
+typedef struct
+{
+    USHORT usFid;
+    USHORT usFileAttributes;
+    SMB_TIME lastWriteTime;
+    SMB_DATE lastWriteDate;
+    ULONG    ulDataSize; /* file size */
+    USHORT   usGrantedAccess;
+    USHORT   usFileType;
+    USHORT   usDeviceState;
+    USHORT   usOpenAction;
+    ULONG    ulServerFid;
+    USHORT   usReserved;
+    USHORT   usByteCount;
+
+} __attribute__((__packed__)) OPEN_RESPONSE_HEADER, *POPEN_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -1453,6 +1512,15 @@ WireUnmarshallSMBResponseCreate(
     );
 
 NTSTATUS
+WireUnmarshallOpenRequest(
+    PBYTE  pParams,
+    ULONG  ulBytesAvailable,
+    ULONG  ulBytesUsed,
+    POPEN_REQUEST_HEADER* ppHeader,
+    PWSTR* ppwszFilename
+    );
+
+NTSTATUS
 WireMarshallTransactionRequestData(
     uint8_t   *pBuffer,
     uint32_t   bufferLen,
@@ -1978,6 +2046,13 @@ WireUnmarshalTrans2ReplySetup(
     OPTIONAL OUT PUSHORT                                  pusParameterCount,
     OPTIONAL OUT PBYTE*                                   ppDataBlock,
     OPTIONAL OUT PUSHORT                                  pusDataCount
+    );
+
+NTSTATUS
+WireNTTimeToSMBDateTime(
+    LONG64    llNTTime,
+    PSMB_DATE pSmbDate,
+    PSMB_TIME pSmbTime
     );
 
 #endif /* __SMBWIRE_H__ */

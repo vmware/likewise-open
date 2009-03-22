@@ -77,6 +77,18 @@ SrvConnectionCreateSession(
     PSMB_SRV_SESSION* ppSession
     );
 
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
 VOID
 SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection
