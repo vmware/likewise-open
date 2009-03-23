@@ -854,6 +854,8 @@ SMBSrvExecute(
 
 cleanup:
 
+    exit(dwError);
+
     if (pServer)
     {
         LWMsgStatus status2 = lwmsg_server_stop(pServer);
