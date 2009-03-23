@@ -294,6 +294,23 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
     return dest;
 }
 
+wchar16_t* _w16memcpy(wchar16_t *dest, const wchar16_t *src, size_t n)
+{
+    return memcpy(dest, src, n * sizeof(wchar16_t));
+}
+
+wchar16_t* _w16memset(wchar16_t *dest, wchar16_t fill, size_t n)
+{
+    wchar16_t* pwszPos = dest;
+    while(n > 0)
+    {
+        *pwszPos = fill;
+        pwszPos++;
+        n--;
+    }
+    return dest;
+}
+
 /*
  * For consistency and performance, we break the wcpncpy() contract and don't
  * NUL pad dest when src is short.
