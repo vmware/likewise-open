@@ -198,9 +198,186 @@ SrvDeleteFiles(
     )
 {
     NTSTATUS ntStatus = 0;
+    ULONG    ulSearchStorageType = 0;
+    HANDLE   hSearchSpace = NULL;
+    USHORT   usSearchId = 0;
+    SMB_INFO_LEVEL infoLevel = SMB_FIND_FILE_BOTH_DIRECTORY_INFO;
+    BOOLEAN  bEndOfSearch = FALSE;
+    USHORT   usDesiredSearchCount = 10;
+    USHORT   usMaxDataCount = UINT16_MAX;
+    USHORT   usDataOffset = 0;
+    PBYTE    pData = NULL;
+    USHORT   usDataLen = 0;
+    USHORT   usSearchResultCount = 0;
+    PWSTR    pwszFilePath = NULL;
+    PWSTR    pwszFilename = NULL;
+    IO_FILE_HANDLE hFile = NULL;
 
-    // TODO
+    ntStatus = SrvFinderCreateSearchSpace(
+                    pSession->hFinderRepository,
+                    pwszFilesystemPath,
+                    pwszSearchPattern,
+                    usSearchAttributes,
+                    ulSearchStorageType,
+                    infoLevel,
+                    bUseLongFilenames,
+                    &hSearchSpace,
+                    &usSearchId);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    do
+    {
+        USHORT   iResult = 0;
+        BOOLEAN  bReturnSingleEntry = FALSE;
+        BOOLEAN  bRestartScan = FALSE;
+        IO_STATUS_BLOCK ioStatusBlock = {0};
+        PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult = NULL;
+        IO_FILE_NAME fileName = {0};
+        PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
+        PVOID  pSecurityDescriptor = NULL;
+        PVOID  pSecurityQOS = NULL;
+
+        if (pData)
+        {
+            LwRtlMemoryFree(pData);
+            pData = NULL;
+        }
+
+        ntStatus = SrvFinderGetSearchResults(
+                        hSearchSpace,
+                        bReturnSingleEntry,
+                        bRestartScan,
+                        usDesiredSearchCount,
+                        usMaxDataCount,
+                        usDataOffset,
+                        &pData,
+                        &usDataLen,
+                        &usSearchResultCount,
+                        &bEndOfSearch);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pResult = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pData;
+
+        for (; iResult < usSearchResultCount; iResult++)
+        {
+            if (pwszFilePath)
+            {
+                LwRtlMemoryFree(pwszFilePath);
+                pwszFilePath = NULL;
+            }
+            if (pwszFilename)
+            {
+                LwRtlMemoryFree(pwszFilename);
+                pwszFilename = NULL;
+            }
+
+            if (bUseLongFilenames)
+            {
+                ntStatus = LW_RTL_ALLOCATE(
+                                &pwszFilename,
+                                WCHAR,
+                                (pResult->FileNameLength + 1) * sizeof(wchar16_t));
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                memcpy((PBYTE)pwszFilename,
+                       (PBYTE)pResult->FileName,
+                       pResult->FileNameLength * sizeof(wchar16_t));
+            }
+            else
+            {
+                ntStatus = LW_RTL_ALLOCATE(
+                                &pwszFilename,
+                                WCHAR,
+                                (pResult->ShortNameLength + 1) * sizeof(wchar16_t));
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                memcpy((PBYTE)pwszFilename,
+                       (PBYTE)pResult->ShortName,
+                       pResult->ShortNameLength * sizeof(wchar16_t));
+            }
+
+            ntStatus = SrvBuildFilePath(
+                            pwszFilesystemPath,
+                            pwszFilename,
+                            &pwszFilePath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            fileName.FileName = pwszFilePath;
+
+            ntStatus = IoCreateFile(
+                            &hFile,
+                            NULL,
+                            &ioStatusBlock,
+                            pSecurityContext,
+                            &fileName,
+                            pSecurityDescriptor,
+                            pSecurityQOS,
+                            GENERIC_WRITE,
+                            0,
+                            FILE_ATTRIBUTE_NORMAL,
+                            0,
+                            FILE_OPEN,
+                            FILE_DELETE_ON_CLOSE,
+                            NULL,
+                            0,
+                            NULL);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            IoCloseFile(hFile);
+            hFile = NULL;
+
+            if (pResult->NextEntryOffset)
+            {
+                PBYTE pTmp = (PBYTE)pResult + pResult->NextEntryOffset;
+
+                pResult = (PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER)pTmp;
+            }
+        }
+
+    } while (!bEndOfSearch);
+
+cleanup:
+
+    if (hSearchSpace)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvFinderCloseSearchSpace(
+                        pSession->hFinderRepository,
+                        usSearchId);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to close search space [Id:%d][code:%d]",
+                          usSearchId,
+                          ntStatus2);
+        }
+
+        SrvFinderReleaseSearchSpace(hSearchSpace);
+    }
+
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
+    if (pData)
+    {
+        LwRtlMemoryFree(pData);
+    }
+    if (pwszFilename)
+    {
+        LwRtlMemoryFree(pwszFilename);
+    }
+    if (pwszFilePath)
+    {
+        LwRtlMemoryFree(pwszFilePath);
+    }
 
     return ntStatus;
+
+error:
+
+    ntStatus = STATUS_CANNOT_DELETE;
+
+    goto cleanup;
 }
 
