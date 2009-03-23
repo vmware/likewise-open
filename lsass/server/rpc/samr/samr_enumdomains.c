@@ -58,8 +58,137 @@ SamrSrvEnumDomains(
     /* [out] */ uint32 *num_entries
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    CHAR szFilter[] = "(objectclass=domain)";
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    PWSTR pwszBase = NULL;
+    DWORD dwScope = 0;
+    PWSTR pwszFilter = NULL;
+    PWSTR wszAttributes[2];
+    PWSTR pwszAttrDomainName = NULL;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwEntriesNum = 0;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    PDIRECTORY_ATTRIBUTE pAttr = NULL;
+    PATTRIBUTE_VALUE pAttrVal = NULL;
+    DWORD i = 0;
+    DWORD dwCount = 0;
+    DWORD dwSize = 0;
+    EntryArray *pDomains = NULL;
+
+    pConnCtx = (PCONNECT_CONTEXT)hConn;
+
+    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
+        status = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    dwError = LsaMbsToWc16s(szFilter, &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_DOMAIN_NAME,
+                            &pwszAttrDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    wszAttributes[0] = pwszAttrDomainName;
+    wszAttributes[1] = NULL;
+
+    dwError = DirectorySearch(pConnCtx->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              TRUE,
+                              &pEntries,
+                              &dwEntriesNum);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    status = SamrSrvAllocateMemory((void**)&pDomains,
+                                   sizeof(EntryArray),
+                                   NULL);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    dwSize += sizeof(pDomains->count);
+
+    i       = *resume;
+    dwCount = 0;
+
+    if (i >= dwEntriesNum) {
+        i = 0;
+        status = STATUS_NO_MORE_ENTRIES;
+    }
+
+    while (dwSize < size && i < dwEntriesNum) {
+        pEntry = &(pEntries[i]);
+
+        dwError = DirectoryGetEntryAttributeSingle(pEntry, &pAttr);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetAttributeValue(pAttr, &pAttrVal);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+            dwSize += sizeof(uint32);
+            dwSize += wc16slen(pAttrVal->pwszStringValue) * sizeof(wchar16_t);
+            dwSize += 2 * sizeof(uint16);
+
+            if (dwSize < size && pDomains->entries) {
+                status = SamrSrvReallocMemory((void**)&pDomains->entries,
+                                              sizeof(pDomains->entries[0]) * (++dwCount),
+                                              pDomains->entries);
+
+            } else if (dwSize < size && !pDomains->entries) {
+                status = SamrSrvAllocateMemory((void**)&pDomains->entries,
+                                               sizeof(pDomains->entries[0]) * (++dwCount),
+                                               pDomains);
+            } else {
+                status = STATUS_MORE_ENTRIES;
+                break;
+            }
+
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+            pDomains->count = dwCount;
+            pDomains->entries[dwCount - 1].idx = i;
+
+            status = InitUnicodeString(&(pDomains->entries[dwCount - 1].name),
+                                       pAttrVal->pwszStringValue);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+        } else {
+            status = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+
+        i++;
+    }
+
+    *resume      = i;
+    *num_entries = dwCount;
+    *domains     = pDomains;
+
+cleanup:
+    if (pwszFilter) {
+        LSA_SAFE_FREE_MEMORY(pwszFilter);
+    }
+
+    if (pwszAttrDomainName) {
+        LSA_SAFE_FREE_MEMORY(pwszAttrDomainName);
+    }
+
+    if (pEntries) {
+        DirectoryFreeEntries(pEntries, dwEntriesNum);
+    }
+
     return status;
+
+error:
+    if (pDomains) {
+        SamrSrvFreeMemory(pDomains);
+    }
+
+    goto cleanup;
 }
 
 
