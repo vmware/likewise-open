@@ -17,6 +17,7 @@ typedef void* DOMAIN_HANDLE;
 typedef [context_handle] void* ACCOUNT_HANDLE;
 #else
 typedef void* ACCOUNT_HANDLE;
+#endif
 
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
