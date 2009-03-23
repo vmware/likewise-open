@@ -130,6 +130,35 @@ error:
 }
 
 
+NTSTATUS
+SamrSrvReallocMemory(
+    void **ppOut,
+    DWORD dwNewSize,
+    void *pIn
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    void *pOut = NULL;
+    int locked = 0;
+
+    GLOBAL_DATA_LOCK(locked);
+
+    pOut = trealloc(pIn, dwNewSize);
+    BAIL_ON_NO_MEMORY(pOut);
+
+    *ppOut = pOut;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
+    return status;
+
+error:
+    *ppOut = NULL;
+    goto cleanup;
+}
+
+
 void
 SamrSrvFreeMemory(
     void *pPtr

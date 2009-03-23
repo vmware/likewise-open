@@ -68,6 +68,14 @@ SamrSrvAllocateMemory(
     );
 
 
+NTSTATUS
+SamrSrvReallocMemory(
+    void **ppOut,
+    DWORD dwNewSize,
+    void *pIn
+    );
+
+
 void
 SamrSrvFreeMemory(
     void *pPtr
