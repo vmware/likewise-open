@@ -2278,29 +2278,31 @@ AD_OnlineFindGroupById(
 
     if (dwError == LSA_ERROR_NOT_HANDLED)
     {
-        dwError = AD_FindGroupByIdWithCacheMode(
-                    hProvider,
-                    gid,
-                    bIsCacheOnlyMode,
-                    dwGroupInfoLevel,
-                    ppGroupInfo);
+        // It wasn't in the cache, or it is expired.
+        dwError = AD_FindObjectByIdTypeNoCache(
+                        hProvider,
+                        gid,
+                        AccountType_Group,
+                        &pCachedGroup);
         BAIL_ON_LSA_ERROR(dwError);
-    }
-    else if (dwError == 0)
-    {
-        //found in cache and not expired
-        dwError = AD_GroupObjectToGroupInfo(
-                    hProvider,
-                    pCachedGroup,
-                    bIsCacheOnlyMode,
-                    dwGroupInfoLevel,
-                    ppGroupInfo);
+
+        dwError = LsaDbStoreObjectEntry(
+                        gpLsaAdProviderState->hCacheConnection,
+                        pCachedGroup);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = AD_GroupObjectToGroupInfo(
+                hProvider,
+                pCachedGroup,
+                bIsCacheOnlyMode,
+                dwGroupInfoLevel,
+                ppGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszNT4Name);

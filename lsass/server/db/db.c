@@ -1866,14 +1866,16 @@ LsaDbStoreUserMembershipCallback(
     //
     // 2) Update any remaining items to clear IsInLdap and
     //    IsDomainPrimaryGroup so that we can set them later in the
-    //    transaction depending on what membership info got passed in.
+    //    transaction depending on what membership info got passed in. The
+    //    update time is not changed in here for pac only items because it
+    //    refers to the time the data was positively retreived, not when it was
+    //    invalidated in LDAP.
     //
     dwError = LsaSqliteAllocPrintf(&pszSqlCommand,
         "begin;\n"
         "    delete from " LSA_DB_TABLE_NAME_MEMBERSHIP " where\n"
         "        ChildSid = %Q\n"
         "        %s;\n"
-        // ISSUE-2008/11/03-dalmeida -- Do we want to set update time here?
         "    update OR IGNORE " LSA_DB_TABLE_NAME_MEMBERSHIP " set\n"
         "        IsInLdap = 0,\n"
         "        IsDomainPrimaryGroup = 0\n"
@@ -1900,6 +1902,8 @@ LsaDbStoreUserMembershipCallback(
     {
         BOOLEAN bIsNewEntryInPacOnly = FALSE;
 
+        // All entries will share the same version tag that says the data was
+        // updated right now.
         if (!bCreatedTag)
         {
             dwError = LsaDbCreateCacheTag(pArgs->pConn, now, &qwNewCacheId);
@@ -1944,6 +1948,35 @@ LsaDbStoreUserMembershipCallback(
                         ppMembers[iMember]->bIsInLdap,
                         ppMembers[iMember]->bIsDomainPrimaryGroup);
         BAIL_ON_LSA_ERROR(dwError);
+    }
+
+
+    if (bIsPacAuthoritative)
+    {
+        // The list of memberships is a flat list (meaning parent child
+        // relationships have already been expanded). This transaction has
+        // stored the list in flat form in the database (since there is
+        // not enough data to also build a hierarchical list).
+        //
+        // Non-flat memberships may still exist in the database. In some
+        // cases they represent a more accurate structure of the group
+        // memberships. However, any extra memberships described in the
+        // non-flat list must be removed, because the flat list is
+        // the authoritative list.
+        dwError = LsaSqliteAllocPrintf(&pszSqlCommand,
+            "    CREATE TEMP TABLE templist AS SELECT ParentSid from "
+                        LSA_DB_TABLE_NAME_MEMBERSHIP " where ChildSid = %Q"
+                        " AND ParentSid IS NOT NULL;\n"
+            "    delete from " LSA_DB_TABLE_NAME_MEMBERSHIP " where\n"
+            "        ChildSid IN templist AND ParentSid NOT IN templist;\n"
+            "    DROP TABLE templist;\n"
+            "",
+            pszChildSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSqliteExec(pDb, pszSqlCommand, &pszError);
+        BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+        SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
     }
 
     //
@@ -2002,9 +2035,15 @@ LsaDbStoreGroupsForUser(
     context.pszChildSid = pszChildSid;
     context.sMemberCount = sMemberCount;
     context.ppMembers = ppMembers;
+    // This is true when a PAC is available because the user is logging in.
+    // Otherwise it is false because an approximation is retrieved through
+    // something like LDAP.
     context.bIsPacAuthoritative = bIsPacAuthoritative;
     context.pConn = pConn;
 
+    // LsaDbStoreUserMembershipCallback stores the memberships in the database.
+    // LsaSqliteExecCallbackWithRetry will lock the database and retry the
+    // write operation if necessary.
     dwError = LsaSqliteExecCallbackWithRetry(
                     pConn->pDb,
                     &pConn->lock,
