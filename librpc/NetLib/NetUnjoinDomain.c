@@ -58,8 +58,6 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
 
     goto_if_invalid_param_winerr(machine, cleanup);
     goto_if_invalid_param_winerr(domain, cleanup);
-    goto_if_invalid_param_winerr(account, cleanup);
-    goto_if_invalid_param_winerr(password, cleanup);
 
     machine_name = wc16sdup(machine);
     goto_if_no_memory_ntstatus(machine_name, error);
