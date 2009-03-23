@@ -163,6 +163,15 @@ PvfsCreateFileSupersede(
     PSTR pszDiskFilename = NULL;
     PSTR pszDiskDirname = NULL;
 
+    /* Caller had to have asked for DELETE access */
+
+    if (!(Args.DesiredAccess & DELETE)) {
+        ntError = STATUS_CANNOT_DELETE;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Deal with the pathname */
+
     ntError = PvfsCanonicalPathName(&pszFilename, Args.FileName);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -180,18 +189,33 @@ PvfsCreateFileSupersede(
     ntError = PvfsLookupFile(&pszDiskFilename, pszDiskDirname, pszRelativeFilename, FALSE);
     bFileExisted = NT_SUCCESS(ntError);
 
-    if (bFileExisted) {
+    if (bFileExisted)
+    {
+        FILE_ATTRIBUTES Attributes = 0;
+
         ntError = PvfsCheckShareMode(pszDiskFilename,
                                      Args.ShareAccess,
-                                     Args.DesiredAccess | DELETE,
+                                     Args.DesiredAccess,
                                      &pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
-                                      DELETE,
+                                      Args.DesiredAccess,
                                       &GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
+
+        /* Check for ReadOnly bit */
+
+        ntError = PvfsGetFilenameAttributes(pszDiskFilename, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (Attributes & FILE_ATTRIBUTE_READONLY) {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* Finally remove the file */
 
         ntError = PvfsSysRemove(pszDiskFilename);
         BAIL_ON_NT_STATUS(ntError);
@@ -225,6 +249,16 @@ PvfsCreateFileSupersede(
                                  Args.DesiredAccess,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        if (Args.FileAttributes & FILE_ATTRIBUTE_READONLY) {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -366,7 +400,16 @@ PvfsCreateFileCreate(
                                  FILE_ADD_FILE,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
-    GrantedAccess = FILE_ALL_ACCESS;
+
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        if (Args.FileAttributes & FILE_ATTRIBUTE_READONLY) {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -480,6 +523,21 @@ PvfsCreateFileOpen(
                                   Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        FILE_ATTRIBUTES Attributes = 0;
+
+        ntError = PvfsGetFilenameAttributes(pszDiskFilename, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (Attributes & FILE_ATTRIBUTE_READONLY) {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -609,6 +667,21 @@ PvfsCreateFileOpenIf(
     }
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        FILE_ATTRIBUTES Attributes = 0;
+
+        ntError = PvfsGetFilenameAttributes(pszDiskFilename, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (Attributes & FILE_ATTRIBUTE_READONLY) {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -726,6 +799,23 @@ PvfsCreateFileOverwrite(
                                   Args.DesiredAccess,
                                   &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        FILE_ATTRIBUTES Attributes = 0;
+
+        ntError = PvfsGetFilenameAttributes(pszDiskFilename, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if ((Attributes & FILE_ATTRIBUTE_READONLY) ||
+            (Args.FileAttributes & FILE_ATTRIBUTE_READONLY))
+        {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -880,6 +970,25 @@ PvfsCreateFileOverwriteIf(
                                       &GrantedAccess);
     }
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Can't set DELETE_ON_CLOSE for ReadOnly files */
+
+    if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
+        FILE_ATTRIBUTES Attributes = 0;
+
+        if (bFileExisted) {
+            ntError = PvfsGetFilenameAttributes(pszDiskFilename, &Attributes);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        if ((Attributes & FILE_ATTRIBUTE_READONLY) ||
+            (Args.FileAttributes & FILE_ATTRIBUTE_READONLY))
+        {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
