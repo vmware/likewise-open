@@ -540,7 +540,7 @@ SrvWorkerExecute(
 
     ntStatus = SrvConnectionWriteMessage(
                     pContext->pConnection,
-                    (pContext->ulRequestSequence ? pContext->ulRequestSequence + 1 : 0),
+                    pContext->ulRequestSequence+1,
                     pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
