@@ -2743,7 +2743,7 @@ LsaDmpLdapOpen(
     {
         dwError = LsaDmpLdapConnectionCreate(
                         bUseGc,
-                        pszDnsDomainName,
+                        bUseGc ? pDomain->pszForestName : pszDnsDomainName,
                         &pConn);
         BAIL_ON_LSA_ERROR(dwError);
 
