@@ -129,7 +129,7 @@
 #include "device.h"
 
 #include "prodcons.h"
-#include "worker.h"
+#include "srvworker.h"
 #include "reader.h"
 #include "listener.h"
 

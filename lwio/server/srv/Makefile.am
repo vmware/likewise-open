@@ -48,6 +48,7 @@ libsrv_sys_la_SOURCES = \
     srvtcon.c         \
     srvtdiscon.c      \
     srvtree.c         \
+    srvworker.c       \
     srvwrite.c        \
     srvwritex.c       \
     trans.c           \
@@ -57,8 +58,7 @@ libsrv_sys_la_SOURCES = \
     trans2qpi.c       \
     trans2sfi.c       \
     trans2spi.c       \
-    transcreate.c     \
-    worker.c
+    transcreate.c
 
 libsrv_sys_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
