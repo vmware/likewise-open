@@ -74,7 +74,6 @@ SessionSetup(
     wchar16_t nativeDomain[1024];
     uint8_t*  pSecurityBlob2 = NULL;
     uint32_t  dwSecurityBlobLen2 = 0;
-    BOOLEAN   bInLock = FALSE;
     PBYTE     pSessionKey = NULL;
     DWORD     dwSessionKeyLength = 0;
 
@@ -179,8 +178,8 @@ SessionSetup(
 
         /* Because there's no MID, only one SESSION_SETUP_ANDX packet can be
            outstanding. */
-        /* @todo: test multiple session setups with multiple MIDs */
-        SMB_LOCK_MUTEX(bInLock, &pSocket->sessionMutex);
+        /* FIXME: use flag and condition variable here to wait for outstanding
+           session setup to finish */
 
         /* @todo: on send packet error, the response must be removed from the
            tree. */
@@ -199,8 +198,6 @@ SessionSetup(
                         packet.sequence + 1,
                         &pResponsePacket);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        SMB_UNLOCK_MUTEX(bInLock, &pSocket->sessionMutex);
 
         ntStatus = pResponsePacket->pSMBHeader->error;
         if (ntStatus == STATUS_MORE_PROCESSING_REQUIRED)
@@ -274,8 +271,6 @@ cleanup:
     }
 
     SMB_SAFE_FREE_MEMORY(pSecurityBlob2);
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->sessionMutex);
 
     return ntStatus;
 

@@ -172,9 +172,10 @@ ADSyncMachinePasswords(
             if (AD_EventlogEnabled())
             {
                 LsaSrvLogServiceSuccessEvent(
-                        GENERAL_EVENT_CATEGORY,
+                        LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_PASSWORD_UPDATE,
+                        PASSWORD_EVENT_CATEGORY,
                         "The Active Directory machine password was updated successfully.",
-                        "<null>");
+                        NULL);
             }            
             
             bRefreshTGT = TRUE;
@@ -379,7 +380,7 @@ ADLogMachinePWUpdateFailureEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszMachinePWUpdateFailureDescription,
-                 "The Active Directory machine password failed to update. Error code : [%d].",
+                 "The Active Directory machine password failed to update.",
                  dwErrCode);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -388,7 +389,8 @@ ADLogMachinePWUpdateFailureEvent(
                          &pszData);
       
     LsaSrvLogServiceFailureEvent(
-            GENERAL_EVENT_CATEGORY,
+            LSASS_EVENT_FAILED_MACHINE_ACCOUNT_PASSWORD_UPDATE,
+            PASSWORD_EVENT_CATEGORY,
             pszMachinePWUpdateFailureDescription,
             pszData);
     

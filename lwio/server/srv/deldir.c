@@ -54,6 +54,7 @@ SrvProcessDeleteDirectory(
     PVOID  pSecurityDescriptor = NULL;
     PVOID  pSecurityQOS = NULL;
     USHORT usPacketByteCount = 0;
+    ULONG  ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -67,10 +68,12 @@ SrvProcessDeleteDirectory(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallDirectoryDeleteRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pwszPathFragment);
     BAIL_ON_NT_STATUS(ntStatus);

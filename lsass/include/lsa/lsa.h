@@ -234,7 +234,12 @@
 #define LSA_ERROR_NO_SUCH_TRACE_FLAG                        0x808A // 32906
 #define LSA_ERROR_DCERPC_ERROR                              0x808B // 32907
 #define LSA_ERROR_INVALID_RPC_SERVER                        0x808C // 32908
-#define LSA_ERROR_SENTINEL                                  0x808D // 32909
+#define LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR             0x808D // 32909
+#define LSA_ERROR_RPC_SERVER_RUNTIME_ERROR                  0x808E // 32910
+#define LSA_ERROR_DOMAIN_IN_USE                             0x808F // 32911
+#define LSA_ERROR_SAM_DATABASE_ERROR                        0x8090 // 32912
+#define LSA_ERROR_SAM_INIT_ERROR                            0x8091 // 32913
+#define LSA_ERROR_SENTINEL                                  0x8092 // 32914
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 

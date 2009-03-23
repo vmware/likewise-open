@@ -35,7 +35,7 @@ NTSTATUS
 SamrDeleteAliasMember(
     handle_t b,
     PolicyHandle *alias_h,
-    DomSid *sid
+    PSID sid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

@@ -60,6 +60,7 @@ SrvProcessCloseAndX(
     PSMB_SRV_TREE pTree = NULL;
     PSMB_SRV_FILE pFile = NULL;
     PCLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    ULONG ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -73,10 +74,12 @@ SrvProcessCloseAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallCloseRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 

@@ -149,7 +149,7 @@ MapPosixOpenDisposition(
         break;
 
     default:
-        ntError = STATUS_INVALID_PARAMETER;
+        ntError = STATUS_INVALID_DISPOSITION;
         break;
     }
     BAIL_ON_NT_STATUS(ntError);
@@ -175,8 +175,20 @@ MapPosixOpenAccess(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     int iUnixMode = 0;
-    BOOLEAN bRead = Access & FILE_READ_DATA;
-    BOOLEAN bWrite = Access & FILE_WRITE_DATA;
+    ACCESS_MASK ReadPerm = (FILE_GENERIC_READ|FILE_GENERIC_EXECUTE);
+    ACCESS_MASK WritePerm = (FILE_GENERIC_WRITE|DELETE|WRITE_DAC|WRITE_OWNER);
+    ACCESS_MASK AppendPerm = (FILE_APPEND_DATA|SYNCHRONIZE);
+    BOOLEAN bRead = FALSE;
+    BOOLEAN bWrite = FALSE;
+
+    /*  Check if any read/write bits are set */
+
+    if (Access & ReadPerm) {
+        bRead = TRUE;
+    }
+    if (Access & WritePerm) {
+        bWrite = TRUE;
+    }
 
     /* These really only apply when opening a file */
     if (!bIsDir)
@@ -187,16 +199,13 @@ MapPosixOpenAccess(
             iUnixMode = O_RDONLY;
         } else if (bWrite) {
             iUnixMode = O_WRONLY;
+        } else if (Access == AppendPerm) {
+            iUnixMode |= O_APPEND;
         } else {
-            ntError = STATUS_INVALID_PARAMETER;
+            ntError = STATUS_ACCESS_DENIED;
             BAIL_ON_NT_STATUS(ntError);
         }
 
-#if 0 /* disabled */
-        if (Access & FILE_APPEND_DATA) {
-            iUnixMode |= O_APPEND;
-        }
-#endif
     }
 
     *unixFlags |= iUnixMode;

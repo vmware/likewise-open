@@ -91,6 +91,68 @@ lwmsg_connection_packet_ntoh(ConnectionPacket* packet)
     }
 }
 
+static
+LWMsgStatus
+lwmsg_connection_packet_verify_syntax(
+    LWMsgAssoc* assoc,
+    ConnectionPacket* packet
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t length = lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
+
+    switch ((ConnectionPacketType) packet->type)
+    {
+    case CONNECTION_PACKET_MESSAGE:
+    case CONNECTION_PACKET_REPLY:
+        if (length < CONNECTION_PACKET_SIZE(ConnectionPacketMsg))
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Truncated message or reply packet");
+        }
+        break;
+    case CONNECTION_PACKET_GREETING:
+        if (length != CONNECTION_PACKET_SIZE(ConnectionPacketGreeting))
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Invalid greeting packet");
+        }
+        break;
+    case CONNECTION_PACKET_SHUTDOWN:
+        if (length != CONNECTION_PACKET_SIZE(ConnectionPacketShutdown))
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Invalid shutdown packet");
+        }
+        if (packet->contents.shutdown.type > CONNECTION_SHUTDOWN_ABORT)
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Invalid shutdown type in shutdown packet");
+        }
+        if (packet->contents.shutdown.reason > CONNECTION_SHUTDOWN_MALFORMED)
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Invalid shutdown reason in shutdown packet");
+        }
+        break;
+    case CONNECTION_PACKET_FRAGMENT:
+        if (length < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Truncated fragment packet");
+        }
+        break;
+    default:
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                          "Unrecognized packet type");
+        break;
+    }
+
+error:
+
+    return status;
+}
+
 LWMsgBool
 lwmsg_connection_packet_is_urgent(
     ConnectionPacket* packet
@@ -556,26 +618,27 @@ lwmsg_connection_recv_packet(
     size_t curlength = 0;
     
     /* If not enough data to decode a packet header is in the buffer, transceive until there is */
-    if (buffer->base_length - (buffer->cursor - buffer->base) < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
+    while (buffer->base_length < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
     {
-        while (buffer->base_length - (buffer->cursor - buffer->base) < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
-        {
-            BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
-        }
-        
-        packet = (ConnectionPacket*) buffer->base;
-        curlength = lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
+        BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
     }
-    else
+
+    packet = (ConnectionPacket*) buffer->base;
+    curlength = lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
+
+    /* Ensure the length of the packet is no greater than the negotiated size */
+    if (curlength > priv->packet_size)
     {
-        packet = (ConnectionPacket*) buffer->base;
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
-    
+
     /* Transceive until we have the entire packet */
     while (buffer->base_length < curlength)
     {
         BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
     }
+
+    BAIL_ON_ERROR(status = lwmsg_connection_packet_verify_syntax(assoc, packet));
 
     lwmsg_connection_packet_ntoh(packet);
 
@@ -759,8 +822,7 @@ lwmsg_connection_recv_greeting(
 
     BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, &packet));
     
-    if (packet->type != CONNECTION_PACKET_GREETING ||
-        packet->length != CONNECTION_PACKET_SIZE(ConnectionPacketGreeting))
+    if (packet->type != CONNECTION_PACKET_GREETING)
     {
         ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed greeting packet");
     }

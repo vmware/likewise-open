@@ -49,15 +49,27 @@
 #define __PVFS_H__
 
 #include "config.h"
+
+#if defined(HAVE_ATTR_XATTR_H) && \
+    defined(HAVE_FSETXATTR) && \
+    defined(HAVE_FGETXATTR) && \
+    defined(HAVE_GETXATTR)
+#  ifdef __LWI_LINUX__
+#    define HAVE_EA_SUPPORT
+#  endif
+#endif
+
+
 #include "lwiosys.h"
 
-#include <lw/rtlstring.h>
-#include <lw/rtlgoto.h>
+#include <lw/base.h>
+#include <lw/security-types.h>
 
 #include "iodriver.h"
 #include "lwioutils.h"
 
 #include "structs.h"
+#include "externs.h"
 #include "macros.h"
 #include "fileinfo_p.h"
 #include "security_p.h"
@@ -65,8 +77,10 @@
 #include "alloc_p.h"
 #include "time_p.h"
 #include "syswrap_p.h"
-#include "synchronize_p.h"
 #include "ccb_p.h"
+#include "fcb.h"
+#include "acl.h"
+#include "attrib.h"
 
 /* Unix (POSIX) APIs */
 
@@ -75,8 +89,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <utime.h>
+
 #ifdef HAVE_SYS_VFS_H
 #  include <sys/vfs.h>
+#endif
+
+#ifdef HAVE_ATTR_XATTR_H
+#  include <attr/xattr.h>
 #endif
 
 /* Top level APi functions */
@@ -136,6 +155,26 @@ PvfsQueryVolumeInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsLockControl(
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsFlushBuffers(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsQuerySetSecurityFile(
+    PVFS_INFO_TYPE RequestType,
+    IO_DEVICE_HANDLE IoDeviceHandle,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+
 /* From errno.c */
 
 NTSTATUS
@@ -152,16 +191,58 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     );
 
-BOOLEAN
-PvfsWildcardMatch(
-    IN PSTR pszPathname,
-    IN PSTR pszPattern,
-    IN BOOLEAN bCaseSensitive
+NTSTATUS
+PvfsWC16CanonicalPathName(
+    PSTR *ppszPath,
+    PWSTR pwszPathname
     );
 
 NTSTATUS
 PvfsValidatePath(
     PPVFS_CCB pCcb
+    );
+
+NTSTATUS
+PvfsFileBasename(
+    PSTR *ppszFilename,
+    PCSTR pszPath
+    );
+NTSTATUS
+PvfsFileDirname(
+    PSTR *ppszDirname,
+    PCSTR pszPath
+    );
+
+NTSTATUS
+PvfsFileSplitPath(
+    PSTR *ppszDirname,
+    PSTR *ppszBasename,
+    PCSTR pszPath
+    );
+
+NTSTATUS
+PvfsLookupPath(
+    PSTR *ppszDiskPath,
+    PCSTR pszPath,
+    BOOLEAN bCaseSensitive
+    );
+
+NTSTATUS
+PvfsLookupFile(
+    PSTR *ppszDiskPath,
+    PCSTR pszDiskDirname,
+    PCSTR pszFilename,
+    BOOLEAN bCaseSensitive
+    );
+
+
+/* From wildcard.c */
+
+BOOLEAN
+PvfsWildcardMatch(
+    IN PSTR pszPathname,
+    IN PSTR pszPattern,
+    IN BOOLEAN bCaseSensitive
     );
 
 
@@ -174,6 +255,59 @@ MapPosixOpenFlags(
     IRP_ARGS_CREATE CreateArgs
     );
 
+
+/* From string.c */
+
+VOID
+PvfsCStringUpper(
+	PSTR pszString
+	);
+
+/* From sharemode.c */
+
+NTSTATUS
+PvfsCheckShareMode(
+    IN PSTR pszFilename,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess,
+    OUT PPVFS_FCB *ppFcb
+    );
+
+NTSTATUS
+PvfsEnforceShareMode(
+    IN PPVFS_FCB pFcb,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN ACCESS_MASK DesiredAccess
+    );
+
+/* From locking.c */
+
+NTSTATUS
+PvfsLockFile(
+    PPVFS_CCB pCcb,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    );
+
+NTSTATUS
+PvfsUnlockFile(
+    PPVFS_CCB pCcb,
+    BOOLEAN bUnlockAll,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length
+    );
+
+NTSTATUS
+PvfsCanReadWriteFile(
+    PPVFS_CCB pCcb,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    );
 
 #endif /* __PVFS_H__ */
 

@@ -12,8 +12,7 @@ SMBSessionAddReference(
 VOID
 SMBSessionInvalidate(
     PSMB_SESSION   pSession,
-    SMB_ERROR_TYPE errorType,
-    uint32_t       error
+    NTSTATUS ntStatus
     );
 
 VOID
@@ -54,4 +53,8 @@ SMBSessionRelease(
     PSMB_SESSION pSession
     );
 
+VOID
+SMBSessionFree(
+    PSMB_SESSION pSession
+    );
 

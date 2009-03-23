@@ -49,10 +49,6 @@
 
 #define XXX
 
-#define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
-#define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
-#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
 #define LSA_XFER_STRING(Source, Target) \
     ((Target) = (Source), (Source) = NULL)
 

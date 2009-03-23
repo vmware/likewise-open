@@ -60,14 +60,18 @@ SrvDevCtlAddShare(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
+    PSHARE_INFO_2 pShareInfo2 = NULL;
     PSHARE_INFO_501 pShareInfo501 = NULL;
     PSHARE_INFO_502 pShareInfo502 = NULL;
     PWSTR pwszShareName = NULL;
-    PWSTR pwszPath = NULL;
+    ULONG ulShareType = 0;
     PWSTR pwszComment = NULL;
+    PWSTR pwszPath = NULL;
+    PWSTR pwszPathLocal = NULL;
 
     ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
@@ -81,24 +85,40 @@ SrvDevCtlAddShare(
     case 0:
 	    pShareInfo0   = pAddShareInfoParams->info.p0;
 	    pwszShareName = pShareInfo0->shi0_netname;
+        ulShareType   = SHARE_SERVICE_DISK_SHARE;
+        pwszComment   = NULL;
 	    pwszPath      = NULL;
         break;
 
     case 1:
 	    pShareInfo1   = pAddShareInfoParams->info.p1;
 	    pwszShareName = pShareInfo1->shi1_netname;
+        ulShareType   = pShareInfo1->shi1_type;
+        pwszComment   = pShareInfo1->shi1_remark;
 	    pwszPath      = NULL;
+        break;
+
+    case 2:
+        pShareInfo2   = pAddShareInfoParams->info.p2;
+        pwszShareName = pShareInfo2->shi2_netname;
+        ulShareType   = pShareInfo2->shi2_type;
+        pwszComment   = pShareInfo2->shi2_remark;
+        pwszPath      = pShareInfo2->shi2_path;
         break;
 
     case 501:
         pShareInfo501 = pAddShareInfoParams->info.p501;
 	    pwszShareName = pShareInfo501->shi501_netname;
+        ulShareType   = pShareInfo501->shi501_type;
+        pwszComment   = pShareInfo501->shi501_remark;
 	    pwszPath      = NULL;
         break;
 
     case 502:
         pShareInfo502 = pAddShareInfoParams->info.p502;
 	    pwszShareName = pShareInfo502->shi502_netname;
+        ulShareType   = pShareInfo502->shi502_type;
+        pwszComment   = pShareInfo502->shi502_remark;
 	    pwszPath      = pShareInfo502->shi502_path;
 	    break;
 
@@ -109,13 +129,33 @@ SrvDevCtlAddShare(
 
     }
 
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+
+    ntStatus = SrvShareMapFromWindowsPath(
+                    pDbContext,
+                    pwszPath,
+                    &pwszPathLocal);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvShareAddShare(
+                        pDbContext,
                         pwszShareName,
-                        pwszPath,
-                        pwszComment
+                        pwszPathLocal,
+                        pwszComment,
+                        ulShareType
                         );
 
 error:
+
+    if (pAddShareInfoParams) {
+        LwRtlMemoryFree(pAddShareInfoParams);
+    }
+
+    if (pwszPathLocal)
+    {
+        LwRtlMemoryFree(pwszPathLocal);
+    }
+
     return ntStatus;
 }
 
@@ -129,6 +169,7 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -139,10 +180,19 @@ SrvDevCtlDeleteShare(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pDbContext    = &gSMBSrvGlobals.shareDBContext;
     pwszShareName = pDeleteShareInfoParams->netname;
-    ntStatus = SrvShareDeleteShare(pwszShareName);
+
+    ntStatus = SrvShareDeleteShare(
+                        pDbContext,
+                        pwszShareName
+                        );
 
 error:
+    if (pDeleteShareInfoParams) {
+        LwRtlMemoryFree(pDeleteShareInfoParams);
+    }
+
     return ntStatus;
 }
 
@@ -157,18 +207,22 @@ SrvDevCtlEnumShares(
     )
 {
     NTSTATUS ntStatus = 0;
-    DWORD dwError = 0;
-    DWORD dwLevel = 0;
-    DWORD dwNumEntries = 0;
-    DWORD i = 0;
+    ULONG ulLevel = 0;
+    ULONG ulNumEntries = 0;
+    ULONG i = 0;
     PBYTE pBuffer = NULL;
-    ULONG pBufferSize = 0;
+    ULONG ulBufferSize = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
-    PSHARE_DB_INFO pShares = NULL;
+    PSHARE_DB_INFO* ppShares = NULL;
+    PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
+    PSHARE_INFO_501 p501 = NULL;
     PSHARE_INFO_502 p502 = NULL;
+
+    memset(&EnumShareInfoParamsOut, 0, sizeof(EnumShareInfoParamsOut));
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
                         pInBuffer,
@@ -177,137 +231,225 @@ SrvDevCtlEnumShares(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwLevel = pEnumShareInfoParamsIn->dwInfoLevel;
+    pDbContext = &gSMBSrvGlobals.shareDBContext;
+    ulLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareEnumShares(
-                        dwLevel,
-                        &pShares,
-                        &dwNumEntries
-                        );
+                        pDbContext,
+                        ulLevel,
+                        &ppShares,
+                        &ulNumEntries);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (dwLevel)
+    switch (ulLevel)
     {
-    case 1:
-        dwError = LW_RTL_ALLOCATE(
-                      &p1,
-                      SHARE_INFO_1,
-                      sizeof(*p1) * dwNumEntries);
-        BAIL_ON_SMB_ERROR(dwError);
+        case 0:
 
-        for (i = 0; i < dwNumEntries; i++)
-        {
-            p1[i].shi1_netname             = pShares[i].pwszName;
-            p1[i].shi1_type                = pShares[i].service;
-            p1[i].shi1_remark              = pShares[i].pwszComment;
-        }
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p0,
+                          SHARE_INFO_0,
+                          sizeof(*p0) * ulNumEntries);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        EnumShareInfoParamsOut.info.p1 = p1;
-        break;
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSHARE_DB_INFO pShareInfo = ppShares[i];
 
-    case 2:
-        dwError = SMBAllocateMemory(sizeof(*p2) * dwNumEntries, OUT_PPVOID(&p2));
-        BAIL_ON_SMB_ERROR(dwError);
+                p0[i].shi0_netname             = pShareInfo->pwszName;
+            }
 
-        for (i = 0; i < dwNumEntries; i++)
-        {
-            p2[i].shi2_netname             = pShares[i].pwszName;
-            p2[i].shi2_type                = pShares[i].service;
-            p2[i].shi2_remark              = pShares[i].pwszComment;
-            p2[i].shi2_permissions         = 0;
-            p2[i].shi2_max_uses            = 0;
-            p2[i].shi2_current_uses        = 0;
-            p2[i].shi2_path                = pShares[i].pwszPath;
-            p2[i].shi2_password            = NULL;
-        }
+            EnumShareInfoParamsOut.info.p0 = p0;
 
-        EnumShareInfoParamsOut.info.p1 = p1;
-        break;
+            break;
 
-    case 502:
-        dwError = LW_RTL_ALLOCATE(
-                        &p502,
-                        SHARE_INFO_502,
-                        sizeof(*p502) * dwNumEntries);
-        BAIL_ON_SMB_ERROR(dwError);
+        case 1:
 
-        for (i = 0; i < dwNumEntries; i++)
-        {
-            p502[i].shi502_netname             = pShares[i].pwszName;
-            p502[i].shi502_type                = pShares[i].service;
-            p502[i].shi502_remark              = pShares[i].pwszComment;
-            p502[i].shi502_permissions         = 0;
-            p502[i].shi502_max_uses            = 0;
-            p502[i].shi502_current_uses        = 0;
-            p502[i].shi502_path                = pShares[i].pwszPath;
-            p502[i].shi502_password            = NULL;
-            p502[i].shi502_reserved            = 0;
-            p502[i].shi502_security_descriptor = NULL;
-        }
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p1,
+                          SHARE_INFO_1,
+                          sizeof(*p1) * ulNumEntries);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-        EnumShareInfoParamsOut.info.p502 = p502;
-        break;
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSHARE_DB_INFO pShareInfo = ppShares[i];
 
-    default:
-        EnumShareInfoParamsOut.info.p0 = NULL;
+                p1[i].shi1_netname             = pShareInfo->pwszName;
+                p1[i].shi1_type                = pShareInfo->service;
+                p1[i].shi1_remark              = pShareInfo->pwszComment;
+            }
+
+            EnumShareInfoParamsOut.info.p1 = p1;
+
+            break;
+
+        case 2:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                           &p2,
+                           SHARE_INFO_2,
+                           sizeof(*p2) * ulNumEntries);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSHARE_DB_INFO pShareInfo = ppShares[i];
+
+                p2[i].shi2_netname             = pShareInfo->pwszName;
+                p2[i].shi2_type                = pShareInfo->service;
+                p2[i].shi2_remark              = pShareInfo->pwszComment;
+                p2[i].shi2_permissions         = 0;
+                p2[i].shi2_max_uses            = 0;
+                p2[i].shi2_current_uses        = 0;
+
+                ntStatus = SrvShareMapToWindowsPath(
+                                pDbContext,
+                                pShareInfo->pwszPath,
+                                &p2[i].shi2_path);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                p2[i].shi2_password            = NULL;
+            }
+
+            EnumShareInfoParamsOut.info.p2 = p2;
+
+            break;
+
+        case 501:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                           &p501,
+                           SHARE_INFO_501,
+                           sizeof(*p501) * ulNumEntries);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSHARE_DB_INFO pShareInfo = ppShares[i];
+
+                p501[i].shi501_netname         = pShareInfo->pwszName;
+                p501[i].shi501_type            = pShareInfo->service;
+                p501[i].shi501_remark          = pShareInfo->pwszComment;
+                p501[i].shi501_flags           = 0;
+            }
+
+            EnumShareInfoParamsOut.info.p501 = p501;
+
+            break;
+
+        case 502:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                            &p502,
+                            SHARE_INFO_502,
+                            sizeof(*p502) * ulNumEntries);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSHARE_DB_INFO pShareInfo = ppShares[i];
+
+                p502[i].shi502_netname             = pShareInfo->pwszName;
+                p502[i].shi502_type                = pShareInfo->service;
+                p502[i].shi502_remark              = pShareInfo->pwszComment;
+                p502[i].shi502_permissions         = 0;
+                p502[i].shi502_max_uses            = 0;
+                p502[i].shi502_current_uses        = 0;
+
+                ntStatus = SrvShareMapToWindowsPath(
+                                pDbContext,
+                                pShareInfo->pwszPath,
+                                &p502[i].shi502_path);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                p502[i].shi502_password            = NULL;
+                p502[i].shi502_reserved            = 0;
+                p502[i].shi502_security_descriptor = NULL;
+            }
+
+            EnumShareInfoParamsOut.info.p502 = p502;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_LEVEL;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
     }
 
-    EnumShareInfoParamsOut.dwInfoLevel  = dwLevel;
-    EnumShareInfoParamsOut.dwNumEntries = dwNumEntries;
+    EnumShareInfoParamsOut.dwInfoLevel  = ulLevel;
+    EnumShareInfoParamsOut.dwNumEntries = ulNumEntries;
 
     ntStatus = LwShareInfoMarshalEnumParameters(
                         &EnumShareInfoParamsOut,
                         &pBuffer,
-                        &pBufferSize
-                        );
+                        &ulBufferSize);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pBufferSize <= ulOutBufferSize) {
-        memcpy((void*)pOutBuffer, (void*)pBuffer, pBufferSize);
-
-    } else {
+    if (ulBufferSize <= ulOutBufferSize)
+    {
+        memcpy((void*)pOutBuffer, (void*)pBuffer, ulBufferSize);
+    }
+    else
+    {
         ntStatus = STATUS_MORE_ENTRIES;
-        goto error;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pulBytesTransferred = pBufferSize;
+    *pulBytesTransferred = ulBufferSize;
 
 cleanup:
 
-    if (pShares)
+    if (ppShares)
     {
-        for (i = 0; i < dwNumEntries; i++)
+        for (i = 0; i < ulNumEntries; i++)
         {
-            if (pShares[i].pwszName)
+            PSHARE_DB_INFO pShareInfo = ppShares[i];
+
+            if (pShareInfo)
             {
-                LwRtlMemoryFree(pShares[i].pwszName);
-            }
-            if (pShares[i].pwszPath)
-            {
-                LwRtlMemoryFree(pShares[i].pwszPath);
-            }
-            if (pShares[i].pwszComment)
-            {
-                LwRtlMemoryFree(pShares[i].pwszComment);
-            }
-            if (pShares[i].pwszSID)
-            {
-                LwRtlMemoryFree (pShares[i].pwszSID);
+                SrvShareDbReleaseInfo(pShareInfo);
             }
         }
 
-        LwIoFreeMemory((void*)pShares);
+        LwIoFreeMemory(ppShares);
     }
 
+    if (p0)
+    {
+        LwRtlMemoryFree(p0);
+    }
     if (p1)
     {
         LwRtlMemoryFree(p1);
     }
     if (p2)
     {
+        for (i = 0; i < ulNumEntries; i++)
+        {
+            if (p2[i].shi2_path)
+            {
+                LwRtlMemoryFree(p2[i].shi2_path);
+            }
+        }
         LwRtlMemoryFree(p2);
+    }
+    if (p501)
+    {
+        LwRtlMemoryFree(p501);
     }
     if (p502)
     {
+        for (i = 0; i < ulNumEntries; i++)
+        {
+            if (p502[i].shi502_path)
+            {
+                LwRtlMemoryFree(p502[i].shi502_path);
+            }
+        }
+
         LwRtlMemoryFree(p502);
     }
     if (pBuffer)
@@ -322,6 +464,7 @@ cleanup:
     return ntStatus;
 
 error:
+
     memset((void*)pOutBuffer, 0, ulOutBufferSize);
     *pulBytesTransferred = 0;
 
@@ -331,71 +474,334 @@ error:
 
 NTSTATUS
 SrvDevCtlGetShareInfo(
-    PBYTE lpInBuffer,
+    PBYTE pInBuffer,
     ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+    PBYTE pOutBuffer,
+    ULONG ulOutBufferSize,
+    PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG Level = 0;
+    ULONG ulLevel = 0;
+    PBYTE pBuffer = NULL;
+    ULONG ulBufferSize = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
+    SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
+    PWSTR pwszShareName = NULL;
+    PSHARE_DB_INFO pShareInfo = NULL;
+    PSHARE_INFO_0 p0 = NULL;
+    PSHARE_INFO_1 p1 = NULL;
+    PSHARE_INFO_2 p2 = NULL;
+    PSHARE_INFO_501 p501 = NULL;
+    PSHARE_INFO_502 p502 = NULL;
 
-    switch (Level)
+    memset(&GetShareInfoParamsOut, 0, sizeof(GetShareInfoParamsOut));
+
+    ntStatus = LwShareInfoUnmarshalGetParameters(
+                        pInBuffer,
+                        ulInBufferSize,
+                        &pGetShareInfoParamsIn
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDbContext    = &gSMBSrvGlobals.shareDBContext;
+    pwszShareName = pGetShareInfoParamsIn->pwszNetname;
+    ulLevel       = pGetShareInfoParamsIn->dwInfoLevel;
+
+    ntStatus = SrvShareGetInfo(
+                        pDbContext,
+                        pwszShareName,
+                        &pShareInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (ulLevel)
     {
+        case 0:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p0,
+                          SHARE_INFO_0,
+                          sizeof(*p0));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p0->shi0_netname             = pShareInfo->pwszName;
+
+            GetShareInfoParamsOut.Info.p0 = p0;
+
+            break;
+
         case 1:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p1,
+                          SHARE_INFO_1,
+                          sizeof(*p1));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p1->shi1_netname             = pShareInfo->pwszName;
+            p1->shi1_type                = pShareInfo->service;
+            p1->shi1_remark              = pShareInfo->pwszComment;
+
+            GetShareInfoParamsOut.Info.p1 = p1;
+
             break;
 
         case 2:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p2,
+                          SHARE_INFO_2,
+                          sizeof(*p2));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p2->shi2_netname             = pShareInfo->pwszName;
+            p2->shi2_type                = pShareInfo->service;
+            p2->shi2_remark              = pShareInfo->pwszComment;
+            p2->shi2_permissions         = 0;
+            p2->shi2_max_uses            = 0;
+            p2->shi2_current_uses        = 0;
+
+            ntStatus = SrvShareMapToWindowsPath(
+                            pDbContext,
+                            pShareInfo->pwszPath,
+                            &p2->shi2_path);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p2->shi2_password            = NULL;
+
+            GetShareInfoParamsOut.Info.p2 = p2;
+
+            break;
+
+        case 501:
+
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p501,
+                          SHARE_INFO_501,
+                          sizeof(*p501));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p501->shi501_netname         = pShareInfo->pwszName;
+            p501->shi501_type            = pShareInfo->service;
+            p501->shi501_remark          = pShareInfo->pwszComment;
+            p501->shi501_flags           = 0;
+
+            GetShareInfoParamsOut.Info.p501 = p501;
+
             break;
 
         case 502:
-            break;
 
-        case 503:
+            ntStatus = LW_RTL_ALLOCATE(
+                          &p502,
+                          SHARE_INFO_502,
+                          sizeof(*p502));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p502->shi502_netname             = pShareInfo->pwszName;
+            p502->shi502_type                = pShareInfo->service;
+            p502->shi502_remark              = pShareInfo->pwszComment;
+            p502->shi502_permissions         = 0;
+            p502->shi502_max_uses            = 0;
+            p502->shi502_current_uses        = 0;
+
+            ntStatus = SrvShareMapToWindowsPath(
+                            pDbContext,
+                            pShareInfo->pwszPath,
+                            &p502->shi502_path);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            p502->shi502_password            = NULL;
+            p502->shi502_reserved            = 0;
+            p502->shi502_security_descriptor = NULL;
+
+            GetShareInfoParamsOut.Info.p502 = p502;
+
             break;
 
         default:
 
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = STATUS_INVALID_LEVEL;
+            BAIL_ON_NT_STATUS(ntStatus);
 
             break;
+    }
 
+    GetShareInfoParamsOut.dwInfoLevel = ulLevel;
+
+    ntStatus = LwShareInfoMarshalGetParameters(
+                        &GetShareInfoParamsOut,
+                        &pBuffer,
+                        &ulBufferSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ulBufferSize <= ulOutBufferSize)
+    {
+        memcpy((void*)pOutBuffer, (void*)pBuffer, ulBufferSize);
+    }
+    else
+    {
+        ntStatus = STATUS_MORE_ENTRIES;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pulBytesTransferred = ulBufferSize;
+
+cleanup:
+
+    if (pShareInfo) {
+        SrvShareDbReleaseInfo(pShareInfo);
+    }
+
+    if (pGetShareInfoParamsIn) {
+        LwRtlMemoryFree(pGetShareInfoParamsIn);
+    }
+
+    if (p0)
+    {
+        LwRtlMemoryFree(p0);
+    }
+    if (p1)
+    {
+        LwRtlMemoryFree(p1);
+    }
+    if (p2)
+    {
+        if (p2->shi2_path)
+        {
+            LwRtlMemoryFree(p2->shi2_path);
+        }
+        LwRtlMemoryFree(p2);
+    }
+    if (p501)
+    {
+        LwRtlMemoryFree(p501);
+    }
+    if (p502)
+    {
+        if (p502->shi502_path)
+        {
+            LwRtlMemoryFree(p502->shi502_path);
+        }
+
+        LwRtlMemoryFree(p502);
+    }
+    if (pBuffer)
+    {
+        LwRtlMemoryFree(pBuffer);
     }
 
     return ntStatus;
+
+error:
+
+    memset((void*)pOutBuffer, 0, ulOutBufferSize);
+    *pulBytesTransferred = 0;
+
+    goto cleanup;
 }
+
 
 NTSTATUS
 SrvDevCtlSetShareInfo(
-    PBYTE lpInBuffer,
+    PBYTE pInBuffer,
     ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
+    PBYTE pOutBuffer,
     ULONG ulOutBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG Level = 0;
+    ULONG ulLevel = 0;
+    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
+    PWSTR pwszShareName = NULL;
+    PSHARE_DB_INFO pShareInfo = NULL;
+    PSHARE_INFO_0 p0 = NULL;
+    PSHARE_INFO_1 p1 = NULL;
+    PSHARE_INFO_2 p2 = NULL;
+    PSHARE_INFO_501 p501 = NULL;
+    PSHARE_INFO_502 p502 = NULL;
 
-    switch(Level)
-    {
-        case 1:
-            break;
+    ntStatus = LwShareInfoUnmarshalSetParameters(
+                        pInBuffer,
+                        ulInBufferSize,
+                        &pSetShareInfoParamsIn
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        case 2:
-            break;
+    pDbContext    = &gSMBSrvGlobals.shareDBContext;
+    pwszShareName = pSetShareInfoParamsIn->pwszNetname;
+    ulLevel       = pSetShareInfoParamsIn->dwInfoLevel;
 
-        case 502:
-            break;
+    ntStatus = SrvShareGetInfo(
+                        pDbContext,
+                        pwszShareName,
+                        &pShareInfo
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-        case 503:
-            break;
+    switch (ulLevel) {
+    case 0:
+        p0 = pSetShareInfoParamsIn->Info.p0;
 
-        default:
+        pShareInfo->pwszName = p0->shi0_netname;
+        break;
 
-            ntStatus = STATUS_INVALID_PARAMETER;
+    case 1:
+        p1 = pSetShareInfoParamsIn->Info.p1;
 
-            break;
+        pShareInfo->pwszName    = p1->shi1_netname;
+        pShareInfo->service     = p1->shi1_type;
+        pShareInfo->pwszComment = p1->shi1_remark;
+        break;
 
+    case 2:
+        p2 = pSetShareInfoParamsIn->Info.p2;
+
+        pShareInfo->pwszName    = p2->shi2_netname;
+        pShareInfo->service     = p2->shi2_type;
+        pShareInfo->pwszComment = p2->shi2_remark;
+        pShareInfo->pwszPath    = p2->shi2_path;
+        break;
+
+    case 501:
+        p501 = pSetShareInfoParamsIn->Info.p501;
+
+        pShareInfo->pwszName    = p501->shi501_netname;
+        pShareInfo->service     = p501->shi501_type;
+        pShareInfo->pwszComment = p501->shi501_remark;
+        break;
+
+    case 502:
+        p502 = pSetShareInfoParamsIn->Info.p502;
+
+        pShareInfo->pwszName    = p502->shi502_netname;
+        pShareInfo->service     = p502->shi502_type;
+        pShareInfo->pwszComment = p502->shi502_remark;
+        pShareInfo->pwszPath    = p502->shi502_path;
+        break;
+
+    default:
+        ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    }
+
+    ntStatus = SrvShareSetInfo(
+                        pDbContext,
+                        pwszShareName,
+                        pShareInfo
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+    if (pSetShareInfoParamsIn) {
+        LwRtlMemoryFree(pSetShareInfoParamsIn);
+    }
+
+    if (pShareInfo) {
+        SrvShareDbReleaseInfo(pShareInfo);
     }
 
     return ntStatus;

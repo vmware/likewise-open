@@ -64,12 +64,6 @@ SMBSessionHashTreeByTID(
     PCVOID vp
     );
 
-static
-VOID
-SMBSessionFree(
-    PSMB_SESSION pSession
-    );
-
 NTSTATUS
 SMBSessionCreate(
     PSMB_SESSION* ppSession
@@ -78,10 +72,8 @@ SMBSessionCreate(
     NTSTATUS ntStatus = 0;
     SMB_SESSION *pSession = NULL;
     BOOLEAN bDestroyCondition = FALSE;
-    BOOLEAN bDestroyHashLock = FALSE;
     BOOLEAN bDestroySetupCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
-    BOOLEAN bDestroyTreeMutex = FALSE;
 
     ntStatus = SMBAllocateMemory(
                 sizeof(SMB_SESSION),
@@ -91,21 +83,12 @@ SMBSessionCreate(
     pthread_mutex_init(&pSession->mutex, NULL);
     bDestroyMutex = TRUE;
 
-    pSession->state = SMB_RESOURCE_STATE_INITIALIZING;
-    pSession->error.type = ERROR_SMB;
-    pSession->error.smb = SMB_ERROR_SUCCESS;
-
     ntStatus = pthread_cond_init(&pSession->event, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
-    ntStatus = pthread_rwlock_init(&pSession->hashLock, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    bDestroyHashLock = TRUE;
-
-    pSession->refCount = 2; /* One for reaper */
+    pSession->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
@@ -132,13 +115,7 @@ SMBSessionCreate(
                 &pSession->pTreeHashByTID);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pthread_mutex_init(&pSession->treeMutex, NULL);
-    bDestroyTreeMutex = TRUE;
-
     pSession->pTreePacket = NULL;
-
-    ntStatus = pthread_cond_init(&pSession->treeEvent, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroySetupCondition = TRUE;
 
@@ -161,24 +138,9 @@ error:
             pthread_cond_destroy(&pSession->event);
         }
 
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSession->hashLock);
-        }
-
         if (bDestroyMutex)
         {
             pthread_mutex_destroy(&pSession->mutex);
-        }
-
-        if (bDestroySetupCondition)
-        {
-            pthread_cond_destroy(&pSession->treeEvent);
-        }
-
-        if (bDestroyTreeMutex)
-        {
-            pthread_mutex_destroy(&pSession->treeMutex);
         }
 
         SMBFreeMemory(pSession);
@@ -220,8 +182,6 @@ SMBSessionHashTreeByTID(
     return *((uint16_t *) vp);
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-   reaper. */
 VOID
 SMBSessionAddReference(
     PSMB_SESSION pSession
@@ -229,22 +189,13 @@ SMBSessionAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
     pSession->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 }
 
-/** @todo: keep unused trees around for a little while when daemonized.
-  * To avoid writing frequently to shared cache lines, perhaps set a bit
-  * when the hash transitions to non-empty, then periodically sweep for
-  * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-  * down the parent.
-  */
-/* This function does not decrement the reference count of the parent
-   socket on destruction.  The reaper thread manages that with proper forward
-   locking. */
 VOID
 SMBSessionRelease(
     PSMB_SESSION pSession
@@ -252,24 +203,31 @@ SMBSessionRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
-    pSession->refCount--;
-    assert(pSession->refCount >= 0);
+    assert(pSession->refCount > 0);
 
-    if (!pSession->refCount)
+    if (--pSession->refCount == 0)
     {
-        SMBSessionFree(pSession);
-
-        bInLock = FALSE;
+        if (pSession->state != RDR_SESSION_STATE_READY)
+        {
+            SMBHashRemoveKey(
+                pSession->pSocket->pSessionHashByPrincipal,
+                pSession->pszPrincipal);
+            SMBHashRemoveKey(
+                pSession->pSocket->pSessionHashByUID,
+                &pSession->uid);
+            SMBSessionFree(pSession);
+        }
+        else
+        {
+            RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
+        }
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
-static
 VOID
 SMBSessionFree(
     PSMB_SESSION pSession
@@ -285,13 +243,14 @@ SMBSessionFree(
 
     assert(!pSession->pTreePacket);
 
-    pthread_cond_destroy(&pSession->treeEvent);
-
-    pthread_mutex_destroy(&pSession->treeMutex);
     pthread_mutex_destroy(&pSession->mutex);
-    pthread_rwlock_destroy(&pSession->hashLock);
 
     SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
+
+    if (pSession->pSocket)
+    {
+        SMBSocketRelease(pSession->pSocket);
+    }
 
     /* @todo: use allocator */
     SMBFreeMemory(pSession);
@@ -300,25 +259,17 @@ SMBSessionFree(
 VOID
 SMBSessionInvalidate(
     PSMB_SESSION   pSession,
-    SMB_ERROR_TYPE errorType,
-    uint32_t       networkError
+    NTSTATUS ntStatus
     )
 {
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
-    /* mark permanent error, continue */
-    /* @todo: convert socket errors into NT errors */
-    pSession->error.type = errorType;
-    pSession->error.smb  = networkError;
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
-    pSession->state = SMB_RESOURCE_STATE_INVALID;
+    pSession->state = RDR_SESSION_STATE_ERROR;
+    pSession->error = ntStatus;
 
     pthread_cond_broadcast(&pSession->event);
-
-    pthread_cond_broadcast(&pSession->treeEvent);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
@@ -351,7 +302,7 @@ SMBSessionFindTreeByPath(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashGetValue(
                 pSession->pTreeHashByPath,
@@ -365,7 +316,7 @@ SMBSessionFindTreeByPath(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -387,7 +338,7 @@ SMBSessionFindTreeById(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSession->pTreeHashByTID,
@@ -395,13 +346,13 @@ SMBSessionFindTreeById(
                     (PVOID *) &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMBTreeAddReference(pTree);
+    pTree->refCount++;
 
     *ppTree = pTree;
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -424,10 +375,10 @@ SMBSessionReceiveResponse(
     BOOLEAN bInLock = FALSE;
     struct timespec ts = { 0, 0 };
     PSMB_PACKET pPacket = NULL;
+    int err = 0;
 
     // TODO-The pSocket->pTreePacket stuff needs to go away
     // so that this function can go away.
-
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     while (!pSession->pTreePacket)
@@ -438,15 +389,15 @@ SMBSessionReceiveResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        ntStatus = pthread_cond_timedwait(
-                        &pSession->treeEvent,
-                        &pSession->mutex,
-                        &ts);
-        if (ntStatus == ETIMEDOUT)
+        err = pthread_cond_timedwait(
+            &pSession->event,
+            &pSession->mutex,
+            &ts);
+        if (err == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                ntStatus = 0;
+                err = 0;
                 goto retry_wait;
             }
 
@@ -455,12 +406,12 @@ retry_wait:
              */
             if (SMBSocketTimedOut(pSession->pSocket))
             {
-                SMBSocketInvalidate(pSession->pSocket, ERROR_SMB, ETIMEDOUT);
-                ntStatus = ETIMEDOUT;
+                ntStatus = STATUS_IO_TIMEOUT;
+                SMBSocketInvalidate(pSession->pSocket, ntStatus);
             }
             else
             {
-                ntStatus = SMB_ERROR_SUCCESS;
+                ntStatus = STATUS_SUCCESS;
             }
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -506,4 +457,50 @@ SMBSessionUpdateLastActiveTime(
     pSession->lastActiveTime = time(NULL);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+}
+
+NTSTATUS
+SMBSessionWaitReady(
+    PSMB_SESSION pSession
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    while (pSession->state < RDR_SESSION_STATE_READY)
+    {
+        if (pSession->state == RDR_SESSION_STATE_ERROR)
+        {
+            ntStatus = pSession->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pSession->event, &pSession->mutex);
+    }
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SMBSessionWaitTreeConnect(
+    PSMB_SESSION pSession
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    while (pSession->bTreeConnectInProgress)
+    {
+        if (pSession->state == RDR_SESSION_STATE_ERROR)
+        {
+            ntStatus = pSession->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pSession->event, &pSession->mutex);
+    }
+
+error:
+
+    return ntStatus;
 }

@@ -124,8 +124,15 @@ PvfsQueryFileBasicInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
+#if 0
+    /* Disabled for now until I can properly deal with
+       NTcreate&X with only WRITE_DAC access.  For now, treat
+       this like FILE_STANDARD_INFORMATION. */
+
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
+#endif
+
 
     if (Args.Length < sizeof(*pFileInfo))
     {        ntError = STATUS_BUFFER_TOO_SMALL;
@@ -153,12 +160,8 @@ PvfsQueryFileBasicInfo(
     ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Make this up for now */
-
-    pFileInfo->FileAttributes = FILE_ATTRIBUTE_ARCHIVE;
-    if (S_ISDIR(Stat.s_mode)) {
-        pFileInfo->FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
-    }
+    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+    BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
@@ -197,7 +200,7 @@ PvfsSetFileBasicInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
@@ -229,13 +232,38 @@ PvfsSetFileBasicInfo(
         AccessTime = 0;
     }
 
-    if (WriteTime != 0 || AccessTime != 0) {
-        ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
-        BAIL_ON_NT_STATUS(ntError);
+    /* Save for "sticky" WriteTime sematics */
+
+    if (WriteTime != 0 && pCcb->pFcb) {
+        pCcb->pFcb->LastWriteTime = WriteTime;
     }
 
-    /* Need to implement the sticky write semantics on file close.
-       Also need to decide what to do with DOS attributes here. */
+    /* Check if we need to preserve any original timestamps */
+
+    if (WriteTime == 0 || AccessTime == 0) {
+        PVFS_STAT Stat = {0};
+
+        ntError = PvfsSysFstat(pCcb->fd, &Stat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (WriteTime == 0) {
+            ntError = PvfsUnixToWinTime(&WriteTime, Stat.s_mtime);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        if (AccessTime == 0) {
+            ntError = PvfsUnixToWinTime(&AccessTime, Stat.s_atime);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pFileInfo->FileAttributes != 0) {
+        ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

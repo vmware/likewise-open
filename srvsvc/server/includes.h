@@ -53,6 +53,7 @@
 #include <srvsvcutils.h>
 
 #include "srvsvc_stub.h"
+#include "wkssvc_stub.h"
 
 #include "defs.h"
 #include "structs.h"

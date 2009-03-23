@@ -329,7 +329,21 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_TRACE_NOT_INITIALIZED                           : 32905
     "Tracing has not been initialized",
     // LSA_ERROR_NO_SUCH_TRACE_FLAG                              : 32906
-    "The trace flag is not defined"
+    "The trace flag is not defined",
+    // LSA_ERROR_DCERPC_ERROR                                    : 32907
+    "DCE-RPC Error",
+    // LSA_ERROR_INVALID_RPC_SERVER                              : 32908
+    "Invalid RPC Server",
+    // LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR                   : 32909
+    "RPC Server Registration error",
+    // LSA_ERROR_RPC_SERVER_RUNTIME_ERROR                        : 32910
+    "RPC Server runtime error",
+    // LSA_ERROR_DOMAIN_IN_USE                                   : 32911
+    "The domain is in use",
+    // LSA_ERROR_SAM_DATABASE_ERROR                              : 32912
+    "SAM database error",
+    // LSA_ERROR_SAM_INIT_ERROR                                  : 32913
+    "Error when initializing SAM subsystem"
 };
 
 size_t
@@ -579,4 +593,20 @@ LsaTranslateLwMsgError(
             dwLsaError);
 
     return dwLsaError;
+}
+
+DWORD
+LsaNtStatusToLsaError(
+    IN NTSTATUS Status
+    )
+{
+    switch (Status)
+    {
+        case STATUS_INSUFFICIENT_RESOURCES:
+            return LSA_ERROR_OUT_OF_MEMORY;
+        case STATUS_INVALID_SID:
+            return LSA_ERROR_INVALID_SID;
+        default:
+            return LwNtStatusToUnixErrno(Status);
+    }
 }

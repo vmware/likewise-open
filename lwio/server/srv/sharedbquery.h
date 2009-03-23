@@ -66,7 +66,7 @@
             sid,       \
             service    \
       from  shares     \
-      where name = %Q"
+      where upper(name) = upper(%Q)"
 
 #define DB_QUERY_COUNT_EXISTING_SHARES \
     "select count(*) from shares"
@@ -97,7 +97,7 @@
            )"
 
 #define DB_QUERY_DELETE_SHARE \
-    "delete from shares where name = %Q"
+    "delete from shares where upper(name) = upper(%Q)"
 
 #endif /* __DBQUERY_H__ */
 

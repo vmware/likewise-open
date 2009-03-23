@@ -41,20 +41,21 @@
 
 #include <errno.h>
 #include <lw/ntstatus.h>
+#include <lw/attrs.h>
 
 LW_NTSTATUS
 LwUnixErrnoToNtStatus(
-    int err
+    LW_IN int code
     );
 
 LW_PCSTR
 LwUnixErrnoToSymbolicName(
-    int err
+    LW_IN int code
     );
 
 #ifndef LW_STRICT_NAMESPACE
-#define UnixErrnoToNtStatus     LwUnixErrnoToNtStatus
-#define UnixErrnoToSymbolicName   LwUnixErrnoToSymbolicName
+#define UnixErrnoToNtStatus(code)       LwUnixErrnoToNtStatus(code)
+#define UnixErrnoToSymbolicName(code)   LwUnixErrnoToSymbolicName(code)
 #endif
 
 #endif

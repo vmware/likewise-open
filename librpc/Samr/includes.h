@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -45,7 +45,7 @@
 #include <DceSupport.h>
 #include <compat/rpcstatus.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
@@ -55,6 +55,7 @@
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/samr.h>
 

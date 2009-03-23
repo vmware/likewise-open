@@ -104,76 +104,139 @@ error:
 
 NTSTATUS
 UnmarshallTreeConnectRequest(
-    const uint8_t *pBuffer,
-    uint32_t       bufferLen,
-    uint32_t       bufferUsed,
-    TREE_CONNECT_REQUEST_HEADER **ppHeader,
-    uint8_t      **ppPassword,
-    wchar16_t    **ppwszPath,
-    uchar8_t     **ppszService
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulOffset,
+    PTREE_CONNECT_REQUEST_HEADER* ppHeader,
+    PBYTE*      ppPassword,
+    PWSTR*      ppwszPath,
+    PBYTE*      ppszService
     )
 {
-    const uint8_t* pData = pBuffer;
-    uint32_t len = 0;
+    NTSTATUS ntStatus = 0;
+    PBYTE pDataCursor = pParams;
+    PTREE_CONNECT_REQUEST_HEADER pHeader = NULL;
+    PBYTE  pPassword = NULL;
+    PWSTR  pwszPath = NULL;
+    PWSTR  pwszCursor = NULL;
+    PBYTE  pszService = NULL;
+    PBYTE  pszServiceCursor = NULL;
+    USHORT usAlignment = 0;
 
-    pData += sizeof(TREE_CONNECT_REQUEST_HEADER);
-    bufferUsed += sizeof(TREE_CONNECT_REQUEST_HEADER);
-
-    /* NOTE: The buffer format cannot be trusted! */
-    if (bufferLen < bufferUsed)
-        return EBADMSG;
-
-    /* @todo: endian swap as appropriate */
-    *ppHeader = (TREE_CONNECT_REQUEST_HEADER*) pBuffer;
-
-    uint32_t passwordLen = (*ppHeader)->passwordLength;
-
-    pData += passwordLen;
-    bufferUsed += passwordLen;
-
-    if (bufferUsed > bufferLen)
-        return EBADMSG;
-
-    if (passwordLen == 0)
+    if (ulBytesAvailable < sizeof(TREE_CONNECT_REQUEST_HEADER))
     {
-        *ppPassword = NULL;     /* Zero length password */
-    }
-    else
-    {
-        *ppPassword = (uint8_t*) pBuffer;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    /* Align strings */
-    pData += (bufferUsed)%2;
-    bufferUsed += (bufferUsed) %2;
-    if (bufferUsed > bufferLen)
+    pHeader = (PTREE_CONNECT_REQUEST_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(TREE_CONNECT_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(TREE_CONNECT_REQUEST_HEADER);
+    ulOffset += sizeof(TREE_CONNECT_REQUEST_HEADER);
+
+    if (pHeader->passwordLength)
     {
-        return EBADMSG;
+        if (ulBytesAvailable < pHeader->passwordLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pPassword = pDataCursor;
+
+        pDataCursor += pHeader->passwordLength;
+        ulBytesAvailable -= pHeader->passwordLength;
+        ulOffset += pHeader->passwordLength;
     }
 
-    *ppwszPath = (wchar16_t *) pData;
-    len = sizeof(wchar16_t) * wc16snlen(
-                                *ppwszPath,
-                                (bufferLen - bufferUsed) / sizeof(wchar16_t)) + sizeof(WNUL);
-    bufferUsed += len;
-    pData += len;
-    if (bufferUsed > bufferLen)
+    usAlignment = ulOffset % 2;
+
+    if (ulBytesAvailable < usAlignment)
     {
-        return EBADMSG;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppszService = (uchar8_t *) pData;
-    len = strnlen((char*) *ppszService,
-                    bufferLen - bufferUsed) + sizeof(NUL);
-    pData += len;
-    bufferUsed += len;
+    ulBytesAvailable -= usAlignment;
+    pDataCursor += usAlignment;
+    ulOffset += usAlignment;
 
-    if (bufferUsed > bufferLen)
+    do
     {
-        return EBADMSG;
+        if (ulBytesAvailable < sizeof(wchar16_t))
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!pwszPath)
+        {
+            pwszPath = pwszCursor = (PWSTR)pDataCursor;
+        }
+        else
+        {
+            pwszCursor++;
+        }
+
+        ulBytesAvailable -= sizeof(wchar16_t);
+        pDataCursor += sizeof(wchar16_t);
+        ulOffset += sizeof(wchar16_t);
+
+    } while ((ulBytesAvailable > 0) && pwszCursor && *pwszCursor);
+
+    if (!pwszCursor || *pwszCursor)
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    return 0;
+    do
+    {
+        if (ulBytesAvailable < sizeof(BYTE))
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!pszService)
+        {
+            pszService = pszServiceCursor = pDataCursor;
+        }
+        else
+        {
+            pszServiceCursor++;
+        }
+
+        ulBytesAvailable -= sizeof(BYTE);
+        pDataCursor += sizeof(BYTE);
+        ulOffset += sizeof(BYTE);
+
+    } while ((ulBytesAvailable > 0) && pszServiceCursor && *pszServiceCursor);
+
+    if (!pszServiceCursor || *pszServiceCursor)
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppHeader = pHeader;
+    *ppPassword = pPassword;
+    *ppwszPath = pwszPath;
+    *ppszService = pszService;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppPassword = NULL;
+    *ppwszPath = NULL;
+    *ppszService = NULL;
+
+    goto cleanup;
 }
 
 typedef struct

@@ -1269,7 +1269,8 @@ spnego_gss_accept_sec_context(void *ct,
 	}
 cleanup:
 	if (return_token != NO_TOKEN_SEND && return_token != CHECK_MIC) {
-		tmpret = make_spnego_tokenTarg_msg(negState, sc->internal_mech,
+		tmpret = make_spnego_tokenTarg_msg(negState,
+                                           sc ? sc->internal_mech : NULL,
 						   &mechtok_out, mic_out,
 						   return_token,
 						   output_token, 0);
@@ -2504,7 +2505,7 @@ make_spnego_tokenTarg_msg(OM_uint32 status, gss_OID mech_wanted,
 	 * If this is the initial token, include length of
 	 * mech_type and the negotiation result fields.
 	 */
-	if (sendtoken == INIT_TOKEN_SEND) {
+	if (sendtoken == INIT_TOKEN_SEND && mech_wanted) {
 		int mechlistTokenSize;
 		/*
 		 * 1 byte for the CONTEXT ID(0xa0),
@@ -2605,7 +2606,7 @@ make_spnego_tokenTarg_msg(OM_uint32 status, gss_OID mech_wanted,
 			goto errout;
 		}
 	}
-	if (sendtoken == INIT_TOKEN_SEND) {
+	if (sendtoken == INIT_TOKEN_SEND && mech_wanted) {
 		/*
 		 * Next, is the Supported MechType
 		 */

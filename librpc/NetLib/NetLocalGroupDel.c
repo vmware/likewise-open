@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -31,40 +31,55 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetLocalGroupDel(const wchar16_t *hostname,
-				const wchar16_t *aliasname)
+NET_API_STATUS
+NetLocalGroupDel(
+    const wchar16_t *hostname,
+    const wchar16_t *aliasname
+    )
 {
-    const uint32 alias_access = SEC_STD_DELETE;
+    const uint32 alias_access = DELETE;
 
-    NTSTATUS status;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle alias_handle;
-    uint32 alias_rid;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle alias_h;
+    uint32 alias_rid = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
 
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(aliasname, cleanup);
+
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = NetOpenAlias(conn, aliasname, alias_access, &alias_handle,
-			  &alias_rid);
+    status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
+                          &alias_rid);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = SamrDeleteDomAlias(samr_bind, &alias_handle);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrDeleteDomAlias(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
-
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 

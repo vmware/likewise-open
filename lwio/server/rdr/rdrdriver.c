@@ -67,19 +67,7 @@ RdrDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
-    NTSTATUS ntStatus = 0;
-    int EE = 0;
-
-    IO_LOG_ENTER_LEAVE("");
-
     RdrShutdown();
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
-
-cleanup:
-
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
-
-    return;
 }
 
 NTSTATUS
@@ -89,71 +77,86 @@ RdrDriverDispatch(
     )
 {
     NTSTATUS ntStatus = 0;
-    int EE = 0;
 
     switch (pIrp->Type)
     {
-        case IRP_TYPE_CREATE:
-            ntStatus = RdrCreate(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_CREATE:
+        ntStatus = RdrCreate(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_CLOSE:
-            ntStatus = RdrClose(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_CLOSE:
+        ntStatus = RdrClose(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
 
-        case IRP_TYPE_READ:
-            ntStatus = RdrRead(
-                            DeviceHandle,
-                            pIrp
-                            );
-             break;
+    case IRP_TYPE_READ:
+        ntStatus = RdrRead(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_WRITE:
-            ntStatus = RdrWrite(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_WRITE:
+        ntStatus = RdrWrite(
+            DeviceHandle,
+            pIrp
+            );
+        break;
 
-        case IRP_TYPE_DEVICE_IO_CONTROL:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        break;
 
-        case IRP_TYPE_FS_CONTROL:
-            ntStatus = RdrFsctl(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_FLUSH_BUFFERS:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-            break;
-        case IRP_TYPE_QUERY_INFORMATION:
-            ntStatus = RdrQueryInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
-        case IRP_TYPE_SET_INFORMATION:
-            ntStatus = RdrSetInformation(
-                            DeviceHandle,
-                            pIrp
-                            );
-            break;
+    case IRP_TYPE_FS_CONTROL:
+        ntStatus = RdrFsctl(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+
+    case IRP_TYPE_FLUSH_BUFFERS:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        break;
+
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntStatus = RdrQueryInformation(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntStatus = RdrQueryDirectory(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntStatus = RdrQueryVolumeInformation(
+            DeviceHandle,
+            pIrp);
+        break;
+    case IRP_TYPE_SET_INFORMATION:
+        ntStatus = RdrSetInformation(
+            DeviceHandle,
+            pIrp
+            );
+        break;
+    case IRP_TYPE_QUERY_SECURITY:
+        ntStatus = RdrQuerySecurity(
+            DeviceHandle,
+            pIrp
+            );
+        break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
     }
 
-cleanup:
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
     return ntStatus;
 }
 
@@ -164,33 +167,30 @@ DriverEntry(
     )
 {
     NTSTATUS ntStatus = 0;
-    int EE = 0;
     IO_DEVICE_HANDLE deviceHandle = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
         ntStatus = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = IoDriverInitialize(DriverHandle,
                                   NULL,
                                   RdrDriverShutdown,
                                   RdrDriverDispatch);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(&deviceHandle,
                               DriverHandle,
                               "rdr",
                               NULL);
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrInitialize();
-    GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-cleanup:
-
-    IO_LOG_ENTER_LEAVE_STATUS_EE(ntStatus, EE);
+error:
 
     return ntStatus;
 }
@@ -205,8 +205,7 @@ RdrInitialize(
 
     memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
 
-    pthread_rwlock_init(&gRdrRuntime.socketHashLock, NULL);
-    gRdrRuntime.pSocketHashLock = &gRdrRuntime.socketHashLock;
+    pthread_mutex_init(&gRdrRuntime.socketHashLock, NULL);
 
     ntStatus = SMBPacketCreateAllocator(
                     10,
@@ -216,7 +215,7 @@ RdrInitialize(
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrReaperStart();
+    ntStatus = RdrReaperInit(&gRdrRuntime);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -232,16 +231,13 @@ RdrShutdown(
 {
     NTSTATUS ntStatus = 0;
 
+    ntStatus = RdrReaperShutdown(&gRdrRuntime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RdrSocketShutdown();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = RdrReaperStop();
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (gRdrRuntime.pSocketHashLock)
-    {
-        pthread_rwlock_destroy(gRdrRuntime.pSocketHashLock);
-    }
+    pthread_mutex_destroy(&gRdrRuntime.socketHashLock);
 
     if (gRdrRuntime.hPacketAllocator != (HANDLE)NULL)
     {

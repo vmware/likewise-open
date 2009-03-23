@@ -172,65 +172,6 @@ error:
 }
 
 DWORD
-LsaSrvJoinBuildDomSid(
-    PCSTR pszSID,
-    DomSid** ppDomSID
-    )
-{
-    DWORD dwError = 0;
-    DomSid* pDomSID = NULL;
-    PLSA_SECURITY_IDENTIFIER pSID = NULL;
-    PBYTE pPos = NULL;
-    uint8 subAuthCount;
-    
-    dwError = LsaAllocSecurityIdentifierFromString(
-                    pszSID,
-                    &pSID);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pPos = pSID->pucSidBytes;
-    subAuthCount = pPos[1];
-    
-    dwError = RtlSidAllocate(
-                    &pDomSID,
-                    subAuthCount);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    pPos = pSID->pucSidBytes;
-    
-    memcpy(&pDomSID->revision, pPos++, 1);
-    
-    pDomSID->subauth_count = subAuthCount;
-    pPos++;
-    
-    memcpy(pDomSID->authid, pPos, sizeof(pDomSID->authid)/sizeof(pDomSID->authid[0]));
-    
-    pPos += sizeof(pDomSID->authid)/sizeof(pDomSID->authid[0]);
-    
-    memcpy(pDomSID->subauth, pPos, pDomSID->subauth_count * sizeof(UINT32));
-    
-    *ppDomSID = pDomSID;
-    
-cleanup:
-
-    if (pSID) {
-        LsaFreeSecurityIdentifier(pSID);
-    }
-
-    return dwError;
-    
-error:
-
-    *ppDomSID = NULL;
-    
-    if (pDomSID) {
-        SidFree(pDomSID);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 LsaBuildOrgUnitDN(
     PCSTR pszDomain,
     PCSTR pszOU,

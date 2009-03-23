@@ -192,12 +192,42 @@ error:
     return ceError;
 }
 
+VOID
+FixCfgString(
+    PSTR pszString
+    )
+{
+    size_t len = 0;
+
+    CTStripWhitespace(pszString);
+
+    len = strlen(pszString);
+
+    if(pszString[len - 1] == ';')
+        len--;
+    if(pszString[len - 1] == '"')
+        len--;
+
+    pszString[len] = 0;
+
+    if(pszString[0] == '"')
+    {
+        //Since the string is shrinking by one character, copying len
+        //characters will move the null too.
+        memmove(pszString, pszString + 1, len);
+    }
+}
+
 CENTERROR
 DJRemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     BOOLEAN bFileExists = FALSE;
     BOOLEAN bDirExists = FALSE;
+    CHAR szSudoOrigFile[PATH_MAX+1];
+    PSTR pszSearchPath = NULL;
+    PSTR pszSudoersPath = NULL;
+
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
         "/var/lib/lwidentity/idmap_cache.tdb",
@@ -259,7 +289,288 @@ DJRemoveCacheFiles()
     cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
     (void) CTRemoveFiles(cachePath, FALSE, TRUE);
 
+    /* Revert any system configuration files that may have been changed by previous domain GPOs */
+
+    /* /etc/likewise/lsassd.conf */
+    ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lsassd.conf.orig file to /etc/likewise/lsassd.conf");
+        ceError = CTMoveFile("/etc/likewise/lsassd.conf.orig", "/etc/likewise/lsassd.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/lwedsplugin.conf */
+    ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lwedsplugin.conf.orig file to /etc/likewise/lwedsplugin.conf");
+        ceError = CTMoveFile("/etc/likewise/lwedsplugin.conf.orig", "/etc/likewise/lwedsplugin.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/grouppolicy-settings.conf */
+    ceError = CTCheckFileExists("/etc/likewise/grouppolicy-settings.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/grouppolicy-settings.conf.orig file to /etc/likewise/grouppolicy-settings.conf");
+        ceError = CTMoveFile("/etc/likewise/grouppolicy-settings.conf.orig", "/etc/likewise/grouppolicy-settings.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/likewise/eventlogd.conf */
+    ceError = CTCheckFileExists("/etc/likewise/eventlogd.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/eventlogd.conf.orig file to /etc/likewise/eventlogd.conf");
+        ceError = CTMoveFile("/etc/likewise/eventlogd.conf.orig", "/etc/likewise/eventlogd.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+
+    /* /etc/sudoers */
+    ceError = CTAllocateString( "/usr/local/etc:/usr/etc:/etc:/opt/sudo/etc:/opt/csw/etc",
+                                &pszSearchPath);
+
+    FixCfgString(pszSearchPath);
+
+    ceError = CTFindFileInPath( "sudoers",
+                                 pszSearchPath,
+                                 &pszSudoersPath);
+
+    if( ceError == CENTERROR_FILE_NOT_FOUND )
+        ceError = CENTERROR_SUCCESS;
+
+    if(pszSudoersPath)
+    {
+        sprintf( szSudoOrigFile,
+                 "%s.orig",
+                 pszSudoersPath);
+
+        ceError = CTCheckFileExists( szSudoOrigFile,
+                                     &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring %s file to %s",szSudoOrigFile,pszSudoersPath);
+            ceError = CTMoveFile(szSudoOrigFile, pszSudoersPath);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+
+    }
+
+    /* /etc/motd */
+    ceError = CTCheckFileExists("/etc/motd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/motd.orig file to /etc/motd");
+        ceError = CTMoveFile("/etc/motd.orig", "/etc/motd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/syslog.conf */
+    ceError = CTCheckFileExists("/etc/syslog.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/syslog.conf.orig file to /etc/syslog.conf");
+        ceError = CTMoveFile("/etc/syslog.conf.orig", "/etc/syslog.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else
+    {
+        /* /etc/syslog-ng.conf */
+        ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.conf.orig", &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.orig file to /etc/syslog-ng/syslog-ng.conf");
+            ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.orig", "/etc/syslog-ng/syslog-ng.conf");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+        else
+        {
+
+            /* /etc/rsyslog.conf */
+            ceError = CTCheckFileExists("/etc/rsyslog.conf.orig", &bFileExists);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            if (bFileExists)
+            {
+                DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.orig file to /etc/rsyslog.conf");
+                ceError = CTMoveFile("/etc/rsyslog.conf.orig", "/etc/rsyslog.conf");
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+        }
+    }
+
+    /* /etc/crontab */
+    ceError = CTCheckFileExists("/etc/crontab.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/crontab.orig file to /etc/crontab");
+        ceError = CTMoveFile("/etc/crontab.orig", "/etc/crontab");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/logrotate.conf */
+    ceError = CTCheckFileExists("/etc/logrotate.conf.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/logrotate.conf.orig file to /etc/logrotate.conf");
+        ceError = CTMoveFile("/etc/logrotate.conf.orig", "/etc/logrotate.conf");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* /etc/issue */
+    ceError = CTCheckFileExists("/etc/issue.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/issue.orig file to /etc/issue");
+        ceError = CTMoveFile("/etc/issue.orig", "/etc/issue");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* Revert fstab */
+    ceError = CTCheckFileExists("/etc/fstab.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/fstab.orig file to /etc/fstab");
+        ceError = CTMoveFile("/etc/fstab.orig", "/etc/fstab");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else
+    {
+
+        ceError = CTCheckFileExists("/etc/vfstab.orig", &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/vfstab.orig file to /etc/vfstab");
+            ceError = CTMoveFile("/etc/vfstab.orig", "/etc/vfstab");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+        else
+        {
+            ceError = CTCheckFileExists("/etc/filesystems.orig", &bFileExists);
+            BAIL_ON_CENTERIS_ERROR(ceError);
+
+            if (bFileExists)
+            {
+                DJ_LOG_VERBOSE("Restoring /etc/filesystems.orig file to /etc/filesystems");
+                ceError = CTMoveFile("/etc/filesystems.orig", "/etc/filesystems");
+                BAIL_ON_CENTERIS_ERROR(ceError);
+            }
+        }
+    }
+
+    /* Revert auto.master */
+    ceError = CTCheckFileExists("/etc/auto.master.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/auto.master.orig file to /etc/auto.master");
+        ceError = CTMoveFile("/etc/auto.master.orig", "/etc/auto.master");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+    else
+    {
+
+        ceError = CTCheckFileExists("/etc/auto_master.orig", &bFileExists);
+        BAIL_ON_CENTERIS_ERROR(ceError);
+
+        if (bFileExists)
+        {
+            DJ_LOG_VERBOSE("Restoring /etc/auto_master.orig file to /etc/auto_master");
+            ceError = CTMoveFile("/etc/auto_master.orig", "/etc/auto_master");
+            BAIL_ON_CENTERIS_ERROR(ceError);
+        }
+    }
+
+    /* Revert login.defs */
+    ceError = CTCheckFileExists("/etc/login.defs.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/login.defs.orig file to /etc/login.defs");
+        ceError = CTMoveFile("/etc/login.defs.orig", "/etc/login.defs");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+#if defined (__LWI_SOLARIS__)
+    /*Revert shadow file -- only for Solaris*/
+    ceError = CTCheckFileExists("/etc/shadow.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/shadow.orig file to /etc/shadow");
+        ceError = CTMoveFile("/etc/shadow.orig", "/etc/shadow");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    ceError = CTCheckFileExists("/etc/default/passwd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/default/passwd.orig file to /etc/default/passwd");
+        ceError = CTMoveFile("/etc/default/passwd.orig", "/etc/default/passwd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
+
+#if defined (__LWI_AIX__)
+    /*Revert /etc/passwd and /etc/security/user -- only for AIX*/
+    ceError = CTCheckFileExists("/etc/security/user.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/security/user.orig file to /etc/security/user");
+        ceError = CTMoveFile("/etc/security/user.orig", "/etc/security/user");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    ceError = CTCheckFileExists("/etc/security/passwd.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/security/passwd.orig file to /etc/security/passwd");
+        ceError = CTMoveFile("/etc/security/passwd.orig", "/etc/security/passwd");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+#endif
+
 error:
+
+    CT_SAFE_FREE_STRING(pszSearchPath);
+    CT_SAFE_FREE_STRING(pszSudoersPath);
+
     return ceError;
 }
 
@@ -689,25 +1000,25 @@ static QueryResult QueryLwiConf(const JoinProcessOptions *options, LWException *
      */
 
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(PREFIXDIR "/sbin/gpagentd", 
-					    &bGpagentdExists));
+                        &bGpagentdExists));
 
     LW_CLEANUP_CTERR(exc, DJGetSambaValue("idmap config default:backend",  &readValue));
     if (bGpagentdExists) {
         if (strcmp(readValue, "lwidentity") != 0)
-	    goto cleanup;
+        goto cleanup;
     } else {
         if (strcmp(readValue, "lwopen") != 0)
-	    goto cleanup;
+        goto cleanup;
     }
     CT_SAFE_FREE_STRING(readValue);
     
     LW_CLEANUP_CTERR(exc, DJGetSambaValue("winbind nss info", &readValue));
     if (bGpagentdExists) {
         if (strcmp(readValue, "lwidentity") != 0)
-	    goto cleanup;
+        goto cleanup;
     } else {
         if (strcmp(readValue, "lwopen") != 0)
-	    goto cleanup;
+        goto cleanup;
     }
     CT_SAFE_FREE_STRING(readValue);
 
@@ -1048,13 +1359,14 @@ cleanup:
     ;
 }
 
-void DJNetInitialize(LWException **exc)
+void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 {
     PCSTR lsaFilename = LIBDIR "/liblsajoin" DYNLIBEXT;
     BOOLEAN lsaExists;
     PFN_LSA_NET_JOIN_INITIALIZE init = NULL;
     BOOLEAN freeLsaHandle = TRUE;
     BOOLEAN systemDcedExists = FALSE;
+    LWException *innerExc = NULL;
 
     DJ_LOG_INFO("Trying to load %s", lsaFilename);
     
@@ -1070,30 +1382,40 @@ void DJNetInitialize(LWException **exc)
         if(init == NULL)
             LW_CLEANUP_DLERROR(exc);
 
-        if (geteuid() == 0) {
-            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
-                        92, 8, &LW_EXC));
+        if (geteuid() == 0)
+        {
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
+                        92, 8, &LW_EXC));
+            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
                         92, 10, &LW_EXC));
 
-            // Use the system's dced daemon if it exists, otherwise use the
-            // Likewise version.
-            LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(
-                        HPUX_SYSTEM_RPCD_PATH,
-                        &systemDcedExists));
-            if (systemDcedExists)
+            if (bEnableDcerpcd)
             {
-                LW_TRY(exc, DJManageDaemon(HPUX_SYSTEM_RPCD_PATH, TRUE,
-                            590, 410, &LW_EXC));
-            }
-            else
-            {
-                LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
-                            92, 11, &LW_EXC));
+                // Use the system's dced daemon if it exists, otherwise use the
+                // Likewise version.
+                LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists(
+                            HPUX_SYSTEM_RPCD_PATH,
+                            &systemDcedExists));
+                if (systemDcedExists)
+                {
+                    LW_TRY(exc, DJManageDaemon(HPUX_SYSTEM_RPCD_PATH, TRUE,
+                                590, 410, &LW_EXC));
+                }
+                else
+                {
+                    LW_TRY(exc, DJManageDaemon("dcerpcd", TRUE,
+                                92, 11, &LW_EXC));
+                }
+
+                DJManageDaemon("eventlogd", TRUE, 92, 11, &innerExc);
+                if (!LW_IS_OK(innerExc) && innerExc->code != CENTERROR_DOMAINJOIN_MISSING_DAEMON)
+                {
+                    DJLogException(LOG_LEVEL_WARNING, innerExc);
+                }
             }
 
-            LW_TRY(exc, DJManageDaemon("eventlogd", TRUE,
-                        92, 11, &LW_EXC));
+            LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
+                        92, 12, &LW_EXC));
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
@@ -1110,6 +1432,7 @@ void DJNetInitialize(LWException **exc)
     freeLsaHandle = FALSE;
 
 cleanup:
+    LWHandle(&innerExc);
     if(freeLsaHandle && lsaHandle != NULL)
     {
         dlclose(lsaHandle);

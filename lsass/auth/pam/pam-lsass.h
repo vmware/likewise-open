@@ -64,6 +64,7 @@
 #include "pam-session.h"
 #include "pam-conv.h"
 #include "pam-auth.h"
+#include "pam-notify.h"
 
 #endif /* __PAM_LSASS_H__ */
 

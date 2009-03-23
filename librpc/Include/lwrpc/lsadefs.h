@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -39,10 +39,7 @@
 
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
-#include <secdesc/siddef.h>
-#include <secdesc/phdef.h>
-#include <secdesc/sdflags.h>
-#include <secdesc/sddef.h>
+#include <secdesc/sectypes.h>
 #include <lwrpc/unistrdef.h>
 
 
@@ -67,7 +64,7 @@ typedef struct audit_events_info {
 
 typedef struct lsa_domain_info {
 	UnicodeStringEx name;
-	DomSid *sid;
+	PSID sid;
 } LsaDomainInfo;
 
 typedef struct pd_account_info {
@@ -113,7 +110,7 @@ typedef struct dns_domain_info {
 	UnicodeStringEx dns_domain;
 	UnicodeStringEx dns_forest;
 	Guid domain_guid;
-	DomSid *sid;
+	PSID sid;
 } DnsDomainInfo;
 
 #define LSA_POLICY_INFO_AUDIT_LOG          1

@@ -52,19 +52,6 @@
 
 /* Code */
 
-/*******************************************************
- ******************************************************/
-
-static VOID
-PvfsAddRefCCB(
-    PPVFS_CCB pCCB
-    )
-{
-    PvfsInterlockedIncrement(&pCCB->cRef);
-
-    return;
-}
-
 /***********************************************************
  **********************************************************/
 
@@ -81,12 +68,17 @@ PvfsAllocateCCB(
     ntError = PvfsAllocateMemory((PVOID*)&pCCB, sizeof(PVFS_CCB));
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlMutex, NULL);
+    pthread_rwlock_init(&pCCB->LockTable.rwLock, NULL);
 
-    PvfsInitializeInterlockedCounter(&pCCB->cRef);
-    PvfsAddRefCCB(pCCB);
+    pCCB->RefCount = 0;
+
+    /* Add initial ref count */
+
+    InterlockedIncrement(&pCCB->RefCount);
 
     *ppCCB = pCCB;
 
@@ -111,12 +103,30 @@ PvfsFreeCCB(
         PvfsFreeDirectoryContext(pCCB->pDirContext);
     }
 
-    PvfsFreeMemory(pCCB->pszFilename);
+    if (pCCB->pszFilename) {
+        RtlCStringFree(&pCCB->pszFilename);
+    }
+
+    if (pCCB->pFcb) {
+        PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
+        PvfsReleaseFCB(pCCB->pFcb);
+    }
+
+    if (pCCB->LockTable.ExclusiveLocks.pLocks) {
+        PvfsFreeMemory(pCCB->LockTable.ExclusiveLocks.pLocks);
+    }
+    if (pCCB->LockTable.SharedLocks.pLocks) {
+        PvfsFreeMemory(pCCB->LockTable.SharedLocks.pLocks);
+    }
+
+    pthread_rwlock_destroy(&pCCB->LockTable.rwLock);
+    pthread_mutex_destroy(&pCCB->FileMutex);
+    pthread_mutex_destroy(&pCCB->ControlMutex);
+
     PvfsFreeMemory(pCCB);
 
     return STATUS_SUCCESS;
 }
-
 
 /*******************************************************
  ******************************************************/
@@ -126,8 +136,7 @@ PvfsReleaseCCB(
     PPVFS_CCB pCCB
     )
 {
-    PvfsInterlockedDecrement(&pCCB->cRef);
-    if (PvfsInterlockedCounter(&pCCB->cRef) == 0)
+    if (InterlockedDecrement(&pCCB->RefCount) == 0)
     {
         PvfsFreeCCB(pCCB);
     }
@@ -139,10 +148,11 @@ PvfsReleaseCCB(
 /*******************************************************
  ******************************************************/
 
-NTSTATUS
-PvfsAcquireCCB(
+static NTSTATUS
+PvfsAcquireCCBInternal(
     IO_FILE_HANDLE FileHandle,
-    PPVFS_CCB * ppCCB
+    PPVFS_CCB * ppCCB,
+    BOOLEAN bIncRef
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -150,7 +160,9 @@ PvfsAcquireCCB(
 
     PVFS_BAIL_ON_INVALID_CCB(pCCB, ntError);
 
-    PvfsAddRefCCB(pCCB);
+    if (bIncRef) {
+        InterlockedIncrement(&pCCB->RefCount);
+    }
 
     *ppCCB = pCCB;
 
@@ -163,6 +175,31 @@ error:
     goto cleanup;
 
 }
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsAcquireCCB(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    )
+{
+    return PvfsAcquireCCBInternal(FileHandle, ppCCB, TRUE);
+}
+
+/*******************************************************
+ ******************************************************/
+
+NTSTATUS
+PvfsAcquireCCBClose(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    )
+{
+    return PvfsAcquireCCBInternal(FileHandle, ppCCB, FALSE);
+}
+
 
 /*******************************************************
  ******************************************************/
@@ -185,6 +222,30 @@ error:
     goto cleanup;
 }
 
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsSaveFileDeviceInfo(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PVFS_STAT Stat = {0};
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pCcb->device = Stat.s_dev;
+    pCcb->inode  = Stat.s_ino;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 /*

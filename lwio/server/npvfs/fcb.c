@@ -11,10 +11,11 @@ NpfsCreateFCB(
     PNPFS_FCB pFCB = NULL;
 
     ntStatus = NpfsAllocateMemory(
-                        sizeof(NPFS_FCB),
-                        &pFCB
+                        sizeof(*pFCB),
+                        OUT_PPVOID(&pFCB)
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RtlUnicodeStringDuplicate(
                     &pFCB->PipeName,
                     pUnicodeString
@@ -22,6 +23,7 @@ NpfsCreateFCB(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_rwlock_init(&pFCB->PipeListRWLock, NULL);
+    NpfsInitializeInterlockedCounter(&pFCB->cRef);
 
     pFCB->MaxNumberOfInstances = 0xFF;
     // Number of currently available instances

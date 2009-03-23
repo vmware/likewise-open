@@ -11,13 +11,14 @@ NpfsCreateSCB(
     PNPFS_CCB pSCB = NULL;
 
     ntStatus = NpfsAllocateMemory(
-                    sizeof(NPFS_CCB),
-                    &pSCB
+                    sizeof(*pSCB),
+                    OUT_PPVOID(&pSCB)
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSCB->CcbType = NPFS_CCB_SERVER;
 
+    NpfsInitializeInterlockedCounter(&pSCB->cRef);
     NpfsAddRefCCB(pSCB);
 
     *ppSCB = pSCB;
@@ -42,13 +43,14 @@ NpfsCreateCCB(
     PNPFS_CCB pCCB = NULL;
 
     ntStatus = NpfsAllocateMemory(
-                    sizeof(NPFS_CCB),
-                    &pCCB
+                    sizeof(*pCCB),
+                    OUT_PPVOID(&pCCB)
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCCB->CcbType = NPFS_CCB_CLIENT;
 
+    NpfsInitializeInterlockedCounter(&pCCB->cRef);
     NpfsAddRefCCB(pCCB);
 
     *ppCCB = pCCB;

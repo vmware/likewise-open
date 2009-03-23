@@ -55,10 +55,6 @@
 #include "adprovider.h"
 #include "lsadm_p.h"
 
-#define SetFlag(Variable, Flags)   ((Variable) |= (Flags))
-#define ClearFlag(Variable, Flags) ((Variable) &= ~(Flags))
-#define IsSetFlag(Variable, Flags) (((Variable) & (Flags)) != 0)
-
 #define IsLsaDmStateFlagsOffline(Flags) \
     IsSetFlag(Flags, LSA_DM_STATE_FLAG_FORCE_OFFLINE | LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE)
 
@@ -67,9 +63,6 @@
 
 #define LOG_WRAP_BOOL(x)   ((x) ? 'Y' : 'N')
 #define LOG_WRAP_STRING(x) ((x) ? (x) : "(null)")
-
-#define IS_BOTH_OR_NEITHER(Condition1, Condition2) \
-    !(!!(Condition1) ^ !!(Condition2))
 
 
 //////////////////////////////////////////////////////////////////////
@@ -758,7 +751,7 @@ LsaDmpDuplicateSid(
     DWORD dwError = 0;
     if (pSid)
     {
-        size_t size = SidGetSize(pSid);
+        size_t size = RtlLengthSid(pSid);
         dwError = LsaAllocateMemory(size, (PVOID*)ppSid);
         BAIL_ON_LSA_ERROR(dwError);
         memcpy(*ppSid, pSid, size);
@@ -1234,10 +1227,10 @@ LsaDmpIsObjectSidInDomainSid(
     IN PSID pDomainSid
     )
 {
-    return ((pDomainSid->revision == pObjectSid->revision) &&
-            !memcmp(pDomainSid->authid, pObjectSid->authid, sizeof(pObjectSid->authid)) &&
-            (pDomainSid->subauth_count <= pObjectSid->subauth_count) &&
-            !memcmp(pDomainSid->subauth, pObjectSid->subauth, sizeof(pObjectSid->subauth[0]) * pDomainSid->subauth_count)) ? TRUE : FALSE;
+    return ((pDomainSid->Revision == pObjectSid->Revision) &&
+            !memcmp(&pDomainSid->IdentifierAuthority, &pObjectSid->IdentifierAuthority, sizeof(pObjectSid->IdentifierAuthority)) &&
+            (pDomainSid->SubAuthorityCount <= pObjectSid->SubAuthorityCount) &&
+            !memcmp(pDomainSid->SubAuthority, pObjectSid->SubAuthority, sizeof(pObjectSid->SubAuthority[0]) * pDomainSid->SubAuthorityCount)) ? TRUE : FALSE;
 }
 
 static
@@ -1290,7 +1283,7 @@ LsaDmpMustFindDomainByObjectSid(
     if (!pFoundDomain)
     {
         PSTR pszSid = NULL;
-        dwError = AD_SidToString(pObjectSid, &pszSid);
+        dwError = LsaAllocateCStringFromSid(&pszSid, pObjectSid);
         // ignore error
         LSA_LOG_DEBUG("Do not know about domain for object SID '%s'",
                       LSA_SAFE_LOG_STRING(pszSid));

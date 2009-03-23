@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,188 +31,283 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetLocalGroupEnum(const wchar16_t *hostname, uint32 level,
-                                 void **bufptr, uint32 prefmaxlen,
-                                 uint32 *entries, uint32 *total, uint32 *resume)
+NET_API_STATUS
+NetLocalGroupEnum(
+    const wchar16_t *hostname,
+    uint32 level,
+    void **buffer,
+    uint32 prefmaxlen,
+    uint32 *out_entries,
+    uint32 *out_total,
+    uint32 *out_resume
+    )
 {
     const uint32 account_flags = 0;
     const uint32 alias_access = ALIAS_ACCESS_LOOKUP_INFO;
     const uint16 dominfo_level = 2;
 	
     NTSTATUS status = STATUS_SUCCESS;
-	DWORD ret = 0;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle domain_handle, btin_domain_handle;
-    PolicyHandle alias_handle;
-    DomainInfo *dominfo;
-    AliasInfo *aliasinfo;
-    wchar16_t **names;
-    uint32 res, *rids, num_entries, num_btin_aliases, num_dom_aliases;
-    uint32 i, info_idx, res_idx;
-    LOCALGROUP_INFO_1 *info;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle domain_h, btin_domain_h;
+    PolicyHandle alias_h;
+    DomainInfo *dominfo = NULL;
+    DomainInfo *btin_dominfo = NULL;
+    AliasInfo *aliasinfo = NULL;
+    wchar16_t **names = NULL;
+    uint32 entries = 0;
+    uint32 res = 0;
+    uint32 total = 0;
+    uint32 *rids = NULL;
+    uint32 num_entries = 0;
+    uint32 num_btin_aliases = 0;
+    uint32 num_dom_aliases = 0;
+    uint32 i = 0;
+    uint32 info_idx = 0;
+    uint32 res_idx = 0;
+    LOCALGROUP_INFO_1 *info = NULL;
+    wchar16_t *grp_name = NULL;
+    wchar16_t *grp_desc = NULL;
+    UnicodeString *desc = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (hostname == NULL || bufptr == NULL || entries == NULL ||
-        total == NULL || resume == NULL) {
-        BAIL_ON_NT_STATUS(status = STATUS_INVALID_PARAMETER);
-    }
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
+    goto_if_invalid_param_winerr(out_entries, cleanup);
+    goto_if_invalid_param_winerr(out_total, cleanup);
+    goto_if_invalid_param_winerr(out_resume, cleanup);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
-
-    *entries = 0;
-    *total   = 0;
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind          = conn->samr.bind;
-    domain_handle      = conn->samr.dom_handle;
-    btin_domain_handle = conn->samr.btin_dom_handle;
+    samr_b         = conn->samr.bind;
+    domain_h       = conn->samr.dom_handle;
+    btin_domain_h  = conn->samr.btin_dom_handle;
 
-    num_dom_aliases    = 0;
-    num_btin_aliases   = 0;
+    num_dom_aliases   = 0;
+    num_btin_aliases  = 0;
 
     if (prefmaxlen == MAX_PREFERRED_LENGTH) {
-        status = SamrQueryDomainInfo(samr_bind, &domain_handle, dominfo_level,
+        status = SamrQueryDomainInfo(samr_b, &domain_h, dominfo_level,
                                      &dominfo);
-        BAIL_ON_NT_STATUS(status);
+        goto_if_ntstatus_not_success(status, error);
 
-        (*entries) += dominfo->info2.num_aliases;
+        entries += dominfo->info2.num_aliases;
 
-        status = SamrQueryDomainInfo(samr_bind, &btin_domain_handle,
-                                     dominfo_level, &dominfo);
-        BAIL_ON_NT_STATUS(status);
+        status = SamrQueryDomainInfo(samr_b, &btin_domain_h,
+                                     dominfo_level, &btin_dominfo);
+        goto_if_ntstatus_not_success(status, error);
 
-        (*entries) += dominfo->info2.num_aliases;
+        entries += dominfo->info2.num_aliases;
 
     } else {
-        while ((*entries) * sizeof(LOCALGROUP_INFO_1) <= prefmaxlen) {
-            (*entries)++;
+        while (entries * sizeof(LOCALGROUP_INFO_1) <= prefmaxlen) {
+            entries++;
         }
-        (*entries)--;
+        entries--;
     }
 
-    if (*entries == 0) {
-        return NtStatusToWin32Error(STATUS_INVALID_PARAMETER); /* this should be insufficient space */
+    if (entries == 0) {
+        status = NtStatusToWin32Error(STATUS_INVALID_BUFFER_SIZE);
+        goto error;
     }
 	
-    info = (LOCALGROUP_INFO_1*) malloc(sizeof(LOCALGROUP_INFO_1) * (*entries));
-    if (info == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    status = NetAllocateMemory((void**)&info,
+                               sizeof(LOCALGROUP_INFO_1) * entries,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
 
     info_idx = 0;
-    res_idx = (*resume);
-    res = 0;
+    res_idx  = *out_resume;
+    res      = 0;
 
     do {
-        status = SamrEnumDomainAliases(samr_bind, &domain_handle, &res,
+        status = SamrEnumDomainAliases(samr_b, &domain_h, &res,
                                        account_flags, &names,
                                        &rids, &num_entries);
-        for (i = 0; i < num_entries; i++) {
-            NTSTATUS group_status;
+        if (status != 0 &&
+            status != STATUS_MORE_ENTRIES) {
+            err = NtStatusToWin32Error(status);
+            goto error;
+        }
 
+        for (i = 0; i < num_entries; i++) {
             if (i + num_dom_aliases < res_idx ||
-                info_idx >= (*entries)) {
+                info_idx >= entries) {
                 continue;
             }
 
-            info[info_idx].lgrpi1_name = wc16sdup(names[i]);
+            grp_name = wc16sdup(names[i]);
+            goto_if_no_memory_ntstatus(grp_name, error);
 
-            group_status = SamrOpenAlias(samr_bind, &domain_handle,
-                                         alias_access, rids[i],
-                                         &alias_handle);
-            if (group_status == 0) {
-                group_status = SamrQueryAliasInfo(samr_bind, &alias_handle,
-                                                  ALIAS_INFO_DESCRIPTION,
-                                                  &aliasinfo);
-                if (group_status == 0 &&
-                    aliasinfo->description.len > 0) {
-                    UnicodeString *desc = &aliasinfo->description;
-                    info[info_idx].lgrpi1_comment = wc16sndup(desc->string,
-                                                              desc->len/2);
-                } else {
-                    info[info_idx].lgrpi1_comment = 0;
-                }
+            info[info_idx].lgrpi1_name = grp_name;
+            status = NetAddDepMemory(grp_name, info);
+            goto_if_ntstatus_not_success(status, error);
 
-                SamrClose(samr_bind, &alias_handle);
+            status = SamrOpenAlias(samr_b, &domain_h,
+                                   alias_access, rids[i],
+                                   &alias_h);
+            goto_if_ntstatus_not_success(status, error);
+
+            status = SamrQueryAliasInfo(samr_b, &alias_h,
+                                        ALIAS_INFO_DESCRIPTION,
+                                        &aliasinfo);
+            goto_if_ntstatus_not_success(status, error);
+
+            if (aliasinfo->description.len > 0) {
+                desc = &aliasinfo->description;
+                grp_desc = wc16sndup(desc->string, desc->len/2);
+                goto_if_no_memory_ntstatus(grp_desc, error);
+
+                info[info_idx].lgrpi1_comment = grp_desc;
+                status = NetAddDepMemory(grp_desc, info);
+                goto_if_ntstatus_not_success(status, error);
+
+            } else {
+                info[info_idx].lgrpi1_comment = 0;
+            }
+
+            status = SamrClose(samr_b, &alias_h);
+            goto_if_ntstatus_not_success(status, error);
+
+            if (aliasinfo) {
+                SamrFreeMemory((void*)aliasinfo);
             }
 
             info_idx++;
             res_idx++;
+        }
+
+        if (rids) {
+            SamrFreeMemory((void*)rids);
+        }
+
+        if (names) {
+            SamrFreeMemory((void*)names);
         }
 
         num_dom_aliases += num_entries;
 
     } while (status == STATUS_MORE_ENTRIES);
 
-    res = 0;
+    res      = 0;
+    grp_name = NULL;
+    grp_desc = NULL;
+    desc     = NULL;
 
     do {
-        status = SamrEnumDomainAliases(samr_bind, &btin_domain_handle,
+        status = SamrEnumDomainAliases(samr_b, &btin_domain_h,
                                        &res, account_flags, &names,
                                        &rids, &num_entries);
-        for (i = 0; i < num_entries; i++) {
-            NTSTATUS group_status;
+        goto_if_ntstatus_not_success(status, error);
 
+        for (i = 0; i < num_entries; i++) {
             if (i + num_btin_aliases + num_dom_aliases < res_idx ||
-                info_idx >= (*entries)) {
+                info_idx >= entries) {
                 continue;
             }
 
-            info[info_idx].lgrpi1_name = wc16sdup(names[i]);
+            grp_name = wc16sdup(names[i]);
+            goto_if_no_memory_ntstatus(grp_name, error);
 
-            group_status = SamrOpenAlias(samr_bind, &btin_domain_handle,
-                                         alias_access, rids[i], &alias_handle);
-            if (group_status == 0) {
-                group_status = SamrQueryAliasInfo(samr_bind, &alias_handle,
-                                                  ALIAS_INFO_DESCRIPTION,
-                                                  &aliasinfo);
-                if (group_status == 0 &&
-                    aliasinfo->description.len > 0) {
-                    UnicodeString *desc = &aliasinfo->description;
-                    info[info_idx].lgrpi1_comment = wc16sndup(desc->string,
-                                                              desc->len/2);
-                } else {
-                    info[info_idx].lgrpi1_comment = 0;
-                }
+            info[info_idx].lgrpi1_name = grp_name;
+            status = NetAddDepMemory(grp_name, info);
+            goto_if_ntstatus_not_success(status, error);
 
-                SamrClose(samr_bind, &alias_handle);
+            status = SamrOpenAlias(samr_b, &btin_domain_h,
+                                   alias_access, rids[i],
+                                   &alias_h);
+            goto_if_ntstatus_not_success(status, error);
+
+            status = SamrQueryAliasInfo(samr_b, &alias_h,
+                                        ALIAS_INFO_DESCRIPTION,
+                                        &aliasinfo);
+            goto_if_ntstatus_not_success(status, error);
+
+            if (aliasinfo->description.len > 0) {
+                desc = &aliasinfo->description;
+                grp_desc = wc16sndup(desc->string, desc->len/2);
+                goto_if_no_memory_ntstatus(grp_desc, error);
+
+                info[info_idx].lgrpi1_comment = grp_desc;
+                status = NetAddDepMemory(grp_desc, info);
+                goto_if_ntstatus_not_success(status, error);
+
+            } else {
+                info[info_idx].lgrpi1_comment = 0;
+            }
+
+            status = SamrClose(samr_b, &alias_h);
+            goto_if_ntstatus_not_success(status, error);
+
+            if (aliasinfo) {
+                SamrFreeMemory((void*)aliasinfo);
             }
 
             info_idx++;
             res_idx++;
         }
 
+        if (rids) {
+            SamrFreeMemory((void*)rids);
+        }
+
+        if (names) {
+            SamrFreeMemory((void*)names);
+        }
+
         num_btin_aliases += num_entries;
 
     } while (status == STATUS_MORE_ENTRIES);
 
-    *total = num_dom_aliases + num_btin_aliases;
+    total = num_dom_aliases + num_btin_aliases;
 
-    if ((*total) > res_idx) {
-        ret = NtStatusToWin32Error(STATUS_MORE_ENTRIES);
+    if (total > res_idx) {
+        err = NtStatusToWin32Error(STATUS_MORE_ENTRIES);
     } else {
-        ret = NtStatusToWin32Error(STATUS_SUCCESS);
+        err = NtStatusToWin32Error(STATUS_SUCCESS);
     }
 
-    *bufptr = (void*)info;
-    *entries = info_idx;
-    *resume = res_idx;
+    *buffer      = (void*)info;
+    *out_entries = info_idx;
+    *out_resume  = res_idx;
+    *out_total   = total;
+
+cleanup:
+    if (dominfo) {
+        SamrFreeMemory((void*)dominfo);
+    }
+
+    if (btin_dominfo) {
+        SamrFreeMemory((void*)btin_dominfo);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    if (ret == 0 && status)
-    {
-        ret = NtStatusToWin32Error(status);
-    }
-
-    return ret;
+    buffer       = NULL;
+    *out_entries = 0;
+    *out_resume  = 0;
+    *out_total   = 0;
+    goto cleanup;
 }
 
 

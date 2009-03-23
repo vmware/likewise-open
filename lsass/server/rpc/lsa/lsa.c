@@ -37,15 +37,17 @@
 #include "includes.h"
 
 
-NTSTATUS _LsaClose(
+NTSTATUS __LsaClose(
     /* [in] */ handle_t IDL_handle,
-    /* [in, out] */ PolicyHandle *handle
+    /* [in] */ POLICY_HANDLE hIn,
+    /* [out] */ POLICY_HANDLE *hOut
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaClose(IDL_handle,
-                      handle);
+    status = LsaSrvClose(IDL_handle,
+                         hIn,
+                         hOut);
 
     return status;
 }
@@ -105,7 +107,7 @@ NTSTATUS lsa_Function06(
 }
 
 
-NTSTATUS _LsaQueryInfoPolicy(
+NTSTATUS __LsaQueryInfoPolicy(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *handle,
     /* [in] */ uint16 level,
@@ -114,10 +116,10 @@ NTSTATUS _LsaQueryInfoPolicy(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaQueryInfoPolicy(IDL_handle,
-                                handle,
-                                level,
-                                info);
+    status = LsaSrvQueryInfoPolicy(IDL_handle,
+                                   handle,
+                                   level,
+                                   info);
     return status;
 }
 
@@ -176,9 +178,9 @@ NTSTATUS lsa_Function0d(
 }
 
 
-NTSTATUS _LsaLookupNames(
+NTSTATUS __LsaLookupNames(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ RefDomainList **domains,
@@ -189,21 +191,21 @@ NTSTATUS _LsaLookupNames(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaLookupNames(IDL_handle,
-                            handle,
-                            num_names,
-                            names,
-                            domains,
-                            sids,
-                            level,
-                            count);
+    status = LsaSrvLookupNames(IDL_handle,
+                               hPolicy,
+                               num_names,
+                               names,
+                               domains,
+                               sids,
+                               level,
+                               count);
     return status;
 }
 
 
-NTSTATUS _LsaLookupSids(
+NTSTATUS __LsaLookupSids(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ SidArray *sids,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedNameArray *names,
@@ -213,13 +215,13 @@ NTSTATUS _LsaLookupSids(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaLookupSids(IDL_handle,
-                           handle,
-                           sids,
-                           domains,
-                           names,
-                           level,
-                           count);
+    status = LsaSrvLookupSids(IDL_handle,
+                              hPolicy,
+                              sids,
+                              domains,
+                              names,
+                              level,
+                              count);
     return status;
 }
 
@@ -476,21 +478,21 @@ NTSTATUS lsa_Function2b(
 }
 
 
-NTSTATUS _LsaOpenPolicy2(
+NTSTATUS __LsaOpenPolicy2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ ObjectAttribute *attrib,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *handle
+    /* [out] */ POLICY_HANDLE *hPolicy
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaOpenPolicy2(IDL_handle,
-                            system_name,
-                            attrib,
-                            access_mask,
-                            handle);
+    status = LsaSrvOpenPolicy2(IDL_handle,
+                               system_name,
+                               attrib,
+                               access_mask,
+                               hPolicy);
     return status;
 }
 
@@ -504,7 +506,7 @@ NTSTATUS lsa_Function2d(
 }
 
 
-NTSTATUS _LsaQueryInfoPolicy2(
+NTSTATUS __LsaQueryInfoPolicy2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *handle,
     /* [in] */ uint16 level,
@@ -513,10 +515,10 @@ NTSTATUS _LsaQueryInfoPolicy2(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaQueryInfoPolicy2(IDL_handle,
-                                 handle,
-                                 level,
-                                 info);
+    status = LsaSrvQueryInfoPolicy2(IDL_handle,
+                                    handle,
+                                    level,
+                                    info);
     return status;
 }
 
@@ -620,9 +622,9 @@ NTSTATUS lsa_Function39(
 }
 
 
-NTSTATUS _LsaLookupNames2(
+NTSTATUS __LsaLookupNames2(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint32 num_names,
     /* [in] */ UnicodeStringEx *names,
     /* [out] */ RefDomainList **domains,
@@ -635,16 +637,16 @@ NTSTATUS _LsaLookupNames2(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = LsaLookupNames2(IDL_handle,
-                             handle,
-                             num_names,
-                             names,
-                             domains,
-                             sids,
-                             level,
-                             count,
-                             unknown1,
-                             unknown2);
+    status = LsaSrvLookupNames2(IDL_handle,
+                                hPolicy,
+                                num_names,
+                                names,
+                                domains,
+                                sids,
+                                level,
+                                count,
+                                unknown1,
+                                unknown2);
     return status;
 }
 
@@ -657,4 +659,3 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
-

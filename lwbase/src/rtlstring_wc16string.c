@@ -113,3 +113,59 @@ LwRtlWC16StringFree(
 {
     RTL_FREE(ppszString);
 }
+
+LW_BOOLEAN
+LwRtlWC16StringIsEqual(
+    LW_IN LW_PCWSTR pString1,
+    LW_IN LW_PCWSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    )
+{
+    BOOLEAN bIsEqual = FALSE;
+    PCWSTR pCurrent1 = pString1;
+    PCWSTR pCurrent2 = pString2;
+
+    // TODO--comparison -- need fix in libunistr...
+
+    if (bIsCaseSensitive)
+    {
+        while (pCurrent1[0] && pCurrent2[0])
+        {
+            if (pCurrent1[0] != pCurrent2[0])
+            {
+                GOTO_CLEANUP();
+            }
+            pCurrent1++;
+            pCurrent2++;
+        }
+        if (pCurrent1[0] || pCurrent2[0])
+        {
+            GOTO_CLEANUP();
+        }
+    }
+    else
+    {
+        while (pCurrent1[0] && pCurrent2[0])
+        {
+            wchar16_t c1[] = { pCurrent1[0], 0 };
+            wchar16_t c2[] = { pCurrent2[0], 0 };
+            wc16supper(c1);
+            wc16supper(c2);
+            if (c1[0] != c2[0])
+            {
+                GOTO_CLEANUP();
+            }
+            pCurrent1++;
+            pCurrent2++;
+        }
+        if (pCurrent1[0] || pCurrent2[0])
+        {
+            GOTO_CLEANUP();
+        }
+    }
+
+    bIsEqual = TRUE;
+
+cleanup:
+    return bIsEqual;
+}

@@ -109,6 +109,23 @@ talloc (void* ctx, size_t size, void (*destruct)(void*))
     return MEM_CONTENT(obj);
 }
 
+void*
+trealloc (void *obj, size_t newsize)
+{
+    size_t gapsize = ALIGNMENT_GAP;
+    size_t addedsize = newsize + sizeof(MemHeader) + gapsize;
+
+    MemHeader* hdr = MEM_HEADER(obj);
+
+    hdr = realloc(hdr, addedsize);
+    if (!hdr)
+    {
+        return NULL;
+    }
+
+    return MEM_CONTENT(hdr);
+}
+
 void
 tfree (void* obj)
 {

@@ -8,34 +8,48 @@ liblsa_srv_la_SOURCES = \
     globals.c \
     lsa.c \
     lsa_srv.c \
-    LsaOpenPolicy2.c \
-    LsaClose.c \
-    LsaLookupNames.c \
-    LsaLookupSids.c \
-    LsaLookupNames2.c \
-    LsaQueryInfoPolicy.c \
-    LsaQueryInfoPolicy2.c
+    lsa_memory.c \
+    lsa_openpolicy2.c \
+    lsa_close.c \
+    lsa_lookupnames.c \
+    lsa_lookupsids.c \
+    lsa_lookupnames2.c \
+    lsa_queryinfopolicy.c \
+    lsa_queryinfopolicy2.c \
+    lsa_contexthandle.c
 
-LSASS_SRV_INCLUDES=-I$(srv_srcdir)/include
-LSASS_INCLUDES=-I$(top_srcdir)/include
+DCEIDL_PASS_INCLUDES = \
+    $(CPPFLAGS) \
+    @NETAPI_INCLUDES@ \
+    @LIBSECDESC_INCLUDES@
+
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
-    $(LSASS_SRV_INCLUDES) \
-    $(LSASS_INCLUDES) \
+    $(AM_CFLAGS) \
+    $(FEATURETEST_FLAGS) \
+    -I$(srv_srcdir)/include \
+    -I$(top_srcdir)/include \
+    -I$(rpc_srcdir)/rpcctl \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
 
 liblsa_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
+    @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
+    $(rpc_srcdir)/rpcctl/librpcctl.la \
+    $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
 
 liblsa_ss_la_SOURCES = lsa_sstub.c
 
 liblsa_ss_la_CFLAGS = \
+    -DDCERPC_STUB_BUILD \
+    $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
@@ -46,4 +60,4 @@ BUILT_SOURCES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
 lsa_sstub.c lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
-		$(LIRPC_INCLUDES) $<
+		$(DCEIDL_PASS_INCLUDES) $<

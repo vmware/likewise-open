@@ -134,7 +134,6 @@ NpfsCommonCreate(
     )
 {
     NTSTATUS ntStatus = 0;
-    //IO_FILE_HANDLE FileHandle;
     UNICODE_STRING PipeName = {0};
     PNPFS_FCB pFCB = NULL;
     PNPFS_PIPE pPipe = NULL;
@@ -176,12 +175,13 @@ NpfsCommonCreate(
 
     pPipe->pCCB = pCCB;
     pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
-    pCCB->pPipe = pPipe;
 
     //
     // This is the Add Reference for the Pipe for the CCB
     //
     NpfsAddRefPipe(pPipe);
+
+    pCCB->pPipe = pPipe;
 
     ntStatus = NpfsCommonProcessCreateEcp(
         pIrpContext,
@@ -193,6 +193,10 @@ NpfsCommonCreate(
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
     bReleaseLock = FALSE;
+
+    // Complete the transfer the pipe handle to the CCB
+
+    pPipe = NULL;
 
     ntStatus = NpfsSetCCB(
                         pIrpContext->pIrp->FileHandle,
@@ -222,6 +226,8 @@ cleanup:
     return(ntStatus);
 
 error:
+
+    // Need to clean up CCB here
 
     pIrpContext->pIrp->IoStatusBlock.CreateResult = FILE_DOES_NOT_EXIST;
 
@@ -276,12 +282,8 @@ NpfsCommonProcessCreateEcp(
     {
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pPipe->pSessionKey = RtlMemoryAllocate(ulSessionKeyLength);
-        if (!pPipe->pSessionKey)
-        {
-            ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = RTL_ALLOCATE(&pPipe->pSessionKey, BYTE, ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pPipe->pSessionKey, pSessionKey, ulSessionKeyLength);
         pPipe->ulSessionKeyLength = ulSessionKeyLength;

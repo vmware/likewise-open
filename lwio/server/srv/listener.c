@@ -232,7 +232,7 @@ SrvListenerMain(
     {
         CHAR   remoteIpAddr[256];
         struct sockaddr_in cliaddr;
-        SOCKLEN_T clilen;
+        SOCKLEN_T clilen = sizeof(cliaddr);
 
         memset(&cliaddr, 0, sizeof(cliaddr));
 

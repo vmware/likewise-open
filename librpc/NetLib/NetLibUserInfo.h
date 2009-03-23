@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,14 +28,12 @@
  * license@likewisesoftware.com
  */
 
-/* -*- mode: c; c-basic-offset: 4 -*- */
-
 #ifndef _NETUSERINFO_H_
 #define _NETUSERINFO_H_
 
 union user_info_id {
     uint32  id;
-    DomSid *sid;
+    PSID sid;
 };
 
 
@@ -65,7 +63,7 @@ typedef struct _USER_INFO_X {
     uint32     country_code;
     uint32     code_page;
     union user_info_id user;
-    DomSid*    user_sid;
+    PSID       user_sid;
     uint32     primary_group_id;
     wchar16_t *profile;
     wchar16_t *home_dir_drive;
@@ -105,24 +103,33 @@ typedef struct _USER_INFO_2X {
 } USER_INFO_2X;
 
 
+NTSTATUS PullUserInfo0(void **buffer, wchar16_t **names, uint32 num);
+NTSTATUS PullUserInfo1(void **buffer, UserInfo21 *ui, uint32 num);
+NTSTATUS PullUserInfo2(void **buffer, UserInfo21 *ui, uint32 num);
+NTSTATUS PullUserInfo20(void **buffer, UserInfo21 *ui, uint32 num);
 
-
-
-void *PullUserInfo1(void *buffer, UserInfo21 *ui, int i);
-void *PullUserInfo2(void *buffer, UserInfo21 *ui, int i);
-void *PullUserInfo20(void *buffer, UserInfo21 *ui, int i);
-
-NTSTATUS PushUserInfoAdd(UserInfo *sinfo, uint32 *slevel, void *ninfo,
-			 uint32 nlevel, uint32 *parm_err);
+NTSTATUS PushUserInfoAdd(UserInfo **sinfo, uint32 *slevel, void *ninfo,
+                         uint32 nlevel, uint32 *parm_err);
 
 NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
-		       uint32 password_len, NetConn *conn);
+                       uint32 password_len, NetConn *conn);
 
-void *PushUserInfo0(UserInfo *sinfo, uint32 *level, USER_INFO_0 *ninfo);
-void *PushUserInfo20(UserInfo *sinfo, uint32 *level, USER_INFO_20 *ninfo);
-void *PushUserInfo1003(UserInfo *sinfo, uint32 *level, USER_INFO_1003 *ninfo, NetConn *conn);
-void *PushUserInfo1007(UserInfo *sinfo, uint32 *level, USER_INFO_1007 *ninfo);
-void *PushUserInfo1008(UserInfo *sinfo, uint32 *level, USER_INFO_1008 *ninfo);
-void *PushUserInfo1011(UserInfo *sinfo, uint32 *level, USER_INFO_1011 *ninfo);
+NTSTATUS PushUserInfo0(UserInfo **sinfo, uint32 *level, USER_INFO_0 *ninfo);
+NTSTATUS PushUserInfo20(UserInfo **sinfo, uint32 *level, USER_INFO_20 *ninfo);
+NTSTATUS PushUserInfo1003(UserInfo **sinfo, uint32 *level, USER_INFO_1003 *ninfo,
+                          NetConn *conn);
+NTSTATUS PushUserInfo1007(UserInfo **sinfo, uint32 *level, USER_INFO_1007 *ninfo);
+NTSTATUS PushUserInfo1008(UserInfo **sinfo, uint32 *level, USER_INFO_1008 *ninfo);
+NTSTATUS PushUserInfo1011(UserInfo **sinfo, uint32 *level, USER_INFO_1011 *ninfo);
 
 #endif /* _NETUSERINFO_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

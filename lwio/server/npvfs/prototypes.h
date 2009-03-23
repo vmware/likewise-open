@@ -1,9 +1,13 @@
 /* memory.c */
 NTSTATUS
 NpfsAllocateMemory(
+    IN ULONG ulSize,
+    OUT PVOID* ppMemory
     );
+
 VOID
 NpfsFreeMemory(
+    IN OUT PVOID pMemory
     );
 
 /* pipe.c */

@@ -93,7 +93,7 @@ PvfsSysMkDir(
 
 NTSTATUS
 PvfsSysOpenDir(
-    PSTR pszDirname,
+    PCSTR pszDirname,
     DIR **ppDir
     );
 
@@ -172,6 +172,16 @@ PvfsSysChown(
     gid_t gid
     );
 
+NTSTATUS
+PvfsSysRename(
+    PCSTR pszOldname,
+    PCSTR pszNewname
+    );
+
+NTSTATUS
+PvfsSysFsync(
+    PPVFS_CCB pCcb
+    );
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 

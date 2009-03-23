@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -29,147 +29,168 @@
  */
 
 #include "includes.h"
-#include "NetConnection.h"
 
 
-NET_API_STATUS NetLocalGroupChangeMembers(const wchar16_t *hostname,
-					  const wchar16_t *aliasname,
-					  uint32 level, void *buffer,
-					  uint32 entries,
-					  uint32 access)
+NET_API_STATUS
+NetLocalGroupChangeMembers(
+    const wchar16_t *hostname,
+    const wchar16_t *aliasname,
+    uint32 level,
+    void *buffer,
+    uint32 entries,
+    uint32 access)
 {
     const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const uint32 btin_domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT;
+    const uint16 lookup_level = LSA_LOOKUP_NAMES_ALL;
+    const uint32 num_names = 1;
 
-    uint32 access_rights;
-    NetConn *conn;
-    handle_t samr_bind, lsa_bind;
     NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *member;
-    PolicyHandle alias_handle;
-    DomSid *usr_sid;
-    uint32 alias_rid, i;
+    WINERR err = ERROR_SUCCESS;
+    uint32 access_rights = 0;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    handle_t lsa_b = NULL;
+    wchar16_t *member = NULL;
+    size_t member_len = 0;
+    PolicyHandle alias_h;
+    PSID user_sid = NULL;
+    PSID dom_sid = NULL;
+    uint32 alias_rid = 0;
+    uint32 i = 0;
     LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
     LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
-    PolicyHandle lsa_policy;
+    PolicyHandle lsa_h;
+    wchar16_t *names[1] = {NULL};
+    uint32 count = 0;
+    uint32 sid_index = 0;
+    TranslatedSid *sids = NULL;
+    RefDomainList *domains = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (hostname == NULL || aliasname == NULL || buffer == NULL) {
-	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(aliasname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
+
+    if (!(level == 0 || level == 3)) {
+        err = ERROR_INVALID_LEVEL;
+        goto cleanup;
     }
 
     access_rights = access;
-
-    switch (level) {
-    case 0: info0 = (LOCALGROUP_MEMBERS_INFO_0*)buffer;
-	break;
-    case 3: info3 = (LOCALGROUP_MEMBERS_INFO_3*)buffer;
-	break;
-    default:
-	return NtStatusToWin32Error(ERROR_INVALID_LEVEL);
-    }
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&conn, hostname, access, btin_domain_access, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind          = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, access_rights, &alias_handle,
-			  &alias_rid);
+    status = NetOpenAlias(conn, aliasname, access_rights, &alias_h,
+                          &alias_rid);
     if (status == STATUS_NONE_MAPPED) {
-	/* No such alias in host's domain.
-	   Try to look in builtin domain. */
-	status = NetOpenAlias(conn, aliasname, access_rights,
-			      &alias_handle, &alias_rid);
-	if (status != 0) return status;
+        /* No such alias in host's domain.
+           Try to look in builtin domain. */
+        status = NetOpenAlias(conn, aliasname, access_rights,
+                              &alias_h, &alias_rid);
+        goto_if_ntstatus_not_success(status, error);
 	
-    } else if (status != 0) {
-	return status;
+    } else if (status != STATUS_SUCCESS) {
+        goto error;
     }
 
     status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    lsa_bind   = conn->lsa.bind;
-    lsa_policy = conn->lsa.policy_handle;
+    lsa_b = conn->lsa.bind;
+    lsa_h = conn->lsa.policy_handle;
 
     for (i = 0; i < entries; i++) {
-	usr_sid = NULL;
+        if (level == 3) {
+            info3 = (LOCALGROUP_MEMBERS_INFO_3*)buffer;
 
-	if (level == 3) {
-	    const uint16 level = LSA_LOOKUP_NAMES_ALL;
-	    const uint32 num_names = 1;
+            member = info3[i].lgrmi3_domainandname;
+            if (member == NULL) {
+                err = ERROR_INVALID_PARAMETER;
+                goto error;
+            }
 
-	    NTSTATUS lookup_status;
-	    size_t member_len;
-	    wchar16_t *names[1];
-	    DomSid *dom_sid;
-	    uint32 count, sid_index;
-	    TranslatedSid *sids = NULL;
-	    RefDomainList *domains = NULL;
+            member_len = wc16slen(member);
+            if (member_len == 0) {
+                err = ERROR_INVALID_PARAMETER;
+                goto error;
+            }
 
-	    member = info3[i].lgrmi3_domainandname;
-	    member_len = wc16slen(member);
+            names[0] = member;
+            count    = 0;
 
-	    if (*member == 0 && wc16slen(member) == 0) {
-		return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-	    }
+            status = LsaLookupNames(lsa_b, &lsa_h, num_names, names,
+                                    &domains, &sids, lookup_level, &count);
+            goto_if_ntstatus_not_success(status, error);
 
-	    names[0] = member;
-	    count    = 0;
+            if (count == 0) continue;
 
-	    lookup_status = LsaLookupNames(lsa_bind, &lsa_policy, num_names,
-					   names, &domains, &sids, level,
-					   &count);
-	    if (lookup_status != 0 || count == 0) continue;
+            user_sid  = NULL;
+            dom_sid   = NULL;
+            sid_index = sids[0].index;
 
-	    usr_sid = NULL;
-	    dom_sid = NULL;
-	    sid_index = sids[0].index;
+            if (sid_index < domains->count) {
+                dom_sid = domains->domains[sid_index].sid;
+                status = MsRpcAllocateSidAppendRid(&user_sid,
+                                                    dom_sid,
+                                                    sids[0].rid);
+                goto_if_ntstatus_not_success(status, error);
 
-	    if (sid_index < domains->count) {
-		dom_sid = domains->domains[sid_index].sid;
-		lookup_status = RtlSidAllocateResizedCopy(&usr_sid,
-                                                  dom_sid->subauth_count+1,
-                                                  dom_sid);
-		if (lookup_status != 0) continue;
+            }
 
-		usr_sid->subauth[usr_sid->subauth_count-1] = sids[0].rid;
+            if (domains) {
+                SamrFreeMemory((void*)domains);
+            }
 
-	    } else {
-		continue;
-	    }
+            if (sids) {
+                SamrFreeMemory((void*)sids);
+            }
 
-	} else if (level == 0) {
-	    usr_sid = info0[i].lgrmi0_sid;
-	}
+        } else if (level == 0) {
+            info0 = (LOCALGROUP_MEMBERS_INFO_0*)buffer;
 
-	if (access_rights == ALIAS_ACCESS_ADD_MEMBER) {
-	    status = SamrAddAliasMember(samr_bind, &alias_handle, usr_sid);
-	    if (status != 0) return status;
+            MsRpcDuplicateSid(&user_sid, info0[i].lgrmi0_sid);
+            goto_if_no_memory_ntstatus(user_sid, error);
+        }
 
-	} else if (access_rights == ALIAS_ACCESS_REMOVE_MEMBER) {
-	    status = SamrDeleteAliasMember(samr_bind, &alias_handle, usr_sid);
-	    if (status != 0) return status;
-	}
+        if (access_rights == ALIAS_ACCESS_ADD_MEMBER) {
+            status = SamrAddAliasMember(samr_b, &alias_h, user_sid);
+            goto_if_ntstatus_not_success(status, error);
 
-	if (usr_sid) SidFree(usr_sid);
+        } else if (access_rights == ALIAS_ACCESS_REMOVE_MEMBER) {
+            status = SamrDeleteAliasMember(samr_b, &alias_h, user_sid);
+            goto_if_ntstatus_not_success(status, error);
+        }
+
+        if (user_sid) {
+            MsRpcFreeSid(user_sid);
+        }
     }
 
-    status = SamrClose(samr_bind, &alias_handle);
-    if (status != 0) return status;
+    status = SamrClose(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
-
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    goto cleanup;
 }
 
 
@@ -178,9 +199,9 @@ NET_API_STATUS NetLocalGroupAddMembers(const wchar16_t *hostname,
 				       uint32 level, void *buffer,
 				       uint32 entries)
 {
-    return NetLocalGroupChangeMembers(hostname, aliasname, level,
-				      buffer, entries,
-				      ALIAS_ACCESS_ADD_MEMBER);
+    return  NetLocalGroupChangeMembers(hostname, aliasname, level,
+                                       buffer, entries,
+                                       ALIAS_ACCESS_ADD_MEMBER);
 }
 
 
@@ -191,8 +212,8 @@ NET_API_STATUS NetLocalGroupDelMembers(const wchar16_t *hostname,
 				       uint32 entries)
 {
     return NetLocalGroupChangeMembers(hostname, aliasname, level,
-				      buffer, entries,
-				      ALIAS_ACCESS_REMOVE_MEMBER);
+                                      buffer, entries,
+                                      ALIAS_ACCESS_REMOVE_MEMBER);
 }
 
 

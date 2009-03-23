@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -37,7 +37,6 @@
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
@@ -323,7 +322,9 @@ int AddLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
 }
 
 
-int DelLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
+int DelLocalGroupMember(const wchar16_t *hostname,
+                        const wchar16_t *domname,
+                        const wchar16_t *aliasname,
                         const wchar16_t *member)
 {
     NET_API_STATUS err = ERROR_SUCCESS;
@@ -331,7 +332,7 @@ int DelLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
 
     wchar16_t host_member[512];
 
-    sw16printf(host_member, "%S\\%S", hostname, member);
+    sw16printf(host_member, "%S\\%S", domname, member);
     memberinfo.lgrmi3_domainandname = host_member;
 	
     CALL_NETAPI(err = NetLocalGroupDelMembers(hostname, aliasname, 3,
@@ -365,14 +366,13 @@ int TestNetUserAdd(struct test *t, const wchar16_t *hostname,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     uint32 level, parm_err;
     USER_INFO_1 *info1 = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     level = 1;
     info1 = (USER_INFO_1*) malloc(sizeof(USER_INFO_1));
@@ -419,7 +419,7 @@ int TestNetUserAdd(struct test *t, const wchar16_t *hostname,
     if (status != 0) rpc_fail(status);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(info1->usri1_name);
     SAFE_FREE(info1->usri1_comment);
@@ -441,14 +441,13 @@ int TestNetUserDel(struct test *t, const wchar16_t *hostname,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     wchar16_t *username;
     int created = false;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &testusername);
@@ -463,7 +462,7 @@ int TestNetUserDel(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(username);
 
@@ -480,8 +479,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     wchar16_t *username;
     void *info;
     int created = false;
@@ -489,7 +487,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
 	
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &testusername);
@@ -504,7 +502,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(username);
 
@@ -525,8 +523,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     uint32 level, parm_err;
     wchar16_t buffer[512] = {0};
     wchar16_t *username = NULL;
@@ -541,7 +538,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &oldusername);
@@ -617,7 +614,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(newuser);
     SAFE_FREE(username);
@@ -638,7 +635,7 @@ int TestNetJoinDomain(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *username, *password, *accountou;
     wchar16_t *domain_name, *machine_account, *machine_password;
     int rejoin, create, deferspn;
@@ -726,7 +723,7 @@ int TestNetUnjoinDomain(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     wchar16_t *username, *password;
     int disable;
     int opts;
@@ -791,14 +788,13 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     wchar16_t *username, *oldpassword, *newpassword;
     int created = false;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &defusername);
@@ -824,7 +820,7 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(username);
     SAFE_FREE(oldpassword);
@@ -848,8 +844,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     LOCALGROUP_USERS_INFO_0 *grpinfo;
     uint32 entries;
     wchar16_t *username, *aliasname, *guest_user, *admin_user;
@@ -858,7 +853,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
                        &username, &defusername);
@@ -981,7 +976,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
 done:
     DoCleanup(hostname, aliasname, username);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(username);
     SAFE_FREE(aliasname);
@@ -1001,13 +996,12 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
 {
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    NETRESOURCE nr = {0};
     void *info;
     uint32 entries, total, resume, maxlen;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     resume = 0;
     maxlen = MAX_PREFERRED_LENGTH;
@@ -1071,7 +1065,7 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
     } while (err == ERROR_MORE_DATA);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     return (err == ERROR_SUCCESS &&
             status == STATUS_SUCCESS);
@@ -1086,13 +1080,12 @@ int TestNetLocalGroupAdd(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    NETRESOURCE nr = {0};
-    enum param_err perr; 
+    enum param_err perr = perr_success;
     wchar16_t *aliasname;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1108,7 +1101,7 @@ int TestNetLocalGroupAdd(struct test *t, const wchar16_t *hostname,
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(aliasname);
 
@@ -1125,13 +1118,12 @@ int TestDelLocalGroup(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     wchar16_t *aliasname;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1143,7 +1135,7 @@ int TestDelLocalGroup(struct test *t, const wchar16_t *hostname,
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(aliasname);
 
@@ -1161,14 +1153,13 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     void *info;
     wchar16_t *aliasname;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1199,7 +1190,7 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
     }
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(aliasname);
 
@@ -1218,15 +1209,14 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
+    enum param_err perr = perr_success;
     uint32 parm_err;
     wchar16_t *aliasname, *comment;
     LOCALGROUP_INFO_1 info;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1239,7 +1229,7 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("aliasname", pt_w16string, aliasname);
     PARAM_INFO("comment", pt_w16string, comment);
 
-    info.lgrpi1_name = NULL;
+    info.lgrpi1_name    = aliasname;
     info.lgrpi1_comment = comment;
 
     INPUT_ARG_WSTR(hostname);
@@ -1256,7 +1246,7 @@ int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
     OUTPUT_ARG_UINT(parm_err);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(comment);
     SAFE_FREE(aliasname);
@@ -1280,23 +1270,26 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
 
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    enum param_err perr;
-    NETRESOURCE nr = {0};
-    LOCALGROUP_MEMBERS_INFO_3 *info = NULL;
+    enum param_err perr = perr_success;
     LOCALGROUP_MEMBERS_INFO_3 grpmembers_info;
-    uint32 entries, resume;
-    wchar16_t *aliasname, *username, *domname;
-    wchar16_t *admin_user, *guest_user;
-    wchar16_t *admins_group, *guests_group;
+    uint32 entries = 0;
+    wchar16_t *aliasname = NULL;
+    wchar16_t *username = NULL;
+    wchar16_t *domname = NULL;
+    wchar16_t *admin_user = NULL;
+    wchar16_t *guest_user = NULL;
+    wchar16_t *admins_group = NULL;
+    wchar16_t *guests_group = NULL;
     wchar16_t paddeduser[256];
-    int newalias, newuser;
+    int newalias = 0;
+    int newuser = 0;
 
-    resume = 0;
-    info = NULL;
+    memset(&grpmembers_info, 0, sizeof(grpmembers_info));
+    memset(paddeduser, 0, sizeof(paddeduser));
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
                        &def_aliasname);
@@ -1422,10 +1415,10 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
         return false;
     } 
 
-    err = DelLocalGroupMember(hostname, admins_group, username);
+    err = DelLocalGroupMember(hostname, domname, admins_group, username);
     if (err != 0) netapi_fail(err);
 
-    err = DelLocalGroupMember(hostname, guests_group, username);
+    err = DelLocalGroupMember(hostname, domname, guests_group, username);
     if (err != 0) netapi_fail(err);
 
     err = DelLocalGroup(hostname, paddeduser);
@@ -1436,7 +1429,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     if (newuser) CleanupAccount(hostname, username);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(aliasname);
     SAFE_FREE(username);
@@ -1457,12 +1450,11 @@ int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
 {
     NTSTATUS status = STATUS_SUCCESS;
     NET_API_STATUS err = ERROR_SUCCESS;
-    NETRESOURCE nr;
     wchar16_t *domain_name;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     CALL_NETAPI(err = NetGetDomainName(hostname, &domain_name));
     if (err != 0) netapi_fail(err);
@@ -1470,7 +1462,7 @@ int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
     OUTPUT_ARG_WSTR(domain_name);
 
 done:
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SAFE_FREE(domain_name);
 

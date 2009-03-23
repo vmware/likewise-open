@@ -38,6 +38,10 @@ void *talloc(
     size_t size,
     void (*destruct)(void*));
 
+void* trealloc(
+    void *obj,
+    size_t newsize);
+
 void tfree(
     void* obj);
 

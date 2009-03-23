@@ -74,7 +74,7 @@ SrvDevCtlEnumShares(
     ULONG ulInBufferSize,
     PBYTE lpOutBuffer,
     ULONG ulOutBufferSize,
-    PULONG pulOutDataLen
+    PULONG pulBytesTransferred
     );
 
 NTSTATUS
@@ -82,7 +82,8 @@ SrvDevCtlGetShareInfo(
     PBYTE lpInBuffer,
     ULONG ulInBufferSize,
     PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+    ULONG ulOutBufferSize,
+    PULONG pulBytesTransferred
     );
 
 NTSTATUS

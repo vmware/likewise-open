@@ -48,7 +48,7 @@ typedef struct _TABLE_ENTRY
 static
 PTABLE_ENTRY
 LwUnixErrnoLookupCode(
-    int code
+    IN int code
     );
 
 #define ERRNO_CODE(code, nt) { code, nt, #code },
@@ -62,7 +62,7 @@ TABLE_ENTRY LwErrnoCodeTable[] =
 
 PCSTR
 LwUnixErrnoToSymbolicName(
-    int code
+    IN int code
     )
 {
     PTABLE_ENTRY pEntry = LwUnixErrnoLookupCode(code);
@@ -79,7 +79,7 @@ LwUnixErrnoToSymbolicName(
 
 NTSTATUS
 LwUnixErrnoToNtStatus(
-    int code
+    IN int code
     )
 {
     PTABLE_ENTRY pEntry = LwUnixErrnoLookupCode(code);
@@ -97,7 +97,7 @@ LwUnixErrnoToNtStatus(
 static
 PTABLE_ENTRY
 LwUnixErrnoLookupCode(
-    int code
+    IN int code
     )
 {
     ULONG index;

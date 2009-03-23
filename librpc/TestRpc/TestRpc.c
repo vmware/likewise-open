@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -38,6 +38,7 @@
 #include <dce/dce_error.h>
 #include <wc16str.h>
 #include <lwio/lwio.h>
+#include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
@@ -114,14 +115,14 @@ int StartTest(struct test *t, const wchar16_t *hostname,
 
 void display_usage()
 {
-    printf("Usage: testrpc -h hostname [-u username] [-p password] [-o options] testname\n");
+    printf("Usage: testrpc [-v] -h hostname [-k] [-u username] [-p password]\n"
+           "               [-d domain] [-w workstation] [-r principal] [-c creds cache]\n"
+           "               [-o options] testname\n");
     printf("\thostname - host to connect when performing a test\n");
-    printf("\tusername - user name to use when connecting the host (leave blank to use\n"
-	   "\t           kerberos credentials or anonynous session if available)\n");
-    printf("\tpassword - user name to use when connecting the host (leave blank to use\n"
-	   "\t           kerberos credentials or anonynous session if available)\n");
 }
 
+
+UserCreds *pCreds = NULL;
 
 extern char *optarg;
 int verbose_mode;
@@ -130,8 +131,18 @@ int verbose_mode;
 int main(int argc, char *argv[])
 {
     int i, opt, ret;
-    char *testname, *host, *optional_args, *user, *pass;
-    struct test *tests, *runtest;
+    char *testname = NULL;
+    char *host = NULL;
+    char *optional_args = NULL;
+    char *user = NULL;
+    char *pass = NULL;
+    char *dom = NULL;
+    char *wks = NULL;
+    char *princ = NULL;
+    char *cache = NULL;
+    int krb5_auth = 1;
+    struct test *tests  = NULL;
+    struct test *runtest = NULL;
     wchar16_t *hostname = NULL;
     wchar16_t *username = NULL;
     wchar16_t *password = NULL;
@@ -139,16 +150,9 @@ int main(int argc, char *argv[])
     struct parameter *params = NULL;
     int params_len;
 
-    host          = NULL;
-    user          = NULL;
-    pass          = NULL;
-    tests         = NULL;
-    runtest       = NULL;
-    optional_args = NULL;
-
     verbose_mode = false;
 
-    while ((opt = getopt(argc, argv, "h:o:vu:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:o:vu:p:d:w:r:c:k")) != -1) {
         switch (opt) {
         case 'h':
             host = optarg;
@@ -162,12 +166,32 @@ int main(int argc, char *argv[])
             verbose_mode = true;
             break;
 
+        case 'd':
+            dom = optarg;
+            break;
+
+        case 'w':
+            wks = optarg;
+            break;
+
         case 'u':
             user = optarg;
             break;
 
         case 'p':
             pass = optarg;
+            break;
+
+        case 'r':
+            princ = optarg;
+            break;
+
+        case 'c':
+            cache = optarg;
+            break;
+
+        case 'k':
+            krb5_auth = 1;
             break;
 
         default:
@@ -196,48 +220,79 @@ int main(int argc, char *argv[])
     hostname = (wchar16_t*) talloc(tests, hostname_size * sizeof(wchar16_t), NULL);
     mbstowc16s(hostname, host, hostname_size);
 
-    username = ambstowc16s(user);
-    if (user && username == NULL) {
-        printf("Failed to allocate username\n");
+    pCreds = TNEW(NULL, UserCreds);
+    if (pCreds == NULL) {
+        printf("Failed to allocate UserCreds\n");
         goto done;
     }
 
-    password = ambstowc16s(pass);
-    if (pass && password == NULL) {
-        printf("Failed to allocate password\n");
-        goto done;
+    if (user) {
+        pCreds->username = talloc(pCreds, strlen(user), NULL);
+        if (pCreds->username == NULL) {
+            printf("Failed to allocate username for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->username, user);
     }
+
+    if (pass) {
+        pCreds->password = talloc(pCreds, strlen(pass), NULL);
+        if (pCreds->password == NULL) {
+            printf("Failed to allocate password for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->password, pass);
+    }
+
+    if (dom) {
+        pCreds->domain = talloc(pCreds, strlen(dom), NULL);
+        if (pCreds->domain == NULL) {
+            printf("Failed to allocate domain for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->domain, dom);
+    }
+
+    if (wks) {
+        pCreds->workstation = talloc(pCreds, strlen(wks), NULL);
+        if (pCreds->workstation == NULL) {
+            printf("Failed to allocate workstation for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->workstation, wks);
+    }
+
+    if (princ) {
+        pCreds->principal = talloc(pCreds, strlen(princ), NULL);
+        if (pCreds->principal == NULL) {
+            printf("Failed to allocate principal for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->principal, princ);
+    }
+
+    if (cache) {
+        pCreds->ccache = talloc(pCreds, strlen(cache), NULL);
+        if (pCreds->ccache == NULL) {
+            printf("Failed to allocate credentials cache for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->ccache, cache);
+    }
+
+    pCreds->use_kerberos = krb5_auth;
 
     params = get_optional_params(optional_args, &params_len);
     if ((params != NULL && params_len == 0) ||
         (params == NULL && params_len != 0)) {
         printf("Error while parsing optional parameters [%s]\n", optional_args);
         goto done;
-    }
-
-    if (username && password)
-    {
-        /* Set up access token */
-        DWORD dwError = 0;
-	LW_PIO_ACCESS_TOKEN hAccessToken = NULL;
-
-        dwError = LwIoCreateKrb5AccessTokenA("admin@THEBENET.NET",
-                                            "/tmp/krb5cc_0",
-                                            &hAccessToken);
-        if (dwError)
-        {
-            printf("Failed to create access token\n");
-            goto done;
-        }
-
-        dwError = LwIoSetThreadAccessToken(hAccessToken);
-        if (dwError)
-        {
-            printf("Failed to set access token on thread\n");
-            goto done;
-        }
-
-        LwIoDeleteAccessToken(hAccessToken);
     }
 
     SetupSamrTests(tests);

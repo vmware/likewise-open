@@ -41,6 +41,7 @@
 
 #include <lw/ntstatus.h>
 
+#include "marshal.h"
 #include "smbwire.h"
 
 #include "wire_structs.h"

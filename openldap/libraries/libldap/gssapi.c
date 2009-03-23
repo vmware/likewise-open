@@ -551,7 +551,7 @@ guess_service_principal(
 		allow_remote = 1;
 	}
 
-	/* Try to figure out correct service principal form given
+	/* Try to figure out correct service principal from given
 	   available information */
 	if (allow_remote && givenstr) {
 		principal_fmt = "%s";
@@ -715,7 +715,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	rc = ldap_gssapi_get_rootdse_infos ( ld, &mechlist,
 					     &ldapServiceName, &dnsHostName);
 	if ( rc != LDAP_SUCCESS ) {
-		return rc;
+		goto rc_error;
 	}
 
 	/* check that the server supports GSS-SPNEGO */

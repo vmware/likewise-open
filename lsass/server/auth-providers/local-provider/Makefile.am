@@ -3,6 +3,7 @@ provider_LTLIBRARIES = liblsass_auth_provider_local.la
 liblsass_auth_provider_local_la_SOURCES = \
        crypt.c     \
        db.c        \
+       dbinit.c    \
        enumstate.c \
        localcfg.c  \
        globals.c   \

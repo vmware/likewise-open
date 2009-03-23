@@ -31,6 +31,7 @@ AC_SUBST(LWMSG_LDFLAGS)
 AC_SUBST(LIB_DL)
 AC_SUBST(LIB_XNET)
 AC_SUBST(LIB_PTHREAD)
+AC_SUBST(LIB_ICONV)
 AC_SUBST(MOD_EXT)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
 
@@ -55,6 +56,8 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 AC_CHECK_LIB(xnet, __xnet_connect, [LIB_XNET="-lxnet"], [LIB_XNET=""])
+AC_CHECK_LIB(iconv, iconv, [LIB_ICONV="-liconv"],
+             AC_CHECK_LIB(iconv, libiconv, [LIB_ICONV="-liconv"], [LIB_ICONV=""]))
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
@@ -74,6 +77,21 @@ AC_TYPE_INTMAX_T
 AC_TYPE_UINTMAX_T
 AC_TYPE_SIZE_T
 AC_C_BIGENDIAN
+
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wall -Werror"
+
+AC_MSG_CHECKING([whether iconv() takes const char** as its second parameter])
+
+AC_TRY_COMPILE([#include <iconv.h>],
+		[iconv_t h = iconv_open(NULL, NULL);
+		 char* in;
+		 (void) iconv(h, (const char**) &in, NULL, NULL, NULL);
+		],
+		[AC_MSG_RESULT([yes]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [const char**], [iconv in type])],
+		[AC_MSG_RESULT([no]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [char**], [iconv in type])])
+
+CFLAGS="$saved_CFLAGS"
 
 # Checks for library functions.
 AC_HEADER_STDC

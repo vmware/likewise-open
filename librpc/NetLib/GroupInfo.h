@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,8 +28,58 @@
  * license@likewisesoftware.com
  */
 
-void *PullLocalGroupInfo0(void *buffer, AliasInfo *ai, int i);
-void *PullLocalGroupInfo1(void *buffer, AliasInfo *ai, int i);
-void* PushLocalGroupInfo0(void *buffer, uint32 *level, LOCALGROUP_INFO_0 *ninfo);
-void* PushLocalGroupInfo1to2(void *buffer, uint32 *level, LOCALGROUP_INFO_1 *ninfo);
-void* PushLocalGroupInfo1to3(void *buffer, uint32 *level, LOCALGROUP_INFO_1 *ninfo);
+#ifndef _GROUP_INFO_H_
+#define _GROUP_INFO_H_
+
+
+NTSTATUS
+PullLocalGroupInfo0(
+    void **buffer,
+    AliasInfo *ai,
+    int num
+    );
+
+
+NTSTATUS
+PullLocalGroupInfo1(
+    void **buffer,
+    AliasInfo *ai,
+    int num
+    );
+
+
+NTSTATUS
+PushLocalGroupInfo0(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_0 *ninfo
+    );
+
+
+NTSTATUS
+PushLocalGroupInfo1(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1 *ninfo
+    );
+
+
+NTSTATUS
+PushLocalGroupInfo1002(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1002 *ninfo
+    );
+
+
+#endif /* _GROUP_INFO_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

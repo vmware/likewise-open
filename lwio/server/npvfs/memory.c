@@ -52,37 +52,20 @@
 
 NTSTATUS
 NpfsAllocateMemory(
-    ULONG ulSize,
-    PVOID * ppMemory
+    IN ULONG ulSize,
+    OUT PVOID* ppMemory
     )
 {
-    NTSTATUS ntStatus = 0;
-    PVOID pMemory = NULL;
-
-    pMemory = RtlMemoryAllocate(
-                    ulSize
-                    );
-    if (!pMemory) {
-        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    RtlMemoryZero(pMemory, ulSize);
-
-    *ppMemory = pMemory;
-
-    return(ntStatus);
-
-error:
-
-    *ppMemory = NULL;
-
-    return (ntStatus);
+    return RTL_ALLOCATE(ppMemory, VOID, ulSize);
 }
 
 VOID
 NpfsFreeMemory(
+    IN OUT PVOID pMemory
     )
 {
-    return;
+    if (pMemory)
+    {
+        RtlMemoryFree(pMemory);
+    }
 }

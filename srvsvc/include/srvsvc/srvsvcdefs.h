@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@
 #define _SRVSVCDEFS_H_
 
 #include <srvsvc/types.h>
-#include <secdesc/sddef.h>
 
 
 #ifndef CONNECTION_INFO_0_DEFINED

@@ -196,7 +196,7 @@ LsaDmWrapGetDomainNameAndSidByObjectSid(
     PSID pDomainSid = NULL;
     PSTR pszDomainSid = NULL;
 
-    dwError = ParseSidStringA(&pObjectSid, pszObjectSid);
+    dwError = LsaAllocateSidFromCString(&pObjectSid, pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmQueryDomainInfoByObjectSid(
@@ -220,15 +220,12 @@ LsaDmWrapGetDomainNameAndSidByObjectSid(
 
     if (ppszDomainSid)
     {
-        dwError = AD_SidToString(pDomainSid, &pszDomainSid);
+        dwError = LsaAllocateCStringFromSid(&pszDomainSid, pDomainSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (pObjectSid)
-    {
-        SidFree(pObjectSid);
-    }
+    LSA_SAFE_FREE_MEMORY(pObjectSid);
     LSA_SAFE_FREE_MEMORY(pDomainSid);
 
     if (ppszDnsDomainName)

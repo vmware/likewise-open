@@ -74,7 +74,7 @@ PvfsFreeDirectoryContext(
 
     for (i=0; i<pDirCtx->dwNumEntries; i++)
     {
-        PVFS_SAFE_FREE_MEMORY(pDirCtx->pDirEntries[i].pszFilename);
+        RtlCStringFree(&pDirCtx->pDirEntries[i].pszFilename);
     }
 
 
@@ -90,22 +90,27 @@ PvfsFreeDirectoryContext(
 static NTSTATUS
 PvfsDirContextAddEntry(
     PPVFS_DIRECTORY_CONTEXT pDirCtx,
-    struct dirent *pDirEntry
+    PCSTR pszPathname
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     DWORD dwCurrent = 0;
     PPVFS_DIRECTORY_ENTRY pList = NULL;
 
-    ntError = PvfsReallocateMemory((PVOID*)&pDirCtx->pDirEntries,
-                                   sizeof(PVFS_DIRECTORY_ENTRY)*(pDirCtx->dwNumEntries+1));
-    BAIL_ON_NT_STATUS(ntError);
+    if ((pDirCtx->ulAllocated == 0) ||
+        ((pDirCtx->dwNumEntries+1) == pDirCtx->ulAllocated))
+    {
+        pDirCtx->ulAllocated += 256;
+        ntError = PvfsReallocateMemory((PVOID*)&pDirCtx->pDirEntries,
+                                       sizeof(PVFS_DIRECTORY_ENTRY)*pDirCtx->ulAllocated);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     dwCurrent = pDirCtx->dwNumEntries;
     pList = pDirCtx->pDirEntries;
 
     pList[dwCurrent].bValidStat = FALSE;
-    ntError = RtlCStringDuplicate(&pList[dwCurrent].pszFilename, pDirEntry->d_name);
+    ntError = RtlCStringDuplicate(&pList[dwCurrent].pszFilename, pszPathname);
     BAIL_ON_NT_STATUS(ntError);
 
 
@@ -178,6 +183,21 @@ PvfsEnumerateDirectory(
     pCcb->pDirContext->bScanned = TRUE;
     pDir = pCcb->pDirContext->pDir;
 
+    /* Always add '.' and '..' first to the list if we are searching
+       for all files */
+
+    if (RtlCStringIsEqual(pszPattern, "*", FALSE) ||
+        RtlCStringIsEqual(pszPattern, "*.*", FALSE))
+    {
+        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, ".");
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsDirContextAddEntry(pCcb->pDirContext, "..");
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Loop through directory entries */
+
     for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
         pDirEntry;
         ntError = PvfsSysReadDir(pDir, &pDirEntry))
@@ -185,7 +205,7 @@ PvfsEnumerateDirectory(
         /* First check the error return */
         BAIL_ON_NT_STATUS(ntError);
 
-        /* Skip "." and ".." directories */
+        /* We've already added the "." and ".." directories */
 
         if (RtlCStringIsEqual(pDirEntry->d_name, ".", FALSE) ||
             RtlCStringIsEqual(pDirEntry->d_name, "..", FALSE))
@@ -195,7 +215,7 @@ PvfsEnumerateDirectory(
 
         if (PvfsWildcardMatch(pDirEntry->d_name, pszPattern, bCaseSensitive))
         {
-            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pDirEntry);
+            ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pDirEntry->d_name);
             BAIL_ON_NT_STATUS(ntError);
         }
     }
@@ -208,7 +228,7 @@ PvfsEnumerateDirectory(
     }
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pszPattern);
+    RtlCStringFree(&pszPattern);
 
     return ntError;
 

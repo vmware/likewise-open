@@ -189,6 +189,14 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
 
+typedef UCHAR SMB_LOCK_TYPE;
+
+#define SMB_LOCK_TYPE_SHARED_LOCK         0x01
+#define SMB_LOCK_TYPE_OPLOCK_RELEASE      0x02
+#define SMB_LOCK_TYPE_CHANGE_LOCK_TYPE    0x04
+#define SMB_LOCK_TYPE_CANCEL_LOCK         0x08
+#define SMB_LOCK_TYPE_LARGE_FILES         0x10
+
 
 typedef enum
 {
@@ -299,6 +307,14 @@ typedef USHORT SMB_DEVICE_STATE;
 #define SMB_DEVICE_STATE_NO_SUBSTREAMS  0x2
 #define SMB_DEVICE_STATE_NO_REPARSE_TAG 0x4
 
+typedef UCHAR SMB_BUFFER_FORMAT;
+
+#define SMB_BUFFER_FORMAT_DATA_BLOCK    0x1
+#define SMB_BUFFER_FORMAT_DIALECT       0x2 /* null terminated string */
+#define SMB_BUFFER_FORMAT_PATHNAME      0x3 /* null terminated string */
+#define SMB_BUFFER_FORMAT_ASCII         0x4 /* null terminated string */
+#define SMB_BUFFER_FORMAT_VARIABLE      0x5
+
 typedef struct
 {
     uchar8_t        smb[4];     /* Contains 0xFF, 'SMB' */
@@ -322,7 +338,7 @@ typedef struct
     uint8_t         wordCount;  /* Count of parameter words */
 
     /* AndX or message specific parameters immediately follow */
-} __attribute__((__packed__)) SMB_HEADER;
+} __attribute__((__packed__)) SMB_HEADER, *PSMB_HEADER;
 
 typedef struct
 {
@@ -523,6 +539,118 @@ typedef enum
     SECURITY_EFFECTIVE_ONLY   = 0x00080000
 } SECURITY_FLAGS;
 
+typedef struct
+{
+    USHORT usDay   : 5; /* 1 to 31 */
+    USHORT usMonth : 4; /* 1 to 12 */
+    USHORT usYear  : 7; /* 0 to 119 yields years 1980 to 2099 */
+} __attribute__((__packed__)) SMB_DATE, *PSMB_DATE;
+
+typedef struct
+{
+    USHORT TwoSeconds : 5; /* 0 to 29 */
+    USHORT Minutes    : 6; /* 0 to 59 */
+    USHORT Hours      : 5; /* 0 to 23 */
+} __attribute__((__packed__)) SMB_TIME, *PSMB_TIME;
+
+typedef struct {
+
+    USHORT   usPid;
+    ULONG    ulOffset;
+    ULONG    ulLength;
+
+} __attribute__((__packed__))  LOCKING_ANDX_RANGE, *PLOCKING_ANDX_RANGE;
+
+typedef struct {
+
+    USHORT   usPid;
+    USHORT   usPad;
+    ULONG    ulOffsetHigh;
+    ULONG    ulOffsetLow;
+    ULONG    ulLengthHigh;
+    ULONG    ulLengthLow;
+
+} __attribute__((__packed__))  LOCKING_ANDX_RANGE_LARGE_FILE, *PLOCKING_ANDX_RANGE_LARGE_FILE;
+
+typedef struct {
+
+    ULONG    ulFileSystemId;
+    ULONG    ulNumSectorsPerAllocationUnit;
+    ULONG    ulNumAllocationUnits;
+    ULONG    ulNumUnitsAvailable;
+    USHORT   usNumBytesPerSector;
+
+} __attribute__((__packed__)) SMB_FS_INFO_ALLOCATION, *PSMB_FS_INFO_ALLOCATION;
+
+typedef struct
+{
+    USHORT usFid;
+    SMB_INFO_LEVEL infoLevel;
+} __attribute__((__packed__)) SMB_QUERY_FILE_INFO_HEADER, *PSMB_QUERY_FILE_INFO_HEADER;
+
+typedef struct
+{
+    SMB_INFO_LEVEL infoLevel;
+} __attribute__((__packed__)) SMB_QUERY_FS_INFO_HEADER, *PSMB_QUERY_FS_INFO_HEADER;
+
+typedef struct
+{
+    USHORT usFid;
+    SMB_INFO_LEVEL infoLevel;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB_SET_FILE_INFO_HEADER, *PSMB_SET_FILE_INFO_HEADER;
+
+typedef struct
+{
+    SMB_INFO_LEVEL infoLevel;
+    ULONG reserved;
+    WCHAR pwszPath[];
+} __attribute__((__packed__)) SMB_SET_PATH_INFO_HEADER, *PSMB_SET_PATH_INFO_HEADER;
+
+typedef struct
+{
+    USHORT usFid;
+    USHORT usFlags;
+    WCHAR pwszFileName[];
+} __attribute__((__packed__)) SMB_TRANSACT_RENAME_HEADER, *PSMB_TRANSACT_RENAME_HEADER;
+
+typedef struct
+{
+    USHORT usSearchAttrs;
+    USHORT usSearchCount;
+    USHORT usFlags;
+    SMB_INFO_LEVEL infoLevel;
+    ULONG ulSearchStorageType;
+    WCHAR pwszSearchPattern[];
+} __attribute__((__packed__)) SMB_FIND_FIRST2_REQUEST_PARAMETERS, *PSMB_FIND_FIRST2_REQUEST_PARAMETERS;
+
+typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
+{
+    USHORT usSearchId;
+    USHORT usSearchCount;
+    USHORT usEndOfSearch;
+    USHORT usEaErrorOffset;
+    USHORT usLastNameOffset;
+} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS, *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
+
+typedef struct
+{
+    USHORT usSearchId;
+    USHORT usSearchCount;
+    SMB_INFO_LEVEL infoLevel;
+    ULONG ulResumeKey;
+    USHORT usFlags;
+    WCHAR pwszFileName[];
+} __attribute__((__packed__)) SMB_FIND_NEXT2_REQUEST_PARAMETERS, *PSMB_FIND_NEXT2_REQUEST_PARAMETERS;
+
+typedef struct
+{
+    USHORT usSearchCount;
+    USHORT usEndOfSearch;
+    USHORT usEaErrorOffset;
+    USHORT usLastNameOffset;
+} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS, *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
+
 typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
@@ -551,6 +679,43 @@ typedef struct {
 
     /* Name immediately follows */
 }  __attribute__((__packed__))  CREATE_REQUEST_HEADER, *PCREATE_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer         */
+    USHORT   usFlags;
+    USHORT   usDesiredAccess;
+    USHORT   usSearchAttributes;
+    USHORT   usFileAttributes;
+    SMB_TIME creationTime;
+    SMB_DATE creationDate;
+    USHORT   usOpenFunction;
+    ULONG    ulAllocationSize;
+    ULONG    ulReserved[2];
+    USHORT   usByteCount;
+
+    // UCHAR  ucBufferFormat;
+    // STRING pwszFileName;
+
+} __attribute__((__packed__)) OPEN_REQUEST_HEADER, *POPEN_REQUEST_HEADER;
+
+typedef struct
+{
+    USHORT usFid;
+    USHORT usFileAttributes;
+    SMB_TIME lastWriteTime;
+    SMB_DATE lastWriteDate;
+    ULONG    ulDataSize; /* file size */
+    USHORT   usGrantedAccess;
+    USHORT   usFileType;
+    USHORT   usDeviceState;
+    USHORT   usOpenAction;
+    ULONG    ulServerFid;
+    USHORT   usReserved;
+    USHORT   usByteCount;
+
+} __attribute__((__packed__)) OPEN_RESPONSE_HEADER, *POPEN_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -673,7 +838,7 @@ typedef struct
     uint16_t  byteCount;       /* Count of data bytes; min = 3 */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER;
+}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER, *PTREE_CONNECT_REQUEST_HEADER;
 
 typedef struct
 {
@@ -720,6 +885,44 @@ typedef struct
 
     /* Setup words immediately follow */
 }  __attribute__((__packed__))  TRANSACTION_REQUEST_HEADER, *PTRANSACTION_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and command are handled at a higher layer */
+
+    UCHAR    ucMaxSetupCount;
+    USHORT   usReserved;
+    ULONG    ulTotalParameterCount;  /* Total parameter bytes being sent */
+    ULONG    ulTotalDataCount;       /* Total data bytes being sent */
+    ULONG    ulMaxParameterCount;
+    ULONG    ulMaxDataCount;
+    ULONG    ulParameterCount;
+    ULONG    ulParameterOffset;
+    ULONG    ulDataCount;
+    ULONG    ulDataOffset;
+    UCHAR    ucSetupCount;
+    USHORT   usFunction;
+    /* Setup words immediately follow */
+}  __attribute__((__packed__))  NT_TRANSACTION_REQUEST_HEADER, *PNT_TRANSACTION_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and command are handled at a higher layer */
+
+    UCHAR ucReserved[3];
+    ULONG ulTotalParameterCount;
+    ULONG ulTotalDataCount;
+    ULONG ulParameterCount;
+    ULONG ulParameterOffset;
+    ULONG ulParameterDisplacement;
+    ULONG ulDataCount;
+    ULONG ulDataOffset;
+    ULONG ulDataDisplacement;
+    UCHAR ucSetupCount;
+
+    /* Setup words immediately follow */
+
+} __attribute__((__packed__))  NT_TRANSACTION_SECONDARY_RESPONSE_HEADER, *PNT_TRANSACTION_SECONDARY_RESPONSE_HEADER;
 
 /* @todo: is this ever sent? */
 typedef struct
@@ -900,10 +1103,6 @@ typedef struct
     /* AndX chains will be handled at a higher layer */
 
     uint16_t count;             /* Number of bytes written */
-    uint16_t remaining;         /* Reserved */
-    uint16_t countHigh;         /* High 16? bits of data length if
-                                   CAP_LARGE_WRITEX */
-    uint16_t reserved;
     uint16_t byteCount;         /* Count of data bytes = 0 */
 }  __attribute__((__packed__))  WRITE_RESPONSE_HEADER, *PWRITE_RESPONSE_HEADER;
 
@@ -970,6 +1169,48 @@ typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
     USHORT  pad;
 } __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION, *PTRANS2_FILE_STANDARD_INFORMATION;
 
+typedef struct {
+    LONG64 EndOfFile;
+} __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION, *PTRANS2_FILE_END_OF_FILE_INFORMATION;
+
+typedef struct {
+    BOOLEAN bFileIsDeleted;
+} __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION, *PTRANS2_FILE_DISPOSITION_INFORMATION;
+
+typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
+{
+    ULONG     NextEntryOffset;
+    ULONG     FileIndex;
+    LONG64    CreationTime;
+    LONG64    LastAccessTime;
+    LONG64    LastWriteTime;
+    LONG64    ChangeTime;
+    LONG64    EndOfFile;
+    LONG64    AllocationSize;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG     FileNameLength;
+    ULONG     EaSize;
+    UCHAR     ShortNameLength;
+    UCHAR     Reserved;
+    WCHAR     ShortName[12];
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER;
+
+typedef struct _SMB_FIND_FILE_DIRECTORY_INFO_HEADER
+{
+    ULONG     NextEntryOffset;
+    ULONG     FileIndex;
+    LONG64    CreationTime;
+    LONG64    LastAccessTime;
+    LONG64    LastWriteTime;
+    LONG64    ChangeTime;
+    LONG64    EndOfFile;
+    LONG64    AllocationSize;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG     FileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB_FIND_FILE_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_DIRECTORY_INFO_HEADER;
+
 typedef struct _FIND_CLOSE2_REQUEST_HEADER {
 
     USHORT sid;
@@ -987,7 +1228,6 @@ typedef struct _DELETE_DIRECTORY_REQUEST_HEADER {
 
     USHORT usByteCount;
     UCHAR  ucBufferFormat;
-    UCHAR  pad;
 
     /* PWSTR pwszDirectoryPath */
 
@@ -999,13 +1239,111 @@ typedef struct _DELETE_DIRECTORY_RESPONSE_HEADER {
 
 } __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER, *PDELETE_DIRECTORY_RESPONSE_HEADER;
 
+typedef struct _SMB_DELETE_REQUEST_HEADER
+{
+    USHORT usSearchAttributes;
+    USHORT ByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszPath */
+
+} __attribute__((__packed__)) SMB_DELETE_REQUEST_HEADER, *PSMB_DELETE_REQUEST_HEADER;
+
+typedef struct _SMB_DELETE_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_DELETE_RESPONSE_HEADER, *PSMB_DELETE_RESPONSE_HEADER;
+
+typedef struct _FLUSH_REQUEST_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usFid;
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) FLUSH_REQUEST_HEADER, *PFLUSH_REQUEST_HEADER;
+
+typedef struct _FLUSH_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) FLUSH_RESPONSE_HEADER, *PFLUSH_RESPONSE_HEADER;
+
 typedef struct
 {
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 
     uint16_t byteCount;
+
 } __attribute__((__packed__)) ERROR_RESPONSE_HEADER, *PERROR_RESPONSE_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT         usFid;
+    SMB_LOCK_TYPE  ucLockType;
+    UCHAR          ucOplockLevel;
+    ULONG          ulTimeout;
+    USHORT         usNumUnlocks;
+    USHORT         usNumLocks;
+    USHORT         usByteCount;
+
+    /* LOCKING_ANDX_RANGE unlocks[]; */
+    /* LOCKING_ANDX_RANGE locks[];   */
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_REQUEST_HEADER, *PSMB_LOCKING_ANDX_REQUEST_HEADER;
+
+typedef struct _SMB_LOCKING_ANDX_RESPONSE_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_RESPONSE_HEADER, *PSMB_LOCKING_ANDX_RESPONSE_HEADER;
+
+typedef struct _SMB_RENAME_REQUEST_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usSearchAttributes;
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_RENAME_REQUEST_HEADER, *PSMB_RENAME_REQUEST_HEADER;
+
+typedef struct _SMB_RENAME_RESPONSE_HEADER
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_RENAME_RESPONSE_HEADER, *PSMB_RENAME_RESPONSE_HEADER;
+
+typedef struct _SMB_NT_RENAME_REQUEST_HEADER
+{
+    USHORT usSearchAttributes;
+    USHORT usInfoLevel;
+    ULONG ulClusterCount;
+    USHORT usByteCount;
+} __attribute__((__packed__)) SMB_NT_RENAME_REQUEST_HEADER, *PSMB_NT_RENAME_REQUEST_HEADER;
+
+typedef struct _SMB_NT_RENAME_RESPONSE_HEADER
+{
+    USHORT usByteCount;
+} __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER, *PSMB_NT_RENAME_RESPONSE_HEADER;
+
+typedef struct _SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER
+{
+    USHORT usFid;
+    USHORT reserved;
+    SECURITY_INFORMATION securityInformation;
+} __attribute__((__packed__)) SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER, *PSMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER;
 
 typedef enum
 {
@@ -1145,13 +1483,13 @@ MarshallTreeConnectRequestData(
 
 NTSTATUS
 UnmarshallTreeConnectRequest(
-    const uint8_t *pBuffer,
-    uint32_t       bufferLen,
-    uint32_t       bufferUsed,
-    TREE_CONNECT_REQUEST_HEADER **ppHeader,
-    uint8_t      **ppPassword,
-    wchar16_t    **ppwszPath,
-    uchar8_t     **ppszService
+    const PBYTE pBuffer,
+    ULONG  ulBytesAvailable,
+    ULONG  ulOffset,
+    PTREE_CONNECT_REQUEST_HEADER* ppHeader,
+    PBYTE* ppPassword,
+    PWSTR* ppwszPath,
+    PBYTE* ppszService
     );
 
 NTSTATUS
@@ -1187,6 +1525,15 @@ WireUnmarshallSMBResponseCreate(
     IN PBYTE pBuffer,
     IN ULONG bufferLen,
     OUT PCREATE_RESPONSE_HEADER* ppHeader
+    );
+
+NTSTATUS
+WireUnmarshallOpenRequest(
+    PBYTE  pParams,
+    ULONG  ulBytesAvailable,
+    ULONG  ulBytesUsed,
+    POPEN_REQUEST_HEADER* ppHeader,
+    PWSTR* ppwszFilename
     );
 
 NTSTATUS
@@ -1289,6 +1636,34 @@ WireMarshallTransaction2Response(
     );
 
 NTSTATUS
+WireUnmarshallNtTransactionRequest(
+    const PBYTE                     pBuffer,
+    ULONG                           ulNumBytesAvailable,
+    ULONG                           ulOffset,
+    PNT_TRANSACTION_REQUEST_HEADER* ppHeader,
+    PUSHORT*                        ppSetup,
+    PUSHORT*                        ppByteCount,
+    PBYTE*                          ppParameters,
+    PBYTE*                          ppData
+    );
+
+NTSTATUS
+WireMarshallNtTransactionResponse(
+    PBYTE   pBuffer,
+    ULONG   ulNumBytesAvailable,
+    ULONG   ulOffset,
+    PUSHORT pSetup,
+    UCHAR   ucSetupCount,
+    PBYTE   pParams,
+    ULONG   ulParamLength,
+    PBYTE   pData,
+    ULONG   ulDataLen,
+    PULONG  pulDataOffset,
+    PULONG  pulParameterOffset,
+    PULONG  pulNumPackageBytesUsed
+    );
+
+NTSTATUS
 WireUnmarshallWriteAndXRequest(
     const PBYTE            pParams,
     ULONG                  ulBytesAvailable,
@@ -1343,6 +1718,15 @@ MarshallReadRequestData(
     uint32_t         bufferLen,
     uint8_t          messageAlignment,
     uint32_t        *pBufferUsed
+    );
+
+NTSTATUS
+WireUnmarshallWriteRequest(
+    const PBYTE            pParams,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulBytesUsed,
+    PWRITE_REQUEST_HEADER* ppHeader,
+    PBYTE*                 ppData
     );
 
 NTSTATUS
@@ -1402,6 +1786,81 @@ WireMarshallDeleteDirectoryResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PDELETE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallDeleteRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_DELETE_REQUEST_HEADER* ppHeader,
+    PWSTR*                      ppwszPath
+    );
+
+NTSTATUS
+WireMarshallDeleteResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_DELETE_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallLockingAndXRequest(
+    PBYTE                             pParams,
+    ULONG                             ulBytesAvailable,
+    ULONG                             ulOffset,
+    PSMB_LOCKING_ANDX_REQUEST_HEADER* ppRequestHeader,
+    PLOCKING_ANDX_RANGE*              ppUnlockRange,
+    PLOCKING_ANDX_RANGE_LARGE_FILE*   ppUnlockRangeLarge,
+    PLOCKING_ANDX_RANGE*              ppLockRange,
+    PLOCKING_ANDX_RANGE_LARGE_FILE*   ppLockRangeLarge
+    );
+
+NTSTATUS
+WireMarshallLockingAndXResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_LOCKING_ANDX_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallRenameRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_RENAME_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszOldName,
+    PWSTR*                      ppwszNewName
+    );
+
+NTSTATUS
+WireMarshallRenameResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_RENAME_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallFlushRequest(
+    const PBYTE pParams,
+    ULONG       ulBytesAvailable,
+    ULONG       ulOffset,
+    PFLUSH_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+WireMarshallFlushResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PFLUSH_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 
@@ -1538,6 +1997,96 @@ SMBPacketAppendString(
     IN ULONG BufferLength,
     IN OUT PULONG BufferUsed,
     IN PCSTR pszString
+    );
+
+/**
+ * @brief Marshal setup portion of trans2 request
+ *
+ * Marshals the setup portion of a trans2 request and
+ * returns pointers to areas that need to be filled in.
+ *
+ * @param[in, out] pSmbHeader a pointer to the SMB header in the packet.
+ * This is used as a reference point for alignment.  Upon return, the
+ * WordCount field will be set to the correct value for the request.
+ * @param[in,out] ppCursor the data cursor.  Upon call it must point
+ * to the parameters portion of the SMB packet.  Upon return
+ * it will point to the beginning of the trans2 parameters
+ * block.
+ * @param[in,out] pulRemainingSpace remaining space in the buffer.  Upon
+ * call it should contain the number of bytes of space available
+ * after the cursor.  Upon return it will be updated to reflect
+ * how much space is left.
+ * @param[in] pusSetupWords a pointer to the setup words
+ * @param[in] usSetupWordCount the number of setup words
+ * @param[out] ppRequestHeader the static portion of the request
+ * @param[out] ppByteCount the location of the byte count field
+ *
+ * @return an NT status code
+ * @retval STATUS_SUCCESS success
+ * @retval STATUS_BUFFER_TOO_SMALL the remaining space was exceeded during marshaling
+ */
+NTSTATUS
+WireMarshalTrans2RequestSetup(
+    IN OUT PSMB_HEADER               pSmbHeader,
+    IN OUT PBYTE*                    ppCursor,
+    IN OUT PULONG                    pulRemainingSpace,
+    IN PUSHORT                       pusSetupWords,
+    IN USHORT                        usSetupWordCount,
+    OUT PTRANSACTION_REQUEST_HEADER* ppRequestHeader,
+    OUT PBYTE*                       ppByteCount
+    );
+
+/**
+ * @brief Unmarshal setup portion of trans2 response
+ *
+ * Unmarshals the setup portion of a trans2 request and
+ * returns pointers to the segments of interest within
+ * the packet.
+ *
+ * @param[in] pSmbHeader a pointer to the SMB header in the packet.
+ * This is used as a reference point for alignment.
+ * @param[in,out] ppCursor the data cursor.  Upon call it must point
+ * to the parameters portion of the SMB packet.  Upon return
+ * it will point exactly past the end of the trans2 reponse.
+ * @param[in,out] pulRemainingSpace remaining space in the buffer.  Upon
+ * call it should contain the number of bytes of space available
+ * after the cursor.  Upon return it will be updated to reflect
+ * how much space is left.
+ * @param[optional,out] ppResponseHeader a pointer to the static portion of the
+ * response header.
+ * @param[optional,out] ppusSetupWords a pointer to the setup words in the response
+ * @param[optional,out] pusSetupWordCount the number of setup words in the response
+ * @param[optional,out] pusByteCount the number of total bytes in the response
+ * after the setup words
+ * @param[optional,out] ppParamterBlock a pointer to the start of the parameter block
+ * @param[optional,out] ppDataBlock a pointer to the start of the data block
+ *
+ * @return an NT status code
+ * @retval STATUS_SUCCESS success
+ * @retval STATUS_BUFFER_TOO_SMALL the remaining space was exceeded during marshaling
+ */
+NTSTATUS
+WireUnmarshalTrans2ReplySetup(
+    IN PSMB_HEADER                                        pSmbHeader,
+    IN OUT PBYTE*                                         ppCursor,
+    IN OUT PULONG                                         pulRemainingSpace,
+    OPTIONAL OUT PTRANSACTION_SECONDARY_RESPONSE_HEADER*  ppResponseHeader,
+    OPTIONAL OUT PUSHORT                                  pusTotalParameterCount,
+    OPTIONAL OUT PUSHORT                                  pusTotalDataCount,
+    OPTIONAL OUT PUSHORT*                                 ppusSetupWords,
+    OPTIONAL OUT PUSHORT                                  pusSetupWordCount,
+    OPTIONAL OUT PUSHORT                                  pusByteCount,
+    OPTIONAL OUT PBYTE*                                   ppParameterBlock,
+    OPTIONAL OUT PUSHORT                                  pusParameterCount,
+    OPTIONAL OUT PBYTE*                                   ppDataBlock,
+    OPTIONAL OUT PUSHORT                                  pusDataCount
+    );
+
+NTSTATUS
+WireNTTimeToSMBDateTime(
+    LONG64    llNTTime,
+    PSMB_DATE pSmbDate,
+    PSMB_TIME pSmbTime
     );
 
 #endif /* __SMBWIRE_H__ */

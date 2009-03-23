@@ -33,16 +33,15 @@
  *
  * Module Name:
  *
- *        create_file.c
+ *        unixpath.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        POSIX filename routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -62,12 +61,27 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     )
 {
+    return PvfsWC16CanonicalPathName(ppszPath, IoPath.FileName);
+}
+
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsWC16CanonicalPathName(
+    PSTR *ppszPath,
+    PWSTR pwszPathname
+    )
+{
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
+    size_t Length = 0;
+    int i = 0;
 
     ntError = RtlCStringAllocateFromWC16String(&pszPath,
-                                               IoPath.FileName);
+                                               pwszPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     pszCursor = pszPath;
@@ -79,6 +93,18 @@ PvfsCanonicalPathName(
         pszCursor++;
     }
 
+    /* Strip trailing slashes */
+
+    Length = RtlCStringNumChars(pszPath);
+    for (i=Length-1; i>=0; i--)
+    {
+        /* break out at first non slash */
+        if (pszPath[i] != '/') {
+            break;
+        }
+
+        pszPath[i] = '\0';
+    }
 
     *ppszPath = pszPath;
 
@@ -90,35 +116,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-/********************************************************
- *******************************************************/
-
-BOOLEAN
-PvfsWildcardMatch(
-    IN PSTR pszPathname,
-    IN PSTR pszPattern,
-    IN BOOLEAN bCaseSensitive
-    )
-{
-    /* Everything matches '*' */
-    if (RtlCStringIsEqual(pszPattern, "*", FALSE)) {
-        return TRUE;
-    }
-
-    /* Quick check for an exact match */
-    if (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))
-    {
-        return RtlCStringIsEqual(pszPathname, pszPattern, bCaseSensitive);
-    }
-
-    /* Let everything else match for now */
-
-    return TRUE;
-}
-
-
 
 /****************************************************************
  ***************************************************************/
@@ -144,6 +141,243 @@ PvfsValidatePath(
     }
 
 cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileBasename(
+    PSTR *ppszFilename,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszCursor = NULL;
+
+    if ((pszCursor = strrchr(pszPath, '/')) != NULL)
+    {
+        /* Assume there is never a trailing '/' since that should
+           be handled by PvfsCanonicalPathName() */
+
+        pszCursor++;
+    }
+
+    if (pszCursor != NULL) {
+        ntError = RtlCStringDuplicate(ppszFilename, pszCursor);
+    } else {
+        ntError = RtlCStringDuplicate(ppszFilename, pszPath);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileDirname(
+    PSTR *ppszDirname,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszCursor = NULL;
+    PSTR pszNewString = NULL;
+
+    /* Case #1: No '/' so just return '.' */
+    if (((pszCursor = strrchr(pszPath, '/')) == NULL))
+    {
+        ntError = RtlCStringDuplicate(ppszDirname, ".");
+        goto cleanup;
+    }
+
+    /* Case #2: only one '/' (at beginning of path) */
+
+    if (pszCursor == pszPath) {
+        ntError = RtlCStringDuplicate(ppszDirname, "/");
+        goto cleanup;
+    }
+
+    /* Case #3: Real dirname and file name components */
+
+    ntError = RTL_ALLOCATE(&pszNewString, CHAR,
+                           PVFS_PTR_DIFF(pszPath,pszCursor) + 1);
+    BAIL_ON_NT_STATUS(ntError);
+
+    RtlCopyMemory(pszNewString, pszPath, PVFS_PTR_DIFF(pszPath,pszCursor));
+
+    *ppszDirname = pszNewString;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsFileSplitPath(
+    PSTR *ppszDirname,
+    PSTR *ppszBasename,
+    PCSTR pszPath
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ntError = PvfsFileDirname(ppszDirname, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsFileBasename(ppszBasename, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsLookupPath(
+    PSTR *ppszDiskPath,
+    PCSTR pszPath,
+    BOOLEAN bCaseSensitive
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszDiskPath = NULL;
+    PSTR pszDirname = NULL;
+    PSTR pszBasename = NULL;
+
+    ntError = PvfsFileSplitPath(&pszDirname, &pszBasename, pszPath);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsLookupFile(&pszDiskPath,
+                             pszDirname,
+                             pszBasename,
+                             bCaseSensitive);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppszDiskPath = pszDiskPath;
+    pszDiskPath = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    RtlCStringFree(&pszDiskPath);
+    RtlCStringFree(&pszDirname);
+    RtlCStringFree(&pszBasename);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
+PvfsLookupFile(
+    PSTR *ppszDiskPath,
+    PCSTR pszDiskDirname,
+    PCSTR pszFilename,
+    BOOLEAN bCaseSensitive
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszFullPath = NULL;
+    PVFS_STAT Stat = {0};
+    DIR *pDir = NULL;
+    struct dirent *pDirEntry = NULL;
+
+    ntError = RtlCStringAllocatePrintf(&pszFullPath,
+                                       "%s/%s",
+                                       pszDiskDirname,
+                                       pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Fast path.  Case is correct */
+
+    ntError = PvfsSysStat(pszFullPath, &Stat);
+    if (ntError == STATUS_SUCCESS) {
+        *ppszDiskPath = pszFullPath;
+        pszFullPath = NULL;
+        goto cleanup;
+    }
+
+    /* Case sensitive searches end here if we hit a failure */
+
+    if (bCaseSensitive) {
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    RtlCStringFree(&pszFullPath);
+
+    /* Enumerate directory entries and look for a match */
+
+    ntError = PvfsSysOpenDir(pszDiskDirname, &pDir);
+    BAIL_ON_NT_STATUS(ntError);
+
+    for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
+        pDirEntry;
+        ntError = PvfsSysReadDir(pDir, &pDirEntry))
+    {
+        /* First check the error return */
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (RtlCStringIsEqual(pszFilename, pDirEntry->d_name, FALSE)) {
+            break;
+        }
+    }
+
+    /* Did we find a match? */
+
+    if (!pDirEntry) {
+        ntError = STATUS_OBJECT_NAME_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = RtlCStringAllocatePrintf(&pszFullPath,
+                                       "%s/%s",
+                                       pszDiskDirname,
+                                       pDirEntry->d_name);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Done */
+
+    *ppszDiskPath = pszFullPath;
+    pszFullPath = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    RtlCStringFree(&pszFullPath);
+
+    if (pDir) {
+        PvfsSysCloseDir(pDir);
+    }
+
     return ntError;
 
 error:

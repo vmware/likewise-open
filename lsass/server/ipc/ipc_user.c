@@ -381,6 +381,10 @@ LsaSrvIpcBeginEnumUsers(
 
         pResponse->tag = LSA_R_BEGIN_ENUM_USERS_SUCCESS;
         pResponse->object = hResume;
+        hResume = NULL;
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_retain_handle(assoc, pResponse->object));
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
@@ -500,22 +504,11 @@ LsaSrvIpcEndEnumUsers(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvEndEnumUsers(
-        Handle,
-        pRequest->object);
-
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object));
     if (!dwError)
     {
-        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(assoc, pRequest->object, LWMSG_FALSE));
-        BAIL_ON_LSA_ERROR(dwError);
-
         pResponse->tag = LSA_R_END_ENUM_USERS_SUCCESS;
-        pResponse->object = NULL;
     }
     else
     {

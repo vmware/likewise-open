@@ -34,28 +34,8 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 #include <lw/ntstatus.h>
+#include <stdarg.h>
 
-typedef struct _LW_UNICODE_STRING {
-    LW_USHORT Length;
-    LW_USHORT MaximumLength;
-    LW_PWCHAR Buffer;
-} LW_UNICODE_STRING, *LW_PUNICODE_STRING;
-
-typedef struct _LW_ANSI_STRING {
-    LW_USHORT Length;
-    LW_USHORT MaximumLength;
-    LW_PCHAR Buffer;
-} LW_ANSI_STRING, *LW_PANSI_STRING;
-
-#ifndef LW_STRICT_NAMESPACE
-
-typedef LW_UNICODE_STRING UNICODE_STRING;
-typedef LW_PUNICODE_STRING PUNICODE_STRING;
-
-typedef LW_ANSI_STRING ANSI_STRING;
-typedef LW_PANSI_STRING PANSI_STRING;
-
-#endif /* LW_STRICT_NAMESPAE */
 
 // c-style (null-terminated) strings
 
@@ -102,14 +82,19 @@ LwRtlCStringAllocatePrintf(
     LW_IN ...
     );
 
+NTSTATUS
+LwRtlCStringAllocatePrintfV(
+    OUT PSTR* ppszString,
+    IN PCSTR pszFormat,
+    IN va_list Args
+    );
+
 LW_NTSTATUS
 LwRtlCStringAllocateAppendPrintf(
     LW_IN LW_OUT LW_PSTR* ppszString,
     LW_IN LW_PCSTR pszFormat,
     ...
     );
-
-#define LwRtlCStringIsNullOrEmpty(String) (!(String) || !(*(String)))
 
 // wc16-style (null-terminated) strings
 
@@ -135,14 +120,26 @@ LwRtlWC16StringFree(
     LW_OUT LW_PWSTR* ppszString
     );
 
-#define LwRtlWC16StringIsNullOrEmpty(String) LwRtlCStringIsNullOrEmpty(String)
+LW_BOOLEAN
+LwRtlWC16StringIsEqual(
+    LW_IN LW_PCWSTR pString1,
+    LW_IN LW_PCWSTR pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
 
 // UNICODE_STRING strings
 
+// TODO: Deprecate in favor of Ex version
 LW_VOID
 LwRtlUnicodeStringInit(
-    LW_OUT LW_PUNICODE_STRING pString,
-    LW_IN LW_PWSTR pszString
+    LW_OUT LW_PUNICODE_STRING DestinationString,
+    LW_IN LW_PCWSTR SourceString
+    );
+
+LW_NTSTATUS
+LwRtlUnicodeStringInitEx(
+    LW_OUT LW_PUNICODE_STRING DestinationString,
+    LW_IN LW_PCWSTR SourceString
     );
 
 LW_NTSTATUS
@@ -175,12 +172,33 @@ LwRtlUnicodeStringIsEqual(
     LW_IN LW_BOOLEAN bIsCaseSensitive
     );
 
+LW_BOOLEAN
+LwRtlUnicodeStringIsPrefix(
+    LW_IN LW_PUNICODE_STRING pPrefix,
+    LW_IN LW_PUNICODE_STRING pString,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
+LW_NTSTATUS
+LwRtlUnicodeStringParseULONG(
+    OUT LW_PULONG pResult,
+    IN LW_PUNICODE_STRING pString,
+    OUT LW_PUNICODE_STRING pRemainingString
+    );
+
 // ANSI strings
 
+// TODO: Deprecate in favor of Ex version
 LW_VOID
 LwRtlAnsiStringInit(
-    LW_OUT LW_PANSI_STRING pString,
-    LW_IN LW_PSTR pszString
+    LW_OUT LW_PANSI_STRING DestinationString,
+    LW_IN LW_PCSTR SourceString
+    );
+
+LW_NTSTATUS
+LwRtlAnsiStringInitEx(
+    LW_OUT LW_PANSI_STRING DestinationString,
+    LW_IN LW_PCSTR SourceString
     );
 
 LW_NTSTATUS
@@ -200,33 +218,94 @@ LwRtlAnsiStringFree(
     LW_IN LW_OUT LW_PANSI_STRING pString
     );
 
+LW_BOOLEAN
+LwRtlAnsiStringIsEqual(
+    LW_IN LW_PANSI_STRING pString1,
+    LW_IN LW_PANSI_STRING pString2,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
+LW_BOOLEAN
+LwRtlAnsiStringIsPrefix(
+    LW_IN LW_PANSI_STRING pPrefix,
+    LW_IN LW_PANSI_STRING pString,
+    LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
+LW_NTSTATUS
+LwRtlAnsiStringParseULONG(
+    OUT PULONG pResult,
+    IN PANSI_STRING pString,
+    OUT PANSI_STRING pRemainingString
+    );
+
 #ifndef LW_STRICT_NAMESPACE
 
-#define RtlCStringNumChars LwRtlCStringNumChars
-#define RtlCStringAllocateFromWC16String LwRtlCStringAllocateFromWC16String
-#define RtlCStringDuplicate LwRtlCStringDuplicate
-#define RtlCStringFree LwRtlCStringFree
-#define RtlCStringCompare LwRtlCStringCompare
-#define RtlCStringIsEqual LwRtlCStringIsEqual
-#define RtlCStringAllocatePrintf LwRtlCStringAllocatePrintf
-#define RtlCStringAllocateAppendPrintf LwRtlCStringAllocateAppendPrintf
+#define RtlCStringNumChars(String) \
+    LwRtlCStringNumChars(String)
+#define RtlCStringAllocateFromWC16String(NewString, OriginalString) \
+    LwRtlCStringAllocateFromWC16String(NewString, OriginalString)
+#define RtlCStringDuplicate(NewString, OriginalString) \
+    LwRtlCStringDuplicate(NewString, OriginalString)
+#define RtlCStringFree(String) \
+    LwRtlCStringFree(String)
+#define RtlCStringCompare(String1, String2, IsCaseSensitive) \
+    LwRtlCStringCompare(String1, String2, IsCaseSensitive)
+#define RtlCStringIsEqual(String1, String2, IsCaseSensitive) \
+    LwRtlCStringIsEqual(String1, String2, IsCaseSensitive)
+#define RtlCStringAllocatePrintf(String, Format, ...) \
+    LwRtlCStringAllocatePrintf(String, Format, ## __VA_ARGS__)
+#define RtlCStringAllocatePrintfV(String, Format, args) \
+    LwRtlCStringAllocatePrintfV(String, Format, args)
+#define RtlCStringAllocateAppendPrintf(String, Format, ...) \
+    LwRtlCStringAllocateAppendPrintf(String, Format, ## __VA_ARGS__)
 
-#define RtlWC16StringNumChars LwRtlWC16StringNumChars
-#define RtlWC16StringAllocateFromCString LwRtlWC16StringAllocateFromCString
-#define RtlWC16StringDuplicate LwRtlWC16StringDuplicate
-#define RtlWC16StringFree LwRtlWC16StringFree
+#define RtlWC16StringNumChars(String) \
+    LwRtlWC16StringNumChars(String)
+#define RtlWC16StringAllocateFromCString(NewString, OriginalString) \
+    LwRtlWC16StringAllocateFromCString(NewString, OriginalString)
+#define RtlWC16StringDuplicate(NewString, OriginalString) \
+    LwRtlWC16StringDuplicate(NewString, OriginalString)
+#define RtlWC16StringFree(String) \
+    LwRtlWC16StringFree(String)
+#define RtlWC16StringIsEqual(String1, String2, IsCaseSensitive) \
+    LwRtlWC16StringIsEqual(String1, String2, IsCaseSensitive)
 
-#define RtlUnicodeStringInit LwRtlUnicodeStringInit
-#define RtlUnicodeStringAllocateFromWC16String LwRtlUnicodeStringAllocateFromWC16String
-#define RtlUnicodeStringAllocateFromCString LwRtlUnicodeStringAllocateFromCString
-#define RtlUnicodeStringDuplicate LwRtlUnicodeStringDuplicate
-#define RtlUnicodeStringFree LwRtlUnicodeStringFree
-#define RtlUnicodeStringIsEqual LwRtlUnicodeStringIsEqual
+#define RtlUnicodeStringInit(DestinationString, SourceString) \
+    LwRtlUnicodeStringInit(DestinationString, SourceString)
+#define RtlUnicodeStringInitEx(DestinationString, SourceString) \
+    LwRtlUnicodeStringInitEx(DestinationString, SourceString)
+#define RtlUnicodeStringAllocateFromWC16String(NewString, OriginalString) \
+    LwRtlUnicodeStringAllocateFromWC16String(NewString, OriginalString)
+#define RtlUnicodeStringAllocateFromCString(NewString, OriginalString) \
+    LwRtlUnicodeStringAllocateFromCString(NewString, OriginalString)
+#define RtlUnicodeStringDuplicate(NewString, OriginalString) \
+    LwRtlUnicodeStringDuplicate(NewString, OriginalString)
+#define RtlUnicodeStringFree(String) \
+    LwRtlUnicodeStringFree(String)
+#define RtlUnicodeStringIsEqual(String1, String2, IsCaseSensitive) \
+    LwRtlUnicodeStringIsEqual(String1, String2, IsCaseSensitive)
+#define RtlUnicodeStringIsPrefix(Prefix, String, IsCaseSensitive) \
+    LwRtlUnicodeStringIsPrefix(Prefix, String, IsCaseSensitive)
+#define RtlUnicdeStringParseULONG(Result, String, RemainingString) \
+    LwRtlUnicodeStringParseULONG(Result, String, RemainingString)
 
-#define RtlAnsiStringInit LwRtlAnsiStringInit
-#define RtlAnsiStringAllocateFromCString LwRtlAnsiStringAllocateFromCString
-#define RtlAnsiStringDuplicate LwRtlAnsiStringDuplicate
-#define RtlAnsiStringFree LwRtlAnsiStringFree
+#define RtlAnsiStringInit(DestinationString, SourceString) \
+    LwRtlAnsiStringInit(DestinationString, SourceString)
+#define RtlAnsiStringInitEx(DestinationString, SourceString) \
+    LwRtlAnsiStringInitEx(DestinationString, SourceString)
+#define RtlAnsiStringAllocateFromCString(NewString, OriginalString) \
+    LwRtlAnsiStringAllocateFromCString(NewString, OriginalString)
+#define RtlAnsiStringDuplicate(NewString, OriginalString) \
+    LwRtlAnsiStringDuplicate(NewString, OriginalString)
+#define RtlAnsiStringFree(String) \
+    LwRtlAnsiStringFree(String)
+#define RtlAnsiStringIsEqual(String1, String2, IsCaseSensitive) \
+    LwRtlAnsiStringIsEqual(String1, String2, IsCaseSensitive)
+#define RtlAnsiStringIsPrefix(Prefix, String, IsCaseSensitive) \
+    LwRtlAnsiStringIsPrefix(Prefix, String, IsCaseSensitive)
+#define RtlAnsiStringParseULONG(Result, String, RemainingString) \
+    LwRtlAnsiStringParseULONG(Result, String, RemainingString)
 
 #endif /* LW_STRICT_NAMESPAE */
 
@@ -249,9 +328,9 @@ LwRtlWC16StringToLog(
     );
 
 #ifndef LW_STRICT_NAMESPACE
-#define RtlUnicodeStringToLog LwRtlUnicodeStringToLog
-#define RtlAnsiStringToLog LwRtlAnsiStringToLog
-#define RtlWC16StringToLog LwRtlWC16StringToLog
+#define RtlUnicodeStringToLog(String) LwRtlUnicodeStringToLog(String)
+#define RtlAnsiStringToLog(String)    LwRtlAnsiStringToLog(String)
+#define RtlWC16StringToLog(String)    LwRtlWC16StringToLog(String)
 #endif /* LW_STRICT_NAMESPAE */
 
 #endif /* USE_RTL_STRING_LOG_HACK */

@@ -12,6 +12,8 @@ lwmsg_assoc_send_transact
 lwmsg_assoc_close
 lwmsg_assoc_reset
 lwmsg_assoc_register_handle
+lwmsg_assoc_retain_handle
+lwmsg_assoc_release_handle
 lwmsg_assoc_unregister_handle
 lwmsg_assoc_get_handle_location
 lwmsg_assoc_free_message
@@ -84,5 +86,6 @@ lwmsg_session_manager_handle_id_to_pointer
 lwmsg_session_manager_handle_pointer_to_id
 lwmsg_session_manager_register_handle_local
 lwmsg_session_manager_register_handle_remote
+lwmsg_type_print_graph
 lwmsg_fd_type_class
 lwmsg_handle_type_class

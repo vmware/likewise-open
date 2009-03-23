@@ -73,7 +73,7 @@ SrvProcessSessionSetup(
 
     ntStatus = SrvMarshallSessionSetupResponse(
                     pConnection,
-		    pSmbRequest,
+                    pSmbRequest,
                     pSmbRequest->pSMBHeader->mid,
                     pSecurityBlob,
                     ulSecurityBlobLength,
@@ -109,6 +109,8 @@ SrvProcessSessionSetup(
         }
 
         pSmbResponse->pSMBHeader->uid = pSession->uid;
+
+        SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_READY);
     }
 
     *ppSmbResponse = pSmbResponse;
@@ -153,10 +155,13 @@ SrvUnmarshallSessionSetupRequest(
     PWSTR pwszNativeOS = NULL;
     PWSTR pwszNativeLanMan = NULL;
     PWSTR pwszNativeDomain = NULL;
+    ULONG ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = UnmarshallSessionSetupRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
                     0,
                     &pHeader,
                     &pSecurityBlob,

@@ -36,13 +36,56 @@
 
 VOID
 LwRtlAnsiStringInit(
-    OUT PANSI_STRING pString,
-    IN PSTR pszString
+    OUT PANSI_STRING DestinationString,
+    IN PCSTR SourceString
     )
 {
-    pString->Buffer = pszString;
-    pString->Length = pszString ? strlen(pszString) * sizeof(pString->Buffer[0]): 0;
-    pString->MaximumLength = pString->Length;
+    size_t length = 0;
+
+    if (SourceString)
+    {
+        length = strlen(SourceString);
+        length = LW_MIN(length, LW_ANSI_STRING_MAX_CHARS);
+        length *= sizeof(SourceString[0]);
+    }
+
+    DestinationString->Buffer = (PSTR) SourceString;
+    DestinationString->Length = (USHORT) length;
+    DestinationString->MaximumLength = DestinationString->Length + sizeof(SourceString[0]);
+}
+
+NTSTATUS
+LwRtlAnsiStringInitEx(
+    OUT PANSI_STRING DestinationString,
+    IN PCSTR SourceString
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    size_t length = 0;
+
+    if (SourceString)
+    {
+        length = strlen(SourceString);
+        if (length > LW_ANSI_STRING_MAX_CHARS)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            GOTO_CLEANUP();
+        }
+        length *= sizeof(SourceString[0]);
+    }
+
+    DestinationString->Buffer = (PSTR) SourceString;
+    DestinationString->Length = (USHORT) length;
+    DestinationString->MaximumLength = DestinationString->Length + sizeof(SourceString[0]);
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RtlZeroMemory(DestinationString, sizeof(*DestinationString));
+    }
+    return status;
 }
 
 NTSTATUS
@@ -58,10 +101,10 @@ LwRtlAnsiStringAllocateFromCString(
     status = RtlCStringDuplicate(&pszNewString, pszString);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    newString.Buffer = pszNewString;
+    status = LwRtlAnsiStringInitEx(&newString, pszNewString);
+    GOTO_CLEANUP_ON_STATUS(status);
+
     pszNewString = 0;
-    newString.Length = strlen(newString.Buffer) * sizeof(newString.Buffer[0]);
-    newString.MaximumLength = newString.Length + sizeof(newString.Buffer[0]);
 
 cleanup:
     if (status)
@@ -185,4 +228,116 @@ LwRtlAnsiStringFree(
 {
     RTL_FREE(&pString->Buffer);
     pString->Length = pString->MaximumLength = 0;
+}
+
+BOOLEAN
+LwRtlAnsiStringIsEqual(
+    IN PANSI_STRING pString1,
+    IN PANSI_STRING pString2,
+    IN BOOLEAN bIsCaseSensitive
+    )
+{
+    BOOLEAN bIsEqual = FALSE;
+
+    if (pString1->Length != pString2->Length)
+    {
+        bIsEqual = FALSE;
+        GOTO_CLEANUP();
+    }
+    else if (bIsCaseSensitive)
+    {
+        bIsEqual = !strncmp(pString1->Buffer, pString2->Buffer, LW_RTL_STRING_NUM_CHARS(pString1));
+    }
+    else
+    {
+        bIsEqual = !strncasecmp(pString1->Buffer, pString2->Buffer, LW_RTL_STRING_NUM_CHARS(pString1));
+    }
+
+cleanup:
+    return bIsEqual;
+}
+
+BOOLEAN
+LwRtlAnsiStringIsPrefix(
+    IN PANSI_STRING pPrefix,
+    IN PANSI_STRING pString,
+    IN BOOLEAN bIsCaseSensitive
+    )
+{
+    BOOLEAN bIsPrefix = FALSE;
+    ANSI_STRING truncatedString = { 0 };
+
+    if (pPrefix->Length > pString->Length)
+    {
+        bIsPrefix = FALSE;
+        GOTO_CLEANUP();
+    }
+
+    truncatedString.Buffer = pString->Buffer;
+    truncatedString.Length = truncatedString.MaximumLength = pPrefix->Length;
+
+    bIsPrefix = LwRtlAnsiStringIsEqual(pPrefix, &truncatedString, bIsCaseSensitive);
+
+cleanup:
+    return bIsPrefix;
+}
+
+NTSTATUS
+LwRtlAnsiStringParseULONG(
+    OUT PULONG pResult,
+    IN PANSI_STRING pString,
+    OUT PANSI_STRING pRemainingString
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG64 value = 0;
+    ULONG numChars = 0;
+    ULONG index = 0;
+    ANSI_STRING remaining = { 0 };
+
+    if (!pString)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    numChars = LW_RTL_STRING_NUM_CHARS(pString);
+    for (index = 0;
+         ((index < numChars) &&
+          LwRtlIsDecimalDigit(pString->Buffer[index]));
+         index++)
+    {
+        value = value * 10 + LwRtlDecimalDigitValue(pString->Buffer[index]);
+        if (value > MAXULONG)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            GOTO_CLEANUP();
+        }
+    }
+
+    if (0 == index)
+    {
+        status = STATUS_NOT_FOUND;
+        GOTO_CLEANUP();
+    }
+
+    remaining.Buffer = &pString->Buffer[index];
+    remaining.Length = pString->Length - LW_PTR_OFFSET(pString->Buffer, remaining.Buffer);
+    remaining.MaximumLength = remaining.Length;
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (pString)
+        {
+            remaining = *pString;
+        }
+    }
+
+    *pResult = (ULONG) value;
+    *pRemainingString = remaining;
+
+    return status;
 }

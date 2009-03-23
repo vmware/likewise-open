@@ -52,18 +52,7 @@ LwIoAllocateMemory(
     LW_PVOID * ppMemory
     )
 {
-    PVOID pMemory = LwRtlMemoryAllocate((size_t) Size);
-
-    if (!pMemory)
-    {
-        *ppMemory = NULL;
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-    else
-    {
-        *ppMemory = pMemory;
-        return STATUS_SUCCESS;
-    }
+    return RTL_ALLOCATE(ppMemory, VOID, Size);
 }
 
 LW_NTSTATUS
@@ -73,7 +62,7 @@ LwIoReallocMemory(
     LW_PVOID * ppNewMemory
     )
 {
-    PVOID pNewMemory = LwRtlMemoryRealloc(pMemory, (size_t) Size);
+    PVOID pNewMemory = LwRtlMemoryRealloc(pMemory, Size);
 
     if (!pNewMemory)
     {

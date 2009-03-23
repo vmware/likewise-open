@@ -117,6 +117,8 @@ main(
     dwError = LsaSrvStartListenThread();
     BAIL_ON_LSA_ERROR(dwError);
 
+    LsaSrvLogProcessStartedEvent();
+
     // Handle signals, blocking until we are supposed to exit.
     dwError = LsaSrvHandleSignals();
     BAIL_ON_LSA_ERROR(dwError);
@@ -566,6 +568,8 @@ LsaSrvExitHandler(
     dwError = LsaSrvGetProcessExitCode(&dwExitCode);
     BAIL_ON_LSA_ERROR(dwError);
 
+    LsaSrvLogProcessStoppedEvent(dwExitCode);
+
     if (dwExitCode) {
        fp = fopen(szErrCodeFilePath, "w");
        if (fp == NULL) {
@@ -976,32 +980,73 @@ LsaSrvSetProcessToExit(
 }
 
 VOID
-LsaSrvLogProcessFailureEvent(
-    DWORD dwErrCode
+LsaSrvLogProcessStartedEvent(
+    VOID
     )
 {
     DWORD dwError = 0;
-    PSTR pszLsassdFailureDescription = NULL;
-    PSTR pszData = NULL;
+    PSTR pszDescription = NULL;
 
     dwError = LsaAllocateStringPrintf(
-                 &pszLsassdFailureDescription,
-                 "The LSASSD process encountered a serious error with code '%d' which caused it to stop running.",
-                 dwErrCode);
+                 &pszDescription,
+                 "The Likewise authentication service was started.");
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetErrorMessageForLoggingEvent(
-                         dwErrCode,
-                         &pszData);
-
-    LsaSrvLogServiceFailureEvent(
-            SERVICESTOP_EVENT_CATEGORY,
-            pszLsassdFailureDescription,
-            pszData);
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_INFO_SERVICE_STARTED,
+            SERVICE_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszLsassdFailureDescription);
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+LsaSrvLogProcessStoppedEvent(
+    DWORD dwExitCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "The Likewise authentication service was stopped");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwExitCode,
+                         &pszData);
+
+    if (dwExitCode)
+    {
+        LsaSrvLogServiceFailureEvent(
+                LSASS_EVENT_ERROR_SERVICE_STOPPED,
+                SERVICE_EVENT_CATEGORY,
+                pszDescription,
+                pszData);
+    }
+    else
+    {
+        LsaSrvLogServiceSuccessEvent(
+                LSASS_EVENT_INFO_SERVICE_STOPPED,
+                SERVICE_EVENT_CATEGORY,
+                pszDescription,
+                pszData);
+    }
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
     LSA_SAFE_FREE_STRING(pszData);
 
     return;
@@ -1011,4 +1056,39 @@ error:
     goto cleanup;
 }
 
+VOID
+LsaSrvLogProcessFailureEvent(
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "The Likewise authentication service stopped running due to an error");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+
+    LsaSrvLogServiceFailureEvent(
+            LSASS_EVENT_ERROR_SERVICE_START_FAILURE,
+            SERVICE_EVENT_CATEGORY,
+            pszDescription,
+            pszData);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
 

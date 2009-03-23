@@ -104,11 +104,28 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_HEADER_STDC
 
+# Check for moonunit bits
+AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
+AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
+AC_CHECK_PROG(MOONUNIT_STUB, moonunit-stub, moonunit-stub, false)
+
+if test "${MOONUNIT_STUB}" = "moonunit-stub" && $HAVE_MOONUNIT_H && $HAVE_MOONUNIT_LIB
+then
+	HAVE_MOONUNIT="true"
+	LIB_MOONUNIT="-lmoonunit"
+	AC_DEFINE([HAVE_MOONUNIT], [], [Have MoonUnit])
+else
+	HAVE_MOONUNIT="false"
+fi
+
+AC_SUBST(LIB_MOONUNIT)
+AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
+
 AC_CONFIG_FILES([Makefile
                  include/Makefile
                  include/lw/Makefile
                  include/secdesc/Makefile
                  src/Makefile
-                 testsd/Makefile])
+                 moonunit/Makefile])
 
 AC_OUTPUT

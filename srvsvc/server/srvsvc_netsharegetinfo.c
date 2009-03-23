@@ -49,6 +49,17 @@
 
 #include "includes.h"
 
+/* Make memory allocation easier */
+typedef union __srvsvc_NetShareInfo
+{
+    SHARE_INFO_0 info0;
+    SHARE_INFO_1 info1;
+    SHARE_INFO_2 info2;
+    SHARE_INFO_501 info501;
+    SHARE_INFO_502 info502;
+
+} SHARE_INFO, *PSHARE_INFO;
+
 
 NET_API_STATUS
 SrvSvcNetShareGetInfo(
@@ -56,7 +67,7 @@ SrvSvcNetShareGetInfo(
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
     /* [in] */ uint32 level,
-    /* [out] */ srvsvc_NetShareInfo *info
+    /* [out,ref] */ srvsvc_NetShareInfo *info
     )
 {
     NTSTATUS ntStatus = 0;
@@ -69,7 +80,7 @@ SrvSvcNetShareGetInfo(
     DWORD dwCreationDisposition = 0;
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
-    DWORD dwOutLength = 0;
+    DWORD dwOutLength = 4096;
     DWORD dwBytesReturned = 0;
     HANDLE hDevice = (HANDLE)NULL;
     BOOLEAN bRet = FALSE;
@@ -84,23 +95,49 @@ SrvSvcNetShareGetInfo(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 0;
+    ULONG IoControlCode = SRV_DEVCTL_GET_SHARE_INFO;
+    PSTR smbpath = NULL;
+    IO_FILE_NAME filename;
+    IO_STATUS_BLOCK io_status;
+    SHARE_INFO_GETINFO_PARAMS GetParamsIn;
+    PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
+    PSHARE_INFO pShareInfo = NULL;
 
-    dwError = MarshallShareInfotoFlatBuffer(
-                    level,
-                    info,
-                    &pInBuffer,
-                    &dwInLength
+    memset(&GetParamsIn, 0, sizeof(GetParamsIn));
+    memset(info, 0x0, sizeof(*info));
+
+    GetParamsIn.pwszNetname = netname;
+    GetParamsIn.dwInfoLevel = level;
+
+    ntStatus = LwShareInfoMarshalGetParameters(
+                        &GetParamsIn,
+                        &pInBuffer,
+                        &dwInLength
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &smbpath,
+                    "\\srv"
                     );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.RootFileHandle = NULL;
+    filename.IoNameOptions = 0;
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                        &filename.FileName,
+                        smbpath
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtCreateFile(
                         &FileHandle,
                         NULL,
                         &IoStatusBlock,
-                        FileName,
-			NULL,
-			NULL,
+                        &filename,
+                        NULL,
+                        NULL,
                         DesiredAccess,
                         AllocationSize,
                         FileAttributes,
@@ -112,6 +149,12 @@ SrvSvcNetShareGetInfo(
                         NULL
                         );
     BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SRVSVCAllocateMemory(
+                    dwOutLength,
+                    (void**)&pOutBuffer
+                    );
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
                     FileHandle,
@@ -125,31 +168,96 @@ SrvSvcNetShareGetInfo(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = UnmarshallAddSetResponse(
-                    pOutBuffer,
-                    &dwReturnCode,
-                    &dwParmError);
+    while (ntStatus == STATUS_MORE_ENTRIES) {
+        /* We need more space in output buffer to make this call */
 
-#if 0
-    *parm_error = dwParmError;
-    dwError = dwReturnCode;
-#endif
+        SrvSvcFreeMemory((void*)pOutBuffer);
+        dwOutLength *= 2;
+
+        dwError = SRVSVCAllocateMemory(
+                        dwOutLength,
+                        (void**)&pOutBuffer
+                        );
+        BAIL_ON_ERROR(dwError);
+
+        ntStatus = NtDeviceIoControlFile(
+                        FileHandle,
+                        NULL,
+                        &IoStatusBlock,
+                        IoControlCode,
+                        pInBuffer,
+                        dwInLength,
+                        pOutBuffer,
+                        dwOutLength
+                        );
+    }
+
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwShareInfoUnmarshalGetParameters(
+                        pOutBuffer,
+                        dwOutLength,
+                        &pGetParamsOut
+                        );
+
+    ntStatus = RTL_ALLOCATE(&pShareInfo, SHARE_INFO, sizeof(*pShareInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pGetParamsOut->dwInfoLevel) {
+    case 0:
+        info->info0   = &pShareInfo->info0;
+        memcpy(info->info0, pGetParamsOut->Info.p0, sizeof(*info->info0));
+        break;
+
+    case 1:
+        info->info1   = &pShareInfo->info1;
+        memcpy(info->info1, pGetParamsOut->Info.p1, sizeof(*info->info1));
+        break;
+
+    case 2:
+        info->info2   = &pShareInfo->info2;
+        memcpy(info->info2, pGetParamsOut->Info.p2, sizeof(*info->info2));
+        break;
+
+    case 501:
+        info->info501 = &pShareInfo->info501;
+        memcpy(info->info501, pGetParamsOut->Info.p501, sizeof(*info->info501));
+        break;
+
+    case 502:
+        info->info502 = &pShareInfo->info502;
+        memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
+        break;
+    }
 
 cleanup:
+    if (FileHandle) {
+        NtCloseFile(FileHandle);
+    }
 
     if(pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
-    return(dwError);
-
-error:
-
-
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
 
+    if (pGetParamsOut) {
+        SrvSvcFreeMemory(pGetParamsOut);
+    }
+
+    if (ntStatus == STATUS_NOT_FOUND) {
+        dwError = 2310;
+    } else if (ntStatus == STATUS_SUCCESS) {
+        dwError = 0;
+    } else {
+        dwError = -1;
+    }
+
+    return dwError;
+
+error:
     goto cleanup;
 }
 

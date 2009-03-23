@@ -382,7 +382,12 @@ AC_CHECK_FUNCS([atexit localtime_r memset strchr strerror strerror_r vsyslog])
 AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
 
 AC_CHECK_HEADERS([sys/vfs.h])
-AC_CHECK_FUNCS([dirfd fstatfs])
+AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
+
+AC_CHECK_HEADERS([attr/xattr.h])
+AC_CHECK_FUNCS([setxattr fsetxattr getxattr fgetxattr])
+AC_CHECK_LIB([attr], [getxattr], [XATTR_LIBS="-lattr"])
+AC_SUBST(XATTR_LIBS)
 
 AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])
 AC_SUBST(UUID_LIBS)
@@ -488,10 +493,11 @@ AC_CONFIG_FILES([Makefile
         drivers/Makefile
         drivers/iotest/Makefile
         tools/Makefile
-        tools/lw-io-refresh/Makefile
-        tools/lw-io-get-log-info/Makefile
-        tools/lw-io-set-log-level/Makefile
+        tools/lwio-refresh/Makefile
+        tools/lwio-get-log-info/Makefile
+        tools/lwio-set-log-level/Makefile
         tools/lwio-tool/Makefile
+        tools/lwio-copy/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_npclient/Makefile

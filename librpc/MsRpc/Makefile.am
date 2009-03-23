@@ -16,7 +16,8 @@ libmsrpc_la_SOURCES = \
 	random.c \
 	MemPtr.c \
 	errcheck.c \
-	LMcrypt.c
+	LMcrypt.c \
+	sidhelper.c
 
 noinst_PROGRAMS=md4test md5test cryptotest randomtest destest
 
@@ -45,6 +46,7 @@ INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
 FEATURETEST_FLAGS="-D__EXTENSIONS__ -D_REENTRANT -D_BSD_SOURCE"
 
+libmsrpc_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 libmsrpc_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libmsrpc_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-libmsrpc_la_LIBADD = -ldcerpc -lunistr
+libmsrpc_la_LIBADD = -ldcerpc -lunistr @LWBASE_LIBS@

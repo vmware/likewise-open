@@ -103,6 +103,15 @@ pam_sm_open_session(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = pam_notify_user_logon(
+                    pszLoginId);
+    if (dwError == LSA_ERROR_LOAD_LIBRARY_FAILED ||
+        dwError == LSA_ERROR_LOOKUP_SYMBOL_FAILED )
+    {
+        dwError = 0;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
 
     if (hLsaConnection != (HANDLE)NULL) {
@@ -250,6 +259,15 @@ pam_sm_close_session(
     dwError = LsaCloseSession(
                             hLsaConnection,
                             pszLoginId);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = pam_notify_user_logoff(
+                    pszLoginId);
+    if (dwError == LSA_ERROR_LOAD_LIBRARY_FAILED ||
+        dwError == LSA_ERROR_LOOKUP_SYMBOL_FAILED )
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

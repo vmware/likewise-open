@@ -30,16 +30,6 @@
 
 #include "includes.h"
 
-typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
-{
-    USHORT usSearchId;
-    USHORT usSearchCount;
-    USHORT usEndOfSearch;
-    USHORT usEaErrorOffset;
-    USHORT usLastNameOffset;
-
-} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS, *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
-
 static
 NTSTATUS
 SrvUnmarshallFindFirst2Params(
@@ -65,6 +55,7 @@ SrvBuildFindFirst2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulSearchStorageType,
     PWSTR               pwszSearchPattern,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -119,6 +110,7 @@ SrvProcessTrans2FindFirst2(
                     infoLevel,
                     ulSearchStorageType,
                     pwszSearchPattern,
+                    pRequestHeader->maxDataCount,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -274,6 +266,7 @@ SrvBuildFindFirst2Response(
     SMB_INFO_LEVEL      infoLevel,
     ULONG               ulSearchStorageType,
     PWSTR               pwszSearchPattern,
+    USHORT              usMaxDataCount,
     PSMB_PACKET*        ppSmbResponse
     )
 {
@@ -383,7 +376,7 @@ SrvBuildFindFirst2Response(
                     &usNumPackageBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    usBytesAvailable = pSmbResponse->bufferLen - usNumPackageBytesUsed;
+    usBytesAvailable = SMB_MIN(usMaxDataCount, pConnection->serverProperties.MaxBufferSize - usNumPackageBytesUsed);
 
     ntStatus = SrvFinderGetSearchResults(
                     hSearchSpace,
@@ -391,6 +384,7 @@ SrvBuildFindFirst2Response(
                     bRestartScan,
                     usSearchCount,
                     usBytesAvailable,
+                    usDataOffset,
                     &pData,
                     &usSearchResultLen,
                     &responseParams.usSearchCount,
@@ -558,7 +552,9 @@ SrvBuildSearchPath(
 
 		    if (++pwszNext &&
                         (*pwszNext == wszQuestionMark[0] ||
-                         *pwszNext == wszStar[0]))
+                         *pwszNext == wszStar[0] ||
+                         *pwszNext == wszGT[0] ||
+                         *pwszNext == wszLT[0]))
 		    {
 			    *pwszCursor = wszDot[0];
 		    }
@@ -568,7 +564,8 @@ SrvBuildSearchPath(
 		    PWSTR pwszNext = pwszCursor;
 
 		    if (++pwszNext &&
-                        (*pwszNext == wszDot[0]))
+                        ((*pwszNext == wszDot[0]) ||
+                         (*pwszNext == wszQuote[0])))
 		    {
 			    *pwszCursor = wszStar[0];
 		    }

@@ -34,6 +34,17 @@ SrvConnectionSetInvalid(
     PSMB_SRV_CONNECTION pConnection
     );
 
+SMB_SRV_CONN_STATE
+SrvConnectionGetState(
+    PSMB_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionSetState(
+    PSMB_SRV_CONNECTION pConnection,
+    SMB_SRV_CONN_STATE  connState
+    );
+
 NTSTATUS
 SrvConnectionReadPacket(
     PSMB_SRV_CONNECTION pConnection,
@@ -64,6 +75,18 @@ NTSTATUS
 SrvConnectionCreateSession(
     PSMB_SRV_CONNECTION pConnection,
     PSMB_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
     );
 
 VOID

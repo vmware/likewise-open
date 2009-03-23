@@ -1,1 +1,4 @@
-SUBDIRS=lsa
+SUBDIRS=   \
+    rpcctl \
+    lsa    \
+    samr

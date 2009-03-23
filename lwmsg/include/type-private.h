@@ -46,62 +46,90 @@
 /* Iteration */
 typedef struct LWMsgTypeIter
 {
+    /* Source type spec */
     LWMsgTypeSpec* spec;
+    /* Kind of type */
     LWMsgKind kind;
+    /* Offset of member when in structure, or 0 */
     size_t offset;
+    /* Size of type */
     size_t size;
+    /* Tag of arm when in union, or 0 */
     intmax_t tag;
 
+    /* User verification function */
     LWMsgVerifyFunction verify;
+    /* User verification data */
     void* verify_data;
-
+    /* Generic (public) type attributes */
     LWMsgTypeAttrs attrs;
 
+    /* Union of type-specific informatin */
     union
     {
+        /* Integer types */
         struct
         {
             size_t width;
             LWMsgSignage sign;
         } kind_integer;
+        /* Compound (struct, union) types */
         struct
         {
+            /* Discriminator offset and size for union types */
             struct
             {
                 size_t offset;
                 size_t size;
             } discrim;
         } kind_compound;
+        /* Indirect (pointer, array) types */
         struct
         {
+            /* Termination strategy */
             LWMsgArrayTermination term;
+            /* Union of termination info */
             union
             {
+                /* Offset and size of correlated length member */
                 struct
                 {
                     size_t offset;
                     size_t size;
                 } member;
+                /* Static length of array */
                 size_t static_length;
             } term_info;
+            /* Character encoding if array represents a text string */
+            const char* encoding;
         } kind_indirect;
+        /* Custom types */
         struct
         {
+            /* Custom type class structure */
             LWMsgCustomTypeClass* typeclass;
+            /* Per-instance data pointer (passed to methods in type class) */
             void* typedata;
         } kind_custom;
     } info;
 
+    /* Start of inner type definition (e.g. contents of struct type) */
     LWMsgTypeSpec* inner;
+    /* Start of next type definition (e.g. next member within a struct) */
     LWMsgTypeSpec* next;
+    /* Most recent dominating object in memory.  This is used to track
+       the structure where correlated length members/discriminators should
+       be looked up for the current type */
     unsigned char* dom_object;
 
+    /* Optional metadata - name of C type and struct/union member */
     struct
     {
         const char* type_name;
         const char* member_name;
     } meta;
 
+    /* Optional debug info - file and line number where type appears */
     struct
     {
         const char* file;
@@ -214,6 +242,14 @@ lwmsg_type_verify_range(
     LWMsgTypeIter* iter,
     void* object,
     size_t object_size
+    );
+
+LWMsgStatus
+lwmsg_type_calculate_indirect_metrics(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    size_t* count,
+    size_t* element_size
     );
 
 #endif

@@ -49,7 +49,7 @@ typedef struct _TABLE_ENTRY
 static
 PTABLE_ENTRY
 LwNtLookupCode(
-    NTSTATUS code
+    IN NTSTATUS code
     );
 
 #define NTSTATUS_CODE(code, err, desc) { code, err, #code, desc },
@@ -63,7 +63,7 @@ TABLE_ENTRY LwNtStatusCodeTable[] =
 
 PCSTR
 LwNtStatusToSymbolicName(
-    NTSTATUS code
+    IN NTSTATUS code
     )
 {
     PTABLE_ENTRY pEntry = LwNtLookupCode(code);
@@ -80,7 +80,7 @@ LwNtStatusToSymbolicName(
 
 PCSTR
 LwNtStatusToDescription(
-    NTSTATUS code
+    IN NTSTATUS code
     )
 {
     PTABLE_ENTRY pEntry = LwNtLookupCode(code);
@@ -104,7 +104,7 @@ LwNtStatusToDescription(
 
 int
 LwNtStatusToUnixErrno(
-    NTSTATUS code
+    IN NTSTATUS code
     )
 {
     PTABLE_ENTRY pEntry = LwNtLookupCode(code);
@@ -122,7 +122,7 @@ LwNtStatusToUnixErrno(
 static
 PTABLE_ENTRY
 LwNtLookupCode(
-    NTSTATUS code
+    IN NTSTATUS code
     )
 {
     ULONG index;

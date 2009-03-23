@@ -293,22 +293,22 @@ IoSetQuotaInformationFile(
 
 NTSTATUS
 IoQuerySecurityFile(
-    IN IO_FILE_HANDLE  Handle,
+    IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     ); 
 
 NTSTATUS
 IoSetSecurityFile(
-    IN IO_FILE_HANDLE Handle,
+    IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     ); 
 
 // TODO: QueryEaFile and SetEaFile.

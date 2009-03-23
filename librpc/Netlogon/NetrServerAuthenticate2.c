@@ -75,6 +75,8 @@ NetrServerAuthenticate2(
     comp = wc16sdup(computer);
     goto_if_no_memory_ntstatus(comp, error);
 
+    flags = *neg_flags;
+
     DCERPC_CALL(status, _NetrServerAuthenticate2(b, srv, acc, sec_chan_type,
                                                  comp, &creds, &flags));
     goto_if_ntstatus_not_success(status, error);

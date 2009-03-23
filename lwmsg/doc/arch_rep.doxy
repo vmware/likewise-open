@@ -61,7 +61,7 @@ type aliases which may be reduced to combinations of core types.
 @subsection arch_rep_int Integers
 
 Integers are arbitrary-length integral values (although the length
-must be a multiple of 8 bytes).  They are encoded starting with the
+must be a multiple of 8 bits).  They are encoded starting with the
 most significant byte and ending with the least.  Integers may
 be signed or unsigned.  Signed integers are encoded using two's
 complement representation.
@@ -77,7 +77,7 @@ complement representation.
 Pointers represent a potentially-null reference to zero or more
 contiguous, homogenous elements of a particular type.
 If a pointer is not null, it must be unique -- that is, no two
-pointers in an encoded <tt>LWMsg</tt> octet stream share a referent.
+pointers in an encoded <tt>LWMsg</tt> octet stream can share a referent.
 
 There are three elements in the octet representation of a pointer:
 

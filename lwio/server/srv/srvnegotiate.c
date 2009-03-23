@@ -107,11 +107,14 @@ SrvProcessNegotiate(
     ULONG ulNumDialects = 128;
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
+    ULONG ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = UnmarshallNegotiateRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (uint8**)&pszDialectArray,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    (uint8_t**)&pszDialectArray,
                     &ulNumDialects);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -122,6 +125,8 @@ SrvProcessNegotiate(
                     ulNumDialects,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_NEGOTIATE);
 
     *ppSmbResponse = pSmbResponse;
 
@@ -294,10 +299,10 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
                 COM_NEGOTIATE,
                 0,
                 TRUE,
-                0,
                 pSmbRequest->pSMBHeader->tid,
                 pSmbRequest->pSMBHeader->pid,
                 0,
+                pSmbRequest->pSMBHeader->mid,
                 FALSE,
                 pPacket);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -375,6 +380,11 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
             pDataCursor += ulSessionKeyLength;
             byteCount += ulSessionKeyLength;
         }
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pResponseHeader->byteCount = byteCount;

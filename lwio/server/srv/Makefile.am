@@ -11,11 +11,9 @@ libsrv_sys_la_SOURCES = \
     findclose2.c      \
     findfirst2.c      \
     findnext2.c       \
-    flush.c           \
     globals.c         \
     hostinfo.c        \
     listener.c        \
-    lockX.c           \
     prodcons.c        \
     reader.c          \
     rename.c          \
@@ -24,6 +22,7 @@ libsrv_sys_la_SOURCES = \
     srvccb.c          \
     srvconnection.c   \
     srvcontext.c      \
+    srvdelete.c       \
     srvdevice.c       \
     srvdeviceclose.c  \
     srvdevicecreate.c \
@@ -31,9 +30,13 @@ libsrv_sys_la_SOURCES = \
     srvecho.c         \
     srvfile.c         \
     srvfinder.c       \
+    srvflush.c        \
     srvgss.c          \
+    srvlockx.c        \
     srvlogoff.c       \
     srvnegotiate.c    \
+    srvnttransact.c   \
+    srvopenX.c        \
     srvpath.c         \
     srvpipeinfo.c     \
     srvread.c         \
@@ -46,6 +49,7 @@ libsrv_sys_la_SOURCES = \
     srvtcon.c         \
     srvtdiscon.c      \
     srvtree.c         \
+    srvworker.c       \
     srvwrite.c        \
     srvwritex.c       \
     trans.c           \
@@ -55,8 +59,7 @@ libsrv_sys_la_SOURCES = \
     trans2qpi.c       \
     trans2sfi.c       \
     trans2spi.c       \
-    transcreate.c     \
-    worker.c
+    transcreate.c
 
 libsrv_sys_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

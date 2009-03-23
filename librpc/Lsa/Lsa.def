@@ -1,8 +1,0 @@
-LIBRARY	"Lsa"
-
-EXPORTS
-LsaClose
-
-IsLsaBindingReady
-InitLsaBindingDefault
-FreeLsaBinding

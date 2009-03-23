@@ -76,13 +76,6 @@ LsaSrvOpenSession(
                                         hProvider,
                                         pszLoginId);
         if (!dwError) {
-
-           if (LsaSrvEventlogEnabled()){
-                  LsaSrvWriteLoginSuccessEvent(hServer,
-                                               pszLoginId,
-                                               dwError);
-           }
-
            break;
 
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
@@ -94,7 +87,6 @@ LsaSrvOpenSession(
             continue;
 
         } else {
-
             BAIL_ON_LSA_ERROR(dwError);
 
         }
@@ -122,12 +114,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (LsaSrvEventlogEnabled()){
-            LsaSrvWriteLoginFailedEvent(hServer,
-                                        pszLoginId,
-                                        dwError);
-    }
 
     goto cleanup;
 }
@@ -164,8 +150,8 @@ LsaSrvCloseSession(
 
             if (LsaSrvEventlogEnabled()){
                     LsaSrvWriteLogoutSuccessEvent(hServer,
-                                                  pszLoginId,
-                                                  dwError);
+                                                  pProvider->pszName,
+                                                  pszLoginId);
             }
 
            break;
@@ -207,12 +193,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (LsaSrvEventlogEnabled()){
-            LsaSrvWriteLogoutFailedEvent(hServer,
-                                         pszLoginId,
-                                         dwError);
-    }
 
     goto cleanup;
 }

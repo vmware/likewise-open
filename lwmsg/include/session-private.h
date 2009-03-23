@@ -94,11 +94,24 @@ lwmsg_session_manager_remap_handle (
     );
 
 LWMsgStatus
-lwmsg_session_manager_unregister_handle (
+lwmsg_session_manager_unregister_handle(
     LWMsgSessionManager* manager,
     LWMsgSession* session,
-    void* ptr,
-    LWMsgBool do_cleanup
+    void* ptr
+    );
+
+LWMsgStatus
+lwmsg_session_manager_retain_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
+    );
+
+LWMsgStatus
+lwmsg_session_manager_release_handle (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* ptr
     );
 
 LWMsgStatus

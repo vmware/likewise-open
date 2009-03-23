@@ -46,9 +46,11 @@
  */
 #include "api.h"
 
+
 VOID
 LsaSrvWriteLoginSuccessEvent(
     HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     )
@@ -56,6 +58,7 @@ LsaSrvWriteLoginSuccessEvent(
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PSTR pszData = NULL;
+    PSTR pszDescription = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
     {
@@ -65,6 +68,15 @@ LsaSrvWriteLoginSuccessEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Successful Logon:\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     User Name:               %s",
+                 pszProvider,
+                 pszLoginId);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
@@ -72,14 +84,17 @@ LsaSrvWriteLoginSuccessEvent(
 
     dwError = LsaSrvLogSuccessAuditEvent(
                      pServerState->hEventLog,
-                     LOGIN_EVENT_CATEGORY,
+                     LSASS_EVENT_SUCCESSFUL_LOGON,
                      pszLoginId,
+                     LOGIN_LOGOFF_EVENT_CATEGORY,
+                     pszDescription,
                      pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszData);
+    LSA_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -94,13 +109,17 @@ error:
 VOID
 LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    char  szReason[256] = {0};
     PSTR  pszData = NULL;
+    DWORD dwEventID = 0;
+    PSTR  pszDescription = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
     {
@@ -110,6 +129,76 @@ LsaSrvWriteLoginFailedEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    switch(dwErrCode)
+    {
+        case LSA_ERROR_NO_SUCH_USER:
+        case LSA_ERROR_INVALID_PASSWORD:
+        case LSA_ERROR_PASSWORD_MISMATCH:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_UNKNOWN_USERNAME_OR_BAD_PASSWORD;
+            strcpy(szReason, "Unknown username or bad password");
+            break;
+
+/* Not yet supported, MIT Kerberos needs to return a specific error for these conditions ...
+        case LSA_ERROR_XYZ:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_TIME_RESTRICTION_VIOLATION;
+            strcpy(szReason, "Account logon time restriction violation");
+            break;
+*/
+
+        case LSA_ERROR_ACCOUNT_DISABLED:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_DISABLED;
+            strcpy(szReason, "Account currently disabled");
+            break;
+
+        case LSA_ERROR_ACCOUNT_EXPIRED:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_EXPIRED;
+            strcpy(szReason, "The specified user account has expired");
+            break;
+
+/* Not yet supported, MIT Kerberos needs to return a specific error for these conditions ...
+        case LSA_ERROR_XYZ:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_MACHINE_RESTRICTION_VIOLATION;
+            strcpy(szReason, "User not allowed to logon at this computer");
+            break;
+
+        case LSA_ERROR_XYZ:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_TYPE_OF_LOGON_NOT_GRANTED;
+            strcpy(szReason, "The user has not been granted the requested logon type at this machine");
+            break;
+*/
+
+        case LSA_ERROR_PASSWORD_EXPIRED:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_PASSWORD_EXPIRED;
+            strcpy(szReason, "The specified account's password has expired");
+            break;
+
+        case LSA_ERROR_INVALID_NETLOGON_RESPONSE:
+        case LSA_ERROR_RPC_NETLOGON_FAILED:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED;
+            strcpy(szReason, "The NetLogon component is not active");
+            break;
+
+        case LSA_ERROR_ACCOUNT_LOCKED:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED;
+            strcpy(szReason, "Account locked out");
+            break;
+
+        default:
+            dwEventID = LSASS_EVENT_FAILED_LOGON_UNEXPECTED_ERROR;
+            strcpy(szReason, "An unexpected error occurred");
+    }
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Logon Failure:\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Reason:                  %s\r\n" \
+                 "     User Name:               %s",
+                 pszProvider,
+                 szReason,
+                 pszLoginId);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
@@ -117,14 +206,17 @@ LsaSrvWriteLoginFailedEvent(
 
     dwError = LsaSrvLogFailureAuditEvent(
                      pServerState->hEventLog,
-                     LOGIN_EVENT_CATEGORY,
+                     dwEventID,
                      pszLoginId,
+                     LOGIN_LOGOFF_EVENT_CATEGORY,
+                     pszDescription,
                      pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszData);
+    LSA_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -139,13 +231,13 @@ error:
 VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
-    PCSTR  pszLoginId,
-    DWORD  dwErrCode
+    PCSTR  pszProvider,
+    PCSTR  pszLoginId
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
-    PSTR pszData = NULL;
+    PSTR pszDescription = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
     {
@@ -155,21 +247,27 @@ LsaSrvWriteLogoutSuccessEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaGetErrorMessageForLoggingEvent(
-                     dwErrCode,
-                     &pszData);
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "User Logoff:\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     User Name:               %s",
+                 pszProvider,
+                 pszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvLogSuccessAuditEvent(
                      pServerState->hEventLog,
-                     LOGOUT_EVENT_CATEGORY,
+                     LSASS_EVENT_SUCCESSFUL_LOGOFF,
                      pszLoginId,
-                     pszData);
+                     LOGIN_LOGOFF_EVENT_CATEGORY,
+                     pszDescription,
+                     NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszData);
+    LSA_SAFE_FREE_STRING(pszDescription);
 
     return;
 
@@ -182,14 +280,67 @@ error:
 }
 
 VOID
-LsaSrvWriteLogoutFailedEvent(
+LsaSrvWriteUserPWChangeSuccessEvent(
     HANDLE hServer,
+    PCSTR  pszProvider,
+    PCSTR  pszLoginId
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PSTR pszDescription = NULL;
+
+    if (pServerState->hEventLog == (HANDLE)NULL)
+    {
+        dwError = LsaSrvOpenEventLog(
+                      "Security",
+                      &pServerState->hEventLog);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Change Password Attempt:\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Target Account Name:     %s",
+                 pszProvider,
+                 LSA_SAFE_LOG_STRING(pszLoginId));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvLogSuccessAuditEvent(
+                  pServerState->hEventLog,
+                  LSASS_EVENT_SUCCESSFUL_PASSWORD_CHANGE,
+                  pszLoginId,
+                  PASSWORD_EVENT_CATEGORY,
+                  pszDescription,
+                  NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    LSA_LOG_ERROR("Failed to post user password change success event.");
+    LSA_LOG_ERROR("Error code: [%d]", dwError);
+
+    goto cleanup;
+}
+
+VOID
+LsaSrvWriteUserPWChangeFailureEvent(
+    HANDLE hServer,
+    PCSTR  pszProvider,
     PCSTR  pszLoginId,
     DWORD  dwErrCode
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
     if (pServerState->hEventLog == (HANDLE)NULL)
@@ -200,28 +351,42 @@ LsaSrvWriteLogoutFailedEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Change Password Attempt:\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Target Account Name:     %s",
+                 pszProvider,
+                 LSA_SAFE_LOG_STRING(pszLoginId));
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                      dwErrCode,
                      &pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvLogFailureAuditEvent(
-                     pServerState->hEventLog,
-                     LOGOUT_EVENT_CATEGORY,
-                     pszLoginId,
-                     pszData);
+                  pServerState->hEventLog,
+                  LSASS_EVENT_FAILED_PASSWORD_CHANGE,
+                  pszLoginId,
+                  PASSWORD_EVENT_CATEGORY,
+                  pszDescription,
+                  pszData);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
+    LSA_SAFE_FREE_STRING(pszDescription);
     LSA_SAFE_FREE_STRING(pszData);
 
     return;
 
 error:
 
-    LSA_LOG_ERROR("Failed to post logout failure event for [%s]", LSA_SAFE_LOG_STRING(pszLoginId));
+    LSA_LOG_ERROR("Failed to post user password change failed event.");
     LSA_LOG_ERROR("Error code: [%d]", dwError);
 
     goto cleanup;
 }
+
+

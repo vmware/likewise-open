@@ -9,6 +9,7 @@
 
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
 
+static
 int
 fserv_check_permissions(LWMsgAssoc* assoc, const char* path, OpenMode mode)
 {
@@ -93,6 +94,22 @@ error:
     return ret;
 }
 
+static
+void
+fserv_free_handle(
+    void* _handle
+    )
+{
+    FileHandle* handle = _handle;
+
+    if (handle->fd >= 0)
+    {
+        close(handle->fd);
+    }
+
+    free(handle);
+}
+
 static LWMsgStatus
 fserv_open_srv(
     LWMsgAssoc* assoc,
@@ -122,8 +139,9 @@ fserv_open_srv(
             status = LWMSG_STATUS_MEMORY;
             goto error;
         }
-        
+
         sreply->err = ret;
+
         out->tag = FSERV_OPEN_FAILED;
         out->object = (void*) sreply;
     }
@@ -164,13 +182,24 @@ fserv_open_srv(
             handle->fd = fd;
             handle->mode = req->mode;
             
+            status = lwmsg_assoc_register_handle(assoc, "FileHandle", handle, fserv_free_handle);
+            if (status)
+            {
+                goto error;
+            }
+
             out->tag = FSERV_OPEN_SUCCESS;
             out->object = (void*) handle;
+            handle = NULL;
+
+            status = lwmsg_assoc_retain_handle(assoc, out->object);
+            if (status)
+            {
+                goto error;
+            }
 
             LOG("Successfully opened %s as fd %i for association %p\n",
                 req->path, fd, assoc);
-
-            lwmsg_assoc_register_handle(assoc, "FileHandle", handle, free);
         }
         else
         {
@@ -189,6 +218,11 @@ fserv_open_srv(
     }
 
 error:
+
+    if (handle)
+    {
+        fserv_free_handle(handle);
+    }
 
     return status;
 }
@@ -331,6 +365,13 @@ fserv_close_srv(
         status = LWMSG_STATUS_MEMORY;
         goto error;
     }
+
+    /* Unregister the handle no matter what */
+    status = lwmsg_assoc_release_handle(assoc, handle);
+    if (status)
+    {
+        goto error;
+    }
     
     if (close(handle->fd) == -1)
     {
@@ -343,7 +384,6 @@ fserv_close_srv(
         sreply->err = 0;
         out->tag = FSERV_CLOSE_SUCCESS;
         out->object = sreply;       
-        lwmsg_assoc_unregister_handle(assoc, handle, LWMSG_TRUE);
     }
 
 error:

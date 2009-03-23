@@ -16,9 +16,6 @@ liblsa_la_SOURCES = \
 	LsaLookupSids.c \
 	LsaQueryInfoPolicy.c \
 	LsaQueryInfoPolicy2.c
-	globals.c LsaBinding.c LsaMemory.c LsaStubMemory.c \
-	LsaOpenPolicy2.c LsaClose.c LsaLookupNames.c LsaLookupNames2.c \
-	LsaLookupSids.c LsaQueryInfoPolicy.c LsaQueryInfoPolicy2.c
 
 liblsa_cs_la_SOURCES = lsa_cstub.c
 

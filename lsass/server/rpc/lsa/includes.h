@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -36,22 +36,27 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <pthread.h>
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
 #include <lw/ntstatus.h>
+#include <lwrpc/allocate.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 
-#include "lsa/lsa.h"
-#include "lsarpcsrv.h"
+#include <lsa/lsa.h>
+#include <lsarpcsrv.h>
+#include <rpcctl-register.h>
 
 #include "lsa_srv.h"
-#include "lsa_stub.h"
+#include "lsadefs.h"
+#include "lsa_contexthandle.h"
+#include "lsa_memory.h"
 #include "lsa.h"
+#include "lsa_h.h"
 
 #include "externs.h"
 

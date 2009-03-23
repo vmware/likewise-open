@@ -41,7 +41,7 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Common macros for error checking, etc....
+ *        Common macros for error checking, etc....
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -91,13 +91,21 @@
         }                                       \
     } while (0);
 
+#define PVFS_PTR_DIFF(old,new)  ((size_t)((new)-(old)))
 
 #define PVFS_IS_DIR(pCcb)       \
     (((pCcb)->CreateOptions & FILE_DIRECTORY_FILE) == FILE_DIRECTORY_FILE)
 
+#define PVFS_CSTRING_NON_NULL(s)    ((s) && (*(s)))
 
 #define ENTER_MUTEX(pMutex)  pthread_mutex_lock(pMutex)
 #define LEAVE_MUTEX(pMutex)  pthread_mutex_unlock(pMutex)
+
+#define ENTER_READER_RW_LOCK(pMutex) pthread_rwlock_rdlock(pMutex)
+#define LEAVE_READER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
+
+#define ENTER_WRITER_RW_LOCK(pMutex) pthread_rwlock_wrlock(pMutex)
+#define LEAVE_WRITER_RW_LOCK(pMutex) pthread_rwlock_unlock(pMutex)
 
 #endif    /* _PVFS_MACROS_H */
 

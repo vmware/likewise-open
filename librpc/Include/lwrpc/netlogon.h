@@ -41,9 +41,10 @@
 #include <lwrpc/netrdefs.h>
 #include <lwrpc/mpr.h>
 
-handle_t
-OpenSchannel(
-    handle_t netr_b,
+
+NTSTATUS
+NetrOpenSchannel(
+    handle_t binding_handle,
     const wchar16_t * pwszMachineAccount,
     const wchar16_t * pwszHostname,
     const wchar16_t * pwszServer,
@@ -51,13 +52,13 @@ OpenSchannel(
     const wchar16_t * pwszComputer,
     const wchar16_t * pwszMachinePassword,
     NetrCredentials *Creds,
-    NETRESOURCE *SchanRes
+    handle_t *schannel_binding
     );
 
+
 void
-CloseSchannel(
-    handle_t schn_b,
-    NETRESOURCE *schnr
+NetrCloseSchannel(
+    handle_t schannel_binding
     );
 
 
@@ -70,7 +71,7 @@ NetrCredentialsCorrect(
 
 NTSTATUS
 NetrServerReqChallenge(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     const wchar16_t *computer,
     uint8 cli_challenge[8],
@@ -80,7 +81,7 @@ NetrServerReqChallenge(
 
 NTSTATUS
 NetrServerAuthenticate(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     const wchar16_t *account,
     uint16 sec_chan_type,
@@ -92,7 +93,7 @@ NetrServerAuthenticate(
 
 NTSTATUS
 NetrServerAuthenticate2(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     const wchar16_t *account,
     uint16 sec_chan_type,
@@ -105,7 +106,7 @@ NetrServerAuthenticate2(
 
 NTSTATUS
 NetrServerAuthenticate3(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     const wchar16_t *account,
     uint16 sec_chan_type,
@@ -117,8 +118,20 @@ NetrServerAuthenticate3(
     );
 
 
+NTSTATUS
+NetrGetDomainInfo(
+    handle_t schannel_binding,
+    NetrCredentials *creds,
+    const wchar16_t *server,
+    const wchar16_t *computer,
+    uint32 level,
+    NetrDomainQuery *query,
+    NetrDomainInfo **out_info
+    );
+
+
 NTSTATUS NetrSamLogonInteractive(
-    handle_t b,
+    handle_t schannel_binding,
     NetrCredentials *creds,
     const wchar16_t *server,
     const wchar16_t *domain,
@@ -131,7 +144,7 @@ NTSTATUS NetrSamLogonInteractive(
     );
 
 NTSTATUS NetrSamLogonNetwork(
-    handle_t b,
+    handle_t schannel_binding,
     NetrCredentials *creds,
     const wchar16_t *server,
     const wchar16_t *domain,
@@ -148,7 +161,7 @@ NTSTATUS NetrSamLogonNetwork(
 
 NTSTATUS
 NetrSamLogoff(
-    handle_t b,
+    handle_t schannel_binding,
     NetrCredentials *creds,
     const wchar16_t *server,
     const wchar16_t *domain,
@@ -160,7 +173,7 @@ NetrSamLogoff(
 
 
 NTSTATUS NetrSamLogonEx(
-    handle_t b,
+    handle_t schannel_binding,
     const wchar16_t *server,
     const wchar16_t *domain,
     const wchar16_t *computer,
@@ -175,7 +188,7 @@ NTSTATUS NetrSamLogonEx(
 
 NTSTATUS
 NetrEnumerateTrustedDomainsEx(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     NetrDomainTrust **trusts,
     uint32 *count
@@ -184,7 +197,7 @@ NetrEnumerateTrustedDomainsEx(
 
 WINERR
 DsrEnumerateDomainTrusts(
-    handle_t b,
+    handle_t binding_handle,
     const wchar16_t *server,
     uint32 flags,
     NetrDomainTrust **trusts,

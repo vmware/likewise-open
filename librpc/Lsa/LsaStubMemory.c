@@ -83,7 +83,7 @@ LsaCleanStubRefDomainList(
         LsaDomainInfo *ptr = &(r->domains[i]);
 
         FreeUnicodeStringEx(&ptr->name);
-        if (ptr->sid) SidFree(ptr->sid);
+        if (ptr->sid) MsRpcFreeSid(ptr->sid);
     }
 
     free(r->domains);

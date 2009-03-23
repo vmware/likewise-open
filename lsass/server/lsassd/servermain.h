@@ -168,6 +168,16 @@ LsaSrvSetProcessToExit(
     );
 
 VOID
+LsaSrvLogProcessStartedEvent(
+    VOID
+    );
+
+VOID
+LsaSrvLogProcessStoppedEvent(
+    DWORD dwExitCode
+    );
+
+VOID
 LsaSrvLogProcessFailureEvent(
     DWORD dwErrCode
     );

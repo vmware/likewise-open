@@ -49,6 +49,12 @@ pthread_mutex_t g_netapi_data_mutex = PTHREAD_MUTEX_INITIALIZER;
 int bNetApiInitialised = 0;
 
 
+const wchar16_t null_char = 0;
+const wchar16_t *null_string = &null_char;
+
+NetConnList *conn_list = NULL;
+
+
 /*
 local variables:
 mode: c

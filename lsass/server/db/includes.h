@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -52,7 +52,6 @@
 #include <sqlite3.h>
 #include "lsautils.h"
 #include <uuid/uuid.h>
-#include <secdesc/secdesc.h>
 #include <eventlog.h>
 #include "lsasrvutils.h"
 

@@ -59,20 +59,28 @@ typedef struct _RDR_IRP_CONTEXT
 
 } RDR_IRP_CONTEXT, *PRDR_IRP_CONTEXT;
 
+typedef enum _RDR_SOCKET_STATE
+{
+    RDR_SOCKET_STATE_NOT_READY,
+    RDR_SOCKET_STATE_CONNECTING,
+    RDR_SOCKET_STATE_NEGOTIATING,
+    RDR_SOCKET_STATE_READY,
+    RDR_SOCKET_STATE_TEARDOWN,
+    RDR_SOCKET_STATE_ERROR
+} RDR_SOCKET_STATE;
+
 typedef struct
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
-    SMB_RESOURCE_STATE state;   /* valid, invalid, etc. */
-    SMB_ERROR_BUNDLE error;
+    RDR_SOCKET_STATE state;
+    NTSTATUS error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
 
     time_t  lastActiveTime;     /* Checked by the reaper thread and message
                                    handler threads; set when new data is
                                    received */
-
-    pthread_mutex_t writeMutex; /* Serializes messages of concurrent writers */
 
     int fd;
     PSTR pszHostname;           /* For hashing and for GSS */
@@ -87,18 +95,14 @@ typedef struct
 
     PLWIO_PACKET_ALLOCATOR hPacketAllocator;
 
-    pthread_rwlock_t hashLock;  /* Locks the session hashes */
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
 
     pthread_t readerThread;     /* Single reader */
 
-    pthread_mutex_t sessionMutex;    /* Only one session setup can be
-                                        outstanding at a time; not needed
-                                        for negotiate */
     PSMB_PACKET    pSessionPacket; /* To store packets without a UID
                                          (Negotiate and Session Setup) */
-    pthread_cond_t sessionEvent;  /* Signals waiting thread on setup packet */
+    BOOLEAN bSessionSetupInProgress;
 
     uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
     LSMB_SEMAPHORE semMpx;
@@ -116,12 +120,21 @@ typedef struct
 
 } SMB_SOCKET, *PSMB_SOCKET;
 
+typedef enum _RDR_SESSION_STATE
+{
+    RDR_SESSION_STATE_NOT_READY,
+    RDR_SESSION_STATE_INITIALIZING,
+    RDR_SESSION_STATE_READY,
+    RDR_SESSION_STATE_TEARDOWN,
+    RDR_SESSION_STATE_ERROR
+} RDR_SESSION_STATE;
+
 typedef struct
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
-    SMB_RESOURCE_STATE state;   /* Session state : valid, invalid, etc */
-    SMB_ERROR_BUNDLE error;
+    RDR_SESSION_STATE state;    /* Session state : valid, invalid, etc */
+    NTSTATUS error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
 
@@ -132,7 +145,6 @@ typedef struct
     uint16_t uid;
     PSTR pszPrincipal;          /* Client principal name, for hashing */
 
-    pthread_rwlock_t hashLock;  /* Locks the hashes */
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
     SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
 
@@ -142,12 +154,9 @@ typedef struct
                                    could be a list of free MIDs from a custom
                                    allocator. */
 
-    pthread_mutex_t treeMutex;  /* Only one Tree Connect or disconnect can be
-                                   outstanding at a time */
-
     PSMB_PACKET  pTreePacket;   /* To store packets without a
                                        TID (Tree Connect) or disconnects */
-    pthread_cond_t treeEvent;   /* Signals waiting thread on tree packet */
+    BOOLEAN bTreeConnectInProgress;
 
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
@@ -155,14 +164,23 @@ typedef struct
     /* @todo: store max mux, enforce.  Per session, per tree, or global? */
 } SMB_SESSION, *PSMB_SESSION;
 
+typedef enum _RDR_TREE_STATE
+{
+    RDR_TREE_STATE_NOT_READY,
+    RDR_TREE_STATE_INITIALIZING,
+    RDR_TREE_STATE_READY,
+    RDR_TREE_STATE_TEARDOWN,
+    RDR_TREE_STATE_ERROR
+} RDR_TREE_STATE;
+
 typedef struct
 {
     pthread_mutex_t mutex;      /* Locks both the structure and the hash */
                                 /* responses are inserted and removed so often
                                    that a RW lock is probably overkill.*/
 
-    SMB_RESOURCE_STATE state;   /* Tree state: valid, invalid, etc. */
-    SMB_ERROR_BUNDLE error;
+    RDR_TREE_STATE state;   /* Tree state: valid, invalid, etc. */
+    NTSTATUS error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
 
@@ -183,7 +201,7 @@ typedef struct
        state required to continue an operation. */
     pthread_mutex_t mutex;      /* Locks the structure */
     SMB_RESOURCE_STATE state;   /* Response state: valid, invalid, etc. */
-    SMB_ERROR_BUNDLE error;
+    NTSTATUS error;
     pthread_cond_t event;
 
     /* No refcount: the lifetime of a response is always managed by the
@@ -201,15 +219,29 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
     pthread_mutex_t     mutex;
     pthread_mutex_t*    pMutex;
 
+    /* FIXME: what are these doing in here? */
     PSTR      pszPrincipal;
     PSTR      pszCachePath;
+
+    PWSTR     pwszPath;
 
     PSMB_TREE pTree;
 
     uint16_t  fid;
-
     uint64_t  llOffset;
 
+    struct
+    {
+        USHORT         usSearchId;
+        USHORT         usSearchCount;
+        USHORT         usLastNameOffset;
+        USHORT         usEndOfSearch;
+        SMB_INFO_LEVEL infoLevel;
+        PBYTE          pBuffer;
+        PBYTE          pCursor;
+        ULONG          ulBufferCapacity;
+        ULONG          ulBufferLength;
+    } find;
 } SMB_CLIENT_FILE_HANDLE, *PSMB_CLIENT_FILE_HANDLE;
 
 typedef struct _RDR_CONFIG
@@ -221,16 +253,15 @@ typedef struct _RDR_CONFIG
 typedef struct _RDR_GLOBAL_RUNTIME
 {
     RDR_CONFIG        config;
-
     SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
-    SMB_HASH_TABLE   *pSocketHashByAddress; /* Socket hash by address */
-    pthread_rwlock_t  socketHashLock;       /* Protects both hashes */
-    pthread_rwlock_t* pSocketHashLock;
-
-    PSMB_STACK        pReaperStack;         /* Stack of reapers */
-
+    pthread_mutex_t   socketHashLock;
     PLWIO_PACKET_ALLOCATOR hPacketAllocator;
-
+    BOOLEAN bShutdown;
+    pthread_mutex_t   reaperMutex;
+    pthread_cond_t    reaperEvent;
+    pthread_t reaperThread;
+    time_t expirationTime;
+    time_t nextWakeupTime;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

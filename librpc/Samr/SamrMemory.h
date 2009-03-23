@@ -71,15 +71,15 @@ SamrAllocateIds(
 
 NTSTATUS
 SamrAllocateDomSid(
-    DomSid **out,
-    DomSid *in,
+    PSID* out,
+    PSID in,
     void *dep
     );
 
 
 NTSTATUS
 SamrAllocateSids(
-    DomSid ***out,
+    PSID** out,
     SidArray *in
     );
 

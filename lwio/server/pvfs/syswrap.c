@@ -204,7 +204,7 @@ error:
 
 NTSTATUS
 PvfsSysOpenDir(
-    PSTR pszDirname,
+    PCSTR pszDirname,
     DIR **ppDir
     )
 {
@@ -618,6 +618,62 @@ error:
     goto cleanup;
 }
 
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysRename(
+    PCSTR pszOldname,
+    PCSTR pszNewname
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    int unixerr = 0;
+
+    if (rename(pszOldname, pszNewname) == -1 ) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysFsync(
+    PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+#if defined(HAVE_FDATASYNC)
+    if (fdatasync(pCcb->fd) == -1 ) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+#elif defined(HAVE_FSYNC)
+    if (fsync(pCcb->fd) == -1 ) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+#else
+    ntError = STATUS_NOT_SUPPORTED;
+    BAIL_ON_NT_STATUS(ntError);
+#endif
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:

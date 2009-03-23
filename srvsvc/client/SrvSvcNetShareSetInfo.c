@@ -30,13 +30,6 @@
 
 #include "includes.h"
 
-
-NET_API_STATUS SecurityDescriptorToBuffer(
-    const PSECURITY_DESCRIPTOR security_descriptor,
-    uint8 **bufptr,
-    uint32 *buflen
-    );
-
 NET_API_STATUS NetShareSetInfo(
     handle_t b,
     const wchar16_t *servername,
@@ -71,7 +64,15 @@ NET_API_STATUS NetShareSetInfo(
     case 502:
         buf502 = (PSHARE_INFO_502)bufptr;
 
-        if (buf502) {
+        if (buf502)
+        {
+            if ((buf502->shi502_security_descriptor && !buf502->shi502_reserved) ||
+                (!buf502->shi502_security_descriptor && buf502->shi502_reserved))
+            {
+                status = ERROR_INVALID_PARAMETER;
+                goto done;
+            }
+
             info502.shi502_netname             = buf502->shi502_netname;
             info502.shi502_type                = buf502->shi502_type;
             info502.shi502_remark              = buf502->shi502_remark;
@@ -80,12 +81,9 @@ NET_API_STATUS NetShareSetInfo(
             info502.shi502_current_uses        = buf502->shi502_current_uses;
             info502.shi502_path                = buf502->shi502_path;
             info502.shi502_password            = buf502->shi502_password;
-            status = SecurityDescriptorToBuffer(buf502->shi502_security_descriptor,
-                                                &info502.shi502_security_descriptor,
-                                                &info502.shi502_reserved);
-            goto_if_err_not_success(status, done);
+            info502.shi502_reserved            = buf502->shi502_reserved;
+            info502.shi502_security_descriptor = buf502->shi502_security_descriptor;
 
-            sdbuf = info502.shi502_security_descriptor;
             info.info502 = &info502;
         }
         break;
@@ -101,13 +99,18 @@ NET_API_STATUS NetShareSetInfo(
     case 1501:
         buf1501 = (PSHARE_INFO_1501)bufptr;
 
-        if (buf1501) {
-            status = SecurityDescriptorToBuffer(buf1501->shi1501_security_descriptor,
-                                                &info1501.shi1501_security_descriptor,
-                                                &info1501.shi1501_reserved);
-            goto_if_err_not_success(status, done);
+        if (buf1501)
+        {
+            if ((buf1501->shi1501_security_descriptor && !buf1501->shi1501_reserved) ||
+                (!buf1501->shi1501_security_descriptor && buf1501->shi1501_reserved))
+            {
+                status = ERROR_INVALID_PARAMETER;
+                goto done;
+            }
 
-            sdbuf = info1501.shi1501_security_descriptor;
+            info1501.shi1501_reserved            = buf1501->shi1501_reserved;
+            info1501.shi1501_security_descriptor = buf1501->shi1501_security_descriptor;
+
             info.info1501 = &info1501;
         }
         break;

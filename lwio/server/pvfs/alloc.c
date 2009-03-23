@@ -51,31 +51,19 @@
 
 NTSTATUS
 PvfsAllocateMemory(
-    IN OUT PVOID *ppBuffer,
+    OUT PVOID *ppBuffer,
     IN DWORD dwSize
     )
 {
-    NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
-    PVOID pBuffer = NULL;
-
-    *ppBuffer = NULL;
-
     /* No op */
-
     if (dwSize == 0)
     {
+        *ppBuffer = NULL;
         return STATUS_SUCCESS;
     }
 
     /* Real work */
-
-    if ((pBuffer = RtlMemoryAllocate(dwSize)) != NULL)
-    {
-        *ppBuffer = pBuffer;
-        ntError = STATUS_SUCCESS;
-    }
-
-    return ntError;
+    return RTL_ALLOCATE(ppBuffer, VOID, dwSize);
 }
 
 

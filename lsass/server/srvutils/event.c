@@ -53,12 +53,12 @@ LsaSrvOpenEventLog(
     )
 {
     return LWIOpenEventLogEx(
-                  NULL,
-                  pszCategoryType,
-                  "Likewise LSASS",
-                  0x8000,
-                  "lsassd",
-                  NULL,
+                  NULL,             // Server name (defaults to local computer eventlogd)
+                  pszCategoryType,  // Table Category ID (Security, System, ...)
+                  "Likewise LSASS", // Source
+                  0,                // Source Event ID
+                  "SYSTEM",         // User
+                  NULL,             // Computer (defaults to assigning local hostname)
                   phEventLog);
 }
 
@@ -73,85 +73,151 @@ LsaSrvCloseEventLog(
 DWORD
 LsaSrvLogInformationEvent(
     HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
     PCSTR  pszCategory,
     PCSTR  pszDescription,
     PCSTR  pszData
     )
 {
-    return LWIWriteEventLog(
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = INFORMATION_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
                    hEventLog,
-                   INFORMATION_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription,
-                   pszData);
+                   event);
 }
 
 DWORD
 LsaSrvLogWarningEvent(
     HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
     PCSTR  pszCategory,
     PCSTR  pszDescription,
     PCSTR  pszData
     )
 {
-    return LWIWriteEventLog(
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = WARNING_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
                    hEventLog,
-                   WARNING_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription,
-                   pszData);
+                   event);
 }
 
 DWORD
 LsaSrvLogErrorEvent(
     HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
     PCSTR  pszCategory,
     PCSTR  pszDescription,
     PCSTR  pszData
     )
 {
-    return LWIWriteEventLog(
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = ERROR_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
                    hEventLog,
-                   ERROR_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription,
-                   pszData);
+                   event);
 }
 
 DWORD
 LsaSrvLogSuccessAuditEvent(
     HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
     PCSTR  pszCategory,
     PCSTR  pszDescription,
     PCSTR  pszData
     )
 {
-    return LWIWriteEventLog(
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = SUCCESS_AUDIT_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
                    hEventLog,
-                   SUCCESS_AUDIT_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription,
-                   pszData);
+                   event);
 }
 
 DWORD
 LsaSrvLogFailureAuditEvent(
     HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
     PCSTR  pszCategory,
     PCSTR  pszDescription,
     PCSTR  pszData
     )
 {
-    return LWIWriteEventLog(
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = FAILURE_AUDIT_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
                    hEventLog,
-                   FAILURE_AUDIT_EVENT_TYPE,
-                   pszCategory,
-                   pszDescription,
-                   pszData);
+                   event);
 }
 
 VOID
 LsaSrvLogServiceSuccessEvent(
+    DWORD dwEventID,
     PCSTR pszEventCategory,
     PCSTR pszDescription,
     PCSTR pszData
@@ -167,6 +233,8 @@ LsaSrvLogServiceSuccessEvent(
     
     dwError = LsaSrvLogInformationEvent(            
                   hEventLog,
+                  dwEventID,
+                  NULL, // defaults to SYSTEM
                   pszEventCategory,
                   pszDescription,
                   pszData);
@@ -188,6 +256,7 @@ error:
 
 VOID
 LsaSrvLogServiceWarningEvent(
+    DWORD dwEventID,
     PCSTR pszEventCategory, 
     PCSTR pszDescription,
     PCSTR pszData
@@ -203,6 +272,8 @@ LsaSrvLogServiceWarningEvent(
     
     dwError = LsaSrvLogWarningEvent(            
                   hEventLog,
+                  dwEventID,
+                  NULL, // defaults to SYSTEM
                   pszEventCategory,
                   pszDescription,
                   pszData);
@@ -222,9 +293,9 @@ error:
     goto cleanup;
 }
 
-
 VOID
 LsaSrvLogServiceFailureEvent(
+    DWORD dwEventID,
     PCSTR pszEventCategory,
     PCSTR pszDescription,
     PCSTR pszData
@@ -240,6 +311,8 @@ LsaSrvLogServiceFailureEvent(
     
     dwError = LsaSrvLogErrorEvent(            
                   hEventLog,
+                  dwEventID,
+                  NULL, // defaults to SYSTEM
                   pszEventCategory,
                   pszDescription,
                   pszData);
@@ -260,77 +333,6 @@ error:
 }
 
 VOID
-LsaSrvLogUserPWChangeSuccessEvent(
-    PCSTR pszLoginId,
-    PCSTR pszUserType
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszChangePWSuccessDescription = NULL;
-    
-    dwError = LsaAllocateStringPrintf(
-               &pszChangePWSuccessDescription,
-               "The password for %s user '%s' was successfully changed.",
-               LSA_SAFE_LOG_STRING(pszUserType),
-               LSA_SAFE_LOG_STRING(pszLoginId));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LsaSrvLogServiceSuccessEvent(
-            GENERAL_EVENT_CATEGORY,
-            pszChangePWSuccessDescription,
-            "<null>");
-cleanup:
-    
-    LSA_SAFE_FREE_STRING(pszChangePWSuccessDescription);
-    
-    return;
-    
-error:
-
-    goto cleanup;
-}
-
-VOID
-LsaSrvLogUserPWChangeFailureEvent(
-    PCSTR pszLoginId,
-    PCSTR pszUserType,
-    DWORD dwErrCode
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszChangePWFailureDescription = NULL;
-    PSTR pszData = NULL;
-    
-    dwError = LsaAllocateStringPrintf(
-               &pszChangePWFailureDescription,
-               "The password change attempt for %s user '%s' was failed. Error code : [%d].",
-               LSA_SAFE_LOG_STRING(pszUserType),
-               LSA_SAFE_LOG_STRING(pszLoginId),
-               dwErrCode);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = LsaGetErrorMessageForLoggingEvent(
-                     dwErrCode,
-                     &pszData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LsaSrvLogServiceFailureEvent(
-            GENERAL_EVENT_CATEGORY,
-            pszChangePWFailureDescription,
-            pszData);
-cleanup:
-    
-    LSA_SAFE_FREE_STRING(pszChangePWFailureDescription);
-    LSA_SAFE_FREE_STRING(pszData);
-    
-    return;
-    
-error:
-
-    goto cleanup;
-}
-
-VOID
 LsaSrvLogUserIDConflictEvent(
     uid_t uid,
     PCSTR pszProviderName,
@@ -343,10 +345,12 @@ LsaSrvLogUserIDConflictEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszUserIDConflictDescription,
-                 "While querying for user with a uid value '%d', '%s' found duplicate entries. Error code : [%d].",
-                 uid,
+                 "Likewise account provisioning conflict.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Reason:                  Found duplicate entries for UIDs:\r\n" \
+                 "     UID:                     %d",
                  pszProviderName,
-                 dwErrCode);
+                 uid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -354,7 +358,8 @@ LsaSrvLogUserIDConflictEvent(
                          &pszData);
 
     LsaSrvLogServiceWarningEvent(
-            GENERAL_EVENT_CATEGORY,
+            LSASS_EVENT_WARNING_CONFIGURATION_ID_CONFLICT,
+            SERVICE_EVENT_CATEGORY,
             pszUserIDConflictDescription,
             pszData);
 
@@ -384,10 +389,12 @@ LsaSrvLogUserAliasConflictEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszUserAliasConflictDescription,
-                 "While querying for user with alias '%s', '%s' found duplicate entries. Error code : [%d].",
-                 pszAlias,
+                 "Likewise account provisioning conflict.\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Reason:                  Found duplicate entries for alias:\r\n" \
+                 "     Alias:                   %s",
                  pszProviderName,
-                 dwErrCode);
+                 pszAlias);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -395,7 +402,8 @@ LsaSrvLogUserAliasConflictEvent(
                          &pszData);
 
     LsaSrvLogServiceWarningEvent(
-            GENERAL_EVENT_CATEGORY,
+            LSASS_EVENT_WARNING_CONFIGURATION_ALIAS_CONFLICT,
+            SERVICE_EVENT_CATEGORY,
             pszUserAliasConflictDescription,
             pszData);
 
@@ -426,11 +434,14 @@ LsaSrvLogDuplicateObjectFoundEvent(
 
     dwError = LsaAllocateStringPrintf(
                  &pszObjectDuplicateDescription,
-                 "Found duplicate entries: '%s' and '%s'. Error code : [%d].",
-                 pszName1,
-                 pszName2,
+                 "Likewise account provisioning conflict\r\n\r\n" \
+                 "     Authentication provider: %s\r\n\r\n" \
+                 "     Reason:                  Found duplicate entries for names:\r\n" \
+                 "     Name 1:                  %s\r\n" \
+                 "     Name 2:                  %s",
                  pszProviderName,
-                 dwErrCode);
+                 pszName1,
+                 pszName2);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -438,7 +449,8 @@ LsaSrvLogDuplicateObjectFoundEvent(
                          &pszData);
 
     LsaSrvLogServiceWarningEvent(
-            GENERAL_EVENT_CATEGORY,
+            1020, // Lsass assigned object conflict event id
+            SERVICE_EVENT_CATEGORY,
             pszObjectDuplicateDescription,
             pszData);
 

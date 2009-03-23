@@ -65,12 +65,6 @@ SMBTreeHashResponse(
     );
 
 static
-VOID
-SMBTreeFree(
-    PSMB_TREE pTree
-    );
-
-static
 NTSTATUS
 SMBTreeDestroyContents(
     PSMB_TREE pTree
@@ -104,22 +98,18 @@ SMBTreeCreate(
     pthread_mutex_init(&pTree->mutex, pMutexAttr);
     bDestroyMutex = TRUE;
 
-    pTree->state = SMB_RESOURCE_STATE_INITIALIZING;
-    pTree->error.type = ERROR_SMB;
-    pTree->error.smb = SMB_ERROR_SUCCESS;
-
     ntStatus = pthread_cond_init(&pTree->event, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     bDestroyCondition = TRUE;
 
-    pTree->refCount = 2; /* One for reaper */
+    pTree->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
     if (time(&pTree->lastActiveTime) == (time_t)-1)
     {
-        ntStatus = errno;
+        ntStatus = UnixErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -207,11 +197,11 @@ SMBTreeAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
     pTree->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
 NTSTATUS
@@ -259,23 +249,16 @@ SMBTreeSetState(
 
 NTSTATUS
 SMBTreeInvalidate(
-    PSMB_TREE      pTree,
-    SMB_ERROR_TYPE errorType,
-    uint32_t       errorValue
+    PSMB_TREE pTree,
+    NTSTATUS ntStatus
     )
 {
-    NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
 
-    /* mark permanent error, continue */
-    pTree->error.type = errorType;
-    pTree->error.smb = errorValue;
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
-    pTree->state = SMB_RESOURCE_STATE_INVALID;
-    pTree->refCount--;
+    pTree->state = RDR_TREE_STATE_ERROR;
+    pTree->error = ntStatus;
 
     pthread_cond_broadcast(&pTree->event);
 
@@ -284,15 +267,6 @@ SMBTreeInvalidate(
     return ntStatus;
 }
 
-/** @todo: keep unused trees around for a little while when daemonized.
-  * To avoid writing frequently to shared cache lines, perhaps set a bit
-  * when the hash transitions to non-empty, then periodically sweep for
-  * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-  * down the parent.
-  */
-/* This function does not decrement the reference count of the parent
-   socket on destruction.  The reaper thread manages that with proper forward
-   locking. */
 VOID
 SMBTreeRelease(
     SMB_TREE *pTree
@@ -300,25 +274,31 @@ SMBTreeRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
-    pTree->refCount--;
+    assert(pTree->refCount > 0);
 
-    assert(pTree->refCount >= 0);
-
-    if (!pTree->refCount)
+    if (--pTree->refCount == 0)
     {
-        SMBTreeFree(pTree);
-
-        bInLock = FALSE;
+        if (pTree->state != RDR_TREE_STATE_READY)
+        {
+            SMBHashRemoveKey(
+                pTree->pSession->pTreeHashByPath,
+                pTree->pszPath);
+            SMBHashRemoveKey(
+                pTree->pSession->pTreeHashByTID,
+                &pTree->tid);
+            SMBTreeFree(pTree);
+        }
+        else
+        {
+            RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
+        }
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
-static
 VOID
 SMBTreeFree(
     PSMB_TREE pTree
@@ -330,6 +310,11 @@ SMBTreeFree(
     pthread_mutex_destroy(&pTree->mutex);
 
     SMBTreeDestroyContents(pTree);
+
+    if (pTree->pSession)
+    {
+        SMBSessionRelease(pTree->pSession);
+    }
 
     SMBFreeMemory(pTree);
 }
@@ -361,6 +346,7 @@ SMBTreeReceiveResponse(
     BOOLEAN bResponseInLock = FALSE;
     BOOLEAN bTreeInLock = FALSE;
     struct timespec ts = {0, 0};
+    int err = 0;
 
     // TODO-This function should really just get use pSocket instead ofpTree and
     // use MID allocation from the socket...  so it should become
@@ -378,15 +364,15 @@ SMBTreeReceiveResponse(
 retry_wait:
 
         /* @todo: always verify non-error state after acquiring mutex */
-        ntStatus = pthread_cond_timedwait(
-                        &pResponse->event,
-                        &pResponse->mutex,
-                        &ts);
-        if (ntStatus == ETIMEDOUT)
+        err = pthread_cond_timedwait(
+            &pResponse->event,
+            &pResponse->mutex,
+            &ts);
+        if (err == ETIMEDOUT)
         {
             if (time(NULL) < ts.tv_sec)
             {
-                ntStatus = 0;
+                err = 0;
                 goto retry_wait;
             }
 
@@ -395,17 +381,17 @@ retry_wait:
              */
             if (SMBSocketTimedOut(pTree->pSession->pSocket))
             {
+                ntStatus = STATUS_IO_TIMEOUT;
                 SMBSocketInvalidate(
                             pTree->pSession->pSocket,
-                            ERROR_SMB,
-                            ETIMEDOUT);
+                            ntStatus);
 
-                SMBResponseInvalidate(pResponse, ERROR_SMB, ETIMEDOUT);
+                SMBResponseInvalidate_InLock(pResponse, ntStatus);
             }
             else
             {
                 // continue waiting
-                ntStatus = SMB_ERROR_SUCCESS;
+                ntStatus = STATUS_SUCCESS;
             }
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -495,4 +481,27 @@ error:
     *ppResponse = NULL;
 
     goto cleanup;
+}
+
+NTSTATUS
+SMBTreeWaitReady(
+    PSMB_TREE pTree
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    while (pTree->state < RDR_TREE_STATE_READY)
+    {
+        if (pTree->state == RDR_TREE_STATE_ERROR)
+        {
+            ntStatus = pTree->error;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pthread_cond_wait(&pTree->event, &pTree->mutex);
+    }
+
+error:
+
+    return ntStatus;
 }

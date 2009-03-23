@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -38,6 +38,9 @@
 #ifndef _UNISTRDEF_H_
 #define _UNISTRDEF_H_
 
+// TODO-Use types from <lw/types.h>
+// For (u)int<N> types.
+#include <lwrpc/types.h>
 
 typedef struct unicode_string {
     uint16 len;

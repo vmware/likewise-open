@@ -36,13 +36,56 @@
 
 VOID
 LwRtlUnicodeStringInit(
-    OUT PUNICODE_STRING pString,
-    IN PWSTR pszString
+    OUT PUNICODE_STRING DestinationString,
+    IN PCWSTR SourceString
     )
 {
-    pString->Buffer = pszString;
-    pString->Length = pszString ? wc16slen(pszString) * sizeof(pString->Buffer[0]): 0;
-    pString->MaximumLength = pString->Length;
+    size_t length = 0;
+
+    if (SourceString)
+    {
+        length = wc16slen(SourceString);
+        length = LW_MIN(length, LW_UNICODE_STRING_MAX_CHARS);
+        length *= sizeof(SourceString[0]);
+    }
+
+    DestinationString->Buffer = (PWSTR) SourceString;
+    DestinationString->Length = (USHORT) length;
+    DestinationString->MaximumLength = DestinationString->Length + sizeof(SourceString[0]);
+}
+
+NTSTATUS
+LwRtlUnicodeStringInitEx(
+    OUT PUNICODE_STRING DestinationString,
+    IN PCWSTR SourceString
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    size_t length = 0;
+
+    if (SourceString)
+    {
+        length = wc16slen(SourceString);
+        if (length > LW_UNICODE_STRING_MAX_CHARS)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            GOTO_CLEANUP();
+        }
+        length *= sizeof(SourceString[0]);
+    }
+
+    DestinationString->Buffer = (PWSTR) SourceString;
+    DestinationString->Length = (USHORT) length;
+    DestinationString->MaximumLength = DestinationString->Length + sizeof(SourceString[0]);
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RtlZeroMemory(DestinationString, sizeof(*DestinationString));
+    }
+    return status;
 }
 
 NTSTATUS
@@ -201,4 +244,88 @@ LwRtlUnicodeStringIsEqual(
 
 cleanup:
     return bIsEqual;
+}
+
+BOOLEAN
+LwRtlUnicodeStringIsPrefix(
+    IN PUNICODE_STRING pPrefix,
+    IN PUNICODE_STRING pString,
+    IN BOOLEAN bIsCaseSensitive
+    )
+{
+    BOOLEAN bIsPrefix = FALSE;
+    UNICODE_STRING truncatedString = { 0 };
+
+    if (pPrefix->Length > pString->Length)
+    {
+        GOTO_CLEANUP();
+    }
+
+    truncatedString.Buffer = pString->Buffer;
+    truncatedString.Length = truncatedString.MaximumLength = pPrefix->Length;
+
+    bIsPrefix = LwRtlUnicodeStringIsEqual(pPrefix, &truncatedString, bIsCaseSensitive);
+
+cleanup:
+    return bIsPrefix;
+}
+
+NTSTATUS
+LwRtlUnicodeStringParseULONG(
+    OUT PULONG pResult,
+    IN PUNICODE_STRING pString,
+    OUT PUNICODE_STRING pRemainingString
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG64 value = 0;
+    ULONG numChars = 0;
+    ULONG index = 0;
+    UNICODE_STRING remaining = { 0 };
+
+    if (!pString)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    numChars = LW_RTL_STRING_NUM_CHARS(pString);
+    for (index = 0;
+         ((index < numChars) &&
+          LwRtlIsDecimalDigit(pString->Buffer[index]));
+         index++)
+    {
+        value = value * 10 + LwRtlDecimalDigitValue(pString->Buffer[index]);
+        if (value > MAXULONG)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            GOTO_CLEANUP();
+        }
+    }
+
+    if (0 == index)
+    {
+        status = STATUS_NOT_FOUND;
+        GOTO_CLEANUP();
+    }
+
+    remaining.Buffer = &pString->Buffer[index];
+    remaining.Length = pString->Length - LW_PTR_OFFSET(pString->Buffer, remaining.Buffer);
+    remaining.MaximumLength = remaining.Length;
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (pString)
+        {
+            remaining = *pString;
+        }
+    }
+
+    *pResult = (ULONG) value;
+    *pRemainingString = remaining;
+
+    return status;
 }

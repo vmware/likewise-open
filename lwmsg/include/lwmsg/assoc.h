@@ -702,12 +702,6 @@ lwmsg_assoc_reset(
  * and forth in messages but are opaque to the peer -- their contents
  * are not transmitted.
  *
- * A handle will be implicitly registered the first time it is sent
- * as part of a message, but explicit registration allows a cleanup
- * function to be specified.  This means that application code does
- * not need to track handles manually because they will be automatically
- * cleaned up when the association is deleted.
- *
  * @param[in] assoc the association
  * @param[in] typename the type of the handle as a constant string, which should
  * @param[in] handle the handle pointer
@@ -730,32 +724,71 @@ lwmsg_assoc_register_handle(
 
 /**
  * @ingroup assoc
- * @brief Unregister a handle
+ * @brief Retain a handle
  *
- * Unregisters a handle that will no longer be used.  Both local and remote
- * handles must be explicitly unregistered to avoid resource leaks -- the
- * association cannot infer a handle's lifetime by itself.  This means
- * that most practical protocols will have symmetrical messages that open and
- * close handles so that both peers can agree on their life cycle.  New
- * handles received from a peer are implictly registered, so take care to
- * explicitly unregister them when they are no longer needed.
- *
- * If do_cleanup is true, the cleanup function specified when the handle was
- * registered will be run.
+ * Indicates that there is an additional reference to a handle,
+ * and that it should remain available in the session until the
+ * reference is released.
  *
  * @param[in] assoc the assocation
  * @param[in] handle the handle pointer
- * @param[in] do_cleanup whether the cleanup function should be run
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, the specified handle was not registered}
+ * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_retain_handle(
+    LWMsgAssoc* assoc,
+    void* handle
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Release a handle
+ *
+ * Releases a reference to a handle.  The handle will be
+ * cleaned up when the last reference to it is released.
+ *
+ * @param[in] assoc the assocation
+ * @param[in] handle the handle pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_release_handle(
+    LWMsgAssoc* assoc,
+    void* handle
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Unregister a handle
+ *
+ * Releases a reference to a handle and unregisters it.
+ * Subsequent calls to #lwmsg_assoc_retain_handle()
+ * and #lwmsg_assoc_release_handle() on the handle will
+ * succeed if there are still outstanding references,
+ * but all other uses will be considered invalid.
+ *
+ * This allows other portions of the program which may still
+ * hold outstanding references to the handle to finish gracefully
+ * before the handle cleanup function is invoked, but prevents
+ * any further use of the handle within the session.
+ *
+ * @param[in] assoc the assocation
+ * @param[in] handle the handle pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_HANDLE, the specified handle was not registered}
  * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_assoc_unregister_handle(
     LWMsgAssoc* assoc,
-    void* handle,
-    LWMsgBool do_cleanup
+    void* handle
     );
 
 /**
@@ -773,7 +806,7 @@ lwmsg_assoc_unregister_handle(
  * @param[out] location the location of the handle
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, the specified handle was not registered}
+ * @lwmsg_code{INVALID_HANDLE, the specified handle was not registered}
  * @lwmsg_endstatus
  */
 LWMsgStatus

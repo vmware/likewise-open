@@ -4,6 +4,7 @@
 
 #include <lw/ntstatus.h>
 #include <wc16str.h>
+#include <lwio/io-types.h>
 
 #include <srvsvc/srvsvc.h>
 #include <srvsvc/srvsvcdefs.h>

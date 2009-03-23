@@ -57,25 +57,6 @@
 #ifndef __LSALIST_H__
 #define __LSALIST_H__
 
-// ISSUE-2008/07/30-dalmeida -- Pull in proper headers for dependencies.
-
-// ISSUE-2008/07/30-dalmeida -- Put these memory macros elsewhere.
-#define LW_PTR_OFFSET(BasePointer, Pointer) \
-    ((int)((char*)(Pointer) - (char*)(BasePointer)))
-
-#define LW_PTR_ADD(Pointer, Offset) \
-    ((char*)(Pointer) + Offset)
-
-#define LW_FIELD_OFFSET(Type, Field) \
-    ((size_t)(&(((Type*)(0))->Field)))
-
-#define LW_STRUCT_FROM_FIELD(Pointer, Type, Field) \
-    ((Type*)LW_PTR_ADD(Pointer, -((ssize_t)LW_FIELD_OFFSET(Type, Field))))
-
-#define LW_ARRAY_SIZE(StaticArray) \
-    (sizeof(StaticArray)/sizeof((StaticArray)[0]))
-
-
 ///
 /// Doubly-linked list structure.
 ///

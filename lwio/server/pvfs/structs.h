@@ -102,6 +102,7 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
     BOOLEAN bScanned;
     DWORD dwIndex;
     DWORD dwNumEntries;
+    ULONG ulAllocated;
     PPVFS_DIRECTORY_ENTRY pDirEntries;
 
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
@@ -113,29 +114,92 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
+struct _PVFS_CCB;
+
+typedef struct _PVFS_CCB_LIST_NODE
+{
+    struct _PVFS_CCB_LIST_NODE  *pNext;
+    struct _PVFS_CCB_LIST_NODE  *pPrevious;
+    struct _PVFS_CCB            *pCcb;
+
+} PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
+
+
+typedef struct _PVFS_FCB
+{
+    LONG RefCount;
+    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
+                                       on an individual FCB */
+    pthread_rwlock_t rwLock;        /* For managing the CCB list */
+    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in the CCB list */
+
+    PSTR pszFilename;
+    LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
+
+    PPVFS_CCB_LIST_NODE pCcbList;
+
+} PVFS_FCB, *PPVFS_FCB;
+
+
+typedef DWORD PVFS_LOCK_FLAGS;
+
+#define PVFS_LOCK_EXCLUSIVE            0x00000001
+#define PVFS_LOCK_BLOCK                0x00000002
+
+typedef struct _PVFS_LOCK_ENTRY
+{
+    BOOLEAN bExclusive;
+    ULONG Key;
+    LONG64 Offset;
+    LONG64 Length;
+
+} PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
+
+typedef struct _PVFS_LOCK_LIST
+{
+    ULONG NumberOfLocks;
+    ULONG ListSize;
+    PPVFS_LOCK_ENTRY pLocks;
+
+} PVFS_LOCK_LIST, *PPVFS_LOCK_LIST;
+
+
+typedef struct _PVFS_LOCK_TABLE
+{
+    pthread_rwlock_t rwLock;
+
+    PVFS_LOCK_LIST ExclusiveLocks;
+    PVFS_LOCK_LIST SharedLocks;
+
+} PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
 
 typedef struct _PVFS_CCB
 {
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
     pthread_mutex_t ControlMutex;   /* Use for CCB SetFileInfo operations */
 
-    PVFS_INTERLOCKED_ULONG cRef;
+    LONG RefCount;
 
     /* Open fd to the File or Directory */
     int fd;
     dev_t device;
     ino_t inode;
 
+    /* Pointer to the shared PVFS FileHandle */
+    PPVFS_FCB pFcb;
+
     /* Save parameters from the CreateFile() */
     PSTR pszFilename;
     FILE_CREATE_OPTIONS CreateOptions;
+    FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
 
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
-} PVFS_CCB, *PPVFS_CCB;
+    PVFS_LOCK_TABLE LockTable;
 
+} PVFS_CCB, *PPVFS_CCB;
 
 typedef struct _PVFS_IRP_CONTEXT
 {
@@ -151,7 +215,6 @@ struct _InfoLevelDispatchEntry {
     NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
                    PPVFS_IRP_CONTEXT pIrpContext);
 };
-
 
 #endif    /* _PVFS_STRUCTS_H */
 

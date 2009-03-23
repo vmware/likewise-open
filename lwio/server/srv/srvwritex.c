@@ -65,10 +65,11 @@ SrvProcessWriteAndX(
     PSMB_SRV_TREE pTree = NULL;
     PSMB_SRV_FILE pFile = NULL;
     PWRITE_ANDX_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PBYTE                 pData = NULL; // Do not free
+    PBYTE   pData = NULL; // Do not free
     LONG64  llDataOffset = 0;
     LONG64  llDataLength = 0;
     ULONG64 ullBytesWritten = 0;
+    ULONG   ulOffset = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -82,10 +83,12 @@ SrvProcessWriteAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallWriteAndXRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pData);
     BAIL_ON_NT_STATUS(ntStatus);

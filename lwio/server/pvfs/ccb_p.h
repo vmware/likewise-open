@@ -54,6 +54,11 @@ PvfsAllocateCCB(
     );
 
 NTSTATUS
+PvfsFreeCCB(
+    PPVFS_CCB pCCB
+    );
+
+NTSTATUS
 PvfsStoreCCB(
     IO_FILE_HANDLE FileHandle,
     PPVFS_CCB pCCB
@@ -68,6 +73,17 @@ NTSTATUS
 PvfsAcquireCCB(
     IO_FILE_HANDLE FileHandle,
     PPVFS_CCB * ppCCB
+    );
+
+NTSTATUS
+PvfsAcquireCCBClose(
+    IO_FILE_HANDLE FileHandle,
+    PPVFS_CCB * ppCCB
+    );
+
+NTSTATUS
+PvfsSaveFileDeviceInfo(
+    PPVFS_CCB pCcb
     );
 
 #endif     /* _PVFS_CCB_P_H */

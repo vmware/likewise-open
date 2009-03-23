@@ -50,11 +50,15 @@
 #define SMB_SERVER_PORT      445
 #define SMB_LISTEN_Q         5
 
-#define LWIO_SRV_DB_DIR CACHEDIR     "/db"
-#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
+#define LWIO_SRV_DB_DIR CACHEDIR            "/db"
+#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR   "/lwio-shares.db"
+#define LWIO_SRV_FILE_SYSTEM_PREFIX         "C:\\"
+#define LWIO_SRV_DEFAULT_SHARE_PATH         "\\lwtest"
+#define LWIO_SRV_FILE_SYSTEM_ROOT           "\\pvfs"
+#define LWIO_SRV_PIPE_SYSTEM_ROOT           "\\npvfs"
 
-#define LWIO_SRV_DEFAULT_NUM_READERS          1
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          1
+#define LWIO_SRV_DEFAULT_NUM_READERS          2
+#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
 #define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
 #define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
 
@@ -67,8 +71,8 @@
 typedef enum
 {
     SMB_SRV_CONN_STATE_INITIAL = 0,
+    SMB_SRV_CONN_STATE_NEGOTIATE,
     SMB_SRV_CONN_STATE_READY,
-    SMB_SRV_CONN_STATE_CLOSED,
     SMB_SRV_CONN_STATE_INVALID
 } SMB_SRV_CONN_STATE;
 

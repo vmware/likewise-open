@@ -72,13 +72,4 @@
 #define ALIAS_ACCESS_LOOKUP_INFO               0x00000008
 #define ALIAS_ACCESS_SET_INFO                  0x00000010
 
-/* Group attributes */
-#define SE_GROUP_MANDATORY                     0x00000001
-#define SE_GROUP_ENABLED_BY_DEFAULT            0x00000002
-#define SE_GROUP_ENABLED                       0x00000004
-#define SE_GROUP_OWNER                         0x00000008
-#define SE_GROUP_USE_FOR_DENY_ONLY             0x00000010
-#define SE_GROUP_RESOURCE                      0x20000000
-#define SE_GROUP_LOGON_ID                      0xc0000000
-
 #endif /* _SAMRFLAGS_H_ */

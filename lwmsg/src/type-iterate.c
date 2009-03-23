@@ -61,7 +61,7 @@ lwmsg_type_find_end(
         is_debug = cmd & LWMSG_FLAG_DEBUG;
         is_member = cmd & LWMSG_FLAG_MEMBER;
 
-        spec += is_meta ? (is_member ? 2 : 1) : 0;
+        spec += is_meta ? 1 : 0;
         spec += is_debug ? 2 : 0;
         
         switch (cmd & LWMSG_CMD_MASK)
@@ -119,6 +119,9 @@ lwmsg_type_find_end(
         case LWMSG_CMD_CUSTOM_ATTR:
             spec += 1;
             break;
+        case LWMSG_CMD_ENCODING:
+            spec += 1;
+            break;
         case LWMSG_CMD_NOT_NULL:
             break;
         default:
@@ -131,8 +134,9 @@ done:
     *in_out_spec = spec;
 }
 
+static
 void
-lwmsg_type_iterate(
+lwmsg_type_iterate_inner(
     LWMsgTypeSpec* spec,
     LWMsgTypeIter* iter
     )
@@ -142,25 +146,17 @@ lwmsg_type_iterate(
     size_t my_size;
     size_t my_offset;
 
-    iter->spec = spec;
-    iter->verify = NULL;
-    iter->size = 0;
-    iter->offset = 0;
-
-    memset(&iter->attrs, 0, sizeof(iter->attrs));
-
-    /* Set invalid range to indicate it is not set */
-    iter->attrs.range_high = 0;
-    iter->attrs.range_low = 1;
-
     cmd = *(spec++);
 
     if (cmd & LWMSG_FLAG_META)
     {      
-        iter->meta.type_name = (const char*) *(spec++);
         if (cmd & LWMSG_FLAG_MEMBER)
         {
             iter->meta.member_name = (const char*) *(spec++);
+        }
+        else
+        {
+            iter->meta.type_name = (const char*) *(spec++);
         }
     }
 
@@ -236,7 +232,7 @@ lwmsg_type_iterate(
             my_size = *(spec++);
             my_offset = *(spec++);
         }
-        lwmsg_type_iterate((LWMsgTypeSpec*) *(spec++), iter);
+        lwmsg_type_iterate_inner((LWMsgTypeSpec*) *(spec++), iter);
         if (!iter->size)
         {
             iter->size = my_size;
@@ -321,6 +317,9 @@ lwmsg_type_iterate(
         case LWMSG_CMD_NOT_NULL:
             iter->attrs.nonnull = LWMSG_TRUE;
             break;
+        case LWMSG_CMD_ENCODING:
+            iter->info.kind_indirect.encoding = (const char*) *(spec++);
+            break;
         case LWMSG_CMD_CUSTOM_ATTR:
             iter->attrs.custom |= (size_t) *(spec++);
             break;
@@ -339,6 +338,43 @@ done:
 }
 
 void
+lwmsg_type_iterate(
+    LWMsgTypeSpec* spec,
+    LWMsgTypeIter* iter
+    )
+{
+    iter->spec = spec;
+    iter->verify = NULL;
+    iter->size = 0;
+    iter->offset = 0;
+
+    memset(&iter->attrs, 0, sizeof(iter->attrs));
+    memset(&iter->meta, 0, sizeof(iter->meta));
+    memset(&iter->debug, 0, sizeof(iter->debug));
+
+    /* Set invalid range to indicate it is not set */
+    iter->attrs.range_high = 0;
+    iter->attrs.range_low = 1;
+
+    lwmsg_type_iterate_inner(spec, iter);
+}
+
+static void
+lwmsg_type_promote(
+    LWMsgTypeSpec* spec,
+    LWMsgTypeIter* iter
+    )
+{
+     memset(iter, 0, sizeof(*iter));
+     iter->kind = LWMSG_KIND_POINTER;
+     iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
+     iter->info.kind_indirect.term_info.static_length = 1;
+     iter->inner = spec;
+     iter->size = sizeof(void*);
+     iter->attrs.nonnull = LWMSG_TRUE;
+}
+
+void
 lwmsg_type_iterate_promoted(
     LWMsgTypeSpec* spec,
     LWMsgTypeIter* iter
@@ -346,18 +382,18 @@ lwmsg_type_iterate_promoted(
 {
     switch (*spec & LWMSG_CMD_MASK)
     {
-    case LWMSG_CMD_INTEGER:
-    case LWMSG_CMD_STRUCT:
-        memset(iter, 0, sizeof(*iter));
-        iter->kind = LWMSG_KIND_POINTER;
-        iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
-        iter->info.kind_indirect.term_info.static_length = 1;
-        iter->inner = spec;
-        iter->size = sizeof(void*);
-        iter->attrs.nonnull = LWMSG_TRUE;
+    case LWMSG_CMD_POINTER:
+        lwmsg_type_iterate(spec, iter);
+        break;
+    case LWMSG_CMD_CUSTOM:
+        lwmsg_type_iterate(spec, iter);
+        if (!iter->info.kind_custom.typeclass->is_pointer)
+        {
+            lwmsg_type_promote(spec, iter);
+        }
         break;
     default:
-        lwmsg_type_iterate(spec, iter);
+        lwmsg_type_promote(spec, iter);
         break;
     }
 }

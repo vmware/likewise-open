@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,48 +31,20 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetApiBufferFree(void *buffer)
+NET_API_STATUS
+NetApiBufferFree(
+   void *buffer
+   )
 {
-    NTSTATUS status;
-    NetConn *cn = NULL;
-    NetConn *clean = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
 
-    /* When called with NULL argument do the cleanup.
-       Otherwise just free the pointer */
-    if (buffer) {
-	free(buffer);
-	return NtStatusToWin32Error(STATUS_SUCCESS);
-    }
+    goto_if_invalid_param_winerr(buffer, cleanup);
 
-    /* close any remaining connections */
-    cn = GetFirstConn(NULL);
+    NetFreeMemory(buffer);
 
-    while (cn && cn->next) {
-
-	DEL_CONN(cn);
-
-	if (cn->samr.bind) {
-	    status = SamrClose(cn->samr.bind, &cn->samr.dom_handle);
-	    if (status != 0) return NtStatusToWin32Error(status);
-
-	    status = SamrClose(cn->samr.bind, &cn->samr.btin_dom_handle);
-	    if (status != 0) return NtStatusToWin32Error(status);
-
-	    status = SamrClose(cn->samr.bind, &cn->samr.conn_handle);
-	    if (status != 0) return NtStatusToWin32Error(status);
-	}
-
-	if (cn->lsa.bind) {
-	    status = LsaClose(cn->lsa.bind, &cn->lsa.policy_handle);
-	    if (status != 0) return NtStatusToWin32Error(status);
-	}
-	
-	clean = cn;
-	cn = cn->next;
-	free(clean);
-    }
-
-    return NtStatusToWin32Error(STATUS_SUCCESS);
+cleanup:
+    return status;
 }
 
 

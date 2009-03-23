@@ -482,6 +482,36 @@ extern NET_API_STATUS _NetrRemoteTOD(
     /* [out] */ TIME_OF_DAY_INFO **info
 #endif
 );
+extern void _srvsvc_Function1d(
+#ifdef IDL_PROTOTYPES
+    /* [in] */ handle_t IDL_handle
+#endif
+);
+extern void _srvsvc_Function1e(
+#ifdef IDL_PROTOTYPES
+    /* [in] */ handle_t IDL_handle
+#endif
+);
+extern void _srvsvc_Function1f(
+#ifdef IDL_PROTOTYPES
+    /* [in] */ handle_t IDL_handle
+#endif
+);
+extern void _srvsvc_Function20(
+#ifdef IDL_PROTOTYPES
+    /* [in] */ handle_t IDL_handle
+#endif
+);
+extern NET_API_STATUS _NetrNameValidate(
+#ifdef IDL_PROTOTYPES
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ wchar16_t *name,
+    /* [in] */ uint32 type,
+    /* [in] */ uint32 flags
+#endif
+);
+
 
 extern rpc_if_handle_t srvsvc_v3_0_c_ifspec;
 extern rpc_if_handle_t srvsvc_v3_0_s_ifspec;

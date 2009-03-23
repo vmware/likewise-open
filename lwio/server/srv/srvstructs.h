@@ -72,12 +72,12 @@ typedef struct _SRV_HOST_INFO
 
 typedef enum
 {
-    SHARE_SERVICE_UNKNOWN = 0,
-    SHARE_SERVICE_ANY,
-    SHARE_SERVICE_DISK_SHARE,
-    SHARE_SERVICE_NAMED_PIPE,
+    SHARE_SERVICE_DISK_SHARE = 0,
+    SHARE_SERVICE_PRINTER,
     SHARE_SERVICE_COMM_DEVICE,
-    SHARE_SERVICE_PRINTER
+    SHARE_SERVICE_NAMED_PIPE,
+    SHARE_SERVICE_ANY,
+    SHARE_SERVICE_UNKNOWN
 } SHARE_SERVICE;
 
 typedef struct _SHARE_DB_INFO
@@ -114,6 +114,10 @@ typedef struct _SMB_SRV_SHARE_DB_CONTEXT
     pthread_rwlock_t* pMutex;
 
     PSRV_SHARE_ENTRY  pShareEntry;
+
+    PWSTR             pwszFileSystemPrefix;
+    PWSTR             pwszFileSystemRoot;
+    PWSTR             pwszPipeSystemRoot;
 
 } SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
 

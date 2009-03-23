@@ -659,7 +659,34 @@ IoLockFile(
     IN BOOLEAN ExclusiveLock
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.LockControl.LockControl = IO_LOCK_CONTROL_LOCK;
+    pIrp->Args.LockControl.ByteOffset = ByteOffset;
+    pIrp->Args.LockControl.Length = Length;
+    pIrp->Args.LockControl.Key = Key;
+    pIrp->Args.LockControl.FailImmediately = FailImmediately;
+    pIrp->Args.LockControl.ExclusiveLock = ExclusiveLock;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -673,7 +700,32 @@ IoUnlockFile(
     IN ULONG Key
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.LockControl.LockControl = IO_LOCK_CONTROL_UNLOCK;
+    pIrp->Args.LockControl.ByteOffset = ByteOffset;
+    pIrp->Args.LockControl.Length = Length;
+    pIrp->Args.LockControl.Key = Key;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
@@ -766,29 +818,77 @@ IoSetQuotaInformationFile(
 
 NTSTATUS
 IoQuerySecurityFile(
-    IN IO_FILE_HANDLE  Handle,
+    IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_QUERY_SECURITY;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.QuerySetSecurity.SecurityInformation = SecurityInformation;
+    pIrp->Args.QuerySetSecurity.SecurityDescriptor = SecurityDescriptor;
+    pIrp->Args.QuerySetSecurity.Length = Length;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 
 NTSTATUS
 IoSetSecurityFile(
-    IN IO_FILE_HANDLE Handle,
+    IN IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = IRP_TYPE_SET_SECURITY;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.QuerySetSecurity.SecurityInformation = SecurityInformation;
+    pIrp->Args.QuerySetSecurity.SecurityDescriptor = SecurityDescriptor;
+    pIrp->Args.QuerySetSecurity.Length = Length;
+
+    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
+    ioStatusBlock = pIrp->IoStatusBlock;
+    // TODO -- handle asyc behavior.
+    assert(ioStatusBlock.Status == status);
+
+cleanup:
+    IopIrpFree(&pIrp);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
 }
 

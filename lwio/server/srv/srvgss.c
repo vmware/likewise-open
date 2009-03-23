@@ -143,8 +143,14 @@ sec_error:
 
 error:
 
-    *ppSessionKey = NULL;
-    *pulSessionKeyLength = 0;
+    if (ppSessionKey)
+    {
+        *ppSessionKey = NULL;
+    }
+    if (pulSessionKeyLength)
+    {
+        *pulSessionKeyLength = 0;
+    }
 
     if (pSessionKey)
     {

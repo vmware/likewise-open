@@ -34,6 +34,9 @@ liblsautils_la_SOURCES =       \
        datablob.c              \
        lsaxnet.c               \
        lsaauthex.c             \
-       lsalist.c
+       lsalist.c               \
+       sid.c
 
-liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@
+liblsautils_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
+
+liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@ @LWBASE_LIBS@

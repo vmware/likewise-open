@@ -222,6 +222,15 @@ SMBWc16sCmp(
 }
 
 DWORD
+SMBWc16sCaseCmp(
+    PCWSTR  pwszFirst,
+    PCWSTR  pwszSecond
+    )
+{
+    return wc16scasecmp(pwszFirst, pwszSecond);
+}
+
+DWORD
 SMBSW16printf(
     PWSTR* ppwszStrOutput,
     PCSTR     pszFormat,

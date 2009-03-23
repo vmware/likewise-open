@@ -290,7 +290,7 @@ LsaSqliteReadSid(
         &pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ParseSidStringA(
+    dwError = LsaAllocateSidFromCString(
             &pSid,
             pszSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -306,10 +306,7 @@ cleanup:
 error:
 
     *ppSid = NULL;
-    if (pSid != NULL)
-    {
-        SidFree(pSid);
-    }
+    LSA_SAFE_FREE_MEMORY(pSid);
     goto cleanup;
 }
 

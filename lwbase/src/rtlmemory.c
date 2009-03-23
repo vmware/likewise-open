@@ -45,15 +45,6 @@
 #include "includes.h"
 #include <lw/rtlgoto.h>
 
-VOID
-LwRtlMemoryZero(
-    IN OUT LW_PVOID pMemory,
-    IN size_t Size
-    )
-{
-    memset(pMemory, 0, Size);
-}
-
 PVOID
 LwRtlMemoryAllocate(
     IN size_t Size

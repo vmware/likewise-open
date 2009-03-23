@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@
 #ifndef _SAMR_H_
 #define _SAMR_H_
 
-#include <secdesc/secdesc.h>
+#include <secdesc/sectypes.h>
 
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
@@ -75,7 +75,7 @@ SamrLookupDomain(
     handle_t bind,
     PolicyHandle *handle,
     const wchar16_t *domain_name,
-    DomSid **sid
+    PSID* sid
     );
 
 NTSTATUS
@@ -83,7 +83,7 @@ SamrOpenDomain(
     handle_t bind,
     PolicyHandle *conn_handle,
     uint32 access_mask,
-    DomSid *sid,
+    PSID sid,
     PolicyHandle *dom_handle
     );
 
@@ -237,7 +237,7 @@ NTSTATUS
 SamrGetAliasMembership(
     handle_t bind,
     PolicyHandle *domain_handle,
-    DomSid *sids,
+    PSID sids,
     uint32 num_sids,
     uint32 **rids,
     uint32 *num_rids
@@ -247,7 +247,7 @@ NTSTATUS
 SamrGetMembersInAlias(
     handle_t b,
     PolicyHandle *alias_handle,
-    DomSid ***sids,
+    PSID** sids,
     uint32 *count
     );
 
@@ -255,14 +255,14 @@ NTSTATUS
 SamrAddAliasMember(
     handle_t b,
     PolicyHandle *alias_h,
-    DomSid *sid
+    PSID sid
     );
 
 NTSTATUS
 SamrDeleteAliasMember(
     handle_t b,
     PolicyHandle *alias_h,
-    DomSid *sid
+    PSID sid
     );
 
 NTSTATUS

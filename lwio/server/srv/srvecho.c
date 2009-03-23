@@ -56,11 +56,14 @@ SrvProcessEchoAndX(
     PBYTE       pEchoBlob = NULL; // Do Not Free
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
-    USHORT              usNumEchoesToSend = 0;
+    USHORT  usNumEchoesToSend = 0;
+    ULONG   ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = WireUnmarshallEchoRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
                     &pEchoHeader,
                     &pEchoBlob);
     BAIL_ON_NT_STATUS(ntStatus);

@@ -39,7 +39,7 @@ extern NTSTATUS _SamrLookupDomain(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *handle,
     /* [in] */ UnicodeString *domain_name,
-    /* [out] */ SID **sid
+    /* [out] */ PSID* sid
 #endif
 );
 extern NTSTATUS _SamrEnumDomains(
@@ -57,7 +57,7 @@ extern NTSTATUS _SamrOpenDomain(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *conn_handle,
     /* [in] */ uint32 access_mask,
-    /* [in] */ SID *sid,
+    /* [in] */ PSID sid,
     /* [out] */ PolicyHandle *domain_handle
 #endif
 );
@@ -228,14 +228,14 @@ extern NTSTATUS _SamrAddAliasMember(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *alias_handle,
-    /* [in] */ SID *sid
+    /* [in] */ PSID sid
 #endif
 );
 extern NTSTATUS _SamrDeleteAliasMember(
 #ifdef IDL_PROTOTYPES
     /* [in] */ handle_t IDL_handle,
     /* [in] */ PolicyHandle *alias_handle,
-    /* [in] */ SID *sid
+    /* [in] */ PSID sid
 #endif
 );
 extern NTSTATUS _SamrGetMembersInAlias(

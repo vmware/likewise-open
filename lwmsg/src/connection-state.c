@@ -179,6 +179,12 @@ lwmsg_connection_recvfull(LWMsgBuffer* buffer, size_t needed)
     }
     else
     {
+        if (buffer->cursor < buffer->end)
+        {
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
+                              "Extraneous data at end of message");
+        }
+
         BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_DONE));
     }
 

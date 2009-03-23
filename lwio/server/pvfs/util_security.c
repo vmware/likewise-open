@@ -111,10 +111,20 @@ PvfsAccessCheckFile(
     ACCESS_MASK *pGranted)
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    ACCESS_MASK AccessMask = Desired;
 
     BAIL_ON_INVALID_PTR(pGranted, ntError);
 
-    *pGranted = FILE_ALL_ACCESS;
+
+    /* Give them what they accessed for (minus the
+       ACCESS_SYSTEM_SECURITY bit */
+
+    RtlMapGenericMask(&AccessMask, &gPvfsFileGenericMapping);
+
+    AccessMask &= ~ACCESS_SYSTEM_SECURITY;
+
+    *pGranted = AccessMask;
+
     ntError = STATUS_SUCCESS;
 
 cleanup:

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -38,9 +38,13 @@
 #ifndef _LM_ACCESS_H_
 #define _LM_ACCESS_H_
 
-#include <secdesc/secdesc.h>
+#include <secdesc/sectypes.h>
 #include <lwrpc/types.h>
 
+
+//
+// USER_INFO levels
+//
 
 typedef struct _USER_INFO_0 {
     wchar16_t *usri0_name;
@@ -116,7 +120,6 @@ typedef struct _USER_INFO_3 {
     uint32 usri3_password_expired;
 } USER_INFO_3;
 
-
 typedef struct _USER_INFO_4 {
     wchar16_t *usri4_name;
     wchar16_t *usri4_password;
@@ -142,13 +145,12 @@ typedef struct _USER_INFO_4 {
     wchar16_t *usri4_logon_server;
     uint32 usri4_country_code;
     uint32 usri4_code_page;
-    DomSid* usri4_user_sid;
+    PSID usri4_user_sid;
     uint32 usri4_primary_group_id;
     wchar16_t *usri4_profile;
     wchar16_t *usri4_home_dir_drive;
     uint32 usri4_password_expired;
 } USER_INFO_4;
-
 
 typedef struct _USER_INFO_10 {
     wchar16_t *usri10_name;
@@ -192,57 +194,55 @@ typedef struct _USER_INFO_23 {
     wchar16_t *usri23_name;
     wchar16_t *usri23_full_name;
     wchar16_t *usri23_comment;
-    DomSid *usri23_user_sid;
+    PSID usri23_user_sid;
 } USER_INFO_23;
-
 
 typedef struct _USER_INFO_1003 {
     wchar16_t *usri1003_password;
 } USER_INFO_1003;
 
-
 typedef struct _USER_INFO_1007 {
     wchar16_t *usri1007_comment;
 } USER_INFO_1007;
 
-
 typedef struct _USER_INFO_1008 {
     uint32 usri1008_flags;
 } USER_INFO_1008;
-
 
 typedef struct _USER_INFO_1011 {
     wchar16_t *usri1011_full_name;
 } USER_INFO_1011;
 
 
+//
+// LOCALGROUP_USERS_INFO levels
+//
 
 typedef struct _LOCALGROUP_USERS_INFO_0 {
     wchar16_t *lgrui0_name;
 } LOCALGROUP_USERS_INFO_0;
 
 
+//
+// LOCALGROUP_INFO levels
+//
 
 typedef struct _LOCALGROUP_INFO_0 {
     wchar16_t *lgrpi0_name;
 } LOCALGROUP_INFO_0;
-
 
 typedef struct _LOCALGROUP_INFO_1 {
     wchar16_t *lgrpi1_name;
     wchar16_t *lgrpi1_comment;
 } LOCALGROUP_INFO_1;
 
-
 typedef struct _LOCALGROUP_INFO_1002 {
     wchar16_t *lgrpi1002_comment;
 } LOCALGROUP_INFO_1002;
 
-
 typedef struct _LOCALGROUP_MEMBERS_INFO_0 {
-    DomSid *lgrmi0_sid;
+    PSID lgrmi0_sid;
 } LOCALGROUP_MEMBERS_INFO_0;
-
 
 typedef struct _LOCALGROUP_MEMBERS_INFO_3 {
     wchar16_t *lgrmi3_domainandname;
@@ -264,7 +264,6 @@ NetUserEnum(
     uint32 *resume
     );
 
-
 NET_API_STATUS
 NetUserAdd(
     const wchar16_t *hostname,
@@ -273,13 +272,11 @@ NetUserAdd(
     uint32 *parm_err
     );
 
-
 NET_API_STATUS
 NetUserDel(
     const wchar16_t *hostname,
     const wchar16_t *username
     );
-
 
 NET_API_STATUS
 NetUserGetInfo(
@@ -289,7 +286,6 @@ NetUserGetInfo(
     void **bufptr
     );
 
-
 NET_API_STATUS
 NetUserSetInfo(
     const wchar16_t *servername,
@@ -298,7 +294,6 @@ NetUserSetInfo(
     void *bufptr,
     uint32 *parm_err
     );
-
 
 NET_API_STATUS
 NetUserGetLocalGroups(
@@ -312,7 +307,6 @@ NetUserGetLocalGroups(
     uint32 *totalentries
     );
 
-
 NET_API_STATUS
 NetLocalGroupAdd(
     const wchar16_t *servername,
@@ -321,13 +315,11 @@ NetLocalGroupAdd(
     uint32 *parm_err
     );
 
-
 NET_API_STATUS
 NetLocalGroupDel(
     const wchar16_t *servername,
     const wchar16_t *groupname
     );
-
 
 NET_API_STATUS
 NetLocalGroupEnum(
@@ -340,7 +332,6 @@ NetLocalGroupEnum(
     uint32 *resumehandle
     );
 
-
 NET_API_STATUS
 NetLocalGroupSetInfo(
     const wchar16_t *servername,
@@ -350,7 +341,6 @@ NetLocalGroupSetInfo(
     uint32 *parm_err
     );
 
-
 NET_API_STATUS
 NetLocalGroupGetInfo(
     const wchar16_t *servername,
@@ -358,7 +348,6 @@ NetLocalGroupGetInfo(
     uint32 level,
     void **bufptr
     );
-
 
 NET_API_STATUS
 NetLocalGroupAddMembers(
@@ -369,7 +358,6 @@ NetLocalGroupAddMembers(
     uint32 totalentries
     );
 
-
 NET_API_STATUS
 NetLocalGroupDelMembers(
     const wchar16_t *servername,
@@ -378,7 +366,6 @@ NetLocalGroupDelMembers(
     void *bufptr,
     uint32 totalentries
     );
-
 
 NET_API_STATUS
 NetLocalGroupGetMembers(
@@ -392,12 +379,10 @@ NetLocalGroupGetMembers(
     uint32 *resumehandle
     );
 
-
 NET_API_STATUS
 NetApiBufferFree(
     void *bufptr
     );
-
 
 NET_API_STATUS
 NetUserChangePassword(
@@ -406,7 +391,6 @@ NetUserChangePassword(
     const wchar16_t *oldpassword,
     const wchar16_t *newpassword
     );
-
 
 NET_API_STATUS
 NetGetDomainName(

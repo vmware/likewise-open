@@ -49,16 +49,194 @@
 
 #include "rdr.h"
 
+static
+NTSTATUS
+RdrCommonSetInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+static
+NTSTATUS
+RdrCommonRename(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
+static
+NTSTATUS
+RdrGetFilePath(
+    PCWSTR pwszFullPath,
+    PWSTR* ppwszFilePath
+    );
+
 NTSTATUS
 RdrSetInformation(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = RdrCommonSetInformation(
+        NULL,
+        pIrp
+        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
 
     return ntStatus;
 }
 
+static
+NTSTATUS
+RdrCommonSetInformation(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SMB_INFO_LEVEL infoLevel = 0;
+    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
 
+    switch (pIrp->Args.QuerySetInformation.FileInformationClass)
+    {
+    case FileEndOfFileInformation:
+        infoLevel = SMB_SET_FILE_END_OF_FILE_INFO;
+        break;
+    case FileRenameInformation:
+        /* Handle this as a special case */
+        ntStatus = RdrCommonRename(
+            pIrpContext,
+            pIrp);
+        goto error;
+        break;
+    default:
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    }
 
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    ntStatus = RdrTransactSetInfoFile(
+        pFile->pTree,
+        pFile->fid,
+        infoLevel,
+        pIrp->Args.QuerySetInformation.FileInformation,
+        pIrp->Args.QuerySetInformation.Length);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+RdrCommonRename(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PFILE_RENAME_INFORMATION pRenameInfo = NULL;
+    PWSTR pwszNewFilePath = NULL;
+
+    pFile = IoFileGetContext(pIrp->FileHandle);
+
+    pRenameInfo = pIrp->Args.QuerySetInformation.FileInformation;
+
+    ntStatus = RdrGetFilePath(
+        pRenameInfo->FileName,
+        &pwszNewFilePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RdrTransactRenameFile(
+        pFile->pTree,
+        0x7f, /* FIXME: magic constant */
+        pFile->pwszPath,
+        pwszNewFilePath);
+
+    RTL_FREE(&pFile->pwszPath);
+    pFile->pwszPath = pwszNewFilePath;
+    pwszNewFilePath = NULL;
+
+error:
+
+    RTL_FREE(&pwszNewFilePath);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+RdrGetFilePath(
+    PCWSTR pwszFullPath,
+    PWSTR* ppwszFilePath
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PCWSTR pwszIndex = NULL;
+    USHORT usNumSlashes = 0;
+    PWSTR pwszFilePath = NULL;
+    size_t i = 0;
+
+    for (pwszIndex = pwszFullPath; *pwszIndex; pwszIndex++)
+    {
+        if (*pwszIndex == '/')
+        {
+            usNumSlashes++;
+        }
+
+        if (usNumSlashes == 3)
+        {
+            break;
+        }
+    }
+
+    if (usNumSlashes != 3)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = RTL_ALLOCATE(
+        &pwszFilePath,
+        WCHAR,
+        (LwRtlWC16StringNumChars(pwszIndex) + 1) * sizeof(WCHAR));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (i = 0; pwszIndex[i]; i++)
+    {
+        switch (pwszIndex[i])
+        {
+        case '/':
+            pwszFilePath[i] = '\\';
+            break;
+        default:
+            pwszFilePath[i] = pwszIndex[i];
+            break;
+        }
+    }
+
+    pwszFilePath[i] = '\0';
+
+    *ppwszFilePath = pwszFilePath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszFilePath = NULL;
+
+    RTL_FREE(&pwszFilePath);
+
+    goto cleanup;
+}

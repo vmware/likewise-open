@@ -290,10 +290,9 @@ LsaEndEnumNSSArtefacts(
     switch (response.tag)
     {
         case LSA_R_END_ENUM_NSS_ARTEFACTS_SUCCESS:
-            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_unregister_handle(
+            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(
                                           pContext->pAssoc,
-                                          hResume,
-                                          LWMSG_FALSE));
+                                          hResume));
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_NSS_ARTEFACTS_FAILURE:

@@ -13,15 +13,15 @@ libnetlogon_la_SOURCES = \
 	NetrServerAuthenticate.c \
 	NetrServerAuthenticate2.c \
 	NetrServerAuthenticate3.c \
-	schannel.c \
+	NetrSchannel.c \
 	NetrSamLogon.c \
 	NetrSamLogoff.c \
 	NetrSamLogonEx.c \
 	NetrEnumerateTrustedDomainsEx.c \
+	NetrGetDomainInfo.c \
 	DsrEnumerateDomainTrusts.c
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
-libnetlogon_ss_la_SOURCES = netlogon_sstub.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)

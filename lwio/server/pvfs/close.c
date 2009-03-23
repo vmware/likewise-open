@@ -28,7 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -50,17 +49,79 @@
 /* Forward declarations */
 
 static NTSTATUS
-PvfsPerformDeleteOnClose(
+PerformDeleteOnClose(
+    PPVFS_CCB pCcb
+    );
+
+
+/* Code */
+
+
+/******************************************************************
+ *****************************************************************/
+
+NTSTATUS
+PvfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    BOOLEAN bValidPath = FALSE;
+
+    /* make sure we have a proper CCB */
+
+    ntError =  PvfsAcquireCCBClose(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsValidatePath(pCcb);
+    bValidPath = (ntError == STATUS_SUCCESS);
+
+    /* Deal with delete-on-close */
+
+    if (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) {
+        ntError = PerformDeleteOnClose(pCcb);
+        /* Don't fail */
+    }
+
+    /* Call closedir() for directions and close() for files */
+
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
+        /* pCcb->fd is invalid now */
+    } else {
+        ntError = PvfsSysClose(pCcb->fd);
+    }
+    /* Don't fail */
+
+
+cleanup:
+    /* This is the final Release that will free the memory */
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    /* We can't really do anything here in the case of failure */
+
+    return STATUS_SUCCESS;
+
+error:
+    goto cleanup;
+}
+
+
+/******************************************************************
+ *****************************************************************/
+
+static NTSTATUS
+PerformDeleteOnClose(
     PPVFS_CCB pCcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-
-    /* Check for no-op */
-
-    if (!(pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)) {
-        return STATUS_SUCCESS;
-    }
 
     /* Check for renames */
 
@@ -77,55 +138,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-/* Code */
-
-NTSTATUS
-PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PIRP pIrp = pIrpContext->pIrp;
-    PPVFS_CCB pCcb = NULL;
-
-    /* make sure we have a proper CCB */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Deal with delete-on-close */
-
-    ntError = PvfsPerformDeleteOnClose(pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Call closedir() for directions and close() for files */
-
-    if (PVFS_IS_DIR(pCcb)) {
-        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
-        /* pCcb->fd is invalid now */
-    } else {
-        ntError = PvfsSysClose(pCcb->fd);
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Memory cleanup */
-
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
 
 
 /*

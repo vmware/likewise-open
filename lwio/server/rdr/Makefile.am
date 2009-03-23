@@ -1,23 +1,26 @@
 lib_LTLIBRARIES = librdr.sys.la
 
-librdr_sys_la_SOURCES = \
-    client_reaper.c       \
+librdr_sys_la_SOURCES =   \
     client_session.c      \
     client_socket.c       \
     client_tree.c         \
-    closehandle.c         \
     createfile.c          \
+    closefile.c           \
     getsesskey.c          \
     globals.c             \
     readfile.c            \
+    queryinfofile.c       \
+    setinfofile.c         \
+    renamefile.c          \
+    querysecurity.c       \
+    queryfsinfo.c         \
+    findfirst2.c          \
+    findnext2.c           \
     response.c            \
     session.c             \
     smb_logoff.c          \
     smb_negotiate.c       \
-    smb_npclose.c         \
-    smb_npopen.c          \
     smb_nptransact.c      \
-    smb_read.c            \
     smb_session_setup.c   \
     smb_tree_connect.c    \
     smb_tree_disconnect.c \
@@ -25,6 +28,7 @@ librdr_sys_la_SOURCES = \
     socket.c              \
     tree.c                \
     writefile.c           \
+    reaper.c              \
     lwio-semaphore.c      \
     rdrdriver.c           \
     rdrcreate.c           \
@@ -32,8 +36,11 @@ librdr_sys_la_SOURCES = \
     rdrwrite.c            \
     rdrsetinfo.c          \
     rdrqueryinfo.c        \
+    rdrquerydir.c         \
     rdrdeviceio.c         \
-    rdrfsctl.c           \
+    rdrfsctl.c            \
+    rdrsecurity.c         \
+    rdrqueryfs.c          \
     rdrclose.c
 
 librdr_sys_la_CPPFLAGS = \

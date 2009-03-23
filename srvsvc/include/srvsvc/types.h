@@ -45,12 +45,16 @@
  */
 
 
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#ifndef _SRVSVC_TYPES_H_
+#define _SRVSVC_TYPES_H_
 
-#if defined(_DCE_IDL_)
+// TODO-Exploit commonality wrt <lwrpc/types.h>
 
-/* Types needed for idl compiler pass */
+#include <lw/types.h>
+#include <lw/ntstatus.h>
+
+#ifdef _DCE_IDL_
+// TODO-Eventually remove (u)int<N> types in favor of <lw/types.h> types.
 typedef unsigned small int uint8;
 typedef unsigned short int uint16;
 typedef unsigned long int uint32;
@@ -59,14 +63,11 @@ typedef small int int8;
 typedef short int int16;
 typedef long int int32;
 typedef hyper int int64;
-typedef uint32 NTSTATUS;
-typedef uint16 wchar16_t;
-
 #else
 
-/* Types needed for librpc build pass */
 #include <inttypes.h>
-#include <lw/base.h>
+
+/* Types needed for librpc build pass */
 
 #ifndef UINT8_DEFINED
 typedef uint8_t uint8;
@@ -152,7 +153,7 @@ typedef unsigned long int RPCSTATUS;
 #endif /* defined(SRVSVC_BUILD) */
 #endif /* !defined(_DCE_IDL_) */
 
-#endif /* _TYPES_H_ */
+#endif /* _SRVSVC_TYPES_H_ */
 
 
 /*

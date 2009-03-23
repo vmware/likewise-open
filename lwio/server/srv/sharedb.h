@@ -80,7 +80,42 @@ SrvShareDbAdd(
     );
 
 NTSTATUS
+SrvShareDbAdd_inlock(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE hDb,
+    PCSTR  pszShareName,
+    PCSTR  pszPath,
+    PCSTR  pszComment,
+    PCSTR  pszSid,
+    PCSTR  pszService
+    );
+
+NTSTATUS
+SrvShareMapFromWindowsPath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    );
+
+NTSTATUS
+SrvShareMapToWindowsPath(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PWSTR  pwszInputPath,
+    PWSTR* ppwszPath
+    );
+
+NTSTATUS
 SrvShareDbEnum(
+    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    HANDLE           hDb,
+    ULONG            ulOffset,
+    ULONG            ulLimit,
+    PSHARE_DB_INFO** pppShareInfoArray,
+    PULONG           pulNumSharesFound
+    );
+
+NTSTATUS
+SrvShareDbEnum_inlock(
     PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,

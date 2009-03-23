@@ -92,6 +92,9 @@ DriverEntry(
                              NULL);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsInitializeFCBTable();
+    BAIL_ON_NT_STATUS(ntError);
+
 cleanup:
     return ntError;
 
@@ -107,6 +110,8 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    PvfsDestroyFCBTable();
+
     IO_LOG_ENTER_LEAVE("");
 }
 
@@ -151,7 +156,7 @@ PvfsDriverDispatch(
         break;
 
     case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = STATUS_NOT_IMPLEMENTED;
+        ntError = PvfsFlushBuffers(DeviceHandle, pIrpCtx);
         break;
 
     case IRP_TYPE_QUERY_INFORMATION:
@@ -168,6 +173,18 @@ PvfsDriverDispatch(
 
     case IRP_TYPE_QUERY_VOLUME_INFORMATION:
         ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsLockControl(DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, DeviceHandle, pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_SET, DeviceHandle, pIrpCtx);
         break;
 
     default:

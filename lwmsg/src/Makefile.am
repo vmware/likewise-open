@@ -20,6 +20,7 @@ liblwmsg_nothr_la_SOURCES = \
 	type-iterate.c \
 	type-analyze.c \
 	type-verify.c \
+	type-print.c \
 	status.c \
 	context.c \
 	util.c \
@@ -30,7 +31,7 @@ liblwmsg_nothr_la_SOURCES = \
 	session.c \
 	session-default.c
 
-liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@
+liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@
 liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \

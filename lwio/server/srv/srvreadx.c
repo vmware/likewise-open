@@ -67,6 +67,7 @@ SrvProcessReadAndX(
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE    pTree = NULL;
     PSMB_SRV_FILE    pFile = NULL;
+    ULONG            ulOffset = 0;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -81,10 +82,12 @@ SrvProcessReadAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
+
     ntStatus = WireUnmarshallReadAndXRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 

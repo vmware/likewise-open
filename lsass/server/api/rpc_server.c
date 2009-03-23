@@ -47,6 +47,20 @@
 #include "api.h"
 
 
+static
+DWORD
+LsaStartRpcSrv(
+    PLSA_RPC_SERVER pRpc
+    );
+
+
+static
+DWORD
+LsaStopRpcSrv(
+    PLSA_RPC_SERVER pRpc
+    );
+
+
 DWORD
 LsaCheckInvalidRpcServer(
     PVOID pSymbol,
@@ -200,7 +214,14 @@ LsaInitRpcServers(
     gpRpcServerList = pRpcList;
     pRpcList        = NULL;
 
+    LsaStartRpcServers(gpRpcServerList);
+
     LEAVE_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
+
+    /* Start rpc service control worker thread to start listening
+       for incoming rpc calls */
+    dwError = RpcSvcStartWorker();
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (pRpcSrvStack) {
@@ -220,6 +241,84 @@ error:
     }
 
     goto cleanup;
+}
+
+
+void
+LsaStartRpcServers(
+    PLSA_RPC_SERVER pRpcServerList
+    )
+{
+    DWORD dwError = 0;
+    PLSA_RPC_SERVER pRpc = NULL;
+
+    while (pRpcServerList) {
+        pRpc = pRpcServerList;
+        pRpcServerList = pRpcServerList->pNext;
+
+        dwError = LsaStartRpcSrv(pRpc);
+    }
+}
+
+
+static
+DWORD
+LsaStartRpcSrv(
+    PLSA_RPC_SERVER pRpc
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = pRpc->pfnTable->pfnStart();
+    if (dwError) {
+        LSA_LOG_ERROR("Couldn't start %s rpc server (error: %d)",
+                      pRpc->pszName, dwError);
+
+    } else {
+        LSA_LOG_INFO("%s rpc server successfully started",
+                     pRpc->pszName);
+    }
+
+    return dwError;
+}
+
+
+void
+LsaStopRpcServers(
+    PLSA_RPC_SERVER pRpcServerList
+    )
+{
+    DWORD dwError = 0;
+    PLSA_RPC_SERVER pRpc = NULL;
+
+    while (pRpcServerList) {
+        pRpc = pRpcServerList;
+        pRpcServerList = pRpcServerList->pNext;
+
+        dwError = LsaStopRpcSrv(pRpc);
+    }
+}
+
+
+static
+DWORD
+LsaStopRpcSrv(
+    PLSA_RPC_SERVER pRpc
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = pRpc->pfnTable->pfnStop();
+    if (dwError) {
+        LSA_LOG_ERROR("Couldn't stop %s rpc server (error: %d)",
+                      pRpc->pszName, dwError);
+
+    } else {
+        LSA_LOG_INFO("%s rpc server successfully stopped",
+                     pRpc->pszName);
+    }
+
+    return dwError;
 }
 
 
@@ -389,6 +488,8 @@ LsaFreeRpcServerList(
     )
 {
     PLSA_RPC_SERVER pRpc = NULL;
+
+    LsaStopRpcServers(pRpcServerList);
 
     while (pRpcServerList) {
         pRpc = pRpcServerList;

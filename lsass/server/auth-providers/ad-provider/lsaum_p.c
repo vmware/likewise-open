@@ -1287,6 +1287,7 @@ LsaUmpAddUserInternal(
     }
     else
     {
+        LSA_LOG_DEBUG("LSA User Manager - User %u has logged on", pRequest->uUid);
         dwError = LsaAllocateMemory(
                       sizeof(LSA_UM_USER_REFRESH_ITEM),
                       (PVOID*)&pNewUserItem);
@@ -1427,6 +1428,7 @@ LsaUmpRemoveUserFromList(
     pUserItem = *pUserItemPtr;
     if ( pUserItem && pUserItem->uUid == uUid )
     {
+        LSA_LOG_DEBUG("LSA User Manager - User %u has logged off", uUid);
         *pUserItemPtr = pUserItem->pNext;
 
         LsaUmpFreePassword(

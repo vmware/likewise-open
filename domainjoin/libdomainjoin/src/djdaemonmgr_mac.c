@@ -716,6 +716,8 @@ DJManageDaemon(
         pszDaemonPath = "com.likewisesoftware.dcerpcd";
     else if (!strcmp(pszName, "lwmgmtd"))
         pszDaemonPath = "com.likewisesoftware.lwmgmtd";
+    else if (!strcmp(pszName, "srvsvcd"))
+        pszDaemonPath = "com.likewisesoftware.srvsvcd";
     else
         pszDaemonPath = pszName;
 

@@ -10,7 +10,6 @@ interface netlogon
 #include <security.idl>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
-#include <lwrpc/unistrdef.h>
 #include <lwrpc/netrdefs.h>
 
     NTSTATUS netr_Function00();
@@ -127,14 +126,14 @@ interface netlogon
     NTSTATUS netr_Function1c();
 
     /* function 0x1d */
-    NTSTATUS _NetrLogonDomainInfo(
-        [in,unique,string] wchar16_t *server_name,
+    NTSTATUS _NetrLogonGetDomainInfo(
+        [in,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
-        [in,unique] NetrAuth *creds,
-        [in,out,unique] NetrAuth *ret_creds,
+        [in] NetrAuth *creds,
+        [in,out,ref] NetrAuth *ret_creds,
         [in] uint32 level,
         [in,switch_is(level)] NetrDomainQuery *query,
-        [out,switch_is(level)] NetrDomainInfo **info
+        [out,ref,switch_is(level)] NetrDomainInfo *info
         );
 
 

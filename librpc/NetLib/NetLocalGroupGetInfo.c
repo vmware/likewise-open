@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -29,61 +29,89 @@
  */
 
 #include "includes.h"
-#include "GroupInfo.h"
 
 
-NET_API_STATUS NetLocalGroupGetInfo(const wchar16_t *hostname,
-				    const wchar16_t *aliasname,
-				    uint32 level, void **buffer)
+NET_API_STATUS
+NetLocalGroupGetInfo(
+    const wchar16_t *hostname,
+    const wchar16_t *aliasname,
+    uint32 level,
+    void **buffer
+    )
 {
     const uint32 access_rights = ALIAS_ACCESS_LOOKUP_INFO;
 
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle alias_handle;
-    uint32 alias_rid;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle alias_h;
+    uint32 alias_rid = 0;
     AliasInfo *info = NULL;
-    LOCALGROUP_INFO_1 *ninfo1;
+    void *ninfo = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (hostname == NULL || aliasname == NULL ||
-	buffer == NULL) {
-	return NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-    }
+    goto_if_invalid_param_winerr(hostname, cleanup);
+    goto_if_invalid_param_winerr(aliasname, cleanup);
+    goto_if_invalid_param_winerr(buffer, cleanup);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    BAIL_ON_NT_STATUS(status);
+    goto_if_ntstatus_not_success(status, error);
 
-    samr_bind = conn->samr.bind;
+    samr_b = conn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, access_rights, &alias_handle,
-			  &alias_rid);
-    BAIL_ON_NT_STATUS(status);
+    status = NetOpenAlias(conn, aliasname, access_rights, &alias_h, &alias_rid);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrQueryAliasInfo(samr_bind, &alias_handle,
-				ALIAS_INFO_ALL, &info);
-    BAIL_ON_NT_STATUS(status);
+    status = SamrQueryAliasInfo(samr_b, &alias_h, ALIAS_INFO_ALL, &info);
+    goto_if_ntstatus_not_success(status, error);
 
-    ninfo1 = (LOCALGROUP_INFO_1*) malloc(sizeof(LOCALGROUP_INFO_1*));
-    if (ninfo1 == NULL) return NtStatusToWin32Error(STATUS_NO_MEMORY);
+    switch (level) {
+    case 0:
+        status = PullLocalGroupInfo0((void**)&ninfo, info, 1);
+        break;
 
-    *buffer = PullLocalGroupInfo1((void*)ninfo1, info, 0);
+    case 1:
+        status = PullLocalGroupInfo1((void**)&ninfo, info, 1);
+        break;
 
-    status = SamrClose(samr_bind, &alias_handle);
-    BAIL_ON_NT_STATUS(status);
+    default:
+        status = STATUS_INVALID_LEVEL;
+    }
+    goto_if_ntstatus_not_success(status, error);
+
+    status = SamrClose(samr_b, &alias_h);
+    goto_if_ntstatus_not_success(status, error);
+
+    *buffer = ninfo;
+
+cleanup:
+    if (info) {
+        SamrFreeMemory((void*)info);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return status;
 
 error:
+    if (ninfo) {
+        NetFreeMemory((void*)ninfo);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    *buffer = NULL;
+    goto cleanup;
 }
 
 

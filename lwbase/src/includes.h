@@ -31,23 +31,17 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 #include <string.h>
 #include <assert.h>
 
 #ifdef HAVE_STRINGS_H
-   #include <strings.h>
+#include <strings.h>
 #endif
 
 #ifdef HAVE_SYS_VARARGS_H
-   #include <sys/varargs.h>
+#include <sys/varargs.h>
 #endif
 
 #include <wc16str.h>
 #include <uuid/uuid.h>
-
-#include <secdesc/polhnd.h>
-#include <secdesc/sid.h>
-#include <secdesc/sd.h>
-#include <secdesc_p.h>

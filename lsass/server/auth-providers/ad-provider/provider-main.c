@@ -125,6 +125,12 @@ LsaAdProviderLogServiceStartEvent(
     );
 
 static
+VOID
+LsaAdProviderLogConfigReloadEvent(
+    VOID
+    );
+
+static
 DWORD
 AD_SetUserCanonicalNameToAlias(
     PCSTR pszCurrentNetBIOSDomainName,
@@ -232,14 +238,19 @@ LsaInitializeProvider(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (!bIsDomainOffline)
+    {
+        dwError = AD_MachineCredentialsCacheInitialize();
+        if (dwError == LSA_ERROR_CLOCK_SKEW)
+        {
+            bIsDomainOffline = TRUE;
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     if (bIsDomainOffline)
     {
         dwError = AD_MachineCredentialsCacheClear();
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = AD_MachineCredentialsCacheInitialize();
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -314,6 +325,15 @@ error:
     // thread shutdown code should not pthread_cancel but use a proper
     // self-contained shutdown mechanism.  We need to make those modules
     // more self-contained wrt having their own shutdown logic.
+
+    if (AD_EventlogEnabled())
+    {
+        LsaAdProviderLogServiceStartEvent(
+                           pszHostname,
+                           pszDomainDnsName,
+                           bIsDomainOffline,
+                           dwError);
+    }
 
     ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
@@ -2734,9 +2754,9 @@ AD_FillTrustedDomainInfo(
 
     if (pDomainInfo->pSid)
     {
-        dwError = AD_SidToString(
-                        pDomainInfo->pSid,
-                        &pTrustedDomainInfo->pszDomainSID);
+        dwError = LsaAllocateCStringFromSid(
+                        &pTrustedDomainInfo->pszDomainSID,
+                        pDomainInfo->pSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2969,6 +2989,8 @@ AD_RefreshConfiguration(
 
         AD_FreeAllowedSIDs_InLock();
     }
+
+    LsaAdProviderLogConfigReloadEvent();
 
 cleanup:
 
@@ -3693,7 +3715,7 @@ LsaAdProviderLogServiceStartEvent(
     )
 {
     DWORD dwError = 0;
-    PSTR pszADProviderDescription = NULL;
+    PSTR pszDescription = NULL;
     PSTR pszData = NULL;
     PLWNET_DC_INFO pDCInfo = NULL;
     PLWNET_DC_INFO pGCDCInfo = NULL;
@@ -3716,8 +3738,16 @@ LsaAdProviderLogServiceStartEvent(
     }
 
     dwError = LsaAllocateStringPrintf(
-                 &pszADProviderDescription,
-                 "AD provider service starts: '%s' is currently joined to %s. Current DC is %s and current GC is %s. Offline Startup: %s.",
+                 &pszDescription,
+                 "Likewise authentication service provider initialization %s.\r\n\r\n" \
+                 "     Authentication provider:   %s\r\n\r\n" \
+                 "     Hostname:                  %s\r\n" \
+                 "     Domain:                    %s\r\n" \
+                 "     Current Domain Controller: %s\r\n" \
+                 "     Current Global Catalog:    %s\r\n" \
+                 "     Offline Startup:           %s",
+                 dwErrCode ? "failed" : "succeeded",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
                  LSA_SAFE_LOG_STRING(pszHostname),
                  LSA_SAFE_LOG_STRING(pszDomainDnsName),
                  (pDCInfo)   ? LSA_SAFE_LOG_STRING(pDCInfo->pszDomainControllerName)   : "(Unknown)" ,
@@ -3725,23 +3755,118 @@ LsaAdProviderLogServiceStartEvent(
                  bIsDomainOffline ? "Yes" : "No");
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetErrorMessageForLoggingEvent(
-                     dwErrCode,
-                     &pszData);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwErrCode)
+    {
+        dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    LsaSrvLogServiceSuccessEvent(
-             SERVICESTART_EVENT_CATEGORY,
-             pszADProviderDescription,
-             pszData);
+        LsaSrvLogServiceFailureEvent(
+                 LSASS_EVENT_FAILED_PROVIDER_INITIALIZATION,
+                 SERVICE_EVENT_CATEGORY,
+                 pszDescription,
+                 pszData);
+    }
+    else
+    {
+        LsaSrvLogServiceSuccessEvent(
+                 LSASS_EVENT_SUCCESSFUL_PROVIDER_INITIALIZATION,
+                 SERVICE_EVENT_CATEGORY,
+                 pszDescription,
+                 NULL);
+    }
 
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszADProviderDescription);
+    LSA_SAFE_FREE_STRING(pszDescription);
     LSA_SAFE_FREE_STRING(pszData);
 
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
     LWNET_SAFE_FREE_DC_INFO(pGCDCInfo);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaAdProviderLogConfigReloadEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
+                 "     Authentication provider:           %s\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     Cache reaper timeout (secs):       %d\r\n" \
+                 "     Cache entry expiry (secs):         %d\r\n" \
+                 "     Space replacement character:       '%c'\r\n" \
+                 "     Domain separator character:        '%c'\r\n" \
+                 "     Enable event log:                  %s\r\n" \
+                 "     Log network connection events:     %s\r\n" \
+                 "     Create K5Login file:               %s\r\n" \
+                 "     Create home directory:             %s\r\n" \
+                 "     Sign and seal LDAP traffic:        %s\r\n" \
+                 "     Assume default domain:             %s\r\n" \
+                 "     Sync system time:                  %s\r\n" \
+                 "     Refresh user credentials:          %s\r\n" \
+                 "     Machine password sync lifetime:    %d\r\n" \
+                 "     Default Shell:                     %s\r\n" \
+                 "     Default home directory prefix:     %s\r\n" \
+                 "     Home directory template:           %s\r\n" \
+                 "     Umask:                             %d\r\n" \
+                 "     Skeleton directory:                %s\r\n" \
+                 "     Cell support:                      %s\r\n" \
+                 "     Trim user membership:              %s\r\n" \
+                 "     NSS group members from cache only: %s\r\n" \
+                 "     NSS user members from cache only:  %s\r\n" \
+                 "     NSS enumeration enabled:           %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 gpLsaAdProviderState->config.dwCacheReaperTimeoutSecs,
+                 gpLsaAdProviderState->config.dwCacheEntryExpirySecs,
+                 gpLsaAdProviderState->config.chSpaceReplacement,
+                 gpLsaAdProviderState->config.chDomainSeparator,
+                 gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false",
+                 gpLsaAdProviderState->config.bShouldLogNetworkConnectionEvents ? "true" : "false",
+                 gpLsaAdProviderState->config.bCreateK5Login ? "true" : "false",
+                 gpLsaAdProviderState->config.bCreateHomeDir ? "true" : "false",
+                 gpLsaAdProviderState->config.bLDAPSignAndSeal ? "true" : "false",
+                 gpLsaAdProviderState->config.bAssumeDefaultDomain ? "true" : "false",
+                 gpLsaAdProviderState->config.bSyncSystemTime ? "true" : "false",
+                 gpLsaAdProviderState->config.bRefreshUserCreds ? "true" : "false",
+                 gpLsaAdProviderState->config.dwMachinePasswordSyncLifetime,
+                 LSA_SAFE_LOG_STRING(gpLsaAdProviderState->config.pszShell),
+                 LSA_SAFE_LOG_STRING(gpLsaAdProviderState->config.pszHomedirPrefix),
+                 LSA_SAFE_LOG_STRING(gpLsaAdProviderState->config.pszHomedirTemplate),
+                 gpLsaAdProviderState->config.dwUmask,
+                 LSA_SAFE_LOG_STRING(gpLsaAdProviderState->config.pszSkelDirs),
+                 gpLsaAdProviderState->config.CellSupport == AD_CELL_SUPPORT_UNINITIALIZED ? "Uninitialized" :
+                 gpLsaAdProviderState->config.CellSupport == AD_CELL_SUPPORT_FULL ? "Full" :
+                 gpLsaAdProviderState->config.CellSupport == AD_CELL_SUPPORT_FILE ? "File" :
+                 gpLsaAdProviderState->config.CellSupport == AD_CELL_SUPPORT_UNPROVISIONED ? "Unprovisioned" : "Invalid",
+                 gpLsaAdProviderState->config.bTrimUserMembershipEnabled ? "true" : "false",
+                 gpLsaAdProviderState->config.bNssGroupMembersCacheOnlyEnabled ? "true" : "false",
+                 gpLsaAdProviderState->config.bNssUserMembershipCacheOnlyEnabled ? "true" : "false",
+                 gpLsaAdProviderState->config.bNssEnumerationEnabled ? "true" : "false");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             LSASS_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
 
     return;
 

@@ -219,6 +219,38 @@ SrvConnectionSetInvalid(
     SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
+SMB_SRV_CONN_STATE
+SrvConnectionGetState(
+    PSMB_SRV_CONNECTION pConnection
+    )
+{
+    SMB_SRV_CONN_STATE connState = SMB_SRV_CONN_STATE_INITIAL;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    connState = pConnection->state;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return connState;
+}
+
+VOID
+SrvConnectionSetState(
+    PSMB_SRV_CONNECTION pConnection,
+    SMB_SRV_CONN_STATE  connState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    pConnection->state = connState;
+
+    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+}
+
 NTSTATUS
 SrvConnectionReadPacket(
     PSMB_SRV_CONNECTION pConnection,
@@ -534,6 +566,61 @@ error:
     {
         SrvSessionRelease(pSession);
     }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pSessionKey = pConnection->pSessionKey;
+    ULONG ulSessionKeyLength = pConnection->ulSessionKeyLength;
+
+    if (pSessionKey != NULL)
+    {
+        ntStatus = IoRtlEcpListInsert(pEcpList,
+                                      IO_ECP_TYPE_SESSION_KEY,
+                                      pSessionKey,
+                                      ulSessionKeyLength,
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PSMB_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
+    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
+
+    ntStatus = IoRtlEcpListInsert(pEcpList,
+                                  IO_ECP_TYPE_PEER_ADDRESS,
+                                  pAddr,
+                                  ulAddrLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

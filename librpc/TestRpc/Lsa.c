@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -35,12 +35,13 @@
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
-#include <secdesc/secdesc.h>
+#include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/security.h>
 #include <lwrpc/allocate.h>
+#include <lwrpc/sidhelper.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/mpr.h>
 
@@ -97,12 +98,11 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     PolicyHandle lsa_policy = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
@@ -123,7 +123,7 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
 
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     LsaRpcDestroyMemory();
@@ -144,7 +144,6 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
     wchar16_t **names = NULL;
     uint32 num_names = 0;
@@ -161,7 +160,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
                        &usernames, &def_usernames);
@@ -175,7 +174,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
     status = GetSamDomainName(&domname, hostname);
-    if (status != 0) rpc_fail(status);
+
 
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
                             &lsa_policy);
@@ -220,18 +219,18 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
 
     for (i = 0; i < sid_array.num_sids; i++) {
-        DomSid *usr_sid, *dom_sid;
+        PSID usr_sid;
+        PSID dom_sid;
         uint32 sid_index;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
-		
+
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->subauth_count + 1,
-                                      dom_sid);
-            usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
+            MsRpcAllocateSidAppendRid(&usr_sid,
+                                      dom_sid,
+                                      sids[i].rid);
             sid_array.sids[i].sid = usr_sid;
         }
     }
@@ -265,7 +264,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     for (i = 0; i < sid_array.num_sids; i++) {
         SAFE_FREE(sid_array.sids[i].sid);
@@ -322,7 +321,6 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
     wchar16_t **names = NULL;
     uint32 num_names = 0;
@@ -339,7 +337,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
                        &usernames, &def_username);
@@ -398,25 +396,25 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
 
     for (i = 0; i < sid_array.num_sids; i++) {
-        DomSid *usr_sid, *dom_sid;
+        PSID usr_sid;
+        PSID dom_sid;
         uint32 sid_index;
         wchar16_t *sidstr = NULL;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
-		
+
         if (sid_index < domains->count) {
             dom_sid = domains->domains[sid_index].sid;
-            RtlSidAllocateResizedCopy(&usr_sid,
-                                      dom_sid->subauth_count + 1,
-                                      dom_sid);
-            usr_sid->subauth[usr_sid->subauth_count - 1] = sids[i].rid;
+            MsRpcAllocateSidAppendRid(&usr_sid,
+                                      dom_sid,
+                                      sids[i].rid);
             sid_array.sids[i].sid = usr_sid;
 
-            SidToStringW(usr_sid, &sidstr);
+            RtlAllocateWC16StringFromSid(&sidstr, usr_sid);
             DUMP_WSTR(" ", sidstr);
 
-            SidStrFreeW(sidstr);
+            RTL_FREE(&sidstr);
         }
     }
 
@@ -449,7 +447,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     for (i = 0; i < sid_array.num_sids; i++) {
         SAFE_FREE(sid_array.sids[i].sid);
@@ -498,10 +496,9 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr;
+    enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
-    DomSid **input_sids = NULL;
+    PSID* input_sids = NULL;
     int input_sid_count = 0;
     wchar16_t *domname = NULL;
     wchar16_t *names[2] = {0};
@@ -516,7 +513,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "sids", pt_sid_list, &input_sids,
                        &def_input_sids);
@@ -543,12 +540,12 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         sid_array.sids[i].sid = input_sids[i];
 
-        SidToStringW(input_sids[i], &sidstr);
+        RtlAllocateWC16StringFromSid(&sidstr, input_sids[i]);
         test_fail_if_no_memory(sidstr);
 
         DUMP_WSTR(" ", sidstr);
 
-        SidStrFreeW(sidstr);
+        RTL_FREE(&sidstr);
     }
 
     level = 1;
@@ -574,14 +571,16 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     LsaRpcDestroyMemory();
 
-    for (i = 0; i < sid_array.num_sids; i++) {
-        SidFree(sid_array.sids[i].sid);
+    for (i = 0; i < input_sid_count; i++)
+    {
+        RTL_FREE(&input_sids[i]);
     }
+
     SAFE_FREE(sid_array.sids);
 
     SAFE_FREE(input_sids);
@@ -614,7 +613,6 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
     PolicyHandle lsa_policy = {0};
     LsaPolicyInformation *info = NULL;
@@ -622,7 +620,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "level", pt_uint32, &level,
                        &def_level);
@@ -686,7 +684,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     status = LsaClose(lsa_b, &lsa_policy);
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(domname);
@@ -720,7 +718,6 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     handle_t lsa_b = NULL;
-    NETRESOURCE nr = {0};
     wchar16_t *domname = NULL;
     PolicyHandle lsa_policy = {0};
     LsaPolicyInformation *info = NULL;
@@ -728,7 +725,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "level", pt_uint32, &level,
                        &def_level);
@@ -792,7 +789,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     status = LsaClose(lsa_b, &lsa_policy);
     FreeLsaBinding(&lsa_b);
 
-    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
 done:
     SAFE_FREE(domname);

@@ -314,6 +314,9 @@ LwNtCtxCreateFile(
 
     status = ioStatusBlock.Status;
 
+    /* Unlink file handle from response message so it does not get freed */
+    pResponse->FileHandle = NULL;
+
 cleanup:
     if (status)
     {
@@ -780,7 +783,42 @@ LwNtCtxQueryVolumeInformationFile(
     OUT PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
+    NT_IPC_MESSAGE_QUERY_VOLUME_INFORMATION_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = FileHandle;
+    request.Length = Length;
+    request.FsInformationClass = FsInformationClass;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpCtxGetBufferResult(&ioStatusBlock, FsInformation, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
 LwNtCtxSetVolumeInformationFile(
@@ -889,14 +927,48 @@ LwNtCtxSetQuotaInformationFile(
 NTSTATUS
 LwNtCtxQuerySecurityFile(
     IN PIO_CONTEXT pConnection,
-    IN IO_FILE_HANDLE  Handle,
+    IN IO_FILE_HANDLE Handle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
-    ); 
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
+    NT_IPC_MESSAGE_QUERY_SECURITY_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = Handle;
+    request.SecurityInformation = SecurityInformation;
+    request.Length = Length;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT) pReply;
+
+    status = NtpCtxGetBufferResult(&ioStatusBlock, SecurityDescriptor, Length, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 NTSTATUS
 LwNtCtxSetSecurityFile(
@@ -905,8 +977,45 @@ LwNtCtxSetSecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    ); 
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
+    NT_IPC_MESSAGE_SET_SECURITY_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    request.FileHandle = Handle;
+    request.SecurityInformation = SecurityInformation;
+    request.SecurityDescriptor = SecurityDescriptor;
+    request.Length = Length;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
 
 // TODO: QueryEaFile and SetEaFile.
 

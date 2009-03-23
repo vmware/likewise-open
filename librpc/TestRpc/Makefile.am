@@ -21,6 +21,7 @@ testrpc_SOURCES = \
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 INCLUDES = -I$(LIBRPC_INCDIR) -I$(librpc_srcdir)
 
+testrpc_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 testrpc_CFLAGS = -g $(INCLUDES) -D_GNU_SOURCE -DLIBRPC_BUILD $(AM_CFLAGS)
 testrpc_LDFLAGS = $(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS) -rpath ${libdir}
 testrpc_LDADD = \
@@ -30,4 +31,5 @@ testrpc_LDADD = \
 	$(liballoc_builddir)/liballoc.la \
 	$(libmpr_builddir)/libmpr.la \
 	$(libmsrpc_builddir)/libmsrpc.la \
-	$(libnetapi_builddir)/libnetapi.la
+	$(libnetapi_builddir)/libnetapi.la \
+	@LWBASE_LIBS@

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -31,124 +31,167 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetUserGetLocalGroups(const wchar16_t *hostname,
-				     const wchar16_t *username,
-				     uint32 level, uint32 flags, void **bufptr,
-				     uint32 prefmaxlen, uint32 *entries,
-				     uint32 *total)
+NET_API_STATUS
+NetUserGetLocalGroups(
+    const wchar16_t *hostname,
+    const wchar16_t *username,
+    uint32 level,
+    uint32 flags,
+    void **bufptr,
+    uint32 prefmaxlen,
+    uint32 *out_entries,
+    uint32 *out_total
+    )
 {
     const uint32 builtin_dom_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
                                       DOMAIN_ACCESS_ENUM_ACCOUNTS;
     const uint32 user_access = USER_ACCESS_GET_GROUP_MEMBERSHIP;
 	
     NTSTATUS status = STATUS_SUCCESS;
-    NetConn *conn;
-    handle_t samr_bind;
-    PolicyHandle domain_handle, btin_domain_handle;
-    PolicyHandle user_handle;
-    DomSid *domain_sid, *user_sid;
-    uint32 user_rid, i;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle domain_h;
+    PolicyHandle btin_domain_h;
+    PolicyHandle user_h;
+    PSID domain_sid = NULL;
+    PSID user_sid = NULL;
+    uint32 user_rid = 0;
+    uint32 i = 0;
     SidPtr sid_ptr;
     SidArray sids;
-    uint32 *user_rids, *btin_user_rids, rids_count, btin_rids_count;
-    wchar16_t **alias_names, **btin_alias_names;
-    uint32 *alias_types, *btin_alias_types;
-    LOCALGROUP_USERS_INFO_0 *info;
+    uint32 *user_rids = NULL;
+    uint32 *btin_user_rids = NULL;
+    uint32 rids_count = 0;
+    uint32 btin_rids_count = 0;
+    wchar16_t **alias_names = NULL;
+    wchar16_t **btin_alias_names = NULL;
+    uint32 *alias_types = NULL;
+    uint32 *btin_alias_types = NULL;
+    LOCALGROUP_USERS_INFO_0 *info = NULL;
+    uint32 entries = 0;
+    uint32 total = 0;
+    wchar16_t *alias_name = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    if (username == NULL || bufptr == NULL) {
-        return NtStatusToWin32Error(STATUS_NO_MEMORY);
-    }
+    goto_if_invalid_param_winerr(username, cleanup);
+    goto_if_invalid_param_winerr(hostname, cleanup);
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, access_token);
-    if (status != 0) return NtStatusToWin32Error(status);
+    goto_if_ntstatus_not_success(status, error);
     
-    samr_bind          = conn->samr.bind;
-    domain_handle      = conn->samr.dom_handle;
-    btin_domain_handle = conn->samr.btin_dom_handle;
-    domain_sid         = conn->samr.dom_sid;
+    samr_b        = conn->samr.bind;
+    domain_h      = conn->samr.dom_handle;
+    btin_domain_h = conn->samr.btin_dom_handle;
+    domain_sid    = conn->samr.dom_sid;
 
-    status = NetOpenUser(conn, username, user_access, &user_handle, &user_rid);
+    status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
+    goto_if_ntstatus_not_success(status, error);
+
+    status = MsRpcAllocateSidAppendRid(&user_sid, domain_sid, user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
 
-    status = RtlSidAllocateResizedCopy(&user_sid, domain_sid->subauth_count + 1,
-                                       domain_sid);
-    if (status != 0) return NtStatusToWin32Error(status);
-
-    user_sid->subauth[user_sid->subauth_count - 1] = user_rid;
     sids.num_sids = 1;
     sid_ptr.sid = user_sid;
     sids.sids = &sid_ptr;
 
-    status = SamrGetAliasMembership(samr_bind, &domain_handle, user_sid, 1,
-				    &user_rids, &rids_count);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = SamrGetAliasMembership(samr_b, &domain_h, user_sid, 1,
+                                    &user_rids, &rids_count);
+    goto_if_ntstatus_not_success(status, error);
 
-    status = SamrGetAliasMembership(samr_bind, &btin_domain_handle, user_sid, 1,
-				    &btin_user_rids, &btin_rids_count);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = SamrGetAliasMembership(samr_b, &btin_domain_h, user_sid, 1,
+                                    &btin_user_rids, &btin_rids_count);
+    goto_if_ntstatus_not_success(status, error);
 
     if (rids_count > 0) {
-	status = SamrLookupRids(samr_bind, &domain_handle, rids_count,
-				user_rids, &alias_names, &alias_types);
-	if (status != 0) return NtStatusToWin32Error(status);
+        status = SamrLookupRids(samr_b, &domain_h, rids_count,
+                                user_rids, &alias_names, &alias_types);
+        goto_if_ntstatus_not_success(status, error);
     }
 
     if (btin_rids_count > 0) {
-	status = SamrLookupRids(samr_bind, &btin_domain_handle,
-				btin_rids_count, btin_user_rids,
-				&btin_alias_names, &btin_alias_types);
-	if (status != 0) return NtStatusToWin32Error(status);
+        status = SamrLookupRids(samr_b, &btin_domain_h,
+                                btin_rids_count, btin_user_rids,
+                                &btin_alias_names, &btin_alias_types);
+        goto_if_ntstatus_not_success(status, error);
     }
 
-    status = SamrClose(samr_bind, &user_handle);
-    if (status != 0) return NtStatusToWin32Error(status);
+    status = SamrClose(samr_b, &user_h);
+    goto_if_ntstatus_not_success(status, error);
 
-    *total = rids_count + btin_rids_count;
+    total = rids_count + btin_rids_count;
 
-    if ((*total) * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
-	status = STATUS_MORE_ENTRIES;
+    if (total * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
+        status = STATUS_MORE_ENTRIES;
     } else {
-	status = STATUS_SUCCESS;
+        status = STATUS_SUCCESS;
     }
+    goto_if_ntstatus_not_success(status, error);
 
-    *entries = *total;
-    while ((*entries) * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) (*entries)--;
+    entries = total;
+    while (entries * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
+        entries--;
+    }
 
     /* Allocate memory only when entries number is non-zero, otherwise set info
        buffer to NULL. This is because allocating zero bytes of memory still returns
        a valid pointer */
-    if (*entries) {
-	info = (LOCALGROUP_USERS_INFO_0*) malloc(sizeof(LOCALGROUP_USERS_INFO_0) *
-						 *entries);
+    if (entries) {
+        status = NetAllocateMemory((void**)&info,
+                                   sizeof(LOCALGROUP_USERS_INFO_0) * entries,
+                                   NULL);
+        goto_if_ntstatus_not_success(status, error);
 
-	for (i = 0; i < *entries && i < rids_count; i++) {
-	    info[i].lgrui0_name = wc16sdup(alias_names[i]);
-	}
+        for (i = 0; i < entries && i < rids_count; i++) {
+            alias_name = wc16sdup(alias_names[i]);
+            goto_if_no_memory_ntstatus(alias_name, error);
 
-	/* continue copying from where previous loop has finished */
-	for (i = rids_count; i < *entries; i++) {
-	    info[i].lgrui0_name = 
-		wc16sdup(btin_alias_names[i - rids_count]);
-	}
+            info[i].lgrui0_name = alias_name;
 
-    } else {
-	info = NULL;
+            status = NetAddDepMemory(alias_name, info);
+            goto_if_ntstatus_not_success(status, error);
+
+            alias_name = NULL;
+        }
+
+        /* continue copying from where previous loop has finished */
+        for (i = rids_count; i < entries; i++) {
+            alias_name = wc16sdup(btin_alias_names[i - rids_count]);
+            goto_if_no_memory_ntstatus(alias_name, error);
+
+            info[i].lgrui0_name = alias_name;
+
+            status = NetAddDepMemory(alias_name, info);
+            goto_if_ntstatus_not_success(status, error);
+
+            alias_name = NULL;
+        }
+
     }
 
+    *out_entries = entries;
+    *out_total   = total;
     *bufptr = (void*)info;
 
+cleanup:
+    return err;
+
 error:
+    if (info) {
+        NetFreeMemory((void*)info);
+    }
 
     if (access_token)
     {
         LwIoDeleteAccessToken(access_token);
     }
 
-    return NtStatusToWin32Error(status);
+    *out_entries = 0;
+    *out_total   = 0;
+    goto cleanup;
 }
 
 

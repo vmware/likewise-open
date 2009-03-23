@@ -576,14 +576,14 @@ error:
 static
 DWORD
 AD_PacRidsToSidStringList(
-    IN OPTIONAL DomSid* pDomainSid,
+    IN OPTIONAL PSID pDomainSid,
     IN RidWithAttributeArray* pRids,
     OUT PDWORD pdwSidCount,
     OUT PSTR** pppszSidList
     )
 {
     DWORD dwError = 0;
-    DomSid* pDomainBasedSid = NULL;
+    PSID pDomainBasedSid = NULL;
     DWORD i = 0;
     DWORD dwSidCount = 0;
     PSTR* ppszSidList = NULL;
@@ -606,20 +606,20 @@ AD_PacRidsToSidStringList(
                                 (PVOID*)&ppszSidList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = RtlSidAllocateResizedCopy(
+    dwError = LsaAllocateSidAppendRid(
                     &pDomainBasedSid,
-                    pDomainSid->subauth_count + 1,
-                    pDomainSid);
+                    pDomainSid,
+                    0);
     BAIL_ON_LSA_ERROR(dwError);
 
     for (i = 0; i < pRids->count; i++)
     {
-        pDomainBasedSid->subauth[pDomainBasedSid->subauth_count - 1] =
+        pDomainBasedSid->SubAuthority[pDomainBasedSid->SubAuthorityCount - 1] =
             pRids->rids[i].rid;
 
-        dwError = AD_SidToString(
-                        pDomainBasedSid,
-                        &ppszSidList[i]);
+        dwError = LsaAllocateCStringFromSid(
+                        &ppszSidList[i],
+                        pDomainBasedSid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -627,10 +627,7 @@ AD_PacRidsToSidStringList(
     *pppszSidList = ppszSidList;
 
 cleanup:
-    if (pDomainBasedSid)
-    {
-        SidFree(pDomainBasedSid);
-    }
+    LSA_SAFE_FREE_MEMORY(pDomainBasedSid);
     return dwError;
 
 error:
@@ -666,9 +663,9 @@ AD_PacAttributedSidsToSidStringList(
 
     for (i = 0; i < dwSidCount;  i++)
     {
-        dwError = AD_SidToString(
-                        pAttributedSids[i].sid,
-                        &ppszSidList[i]);
+        dwError = LsaAllocateCStringFromSid(
+                        &ppszSidList[i],
+                        pAttributedSids[i].sid);
         BAIL_ON_LSA_ERROR(dwError);
 
         pdwSidAttributeList[i] = pAttributedSids[i].attribute;
@@ -1366,6 +1363,26 @@ AD_CheckExpiredObject(
                 (*ppCachedUser)->pszObjectSid,
                 now - (*ppCachedUser)->version.tLastUpdated);
     }
+
+error:
+    return dwError;
+}
+
+DWORD
+AD_StoreAsExpiredObject(
+    IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    // Set the last update value so low that the next read will force a refresh.
+    (*ppCachedUser)->version.tLastUpdated = 0;
+
+    // Update the cache with the now stale item
+    dwError = LsaDbStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    *ppCachedUser);
+    BAIL_ON_LSA_ERROR(dwError);
 
 error:
     return dwError;
@@ -2479,12 +2496,9 @@ AD_OnlineChangePassword(
                                        pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeSuccessEvent(
-                pszLoginId,
-                gpszADProviderName);
-    }
+    // Now that the user password is updated, we need to expire the cache entry.
+    dwError = AD_StoreAsExpiredObject(&pCachedUser);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Ignore errors because password change succeeded
     LsaUmModifyUser(
@@ -2514,14 +2528,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (AD_EventlogEnabled())
-    {
-        LsaSrvLogUserPWChangeFailureEvent(
-                pszLoginId,
-                gpszADProviderName,
-                dwError);
-    }
 
     goto cleanup;
 }

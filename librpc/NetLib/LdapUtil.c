@@ -30,13 +30,6 @@
 
 #include "includes.h"
 
-#include <config.h>
-#include <lwrpc/types.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/LM.h>
 
 static int LdapModSetStrValue(LDAPMod **mod,
                               const char *t, const wchar16_t *wsv, int chg)
@@ -160,6 +153,7 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
     const char *url_prefix = "ldap://";
 
     WINERR err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAP *ld = NULL;
     unsigned int version;
@@ -172,8 +166,10 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
     ldap_srv = awc16stombs(host);
     goto_if_no_memory_lderr(ldap_srv, error);
 
-    ldap_url = (char*) malloc(strlen(ldap_srv) + strlen(url_prefix) + 1);
-    goto_if_no_memory_lderr(ldap_url, error);
+    status = NetAllocateMemory((void**)&ldap_url,
+                               strlen(ldap_srv) + strlen(url_prefix) + 1,
+                               NULL);
+    goto_if_ntstatus_not_success(status, error);
 
     if (sprintf(ldap_url, "%s%s", url_prefix, ldap_srv) < 0) {
         lderr = LDAP_LOCAL_ERROR;
@@ -205,7 +201,10 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
     *ldconn = ld;
 
 cleanup:
-    SAFE_FREE(ldap_url);
+    if (ldap_url) {
+        NetFreeMemory((void*)ldap_url);
+    }
+
     SAFE_FREE(ldap_srv);
 
     return lderr;
@@ -274,6 +273,7 @@ wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
                              int *count)
 {
     WINERR err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     int i = 0;
     int vcount = 0;
@@ -300,18 +300,18 @@ wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
             goto_if_no_memory_lderr(out, error);
 
             for (i = 0; i < vcount; i++) {
-	        strval = (char*) malloc(value[i]->bv_len + 1);
-		goto_if_no_memory_lderr(strval, error);
+                status = NetAllocateMemory((void**)&strval,
+                                           value[i]->bv_len + 1,
+                                           NULL);
+                goto_if_ntstatus_not_success(status, error);
 
-		memset((void*)strval, 0, value[i]->bv_len + 1);
-                memcpy((void*)strval, (void*)value[i]->bv_val,
-		       value[i]->bv_len);
+                memcpy((void*)strval, value[i]->bv_val, value[i]->bv_len);
 
                 out[i] = ambstowc16s(strval);
                 goto_if_no_memory_lderr(out[i], error);
 
-                SAFE_FREE(strval);
-		strval = NULL;
+                NetFreeMemory((void*)strval);
+                strval = NULL;
             }
 
             if (count) *count = vcount;
@@ -530,7 +530,6 @@ int LdapMachDnsNameSearch(
 
     WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
-    size_t basedn_len = 0;
     size_t filter_len = 0;
     size_t dnsname_len = 0;
     wchar16_t *dnsname = NULL;
@@ -549,7 +548,6 @@ int LdapMachDnsNameSearch(
 
     basedn = awc16stombs(base);
     goto_if_no_memory_lderr(basedn, error);
-    basedn_len = strlen(basedn);
 
     dnsname = LdapAttrValDnsHostName(name, dns_domain_name);
     goto_if_no_memory_lderr(dnsname, error);

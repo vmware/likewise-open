@@ -75,7 +75,7 @@ In addition, associations and connections extend the core set of types:
 - File descriptors: UNIX file descriptors may be transferred to the peer for purposes of authentication, establishing out-of-band communication (including shared memory), and enforcing privilege separation.
 
 
-Once a set of data structures have been specified, they may be bound together with a corresponding set of integral messages tags into a protocol specification.  One or more protocol specifications may be combined into a single protocol which is suitable for establishing associations.  The ability to combine multiple specifications together allows for flexible protocol versioning and extensibility.
+Once a set of data structures has been specified, they may be bound together with a corresponding set of integral message tags into a protocol specification.  One or more protocol specifications may be combined into a single protocol which is suitable for establishing associations.  The ability to combine multiple specifications together allows for flexible protocol versioning and extensibility.
 
 @section structures Structures
 A structure specification consists of an ordered set of members of other types and should correspond to the layout of a C struct type.  The members are specified in the order in which they are marshaled, which may differ from the in-memory order of the C struct (with some caveats).  Structure members may be correlated -- e.g. the number of elements contained in an array member may be equal to the value of another member.  Members which are dependencies must be marshaled before the dependent member.
@@ -91,7 +91,7 @@ The length of an array or the referent of a pointer may be specified in 3 differ
 - Implicitly through nul-termination
 
 
-Dynamically-sized arrays may only appear as the last of member a structure, which is the same restriction imposed by the C99 standard.
+Dynamically-sized arrays may only appear as the last member of a structure, which is the same restriction imposed by the C99 standard.
 
 @section unions Unions
 A union, like a structure, is a collection of members of other types.  Unlike a structure, however, only one such member (called an "arm") may be active for a particular union instance.  Each member of a union is associated with a unique integer "tag".  All instances of unions must be preceded by a correlated integer member which holds the tag value indicating the active arm.  This integer is known as the discriminator.  This commonplace C idiom is mandatory in LWMsg.
@@ -103,7 +103,7 @@ An integer may be signed or unsigned and have any arbitrary width in bytes.  Thi
 Given a context, suitable type information, and a buffer, the LWMsg marshaller may be invoked to marshal an object graph with lwmsg_marshal() and unmarshal it with lwmsg_unmarshal().  Marshalling contexts manage various settings and abstract out memory management and other ancillary concerns.  Marshalling buffers are a semi-abstract type which employ a callback to handle buffer over- or under-runs during marshalling operations.
 
 @section associations Associations
-An association represents a full-duplex communication channel with a peer.  An association has a particular protocol and only allows message within that protocol to be transmitted.  Associations formalize connection state through the notion of handles and sessions and provide a generic authentication mechanism for accessing the identity and credentials of the peer.  Associations are fully abstract – a concrete association using a UNIX socket as its message transport is known as a connection.
+An association represents a full-duplex communication channel with a peer.  An association has a particular protocol and only allows messages within that protocol to be transmitted.  Associations formalize connection state through the notion of handles and sessions and provide a generic authentication mechanism for accessing the identity and credentials of the peer.  Associations are fully abstract – a concrete association using a UNIX socket as its message transport is known as a connection.
 
 The stateful aspects of associations are actually managed by a separate mechanism known as a session manager.  It is possible for several associations to share a single session manager, allowing handle and session lifecycles to be decoupled from individual connections.  It is also possible to implement custom session and handle management logic.
 

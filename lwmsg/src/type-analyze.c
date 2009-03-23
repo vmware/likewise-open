@@ -109,3 +109,81 @@ error:
         
     goto done;
 }
+
+static LWMsgStatus
+lwmsg_object_is_zero(
+    LWMsgTypeIter* iter,
+    unsigned char* object, int* is_zero
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t i;
+
+    *is_zero = 1;
+
+    for (i = 0; i < iter->size; i++)
+    {
+        if (object[i] != 0)
+        {
+            *is_zero = 0;
+            break;
+        }
+    }
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_type_calculate_indirect_metrics(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    size_t* count,
+    size_t* element_size
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    unsigned char* element = NULL;
+    int is_zero;
+    LWMsgTypeIter inner;
+
+    lwmsg_type_enter(iter, &inner);
+
+    switch (iter->info.kind_indirect.term)
+    {
+    case LWMSG_TERM_STATIC:
+        *count = iter->info.kind_indirect.term_info.static_length;
+        break;
+    case LWMSG_TERM_MEMBER:
+        /* Extract the length out of the field of the actual structure */
+        BAIL_ON_ERROR(status = lwmsg_type_extract_length(
+                          iter,
+                          iter->dom_object,
+                          count));
+        break;
+    case LWMSG_TERM_ZERO:
+        element = object;
+        is_zero = 0;
+
+        /* We have to calculate the count by searching for the zero element */
+        for (*count = 0;;*count += 1)
+        {
+            BAIL_ON_ERROR(status = lwmsg_object_is_zero(
+                              &inner,
+                              element,
+                              &is_zero));
+
+            if (is_zero)
+            {
+                break;
+            }
+
+            element += inner.size;
+        }
+    }
+
+    *element_size = inner.size;
+
+error:
+
+    return status;
+}

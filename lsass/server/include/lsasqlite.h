@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -46,6 +46,8 @@
  */
 #ifndef __LSASQLITE_H__
 #define __LSASQLITE_H__
+
+#include <lw/security-types.h>
 
 #define SQLITE3_SAFE_FREE_STRING(x) \
     if ((x) != NULL) \

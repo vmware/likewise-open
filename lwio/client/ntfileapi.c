@@ -516,7 +516,33 @@ NtQueryVolumeInformationFile(
     OUT PVOID FsInformation,
     IN ULONG Length,
     IN FS_INFORMATION_CLASS FsInformationClass
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxQueryVolumeInformationFile(
+                    &context,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    FsInformation,
+                    Length,
+                    FsInformationClass);
+
+cleanup:
+
+    LwIoReleaseContext(&context);
+
+    return status;
+}
 
 NTSTATUS
 NtSetVolumeInformationFile(
@@ -619,10 +645,33 @@ NtQuerySecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    OUT PSECURITY_DESCRIPTOR SecurityDescriptor,
-    IN ULONG Length,
-    OUT PULONG LengthNeeded
-    ); 
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxQuerySecurityFile(
+                    &context,
+                    Handle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    SecurityInformation,
+                    SecurityDescriptor,
+                    Length);
+
+cleanup:
+    LwIoReleaseContext(&context);
+    return status;
+}
 
 NTSTATUS
 NtSetSecurityFile(
@@ -630,7 +679,32 @@ NtSetSecurityFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
-    IN PSECURITY_DESCRIPTOR SecurityDescriptor
-    ); 
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxSetSecurityFile(
+                    &context,
+                    Handle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    SecurityInformation,
+                    SecurityDescriptor,
+                    Length);
+
+cleanup:
+    LwIoReleaseContext(&context);
+    return status;
+}
 
 // TODO: QueryEaFile and SetEaFile.

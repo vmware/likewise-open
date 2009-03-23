@@ -717,6 +717,7 @@ static QueryResult QueryFirewall(const JoinProcessOptions *options, LWException 
     DCPortCheck check;
     int i;
     ModuleState *state = DJGetModuleStateByName(options, "firewall");
+    LWException *portCheckException = NULL;
 
     memset(&check, 0, sizeof(check));
 
@@ -751,8 +752,22 @@ static QueryResult QueryFirewall(const JoinProcessOptions *options, LWException 
         int timeout = needUpdate ? FIREWALL_RECONFIGURE_CONNECTION_TIMEOUT : CONNECTION_TIMEOUT;
 
         InitializeDCPortCheckOptions(&checkOptions, options, timeout);
-        LW_TRY(exc, CachePortCheck(options->domainName,
-                    state, &checkOptions, &check, &LW_EXC));
+        CachePortCheck(options->domainName,
+                    state, &checkOptions, &check, &portCheckException);
+        if (!LW_IS_OK(portCheckException))
+        {
+            if (portCheckException->code ==
+                CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME &&
+                needUpdate)
+            {
+                result = NotConfigured;
+                goto cleanup;
+            }
+            else
+            {
+                LW_CLEANUP(exc, portCheckException);
+            }
+        }
 
         for(i = 0; i < check.portCount; i++)
         {
@@ -789,6 +804,7 @@ cleanup:
     }
     CT_SAFE_FREE_STRING(tempFilename);
     FreeDCPortCheckContents(&check);
+    LWHandle(&portCheckException);
     return result;
 }
 

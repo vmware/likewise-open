@@ -82,9 +82,8 @@ SrvSvcNetShareAdd(
     FILE_SHARE_FLAGS ShareAccess = 0;
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
-    ULONG IoControlCode = 1;    /* SRV_DEVCTL_ADD_SHARE - TODO: make it public */
+    ULONG IoControlCode = SRV_DEVCTL_ADD_SHARE;
     PSTR smbpath = NULL;
-    //PIO_ACCESS_TOKEN access_token = NULL;
     IO_FILE_NAME filename;
     IO_STATUS_BLOCK io_status;
     SHARE_INFO_ADD_PARAMS AddParams;
@@ -93,8 +92,29 @@ SrvSvcNetShareAdd(
 
     AddParams.dwInfoLevel = level;
     switch (AddParams.dwInfoLevel) {
+    case 0:
+        AddParams.info.p0 = (PSHARE_INFO_0)info.info0;
+        break;
+
+    case 1:
+        AddParams.info.p1 = (PSHARE_INFO_1)info.info1;
+        break;
+
+    case 2:
+        AddParams.info.p2 = (PSHARE_INFO_2)info.info2;
+        break;
+
+    case 501:
+        AddParams.info.p501 = (PSHARE_INFO_501)info.info501;
+        break;
+
     case 502:
         AddParams.info.p502 = (PSHARE_INFO_502)info.info502;
+        break;
+
+    default:
+        ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
     }
 
@@ -157,23 +177,20 @@ SrvSvcNetShareAdd(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-cleanup:
+error:
     if (FileHandle) {
         NtCloseFile(FileHandle);
     }
 
-    if(pInBuffer) {
+    if (pInBuffer) {
         SrvSvcFreeMemory(pInBuffer);
     }
 
-    return dwError;
-
-error:
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
 
-    goto cleanup;
+    return dwError;
 }
 
 

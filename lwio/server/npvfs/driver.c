@@ -107,7 +107,9 @@ NpfsDriverDispatch(
             break;
 
         case IRP_TYPE_DEVICE_IO_CONTROL:
-            ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = NpfsDeviceIo(
+                            DeviceHandle,
+                            pIrp);
             break;
 
         case IRP_TYPE_FS_CONTROL:
@@ -133,6 +135,7 @@ NpfsDriverDispatch(
             break;
     default:
         ntStatus = STATUS_UNSUCCESSFUL;
+        pIrp->IoStatusBlock.Status = ntStatus;
         GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
     }
 

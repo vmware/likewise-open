@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc_ss.la libsrvsvc.la
+lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc.la
 
 idl_srcdir=$(top_srcdir)/idl
 include_srcdir=$(top_srcdir)/include
@@ -18,19 +18,24 @@ libsrvsvc_la_SOURCES = \
     SrvSvcNetServerGetInfo.c \
     SrvSvcNetServerSetInfo.c \
     SrvSvcNetRemoteTOD.c \
-    SrvSvcSecurity.c \
     SrvSvcMemory.c \
     SrvSvcStubMemory.c \
     MemPtr.c \
     globals.c
 
 libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
-libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
 
-libsrvsvc_cs_la_CPPFLAGS = @DCERPC_INCLUDES@
-libsrvsvc_ss_la_CPPFLAGS = @DCERPC_INCLUDES@
+FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
-libsrvsvc_la_CFLAGS=-g $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
+libsrvsvc_cs_la_CPPFLAGS = \
+    $(FEATURETEST_FLAGS) \
+    @DCERPC_INCLUDES@
+
+libsrvsvc_cs_la_CPFLAGS = \
+    $(FEATURETEST_FLAGS) \
+    @DCERPC_INCLUDES@
+
+libsrvsvc_la_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
 libsrvsvc_la_CPPFLAGS = \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@

@@ -15,11 +15,14 @@ SrvProcessTransaction2(
     PBYTE   pParameters = NULL; // Do not free
     PBYTE   pData = NULL; // Do not free
     PSMB_PACKET pSmbResponse = NULL;
+    ULONG   ulOffset = 0;
+
+    ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;
 
     ntStatus = WireUnmarshallTransactionRequest(
                     pSmbRequest->pParams,
-                    pSmbRequest->bufferLen - pSmbRequest->bufferUsed,
-                    (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader,
+                    pSmbRequest->pNetBIOSHeader->len - ulOffset,
+                    ulOffset,
                     &pRequestHeader,
                     &pSetup,
                     &pBytecount,
