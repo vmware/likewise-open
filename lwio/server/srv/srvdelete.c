@@ -30,6 +30,16 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvDeleteFiles(
+    PSMB_SRV_SESSION pSession,
+    USHORT           usSearchAttributes,
+    PWSTR            pwszFilesystemPath,
+    PWSTR            pwszFilePattern,
+    BOOLEAN          bUseLongFilenames
+    );
+
 NTSTATUS
 SrvProcessDelete(
     PLWIO_SRV_CONTEXT pContext,
@@ -42,13 +52,14 @@ SrvProcessDelete(
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE    pTree = NULL;
     PSMB_DELETE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PWSTR       pwszPathFragment = NULL; // Do not free
+    PWSTR       pwszSearchPattern = NULL; // Do not free
     ULONG       ulOffset = 0;
     PSMB_DELETE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     USHORT      usPacketByteCount = 0;
-    PWSTR       pwszFilePath = NULL;
+    PWSTR       pwszFilesystemPath = NULL;
     PSMB_PACKET pSmbResponse = NULL;
     BOOLEAN     bInLock = FALSE;
+    BOOLEAN     bUseLongFilenames = FALSE;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -69,10 +80,10 @@ SrvProcessDelete(
                     pSmbRequest->pNetBIOSHeader->len - ulOffset,
                     ulOffset,
                     &pRequestHeader,
-                    &pwszPathFragment);
+                    &pwszSearchPattern);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!pwszPathFragment || !*pwszPathFragment)
+    if (!pwszSearchPattern || !*pwszSearchPattern)
     {
         ntStatus = STATUS_CANNOT_DELETE;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -80,15 +91,25 @@ SrvProcessDelete(
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
-    ntStatus = SrvBuildFilePath(
+    ntStatus = SMBAllocateStringW(
                     pTree->pShareInfo->pwszPath,
-                    pwszPathFragment,
-                    &pwszFilePath);
+                    &pwszFilesystemPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
-    // TODO: how to delete files using wildcards when using delete-on-close
+    if (pSmbRequest->pSMBHeader->flags2 & FLAG2_KNOWS_LONG_NAMES)
+    {
+        bUseLongFilenames = TRUE;
+    }
+
+    ntStatus = SrvDeleteFiles(
+                    pSession,
+                    pRequestHeader->usSearchAttributes,
+                    pwszFilesystemPath,
+                    pwszSearchPattern,
+                    bUseLongFilenames);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -145,9 +166,9 @@ cleanup:
         SrvSessionRelease(pSession);
     }
 
-    if (pwszFilePath)
+    if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilePath);
+        LwRtlMemoryFree(pwszFilesystemPath);
     }
 
     return ntStatus;
@@ -165,3 +186,21 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvDeleteFiles(
+    PSMB_SRV_SESSION pSession,
+    USHORT           usSearchAttributes,
+    PWSTR            pwszFilesystemPath,
+    PWSTR            pwszSearchPattern,
+    BOOLEAN          bUseLongFilenames
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    // TODO
+
+    return ntStatus;
+}
+

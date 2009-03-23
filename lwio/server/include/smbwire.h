@@ -570,7 +570,8 @@ typedef struct {
     ULONG    ulLengthHigh;
     ULONG    ulLengthLow;
 
-} __attribute__((__packed__))  LOCKING_ANDX_RANGE_LARGE_FILE, *PLOCKING_ANDX_RANGE_LARGE_FILE;
+} __attribute__((__packed__))  LOCKING_ANDX_RANGE_LARGE_FILE,
+                              *PLOCKING_ANDX_RANGE_LARGE_FILE;
 
 typedef struct {
 
@@ -586,33 +587,38 @@ typedef struct
 {
     USHORT usFid;
     SMB_INFO_LEVEL infoLevel;
-} __attribute__((__packed__)) SMB_QUERY_FILE_INFO_HEADER, *PSMB_QUERY_FILE_INFO_HEADER;
+} __attribute__((__packed__)) SMB_QUERY_FILE_INFO_HEADER,
+                             *PSMB_QUERY_FILE_INFO_HEADER;
 
 typedef struct
 {
     SMB_INFO_LEVEL infoLevel;
-} __attribute__((__packed__)) SMB_QUERY_FS_INFO_HEADER, *PSMB_QUERY_FS_INFO_HEADER;
+} __attribute__((__packed__)) SMB_QUERY_FS_INFO_HEADER,
+                             *PSMB_QUERY_FS_INFO_HEADER;
 
 typedef struct
 {
     USHORT usFid;
     SMB_INFO_LEVEL infoLevel;
     USHORT usReserved;
-} __attribute__((__packed__)) SMB_SET_FILE_INFO_HEADER, *PSMB_SET_FILE_INFO_HEADER;
+} __attribute__((__packed__)) SMB_SET_FILE_INFO_HEADER,
+                             *PSMB_SET_FILE_INFO_HEADER;
 
 typedef struct
 {
     SMB_INFO_LEVEL infoLevel;
     ULONG reserved;
     WCHAR pwszPath[];
-} __attribute__((__packed__)) SMB_SET_PATH_INFO_HEADER, *PSMB_SET_PATH_INFO_HEADER;
+} __attribute__((__packed__)) SMB_SET_PATH_INFO_HEADER,
+                             *PSMB_SET_PATH_INFO_HEADER;
 
 typedef struct
 {
     USHORT usFid;
     USHORT usFlags;
     WCHAR pwszFileName[];
-} __attribute__((__packed__)) SMB_TRANSACT_RENAME_HEADER, *PSMB_TRANSACT_RENAME_HEADER;
+} __attribute__((__packed__)) SMB_TRANSACT_RENAME_HEADER,
+                             *PSMB_TRANSACT_RENAME_HEADER;
 
 typedef struct
 {
@@ -622,7 +628,8 @@ typedef struct
     SMB_INFO_LEVEL infoLevel;
     ULONG ulSearchStorageType;
     WCHAR pwszSearchPattern[];
-} __attribute__((__packed__)) SMB_FIND_FIRST2_REQUEST_PARAMETERS, *PSMB_FIND_FIRST2_REQUEST_PARAMETERS;
+} __attribute__((__packed__)) SMB_FIND_FIRST2_REQUEST_PARAMETERS,
+                             *PSMB_FIND_FIRST2_REQUEST_PARAMETERS;
 
 typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
 {
@@ -631,7 +638,8 @@ typedef struct _SMB_FIND_FIRST2_RESPONSE_PARAMETERS
     USHORT usEndOfSearch;
     USHORT usEaErrorOffset;
     USHORT usLastNameOffset;
-} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS, *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
+} __attribute__((__packed__)) SMB_FIND_FIRST2_RESPONSE_PARAMETERS,
+                             *PSMB_FIND_FIRST2_RESPONSE_PARAMETERS;
 
 typedef struct
 {
@@ -641,7 +649,8 @@ typedef struct
     ULONG ulResumeKey;
     USHORT usFlags;
     WCHAR pwszFileName[];
-} __attribute__((__packed__)) SMB_FIND_NEXT2_REQUEST_PARAMETERS, *PSMB_FIND_NEXT2_REQUEST_PARAMETERS;
+} __attribute__((__packed__)) SMB_FIND_NEXT2_REQUEST_PARAMETERS,
+                             *PSMB_FIND_NEXT2_REQUEST_PARAMETERS;
 
 typedef struct
 {
@@ -649,7 +658,8 @@ typedef struct
     USHORT usEndOfSearch;
     USHORT usEaErrorOffset;
     USHORT usLastNameOffset;
-} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS, *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
+} __attribute__((__packed__)) SMB_FIND_NEXT2_RESPONSE_PARAMETERS,
+                             *PSMB_FIND_NEXT2_RESPONSE_PARAMETERS;
 
 typedef struct {
     /* wordCount and byteCount are handled at a higher layer */
@@ -741,7 +751,8 @@ typedef struct
     uint8_t  isDirectory;       /* TRUE if this is a directory */
     uint16_t byteCount;         /* = 0 */
 
-}  __attribute__((__packed__))  CREATE_RESPONSE_HEADER, *PCREATE_RESPONSE_HEADER;
+}  __attribute__((__packed__))  CREATE_RESPONSE_HEADER,
+                               *PCREATE_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -774,7 +785,8 @@ typedef struct
     uint16_t    byteCount;          /* Count of data bytes */
 
      /* Data immediately follows */
-}  __attribute__((__packed__)) SESSION_SETUP_RESPONSE_HEADER, *PSESSION_SETUP_RESPONSE_HEADER;
+}  __attribute__((__packed__)) SESSION_SETUP_RESPONSE_HEADER,
+                              *PSESSION_SETUP_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -785,7 +797,8 @@ typedef struct
         UCHAR DialectName[];
     } Dialects[];
 #endif
-} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER, *PNEGOTIATE_REQUEST_HEADER;
+} __attribute__((__packed__)) NEGOTIATE_REQUEST_HEADER,
+                             *PNEGOTIATE_REQUEST_HEADER;
 
 typedef struct
 {
@@ -838,7 +851,8 @@ typedef struct
     uint16_t  byteCount;       /* Count of data bytes; min = 3 */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER, *PTREE_CONNECT_REQUEST_HEADER;
+}  __attribute__((__packed__))  TREE_CONNECT_REQUEST_HEADER,
+                               *PTREE_CONNECT_REQUEST_HEADER;
 
 typedef struct
 {
@@ -855,12 +869,14 @@ typedef struct
     uint16_t  byteCount;        /* Count of data bytes; min = 3 */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  TREE_CONNECT_RESPONSE_HEADER, *PTREE_CONNECT_RESPONSE_HEADER;
+}  __attribute__((__packed__))  TREE_CONNECT_RESPONSE_HEADER,
+                               *PTREE_CONNECT_RESPONSE_HEADER;
 
 typedef struct
 {
     uint16_t byteCount;
-} __attribute__((__packed__)) TREE_DISCONNECT_RESPONSE_HEADER, *PTREE_DISCONNECT_RESPONSE_HEADER;
+} __attribute__((__packed__)) TREE_DISCONNECT_RESPONSE_HEADER,
+                             *PTREE_DISCONNECT_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -884,7 +900,8 @@ typedef struct
     uint8_t  reserved3;            /* Reserved (pad above to word boundary) */
 
     /* Setup words immediately follow */
-}  __attribute__((__packed__))  TRANSACTION_REQUEST_HEADER, *PTRANSACTION_REQUEST_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_REQUEST_HEADER,
+                               *PTRANSACTION_REQUEST_HEADER;
 
 typedef struct
 {
@@ -903,7 +920,8 @@ typedef struct
     UCHAR    ucSetupCount;
     USHORT   usFunction;
     /* Setup words immediately follow */
-}  __attribute__((__packed__))  NT_TRANSACTION_REQUEST_HEADER, *PNT_TRANSACTION_REQUEST_HEADER;
+}  __attribute__((__packed__))  NT_TRANSACTION_REQUEST_HEADER,
+                               *PNT_TRANSACTION_REQUEST_HEADER;
 
 typedef struct
 {
@@ -922,7 +940,8 @@ typedef struct
 
     /* Setup words immediately follow */
 
-} __attribute__((__packed__))  NT_TRANSACTION_SECONDARY_RESPONSE_HEADER, *PNT_TRANSACTION_SECONDARY_RESPONSE_HEADER;
+} __attribute__((__packed__))  NT_TRANSACTION_SECONDARY_RESPONSE_HEADER,
+                              *PNT_TRANSACTION_SECONDARY_RESPONSE_HEADER;
 
 /* @todo: is this ever sent? */
 typedef struct
@@ -949,7 +968,8 @@ typedef struct
     uint16_t byteCount;               /* Count of data bytes */
 
     /* Parameters and data follow */
-}  __attribute__((__packed__))  TRANSACTION_SECONDARY_REQUEST_HEADER, *PTRANSACTION_SECONDARY_REQUEST_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_SECONDARY_REQUEST_HEADER,
+                               *PTRANSACTION_SECONDARY_REQUEST_HEADER;
 
 typedef struct
 {
@@ -967,7 +987,8 @@ typedef struct
     uint8_t  reserved2;             /* Reserved (pad above to word boundary) */
 
     /* Parameters and data follow */
-}  __attribute__((__packed__))  TRANSACTION_SECONDARY_RESPONSE_HEADER, *PTRANSACTION_SECONDARY_RESPONSE_HEADER;
+}  __attribute__((__packed__))  TRANSACTION_SECONDARY_RESPONSE_HEADER,
+                               *PTRANSACTION_SECONDARY_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -984,7 +1005,8 @@ typedef struct
     uint32_t offsetHigh;    /* Upper 32 bits of offset
                                (only if wordCount is 12) */
     uint16_t byteCount;     /* Count of data bytes = 0 */
-}  __attribute__((__packed__))  READ_ANDX_REQUEST_HEADER, *PREAD_ANDX_REQUEST_HEADER;
+}  __attribute__((__packed__))  READ_ANDX_REQUEST_HEADER,
+                               *PREAD_ANDX_REQUEST_HEADER;
 
 typedef struct
 {
@@ -1004,7 +1026,8 @@ typedef struct
     uint8_t pad[];
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  READ_ANDX_RESPONSE_HEADER, *PREAD_ANDX_RESPONSE_HEADER;
+}  __attribute__((__packed__))  READ_ANDX_RESPONSE_HEADER,
+                               *PREAD_ANDX_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -1065,7 +1088,8 @@ typedef struct
     uint8_t pad[];              /* Pad to SHORT or LONG */
 
     /* Data immediately follows */
-}  __attribute__((__packed__))  WRITE_ANDX_REQUEST_HEADER, *PWRITE_ANDX_REQUEST_HEADER;
+}  __attribute__((__packed__))  WRITE_ANDX_REQUEST_HEADER,
+                               *PWRITE_ANDX_REQUEST_HEADER;
 
 typedef struct
 {
@@ -1078,7 +1102,8 @@ typedef struct
                                    CAP_LARGE_WRITEX */
     uint16_t reserved;
     uint16_t byteCount;         /* Count of data bytes = 0 */
-}  __attribute__((__packed__))  WRITE_ANDX_RESPONSE_HEADER, *PWRITE_ANDX_RESPONSE_HEADER;
+}  __attribute__((__packed__))  WRITE_ANDX_RESPONSE_HEADER,
+                               *PWRITE_ANDX_RESPONSE_HEADER;
 
 typedef struct
 {
@@ -1158,7 +1183,8 @@ typedef struct _TRANS2_FILE_BASIC_INFORMATION {
     LONG64 ChangeTime;
     FILE_ATTRIBUTES FileAttributes;
     ULONG  unknown;
-} __attribute__((__packed__)) TRANS2_FILE_BASIC_INFORMATION, *PTRANS2_FILE_BASIC_INFORMATION;
+} __attribute__((__packed__)) TRANS2_FILE_BASIC_INFORMATION,
+                             *PTRANS2_FILE_BASIC_INFORMATION;
 
 typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
     LONG64 AllocationSize;
@@ -1167,15 +1193,18 @@ typedef struct _TRANS2_FILE_STANDARD_INFORMATION {
     BOOLEAN bDeletePending;
     BOOLEAN bDirectory;
     USHORT  pad;
-} __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION, *PTRANS2_FILE_STANDARD_INFORMATION;
+} __attribute__((__packed__)) TRANS2_FILE_STANDARD_INFORMATION,
+                             *PTRANS2_FILE_STANDARD_INFORMATION;
 
 typedef struct {
     LONG64 EndOfFile;
-} __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION, *PTRANS2_FILE_END_OF_FILE_INFORMATION;
+} __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,
+                             *PTRANS2_FILE_END_OF_FILE_INFORMATION;
 
 typedef struct {
     BOOLEAN bFileIsDeleted;
-} __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION, *PTRANS2_FILE_DISPOSITION_INFORMATION;
+} __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION,
+                             *PTRANS2_FILE_DISPOSITION_INFORMATION;
 
 typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
 {
@@ -1194,7 +1223,17 @@ typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
     UCHAR     Reserved;
     WCHAR     ShortName[12];
     WCHAR     FileName[];
-} __attribute__((__packed__)) SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER;
+} __attribute__((__packed__)) SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER,
+                             *PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER;
+
+typedef struct _SMB_FIND_FILE_NAMES_INFO_HEADER
+{
+    ULONG     NextEntryOffset;
+    ULONG     FileIndex;
+    ULONG     FileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB_FIND_FILE_NAMES_INFO_HEADER,
+                             *PSMB_FIND_FILE_NAMES_INFO_HEADER;
 
 typedef struct _SMB_FIND_FILE_DIRECTORY_INFO_HEADER
 {
@@ -1209,20 +1248,23 @@ typedef struct _SMB_FIND_FILE_DIRECTORY_INFO_HEADER
     FILE_ATTRIBUTES FileAttributes;
     ULONG     FileNameLength;
     WCHAR     FileName[];
-} __attribute__((__packed__)) SMB_FIND_FILE_DIRECTORY_INFO_HEADER, *PSMB_FIND_FILE_DIRECTORY_INFO_HEADER;
+} __attribute__((__packed__)) SMB_FIND_FILE_DIRECTORY_INFO_HEADER,
+                             *PSMB_FIND_FILE_DIRECTORY_INFO_HEADER;
 
 typedef struct _FIND_CLOSE2_REQUEST_HEADER {
 
     USHORT sid;
     USHORT usByteCount;
 
-} __attribute__((__packed__)) FIND_CLOSE2_REQUEST_HEADER, *PFIND_CLOSE2_REQUEST_HEADER;
+} __attribute__((__packed__)) FIND_CLOSE2_REQUEST_HEADER,
+                             *PFIND_CLOSE2_REQUEST_HEADER;
 
 typedef struct _FIND_CLOSE2_RESPONSE_HEADER {
 
     USHORT usByteCount;
 
-} __attribute__((__packed__)) FIND_CLOSE2_RESPONSE_HEADER, *PFIND_CLOSE2_RESPONSE_HEADER;
+} __attribute__((__packed__)) FIND_CLOSE2_RESPONSE_HEADER,
+                             *PFIND_CLOSE2_RESPONSE_HEADER;
 
 typedef struct _DELETE_DIRECTORY_REQUEST_HEADER {
 
@@ -1231,13 +1273,15 @@ typedef struct _DELETE_DIRECTORY_REQUEST_HEADER {
 
     /* PWSTR pwszDirectoryPath */
 
-} __attribute__((__packed__)) DELETE_DIRECTORY_REQUEST_HEADER, *PDELETE_DIRECTORY_REQUEST_HEADER;
+} __attribute__((__packed__)) DELETE_DIRECTORY_REQUEST_HEADER,
+                             *PDELETE_DIRECTORY_REQUEST_HEADER;
 
 typedef struct _DELETE_DIRECTORY_RESPONSE_HEADER {
 
     USHORT usByteCount;
 
-} __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER, *PDELETE_DIRECTORY_RESPONSE_HEADER;
+} __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER,
+                             *PDELETE_DIRECTORY_RESPONSE_HEADER;
 
 typedef struct _SMB_DELETE_REQUEST_HEADER
 {
@@ -1247,13 +1291,15 @@ typedef struct _SMB_DELETE_REQUEST_HEADER
     /* UCHAR ucBufferFormat; */
     /* PWSTR pwszPath */
 
-} __attribute__((__packed__)) SMB_DELETE_REQUEST_HEADER, *PSMB_DELETE_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB_DELETE_REQUEST_HEADER,
+                             *PSMB_DELETE_REQUEST_HEADER;
 
 typedef struct _SMB_DELETE_RESPONSE_HEADER {
 
     USHORT usByteCount;
 
-} __attribute__((__packed__)) SMB_DELETE_RESPONSE_HEADER, *PSMB_DELETE_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB_DELETE_RESPONSE_HEADER,
+                             *PSMB_DELETE_RESPONSE_HEADER;
 
 typedef struct _FLUSH_REQUEST_HEADER
 {
@@ -1295,7 +1341,8 @@ typedef struct
 
     /* LOCKING_ANDX_RANGE unlocks[]; */
     /* LOCKING_ANDX_RANGE locks[];   */
-} __attribute__((__packed__)) SMB_LOCKING_ANDX_REQUEST_HEADER, *PSMB_LOCKING_ANDX_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_REQUEST_HEADER,
+                             *PSMB_LOCKING_ANDX_REQUEST_HEADER;
 
 typedef struct _SMB_LOCKING_ANDX_RESPONSE_HEADER
 {
@@ -1304,7 +1351,8 @@ typedef struct _SMB_LOCKING_ANDX_RESPONSE_HEADER
 
     USHORT usByteCount;
 
-} __attribute__((__packed__)) SMB_LOCKING_ANDX_RESPONSE_HEADER, *PSMB_LOCKING_ANDX_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB_LOCKING_ANDX_RESPONSE_HEADER,
+                             *PSMB_LOCKING_ANDX_RESPONSE_HEADER;
 
 typedef struct _SMB_RENAME_REQUEST_HEADER
 {
@@ -1314,7 +1362,8 @@ typedef struct _SMB_RENAME_REQUEST_HEADER
     USHORT usSearchAttributes;
     USHORT usByteCount;
 
-} __attribute__((__packed__)) SMB_RENAME_REQUEST_HEADER, *PSMB_RENAME_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB_RENAME_REQUEST_HEADER,
+                             *PSMB_RENAME_REQUEST_HEADER;
 
 typedef struct _SMB_RENAME_RESPONSE_HEADER
 {
@@ -1323,7 +1372,8 @@ typedef struct _SMB_RENAME_RESPONSE_HEADER
 
     USHORT usByteCount;
 
-} __attribute__((__packed__)) SMB_RENAME_RESPONSE_HEADER, *PSMB_RENAME_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB_RENAME_RESPONSE_HEADER,
+                             *PSMB_RENAME_RESPONSE_HEADER;
 
 typedef struct _SMB_NT_RENAME_REQUEST_HEADER
 {
@@ -1331,19 +1381,22 @@ typedef struct _SMB_NT_RENAME_REQUEST_HEADER
     USHORT usInfoLevel;
     ULONG ulClusterCount;
     USHORT usByteCount;
-} __attribute__((__packed__)) SMB_NT_RENAME_REQUEST_HEADER, *PSMB_NT_RENAME_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB_NT_RENAME_REQUEST_HEADER,
+                             *PSMB_NT_RENAME_REQUEST_HEADER;
 
 typedef struct _SMB_NT_RENAME_RESPONSE_HEADER
 {
     USHORT usByteCount;
-} __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER, *PSMB_NT_RENAME_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB_NT_RENAME_RESPONSE_HEADER,
+                             *PSMB_NT_RENAME_RESPONSE_HEADER;
 
 typedef struct _SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER
 {
     USHORT usFid;
     USHORT reserved;
     SECURITY_INFORMATION securityInformation;
-} __attribute__((__packed__)) SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER, *PSMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER,
+                             *PSMB_NT_TRANS_QUERY_SECURITY_DESC_REQUEST_HEADER;
 
 typedef enum
 {
