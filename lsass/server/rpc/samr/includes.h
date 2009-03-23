@@ -49,7 +49,7 @@
 #include <lw/rtlmemory.h>
 #include <lw/security-api.h>
 #include <lwrpc/allocate.h>
-#include <lwrpc/unistrdef.h>
+#include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/userinfo.h>
