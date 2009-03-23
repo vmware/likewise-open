@@ -64,7 +64,7 @@ SrvProcessOpenAndX(
     PIO_ECP_LIST         pEcpList = NULL;
     USHORT               usCreateDisposition = 0;
     USHORT               usCreateOptions = 0;
-    USHORT               usShareAccess = (FILE_SHARE_READ | FILE_SHARE_WRITE);
+    USHORT               usShareAccess = 0;
     PSMB_PACKET          pSmbResponse = NULL;
     PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
@@ -128,6 +128,38 @@ SrvProcessOpenAndX(
                        pConnection,
                        pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    usShareAccess = (FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE);
+
+    switch (pRequestHeader->usDesiredAccess & 0x70)
+    {
+        case 0: /* compatibility mode */
+
+            break;
+
+        case 1: /* deny read/write/execute (exclusive) */
+
+            usShareAccess &= (USHORT)~FILE_SHARE_READ;
+            usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
+
+            break;
+
+        case 2: /* deny write */
+
+            usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
+
+            break;
+
+        case 3: /* deny read/execute */
+
+            usShareAccess &= (USHORT)~FILE_SHARE_READ;
+
+            break;
+
+        case 4: /* deny none */
+
+            break;
     }
 
     /* action to take if the file exists */
