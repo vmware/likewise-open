@@ -139,7 +139,7 @@ NTSTATUS __SamrOpenDomain(
     /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ uint32 access_mask,
     /* [in] */ SID *sid,
-    /* [out] */ PolicyHandle *domain_handle
+    /* [out] */ DOMAIN_HANDLE *hDomain
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -148,7 +148,7 @@ NTSTATUS __SamrOpenDomain(
                                hConn,
                                access_mask,
                                sid,
-                               domain_handle);
+                               hDomain);
     return status;
 }
 

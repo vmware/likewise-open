@@ -81,7 +81,7 @@ SamrSrvOpenDomain(
     CONNECT_HANDLE hConn,
     uint32 access_mask,
     SID *sid,
-    PolicyHandle *domain_handle
+    DOMAIN_HANDLE *hDomain
     );
 
 
