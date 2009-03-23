@@ -36,6 +36,18 @@
 #define TEXT(str)  str
 #endif
 
+unsigned long long
+_wc16stoull(
+    const wchar16_t *input,
+    const wchar16_t **end,
+    int base
+    );
+#ifdef __GNUC__
+#define wc16stoull(input, end, base)  _wc16stoull(input, end, base)
+#elif _WIN32
+#define wc16stoull(input, end, base)  wcstoui64(input, end, base)
+#endif
+
 size_t _wc16slen(const wchar16_t *str);
 #ifdef __GNUC__
 #define wc16slen(str)  _wc16slen(str)
@@ -75,6 +87,10 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 #define wc16sncpy(dest, src, n)  _wc16sncpy(dest, src, n)
 #endif
 
+/* Copy upto n 16bit characters from one string to another
+ *
+ * n is the maximum number of characters to store in dest (including null).
+ */
 wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 #ifdef WCHAR16_IS_WCHAR
 #define wc16pncpy(dest, src, n)  wcpncpy(dest, src, n)
@@ -84,9 +100,25 @@ wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 
 int wc16scasecmp(const wchar16_t *s1, const wchar16_t *s2);
 int wc16scmp(const wchar16_t *s1, const wchar16_t *s2);
+int wc16sncmp(const wchar16_t *s1, const wchar16_t *s2, size_t n);
 
 #ifndef HAVE_MBSTRLEN
 #define mbstrlen(x) mbstowcs(NULL, (x), 0)
+#endif
+
+/* Returns the number of bytes in src that form the next cchFind multi-byte
+ * characters.
+ *
+ * If fewer than cchFind characters are in src, then the size of the rest of
+ * the string in bytes is returned.
+ *
+ * Basically this converts from a count of multi-byte characters into a count
+ * of bytes.
+ */
+size_t __mbsnbcnt(const char *src, size_t cchFind);
+
+#ifndef HAVE_MBSNBCNT
+#define mbsnbcnt(src, cchFind)  __mbsnbcnt(src, cchFind)
 #endif
 
 /*Optimistically try to wc16sncpy()

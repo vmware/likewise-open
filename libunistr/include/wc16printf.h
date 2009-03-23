@@ -29,7 +29,44 @@
  */
 
 #include <wchar16.h>
+#include <stdio.h>
 #include <stddef.h>
 
+ssize_t
+vsw16printf(
+    wchar16_t *out,
+    size_t maxchars,
+    const wchar16_t *format,
+    va_list args
+    );
+
+//TODO: rename this once the deprecated sw16printf is removed
+ssize_t
+sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...);
+
+ssize_t
+sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
+
+wchar16_t *
+asw16printfw(const wchar_t *format, ...);
+
+ssize_t
+vfw16printf(
+    FILE *pFile,
+    const wchar16_t *format,
+    va_list args
+    );
+
+ssize_t
+fw16printf(FILE *pFile, const wchar16_t *format, ...);
+
+ssize_t
+fw16printfw(FILE *pFile, const wchar_t *format, ...);
+
+ssize_t
+w16printfw(const wchar_t *format, ...);
+
+//Deprecated
 int printfw16(const char *fmt, ...);
+//Deprecated
 int sw16printf(wchar16_t *out, const char *fmt, ...);

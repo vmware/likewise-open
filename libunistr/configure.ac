@@ -4,7 +4,7 @@
 AC_PREREQ(2.59)
 AC_INIT(libunistr, 1.0, support@centeris.com)
 AM_INIT_AUTOMAKE([foreign])
-AC_CONFIG_SRCDIR([wc16str.c])
+AC_CONFIG_SRCDIR([lib/wc16str.c])
 AC_CONFIG_HEADER([config.h])
 
 AC_C_BIGENDIAN
@@ -50,6 +50,25 @@ CFLAGS="$saved_CFLAGS"
 
 AC_CHECK_FUNCS([wcscasecmp])
 
-AC_CONFIG_FILES([Makefile])
+# Check for moonunit bits
+AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
+AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
+AC_CHECK_PROG(MOONUNIT_STUB, moonunit-stub, moonunit-stub, false)
+
+if test "${MOONUNIT_STUB}" = "moonunit-stub" && $HAVE_MOONUNIT_H && $HAVE_MOONUNIT_LIB
+then
+	HAVE_MOONUNIT="true"
+	LIB_MOONUNIT="-lmoonunit"
+	AC_DEFINE([HAVE_MOONUNIT], [], [Have MoonUnit])
+else
+	HAVE_MOONUNIT="false"
+fi
+
+AC_SUBST(LIB_MOONUNIT)
+AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
+
+AC_CONFIG_FILES([Makefile
+		 lib/Makefile
+                 moonunit/Makefile])
 
 AC_OUTPUT

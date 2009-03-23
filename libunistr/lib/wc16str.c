@@ -44,6 +44,8 @@
 #include <errno.h>
 #include <wchar.h>
 #include <string.h>
+#include <stdint.h>
+#include <limits.h>
 
 
 #if SIZEOF_WCHAR_T == 2
@@ -60,7 +62,145 @@
 #define WINDOWS_ENCODING "UCS-2LE"
 #endif
 
+#ifndef ULLONG_MAX
+#define ULLONG_MAX 0xFFFFFFFFFFFFFFFFull
+#endif
+
 typedef int (*caseconv)(int c);
+
+// Returns the integer value of a digit character for a given base. If the
+// character is not a valid digit, -1 is returned.
+int
+get_digit_in_base(
+    wchar16_t c,
+    int base
+    )
+{
+    int digit = -1;
+    if (c >= '0' && c <= '9')
+    {
+        digit = c - '0';
+    }
+    else if (c >= 'a' && c <= 'z')
+    {
+        digit = c - 'a' + 10;
+    }
+    else if (c >= 'A' && c <= 'Z')
+    {
+        digit = c - 'A' + 10;
+    }
+
+    if (digit >= base)
+    {
+        // This digit is not valid for the given base
+        digit = -1;
+    }
+    return digit;
+}
+
+unsigned long long
+_wc16stoull(
+    const wchar16_t *input,
+    const wchar16_t **end,
+    int base
+    )
+{
+    unsigned long long result = 0;
+    int bOverflowed = 0;
+    int bNegate = 0;
+
+    if (base < 0 || base == 1 || base > 36)
+    {
+        /* This matches the behavior of glibc's strtoull. *end is not changed,
+         * zero is returned, and errno is set to EINVAL.
+         */
+        errno = EINVAL;
+        return 0;
+    }
+    // Don't treat the - as part of a number unless it is followed by number
+    // that can be parsed (meaning it has a digit afterwards).
+    if (*input == '-' && get_digit_in_base(input[1], base? base : 10) >= 0)
+    {
+        bNegate = 1;
+        input++;
+    }
+    if (base == 0)
+    {
+        const wchar16_t wszHexPrefix[] = {'0', 'x', 0};
+        const wchar16_t wszOctalPrefix[] = {'0', 0};
+        // gotta figure out what the real base is
+        if (!wc16sncmp(input, wszHexPrefix, 2) &&
+                get_digit_in_base(input[2], 16) >= 0)
+        {
+            base = 16;
+            input += 2;
+        }
+        else if (!wc16sncmp(input, wszOctalPrefix, 1) &&
+                get_digit_in_base(input[1], 8) >= 0)
+        {
+            base = 8;
+            input += 1;
+        }
+        else
+        {
+            base = 10;
+        }
+    }
+
+    while (1)
+    {
+        unsigned long long old_result = result;
+        int digit;
+
+        digit = get_digit_in_base(*input, base);
+        if (digit < 0)
+        {
+            /* done with conversion
+             * If 0 digits are parsed, it is not considered an error by glibc
+             * and 0 is returned as the result.
+             */
+            break;
+        }
+
+        result *= base;
+        result += digit;
+        if (result < old_result)
+        {
+            /* Match glibc's behavior by continuing to parse the integer, but
+             * finally return with an overflow error after the last digit is
+             * parsed. This affects what the end pointer will be set to.
+             */
+            bOverflowed = 1;
+        }
+
+        input++;
+    }
+
+    if (end != NULL)
+    {
+        *end = input;
+    }
+
+    if (bOverflowed)
+    {
+        errno = ERANGE;
+        return ULLONG_MAX;
+    }
+
+    /* Match glibc's behavior with regards to negating. It is not considered an
+     * error if negating the result overflows (which means numbers lower than
+     * LLONG_MIN can be entered). The lowest acceptable input is -ULLONG_MAX,
+     * although anything lower than LLONG_MIN will wrap around.
+     */
+    if (bNegate)
+    {
+        return -result;
+    }
+    else
+    {
+        return result;
+    }
+}
 
 size_t _wc16slen(const wchar16_t *str)
 {
@@ -177,7 +317,7 @@ wchar16_t* _wc16pncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
     return dest;
 }
 
-int wc16scmp(const wchar16_t *s1, const wchar16_t *s2)
+int wc16sncmp(const wchar16_t *s1, const wchar16_t *s2, size_t n)
 {
     size_t s1_len, s2_len, len;
 
@@ -186,10 +326,24 @@ int wc16scmp(const wchar16_t *s1, const wchar16_t *s2)
     s1_len = wc16slen(s1);
     s2_len = wc16slen(s2);
 
+    if (s1_len > n)
+    {
+        s1_len = n;
+    }
+    if (s2_len > n)
+    {
+        s2_len = n;
+    }
+
     if (s1_len != s2_len) return s1_len - s2_len;
 
     len = s1_len;
     return memcmp((void*)s1, (void*)s2, len);
+}
+
+int wc16scmp(const wchar16_t *s1, const wchar16_t *s2)
+{
+    return wc16sncmp(s1, s2, SIZE_MAX);
 }
 
 #ifndef HAVE_WCSCASECMP
@@ -477,6 +631,55 @@ char *awc16stombs(const wchar16_t *input)
     return buffer;
 }
 
+// Calculates how many bytes it would take to convert *insize bytes of *inbuf,
+// given unlimited output buffer to iconv.
+size_t
+iconv_count(
+    iconv_t handle,
+    ICONV_IN_TYPE inbuf,
+    size_t *insize,
+    size_t *outsize
+    )
+{
+    char buffer[100];
+    char *outbuf = NULL;
+    size_t cbout = 0;
+    size_t cNonreversible = 0;
+
+    //iconv does not allow the output buffer to be NULL. To emulate this
+    //functionality, we'll have to actually convert the string, but only
+    //a few characters at a time.
+
+    *outsize = 0;
+    while (*insize > 0)
+    {
+        outbuf = buffer;
+        cbout = sizeof(buffer);
+        cNonreversible = iconv(handle, inbuf, insize, &outbuf, &cbout);
+        if (cNonreversible == (size_t)-1)
+        {
+            if (errno != E2BIG)
+            {
+                return -1;
+            }
+        }
+        *outsize += outbuf - buffer;
+    }
+    return cNonreversible;
+}
+
+size_t __mbsnbcnt(const char *src, size_t cchFind)
+{
+    iconv_t handle = iconv_open("", "UCS-4");
+    size_t cbFind = strlen(src);
+    char *srcPos = (char *)src;
+    if (iconv_count(handle, (ICONV_IN_TYPE) &srcPos, &cbFind, &cchFind) < 0)
+    {
+        return -1;
+    }
+    return srcPos - src;
+}
+
 size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 {
 #if WCHAR16_IS_WCHAR
@@ -488,31 +691,21 @@ size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
     size_t cbin = wc16slen(src) * sizeof(src[0]);
     size_t cbout = cbcopy;
     size_t converted;
+
     if(outbuf == NULL)
     {
         //wcstombs allows dest to be NULL. In this case, cbcopy is ignored
         //and the total number of bytes it would take to store src is returned.
         //
-        //iconv does not allow the output buffer to be NULL. To emulate this
-        //functionality, we'll have to actually convert the string, but only
-        //a few characters at a time.
 
-        char buffer[100];
         size_t cblen = 0;
-        while(cbin > 0)
+        if (iconv_count(
+                    handle,
+                    (ICONV_IN_TYPE)&inbuf,
+                    &cbin,
+                    &cblen) == (size_t)-1)
         {
-            outbuf = buffer;
-            cbout = sizeof(buffer);
-            converted = iconv(handle, (ICONV_IN_TYPE) &inbuf, &cbin, &outbuf, &cbout);
-            if(converted == (size_t)-1)
-            {
-                if(errno != E2BIG)
-                {
-                    cblen = -1;
-                    break;
-                }
-            }
-            cblen += sizeof(buffer) - cbout;
+            cblen = -1;
         }
         iconv_close(handle);
         return cblen;
