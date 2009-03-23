@@ -44,9 +44,12 @@
 #include <errno.h>
 #include <wchar.h>
 #include <string.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <limits.h>
 
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
 
 #if SIZEOF_WCHAR_T == 2
 #define WCHAR16_IS_WCHAR 1
