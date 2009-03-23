@@ -45,7 +45,31 @@ LsaSrvClose(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PLSA_GENERIC_CONTEXT pContext = NULL;
+
+    pContext = (PLSA_GENERIC_CONTEXT)hIn;
+
+    switch (pContext->Type) {
+    case LsaContextPolicy:
+        POLICY_HANDLE_rundown(hIn);
+        break;
+
+    default:
+        /* Something is seriously wrong if we get a context
+           we haven't created */
+        status = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    *hOut = NULL;
+
+cleanup:
     return status;
+
+error:
+    *hOut = hIn;
+    goto cleanup;
 }
 
 
