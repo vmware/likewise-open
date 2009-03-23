@@ -72,6 +72,14 @@ DOMAIN_HANDLE_rundown(
 }
 
 
+void
+ACCOUNT_HANDLE_rundown(
+    void *hContext
+    )
+{
+}
+
+
 /*
 local variables:
 mode: c
