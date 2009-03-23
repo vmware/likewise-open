@@ -119,12 +119,6 @@ SamDbSearchDomains(
                         &pwszDomain,
                         &entryType);
         BAIL_ON_SAMDB_ERROR(dwError);
-
-        if (entryType != SAMDB_ENTRY_TYPE_DOMAIN)
-        {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
     }
 
     dwError = SamDbFindDomains(
@@ -209,7 +203,7 @@ SamDbBuildDomainDirectoryEntries(
         dwNumAttrs = 3;
     }
 
-    for (; iDomain < dwNumDomains; iDomain++)
+    for (iDomain = 0; iDomain < dwNumDomains; iDomain++)
     {
         PDIRECTORY_ENTRY pDirEntry = &pDirectoryEntries[iDomain];
         PSAM_DB_DOMAIN_INFO pDomInfo = *(ppDomainInfoList + iDomain);
@@ -221,7 +215,7 @@ SamDbBuildDomainDirectoryEntries(
 
         pDirEntry->ulNumAttributes = dwNumAttrs;
 
-        for (; iAttr < dwNumAttrs; iAttr++)
+        for (iAttr = 0; iAttr < dwNumAttrs; iAttr++)
         {
             NTSTATUS ntStatus = 0;
             PWSTR pwszAttrName = wszAttributes[iAttr];
@@ -260,7 +254,7 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
+                        !wc16scmp(pwszAttrName, pDirAttr->pwszName))
                     {
                         pAttrValue->pwszStringValue = pDomInfo->pwszNetBIOSName;
                         pDomInfo->pwszNetBIOSName = NULL;
@@ -273,7 +267,7 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
+                        !wc16scmp(pwszAttrName, pDirAttr->pwszName))
                     {
                         pAttrValue->pwszStringValue = pDomInfo->pwszDomainSID;
                         pDomInfo->pwszDomainSID = NULL;
@@ -286,7 +280,7 @@ SamDbBuildDomainDirectoryEntries(
                     pAttrValue->Type = pEntry->attrType;
 
                     if (!ulAttributesOnly ||
-                        !wc16scmp(wszAttributes[0], pDirAttr->pwszName))
+                        !wc16scmp(pwszAttrName, pDirAttr->pwszName))
                     {
                         pAttrValue->pwszStringValue = pDomInfo->pwszDomainName;
                         pDomInfo->pwszDomainName = NULL;
