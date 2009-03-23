@@ -138,6 +138,10 @@ cleanup:
         SamrSrvFreeMemory(pwszBase);
     }
 
+    if (pwszFilter) {
+        LSA_SAFE_FREE_MEMORY(pwszFilter);
+    }
+
     return status;
 
 error:
