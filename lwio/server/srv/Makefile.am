@@ -22,6 +22,7 @@ libsrv_sys_la_SOURCES = \
     srvccb.c          \
     srvconnection.c   \
     srvcontext.c      \
+    srvdelete.c       \
     srvdevice.c       \
     srvdeviceclose.c  \
     srvdevicecreate.c \

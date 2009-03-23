@@ -1239,6 +1239,22 @@ typedef struct _DELETE_DIRECTORY_RESPONSE_HEADER {
 
 } __attribute__((__packed__)) DELETE_DIRECTORY_RESPONSE_HEADER, *PDELETE_DIRECTORY_RESPONSE_HEADER;
 
+typedef struct _SMB_DELETE_REQUEST_HEADER
+{
+    USHORT usSearchAttributes;
+    USHORT ByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszPath */
+
+} __attribute__((__packed__)) SMB_DELETE_REQUEST_HEADER, *PSMB_DELETE_REQUEST_HEADER;
+
+typedef struct _SMB_DELETE_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_DELETE_RESPONSE_HEADER, *PSMB_DELETE_RESPONSE_HEADER;
+
 typedef struct _FLUSH_REQUEST_HEADER
 {
     /* wordCount and byteCount are handled at a higher layer */
@@ -1770,6 +1786,24 @@ WireMarshallDeleteDirectoryResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PDELETE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallDeleteRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_DELETE_REQUEST_HEADER* ppHeader,
+    PWSTR*                      ppwszPath
+    );
+
+NTSTATUS
+WireMarshallDeleteResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_DELETE_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 

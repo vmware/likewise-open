@@ -4,6 +4,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_close.c         \
     wire_create_file.c   \
     wire_datetime.c      \
+    wire_delete.c        \
     wire_directory.c     \
     wire_echo.c          \
     wire_error.c         \

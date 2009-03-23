@@ -391,6 +391,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_DELETE:
+
+            ntStatus = SrvProcessDelete(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_RENAME:
 
             ntStatus = SrvProcessRename(
@@ -476,14 +484,6 @@ SrvWorkerExecute(
         case SMB_CLOSE_AND_TREE_DISCONNECT:
 
             ntStatus = SmbProcessCloseAndTreeDisconnect(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
-        case SMB_DELETE:
-
-            ntStatus = SmbProcessDelete(
                             pSmbRequest,
                             pSmbResponse);
 
