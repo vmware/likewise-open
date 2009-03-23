@@ -18,9 +18,6 @@ liblsa_srv_la_SOURCES = \
     lsa_queryinfopolicy2.c \
     lsa_contexthandle.c
 
-LSASS_SRV_INCLUDES = -I$(srv_srcdir)/include
-LSASS_INCLUDES = -I$(top_srcdir)/include
-RPCCTL_INCLUDES = -I$(rpc_srcdir)/rpcctl
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
@@ -30,20 +27,22 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
+    $(AM_CFLAGS) \
     $(FEATURETEST_FLAGS) \
-    $(LSASS_SRV_INCLUDES) \
-    $(LSASS_INCLUDES) \
-    $(LIBRPC_INCLUDES) \
-    $(RPCCTL_INCLUDES) \
+    -I$(srv_srcdir)/include \
+    -I$(top_srcdir)/include \
+    -I$(rpc_srcdir)/rpcctl \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LIBSECDESC_INCLUDES@
 
 liblsa_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
+    @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LIBSECDESC_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
+    $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
 
 liblsa_ss_la_SOURCES = lsa_sstub.c
