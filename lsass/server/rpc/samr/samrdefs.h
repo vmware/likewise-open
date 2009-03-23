@@ -13,6 +13,11 @@ typedef [context_handle] void* DOMAIN_HANDLE;
 typedef void* DOMAIN_HANDLE;
 #endif
 
+#ifdef _DCE_IDL_
+typedef [context_handle] void* ACCOUNT_HANDLE;
+#else
+typedef void* ACCOUNT_HANDLE;
+
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
