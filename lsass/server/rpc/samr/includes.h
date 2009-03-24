@@ -45,12 +45,13 @@
 #include <compat/rpcstatus.h>
 #include <wc16str.h>
 #include <wc16printf.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 #include <lw/rtlmemory.h>
 #include <lw/security-api.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>
+#include <lwrpc/lsadefs.h>
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
