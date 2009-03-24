@@ -356,6 +356,8 @@ SrvBuildOpenResponse(
     pResponseHeader->usFid = pFile->fid;
     pResponseHeader->ulServerFid = pFile->fid;
     pResponseHeader->usOpenAction = pIoStatusBlock->CreateResult;
+    // TODO:
+    // pResponseHeader->usGrantedAccess = 0;
 
     ntStatus = WireNTTimeToSMBDateTime(
                     fileBasicInfo.LastWriteTime,
