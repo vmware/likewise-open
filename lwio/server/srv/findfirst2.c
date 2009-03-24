@@ -540,11 +540,14 @@ SrvBuildSearchPath(
 	    {
 		    PWSTR pwszNext = pwszCursor;
 
-		    if (++pwszNext &&
-                        (*pwszNext == wszQuestionMark[0] ||
-                         *pwszNext == wszStar[0] ||
-                         *pwszNext == wszGT[0] ||
-                         *pwszNext == wszLT[0]))
+		    pwszNext++;
+
+		    if (!pwszNext ||
+                        ((*pwszNext == wszQuestionMark[0] ||
+                          *pwszNext == wszStar[0] ||
+                          *pwszNext == wszGT[0] ||
+			  *pwszNext == wszLT[0] ||
+                          *pwszNext == wszQuote[0])))
 		    {
 			    *pwszCursor = wszDot[0];
 		    }
@@ -553,9 +556,12 @@ SrvBuildSearchPath(
 	    {
 		    PWSTR pwszNext = pwszCursor;
 
-		    if (++pwszNext &&
-                        ((*pwszNext == wszDot[0]) ||
-                         (*pwszNext == wszQuote[0])))
+		    pwszNext++;
+
+		    if (pwszNext ||
+                        (((*pwszNext == wszDot[0]) ||
+			  (*pwszNext == wszQuote[0]) ||
+                          (*pwszNext == wszLT[0]))))
 		    {
 			    *pwszCursor = wszStar[0];
 		    }

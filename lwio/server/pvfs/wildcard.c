@@ -182,6 +182,11 @@ PvfsWildcardMatch(
             {
                 /* no loop body */;
             }
+            if (*pszString == '\0') {
+                /* backup so pszString incrent in outer loop
+                   works out */
+                pszString--;
+            }
             break;
         }
 
