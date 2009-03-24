@@ -68,7 +68,12 @@ SamrConnect4(
     dwError = DirectoryOpen(&pConn->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pConn->Type = SamrContextConnect;
+    pConn->Type     = SamrContextConnect;
+    pConn->refcount = 1;
+
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
+    InterlockedIncrement(&pConn->refcount);
 
     *hConn = (CONNECT_HANDLE)pConn;
 
@@ -76,12 +81,9 @@ cleanup:
     return status;
 
 error:
-    if (pConn->hDirectory) {
-        DirectoryClose(pConn->hDirectory);
-    }
-
     if (pConn) {
-        SamrSrvFreeMemory(pConn);
+        InterlockedDecrement(&pConn->refcount);
+        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConn);
     }
 
     *hConn = NULL;
