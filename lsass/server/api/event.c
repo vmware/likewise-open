@@ -52,6 +52,7 @@ LsaSrvWriteLoginSuccessEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
     PCSTR  pszLoginId,
+    DWORD  dwLoginPhase,
     DWORD  dwErrCode
     )
 {
@@ -59,6 +60,29 @@ LsaSrvWriteLoginSuccessEvent(
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PSTR pszData = NULL;
     PSTR pszDescription = NULL;
+    char szLoginPhase[256] = {0};
+    DWORD dwEventID = 0;
+
+    switch(dwLoginPhase)
+    {
+        case LSASS_EVENT_LOGON_PHASE_AUTHENTICATE:
+            sprintf(szLoginPhase, "User authenticate");
+            dwEventID = LSASS_EVENT_SUCCESSFUL_LOGON_AUTHENTICATE;
+            break;
+
+        case LSASS_EVENT_LOGON_PHASE_CREATE_SESSION:
+            sprintf(szLoginPhase, "User PAM session create");
+            dwEventID = LSASS_EVENT_SUCCESSFUL_LOGON_CREATE_SESSION;
+            break;
+
+        case LSASS_EVENT_LOGON_PHASE_CHECK_USER:
+            sprintf(szLoginPhase, "User membership check of the restricted logon list");
+            dwEventID = LSASS_EVENT_SUCCESSFUL_LOGON_CHECK_USER;
+            break;
+
+        default:
+            sprintf(szLoginPhase, "Unknown login phase");
+    }
 
     if (pServerState->hEventLog == (HANDLE)NULL)
     {
@@ -72,9 +96,11 @@ LsaSrvWriteLoginSuccessEvent(
                  &pszDescription,
                  "Successful Logon:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
-                 "     User Name:               %s",
+                 "     User Name:               %s\r\n" \
+                 "     Login phase:             %s",
                  pszProvider,
-                 pszLoginId);
+                 pszLoginId,
+                 szLoginPhase);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -84,7 +110,7 @@ LsaSrvWriteLoginSuccessEvent(
 
     dwError = LsaSrvLogSuccessAuditEvent(
                      pServerState->hEventLog,
-                     LSASS_EVENT_SUCCESSFUL_LOGON,
+                     dwEventID,
                      pszLoginId,
                      LOGIN_LOGOFF_EVENT_CATEGORY,
                      pszDescription,
@@ -111,12 +137,14 @@ LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
     PCSTR  pszLoginId,
+    DWORD  dwLoginPhase,
     DWORD  dwErrCode
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     char  szReason[256] = {0};
+    char  szLoginPhase[256] = {0};
     PSTR  pszData = NULL;
     DWORD dwEventID = 0;
     PSTR  pszDescription = NULL;
@@ -127,6 +155,24 @@ LsaSrvWriteLoginFailedEvent(
                       "Security",
                       &pServerState->hEventLog);
         BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    switch(dwLoginPhase)
+    {
+        case LSASS_EVENT_LOGON_PHASE_AUTHENTICATE:
+            sprintf(szLoginPhase, "User authenticate");
+            break;
+
+        case LSASS_EVENT_LOGON_PHASE_CREATE_SESSION:
+            sprintf(szLoginPhase, "User PAM session create");
+            break;
+
+        case LSASS_EVENT_LOGON_PHASE_CHECK_USER:
+            sprintf(szLoginPhase, "User membership check of the restricted logon list");
+            break;
+
+        default:
+            sprintf(szLoginPhase, "Unknown login phase");
     }
 
     switch(dwErrCode)
@@ -193,10 +239,12 @@ LsaSrvWriteLoginFailedEvent(
                  "Logon Failure:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
                  "     Reason:                  %s\r\n" \
-                 "     User Name:               %s",
+                 "     User Name:               %s\r\n" \
+                 "     Login phase:             %s",
                  pszProvider,
                  szReason,
-                 pszLoginId);
+                 pszLoginId,
+                 szLoginPhase);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -232,12 +280,14 @@ VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
+    DWORD  dwLoginPhase,
     PCSTR  pszLoginId
     )
 {
     DWORD dwError = 0;
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
     PSTR pszDescription = NULL;
+    char  szLoginPhase[256] = {0};
 
     if (pServerState->hEventLog == (HANDLE)NULL)
     {
@@ -247,13 +297,35 @@ LsaSrvWriteLogoutSuccessEvent(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    switch(dwLoginPhase)
+    {
+        /* Not applicable - we cannot detect these phases
+        case LSASS_EVENT_LOGON_PHASE_AUTHENTICATE:
+            sprintf(szLoginPhase, "User authenticate");
+            break;
+
+        case LSASS_EVENT_LOGON_PHASE_CHECK_USER:
+            sprintf(szLoginPhase, "User membership check of the restricted logon list");
+            break;
+        */
+
+        case LSASS_EVENT_LOGON_PHASE_CREATE_SESSION:
+            sprintf(szLoginPhase, "User PAM session closed");
+            break;
+
+        default:
+            sprintf(szLoginPhase, "Unknown login phase");
+    }
+
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
                  "User Logoff:\r\n\r\n" \
                  "     Authentication provider: %s\r\n\r\n" \
-                 "     User Name:               %s",
+                 "     User Name:               %s\r\n" \
+                 "     Login phase:             %s",
                  pszProvider,
-                 pszLoginId);
+                 pszLoginId,
+                 szLoginPhase);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSrvLogSuccessAuditEvent(

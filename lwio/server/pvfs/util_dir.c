@@ -183,15 +183,15 @@ PvfsEnumerateDirectory(
     pCcb->pDirContext->bScanned = TRUE;
     pDir = pCcb->pDirContext->pDir;
 
-    /* Always add '.' and '..' first to the list if we are searching
-       for all files */
+    /* Always add '.' and '..' first if thet match */
 
-    if (RtlCStringIsEqual(pszPattern, "*", FALSE) ||
-        RtlCStringIsEqual(pszPattern, "*.*", FALSE))
+    if (PvfsWildcardMatch(".", pszPattern, FALSE))
     {
         ntError = PvfsDirContextAddEntry(pCcb->pDirContext, ".");
         BAIL_ON_NT_STATUS(ntError);
-
+    }
+    if (PvfsWildcardMatch("..", pszPattern, FALSE))
+    {
         ntError = PvfsDirContextAddEntry(pCcb->pDirContext, "..");
         BAIL_ON_NT_STATUS(ntError);
     }

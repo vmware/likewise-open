@@ -42,11 +42,18 @@ _wc16stoull(
     const wchar16_t **end,
     int base
     );
-#ifdef __GNUC__
-#define wc16stoull(input, end, base)  _wc16stoull(input, end, base)
-#elif _WIN32
+#ifdef WCHAR16_IS_WCHAR
 #define wc16stoull(input, end, base)  wcstoui64(input, end, base)
+#else
+#define wc16stoull(input, end, base)  _wc16stoull(input, end, base)
 #endif
+
+#ifdef WCHAR16_IS_WCHAR
+#define _w16toi(str)  _wtoi(str)
+#else
+#define _w16toi(str)  (int)wc16stoull((str), NULL, 10)
+#endif
+
 
 size_t _wc16slen(const wchar16_t *str);
 #ifdef __GNUC__
@@ -85,6 +92,20 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n);
 #define wc16sncpy(dest, src, n)  _wcsncpy(dest, src, n)
 #else
 #define wc16sncpy(dest, src, n)  _wc16sncpy(dest, src, n)
+#endif
+
+wchar16_t* _w16memcpy(wchar16_t *dest, const wchar16_t *src, size_t n);
+#ifdef WCHAR16_IS_WCHAR
+#define w16memcpy(dest, src, n)  _wmemcpy(dest, src, n)
+#else
+#define w16memcpy(dest, src, n)  _w16memcpy(dest, src, n)
+#endif
+
+wchar16_t* _w16memset(wchar16_t *dest, wchar16_t fill, size_t n);
+#ifdef WCHAR16_IS_WCHAR
+#define w16memset(dest, fill, n)  _wmemset(dest, fill, n)
+#else
+#define w16memset(dest, fill, n)  _w16memset(dest, fill, n)
 #endif
 
 /* Copy upto n 16bit characters from one string to another

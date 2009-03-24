@@ -63,8 +63,8 @@ SrvProcessOpenAndX(
     PIO_FILE_NAME        pFilename = NULL;
     PIO_ECP_LIST         pEcpList = NULL;
     USHORT               usCreateDisposition = 0;
-    USHORT               usCreateOptions = 0;
-    USHORT               usShareAccess = (FILE_SHARE_READ | FILE_SHARE_WRITE);
+    USHORT               usCreateOptions = FILE_NON_DIRECTORY_FILE;
+    USHORT               usShareAccess = 0;
     PSMB_PACKET          pSmbResponse = NULL;
     PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
@@ -130,41 +130,59 @@ SrvProcessOpenAndX(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    /* action to take if the file exists */
-    switch (pRequestHeader->usOpenFunction & 0x3)
+    usShareAccess = (FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE);
+
+    switch (pRequestHeader->usDesiredAccess & 0x70)
     {
-        case 0: /* Fail */
-
-            usCreateDisposition = FILE_CREATE;
+        case 0: /* compatibility mode */
 
             break;
 
-        case 1: /* Open file */
+        case 1: /* deny read/write/execute (exclusive) */
 
-            usCreateDisposition = FILE_OPEN;
+            usShareAccess &= (USHORT)~FILE_SHARE_READ;
+            usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
 
             break;
 
-        case 2: /* Truncate file */
+        case 2: /* deny write */
 
-            usCreateDisposition = FILE_OVERWRITE;
+            usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
+
+            break;
+
+        case 3: /* deny read/execute */
+
+            usShareAccess &= (USHORT)~FILE_SHARE_READ;
+
+            break;
+
+        case 4: /* deny none */
 
             break;
     }
 
-    /* action to take if the file does not exist */
-    switch (pRequestHeader->usOpenFunction & 0x10)
+    /* action to take if the file exists */
+    switch (pRequestHeader->usOpenFunction)
     {
-        case 0: /* Fail */
-
+        case 0x0001: /* Open file */
             usCreateDisposition = FILE_OPEN;
-
             break;
-
-        case 1: /* Create File */
-
+        case 0x0002: /* truncate file */
+            usCreateDisposition = FILE_OVERWRITE;
+            break;
+        case 0x0010: /* create new file */
+            usCreateDisposition = FILE_CREATE;
+            break;
+        case 0x0011: /* open or create file */
             usCreateDisposition = FILE_OPEN_IF;
-
+            break;
+        case 0x0012: /* create or truncate */
+            usCreateDisposition = FILE_OVERWRITE_IF;
+            break;
+        default:
+            ntStatus = STATUS_INVALID_DISPOSITION;
+            BAIL_ON_NT_STATUS(ntStatus);
             break;
     }
 
@@ -329,7 +347,7 @@ SrvBuildOpenResponse(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pSMBHeader->wordCount = 26;
+    pSmbResponse->pSMBHeader->wordCount = 15;
 
     pResponseHeader = (POPEN_RESPONSE_HEADER)pSmbResponse->pParams;
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(OPEN_RESPONSE_HEADER);
@@ -338,6 +356,8 @@ SrvBuildOpenResponse(
     pResponseHeader->usFid = pFile->fid;
     pResponseHeader->ulServerFid = pFile->fid;
     pResponseHeader->usOpenAction = pIoStatusBlock->CreateResult;
+    // TODO:
+    // pResponseHeader->usGrantedAccess = 0;
 
     ntStatus = WireNTTimeToSMBDateTime(
                     fileBasicInfo.LastWriteTime,

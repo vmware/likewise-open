@@ -383,6 +383,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_CREATE_DIRECTORY:
+
+            ntStatus = SrvProcessCreateDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_DELETE_DIRECTORY:
 
             ntStatus = SrvProcessDeleteDirectory(
@@ -540,7 +548,7 @@ SrvWorkerExecute(
 
     ntStatus = SrvConnectionWriteMessage(
                     pContext->pConnection,
-                    (pContext->ulRequestSequence ? pContext->ulRequestSequence + 1 : 0),
+                    pContext->ulRequestSequence+1,
                     pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 

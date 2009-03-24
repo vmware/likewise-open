@@ -268,6 +268,16 @@ PvfsLookupPath(
     PSTR pszDiskPath = NULL;
     PSTR pszDirname = NULL;
     PSTR pszBasename = NULL;
+    PVFS_STAT Stat = {0};
+
+
+    /* See if we are lucky */
+
+    ntError = PvfsSysStat(pszPath, &Stat);
+    if (ntError == STATUS_SUCCESS) {
+        ntError = RtlCStringDuplicate(ppszDiskPath, pszPath);
+        goto cleanup;
+    }
 
     ntError = PvfsFileSplitPath(&pszDirname, &pszBasename, pszPath);
     BAIL_ON_NT_STATUS(ntError);

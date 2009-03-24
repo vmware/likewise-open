@@ -79,6 +79,7 @@ LsaSrvAuthenticateUser(
                 LsaSrvWriteLoginSuccessEvent(hServer,
                                              pProvider->pszName,
                                              pszLoginId,
+                                             LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                              dwError);
             }
             break;
@@ -97,6 +98,7 @@ LsaSrvAuthenticateUser(
                 LsaSrvWriteLoginFailedEvent(hServer,
                                             pProvider->pszName,
                                             pszLoginId,
+                                            LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                             dwError);
             }
             BAIL_ON_LSA_ERROR(dwError);
@@ -224,6 +226,7 @@ LsaSrvAuthenticateUserEx(
                                              pProvider->pszName,
 		                             pUserParams && pUserParams->pszAccountName ?
 		                             pUserParams->pszAccountName : "",
+                                             LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                              dwError);
             }
             break;
@@ -243,6 +246,7 @@ LsaSrvAuthenticateUserEx(
                                             pProvider->pszName,
 		                            pUserParams && pUserParams->pszAccountName ?
 		                            pUserParams->pszAccountName : "",
+                                            LSASS_EVENT_LOGON_PHASE_AUTHENTICATE,
                                             dwError);
             }
 	    BAIL_ON_LSA_ERROR(dwError);
@@ -389,6 +393,7 @@ LsaSrvCheckUserInList(
                     hServer,
                     pProvider->pszName,
                     pszLoginId,
+                    LSASS_EVENT_LOGON_PHASE_CHECK_USER,
                     dwError);
             }
             break;
@@ -408,6 +413,7 @@ LsaSrvCheckUserInList(
                     hServer,
                     pProvider->pszName,
                     pszLoginId,
+                    LSASS_EVENT_LOGON_PHASE_CHECK_USER,
                     dwError);
             }
             BAIL_ON_LSA_ERROR(dwError);

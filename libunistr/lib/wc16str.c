@@ -44,9 +44,12 @@
 #include <errno.h>
 #include <wchar.h>
 #include <string.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <limits.h>
 
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
 
 #if SIZEOF_WCHAR_T == 2
 #define WCHAR16_IS_WCHAR 1
@@ -289,6 +292,23 @@ wchar16_t* _wc16sncpy(wchar16_t *dest, const wchar16_t *src, size_t n)
             break;
         dest++;
         src++;
+        n--;
+    }
+    return dest;
+}
+
+wchar16_t* _w16memcpy(wchar16_t *dest, const wchar16_t *src, size_t n)
+{
+    return memcpy(dest, src, n * sizeof(wchar16_t));
+}
+
+wchar16_t* _w16memset(wchar16_t *dest, wchar16_t fill, size_t n)
+{
+    wchar16_t* pwszPos = dest;
+    while(n > 0)
+    {
+        *pwszPos = fill;
+        pwszPos++;
         n--;
     }
     return dest;

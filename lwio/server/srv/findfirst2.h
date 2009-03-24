@@ -42,6 +42,14 @@ SrvProcessTrans2FindFirst2(
     PSMB_PACKET*                ppSmbResponse
     );
 
+NTSTATUS
+SrvBuildSearchPath(
+    PWSTR  pwszPath,
+    PWSTR  pwszSearchPattern,
+    PWSTR* ppwszFilesystemPath,
+    PWSTR* ppwszSearchPattern
+    );
+
 #endif /* __SRV_FIND_FIRST2_H__ */
 
 

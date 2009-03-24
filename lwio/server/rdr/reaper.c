@@ -241,7 +241,7 @@ RdrReaperIsExpired(
     time_t expirationTime
     )
 {
-    return lastActivity + expirationTime >= currentTime;
+    return lastActivity + expirationTime <= currentTime;
 }
 
 static

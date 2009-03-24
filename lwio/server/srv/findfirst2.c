@@ -59,15 +59,6 @@ SrvBuildFindFirst2Response(
     PSMB_PACKET*        ppSmbResponse
     );
 
-static
-NTSTATUS
-SrvBuildSearchPath(
-    PWSTR  pwszPath,
-    PWSTR  pwszSearchPattern,
-    PWSTR* ppwszFilesystemPath,
-    PWSTR* ppwszSearchPattern
-    );
-
 NTSTATUS
 SrvProcessTrans2FindFirst2(
     PSMB_SRV_CONNECTION         pConnection,
@@ -484,7 +475,6 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvBuildSearchPath(
     PWSTR  pwszPath,
@@ -550,11 +540,14 @@ SrvBuildSearchPath(
 	    {
 		    PWSTR pwszNext = pwszCursor;
 
-		    if (++pwszNext &&
-                        (*pwszNext == wszQuestionMark[0] ||
-                         *pwszNext == wszStar[0] ||
-                         *pwszNext == wszGT[0] ||
-                         *pwszNext == wszLT[0]))
+		    pwszNext++;
+
+		    if (!pwszNext ||
+                        ((*pwszNext == wszQuestionMark[0] ||
+                          *pwszNext == wszStar[0] ||
+                          *pwszNext == wszGT[0] ||
+			  *pwszNext == wszLT[0] ||
+                          *pwszNext == wszQuote[0])))
 		    {
 			    *pwszCursor = wszDot[0];
 		    }
@@ -563,9 +556,12 @@ SrvBuildSearchPath(
 	    {
 		    PWSTR pwszNext = pwszCursor;
 
-		    if (++pwszNext &&
-                        ((*pwszNext == wszDot[0]) ||
-                         (*pwszNext == wszQuote[0])))
+		    pwszNext++;
+
+		    if (pwszNext ||
+                        (((*pwszNext == wszDot[0]) ||
+			  (*pwszNext == wszQuote[0]) ||
+                          (*pwszNext == wszLT[0]))))
 		    {
 			    *pwszCursor = wszStar[0];
 		    }

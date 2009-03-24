@@ -55,6 +55,7 @@
 #define SERVICE_EVENT_CATEGORY      "Service"
 #define DNS_CLIENT_EVENT_CATEGORY   "DNS Client"
 #define ACCOUNT_MANAGEMENT_EVENT_CATEGORY "Account Management"
+#define NETWORK_EVENT_CATEGORY      "Network"
 // #define GENERAL_EVENT_CATEGORY      "General"
 // #define NONE_EVENT_CATEGORY         "None"
 
@@ -72,17 +73,23 @@
 #define LSASS_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED               1004
 
 // Logon events
-#define LSASS_EVENT_SUCCESSFUL_LOGON                                 1200 // Similar to Window event id 528
-#define LSASS_EVENT_FAILED_LOGON_UNKNOWN_USERNAME_OR_BAD_PASSWORD    1201 // Similar to Window event id 529
-#define LSASS_EVENT_FAILED_LOGON_TIME_RESTRICTION_VIOLATION          1202 // Similar to Window event id 530
-#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_DISABLED                    1203 // Similar to Window event id 531
-#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_EXPIRED                     1204 // Similar to Window event id 532
-#define LSASS_EVENT_FAILED_LOGON_MACHINE_RESTRICTION_VIOLATION       1205 // Similar to Window event id 533
-#define LSASS_EVENT_FAILED_LOGON_TYPE_OF_LOGON_NOT_GRANTED           1206 // Similar to Window event id 534
-#define LSASS_EVENT_FAILED_LOGON_PASSWORD_EXPIRED                    1207 // Similar to Window event id 535
-#define LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED                     1208 // Similar to Window event id 536
-#define LSASS_EVENT_FAILED_LOGON_UNEXPECTED_ERROR                    1209 // Similar to Window event id 537
-#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED                      1210 // Similar to Window event id 539
+#define LSASS_EVENT_SUCCESSFUL_LOGON_AUTHENTICATE                    1200 // Similar to Window event id 528
+#define LSASS_EVENT_SUCCESSFUL_LOGON_CREATE_SESSION                  1201 // Similar to Window event id 528
+#define LSASS_EVENT_SUCCESSFUL_LOGON_CHECK_USER                      1203 // Similar to Window event id 528
+#define LSASS_EVENT_FAILED_LOGON_UNKNOWN_USERNAME_OR_BAD_PASSWORD    1205 // Similar to Window event id 529
+#define LSASS_EVENT_FAILED_LOGON_TIME_RESTRICTION_VIOLATION          1206 // Similar to Window event id 530
+#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_DISABLED                    1207 // Similar to Window event id 531
+#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_EXPIRED                     1208 // Similar to Window event id 532
+#define LSASS_EVENT_FAILED_LOGON_MACHINE_RESTRICTION_VIOLATION       1209 // Similar to Window event id 533
+#define LSASS_EVENT_FAILED_LOGON_TYPE_OF_LOGON_NOT_GRANTED           1210 // Similar to Window event id 534
+#define LSASS_EVENT_FAILED_LOGON_PASSWORD_EXPIRED                    1211 // Similar to Window event id 535
+#define LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED                     1212 // Similar to Window event id 536
+#define LSASS_EVENT_FAILED_LOGON_UNEXPECTED_ERROR                    1213 // Similar to Window event id 537
+#define LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED                      1214 // Similar to Window event id 539
+
+#define LSASS_EVENT_LOGON_PHASE_AUTHENTICATE                         1
+#define LSASS_EVENT_LOGON_PHASE_CREATE_SESSION                       2
+#define LSASS_EVENT_LOGON_PHASE_CHECK_USER                           3
 
 // Logoff events
 #define LSASS_EVENT_SUCCESSFUL_LOGOFF                                1220 // Similar to Window event id 538
@@ -108,6 +115,12 @@
 // Runtime warnings
 #define LSASS_EVENT_WARNING_CONFIGURATION_ID_CONFLICT                1601
 #define LSASS_EVENT_WARNING_CONFIGURATION_ALIAS_CONFLICT             1602
+
+// Network events
+#define LSASS_EVENT_INFO_NETWORK_DOMAIN_ONLINE_TRANSITION            1700
+#define LSASS_EVENT_WARNING_NETWORK_DOMAIN_OFFLINE_TRANSITION        1701
+
+
 
 
 	

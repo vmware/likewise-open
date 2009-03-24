@@ -28,61 +28,43 @@
  * license@likewisesoftware.com
  */
 
-
-
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        wire_open.c
- *
- * Abstract:
- *
- *        Likewise SMB Subsystem (LWIO)
- *
- *        SMB OPEN "wire" API
- *
- * Author: Sriram Nambakam (snambakam@likewise.com)
- *
- */
-
 #include "includes.h"
 
 NTSTATUS
-WireUnmarshallOpenRequest(
-    PBYTE  pParams,
-    ULONG  ulBytesAvailable,
-    ULONG  ulOffset,
-    POPEN_REQUEST_HEADER* ppHeader,
-    PWSTR* ppwszFilename
+WireUnmarshallCreateDirectoryRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszPath
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL;
+    PWSTR  pwszPath = NULL;
     PBYTE  pDataCursor = pParams;
-    POPEN_REQUEST_HEADER pHeader = NULL;
-    PWSTR  pwszFilename = NULL;
-    UCHAR  ucBufferFormat = 0;
     USHORT usByteCountAvailable = 0;
+    UCHAR  ucBufferFormat = 0;
 
-    if (ulBytesAvailable < sizeof(OPEN_REQUEST_HEADER))
+    if (ulBytesAvailable < sizeof(SMB_CREATE_DIRECTORY_REQUEST_HEADER))
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pHeader = (POPEN_REQUEST_HEADER)pParams;
-    pDataCursor += sizeof(OPEN_REQUEST_HEADER);
-    ulOffset += sizeof(OPEN_REQUEST_HEADER);
-    ulBytesAvailable -= sizeof(OPEN_REQUEST_HEADER);
+    pRequestHeader = (PSMB_CREATE_DIRECTORY_REQUEST_HEADER)pDataCursor;
 
-    if (ulBytesAvailable < pHeader->usByteCount)
+    pDataCursor += sizeof(SMB_CREATE_DIRECTORY_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB_CREATE_DIRECTORY_REQUEST_HEADER);
+    ulOffset += sizeof(SMB_CREATE_DIRECTORY_REQUEST_HEADER);
+
+    usByteCountAvailable = pRequestHeader->ByteCount;
+
+    if (ulBytesAvailable < usByteCountAvailable)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    usByteCountAvailable = pHeader->usByteCount;
 
     if (ulBytesAvailable < sizeof(ucBufferFormat))
     {
@@ -92,16 +74,16 @@ WireUnmarshallOpenRequest(
 
     ucBufferFormat = *pDataCursor;
 
+    pDataCursor += sizeof(ucBufferFormat);
+    ulBytesAvailable -= sizeof(ucBufferFormat);
+    ulOffset += sizeof(ucBufferFormat);
+    usByteCountAvailable -= sizeof(ucBufferFormat);
+
     if (ucBufferFormat != SMB_BUFFER_FORMAT_ASCII)
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    pDataCursor += sizeof(ucBufferFormat);
-    ulOffset += sizeof(ucBufferFormat);
-    ulBytesAvailable -= sizeof(ucBufferFormat);
-    usByteCountAvailable -= sizeof(ucBufferFormat);
 
     if (ulOffset % 2)
     {
@@ -123,7 +105,7 @@ WireUnmarshallOpenRequest(
     {
         PWSTR pwszCursor = NULL;
 
-        pwszFilename = pwszCursor = (PWSTR)pDataCursor;
+        pwszPath = pwszCursor = (PWSTR)pDataCursor;
         usByteCountAvailable -= sizeof(wchar16_t);
 
         while (usByteCountAvailable && *pwszCursor)
@@ -140,8 +122,8 @@ WireUnmarshallOpenRequest(
         }
     }
 
-    *ppHeader = pHeader;
-    *ppwszFilename = pwszFilename;
+    *ppRequestHeader = pRequestHeader;
+    *ppwszPath = pwszPath;
 
 cleanup:
 
@@ -149,8 +131,47 @@ cleanup:
 
 error:
 
-    *ppHeader = NULL;
-    *ppwszFilename = NULL;
+    *ppRequestHeader = NULL;
+    *ppwszPath = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireMarshallCreateDirectoryResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_CREATE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_CREATE_DIRECTORY_RESPONSE_HEADER pResponseHeader = NULL;
+    USHORT   usPackageBytesUsed = 0;
+
+    if (ulBytesAvailable < sizeof(SMB_CREATE_DIRECTORY_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSMB_CREATE_DIRECTORY_RESPONSE_HEADER)pParams;
+    usPackageBytesUsed += sizeof(SMB_CREATE_DIRECTORY_RESPONSE_HEADER);
+
+    pResponseHeader->usByteCount = usPackageBytesUsed;
+
+    *ppResponseHeader = pResponseHeader;
+    *pusPackageBytesUsed = usPackageBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppResponseHeader = NULL;
+    *pusPackageBytesUsed = 0;
 
     goto cleanup;
 }

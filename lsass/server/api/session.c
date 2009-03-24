@@ -76,6 +76,15 @@ LsaSrvOpenSession(
                                         hProvider,
                                         pszLoginId);
         if (!dwError) {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginSuccessEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId,
+                    LSASS_EVENT_LOGON_PHASE_CREATE_SESSION,
+                    dwError);
+            }
            break;
 
         } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
@@ -87,8 +96,16 @@ LsaSrvOpenSession(
             continue;
 
         } else {
+            if (LsaSrvEventlogEnabled())
+            {
+                LsaSrvWriteLoginFailedEvent(
+                    hServer,
+                    pProvider->pszName,
+                    pszLoginId,
+                    LSASS_EVENT_LOGON_PHASE_CREATE_SESSION,
+                    dwError);
+            }
             BAIL_ON_LSA_ERROR(dwError);
-
         }
     }
 
@@ -148,9 +165,11 @@ LsaSrvCloseSession(
                                 pszLoginId);
         if (!dwError) {
 
-            if (LsaSrvEventlogEnabled()){
+            if (LsaSrvEventlogEnabled())
+            {
                     LsaSrvWriteLogoutSuccessEvent(hServer,
                                                   pProvider->pszName,
+                                                  LSASS_EVENT_LOGON_PHASE_CREATE_SESSION,
                                                   pszLoginId);
             }
 

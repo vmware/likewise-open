@@ -288,4 +288,24 @@ LsaDmpIsNetworkError(
     IN DWORD dwError
     );
 
+VOID
+ADLogMediaSenseOnlineEvent(
+    VOID
+    );
+
+VOID
+ADLogMediaSenseOfflineEvent(
+    VOID
+    );
+
+VOID
+ADLogDomainOnlineEvent(
+    PCSTR pszDomainName
+    );
+
+VOID
+ADLogDomainOfflineEvent(
+    PCSTR pszDomainName
+    );
+
 #endif /* __LSA_DM_P_H__ */

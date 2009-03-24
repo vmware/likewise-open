@@ -171,11 +171,7 @@ ADSyncMachinePasswords(
             
             if (AD_EventlogEnabled())
             {
-                LsaSrvLogServiceSuccessEvent(
-                        LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_PASSWORD_UPDATE,
-                        PASSWORD_EVENT_CATEGORY,
-                        "The Active Directory machine password was updated successfully.",
-                        NULL);
+                ADLogMachinePWUpdateSuccessEvent();
             }            
             
             bRefreshTGT = TRUE;
@@ -370,18 +366,51 @@ ADSetMachineTGTExpiry(
 }
 
 VOID
+ADLogMachinePWUpdateSuccessEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Updated Active Directory machine password.\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_PASSWORD_UPDATE,
+            PASSWORD_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
 ADLogMachinePWUpdateFailureEvent(
     DWORD dwErrCode
     )
 {
     DWORD dwError = 0;
-    PSTR pszMachinePWUpdateFailureDescription = NULL;
+    PSTR pszDescription = NULL;
     PSTR pszData = NULL;
 
     dwError = LsaAllocateStringPrintf(
-                 &pszMachinePWUpdateFailureDescription,
-                 "The Active Directory machine password failed to update.",
-                 dwErrCode);
+                 &pszDescription,
+                 "The Active Directory machine password failed to update.\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaGetErrorMessageForLoggingEvent(
@@ -391,12 +420,12 @@ ADLogMachinePWUpdateFailureEvent(
     LsaSrvLogServiceFailureEvent(
             LSASS_EVENT_FAILED_MACHINE_ACCOUNT_PASSWORD_UPDATE,
             PASSWORD_EVENT_CATEGORY,
-            pszMachinePWUpdateFailureDescription,
+            pszDescription,
             pszData);
     
 cleanup:
 
-    LSA_SAFE_FREE_STRING(pszMachinePWUpdateFailureDescription);
+    LSA_SAFE_FREE_STRING(pszDescription);
     LSA_SAFE_FREE_STRING(pszData);
 
     return;
