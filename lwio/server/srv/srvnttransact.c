@@ -654,6 +654,11 @@ cleanup:
         SrvFileRelease(pFile);
     }
 
+    if (pResponseBuffer)
+    {
+        LwRtlMemoryFree(pResponseBuffer);
+    }
+
     return ntStatus;
 
 error:
