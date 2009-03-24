@@ -163,40 +163,26 @@ SrvProcessOpenAndX(
     }
 
     /* action to take if the file exists */
-    switch (pRequestHeader->usOpenFunction & 0x3)
+    switch (pRequestHeader->usOpenFunction)
     {
-        case 0: /* Fail */
-
-            usCreateDisposition = FILE_CREATE;
-
-            break;
-
-        case 1: /* Open file */
-
+        case 0x0001: /* Open file */
             usCreateDisposition = FILE_OPEN;
-
             break;
-
-        case 2: /* Truncate file */
-
+        case 0x0002: /* truncate file */
             usCreateDisposition = FILE_OVERWRITE;
-
             break;
-    }
-
-    /* action to take if the file does not exist */
-    switch (pRequestHeader->usOpenFunction & 0x10)
-    {
-        case 0: /* Fail */
-
-            usCreateDisposition = FILE_OPEN;
-
+        case 0x0010: /* create new file */
+            usCreateDisposition = FILE_CREATE;
             break;
-
-        case 1: /* Create File */
-
+        case 0x0011: /* open or create file */
             usCreateDisposition = FILE_OPEN_IF;
-
+            break;
+        case 0x0012: /* create or truncate */
+            usCreateDisposition = FILE_OVERWRITE_IF;
+            break;
+        default:
+            ntStatus = STATUS_INVALID_DISPOSITION;
+            BAIL_ON_NT_STATUS(ntStatus);
             break;
     }
 
