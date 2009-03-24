@@ -3,10 +3,11 @@
 COMPONENTS="\
 	krb5 \
 	openldap \
+	libunistr \
+	lwbase \
         lwmsg \
 	centutils \
 	sqlite \
-	libunistr \
 	pstore \
 	netlogon \
         lwio \

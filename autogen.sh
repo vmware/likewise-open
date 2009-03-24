@@ -19,6 +19,7 @@
 ##
 
 DIRS="\
+	lwbase \
 	centutils \
 	domainjoin \
 	eventlog \
