@@ -66,9 +66,11 @@ SamrSrvClose(
         break;
 
     case SamrContextDomain:
+        DOMAIN_HANDLE_rundown(hIn);
         break;
 
     case SamrContextAccount:
+        ACCOUNT_HANDLE_rundown(hIn);
         break;
 
     default:

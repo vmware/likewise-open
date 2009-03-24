@@ -142,6 +142,10 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(pwszFilter);
     }
 
+    if (pEntries) {
+        DirectoryFreeEntries(pEntries, dwCount);
+    }
+
     return status;
 
 error:
