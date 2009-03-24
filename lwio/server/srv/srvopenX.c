@@ -347,7 +347,7 @@ SrvBuildOpenResponse(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pSMBHeader->wordCount = 26;
+    pSmbResponse->pSMBHeader->wordCount = 15;
 
     pResponseHeader = (POPEN_RESPONSE_HEADER)pSmbResponse->pParams;
     pSmbResponse->pData = pSmbResponse->pParams + sizeof(OPEN_RESPONSE_HEADER);
