@@ -84,7 +84,7 @@ CopyUnixStatToPvfsStat(
 
 NTSTATUS
 PvfsSysStat(
-	PSTR pszFilename,
+	PCSTR pszFilename,
 	PPVFS_STAT pStat
 	)
 {
