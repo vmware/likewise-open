@@ -89,10 +89,6 @@ WireUnmarshallOpenRequest(
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    pDataCursor += sizeof(ucBufferFormat);
-    ulOffset += sizeof(ucBufferFormat);
-    ulBytesAvailable -= sizeof(ucBufferFormat);
-    usByteCountAvailable -= sizeof(ucBufferFormat);
 
     ucBufferFormat = *pDataCursor;
 
@@ -101,6 +97,11 @@ WireUnmarshallOpenRequest(
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    pDataCursor += sizeof(ucBufferFormat);
+    ulOffset += sizeof(ucBufferFormat);
+    ulBytesAvailable -= sizeof(ucBufferFormat);
+    usByteCountAvailable -= sizeof(ucBufferFormat);
 
     if (ulOffset % 2)
     {

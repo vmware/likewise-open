@@ -45,7 +45,7 @@ WireNTTimeToSMBDateTime(
 
     gmtime_r(&timeUnix, &stTime);
 
-    if (stTime.tm_year < 1980)
+    if ((stTime.tm_year + 1900) < 1980)
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -53,7 +53,7 @@ WireNTTimeToSMBDateTime(
 
     pSmbDate->usDay = stTime.tm_mday;
     pSmbDate->usMonth = stTime.tm_mon + 1;
-    pSmbDate->usYear = stTime.tm_year - 1980;
+    pSmbDate->usYear = (stTime.tm_year + 1900) - 1980;
 
     pSmbTime->TwoSeconds = stTime.tm_sec / 2;
     pSmbTime->Minutes = stTime.tm_min;

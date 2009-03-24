@@ -63,7 +63,7 @@ SrvProcessOpenAndX(
     PIO_FILE_NAME        pFilename = NULL;
     PIO_ECP_LIST         pEcpList = NULL;
     USHORT               usCreateDisposition = 0;
-    USHORT               usCreateOptions = 0;
+    USHORT               usCreateOptions = FILE_NON_DIRECTORY_FILE;
     USHORT               usShareAccess = 0;
     PSMB_PACKET          pSmbResponse = NULL;
     PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
