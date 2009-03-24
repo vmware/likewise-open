@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrOpenDomain function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_opendomain.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrOpenDomain function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -161,8 +171,12 @@ SamrSrvOpenDomain(
     }
 
     pDomCtx->Type           = SamrContextDomain;
+    pDomCtx->refcount       = 1;
     pDomCtx->pDomainSid     = pDomainSid;
     pDomCtx->pwszDomainName = pwszDomainName;
+    pDomCtx->pConnCtx       = pConnCtx;
+
+    InterlockedIncrement(&pConnCtx->refcount);
 
     *hDomain = (DOMAIN_HANDLE)pDomCtx;
 
@@ -183,7 +197,8 @@ cleanup:
 
 error:
     if (pDomCtx) {
-        SamrSrvFreeMemory(pDomCtx);
+        InterlockedDecrement(&pConnCtx->refcount);
+        DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pDomCtx);
     }
 
     if (pDomainSid) {
