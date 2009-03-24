@@ -730,6 +730,11 @@ LsaDmpMediaSenseOffline(
     IN LSA_DM_STATE_HANDLE Handle
     )
 {
+    if (AD_EventlogEnabled() && AD_ShouldLogNetworkConnectionEvents())
+    {
+        ADLogMediaSenseOfflineEvent();
+    }
+
     LsaDmpModifyStateFlags(Handle, 0, LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE);
 }
 
@@ -738,6 +743,11 @@ LsaDmpMediaSenseOnline(
     IN LSA_DM_STATE_HANDLE Handle
     )
 {
+    if (AD_EventlogEnabled() && AD_ShouldLogNetworkConnectionEvents())
+    {
+        ADLogMediaSenseOnlineEvent();
+    }
+
     LsaDmpModifyStateFlags(Handle, LSA_DM_STATE_FLAG_MEDIA_SENSE_OFFLINE, 0);
     LsaDmpDetectTransitionOnline(Handle, NULL);
 }
@@ -2222,6 +2232,11 @@ LsaDmpTransitionOffline(
     IN PCSTR pszDomainName
     )
 {
+    if (AD_EventlogEnabled() && AD_ShouldLogNetworkConnectionEvents())
+    {
+        ADLogDomainOfflineEvent(pszDomainName);
+    }
+
     return LsaDmpModifyDomainFlagsByName(Handle,
                                          pszDomainName,
                                          TRUE,
@@ -2234,6 +2249,11 @@ LsaDmpTransitionOnline(
     IN PCSTR pszDomainName
     )
 {
+    if (AD_EventlogEnabled() && AD_ShouldLogNetworkConnectionEvents())
+    {
+        ADLogDomainOnlineEvent(pszDomainName);
+    }
+
     return LsaDmpModifyDomainFlagsByName(Handle,
                                          pszDomainName,
                                          FALSE,
@@ -2920,3 +2940,136 @@ LsaDmpIsNetworkError(
 
     return bIsNetworkError;
 }
+
+VOID
+ADLogMediaSenseOnlineEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Media sense detected network available. Switching to online mode:\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_INFO_NETWORK_DOMAIN_ONLINE_TRANSITION,
+            NETWORK_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+ADLogMediaSenseOfflineEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Media sense detected network is not available. Switching to offline mode:\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceWarningEvent(
+            LSASS_EVENT_WARNING_NETWORK_DOMAIN_OFFLINE_TRANSITION,
+            NETWORK_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+ADLogDomainOnlineEvent(
+    PCSTR pszDomainName
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Detected domain controller for Active Directory domain. Switching to online mode:\r\n\r\n" \
+                 "     Authentication provider:   %s\r\n\r\n" \
+                 "     Domain:                    %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 pszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_INFO_NETWORK_DOMAIN_ONLINE_TRANSITION,
+            NETWORK_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+ADLogDomainOfflineEvent(
+    PCSTR pszDomainName
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Detected unreachable domain controller for Active Directory domain. Switching to offline mode:\r\n\r\n" \
+                 "     Authentication provider:   %s\r\n\r\n" \
+                 "     Domain:                    %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 pszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceWarningEvent(
+            LSASS_EVENT_WARNING_NETWORK_DOMAIN_OFFLINE_TRANSITION,
+            NETWORK_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+

@@ -78,8 +78,13 @@ ADShouldRefreshMachineTGT();
 
 VOID
 ADSetMachineTGTExpiry(
-	DWORD dwGoodUntil
-	);
+    DWORD dwGoodUntil
+    );
+
+VOID
+ADLogMachinePWUpdateSuccessEvent(
+    VOID
+    );
 
 VOID
 ADLogMachinePWUpdateFailureEvent(

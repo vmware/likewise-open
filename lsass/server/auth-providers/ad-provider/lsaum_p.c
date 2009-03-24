@@ -53,11 +53,11 @@
 #include "lsaum_p.h"
 
 /// Minimum time interval to wait between runs.
-#define LSA_UM_THREAD_MIN_PERIOD (15 * LSA_SECONDS_IN_MINUTE)
+#define LSA_UM_THREAD_MIN_PERIOD (5 * LSA_SECONDS_IN_MINUTE)
 
 /// Minimum time interval to wait between checking user's
 /// login status.
-#define LSA_UM_USER_MIN_PERIOD (5 * LSA_SECONDS_IN_MINUTE)
+#define LSA_UM_USER_MIN_PERIOD (2 * LSA_SECONDS_IN_MINUTE)
 
 #define LSA_UM_STATE_LOCK(bInLock)                   \
         do {                                         \
@@ -1287,7 +1287,6 @@ LsaUmpAddUserInternal(
     }
     else
     {
-        LSA_LOG_DEBUG("LSA User Manager - User %u has logged on", pRequest->uUid);
         dwError = LsaAllocateMemory(
                       sizeof(LSA_UM_USER_REFRESH_ITEM),
                       (PVOID*)&pNewUserItem);
@@ -1428,7 +1427,6 @@ LsaUmpRemoveUserFromList(
     pUserItem = *pUserItemPtr;
     if ( pUserItem && pUserItem->uUid == uUid )
     {
-        LSA_LOG_DEBUG("LSA User Manager - User %u has logged off", uUid);
         *pUserItemPtr = pUserItem->pNext;
 
         LsaUmpFreePassword(

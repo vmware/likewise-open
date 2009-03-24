@@ -53,6 +53,7 @@ LsaSrvWriteLoginSuccessEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
     PCSTR  pszLoginId,
+    DWORD  dwLoginPhase,
     DWORD  dwErrCode
     );
 
@@ -61,6 +62,7 @@ LsaSrvWriteLoginFailedEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
     PCSTR  pszLoginId,
+    DWORD  dwLoginPhase,
     DWORD  dwErrCode
     );
 
@@ -68,6 +70,7 @@ VOID
 LsaSrvWriteLogoutSuccessEvent(
     HANDLE hServer,
     PCSTR  pszProvider,
+    DWORD  dwLoginPhase,
     PCSTR  pszLoginId
     );
 
