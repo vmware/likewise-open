@@ -383,6 +383,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_CREATE_DIRECTORY:
+
+            ntStatus = SrvProcessCreateDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
         case COM_DELETE_DIRECTORY:
 
             ntStatus = SrvProcessDeleteDirectory(

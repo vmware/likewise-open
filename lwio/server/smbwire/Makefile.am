@@ -2,6 +2,7 @@ lib_LTLIBRARIES = liblwiosmbwire.la
 
 liblwiosmbwire_la_SOURCES = \
     wire_close.c         \
+    wire_create_dir.c    \
     wire_create_file.c   \
     wire_datetime.c      \
     wire_delete.c        \

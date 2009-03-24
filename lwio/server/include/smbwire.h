@@ -1301,6 +1301,25 @@ typedef struct _SMB_DELETE_RESPONSE_HEADER {
 } __attribute__((__packed__)) SMB_DELETE_RESPONSE_HEADER,
                              *PSMB_DELETE_RESPONSE_HEADER;
 
+typedef struct _SMB_CREATE_DIRECTORY_REQUEST_HEADER
+{
+    USHORT usSearchAttributes;
+    USHORT ByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszPath */
+
+} __attribute__((__packed__)) SMB_CREATE_DIRECTORY_REQUEST_HEADER,
+                             *PSMB_CREATE_DIRECTORY_REQUEST_HEADER;
+
+typedef struct _SMB_CREATE_DIRECTORY_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_CREATE_DIRECTORY_RESPONSE_HEADER,
+                             *PSMB_CREATE_DIRECTORY_RESPONSE_HEADER;
+
+
 typedef struct _FLUSH_REQUEST_HEADER
 {
     /* wordCount and byteCount are handled at a higher layer */
@@ -1857,6 +1876,24 @@ WireMarshallDeleteResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PSMB_DELETE_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallCreateDirectoryRequest(
+    PBYTE                       pParams,
+    ULONG                       ulBytesAvailable,
+    ULONG                       ulOffset,
+    PSMB_CREATE_DIRECTORY_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszPath
+    );
+
+NTSTATUS
+WireMarshallCreateDirectoryResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_CREATE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 
