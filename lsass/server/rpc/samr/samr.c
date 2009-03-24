@@ -263,14 +263,21 @@ NTSTATUS __SamrGetAliasMembership(
 
 NTSTATUS __SamrLookupNames(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ Ids *ids,
     /* [out] */ Ids *types
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvLookupNames(IDL_handle,
+                                hDomain,
+                                num_names,
+                                names,
+                                ids,
+                                types);
     return status;
 }
 
@@ -363,13 +370,19 @@ NTSTATUS samr_Function1a(
 
 NTSTATUS __SamrOpenAlias(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
-    /* [out] */ PolicyHandle *alias
+    /* [out] */ ACCOUNT_HANDLE *hAlias
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvOpenAlias(IDL_handle,
+                              hDomain,
+                              access_mask,
+                              rid,
+                              hAlias);
     return status;
 }
 
@@ -443,13 +456,19 @@ NTSTATUS __SamrGetMembersInAlias(
 
 NTSTATUS __SamrOpenUser(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
-    /* [out] */ PolicyHandle *user_handle
+    /* [out] */ ACCOUNT_HANDLE *hUser
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvOpenUser(IDL_handle,
+                             hDomain,
+                             access_mask,
+                             rid,
+                             hUser);
     return status;
 }
 

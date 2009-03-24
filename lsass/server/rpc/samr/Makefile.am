@@ -15,6 +15,9 @@ libsamr_srv_la_SOURCES = \
     samr_enumdomains.c \
     samr_opendomain.c \
     samr_close.c \
+    samr_lookupnames.c \
+    samr_openuser.c \
+    samr_openalias.c \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
