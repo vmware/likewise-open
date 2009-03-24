@@ -51,6 +51,12 @@ LwRtlCStringAllocateFromWC16String(
     );
 
 LW_NTSTATUS
+LwRtlCStringAllocateFromUnicodeString(
+    LW_OUT LW_PSTR* ppszNewString,
+    LW_IN LW_PUNICODE_STRING pOriginalString
+    );
+
+LW_NTSTATUS
 LwRtlCStringDuplicate(
     LW_OUT LW_PSTR* ppszNewString,
     LW_IN LW_PCSTR pszOriginalString
@@ -245,6 +251,8 @@ LwRtlAnsiStringParseULONG(
     LwRtlCStringNumChars(String)
 #define RtlCStringAllocateFromWC16String(NewString, OriginalString) \
     LwRtlCStringAllocateFromWC16String(NewString, OriginalString)
+#define RtlCStringAllocateFromUnicodeString(NewString, OriginalString) \
+    LwRtlCStringAllocateFromUnicodeString(NewString, OriginalString)
 #define RtlCStringDuplicate(NewString, OriginalString) \
     LwRtlCStringDuplicate(NewString, OriginalString)
 #define RtlCStringFree(String) \

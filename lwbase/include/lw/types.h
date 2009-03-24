@@ -378,6 +378,12 @@ typedef struct _LW_ANSI_STRING {
 #define LW_RTL_STRING_LAST_CHAR(String) \
     ( (String)->Buffer[LW_RTL_STRING_NUM_CHARS(String) - 1] )
 
+#define LW_RTL_STRING_IS_NULL_TERMINATED(String) \
+    ((String) && \
+     (String)->Buffer && \
+     ((String)->MaximumLength > (String)->Length) && \
+     !(String)->Buffer[LW_RTL_STRING_NUM_CHARS(String)])
+
 // This works for CHAR and WCHAR since WCHAR is native byte order.
 #define LwRtlIsDecimalDigit(Character) \
     ( ((Character) >= '0') && ((Character) <= '9') )
@@ -407,6 +413,7 @@ typedef LW_PANSI_STRING PANSI_STRING;
 
 #define RTL_STRING_NUM_CHARS(String) LW_RTL_STRING_NUM_CHARS(String)
 #define RTL_STRING_LAST_CHAR(String) LW_RTL_STRING_LAST_CHAR(String)
+#define RTL_STRING_IS_NULL_TERMINATED(String) LW_RTL_STRING_IS_NULL_TERMINATED(String)
 
 #define RtlIsDecimalDigit(Character) LwRtlIsDecimalDigit(Character)
 #define RtlDecimalDigitValue(Character) LwRtlDecimalDigitValue(Character)
