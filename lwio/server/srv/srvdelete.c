@@ -212,11 +212,21 @@ SrvDeleteFiles(
     PWSTR    pwszFilePath = NULL;
     PWSTR    pwszFilename = NULL;
     IO_FILE_HANDLE hFile = NULL;
+    FILE_CREATE_OPTIONS CreateOptions = 0;
+    PWSTR     pwszFilesystemPath2 = NULL;
+    PWSTR     pwszSearchPattern2 = NULL;
+
+    ntStatus = SrvBuildSearchPath(
+                    pwszFilesystemPath,
+                    pwszSearchPattern,
+                    &pwszFilesystemPath2,
+                    &pwszSearchPattern2);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderCreateSearchSpace(
                     pSession->hFinderRepository,
-                    pwszFilesystemPath,
-                    pwszSearchPattern,
+                    pwszFilesystemPath2,
+                    pwszSearchPattern2,
                     usSearchAttributes,
                     ulSearchStorageType,
                     infoLevel,
@@ -276,33 +286,40 @@ SrvDeleteFiles(
                 ntStatus = LW_RTL_ALLOCATE(
                                 &pwszFilename,
                                 WCHAR,
-                                (pResult->FileNameLength + 1) * sizeof(wchar16_t));
+                                pResult->FileNameLength + sizeof(wchar16_t));
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
                        (PBYTE)pResult->FileName,
-                       pResult->FileNameLength * sizeof(wchar16_t));
+                       pResult->FileNameLength);
             }
             else
             {
                 ntStatus = LW_RTL_ALLOCATE(
                                 &pwszFilename,
                                 WCHAR,
-                                (pResult->ShortNameLength + 1) * sizeof(wchar16_t));
+                                pResult->ShortNameLength + sizeof(wchar16_t));
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
                        (PBYTE)pResult->ShortName,
-                       pResult->ShortNameLength * sizeof(wchar16_t));
+                       pResult->ShortNameLength);
             }
 
             ntStatus = SrvBuildFilePath(
-                            pwszFilesystemPath,
+                            pwszFilesystemPath2,
                             pwszFilename,
                             &pwszFilePath);
             BAIL_ON_NT_STATUS(ntStatus);
 
             fileName.FileName = pwszFilePath;
+
+	    CreateOptions = FILE_DELETE_ON_CLOSE;
+	    if (pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+		    CreateOptions |= FILE_DIRECTORY_FILE;
+	    } else {
+		    CreateOptions |= FILE_NON_DIRECTORY_FILE;
+	    }
 
             ntStatus = IoCreateFile(
                             &hFile,
@@ -312,12 +329,12 @@ SrvDeleteFiles(
                             &fileName,
                             pSecurityDescriptor,
                             pSecurityQOS,
-                            GENERIC_WRITE,
+                            DELETE,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
                             0,
                             FILE_OPEN,
-                            FILE_DELETE_ON_CLOSE,
+                            CreateOptions,
                             NULL,
                             0,
                             NULL);

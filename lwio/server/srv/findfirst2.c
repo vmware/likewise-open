@@ -59,15 +59,6 @@ SrvBuildFindFirst2Response(
     PSMB_PACKET*        ppSmbResponse
     );
 
-static
-NTSTATUS
-SrvBuildSearchPath(
-    PWSTR  pwszPath,
-    PWSTR  pwszSearchPattern,
-    PWSTR* ppwszFilesystemPath,
-    PWSTR* ppwszSearchPattern
-    );
-
 NTSTATUS
 SrvProcessTrans2FindFirst2(
     PSMB_SRV_CONNECTION         pConnection,
@@ -484,7 +475,6 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvBuildSearchPath(
     PWSTR  pwszPath,
