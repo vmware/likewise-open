@@ -178,9 +178,32 @@ DirectoryGetEntryAttributeByName(
     );
 
 DWORD
+DirectoryGetEntryAttributeByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttributeName,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    );
+
+DWORD
 DirectoryGetAttributeValue(
     PDIRECTORY_ATTRIBUTE pAttribute,
     PATTRIBUTE_VALUE *ppAttrValue
+    );
+
+DWORD
+DirectoryGetEntryAttrValueByName(
+    PDIRECTORY_ENTRY pEntry,
+    PCWSTR pwszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
+    );
+
+DWORD
+DirectoryGetEntryAttrValueByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
     );
 
 DWORD
