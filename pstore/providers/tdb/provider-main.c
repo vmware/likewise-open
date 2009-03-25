@@ -635,6 +635,35 @@ error:
     goto cleanup;
 }
 
+/************************************************************
+ ************************************************************/
+
+
+static DWORD
+TDB_StoreHostListByDomainName(
+    HANDLE hProvider,
+    PCSTR  pszDomainName,
+    PSTR **pppszHostnames,
+    DWORD *pdwHostname
+    )
+{
+    return LWPS_ERROR_NOT_IMPLEMENTED;
+}
+
+/************************************************************
+ ************************************************************/
+
+
+static DWORD
+TDB_DeleteHostEntry(
+    HANDLE hProvider,
+    PCSTR pszHostname
+    )
+{
+    return LWPS_ERROR_NOT_IMPLEMENTED;
+}
+
+
 
 /************************************************************
  Provider dispatch table
@@ -644,10 +673,10 @@ LWPS_PROVIDER_FUNC_TABLE gTDBProviderAPITable = {
     .pFnOpenProvider                 = &TDB_OpenProvider,
     .pFnReadPasswordByHostName       = &TDB_ReadPasswordByHostName,
     .pFnReadPasswordByDomainName     = &TDB_ReadPasswordByDomain,
-    .pFnReadHostListByDomainName     = NULL,
+    .pFnReadHostListByDomainName     = &TDB_StoreHostListByDomainName,
     .pFnWritePassword                = &TDB_WritePassword,
     .pFnDeleteAllEntries             = &TDB_DeleteAllEntries,
-    .pFnDeleteHostEntry              = NULL,
+    .pFnDeleteHostEntry              = &TDB_DeleteHostEntry,
     .pfnFreePassword                 = &TDB_FreePassword,
     .pFnCloseProvider                = &TDB_CloseProvider
 };
