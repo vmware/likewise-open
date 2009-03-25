@@ -83,6 +83,7 @@ typedef struct samr_account_context {
     enum SamrContextType Type;
     LONG                 refcount;
     PWSTR                pwszName;
+    DWORD                dwRid;
     PSID                 pSid;
     DWORD                dwAccountType;
     PDOMAIN_CONTEXT      pDomCtx;
