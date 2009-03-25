@@ -20,6 +20,8 @@ libsamr_srv_la_SOURCES = \
     samr_openalias.c \
     samr_enumdomainusers.c \
     samr_enumdomainaliases.c \
+    samr_queryuserinfo.c \
+    samr_queryaliasinfo.c \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \

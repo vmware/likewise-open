@@ -512,12 +512,10 @@ NTSTATUS __SamrQueryUserInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-#if 0
     status = SamrSrvQueryUserInfo(IDL_handle,
                                   hUser,
                                   level,
                                   info);
-#endif
     return status;
 }
 
