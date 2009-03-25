@@ -53,7 +53,9 @@
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
     HANDLE hConnection;
-    // TODO-A mutex?
+    // TODO-Add a mutex so we can serialize lookups or else
+    // do some sort of connection caching stuff.  Need to make
+    // sure to handle re-connection as needed.
 } LW_MAP_SECURITY_PLUGIN_CONTEXT;
 
 typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
