@@ -86,8 +86,8 @@ SrvSvcNetShareGetInfo(
     BOOLEAN bRet = FALSE;
     DWORD  dwReturnCode = 0;
     DWORD  dwParmError = 0;
-    IO_FILE_HANDLE FileHandle;
-    IO_STATUS_BLOCK IoStatusBlock;
+    IO_FILE_HANDLE FileHandle = (IO_FILE_HANDLE)NULL;
+    IO_STATUS_BLOCK IoStatusBlock = {0};
     PIO_FILE_NAME FileName = NULL;
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
@@ -97,11 +97,25 @@ SrvSvcNetShareGetInfo(
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_GET_SHARE_INFO;
     PSTR smbpath = NULL;
-    IO_FILE_NAME filename;
-    IO_STATUS_BLOCK io_status;
-    SHARE_INFO_GETINFO_PARAMS GetParamsIn;
+    IO_FILE_NAME filename = {0};
+    SHARE_INFO_GETINFO_PARAMS GetParamsIn = {0};
     PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
     PSHARE_INFO pShareInfo = NULL;
+
+    /* Validate info levele */
+
+    switch (level){
+    case 0:
+    case 1:
+    case 2:
+    case 501:
+    case 502:
+        break;
+    default:
+        ntStatus = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 
     memset(&GetParamsIn, 0, sizeof(GetParamsIn));
     memset(info, 0x0, sizeof(*info));
@@ -247,12 +261,19 @@ cleanup:
         SrvSvcFreeMemory(pGetParamsOut);
     }
 
-    if (ntStatus == STATUS_NOT_FOUND) {
-        dwError = 2310;
-    } else if (ntStatus == STATUS_SUCCESS) {
-        dwError = 0;
-    } else {
-        dwError = -1;
+    switch (ntStatus) {
+    case STATUS_SUCCESS:
+        dwError = WIN32_ERROR_SUCCESS;
+        break;
+    case STATUS_NOT_FOUND:
+        dwError = WIN32_ERROR_FILE_NOT_FOUND;
+        break;
+    case STATUS_INVALID_INFO_CLASS:
+        dwError = WIN32_ERROR_UNKNOWN_LEVEL;
+        break;
+    default:
+        dwError = WIN32_ERROR_INVALID_FUNCTION;
+        break;
     }
 
     return dwError;

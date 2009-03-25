@@ -35,7 +35,16 @@ typedef struct
     USHORT               usFid;
     USHORT               usReserved;
     SECURITY_INFORMATION ulSecurityInfo;
-} __attribute__((__packed__)) SMB_SECURITY_INFORMATION_HEADER, *PSMB_SECURITY_INFORMATION_HEADER;
+} __attribute__((__packed__)) SMB_SECURITY_INFORMATION_HEADER,
+                             *PSMB_SECURITY_INFORMATION_HEADER;
+
+typedef struct
+{
+    ULONG   ulFunctionCode;
+    USHORT  usFid;
+    BOOLEAN bIsFsctl;
+    UCHAR   ucFlags;
+} __attribute__((__packed__)) SMB_IOCTL_HEADER, *PSMB_IOCTL_HEADER;
 
 static
 NTSTATUS
@@ -60,6 +69,41 @@ SrvSetSecurityDescriptor(
     PBYTE               pData,
     ULONG               ulDataLen,
     PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvProcessIOCTL(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_TREE       pTree,
+    PBYTE               pParameters,
+    ULONG               ulParameterCount,
+    PBYTE               pData,
+    ULONG               ulDataLen,
+    PSMB_PACKET*        ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvExecuteFsctl(
+    PSMB_SRV_FILE pFile,
+    PBYTE         pData,
+    ULONG         ulDataLen,
+    ULONG         ulFunctionCode,
+    PBYTE*        ppResponseBuffer,
+    PUSHORT       pusResponseBufferLen
+    );
+
+static
+NTSTATUS
+SrvExecuteIoctl(
+    PSMB_SRV_FILE pFile,
+    PBYTE         pData,
+    ULONG         ulDataLen,
+    ULONG         ulControlCode,
+    PBYTE*        ppResponseBuffer,
+    PUSHORT       pusResponseBufferLen
     );
 
 NTSTATUS
@@ -136,8 +180,21 @@ SrvProcessNtTransact(
 
             break;
 
-        case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
         case SMB_SUB_COMMAND_NT_TRANSACT_IOCTL :
+
+            ntStatus = SrvProcessIOCTL(
+                            pConnection,
+                            pSmbRequest,
+                            pTree,
+                            pParameters,
+                            pRequestHeader->ulTotalParameterCount,
+                            pData,
+                            pRequestHeader->ulTotalDataCount,
+                            &pSmbResponse);
+
+            break;
+
+        case SMB_SUB_COMMAND_NT_TRANSACT_CREATE :
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE :
         case SMB_SUB_COMMAND_NT_TRANSACT_RENAME :
 
@@ -471,3 +528,333 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvProcessIOCTL(
+    PSMB_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest,
+    PSMB_SRV_TREE       pTree,
+    PBYTE               pParameters,
+    ULONG               ulParameterCount,
+    PBYTE               pData,
+    ULONG               ulDataLen,
+    PSMB_PACKET*        ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_SRV_FILE pFile = NULL;
+    UCHAR   ucSetupCount = 1;
+    ULONG   ulDataOffset = 0;
+    ULONG   ulParameterOffset = 0;
+    ULONG   ulNumPackageBytesUsed = 0;
+    PSMB_IOCTL_HEADER pIoctlRequest = NULL;
+    PSMB_PACKET pSmbResponse = NULL;
+    PBYTE   pResponseBuffer = NULL;
+    USHORT  usResponseBufferLen = 0;
+
+    if (ulParameterCount != sizeof(SMB_IOCTL_HEADER))
+    {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pIoctlRequest = (PSMB_IOCTL_HEADER)pParameters;
+
+    if (pIoctlRequest->ucFlags & 0x1)
+    {
+        // TODO: Apply only to DFS Share
+        //       We don't support DFS yet
+        ntStatus = STATUS_NOT_IMPLEMENTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvTreeFindFile(
+                    pTree,
+                    pIoctlRequest->usFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pIoctlRequest->bIsFsctl)
+    {
+        ntStatus = SrvExecuteFsctl(
+                        pFile,
+                        pData,
+                        ulDataLen,
+                        pIoctlRequest->ulFunctionCode,
+                        &pResponseBuffer,
+                        &usResponseBufferLen);
+    }
+    else
+    {
+        ntStatus = SrvExecuteIoctl(
+                        pFile,
+                        pData,
+                        ulDataLen,
+                        pIoctlRequest->ulFunctionCode,
+                        &pResponseBuffer,
+                        &usResponseBufferLen);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketMarshallHeader(
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
+                COM_NT_TRANSACT,
+                0,
+                TRUE,
+                pSmbRequest->pSMBHeader->tid,
+                pSmbRequest->pSMBHeader->pid,
+                pSmbRequest->pSMBHeader->uid,
+                pSmbRequest->pSMBHeader->mid,
+                pConnection->serverProperties.bRequireSecuritySignatures,
+                pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->pSMBHeader->wordCount = 18 + ucSetupCount;
+
+    ntStatus = WireMarshallNtTransactionResponse(
+                    pSmbResponse->pParams,
+                    pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
+                    (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
+                    &usResponseBufferLen,
+                    ucSetupCount,
+                    NULL,
+                    0,
+                    pResponseBuffer,
+                    usResponseBufferLen,
+                    &ulDataOffset,
+                    &ulParameterOffset,
+                    &ulNumPackageBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSmbResponse->bufferUsed += ulNumPackageBytesUsed;
+
+    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
+
+    if (pResponseBuffer)
+    {
+        LwRtlMemoryFree(pResponseBuffer);
+    }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvExecuteFsctl(
+    PSMB_SRV_FILE pFile,
+    PBYTE         pData,
+    ULONG         ulDataLen,
+    ULONG         ulFunctionCode,
+    PBYTE*        ppResponseBuffer,
+    PUSHORT       pusResponseBufferLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pResponseBuffer = NULL;
+    USHORT   usResponseBufferLen = 0;
+    USHORT   usActualResponseLen = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pResponseBuffer,
+                    BYTE,
+                    512);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    usResponseBufferLen = 512;
+
+    do
+    {
+        ntStatus = IoFsControlFile(
+                        pFile->hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        ulFunctionCode,
+                        pData,
+                        ulDataLen,
+                        pResponseBuffer,
+                        usResponseBufferLen);
+        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            USHORT usNewLength = 0;
+
+            if ((usResponseBufferLen + 256) > UINT16_MAX)
+            {
+                ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            usNewLength = usResponseBufferLen + 256;
+
+            if (pResponseBuffer)
+            {
+                LwRtlMemoryFree(pResponseBuffer);
+                pResponseBuffer = NULL;
+                usResponseBufferLen = 0;
+            }
+
+            ntStatus = LW_RTL_ALLOCATE(
+                            &pResponseBuffer,
+                            BYTE,
+                            usNewLength);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            usResponseBufferLen = usNewLength;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        usActualResponseLen = ioStatusBlock.BytesTransferred;
+
+    } while (ntStatus != STATUS_SUCCESS);
+
+    *ppResponseBuffer = pResponseBuffer;
+    *pusResponseBufferLen = usResponseBufferLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppResponseBuffer = NULL;
+    *pusResponseBufferLen = 0;
+
+    if (pResponseBuffer)
+    {
+        LwRtlMemoryFree(pResponseBuffer);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvExecuteIoctl(
+    PSMB_SRV_FILE pFile,
+    PBYTE         pData,
+    ULONG         ulDataLen,
+    ULONG         ulControlCode,
+    PBYTE*        ppResponseBuffer,
+    PUSHORT       pusResponseBufferLen
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PBYTE    pResponseBuffer = NULL;
+    USHORT   usResponseBufferLen = 0;
+    USHORT   usActualResponseLen = 0;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+
+    ntStatus = LW_RTL_ALLOCATE(
+                    &pResponseBuffer,
+                    BYTE,
+                    512);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    usResponseBufferLen = 512;
+
+    do
+    {
+        ntStatus = IoDeviceIoControlFile(
+                        pFile->hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        ulControlCode,
+                        pData,
+                        ulDataLen,
+                        pResponseBuffer,
+                        usResponseBufferLen);
+        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            USHORT usNewLength = 0;
+
+            if ((usResponseBufferLen + 256) > UINT16_MAX)
+            {
+                ntStatus = STATUS_INSUFFICIENT_RESOURCES;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            usNewLength = usResponseBufferLen + 256;
+
+            if (pResponseBuffer)
+            {
+                LwRtlMemoryFree(pResponseBuffer);
+                pResponseBuffer = NULL;
+                usResponseBufferLen = 0;
+            }
+
+            ntStatus = LW_RTL_ALLOCATE(
+                            &pResponseBuffer,
+                            BYTE,
+                            usNewLength);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            usResponseBufferLen = usNewLength;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        usActualResponseLen = ioStatusBlock.BytesTransferred;
+
+    } while (ntStatus != STATUS_SUCCESS);
+
+    *ppResponseBuffer = pResponseBuffer;
+    *pusResponseBufferLen = usResponseBufferLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppResponseBuffer = NULL;
+    *pusResponseBufferLen = 0;
+
+    if (pResponseBuffer)
+    {
+        LwRtlMemoryFree(pResponseBuffer);
+    }
+
+    goto cleanup;
+}
+
+

@@ -52,7 +52,10 @@ NTSTATUS SamrSrvConnect(
                                    NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    pConn->Type = SamrContextConnect;
+    pConn->Type     = SamrContextConnect;
+    pConn->refcount = 1;
+
+    InterlockedIncrement(&pConn->refcount);
 
     *hConn = (CONNECT_HANDLE)pConn;
 
@@ -61,7 +64,8 @@ cleanup:
 
 error:
     if (pConn) {
-        SamrSrvFreeMemory(pConn);
+        InterlockedDecrement(&pConn->refcount);
+        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConn);
     }
 
     *hConn = NULL;

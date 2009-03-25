@@ -46,44 +46,6 @@ RTLP_STRING_LOG_DATA gpLwRtlStringLogData = { 0 };
 #define RTLP_STRING_NULL_TEXT "<null>"
 
 static
-BOOLEAN
-LwRtlpUnicodeStringIsNullTerminated(
-    IN PUNICODE_STRING pString
-    )
-{
-    BOOLEAN bIsNullTermianted = FALSE;
-
-    if (pString &&
-        pString->Buffer &&
-        (pString->MaximumLength > pString->Length) && 
-        !pString->Buffer[pString->Length])
-    {
-        bIsNullTermianted = TRUE;
-    }
-
-    return bIsNullTermianted;
-}
-
-static
-BOOLEAN
-LwRtlpAnsiStringIsNullTerminated(
-    IN PANSI_STRING pString
-    )
-{
-    BOOLEAN bIsNullTermianted = FALSE;
-
-    if (pString &&
-        pString->Buffer &&
-        (pString->MaximumLength > pString->Length) && 
-        !pString->Buffer[pString->Length])
-    {
-        bIsNullTermianted = TRUE;
-    }
-
-    return bIsNullTermianted;
-}
-
-static
 PCSTR
 LwRtlpStringLogRotate(
     IN OPTIONAL PSTR pszString
@@ -110,7 +72,7 @@ LwRtlUnicodeStringToLog(
 {
     PCSTR pszOutput = NULL;
 
-    if (LwRtlpUnicodeStringIsNullTerminated(pString))
+    if (LW_RTL_STRING_IS_NULL_TERMINATED(pString))
     {
         pszOutput = RtlWC16StringToLog(pString->Buffer);
     }
@@ -132,7 +94,7 @@ LwRtlAnsiStringToLog(
 {
     PCSTR pszOutput = NULL;
 
-    if (LwRtlpAnsiStringIsNullTerminated(pString))
+    if (LW_RTL_STRING_IS_NULL_TERMINATED(pString))
     {
         pszOutput = pString->Buffer;
     }

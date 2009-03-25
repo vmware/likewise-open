@@ -31,6 +31,7 @@
 #include <wchar16.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 ssize_t
 vsw16printf(

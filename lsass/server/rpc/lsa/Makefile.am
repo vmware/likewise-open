@@ -27,7 +27,6 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
-    $(AM_CFLAGS) \
     $(FEATURETEST_FLAGS) \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \

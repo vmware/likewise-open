@@ -167,7 +167,7 @@ cpp_quote("#endif")
 
     /* function 0x11 */
     NTSTATUS __SamrLookupNames(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in,range(0,1000)] uint32 num_names,
         [in,size_is(1000),length_is(num_names)] UnicodeString *names,
         [out] Ids *ids,
@@ -194,10 +194,10 @@ cpp_quote("#endif")
 
     /* function 0x1b */
     NTSTATUS __SamrOpenAlias(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in] uint32 access_mask,
         [in] uint32 rid,
-        [out,ref] PolicyHandle *alias
+        [out] ACCOUNT_HANDLE *hAlias
         );
 
     /* function 0x1c */
@@ -239,10 +239,10 @@ cpp_quote("#endif")
 
     /* function 0x22 */
     NTSTATUS __SamrOpenUser(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in] uint32 access_mask,
         [in] uint32 rid,
-        [out,ref] PolicyHandle *user_handle
+        [out] ACCOUNT_HANDLE *hUser
         );
 
     /* function 0x23 */

@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_openuser.c
+ *        samr_openalias.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrOpenUser function
+ *        SamrOpenAlias function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -48,21 +48,21 @@
 
 
 NTSTATUS
-SamrSrvOpenUser(
+SamrSrvOpenAlias(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE *hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
-    /* [out] */ ACCOUNT_HANDLE *hUser
+    /* [out] */ ACCOUNT_HANDLE *hAlias
     )
 {
-    CHAR szFilterFmt[] = "(&(objectclass=user)(uid=%d))";
+    CHAR szFilterFmt[] = "(&(objectclass=group)(gid=%d))";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PACCOUNT_CONTEXT pAccCtx = NULL;
     HANDLE hDirectory = NULL;
-    PWSTR pwszAttrNameUsername = NULL;
+    PWSTR pwszAttrNameGroupname = NULL;
     PWSTR pwszAttrNameSid = NULL;
     PWSTR pwszDn = NULL;
     DWORD dwScope = 0;
@@ -88,11 +88,11 @@ SamrSrvOpenUser(
     hDirectory = pDomCtx->pConnCtx->hDirectory;
     pwszDn     = pDomCtx->pwszDn;
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_USER_NAME,
-                            &pwszAttrNameUsername);
+    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GROUP_NAME,
+                            &pwszAttrNameGroupname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_USER_SID,
+    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GROUP_SID,
                             &pwszAttrNameSid);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -109,7 +109,7 @@ SamrSrvOpenUser(
 
     sw16printf(pwszFilter, szFilterFmt, rid);
 
-    wszAttributes[0] = pwszAttrNameUsername;
+    wszAttributes[0] = pwszAttrNameGroupname;
     wszAttributes[1] = pwszAttrNameSid;
     wszAttributes[2] = NULL;
 
@@ -133,7 +133,7 @@ SamrSrvOpenUser(
                                                  &pAttrVal);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (!wc16scmp(pAttr->pwszName, pwszAttrNameUsername) &&
+            if (!wc16scmp(pAttr->pwszName, pwszAttrNameGroupname) &&
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwNameLen = wc16slen(pAttrVal->pwszStringValue);
@@ -156,7 +156,7 @@ SamrSrvOpenUser(
         }
 
     } else if (dwEntriesNum == 0) {
-        status = STATUS_NO_SUCH_USER;
+        status = STATUS_NO_SUCH_ALIAS;
         BAIL_ON_NTSTATUS_ERROR(status);
 
     } else {
@@ -168,15 +168,15 @@ SamrSrvOpenUser(
     pAccCtx->refcount      = 1;
     pAccCtx->pwszName      = pwszName;
     pAccCtx->pSid          = pSid;
-    pAccCtx->dwAccountType = SID_TYPE_USER;
+    pAccCtx->dwAccountType = SID_TYPE_ALIAS;
 
     InterlockedIncrement(&pAccCtx->refcount);
 
-    *hUser = (ACCOUNT_HANDLE)pAccCtx;
+    *hAlias = (ACCOUNT_HANDLE)pAccCtx;
 
 cleanup:
-    if (pwszAttrNameUsername) {
-        SamrSrvFreeMemory(pwszAttrNameUsername);
+    if (pwszAttrNameGroupname) {
+        SamrSrvFreeMemory(pwszAttrNameGroupname);
     }
 
     if (pwszAttrNameSid) {
@@ -203,7 +203,7 @@ error:
         RTL_FREE(&pSid);
     }
 
-    *hUser = NULL;
+    *hAlias = NULL;
     goto cleanup;
 }
 

@@ -15,6 +15,9 @@ libsamr_srv_la_SOURCES = \
     samr_enumdomains.c \
     samr_opendomain.c \
     samr_close.c \
+    samr_lookupnames.c \
+    samr_openuser.c \
+    samr_openalias.c \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -26,7 +29,6 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_srv_la_CFLAGS = \
     -DLIBRPC_BUILD \
-    $(AM_CFLAGS) \
     $(FEATURETEST_FLAGS) \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \

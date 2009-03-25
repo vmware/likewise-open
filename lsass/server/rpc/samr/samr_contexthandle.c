@@ -52,15 +52,20 @@ CONNECT_HANDLE_rundown(
     void *hContext
     )
 {
-    PCONNECT_CONTEXT pConn = (PCONNECT_CONTEXT)hContext;
+    PCONNECT_CONTEXT pConnCtx = (PCONNECT_CONTEXT)hContext;
 
-    if (pConn->hDirectory) {
-        DirectoryClose(pConn->hDirectory);
+    InterlockedDecrement(&pConnCtx->refcount);
+    if (pConnCtx->refcount) return;
+
+    if (pConnCtx->hDirectory) {
+        DirectoryClose(pConnCtx->hDirectory);
     }
 
     /*
       free access token
     */
+
+    SamrSrvFreeMemory(pConnCtx);
 }
 
 
@@ -69,6 +74,13 @@ DOMAIN_HANDLE_rundown(
     void *hContext
     )
 {
+    PDOMAIN_CONTEXT pDomCtx = (PDOMAIN_CONTEXT)hContext;
+
+    InterlockedDecrement(&pDomCtx->refcount);
+    if (pDomCtx->refcount) return;
+
+    CONNECT_HANDLE_rundown((CONNECT_HANDLE)pDomCtx->pConnCtx);
+    SamrSrvFreeMemory(pDomCtx);
 }
 
 
@@ -77,6 +89,13 @@ ACCOUNT_HANDLE_rundown(
     void *hContext
     )
 {
+    PACCOUNT_CONTEXT pAccCtx = (PACCOUNT_CONTEXT)hContext;
+
+    InterlockedDecrement(&pAccCtx->refcount);
+    if (pAccCtx->refcount) return;
+
+    DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAccCtx->pDomCtx);
+    SamrSrvFreeMemory(pAccCtx);
 }
 
 

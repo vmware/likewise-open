@@ -86,6 +86,37 @@ SamrSrvOpenDomain(
 
 
 NTSTATUS
+SamrSrvLookupNames(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    uint32 num_names,
+    UnicodeString *names,
+    Ids *ids,
+    Ids *types
+    );
+
+
+NTSTATUS
+SamrSrvOpenAlias(
+    handle_t hBinding,
+    DOMAIN_HANDLE *hDomain,
+    uint32 access_mask,
+    uint32 rid,
+    ACCOUNT_HANDLE *hAlias
+    );
+
+
+NTSTATUS
+SamrSrvOpenUser(
+    handle_t hBinding,
+    DOMAIN_HANDLE *hDomain,
+    uint32 access_mask,
+    uint32 rid,
+    ACCOUNT_HANDLE *hUser
+    );
+
+
+NTSTATUS
 SamrSrvConnect2(
     handle_t hBinding,
     uint32 size,

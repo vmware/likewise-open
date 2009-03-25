@@ -57,13 +57,13 @@ enum SamrContextType {
 
 typedef struct samr_generic_context {
     enum SamrContextType    Type;
-    DWORD                   dwRefCount;
+    LONG                    refcount;
 } SAMR_GENERIC_CONTEXT, *PSAMR_GENERIC_CONTEXT;
 
 
 typedef struct samr_connect_context {
     enum SamrContextType    Type;
-    DWORD                   dwRefCount;
+    LONG                    refcount;
     PACCESS_TOKEN           pUserToken;
     HANDLE                  hDirectory;
 } CONNECT_CONTEXT, *PCONNECT_CONTEXT;
@@ -71,7 +71,8 @@ typedef struct samr_connect_context {
 
 typedef struct samr_domain_context {
     enum SamrContextType Type;
-    DWORD                dwRefCount;
+    LONG                 refcount;
+    PWSTR                pwszDn;
     PWSTR                pwszDomainName;
     PSID                 pDomainSid;
     PCONNECT_CONTEXT     pConnCtx;
@@ -80,7 +81,10 @@ typedef struct samr_domain_context {
 
 typedef struct samr_account_context {
     enum SamrContextType Type;
-    DWORD                dwRefCount;
+    LONG                 refcount;
+    PWSTR                pwszName;
+    PSID                 pSid;
+    DWORD                dwAccountType;
     PDOMAIN_CONTEXT      pDomCtx;
 } ACCOUNT_CONTEXT, *PACCOUNT_CONTEXT;
 
