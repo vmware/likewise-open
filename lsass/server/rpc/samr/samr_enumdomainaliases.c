@@ -53,11 +53,13 @@ SamrSrvEnumDomainAliases(
     /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 account_flags,
-    /* [in] */ uint32 max_size,
     /* [out] */ RidNameArray **names,
     /* [out] */ uint32 *num_entries
     )
 {
+    /* this should be reasonable value to send over 50 aliases */
+    const DWORD max_size = 2048;
+
     CHAR szFilter[] = "(objectclass=group)";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;

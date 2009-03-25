@@ -103,7 +103,6 @@ SamrSrvEnumDomainAliases(
     DOMAIN_HANDLE hDomain,
     uint32 *resume,
     uint32 account_flags,
-    uint32 max_size,
     RidNameArray **names,
     uint32 *num_entries
     );
