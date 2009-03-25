@@ -38,7 +38,8 @@
 
 
 NTSTATUS
-SamrQueryUserInfo(
+SamrSrvQueryUserInfo(
+    /* [in] */ handle_t hBinding,
     /* [in] */ PolicyHandle *user_handle,
     /* [in] */ uint16 level,
     /* [out] */ UserInfo **info
