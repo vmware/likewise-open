@@ -117,6 +117,12 @@ RtlAppendRidSid(
     IN ULONG Rid
     );
 
+NTSTATUS
+RtlDuplicateSid(
+    OUT PSID* NewSid,
+    IN PSID OriginalSid
+    );
+
 //
 // ACL Functions
 //

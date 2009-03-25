@@ -192,6 +192,32 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+RtlDuplicateSid(
+    OUT PSID* NewSid,
+    IN PSID OriginalSid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG length = RtlLengthSid(OriginalSid);
+    PSID resultSid = NULL;
+
+    status = RTL_ALLOCATE(&resultSid, SID, length);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    RtlCopyMemory(resultSid, OriginalSid, length);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RTL_FREE(&resultSid);
+    }
+
+    *NewSid = resultSid;
+
+    return status;
+}
+
 BOOLEAN
 RtlpIsValidLittleEndianSidBuffer(
     IN PVOID Buffer,
