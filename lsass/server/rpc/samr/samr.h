@@ -93,7 +93,7 @@ SamrSrvEnumDomainUsers(
     uint32 account_flags,
     uint32 max_size,
     RidNameArray **names,
-    uint32 *num_entries;
+    uint32 *num_entries
     );
 
 
@@ -105,7 +105,7 @@ SamrSrvEnumDomainAliases(
     uint32 account_flags,
     uint32 max_size,
     RidNameArray **names,
-    uint32 *num_entries;
+    uint32 *num_entries
     );
 
 
