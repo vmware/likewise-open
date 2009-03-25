@@ -208,7 +208,7 @@ NTSTATUS __SamrCreateUser(
 
 NTSTATUS __SamrEnumDomainUsers(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 account_flags,
     /* [in] */ uint32 max_size,
@@ -216,7 +216,15 @@ NTSTATUS __SamrEnumDomainUsers(
     /* [out] */ uint32 *num_entries
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvEnumDomainUsers(IDL_handle,
+                                    hDomain,
+                                    resume,
+                                    account_flags,
+                                    max_size,
+                                    names,
+                                    num_entries);
     return status;
 }
 
@@ -237,14 +245,21 @@ NTSTATUS __SamrCreateDomAlias(
 
 NTSTATUS __SamrEnumDomainAliases(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in, out] */ uint32 *resume,
     /* [in] */ uint32 account_flags,
     /* [out] */ RidNameArray **names,
     /* [out] */ uint32 *num_entries
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvEnumDomainAliases(IDL_handle,
+                                      hDomain,
+                                      resume,
+                                      account_flags,
+                                      names,
+                                      num_entries);
     return status;
 }
 
@@ -389,12 +404,17 @@ NTSTATUS __SamrOpenAlias(
 
 NTSTATUS __SamrQueryAliasInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *alias_handle,
+    /* [in] */ ACCOUNT_HANDLE hAlias,
     /* [in] */ uint16 level,
     /* [out] */ AliasInfo **info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvQueryAliasInfo(IDL_handle,
+                                   hAlias,
+                                   level,
+                                   info);
     return status;
 }
 
@@ -485,12 +505,17 @@ NTSTATUS __SamrDeleteUser(
 
 NTSTATUS __SamrQueryUserInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *user_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
     /* [in] */ uint16 level,
     /* [out] */ UserInfo **info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvQueryUserInfo(IDL_handle,
+                                  hUser,
+                                  level,
+                                  info);
     return status;
 }
 
