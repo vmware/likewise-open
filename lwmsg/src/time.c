@@ -123,13 +123,13 @@ lwmsg_time_normalize(
     LWMsgTime* time
     )
 {
-    /* First, make both values the same sign */
-    while (time->seconds < 0 && time->microseconds >= 0)
+    /* First, make both values the same sign unless one is zero */
+    while (time->seconds < 0 && time->microseconds > 0)
     {
         time->seconds += 1;
         time->microseconds -= 1000000;
     }
-    while (time->microseconds < 0 && time->seconds >= 0)
+    while (time->microseconds < 0 && time->seconds > 0)
     {
         time->seconds -= 1;
         time->microseconds += 1000000;
