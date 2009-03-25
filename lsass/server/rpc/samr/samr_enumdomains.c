@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -187,6 +187,9 @@ error:
         SamrSrvFreeMemory(pDomains);
     }
 
+    *resume      = 0;
+    *num_entries = 0;
+    *domains     = NULL;
     goto cleanup;
 }
 
