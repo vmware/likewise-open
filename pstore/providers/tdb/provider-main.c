@@ -66,8 +66,11 @@ static PCSTR gpszTDBProviderName = "likewise-tdb-password-provider";
 LWPS_PROVIDER_FUNC_TABLE gTDBProviderAPITable;
 
 
+/************************************************************
+ ************************************************************/
+
 VOID
-FreeMachineAccountInfo(
+TDB_FreeMachineAccountInfo(
 	PMACHINE_ACCT_INFO pAcctInfo
 	)
 {
@@ -87,7 +90,10 @@ FreeMachineAccountInfo(
 }
 
 
-VOID
+/************************************************************
+ ************************************************************/
+
+static VOID
 FreePasswordInfoStruct(
 	PLWPS_PASSWORD_INFO pInfo
 	)
@@ -103,7 +109,6 @@ FreePasswordInfoStruct(
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszMachinePassword);
 
 	LwpsFreeMemory(pInfo);
-	
 
 	return;	
 }
@@ -119,44 +124,72 @@ ConvertPasswordInfoFromMb(
 	)
 {
 	DWORD dwError = LWPS_ERROR_INTERNAL;
+    PLWPS_PASSWORD_INFO pInfo = NULL;
 
-	dwError = LwpsAllocateMemory(sizeof(LWPS_PASSWORD_INFO), (PVOID*)ppInfo);
+    /* Sanity checks */
+
+	BAIL_ON_INVALID_POINTER(pAcctInfo);
+	BAIL_ON_INVALID_POINTER(ppInfo);
+
+    /* Allocate and convert */
+
+	dwError = LwpsAllocateMemory(sizeof(LWPS_PASSWORD_INFO),
+                                 (PVOID*)&pInfo);
 	BAIL_ON_LWPS_ERROR(dwError);	
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainName,
-				 &(*ppInfo)->pwszDomainName);	
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszDomainName) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainName,
+                                 &pInfo->pwszDomainName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszMachineAccountPassword,
-				 &(*ppInfo)->pwszMachinePassword);	
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszMachineAccountPassword) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszMachineAccountPassword,
+                                 &pInfo->pwszMachinePassword);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainDnsName,
-				 &(*ppInfo)->pwszDnsDomainName);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszDomainDnsName) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainDnsName,
+                                 &pInfo->pwszDnsDomainName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainSID,
-				 &(*ppInfo)->pwszSID);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszDomainSID) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszDomainSID,
+                                 &pInfo->pwszSID);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszHostName,
-				 &(*ppInfo)->pwszHostname);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszHostName) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszHostName,
+                                 &pInfo->pwszHostname);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsMbsToWc16s(pAcctInfo->pszMachineAccountName,
-				 &(*ppInfo)->pwszMachineAccount);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pAcctInfo->pszMachineAccountName) {
+        dwError = LwpsMbsToWc16s(pAcctInfo->pszMachineAccountName,
+                                 &pInfo->pwszMachineAccount);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
+	pInfo->last_change_time = pAcctInfo->tPwdClientModifyTimestamp;
+	pInfo->dwSchannelType   = pAcctInfo->dwSchannelType;
+
+    /* Done */
+
+    *ppInfo = pInfo;
+    dwError = LWPS_ERROR_SUCCESS;
 	
-	(*ppInfo)->last_change_time = pAcctInfo->tPwdClientModifyTimestamp;	
-	(*ppInfo)->dwSchannelType = pAcctInfo->dwSchannelType;	
-	
-done:
+cleanup:
 	return dwError;	
 
 error:
-	FreePasswordInfoStruct(*ppInfo);
+    if (pInfo) {
+        FreePasswordInfoStruct(pInfo);
+    }
 
-	goto done;	
+	goto cleanup;
 }
 
 /************************************************************
@@ -169,45 +202,72 @@ ConvertPasswordInfoToMb(
 	)
 {
 	DWORD dwError = LWPS_ERROR_INTERNAL;
+    PMACHINE_ACCT_INFO pAcct = NULL;
 
-	dwError = LwpsAllocateMemory(sizeof(MACHINE_ACCT_INFO), 
-				     (PVOID*)ppAcctInfo);
+    /* Sanity checks */
+
+	BAIL_ON_INVALID_POINTER(pInfo);
+	BAIL_ON_INVALID_POINTER(ppAcctInfo);
+
+    /* Allocate and convert */
+
+	dwError = LwpsAllocateMemory(sizeof(MACHINE_ACCT_INFO),
+                                 (PVOID*)&pAcct);
 	BAIL_ON_LWPS_ERROR(dwError);
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszDomainName,
-				 &(*ppAcctInfo)->pszDomainName);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszDomainName) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszDomainName,
+                                 &pAcct->pszDomainName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszMachinePassword,
-				 &(*ppAcctInfo)->pszMachineAccountPassword);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszMachinePassword) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszMachinePassword,
+                                 &pAcct->pszMachineAccountPassword);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszDnsDomainName,
-				 &(*ppAcctInfo)->pszDomainDnsName);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszDnsDomainName) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszDnsDomainName,
+                                 &pAcct->pszDomainDnsName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszSID,
-				 &(*ppAcctInfo)->pszDomainSID);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszSID) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszSID,
+                                 &pAcct->pszDomainSID);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszHostname,
-				 &(*ppAcctInfo)->pszHostName);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszHostname) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszHostname,
+                                 &pAcct->pszHostName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	dwError = LwpsWc16sToMbs(pInfo->pwszMachineAccount,
-		&(*ppAcctInfo)->pszMachineAccountName);
-	BAIL_ON_LWPS_ERROR(dwError);
+    if (pInfo->pwszMachineAccount) {
+        dwError = LwpsWc16sToMbs(pInfo->pwszMachineAccount,
+                                 &pAcct->pszMachineAccountName);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
-	(*ppAcctInfo)->tPwdClientModifyTimestamp = pInfo->last_change_time; 
-	(*ppAcctInfo)->dwSchannelType = pInfo->dwSchannelType;
+	pAcct->tPwdClientModifyTimestamp = pInfo->last_change_time;
+	pAcct->dwSchannelType = pInfo->dwSchannelType;
+
+    /* Done */
+
+    *ppAcctInfo = pAcct;
+    dwError = LWPS_ERROR_SUCCESS;
 	
-done:
+cleanup:
 	return dwError;	
 
 error:
-	FreeMachineAccountInfo(*ppAcctInfo);	
+    if (pAcct) {
+        TDB_FreeMachineAccountInfo(pAcct);
+    }
 
-	goto done;	
+	goto cleanup;
 }
 
 /************************************************************
@@ -230,19 +290,19 @@ Tdb_ConfigStartSection(
 		       strlen(LWPS_CFG_PROVIDER_TAG)))
 	{
 		bSkipSection = TRUE;
-		goto done;
+		goto cleanup;
 	}
 
 	pszProviderName = pszSectionName + strlen(LWPS_CFG_PROVIDER_TAG);
 	if (!StrEqual(pszProviderName, CFG_PROVIDER_NAME)) {
 		bSkipSection = TRUE;
-		goto done;
+		goto cleanup;
 	}
 	
 	*pbSkipSection = bSkipSection;
 	*pbContinue = bContinue;
 
-done:
+cleanup:
 	return dwError;
 }
 
@@ -414,7 +474,7 @@ cleanup:
     return dwError;
 
 error:
-    FreeMachineAccountInfo(pAcctInfo);    
+    TDB_FreeMachineAccountInfo(pAcctInfo);
     FreePasswordInfoStruct(*ppInfo);
 
     goto cleanup;
@@ -470,7 +530,9 @@ TDB_WritePassword(
     BAIL_ON_LWPS_ERROR(dwError);    
 
 cleanup:
-    FreeMachineAccountInfo(pAcctInfo);
+    if (pAcctInfo) {
+        TDB_FreeMachineAccountInfo(pAcctInfo);
+    }
 
     return dwError;
 
@@ -534,7 +596,7 @@ TDB_CloseProvider(
 	    pContext->pTdb = NULL;
     }
 
-    /* Make sure there is no valid infor in the hanble
+    /* Make sure there is no valid info in the handle
        so it cannot be reused accidentally */
 
     memset(pContext, 0x0, sizeof(TDB_PROVIDER_CONTEXT));    
@@ -579,11 +641,23 @@ error:
  ************************************************************/
 
 LWPS_PROVIDER_FUNC_TABLE gTDBProviderAPITable = {
-	&TDB_OpenProvider,
-	&TDB_ReadPasswordByHostName,
-	&TDB_ReadPasswordByDomain,
-	&TDB_WritePassword,
-	&TDB_DeleteAllEntries,
-	&TDB_FreePassword,
-	&TDB_CloseProvider
+    .pFnOpenProvider                 = &TDB_OpenProvider,
+    .pFnReadPasswordByHostName       = &TDB_ReadPasswordByHostName,
+    .pFnReadPasswordByDomainName     = &TDB_ReadPasswordByDomain,
+    .pFnReadHostListByDomainName     = NULL,
+    .pFnWritePassword                = &TDB_WritePassword,
+    .pFnDeleteAllEntries             = &TDB_DeleteAllEntries,
+    .pFnDeleteHostEntry              = NULL,
+    .pfnFreePassword                 = &TDB_FreePassword,
+    .pFnCloseProvider                = &TDB_CloseProvider
 };
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

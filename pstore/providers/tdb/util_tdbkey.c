@@ -490,7 +490,7 @@ cleanup:
 
 error:
 	if (*ppAcctInfo) {
-		FreeMachineAccountInfo(*ppAcctInfo);
+		TDB_FreeMachineAccountInfo(*ppAcctInfo);
 	}
 
 	goto cleanup;
@@ -509,3 +509,13 @@ TdbDeleteMachineAccountInfo(
 
 	return dwError;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
