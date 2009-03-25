@@ -217,6 +217,7 @@ void strlower(char *s);
 /* Convert a single-byte string to lower case */
 void strupper(char *s);
 
+void printwc16s(const wchar16_t* pwszPrint);
 
 #endif /* WCSTR16_H */
 

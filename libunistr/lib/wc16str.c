@@ -46,6 +46,8 @@
 #include <string.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <stdio.h>
+#include "wc16printf.h"
 
 #ifndef SIZE_MAX
 #define SIZE_MAX ((size_t)-1)
@@ -690,7 +692,7 @@ iconv_count(
 
 size_t __mbsnbcnt(const char *src, size_t cchFind)
 {
-    iconv_t handle = iconv_open("", "UCS-4");
+    iconv_t handle = iconv_open("UCS-4", "");
     size_t cbFind = strlen(src);
     char *srcPos = (char *)src;
     if (iconv_count(handle, (ICONV_IN_TYPE) &srcPos, &cbFind, &cchFind) < 0)
@@ -810,6 +812,15 @@ void strlower(char *s)
     strcaseconv(tolower, s);
 }
 
+void printwc16s(const wchar16_t* pwszPrint)
+{
+    FILE *tty = fopen("/dev/tty", "w");
+    if (tty)
+    {
+        fw16printfw(tty, L"[%ws]\n", pwszPrint);
+        fclose(tty);
+    }
+}
 
 /*
 local variables:
