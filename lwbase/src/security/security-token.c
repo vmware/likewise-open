@@ -204,17 +204,19 @@ RtlCreateAccessToken(
 
     token->Flags = 0;
 
-    token->User.User.Attributes = User->User.Attributes;
-    token->User.User.Sid = (PSID) location;
+    token->User.Attributes = User->User.Attributes;
+    token->User.Sid = (PSID) location;
     location = RtlpAppendData(location,
                               User->User.Sid,
                               RtlLengthSid(User->User.Sid));
 
-    token->Groups.GroupCount = Groups->GroupCount;
+    token->GroupCount = Groups->GroupCount;
+    token->Groups = (PSID_AND_ATTRIBUTES) location;
+    location = LwRtlOffsetToPointer(location, sizeof(Groups->Groups[0]) * Groups->GroupCount);
     for (i = 0; i < Groups->GroupCount; i++)
     {
-        token->Groups.Groups[i].Attributes = Groups->Groups[i].Attributes;
-        token->Groups.Groups[i].Sid = (PSID) location;
+        token->Groups[i].Attributes = Groups->Groups[i].Attributes;
+        token->Groups[i].Sid = (PSID) location;
         location = RtlpAppendData(location,
                                   Groups->Groups[i].Sid,
                                   RtlLengthSid(Groups->Groups[i].Sid));
@@ -222,7 +224,7 @@ RtlCreateAccessToken(
 
     if (Owner->Owner)
     {
-        token->Owner.Owner = (PSID) location;
+        token->Owner = (PSID) location;
         location = RtlpAppendData(location,
                                   Owner->Owner,
                                   RtlLengthSid(Owner->Owner));
@@ -230,7 +232,7 @@ RtlCreateAccessToken(
 
     if (PrimaryGroup->PrimaryGroup)
     {
-        token->PrimaryGroup.PrimaryGroup = (PSID) location;
+        token->PrimaryGroup = (PSID) location;
         location = RtlpAppendData(location,
                                   PrimaryGroup->PrimaryGroup,
                                   RtlLengthSid(PrimaryGroup->PrimaryGroup));
@@ -238,7 +240,7 @@ RtlCreateAccessToken(
 
     if (DefaultDacl->DefaultDacl)
     {
-        token->DefaultDacl.DefaultDacl = (PACL) location;
+        token->DefaultDacl = (PACL) location;
         location = RtlpAppendData(location,
                                   DefaultDacl->DefaultDacl,
                                   DefaultDacl->DefaultDacl->AclSize);
@@ -247,7 +249,9 @@ RtlCreateAccessToken(
     if (Unix)
     {
         SetFlag(token->Flags, ACCESS_TOKEN_FLAG_UNIX_PRESENT);
-        token->Unix = *Unix;
+        token->Uid = Unix->Uid;
+        token->Gid = Unix->Gid;
+        token->Umask = Unix->Umask;
     }
 
     if (location != LW_PTR_ADD(token, requiredSize))
@@ -310,25 +314,25 @@ RtlQueryAccessTokenInformation(
             status = RtlSafeAddULONG(
                             &requiredSize,
                             sizeof(TOKEN_USER),
-                            RtlLengthSid(AccessToken->User.User.Sid));
+                            RtlLengthSid(AccessToken->User.Sid));
             GOTO_CLEANUP_ON_STATUS(status);
             break;
         case TokenGroups:
             status = RtlSafeMultiplyULONG(
                         &requiredSize,
-                        sizeof(AccessToken->Groups.Groups[0]),
-                        AccessToken->Groups.GroupCount);
+                        sizeof(AccessToken->Groups[0]),
+                        AccessToken->GroupCount);
             GOTO_CLEANUP_ON_STATUS(status);
 
             status = RtlSafeAddULONG(&requiredSize, requiredSize, sizeof(TOKEN_GROUPS));
             GOTO_CLEANUP_ON_STATUS(status);
 
-            for (i = 0; i < AccessToken->Groups.GroupCount; i++)
+            for (i = 0; i < AccessToken->GroupCount; i++)
             {
                 status = RtlSafeAddULONG(
                                 &requiredSize,
                                 requiredSize,
-                                RtlLengthSid(AccessToken->Groups.Groups[i].Sid));
+                                RtlLengthSid(AccessToken->Groups[i].Sid));
                 GOTO_CLEANUP_ON_STATUS(status);
             }
             break;
@@ -336,22 +340,22 @@ RtlQueryAccessTokenInformation(
             status = RtlSafeAddULONG(
                             &requiredSize,
                             sizeof(TOKEN_OWNER),
-                            RtlLengthSid(AccessToken->Owner.Owner));
+                            RtlLengthSid(AccessToken->Owner));
             GOTO_CLEANUP_ON_STATUS(status);
             break;
         case TokenPrimaryGroup:
             status = RtlSafeAddULONG(
                             &requiredSize,
                             sizeof(TOKEN_PRIMARY_GROUP),
-                            RtlLengthSid(AccessToken->PrimaryGroup.PrimaryGroup));
+                            RtlLengthSid(AccessToken->PrimaryGroup));
             GOTO_CLEANUP_ON_STATUS(status);
             break;
         case TokenDefaultDacl:
             status = RtlSafeAddULONG(
                             &requiredSize,
                             sizeof(TOKEN_DEFAULT_DACL),
-                            (AccessToken->DefaultDacl.DefaultDacl ?
-                             AccessToken->DefaultDacl.DefaultDacl->AclSize :
+                            (AccessToken->DefaultDacl ?
+                             AccessToken->DefaultDacl->AclSize :
                              0));
             GOTO_CLEANUP_ON_STATUS(status);
             break;
@@ -377,60 +381,62 @@ RtlQueryAccessTokenInformation(
     {
         case TokenUser:
         {
-            PTOKEN_USER user = (PTOKEN_USER) TokenInformation;
+            PTOKEN_USER tokenInfo = (PTOKEN_USER) TokenInformation;
             location = LW_PTR_ADD(TokenInformation, sizeof(TOKEN_USER));
-            user->User.Attributes = AccessToken->User.User.Attributes;
-            user->User.Sid = (PSID) location;
+            tokenInfo->User.Attributes = AccessToken->User.Attributes;
+            tokenInfo->User.Sid = (PSID) location;
             location = RtlpAppendData(location,
-                                      AccessToken->User.User.Sid,
-                                      RtlLengthSid(AccessToken->User.User.Sid));
+                                      AccessToken->User.Sid,
+                                      RtlLengthSid(AccessToken->User.Sid));
             break;
         }
         case TokenGroups:
         {
-            PTOKEN_GROUPS groups = (PTOKEN_GROUPS) TokenInformation;
-            location = LW_PTR_ADD(TokenInformation, sizeof(TOKEN_GROUPS));
-            groups->GroupCount = AccessToken->Groups.GroupCount;
-            for (i = 0; i < AccessToken->Groups.GroupCount; i++)
+            PTOKEN_GROUPS tokenInfo = (PTOKEN_GROUPS) TokenInformation;
+            location = LW_PTR_ADD(TokenInformation,
+                                  (sizeof(TOKEN_GROUPS) +
+                                   (sizeof(AccessToken->Groups[0]) * AccessToken->GroupCount)));
+            tokenInfo->GroupCount = AccessToken->GroupCount;
+            for (i = 0; i < AccessToken->GroupCount; i++)
             {
-                groups->Groups[i].Attributes = AccessToken->Groups.Groups[i].Attributes;
-                groups->Groups[i].Sid = (PSID) location;
+                tokenInfo->Groups[i].Attributes = AccessToken->Groups[i].Attributes;
+                tokenInfo->Groups[i].Sid = (PSID) location;
                 location = RtlpAppendData(location,
-                                          AccessToken->Groups.Groups[i].Sid,
-                                          RtlLengthSid(AccessToken->Groups.Groups[i].Sid));
+                                          AccessToken->Groups[i].Sid,
+                                          RtlLengthSid(AccessToken->Groups[i].Sid));
             }
             break;
         }
         case TokenOwner:
         {
-            PTOKEN_OWNER owner = (PTOKEN_OWNER) TokenInformation;
+            PTOKEN_OWNER tokenInfo = (PTOKEN_OWNER) TokenInformation;
             location = LW_PTR_ADD(TokenInformation, sizeof(TOKEN_OWNER));
-            owner->Owner = (PSID) location;
+            tokenInfo->Owner = (PSID) location;
             location = RtlpAppendData(location,
-                                      AccessToken->Owner.Owner,
-                                      RtlLengthSid(AccessToken->Owner.Owner));
+                                      AccessToken->Owner,
+                                      RtlLengthSid(AccessToken->Owner));
             break;
         }
         case TokenPrimaryGroup:
         {
-            PTOKEN_PRIMARY_GROUP primaryGroup = (PTOKEN_PRIMARY_GROUP) TokenInformation;
+            PTOKEN_PRIMARY_GROUP tokenInfo = (PTOKEN_PRIMARY_GROUP) TokenInformation;
             location = LW_PTR_ADD(TokenInformation, sizeof(TOKEN_PRIMARY_GROUP));
-            primaryGroup->PrimaryGroup = (PSID) location;
+            tokenInfo->PrimaryGroup = (PSID) location;
             location = RtlpAppendData(location,
-                                      AccessToken->PrimaryGroup.PrimaryGroup,
-                                      RtlLengthSid(AccessToken->PrimaryGroup.PrimaryGroup));
+                                      AccessToken->PrimaryGroup,
+                                      RtlLengthSid(AccessToken->PrimaryGroup));
             break;
         }
         case TokenDefaultDacl:
         {
-            PTOKEN_DEFAULT_DACL defaultDacl = (PTOKEN_DEFAULT_DACL) TokenInformation;
+            PTOKEN_DEFAULT_DACL tokenInfo = (PTOKEN_DEFAULT_DACL) TokenInformation;
             location = LW_PTR_ADD(TokenInformation, sizeof(TOKEN_DEFAULT_DACL));
-            if (AccessToken->DefaultDacl.DefaultDacl)
+            if (AccessToken->DefaultDacl)
             {
-                defaultDacl->DefaultDacl = (PACL) location;
+                tokenInfo->DefaultDacl = (PACL) location;
                 location = RtlpAppendData(location,
-                                          AccessToken->DefaultDacl.DefaultDacl,
-                                          AccessToken->DefaultDacl.DefaultDacl->AclSize);
+                                          AccessToken->DefaultDacl,
+                                          AccessToken->DefaultDacl->AclSize);
             }
             break;
         }
@@ -461,6 +467,7 @@ RtlQueryAccessTokenUnixInformation(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    TOKEN_UNIX tokenInfo = { 0 };
 
     if (!AccessToken)
     {
@@ -474,10 +481,19 @@ RtlQueryAccessTokenUnixInformation(
         GOTO_CLEANUP();
     }
 
-    *TokenInformation = AccessToken->Unix;
+    tokenInfo.Uid = AccessToken->Uid;
+    tokenInfo.Gid = AccessToken->Gid;
+    tokenInfo.Umask = AccessToken->Umask;
+
     status = STATUS_SUCCESS;
 
 cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RtlZeroMemory(&tokenInfo, sizeof(tokenInfo));
+    }
+
+    *TokenInformation = tokenInfo;
     return status;
 }
 
@@ -491,15 +507,15 @@ RtlpIsSidMemberOfToken(
     BOOLEAN isMember = FALSE;
     ULONG i = 0;
 
-    if (RtlEqualSid(Sid, AccessToken->User.User.Sid))
+    if (RtlEqualSid(Sid, AccessToken->User.Sid))
     {
         isMember = TRUE;
         GOTO_CLEANUP();
     }
 
-    for (i = 0; i < AccessToken->Groups.GroupCount; i++)
+    for (i = 0; i < AccessToken->GroupCount; i++)
     {
-        PSID_AND_ATTRIBUTES sidInfo = &AccessToken->Groups.Groups[i];
+        PSID_AND_ATTRIBUTES sidInfo = &AccessToken->Groups[i];
         if (IsSetFlag(sidInfo->Attributes, SE_GROUP_ENABLED) &&
             RtlEqualSid(Sid, sidInfo->Sid))
         {

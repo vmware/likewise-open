@@ -63,18 +63,27 @@ typedef ULONG ACCESS_TOKEN_FLAGS, *PACCESS_TOKEN_FLAGS;
 
 typedef struct _ACCESS_TOKEN {
     ACCESS_TOKEN_FLAGS Flags;
-    TOKEN_USER User;
-    TOKEN_GROUPS Groups;
+    // TOKEN_USER:
+    SID_AND_ATTRIBUTES User;
+    // TOKEN_GROUPS:
+    ULONG GroupCount;
+    PSID_AND_ATTRIBUTES Groups;
 #if 0
     TOKEN_PRIVILEGES Privileges;
 #endif
-    TOKEN_OWNER Owner;
-    TOKEN_PRIMARY_GROUP PrimaryGroup;
-    TOKEN_DEFAULT_DACL DefaultDacl;
+    // TOKEN_OWNER:
+    PSID Owner;
+    // TOKEN_PRIMARY_GROUP:
+    PSID PrimaryGroup;
+    // TOKEN_DEFAULT_DACL:
+    PACL DefaultDacl;
 #if 0
     TOKEN_SOURCE Source;
 #endif
-    TOKEN_UNIX Unix;
+    // TOKEN_UNIX:
+    ULONG Uid;
+    ULONG Gid;
+    ULONG Umask;
 } ACCESS_TOKEN;
 
 #endif /* __LW_SECURITY_TYPES_INTERNAL_H__ */
