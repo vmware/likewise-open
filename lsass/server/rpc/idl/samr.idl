@@ -132,7 +132,7 @@ cpp_quote("#endif")
 
     /* function 0x0d */
     NTSTATUS __SamrEnumDomainUsers(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in,out,ref] uint32 *resume,
         [in] uint32 account_flags,
         [in] uint32 max_size,
@@ -151,7 +151,7 @@ cpp_quote("#endif")
 
     /* function 0x0f */
     NTSTATUS __SamrEnumDomainAliases(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in,out,ref] uint32 *resume,
         [in] uint32 account_flags,
         [out] RidNameArray **names,
@@ -202,7 +202,7 @@ cpp_quote("#endif")
 
     /* function 0x1c */
     NTSTATUS __SamrQueryAliasInfo(
-        [in,ref] PolicyHandle *alias_handle,
+        [in] ACCOUNT_HANDLE hAlias,
         [in] uint16 level,
         [out,switch_is(level)] AliasInfo **info
         );
@@ -252,7 +252,7 @@ cpp_quote("#endif")
 
     /* function 0x24 */
     NTSTATUS __SamrQueryUserInfo(
-        [in,ref] PolicyHandle *user_handle,
+        [in] ACCOUNT_HANDLE hUser,
         [in] uint16 level,
         [out,switch_is(level)] UserInfo **info
         );
