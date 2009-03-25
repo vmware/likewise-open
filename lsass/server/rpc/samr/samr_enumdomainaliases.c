@@ -100,7 +100,7 @@ SamrSrvEnumDomainAliases(
                             &pwszAttrNameGid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    wszAttributes[0] = pwszAttrNameGropname;
+    wszAttributes[0] = pwszAttrNameGroupname;
     wszAttributes[1] = pwszAttrNameGid;
     wszAttributes[2] = NULL;
 
@@ -178,7 +178,7 @@ SamrSrvEnumDomainAliases(
             BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrSrvAddDepMemory(pNames->entries[dwCount - 1].name.string,
-                                         pNames->entries);)
+                                         pNames->entries);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {
@@ -218,11 +218,11 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(pwszFilter);
     }
 
-    if (pwszAttrNameUsername) {
+    if (pwszAttrNameGroupname) {
         LSA_SAFE_FREE_MEMORY(pwszAttrNameGroupname);
     }
 
-    if (pwszAttrNameUid) {
+    if (pwszAttrNameGid) {
         LSA_SAFE_FREE_MEMORY(pwszAttrNameGid);
     }
 
