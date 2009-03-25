@@ -169,8 +169,8 @@
     # Maximum: 30d (must be less than lifespan)
     password-change-warning-time = 14d
 
-[rpc server:lsarpc]
-    path = @rpcserverdir@/liblsa_srv@MOD_EXT@
+#[rpc server:lsarpc]
+#    path = @rpcserverdir@/liblsa_srv@MOD_EXT@
 
-[rpc server:samr]
-    path = @rpcserverdir@/libsamr_srv@MOD_EXT@
+#[rpc server:samr]
+#    path = @rpcserverdir@/libsamr_srv@MOD_EXT@
