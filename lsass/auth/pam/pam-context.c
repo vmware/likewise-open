@@ -185,47 +185,56 @@ LsaPamGetLoginId(
 {
     DWORD dwError = 0;
     PSTR pszLoginId = NULL;
+    PSTR pszPamId = NULL;
     
     LSA_LOG_PAM_DEBUG("LsaPamGetLoginId::begin");
 
-    if (IsNullOrEmptyString(pPamContext->pszLoginName)) {
-
-        PSTR pszPamId = NULL;
         
-        if (bAllowPrompt)
-        {
-            dwError = pam_get_user(pamh, (PPCHAR_ARG_CAST)&pszPamId, NULL);
-            if ((dwError != PAM_SUCCESS) || IsNullOrEmptyString(pszPamId))
-            {
-               dwError = (dwError == PAM_CONV_AGAIN) ?
-                   PAM_INCOMPLETE : PAM_SERVICE_ERR;
-               BAIL_ON_LSA_ERROR(dwError);
-            }
-        }
-        else
-        {
-            dwError = pam_get_item(
-                            pamh,
-                            PAM_USER,
-                            (PAM_GET_ITEM_TYPE)&pszPamId);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dwError = LsaStrDupOrNull(pszPamId, &pPamContext->pszLoginName);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    
-    if (ppszLoginId)
+    dwError = pam_get_item(
+                    pamh,
+                    PAM_USER,
+                    (PAM_GET_ITEM_TYPE)&pszPamId);
+    if (dwError == PAM_BAD_ITEM)
     {
-        if (!IsNullOrEmptyString(pPamContext->pszLoginName))
+        pszPamId = NULL;
+        dwError = 0;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+    if (IsNullOrEmptyString(pszPamId) && bAllowPrompt)
+    {
+        dwError = pam_get_user(
+                        pamh,
+                        (PPCHAR_ARG_CAST)&pszPamId,
+                        NULL);
+        if (dwError != PAM_SUCCESS)
         {
-           dwError = LsaAllocateString(
-                        pPamContext->pszLoginName,
-                        &pszLoginId);
+           dwError = (dwError == PAM_CONV_AGAIN) ?
+               PAM_INCOMPLETE : PAM_SERVICE_ERR;
            BAIL_ON_LSA_ERROR(dwError);
         }
-        
+	    if (IsNullOrEmptyString(pszPamId))
+	    {
+	       dwError = PAM_SERVICE_ERR;
+	       BAIL_ON_LSA_ERROR(dwError);
+	    }
+    }
+
+    dwError = LsaStrDupOrNull(
+                pszPamId,
+                &pszLoginId);
+    BAIL_ON_LSA_ERROR(dwError);
+    
+    LSA_SAFE_FREE_STRING(pPamContext->pszLoginName);
+    dwError = LsaStrDupOrNull(pszPamId, &pPamContext->pszLoginName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppszLoginId)
+    {
         *ppszLoginId = pszLoginId;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszLoginId);
     }
 
 cleanup:
