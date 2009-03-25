@@ -114,6 +114,173 @@ MU_TEST(Security, 0002_SidChange)
     // RtlSidAppendRid
 }
 
+static
+VOID
+DumpSecurityDescriptor(
+    IN PSECURITY_DESCRIPTOR_ABSOLUTE SecurityDescriptor
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    SECURITY_DESCRIPTOR_CONTROL control = 0;
+    UCHAR revision = 0;
+    PSID sid = NULL;
+    BOOLEAN isDefaulted = FALSE;
+    PSTR sidString = NULL;
+    BOOLEAN isPresent = FALSE;
+    PACL acl = NULL;
+    ULONG aceIndex = 0;
+
+    status = RtlGetSecurityDescriptorControl(
+                    SecurityDescriptor,
+                    &control,
+                    &revision);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_INFO("control = 0x%04x, revision = %u", control, revision);
+
+    status = RtlGetOwnerSecurityDescriptor(
+                    SecurityDescriptor,
+                    &sid,
+                    &isDefaulted);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlAllocateCStringFromSid(&sidString, sid);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_INFO("OwnerSid = %s (%c)", sidString, isDefaulted ? 'Y' : 'N');
+
+    status = RtlGetGroupSecurityDescriptor(
+                    SecurityDescriptor,
+                    &sid,
+                    &isDefaulted);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlAllocateCStringFromSid(&sidString, sid);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_INFO("GroupSid = %s (%c)", sidString, isDefaulted ? 'Y' : 'N');
+
+    status = RtlGetDaclSecurityDescriptor(
+                    SecurityDescriptor,
+                    &isPresent,
+                    &acl,
+                    &isDefaulted);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    // ISSUE-Hmm...need to make public accessor for ace count since
+    // we made ACL extra private...
+
+    for (;;)
+    {
+        PACCESS_ALLOWED_ACE ace = NULL;
+        status = RtlGetAce(acl, aceIndex++, OUT_PPVOID(&ace));
+        if (STATUS_INVALID_PARAMETER == status)
+        {
+            break;
+        }
+        MU_ASSERT_STATUS_SUCCESS(status);
+
+        MU_INFO("Dacl ACE %u - (Type = %u, Flags = 0x%02x, Size = %u)",
+                aceIndex,
+                ace->Header.AceType,
+                ace->Header.AceFlags,
+                ace->Header.AceSize);
+
+        switch (ace->Header.AceType)
+        {
+            case ACCESS_ALLOWED_ACE_TYPE:
+            case ACCESS_DENIED_ACE_TYPE:
+            case SYSTEM_AUDIT_ACE_TYPE:
+            case SYSTEM_ALARM_ACE_TYPE:
+                status = RtlAllocateCStringFromSid(&sidString, (PSID) &ace->SidStart);
+                MU_ASSERT_STATUS_SUCCESS(status);
+
+                MU_INFO("    0x%08x %s", ace->Mask, sidString);
+                break;
+        }
+    }
+}
+
+static
+VOID
+DumpTokenInfo(
+    IN PACCESS_TOKEN Token,
+    IN TOKEN_INFORMATION_CLASS TokenInformationClass
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PBYTE tokenInfo = NULL;
+    ULONG size = 0;
+    ULONG savedSize = 0;
+
+    status = RtlQueryAccessTokenInformation(
+                    Token,
+                    TokenInformationClass,
+                    tokenInfo,
+                    size,
+                    &size);
+    MU_ASSERT(STATUS_BUFFER_TOO_SMALL == status);
+
+    MU_INFO("size = %u", size);
+    savedSize = size;
+
+    status = RTL_ALLOCATE(&tokenInfo, BYTE, size);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlQueryAccessTokenInformation(
+                    Token,
+                    TokenInformationClass,
+                    tokenInfo,
+                    size,
+                    &size);
+    MU_INFO("status = 0x%08x", status);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_ASSERT(size == savedSize);
+
+    switch (TokenInformationClass)
+    {
+        case TokenUser:
+        {
+            PTOKEN_USER tokenUser = (PTOKEN_USER) tokenInfo;
+            PSTR sidString = NULL;
+
+            status = RtlAllocateCStringFromSid(&sidString, tokenUser->User.Sid);
+            MU_ASSERT_STATUS_SUCCESS(status);
+
+            MU_INFO("User = %s", sidString);
+            break;
+        }
+        case TokenGroups:
+        {
+            PTOKEN_GROUPS tokenGroups = (PTOKEN_GROUPS) tokenInfo;
+            ULONG i = 0;
+            PSTR sidString = NULL;
+
+            MU_INFO("GroupCount = %u", tokenGroups->GroupCount);
+
+            for (i = 0; i < tokenGroups->GroupCount; i++)
+            {
+                status = RtlAllocateCStringFromSid(&sidString, tokenGroups->Groups[i].Sid);
+                MU_ASSERT_STATUS_SUCCESS(status);
+
+                MU_INFO("Groups[%u] = (0x%08x, %s)", i, tokenGroups->Groups[i].Attributes, sidString);
+            }
+            break;
+        }
+    }
+}
+
+static
+VOID
+DumpToken(
+    IN PACCESS_TOKEN Token
+    )
+{
+    DumpTokenInfo(Token, TokenUser);
+    DumpTokenInfo(Token, TokenGroups);
+}
+
 MU_TEST(Security, 0003_AccessCheck)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -140,7 +307,13 @@ MU_TEST(Security, 0003_AccessCheck)
     };
     PSID sid = NULL;
     TOKEN_USER tokenUser = { { 0 } };
-    TOKEN_GROUPS tokenGroups = { 0 };
+    union {
+        TOKEN_GROUPS tokenGroups;
+        struct {
+            ULONG GroupCount;
+            SID_AND_ATTRIBUTES Groups[10];
+        };
+    } tokenGroupsUnion = { .tokenGroups = { 0 } };
     TOKEN_OWNER tokenOwner = { 0 };
     TOKEN_PRIMARY_GROUP tokenPrimaryGroup = { 0 };
     TOKEN_DEFAULT_DACL tokenDefaultDacl = { 0 };
@@ -164,21 +337,48 @@ MU_TEST(Security, 0003_AccessCheck)
         .GenericAll = 0,
     };
     ACCESS_MASK granted = 0;
+    BOOLEAN isGranted = FALSE;
 
+    // SID present in an ACE
     status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-1805");
     MU_ASSERT_STATUS_SUCCESS(status);
 
     tokenUser.User.Sid = sid;
 
+    // Bogus SID
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-12345678");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    SetFlag(tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Attributes, SE_GROUP_ENABLED);
+    tokenGroupsUnion.GroupCount++;
+
+    // Bogus SID
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-87654321");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    tokenGroupsUnion.GroupCount++;
+
+    // SID present in an ACE
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-1773");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    SetFlag(tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Attributes, SE_GROUP_ENABLED);
+    tokenGroupsUnion.GroupCount++;
+
     status = RtlCreateAccessToken(
                     &token,
                     &tokenUser,
-                    &tokenGroups,
+                    &tokenGroupsUnion.tokenGroups,
                     &tokenOwner,
                     &tokenPrimaryGroup,
                     &tokenDefaultDacl,
                     NULL);
     MU_ASSERT_STATUS_SUCCESS(status);
+
+    DumpToken(token);
 
     status = RtlValidRelativeSecurityDescriptor(
                     relativeSd,
@@ -234,17 +434,19 @@ MU_TEST(Security, 0003_AccessCheck)
                     &primaryGroupSize);
     MU_ASSERT_STATUS_SUCCESS(status);
 
-    RtlAccessCheck(
-        sd,
-        token,
-        MAXIMUM_ALLOWED,
-        0,
-        &mapping,
-        &granted,
-        &status);
+    DumpSecurityDescriptor(sd);
+
+    isGranted = RtlAccessCheck(
+                    sd,
+                    token,
+                    MAXIMUM_ALLOWED,
+                    0,
+                    &mapping,
+                    &granted,
+                    &status);
     MU_ASSERT(status == STATUS_SUCCESS || status == STATUS_ACCESS_DENIED);
 
-    MU_INFO("status = 0x%08x, granted = 0x%08x", status, granted);
+    MU_INFO("status = 0x%08x, granted = 0x%08x (%c)", status, granted, isGranted ? 'Y' : 'N');
 }
 
 /*
