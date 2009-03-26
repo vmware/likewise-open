@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -72,11 +72,14 @@ SamrSrvOpenDomain(
     PDIRECTORY_ENTRY pEntry = NULL;
     PDIRECTORY_ATTRIBUTE pAttrDomainName = NULL;
     PDIRECTORY_ATTRIBUTE pAttrDomainSid = NULL;
+    PDIRECTORY_ATTRIBUTE pAttrDn = NULL;
     PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD i = 0;
     PSID pDomainSid = NULL;
     PWSTR pwszDomainName = NULL;
     DWORD dwNameLen = 0;
+    PWSTR pwszDn = NULL;
+    DWORD dwDnLen = 0;
 
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
@@ -126,10 +129,17 @@ SamrSrvOpenDomain(
                                              &pAttrVal);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+        if (pAttrVal &&
+            pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+
             status = RtlAllocateSidFromWC16String(&pDomainSid,
                                                   pAttrVal->pwszStringValue);
             BAIL_ON_NTSTATUS_ERROR(status);
+
+            status = SamrSrvAddDepMemory(pDomainSid, pDomCtx);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+            pAttrVal = NULL;
 
             if (RtlEqualSid(pDomainSid, sid)) {
                 dwError = DirectoryGetEntryAttributeByName(pEntry,
@@ -141,20 +151,48 @@ SamrSrvOpenDomain(
                                                      &pAttrVal);
                 BAIL_ON_LSA_ERROR(dwError);
 
+            } else {
+                status = STATUS_INVALID_SID;
+                BAIL_ON_NTSTATUS_ERROR(status);
             }
 
-            if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-                dwNameLen = wc16slen(pAttrVal->pwszStringValue);
+            if (pAttrVal &&
+                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
+                dwNameLen = wc16slen(pAttrVal->pwszStringValue);
                 status = SamrSrvAllocateMemory((void**)&pwszDomainName,
                                                (dwNameLen + 1) * sizeof(wchar16_t),
                                                pDomCtx);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszDomainName, pAttrVal->pwszStringValue, dwNameLen);
-                break;
 
             } else  {
+                status = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(status);
+            }
+
+
+            dwError = DirectoryGetEntryAttributeByNameA(pEntry,
+                                                        DIRECTORY_ATTR_TAG_DN,
+                                                        &pAttrDn);
+            BAIL_ON_DIRECTORY_ERROR(dwError);
+
+            pAttrVal = NULL;
+            dwError = DirectoryGetAttributeValue(pAttrDn,
+                                                 &pAttrVal);
+            if (pAttrVal &&
+                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+
+                dwDnLen = wc16slen(pAttrVal->pwszStringValue);
+                status = SamrSrvAllocateMemory((void**)&pwszDn,
+                                               (dwDnLen + 1) * sizeof(wchar16_t),
+                                               pDomCtx);
+                BAIL_ON_NTSTATUS_ERROR(status);
+
+                wc16sncpy(pwszDn, pAttrVal->pwszStringValue, dwDnLen);
+
+            } else {
                 status = STATUS_INTERNAL_ERROR;
                 BAIL_ON_NTSTATUS_ERROR(status);
             }
@@ -165,15 +203,11 @@ SamrSrvOpenDomain(
         }
     }
 
-    if (pDomainSid == NULL || pwszDomainName == NULL) {
-        status = STATUS_INVALID_SID;
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
     pDomCtx->Type           = SamrContextDomain;
     pDomCtx->refcount       = 1;
     pDomCtx->pDomainSid     = pDomainSid;
     pDomCtx->pwszDomainName = pwszDomainName;
+    pDomCtx->pwszDn         = pwszDn;
     pDomCtx->pConnCtx       = pConnCtx;
 
     InterlockedIncrement(&pConnCtx->refcount);
@@ -189,6 +223,10 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(pwszAttrDomainSid);
     }
 
+    if (pwszFilter) {
+        LSA_SAFE_FREE_MEMORY(pwszFilter);
+    }
+
     if (pEntries) {
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
@@ -199,10 +237,6 @@ error:
     if (pDomCtx) {
         InterlockedDecrement(&pConnCtx->refcount);
         DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pDomCtx);
-    }
-
-    if (pDomainSid) {
-        RTL_FREE(&pDomainSid);
     }
 
     hDomain = NULL;
