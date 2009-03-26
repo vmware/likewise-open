@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -37,7 +37,8 @@
 #include "includes.h"
 
 
-NTSTATUS SamrSrvConnect(
+NTSTATUS
+SamrSrvConnect(
     /* [in] */ handle_t hBinding,
     /* [in] */ const wchar16_t *system_name,
     /* [in] */ uint32 access_mask,
@@ -45,6 +46,7 @@ NTSTATUS SamrSrvConnect(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
     PCONNECT_CONTEXT pConn = NULL;
 
     status = SamrSrvAllocateMemory((void**)&pConn,
@@ -52,9 +54,14 @@ NTSTATUS SamrSrvConnect(
                                    NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
+    dwError = DirectoryOpen(&pConn->hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
     pConn->Type     = SamrContextConnect;
     pConn->refcount = 1;
 
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
     InterlockedIncrement(&pConn->refcount);
 
     *hConn = (CONNECT_HANDLE)pConn;
