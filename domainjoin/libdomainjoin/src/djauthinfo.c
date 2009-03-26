@@ -1397,7 +1397,7 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
         {
             LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
                         92, 8, &LW_EXC));
-            LW_TRY(exc, DJManageDaemon("lwiod", TRUE,
+            LW_TRY(exc, DJManageDaemon("lwrdrd", TRUE,
                         92, 10, &LW_EXC));
 
             if (bEnableDcerpcd)
@@ -1424,9 +1424,6 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                     DJLogException(LOG_LEVEL_WARNING, innerExc);
                 }
             }
-
-            LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
-                        92, 12, &LW_EXC));
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
