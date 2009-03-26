@@ -167,52 +167,6 @@
         and sdu.DomainRecordId = %d"
 
 DWORD
-SamDbInitUserTable(
-    PSAM_DB_CONTEXT pDbContext
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszError = NULL;
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_USERS_TABLE,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_USERS_INSERT_TRIGGER,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_USERS_DELETE_TRIGGER,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 SamDbAddUserAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
     )

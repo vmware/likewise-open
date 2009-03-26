@@ -38,6 +38,15 @@ typedef enum
 
 } SAMDB_USER_TABLE_COLUMN;
 
+typedef enum
+{
+    SAMDB_OBJECT_CLASS_UNKNOWN   = 0,
+    SAMDB_OBJECT_CLASS_DOMAIN    = 1,
+    SAMDB_OBJECT_CLASS_CONTAINER = 2,
+    SAMDB_OBJECT_CLASS_GROUP     = 3,
+    SAMDB_OBJECT_CLASS_USER      = 4
+} SAMDB_OBJECT_CLASS;
+
 DWORD
 SamDbInit(
     VOID
@@ -292,28 +301,13 @@ SamDbConvertFiltertoTable(
     );
 
 DWORD
-SamDbInitDomainTable(
-    PSAM_DB_CONTEXT pDbContext
-    );
-
-DWORD
 SamDbAddDomainAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
     );
 
 DWORD
-SamDbInitUserTable(
-    PSAM_DB_CONTEXT pDbContext
-    );
-
-DWORD
 SamDbAddUserAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
-    );
-
-DWORD
-SamDbInitGroupTable(
-    PSAM_DB_CONTEXT pDbContext
     );
 
 DWORD

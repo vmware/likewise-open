@@ -89,60 +89,6 @@
         and sdg.DomainRecordId = %d"
 
 DWORD
-SamDbInitGroupTable(
-    PSAM_DB_CONTEXT pDbContext
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszError = NULL;
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_GROUPMEMBERSHIP_TABLE,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_GROUPS_TABLE,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_GROUPS_INSERT_TRIGGER,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_exec(
-                    pDbContext->pDbHandle,
-                    DB_QUERY_CREATE_GROUPS_DELETE_TRIGGER,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 SamDbAddGroupAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
     )
