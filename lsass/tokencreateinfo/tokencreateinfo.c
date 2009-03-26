@@ -58,9 +58,15 @@ typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
     // sure to handle re-connection as needed.
 } LW_MAP_SECURITY_PLUGIN_CONTEXT;
 
+typedef UCHAR LSA_MAP_SECURITY_OBJECT_INFO_FLAGS, *PLSA_MAP_SECURITY_OBJECT_INFO_FLAGS;
+
+#define LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER   0x01
+#define LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID 0x02
+#define LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID 0x04
+
 typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
-    BOOLEAN IsUser;
-    ULONG Id;
+    LSA_MAP_SECURITY_OBJECT_INFO_FLAGS Flags;
+    ULONG Uid;
     ULONG Gid;
     PSID Sid;
 } LSA_MAP_SECURITY_OBJECT_INFO, *PLSA_MAP_SECURITY_OBJECT_INFO;
@@ -78,6 +84,7 @@ LsaMapSecurityFreeObjectInfo(
     )
 {
     RTL_FREE(&pObjectInfo->Sid);
+    RtlZeroMemory(pObjectInfo, sizeof(*pObjectInfo));
 }
 
 //
@@ -91,7 +98,7 @@ LsaMapSecurityResolveObjectInfo(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     IN BOOLEAN IsUser,
     IN OPTIONAL PCSTR pszName,
-    IN OPTIONAL ULONG Id,
+    IN OPTIONAL PULONG Id,
     OUT PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo
     )
 {
@@ -100,6 +107,14 @@ LsaMapSecurityResolveObjectInfo(
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
+    ULONG id = Id ? *Id : (ULONG) -1;
+
+    if (IS_BOTH_OR_NEITHER(pszName, Id))
+    {
+        assert(FALSE);
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
 
     if (IsUser)
     {
@@ -109,7 +124,7 @@ LsaMapSecurityResolveObjectInfo(
         }
         else
         {
-            dwError = LsaFindUserById(Context->hConnection, Id, 0, OUT_PPVOID(&pUserInfo));
+            dwError = LsaFindUserById(Context->hConnection, id, 0, OUT_PPVOID(&pUserInfo));
         }
     }
     else
@@ -120,21 +135,60 @@ LsaMapSecurityResolveObjectInfo(
         }
         else
         {
-            dwError = LsaFindGroupById(Context->hConnection, Id, 0, 0, OUT_PPVOID(&pGroupInfo));
+            dwError = LsaFindGroupById(Context->hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
         }
     }
     if (IS_NOT_FOUND_ERROR(dwError))
     {
+        union {
+            SID Sid;
+            BYTE Buffer[SID_MAX_SIZE];
+        } sidBuffer;
+
+        if (pszName)
+        {
+            status = STATUS_NOT_FOUND;
+            GOTO_CLEANUP();
+        }
+
+        status = LwMapSecurityInitializeSidFromUnmappedId(
+                        sizeof(sidBuffer),
+                        &sidBuffer.Sid,
+                        IsUser,
+                        id);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        if (IsUser)
+        {
+            SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
+            SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
+            objectInfo.Uid = id;
+        }
+        else
+        {
+            SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+            objectInfo.Gid = id;
+        }
+
+        status = RtlDuplicateSid(&objectInfo.Sid, &sidBuffer.Sid);
+        GOTO_CLEANUP_ON_STATUS(status);
+
         status = STATUS_SUCCESS;
         GOTO_CLEANUP();
     }
+
     status = LsaLsaErrorToNtStatus(dwError);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    objectInfo.IsUser = IsUser;
     if (IsUser)
     {
-        objectInfo.Id = pUserInfo->uid;
+        assert(!pszName || (id == pUserInfo->uid));
+
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+
+        objectInfo.Uid = pUserInfo->uid;
         objectInfo.Gid = pUserInfo->gid;
 
         status = RtlAllocateSidFromCString(&objectInfo.Sid, pUserInfo->pszSid);
@@ -142,7 +196,10 @@ LsaMapSecurityResolveObjectInfo(
     }
     else
     {
-        objectInfo.Id = pGroupInfo->gid;
+        assert(!pszName || (id == pGroupInfo->gid));
+
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+
         objectInfo.Gid = pGroupInfo->gid;
 
         status = RtlAllocateSidFromCString(&objectInfo.Sid, pGroupInfo->pszSid);
@@ -235,7 +292,7 @@ LsaMapSecurityResolveObjectInfoBySid(
                     Context,
                     isUser,
                     pszName,
-                    0,
+                    NULL,
                     &objectInfo);
     GOTO_CLEANUP_ON_STATUS(status);
 
@@ -282,8 +339,8 @@ LsaMapSecurityGetIdFromSid(
     status = LsaMapSecurityResolveObjectInfoBySid(Context, Sid, &objectInfo);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    isUser = objectInfo.IsUser;
-    id = objectInfo.Id;
+    isUser = IsSetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
+    id = isUser ? objectInfo.Uid : objectInfo.Gid;
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -313,7 +370,7 @@ LsaMapSecurityGetSidFromId(
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
     PSID sid = NULL;
 
-    status = LsaMapSecurityResolveObjectInfo(Context, IsUser, NULL, Id, &objectInfo);
+    status = LsaMapSecurityResolveObjectInfo(Context, IsUser, NULL, &Id, &objectInfo);
     GOTO_CLEANUP_ON_STATUS(status);
 
     sid = objectInfo.Sid;
@@ -431,61 +488,243 @@ cleanup:
 }
 
 static
+BOOLEAN
+LsaMapSecurityIsGidInGidList(
+    IN ULONG Gid,
+    IN ULONG GidCount,
+    IN PULONG pGidList
+    )
+{
+    BOOLEAN isFound = FALSE;
+    ULONG i = 0;
+
+    for (i = 0; i < GidCount; i++)
+    {
+        if (Gid == pGidList[i])
+        {
+            isFound = TRUE;
+            break;
+        }
+    }
+
+    return isFound;
+}
+
+static
+BOOLEAN
+LsaMapSecurityIsGidInGroupInfoList(
+    IN ULONG Gid,
+    IN ULONG GroupInfoCount,
+    IN PLSA_GROUP_INFO_0* ppGroupInfoList
+    )
+{
+    BOOLEAN isFound = FALSE;
+    ULONG i = 0;
+
+    for (i = 0; i < GroupInfoCount; i++)
+    {
+        if (Gid == ppGroupInfoList[i]->gid)
+        {
+            isFound = TRUE;
+            break;
+        }
+    }
+
+    return isFound;
+}
+
+static
+VOID
+LsaMapSecurityAddExtraGid(
+    IN ULONG Gid,
+    IN OUT PULONG ExtraGidCount,
+    IN OUT PULONG ExtraGidList,
+    IN ULONG ExtraGidMaximumCount,
+    IN ULONG GroupInfoCount,
+    IN PLSA_GROUP_INFO_0* ppGroupInfoList
+    )
+{
+    ULONG extraGidCount = *ExtraGidCount;
+
+    if (extraGidCount < ExtraGidMaximumCount)
+    {
+        if (!LsaMapSecurityIsGidInGidList(Gid, extraGidCount, ExtraGidList) &&
+            !LsaMapSecurityIsGidInGroupInfoList(Gid, GroupInfoCount, ppGroupInfoList))
+        {
+            ExtraGidList[extraGidCount] = Gid;
+            *ExtraGidCount = extraGidCount + 1;
+        }
+    }
+}
+
+static
 NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationFromUserInfo(
+LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo
+    IN PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo,
+    IN OPTIONAL PULONG Gid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = LSA_ERROR_SUCCESS;
     PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
-    ULONG groupCount = 0;
+    ULONG groupInfoCount = 0;
     PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
     ULONG i = 0;
+    ULONG gid = Gid ? *Gid : 0;
+    ULONG extraGidList[2] = { 0 };
+    PSID extraGidSidList[LW_ARRAY_SIZE(extraGidList)] = { 0 };
+    ULONG extraGidCount = 0;
 
     dwError = LsaGetGroupsForUserById(
                     Context->hConnection,
-                    pObjectInfo->Id,
+                    pObjectInfo->Uid,
                     0,
                     0,
-                    &groupCount,
+                    &groupInfoCount,
                     (PVOID**)OUT_PPVOID(&ppGroupInfoList));
     status = LsaLsaErrorToNtStatus(dwError);
     GOTO_CLEANUP_ON_STATUS(status);
 
+    //
+    // Take into account extra GIDs that came as primary GID from
+    // object info or from passed in primary GID.
+    //
+
+    if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID))
+    {
+        LsaMapSecurityAddExtraGid(
+                pObjectInfo->Gid,
+                &extraGidCount,
+                extraGidList,
+                LW_ARRAY_SIZE(extraGidList),
+                groupInfoCount,
+                ppGroupInfoList);
+    }
+
+    if (Gid)
+    {
+        LsaMapSecurityAddExtraGid(
+                gid,
+                &extraGidCount,
+                extraGidList,
+                LW_ARRAY_SIZE(extraGidList),
+                groupInfoCount,
+                ppGroupInfoList);
+    }
+
+    //
+    // Resolve extra GIDs into SIDs
+    //
+
+    for (i = 0; i < extraGidCount; i++)
+    {
+        status = LsaMapSecurityGetSidFromId(
+                        Context,
+                        &extraGidSidList[i],
+                        FALSE,
+                        extraGidList[i]);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    //
+    // Allocate token create information with enough space
+    // for any potential extra GIDs.
+    //
+
     status = LsaMapSecurityAllocateAccessTokenCreateInformation(
                     &createInformation,
-                    groupCount);
+                    groupInfoCount + extraGidCount);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    createInformation->Unix->Uid = pObjectInfo->Id;
-    createInformation->Unix->Gid = pObjectInfo->Gid;
+    //
+    // TOKEN_UNIX
+    //
+
+    createInformation->Unix->Uid = pObjectInfo->Uid;
+
+    // TODO-Should the passed in GID take precedence over the LSASS one?
+    if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID))
+    {
+        createInformation->Unix->Gid = pObjectInfo->Gid;
+    }
+    else if (Gid)
+    {
+        createInformation->Unix->Gid = gid;
+    }
+    else
+    {
+        // TODO-Would need to put in some nobody-like gid.
+        assert(FALSE);
+        status = STATUS_ASSERTION_FAILURE;
+        GOTO_CLEANUP();
+    }
+
+    // TODO-Should the token even have a umask, and if so,
+    // where should it come from?
+    createInformation->Unix->Umask = 0022;
+
+    //
+    // TOKEN_USER
+    //
 
     status = RtlDuplicateSid(&createInformation->User->User.Sid, pObjectInfo->Sid);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    createInformation->Groups->GroupCount = groupCount;
-    for (i = 0; i < groupCount; i++)
+    //
+    // TOKEN_GROUPS
+    //
+
+    for (i = 0; i < groupInfoCount; i++)
     {
+        PSID_AND_ATTRIBUTES group = &createInformation->Groups->Groups[createInformation->Groups->GroupCount];
+
         status = RtlAllocateSidFromCString(
-                        &createInformation->Groups->Groups[i].Sid,
+                        &group->Sid,
                         ppGroupInfoList[i]->pszSid);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        createInformation->Groups->Groups[i].Attributes = SE_GROUP_ENABLED;
+        group->Attributes = SE_GROUP_ENABLED;
+
+        createInformation->Groups->GroupCount++;
     }
+
+    for (i = 0; i < extraGidCount; i++)
+    {
+        PSID_AND_ATTRIBUTES group = &createInformation->Groups->Groups[createInformation->Groups->GroupCount];
+
+        group->Sid = extraGidSidList[i];
+        extraGidSidList[i] = NULL;
+
+        group->Attributes = SE_GROUP_ENABLED;
+
+        createInformation->Groups->GroupCount++;
+    }
+
+    //
+    // TOKEN_OWNER
+    //
 
     status = RtlDuplicateSid(&createInformation->Owner->Owner, pObjectInfo->Sid);
     GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // TOKEN_PRIMARY_GROUP
+    //
 
     status = LsaMapSecurityGetSidFromId(
                     Context,
                     &createInformation->PrimaryGroup->PrimaryGroup,
                     FALSE,
-                    pObjectInfo->Gid);
+                    createInformation->Unix->Gid);
     GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // TOKEN_DEFAULT_DACL
+    //
+
+    // TODO-Implement TOKEN_DEFAULT_DACL?
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -493,36 +732,11 @@ cleanup:
         LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
     }
 
-    LsaFreeGroupInfoList(0, (PVOID*)ppGroupInfoList, groupCount);
+    LsaFreeGroupInfoList(0, (PVOID*)ppGroupInfoList, groupInfoCount);
 
-    *CreateInformation = createInformation;
-
-    return status;
-}
-
-static
-NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationFromGroupInfo(
-    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
-
-    status = LsaMapSecurityAllocateAccessTokenCreateInformation(&createInformation, 0);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    // TODO-Looking up a group directly is kind of wacky...
-    // We probably should remove this codepath...
-    status = RtlDuplicateSid(&createInformation->User->User.Sid, pObjectInfo->Sid);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-cleanup:
-    if (!NT_SUCCESS(status))
+    for (i = 0; i < extraGidCount; i++)
     {
-        LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
+        RTL_FREE(&extraGidSidList[i]);
     }
 
     *CreateInformation = createInformation;
@@ -532,44 +746,46 @@ cleanup:
 
 static
 NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationEx(
+LsaMapSecurityGetAccessTokenCreateInformation(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN OPTIONAL PUNICODE_STRING Name,
-    IN OPTIONAL ULONG Id
+    IN OPTIONAL PUNICODE_STRING Username,
+    IN OPTIONAL PULONG Uid,
+    IN OPTIONAL PULONG Gid
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
-    PSTR pszName = NULL;
+    PSTR pszUsername = NULL;
 
-    if (Name)
+    if (IS_BOTH_OR_NEITHER(Username, Uid) ||
+        (Gid && !Uid))
     {
-        status = LwRtlCStringAllocateFromUnicodeString(&pszName, Name);
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    if (Username)
+    {
+        status = LwRtlCStringAllocateFromUnicodeString(&pszUsername, Username);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    status = LsaMapSecurityResolveObjectInfo(Context, IsUser, pszName, Id, &objectInfo);
+    status = LsaMapSecurityResolveObjectInfo(
+                    Context,
+                    TRUE,
+                    pszUsername,
+                    Uid,
+                    &objectInfo);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    if (IsUser)
-    {
-        status = LsaMapSecurityGetAccessTokenCreateInformationFromUserInfo(
-                        Context,
-                        &createInformation,
-                        &objectInfo);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-    else
-    {
-        status = LsaMapSecurityGetAccessTokenCreateInformationFromGroupInfo(
-                        Context,
-                        &createInformation,
-                        &objectInfo);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
+    status = LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
+                    Context,
+                    &createInformation,
+                    &objectInfo,
+                    Gid);
+    GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -586,36 +802,35 @@ cleanup:
 
 static
 NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationFromId(
+LsaMapSecurityGetAccessTokenCreateInformationFromUid(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN ULONG Id
+    IN ULONG Uid,
+    IN PULONG Gid
     )
 {
-    return LsaMapSecurityGetAccessTokenCreateInformationEx(
+    return LsaMapSecurityGetAccessTokenCreateInformation(
                 Context,
                 CreateInformation,
-                IsUser,
                 NULL,
-                Id);
+                &Uid,
+                Gid);
 }
 
 static
 NTSTATUS
-LsaMapSecurityGetAccessTokenCreateInformationFromName(
+LsaMapSecurityGetAccessTokenCreateInformationFromUsername(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN PUNICODE_STRING Name
+    IN PUNICODE_STRING Username
     )
 {
-    return LsaMapSecurityGetAccessTokenCreateInformationEx(
+    return LsaMapSecurityGetAccessTokenCreateInformation(
                 Context,
                 CreateInformation,
-                IsUser,
-                Name,
-                0);
+                Username,
+                NULL,
+                NULL);
 }
 
 static
@@ -642,8 +857,8 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
     .GetIdFromSid = LsaMapSecurityGetIdFromSid,
     .GetSidFromId = LsaMapSecurityGetSidFromId,
     .FreeSid = LsaMapSecurityFreeSid,
-    .GetAccessTokenCreateInformationFromId = LsaMapSecurityGetAccessTokenCreateInformationFromId,
-    .GetAccessTokenCreateInformationFromName = LsaMapSecurityGetAccessTokenCreateInformationFromName,
+    .GetAccessTokenCreateInformationFromUid = LsaMapSecurityGetAccessTokenCreateInformationFromUid,
+    .GetAccessTokenCreateInformationFromUsername = LsaMapSecurityGetAccessTokenCreateInformationFromUsername,
     .FreeAccessTokenCreateInformation = LsaMapSecurityFreeAccessTokenCreateInformation,
 };
 
