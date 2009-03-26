@@ -52,10 +52,11 @@
 #include <assert.h>
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
-    HANDLE hConnection;
-    // TODO-Add a mutex so we can serialize lookups or else
-    // do some sort of connection caching stuff.  Need to make
-    // sure to handle re-connection as needed.
+    // TODO-Add connection caching (with serialization)
+    // We probably need to change the calls to LSASS to
+    // go through a LsaMapSecurityCallLsass() that is like
+    // LsaDmConnectDomain().
+    HANDLE hUnusedConnection;
 } LW_MAP_SECURITY_PLUGIN_CONTEXT;
 
 typedef UCHAR LSA_MAP_SECURITY_OBJECT_INFO_FLAGS, *PLSA_MAP_SECURITY_OBJECT_INFO_FLAGS;
@@ -76,6 +77,46 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
     (LSA_ERROR_NO_SUCH_GROUP == (lsaError)) || \
     (LSA_ERROR_NO_SUCH_USER_OR_GROUP == (lsaError)) || \
     0 )
+
+static
+NTSTATUS
+LsaMapSecurityOpenConnection(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PHANDLE phConnection
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    HANDLE hConnection = NULL;
+
+    dwError = LsaOpenServer(&hConnection);
+    status = LsaLsaErrorToNtStatus(dwError);
+
+    *phConnection = hConnection;
+
+    return status;
+}
+
+static
+VOID
+LsaMapSecurityCloseConnection(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN OUT PHANDLE phConnection
+    )
+{
+    HANDLE hConnection = *phConnection;
+
+    if (hConnection)
+    {
+        NTSTATUS status = STATUS_SUCCESS;
+        DWORD dwError = LSA_ERROR_SUCCESS;
+
+        dwError = LsaCloseServer(hConnection);
+        status = LsaLsaErrorToNtStatus(dwError);
+
+        *phConnection = NULL;
+    }
+}
 
 static
 VOID
@@ -108,6 +149,7 @@ LsaMapSecurityResolveObjectInfo(
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
     ULONG id = Id ? *Id : (ULONG) -1;
+    HANDLE hConnection = NULL;
 
     if (IS_BOTH_OR_NEITHER(pszName, Id))
     {
@@ -116,28 +158,34 @@ LsaMapSecurityResolveObjectInfo(
         GOTO_CLEANUP();
     }
 
+    status = LsaMapSecurityOpenConnection(Context, &hConnection);
+    GOTO_CLEANUP_ON_STATUS(status);
+
     if (IsUser)
     {
         if (pszName)
         {
-            dwError = LsaFindUserByName(Context->hConnection, pszName, 0, OUT_PPVOID(&pUserInfo));
+            dwError = LsaFindUserByName(hConnection, pszName, 0, OUT_PPVOID(&pUserInfo));
         }
         else
         {
-            dwError = LsaFindUserById(Context->hConnection, id, 0, OUT_PPVOID(&pUserInfo));
+            dwError = LsaFindUserById(hConnection, id, 0, OUT_PPVOID(&pUserInfo));
         }
     }
     else
     {
         if (pszName)
         {
-            dwError = LsaFindGroupByName(Context->hConnection, pszName, 0, 0, OUT_PPVOID(&pGroupInfo));
+            dwError = LsaFindGroupByName(hConnection, pszName, 0, 0, OUT_PPVOID(&pGroupInfo));
         }
         else
         {
-            dwError = LsaFindGroupById(Context->hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
+            dwError = LsaFindGroupById(hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
         }
     }
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
+
     if (IS_NOT_FOUND_ERROR(dwError))
     {
         union {
@@ -242,14 +290,18 @@ LsaMapSecurityResolveObjectInfoBySid(
     CHAR separator = 0;
     BOOLEAN isUser = FALSE;
     PSTR pszName = NULL;
+    HANDLE hConnection = NULL;
 
     status = RtlAllocateCStringFromSid(&pszSid, Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LsaMapSecurityOpenConnection(Context, &hConnection);
     GOTO_CLEANUP_ON_STATUS(status);
 
     // TODO-Add LSA client API that allows lookup of user/group
     // info by SID directly as the provider can handle that internally.
     dwError = LsaGetNamesBySidList(
-                    Context->hConnection,
+                    hConnection,
                     1,
                     &pszSid,
                     &sidInfoList,
@@ -257,6 +309,8 @@ LsaMapSecurityResolveObjectInfoBySid(
     status = LsaLsaErrorToNtStatus(dwError);
     assert(STATUS_NOT_FOUND != status);
     GOTO_CLEANUP_ON_STATUS(status);
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
 
     // ISSUE-Does the code really distinguish error codes
     // properly?  Would LsaGetNamesBySidList() just
@@ -576,9 +630,13 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     ULONG extraGidList[2] = { 0 };
     PSID extraGidSidList[LW_ARRAY_SIZE(extraGidList)] = { 0 };
     ULONG extraGidCount = 0;
+    HANDLE hConnection = NULL;
+
+    status = LsaMapSecurityOpenConnection(Context, &hConnection);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     dwError = LsaGetGroupsForUserById(
-                    Context->hConnection,
+                    hConnection,
                     pObjectInfo->Uid,
                     0,
                     0,
@@ -586,6 +644,8 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
                     (PVOID**)OUT_PPVOID(&ppGroupInfoList));
     status = LsaLsaErrorToNtStatus(dwError);
     GOTO_CLEANUP_ON_STATUS(status);
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
 
     //
     // Take into account extra GIDs that came as primary GID from
@@ -843,10 +903,6 @@ LsaMapSecurityFreeContext(
 
     if (context)
     {
-        if (context->hConnection)
-        {
-            LsaCloseServer(context->hConnection);
-        }
         RTL_FREE(&context);
         *Context = NULL;
     }
@@ -869,7 +925,6 @@ LsaMapSecurityCreateContext(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PLW_MAP_SECURITY_PLUGIN_CONTEXT context = NULL;
     // compiler type check for this function
     LWMSP_CREATE_CONTEXT_CALLBACK unused = LsaMapSecurityCreateContext;
@@ -877,10 +932,6 @@ LsaMapSecurityCreateContext(
     assert(unused);
 
     status = RTL_ALLOCATE(&context, LW_MAP_SECURITY_PLUGIN_CONTEXT, sizeof(*context));
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    dwError = LsaOpenServer(&context->hConnection);
-    status = LsaLsaErrorToNtStatus(dwError);
     GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:
