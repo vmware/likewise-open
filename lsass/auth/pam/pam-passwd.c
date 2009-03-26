@@ -511,7 +511,7 @@ LsaPamGetOldPassword(
         dwError = pam_get_data(
             pamh,
             PAM_LSASS_OLDAUTHTOK,
-            (PAM_GET_ITEM_TYPE)&pszItem);
+            (PAM_GET_DATA_TYPE)&pszItem);
 #else
         dwError = pam_get_item(
             pamh,

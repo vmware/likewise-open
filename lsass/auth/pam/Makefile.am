@@ -15,7 +15,7 @@ pam_lsass_la_CPPFLAGS = \
     -I@srcdir@ \
     -I@top_srcdir@/auth/include
 
-pam_lsass_la_CFLAGS = -shared
+pam_lsass_la_CFLAGS = -shared $(AM_CFLAGS)
 
 pam_lsass_la_LIBADD = \
     @top_builddir@/auth/common/liblsaauth.la \

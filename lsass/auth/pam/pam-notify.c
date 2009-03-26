@@ -259,7 +259,6 @@ GPCloseLibrary(
     )
 {
     DWORD dwError = 0;
-    char szGPLibPath[256] = { 0 };
 
     if (gpGPLibHandle)
     {
@@ -273,8 +272,12 @@ GPCloseLibrary(
             gpfnGPPamProcessLogout = NULL;
         }
 
-        dlclose(gpGPLibHandle);
+        if (dlclose(gpGPLibHandle))
+        {
+            dwError = errno;
+        }
         gpGPLibHandle = (void*) NULL;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
