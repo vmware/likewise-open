@@ -77,7 +77,7 @@
 #define PAM_GET_DATA_TYPE             void**
 #define PPCHAR_ARG_CAST               const char**
 #define PAM_MESSAGE_MSG_TYPE          char*
-#define PAM_CONV_2ND_ARG_TYPE         struct pam_message**
+#define PAM_CONV_2ND_ARG_TYPE         const struct pam_message**
 #else
 #define PAM_GET_ITEM_TYPE             const void**
 #define PAM_GET_DATA_TYPE             const void**
