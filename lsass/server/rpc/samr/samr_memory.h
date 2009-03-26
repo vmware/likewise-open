@@ -69,17 +69,17 @@ SamrSrvAllocateMemory(
 
 
 NTSTATUS
-SamrSrvAddDepMemory(
-    void *pIn,
-    void *pDep
-    );
-
-
-NTSTATUS
 SamrSrvReallocMemory(
     void **ppOut,
     DWORD dwNewSize,
     void *pIn
+    );
+
+
+NTSTATUS
+SamrSrvAddDepMemory(
+    void *pIn,
+    void *pDep
     );
 
 

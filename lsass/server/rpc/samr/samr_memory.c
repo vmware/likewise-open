@@ -131,32 +131,6 @@ error:
 
 
 NTSTATUS
-SamrSrvAddDepMemory(
-    void *pIn,
-    void *pDep
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    void *pParent = NULL;
-    int locked = 0;
-
-    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    tlink(pParent, pIn);
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-
-NTSTATUS
 SamrSrvReallocMemory(
     void **ppOut,
     DWORD dwNewSize,
@@ -181,6 +155,32 @@ cleanup:
 
 error:
     *ppOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvAddDepMemory(
+    void *pIn,
+    void *pDep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    void *pParent = NULL;
+    int locked = 0;
+
+    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
+
+    GLOBAL_DATA_LOCK(locked);
+
+    tlink(pParent, pIn);
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
+    return status;
+
+error:
     goto cleanup;
 }
 
