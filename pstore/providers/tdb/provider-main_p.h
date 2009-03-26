@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <tdb.h>
+#include <lw/swab.h>
 
 typedef struct __TDB_PROVIDER_CONTEXT 
 {
