@@ -39,6 +39,13 @@
 #ifndef __LWBASE_SWAB_H__
 #define __LWBASE_SWAB_H__
 
+/* typedefs from <lw/types.h> */
+
+typedef uint16_t LW_USHORT;
+typedef uint32_t LW_ULONG;
+typedef uint64_t LW_ULONG64;
+
+
 //
 // _LW_SWAB<N> - Swap Bytes for N-bit Values
 //
