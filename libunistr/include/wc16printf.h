@@ -35,12 +35,13 @@
 
 #ifdef _WIN32
 #ifdef _WIN64
-typedef __int64 ssize_t;
+typedef __int64 __w64 ssize_t;
 #else
-typedef int ssize_t;
+typedef int __w64 ssize_t;
 #endif
 #endif
 
+LIBUNISTR_API
 ssize_t
 _vsw16printf(
     wchar16_t *out,
@@ -58,6 +59,7 @@ _vsw16printf(
 #endif
 
 //TODO: rename this once the deprecated sw16printf is removed
+LIBUNISTR_API
 ssize_t
 _sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...);
 
@@ -69,6 +71,7 @@ _sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...);
     swprintf(out, maxchars, __VA_ARGS__)
 #endif
 
+LIBUNISTR_API
 ssize_t
 _sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
 
@@ -80,9 +83,11 @@ _sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
     swprintf(out, maxchars, __VA_ARGS__)
 #endif
 
+LIBUNISTR_API
 wchar16_t *
 asw16printfw(const wchar_t *format, ...);
 
+LIBUNISTR_API
 ssize_t
 _vfw16printf(
     FILE *pFile,
@@ -98,6 +103,7 @@ _vfw16printf(
     vfwprintf(pFile, format, args)
 #endif
 
+LIBUNISTR_API
 ssize_t
 _fw16printf(FILE *pFile, const wchar16_t *format, ...);
 
@@ -109,6 +115,7 @@ _fw16printf(FILE *pFile, const wchar16_t *format, ...);
     fwprintf(pFile, __VA_ARGS__)
 #endif
 
+LIBUNISTR_API
 ssize_t
 _fw16printfw(FILE *pFile, const wchar_t *format, ...);
 
@@ -120,6 +127,7 @@ _fw16printfw(FILE *pFile, const wchar_t *format, ...);
     fwprintf(pFile, __VA_ARGS__)
 #endif
 
+LIBUNISTR_API
 ssize_t
 _w16printfw(const wchar_t *format, ...);
 

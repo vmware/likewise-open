@@ -45,6 +45,14 @@
 #include <errno.h>
 #include <limits.h>
 
+#ifdef _WIN32
+#pragma warning( disable : 4996 )
+
+#include <mbstring.h>
+
+#define va_copy(a, b)   ((a) = (b))
+#endif
+
 // % <flag>* <field width>? <precision>? <length modifier>? <conversion specifier>
 // flag may be one of:
 #define FLAG_ALT_FORM           1
@@ -367,7 +375,7 @@ W16PrintfCore(
     unsigned int dwLengthModifier = 0;
     unsigned int dwType = 0;
     size_t sWidth = 0;
-    int iPrecision = -1;
+    ssize_t iPrecision = -1;
     // Enough room for all supported fixed sized types
     char szArgBuffer[100];
     wchar_t wszArgBuffer[1];
@@ -418,7 +426,7 @@ W16PrintfCore(
             }
             else
             {
-                sWidth = wc16stoull(pwszPos, &pwszPos, 10);
+                sWidth = (size_t)wc16stoull(pwszPos, &pwszPos, 10);
             }
             *pszFormatBufferPos++ = '*';
 
@@ -429,11 +437,11 @@ W16PrintfCore(
                 if (*pwszPos == '*')
                 {
                     pwszPos++;
-                    iPrecision = va_arg(args, size_t);
+                    iPrecision = va_arg(args, ssize_t);
                 }
                 else if (*pwszPos != '-')
                 {
-                    iPrecision = wc16stoull(pwszPos, &pwszPos, 10);
+                    iPrecision = (ssize_t)wc16stoull(pwszPos, &pwszPos, 10);
                 }
             }
             *pszFormatBufferPos++ = '.';
@@ -559,13 +567,13 @@ W16PrintfCore(
                         wint_t iArg = va_arg(args, wint_t);
                         if (!(dwFlags & FLAG_LEFT_JUSTIFY))
                         {
-                            WriteSpaces(pBuffer, sWidth - 1);
+                            WriteSpaces(pBuffer, (ssize_t)sWidth - 1);
                         }
                         switch (dwLengthModifier)
                         {
                             case LENGTH_UNSET:
                             case LENGTH_CHAR:
-                                szArgBuffer[0] = iArg;
+                                szArgBuffer[0] = (char)iArg;
                                 pBuffer->pfnWriteMbs(
                                         pBuffer,
                                         szArgBuffer,
@@ -597,7 +605,7 @@ W16PrintfCore(
                         }
                         if (dwFlags & FLAG_LEFT_JUSTIFY)
                         {
-                            WriteSpaces(pBuffer, sWidth - 1);
+                            WriteSpaces(pBuffer, (ssize_t)sWidth - 1);
                         }
                     }
                     break;
@@ -626,13 +634,13 @@ W16PrintfCore(
                                 errno = EINVAL;
                                 return -1;
                         }
-                        if (iPrecision >= 0 && sLen > iPrecision)
+                        if (iPrecision >= 0 && sLen > (size_t)iPrecision)
                         {
                             sLen = iPrecision;
                         }
                         if (!(dwFlags & FLAG_LEFT_JUSTIFY))
                         {
-                            WriteSpaces(pBuffer, sWidth - sLen);
+                            WriteSpaces(pBuffer, (ssize_t)sWidth - (ssize_t)sLen);
                         }
                         switch (dwLengthModifier)
                         {
@@ -660,7 +668,7 @@ W16PrintfCore(
                         }
                         if (dwFlags & FLAG_LEFT_JUSTIFY)
                         {
-                            WriteSpaces(pBuffer, sWidth - sLen);
+                            WriteSpaces(pBuffer, (ssize_t)(sWidth - sLen));
                         }
                     }
                     break;
@@ -738,7 +746,7 @@ StringPrintfWriteWcs(
     const wchar_t *pwszWrite,
     size_t cchWrite)
 {
-    ssize_t sConverted;
+    size_t sConverted;
 
     if (pBuffer->dwError)
     {
@@ -772,7 +780,7 @@ StringPrintfWriteMbs(
     const char *pszWrite,
     size_t cchWrite)
 {
-    ssize_t sConverted;
+    size_t sConverted;
 
     if (pBuffer->dwError)
     {
@@ -1549,5 +1557,5 @@ int printfw16(const char *format, ...)
 
     /* free what's been duplicated as fmt */
     if (f) free(f);
-    return total;
+    return (int)total;
 }

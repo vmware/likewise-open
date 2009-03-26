@@ -38,6 +38,7 @@
 typedef unsigned short int  wchar16_t;  /* 16-bit unsigned */
 
 #elif defined(_WIN32)
+#include <wchar.h>
 typedef wchar_t             wchar16_t;
 #define WCHAR16_IS_WCHAR
 #endif
