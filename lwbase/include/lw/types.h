@@ -69,6 +69,8 @@
 #include <wchar16.h>
 #include <sys/types.h>
 
+#define _LW_IDL_STRING
+
 typedef uint8_t            LW_UINT8, *LW_PUINT8;
 typedef uint16_t           LW_UINT16, *LW_PUINT16;
 typedef uint32_t           LW_UINT32, *LW_PUINT32;
@@ -79,6 +81,9 @@ typedef int32_t            LW_INT32, *LW_PINT32;
 typedef int64_t            LW_INT64, *LW_PINT64;
 
 #else
+
+#define _LW_IDL_STRING [string]
+
 typedef unsigned short int wchar16_t;
 
 typedef unsigned small int LW_UINT8, *LW_PUINT8;
@@ -121,10 +126,10 @@ typedef size_t             LW_ULONG_PTR, *LW_PULONG_PTR;
 typedef ssize_t            LW_LONG_PTR, *LW_PLONG_PTR;
 #endif
 
-typedef char              *LW_PSTR;
-typedef char const        *LW_PCSTR;
-typedef wchar16_t         *LW_PWSTR;
-typedef wchar16_t const   *LW_PCWSTR;
+typedef _LW_IDL_STRING char              *LW_PSTR;
+typedef _LW_IDL_STRING char const        *LW_PCSTR;
+typedef _LW_IDL_STRING wchar16_t         *LW_PWSTR;
+typedef _LW_IDL_STRING wchar16_t const   *LW_PCWSTR;
 
 typedef LW_UINT32          LW_BOOL, *LW_PBOOL;
 typedef LW_UINT16          LW_WORD, *LW_PWORD;
