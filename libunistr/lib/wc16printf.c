@@ -41,6 +41,7 @@
 #include <wchar.h>
 #include <wchar16.h>
 #include <wc16str.h>
+#include <wc16printf.h>
 #include <errno.h>
 #include <limits.h>
 
@@ -835,7 +836,7 @@ error:
 }
 
 ssize_t
-vsw16printf(
+_vsw16printf(
     wchar16_t *out,
     size_t maxchars,
     const wchar16_t *format,
@@ -904,14 +905,14 @@ error:
 
 //TODO: rename this once the deprecated sw16printf is removed
 ssize_t
-sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...)
+_sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...)
 {
     ssize_t sResult = 0;
     va_list ap;
 
     va_start(ap, format);
 
-    sResult = vsw16printf(
+    sResult = _vsw16printf(
                     out,
                     maxchars,
                     format,
@@ -931,7 +932,7 @@ error:
 }
 
 ssize_t
-sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...)
+_sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...)
 {
     int bFreeFormat = 0;
     wchar16_t *pwszFormat = NULL;
@@ -949,7 +950,7 @@ sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...)
         goto error;
     }
 
-    sResult = vsw16printf(
+    sResult = _vsw16printf(
                     out,
                     maxchars,
                     pwszFormat,
@@ -1154,7 +1155,7 @@ FilePrintfWriteMbs(
 }
 
 ssize_t
-vfw16printf(
+_vfw16printf(
     FILE *pFile,
     const wchar16_t *format,
     va_list args
@@ -1203,14 +1204,14 @@ error:
 }
 
 ssize_t
-fw16printf(FILE *pFile, const wchar16_t *format, ...)
+_fw16printf(FILE *pFile, const wchar16_t *format, ...)
 {
     ssize_t sResult = 0;
     va_list ap;
 
     va_start(ap, format);
 
-    sResult = vfw16printf(
+    sResult = _vfw16printf(
                     pFile,
                     format,
                     ap);
@@ -1229,7 +1230,7 @@ error:
 }
 
 ssize_t
-fw16printfw(FILE *pFile, const wchar_t *format, ...)
+_fw16printfw(FILE *pFile, const wchar_t *format, ...)
 {
     int bFreeFormat = 0;
     wchar16_t *pwszFormat = NULL;
@@ -1247,7 +1248,7 @@ fw16printfw(FILE *pFile, const wchar_t *format, ...)
         goto error;
     }
 
-    sResult = vfw16printf(
+    sResult = _vfw16printf(
                     pFile,
                     pwszFormat,
                     ap);
@@ -1270,7 +1271,7 @@ error:
 }
 
 ssize_t
-w16printfw(const wchar_t *format, ...)
+_w16printfw(const wchar_t *format, ...)
 {
     int bFreeFormat = 0;
     wchar16_t *pwszFormat = NULL;
@@ -1288,7 +1289,7 @@ w16printfw(const wchar_t *format, ...)
         goto error;
     }
 
-    sResult = vfw16printf(
+    sResult = _vfw16printf(
                     stdout,
                     pwszFormat,
                     ap);
