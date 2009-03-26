@@ -345,10 +345,7 @@ TdbStoreMachineAccountInfo(
 	dwError = KeySecureChannelType(pszDomain, &pszKeySchannel);
 	BAIL_ON_LWPS_ERROR(dwError);
 
-	dwSchannelType = pAcctInfo->dwSchannelType;	
-#if defined (WORDS_BIGENDIAN)
-	dwSchannelType = LWPS_ENDIAN_SWAP32(dwSchannelType);	
-#endif    
+	dwSchannelType = LW_HTOL32(dwSchannelType);
 	
 	data = TdbDataBlob((PBYTE)&dwSchannelType, sizeof(DWORD));	
 	dwError = TdbStore(pCtx, pszKeySchannel, data);
@@ -359,10 +356,7 @@ TdbStoreMachineAccountInfo(
 	dwError = KeyPasswordLastChangeTime(pszDomain, &pszKeyLCT);
 	BAIL_ON_LWPS_ERROR(dwError);
 	
-	dwLCT = pAcctInfo->tPwdClientModifyTimestamp;
-#if defined (WORDS_BIGENDIAN)
-	dwLCT = LWPS_ENDIAN_SWAP32(dwLCT);	
-#endif
+	dwLCT = LW_HTOL32(pAcctInfo->tPwdClientModifyTimestamp);
 	
 	data = TdbDataBlob((PBYTE)&dwLCT, sizeof(DWORD));	
 	dwError = TdbStore(pCtx, pszKeyLCT, data);
@@ -448,10 +442,7 @@ TdbFetchMachineAccountInfo(
 	dwError = TdbFetch(pCtx, pszKeyLCT, &data);
 	BAIL_ON_LWPS_ERROR(dwError);
 
-	(*ppAcctInfo)->tPwdClientModifyTimestamp = (DWORD)(*data.dptr);
-#if defined(WORDS_BIGENDIAN)
-	(*ppAcctInfo)->tPwdClientModifyTimestamp  = LWPS_ENDIAN_SWAP32((*ppAcctInfo)->tPwdClientModifyTimestamp);
-#endif
+	(*ppAcctInfo)->tPwdClientModifyTimestamp  = LW_HTOL32(*data.dptr);
 	
 	if (data.dptr) {		
 		free(data.dptr);
@@ -466,10 +457,7 @@ TdbFetchMachineAccountInfo(
 	dwError = TdbFetch(pCtx, pszKeySchannel, &data);
 	BAIL_ON_LWPS_ERROR(dwError);
 
-	(*ppAcctInfo)->dwSchannelType = (DWORD)(*data.dptr);
-#if defined(WORDS_BIGENDIAN)
-	(*ppAcctInfo)->dwSchannelType = LWPS_ENDIAN_SWAP32((*ppAcctInfo)->dwSchannelType);	
-#endif
+	(*ppAcctInfo)->dwSchannelType = LW_HTOL32(*data.dptr);
 
 	if (data.dptr) {		
 		free(data.dptr);
@@ -490,7 +478,7 @@ cleanup:
 
 error:
 	if (*ppAcctInfo) {
-		FreeMachineAccountInfo(*ppAcctInfo);
+		TDB_FreeMachineAccountInfo(*ppAcctInfo);
 	}
 
 	goto cleanup;
@@ -509,3 +497,13 @@ TdbDeleteMachineAccountInfo(
 
 	return dwError;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

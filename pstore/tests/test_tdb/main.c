@@ -77,7 +77,7 @@ main(
     HANDLE hTdb = (HANDLE)NULL;
     PLWPS_PROVIDER_FUNC_TABLE pFuncs = NULL;
     PLWPS_PASSWORD_INFO pPassInfo = NULL;
-    LWPS_PASSWORD_INFO PasswordInfo;
+    LWPS_PASSWORD_INFO PwInfo;
     
     if (argc < 2) {
 	    printf("Usage: test-tdb <DOMAIN> <Password>\n");
@@ -86,7 +86,7 @@ main(
 
     lwps_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
 
-    memset(&PasswordInfo, 0x0, sizeof(PasswordInfo));
+    memset(&PwInfo, 0x0, sizeof(PwInfo));
     
     dwError = LwpsInitializeProvider("test-tdb.conf", 
 				     &pszProviderName, 
@@ -96,21 +96,16 @@ main(
     dwError = pFuncs->pFnOpenProvider(&hTdb);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = LwpsMbsToWc16s(argv[1],
-			     &PasswordInfo.pwszDomainName);
+    dwError = LwpsMbsToWc16s(argv[1], &PwInfo.pwszDomainName);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = LwpsMbsToWc16s(argv[2],
-			     &PasswordInfo.pwszMachinePassword);
+    dwError = LwpsMbsToWc16s(argv[2], &PwInfo.pwszMachinePassword);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = pFuncs->pFnWritePassword(hTdb, 
-				       &PasswordInfo);    
+    dwError = pFuncs->pFnWritePassword(hTdb, &PwInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = pFuncs->pFnReadPasswordByDomainName(hTdb, 
-						  argv[1],
-						  &pPassInfo);
+    dwError = pFuncs->pFnReadPasswordByDomainName(hTdb, argv[1], &pPassInfo);
     BAIL_ON_LWPS_ERROR(dwError);    
 
     dwError = pFuncs->pFnCloseProvider(hTdb);

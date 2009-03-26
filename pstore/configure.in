@@ -200,17 +200,19 @@ AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT
 #endif
 ])
 
-ENABLE_TDB=true
-
 # Check for external libraries
-AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], AC_MSG_ERROR([Could not find libunistr; please use --with-libunistr]), [$LIBUNISTR_LDFLAGS])
-AC_CHECK_LIB([sqlite3], [sqlite3_exec], [SQLITE_LIBS="-lsqlite3"], AC_MSG_ERROR([Could not find sqlite; please use --with-sqlite]), [$SQLITE_LDFLAGS])
-AC_CHECK_LIB([tdb], [tdb_open], [TDB_LIBS="-ltdb"], [ENABLE_TDB=false], [$TDB_LDFLAGS])
+AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"],
+    AC_MSG_ERROR([Could not find libunistr; please use --with-libunistr]),
+    [$LIBUNISTR_LDFLAGS])
+AC_CHECK_LIB([sqlite3], [sqlite3_exec], [SQLITE_LIBS="-lsqlite3"],
+    AC_MSG_ERROR([Could not find sqlite; please use --with-sqlite]),
+    [$SQLITE_LDFLAGS])
+AC_CHECK_LIB([tdb], [tdb_open], [TDB_LIBS="-ltdb"],
+    AC_MSG_ERROR([Could not find tdb libraries; please use --with-tdb]),
+    [$TDB_LDFLAGS])
 AC_CHECK_LIB([pthread], [pthread_self], [PTHREAD_LIBS="-lpthread"], [])
 
 AC_SUBST(PTHREAD_LIBS)
-
-AM_CONDITIONAL(ENABLE_TDB, [$ENABLE_TDB])
 
 # Create output files
 AC_CONFIG_FILES([Makefile
@@ -221,26 +223,19 @@ AC_CONFIG_FILES([Makefile
                  api/Makefile
                  providers/Makefile
                  providers/sqldb/Makefile
+                 providers/tdb/Makefile
 		 tools/Makefile
 		 tools/dump_machine_account/Makefile
                  ])
-
-if $ENABLE_TDB
-then
-	AC_CONFIG_FILES([providers/tdb/Makefile])
-fi
 
 if $ENABLE_TESTS
 then
 	AC_CONFIG_FILES([
 			tests/Makefile
+			tests/test_tdb/Makefile
 			tests/test_show_sqldb_machinepwd_entries/Makefile
 			tests/test_SqlDBMachinePwdDBGet/Makefile
 			tests/test_SqlDBMachinePwdDBSet/Makefile])
-	if $ENABLE_TDB
-	then
-		AC_CONFIG_FILES([tests/test_tdb/Makefile])
-	fi
 fi
 
 AC_OUTPUT
