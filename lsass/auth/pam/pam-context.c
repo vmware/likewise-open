@@ -63,7 +63,7 @@ LsaPamGetContext(
     
     LSA_LOG_PAM_DEBUG("LsaPamGetContext::begin");
     
-    dwError = pam_get_data(pamh, MODULE_NAME, (PAM_GET_ITEM_TYPE)&pPamContext);
+    dwError = pam_get_data(pamh, MODULE_NAME, (PAM_GET_DATA_TYPE)&pPamContext);
     if (PAM_SUCCESS != dwError)
     {
         switch(dwError)
@@ -194,11 +194,13 @@ LsaPamGetLoginId(
                     pamh,
                     PAM_USER,
                     (PAM_GET_ITEM_TYPE)&pszPamId);
+#if HAVE_DECL_PAM_BAD_ITEM
     if (dwError == PAM_BAD_ITEM)
     {
         pszPamId = NULL;
         dwError = 0;
     }
+#endif
     BAIL_ON_LSA_ERROR(dwError);
     if (IsNullOrEmptyString(pszPamId) && bAllowPrompt)
     {

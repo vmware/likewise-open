@@ -54,9 +54,4 @@ LsaPamInitLog(
     void
     );
 
-void
-LsaPamCloseLog(
-    void
-    );
-
 #endif /* __PAM_LOGGING_H__ */
