@@ -11,6 +11,7 @@ typedef ULONG DIRECTORY_ATTR_TYPE;
 #define DIRECTORY_ATTR_TYPE_UNICODE_STRING          6
 #define DIRECTORY_ATTR_TYPE_ANSI_STRING             7
 
+#define DIRECTORY_ATTR_TAG_DN                    "dn"
 #define DIRECTORY_ATTR_TAG_USER_NAME             "user-name"
 #define DIRECTORY_ATTR_TAG_USER_FULLNAME         "user-full-name"
 #define DIRECTORY_ATTR_TAG_UID                   "uid"
