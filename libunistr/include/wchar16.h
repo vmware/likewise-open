@@ -37,7 +37,7 @@
 #ifdef __GNUC__
 typedef unsigned short int  wchar16_t;  /* 16-bit unsigned */
 
-#elif _WIN32
+#elif defined(_WIN32)
 typedef wchar_t             wchar16_t;
 #define WCHAR16_IS_WCHAR
 #endif

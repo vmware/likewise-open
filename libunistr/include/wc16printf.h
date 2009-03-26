@@ -33,6 +33,14 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#ifdef _WIN32
+#ifdef _WIN64
+typedef __int64 ssize_t;
+#else
+typedef int ssize_t;
+#endif
+#endif
+
 ssize_t
 _vsw16printf(
     wchar16_t *out,
