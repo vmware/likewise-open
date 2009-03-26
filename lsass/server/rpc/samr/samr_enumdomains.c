@@ -105,7 +105,7 @@ SamrSrvEnumDomains(
 
     status = SamrSrvAllocateMemory((void**)&pDomains,
                                    sizeof(EntryArray),
-                                   NULL);
+                                   pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwSize += sizeof(pDomains->count);
@@ -153,6 +153,10 @@ SamrSrvEnumDomains(
 
             status = InitUnicodeString(&(pDomains->entries[dwCount - 1].name),
                                        pAttrVal->pwszStringValue);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
+            status = SamrSrvAddDepMemory(pDomains->entries[dwCount - 1].name.string,
+                                         pDomains->entries);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {
