@@ -203,6 +203,34 @@ AC_ARG_WITH(
         ]
 )
 
+# eventlog
+
+AC_ARG_WITH([eventlog],
+        [AC_HELP_STRING([--with-eventlog=<dir>], [use eventlog located in prefix <dir>])],
+        [
+                EVENTLOG_INCLUDES="-I$withval/include"
+                EVENTLOG_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([eventlog-includes],
+        [AC_HELP_STRING([--with-eventlog-includes=<dir>], [use eventlog includes located in <dir>])],
+        [
+                EVENTLOG_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([eventlog-libs],
+        [AC_HELP_STRING([--with-eventlog-libs=<dir>], [use eventlog libs located in <dir>])],
+        [
+                EVENTLOG_LDFLAGS="-L$withval"
+        ])
+
+EVENTLOG_LIBS="-leventlog"
+
+AC_SUBST(EVENTLOG_INCLUDES)
+AC_SUBST(EVENTLOG_LDFLAGS)
+AC_SUBST(EVENTLOG_LIBS)
+
+
 AC_CHECK_LIB(iconv, iconv)
 
 LIBPTHREAD=""

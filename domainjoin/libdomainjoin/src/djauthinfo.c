@@ -40,6 +40,20 @@
 #include <dlfcn.h>
 #include "lsajoin.h"
 #include <lwnet.h>
+#include <eventlog.h>
+
+#define DOMAINJOIN_EVENT_CATEGORY   "Domain join"
+
+#define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
+#define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
+#define INFORMATION_EVENT_TYPE      "Information"
+#define WARNING_EVENT_TYPE          "Warning"
+#define ERROR_EVENT_TYPE            "Error"
+
+#define DOMAINJOIN_EVENT_INFO_JOINED_DOMAIN            1000
+#define DOMAINJOIN_EVENT_ERROR_DOMAIN_JOIN_FAILURE     1001
+#define DOMAINJOIN_EVENT_INFO_LEFT_DOMAIN              1002
+#define DOMAINJOIN_EVENT_ERROR_DOMAIN_LEAVE_FAILURE    1003
 
 #define NO_TIME_SYNC_FILE "/etc/likewise-notimesync"
 
@@ -227,6 +241,9 @@ DJRemoveCacheFiles()
     CHAR szSudoOrigFile[PATH_MAX+1];
     PSTR pszSearchPath = NULL;
     PSTR pszSudoersPath = NULL;
+    int i = 0;
+    PSTR file = NULL;
+    PSTR pszCachePath = NULL;;
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -238,9 +255,6 @@ DJRemoveCacheFiles()
         LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
-    int i;
-    const char *file;
-    const char *cachePath;
 
     for (i = 0; filePaths[i] != NULL; i++)
     {
@@ -259,35 +273,35 @@ DJRemoveCacheFiles()
 
     /* Likewise 5.0 (Mac Workgroup Manager) cache files... */
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/mcx";
-    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/mcx";
+    ceError = CTCheckDirectoryExists(pszCachePath, &bDirExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bDirExists)
     {
-        DJ_LOG_VERBOSE("Removing Mac MCX cache files from %s", cachePath);
-        ceError = CTRemoveDirectory(cachePath);
+        DJ_LOG_VERBOSE("Removing Mac MCX cache files from %s", pszCachePath);
+        ceError = CTRemoveDirectory(pszCachePath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* Likewise 5.0 (group policy scratch) files... */
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/scratch";
-    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/scratch";
+    ceError = CTCheckDirectoryExists(pszCachePath, &bDirExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bDirExists)
     {
-        DJ_LOG_VERBOSE("Removing grouppolicy scratch files from %s", cachePath);
-        ceError = CTRemoveDirectory(cachePath);
+        DJ_LOG_VERBOSE("Removing grouppolicy scratch files from %s", pszCachePath);
+        ceError = CTRemoveDirectory(pszCachePath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/{*}*";
-    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/{*}*";
+    (void) CTRemoveFiles(pszCachePath, FALSE, TRUE);
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
-    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
+    (void) CTRemoveFiles(pszCachePath, FALSE, TRUE);
 
     /* Revert any system configuration files that may have been changed by previous domain GPOs */
 
@@ -1637,6 +1651,7 @@ static void WBCreateComputerAccount(
                                &LW_EXC));
 
 cleanup:
+
     if(tempDir != NULL)
     {
         CTRemoveDirectory(tempDir);
@@ -1749,6 +1764,15 @@ void DJCreateComputerAccount(
 
 cleanup:
 
+    if (exc && LW_IS_OK(*exc))
+    {
+        DJLogDomainJoinSucceededEvent(options, osName, distro.version, likewiseOSServicePack);
+    }
+    else
+    {
+        DJLogDomainJoinFailedEvent(options, osName, distro.version, likewiseOSServicePack, *exc);
+    }
+
     if(tempDir != NULL)
     {
         CTRemoveDirectory(tempDir);
@@ -1841,8 +1865,17 @@ void DJDisableComputerAccount(PCSTR username,
     {
         LW_TRY(exc, WBDisableComputerAccount(username, password, options, &LW_EXC));
     }
+
 cleanup:
-    ;
+
+    if (exc && LW_IS_OK(*exc))
+    {
+        DJLogDomainLeaveSucceededEvent(options);
+    }
+    else
+    {
+        DJLogDomainLeaveFailedEvent(options, *exc);
+    }
 }
 
 static void
@@ -2085,3 +2118,332 @@ DJSetMachineSID(
         return WBSetMachineSID(pszMachineSID);
     }
 }
+
+DWORD
+DJOpenEventLog(
+    PSTR pszCategoryType,
+    PHANDLE phEventLog
+    )
+{
+    return LWIOpenEventLogEx(
+                  NULL,             // Server name (defaults to local computer eventlogd)
+                  pszCategoryType,  // Table Category ID (Security, System, ...)
+                  "Likewise DomainJoin", // Source
+                  0,                // Source Event ID
+                  "SYSTEM",         // User
+                  NULL,             // Computer (defaults to assigning local hostname)
+                  phEventLog);
+}
+
+DWORD
+DJCloseEventLog(
+    HANDLE hEventLog
+    )
+{
+    return LWICloseEventLog(hEventLog);
+}
+
+DWORD
+DJLogInformationEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = INFORMATION_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+DWORD
+DJLogWarningEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = WARNING_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+DWORD
+DJLogErrorEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = ERROR_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+VOID
+DJLogDomainJoinSucceededEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain join successful.\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Operating system:        %s\r\n" \
+                 "     Distribution version:    %s\r\n" \
+                 "     Likewise version:        %s",
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>",
+                 pszOSName ? pszOSName : "<not set>",
+                 pszDistroVersion ? pszDistroVersion : "<not set>",
+                 pszLikewiseVersion ? pszLikewiseVersion : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogInformationEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_INFO_JOINED_DOMAIN,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainJoinFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion,
+    LWException *exc
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain join failed.\r\n\r\n" \
+                 "     Reason message:          %s\r\n" \
+                 "     Reason message (long):   %s\r\n" \
+                 "     Reason code:             0x%8x\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Operating system:        %s\r\n" \
+                 "     Distribution version:    %s\r\n" \
+                 "     Likewise version:        %s",
+                 exc && exc->shortMsg ? exc->shortMsg : "<not set>",
+                 exc && exc->longMsg ? exc->longMsg : "<not set>",
+                 exc && exc->code ? exc->code : 0,
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>",
+                 pszOSName ? pszOSName : "<not set>",
+                 pszDistroVersion ? pszDistroVersion : "<not set>",
+                 pszLikewiseVersion ? pszLikewiseVersion : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogErrorEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_ERROR_DOMAIN_JOIN_FAILURE,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainLeaveSucceededEvent(
+    JoinProcessOptions * JoinOptions
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain leave succeeded.\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n",
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogInformationEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_INFO_LEFT_DOMAIN,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainLeaveFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    LWException *exc
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain leave failed.\r\n\r\n" \
+                 "     Reason message:          %s\r\n" \
+                 "     Reason message (long):   %s\r\n" \
+                 "     Reason code:             0x%8x\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Likewise version:        %s",
+                 exc && exc->shortMsg ? exc->shortMsg : "<not set>",
+                 exc && exc->longMsg ? exc->longMsg : "<not set>",
+                 exc && exc->code ? exc->code : 0,
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogErrorEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_ERROR_DOMAIN_LEAVE_FAILURE,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
