@@ -1439,8 +1439,10 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                 }
             }
 
+#if 0
             LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
                         92, 12, &LW_EXC));
+#endif
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
