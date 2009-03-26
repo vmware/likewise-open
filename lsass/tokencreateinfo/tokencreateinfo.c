@@ -52,10 +52,11 @@
 #include <assert.h>
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
-    // TODO-Add connection caching (with serialization)
-    // We probably need to change the calls to LSASS to
+    // TODO-Add connection caching using TLS, a connection pool,
+    // or somesuch.  It may be useful to change the calls to LSASS to
     // go through a LsaMapSecurityCallLsass() that is like
-    // LsaDmConnectDomain().
+    // LsaDmConnectDomain() so we can automatically retry on
+    // connection-type errors.
     HANDLE hUnusedConnection;
 } LW_MAP_SECURITY_PLUGIN_CONTEXT;
 
