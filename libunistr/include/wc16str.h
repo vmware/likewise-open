@@ -32,16 +32,6 @@
 #include <wchar16.h>
 #include <stddef.h>
 
-#ifdef WIN32
-#ifdef LIBUNISTR_EXPORTS
-#define LIBUNISTR_API __declspec(dllexport)
-#else
-#define LIBUNISTR_API __declspec(dllimport)
-#endif
-#else
-#define LIBUNISTR_API
-#endif
-
 #ifdef __GNUC__
 #define TEXT(str)  str
 #endif
