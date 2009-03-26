@@ -3,10 +3,145 @@
 
 static
 DWORD
+RpcSvcCreateDomainSocketPath(
+    PCSTR pszPath
+    );
+
+
+static
+DWORD
+RpcSvcCreateDirectory(
+    PSTR pszDirName,
+    mode_t DirMode
+    );
+
+
+static
+DWORD
 RpcSvcInitServerBinding(
     rpc_binding_vector_p_t *ppSrvBinding,
     PENDPOINT pEndPoints
     );
+
+
+static
+DWORD
+RpcSvcCreateDomainSocketPath(
+    PCSTR pszPath
+    )
+{
+    const mode_t PathMode = 0655;
+    const mode_t DirMode = 0600;
+
+    DWORD dwError = 0;
+    PSTR pszSocketPath = NULL;
+    PSTR pszSocketName = NULL;
+    PSTR pszDirName = NULL;
+
+    dwError = LsaAllocateString(pszPath, &pszSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pszSocketName = strrchr(pszSocketPath, '/');
+
+    if (!pszSocketName) {
+        dwError = EINVAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *(pszSocketName++) = '\0';
+    pszDirName = pszSocketPath;
+
+    dwError = RpcSvcCreateDirectory(pszDirName, PathMode);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (chmod(pszDirName, DirMode))
+    {
+        dwError = errno;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (pszSocketPath) {
+        LSA_SAFE_FREE_STRING(pszSocketPath);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+RpcSvcCreateDirectory(
+    PSTR pszDirPath,
+    mode_t DirMode
+    )
+{
+    DWORD dwError = 0;
+    struct stat statbuf;
+    PSTR pszSlash = NULL;
+
+    for (pszSlash = strchr(pszDirPath, '/');
+         pszSlash != NULL;
+         pszSlash = strchr(pszSlash + 1, '/'))
+    {
+        if (pszSlash == pszDirPath)
+        {
+            continue;
+        }
+
+        *pszSlash = '\0';
+
+        if (stat(pszDirPath, &statbuf) == 0)
+        {
+            /* Make sure it's a directory */
+            if (!S_ISDIR(statbuf.st_mode))
+            {
+                dwError = ENOENT;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else
+        {
+            /* Create it */
+            if (mkdir(pszDirPath, DirMode))
+            {
+                dwError = errno;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+
+        *pszSlash = '/';
+    }
+
+    if (stat(pszDirPath, &statbuf) == 0)
+    {
+        /* Make sure its a directory */
+        if (!S_ISDIR(statbuf.st_mode))
+        {
+            dwError = ENOENT;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    else
+    {
+        /* Create it */
+        if (mkdir(pszDirPath, DirMode))
+        {
+            dwError = errno;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+error:
+    if (pszSlash) {
+        *pszSlash = '/';
+    }
+
+    return dwError;
+}
 
 
 DWORD
@@ -130,6 +265,13 @@ RpcSvcInitServerBinding(
         }
         else
         {
+            if (!strcmp(pEndPoints[i].pszProtocol, "ncalrpc") &&
+                pEndPoints[i].pszEndpoint[0] == '/') {
+
+                dwError = RpcSvcCreateDomainSocketPath(pEndPoints[i].pszEndpoint);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
             rpc_server_use_protseq_ep((unsigned char*)pEndPoints[i].pszProtocol,
                                       rpc_c_protseq_max_calls_default,
                                       (unsigned char*)pEndPoints[i].pszEndpoint,
