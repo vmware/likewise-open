@@ -12,6 +12,7 @@ SamDbSearchObject(
     PDWORD            pdwNumEntries
     )
 {
+#if 0
     DWORD dwError = 0;
     SAMDB_ENTRY_TYPE entryType = 0;
 
@@ -49,7 +50,10 @@ cleanup:
 error:
 
     goto cleanup;
+#else
 
+    return 0;
+#endif
 }
 
 DWORD
@@ -61,6 +65,7 @@ SamDbBuildSqlQuery(
 {
     DWORD dwError = 0;
 
+#if 0
     dwError = SamDbExtractMemberShip(
                         wszAttributes,
                         &wszNewAttributes,
@@ -81,6 +86,8 @@ SamDbBuildSqlQuery(
     // Now concatenate the where clause
 
     strcat(pszQuery, pwszFilter);
+
+#endif
 
     return (dwError);
 }
