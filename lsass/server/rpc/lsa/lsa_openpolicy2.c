@@ -67,7 +67,7 @@ LsaSrvOpenPolicy2(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = DirectoryOpen(&hDirectory);
-    BAIL_ON_DIRECTORY_ERROR(dwError);
+    BAIL_ON_LSA_ERROR(dwError);
 
     pPolCtx->Type        = LsaContextPolicy;
     pPolCtx->refcount    = 1;
