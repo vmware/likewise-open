@@ -69,6 +69,19 @@ LsaInitializeRpcSrv(
     *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
     *ppFnTable      = &gSamrRpcFuncTable;
 
+    if (!IsNullOrEmptyString(pszConfigFilePath)) {
+
+        dwError = SamrSrvInitialiseConfig(&gSamrSrvConfig);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = SamrSrvParseConfigFile(pszConfigFilePath,
+                                         &gSamrSrvConfig);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = SamrSrvSetConfigFilePath(pszConfigFilePath);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     bSamrSrvInitialised = TRUE;
 
 cleanup:
@@ -111,14 +124,29 @@ SamrRpcStartServer(
     )
 {
     PCSTR pszDescription = "Security Accounts Manager";
-
     ENDPOINT EndPoints[] = {
         { "ncacn_np",      "\\\\pipe\\\\samr" },
         { "ncacn_ip_tcp",  NULL },
+        { "ncalrpc",       NULL },  /* endpoint is fetched from config parameter */
         { NULL,            NULL }
     };
+
     DWORD dwError = 0;
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD i = 0;
+    PSTR pszLpcSocketPath = NULL;
+
+    dwError = SamrSrvConfigGetLpcSocketPath(&pszLpcSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (EndPoints[i].pszProtocol) {
+        if (strcmp(EndPoints[i].pszProtocol, "ncalrpc") == 0 &&
+            pszLpcSocketPath) {
+            EndPoints[i].pszEndpoint = pszLpcSocketPath;
+        }
+
+        i++;
+    }
 
     dwError = RpcSvcBindRpcInterface(gpSamrSrvBinding,
                                      samr_v1_0_s_ifspec,
