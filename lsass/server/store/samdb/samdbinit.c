@@ -1,6 +1,7 @@
 #include "includes.h"
 
 #define SAMDB_BUILTIN_TAG    "BUILTIN"
+#define SAMDB_BUILTIN_GID    32
 #define SAMDB_BUILTIN_SID    "S-1-5-32"
 
 static
@@ -17,14 +18,27 @@ SamDbAddDefaultEntries(
 
 static
 DWORD
-SamDbAddBuiltinDomain(
-    HANDLE hDirectory
+SamDbAddBuiltin(
+    HANDLE hDirectory,
+    PCSTR  pszDomain
     );
 
 static
 DWORD
 SamDbAddMachineDomain(
-    HANDLE hDirectory
+    HANDLE hDirectory,
+    PCSTR  pszDomain,
+    PCSTR  pszNetBIOSName
+    );
+
+static
+DWORD
+SamDbAddLocalGroup(
+    HANDLE hDirectory,
+    PCSTR  pszDomain,
+    PCSTR  pszGroupName,
+    PCSTR  pszGroupSID,
+    DWORD  dwGID
     );
 
 static
@@ -211,47 +225,9 @@ SamDbAddDefaultEntries(
     HANDLE hDirectory
     )
 {
-    DWORD     dwError = 0;
-
-    dwError = SamDbAddBuiltinDomain(hDirectory);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbAddMachineDomain(hDirectory);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-
-static
-DWORD
-SamDbAddBuiltinDomain(
-    HANDLE hDirectory
-    )
-{
-    return SamDbAddLocalDomain(
-                    hDirectory,
-                    SAMDB_BUILTIN_TAG,
-                    SAMDB_BUILTIN_TAG,
-                    SAMDB_BUILTIN_SID);
-}
-
-static
-DWORD
-SamDbAddMachineDomain(
-    HANDLE hDirectory
-    )
-{
     DWORD  dwError = 0;
     PSTR   pszHostname = NULL;
-    PSTR   pszMachineSID = NULL;
     CHAR   szNetBIOSName[16];
-    ULONG  ulSubAuth[3];
-    PBYTE  pSubAuth = NULL;
-    uuid_t GUID;
-
-    uuid_generate(GUID);
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -260,6 +236,62 @@ SamDbAddMachineDomain(
 
     memset(szNetBIOSName, 0, sizeof(szNetBIOSName));
     strncpy(szNetBIOSName, pszHostname, 15);
+
+    dwError = SamDbInitConfig(hDirectory);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddMachineDomain(
+                    hDirectory,
+                    pszHostname,
+                    &szNetBIOSName[0]);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddBuiltin(
+                    hDirectory,
+                    pszHostname);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    DIRECTORY_FREE_MEMORY(pszHostname);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddBuiltin(
+    HANDLE hDirectory,
+    PCSTR  pszDomain
+    )
+{
+    return SamDbAddLocalGroup(
+                    hDirectory,
+                    pszDomain,
+                    SAMDB_BUILTIN_TAG,
+                    SAMDB_BUILTIN_SID,
+                    SAMDB_BUILTIN_GID);
+}
+
+static
+DWORD
+SamDbAddMachineDomain(
+    HANDLE hDirectory,
+    PCSTR  pszDomain,
+    PCSTR  pszNetBIOSName
+    )
+{
+    DWORD  dwError = 0;
+    PSTR   pszMachineSID = NULL;
+    ULONG  ulSubAuth[3];
+    PBYTE  pSubAuth = NULL;
+    uuid_t GUID;
+
+    uuid_generate(GUID);
 
     pSubAuth = (PBYTE)GUID;
     ulSubAuth[0] = *((PULONG)pSubAuth);
@@ -278,17 +310,13 @@ SamDbAddMachineDomain(
 
     dwError = SamDbAddLocalDomain(
                     hDirectory,
-                    pszHostname,
-                    szNetBIOSName,
+                    pszDomain,
+                    pszNetBIOSName,
                     pszMachineSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
-    if (pszHostname)
-    {
-        DirectoryFreeMemory(pszHostname);
-    }
     if (pszMachineSID)
     {
         LsaFreeMemory(pszMachineSID);
@@ -393,6 +421,108 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+SamDbAddLocalGroup(
+    HANDLE hDirectory,
+    PCSTR  pszDomain,
+    PCSTR  pszGroupName,
+    PCSTR  pszGroupSID,
+    DWORD  dwGID
+    )
+{
+    DWORD dwError = 0;
+    PSTR      pszObjectDN = NULL;
+    PWSTR     pwszObjectDN = NULL;
+    PWSTR     pwszGroupSID = NULL;
+    PWSTR     pwszGroupName = NULL;
+    ATTRIBUTE_VALUE avGroupName = {0};
+    ATTRIBUTE_VALUE avGroupSID = {0};
+    ATTRIBUTE_VALUE avGID = {0};
+    DIRECTORY_MOD mods[4];
+    ULONG     iMod = 0;
+
+    memset(mods, 0, sizeof(mods));
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszObjectDN,
+                    "CN=%s,DC=%s",
+                    pszGroupName,
+                    pszDomain);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszObjectDN,
+                    &pwszObjectDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszGroupName,
+                    &pwszGroupName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszGroupSID,
+                    &pwszGroupSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    DIRECTORY_ATTR_TAG_GROUP_SID,
+                    &mods[0].pwszAttrName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    mods[0].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[0].ulNumValues = 1;
+    avGroupSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avGroupSID.pwszStringValue = pwszGroupSID;
+    mods[0].pAttrValues = &avGroupSID;
+
+    dwError = LsaMbsToWc16s(
+                    DIRECTORY_ATTR_TAG_GROUP_NAME,
+                    &mods[1].pwszAttrName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    mods[1].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[1].ulNumValues = 1;
+    avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avGroupName.pwszStringValue = pwszGroupName;
+    mods[1].pAttrValues = &avGroupName;
+
+    dwError = LsaMbsToWc16s(
+                    DIRECTORY_ATTR_TAG_GID,
+                    &mods[1].pwszAttrName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    mods[2].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[2].ulNumValues = 1;
+    avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    avGID.ulValue = dwGID;
+    mods[2].pAttrValues = &avGID;
+
+    dwError = SamDbAddGroup(
+                    hDirectory,
+                    pwszObjectDN,
+                    mods);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    DIRECTORY_FREE_STRING(pszObjectDN);
+    DIRECTORY_FREE_MEMORY(pwszObjectDN);
+    DIRECTORY_FREE_MEMORY(pwszGroupSID);
+    DIRECTORY_FREE_MEMORY(pwszGroupName);
+
+    for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
+    {
+        DIRECTORY_FREE_MEMORY(mods[iMod].pwszAttrName);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
 
 /*
 local variables:

@@ -49,34 +49,6 @@
  */
 #include "includes.h"
 
-
-#define DB_QUERY_CREATE_DOMAINS_INSERT_TRIGGER                 \
-    "create trigger samdbdomains_createdtime                   \
-     after insert on samdbdomains                              \
-     begin                                                     \
-          update samdbdomains                                  \
-          set CreatedTime = DATETIME('NOW')                    \
-          where rowid = new.rowid;                             \
-     end"
-
-#define DB_QUERY_FIND_DOMAIN \
-    "select DomainRecordId,  \
-            ObjectSID,       \
-            Name,            \
-            NetbiosName      \
-       from samdbdomains     \
-      where Name = %Q"
-
-#define DB_QUERY_FIND_ALL_DOMAINS \
-    "select DomainRecordId,  \
-            ObjectSID,       \
-            Name,            \
-            NetbiosName      \
-       from samdbdomains"
-
-#define DB_QUERY_DELETE_DOMAIN \
-    "delete from samdbdomains where Name = %Q"
-
 DWORD
 SamDbAddDomainAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
@@ -178,67 +150,24 @@ SamDbAddDomain(
     DWORD dwNumMods = 0;
     DWORD iMod = 0;
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
-    PCSTR pszQueryTemplate = "INSERT INTO samdbobjects\n" \
-                                "(ObjectRecordId,"    \
-                                " ObjectSID,"         \
-                                " DistinguishedName," \
-                                " ParentDN,"          \
-                                " ObjectClass,"       \
-                                " Domain,"            \
-                                " CommonName,"        \
-                                " SamAccountName,"    \
-                                " Description,"       \
-                                " UID,"               \
-                                " UserPasswd,"        \
-                                " UserInfoFlags,"     \
-                                " Gecos,"             \
-                                " HomeDir,"           \
-                                " Shell,"             \
-                                " PasswdChangeTime,"  \
-                                " FullName,"          \
-                                " AccountExpiry,"     \
-                                " LMOwf_1,"           \
-                                " LMOwf_2,"           \
-                                " LMOwf_3,"           \
-                                " LMOwf_4,"           \
-                                " NTOwf_1,"           \
-                                " NTOwf_2,"           \
-                                " NTOwf_3,"           \
-                                " NTOwf_4,"           \
-                                " GID,"               \
-                                " GroupPasswd,"       \
-                                " CreatedTime"        \
-                                ")\n"                 \
-                                "VALUES ("            \
-   /* ObjectRecordId */         "NULL,"               \
-   /* ObjectSID      */         "%Q,"                 \
-   /* DistinguishedName */      "%Q,"                 \
-   /* ParentDN */               "NULL,"               \
-   /* ObjectClass */            "%d,"                 \
-   /* Domain */                 "%Q,"                 \
-   /* CommonName */             "NULL,"               \
-   /* SamAccountName */         "%Q,"                 \
-   /* Description */            "NULL,"               \
-   /* UID */                    "0,"                  \
-   /* UserPasswd */             "NULL,"               \
-   /* UserInfoFlags */          "0,"                  \
-   /* Gecos */                  "NULL,"               \
-   /* HomeDir */                "NULL,"               \
-   /* Shell */                  "NULL,"               \
-   /* PasswdChangeTime */       "0,"                  \
-   /* FullName */               "NULL,"               \
-   /* AccountExpiry */          "0,"                  \
-   /* LMOwf_1 */                "0,"                  \
-                                "0,"                  \
-                                "0,"                  \
-                                "0,"                  \
-   /* NTOwf_1 */                "0,"                  \
-                                "0,"                  \
-                                "0,"                  \
-                                "0,"                  \
-   /* GID */                    "0,"                  \
-   /* GroupPasswd */            "NULL,"               \
-   /* CreatedTime */            "DATETIME('NOW')"     \
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_DOMAIN;
+    PCSTR pszQueryTemplate = "INSERT INTO " SAM_DB_OBJECTS_TABLE \
+                                "(ObjectRecordId,"        \
+                                 "ObjectSID,"             \
+                                 "DistinguishedName,"     \
+                                 "ObjectClass,"           \
+                                 "Domain,"                \
+                                 "DomainNetBIOSName,"     \
+                                 "SamAccountName"         \
+                                ")\n"                     \
+                                "VALUES ("                \
+   /* ObjectRecordId    */       "rowid,"                 \
+   /* ObjectSID         */       "%Q,"                    \
+   /* DistinguishedName */       "%Q,"                    \
+   /* ObjectClass       */       "%d,"                    \
+   /* Domain            */       "%Q,"                    \
+   /* DomainNetBIOSName */       "%Q,"                    \
+   /* SamAccountName    */       "%Q"                     \
                                 ")";
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
@@ -342,13 +271,11 @@ SamDbAddDomain(
     }
 
     if (IsNullOrEmptyString(pszDomainName) ||
-        IsNullOrEmptyString(pszNetBIOSName) ||
         IsNullOrEmptyString(pszDomainSID))
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
-
 
     dwError = LsaWc16sToMbs(
                     pwszObjectDN,
@@ -359,45 +286,31 @@ SamDbAddDomain(
                     pszQueryTemplate,
                     pszDomainSID,
                     pszObjectDN,
-                    SAMDB_OBJECT_CLASS_DOMAIN,
+                    objectClass,
                     pszDomainName,
-                    pszNetBIOSName);
+                    pszNetBIOSName,
+                    pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_exec(pDirContext->pDbContext->pDbHandle,
-                           pszQuery,
-                           NULL,
-                           NULL,
-                           &pszError);
+    dwError = sqlite3_exec(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    NULL,
+                    NULL,
+                    &pszError);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
 
-    if (pszDomainName)
-    {
-        DirectoryFreeMemory(pszDomainName);
-    }
-    if (pszObjectDN)
-    {
-        DirectoryFreeMemory(pszObjectDN);
-    }
-    if (pszDomainSID)
-    {
-        DirectoryFreeMemory(pszDomainSID);
-    }
-    if (pszNetBIOSName)
-    {
-        DirectoryFreeMemory(pszNetBIOSName);
-    }
-    if (pwszObjectName)
-    {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-    if (pwszDomainName)
-    {
-        DirectoryFreeMemory(pwszDomainName);
-    }
+    DIRECTORY_FREE_STRING(pszDomainName);
+    DIRECTORY_FREE_STRING(pszObjectDN);
+    DIRECTORY_FREE_STRING(pszDomainSID);
+    DIRECTORY_FREE_STRING(pszNetBIOSName);
+    DIRECTORY_FREE_MEMORY(pwszObjectName);
+    DIRECTORY_FREE_MEMORY(pwszDomainName);
+
     if (pszQuery)
     {
         sqlite3_free(pszQuery);
@@ -452,14 +365,26 @@ SamDbFindDomains(
 
     if (pszDomainName)
     {
+        PCSTR pszQueryTemplate = "select ObjectRecordId,"       \
+                                 "       ObjectSID,"            \
+                                 "       SamAccountName,"       \
+                                 "       NetbiosName,"          \
+                                 "  from " SAM_DB_OBJECTS_TABLE \
+                                 " where SamAccountName = %Q";
+
         pszQuery = sqlite3_mprintf(
-                        DB_QUERY_FIND_DOMAIN,
+                        pszQueryTemplate,
                         pszDomainName);
     }
     else
     {
-        pszQuery = sqlite3_mprintf(
-                        DB_QUERY_FIND_ALL_DOMAINS);
+        PCSTR pszQueryTemplate = "select ObjectRecordId," \
+                                 "       ObjectSID,"      \
+                                 "       SamAccountName," \
+                                 "       NetbiosName,"    \
+                                 "  from " SAM_DB_OBJECTS_TABLE;
+
+        pszQuery = sqlite3_mprintf(pszQueryTemplate);
     }
 
     dwError = sqlite3_get_table(
@@ -710,8 +635,11 @@ SamDbDeleteDomain(
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSTR    pszDomainName = NULL;
     BOOLEAN bInLock = FALSE;
-    DWORD   dwNumGroups = 0;
-    DWORD   dwNumUsers = 0;
+    DWORD   dwNumObjects = 0;
+    PCSTR   pszQueryTemplate =
+                "DELETE FROM samdbobjects\n" \
+                " WHERE ObjectClass = 1"     \
+                "   AND SamAccountName = %Q";
     PSTR    pszQuery = NULL;
     PSTR    pszError = NULL;
 
@@ -737,32 +665,20 @@ SamDbDeleteDomain(
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pContext->rwLock);
 
-    dwError = SamDbNumGroupsInDomain_inlock(
+    dwError = SamDbNumObjectsInDomain_inlock(
                     hDirectory,
                     pszDomainName,
-                    &dwNumGroups);
+                    &dwNumObjects);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (dwNumGroups)
-    {
-        dwError = LSA_ERROR_DOMAIN_IN_USE;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = SamDbNumUsersInDomain_inlock(
-                    hDirectory,
-                    pszDomainName,
-                    &dwNumUsers);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    if (dwNumUsers)
+    if (dwNumObjects)
     {
         dwError = LSA_ERROR_DOMAIN_IN_USE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     pszQuery = sqlite3_mprintf(
-                    DB_QUERY_DELETE_DOMAIN,
+                    pszQueryTemplate,
                     pszDomainName);
 
     dwError = sqlite3_exec(
@@ -777,18 +693,10 @@ cleanup:
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pContext->rwLock);
 
-    if (pszDomainName)
-    {
-        DirectoryFreeString(pszDomainName);
-    }
-    if (pwszObjectName)
-    {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-    if (pwszDomainName)
-    {
-        DirectoryFreeMemory(pwszDomainName);
-    }
+    DIRECTORY_FREE_STRING(pszDomainName);
+    DIRECTORY_FREE_MEMORY(pwszObjectName);
+    DIRECTORY_FREE_MEMORY(pwszDomainName);
+
     if (pszQuery)
     {
         sqlite3_free(pszQuery);
@@ -797,6 +705,85 @@ cleanup:
     return dwError;
 
 error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+SamDbNumObjectsInDomain_inlock(
+    HANDLE hDirectory,
+    PSTR   pszDomainName,
+    PDWORD pdwNumObjects
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PSTR  pszQuery = NULL;
+    PSTR  pszError = NULL;
+    int   nRows = 0;
+    int   nCols = 0;
+    PSTR* ppszResult = NULL;
+    DWORD dwNumObjects = 0;
+    PCSTR pszQueryTemplate =
+                "select count(*) from samdbobjects" \
+                " where ObjectClass NOT IN (0, 1) \n" \
+                "   and Domain = %Q";
+
+    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    pszQuery = sqlite3_mprintf(
+                    pszQueryTemplate,
+                    pszDomainName);
+
+    dwError = sqlite3_get_table(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    &ppszResult,
+                    &nRows,
+                    &nCols,
+                    &pszError);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!nRows)
+    {
+        dwNumObjects = 0;
+        goto done;
+    }
+
+    if (nCols != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwNumObjects = atoi(ppszResult[1]);
+
+done:
+
+    *pdwNumObjects = dwNumObjects;
+
+cleanup:
+
+    if (pszQuery)
+    {
+        sqlite3_free(pszQuery);
+    }
+
+    if (ppszResult)
+    {
+        sqlite3_free_table(ppszResult);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwNumObjects = 0;
 
     if (pszError)
     {
@@ -832,18 +819,10 @@ SamDbFreeDomainInfo(
     PSAM_DB_DOMAIN_INFO pDomainInfo
     )
 {
-    if (pDomainInfo->pwszDomainName)
-    {
-        DirectoryFreeMemory(pDomainInfo->pwszDomainName);
-    }
-    if (pDomainInfo->pwszDomainSID)
-    {
-        DirectoryFreeMemory(pDomainInfo->pwszDomainSID);
-    }
-    if (pDomainInfo->pwszNetBIOSName)
-    {
-        DirectoryFreeMemory(pDomainInfo->pwszNetBIOSName);
-    }
+    DIRECTORY_FREE_MEMORY(pDomainInfo->pwszDomainName);
+    DIRECTORY_FREE_MEMORY(pDomainInfo->pwszDomainSID);
+    DIRECTORY_FREE_MEMORY(pDomainInfo->pwszNetBIOSName);
+
     DirectoryFreeMemory(pDomainInfo);
 }
 

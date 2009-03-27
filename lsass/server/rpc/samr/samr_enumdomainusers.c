@@ -199,7 +199,7 @@ SamrSrvEnumDomainUsers(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
-            pNames->entries[dwCount - 1].rid = pAttrVal->uLongValue;
+            pNames->entries[dwCount - 1].rid = pAttrVal->ulValue;
 
         } else {
             status = STATUS_INTERNAL_ERROR;

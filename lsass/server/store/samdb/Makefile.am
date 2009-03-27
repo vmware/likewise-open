@@ -5,6 +5,7 @@ libsamdb_la_SOURCES =     \
         samdbbind.c       \
         samdbclose.c      \
         samdbcontext.c    \
+        samdbcounter.c    \
         samdbdel.c        \
         samdbdomain.c     \
         samdbglobals.c    \

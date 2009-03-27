@@ -44,7 +44,7 @@ typedef struct _ATTRIBUTE_VALUE
 
     union
     {
-        ULONG  uLongValue;
+        ULONG  ulValue;
         LONG64 llValue;
         PWSTR  pwszStringValue;
         PSTR   pszStringValue;
@@ -90,7 +90,7 @@ typedef struct _DIRECTORY_ENTRY
 
 #define VALUE(i, pAttribute) = *(pAttribute->ppAttributeValues + i)
 #define NUM_VALUES(pAttribute) = pAttribute->ulNumValues
-#define INTEGER(pValue) =  pValue->uLongValue;
+#define INTEGER(pValue) =  pValue->ulValue;
 #define PRINTABLE_STRING(pValue) = pValue->pPrintableString;
 #define IA5_STRING(pValue) = pValue->pIA5String;
 #define OCTET_STRING_LENGTH(pValue) = pValue->pOctetString->ulNumBytes;
@@ -102,6 +102,23 @@ typedef struct _DIRECTORY_ENTRY
     if (pszStr) { \
         DirectoryFreeString(pszStr); \
     }
+
+#define DIRECTORY_FREE_STRING_AND_RESET(pszStr) \
+    if (pszStr) { \
+        DirectoryFreeString(pszStr); \
+        *(pszStr) = NULL; \
+    }
+
+#define DIRECTORY_FREE_MEMORY(pMem) \
+    if (pMem) { \
+        DirectoryFreeMemory(pMem); \
+    }
+
+#define DIRECTORY_FREE_MEMORY_AND_RESET(pMem) \
+    if (pMem) { \
+        DirectoryFreeMemory(pMem); \
+        *(pMem) = NULL; \
+    }s
 
 DWORD
 DirectoryOpen(
