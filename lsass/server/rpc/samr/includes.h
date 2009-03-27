@@ -46,8 +46,6 @@
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/base.h>
-#include <lw/rtlmemory.h>
-#include <lw/security-api.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>
@@ -63,6 +61,7 @@
 #include <rpcctl-register.h>
 #include <directory.h>
 
+#include "samr_cfg.h"
 #include "samr_srv.h"
 #include <secdesc/sectypes.h>
 #include "samrdefs.h"
