@@ -93,6 +93,13 @@ SamrShutdownRpcSrv(
     );
 
 
+DWORD
+SamrSrvConfigGetLpcSocketPath(
+    PSTR *ppszLpcSocketPath
+    );
+
+
+
 #endif /* _SAMR_SRV_H_ */
 
 
