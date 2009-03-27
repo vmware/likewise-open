@@ -54,6 +54,8 @@ rpc_binding_vector_p_t gpSamrSrvBinding = NULL;
 
 SAMR_RPC_WORKER gWorker;
 
+SAMR_SRV_CONFIG gSamrSrvConfig;
+
 
 /*
 local variables:
