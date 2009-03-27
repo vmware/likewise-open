@@ -42,14 +42,17 @@
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
-#include <lw/ntstatus.h>
+#include <lw/base.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
+#include <lwrpc/samr.h>
+#include <lwio/lwio.h>
 
 #include <lsa/lsa.h>
 #include <lsarpcsrv.h>
 #include <rpcctl-register.h>
+#include <samr_srv.h>
 
 #include "lsa_srv.h"
 #include "lsadefs.h"
