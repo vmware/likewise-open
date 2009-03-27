@@ -173,7 +173,7 @@ SamrSrvOpenUser(
             } else if (!wc16scmp(pAttr->pwszName, pwszAttrNameUid) &&
                        pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
 
-                dwRid = (DWORD)pAttrVal->uLongValue;
+                dwRid = (DWORD)pAttrVal->ulValue;
             }
         }
 

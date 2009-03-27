@@ -2,11 +2,14 @@ provider_LTLIBRARIES = libsamdb.la
 
 libsamdb_la_SOURCES =     \
         samdbadd.c        \
+        samdbattrlookup.c \
         samdbbind.c       \
         samdbclose.c      \
         samdbcontext.c    \
+        samdbcounter.c    \
         samdbdel.c        \
         samdbdomain.c     \
+        samdbdn.c         \
         samdbglobals.c    \
         samdbgroup.c      \
         samdbinit.c       \
@@ -15,8 +18,7 @@ libsamdb_la_SOURCES =     \
         samdbmodify.c     \
         samdbopen.c       \
         samdbsearch.c     \
-        samdbattrlookup.c \
-        samdbdn.c         \
+        samdbtrans.c      \
         samdbuser.c
 
 libsamdb_la_CPPFLAGS = \

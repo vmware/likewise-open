@@ -168,7 +168,7 @@ SamrLookupNames(
                 if (pAttrVal &&
                     pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
 
-                    pIds->ids[i]   = pAttrVal->uLongValue;
+                    pIds->ids[i]   = pAttrVal->ulValue;
                     pTypes->ids[i] = SID_TYPE_USER;
 
                 } else {
@@ -190,7 +190,7 @@ SamrLookupNames(
                 if (pAttrVal &&
                     pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
 
-                    pIds->ids[i]   = pAttrVal->uLongValue;
+                    pIds->ids[i]   = pAttrVal->ulValue;
                     pTypes->ids[i] = SID_TYPE_ALIAS;
 
                 } else {

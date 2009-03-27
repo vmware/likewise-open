@@ -300,7 +300,7 @@ DirectoryGetEntryAttrValueByName(
 
     case DIRECTORY_ATTR_TYPE_INTEGER:
         pulValue = (ULONG*)pValue;
-        *pulValue = (bTypeIsCorrect) ? pAttrVal->uLongValue : 0;
+        *pulValue = (bTypeIsCorrect) ? pAttrVal->ulValue : 0;
         break;
 
     case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:

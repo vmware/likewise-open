@@ -54,6 +54,8 @@
 #include "samdbmisc.h"
 #include "samdblock.h"
 #include "samdbcontext.h"
+#include "samdbcounter.h"
+#include "samdbtrans.h"
 
 #include "externs.h"
 

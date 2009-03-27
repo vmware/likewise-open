@@ -49,123 +49,6 @@
  */
 #include "includes.h"
 
-#define DB_QUERY_CREATE_USERS_TABLE  \
-    "create table samdbusers (       \
-                UserRecordId     integer PRIMARY KEY, \
-                DomainRecordId   integer,             \
-                ObjectSID        text unique,         \
-                Uid              integer,             \
-                Name             text,                \
-                Passwd           text,                \
-                GroupRecordId    integer,             \
-                UserInfoFlags    integer,             \
-                Gecos            text,                \
-                HomeDir          text,                \
-                Shell            text,                \
-                PasswdChangeTime integer,             \
-                FullName         text,                \
-                AccountExpiry    integer,             \
-                LMOwf_1          integer,             \
-                LMOwf_2          integer,             \
-                LMOwf_3          integer,             \
-                LMOwf_4          integer,             \
-                NTOwf_1          integer,             \
-                NTOwf_2          integer,             \
-                NTOwf_3          integer,             \
-                NTOwf_4          integer,             \
-                CreatedTime      date,                \
-                unique(DomainRecordId, Uid),          \
-                unique(DomainRecordId, Name)          \
-               )"
-
-#define DB_QUERY_INSERT_USER  \
-    "INSERT INTO samdbusers   \
-        (                     \
-            UserRecordId,     \
-            DomainRecordId,   \
-            ObjectSID,        \
-            Uid,              \
-            Name,             \
-            Passwd,           \
-            GroupRecordId,    \
-            UserInfoFlags,    \
-            Gecos,            \
-            HomeDir,          \
-            Shell,            \
-            PasswdChangeTime, \
-            FullName,         \
-            AccountExpiry,    \
-            LMOwf_1,          \
-            LMOwf_2,          \
-            LMOwf_3,          \
-            LMOwf_4,          \
-            NTOwf_1,          \
-            NTOwf_2,          \
-            NTOwf_3,          \
-            NTOwf_4           \
-        )                     \
-     VALUES (                 \
-            NULL,             \
-            %d,               \
-            %Q,               \
-            %d,               \
-            %Q,               \
-            %Q,               \
-            %d,               \
-            %d,               \
-            %Q,               \
-            %Q,               \
-            %Q,               \
-            %d,               \
-            %Q,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d,               \
-            %d                \
-        )"
-
-#define DB_QUERY_CREATE_USERS_INSERT_TRIGGER                   \
-    "create trigger samdbusers_createdtime                     \
-     after insert on samdbusers                                \
-     begin                                                     \
-          update samdbusers                                    \
-          set CreatedTime = DATETIME('NOW')                    \
-          where rowid = new.rowid;                             \
-                                                               \
-          insert into samdbgroupmembers (UserRecordId, GroupRecordId, 1) \
-          values (new.UserRecordId, new.GroupRecordId, new.MemberType);  \
-     end"
-
-#define DB_QUERY_CREATE_USERS_DELETE_TRIGGER                   \
-    "create trigger samdbusers_delete_record                   \
-     after delete on samdbusers                                \
-     begin                                                     \
-          delete from samdbgroupmembers where UserRecordId = old.UserRecordId; \
-     end"
-
-#define DB_QUERY_NUM_USERS_IN_DOMAIN \
-    "select count(*) \
-       from samdbusers  sdu, \
-            samdbdomains sdd  \
-      where sdu.DomainRecordId = sdd.DomainRecordId \
-        and sdd.Name = %Q"
-
-#define DB_QUERY_MAX_UID_BY_DOMAIN \
-    "select max(Uid) \
-       from samdbusers sdu \
-      where sdu.DomainRecordId = %d"
-
-#define DB_QUERY_DELETE_USER \
-    "delete \
-       from samdbusers sdu \
-      where sdu.Name = %Q \
-        and sdu.DomainRecordId = %d"
-
 DWORD
 SamDbAddUserAttrLookups(
     PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
@@ -318,13 +201,14 @@ SamDbAddUser(
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    sqlite3_stmt* pSqlStatement = NULL;
     DWORD dwNumMods = 0;
     DWORD iMod = 0;
     PWSTR pwszUserName = NULL;
     PWSTR pwszDomain = NULL;
+    PSTR  pszDomainName = NULL;
     PSTR  pszDomainSID = NULL;
-    PSTR  pszError = NULL;
-    PSTR  pszQuery = NULL;
+    PSTR  pszUserDN   = NULL;
     PSTR  pszUserName = NULL;
     PSTR  pszUserSID = NULL;
     PSTR  pszPassword = NULL;
@@ -334,6 +218,7 @@ SamDbAddUser(
     PSTR  pszFullName = NULL;
     DWORD dwPasswdChangeTime = 0;
     DWORD dwUID = 0;
+    BOOLEAN bUIDSpecified = FALSE;
     DWORD dwPrimaryGroupRecordId = 0;
     LONG64 qwAccountExpiry = 0;
     DWORD dwUserInfoFlags = 0;
@@ -342,7 +227,50 @@ SamDbAddUser(
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
     DWORD dwNumDomains = 0;
+    DWORD iParam = 0;
     BOOLEAN bInLock = FALSE;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_USER;
+    BOOLEAN bTxStarted = FALSE;
+    PCSTR pszQueryTemplate = "INSERT INTO " SAM_DB_OBJECTS_TABLE \
+                                "(ObjectRecordId,"        \
+                                 "ObjectSID,"             \
+                                 "DistinguishedName,"     \
+                                 "ObjectClass,"           \
+                                 "UID,"                   \
+                                 "GID,"                   \
+                                 "Password,"              \
+                                 "SamAccountName,"        \
+                                 "Domain,"                \
+                                 "Gecos,"                 \
+                                 "UserInfoFlags,"         \
+                                 "Homedir,"               \
+                                 "Shell,"                 \
+                                 "PasswdChangeTime,"      \
+                                 "FullName,"              \
+                                 "AccountExpiry,"         \
+                                 "LMHash,"                \
+                                 "NTHash"                 \
+                                ")\n"                     \
+                                "VALUES ("                \
+   /* ObjectRecordId    */       "rowid,"                 \
+   /* ObjectSID         */       "?1,"                    \
+   /* DistinguishedName */       "?2,"                    \
+   /* ObjectClass       */       "?3,"                    \
+   /* UID               */       "?4,"                    \
+   /* GID               */       "?5,"                    \
+   /* Password          */       "?6,"                    \
+   /* SamAccountName    */       "?7,"                    \
+   /* Domain            */       "?8,"                    \
+   /* Gecos             */       "?9,"                    \
+   /* UserInfoFlags     */       "?10,"                   \
+   /* Homedir           */       "?11,"                   \
+   /* Shell             */       "?12,"                   \
+   /* PasswdChangeTime  */       "?13,"                   \
+   /* FullName          */       "?14,"                   \
+   /* AccountExpiry     */       "?15,"                   \
+   /* LMHash            */       "?16,"                   \
+   /* NTHash            */       "?17"                    \
+                                ")";
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
@@ -378,11 +306,23 @@ SamDbAddUser(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
+    dwError = LsaWc16sToMbs(
+                    ppDomainInfoList[0]->pwszDomainName,
+                    &pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    SAM_DB_BEGIN_TRANSACTION(bTxStarted, hDirectory);
 
     dwError = LsaWc16sToMbs(
                     pwszUserName,
                     &pszUserName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserDN,
+                    &pszUserDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     for (; iMod < dwNumMods; iMod++)
@@ -403,6 +343,73 @@ SamDbAddUser(
 
         switch (pLookupEntry->dwId)
         {
+            case SAMDB_USER_TABLE_COLUMN_UID :
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwUID = pAttrValue->ulValue;
+                bUIDSpecified = TRUE;
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_SID:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszUserSID);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_USER_TABLE_COLUMN_PASSWORD:
+
+                if ((modifications[iMod].ulNumValues != 1) ||
+                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                pAttrValue = &modifications[iMod].pAttrValues[0];
+                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttrValue->pwszStringValue,
+                                &pszPassword);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
             case SAMDB_USER_TABLE_COLUMN_USER_INFO_FLAGS:
 
                 if ((modifications[iMod].ulNumValues != 1) ||
@@ -419,7 +426,7 @@ SamDbAddUser(
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
-                dwUserInfoFlags = pAttrValue->uLongValue;
+                dwUserInfoFlags = pAttrValue->ulValue;
 
                 break;
 
@@ -515,29 +522,6 @@ SamDbAddUser(
 
                 break;
 
-            case SAMDB_USER_TABLE_COLUMN_PASSWORD:
-
-                if ((modifications[iMod].ulNumValues != 1) ||
-                    (modifications[iMod].ulOperationFlags != DIR_MOD_FLAGS_ADD))
-                {
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_SAMDB_ERROR(dwError);
-                }
-
-                pAttrValue = &modifications[iMod].pAttrValues[0];
-                if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
-                {
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_SAMDB_ERROR(dwError);
-                }
-
-                dwError = LsaWc16sToMbs(
-                                pAttrValue->pwszStringValue,
-                                &pszPassword);
-                BAIL_ON_SAMDB_ERROR(dwError);
-
-                break;
-
             case SAMDB_USER_TABLE_COLUMN_PASSWORD_CHANGE_TIME:
 
                 if ((modifications[iMod].ulNumValues != 1) ||
@@ -554,7 +538,7 @@ SamDbAddUser(
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
-                dwPasswdChangeTime = pAttrValue->uLongValue;
+                dwPasswdChangeTime = pAttrValue->ulValue;
 
                 break;
 
@@ -594,9 +578,8 @@ SamDbAddUser(
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
-                dwError = SamDbFindGroupRecordId_inlock(
+                dwError = SamDbFindGID_inlock(
                                 hDirectory,
-                                ppDomainInfoList[0],
                                 pAttrValue->pwszStringValue,
                                 &dwPrimaryGroupRecordId);
                 BAIL_ON_SAMDB_ERROR(dwError);
@@ -610,23 +593,41 @@ SamDbAddUser(
         }
     }
 
-    dwError = SamDbGetNextAvailableUID_inlock(
-                    hDirectory,
-                    ppDomainInfoList[0]->ulDomainRecordId,
-                    &dwUID);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!dwPrimaryGroupRecordId)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
 
-    dwError = LsaWc16sToMbs(
-                    ppDomainInfoList[0]->pwszDomainSID,
-                    &pszDomainSID);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!bUIDSpecified)
+    {
+        dwError = SamDbGetNextAvailableUID(
+                        hDirectory,
+                        &dwUID);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
 
-    dwError = LsaAllocateStringPrintf(
-                    &pszUserSID,
-                    "%s-%d",
-                    pszDomainSID,
-                    dwUID);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!pszUserSID)
+    {
+        DWORD dwRID = 0;
+
+        dwError = SamDbGetNextAvailableRID(
+                        hDirectory,
+                        &dwRID);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaWc16sToMbs(
+                        ppDomainInfoList[0]->pwszDomainSID,
+                        &pszDomainSID);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaAllocateStringPrintf(
+                        &pszUserSID,
+                        "%s-%u",
+                        pszDomainSID,
+                        dwRID);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
 
     dwError = SamDbComputeLMHash(
                     pszPassword,
@@ -640,42 +641,114 @@ SamDbAddUser(
                     sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_INSERT_USER,
-                    ppDomainInfoList[0]->ulDomainRecordId,
-                    pszUserSID,
-                    dwUID,
-                    pszUserName,
-                    pszPassword,
-                    dwPrimaryGroupRecordId,
-                    dwUserInfoFlags,
-                    pszGecos,
-                    pszHomedir,
-                    pszShell,
-                    dwPasswdChangeTime,
-                    pszFullName,
-                    qwAccountExpiry,
-                    *((PDWORD)&lmHash[0]),
-                    *((PDWORD)&lmHash[4]),
-                    *((PDWORD)&lmHash[8]),
-                    *((PDWORD)&lmHash[12]),
-                    *((PDWORD)&ntHash[0]),
-                    *((PDWORD)&ntHash[4]),
-                    *((PDWORD)&ntHash[8]),
-                    *((PDWORD)&ntHash[12]));
+    dwError = sqlite3_prepare_v2(
+                    pDirContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_exec(pDirContext->pDbContext->pDbHandle,
-                           pszQuery,
-                           NULL,
-                           NULL,
-                           &pszError);
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserSID, -1, SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserDN, -1, SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(pSqlStatement, ++iParam, objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(pSqlStatement, ++iParam, dwUID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(pSqlStatement, ++iParam, dwPrimaryGroupRecordId);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!pszPassword)
+    {
+        dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+    }
+    else
+    {
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszPassword, -1, SQLITE_TRANSIENT);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserName, -1, SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszDomainName, -1, SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!pszGecos)
+    {
+        dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+    }
+    else
+    {
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszGecos, -1, SQLITE_TRANSIENT);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(pSqlStatement, ++iParam, dwUserInfoFlags);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!pszHomedir)
+    {
+        dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+    }
+    else
+    {
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszHomedir, -1, SQLITE_TRANSIENT);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!pszShell)
+    {
+        dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+    }
+    else
+    {
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszShell, -1, SQLITE_TRANSIENT);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(pSqlStatement, ++iParam, dwPasswdChangeTime);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!pszFullName)
+    {
+        dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+    }
+    else
+    {
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszFullName, -1, SQLITE_TRANSIENT);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int64(pSqlStatement, ++iParam, qwAccountExpiry);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &lmHash[0], sizeof(lmHash), SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &ntHash[0], sizeof(ntHash), SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_step(pSqlStatement);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
-    if (pszQuery)
+    SAM_DB_END_TRANSACTION(bTxStarted, dwError, hDirectory);
+
+    if (pSqlStatement)
     {
-        sqlite3_free(pszQuery);
+        sqlite3_finalize(pSqlStatement);
     }
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
@@ -688,6 +761,8 @@ cleanup:
     DIRECTORY_FREE_STRING(pszFullName);
     DIRECTORY_FREE_STRING(pszHomedir);
     DIRECTORY_FREE_STRING(pszShell);
+    DIRECTORY_FREE_STRING(pszDomainName);
+    DIRECTORY_FREE_STRING(pszUserDN);
 
     if (ppDomainInfoList)
     {
@@ -697,161 +772,6 @@ cleanup:
     return dwError;
 
 error:
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-SamDbNumUsersInDomain_inlock(
-    HANDLE hDirectory,
-    PSTR   pszDomainName,
-    PDWORD pdwNumUsers
-    )
-{
-    DWORD dwError = 0;
-    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
-    PSTR  pszQuery = NULL;
-    PSTR  pszError = NULL;
-    int   nRows = 0;
-    int   nCols = 0;
-    PSTR* ppszResult = NULL;
-    DWORD dwNumUsers = 0;
-
-    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
-
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_NUM_USERS_IN_DOMAIN,
-                    pszDomainName);
-
-    dwError = sqlite3_get_table(
-                    pDirContext->pDbContext->pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows)
-    {
-        dwNumUsers = 0;
-        goto done;
-    }
-
-    if (nCols != 1)
-    {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwNumUsers = atoi(ppszResult[1]);
-
-done:
-
-    *pdwNumUsers = dwNumUsers;
-
-cleanup:
-
-    if (pszQuery)
-    {
-        sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult)
-    {
-        sqlite3_free_table(ppszResult);
-    }
-
-    return dwError;
-
-error:
-
-    *pdwNumUsers = 0;
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-SamDbGetNextAvailableUID_inlock(
-    HANDLE hDirectory,
-    DWORD  dwDomainRecordId,
-    PDWORD pdwUID
-    )
-{
-    DWORD dwError = 0;
-    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
-    PSTR  pszQuery = NULL;
-    PSTR  pszError = NULL;
-    int   nRows = 0;
-    int   nCols = 0;
-    PSTR* ppszResult = NULL;
-    DWORD dwMaxUID = 0;
-
-    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
-
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_MAX_UID_BY_DOMAIN,
-                    dwDomainRecordId);
-
-    dwError = sqlite3_get_table(
-                    pDirContext->pDbContext->pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows)
-    {
-        dwMaxUID = SAMDB_MIN_UID - 1;
-        goto done;
-    }
-
-    if (nCols != 1)
-    {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwMaxUID = atoi(ppszResult[1]);
-
-done:
-
-    *pdwUID = dwMaxUID + 1;
-
-cleanup:
-
-    if (pszQuery)
-    {
-        sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult)
-    {
-        sqlite3_free_table(ppszResult);
-    }
-
-    return dwError;
-
-error:
-
-    *pdwUID = 0;
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
 
     goto cleanup;
 }
@@ -867,12 +787,16 @@ SamDbDeleteUser(
     PWSTR pwszUserName = NULL;
     PWSTR pwszDomainName = NULL;
     PSTR  pszUserName = NULL;
+    PSTR  pszDomainName = NULL;
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSTR  pszQuery = NULL;
     PSTR  pszError = NULL;
     BOOLEAN bInLock = FALSE;
-    PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
-    DWORD dwNumDomains = 0;
+    PCSTR pszQueryTemplate =
+            "DELETE FROM " SAM_DB_OBJECTS_TABLE \
+            " WHERE Domain = %Q" \
+            "   AND SamAccountName = %Q" \
+            "   AND ObjectClass = 4";
 
     pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
@@ -883,24 +807,17 @@ SamDbDeleteUser(
                     &entryType);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (entryType != SAMDB_ENTRY_TYPE_USER)
+    if ((entryType != SAMDB_ENTRY_TYPE_USER) ||
+        (!pwszDomainName || !*pwszDomainName))
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwError = SamDbFindDomains(
-                    hDirectory,
+    dwError = LsaWc16sToMbs(
                     pwszDomainName,
-                    &ppDomainInfoList,
-                    &dwNumDomains);
+                    &pszDomainName);
     BAIL_ON_SAMDB_ERROR(dwError);
-
-    if (dwNumDomains == 0)
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
 
     dwError = LsaWc16sToMbs(
                     pwszUserName,
@@ -910,9 +827,9 @@ SamDbDeleteUser(
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
 
     pszQuery = sqlite3_mprintf(
-                    DB_QUERY_DELETE_USER,
-                    pszUserName,
-                    ppDomainInfoList[0]->ulDomainRecordId);
+                    pszQueryTemplate,
+                    pszDomainName,
+                    pszUserName);
 
     dwError = sqlite3_exec(
                     pDirContext->pDbContext->pDbHandle,
@@ -931,18 +848,10 @@ cleanup:
 
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
 
-    if (pwszUserName)
-    {
-        DirectoryFreeMemory(pwszUserName);
-    }
-    if (pwszDomainName)
-    {
-        DirectoryFreeMemory(pwszDomainName);
-    }
-    if (pszUserName)
-    {
-        DirectoryFreeString(pszUserName);
-    }
+    DIRECTORY_FREE_MEMORY(pwszUserName);
+    DIRECTORY_FREE_MEMORY(pwszDomainName);
+    DIRECTORY_FREE_STRING(pszUserName);
+    DIRECTORY_FREE_STRING(pszDomainName);
 
     return dwError;
 
@@ -956,11 +865,3 @@ error:
     goto cleanup;
 }
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

@@ -314,9 +314,9 @@ TdbStoreMachineAccountInfo(
 	PSTR pszKeySid = NULL;	
 	PSTR pszKeyLCT = NULL;	
 	PSTR pszKeySchannel = NULL;	
-	DOMAIN_SID Sid;	
-	DWORD dwSchannelType;
-	DWORD dwLCT;	
+	DOMAIN_SID Sid = {0};
+	DWORD dwSchannelType = 0;
+	DWORD dwLCT = 0;
 
 	/* Machine Password */
 
@@ -345,9 +345,9 @@ TdbStoreMachineAccountInfo(
 	dwError = KeySecureChannelType(pszDomain, &pszKeySchannel);
 	BAIL_ON_LWPS_ERROR(dwError);
 
-	dwSchannelType = LW_HTOL32(dwSchannelType);
-	
-	data = TdbDataBlob((PBYTE)&dwSchannelType, sizeof(DWORD));	
+	dwSchannelType = LW_HTOL32(pAcctInfo->dwSchannelType);
+
+	data = TdbDataBlob((PBYTE)&dwSchannelType, sizeof(DWORD));
 	dwError = TdbStore(pCtx, pszKeySchannel, data);
 	BAIL_ON_LWPS_ERROR(dwError);
 

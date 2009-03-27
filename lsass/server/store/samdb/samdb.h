@@ -123,23 +123,9 @@ SamDbSearchUsers(
     );
 
 DWORD
-SamDbGetNextAvailableUID_inlock(
-    HANDLE hDirectory,
-    DWORD  dwDomainRecordId,
-    PDWORD pdwUID
-    );
-
-DWORD
 SamDbDeleteUser(
     HANDLE hDirectory,
     PWSTR  pwszUserDN
-    );
-
-DWORD
-SamDbNumUsersInDomain_inlock(
-    HANDLE hDirectory,
-    PSTR   pszDomainName,
-    PDWORD pdwNumUsers
     );
 
 DWORD
@@ -150,17 +136,10 @@ SamDbAddGroup(
     );
 
 DWORD
-SamDbNumGroupsInDomain_inlock(
-    HANDLE hDirectory,
-    PSTR   pszDomainName,
-    PDWORD pdwNumUsers
-    );
-
-DWORD
 SamDbNumMembersInGroup_inlock(
     HANDLE hDirectory,
-    PSTR   pszGroupName,
-    DWORD  dwDomainRecordId,
+    PCSTR  pszGroupName,
+    PCSTR  pszDomain,
     PDWORD pdwNumGroupMembers
     );
 
@@ -183,17 +162,9 @@ SamDbSearchGroups(
     );
 
 DWORD
-SamDbFindGroupRecordId_inlock(
-    HANDLE              hDirectory,
-    PSAM_DB_DOMAIN_INFO pDefaultDomainInfo,
-    PWSTR               pwszGroupDN,
-    PDWORD              pdwGroupRecordId
-    );
-
-DWORD
-SamDbGetNextAvailableGID_inlock(
+SamDbFindGID_inlock(
     HANDLE hDirectory,
-    DWORD  dwDomainRecordId,
+    PWSTR  pwszGroupDN,
     PDWORD pdwGID
     );
 
@@ -250,6 +221,13 @@ DWORD
 SamDbDeleteDomain(
     HANDLE hDirectory,
     PWSTR  pswzObjectDN
+    );
+
+DWORD
+SamDbNumObjectsInDomain_inlock(
+    HANDLE hDirectory,
+    PSTR   pszDomainName,
+    PDWORD pdwNumObjects
     );
 
 VOID

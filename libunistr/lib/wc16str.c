@@ -693,7 +693,7 @@ char *awc16stombs(const wchar16_t *input)
     return buffer;
 }
 
-#ifndef WCHAR16_IS_WCHAR
+#ifndef _WIN32
 // Calculates how many bytes it would take to convert *insize bytes of *inbuf,
 // given unlimited output buffer to iconv.
 size_t

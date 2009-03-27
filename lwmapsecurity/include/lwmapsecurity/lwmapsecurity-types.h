@@ -1,0 +1,18 @@
+#ifndef __LW_MAP_SECURITY_TYPES_H__
+#define __LW_MAP_SECURITY_TYPES_H__
+
+#include <lw/security-types.h>
+
+typedef struct _ACCESS_TOKEN_CREATE_INFORMATION {
+    PTOKEN_USER User;
+    PTOKEN_GROUPS Groups;
+#if 0
+    TOKEN_PRIVILEGES Privileges;
+#endif
+    PTOKEN_OWNER Owner;
+    PTOKEN_PRIMARY_GROUP PrimaryGroup;
+    PTOKEN_DEFAULT_DACL DefaultDacl;
+    PTOKEN_UNIX Unix;
+} ACCESS_TOKEN_CREATE_INFORMATION, *PACCESS_TOKEN_CREATE_INFORMATION;
+
+#endif /* __LW_MAP_SECURITY_TYPES_H__ */
