@@ -48,7 +48,7 @@
 
 
 NTSTATUS
-SamrLookupNames(
+SamrSrvLookupNames(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint32 num_names,
