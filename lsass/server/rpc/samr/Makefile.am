@@ -8,6 +8,7 @@ libsamr_srv_la_SOURCES = \
     globals.c \
     samr.c \
     samr_srv.c \
+    samr_cfg.c \
     samr_memory.c \
     samr_connect.c \
     samr_connect2.c \
@@ -27,7 +28,7 @@ libsamr_srv_la_SOURCES = \
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
@@ -39,13 +40,13 @@ libsamr_srv_la_CFLAGS = \
     -I$(rpc_srcdir)/rpcctl \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 libsamr_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
     @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
-    @LIBSECDESC_LIBS@ \
+    @LWBASE_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     libsamr_ss.la
@@ -57,7 +58,7 @@ libsamr_ss_la_CFLAGS = \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 CLEAN_FILES = samr_cstub.c samr_sstub.c samr_h.h
 
