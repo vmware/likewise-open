@@ -86,4 +86,73 @@ DJGetMachineSID(
     PSTR* ppszMachineSID
     );
 
+DWORD
+DJOpenEventLog(
+    PSTR pszCategoryType,
+    PHANDLE phEventLog
+    );
+
+DWORD
+DJCloseEventLog(
+    HANDLE hEventLog
+    );
+
+DWORD
+DJLogInformationEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+DJLogWarningEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+DJLogErrorEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+VOID
+DJLogDomainJoinSucceededEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion
+    );
+
+VOID
+DJLogDomainJoinFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion,
+    LWException *exc
+    );
+
+VOID
+DJLogDomainLeaveSucceededEvent(
+    JoinProcessOptions * JoinOptions
+    );
+
+VOID
+DJLogDomainLeaveFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    LWException *exc
+    );
+
 #endif /* __DJ_AUTHINFO_H__ */

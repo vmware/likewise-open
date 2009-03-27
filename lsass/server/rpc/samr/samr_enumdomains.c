@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -105,7 +105,7 @@ SamrSrvEnumDomains(
 
     status = SamrSrvAllocateMemory((void**)&pDomains,
                                    sizeof(EntryArray),
-                                   NULL);
+                                   pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwSize += sizeof(pDomains->count);
@@ -155,6 +155,10 @@ SamrSrvEnumDomains(
                                        pAttrVal->pwszStringValue);
             BAIL_ON_NTSTATUS_ERROR(status);
 
+            status = SamrSrvAddDepMemory(pDomains->entries[dwCount - 1].name.string,
+                                         pDomains->entries);
+            BAIL_ON_NTSTATUS_ERROR(status);
+
         } else {
             status = STATUS_INTERNAL_ERROR;
             BAIL_ON_NTSTATUS_ERROR(status);
@@ -187,6 +191,9 @@ error:
         SamrSrvFreeMemory(pDomains);
     }
 
+    *resume      = 0;
+    *num_entries = 0;
+    *domains     = NULL;
     goto cleanup;
 }
 

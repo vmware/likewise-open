@@ -107,7 +107,7 @@ SMBTreeCreate(
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
-    if (time(&pTree->lastActiveTime) == (time_t)-1)
+    if (time((time_t*) &pTree->lastActiveTime) == (time_t)-1)
     {
         ntStatus = UnixErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);

@@ -48,6 +48,7 @@
 
 #include "samdbdefs.h"
 #include "samdbstructs.h"
+#include "samdbtable.h"
 #include "samdb.h"
 #include "samdbdn.h"
 #include "samdbmisc.h"

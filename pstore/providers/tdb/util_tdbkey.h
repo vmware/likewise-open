@@ -75,3 +75,13 @@ TdbDeleteMachineAccountInfo(
 	);
 
 #endif  /* __UTIL_TDBKEY_H */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

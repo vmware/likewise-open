@@ -875,7 +875,7 @@ RtlpGetAceLocationFromIndex(
     USHORT aceIndex = 0;
     USHORT aceOffset = 0;
 
-    if ((AceIndex > Acl->AceCount) &&
+    if ((AceIndex >= Acl->AceCount) &&
         (AceIndex != ((ULONG)-1)))
     {
         status = STATUS_INVALID_PARAMETER;

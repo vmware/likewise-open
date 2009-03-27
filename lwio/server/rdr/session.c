@@ -92,7 +92,7 @@ SMBSessionCreate(
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
-    ntStatus = time(&pSession->lastActiveTime);
+    ntStatus = time((time_t*) &pSession->lastActiveTime);
     if (ntStatus == -1)
     {
         ntStatus = errno;

@@ -86,6 +86,29 @@ SamrSrvOpenDomain(
 
 
 NTSTATUS
+SamrSrvEnumDomainUsers(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    uint32 *resume,
+    uint32 account_flags,
+    uint32 max_size,
+    RidNameArray **names,
+    uint32 *num_entries
+    );
+
+
+NTSTATUS
+SamrSrvEnumDomainAliases(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    uint32 *resume,
+    uint32 account_flags,
+    RidNameArray **names,
+    uint32 *num_entries
+    );
+
+
+NTSTATUS
 SamrSrvLookupNames(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
@@ -107,12 +130,30 @@ SamrSrvOpenAlias(
 
 
 NTSTATUS
+SamrSrvQueryAliasInfo(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hUser,
+    uint16 level,
+    AliasInfo **info
+    );
+
+
+NTSTATUS
 SamrSrvOpenUser(
     handle_t hBinding,
     DOMAIN_HANDLE *hDomain,
     uint32 access_mask,
     uint32 rid,
     ACCOUNT_HANDLE *hUser
+    );
+
+
+NTSTATUS
+SamrSrvQueryUserInfo(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hUser,
+    uint16 level,
+    UserInfo **info
     );
 
 

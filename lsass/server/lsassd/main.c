@@ -1026,6 +1026,7 @@ LsaSrvLogProcessStoppedEvent(
     dwError = LsaGetErrorMessageForLoggingEvent(
                          dwExitCode,
                          &pszData);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (dwExitCode)
     {
@@ -1073,6 +1074,7 @@ LsaSrvLogProcessFailureEvent(
     dwError = LsaGetErrorMessageForLoggingEvent(
                          dwErrCode,
                          &pszData);
+    BAIL_ON_LSA_ERROR(dwError);
 
     LsaSrvLogServiceFailureEvent(
             LSASS_EVENT_ERROR_SERVICE_START_FAILURE,

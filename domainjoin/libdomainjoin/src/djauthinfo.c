@@ -40,6 +40,20 @@
 #include <dlfcn.h>
 #include "lsajoin.h"
 #include <lwnet.h>
+#include <eventlog.h>
+
+#define DOMAINJOIN_EVENT_CATEGORY   "Domain join"
+
+#define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
+#define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
+#define INFORMATION_EVENT_TYPE      "Information"
+#define WARNING_EVENT_TYPE          "Warning"
+#define ERROR_EVENT_TYPE            "Error"
+
+#define DOMAINJOIN_EVENT_INFO_JOINED_DOMAIN            1000
+#define DOMAINJOIN_EVENT_ERROR_DOMAIN_JOIN_FAILURE     1001
+#define DOMAINJOIN_EVENT_INFO_LEFT_DOMAIN              1002
+#define DOMAINJOIN_EVENT_ERROR_DOMAIN_LEAVE_FAILURE    1003
 
 #define NO_TIME_SYNC_FILE "/etc/likewise-notimesync"
 
@@ -227,6 +241,9 @@ DJRemoveCacheFiles()
     CHAR szSudoOrigFile[PATH_MAX+1];
     PSTR pszSearchPath = NULL;
     PSTR pszSudoersPath = NULL;
+    int i = 0;
+    PSTR file = NULL;
+    PSTR pszCachePath = NULL;;
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -238,9 +255,6 @@ DJRemoveCacheFiles()
         LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
-    int i;
-    const char *file;
-    const char *cachePath;
 
     for (i = 0; filePaths[i] != NULL; i++)
     {
@@ -259,79 +273,79 @@ DJRemoveCacheFiles()
 
     /* Likewise 5.0 (Mac Workgroup Manager) cache files... */
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/mcx";
-    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/mcx";
+    ceError = CTCheckDirectoryExists(pszCachePath, &bDirExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bDirExists)
     {
-        DJ_LOG_VERBOSE("Removing Mac MCX cache files from %s", cachePath);
-        ceError = CTRemoveDirectory(cachePath);
+        DJ_LOG_VERBOSE("Removing Mac MCX cache files from %s", pszCachePath);
+        ceError = CTRemoveDirectory(pszCachePath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* Likewise 5.0 (group policy scratch) files... */
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/scratch";
-    ceError = CTCheckDirectoryExists(cachePath, &bDirExists);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/scratch";
+    ceError = CTCheckDirectoryExists(pszCachePath, &bDirExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bDirExists)
     {
-        DJ_LOG_VERBOSE("Removing grouppolicy scratch files from %s", cachePath);
-        ceError = CTRemoveDirectory(cachePath);
+        DJ_LOG_VERBOSE("Removing grouppolicy scratch files from %s", pszCachePath);
+        ceError = CTRemoveDirectory(pszCachePath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/{*}*";
-    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/{*}*";
+    (void) CTRemoveFiles(pszCachePath, FALSE, TRUE);
 
-    cachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
-    (void) CTRemoveFiles(cachePath, FALSE, TRUE);
+    pszCachePath = LOCALSTATEDIR "/lib/likewise/grouppolicy/user-cache";
+    (void) CTRemoveFiles(pszCachePath, FALSE, TRUE);
 
     /* Revert any system configuration files that may have been changed by previous domain GPOs */
 
     /* /etc/likewise/lsassd.conf */
-    ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/likewise/lsassd.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/lsassd.conf.orig file to /etc/likewise/lsassd.conf");
-        ceError = CTMoveFile("/etc/likewise/lsassd.conf.orig", "/etc/likewise/lsassd.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lsassd.conf.lwidentity.orig file to /etc/likewise/lsassd.conf");
+        ceError = CTMoveFile("/etc/likewise/lsassd.conf.lwidentity.orig", "/etc/likewise/lsassd.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/likewise/lwedsplugin.conf */
-    ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/likewise/lwedsplugin.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/lwedsplugin.conf.orig file to /etc/likewise/lwedsplugin.conf");
-        ceError = CTMoveFile("/etc/likewise/lwedsplugin.conf.orig", "/etc/likewise/lwedsplugin.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/lwedsplugin.conf.lwidentity.orig file to /etc/likewise/lwedsplugin.conf");
+        ceError = CTMoveFile("/etc/likewise/lwedsplugin.conf.lwidentity.orig", "/etc/likewise/lwedsplugin.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/likewise/grouppolicy-settings.conf */
-    ceError = CTCheckFileExists("/etc/likewise/grouppolicy-settings.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/likewise/grouppolicy-settings.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/grouppolicy-settings.conf.orig file to /etc/likewise/grouppolicy-settings.conf");
-        ceError = CTMoveFile("/etc/likewise/grouppolicy-settings.conf.orig", "/etc/likewise/grouppolicy-settings.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/grouppolicy-settings.conf.lwidentity.orig file to /etc/likewise/grouppolicy-settings.conf");
+        ceError = CTMoveFile("/etc/likewise/grouppolicy-settings.conf.lwidentity.orig", "/etc/likewise/grouppolicy-settings.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/likewise/eventlogd.conf */
-    ceError = CTCheckFileExists("/etc/likewise/eventlogd.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/likewise/eventlogd.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/likewise/eventlogd.conf.orig file to /etc/likewise/eventlogd.conf");
-        ceError = CTMoveFile("/etc/likewise/eventlogd.conf.orig", "/etc/likewise/eventlogd.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/likewise/eventlogd.conf.lwidentity.orig file to /etc/likewise/eventlogd.conf");
+        ceError = CTMoveFile("/etc/likewise/eventlogd.conf.lwidentity.orig", "/etc/likewise/eventlogd.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
@@ -352,7 +366,7 @@ DJRemoveCacheFiles()
     if(pszSudoersPath)
     {
         sprintf( szSudoOrigFile,
-                 "%s.orig",
+                 "%s.lwidentity.orig",
                  pszSudoersPath);
 
         ceError = CTCheckFileExists( szSudoOrigFile,
@@ -368,200 +382,211 @@ DJRemoveCacheFiles()
     }
 
     /* /etc/motd */
-    ceError = CTCheckFileExists("/etc/motd.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/motd.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/motd.orig file to /etc/motd");
-        ceError = CTMoveFile("/etc/motd.orig", "/etc/motd");
+        DJ_LOG_VERBOSE("Restoring /etc/motd.lwidentity.orig file to /etc/motd");
+        ceError = CTMoveFile("/etc/motd.lwidentity.orig", "/etc/motd");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/syslog.conf */
-    ceError = CTCheckFileExists("/etc/syslog.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/syslog.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/syslog.conf.orig file to /etc/syslog.conf");
-        ceError = CTMoveFile("/etc/syslog.conf.orig", "/etc/syslog.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/syslog.conf.lwidentity.orig file to /etc/syslog.conf");
+        ceError = CTMoveFile("/etc/syslog.conf.lwidentity.orig", "/etc/syslog.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
     else
     {
         /* /etc/syslog-ng.conf */
-        ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.conf.orig", &bFileExists);
+        ceError = CTCheckFileExists("/etc/syslog-ng/syslog-ng.conf.lwidentity.orig", &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         if (bFileExists)
         {
-            DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.orig file to /etc/syslog-ng/syslog-ng.conf");
-            ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.orig", "/etc/syslog-ng/syslog-ng.conf");
+            DJ_LOG_VERBOSE("Restoring /etc/syslog-ng/syslog-ng.conf.lwidentity.orig file to /etc/syslog-ng/syslog-ng.conf");
+            ceError = CTMoveFile("/etc/syslog-ng/syslog-ng.conf.lwidentity.orig", "/etc/syslog-ng/syslog-ng.conf");
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
         else
         {
 
             /* /etc/rsyslog.conf */
-            ceError = CTCheckFileExists("/etc/rsyslog.conf.orig", &bFileExists);
+            ceError = CTCheckFileExists("/etc/rsyslog.conf.lwidentity.orig", &bFileExists);
             BAIL_ON_CENTERIS_ERROR(ceError);
 
             if (bFileExists)
             {
-                DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.orig file to /etc/rsyslog.conf");
-                ceError = CTMoveFile("/etc/rsyslog.conf.orig", "/etc/rsyslog.conf");
+                DJ_LOG_VERBOSE("Restoring /etc/rsyslog.conf.lwidentity.orig file to /etc/rsyslog.conf");
+                ceError = CTMoveFile("/etc/rsyslog.conf.lwidentity.orig", "/etc/rsyslog.conf");
                 BAIL_ON_CENTERIS_ERROR(ceError);
             }
         }
     }
 
     /* /etc/crontab */
-    ceError = CTCheckFileExists("/etc/crontab.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/crontab.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/crontab.orig file to /etc/crontab");
-        ceError = CTMoveFile("/etc/crontab.orig", "/etc/crontab");
+        DJ_LOG_VERBOSE("Restoring /etc/crontab.lwidentity.orig file to /etc/crontab");
+        ceError = CTMoveFile("/etc/crontab.lwidentity.orig", "/etc/crontab");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/logrotate.conf */
-    ceError = CTCheckFileExists("/etc/logrotate.conf.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/logrotate.conf.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/logrotate.conf.orig file to /etc/logrotate.conf");
-        ceError = CTMoveFile("/etc/logrotate.conf.orig", "/etc/logrotate.conf");
+        DJ_LOG_VERBOSE("Restoring /etc/logrotate.conf.lwidentity.orig file to /etc/logrotate.conf");
+        ceError = CTMoveFile("/etc/logrotate.conf.lwidentity.orig", "/etc/logrotate.conf");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* /etc/issue */
-    ceError = CTCheckFileExists("/etc/issue.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/issue.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/issue.orig file to /etc/issue");
-        ceError = CTMoveFile("/etc/issue.orig", "/etc/issue");
+        DJ_LOG_VERBOSE("Restoring /etc/issue.lwidentity.orig file to /etc/issue");
+        ceError = CTMoveFile("/etc/issue.lwidentity.orig", "/etc/issue");
+        BAIL_ON_CENTERIS_ERROR(ceError);
+    }
+
+    /* Revert selinux/config */
+    ceError = CTCheckFileExists("/etc/selinux/config.lwidentity.orig", &bFileExists);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (bFileExists)
+    {
+        DJ_LOG_VERBOSE("Restoring /etc/selinux/config.lwidentity.orig file to /etc/selinux/config.lwidentity.orig");
+        ceError = CTMoveFile("/etc/selinux/config.lwidentity.orig", "/etc/selinux/config");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
     /* Revert fstab */
-    ceError = CTCheckFileExists("/etc/fstab.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/fstab.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/fstab.orig file to /etc/fstab");
-        ceError = CTMoveFile("/etc/fstab.orig", "/etc/fstab");
+        DJ_LOG_VERBOSE("Restoring /etc/fstab.lwidentity.orig file to /etc/fstab");
+        ceError = CTMoveFile("/etc/fstab.lwidentity.orig", "/etc/fstab");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
     else
     {
 
-        ceError = CTCheckFileExists("/etc/vfstab.orig", &bFileExists);
+        ceError = CTCheckFileExists("/etc/vfstab.lwidentity.orig", &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         if (bFileExists)
         {
-            DJ_LOG_VERBOSE("Restoring /etc/vfstab.orig file to /etc/vfstab");
-            ceError = CTMoveFile("/etc/vfstab.orig", "/etc/vfstab");
+            DJ_LOG_VERBOSE("Restoring /etc/vfstab.lwidentity.orig file to /etc/vfstab");
+            ceError = CTMoveFile("/etc/vfstab.lwidentity.orig", "/etc/vfstab");
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
         else
         {
-            ceError = CTCheckFileExists("/etc/filesystems.orig", &bFileExists);
+            ceError = CTCheckFileExists("/etc/filesystems.lwidentity.orig", &bFileExists);
             BAIL_ON_CENTERIS_ERROR(ceError);
 
             if (bFileExists)
             {
-                DJ_LOG_VERBOSE("Restoring /etc/filesystems.orig file to /etc/filesystems");
-                ceError = CTMoveFile("/etc/filesystems.orig", "/etc/filesystems");
+                DJ_LOG_VERBOSE("Restoring /etc/filesystems.lwidentity.orig file to /etc/filesystems");
+                ceError = CTMoveFile("/etc/filesystems.lwidentity.orig", "/etc/filesystems");
                 BAIL_ON_CENTERIS_ERROR(ceError);
             }
         }
     }
 
     /* Revert auto.master */
-    ceError = CTCheckFileExists("/etc/auto.master.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/auto.master.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/auto.master.orig file to /etc/auto.master");
-        ceError = CTMoveFile("/etc/auto.master.orig", "/etc/auto.master");
+        DJ_LOG_VERBOSE("Restoring /etc/auto.master.lwidentity.orig file to /etc/auto.master");
+        ceError = CTMoveFile("/etc/auto.master.lwidentity.orig", "/etc/auto.master");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
     else
     {
 
-        ceError = CTCheckFileExists("/etc/auto_master.orig", &bFileExists);
+        ceError = CTCheckFileExists("/etc/auto_master.lwidentity.orig", &bFileExists);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         if (bFileExists)
         {
-            DJ_LOG_VERBOSE("Restoring /etc/auto_master.orig file to /etc/auto_master");
-            ceError = CTMoveFile("/etc/auto_master.orig", "/etc/auto_master");
+            DJ_LOG_VERBOSE("Restoring /etc/auto_master.lwidentity.orig file to /etc/auto_master");
+            ceError = CTMoveFile("/etc/auto_master.lwidentity.orig", "/etc/auto_master");
             BAIL_ON_CENTERIS_ERROR(ceError);
         }
     }
 
     /* Revert login.defs */
-    ceError = CTCheckFileExists("/etc/login.defs.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/login.defs.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/login.defs.orig file to /etc/login.defs");
-        ceError = CTMoveFile("/etc/login.defs.orig", "/etc/login.defs");
+        DJ_LOG_VERBOSE("Restoring /etc/login.defs.lwidentity.orig file to /etc/login.defs");
+        ceError = CTMoveFile("/etc/login.defs.lwidentity.orig", "/etc/login.defs");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
 #if defined (__LWI_SOLARIS__)
     /*Revert shadow file -- only for Solaris*/
-    ceError = CTCheckFileExists("/etc/shadow.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/shadow.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/shadow.orig file to /etc/shadow");
-        ceError = CTMoveFile("/etc/shadow.orig", "/etc/shadow");
+        DJ_LOG_VERBOSE("Restoring /etc/shadow.lwidentity.orig file to /etc/shadow");
+        ceError = CTMoveFile("/etc/shadow.lwidentity.orig", "/etc/shadow");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    ceError = CTCheckFileExists("/etc/default/passwd.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/default/passwd.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/default/passwd.orig file to /etc/default/passwd");
-        ceError = CTMoveFile("/etc/default/passwd.orig", "/etc/default/passwd");
+        DJ_LOG_VERBOSE("Restoring /etc/default/passwd.lwidentity.orig file to /etc/default/passwd");
+        ceError = CTMoveFile("/etc/default/passwd.lwidentity.orig", "/etc/default/passwd");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 #endif
 
 #if defined (__LWI_AIX__)
     /*Revert /etc/passwd and /etc/security/user -- only for AIX*/
-    ceError = CTCheckFileExists("/etc/security/user.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/security/user.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/security/user.orig file to /etc/security/user");
-        ceError = CTMoveFile("/etc/security/user.orig", "/etc/security/user");
+        DJ_LOG_VERBOSE("Restoring /etc/security/user.lwidentity.orig file to /etc/security/user");
+        ceError = CTMoveFile("/etc/security/user.lwidentity.orig", "/etc/security/user");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    ceError = CTCheckFileExists("/etc/security/passwd.orig", &bFileExists);
+    ceError = CTCheckFileExists("/etc/security/passwd.lwidentity.orig", &bFileExists);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (bFileExists)
     {
-        DJ_LOG_VERBOSE("Restoring /etc/security/passwd.orig file to /etc/security/passwd");
-        ceError = CTMoveFile("/etc/security/passwd.orig", "/etc/security/passwd");
+        DJ_LOG_VERBOSE("Restoring /etc/security/passwd.lwidentity.orig file to /etc/security/passwd");
+        ceError = CTMoveFile("/etc/security/passwd.lwidentity.orig", "/etc/security/passwd");
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 #endif
@@ -1414,8 +1439,10 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
                 }
             }
 
+#if 0
             LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
                         92, 12, &LW_EXC));
+#endif
         }
 
         LW_CLEANUP_LSERR(exc, init(&lsaFunctions));
@@ -1626,6 +1653,7 @@ static void WBCreateComputerAccount(
                                &LW_EXC));
 
 cleanup:
+
     if(tempDir != NULL)
     {
         CTRemoveDirectory(tempDir);
@@ -1738,6 +1766,15 @@ void DJCreateComputerAccount(
 
 cleanup:
 
+    if (exc && LW_IS_OK(*exc))
+    {
+        DJLogDomainJoinSucceededEvent(options, osName, distro.version, likewiseOSServicePack);
+    }
+    else
+    {
+        DJLogDomainJoinFailedEvent(options, osName, distro.version, likewiseOSServicePack, *exc);
+    }
+
     if(tempDir != NULL)
     {
         CTRemoveDirectory(tempDir);
@@ -1830,8 +1867,17 @@ void DJDisableComputerAccount(PCSTR username,
     {
         LW_TRY(exc, WBDisableComputerAccount(username, password, options, &LW_EXC));
     }
+
 cleanup:
-    ;
+
+    if (exc && LW_IS_OK(*exc))
+    {
+        DJLogDomainLeaveSucceededEvent(options);
+    }
+    else
+    {
+        DJLogDomainLeaveFailedEvent(options, *exc);
+    }
 }
 
 static void
@@ -2074,3 +2120,332 @@ DJSetMachineSID(
         return WBSetMachineSID(pszMachineSID);
     }
 }
+
+DWORD
+DJOpenEventLog(
+    PSTR pszCategoryType,
+    PHANDLE phEventLog
+    )
+{
+    return LWIOpenEventLogEx(
+                  NULL,             // Server name (defaults to local computer eventlogd)
+                  pszCategoryType,  // Table Category ID (Security, System, ...)
+                  "Likewise DomainJoin", // Source
+                  0,                // Source Event ID
+                  "SYSTEM",         // User
+                  NULL,             // Computer (defaults to assigning local hostname)
+                  phEventLog);
+}
+
+DWORD
+DJCloseEventLog(
+    HANDLE hEventLog
+    )
+{
+    return LWICloseEventLog(hEventLog);
+}
+
+DWORD
+DJLogInformationEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = INFORMATION_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+DWORD
+DJLogWarningEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = WARNING_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+DWORD
+DJLogErrorEvent(
+    HANDLE hEventLog,
+    DWORD  dwEventID,
+    PCSTR  pszUser, // NULL defaults to SYSTEM
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = ERROR_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = (PSTR) pszUser;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWIWriteEventLogBase(
+                   hEventLog,
+                   event);
+}
+
+VOID
+DJLogDomainJoinSucceededEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain join successful.\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Operating system:        %s\r\n" \
+                 "     Distribution version:    %s\r\n" \
+                 "     Likewise version:        %s",
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>",
+                 pszOSName ? pszOSName : "<not set>",
+                 pszDistroVersion ? pszDistroVersion : "<not set>",
+                 pszLikewiseVersion ? pszLikewiseVersion : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogInformationEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_INFO_JOINED_DOMAIN,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainJoinFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    PSTR pszOSName,
+    PSTR pszDistroVersion,
+    PSTR pszLikewiseVersion,
+    LWException *exc
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain join failed.\r\n\r\n" \
+                 "     Reason message:          %s\r\n" \
+                 "     Reason message (long):   %s\r\n" \
+                 "     Reason code:             0x%8x\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Operating system:        %s\r\n" \
+                 "     Distribution version:    %s\r\n" \
+                 "     Likewise version:        %s",
+                 exc && exc->shortMsg ? exc->shortMsg : "<not set>",
+                 exc && exc->longMsg ? exc->longMsg : "<not set>",
+                 exc && exc->code ? exc->code : 0,
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>",
+                 pszOSName ? pszOSName : "<not set>",
+                 pszDistroVersion ? pszDistroVersion : "<not set>",
+                 pszLikewiseVersion ? pszLikewiseVersion : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogErrorEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_ERROR_DOMAIN_JOIN_FAILURE,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainLeaveSucceededEvent(
+    JoinProcessOptions * JoinOptions
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain leave succeeded.\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n",
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogInformationEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_INFO_LEFT_DOMAIN,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+
+VOID
+DJLogDomainLeaveFailedEvent(
+    JoinProcessOptions * JoinOptions,
+    LWException *exc
+    )
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    HANDLE hEventLog = NULL;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    ceError = DJOpenEventLog("System", &hEventLog);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateStringPrintf(
+                 &pszDescription,
+                 "Domain leave failed.\r\n\r\n" \
+                 "     Reason message:          %s\r\n" \
+                 "     Reason message (long):   %s\r\n" \
+                 "     Reason code:             0x%8x\r\n\r\n" \
+                 "     Domain name:             %s\r\n" \
+                 "     Domain name (short):     %s\r\n" \
+                 "     Computer name:           %s\r\n" \
+                 "     Organizational unit:     %s\r\n" \
+                 "     User name:               %s\r\n" \
+                 "     Likewise version:        %s",
+                 exc && exc->shortMsg ? exc->shortMsg : "<not set>",
+                 exc && exc->longMsg ? exc->longMsg : "<not set>",
+                 exc && exc->code ? exc->code : 0,
+                 JoinOptions->domainName ? JoinOptions->domainName : "<not set>",
+                 JoinOptions->shortDomainName ? JoinOptions->shortDomainName : "<not set>",
+                 JoinOptions->computerName ? JoinOptions->computerName : "<not set>",
+                 JoinOptions->ouName ? JoinOptions->ouName : "<not set>",
+                 JoinOptions->username ? JoinOptions->username : "<not set>");
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJLogErrorEvent(
+                    hEventLog,
+                    DOMAINJOIN_EVENT_ERROR_DOMAIN_LEAVE_FAILURE,
+                    JoinOptions->username,
+                    DOMAINJOIN_EVENT_CATEGORY,
+                    pszDescription,
+                    pszData);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+error:
+
+    DJCloseEventLog(hEventLog);
+    CT_SAFE_FREE_STRING(pszDescription);
+    CT_SAFE_FREE_STRING(pszData);
+
+    return;
+}
+

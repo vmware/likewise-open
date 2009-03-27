@@ -106,6 +106,7 @@ SrvProcessTreeConnectAndX(
     PSMB_PACKET pSmbResponse = NULL;
     PSMB_SRV_SESSION pSession = NULL;
     PSMB_SRV_TREE pTree = NULL;
+    BOOLEAN       bRemoveTreeFromSession = FALSE;
     PSHARE_DB_INFO pShareInfo = NULL;
     ULONG ulOffset = 0;
     TREE_CONNECT_REQUEST_HEADER* pRequestHeader = NULL; // Do not free
@@ -172,6 +173,8 @@ SrvProcessTreeConnectAndX(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    bRemoveTreeFromSession = TRUE;
+
     ntStatus = SrvBuildTreeConnectResponse(
                     pConnection,
                     pSmbRequest,
@@ -210,6 +213,22 @@ cleanup:
 error:
 
     *ppSmbResponse = NULL;
+
+    if (bRemoveTreeFromSession)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvSessionRemoveTree(
+                        pSession,
+                        pSmbRequest->pSMBHeader->tid);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
+                            pSmbRequest->pSMBHeader->tid,
+                            pSmbRequest->pSMBHeader->uid,
+                            ntStatus2);
+        }
+    }
 
     if (pSmbResponse)
     {

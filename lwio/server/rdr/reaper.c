@@ -198,7 +198,7 @@ RdrReaperSnapshotHashValues(
                 ulCapacity *= 2;
             }
 
-            ppNewSnapshot = LwRtlMemoryRealloc(ppSnapshot, ulCapacity);
+            ppNewSnapshot = LwRtlMemoryRealloc(ppSnapshot, ulCapacity * sizeof(*ppSnapshot));
             if (!ppNewSnapshot)
             {
                 ntStatus = STATUS_INSUFFICIENT_RESOURCES;

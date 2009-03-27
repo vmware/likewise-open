@@ -73,14 +73,14 @@ typedef struct
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
-    RDR_SOCKET_STATE state;
-    NTSTATUS error;
+    RDR_SOCKET_STATE volatile state;
+    NTSTATUS volatile error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
-    int32_t refCount;           /* Count of state-change waiters and users */
+    int32_t volatile refCount;  /* Count of state-change waiters and users */
 
-    time_t  lastActiveTime;     /* Checked by the reaper thread and message
-                                   handler threads; set when new data is
-                                   received */
+    time_t  volatile lastActiveTime;     /* Checked by the reaper thread and message
+                                            handler threads; set when new data is
+                                            received */
 
     int fd;
     PSTR pszHostname;           /* For hashing and for GSS */
@@ -102,7 +102,7 @@ typedef struct
 
     PSMB_PACKET    pSessionPacket; /* To store packets without a UID
                                          (Negotiate and Session Setup) */
-    BOOLEAN bSessionSetupInProgress;
+    BOOLEAN volatile bSessionSetupInProgress;
 
     uint16_t maxMpxCount;       /* MaxMpxCount from NEGOTIATE */
     LSMB_SEMAPHORE semMpx;
@@ -133,13 +133,12 @@ typedef struct
 {
     pthread_mutex_t mutex;      /* Locks the structure */
 
-    RDR_SESSION_STATE state;    /* Session state : valid, invalid, etc */
-    NTSTATUS error;
-    pthread_cond_t event;       /* Signals waiting threads on state change */
-    int32_t refCount;           /* Count of state-change waiters and users */
+    RDR_SESSION_STATE volatile state;    /* Session state : valid, invalid, etc */
+    NTSTATUS volatile error;
+    pthread_cond_t event;                /* Signals waiting threads on state change */
+    int32_t volatile refCount;           /* Count of state-change waiters and users */
 
-    time_t  lastActiveTime;     /* Checked by the reaper thread; set when
-                                   hash goes empty */
+    time_t volatile lastActiveTime;
 
     SMB_SOCKET *pSocket;        /* Back pointer to parent socket */
     uint16_t uid;
@@ -148,15 +147,15 @@ typedef struct
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
     SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
 
-    uint16_t nextTID;           /* The next free MID to be used.  For now this
-                                   is merely a monotonically increasing counter
-                                   checked against the hash. In the future it
-                                   could be a list of free MIDs from a custom
-                                   allocator. */
+    uint16_t volatile nextTID;           /* The next free MID to be used.  For now this
+                                            is merely a monotonically increasing counter
+                                            checked against the hash. In the future it
+                                            could be a list of free MIDs from a custom
+                                            allocator. */
 
     PSMB_PACKET  pTreePacket;   /* To store packets without a
                                        TID (Tree Connect) or disconnects */
-    BOOLEAN bTreeConnectInProgress;
+    BOOLEAN volatile bTreeConnectInProgress;
 
     PBYTE  pSessionKey;
     DWORD  dwSessionKeyLength;
@@ -179,13 +178,12 @@ typedef struct
                                 /* responses are inserted and removed so often
                                    that a RW lock is probably overkill.*/
 
-    RDR_TREE_STATE state;   /* Tree state: valid, invalid, etc. */
-    NTSTATUS error;
+    RDR_TREE_STATE volatile state;   /* Tree state: valid, invalid, etc. */
+    NTSTATUS volatile error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
-    int32_t refCount;           /* Count of state-change waiters and users */
+    int32_t volatile refCount;           /* Count of state-change waiters and users */
 
-    time_t  lastActiveTime;     /* Checked by the reaper thread; set when
-                                   hash goes empty */
+    time_t  volatile lastActiveTime;
     SMB_SESSION *pSession;      /* Back pointer to parent session */
     uint16_t tid;
     PSTR pszPath;               /* For hashing */
@@ -200,8 +198,8 @@ typedef struct
     /* In a fully asynchronus daemon, this structure would contain all the
        state required to continue an operation. */
     pthread_mutex_t mutex;      /* Locks the structure */
-    SMB_RESOURCE_STATE state;   /* Response state: valid, invalid, etc. */
-    NTSTATUS error;
+    SMB_RESOURCE_STATE volatile state;   /* Response state: valid, invalid, etc. */
+    NTSTATUS volatile error;
     pthread_cond_t event;
 
     /* No refcount: the lifetime of a response is always managed by the
@@ -256,12 +254,12 @@ typedef struct _RDR_GLOBAL_RUNTIME
     SMB_HASH_TABLE   *pSocketHashByName;    /* Socket hash by name */
     pthread_mutex_t   socketHashLock;
     PLWIO_PACKET_ALLOCATOR hPacketAllocator;
-    BOOLEAN bShutdown;
+    BOOLEAN volatile bShutdown;
     pthread_mutex_t   reaperMutex;
     pthread_cond_t    reaperEvent;
     pthread_t reaperThread;
     time_t expirationTime;
-    time_t nextWakeupTime;
+    time_t volatile nextWakeupTime;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

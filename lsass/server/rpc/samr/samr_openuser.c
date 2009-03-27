@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -64,10 +64,11 @@ SamrSrvOpenUser(
     HANDLE hDirectory = NULL;
     PWSTR pwszAttrNameUsername = NULL;
     PWSTR pwszAttrNameSid = NULL;
+    PWSTR pwszAttrNameUid = NULL;
     PWSTR pwszDn = NULL;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
-    PWSTR wszAttributes[3];
+    PWSTR wszAttributes[4];
     PDIRECTORY_ENTRY pEntries = NULL;
     PDIRECTORY_ENTRY pEntry = NULL;
     PDIRECTORY_ATTRIBUTE pAttr = NULL;
@@ -77,6 +78,9 @@ SamrSrvOpenUser(
     PWSTR pwszName = NULL;
     DWORD dwNameLen = 0;
     PSID pSid = NULL;
+    DWORD dwRid = 0;
+
+    memset(wszAttributes, 0, sizeof(wszAttributes));
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
@@ -96,6 +100,10 @@ SamrSrvOpenUser(
                             &pwszAttrNameSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_UID,
+                            &pwszAttrNameUid);
+    BAIL_ON_LSA_ERROR(dwError);
+
     status = SamrSrvAllocateMemory((void**)&pAccCtx,
                                    sizeof(*pAccCtx),
                                    NULL);
@@ -111,7 +119,8 @@ SamrSrvOpenUser(
 
     wszAttributes[0] = pwszAttrNameUsername;
     wszAttributes[1] = pwszAttrNameSid;
-    wszAttributes[2] = NULL;
+    wszAttributes[2] = pwszAttrNameUid;
+    wszAttributes[3] = NULL;
 
     dwError = DirectorySearch(hDirectory,
                               pwszDn,
@@ -133,6 +142,11 @@ SamrSrvOpenUser(
                                                  &pAttrVal);
             BAIL_ON_LSA_ERROR(dwError);
 
+            if (pAttrVal == NULL) {
+                status = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NTSTATUS_ERROR(status);
+            }
+
             if (!wc16scmp(pAttr->pwszName, pwszAttrNameUsername) &&
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
@@ -147,11 +161,19 @@ SamrSrvOpenUser(
 
 
             } else if (!wc16scmp(pAttr->pwszName, pwszAttrNameSid) &&
-                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+                       pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 status = RtlAllocateSidFromWC16String(&pSid,
                                                       pAttrVal->pwszStringValue);
                 BAIL_ON_NTSTATUS_ERROR(status);
+
+                status = SamrSrvAddDepMemory(pSid, pAccCtx);
+                BAIL_ON_NTSTATUS_ERROR(status);
+
+            } else if (!wc16scmp(pAttr->pwszName, pwszAttrNameUid) &&
+                       pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
+
+                dwRid = (DWORD)pAttrVal->uLongValue;
             }
         }
 
@@ -168,19 +190,26 @@ SamrSrvOpenUser(
     pAccCtx->refcount      = 1;
     pAccCtx->pwszName      = pwszName;
     pAccCtx->pSid          = pSid;
+    pAccCtx->dwRid         = dwRid;
     pAccCtx->dwAccountType = SID_TYPE_USER;
 
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
     InterlockedIncrement(&pAccCtx->refcount);
 
     *hUser = (ACCOUNT_HANDLE)pAccCtx;
 
 cleanup:
     if (pwszAttrNameUsername) {
-        SamrSrvFreeMemory(pwszAttrNameUsername);
+        LSA_SAFE_FREE_MEMORY(pwszAttrNameUsername);
     }
 
     if (pwszAttrNameSid) {
-        SamrSrvFreeMemory(pwszAttrNameSid);
+        LSA_SAFE_FREE_MEMORY(pwszAttrNameSid);
+    }
+
+    if (pwszAttrNameUid) {
+        LSA_SAFE_FREE_MEMORY(pwszAttrNameUid);
     }
 
     if (pwszFilter) {
@@ -197,10 +226,6 @@ error:
     if (pAccCtx) {
         InterlockedDecrement(&pAccCtx->refcount);
         ACCOUNT_HANDLE_rundown((ACCOUNT_HANDLE)pAccCtx);
-    }
-
-    if (pSid) {
-        RTL_FREE(&pSid);
     }
 
     *hUser = NULL;

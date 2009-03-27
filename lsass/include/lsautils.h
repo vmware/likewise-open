@@ -1517,6 +1517,11 @@ LsaNtStatusToLsaError(
     IN NTSTATUS Status
     );
 
+NTSTATUS
+LsaLsaErrorToNtStatus(
+    IN DWORD LsaError
+    );
+
 DWORD
 LsaAllocateCStringFromSid(
     OUT PSTR* ppszStringSid,

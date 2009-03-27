@@ -57,6 +57,11 @@ PvfsAccessCheckFileHandle(
     ACCESS_MASK AccessRequired
     );
 
+NTSTATUS
+PvfsAccessCheckAnyFileHandle(
+    PPVFS_CCB pCcb,
+    ACCESS_MASK AccessRequired
+    );
 
 NTSTATUS
 PvfsAccessCheckDir(

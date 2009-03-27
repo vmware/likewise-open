@@ -5,6 +5,12 @@
 
 static
 DWORD
+SamDbCreateTables(
+    PSAM_DB_CONTEXT pDbContext
+    );
+
+static
+DWORD
 SamDbAddDefaultEntries(
     HANDLE hDirectory
     );
@@ -141,13 +147,7 @@ SamDbInit(
 
     pDirectory = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    dwError = SamDbInitDomainTable(pDirectory->pDbContext);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbInitGroupTable(pDirectory->pDbContext);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbInitUserTable(pDirectory->pDbContext);
+    dwError = SamDbCreateTables(pDirectory->pDbContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbAddDefaultEntries(pDirectory);
@@ -170,6 +170,37 @@ cleanup:
     return dwError;
 
 error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbCreateTables(
+    PSAM_DB_CONTEXT pDbContext
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszError = NULL;
+
+    dwError = sqlite3_exec(
+                    pDbContext->pDbHandle,
+                    SAM_DB_QUERY_CREATE_TABLES,
+                    NULL,
+                    NULL,
+                    &pszError);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
 
     goto cleanup;
 }

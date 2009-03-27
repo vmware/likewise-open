@@ -91,7 +91,7 @@ PvfsRead(
     }
 #endif
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
+    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_READ_DATA|FILE_EXECUTE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Simple loop to fill the buffer */

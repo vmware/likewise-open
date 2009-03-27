@@ -54,6 +54,7 @@ SrvProcessNTCreateAndX(
     PSMB_SRV_SESSION    pSession = NULL;
     PSMB_SRV_TREE       pTree = NULL;
     PSMB_SRV_FILE       pFile = NULL;
+    BOOLEAN             bRemoveFileFromTree = FALSE;
     PCREATE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR               pwszFilename = NULL; // Do not free
     IO_FILE_HANDLE      hFile = NULL;
@@ -160,6 +161,8 @@ SrvProcessNTCreateAndX(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    bRemoveFileFromTree = TRUE;
+
     ntStatus = SrvBuildNTCreateResponse(
                     pConnection,
                     pSmbRequest,
@@ -212,6 +215,22 @@ error:
     if (hFile)
     {
         IoCloseFile(hFile);
+    }
+
+    if (bRemoveFileFromTree)
+    {
+        NTSTATUS ntStatus2 = 0;
+
+        ntStatus2 = SrvTreeRemoveFile(
+                        pTree,
+                        pFile->fid);
+        if (ntStatus2)
+        {
+            SMB_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
+                          pTree->tid,
+                          pFile->fid,
+                          ntStatus2);
+        }
     }
 
     if (pSmbResponse)

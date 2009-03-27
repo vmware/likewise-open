@@ -724,6 +724,10 @@ AC_CHECK_TYPES([struct pam_repository], [], [], [AC_INCLUDES_DEFAULT
 #include <security/pam_appl.h>
 ])
 
+AC_CHECK_DECLS([PAM_BAD_ITEM], [], [], [AC_INCLUDES_DEFAULT
+#include <security/pam_appl.h>
+])
+
 AC_CHECK_DECLS([kvm_open, kvm_getprocs], [], [], [
 #if HAVE_FCNTL_H
 #include <fcntl.h>
@@ -822,6 +826,7 @@ AC_CONFIG_FILES([Makefile
 		 nsswitch/hpux/Makefile
 		 nsswitch/solaris/Makefile
 		 nsswitch/mac/Makefile
+		 tokencreateinfo/Makefile
 		 gssntlm/Makefile
                  gssntlm/client/Makefile
 		 gssntlm/common/Makefile

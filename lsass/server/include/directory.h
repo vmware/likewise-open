@@ -11,6 +11,7 @@ typedef ULONG DIRECTORY_ATTR_TYPE;
 #define DIRECTORY_ATTR_TYPE_UNICODE_STRING          6
 #define DIRECTORY_ATTR_TYPE_ANSI_STRING             7
 
+#define DIRECTORY_ATTR_TAG_DN                    "dn"
 #define DIRECTORY_ATTR_TAG_USER_NAME             "user-name"
 #define DIRECTORY_ATTR_TAG_USER_FULLNAME         "user-full-name"
 #define DIRECTORY_ATTR_TAG_UID                   "uid"
@@ -178,9 +179,32 @@ DirectoryGetEntryAttributeByName(
     );
 
 DWORD
+DirectoryGetEntryAttributeByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttributeName,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    );
+
+DWORD
 DirectoryGetAttributeValue(
     PDIRECTORY_ATTRIBUTE pAttribute,
     PATTRIBUTE_VALUE *ppAttrValue
+    );
+
+DWORD
+DirectoryGetEntryAttrValueByName(
+    PDIRECTORY_ENTRY pEntry,
+    PCWSTR pwszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
+    );
+
+DWORD
+DirectoryGetEntryAttrValueByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
     );
 
 DWORD

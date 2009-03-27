@@ -75,6 +75,26 @@ PvfsAccessCheckFileHandle(
     return ntError;
 }
 
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
+PvfsAccessCheckAnyFileHandle(
+    PPVFS_CCB pCcb,
+    ACCESS_MASK AccessRequired
+    )
+{
+    NTSTATUS ntError = STATUS_ACCESS_DENIED;
+
+    /* Any of the permissions are ok */
+
+    if ((pCcb->AccessGranted & AccessRequired) != 0)
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+    return ntError;
+}
 
 /***********************************************************
  **********************************************************/

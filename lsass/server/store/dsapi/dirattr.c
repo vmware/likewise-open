@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -206,6 +206,39 @@ error:
 
 
 DWORD
+DirectoryGetEntryAttributeByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttributeName,
+    PDIRECTORY_ATTRIBUTE *ppAttribute
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszAttributeName = NULL;
+    PDIRECTORY_ATTRIBUTE pAttribute = NULL;
+
+    dwError = LsaMbsToWc16s(pszAttributeName, &pwszAttributeName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttributeByName(pEntry,
+                                               pwszAttributeName,
+                                               &pAttribute);
+
+    *ppAttribute = pAttribute;
+
+cleanup:
+    if (pwszAttributeName) {
+        LSA_SAFE_FREE_MEMORY(pwszAttributeName);
+    }
+
+    return dwError;
+
+error:
+    *ppAttribute = NULL;
+    goto cleanup;
+}
+
+
+DWORD
 DirectoryGetAttributeValue(
     PDIRECTORY_ATTRIBUTE pAttribute,
     PATTRIBUTE_VALUE *ppAttrValue
@@ -227,6 +260,104 @@ DirectoryGetAttributeValue(
 
 error:
     return dwError;
+}
+
+
+DWORD
+DirectoryGetEntryAttrValueByName(
+    PDIRECTORY_ENTRY pEntry,
+    PCWSTR pwszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_ATTRIBUTE pAttr = NULL;
+    PATTRIBUTE_VALUE pAttrVal = NULL;
+    BOOLEAN *pbValue = NULL;
+    ULONG *pulValue = NULL;
+    LONG64 *pllValue = NULL;
+    PWSTR *ppwszValue = NULL;
+    PSTR *ppszValue = NULL;
+    BOOLEAN bTypeIsCorrect = FALSE;
+
+    dwError = DirectoryGetEntryAttributeByName(pEntry,
+                                               pwszAttrName,
+                                               &pAttr);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    dwError = DirectoryGetAttributeValue(pAttr,
+                                         &pAttrVal);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    bTypeIsCorrect = (pAttrVal->Type == AttrType);
+
+    switch (pAttrVal->Type) {
+    case DIRECTORY_ATTR_TYPE_BOOLEAN:
+        pbValue = (BOOLEAN*)pValue;
+        *pbValue = (bTypeIsCorrect) ? pAttrVal->bBooleanValue : FALSE;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_INTEGER:
+        pulValue = (ULONG*)pValue;
+        *pulValue = (bTypeIsCorrect) ? pAttrVal->uLongValue : 0;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:
+        pllValue = (LONG64*)pValue;
+        *pllValue = (bTypeIsCorrect) ? pAttrVal->llValue : 0;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
+        ppwszValue = (PWSTR*)pValue;
+        *ppwszValue = (bTypeIsCorrect) ? pAttrVal->pwszStringValue : NULL;
+        break;
+
+    case DIRECTORY_ATTR_TYPE_ANSI_STRING:
+        ppszValue = (PSTR*)pValue;
+        *ppszValue = (bTypeIsCorrect) ? pAttrVal->pszStringValue : NULL;
+        break;
+
+    default:
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+DirectoryGetEntryAttrValueByNameA(
+    PDIRECTORY_ENTRY pEntry,
+    PCSTR pszAttrName,
+    DIRECTORY_ATTR_TYPE AttrType,
+    void *pValue
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszAttrName = NULL;
+
+    dwError = LsaMbsToWc16s(pszAttrName, &pwszAttrName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               pwszAttrName,
+                                               AttrType,
+                                               pValue);
+
+cleanup:
+    if (pwszAttrName) {
+        LSA_SAFE_FREE_MEMORY(pwszAttrName);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 

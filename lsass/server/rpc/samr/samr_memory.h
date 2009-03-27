@@ -76,6 +76,13 @@ SamrSrvReallocMemory(
     );
 
 
+NTSTATUS
+SamrSrvAddDepMemory(
+    void *pIn,
+    void *pDep
+    );
+
+
 void
 SamrSrvFreeMemory(
     void *pPtr

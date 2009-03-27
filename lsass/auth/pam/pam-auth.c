@@ -84,7 +84,10 @@ pam_sm_authenticate(
     {
 #ifdef HAVE_STRUCT_PAM_REPOSITORY
         struct pam_repository *currentRepository = NULL;
-        pam_get_item(pamh, PAM_REPOSITORY, (void**) (void*) &currentRepository);
+        pam_get_item(
+                pamh,
+                PAM_REPOSITORY,
+                (PAM_GET_ITEM_TYPE)&currentRepository);
         if(currentRepository == NULL)
         {
             struct pam_repository files = { "files", NULL, 0 };

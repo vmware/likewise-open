@@ -54,12 +54,15 @@ enum LsaContextType {
 
 typedef struct lsa_generic_context {
     enum LsaContextType  Type;
+    LONG                 refcount;
 } LSA_GENERIC_CONTEXT, *PLSA_GENERIC_CONTEXT;
 
 
 typedef struct lsa_policy_context {
     enum LsaContextType  Type;
+    LONG                 refcount;
     PACCESS_TOKEN        pUserToken;
+    HANDLE               hDirectory;
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;
 
 

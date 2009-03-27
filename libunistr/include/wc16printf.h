@@ -33,39 +33,111 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#ifdef _WIN32
+#ifdef _WIN64
+typedef __int64 __w64 ssize_t;
+#else
+typedef int __w64 ssize_t;
+#endif
+#endif
+
+LIBUNISTR_API
 ssize_t
-vsw16printf(
+_vsw16printf(
     wchar16_t *out,
     size_t maxchars,
     const wchar16_t *format,
     va_list args
     );
 
+#ifdef __GNUC__
+#define vsw16printf(out, maxchars, format, args) \
+            _vsw16printf(out, maxchars, format, args)
+#elif _WIN32
+#define vsw16printf(out, maxchars, format, args) \
+            vswprintf(out, maxchars, format, args)
+#endif
+
 //TODO: rename this once the deprecated sw16printf is removed
+LIBUNISTR_API
 ssize_t
-sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...);
+_sw16printf_new(wchar16_t *out, size_t maxchars, const wchar16_t *format, ...);
 
+#ifdef __GNUC__
+#define sw16printf_new(out, maxchars, ...) \
+    _sw16printf_new(out, maxchars, __VA_ARGS__)
+#elif _WIN32
+#define sw16printf_new(out, maxchars, ...) \
+    swprintf(out, maxchars, __VA_ARGS__)
+#endif
+
+LIBUNISTR_API
 ssize_t
-sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
+_sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
 
+#ifdef __GNUC__
+#define sw16printfw(out, maxchars, ...) \
+    _sw16printfw(out, maxchars, __VA_ARGS__)
+#elif _WIN32
+#define sw16printfw(out, maxchars, ...) \
+    swprintf(out, maxchars, __VA_ARGS__)
+#endif
+
+LIBUNISTR_API
 wchar16_t *
 asw16printfw(const wchar_t *format, ...);
 
+LIBUNISTR_API
 ssize_t
-vfw16printf(
+_vfw16printf(
     FILE *pFile,
     const wchar16_t *format,
     va_list args
     );
 
-ssize_t
-fw16printf(FILE *pFile, const wchar16_t *format, ...);
+#ifdef __GNUC__
+#define vfw16printf(pFile, format, args) \
+    _vfw16printf(pFile, format, args)
+#elif _WIN32
+#define vfw16printf(pFile, format, args) \
+    vfwprintf(pFile, format, args)
+#endif
 
+LIBUNISTR_API
 ssize_t
-fw16printfw(FILE *pFile, const wchar_t *format, ...);
+_fw16printf(FILE *pFile, const wchar16_t *format, ...);
 
+#ifdef __GNUC__
+#define fw16printf(pFile, ...) \
+    _fw16printf(pFile, __VA_ARGS__)
+#elif _WIN32
+#define fw16printf(pFile, ...) \
+    fwprintf(pFile, __VA_ARGS__)
+#endif
+
+LIBUNISTR_API
 ssize_t
-w16printfw(const wchar_t *format, ...);
+_fw16printfw(FILE *pFile, const wchar_t *format, ...);
+
+#ifdef __GNUC__
+#define fw16printfw(pFile, ...) \
+    _fw16printfw(pFile, __VA_ARGS__)
+#elif _WIN32
+#define fw16printfw(pFile, ...) \
+    fwprintf(pFile, __VA_ARGS__)
+#endif
+
+LIBUNISTR_API
+ssize_t
+_w16printfw(const wchar_t *format, ...);
+
+#ifdef __GNUC__
+#define w16printfw(pFile, ...) \
+    _w16printfw(pFile, __VA_ARGS__)
+#elif _WIN32
+#define w16printfw(pFile, ...) \
+    wprintf(pFile, __VA_ARGS__)
+#endif
 
 //Deprecated
 int printfw16(const char *fmt, ...);

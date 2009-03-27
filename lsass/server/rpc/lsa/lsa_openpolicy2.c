@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: LsaOpenPolicy2 function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_openpolicy2.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        LsaOpenPolicy2 function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -39,30 +49,43 @@
 
 NTSTATUS
 LsaSrvOpenPolicy2(
-    handle_t b,
-    wchar16_t *system_name,
-    ObjectAttribute *attrib,
-    uint32 access_mask,
-    POLICY_HANDLE *hPolicy
+    /* [in] */ handle_t hBinding,
+    /* [in] */ wchar16_t *system_name,
+    /* [in] */ ObjectAttribute *attrib,
+    /* [in] */ uint32 access_mask,
+    /* [out] */ POLICY_HANDLE *hPolicy
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PPOLICY_CONTEXT pPol = NULL;
+    PPOLICY_CONTEXT pPolCtx = NULL;
+    HANDLE hDirectory = NULL;
 
-    status = LsaSrvAllocateMemory((void**)&pPol,
-                                  sizeof(*pPol),
+    status = LsaSrvAllocateMemory((void**)&pPolCtx,
+                                  sizeof(*pPolCtx),
                                   NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *hPolicy = pPol;
+    dwError = DirectoryOpen(&hDirectory);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    pPolCtx->Type        = LsaContextPolicy;
+    pPolCtx->refcount    = 1;
+    pPolCtx->hDirectory  = hDirectory;
+
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
+    InterlockedIncrement(&pPolCtx->refcount);
+
+    *hPolicy = (POLICY_HANDLE)pPolCtx;
 
 cleanup:
     return status;
 
 error:
-    if (pPol) {
-        LsaSrvFreeMemory(pPol);
+    if (pPolCtx) {
+        InterlockedDecrement(&pPolCtx->refcount);
+        POLICY_HANDLE_rundown((POLICY_HANDLE)pPolCtx);
     }
 
     *hPolicy = NULL;

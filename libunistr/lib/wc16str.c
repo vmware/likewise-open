@@ -40,12 +40,20 @@
 #ifdef HAVE_WCTYPE_H
 #    include <wctype.h>
 #endif
+#ifndef _WIN32
 #include <iconv.h>
+#include <inttypes.h>
+#endif
 #include <errno.h>
 #include <wchar.h>
 #include <string.h>
-#include <inttypes.h>
 #include <limits.h>
+#include <stdio.h>
+#include "wc16printf.h"
+
+#ifdef _WIN32
+#pragma warning( disable : 4996 )
+#endif
 
 #ifndef SIZE_MAX
 #define SIZE_MAX ((size_t)-1)
@@ -197,7 +205,7 @@ _wc16stoull(
      */
     if (bNegate)
     {
-        return -result;
+        return (unsigned long long)-(long long)result;
     }
     else
     {
@@ -355,7 +363,22 @@ int wc16sncmp(const wchar16_t *s1, const wchar16_t *s2, size_t n)
         s2_len = n;
     }
 
-    if (s1_len != s2_len) return s1_len - s2_len;
+    if (s1_len != s2_len)
+    {
+        ssize_t sLenDiff = (ssize_t)(s1_len - s2_len);
+        if (sLenDiff > INT_MAX || sLenDiff < INT_MIN)
+        {
+            if (sLenDiff > 0)
+            {
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        return (int)sLenDiff;
+    }
 
     len = s1_len;
     return memcmp((void*)s1, (void*)s2, len);
@@ -457,7 +480,7 @@ wchar16_t *awcstowc16s(const wchar_t *input, int *free_required)
 
 size_t wcstowc16s(wchar16_t *dest, const wchar_t *src, size_t cchcopy)
 {
-#if WCHAR16_IS_WCHAR
+#ifdef WCHAR16_IS_WCHAR
     size_t input_len = wcslen(src);
     if(input_len >= cchcopy)
         input_len = cchcopy;
@@ -486,7 +509,7 @@ size_t wcstowc16s(wchar16_t *dest, const wchar_t *src, size_t cchcopy)
 
 wchar_t *awc16stowcs(const wchar16_t *input, int *free_required)
 {
-#if WCHAR16_IS_WCHAR
+#ifdef WCHAR16_IS_WCHAR
     *free_required = 0;
     return (wchar_t*) input;
 #else
@@ -510,7 +533,7 @@ wchar_t *awc16stowcs(const wchar16_t *input, int *free_required)
 
 size_t wc16stowcs(wchar_t *dest, const wchar16_t *src, size_t cchcopy)
 {
-#if WCHAR16_IS_WCHAR
+#ifdef WCHAR16_IS_WCHAR
     size_t input_len = wcslen(src);
     if(input_len >= cchcopy)
         input_len = cchcopy;
@@ -539,6 +562,18 @@ size_t wc16stowcs(wchar_t *dest, const wchar16_t *src, size_t cchcopy)
 
 size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
 {
+#ifdef WCHAR16_IS_WCHAR
+    size_t sPos = 0;
+
+    for (sPos = 0; sPos < cchcopy; sPos++)
+    {
+        wchar16_t wcCurrent = src[sPos];
+        ((char*)&dest[sPos])[0] = wcCurrent & 0xFF;
+        ((char*)&dest[sPos])[1] = (wcCurrent >> 8) & 0xFF;
+    }
+
+    return sPos;
+#else
     iconv_t handle = iconv_open(WINDOWS_ENCODING, "UCS-2LE");
     char *inbuf = (char *)src;
     char *outbuf = (char *)dest;
@@ -553,6 +588,7 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
         return (size_t)-1;
     else
         return cchcopy - cbout/sizeof(dest[0]);
+#endif
 }
 
 wchar16_t *ambstowc16s(const char *input)
@@ -581,7 +617,7 @@ wchar16_t *ambstowc16s(const char *input)
  */
 size_t mbstowc16s(wchar16_t *dest, const char *src, size_t cchcopy)
 {
-#if WCHAR16_IS_WCHAR
+#ifdef WCHAR16_IS_WCHAR
     return mbstowcs(dest, src, cchcopy);
 #else
     iconv_t handle = iconv_open(WINDOWS_ENCODING, "");
@@ -610,6 +646,11 @@ size_t mbstowc16s(wchar16_t *dest, const char *src, size_t cchcopy)
 
 size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
 {
+#ifdef WCHAR16_IS_WCHAR
+    cchcopy = mbstowc16s(dest, src, cchcopy);
+    cchcopy = wc16stowc16les(dest, dest, cchcopy);
+    return cchcopy;
+#else
     iconv_t handle = iconv_open("UCS-2LE", "");
     char *inbuf;
     char *outbuf;
@@ -631,6 +672,7 @@ size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
         return (size_t)-1;
     else
         return cchcopy - cbout/sizeof(dest[0]);
+#endif
 }
 
 char *awc16stombs(const wchar16_t *input)
@@ -651,6 +693,7 @@ char *awc16stombs(const wchar16_t *input)
     return buffer;
 }
 
+#ifndef WCHAR16_IS_WCHAR
 // Calculates how many bytes it would take to convert *insize bytes of *inbuf,
 // given unlimited output buffer to iconv.
 size_t
@@ -690,7 +733,7 @@ iconv_count(
 
 size_t __mbsnbcnt(const char *src, size_t cchFind)
 {
-    iconv_t handle = iconv_open("", "UCS-4");
+    iconv_t handle = iconv_open("UCS-4", "");
     size_t cbFind = strlen(src);
     char *srcPos = (char *)src;
     if (iconv_count(handle, (ICONV_IN_TYPE) &srcPos, &cbFind, &cchFind) < 0)
@@ -699,10 +742,11 @@ size_t __mbsnbcnt(const char *src, size_t cchFind)
     }
     return srcPos - src;
 }
+#endif
 
 size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 {
-#if WCHAR16_IS_WCHAR
+#ifdef WCHAR16_IS_WCHAR
     return wcstombs(dest, src, cbcopy);
 #else
     iconv_t handle = iconv_open("", WINDOWS_ENCODING);
@@ -787,7 +831,7 @@ wc16slower(
 static void strcaseconv(caseconv fconv, char *s)
 {
     size_t len;
-    int i;
+    size_t i;
 
     if (fconv == NULL || s == NULL) return;
     len = strlen(s);
@@ -810,6 +854,15 @@ void strlower(char *s)
     strcaseconv(tolower, s);
 }
 
+void printwc16s(const wchar16_t* pwszPrint)
+{
+    FILE *tty = fopen("/dev/tty", "w");
+    if (tty)
+    {
+        fw16printfw(tty, L"[%ws]\n", pwszPrint);
+        fclose(tty);
+    }
+}
 
 /*
 local variables:

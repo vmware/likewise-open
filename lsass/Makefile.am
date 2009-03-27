@@ -11,6 +11,7 @@ compat_subdirs = \
 
 full_subdirs= \
 	$(compat_subdirs) \
+	tokencreateinfo   \
 	lsaunistr         \
         wbclient          \
 	lwicompat	  \

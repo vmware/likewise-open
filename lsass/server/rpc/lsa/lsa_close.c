@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: LsaClose function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_close.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        LsaClose function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -39,9 +49,9 @@
 
 NTSTATUS
 LsaSrvClose(
-    handle_t b,
-    POLICY_HANDLE hIn,
-    POLICY_HANDLE *hOut
+    /* [in] */ handle_t hBinding,
+    /* [in, context_handle] */ void *hIn,
+    /* [out, context_handle] */ void **hOut
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

@@ -37,11 +37,22 @@
 #ifdef __GNUC__
 typedef unsigned short int  wchar16_t;  /* 16-bit unsigned */
 
-#elif _WIN32
+#elif defined(_WIN32)
+#include <wchar.h>
 typedef wchar_t             wchar16_t;
 #define WCHAR16_IS_WCHAR
 #endif
 
 #endif /* WCHAR16_T_DEFINED */
+
+#ifdef WIN32
+#ifdef LIBUNISTR_EXPORTS
+#define LIBUNISTR_API __declspec(dllexport)
+#else
+#define LIBUNISTR_API __declspec(dllimport)
+#endif
+#else
+#define LIBUNISTR_API
+#endif
 
 #endif /* WCHAR16_H */

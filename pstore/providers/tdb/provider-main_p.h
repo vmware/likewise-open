@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <tdb.h>
+#include <lw/swab.h>
 
 typedef struct __TDB_PROVIDER_CONTEXT 
 {
@@ -73,13 +74,19 @@ typedef struct _MACHINE_ACCT_INFO {
 } MACHINE_ACCT_INFO, *PMACHINE_ACCT_INFO;
 
 VOID
-FreeMachineAccountInfo(
+TDB_FreeMachineAccountInfo(
 	PMACHINE_ACCT_INFO pAcctInfo
 	);
 
-VOID
-FreePasswordInfoStruct(
-	PLWPS_PASSWORD_INFO pInfo
-	);
 
 #endif /* __PROVIDER_MAIN_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

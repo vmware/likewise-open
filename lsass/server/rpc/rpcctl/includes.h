@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <pthread.h>
+#include <errno.h>
+#include <sys/stat.h>
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>

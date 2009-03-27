@@ -159,6 +159,32 @@ error:
 }
 
 
+NTSTATUS
+SamrSrvAddDepMemory(
+    void *pIn,
+    void *pDep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    void *pParent = NULL;
+    int locked = 0;
+
+    pParent = (pDep) ? pDep : pSamrSrvMemRoot;
+
+    GLOBAL_DATA_LOCK(locked);
+
+    tlink(pParent, pIn);
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
+    return status;
+
+error:
+    goto cleanup;
+}
+
+
 void
 SamrSrvFreeMemory(
     void *pPtr

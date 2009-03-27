@@ -602,11 +602,31 @@ LsaNtStatusToLsaError(
 {
     switch (Status)
     {
+        case STATUS_SUCCESS:
+            return LSA_ERROR_SUCCESS;
         case STATUS_INSUFFICIENT_RESOURCES:
             return LSA_ERROR_OUT_OF_MEMORY;
         case STATUS_INVALID_SID:
             return LSA_ERROR_INVALID_SID;
         default:
             return LwNtStatusToUnixErrno(Status);
+    }
+}
+
+NTSTATUS
+LsaLsaErrorToNtStatus(
+    IN DWORD LsaError
+    )
+{
+    switch (LsaError)
+    {
+        case LSA_ERROR_SUCCESS:
+            return STATUS_SUCCESS;
+        case LSA_ERROR_OUT_OF_MEMORY:
+            return STATUS_INSUFFICIENT_RESOURCES;
+        case LSA_ERROR_INVALID_SID:
+            return STATUS_INVALID_SID;
+        default:
+            return STATUS_UNSUCCESSFUL;
     }
 }

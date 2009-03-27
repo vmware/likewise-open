@@ -90,26 +90,26 @@ SamrLookupNames(
     hDirectory = pDomCtx->pConnCtx->hDirectory;
     pwszDn     = pDomCtx->pwszDn;
 
-    status = SamrSrvAllocateMemory((void**)&(pIds),
+    status = SamrSrvAllocateMemory((void**)&pIds,
                                    sizeof(*pIds),
-                                   NULL);
+                                   pDomCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pIds->count = num_names;
     status = SamrSrvAllocateMemory((void**)&(pIds->ids),
                                    pIds->count * sizeof(uint32),
-                                   NULL);
+                                   pDomCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvAllocateMemory((void**)&(pTypes),
+    status = SamrSrvAllocateMemory((void**)&pTypes,
                                    sizeof(*pTypes),
-                                   NULL);
+                                   pDomCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pTypes->count = num_names;
     status = SamrSrvAllocateMemory((void**)&(pTypes->ids),
                                    pTypes->count * sizeof(uint32),
-                                   NULL);
+                                   pDomCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GID, &pwszAttrNameGid);
@@ -157,47 +157,46 @@ SamrLookupNames(
         if (dwEntriesNum == 1) {
             pEntry = &(pEntries[0]);
 
-            if (pEntry->ulNumAttributes) {
-                dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                           pwszAttrNameUid,
-                                                           &pAttr);
-                if (dwError == 0) {
-                    dwError = DirectoryGetAttributeValue(pAttr,
-                                                         &pAttrVal);
-                    BAIL_ON_LSA_ERROR(dwError);
+            dwError = DirectoryGetEntryAttributeByName(pEntry,
+                                                       pwszAttrNameUid,
+                                                       &pAttr);
+            if (pAttr && dwError == 0) {
+                dwError = DirectoryGetAttributeValue(pAttr,
+                                                     &pAttrVal);
+                BAIL_ON_LSA_ERROR(dwError);
 
-                    if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
-                        pIds->ids[i]   = pAttrVal->uLongValue;
-                        pTypes->ids[i] = SID_TYPE_USER;
+                if (pAttrVal &&
+                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
 
-                    } else {
-                        status = STATUS_INTERNAL_ERROR;
-                        BAIL_ON_NTSTATUS_ERROR(status);
-                    }
+                    pIds->ids[i]   = pAttrVal->uLongValue;
+                    pTypes->ids[i] = SID_TYPE_USER;
 
                 } else {
-                    dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                               pwszAttrNameGid,
-                                                               &pAttr);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    dwError = DirectoryGetAttributeValue(pAttr,
-                                                         &pAttrVal);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
-                        pIds->ids[i]   = pAttrVal->uLongValue;
-                        pTypes->ids[i] = SID_TYPE_ALIAS;
-
-                    } else {
-                        status = STATUS_INTERNAL_ERROR;
-                        BAIL_ON_NTSTATUS_ERROR(status);
-                    }
+                    status = STATUS_INTERNAL_ERROR;
+                    BAIL_ON_NTSTATUS_ERROR(status);
                 }
 
             } else {
-                status = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(status);
+                pAttr = NULL;
+                dwError = DirectoryGetEntryAttributeByName(pEntry,
+                                                           pwszAttrNameGid,
+                                                           &pAttr);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = DirectoryGetAttributeValue(pAttr,
+                                                     &pAttrVal);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (pAttrVal &&
+                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
+
+                    pIds->ids[i]   = pAttrVal->uLongValue;
+                    pTypes->ids[i] = SID_TYPE_ALIAS;
+
+                } else {
+                    status = STATUS_INTERNAL_ERROR;
+                    BAIL_ON_NTSTATUS_ERROR(status);
+                }
             }
 
         } else if (dwEntriesNum == 0) {
