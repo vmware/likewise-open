@@ -649,10 +649,10 @@ SamDbAddUser(
                     NULL);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserSID, -1, SQLITE_STATIC);
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserSID, -1, SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserDN, -1, SQLITE_STATIC);
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserDN, -1, SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_bind_int(pSqlStatement, ++iParam, objectClass);
@@ -670,14 +670,14 @@ SamDbAddUser(
     }
     else
     {
-        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszPassword, -1, SQLITE_STATIC);
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszPassword, -1, SQLITE_TRANSIENT);
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserName, -1, SQLITE_STATIC);
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszUserName, -1, SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszDomainName, -1, SQLITE_STATIC);
+    dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszDomainName, -1, SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     if (!pszGecos)
@@ -686,7 +686,7 @@ SamDbAddUser(
     }
     else
     {
-        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszGecos, -1, SQLITE_STATIC);
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszGecos, -1, SQLITE_TRANSIENT);
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -699,7 +699,7 @@ SamDbAddUser(
     }
     else
     {
-        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszHomedir, -1, SQLITE_STATIC);
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszHomedir, -1, SQLITE_TRANSIENT);
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -709,7 +709,7 @@ SamDbAddUser(
     }
     else
     {
-        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszShell, -1, SQLITE_STATIC);
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszShell, -1, SQLITE_TRANSIENT);
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -722,20 +722,24 @@ SamDbAddUser(
     }
     else
     {
-        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszFullName, -1, SQLITE_STATIC);
+        dwError = sqlite3_bind_text(pSqlStatement, ++iParam, pszFullName, -1, SQLITE_TRANSIENT);
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_bind_int64(pSqlStatement, ++iParam, qwAccountExpiry);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &lmHash[0], sizeof(lmHash), SQLITE_STATIC);
+    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &lmHash[0], sizeof(lmHash), SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &ntHash[0], sizeof(ntHash), SQLITE_STATIC);
+    dwError = sqlite3_bind_blob(pSqlStatement, ++iParam, &ntHash[0], sizeof(ntHash), SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = sqlite3_step(pSqlStatement);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
