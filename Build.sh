@@ -5,9 +5,11 @@ COMPONENTS="\
 	openldap \
 	libunistr \
 	lwbase \
+	lwmapsecurity \
         lwmsg \
 	centutils \
 	sqlite \
+	libtdb \
 	pstore \
 	netlogon \
         lwio \

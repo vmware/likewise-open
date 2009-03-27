@@ -20,6 +20,7 @@
 
 DIRS="\
 	lwbase \
+	lwmapsecurity \
 	centutils \
 	domainjoin \
 	eventlog \
@@ -31,6 +32,7 @@ DIRS="\
 	netlogon \
 	lwmsg \
 	lwio \
+	libtdb \
 	pstore \
 	dcerpc \
 	lwdns \
