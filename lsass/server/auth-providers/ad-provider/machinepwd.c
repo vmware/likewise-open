@@ -186,13 +186,23 @@ ADSyncMachinePasswords(
         	dwError = LsaKrb5RefreshMachineTGT(&dwGoodUntilTime);
         	if (dwError)
         	{
-        		LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
-        		dwError = 0;
-        		goto lsa_wait_resync;
+                    if (AD_EventlogEnabled())
+                    {
+                        ADLogMachineTGTRefreshFailureEvent(dwError);
+                    }
+
+                    LSA_LOG_ERROR("Error: Failed to refresh machine TGT [Error code: %ld]", dwError);
+                    dwError = 0;
+                    goto lsa_wait_resync;
         	}
                 ADSetMachineTGTExpiry(dwGoodUntilTime);
         	
         	LSA_LOG_VERBOSE("Machine TGT was refreshed successfully");
+
+                if (AD_EventlogEnabled())
+                {
+                    ADLogMachineTGTRefreshSuccessEvent();
+                }
         }
         
 lsa_wait_resync:
@@ -435,4 +445,73 @@ error:
     goto cleanup;
 }
 
+VOID
+ADLogMachineTGTRefreshSuccessEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Refreshed Active Directory machine account TGT (Ticket Granting Ticket).\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_TGT_REFRESH,
+            KERBEROS_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+ADLogMachineTGTRefreshFailureEvent(
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "The Active Directory machine account TGT (Ticket Granting Ticket) failed to refresh.\r\n\r\n" \
+                 "     Authentication provider:   %s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+
+    LsaSrvLogServiceFailureEvent(
+            LSASS_EVENT_FAILED_MACHINE_ACCOUNT_TGT_REFRESH,
+            KERBEROS_EVENT_CATEGORY,
+            pszDescription,
+            pszData);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
 
