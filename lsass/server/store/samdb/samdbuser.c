@@ -230,6 +230,7 @@ SamDbAddUser(
     DWORD iParam = 0;
     BOOLEAN bInLock = FALSE;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_USER;
+    BOOLEAN bTxStarted = FALSE;
     PCSTR pszQueryTemplate = "INSERT INTO " SAM_DB_OBJECTS_TABLE \
                                 "(ObjectRecordId,"        \
                                  "ObjectSID,"             \
@@ -311,6 +312,8 @@ SamDbAddUser(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    SAM_DB_BEGIN_TRANSACTION(bTxStarted, hDirectory);
 
     dwError = LsaWc16sToMbs(
                     pwszUserName,
@@ -736,6 +739,8 @@ SamDbAddUser(
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
+
+    SAM_DB_END_TRANSACTION(bTxStarted, dwError, hDirectory);
 
     if (pSqlStatement)
     {

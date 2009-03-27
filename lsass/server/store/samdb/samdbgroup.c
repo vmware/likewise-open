@@ -121,6 +121,7 @@ SamDbAddGroup(
     SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     PSAM_DB_DOMAIN_INFO* ppDomainInfoList = NULL;
     DWORD dwNumDomains = 0;
+    BOOLEAN bTxStarted = FALSE;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_GROUP;
     PCSTR pszQueryTemplate = "INSERT INTO " SAM_DB_OBJECTS_TABLE \
                                 "(ObjectRecordId,"        \
@@ -183,6 +184,8 @@ SamDbAddGroup(
     }
 
     SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
+
+    SAM_DB_BEGIN_TRANSACTION(bTxStarted, hDirectory);
 
     dwError = LsaWc16sToMbs(
                     pwszGroupName,
@@ -350,6 +353,8 @@ SamDbAddGroup(
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
+
+    SAM_DB_END_TRANSACTION(bTxStarted, dwError, hDirectory);
 
     if (pszQuery)
     {
