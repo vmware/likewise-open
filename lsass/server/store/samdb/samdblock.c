@@ -13,8 +13,7 @@ SamDbBuildDbInstanceLock(
                     (PVOID*)&pLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SamDbInitializeInterlockedCounter(&pLock->counter);
-    SamDbInterlockedIncrement(&pLock->counter);
+    pLock->refCount = 1;
 
     pthread_rwlock_init(&pLock->rwLock, NULL);
 
@@ -44,7 +43,7 @@ SamDbAcquireDbInstanceLock(
 {
     DWORD dwError = 0;
 
-    SamDbInterlockedIncrement(&pLock->counter);
+    InterlockedIncrement(&pLock->refCount);
 
     *ppLock = pLock;
 
@@ -56,9 +55,7 @@ SamDbReleaseDbInstanceLock(
     PSAM_DB_INSTANCE_LOCK pLock
     )
 {
-    SamDbInterlockedDecrement(&pLock->counter);
-
-    if (SamDbInterlockedCounter(&pLock->counter) == 0)
+    if (InterlockedDecrement(&pLock->refCount) == 0)
     {
         SamDbFreeDbInstanceLock(pLock);
     }

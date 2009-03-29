@@ -2,24 +2,20 @@ provider_LTLIBRARIES = libsamdb.la
 
 libsamdb_la_SOURCES =     \
         samdbadd.c        \
-        samdbattrlookup.c \
         samdbbind.c       \
         samdbclose.c      \
         samdbcontext.c    \
         samdbcounter.c    \
         samdbdel.c        \
-        samdbdomain.c     \
         samdbdn.c         \
         samdbglobals.c    \
-        samdbgroup.c      \
         samdbinit.c       \
         samdblock.c       \
         samdbmisc.c       \
         samdbmodify.c     \
         samdbopen.c       \
         samdbsearch.c     \
-        samdbtrans.c      \
-        samdbuser.c
+        samdbtrans.c
 
 libsamdb_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

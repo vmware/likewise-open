@@ -2,70 +2,35 @@
 
 DWORD
 SamDbDeleteObject(
-    HANDLE hBindHandle,
+    HANDLE hDirectory,
     PWSTR  pwszObjectDN
     )
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
-    PWSTR pwszObjectName = NULL;
-    PWSTR pwszDomain = NULL;
-    SAMDB_ENTRY_TYPE entryType = 0;
+    PSAM_DB_DN pDN = NULL;
 
-    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
     dwError = SamDbParseDN(
                     pwszObjectDN,
-                    &pwszObjectName,
-                    &pwszDomain,
-                    &entryType);
+                    &pDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    switch (entryType) {
+    // TODO
 
-        case SAMDB_ENTRY_TYPE_USER:
+cleanup:
 
-            dwError = SamDbDeleteUser(
-                            pDirectoryContext,
-                            pwszObjectName);
-
-            break;
-
-        case SAMDB_ENTRY_TYPE_GROUP:
-
-            dwError = SamDbDeleteGroup(
-                            pDirectoryContext,
-                            pwszObjectName);
-            break;
-
-        case SAMDB_ENTRY_TYPE_DOMAIN:
-
-            dwError = SamDbDeleteDomain(
-                            pDirectoryContext,
-                            pwszDomain);
-
-            break;
-
-        default:
-
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-
-            break;
-    }
-
-error:
-
-    if (pwszObjectName)
+    if (pDN)
     {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-
-    if (pwszDomain)
-    {
-        DirectoryFreeMemory(pwszDomain);
+        SamDbFreeDN(pDN);
     }
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 

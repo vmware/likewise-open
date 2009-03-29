@@ -50,26 +50,6 @@
 #ifndef __SAMDB_MISC_H__
 #define __SAMDB_MISC_H__
 
-VOID
-SamDbInterlockedIncrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    );
-
-VOID
-SamDbInterlockedDecrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    );
-
-VOID
-SamDbInitializeInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    );
-
-DWORD
-SamDbInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    );
-
 DWORD
 SamDbComputeLMHash(
     PCSTR pszPassword,

@@ -8,6 +8,7 @@ SamDbModifyObject(
     )
 {
     DWORD dwError = 0;
+#if 0
     PWSTR pwszObjectName = NULL;
     PWSTR pwszDomain = NULL;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
@@ -69,6 +70,7 @@ error:
     {
         DirectoryFreeMemory(pwszDomain);
     }
+#endif
 
     return dwError;
 }

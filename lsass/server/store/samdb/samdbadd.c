@@ -9,71 +9,29 @@ SamDbAddObject(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     PWSTR pwszObjectName = NULL;
     PWSTR pwszDomain = NULL;
-    SAMDB_ENTRY_TYPE entryType = 0;
+    PSAM_DB_DN pDN = NULL;
+    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
 
-    dwError = SamDbParseDN(
-                    pwszObjectDN,
-                    &pwszObjectName,
-                    &pwszDomain,
-                    &entryType);
-    BAIL_ON_SAMDB_ERROR(dwError);
+   dwError = SamDbGetObjectClass(Modifications, &dwObjectType);
+   BAIL_ON_ERROR(dwError);
 
-    switch (entryType)
-    {
-        case SAMDB_ENTRY_TYPE_USER:
+   dwError = SamDbAddValidateSchema(
+                       dwObjectType,
+                       Modifications
+                       );
+   BAIL_ON_ERROR(dwError);
 
-            dwError = SamDbAddUser(
-                        pDirectoryContext->pDbContext,
-                        pwszObjectName,
-                        Modifications
-                        );
-            break;
+   dwError = SamDbInsertObjecttoDatabase(
+                       pwszObjectDN,
+                       Modifications
+                       );
+   BAIL_ON_ERROR(dwError)
+#endif
 
-        case SAMDB_ENTRY_TYPE_GROUP:
-
-            dwError = SamDbAddGroup(
-                        pDirectoryContext->pDbContext,
-                        pwszObjectName,
-                        Modifications
-                        );
-            break;
-
-        case SAMDB_ENTRY_TYPE_DOMAIN:
-
-            dwError = SamDbAddDomain(
-                        pDirectoryContext->pDbContext,
-                        pwszObjectName,
-                        Modifications
-                        );
-            break;
-
-        default:
-
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SAMDB_ERROR(dwError);
-
-            break;
-    }
-
-cleanup:
-
-    if (pwszObjectName)
-    {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-
-    if (pwszDomain)
-    {
-        DirectoryFreeMemory(pwszDomain);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
+   return dwError;
 }
 

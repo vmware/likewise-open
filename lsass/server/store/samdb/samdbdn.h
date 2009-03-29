@@ -3,10 +3,21 @@
 
 DWORD
 SamDbParseDN(
-    PWSTR             pwszObjectDN,
-    PWSTR*            ppwszObjectName,
-    PWSTR*            ppwszDomain,
-    PSAMDB_ENTRY_TYPE pEntryType
+    PWSTR       pwszObjectDN,
+    PSAM_DB_DN* ppDN
+    );
+
+DWORD
+SamDbGetDNComponents(
+    PSAM_DB_DN pDN,
+    PWSTR*     ppwszObjectName,
+    PWSTR*     ppwszParentDN,
+    PWSTR*     ppwszDomainName
+    );
+
+VOID
+SamDbFreeDN(
+    PSAM_DB_DN pDN
     );
 
 #endif /* __SAMDBDN_H__ */

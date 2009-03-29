@@ -49,56 +49,6 @@
 
 #include "includes.h"
 
-VOID
-SamDbInterlockedIncrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->mutex);
-
-    pCounter->dwCounter++;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-}
-
-VOID
-SamDbInterlockedDecrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->mutex);
-
-    pCounter->dwCounter--;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-}
-
-VOID
-SamDbInitializeInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_init(&pCounter->mutex, NULL);
-    pCounter->pMutex = &pCounter->mutex;
-    pCounter->dwCounter = 0;
-}
-
-DWORD
-SamDbInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    DWORD dwCounter = 0;
-
-    pthread_mutex_lock(&pCounter->mutex);
-
-    dwCounter = pCounter->dwCounter;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-
-    return dwCounter;
-}
-
 DWORD
 SamDbComputeLMHash(
     PCSTR pszPassword,

@@ -47,8 +47,8 @@
 #include "dsprovider.h"
 
 #include "samdbdefs.h"
-#include "samdbstructs.h"
 #include "samdbtable.h"
+#include "samdbstructs.h"
 #include "samdb.h"
 #include "samdbdn.h"
 #include "samdbmisc.h"

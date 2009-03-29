@@ -75,9 +75,6 @@ DirectoryInitializeProvider(
     dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbBuildAttributeLookup(&gSamGlobals.pAttrLookup);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
     dwError = SamDbInit();
     BAIL_ON_SAMDB_ERROR(dwError);
 
