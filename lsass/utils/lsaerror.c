@@ -345,7 +345,9 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_SAM_INIT_ERROR                                  : 32913
     "Error when initializing SAM subsystem",
     // LSA_ERROR_OBJECT_IN_USE                                   : 32914
-    "The object is in use"
+    "The object is in use",
+    // LSA_ERROR_NO_SUCH_ATTRIBUTE                               : 32915
+    "No such attribute was found"
 };
 
 size_t

@@ -8,6 +8,13 @@ SamDbAttributeLookupInitContents(
     DWORD                 dwNumMaps
     );
 
+DWORD
+SamDbAttributeLookupByName(
+    PSAM_DB_ATTR_LOOKUP    pAttrLookup,
+    PWSTR                  pwszAttrName,
+    PSAM_DB_ATTRIBUTE_MAP* ppAttrMap
+    );
+
 VOID
 SamDbAttributeLookupFreeContents(
     PSAM_DB_ATTR_LOOKUP pAttrLookup

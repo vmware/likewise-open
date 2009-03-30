@@ -54,6 +54,40 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbAttributeLookupByName(
+    PSAM_DB_ATTR_LOOKUP    pAttrLookup,
+    PWSTR                  pwszAttrName,
+    PSAM_DB_ATTRIBUTE_MAP* ppAttrMap
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = 0;
+    PSAM_DB_ATTRIBUTE_MAP pAttrMap = NULL;
+
+    ntStatus = LwRtlRBTreeFind(
+                    pAttrLookup->pLookupTable,
+                    pwszAttrName,
+                    (PVOID*)&pAttrMap);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    *ppAttrMap = pAttrMap;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppAttrMap = NULL;
+
+    goto cleanup;
+}
+
 VOID
 SamDbAttributeLookupFreeContents(
     PSAM_DB_ATTR_LOOKUP pAttrLookup

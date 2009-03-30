@@ -240,7 +240,8 @@
 #define LSA_ERROR_SAM_DATABASE_ERROR                        0x8090 // 32912
 #define LSA_ERROR_SAM_INIT_ERROR                            0x8091 // 32913
 #define LSA_ERROR_OBJECT_IN_USE                             0x8092 // 32914
-#define LSA_ERROR_SENTINEL                                  0x8093 // 32915
+#define LSA_ERROR_NO_SUCH_ATTRIBUTE                         0x8093 // 32915
+#define LSA_ERROR_SENTINEL                                  0x8094 // 32916
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 

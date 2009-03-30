@@ -1,37 +1,63 @@
 
 #include "includes.h"
 
+static
+DWORD
+SamDbInsertObjectToDatabase(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszObjectDN,
+    DIRECTORY_MOD          modifications[]
+    );
+
 DWORD
 SamDbAddObject(
-    HANDLE hBindHandle,
-    PWSTR  pwszObjectDN,
-    DIRECTORY_MOD Modifications[]
+    HANDLE        hBindHandle,
+    PWSTR         pwszObjectDN,
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
-#if 0
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
-    PWSTR pwszObjectName = NULL;
-    PWSTR pwszDomain = NULL;
-    PSAM_DB_DN pDN = NULL;
-    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-   dwError = SamDbGetObjectClass(Modifications, &dwObjectType);
-   BAIL_ON_ERROR(dwError);
+    dwError = SamDbGetObjectClass(
+                    modifications,
+                    &objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-   dwError = SamDbAddValidateSchema(
-                       dwObjectType,
-                       Modifications
-                       );
-   BAIL_ON_ERROR(dwError);
+    dwError = SamDbSchemaAddValidateDirMods(
+                    pDirectoryContext,
+                    objectClass,
+                    modifications);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-   dwError = SamDbInsertObjecttoDatabase(
-                       pwszObjectDN,
-                       Modifications
-                       );
-   BAIL_ON_ERROR(dwError)
-#endif
+    dwError = SamDbInsertObjectToDatabase(
+                    pDirectoryContext,
+                    pwszObjectDN,
+                    modifications);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
 
    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbInsertObjectToDatabase(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszObjectDN,
+    DIRECTORY_MOD          modifications[]
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
 }
 

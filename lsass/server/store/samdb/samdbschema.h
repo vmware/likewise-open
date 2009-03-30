@@ -52,14 +52,16 @@
 
 DWORD
 SamDbSchemaAddValidateDirMods(
-    SAMDB_OBJECT_CLASS  objectClass,
-    DIRECTORY_MOD       mods[]
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
     );
 
 DWORD
 SamDbSchemaModifyValidateDirMods(
-    SAMDB_OBJECT_CLASS  objectClass,
-    DIRECTORY_MOD       mods[]
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
     );
 
 #endif /* __SAM_DB_SCHEMA_H__ */

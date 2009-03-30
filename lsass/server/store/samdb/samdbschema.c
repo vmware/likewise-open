@@ -49,36 +49,229 @@
 
 #include "includes.h"
 
+static
+BOOLEAN
+SamDbIsMatchedType(
+    DIRECTORY_ATTR_TYPE dirAttrType,
+    SAMDB_ATTR_TYPE     dbAttrType
+    );
+
 DWORD
 SamDbSchemaAddValidateDirMods(
-    SAMDB_OBJECT_CLASS objectClass,
-    DIRECTORY_MOD      mods[]
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
     )
 {
     DWORD dwError = 0;
+    DWORD iAttrMap = 0;
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pMapInfo = NULL;
+
+    dwError = SamDbFindObjectClassMapInfo(
+                    objectClass,
+                    pDirectoryContext->pObjectClassAttrMaps,
+                    pDirectoryContext->dwNumObjectClassAttrMaps,
+                    &pMapInfo);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     //
     // For each mandatory attribute in the
     // schema for a  given object type
     // ensure that the DirModification has the appropriate
     // attribute, type and value
+    for (; iAttrMap < pMapInfo->dwNumMaps; iAttrMap++)
+    {
+        PSAMDB_ATTRIBUTE_MAP_INFO pAttrMapInfo = NULL;
+
+        pAttrMapInfo = &pMapInfo->pAttributeMaps[iAttrMap];
+
+        if (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_MANDATORY)
+        {
+            PSAM_DB_ATTRIBUTE_MAP pAttrMap = NULL;
+            PDIRECTORY_MOD pMod = NULL;
+            DWORD dwNumMods = 0;
+            DWORD iValue = 0;
+
+            // Find expected properties of this attribute
+            dwError = SamDbAttributeLookupByName(
+                            pDirectoryContext->pAttrLookup,
+                            &pAttrMapInfo->wszAttributeName[0],
+                            &pAttrMap);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            // Ensure the incoming mods have only one instance of this attribute
+            while (mods[dwNumMods].pwszAttrName)
+            {
+                if (!wc16scasecmp(mods[dwNumMods].pwszAttrName,
+                                  &pAttrMapInfo->wszAttributeName[0]))
+                {
+                    if (pMod)
+                    {
+                        dwError = LSA_ERROR_INVALID_PARAMETER;
+                        BAIL_ON_SAMDB_ERROR(dwError);
+                    }
+
+                    pMod = &mods[dwNumMods];
+                }
+
+                dwNumMods++;
+            }
+
+            // Ensure a value has been specified
+            if (!pMod || !pMod->ulNumValues)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
+
+            // Match Types
+            // TODO: Match multi-valued types against expectations
+            for (; iValue < pMod->ulNumValues; iValue++)
+            {
+                PATTRIBUTE_VALUE pAttrValue = &pMod->pAttrValues[iValue];
+
+                if (!SamDbIsMatchedType(
+                        pAttrValue->Type,
+                        pAttrMap->attributeType))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+
+                if (((pAttrValue->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) &&
+                     !pAttrValue->pwszStringValue) ||
+                    ((pAttrValue->Type == DIRECTORY_ATTR_TYPE_ANSI_STRING) &&
+                     !pAttrValue->pszStringValue))
+                {
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
+            }
+        }
+    }
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
 SamDbSchemaModifyValidateDirMods(
-    SAMDB_OBJECT_CLASS objectClass,
-    DIRECTORY_MOD      mods[]
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
     )
 {
     DWORD dwError = 0;
+    DWORD dwNumMods = 0;
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pMapInfo = NULL;
 
-    //
-    // For each mandatory attribute in the
-    // schema for a  given object type
-    // ensure that the DirModification has the appropriate
-    // attribute, type and value
+    dwError = SamDbFindObjectClassMapInfo(
+                    objectClass,
+                    pDirectoryContext->pObjectClassAttrMaps,
+                    pDirectoryContext->dwNumObjectClassAttrMaps,
+                    &pMapInfo);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    // Make sure we are not trying to set read-only attributes
+    while (mods[dwNumMods].pwszAttrName && mods[dwNumMods].pAttrValues)
+    {
+        PSAMDB_ATTRIBUTE_MAP_INFO pAttrMapInfo = NULL;
+        DWORD iAttrMap = 0;
+
+        for (; iAttrMap < pMapInfo->dwNumMaps; iAttrMap++)
+        {
+            PSAMDB_ATTRIBUTE_MAP_INFO pAttrMapInfoIter = NULL;
+
+            pAttrMapInfoIter = &pMapInfo->pAttributeMaps[iAttrMap];
+
+            if (!wc16scasecmp(mods[dwNumMods].pwszAttrName,
+                              &pAttrMapInfoIter->wszAttributeName[0]))
+            {
+                pAttrMapInfo = pAttrMapInfoIter;
+
+                break;
+            }
+        }
+
+        if (!pAttrMapInfo ||
+            (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_READONLY) ||
+            (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) ||
+            (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwNumMods++;
+    }
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+SamDbIsMatchedType(
+    DIRECTORY_ATTR_TYPE dirAttrType,
+    SAMDB_ATTR_TYPE     dbAttrType
+    )
+{
+    BOOLEAN bResult = FALSE;
+
+    switch (dirAttrType)
+    {
+        case DIRECTORY_ATTR_TYPE_BOOLEAN :
+        case DIRECTORY_ATTR_TYPE_INTEGER :
+
+            if (dbAttrType == SAMDB_ATTR_TYPE_INT32)
+            {
+                bResult = TRUE;
+            }
+
+            break;
+
+        case DIRECTORY_ATTR_TYPE_LARGE_INTEGER :
+
+            if (dbAttrType == SAMDB_ATTR_TYPE_INT64)
+            {
+                bResult = TRUE;
+            }
+
+            break;
+
+        case DIRECTORY_ATTR_TYPE_OCTET_STREAM :
+
+            if (dbAttrType == SAMDB_ATTR_TYPE_BLOB)
+            {
+                bResult = TRUE;
+            }
+
+            break;
+
+        case DIRECTORY_ATTR_TYPE_UNICODE_STRING :
+        case DIRECTORY_ATTR_TYPE_ANSI_STRING :
+
+            if (dbAttrType == SAMDB_ATTR_TYPE_TEXT)
+            {
+                bResult = TRUE;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    return bResult;
 }

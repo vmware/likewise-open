@@ -65,6 +65,20 @@ SamDbComputeNTHash(
     );
 
 DWORD
+SamDbGetObjectClass(
+    DIRECTORY_MOD       Modifications[],
+    SAMDB_OBJECT_CLASS* pObjectClass
+    );
+
+DWORD
+SamDbFindObjectClassMapInfo(
+    SAMDB_OBJECT_CLASS                   objectClass,
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
+    DWORD                                dwNumMapInfos,
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
+    );
+
+DWORD
 SamDbGetNumberOfDependents_inlock(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszObjectDN,

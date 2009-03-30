@@ -1,100 +1,61 @@
 #include "includes.h"
 
+static
+DWORD
+SamDbUpdateObjectInDatabase(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszObjectDN,
+    DIRECTORY_MOD          modifications[]
+    );
+
 DWORD
 SamDbModifyObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN,
-    DIRECTORY_MOD Modifications[]
+    DIRECTORY_MOD modifications[]
     )
 {
     DWORD dwError = 0;
-#if 0
-    PWSTR pwszObjectName = NULL;
-    PWSTR pwszDomain = NULL;
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
-    SAMDB_ENTRY_TYPE entryType = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
-
-    dwError = SamDbParseDN(
-                    pwszObjectDN,
-                    &pwszObjectName,
-                    &pwszDomain,
-                    &entryType);
+    dwError = SamDbGetObjectClass(
+                    modifications,
+                    &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    switch (entryType) {
+    dwError = SamDbSchemaModifyValidateDirMods(
+                    pDirectoryContext,
+                    objectClass,
+                    modifications);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-        case SAMDB_ENTRY_TYPE_USER:
+    dwError = SamDbUpdateObjectInDatabase(
+                    pDirectoryContext,
+                    pwszObjectDN,
+                    modifications);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-            dwError = SamDbModifyUser(
-                        pDirectoryContext,
-                        pwszObjectName,
-                        Modifications
-                        );
-            break;
+cleanup:
 
-        case SAMDB_ENTRY_TYPE_GROUP:
-
-            dwError = SamDbModifyGroup(
-                        pDirectoryContext,
-                        pwszObjectName,
-                        Modifications
-                        );
-            break;
-
-        case SAMDB_ENTRY_TYPE_DOMAIN:
-
-            dwError = SamDbModifyDomain(
-                            pDirectoryContext,
-                            pwszDomain,
-                            Modifications);
-
-            break;
-
-        default:
-
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-
-            break;
-    }
+   return dwError;
 
 error:
 
-    if (pwszObjectName)
-    {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-
-    if (pwszDomain)
-    {
-        DirectoryFreeMemory(pwszDomain);
-    }
-#endif
-
-    return dwError;
+    goto cleanup;
 }
 
+static
 DWORD
-SamDbModifyUser(
-    HANDLE hDirectory,
-    PWSTR pszObjectName,
-    DIRECTORY_MOD Modifications[]
+SamDbUpdateObjectInDatabase(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszObjectDN,
+    DIRECTORY_MOD          modifications[]
     )
 {
     DWORD dwError = 0;
 
-    return dwError;
-}
-
-DWORD
-SamDbModifyGroup(
-    HANDLE hDirectory,
-    PWSTR pszObjectName,
-    DIRECTORY_MOD Modifications[]
-    )
-{
-    DWORD dwError = 0;
+    // TODO:
 
     return dwError;
 }
