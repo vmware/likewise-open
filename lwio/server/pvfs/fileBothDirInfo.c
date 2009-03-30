@@ -353,12 +353,22 @@ PvfsQueryFileBothDirInfo(
             break;
         }
 
-        /* This deals with a possible race where the directory
-           contents was read but the file was removed before we could
-           stat() it.  Just skip the file and move on. */
+        /* OBJECT_NAME_NOT_FOUND - This deals with a possible race
+           where the directory contents was read but the file was
+           removed before we could stat() it.
+
+           INSUFFICIENT_RESOURCES - Invalid UTF-8 name.
+
+           ACCESS_DENIED - Special cases like $HOME/.gvfs that can't
+           be read by root.  Possibly just an Ubuntu bug but don't
+           fail on it.
+           https://bugs.launchpad.net/ubuntu/+source/gvfs/+bug/227724
+
+           Just skip the file and move on. */
 
         if (ntError == STATUS_OBJECT_NAME_NOT_FOUND ||
-            ntError == STATUS_INSUFFICIENT_RESOURCES)
+            ntError == STATUS_INSUFFICIENT_RESOURCES ||
+            ntError == STATUS_ACCESS_DENIED)
         {
             pCcb->pDirContext->dwIndex++;
             continue;
