@@ -54,6 +54,7 @@ rpc_binding_vector_p_t gpSamrSrvBinding = NULL;
 
 SAMR_RPC_WORKER gWorker;
 
+PSTR gpszConfigFilePath = NULL;
 SAMR_SRV_CONFIG gSamrSrvConfig;
 
 
