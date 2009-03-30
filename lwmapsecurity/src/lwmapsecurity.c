@@ -55,7 +55,7 @@
 
 #define LOG_ERROR(szFmt, ...)
 
-#define LW_MAP_SECURITY_PLUGIN_PATH "/opt/likewise/" LIBDIR "/liblsatokencreateinfo" MOD_EXT
+#define LW_MAP_SECURITY_PLUGIN_PATH "/opt/likewise/" LIBDIR "/liblwmapsecurity_lsass" MOD_EXT
 
 typedef struct _LW_MAP_SECURITY_CONTEXT {
     PVOID LibraryHandle;

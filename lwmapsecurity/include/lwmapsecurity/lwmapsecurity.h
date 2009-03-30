@@ -1,7 +1,7 @@
 #ifndef __LW_MAP_SECURITY_H__
 #define __LW_MAP_SECURITY_H__
 
-#include <lwmapsecurity/lwmapsecurity-types.h>
+#include <lw/security-types.h>
 #include <lw/ntstatus.h>
 
 typedef struct _LW_MAP_SECURITY_CONTEXT *PLW_MAP_SECURITY_CONTEXT;
