@@ -53,7 +53,7 @@ NTSTATUS __LsaClose(
 }
 
 
-NTSTATUS lsa_Function01(
+NTSTATUS _lsa_Function01(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -62,7 +62,7 @@ NTSTATUS lsa_Function01(
 }
 
 
-NTSTATUS lsa_Function02(
+NTSTATUS _lsa_Function02(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -71,7 +71,7 @@ NTSTATUS lsa_Function02(
 }
 
 
-NTSTATUS lsa_Function03(
+NTSTATUS _lsa_Function03(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -80,7 +80,7 @@ NTSTATUS lsa_Function03(
 }
 
 
-NTSTATUS lsa_Function04(
+NTSTATUS _lsa_Function04(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -89,7 +89,7 @@ NTSTATUS lsa_Function04(
 }
 
 
-NTSTATUS lsa_Function05(
+NTSTATUS _lsa_Function05(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -98,7 +98,7 @@ NTSTATUS lsa_Function05(
 }
 
 
-NTSTATUS lsa_Function06(
+NTSTATUS _lsa_Function06(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -124,7 +124,7 @@ NTSTATUS __LsaQueryInfoPolicy(
 }
 
 
-NTSTATUS lsa_Function08(
+NTSTATUS _lsa_Function08(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -133,7 +133,7 @@ NTSTATUS lsa_Function08(
 }
 
 
-NTSTATUS lsa_Function09(
+NTSTATUS _lsa_Function09(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -142,7 +142,7 @@ NTSTATUS lsa_Function09(
 }
 
 
-NTSTATUS lsa_Function0a(
+NTSTATUS _lsa_Function0a(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -151,7 +151,7 @@ NTSTATUS lsa_Function0a(
 }
 
 
-NTSTATUS lsa_Function0b(
+NTSTATUS _lsa_Function0b(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -160,7 +160,7 @@ NTSTATUS lsa_Function0b(
 }
 
 
-NTSTATUS lsa_Function0c(
+NTSTATUS _lsa_Function0c(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -169,7 +169,7 @@ NTSTATUS lsa_Function0c(
 }
 
 
-NTSTATUS lsa_Function0d(
+NTSTATUS _lsa_Function0d(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -226,7 +226,7 @@ NTSTATUS __LsaLookupSids(
 }
 
 
-NTSTATUS lsa_Function10(
+NTSTATUS _lsa_Function10(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -235,7 +235,7 @@ NTSTATUS lsa_Function10(
 }
 
 
-NTSTATUS lsa_Function11(
+NTSTATUS _lsa_Function11(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -244,7 +244,7 @@ NTSTATUS lsa_Function11(
 }
 
 
-NTSTATUS lsa_Function12(
+NTSTATUS _lsa_Function12(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -253,7 +253,7 @@ NTSTATUS lsa_Function12(
 }
 
 
-NTSTATUS lsa_Function13(
+NTSTATUS _lsa_Function13(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -262,7 +262,7 @@ NTSTATUS lsa_Function13(
 }
 
 
-NTSTATUS lsa_Function14(
+NTSTATUS _lsa_Function14(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -271,7 +271,7 @@ NTSTATUS lsa_Function14(
 }
 
 
-NTSTATUS lsa_Function15(
+NTSTATUS _lsa_Function15(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -280,7 +280,7 @@ NTSTATUS lsa_Function15(
 }
 
 
-NTSTATUS lsa_Function16(
+NTSTATUS _lsa_Function16(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -289,7 +289,7 @@ NTSTATUS lsa_Function16(
 }
 
 
-NTSTATUS lsa_Function17(
+NTSTATUS _lsa_Function17(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -298,7 +298,7 @@ NTSTATUS lsa_Function17(
 }
 
 
-NTSTATUS lsa_Function18(
+NTSTATUS _lsa_Function18(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -307,7 +307,7 @@ NTSTATUS lsa_Function18(
 }
 
 
-NTSTATUS lsa_Function19(
+NTSTATUS _lsa_Function19(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -316,7 +316,7 @@ NTSTATUS lsa_Function19(
 }
 
 
-NTSTATUS lsa_Function1a(
+NTSTATUS _lsa_Function1a(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -325,7 +325,7 @@ NTSTATUS lsa_Function1a(
 }
 
 
-NTSTATUS lsa_Function1b(
+NTSTATUS _lsa_Function1b(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -334,7 +334,7 @@ NTSTATUS lsa_Function1b(
 }
 
 
-NTSTATUS lsa_Function1c(
+NTSTATUS _lsa_Function1c(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -343,7 +343,7 @@ NTSTATUS lsa_Function1c(
 }
 
 
-NTSTATUS lsa_Function1d(
+NTSTATUS _lsa_Function1d(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -352,7 +352,7 @@ NTSTATUS lsa_Function1d(
 }
 
 
-NTSTATUS lsa_Function1e(
+NTSTATUS _lsa_Function1e(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -361,7 +361,7 @@ NTSTATUS lsa_Function1e(
 }
 
 
-NTSTATUS lsa_Function1f(
+NTSTATUS _lsa_Function1f(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -370,7 +370,7 @@ NTSTATUS lsa_Function1f(
 }
 
 
-NTSTATUS lsa_Function20(
+NTSTATUS _lsa_Function20(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -379,7 +379,7 @@ NTSTATUS lsa_Function20(
 }
 
 
-NTSTATUS lsa_Function21(
+NTSTATUS _lsa_Function21(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -388,7 +388,7 @@ NTSTATUS lsa_Function21(
 }
 
 
-NTSTATUS lsa_Function22(
+NTSTATUS _lsa_Function22(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -397,7 +397,7 @@ NTSTATUS lsa_Function22(
 }
 
 
-NTSTATUS lsa_Function23(
+NTSTATUS _lsa_Function23(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -406,7 +406,7 @@ NTSTATUS lsa_Function23(
 }
 
 
-NTSTATUS lsa_Function24(
+NTSTATUS _lsa_Function24(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -415,7 +415,7 @@ NTSTATUS lsa_Function24(
 }
 
 
-NTSTATUS lsa_Function25(
+NTSTATUS _lsa_Function25(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -424,7 +424,7 @@ NTSTATUS lsa_Function25(
 }
 
 
-NTSTATUS lsa_Function26(
+NTSTATUS _lsa_Function26(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -433,7 +433,7 @@ NTSTATUS lsa_Function26(
 }
 
 
-NTSTATUS lsa_Function27(
+NTSTATUS _lsa_Function27(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -442,7 +442,7 @@ NTSTATUS lsa_Function27(
 }
 
 
-NTSTATUS lsa_Function28(
+NTSTATUS _lsa_Function28(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -451,7 +451,7 @@ NTSTATUS lsa_Function28(
 }
 
 
-NTSTATUS lsa_Function29(
+NTSTATUS _lsa_Function29(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -460,7 +460,7 @@ NTSTATUS lsa_Function29(
 }
 
 
-NTSTATUS lsa_Function2a(
+NTSTATUS _lsa_Function2a(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -469,7 +469,7 @@ NTSTATUS lsa_Function2a(
 }
 
 
-NTSTATUS lsa_Function2b(
+NTSTATUS _lsa_Function2b(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -497,7 +497,7 @@ NTSTATUS __LsaOpenPolicy2(
 }
 
 
-NTSTATUS lsa_Function2d(
+NTSTATUS _lsa_Function2d(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -523,7 +523,7 @@ NTSTATUS __LsaQueryInfoPolicy2(
 }
 
 
-NTSTATUS lsa_Function2f(
+NTSTATUS _lsa_Function2f(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -532,7 +532,7 @@ NTSTATUS lsa_Function2f(
 }
 
 
-NTSTATUS lsa_Function30(
+NTSTATUS _lsa_Function30(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -541,7 +541,7 @@ NTSTATUS lsa_Function30(
 }
 
 
-NTSTATUS lsa_Function31(
+NTSTATUS _lsa_Function31(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -550,7 +550,7 @@ NTSTATUS lsa_Function31(
 }
 
 
-NTSTATUS lsa_Function32(
+NTSTATUS _lsa_Function32(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -559,7 +559,7 @@ NTSTATUS lsa_Function32(
 }
 
 
-NTSTATUS lsa_Function33(
+NTSTATUS _lsa_Function33(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -568,7 +568,7 @@ NTSTATUS lsa_Function33(
 }
 
 
-NTSTATUS lsa_Function34(
+NTSTATUS _lsa_Function34(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -577,7 +577,7 @@ NTSTATUS lsa_Function34(
 }
 
 
-NTSTATUS lsa_Function35(
+NTSTATUS _lsa_Function35(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -586,7 +586,7 @@ NTSTATUS lsa_Function35(
 }
 
 
-NTSTATUS lsa_Function36(
+NTSTATUS _lsa_Function36(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -595,7 +595,7 @@ NTSTATUS lsa_Function36(
 }
 
 
-NTSTATUS lsa_Function37(
+NTSTATUS _lsa_Function37(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -604,7 +604,7 @@ NTSTATUS lsa_Function37(
 }
 
 
-NTSTATUS lsa_Function38(
+NTSTATUS _lsa_Function38(
     /* [in] */ handle_t IDL_handle
 )
 {
@@ -613,7 +613,7 @@ NTSTATUS lsa_Function38(
 }
 
 
-NTSTATUS lsa_Function39(
+NTSTATUS _lsa_Function39(
     /* [in] */ handle_t IDL_handle
 )
 {
