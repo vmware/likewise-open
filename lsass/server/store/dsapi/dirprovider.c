@@ -257,6 +257,9 @@ DirectoryValidateProvider(
         !pProvider->pProviderFnTbl->pfnDirectoryClose ||
         !pProvider->pProviderFnTbl->pfnDirectoryDelete ||
         !pProvider->pProviderFnTbl->pfnDirectoryModify ||
+        !pProvider->pProviderFnTbl->pfnDirectorySetPassword ||
+        !pProvider->pProviderFnTbl->pfnDirectoryChangePassword ||
+        !pProvider->pProviderFnTbl->pfnDirectoryVerifyPassword ||
         !pProvider->pProviderFnTbl->pfnDirectoryOpen ||
         !pProvider->pProviderFnTbl->pfnDirectorySearch)
     {

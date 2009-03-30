@@ -52,8 +52,9 @@
 
 DWORD
 SamDbSetPassword(
-    PWSTR pszUserDN,
-    PWSTR pwszPassword
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
     )
 {
     DWORD dwError = 0;
@@ -65,9 +66,10 @@ SamDbSetPassword(
 
 DWORD
 SamDbChangePassword(
-    PWSTR pwszUserDN,
-    PWSTR pwszOldPassword,
-    PWSTR pwszNewPassword
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
     )
 {
     DWORD dwError = 0;
@@ -79,8 +81,9 @@ SamDbChangePassword(
 
 DWORD
 SamDbVerifyPassword(
-    PWSTR pwszUserDN,
-    PWSTR pwszPassword
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
     )
 {
     DWORD dwError = 0;

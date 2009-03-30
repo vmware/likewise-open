@@ -60,13 +60,16 @@ DirectoryInitializeProvider(
     DWORD dwError = 0;
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerAPITable =
         {
-                .pfnDirectoryOpen   = &SamDbOpen,
-                .pfnDirectoryBind   = &SamDbBind,
-                .pfnDirectoryAdd    = &SamDbAddObject,
-                .pfnDirectoryModify = &SamDbModifyObject,
-                .pfnDirectoryDelete = &SamDbDeleteObject,
-                .pfnDirectorySearch = &SamDbSearchObject,
-                .pfnDirectoryClose  = &SamDbClose
+                .pfnDirectoryOpen           = &SamDbOpen,
+                .pfnDirectoryBind           = &SamDbBind,
+                .pfnDirectoryAdd            = &SamDbAddObject,
+                .pfnDirectoryModify         = &SamDbModifyObject,
+                .pfnDirectorySetPassword    = &SamDbSetPassword,
+                .pfnDirectoryChangePassword = &SamDbChangePassword,
+                .pfnDirectoryVerifyPassword = &SamDbVerifyPassword,
+                .pfnDirectoryDelete         = &SamDbDeleteObject,
+                .pfnDirectorySearch         = &SamDbSearchObject,
+                .pfnDirectoryClose          = &SamDbClose
         };
 
     gSamGlobals.pszProviderName = "Likewise SAM Local Database";

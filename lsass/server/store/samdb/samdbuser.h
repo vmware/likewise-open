@@ -52,21 +52,24 @@
 
 DWORD
 SamDbSetPassword(
-    PWSTR pszUserDN,
-    PWSTR pwszPassword
+    HANDLE hBindHandle,
+    PWSTR  pszUserDN,
+    PWSTR  pwszPassword
     );
 
 DWORD
 SamDbChangePassword(
-    PWSTR pwszUserDN,
-    PWSTR pwszOldPassword,
-    PWSTR pwszNewPassword
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
     );
 
 DWORD
 SamDbVerifyPassword(
-    PWSTR pwszUserDN,
-    PWSTR pwszPassword
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
     );
 
 #endif /* __SAM_DB_USER_H__ */
