@@ -206,6 +206,9 @@ size_t wc16stowcs(wchar_t *dest, const wchar16_t *src, size_t cchn);
 LIBUNISTR_API
 size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy);
 
+/* Convert a wchar16_t string in little-endian byte order to a wchar16_t string*/
+size_t wc16lestowc16s(wchar16_t *dest, const wchar16_t *src, size_t cchcopy);
+
 /*Convert a multibyte character string to a wchar16_t string and return the result.
  */
 LIBUNISTR_API
