@@ -38,12 +38,12 @@ cpp_quote("#endif")
         [out] POLICY_HANDLE *hOut
         );
 
-    NTSTATUS lsa_Function01();
-    NTSTATUS lsa_Function02();
-    NTSTATUS lsa_Function03();
-    NTSTATUS lsa_Function04();
-    NTSTATUS lsa_Function05();
-    NTSTATUS lsa_Function06();
+    NTSTATUS _lsa_Function01();
+    NTSTATUS _lsa_Function02();
+    NTSTATUS _lsa_Function03();
+    NTSTATUS _lsa_Function04();
+    NTSTATUS _lsa_Function05();
+    NTSTATUS _lsa_Function06();
 
 	/* function 0x07 */
     NTSTATUS __LsaQueryInfoPolicy(
@@ -52,12 +52,12 @@ cpp_quote("#endif")
         [out,switch_is(level)] LsaPolicyInformation **info
         );
 
-    NTSTATUS lsa_Function08();
-    NTSTATUS lsa_Function09();
-    NTSTATUS lsa_Function0a();
-    NTSTATUS lsa_Function0b();
-    NTSTATUS lsa_Function0c();
-    NTSTATUS lsa_Function0d();
+    NTSTATUS _lsa_Function08();
+    NTSTATUS _lsa_Function09();
+    NTSTATUS _lsa_Function0a();
+    NTSTATUS _lsa_Function0b();
+    NTSTATUS _lsa_Function0c();
+    NTSTATUS _lsa_Function0d();
 
 	/* function 0x0e */
     NTSTATUS __LsaLookupNames(
@@ -80,34 +80,34 @@ cpp_quote("#endif")
         [in,out] uint32 *count
         );
 
-    NTSTATUS lsa_Function10();
-    NTSTATUS lsa_Function11();
-    NTSTATUS lsa_Function12();
-    NTSTATUS lsa_Function13();
-    NTSTATUS lsa_Function14();
-    NTSTATUS lsa_Function15();
-    NTSTATUS lsa_Function16();
-    NTSTATUS lsa_Function17();
-    NTSTATUS lsa_Function18();
-    NTSTATUS lsa_Function19();
-    NTSTATUS lsa_Function1a();
-    NTSTATUS lsa_Function1b();
-    NTSTATUS lsa_Function1c();
-    NTSTATUS lsa_Function1d();
-    NTSTATUS lsa_Function1e();
-    NTSTATUS lsa_Function1f();
-    NTSTATUS lsa_Function20();
-    NTSTATUS lsa_Function21();
-    NTSTATUS lsa_Function22();
-    NTSTATUS lsa_Function23();
-    NTSTATUS lsa_Function24();
-    NTSTATUS lsa_Function25();
-    NTSTATUS lsa_Function26();
-    NTSTATUS lsa_Function27();
-    NTSTATUS lsa_Function28();
-    NTSTATUS lsa_Function29();
-    NTSTATUS lsa_Function2a();
-    NTSTATUS lsa_Function2b();
+    NTSTATUS _lsa_Function10();
+    NTSTATUS _lsa_Function11();
+    NTSTATUS _lsa_Function12();
+    NTSTATUS _lsa_Function13();
+    NTSTATUS _lsa_Function14();
+    NTSTATUS _lsa_Function15();
+    NTSTATUS _lsa_Function16();
+    NTSTATUS _lsa_Function17();
+    NTSTATUS _lsa_Function18();
+    NTSTATUS _lsa_Function19();
+    NTSTATUS _lsa_Function1a();
+    NTSTATUS _lsa_Function1b();
+    NTSTATUS _lsa_Function1c();
+    NTSTATUS _lsa_Function1d();
+    NTSTATUS _lsa_Function1e();
+    NTSTATUS _lsa_Function1f();
+    NTSTATUS _lsa_Function20();
+    NTSTATUS _lsa_Function21();
+    NTSTATUS _lsa_Function22();
+    NTSTATUS _lsa_Function23();
+    NTSTATUS _lsa_Function24();
+    NTSTATUS _lsa_Function25();
+    NTSTATUS _lsa_Function26();
+    NTSTATUS _lsa_Function27();
+    NTSTATUS _lsa_Function28();
+    NTSTATUS _lsa_Function29();
+    NTSTATUS _lsa_Function2a();
+    NTSTATUS _lsa_Function2b();
 
 	/* function 0x2c */
     NTSTATUS __LsaOpenPolicy2(
@@ -117,7 +117,7 @@ cpp_quote("#endif")
         [out] POLICY_HANDLE *hPolicy
         );
 
-    NTSTATUS lsa_Function2d();
+    NTSTATUS _lsa_Function2d();
 
 	/* function 0x2e */
     NTSTATUS __LsaQueryInfoPolicy2(
@@ -126,17 +126,17 @@ cpp_quote("#endif")
         [out,switch_is(level)] LsaPolicyInformation **info
         );
 
-    NTSTATUS lsa_Function2f();
-    NTSTATUS lsa_Function30();
-    NTSTATUS lsa_Function31();
-    NTSTATUS lsa_Function32();
-    NTSTATUS lsa_Function33();
-    NTSTATUS lsa_Function34();
-    NTSTATUS lsa_Function35();
-    NTSTATUS lsa_Function36();
-    NTSTATUS lsa_Function37();
-    NTSTATUS lsa_Function38();
-    NTSTATUS lsa_Function39();
+    NTSTATUS _lsa_Function2f();
+    NTSTATUS _lsa_Function30();
+    NTSTATUS _lsa_Function31();
+    NTSTATUS _lsa_Function32();
+    NTSTATUS _lsa_Function33();
+    NTSTATUS _lsa_Function34();
+    NTSTATUS _lsa_Function35();
+    NTSTATUS _lsa_Function36();
+    NTSTATUS _lsa_Function37();
+    NTSTATUS _lsa_Function38();
+    NTSTATUS _lsa_Function39();
 
 	/* function 0x3a */
     NTSTATUS __LsaLookupNames2(
@@ -151,15 +151,15 @@ cpp_quote("#endif")
         [in] uint32 unknown2
         );
 
-    NTSTATUS lsa_Function3b();
-    NTSTATUS lsa_Function3c();
-    NTSTATUS lsa_Function3d();
-    NTSTATUS lsa_Function3e();
-    NTSTATUS lsa_Function3f();
-    NTSTATUS lsa_Function40();
-    NTSTATUS lsa_Function41();
-    NTSTATUS lsa_Function42();
-    NTSTATUS lsa_Function43();
+    NTSTATUS _lsa_Function3b();
+    NTSTATUS _lsa_Function3c();
+    NTSTATUS _lsa_Function3d();
+    NTSTATUS _lsa_Function3e();
+    NTSTATUS _lsa_Function3f();
+    NTSTATUS _lsa_Function40();
+    NTSTATUS _lsa_Function41();
+    NTSTATUS _lsa_Function42();
+    NTSTATUS _lsa_Function43();
 
     NTSTATUS __LsaLookupNames3(
         [in] POLICY_HANDLE hPolicy,
