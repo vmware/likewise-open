@@ -28,62 +28,76 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        samdbmisc.h
+ *        pathcache.c
  *
  * Abstract:
  *
- *        Likewise SAM DB
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        Misc Functions
+ *        Case Insensitive path cache manager
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __SAMDB_MISC_H__
-#define __SAMDB_MISC_H__
+#include "pvfs.h"
 
-DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
+/* Forward declarations */
 
-DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
 
-DWORD
-SamDbGetObjectClass(
-    DIRECTORY_MOD       Modifications[],
-    SAMDB_OBJECT_CLASS* pObjectClass
-    );
+/* Code */
 
-DWORD
-SamDbFindObjectClassMapInfo(
-    SAMDB_OBJECT_CLASS                   objectClass,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
-    DWORD                                dwNumMapInfos,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
-    );
 
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    );
+/********************************************************
+ *******************************************************/
 
-#endif /* __SAMDB_MISC_H__ */
+NTSTATUS
+PvfsPathCacheAdd(
+    IN PCSTR pszResolvedPath
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
 
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsPathCacheLookup(
+    OUT PSTR *ppResolvedPath,
+    IN  PCSTR pszOriginalPath
+    )
+{
+    NTSTATUS ntError = STATUS_NOT_FOUND;
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

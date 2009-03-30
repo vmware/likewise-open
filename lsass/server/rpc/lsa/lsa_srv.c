@@ -98,6 +98,7 @@ LsaRpcStartServer(
 
     ENDPOINT EndPoints[] = {
         { "ncacn_np",      "\\\\pipe\\\\lsarpc" },
+        { "ncacn_np",      "\\\\pipe\\\\lsass" },
         { "ncacn_ip_tcp",  NULL },
         { NULL,            NULL }
     };

@@ -60,22 +60,28 @@ DirectoryInitializeProvider(
     DWORD dwError = 0;
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerAPITable =
         {
-                .pfnDirectoryOpen   = &SamDbOpen,
-                .pfnDirectoryBind   = &SamDbBind,
-                .pfnDirectoryAdd    = &SamDbAddObject,
-                .pfnDirectoryModify = &SamDbModifyObject,
-                .pfnDirectoryDelete = &SamDbDeleteObject,
-                .pfnDirectorySearch = &SamDbSearchObject,
-                .pfnDirectoryClose  = &SamDbClose
+                .pfnDirectoryOpen           = &SamDbOpen,
+                .pfnDirectoryBind           = &SamDbBind,
+                .pfnDirectoryAdd            = &SamDbAddObject,
+                .pfnDirectoryModify         = &SamDbModifyObject,
+                .pfnDirectorySetPassword    = &SamDbSetPassword,
+                .pfnDirectoryChangePassword = &SamDbChangePassword,
+                .pfnDirectoryVerifyPassword = &SamDbVerifyPassword,
+                .pfnDirectoryDelete         = &SamDbDeleteObject,
+                .pfnDirectorySearch         = &SamDbSearchObject,
+                .pfnDirectoryClose          = &SamDbClose
         };
 
     gSamGlobals.pszProviderName = "Likewise SAM Local Database";
     gSamGlobals.providerFunctionTable = providerAPITable;
 
-    dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
+    dwError = SamDbAttributeLookupInitContents(
+                &gSamGlobals.attrLookup,
+                gSamGlobals.pAttrMaps,
+                gSamGlobals.dwNumMaps);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbBuildAttributeLookup(&gSamGlobals.pAttrLookup);
+    dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbInit();
@@ -103,6 +109,8 @@ DirectoryShutdownProvider(
     )
 {
     DWORD dwError = 0;
+
+    SamDbAttributeLookupFreeContents(&gSamGlobals.attrLookup);
 
     if (gSamGlobals.pDbInstanceLock)
     {

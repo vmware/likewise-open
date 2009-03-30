@@ -57,7 +57,7 @@ NTSTATUS lsa_Function01(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -66,7 +66,7 @@ NTSTATUS lsa_Function02(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -75,7 +75,7 @@ NTSTATUS lsa_Function03(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -84,7 +84,7 @@ NTSTATUS lsa_Function04(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -93,7 +93,7 @@ NTSTATUS lsa_Function05(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -102,7 +102,7 @@ NTSTATUS lsa_Function06(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -128,7 +128,7 @@ NTSTATUS lsa_Function08(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -137,7 +137,7 @@ NTSTATUS lsa_Function09(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -146,7 +146,7 @@ NTSTATUS lsa_Function0a(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -155,7 +155,7 @@ NTSTATUS lsa_Function0b(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -164,7 +164,7 @@ NTSTATUS lsa_Function0c(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -173,7 +173,7 @@ NTSTATUS lsa_Function0d(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -230,7 +230,7 @@ NTSTATUS lsa_Function10(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -239,7 +239,7 @@ NTSTATUS lsa_Function11(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -248,7 +248,7 @@ NTSTATUS lsa_Function12(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -257,7 +257,7 @@ NTSTATUS lsa_Function13(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -266,7 +266,7 @@ NTSTATUS lsa_Function14(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -275,7 +275,7 @@ NTSTATUS lsa_Function15(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -284,7 +284,7 @@ NTSTATUS lsa_Function16(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -293,7 +293,7 @@ NTSTATUS lsa_Function17(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -302,7 +302,7 @@ NTSTATUS lsa_Function18(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -311,7 +311,7 @@ NTSTATUS lsa_Function19(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -320,7 +320,7 @@ NTSTATUS lsa_Function1a(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -329,7 +329,7 @@ NTSTATUS lsa_Function1b(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -338,7 +338,7 @@ NTSTATUS lsa_Function1c(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -347,7 +347,7 @@ NTSTATUS lsa_Function1d(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -356,7 +356,7 @@ NTSTATUS lsa_Function1e(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -365,7 +365,7 @@ NTSTATUS lsa_Function1f(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -374,7 +374,7 @@ NTSTATUS lsa_Function20(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -383,7 +383,7 @@ NTSTATUS lsa_Function21(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -392,7 +392,7 @@ NTSTATUS lsa_Function22(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -401,7 +401,7 @@ NTSTATUS lsa_Function23(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -410,7 +410,7 @@ NTSTATUS lsa_Function24(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -419,7 +419,7 @@ NTSTATUS lsa_Function25(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -428,7 +428,7 @@ NTSTATUS lsa_Function26(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -437,7 +437,7 @@ NTSTATUS lsa_Function27(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -446,7 +446,7 @@ NTSTATUS lsa_Function28(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -455,7 +455,7 @@ NTSTATUS lsa_Function29(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -464,7 +464,7 @@ NTSTATUS lsa_Function2a(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -473,7 +473,7 @@ NTSTATUS lsa_Function2b(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -527,7 +527,7 @@ NTSTATUS lsa_Function2f(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -536,7 +536,7 @@ NTSTATUS lsa_Function30(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -545,7 +545,7 @@ NTSTATUS lsa_Function31(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -554,7 +554,7 @@ NTSTATUS lsa_Function32(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -563,7 +563,7 @@ NTSTATUS lsa_Function33(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -572,7 +572,7 @@ NTSTATUS lsa_Function34(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -581,7 +581,7 @@ NTSTATUS lsa_Function35(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -590,7 +590,7 @@ NTSTATUS lsa_Function36(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -599,7 +599,7 @@ NTSTATUS lsa_Function37(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -608,7 +608,7 @@ NTSTATUS lsa_Function38(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -617,7 +617,7 @@ NTSTATUS lsa_Function39(
     /* [in] */ handle_t IDL_handle
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 
@@ -647,6 +647,105 @@ NTSTATUS __LsaLookupNames2(
                                 count,
                                 unknown1,
                                 unknown2);
+    return status;
+}
+
+
+NTSTATUS lsa_Function3b(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function3c(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function3d(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function3e(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function3f(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function40(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function41(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function42(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS lsa_Function43(
+    /* [in] */ handle_t IDL_handle
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
+
+
+NTSTATUS __LsaLookupNames3(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
+    /* [in] */ uint32 num_names,
+    /* [in] */ UnicodeString *names,
+    /* [out] */ RefDomainList **domains,
+    /* [in, out] */ TranslatedSidArray3 *sids,
+    /* [in] */ uint16 level,
+    /* [in, out] */ uint32 *count,
+    /* [in] */ uint32 unknown1,
+    /* [in] */ uint32 unknown2
+)
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
 

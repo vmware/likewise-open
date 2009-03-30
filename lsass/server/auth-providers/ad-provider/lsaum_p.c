@@ -212,6 +212,22 @@ LsaUmpRefreshUserCreds(
     PLSA_UM_USER_REFRESH_ITEM pItem
     );
 
+VOID
+LsaUmpLogUserTGTRefreshSuccessEvent(
+    PSTR  pszUsername,
+    uid_t uid,
+    PSTR  pszDomainName,
+    DWORD dwTgtEndTime
+    );
+
+VOID
+LsaUmpLogUserTGTRefreshFailureEvent(
+    PSTR  pszUsername,
+    uid_t uid,
+    PSTR  pszDomainName,
+    DWORD dwFailureNumber,
+    DWORD dwErrCode
+    );
 
 static
 VOID
@@ -1552,6 +1568,14 @@ LsaUmpRefreshUserCreds(
     // post-processing fails.
     pUserItem->dwFailedCount = 0;
 
+    if (AD_EventlogEnabled())
+    {
+        LsaUmpLogUserTGTRefreshSuccessEvent(pszUpn,
+                                            pUserItem->uUid,
+                                            pszUserDnsDomainName,
+                                            pUserItem->dwTgtEndTime);
+    }
+
     if (pPac != NULL)
     {
         dwError = AD_CacheGroupMembershipFromPac(
@@ -1587,7 +1611,108 @@ error:
          dwError != LSA_ERROR_LDAP_SERVER_UNAVAILABLE )
     {
         pUserItem->dwFailedCount++;
+
+        if (AD_EventlogEnabled())
+        {
+            LsaUmpLogUserTGTRefreshFailureEvent(pszUpn,
+                                                pUserItem->uUid,
+                                                pszUserDnsDomainName,
+                                                pUserItem->dwFailedCount,
+                                                dwError);
+        }
     }
+
+    goto cleanup;
+}
+
+VOID
+LsaUmpLogUserTGTRefreshSuccessEvent(
+    PSTR pszUsername,
+    uid_t uid,
+    PSTR  pszDomainName,
+    DWORD dwTgtEndTime
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Refreshed Active Directory user account Kerberos credentials.\r\n\r\n" \
+                 "     Authentication provider:   %s\r\n\r\n" \
+                 "     User name:                 %s\r\n" \
+                 "     UID:                       %d\r\n" \
+                 "     Domain name:               %s\r\n" \
+                 "     TGT end time:              %d\r\n",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 LSA_SAFE_LOG_STRING(pszUsername),
+                 uid,
+                 LSA_SAFE_LOG_STRING(pszDomainName));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+            LSASS_EVENT_SUCCESSFUL_USER_ACCOUNT_KERB_REFRESH,
+            KERBEROS_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+LsaUmpLogUserTGTRefreshFailureEvent(
+    PSTR  pszUsername,
+    uid_t uid,
+    PSTR  pszDomainName,
+    DWORD dwFailureNumber,
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "The Active Directory user account Kerberos credentials failed to refresh.\r\n\r\n" \
+                 "     Authentication provider:   %s\r\n\r\n" \
+                 "     User name:                 %s\r\n" \
+                 "     UID:                       %d\r\n" \
+                 "     Domain name:               %s\r\n" \
+                 "     Failure number:            %d\r\n",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 LSA_SAFE_LOG_STRING(pszUsername),
+                 uid,
+                 LSA_SAFE_LOG_STRING(pszDomainName),
+                 dwFailureNumber);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+
+    LsaSrvLogServiceFailureEvent(
+            LSASS_EVENT_FAILED_USER_ACCOUNT_KERB_REFRESH,
+            KERBEROS_EVENT_CATEGORY,
+            pszDescription,
+            pszData);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
 
     goto cleanup;
 }

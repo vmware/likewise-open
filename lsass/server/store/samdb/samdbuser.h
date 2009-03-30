@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -35,55 +35,41 @@
  *
  * Module Name:
  *
- *        samdbmisc.h
+ *        samdbuser.h
  *
  * Abstract:
  *
- *        Likewise SAM DB
  *
- *        Misc Functions
+ *      Likewise SAM Database Provider
+ *
+ *      SAM User Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-
-#ifndef __SAMDB_MISC_H__
-#define __SAMDB_MISC_H__
+#ifndef __SAM_DB_USER_H__
+#define __SAM_DB_USER_H__
 
 DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
+SamDbSetPassword(
+    HANDLE hBindHandle,
+    PWSTR  pszUserDN,
+    PWSTR  pwszPassword
     );
 
 DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
+SamDbChangePassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
     );
 
 DWORD
-SamDbGetObjectClass(
-    DIRECTORY_MOD       Modifications[],
-    SAMDB_OBJECT_CLASS* pObjectClass
+SamDbVerifyPassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
     );
 
-DWORD
-SamDbFindObjectClassMapInfo(
-    SAMDB_OBJECT_CLASS                   objectClass,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
-    DWORD                                dwNumMapInfos,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
-    );
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    );
-
-#endif /* __SAMDB_MISC_H__ */
-
+#endif /* __SAM_DB_USER_H__ */

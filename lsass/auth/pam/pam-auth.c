@@ -243,8 +243,13 @@ pam_sm_setcred(
     const char*   argv[]
     )
 {
+    HANDLE      hLsaConnection = (HANDLE)NULL;
     DWORD       dwError = 0;
     PLSA_PAM_CONFIG pConfig = NULL;
+    PSTR        pszLoginId = NULL;
+    PPAMCONTEXT pPamContext = NULL;
+    DWORD dwUserInfoLevel = 0;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
 
     dwError = LsaPamReadConfigFile(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
@@ -252,6 +257,30 @@ pam_sm_setcred(
     LsaPamSetLogLevel(pConfig->dwLogLevel);
     LSA_LOG_PAM_DEBUG("pam_sm_setcred::begin");
 
+    dwError = LsaOpenServer(&hLsaConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaPamGetContext(
+                    pamh,
+                    flags,
+                    argc,
+                    argv,
+                    &pPamContext);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaPamGetLoginId(
+        pamh,
+        pPamContext,
+        &pszLoginId,
+        TRUE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaFindUserByName(
+                    hLsaConnection,
+                    pszLoginId,
+                    dwUserInfoLevel,
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (pConfig)
@@ -259,9 +288,32 @@ cleanup:
         LsaPamFreeConfig(pConfig);
     }
 
+    if (hLsaConnection != (HANDLE)NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+
+    LSA_SAFE_FREE_STRING(pszLoginId);
+
+    if (pUserInfo) {
+        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
+    }
+
     LSA_LOG_PAM_DEBUG("pam_sm_setcred::end");
 
-    return PAM_IGNORE;
+    dwError = LsaPamMapErrorCode(dwError, pPamContext);
+#ifdef __LWI_SOLARIS__
+    if (dwError == PAM_SUCCESS)
+    {
+        /* Typically on Solaris a pam module would need to call setproject
+         * here. It is rather complicated to determine what to set the project
+         * to. Instead, if PAM_IGNORE is returned, pam_unix_cred will set the
+         * project.
+        */
+        dwError = PAM_IGNORE;
+    }
+#endif
+    return dwError;
 
 error:
     goto cleanup;

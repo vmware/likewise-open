@@ -193,6 +193,24 @@ typedef struct translated_sid_array2 {
 	TranslatedSid2 *sids;
 } TranslatedSidArray2;
 
+typedef struct translated_sid3 {
+	uint16 type;     /* SID_TYPE_ */
+	PSID   sid;
+	uint32 index;
+	uint32 unknown1;
+} TranslatedSid3;
+
+typedef struct translated_sid_array3 {
+#ifdef _DCE_IDL_
+	[range(0,1000)]
+#endif
+	uint32 count;
+#ifdef _DCE_IDL_
+	[size_is(count)]
+#endif
+	TranslatedSid3 *sids;
+} TranslatedSidArray3;
+
 typedef struct translated_name {
 	uint16 type;             /* SID_TYPE_ */
 	UnicodeString name;
@@ -248,3 +266,13 @@ typedef uint16 LsaSidType;
 
 
 #endif /* _LSADEFS_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

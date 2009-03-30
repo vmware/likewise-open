@@ -96,6 +96,7 @@ typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
 #define LW_STATUS_SOME_UNMAPPED                                   ((LW_NTSTATUS) 0x00000107)
 
 // Warning status codes
+#define LW_STATUS_BUFFER_OVERFLOW                                 ((LW_NTSTATUS) 0x80000005)
 #define LW_STATUS_NO_MORE_ENTRIES                                 ((LW_NTSTATUS) 0x8000001a)
 
 // Error status codes
@@ -728,6 +729,7 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #define STATUS_MORE_ENTRIES                                LW_STATUS_MORE_ENTRIES
 #define STATUS_SOME_UNMAPPED                               LW_STATUS_SOME_UNMAPPED
 #define STATUS_NO_MORE_ENTRIES                             LW_STATUS_NO_MORE_ENTRIES
+#define STATUS_BUFFER_OVERFLOW                             LW_STATUS_BUFFER_OVERFLOW
 #define STATUS_UNSUCCESSFUL                                LW_STATUS_UNSUCCESSFUL
 #define STATUS_NOT_IMPLEMENTED                             LW_STATUS_NOT_IMPLEMENTED
 #define STATUS_INVALID_INFO_CLASS                          LW_STATUS_INVALID_INFO_CLASS

@@ -35,55 +35,33 @@
  *
  * Module Name:
  *
- *        samdbmisc.h
+ *        samdbschema.h
  *
  * Abstract:
  *
  *        Likewise SAM DB
  *
- *        Misc Functions
+ *        Schema Validation
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#ifndef __SAMDB_MISC_H__
-#define __SAMDB_MISC_H__
+#ifndef __SAM_DB_SCHEMA_H__
+#define __SAM_DB_SCHEMA_H__
 
 DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
-
-DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
-
-DWORD
-SamDbGetObjectClass(
-    DIRECTORY_MOD       Modifications[],
-    SAMDB_OBJECT_CLASS* pObjectClass
-    );
-
-DWORD
-SamDbFindObjectClassMapInfo(
-    SAMDB_OBJECT_CLASS                   objectClass,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
-    DWORD                                dwNumMapInfos,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
-    );
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
+SamDbSchemaAddValidateDirMods(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
     );
 
-#endif /* __SAMDB_MISC_H__ */
+DWORD
+SamDbSchemaModifyValidateDirMods(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    DIRECTORY_MOD          mods[]
+    );
 
+#endif /* __SAM_DB_SCHEMA_H__ */

@@ -2,9 +2,11 @@
 
 DWORD
 SamDbBuildDirectoryContext(
-    PSAM_DB_INSTANCE_LOCK   pDbInstanceLock,
-    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup,
-    PSAM_DIRECTORY_CONTEXT* ppDirContext
+    PSAM_DB_INSTANCE_LOCK               pDbInstanceLock,
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps,
+    DWORD                               dwNumObjectClassAttrMaps,
+    PSAM_DB_ATTR_LOOKUP                 pAttrLookup,
+    PSAM_DIRECTORY_CONTEXT*             ppDirContext
     )
 {
     DWORD dwError = 0;
@@ -28,10 +30,9 @@ SamDbBuildDirectoryContext(
                     &pDirContext->pDbContext->pDbLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbAcquireAttributeLookup(
-                    pAttrLookup,
-                    &pDirContext->pAttrLookup);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    pDirContext->pObjectClassAttrMaps = pObjectClassAttrMaps;
+    pDirContext->dwNumObjectClassAttrMaps = dwNumObjectClassAttrMaps;
+    pDirContext->pAttrLookup = pAttrLookup;
 
     dwError = sqlite3_open(
                     SAM_DB,
@@ -83,9 +84,10 @@ SamDbFreeDirectoryContext(
             SamDbReleaseDbInstanceLock(pDirContext->pDbContext->pDbLock);
         }
 
-        if (pDirContext->pAttrLookup)
+        if (pDirContext->pDbContext->pDelObjectStmt)
         {
-            SamDbReleaseAttributeLookup(pDirContext->pAttrLookup);
+            sqlite3_finalize(pDirContext->pDbContext->pDelObjectStmt);
+            pDirContext->pDbContext->pDelObjectStmt = NULL;
         }
 
         if (pDirContext->pDbContext->pDbHandle)

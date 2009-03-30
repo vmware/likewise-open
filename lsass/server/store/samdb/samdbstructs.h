@@ -1,40 +1,22 @@
 #ifndef __SAMDBSTRUCTS_H__
 #define __SAMDBSTRUCTS_H__
 
-typedef struct _SAMDB_INTERLOCKED_COUNTER
+typedef struct _SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO
 {
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-    DWORD            dwCounter;
+    SAMDB_OBJECT_CLASS        objectClass;
+    PSAMDB_ATTRIBUTE_MAP_INFO pAttributeMaps;
+    DWORD                     dwNumMaps;
 
-} SAMDB_INTERLOCKED_COUNTER, *PSAMDB_INTERLOCKED_COUNTER;
+} SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO, *PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO;
 
 typedef struct _SAM_DB_INSTANCE_LOCK
 {
-    SAMDB_INTERLOCKED_COUNTER counter;
+    LONG refCount;
 
     pthread_rwlock_t  rwLock;
     pthread_rwlock_t* pRwLock;
 
 } SAM_DB_INSTANCE_LOCK, *PSAM_DB_INSTANCE_LOCK;
-
-typedef struct _SAMDB_ATTRIBUTE_LOOKUP_ENTRY
-{
-    PWSTR               pwszAttributeName;
-    DIRECTORY_ATTR_TYPE attrType;
-    DWORD               dwId;
-    BOOLEAN             bIsMandatory;
-    BOOLEAN             bIsModifiable;
-
-} SAMDB_ATTRIBUTE_LOOKUP_ENTRY, *PSAMDB_ATTRIBUTE_LOOKUP_ENTRY;
-
-typedef struct _SAMDB_ATTRIBUTE_LOOKUP
-{
-    SAMDB_INTERLOCKED_COUNTER counter;
-
-    PLWRTL_RB_TREE pAttrTree;
-
-} SAMDB_ATTRIBUTE_LOOKUP, *PSAMDB_ATTRIBUTE_LOOKUP;
 
 typedef struct _SAM_DB_CONTEXT
 {
@@ -42,7 +24,15 @@ typedef struct _SAM_DB_CONTEXT
 
     sqlite3* pDbHandle;
 
+    sqlite3_stmt* pDelObjectStmt;
+
 } SAM_DB_CONTEXT, *PSAM_DB_CONTEXT;
+
+typedef struct _SAM_DB_ATTR_LOOKUP
+{
+    PLWRTL_RB_TREE pLookupTable;
+
+} SAM_DB_ATTR_LOOKUP, *PSAM_DB_ATTR_LOOKUP;
 
 typedef struct _SAM_DIRECTORY_CONTEXT
 {
@@ -54,7 +44,10 @@ typedef struct _SAM_DIRECTORY_CONTEXT
     ULONG    ulMethod;
 
     PSAM_DB_CONTEXT         pDbContext;
-    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup;
+
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps;
+    DWORD                               dwNumObjectClassAttrMaps;
+    PSAM_DB_ATTR_LOOKUP   pAttrLookup;
 
 } SAM_DIRECTORY_CONTEXT, *PSAM_DIRECTORY_CONTEXT;
 
@@ -62,13 +55,18 @@ typedef struct _SAM_GLOBALS
 {
     pthread_mutex_t mutex;
 
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps;
+    DWORD                               dwNumObjectClassAttrMaps;
+
+    PSAM_DB_ATTRIBUTE_MAP pAttrMaps;
+    DWORD                 dwNumMaps;
+    SAM_DB_ATTR_LOOKUP    attrLookup;
+
     PSTR            pszProviderName;
 
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerFunctionTable;
 
     PSAM_DB_INSTANCE_LOCK pDbInstanceLock;
-
-    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup;
 
 } SAM_GLOBALS, *PSAM_GLOBALS;
 
@@ -81,6 +79,37 @@ typedef struct _SAM_DB_DOMAIN_INFO
     PWSTR pwszDomainSID;
 
 } SAM_DB_DOMAIN_INFO, *PSAM_DB_DOMAIN_INFO;
+
+typedef struct _SAMDB_DN_TOKEN
+{
+    SAMDB_DN_TOKEN_TYPE tokenType;
+    PWSTR               pwszToken;
+    DWORD               dwLen;
+
+    struct _SAMDB_DN_TOKEN * pNext;
+
+} SAMDB_DN_TOKEN, *PSAMDB_DN_TOKEN;
+
+typedef struct _SAM_DB_DN
+{
+    PWSTR pwszDN;
+
+    PSAMDB_DN_TOKEN pTokenList;
+
+} SAM_DB_DN, *PSAM_DB_DN;
+
+typedef struct _SAM_DB_COLUMN_VALUE
+{
+    PSAMDB_ATTRIBUTE_MAP_INFO pAttrMapInfo;
+    PSAM_DB_ATTRIBUTE_MAP     pAttrMap;
+
+    PDIRECTORY_MOD            pDirMod;
+
+    PATTRIBUTE_VALUE          pAttrValue;
+
+    struct _SAM_DB_COLUMN_VALUE* pNext;
+
+} SAM_DB_COLUMN_VALUE, *PSAM_DB_COLUMN_VALUE;
 
 #endif /* __SAMDBSTRUCTS_H__ */
 

@@ -91,4 +91,14 @@ ADLogMachinePWUpdateFailureEvent(
     DWORD dwErrCode
     );
 
+VOID
+ADLogMachineTGTRefreshSuccessEvent(
+    VOID
+    );
+
+VOID
+ADLogMachineTGTRefreshFailureEvent(
+    DWORD dwErrCode
+    );
+
 #endif /* __MACHINEPWD_P_H__ */

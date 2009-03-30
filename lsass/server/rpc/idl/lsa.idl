@@ -150,6 +150,28 @@ cpp_quote("#endif")
         [in] uint32 unknown1,
         [in] uint32 unknown2
         );
+
+    NTSTATUS lsa_Function3b();
+    NTSTATUS lsa_Function3c();
+    NTSTATUS lsa_Function3d();
+    NTSTATUS lsa_Function3e();
+    NTSTATUS lsa_Function3f();
+    NTSTATUS lsa_Function40();
+    NTSTATUS lsa_Function41();
+    NTSTATUS lsa_Function42();
+    NTSTATUS lsa_Function43();
+
+    NTSTATUS __LsaLookupNames3(
+        [in] POLICY_HANDLE hPolicy,
+        [in,range(0,1000)] uint32 num_names,
+        [in,size_is(num_names)] UnicodeString *names,
+        [out] RefDomainList **domains,
+        [in,out] TranslatedSidArray3 *sids,
+        [in] uint16 level,
+        [in,out] uint32 *count,
+        [in] uint32 unknown1,
+        [in] uint32 unknown2
+        );
 }
 
 

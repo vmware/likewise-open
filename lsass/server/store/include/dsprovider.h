@@ -31,6 +31,25 @@ typedef DWORD (*PFNDIRECTORYMODIFY)(
                     DIRECTORY_MOD Modifications[]
                     );
 
+typedef DWORD (*PFNDIRECTORYSETPASSWORD)(
+                    HANDLE hDirectory,
+                    PWSTR  pwszObjectDN,
+                    PWSTR  pwszPassword
+                    );
+
+typedef DWORD (*PFNDIRECTORYCHANGEPASSWORD)(
+                    HANDLE hDirectory,
+                    PWSTR  pwszObjectDN,
+                    PWSTR  pwszOldPassword,
+                    PWSTR  pwszNewPassword
+                    );
+
+typedef DWORD (*PFNDIRECTORYVERIFYPASSWORD)(
+                    HANDLE hDirectory,
+                    PWSTR  pwszObjectDN,
+                    PWSTR  pwszPassword
+                    );
+
 typedef DWORD (*PFNDIRECTORYSEARCH)(
                     HANDLE            hDirectory,
                     PWSTR             pwszBase,
@@ -53,13 +72,16 @@ typedef VOID (*PFNDIRECTORYCLOSE)(
 
 typedef struct __LSA_DIRECTORY_PROVIDER_FUNCTION_TABLE
 {
-    PFNDIRECTORYOPEN   pfnDirectoryOpen;
-    PFNDIRECTORYBIND   pfnDirectoryBind;
-    PFNDIRECTORYADD    pfnDirectoryAdd;
-    PFNDIRECTORYMODIFY pfnDirectoryModify;
-    PFNDIRECTORYDELETE pfnDirectoryDelete;
-    PFNDIRECTORYSEARCH pfnDirectorySearch;
-    PFNDIRECTORYCLOSE  pfnDirectoryClose;
+    PFNDIRECTORYOPEN           pfnDirectoryOpen;
+    PFNDIRECTORYBIND           pfnDirectoryBind;
+    PFNDIRECTORYADD            pfnDirectoryAdd;
+    PFNDIRECTORYMODIFY         pfnDirectoryModify;
+    PFNDIRECTORYSETPASSWORD    pfnDirectorySetPassword;
+    PFNDIRECTORYCHANGEPASSWORD pfnDirectoryChangePassword;
+    PFNDIRECTORYVERIFYPASSWORD pfnDirectoryVerifyPassword;
+    PFNDIRECTORYDELETE         pfnDirectoryDelete;
+    PFNDIRECTORYSEARCH         pfnDirectorySearch;
+    PFNDIRECTORYCLOSE          pfnDirectoryClose;
 
 } DIRECTORY_PROVIDER_FUNCTION_TABLE, *PDIRECTORY_PROVIDER_FUNCTION_TABLE;
 

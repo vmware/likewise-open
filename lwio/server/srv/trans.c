@@ -874,7 +874,8 @@ SrvProcessTransactNamedPipe(
                 pSmbResponse->pRawBuffer,
                 pSmbResponse->bufferLen,
                 COM_TRANSACTION,
-                0,
+                ioStatusBlock.BytesTransferred < usResponseDataLen ?
+		    STATUS_SUCCESS : STATUS_BUFFER_OVERFLOW,
                 TRUE,
                 pSmbRequest->pSMBHeader->tid,
                 pSmbRequest->pSMBHeader->pid,

@@ -362,10 +362,12 @@ SrvShareDbAdd_inlock(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Protect against NULL comment strings */
+
     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_SHARE,
                                pszShareName,
                                pszPath,
-                               pszComment,
+                               pszComment ? pszComment : "",
                                pszSid,
                                pszService);
 
@@ -961,6 +963,14 @@ SrvShareDbWriteToShareInfo(
                                        &pShareInfo->pwszComment);
                        BAIL_ON_NT_STATUS(ntStatus);
                     }
+                    else
+                    {
+                       /* Deal with empty comments */
+                       ntStatus = SMBMbsToWc16s(
+                                       "",
+                                       &pShareInfo->pwszComment);
+                       BAIL_ON_NT_STATUS(ntStatus);
+		    }
                     break;
                 }
                 case 3: /* Security Descriptor */

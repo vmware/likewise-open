@@ -176,7 +176,7 @@ SamrSrvOpenDomain(
             dwError = DirectoryGetEntryAttributeByNameA(pEntry,
                                                         DIRECTORY_ATTR_TAG_DN,
                                                         &pAttrDn);
-            BAIL_ON_DIRECTORY_ERROR(dwError);
+            BAIL_ON_LSA_ERROR(dwError);
 
             pAttrVal = NULL;
             dwError = DirectoryGetAttributeValue(pAttrDn,

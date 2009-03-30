@@ -1,77 +1,30 @@
 #include "includes.h"
 
-#define CN_PREFIX    "CN="
-#define CN_PREFIX_L L"CN="
-
-#define DC_PREFIX    "DC="
-#define DC_PREFIX_L L"DC="
-
-#define USERS_TOKEN    "Users"
-#define USERS_TOKEN_L L"Users"
-
-#define GROUPS_TOKEN    "Groups"
-#define GROUPS_TOKEN_L L"Groups"
-
-typedef enum
-{
-    SAMDB_DN_TOKEN_TYPE_UNKNOWN = 0,
-    SAMDB_DN_TOKEN_TYPE_DC,
-    SAMDB_DN_TOKEN_TYPE_CN
-
-} SAMDB_DN_TOKEN_TYPE;
-
-typedef enum
-{
-    SAMDB_DN_PARSE_STATE_INITIAL = 0,
-    SAMDB_DN_PARSE_STATE_USER_OR_GROUP,
-    SAMDB_DN_PARSE_STATE_DOMAIN
-
-} SAMDB_DN_PARSE_STATE;
-
-typedef struct
-{
-    SAMDB_DN_TOKEN_TYPE tokenType;
-    PWSTR               pwszToken;
-    DWORD               dwLen;
-} SAMDB_DN_TOKEN, *PSAMDB_DN_TOKEN;
-
 static
 DWORD
 SamDbGetDnToken(
-    PWSTR           pwszObjectNameCursor,
-    DWORD           dwAvailableLen,
-    PSAMDB_DN_TOKEN pDnToken,
-    PDWORD          pdwLenUsed
+    PWSTR            pwszObjectNameCursor,
+    DWORD            dwAvailableLen,
+    PSAMDB_DN_TOKEN* ppDnToken,
+    PDWORD           pdwLenUsed
+    );
+
+static
+PSAMDB_DN_TOKEN
+SamDbReverseTokenList(
+    PSAMDB_DN_TOKEN pTokenList
     );
 
 DWORD
 SamDbParseDN(
-    PWSTR             pwszObjectDN,
-    PWSTR*            ppwszObjectName,
-    PWSTR*            ppwszDomain,
-    PSAMDB_ENTRY_TYPE pEntryType
+    PWSTR       pwszObjectDN,
+    PSAM_DB_DN* ppDN
     )
 {
     DWORD dwError = 0;
-    wchar16_t wszUsersToken[sizeof(USERS_TOKEN)];
-    wchar16_t wszGroupsToken[sizeof(GROUPS_TOKEN)];
-    wchar16_t wszDot[2];
     PWSTR pwszObjectNameCursor = NULL;
-    PWSTR pwszObjectName = NULL;
-    PWSTR pwszDomain = NULL;
-    PWSTR pwszDomainCursor = NULL;
-#if 0
-    /* ifdef-ed to fix errors caused by unused variables */
-    DWORD dwLenGroupsToken = sizeof(GROUPS_TOKEN) - 1;
-    DWORD dwLenUsersToken = sizeof(USERS_TOKEN) - 1;
-    DWORD dwDomainLen = 0;
-#endif
-    DWORD dwDomainOffset = 0;
-    DWORD dwDomainLenAllocated = 0;
-    DWORD dwDomainLenAvailable = 0;
-    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
     DWORD dwAvailableLen = 0;
-    DWORD dwParseState = SAMDB_DN_PARSE_STATE_INITIAL;
+    PSAM_DB_DN pDN = NULL;
 
     if (!pwszObjectDN || !*pwszObjectDN)
     {
@@ -79,182 +32,42 @@ SamDbParseDN(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    wcstowc16s(wszUsersToken, USERS_TOKEN_L, sizeof(wszUsersToken));
-    wcstowc16s(wszGroupsToken, GROUPS_TOKEN_L, sizeof(wszGroupsToken));
-    wcstowc16s(wszDot, L".", 1);
+    dwError = DirectoryAllocateMemory(
+                    sizeof(SAM_DB_DN),
+                    (PVOID*)&pDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = DirectoryAllocateStringW(
+                    pwszObjectDN,
+                    &pDN->pwszDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     dwAvailableLen = wc16slen(pwszObjectDN);
-    pwszObjectNameCursor = pwszObjectDN;
+    pwszObjectNameCursor = pDN->pwszDN;
 
     do
     {
-        SAMDB_DN_TOKEN token = {0};
+        PSAMDB_DN_TOKEN pToken = NULL;
         DWORD dwLenUsed;
 
         dwError = SamDbGetDnToken(
                         pwszObjectNameCursor,
                         dwAvailableLen,
-                        &token,
+                        &pToken,
                         &dwLenUsed);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        switch(dwParseState)
-        {
-            case SAMDB_DN_PARSE_STATE_INITIAL:
-
-                if (token.tokenType == SAMDB_DN_TOKEN_TYPE_CN)
-                {
-                    if (!wc16scmp(token.pwszToken, wszUsersToken) ||
-                        !wc16scmp(token.pwszToken, wszGroupsToken))
-                    {
-                        dwError = LSA_ERROR_INVALID_LDAP_DN;
-                        BAIL_ON_SAMDB_ERROR(dwError);
-                    }
-
-                    dwError = DirectoryAllocateMemory(
-                                    (token.dwLen + 1) * sizeof(wchar16_t),
-                                    (PVOID*)&pwszObjectName);
-                    BAIL_ON_SAMDB_ERROR(dwError);
-
-                    memcpy((PBYTE)pwszObjectName,
-                           (PBYTE)token.pwszToken,
-                           token.dwLen * sizeof(wchar16_t));
-
-                    // Cannot tell if it is a user or group yet
-                    dwParseState = SAMDB_DN_PARSE_STATE_USER_OR_GROUP;
-
-                }
-                else if (token.tokenType == SAMDB_DN_TOKEN_TYPE_DC)
-                {
-                    DWORD dwLenIncrement = 0;
-                    DWORD dwNewLen = 0;
-
-                    if (entryType == SAMDB_ENTRY_TYPE_UNKNOWN)
-                    {
-                        entryType = SAMDB_ENTRY_TYPE_DOMAIN;
-                    }
-
-                    dwLenIncrement = LSA_MAX(token.dwLen + 2, 256);
-                    dwNewLen = dwDomainLenAllocated + dwLenIncrement;
-
-                    dwError = LsaAllocateMemory(
-                                    dwNewLen * sizeof(wchar16_t),
-                                    (PVOID*)&pwszDomain);
-                    BAIL_ON_SAMDB_ERROR(dwError);
-
-                    pwszDomainCursor = pwszDomain;
-
-                    dwDomainLenAllocated = dwNewLen;
-                    dwDomainLenAvailable += dwLenIncrement;
-
-                    memset((PBYTE)pwszDomainCursor, 0,
-                           dwDomainLenAvailable * sizeof(wchar16_t));
-
-                    memcpy((PBYTE)pwszDomainCursor,
-                           (PBYTE)token.pwszToken,
-                           token.dwLen * sizeof(wchar16_t));
-
-                    pwszDomainCursor += token.dwLen;
-                    dwDomainOffset += token.dwLen;
-                    dwDomainLenAvailable -= token.dwLen;
-                }
-                break;
-
-            case SAMDB_DN_PARSE_STATE_USER_OR_GROUP:
-
-                if (token.tokenType != SAMDB_DN_TOKEN_TYPE_CN)
-                {
-                    dwError = LSA_ERROR_INVALID_LDAP_DN;
-                    BAIL_ON_SAMDB_ERROR(dwError);
-                }
-
-                if (!wc16scmp(token.pwszToken, wszUsersToken))
-                {
-                    entryType = SAMDB_ENTRY_TYPE_USER;
-                }
-                else if (!wc16scmp(token.pwszToken, wszGroupsToken))
-                {
-                    entryType = SAMDB_ENTRY_TYPE_GROUP;
-                }
-                else
-                {
-                    dwError = LSA_ERROR_INVALID_LDAP_DN;
-                    BAIL_ON_SAMDB_ERROR(dwError);
-                }
-
-                // Next token has to be a domain
-                dwParseState = SAMDB_DN_PARSE_STATE_DOMAIN;
-
-                break;
-
-            case SAMDB_DN_PARSE_STATE_DOMAIN:
-
-                if (token.tokenType != SAMDB_DN_TOKEN_TYPE_DC)
-                {
-                    dwError = LSA_ERROR_INVALID_LDAP_DN;
-                    BAIL_ON_SAMDB_ERROR(dwError);
-                }
-
-                if (entryType == SAMDB_ENTRY_TYPE_UNKNOWN)
-                {
-                    entryType = SAMDB_ENTRY_TYPE_DOMAIN;
-                }
-
-                if ((token.dwLen + 2) > dwDomainLenAvailable)
-                {
-                    DWORD dwLenIncrement = LSA_MAX(token.dwLen + 2, 256);
-                    DWORD dwNewLen = dwDomainLenAllocated + dwLenIncrement;
-
-                    dwError = LsaReallocMemory(
-                                    pwszDomain,
-                                    (PVOID*)&pwszDomain,
-                                    dwNewLen * sizeof(wchar16_t));
-                    BAIL_ON_SAMDB_ERROR(dwError);
-
-                    dwDomainLenAllocated = dwNewLen;
-
-                    pwszDomainCursor = pwszDomain + dwDomainOffset;
-
-                    dwDomainLenAvailable += dwLenIncrement;
-
-                    memset(
-                        (PBYTE)pwszDomainCursor,
-                        0,
-                        dwDomainLenAvailable * sizeof(wchar16_t));
-                }
-
-                if (dwDomainOffset)
-                {
-                    *pwszDomainCursor++ = wszDot[0];
-                    dwDomainOffset++;
-                    dwDomainLenAvailable--;
-                }
-
-                memcpy((PBYTE)pwszDomainCursor,
-                       (PBYTE)token.pwszToken,
-                       token.dwLen * sizeof(wchar16_t));
-
-                pwszDomainCursor += token.dwLen;
-                dwDomainOffset += token.dwLen;
-                dwDomainLenAvailable -= token.dwLen;
-
-                break;
-        }
+        pToken->pNext = pDN->pTokenList;
+        pDN->pTokenList = pToken;
 
         pwszObjectNameCursor += dwLenUsed;
         dwAvailableLen -= dwLenUsed;
 
     } while (dwAvailableLen);
 
-    if (entryType == SAMDB_ENTRY_TYPE_UNKNOWN)
-    {
-        dwError = LSA_ERROR_INVALID_LDAP_DN;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
+    pDN->pTokenList = SamDbReverseTokenList(pDN->pTokenList);
 
-    *ppwszObjectName = pwszObjectName;
-    *ppwszDomain = pwszDomain;
-    *pEntryType = entryType;
+    *ppDN = pDN;
 
 cleanup:
 
@@ -262,59 +75,209 @@ cleanup:
 
 error:
 
-    *ppwszObjectName = pwszObjectName;
-    *ppwszDomain = pwszDomain;
-    *pEntryType = entryType;
+    *ppDN = NULL;
 
-    if (pwszObjectName)
+    if (pDN)
     {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-
-    if (pwszDomain)
-    {
-        DirectoryFreeMemory(pwszDomain);
+        SamDbFreeDN(pDN);
     }
 
     goto cleanup;
 }
 
+DWORD
+SamDbGetDNComponents(
+    PSAM_DB_DN pDN,
+    PWSTR*     ppwszObjectName,
+    PWSTR*     ppwszDomainName,
+    PWSTR*     ppwszParentDN
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t wszDot[] = { '.', 0};
+    PSAMDB_DN_TOKEN pToken = pDN->pTokenList;
+    PSAMDB_DN_TOKEN pDCToken = NULL;
+    PSAMDB_DN_TOKEN pParentDNToken = NULL;
+    DWORD dwObjectNameLen = 0;
+    DWORD dwDomainNameLen = 0;
+    PWSTR pwszObjectName = NULL;
+    PWSTR pwszParentDN = NULL;
+    PWSTR pwszDomainName = NULL;
+
+    if (!pDN || !pDN->pTokenList)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    if (pToken->tokenType != SAMDB_DN_TOKEN_TYPE_DC)
+    {
+        dwObjectNameLen = pToken->dwLen * sizeof(wchar16_t);
+
+        pToken = pToken->pNext;
+
+        pParentDNToken = pToken;
+    }
+
+    while (pToken && (pToken->tokenType != SAMDB_DN_TOKEN_TYPE_DC))
+    {
+        pToken = pToken->pNext;
+    }
+    pDCToken = pToken;
+
+    while (pToken)
+    {
+        if (dwDomainNameLen)
+        {
+            dwDomainNameLen += sizeof(wszDot[0]);
+        }
+        dwDomainNameLen += pToken->dwLen * sizeof(wchar16_t);
+
+        if (pToken->tokenType != SAMDB_DN_TOKEN_TYPE_DC)
+        {
+            dwError = LSA_ERROR_INVALID_LDAP_DN;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+    }
+
+    if (dwObjectNameLen)
+    {
+        dwError = DirectoryAllocateMemory(
+                        dwObjectNameLen + sizeof(wchar16_t),
+                        (PVOID*)&pwszObjectName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pToken = pDN->pTokenList;
+
+        memcpy( (PBYTE)pwszObjectName,
+                (PBYTE)pToken->pwszToken,
+                pToken->dwLen * sizeof(wchar16_t));
+    }
+
+    if (pParentDNToken)
+    {
+        dwError = DirectoryAllocateStringW(
+                    pParentDNToken->pwszToken,
+                    &pwszParentDN);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    if (dwDomainNameLen)
+    {
+        PWSTR pwszCursor = NULL;
+
+        dwError = DirectoryAllocateMemory(
+                        dwDomainNameLen + sizeof(wchar16_t),
+                        (PVOID*)&pwszDomainName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pwszCursor = pwszDomainName;
+        for (pToken = pDCToken;pToken; pToken = pToken->pNext)
+        {
+            if (pToken != pDCToken)
+            {
+                *pwszCursor = wszDot[0];
+
+                pwszCursor++;
+            }
+
+            memcpy( (PBYTE)pwszCursor,
+                    (PBYTE)pToken->pwszToken,
+                    pToken->dwLen * sizeof(wchar16_t));
+
+            pwszCursor += pToken->dwLen;
+        }
+    }
+
+    *ppwszObjectName = pwszObjectName;
+    *ppwszParentDN   = pwszParentDN;
+    *ppwszDomainName = pwszDomainName;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppwszObjectName = NULL;
+    *ppwszParentDN   = NULL;
+    *ppwszDomainName = NULL;
+
+    DIRECTORY_FREE_MEMORY(pwszObjectName);
+    DIRECTORY_FREE_MEMORY(pwszParentDN);
+    DIRECTORY_FREE_MEMORY(pwszDomainName);
+
+    goto cleanup;
+}
+
+VOID
+SamDbFreeDN(
+    PSAM_DB_DN pDN
+    )
+{
+    while (pDN->pTokenList)
+    {
+        PSAMDB_DN_TOKEN pToken = pDN->pTokenList;
+
+        pDN->pTokenList = pDN->pTokenList->pNext;
+
+        DirectoryFreeMemory(pToken);
+    }
+
+    DIRECTORY_FREE_MEMORY(pDN->pwszDN);
+
+    DirectoryFreeMemory(pDN);
+}
+
 static
 DWORD
 SamDbGetDnToken(
-    PWSTR           pwszObjectNameCursor,
-    DWORD           dwAvailableLen,
-    PSAMDB_DN_TOKEN pDnToken,
-    PDWORD          pdwLenUsed
+    PWSTR            pwszObjectNameCursor,
+    DWORD            dwAvailableLen,
+    PSAMDB_DN_TOKEN* ppDnToken,
+    PDWORD           pdwLenUsed
     )
 {
     DWORD  dwError = 0;
-    wchar16_t wszCNPrefix[sizeof(CN_PREFIX)];
-    DWORD dwLenCNPrefix = sizeof(CN_PREFIX) - 1;
-    wchar16_t wszDCPrefix[sizeof(DC_PREFIX)];
-    DWORD dwLenDCPrefix = sizeof(DC_PREFIX) - 1;
-    wchar16_t wszComma[2];
+    wchar16_t wszCNPrefix[] = {'C', 'N', 0};
+    DWORD dwLenCNPrefix = sizeof(wszCNPrefix) - sizeof(wchar16_t);
+    wchar16_t wszDCPrefix[] = {'D', 'C', 0};
+    DWORD dwLenDCPrefix = sizeof(wszDCPrefix) - sizeof(wchar16_t);
+    wchar16_t wszOUPrefix[] = {'O', 'U', 0};
+    DWORD dwLenOUPrefix = sizeof(wszOUPrefix) - sizeof(wchar16_t);
+    wchar16_t wszComma[] = {',', 0};
     DWORD dwLenUsed = 0;
-    SAMDB_DN_TOKEN token = {0};
+    PSAMDB_DN_TOKEN pToken = NULL;
 
-    wcstowc16s(wszCNPrefix, CN_PREFIX_L, sizeof(wszCNPrefix));
-    wcstowc16s(wszDCPrefix, DC_PREFIX_L, sizeof(wszDCPrefix));
-    wcstowc16s(wszComma,    L",",  1);
+    dwError = DirectoryAllocateMemory(
+                sizeof(SAMDB_DN_TOKEN),
+                (PVOID*)&pToken);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     if ((dwAvailableLen > dwLenCNPrefix) &&
         !memcmp(pwszObjectNameCursor, wszCNPrefix, dwLenCNPrefix))
     {
-        token.tokenType = SAMDB_DN_TOKEN_TYPE_CN;
+        pToken->tokenType = SAMDB_DN_TOKEN_TYPE_CN;
 
         pwszObjectNameCursor += dwLenCNPrefix;
         dwAvailableLen -= dwLenCNPrefix;
         dwLenUsed += dwLenCNPrefix;
     }
     else
+    if ((dwAvailableLen > dwLenOUPrefix) &&
+        !memcmp(pwszObjectNameCursor, wszOUPrefix, dwLenOUPrefix))
+    {
+        pToken->tokenType = SAMDB_DN_TOKEN_TYPE_OU;
+
+        pwszObjectNameCursor += dwLenOUPrefix;
+        dwAvailableLen -= dwLenOUPrefix;
+        dwLenUsed += dwLenOUPrefix;
+    }
+    else
     if ((dwAvailableLen > dwLenDCPrefix) &&
         !memcmp(pwszObjectNameCursor, wszDCPrefix, dwLenDCPrefix))
     {
-        token.tokenType = SAMDB_DN_TOKEN_TYPE_DC;
+        pToken->tokenType = SAMDB_DN_TOKEN_TYPE_DC;
 
         pwszObjectNameCursor += dwLenDCPrefix;
         dwAvailableLen -= dwLenDCPrefix;
@@ -332,11 +295,11 @@ SamDbGetDnToken(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    token.pwszToken = pwszObjectNameCursor;
+    pToken->pwszToken = pwszObjectNameCursor;
     while (dwAvailableLen && (*pwszObjectNameCursor++ != wszComma[0]))
     {
         dwAvailableLen--;
-        token.dwLen++;
+        pToken->dwLen++;
         dwLenUsed++;
     }
 
@@ -345,7 +308,7 @@ SamDbGetDnToken(
         dwLenUsed++;
     }
 
-    *pDnToken = token;
+    *ppDnToken = pToken;
     *pdwLenUsed = dwLenUsed;
 
 cleanup:
@@ -354,18 +317,31 @@ cleanup:
 
 error:
 
-    memset(pDnToken, 0, sizeof(*pDnToken));
+    *ppDnToken = NULL;
     *pdwLenUsed = 0;
+
+    DIRECTORY_FREE_MEMORY(pToken);
 
     goto cleanup;
 }
 
+static
+PSAMDB_DN_TOKEN
+SamDbReverseTokenList(
+    PSAMDB_DN_TOKEN pTokenList
+    )
+{
+    PSAMDB_DN_TOKEN pP = NULL;
+    PSAMDB_DN_TOKEN pQ = pTokenList;
+    PSAMDB_DN_TOKEN pR = NULL;
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    while( pQ ) {
+        pR = pQ->pNext;
+        pQ->pNext = pP;
+        pP = pQ;
+        pQ = pR;
+    }
+
+    return pP;
+}
+

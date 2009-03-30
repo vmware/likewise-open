@@ -235,6 +235,20 @@ PvfsLookupFile(
     BOOLEAN bCaseSensitive
     );
 
+/* From pathcache.c */
+
+NTSTATUS
+PvfsPathCacheAdd(
+    IN PCSTR pszResolvedPath
+    );
+
+
+NTSTATUS
+PvfsPathCacheLookup(
+    OUT PSTR *ppResolvedPath,
+    IN  PCSTR pszOriginalPath
+    );
+
 
 /* From wildcard.c */
 

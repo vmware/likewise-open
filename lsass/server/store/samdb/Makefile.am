@@ -8,15 +8,14 @@ libsamdb_la_SOURCES =     \
         samdbcontext.c    \
         samdbcounter.c    \
         samdbdel.c        \
-        samdbdomain.c     \
         samdbdn.c         \
         samdbglobals.c    \
-        samdbgroup.c      \
         samdbinit.c       \
         samdblock.c       \
         samdbmisc.c       \
         samdbmodify.c     \
         samdbopen.c       \
+        samdbschema.c     \
         samdbsearch.c     \
         samdbtrans.c      \
         samdbuser.c

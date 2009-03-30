@@ -21,7 +21,7 @@ liblsa_srv_la_SOURCES = \
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     @NETAPI_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
@@ -31,15 +31,16 @@ liblsa_srv_la_CFLAGS = \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
     -I$(rpc_srcdir)/rpcctl \
+    -I$(rpc_srcdir)/samr \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 liblsa_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
     @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
-    @LIBSECDESC_LIBS@ \
+    @LWBASE_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
@@ -51,7 +52,7 @@ liblsa_ss_la_CFLAGS = \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
-    @LIBSECDESC_INCLUDES@
+    @LWBASE_INCLUDES@
 
 CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h
 

@@ -49,56 +49,6 @@
 
 #include "includes.h"
 
-VOID
-SamDbInterlockedIncrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->mutex);
-
-    pCounter->dwCounter++;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-}
-
-VOID
-SamDbInterlockedDecrement(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_lock(&pCounter->mutex);
-
-    pCounter->dwCounter--;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-}
-
-VOID
-SamDbInitializeInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    pthread_mutex_init(&pCounter->mutex, NULL);
-    pCounter->pMutex = &pCounter->mutex;
-    pCounter->dwCounter = 0;
-}
-
-DWORD
-SamDbInterlockedCounter(
-    PSAMDB_INTERLOCKED_COUNTER pCounter
-    )
-{
-    DWORD dwCounter = 0;
-
-    pthread_mutex_lock(&pCounter->mutex);
-
-    dwCounter = pCounter->dwCounter;
-
-    pthread_mutex_unlock(&pCounter->mutex);
-
-    return dwCounter;
-}
-
 DWORD
 SamDbComputeLMHash(
     PCSTR pszPassword,
@@ -154,4 +104,134 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+DWORD
+SamDbGetObjectClass(
+    DIRECTORY_MOD       Modifications[],
+    SAMDB_OBJECT_CLASS* pObjectClass
+    )
+{
+    DWORD dwError = 0;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+    wchar16_t pwszObjectClassAttr[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    DWORD dwNumMods = 0;
+
+    while (Modifications[dwNumMods].pwszAttrName &&
+           Modifications[dwNumMods].pAttrValues)
+    {
+        if (!wc16scasecmp(&pwszObjectClassAttr[0],
+                          Modifications[dwNumMods].pwszAttrName))
+        {
+            PATTRIBUTE_VALUE pAttrValue = NULL;
+
+            if (Modifications[dwNumMods].ulNumValues != 1)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
+
+            pAttrValue = &Modifications[dwNumMods].pAttrValues[0];
+
+            if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
+
+            switch (pAttrValue->ulValue)
+            {
+                case SAMDB_OBJECT_CLASS_DOMAIN:
+                case SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN:
+                case SAMDB_OBJECT_CLASS_CONTAINER:
+                case SAMDB_OBJECT_CLASS_GROUP:
+                case SAMDB_OBJECT_CLASS_USER:
+
+                    objectClass = pAttrValue->ulValue;
+
+                    break;
+
+                default:
+
+                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    break;
+            }
+
+            break;
+        }
+
+        dwNumMods++;
+    }
+
+    *pObjectClass = objectClass;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pObjectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+
+    goto cleanup;
+}
+
+DWORD
+SamDbFindObjectClassMapInfo(
+    SAMDB_OBJECT_CLASS                   objectClass,
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
+    DWORD                                dwNumMapInfos,
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD iMap = 0;
+    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pMapInfo = NULL;
+
+    for (; iMap < dwNumMapInfos; iMap++)
+    {
+        PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pIterMapInfo = &pMapInfos[iMap];
+
+        if (pIterMapInfo->objectClass == objectClass)
+        {
+            pMapInfo = pIterMapInfo;
+            break;
+        }
+    }
+
+    if (!pMapInfo)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    *ppMapInfo = pMapInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppMapInfo = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+SamDbGetNumberOfDependents_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectDN,
+    PDWORD                 pdwNumDependents
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    *pdwNumDependents = 0;
+
+    return dwError;
 }

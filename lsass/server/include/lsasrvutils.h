@@ -52,12 +52,10 @@
 
 #define LOGIN_LOGOFF_EVENT_CATEGORY "Login/Logoff"
 #define PASSWORD_EVENT_CATEGORY     "Password"
+#define KERBEROS_EVENT_CATEGORY     "Kerberos"
 #define SERVICE_EVENT_CATEGORY      "Service"
-#define DNS_CLIENT_EVENT_CATEGORY   "DNS Client"
 #define ACCOUNT_MANAGEMENT_EVENT_CATEGORY "Account Management"
 #define NETWORK_EVENT_CATEGORY      "Network"
-// #define GENERAL_EVENT_CATEGORY      "General"
-// #define NONE_EVENT_CATEGORY         "None"
 
 #define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
 #define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
@@ -97,10 +95,14 @@
 // User password change events
 #define LSASS_EVENT_SUCCESSFUL_PASSWORD_CHANGE                       1300 // Similar to Window event id 627
 #define LSASS_EVENT_FAILED_PASSWORD_CHANGE                           1301 // Similar to Window event id 627
+#define LSASS_EVENT_SUCCESSFUL_USER_ACCOUNT_KERB_REFRESH             1302
+#define LSASS_EVENT_FAILED_USER_ACCOUNT_KERB_REFRESH                 1303
 
 // Machine password change events
 #define LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_PASSWORD_UPDATE       1320
 #define LSASS_EVENT_FAILED_MACHINE_ACCOUNT_PASSWORD_UPDATE           1321
+#define LSASS_EVENT_SUCCESSFUL_MACHINE_ACCOUNT_TGT_REFRESH           1322
+#define LSASS_EVENT_FAILED_MACHINE_ACCOUNT_TGT_REFRESH               1323
 
 // Account management events
 #define LSASS_EVENT_ADD_USER_ACCOUNT                                 1400 // Similar to Window event id 624

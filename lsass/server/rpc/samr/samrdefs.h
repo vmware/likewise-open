@@ -20,6 +20,12 @@ typedef void* ACCOUNT_HANDLE;
 #endif
 
 
+#define LSA_CFG_TAG_RPC_SERVER                 "rpc server:"
+
+#define LSA_RPC_DIR                            CACHEDIR "/rpc"
+#define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
+
+
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
         if ((status) != STATUS_SUCCESS) {                \
