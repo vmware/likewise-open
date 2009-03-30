@@ -149,6 +149,12 @@ LwRtlUnicodeStringInitEx(
     );
 
 LW_NTSTATUS
+LwRtlUnicodeStringAllocateFromAnsiString(
+    LW_OUT LW_PUNICODE_STRING pNewString,
+    LW_IN LW_PANSI_STRING pOriginalString
+    );
+
+LW_NTSTATUS
 LwRtlUnicodeStringAllocateFromWC16String(
     LW_OUT LW_PUNICODE_STRING pString,
     LW_IN LW_PCWSTR pszString
@@ -283,6 +289,8 @@ LwRtlAnsiStringParseULONG(
     LwRtlUnicodeStringInit(DestinationString, SourceString)
 #define RtlUnicodeStringInitEx(DestinationString, SourceString) \
     LwRtlUnicodeStringInitEx(DestinationString, SourceString)
+#define RtlUnicodeStringAllocateFromAnsiString(NewString, OriginalString) \
+    LwRtlUnicodeStringAllocateFromAnsiString(NewString, OriginalString)
 #define RtlUnicodeStringAllocateFromWC16String(NewString, OriginalString) \
     LwRtlUnicodeStringAllocateFromWC16String(NewString, OriginalString)
 #define RtlUnicodeStringAllocateFromCString(NewString, OriginalString) \
