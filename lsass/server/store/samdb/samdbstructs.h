@@ -98,5 +98,18 @@ typedef struct _SAM_DB_DN
 
 } SAM_DB_DN, *PSAM_DB_DN;
 
+typedef struct _SAM_DB_COLUMN_VALUE
+{
+    PSAMDB_ATTRIBUTE_MAP_INFO pAttrMapInfo;
+    PSAM_DB_ATTRIBUTE_MAP     pAttrMap;
+
+    PDIRECTORY_MOD            pDirMod;
+
+    PATTRIBUTE_VALUE          pAttrValue;
+
+    struct _SAM_DB_COLUMN_VALUE* pNext;
+
+} SAM_DB_COLUMN_VALUE, *PSAM_DB_COLUMN_VALUE;
+
 #endif /* __SAMDBSTRUCTS_H__ */
 
