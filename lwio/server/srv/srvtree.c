@@ -270,12 +270,14 @@ SrvTreeAcquireFileId_inlock(
                         (PVOID*)&pFile);
         if (ntStatus == STATUS_NOT_FOUND)
         {
-            ntStatus = 0;
+            ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
+        else
+        {
+            candidateFid++;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
-
-        candidateFid++;
 
     } while ((candidateFid != pTree->nextAvailableFid) && !bFound);
 
