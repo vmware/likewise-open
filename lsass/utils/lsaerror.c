@@ -343,7 +343,9 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_SAM_DATABASE_ERROR                              : 32912
     "SAM database error",
     // LSA_ERROR_SAM_INIT_ERROR                                  : 32913
-    "Error when initializing SAM subsystem"
+    "Error when initializing SAM subsystem",
+    // LSA_ERROR_OBJECT_IN_USE                                   : 32914
+    "The object is in use"
 };
 
 size_t

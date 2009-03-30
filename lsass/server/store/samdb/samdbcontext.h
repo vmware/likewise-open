@@ -6,8 +6,7 @@ SamDbBuildDirectoryContext(
     PSAM_DB_INSTANCE_LOCK               pDbInstanceLock,
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps,
     DWORD                               dwNumObjectClassAttrMaps,
-    PSAM_DB_ATTRIBUTE_MAP               pAttrMaps,
-    DWORD                               dwNumMaps,
+    PSAM_DB_ATTR_LOOKUP                 pAttrLookup,
     PSAM_DIRECTORY_CONTEXT*             ppDirContext
     );
 

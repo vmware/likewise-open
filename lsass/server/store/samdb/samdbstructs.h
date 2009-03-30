@@ -24,7 +24,15 @@ typedef struct _SAM_DB_CONTEXT
 
     sqlite3* pDbHandle;
 
+    sqlite3_stmt* pDelObjectStmt;
+
 } SAM_DB_CONTEXT, *PSAM_DB_CONTEXT;
+
+typedef struct _SAM_DB_ATTR_LOOKUP
+{
+    PLWRTL_RB_TREE pLookupTable;
+
+} SAM_DB_ATTR_LOOKUP, *PSAM_DB_ATTR_LOOKUP;
 
 typedef struct _SAM_DIRECTORY_CONTEXT
 {
@@ -39,8 +47,7 @@ typedef struct _SAM_DIRECTORY_CONTEXT
 
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps;
     DWORD                               dwNumObjectClassAttrMaps;
-    PSAM_DB_ATTRIBUTE_MAP pAttrMaps;
-    DWORD                 dwNumMaps;
+    PSAM_DB_ATTR_LOOKUP   pAttrLookup;
 
 } SAM_DIRECTORY_CONTEXT, *PSAM_DIRECTORY_CONTEXT;
 
@@ -53,6 +60,7 @@ typedef struct _SAM_GLOBALS
 
     PSAM_DB_ATTRIBUTE_MAP pAttrMaps;
     DWORD                 dwNumMaps;
+    SAM_DB_ATTR_LOOKUP    attrLookup;
 
     PSTR            pszProviderName;
 

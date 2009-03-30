@@ -64,5 +64,12 @@ SamDbComputeNTHash(
     DWORD dwHashByteLen
     );
 
+DWORD
+SamDbGetNumberOfDependents_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectDN,
+    PDWORD                 pdwNumDependents
+    );
+
 #endif /* __SAMDB_MISC_H__ */
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -35,89 +35,38 @@
  *
  * Module Name:
  *
- *        samdbmisc.c
+ *        samdbuser.h
  *
  * Abstract:
  *
- *        Likewise SAM DB
  *
- *        Misc Functions
+ *      Likewise SAM Database Provider
+ *
+ *      SAM User Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-
-#include "includes.h"
-
-DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    )
-{
-    DWORD dwError = 0;
-
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
+#ifndef __SAM_DB_USER_H__
+#define __SAM_DB_USER_H__
 
 DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    )
-{
-    DWORD dwError = 0;
-
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-    if (pszPassword)
-    {
-        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
+SamDbSetPassword(
+    PWSTR pszUserDN,
+    PWSTR pwszPassword
+    );
 
 DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    )
-{
-    DWORD dwError = 0;
+SamDbChangePassword(
+    PWSTR pwszUserDN,
+    PWSTR pwszOldPassword,
+    PWSTR pwszNewPassword
+    );
 
-    // TODO:
+DWORD
+SamDbVerifyPassword(
+    PWSTR pwszUserDN,
+    PWSTR pwszPassword
+    );
 
-    *pdwNumDependents = 0;
-
-    return dwError;
-}
+#endif /* __SAM_DB_USER_H__ */

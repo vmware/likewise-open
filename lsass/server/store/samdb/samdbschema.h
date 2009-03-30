@@ -35,89 +35,31 @@
  *
  * Module Name:
  *
- *        samdbmisc.c
+ *        samdbschema.h
  *
  * Abstract:
  *
  *        Likewise SAM DB
  *
- *        Misc Functions
+ *        Schema Validation
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "includes.h"
+#ifndef __SAM_DB_SCHEMA_H__
+#define __SAM_DB_SCHEMA_H__
 
 DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    )
-{
-    DWORD dwError = 0;
-
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
+SamDbSchemaAddValidateDirMods(
+    SAMDB_OBJECT_CLASS  objectClass,
+    DIRECTORY_MOD       mods[]
+    );
 
 DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    )
-{
-    DWORD dwError = 0;
+SamDbSchemaModifyValidateDirMods(
+    SAMDB_OBJECT_CLASS  objectClass,
+    DIRECTORY_MOD       mods[]
+    );
 
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-    if (pszPassword)
-    {
-        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    )
-{
-    DWORD dwError = 0;
-
-    // TODO:
-
-    *pdwNumDependents = 0;
-
-    return dwError;
-}
+#endif /* __SAM_DB_SCHEMA_H__ */

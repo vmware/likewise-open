@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        samdbmisc.c
+ *        samdbschema.c
  *
  * Abstract:
  *
  *        Likewise SAM DB
  *
- *        Misc Functions
+ *        Schema Validation
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -50,74 +50,35 @@
 #include "includes.h"
 
 DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
+SamDbSchemaAddValidateDirMods(
+    SAMDB_OBJECT_CLASS objectClass,
+    DIRECTORY_MOD      mods[]
     )
 {
     DWORD dwError = 0;
 
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-cleanup:
+    //
+    // For each mandatory attribute in the
+    // schema for a  given object type
+    // ensure that the DirModification has the appropriate
+    // attribute, type and value
 
     return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
+SamDbSchemaModifyValidateDirMods(
+    SAMDB_OBJECT_CLASS objectClass,
+    DIRECTORY_MOD      mods[]
     )
 {
     DWORD dwError = 0;
 
-    if (!pHash || (dwHashByteLen != 16))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    memset(pHash, 0, dwHashByteLen);
-
-    if (pszPassword)
-    {
-        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    )
-{
-    DWORD dwError = 0;
-
-    // TODO:
-
-    *pdwNumDependents = 0;
+    //
+    // For each mandatory attribute in the
+    // schema for a  given object type
+    // ensure that the DirModification has the appropriate
+    // attribute, type and value
 
     return dwError;
 }

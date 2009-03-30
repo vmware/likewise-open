@@ -12,8 +12,7 @@ SamDbOpen(
                     gSamGlobals.pDbInstanceLock,
                     gSamGlobals.pObjectClassAttrMaps,
                     gSamGlobals.dwNumObjectClassAttrMaps,
-                    gSamGlobals.pAttrMaps,
-                    gSamGlobals.dwNumMaps,
+                    &gSamGlobals.attrLookup,
                     &pDirContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 

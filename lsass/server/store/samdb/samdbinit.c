@@ -72,6 +72,12 @@ DirectoryInitializeProvider(
     gSamGlobals.pszProviderName = "Likewise SAM Local Database";
     gSamGlobals.providerFunctionTable = providerAPITable;
 
+    dwError = SamDbAttributeLookupInitContents(
+                &gSamGlobals.attrLookup,
+                gSamGlobals.pAttrMaps,
+                gSamGlobals.dwNumMaps);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -100,6 +106,8 @@ DirectoryShutdownProvider(
     )
 {
     DWORD dwError = 0;
+
+    SamDbAttributeLookupFreeContents(&gSamGlobals.attrLookup);
 
     if (gSamGlobals.pDbInstanceLock)
     {

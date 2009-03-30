@@ -47,151 +47,50 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
+
 #include "includes.h"
 
 DWORD
-SamDbAddUserAttrLookups(
-    PSAMDB_ATTRIBUTE_LOOKUP pAttrLookup
+SamDbSetPassword(
+    PWSTR pszUserDN,
+    PWSTR pwszPassword
     )
 {
     DWORD dwError = 0;
-    struct {
-        PSTR pszAttrName;
-        DIRECTORY_ATTR_TYPE attrType;
-        SAMDB_USER_TABLE_COLUMN colType;
-        BOOL bIsMandatory;
-        BOOL bIsModifiable;
-    } userAttrs[] =
-    {
-        {
-            DIRECTORY_ATTR_TAG_USER_NAME,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_NAME,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_IMMUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_FULLNAME,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_FULL_NAME,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_UID,
-            DIRECTORY_ATTR_TYPE_INTEGER,
-            SAMDB_USER_TABLE_COLUMN_UID,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_IMMUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_SID,
-            DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
-            SAMDB_USER_TABLE_COLUMN_SID,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_IMMUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_PRIMARY_GROUP,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_PASSWORD,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_PASSWORD,
-            ATTR_IS_NOT_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_GECOS,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_GECOS,
-            ATTR_IS_NOT_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_HOMEDIR,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_HOMEDIR,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_SHELL,
-            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            SAMDB_USER_TABLE_COLUMN_SHELL,
-            ATTR_IS_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME,
-            DIRECTORY_ATTR_TYPE_INTEGER,
-            SAMDB_USER_TABLE_COLUMN_PASSWORD_CHANGE_TIME,
-            ATTR_IS_NOT_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY,
-            DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-            SAMDB_USER_TABLE_COLUMN_ACCOUNT_EXPIRY,
-            ATTR_IS_NOT_MANDATORY,
-            ATTR_IS_MUTABLE
-        },
-        {
-            DIRECTORY_ATTR_TAG_USER_INFO_FLAGS,
-            DIRECTORY_ATTR_TYPE_INTEGER,
-            SAMDB_USER_TABLE_COLUMN_USER_INFO_FLAGS,
-            ATTR_IS_NOT_MANDATORY,
-            ATTR_IS_MUTABLE
-        }
-    };
-    DWORD dwNumAttrs = sizeof(userAttrs)/sizeof(userAttrs[0]);
-    DWORD iAttr = 0;
-    PSAMDB_ATTRIBUTE_LOOKUP_ENTRY pAttrEntry = NULL;
 
-    for(; iAttr < dwNumAttrs; iAttr++)
-    {
-        dwError = DirectoryAllocateMemory(
-                        sizeof(SAMDB_ATTRIBUTE_LOOKUP_ENTRY),
-                        (PVOID*)&pAttrEntry);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        userAttrs[iAttr].pszAttrName,
-                        &pAttrEntry->pwszAttributeName);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        pAttrEntry->bIsMandatory = userAttrs[iAttr].bIsMandatory;
-        pAttrEntry->bIsModifiable = userAttrs[iAttr].bIsModifiable;
-        pAttrEntry->attrType = userAttrs[iAttr].attrType;
-        pAttrEntry->dwId = userAttrs[iAttr].colType;
-
-        dwError = LwRtlRBTreeAdd(
-                        pAttrLookup->pAttrTree,
-                        pAttrEntry->pwszAttributeName,
-                        pAttrEntry);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        pAttrEntry = NULL;
-    }
-
-cleanup:
+    // TODO
 
     return dwError;
-
-error:
-
-    if (pAttrEntry)
-    {
-        SamDbFreeAttributeLookupEntry(pAttrEntry);
-    }
-
-    goto cleanup;
 }
 
+DWORD
+SamDbChangePassword(
+    PWSTR pwszUserDN,
+    PWSTR pwszOldPassword,
+    PWSTR pwszNewPassword
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO
+
+    return dwError;
+}
+
+DWORD
+SamDbVerifyPassword(
+    PWSTR pwszUserDN,
+    PWSTR pwszPassword
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO
+
+    return dwError;
+}
+
+#if 0
 DWORD
 SamDbAddUser(
     HANDLE        hDirectory,
@@ -830,93 +729,6 @@ error:
 
     goto cleanup;
 }
+#endif
 
-DWORD
-SamDbDeleteUser(
-    HANDLE hDirectory,
-    PWSTR  pwszUserDN
-    )
-{
-    DWORD dwError = 0;
-    PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
-    PWSTR pwszUserName = NULL;
-    PWSTR pwszDomainName = NULL;
-    PSTR  pszUserName = NULL;
-    PSTR  pszDomainName = NULL;
-    SAMDB_ENTRY_TYPE entryType = SAMDB_ENTRY_TYPE_UNKNOWN;
-    PSTR  pszQuery = NULL;
-    PSTR  pszError = NULL;
-    BOOLEAN bInLock = FALSE;
-    PCSTR pszQueryTemplate =
-            "DELETE FROM " SAM_DB_OBJECTS_TABLE \
-            " WHERE Domain = %Q" \
-            "   AND SamAccountName = %Q" \
-            "   AND ObjectClass = 4";
-
-    pDirContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
-
-    dwError = SamDbParseDN(
-                    pwszUserDN,
-                    &pwszUserName,
-                    &pwszDomainName,
-                    &entryType);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    if ((entryType != SAMDB_ENTRY_TYPE_USER) ||
-        (!pwszDomainName || !*pwszDomainName))
-    {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SAMDB_ERROR(dwError);
-    }
-
-    dwError = LsaWc16sToMbs(
-                    pwszDomainName,
-                    &pszDomainName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = LsaWc16sToMbs(
-                    pwszUserName,
-                    &pszUserName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirContext->rwLock);
-
-    pszQuery = sqlite3_mprintf(
-                    pszQueryTemplate,
-                    pszDomainName,
-                    pszUserName);
-
-    dwError = sqlite3_exec(
-                    pDirContext->pDbContext->pDbHandle,
-                    pszQuery,
-                    NULL,
-                    NULL,
-                    &pszError);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-cleanup:
-
-    if (pszQuery)
-    {
-        sqlite3_free(pszQuery);
-    }
-
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirContext->rwLock);
-
-    DIRECTORY_FREE_MEMORY(pwszUserName);
-    DIRECTORY_FREE_MEMORY(pwszDomainName);
-    DIRECTORY_FREE_STRING(pszUserName);
-    DIRECTORY_FREE_STRING(pszDomainName);
-
-    return dwError;
-
-error:
-
-    if (pszError)
-    {
-        sqlite3_free(pszError);
-    }
-
-    goto cleanup;
-}
 
