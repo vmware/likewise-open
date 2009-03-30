@@ -107,7 +107,14 @@ int LdapModReplStrValue(LDAPMod **mod, const char *t, const wchar16_t *sv)
 int LdapModAddIntValue(LDAPMod **mod, const char *t, const int iv)
 {
     wchar16_t sv[11] = {0};
-    sw16printf(sv, "%u", iv);
+    if (sw16printfw(
+                sv,
+                sizeof(sv)/sizeof(sv[0]),
+                L"%u",
+                iv) < 0)
+    {
+        return ErrnoToLdapErr(errno);
+    }
 
     return LdapModAddStrValue(mod, t, (const wchar16_t*)sv);
 }
@@ -360,88 +367,47 @@ void LdapAttributeValueFree(wchar16_t *val[])
 wchar16_t* LdapAttrValDn(const wchar16_t *name, const wchar16_t *value,
                          const wchar16_t *base)
 {
-    size_t name_len, value_len, base_len, dn_len;
-    wchar16_t *dn = NULL;
-
-    if (!name || !value) return NULL;
-
-    name_len  = wc16slen(name);
-    value_len = wc16slen(value);
-    base_len  = (base) ? wc16slen(base) : 0;
-
-    dn_len = base_len + value_len + name_len + 2;
-    dn = (wchar16_t*) malloc(sizeof(wchar16_t) * (dn_len + 1));
-    if (dn == NULL) return NULL;
-
     if (base) {
-        sw16printf(dn, "%S=%S,%S", name, value, base);
+        return asw16printfw(
+                    L"%ws=%ws,%ws",
+                    name,
+                    value,
+                    base);
     } else {
-        sw16printf(dn, "%S=%S", name, value);
+        return asw16printfw(
+                    L"%ws=%ws",
+                    name,
+                    value);
     }
-
-    return dn;
 }
 
 
 wchar16_t* LdapAttrValSamAcctName(const wchar16_t *name)
 {
-    size_t name_len, samacct_len;
-    wchar16_t *samacct = NULL;
-
-    if (!name) return NULL;
-
-    name_len = wc16slen(name);
-
-    samacct_len = name_len + 1;
-    samacct = (wchar16_t*) malloc(sizeof(wchar16_t) * (samacct_len + 1));
-    if (samacct == NULL) return NULL;
-
-    sw16printf(samacct, "%S$", name);
-
-    return samacct;
+    return asw16printfw(
+                L"%ws$",
+                name);
 }
 
 
 wchar16_t* LdapAttrValDnsHostName(const wchar16_t *name, const wchar16_t *dnsdomain)
 {
-    size_t name_len, dnsdomain_len, dnsname_len;
-    wchar16_t *dnsname = NULL;
-
-    if (!name) return NULL;
-
-    name_len      = wc16slen(name);
-    dnsdomain_len = (dnsdomain) ? wc16slen(dnsdomain) : 0;
-
-    dnsname_len = name_len + dnsdomain_len + 1;
-    dnsname = (wchar16_t*) malloc(sizeof(wchar16_t) * (dnsname_len + 1));
-    if (dnsname == NULL) return NULL;
-
     if (dnsdomain) {
-        sw16printf(dnsname, "%S.%S", name, dnsdomain);
+        return asw16printfw(
+                    L"%ws.%ws",
+                    name,
+                    dnsdomain);
     } else {
-        sw16printf(dnsname, "%S", name);
+        return asw16printfw(
+                    L"%ws",
+                    name);
     }
-
-    return dnsname;
 }
 
 
 wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name)
 {
-    size_t name_len, svcpn_len;
-    wchar16_t *svcpn = NULL;
-
-    if (!name) return NULL;
-
-    name_len = wc16slen(name);
-
-    svcpn_len = name_len + 5;
-    svcpn = (wchar16_t*) malloc(sizeof(wchar16_t) * (svcpn_len + 1));
-    if (svcpn == NULL) return NULL;
-
-    sw16printf(svcpn, "HOST/%S", name);
-
-    return svcpn;
+    return asw16printfw(L"HOST/%ws", name);
 }
 
 
@@ -526,7 +492,7 @@ int LdapMachDnsNameSearch(
         const wchar16_t *dns_domain_name,
         const wchar16_t *base)
 {
-    const char *filter_fmt = "(&(objectClass=computer)(dNSHostName=%S))";
+    const wchar_t *filter_fmt = L"(&(objectClass=computer)(dNSHostName=%ws))";
 
     WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
@@ -553,11 +519,11 @@ int LdapMachDnsNameSearch(
     goto_if_no_memory_lderr(dnsname, error);
     dnsname_len = wc16slen(dnsname);
 
-    filter_len = dnsname_len + strlen(filter_fmt);
+    filter_len = dnsname_len + wcslen(filter_fmt);
     filterw16 = (wchar16_t*) malloc(sizeof(wchar16_t) * filter_len);
     goto_if_no_memory_lderr(filterw16, error);
 
-    if (sw16printf(filterw16, filter_fmt, dnsname) < 0)
+    if (sw16printfw(filterw16, filter_len, filter_fmt, dnsname) < 0)
     {
         lderr = LDAP_LOCAL_ERROR;
         goto error;
@@ -591,7 +557,7 @@ error:
 int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
                        const wchar16_t *base)
 {
-    const char *filter_fmt = "(&(objectClass=computer)(sAMAccountName=%S))";
+    const wchar_t *filter_fmt = L"(&(objectClass=computer)(sAMAccountName=%ws))";
 
     WINERR err = ERROR_SUCCESS;
     int lderr = LDAP_SUCCESS;
@@ -619,11 +585,11 @@ int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
     goto_if_no_memory_lderr(samacct, error);
     samacct_len = wc16slen(samacct);
 
-    filter_len = samacct_len + strlen(filter_fmt);
+    filter_len = samacct_len + wcslen(filter_fmt);
     filterw16 = (wchar16_t*) malloc(sizeof(wchar16_t) * filter_len);
     goto_if_no_memory_lderr(filterw16, error);
 
-    if (sw16printf(filterw16, filter_fmt, samacct) < 0) {
+    if (sw16printfw(filterw16, filter_len, filter_fmt, samacct) < 0) {
         lderr = LDAP_LOCAL_ERROR;
         goto error;
     }

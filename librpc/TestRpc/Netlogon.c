@@ -124,11 +124,8 @@ handle_t TestOpenSchannel(handle_t netr_b,
     memset((void*)srv_cred, 0, sizeof(srv_cred));
     memset((void*)&schnauth_info, 0, sizeof(schnauth_info));
 
-    machine_acct = (wchar16_t*) malloc((wc16slen(computer) + 2) *
-                                       sizeof(wchar16_t));
+    machine_acct = asw16printfw(L"%ws$", computer);
     if (machine_acct == NULL) goto error;
-
-    sw16printf(machine_acct, "%S$", computer);
 
     status = NetrOpenSchannel(netr_b, machine_acct, hostname, server, domain,
                               computer, machpass, creds, &schn_b);

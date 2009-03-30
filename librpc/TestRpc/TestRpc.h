@@ -197,8 +197,8 @@ extern int verbose_mode;
         printf("#\n# Test: %s\n#\n\n", test->name);                     \
         if (verbose_mode) {                                             \
             printf("# Test arguments:\n");                              \
-            printfw16("#  hostname: %S\n#  username: %S\n"              \
-                      "#  password: %S\n#\n", host, user, pass);        \
+            w16printfw(L"#  hostname: %ws\n#  username: %ws\n"              \
+                      L"#  password: %ws\n#\n", host, user, pass);        \
         }                                                               \
     }
 
@@ -237,7 +237,7 @@ extern int verbose_mode;
 
 #define DUMP_WSTR(pfx, v)                           \
     if (verbose_mode) {                             \
-        printfw16("%s%s = \"%S\"\n", pfx, #v, (v)); \
+        w16printfw(L"%hhs%hhs = \"%ws\"\n", pfx, #v, (v)); \
     }
 
 #define DUMP_INT(pfx, v)                                    \
@@ -253,14 +253,14 @@ extern int verbose_mode;
 #define DUMP_UNICODE_STRING(pfx, v)                     \
     if (verbose_mode) {                                 \
         wchar16_t *str = GetFromUnicodeString((v));     \
-        printfw16("%s%s = \"%S\"\n", pfx, #v, str);     \
+        w16printfw(L"%hhs%hhs = \"%ws\"\n", pfx, #v, str);     \
         SAFE_FREE(str);                                 \
     }
 
 #define DUMP_UNICODE_STRING_EX(pfx, v)                  \
     if (verbose_mode) {                                 \
         wchar16_t *str = GetFromUnicodeStringEx((v));   \
-        printfw16("%s%s = \"%S\"\n", pfx, #v, str);     \
+        w16printfw(L"%hhs%hhs = \"%ws\"\n", pfx, #v, str);     \
         SAFE_FREE(str);                                 \
     }
 

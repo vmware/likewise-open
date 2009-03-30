@@ -97,13 +97,13 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
             if (name != NULL) {
 		
                 if(((uint16) name[0]) == 0) {
-                    printfw16("\tERROR: LOCALGROUP_USERS_INFO_0[%2d]"
-                              ".lgrui0_name = \"\" (empty string)\n", i);
+                    w16printfw(L"\tERROR: LOCALGROUP_USERS_INFO_0[%2d]"
+                              L".lgrui0_name = \"\" (empty string)\n", i);
                     return -1;
 
                 } else {
-                    VERBOSE(printfw16("\tLOCALGROUP_USERS_INFO_0[%2d]"
-                                      ".lgrui0_name = \"%S\"\n", i, name));
+                    VERBOSE(w16printfw(L"\tLOCALGROUP_USERS_INFO_0[%2d]"
+                                      L".lgrui0_name = \"%ws\"\n", i, name));
                 }
             } else {
                 printf("\tERROR: LOCALGROUP_USERS_INFO_0[%2d].lgrui0_name = NULL\n", i);
@@ -167,8 +167,8 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
             if (name != NULL) {
                 
                 if(((uint16) name[0]) == 0) {
-                    printfw16("\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
-                              ".lgrmi3_domainandname = \"\"  (empty string)\n", i);
+                    w16printfw(L"\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
+                              L".lgrmi3_domainandname = \"\"  (empty string)\n", i);
                     return -1;
                 }
 
@@ -177,13 +177,13 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
                 }
 		
                 else {
-                    VERBOSE(printfw16("\tLOCALGROUP_MEMBERS_INFO_3[%2d]"
-                                      ".lgrmi3_domainandname = \"%S\"\n", i, name));
+                    VERBOSE(w16printfw(L"\tLOCALGROUP_MEMBERS_INFO_3[%2d]"
+                                      L".lgrmi3_domainandname = \"%ws\"\n", i, name));
                 }
             } 
             else {
-                printfw16("\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
-                          ".lgrmi3_domainandname = NULL\n", i);
+                w16printfw(L"\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
+                          L".lgrmi3_domainandname = NULL\n", i);
                 return -1;
             }
         }
@@ -312,7 +312,12 @@ int AddLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
 
     wchar16_t domain_member[512];
 
-    sw16printf(domain_member, "%S\\%S", domname, member);
+    sw16printfw(
+            domain_member,
+            sizeof(domain_member)/sizeof(domain_member[0]),
+            L"%ws\\%ws",
+            domname,
+            member);
     memberinfo.lgrmi3_domainandname = (wchar16_t*)domain_member;
 
     CALL_NETAPI(err = NetLocalGroupAddMembers(hostname, aliasname, 3,
@@ -332,7 +337,12 @@ int DelLocalGroupMember(const wchar16_t *hostname,
 
     wchar16_t host_member[512];
 
-    sw16printf(host_member, "%S\\%S", domname, member);
+    sw16printfw(
+            host_member,
+            sizeof(host_member)/sizeof(host_member[0]),
+            L"%ws\\%ws",
+            domname,
+            member);
     memberinfo.lgrmi3_domainandname = host_member;
 	
     CALL_NETAPI(err = NetLocalGroupDelMembers(hostname, aliasname, 3,
@@ -935,8 +945,8 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
     if (entries != 2) {
-        printfw16("User %S should be member of at 2 groups because"
-                  "they have been added to groups %S and %S",
+        w16printfw(L"User %ws should be member of at 2 groups because"
+                  L"they have been added to groups %ws and %ws",
                   username, admins_group, guests_group);
         return false;
     }
@@ -957,8 +967,8 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
     if (entries != 1) {
-        printfw16("User %S should be member of at least 1 alias because"
-                  "they have been added to group %S",
+        w16printfw(L"User %ws should be member of at least 1 alias because"
+                  L"they have been added to group %ws",
                   admin_user, aliasname);
         return false;
     }
@@ -967,8 +977,8 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     if (err != 0) netapi_fail(err);
 
     if (entries != 1) {
-        printfw16("User %S should be member of at least 1 alias because"
-                  "they have been added to group %S",
+        w16printfw(L"User %ws should be member of at least 1 alias because"
+                  L"they have been added to group %ws",
                   guest_user, aliasname);
         return false;
     }
@@ -1179,8 +1189,8 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
     if (info != NULL) {
         LOCALGROUP_INFO_1 *grpi = info;
         VERBOSE(printf("\tReceived info:\n"));
-        VERBOSE(printfw16("\t\tLOCALGROUP_INFO_1.lgrpi1_name = \"%S\"\n", grpi->lgrpi1_name));
-        VERBOSE(printfw16("\t\tLOCALGROUP_INFO_1.lgrpi1_comment = \"%S\"\n", grpi->lgrpi1_comment));
+        VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_name = \"%ws\"\n", grpi->lgrpi1_name));
+        VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_comment = \"%ws\"\n", grpi->lgrpi1_comment));
  
     } else {
         printf("\tERROR: Inconsistency found. Function succeeded while the returned"
@@ -1322,7 +1332,12 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("admins_group", pt_w16string, admins_group);
     PARAM_INFO("guests_group", pt_w16string, guests_group);
 
-    VERBOSE(sw16printf(paddeduser, "%S%W", username, padding));
+    VERBOSE(sw16printfw(
+                paddeduser,
+                sizeof(paddeduser)/sizeof(paddeduser[0]),
+                L"%ws%ls",
+                username,
+                padding));
     
     /*
      * Test 1a: Get members of an existing and known to be non-empty group.
@@ -1380,12 +1395,12 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
                                &entries);
     if (err != 0) netapi_fail(err);
 
-    VERBOSE(printfw16("\n\tTest 3b: Adding user \"%S\" to group \"%S\"\n",
+    VERBOSE(w16printfw(L"\n\tTest 3b: Adding user \"%ws\" to group \"%ws\"\n",
                       username, guests_group));
     err = AddLocalGroupMember(hostname, guests_group, domname, username);
     if (err != 0) netapi_fail(err);
 
-    VERBOSE(printfw16("\tFetching members of %S group...\n", guests_group));
+    VERBOSE(w16printfw(L"\tFetching members of %ws group...\n", guests_group));
     err = GetLocalGroupMembers(hostname, guests_group, (void*)&grpmembers_info,
                                &entries);
     if (err != 0) netapi_fail(err);
@@ -1396,8 +1411,8 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
      * the username. Add the new user to the new alias, and the list of members
      * of the new alias.
      */
-    VERBOSE(printfw16("\n\tTest 4: Adding newly created user \"%S\" to newly"
-                      "created group \"%S\" and listing members of group\n", 
+    VERBOSE(w16printfw(L"\n\tTest 4: Adding newly created user \"%ws\" to newly"
+                      L"created group \"%ws\" and listing members of group\n",
                       username, paddeduser));
     err = AddLocalGroup(hostname, paddeduser);
     if (err != 0) netapi_fail(err);

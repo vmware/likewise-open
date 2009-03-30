@@ -135,6 +135,7 @@ CreateWksAccount(
     uint32 access_granted = 0;
     uint32 rid = 0;
     wchar16_t *account_name = NULL;
+    size_t account_name_cch = 0;
     PolicyHandle *domain_h = NULL;
     PwInfo pwinfo;
     UserInfo *info = NULL;
@@ -148,12 +149,21 @@ CreateWksAccount(
     samr_b   = conn->samr.bind;
     domain_h = &conn->samr.dom_handle;
 
+    account_name_cch = wc16slen(name) + 2;
     status = NetAllocateMemory((void**)&account_name,
-                               sizeof(wchar16_t) * (wc16slen(name) + 2),
+                               sizeof(wchar16_t) * account_name_cch,
                                NULL);
     goto_if_ntstatus_not_success(status, error);
 
-    sw16printf(account_name, "%S$", name);
+    if (sw16printfw(
+                account_name,
+                account_name_cch,
+                L"%ws$",
+                name) < 0)
+    {
+        status = ErrnoToNtStatus(errno);
+        goto_if_ntstatus_not_success(status, error);
+    }
 
     status = SamrCreateUser2(samr_b, domain_h, account_name, ACB_WSTRUST,
                              user_access, account_h, &access_granted, &rid);

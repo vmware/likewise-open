@@ -50,6 +50,7 @@ DisableWksAccount(
 	uint32 *rids, *types;
 	UserInfo sinfo;
     UserInfo *qinfo = NULL;
+    size_t account_name_cch = 0;
 
     memset((void*)&sinfo, 0, sizeof(sinfo));
 
@@ -58,10 +59,19 @@ DisableWksAccount(
 	info16   = &sinfo.info16;
 
 	/* prepare account$ name */
+    account_name_cch = wc16slen(machine) + 2;
 	account_name = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                       (wc16slen(machine) + 2));
+                                       (account_name_cch));
 	if (account_name == NULL) return STATUS_NO_MEMORY;
-	sw16printf(account_name, "%S$", machine);
+    if (sw16printfw(
+                account_name,
+                account_name_cch,
+                L"%ws$",
+                machine) < 0)
+    {
+        status = ErrnoToNtStatus(errno);
+        goto done;
+    }
 
 	names[0] = account_name;
 	status = SamrLookupNames(samr_b, domain_h, 1, names, &rids, &types, NULL);

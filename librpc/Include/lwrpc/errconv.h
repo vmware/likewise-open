@@ -35,6 +35,7 @@
 
 int NtStatusToWin32Error(NTSTATUS status);
 int NtStatusToErrno(NTSTATUS status);
+int ErrnoToNtStatus(int uerror);
 int ErrnoToWin32Error(int uerror);
 int Win32ErrorToErrno(int winerr);
 NTSTATUS Win32ErrorToNtStatus(int winerr);
@@ -42,6 +43,7 @@ NTSTATUS Win32ErrorToNtStatus(int winerr);
 const char* NtStatusToName(NTSTATUS status);
 const char* Win32ErrorToName(int err);
 
+int ErrnoToLdapErr(int uerror);
 int LdapErrToWin32Error(int lderr);
 
 #endif

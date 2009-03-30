@@ -1054,7 +1054,7 @@ done:
             wchar16_t *name = enum_names[i];                    \
             uint32 rid = enum_rids[i];                          \
                                                                 \
-            printfw16("%s: %S (rid=0x%x)\n", type, name, rid);  \
+            w16printfw(L"%hhs: %ws (rid=0x%x)\n", type, name, rid);  \
         }                                                       \
     }
 
@@ -1216,7 +1216,7 @@ done:
         uint32 i;                                               \
         for (i = 0; i < num; i++) {                             \
             wchar16_t *name = names[i];                         \
-            printfw16("Domain name: [%S]\n", name);             \
+            w16printfw(L"Domain name: [%ws]\n", name);             \
         }                                                       \
     }
 
@@ -1982,7 +1982,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     }
 
     for (i = 0; i < grp_count; i++) {
-        printfw16("%S", grp_sidstrs[i]);
+        w16printfw(L"%ws", grp_sidstrs[i]);
 
         if (resolvesids && i < names_count) {
             LsaDomainInfo *di = NULL;
@@ -1995,7 +1995,7 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
             dom_name = GetFromUnicodeStringEx(&di->name);
             if (dom_name == NULL) rpc_fail(STATUS_NO_MEMORY);
 
-            printfw16(" [%S\\%S]", dom_name, grp_name);
+            w16printfw(L" [%ws\\%ws]", dom_name, grp_name);
 
             SAFE_FREE(grp_name);
             SAFE_FREE(dom_name);
@@ -2232,7 +2232,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     }
 
     for (i = 0; i < alias_count; i++) {
-        printfw16("%S", alias_sidstrs[i]);
+        w16printfw(L"%ws", alias_sidstrs[i]);
 
         if (resolvesids && i < names_count) {
             LsaDomainInfo *di = NULL;
@@ -2245,7 +2245,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
             dom_name = GetFromUnicodeStringEx(&di->name);
             if (dom_name == NULL) rpc_fail(STATUS_NO_MEMORY);
 
-            printfw16(" [%S\\%S]", dom_name, alias_name);
+            w16printfw(L" [%ws\\%ws]", dom_name, alias_name);
 
             SAFE_FREE(alias_name);
             SAFE_FREE(dom_name);
