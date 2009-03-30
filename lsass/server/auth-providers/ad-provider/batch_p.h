@@ -188,6 +188,17 @@ LsaAdBatchProcessPseudoObject(
     IN LDAPMessage* pMessage
     );
 
+static
+DWORD
+LsaAdBatchProcessPseudoObjectDefaultSchema(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN OUT PLSA_LIST_LINKS pStartBatchItemListLinks,
+    IN PLSA_LIST_LINKS pEndBatchItemListLinks,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    );
+
 // Utility Functions
 
 static
@@ -212,6 +223,16 @@ DWORD
 LsaAdBatchSplitBIListToBIListPerDomain(
     IN OUT PLSA_LIST_LINKS pBatchItemList,
     OUT PLSA_LIST_LINKS pDomainList
+    );
+
+static
+DWORD
+LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    IN PCSTR pszDnsDomainName,
+    // List of PLSA_AD_BATCH_ITEM
+    IN OUT PLSA_LIST_LINKS pBatchItemList,
+    OUT OPTIONAL PDWORD pdwTotalItemFoundCount
     );
 
 static

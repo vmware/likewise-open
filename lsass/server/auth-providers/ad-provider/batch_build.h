@@ -90,4 +90,17 @@ LsaAdBatchBuildQueryForPseudo(
     OUT PSTR* ppszQuery
     );
 
+DWORD
+LsaAdBatchBuildQueryForPseudoDefaultSchema(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQuerySize,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR* ppszQuery
+    );
+
 #endif /* _BATCH_BUILD_H_ */
