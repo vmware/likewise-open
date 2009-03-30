@@ -39,57 +39,39 @@ LwMapSecurityFreeSid(
     );
 
 NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromUidGid(
+LwMapSecurityCreateAccessTokenFromUidGid(
     IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    OUT PACCESS_TOKEN* AccessToken,
     IN ULONG Uid,
     IN ULONG Gid
     );
 
 NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromId(
+LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN ULONG Id
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PUNICODE_STRING Username
     );
 
 NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromUnicodeStringName(
+LwMapSecurityCreateAccessTokenFromAnsiStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN PUNICODE_STRING Name
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PANSI_STRING Username
     );
 
 NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromAnsiStringName(
+LwMapSecurityCreateAccessTokenFromWC16StringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN PANSI_STRING Name
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PCWSTR Username
     );
 
 NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromWC16StringName(
+LwMapSecurityCreateAccessTokenFromCStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN PCWSTR Name
-    );
-
-NTSTATUS
-LwMapSecurityGetAccessTokenCreateInformationFromCStringName(
-    IN PLW_MAP_SECURITY_CONTEXT Context,
-    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
-    IN BOOLEAN IsUser,
-    IN PCSTR Name
-    );
-
-VOID
-LwMapSecurityFreeAccessTokenCreateInformation(
-    IN PLW_MAP_SECURITY_CONTEXT Context,
-    IN OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PCSTR Username
     );
 
 #endif /* __LW_MAP_SECURITY_H__ */
