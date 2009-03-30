@@ -73,14 +73,8 @@ LsaSrvSetSamrDomain(
 NTSTATUS
 LsaSrvGetLocalSamrDomain(
     PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN *pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvGetBuiltinSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN *pSamDomain
+    BOOLEAN bBuiltin,
+    PSAMR_DOMAIN pSamrDomain
     );
 
 
@@ -138,7 +132,7 @@ LsaSrvLookupNames(
                                 hPolicy,
                                 num_names,
                                 pNames,
-                                pDomains,
+                                &pDomains,
                                 pSidArray,
                                 level,
                                 &dwCount,
@@ -361,23 +355,51 @@ error:
 NTSTATUS
 LsaSrvGetLocalSamrDomain(
     PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN *pSamrDomain
+    BOOLEAN bBuiltin,
+    PSAMR_DOMAIN pSamrDomain
     )
 {
+    CHAR szBuiltinName[] = "BUILTIN";
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    DWORD i = 0;
+    PWSTR pwszBuiltinName = NULL;
+    BOOLEAN bIsBuiltin = FALSE;
+
+    dwError = LsaMbsToWc16s(szBuiltinName, &pwszBuiltinName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < pPolCtx->dwSamrDomainsNum; i++) {
+        PSAMR_DOMAIN pDomain = &(pPolCtx->pSamrDomain[i]);
+
+        if (pDomain->bLocal) {
+            bIsBuiltin = (!wc16casecmp(pDomain->pwszName, pwszBuiltinName));
+            if (bIsBuiltin != bBuiltin) continue;
+
+            pSamrDomain->pwszName = pDomain->pwszName;
+            pSamrDomain->pSid     = pDomain->pSid;
+            pSamrDomain->bLocal   = pDomain->bLocal;
+            pSamrDomain->hDomain  = pDomain->hDomain;
+
+            goto cleanup;
+        }
+    }
+
+    memset(pSamrDomain, 0, sizeof(*pSamrDomain));
+    status = STATUS_NO_SUCH_DOMAIN;
+
+cleanup:
+    if (pwszBuiltinName) {
+        LSA_SAFE_FREE_MEMORY(pwszBuiltinName);
+    }
+
     return status;
+
+error:
+    memset(pSamrDomain, 0, sizeof(*pSamrDomain));
+    goto cleanup;
 }
 
-
-NTSTATUS
-LsaSrvGetBuiltinSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN *pSamDomain
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    return status;
-}
 
 
 
