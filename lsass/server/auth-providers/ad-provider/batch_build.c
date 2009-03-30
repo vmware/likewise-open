@@ -350,6 +350,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
         // This can only happen in the linked cells case, but even
         // that should go away in the future as we just keep an
         // unresolved batch items list.
+
         LSA_ASSERT(!bIsForRealObject && (gpADProviderData->dwDirectoryMode == CELL_MODE));
         goto cleanup;
     }
@@ -537,7 +538,8 @@ LsaAdBatchBuilderBatchItemNextItem(
 
 static
 PCSTR
-LsaAdBatchBuilderGetPseudoQueryPrefix(
+LsaAdBatchBuilderGetPseudoQueryPrefixInternal(
+    IN OPTIONAL PDWORD pdwDirectoryMode,
     IN BOOLEAN bIsSchemaMode,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
@@ -545,8 +547,11 @@ LsaAdBatchBuilderGetPseudoQueryPrefix(
     )
 {
     PCSTR pszPrefix = NULL;
+    DWORD dwDirectoryMode = (pdwDirectoryMode == NULL ?
+                             gpADProviderData->dwDirectoryMode :
+                             *pdwDirectoryMode);
 
-    if (LsaAdBatchIsDefaultSchemaMode())
+    if ((DEFAULT_MODE == dwDirectoryMode) && bIsSchemaMode)
     {
         if (LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS == QueryType ||
             LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS == QueryType)
@@ -664,7 +669,8 @@ LsaAdBatchBuilderGetPseudoQueryPrefix(
 
 static
 PCSTR
-LsaAdBatchBuilderGetPseudoQueryAttribute(
+LsaAdBatchBuilderGetPseudoQueryAttributeInternal(
+    IN OPTIONAL PDWORD pdwDirectoryMode,
     IN BOOLEAN bIsSchemaMode,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType
     )
@@ -674,7 +680,15 @@ LsaAdBatchBuilderGetPseudoQueryAttribute(
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-            pszAttributeName = "keywords=" AD_LDAP_BACKLINK_PSEUDO_TAG;
+            if (bIsSchemaMode &&
+                pdwDirectoryMode != NULL && *pdwDirectoryMode == DEFAULT_MODE)
+            {
+                pszAttributeName = AD_LDAP_OBJECTSID_TAG;
+            }
+            else
+            {
+                pszAttributeName = "keywords=" AD_LDAP_BACKLINK_PSEUDO_TAG;
+            }
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
             if (bIsSchemaMode)
@@ -974,10 +988,11 @@ error:
     goto cleanup;
 }
 
-
+static
 DWORD
-LsaAdBatchBuildQueryForPseudo(
+LsaAdBatchBuildQueryForPseudoInternal(
     IN BOOLEAN bIsSchemaMode,
+    IN OPTIONAL PDWORD pdwDirectoryMode,
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
     // List of PLSA_AD_BATCH_ITEM
     IN PLSA_LIST_LINKS pFirstLinks,
@@ -998,7 +1013,8 @@ LsaAdBatchBuildQueryForPseudo(
     PCSTR pszSuffix = NULL;
     LSA_AD_BATCH_BUILDER_BATCH_ITEM_CONTEXT context = { 0 };
 
-    pszAttributeName = LsaAdBatchBuilderGetPseudoQueryAttribute(
+    pszAttributeName = LsaAdBatchBuilderGetPseudoQueryAttributeInternal(
+                            pdwDirectoryMode,
                             bIsSchemaMode,
                             QueryType);
     if (!pszAttributeName)
@@ -1008,11 +1024,13 @@ LsaAdBatchBuildQueryForPseudo(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pszPrefix = LsaAdBatchBuilderGetPseudoQueryPrefix(
+    pszPrefix = LsaAdBatchBuilderGetPseudoQueryPrefixInternal(
+                        pdwDirectoryMode,
                         bIsSchemaMode,
                         QueryType,
                         LsaAdBatchGetObjectTypeFromQueryType(QueryType),
                         &pszSuffix);
+
     if (!pszPrefix || !pszSuffix)
     {
         LSA_ASSERT(FALSE);
@@ -1054,3 +1072,57 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaAdBatchBuildQueryForPseudo(
+    IN BOOLEAN bIsSchemaMode,
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQuerySize,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR* ppszQuery
+    )
+{
+    return  LsaAdBatchBuildQueryForPseudoInternal(
+                    bIsSchemaMode,
+                    NULL,
+                    QueryType,
+                    pFirstLinks,
+                    pEndLinks,
+                    ppNextLinks,
+                    dwMaxQuerySize,
+                    dwMaxQueryCount,
+                    pdwQueryCount,
+                    ppszQuery);
+}
+
+DWORD
+LsaAdBatchBuildQueryForPseudoDefaultSchema(
+    IN LSA_AD_BATCH_QUERY_TYPE QueryType,
+    // List of PLSA_AD_BATCH_ITEM
+    IN PLSA_LIST_LINKS pFirstLinks,
+    IN PLSA_LIST_LINKS pEndLinks,
+    OUT PLSA_LIST_LINKS* ppNextLinks,
+    IN DWORD dwMaxQuerySize,
+    IN DWORD dwMaxQueryCount,
+    OUT PDWORD pdwQueryCount,
+    OUT PSTR* ppszQuery
+    )
+{
+    DWORD dwDirectoryMode = DEFAULT_MODE;
+
+    return LsaAdBatchBuildQueryForPseudoInternal(
+                    TRUE,
+                    &dwDirectoryMode,
+                    QueryType,
+                    pFirstLinks,
+                    pEndLinks,
+                    ppNextLinks,
+                    dwMaxQuerySize,
+                    dwMaxQueryCount,
+                    pdwQueryCount,
+                    ppszQuery);
+}
