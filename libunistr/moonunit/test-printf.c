@@ -125,6 +125,27 @@ MU_TEST(Printf, sw16printf_mbs)
     MU_ASSERT(!wc16scmp(wszOutput, wszExpectedOutput));
 }
 
+MU_TEST(Printf, sw16printf_null)
+{
+    wchar16_t wszFormat[] = {'%','h','h','s','%','w','s','%','l','s',0};
+    wchar16_t wszOutput[30];
+    wchar16_t wszExpectedOutput[] = {
+        '(','n','u','l','l',')','(','n','u','l','l',')',
+        '(','n','u','l','l',')',0};
+    ssize_t scchWrote = 0;
+
+    scchWrote = sw16printf_new(
+                wszOutput,
+                sizeof(wszOutput)/sizeof(wszOutput[0]),
+                wszFormat,
+                NULL,
+                NULL,
+                NULL);
+    MU_ASSERT(scchWrote == wc16slen(wszExpectedOutput));
+
+    MU_ASSERT(!wc16scmp(wszOutput, wszExpectedOutput));
+}
+
 MU_TEST(Printf, sw16printf_wc16s)
 {
     wchar16_t wszFormat[] = {'%','*','.','*','h','s',0};
