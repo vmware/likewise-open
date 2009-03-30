@@ -392,6 +392,7 @@ LsaSrvLookupNames2(
         LsaDomainInfo *pLocalDomainInfo = &(pDomains->domains[dwDomIndex]);
 
         status = LsaSrvGetLocalSamrDomain(pPolCtx,
+                                          FALSE,    /* !BUILTIN */
                                           &SamrDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -441,8 +442,9 @@ LsaSrvLookupNames2(
         dwDomIndex = pDomains->count;
         LsaDomainInfo *pBuiltinDomainInfo = &(pDomains->domains[dwDomIndex]);
 
-        status = LsaSrvGetBuiltinSamrDomain(pPolCtx,
-                                            &SamrDomain);
+        status = LsaSrvGetLocalSamrDomain(pPolCtx,
+                                          TRUE,      /* BUILTIN */
+                                          &SamrDomain);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         status = InitUnicodeStringEx(&pBuiltinDomainInfo->name,
