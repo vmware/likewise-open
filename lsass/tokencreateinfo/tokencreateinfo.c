@@ -368,6 +368,17 @@ cleanup:
 }
 
 static
+NTSTATUS
+LsaMapSecurityDuplicateSid(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN OUT PSID* Sid,
+    IN PSID OriginalSid
+    )
+{
+    return RtlDuplicateSid(Sid, OriginalSid);
+}
+
+static
 VOID
 LsaMapSecurityFreeSid(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
@@ -913,6 +924,7 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
     .FreeContext = LsaMapSecurityFreeContext,
     .GetIdFromSid = LsaMapSecurityGetIdFromSid,
     .GetSidFromId = LsaMapSecurityGetSidFromId,
+    .DuplicateSid = LsaMapSecurityDuplicateSid,
     .FreeSid = LsaMapSecurityFreeSid,
     .GetAccessTokenCreateInformationFromUid = LsaMapSecurityGetAccessTokenCreateInformationFromUid,
     .GetAccessTokenCreateInformationFromUsername = LsaMapSecurityGetAccessTokenCreateInformationFromUsername,
