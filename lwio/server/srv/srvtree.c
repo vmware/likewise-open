@@ -257,9 +257,11 @@ SrvTreeAcquireFileId_inlock(
     {
         PSMB_SRV_FILE pFile = NULL;
 
-        if (!candidateFid || (candidateFid == UINT16_MAX))
+        /* 0 is never a valid fid */
+
+        if ((candidateFid == 0) || (candidateFid == UINT16_MAX))
         {
-            candidateFid++;
+            candidateFid = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
@@ -273,6 +275,8 @@ SrvTreeAcquireFileId_inlock(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        candidateFid++;
+
     } while ((candidateFid != pTree->nextAvailableFid) && !bFound);
 
     if (!bFound)
@@ -281,8 +285,12 @@ SrvTreeAcquireFileId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pTree->nextAvailableFid = candidateFid + 1;
     *pFid = candidateFid;
+
+    /* Increment by 1 by make sure tyo deal with wraparound */
+
+    candidateFid++;
+    pTree->nextAvailableFid = candidateFid ? candidateFid : 1;
 
 cleanup:
 
@@ -357,3 +365,13 @@ SrvTreeFree(
     LwRtlMemoryFree(pTree);
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
