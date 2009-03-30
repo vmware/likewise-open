@@ -79,7 +79,6 @@ LsaSrvLookupNames2(
     PolicyHandle hDomain;
     PolicyHandle hDcPolicy;
     PSID pDomainSid = NULL;
-    PSAMR_DOMAIN pSamrDomains = NULL;
     PSAMR_DOMAIN pSamrDomain = NULL;
     SAMR_DOMAIN SamrDomain;
     CHAR szHostname[64];
@@ -104,7 +103,6 @@ LsaSrvLookupNames2(
     DWORD dwCount = 0;
     DWORD i = 0;
     DWORD dwDomIndex = 0;
-    UnicodeString *pNonLocalNames = NULL;
     TranslatedSidArray2 *pSidArray = NULL;
     RefDomainList *pDomains = NULL;
 
@@ -280,12 +278,12 @@ LsaSrvLookupNames2(
         }
 
         if (pwszDomainName) {
-            SamrSrvFreeMemory(pwszDomainName);
+            LsaSrvFreeMemory(pwszDomainName);
             pwszDomainName = NULL;
         }
 
         if (pwszAcctName) {
-            SamrSrvFreeMemory(pwszAcctName);
+            LsaSrvFreeMemory(pwszAcctName);
             pwszAcctName = NULL;
         }
 
@@ -381,7 +379,7 @@ LsaSrvLookupNames2(
             LsaFreeMemory(pRemoteSids);
         }
 
-        status = LsaClose(&hDcPolicy);
+        status = LsaClose(hLsaBinding, &hDcPolicy);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         FreeLsaBinding(&hLsaBinding);

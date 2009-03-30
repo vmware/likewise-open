@@ -48,37 +48,6 @@
 
 
 NTSTATUS
-LsaSrvParseAccountName(
-    PWSTR pwszName,
-    PWSTR *ppwszDomainName,
-    PWSTR *ppwszAcctName
-    );
-
-
-NTSTATUS
-LsaSrvGetSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PWSTR pwszDomainName,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvSetSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
-LsaSrvGetLocalSamrDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    BOOLEAN bBuiltin,
-    PSAMR_DOMAIN pSamrDomain
-    );
-
-
-NTSTATUS
 LsaSrvLookupNames(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
@@ -373,7 +342,7 @@ LsaSrvGetLocalSamrDomain(
         PSAMR_DOMAIN pDomain = &(pPolCtx->pSamrDomain[i]);
 
         if (pDomain->bLocal) {
-            bIsBuiltin = (!wc16casecmp(pDomain->pwszName, pwszBuiltinName));
+            bIsBuiltin = (!wc16scasecmp(pDomain->pwszName, pwszBuiltinName));
             if (bIsBuiltin != bBuiltin) continue;
 
             pSamrDomain->pwszName = pDomain->pwszName;

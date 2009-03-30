@@ -34,8 +34,8 @@
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _LSA_H_
-#define _LSA_H_
+#ifndef _LSASRV_H_
+#define _LSASRV_H_
 
 
 NTSTATUS
@@ -115,7 +115,7 @@ LsaSrvQueryInfoPolicy2(
 
 
 NTSTATUS
-LsaSrvLookupNames2(
+LsaSrvLookupNames3(
     handle_t b,
     POLICY_HANDLE hPolicy,
     uint32 num_names,
@@ -129,4 +129,35 @@ LsaSrvLookupNames2(
     );
 
 
-#endif /* _LSA_H_ */
+NTSTATUS
+LsaSrvParseAccountName(
+    PWSTR pwszName,
+    PWSTR *ppwszDomainName,
+    PWSTR *ppwszAcctName
+    );
+
+
+NTSTATUS
+LsaSrvGetSamrDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    PWSTR pwszDomainName,
+    PSAMR_DOMAIN pSamrDomain
+    );
+
+
+NTSTATUS
+LsaSrvSetSamrDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    PSAMR_DOMAIN pSamrDomain
+    );
+
+
+NTSTATUS
+LsaSrvGetLocalSamrDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    BOOLEAN bBuiltin,
+    PSAMR_DOMAIN pSamrDomain
+    );
+
+
+#endif /* _LSASRV_H_ */

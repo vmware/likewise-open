@@ -34,9 +34,11 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <strings.h>
 #include <pthread.h>
 
 #include <dce/rpc.h>
@@ -44,14 +46,16 @@
 #include <wc16str.h>
 #include <lw/base.h>
 #include <lwrpc/allocate.h>
-#include <lwrpc/lsadefs.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
+#include <lwrpc/lsa.h>
 #include <lwio/lwio.h>
 
 #include <lsa/lsa.h>
+#include <lsaunistr.h>
 #include <lsarpcsrv.h>
 #include <rpcctl-register.h>
+#include <directory.h>
 #include <samr_srv.h>
 
 #include "lsa_srv.h"
