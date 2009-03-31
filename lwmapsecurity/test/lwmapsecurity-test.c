@@ -45,6 +45,7 @@
 #include <lw/base.h>
 #include "config.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #define LOG(Format, ...) \
@@ -79,7 +80,6 @@ DumpTokenInfo(
                     &size);
     assert(STATUS_BUFFER_TOO_SMALL == status);
 
-    LOG("size = %u", size);
     savedSize = size;
 
     status = RTL_ALLOCATE(&tokenInfo, BYTE, size);
@@ -91,7 +91,6 @@ DumpTokenInfo(
                     tokenInfo,
                     size,
                     &size);
-    LOG("status = 0x%08x", status);
     ASSERT_NT_SUCCESS_STATUS(status);
 
     assert(size == savedSize);
@@ -197,10 +196,12 @@ Usage(
     IN PCSTR pszProgramName
     )
 {
-    printf("Usage: %s\n"
+    printf("Usage: %s <uid> <gid>\n"
+           "   or: %s <username>\n"
            "\n"
            "  Test lwmapsecurity library.\n"
            "\n",
+           pszProgramName,
            pszProgramName);
 }
 
@@ -216,21 +217,40 @@ main(
     PLW_MAP_SECURITY_CONTEXT context = NULL;
     PACCESS_TOKEN accessToken = NULL;
 
-    if (argc != 1)
+    if ((argc < 2) || !strcasecmp("--help", argv[1]))
     {
-        pszUsageError = "Too many arguments.\n";
-        goto cleanup;
+        Usage(pszProgramName);
+        return 0;
     }
 
     status = LwMapSecurityCreateContext(&context);
     ASSERT_NT_SUCCESS_STATUS(status);
 
-    status = LwMapSecurityCreateAccessTokenFromUidGid(
-                    context,
-                    &accessToken,
-                    0,
-                    0);
-    ASSERT_NT_SUCCESS_STATUS(status);
+    if (argc == 2)
+    {
+        status = LwMapSecurityCreateAccessTokenFromCStringUsername(
+                        context,
+                        &accessToken,
+                        argv[1]);
+        ASSERT_NT_SUCCESS_STATUS(status);
+    }
+    else if (argc == 3)
+    {
+        int uid = atoi(argv[1]);
+        int gid = atoi(argv[2]);
+
+        status = LwMapSecurityCreateAccessTokenFromUidGid(
+                        context,
+                        &accessToken,
+                        (ULONG) uid,
+                        (ULONG) gid);
+        ASSERT_NT_SUCCESS_STATUS(status);
+    }
+    else
+    {
+        pszUsageError = "Too many arguments.\n";
+        goto cleanup;
+    }
 
     DumpToken(accessToken);
 
