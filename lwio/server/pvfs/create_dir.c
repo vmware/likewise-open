@@ -208,9 +208,11 @@ PvfsCreateDirCreate(
     /* Directory Properties */
 
     if (pSecCtx) {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -443,9 +445,11 @@ PvfsCreateDirOpenIf(
     if (bDirCreated)
     {
         if (pSecCtx) {
+            PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
             ntError = PvfsSysChown(pCcb,
-                                   pSecCtx->Process.Uid,
-                                   pSecCtx->Process.Gid);
+                                   pProcess->Uid,
+                                   pProcess->Gid);
             BAIL_ON_NT_STATUS(ntError);
         }
 

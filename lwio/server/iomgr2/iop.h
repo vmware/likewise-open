@@ -261,3 +261,12 @@ IopFileObjectFree(
     IN OUT PIO_FILE_OBJECT* ppFileObject
     );
 
+// iosecurity.c
+
+NTSTATUS
+IopSecurityCreateSecurityContextFromUidGid(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN ULONG Uid,
+    IN ULONG Gid,
+    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    );

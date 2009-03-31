@@ -308,13 +308,12 @@ typedef struct _IO_ASYNC_CONTROL_BLOCK {
     OPTIONAL PVOID CallbackContext;
 } IO_ASYNC_CONROL_BLOCK, *PIO_ASYNC_CONTROL_BLOCK;
 
-typedef struct _IO_CREATE_SECURITY_CONTEXT {
-    struct {
-        uid_t Uid;
-        gid_t Gid;
-    } Process;
-    LW_PIO_ACCESS_TOKEN pAccessToken;
-} IO_CREATE_SECURITY_CONTEXT, *PIO_CREATE_SECURITY_CONTEXT;
+typedef struct _IO_CREATE_SECURITY_CONTEXT *PIO_CREATE_SECURITY_CONTEXT;
+
+typedef struct _IO_SECURITY_CONTEXT_PROCESS_INFORMATION {
+    uid_t Uid;
+    gid_t Gid;
+} IO_SECURITY_CONTEXT_PROCESS_INFORMATION, *PIO_SECURITY_CONTEXT_PROCESS_INFORMATION;
 
 //
 // Query/Set Information File Classes and Types

@@ -144,8 +144,7 @@ RdrCommonCreate(
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_ATTRIBUTES FileAttributes;
     HANDLE hFile = NULL;
-
-    PIO_ACCESS_TOKEN pSecurityToken = pIrp->Args.Create.SecurityContext->pAccessToken;
+    PIO_ACCESS_TOKEN pSecurityToken = IoSecurityGetCredentials(pIrp->Args.Create.SecurityContext);
 
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;

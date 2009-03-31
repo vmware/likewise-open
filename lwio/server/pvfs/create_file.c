@@ -290,9 +290,11 @@ PvfsCreateFileSupersede(
     /* File properties */
 
     if (pSecCtx) {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -439,9 +441,11 @@ PvfsCreateFileCreate(
     /* File properties */
 
     if (pSecCtx) {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -717,9 +721,11 @@ PvfsCreateFileOpenIf(
 
     if (!bFileExisted && pSecCtx)
     {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -852,9 +858,11 @@ PvfsCreateFileOverwrite(
 
     if (pSecCtx)
     {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -1025,9 +1033,11 @@ PvfsCreateFileOverwriteIf(
 
     if (pSecCtx)
     {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
