@@ -231,9 +231,11 @@ SamDbFreeColumnValueList(
 
         pColValueList = pColValueList->pNext;
 
-        if (pTmp->pAttrValue)
+        if (pTmp->pAttrValues)
         {
-            DirectoryFreeAttributeValues(pTmp->pAttrValue, 1);
+            DirectoryFreeAttributeValues(
+                    pTmp->pAttrValues,
+                    pTmp->ulNumValues);
         }
 
         DirectoryFreeMemory(pTmp);

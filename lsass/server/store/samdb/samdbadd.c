@@ -7,7 +7,8 @@ typedef DWORD (*PFN_SAMDB_ADD_VALUE_GENERATOR)(
                     PWSTR                  pwszParentDN,
                     PWSTR                  pwszObjectName,
                     PWSTR                  pwszDomainName,
-                    PATTRIBUTE_VALUE*      ppAttrValue
+                    PATTRIBUTE_VALUE*      ppAttrValues,
+                    PDWORD                 pdwNumValues
                     );
 
 typedef struct _SAMDB_ADD_VALUE_GENERATOR
@@ -68,7 +69,8 @@ SamDbAddGenerateUID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     );
 
 static
@@ -79,7 +81,8 @@ SamDbAddGenerateGID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     );
 
 static
@@ -90,7 +93,8 @@ SamDbAddGenerateObjectSID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     );
 
 static
@@ -101,7 +105,8 @@ SamDbAddGenerateParentDN(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     );
 
 static
@@ -112,7 +117,8 @@ SamDbAddGenerateDN(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     );
 
 static
@@ -123,7 +129,17 @@ SamDbAddGenerateDomain(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    );
+
+static
+DWORD
+SamDbAddConvertUnicodeAttrValues(
+    PATTRIBUTE_VALUE  pSrcValues,
+    DWORD             dwSrcNumValues,
+    PATTRIBUTE_VALUE* ppAttrValues,
+    PDWORD            pdwNumValues
     );
 
 static
@@ -684,7 +700,8 @@ SamDbAddGenerateValues(
                             pwszParentDN,
                             pwszObjectName,
                             pwszDomainName,
-                            &pIter->pAttrValue);
+                            &pIter->pAttrValues,
+                            &pIter->ulNumValues);
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -694,8 +711,13 @@ SamDbAddGenerateValues(
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
-        // Convert Unicode strings
-        // TODO:
+        dwError = SamDbAddConvertUnicodeAttrValues(
+                            pIter->pDirMod->pAttrValues,
+                            pIter->pDirMod->ulNumValues,
+                            &pIter->pAttrValues,
+                            &pIter->ulNumValues);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
     }
 
 cleanup:
@@ -719,7 +741,8 @@ SamDbAddGenerateUID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -737,7 +760,8 @@ SamDbAddGenerateUID(
                     &pAttrValue->ulValue);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -745,7 +769,8 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
@@ -763,7 +788,8 @@ SamDbAddGenerateGID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -781,7 +807,8 @@ SamDbAddGenerateGID(
                     &pAttrValue->ulValue);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -789,7 +816,8 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
@@ -807,7 +835,8 @@ SamDbAddGenerateObjectSID(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -842,7 +871,8 @@ SamDbAddGenerateObjectSID(
                     dwRID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -852,7 +882,8 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
@@ -870,7 +901,8 @@ SamDbAddGenerateParentDN(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -891,7 +923,8 @@ SamDbAddGenerateParentDN(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -899,7 +932,8 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
@@ -917,7 +951,8 @@ SamDbAddGenerateDN(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -938,7 +973,8 @@ SamDbAddGenerateDN(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -946,7 +982,8 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
@@ -964,7 +1001,8 @@ SamDbAddGenerateDomain(
     PWSTR                  pwszParentDN,
     PWSTR                  pwszObjectName,
     PWSTR                  pwszDomainName,
-    PATTRIBUTE_VALUE*      ppAttrValue
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
     )
 {
     DWORD dwError = 0;
@@ -985,7 +1023,8 @@ SamDbAddGenerateDomain(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    *ppAttrValue = pAttrValue;
+    *ppAttrValues  = pAttrValue;
+    *pdwNumValues = 1;
 
 cleanup:
 
@@ -993,11 +1032,141 @@ cleanup:
 
 error:
 
-    *ppAttrValue = NULL;
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
 
     if (pAttrValue)
     {
         DirectoryFreeAttributeValues(pAttrValue, 1);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddConvertUnicodeAttrValues(
+    PATTRIBUTE_VALUE  pSrcValues,
+    DWORD             dwSrcNumValues,
+    PATTRIBUTE_VALUE* ppAttrValues,
+    PDWORD            pdwNumValues
+    )
+{
+    DWORD dwError = 0;
+    DWORD iValue = 0;
+    PATTRIBUTE_VALUE pTgtValues = NULL;
+    DWORD dwNumValues = 0;
+
+    dwError = DirectoryAllocateMemory(
+                dwSrcNumValues * sizeof(ATTRIBUTE_VALUE),
+                (PVOID*)&pTgtValues);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwNumValues = dwSrcNumValues;
+
+    for (; iValue < dwNumValues; iValue++)
+    {
+        PATTRIBUTE_VALUE pSrcValue = NULL;
+        PATTRIBUTE_VALUE pTgtValue = NULL;
+
+        pSrcValue = &pSrcValues[iValue];
+        pTgtValue = &pTgtValues[iValue];
+
+        switch (pSrcValue->Type)
+        {
+            case DIRECTORY_ATTR_TYPE_ANSI_STRING:
+
+                dwError = DirectoryAllocateString(
+                                pSrcValue->pszStringValue,
+                                &pTgtValue->pszStringValue);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+
+                break;
+
+            case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
+
+                dwError = LsaWc16sToMbs(
+                                pSrcValue->pwszStringValue,
+                                &pTgtValue->pszStringValue);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+
+                break;
+
+
+            case DIRECTORY_ATTR_TYPE_INTEGER:
+
+                pTgtValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
+
+                pTgtValue->ulValue = pSrcValue->ulValue;
+
+                break;
+
+            case DIRECTORY_ATTR_TYPE_BOOLEAN:
+
+                pTgtValue->Type = DIRECTORY_ATTR_TYPE_BOOLEAN;
+
+                pTgtValue->ulValue = pSrcValue->ulValue;
+
+                break;
+
+            case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:
+
+                pTgtValue->Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+
+                pTgtValue->llValue = pSrcValue->llValue;
+
+                break;
+
+            case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+
+                dwError = DirectoryAllocateMemory(
+                            sizeof(OCTET_STRING),
+                            (PVOID*)&pTgtValue->pOctetString);
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                if (pSrcValue->pOctetString->ulNumBytes)
+                {
+                    dwError = DirectoryAllocateMemory(
+                                    pSrcValue->pOctetString->ulNumBytes,
+                                    (PVOID*)&pTgtValue->pOctetString->pBytes);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    pTgtValue->pOctetString->ulNumBytes = pSrcValue->pOctetString->ulNumBytes;
+
+                    memcpy( pTgtValue->pOctetString->pBytes,
+                            pSrcValue->pOctetString->pBytes,
+                            pSrcValue->pOctetString->ulNumBytes);
+                }
+
+                break;
+
+            default:
+
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+        }
+    }
+
+    *ppAttrValues = pTgtValues;
+    *pdwNumValues = dwNumValues;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
+
+    if (pTgtValues)
+    {
+        DirectoryFreeAttributeValues(pTgtValues, dwNumValues);
     }
 
     goto cleanup;
