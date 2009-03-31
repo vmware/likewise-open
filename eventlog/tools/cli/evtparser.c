@@ -434,8 +434,10 @@ ExportEventRecord (
     if (pRecord == NULL) return -1;
     if (fpExport == NULL) return -1;
 
-    //CSV fields: Type,Date,Time,Source,Category,SourceID,User,Computer,Description,Data
-
+    /*
+     * CSV fields:
+     *    LogfileName,Date,Time,Source,Type,Category,SourceID,User,Computer,Description,Data
+     */
     time_t eventTimeStruct = (time_t) pRecord->dwEventDateTime;
 
     strftime(eventDate, 255, "%F", localtime(&eventTimeStruct));
@@ -447,7 +449,7 @@ ExportEventRecord (
         eventTime, //PSTR
         IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventSource,
         IsNullOrEmptyString(pRecord->pszEventType) ? "<null>" : (PSTR)pRecord->pszEventType,
-        IsNullOrEmptyString(pRecord->pszEventSource) ? "<null>" : (PSTR)pRecord->pszEventCategory,
+        IsNullOrEmptyString(pRecord->pszEventCategory) ? "<null>" : (PSTR)pRecord->pszEventCategory,
         pRecord->dwEventSourceId, //DWORD
         IsNullOrEmptyString(pRecord->pszUser) ? "<null>" : (PSTR)pRecord->pszUser,
         IsNullOrEmptyString(pRecord->pszComputer) ? "<null>" : (PSTR)pRecord->pszComputer,
@@ -479,7 +481,7 @@ PrintEventRecordTableRow (
     if (pRecord == NULL) return -1;
     if (fp == NULL) return -1;
 
-    //TableRow fields: RecordID,Type,Date,Time,Source,Category
+    //TableRow fields: RecordID,Type,Date,Time,Source,Category,EventID,User
 
     time_t eventTimeStruct = (time_t) pRecord->dwEventDateTime;
 
@@ -999,18 +1001,21 @@ ReadAndExportEvents(
 
     sw16printf(sqlFilter, "%s", sqlFilterChar);
 
-    fprintf(fpExport, "EventTableCategoryId,");
-    fprintf(fpExport, "EventRecordId,");
-    fprintf(fpExport, "EventType,");
-    fprintf(fpExport, "EventTime,");
-    fprintf(fpExport, "EventSource,");
-    fprintf(fpExport, "EventCategory,");
-    fprintf(fpExport, "EventSourceId,");
+    /*
+     * CSV fields:
+     *    LogfileName,Date,Time,Source,Type,Category,SourceID,User,Computer,Description,Data
+     */
+    fprintf(fpExport, "LogfileName,");
+    fprintf(fpExport, "Date,");
+    fprintf(fpExport, "Time,");
+    fprintf(fpExport, "Source,");
+    fprintf(fpExport, "Type,");
+    fprintf(fpExport, "Category,");
+    fprintf(fpExport, "SourceId,");
     fprintf(fpExport, "User,");
     fprintf(fpExport, "Computer,");
     fprintf(fpExport, "Description,");
     fprintf(fpExport, "Data\n");
-
 
     do
     {
