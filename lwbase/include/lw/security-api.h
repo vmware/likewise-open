@@ -378,7 +378,11 @@ RtlCreateAccessToken(
     IN OPTIONAL PTOKEN_UNIX Unix
     );
 
-// NEW
+VOID
+RtlReferenceAccessToken(
+    IN PACCESS_TOKEN AccessToken
+    );
+
 VOID
 RtlReleaseAccessToken(
     IN OUT PACCESS_TOKEN* AccessToken

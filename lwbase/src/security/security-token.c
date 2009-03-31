@@ -202,6 +202,7 @@ RtlCreateAccessToken(
 
     // Initialize
 
+    token->ReferenceCount = 1;
     token->Flags = 0;
 
     token->User.Attributes = User->User.Attributes;
@@ -274,11 +275,34 @@ cleanup:
 }
 
 VOID
+RtlReferenceAccessToken(
+    IN PACCESS_TOKEN AccessToken
+    )
+{
+    // TODO-Interlocked access for MT-safety
+    AccessToken->ReferenceCount++;
+}
+
+VOID
 RtlReleaseAccessToken(
     IN OUT PACCESS_TOKEN* AccessToken
     )
 {
-    RTL_FREE(AccessToken);
+    PACCESS_TOKEN accessToken = *AccessToken;
+
+    if (accessToken)
+    {
+        // TODO-Interlocked access for MT-safety
+
+        if (accessToken->ReferenceCount <= 1)
+        {
+            RTL_FREE(AccessToken);
+        }
+        else
+        {
+            accessToken->ReferenceCount--;
+        }
+    }
 }
 
 NTSTATUS
