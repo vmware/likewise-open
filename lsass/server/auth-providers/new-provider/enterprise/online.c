@@ -47,7 +47,7 @@
  *          Brian Dunstan (bdunstan@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#include "adprovider.h"
+#include "lsaenterprise.h"
 
 DWORD
 AD_OnlineFindCellDN(

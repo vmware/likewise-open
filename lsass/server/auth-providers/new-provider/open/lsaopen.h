@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,76 +33,78 @@
  *
  * Module Name:
  *
- *        lsaprovider.h
+ *        adprovider.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Mini Provider Interface
+ *        Active Directory Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Arlene Berry (aberry@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "lsaopen.h"
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
 
-DWORD
-LikewiseOpenLookupNssArtefactByKey(
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    PCSTR  pszKeyName, PCSTR
-    pszMapName, DWORD  dwInfoLevel,
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
-    PVOID* ppNSSArtefactInfo
-    )
-{
-    DWORD dwError = 0;
+#include <openssl/md4.h>
+#include <openssl/rand.h>
+#include <openssl/des.h>
+#include <sqlite3.h>
+#include <eventlog.h>
+#include <lwps/lwps.h>
+#include <lwnet.h>
+#include <lwio/lwio.h>
 
-    return dwError;
-}
+#include "lsautils.h"
+#include "lsaunistr.h"
+#include "lsaipc.h"
+#include "lsaminiprovider.h"
+#if 0
+#include "lsaadprovider.h"
+#endif
 
-DWORD
-LikewiseOpenBeginEnumNssArtefacts(
-    HANDLE  hMiniProvider,
-    DWORD   dwConnectMode,
-    DWORD   dwInfoLevel,
-    PCSTR   pszMapName,
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
-    PHANDLE phResume
-    )
-{
+#include "lsasrvutils.h"
+#include "lsakrb5.h"
+#include "lsaldap.h"
+#include "lsadb.h"
 
-    DWORD dwError = 0;
+#if 0
+#include "addef.h"
+#include "media-sense.h"
+#include "adstruct.h"
+#include "adcfg.h"
+#include "adldapdef.h"
+#include "adnetapi.h"
+#include "lsadm.h"
+#include "lsadmengine.h"
+#include "lsadmwrap.h"
+#include "lsaum.h"
+#include "lsaumproc.h"
+#include "state_store.h"
+#include "adldap.h"
+#include "adldap_p.h"
+#include "batch.h"
+#include "unprov.h"
+#include "ad_marshal_group.h"
+#include "ad_marshal_nss_artefact.h"
+#include "ad_marshal_nss_artefact_p.h"
+#include "ad_marshal_user.h"
+#include "ad_marshal_user_p.h"
+#include "cache.h"
+#include "cellldap.h"
+#include "defldap.h"
+#include "enumstate.h"
+#include "machinepwd_p.h"
+#include "offline.h"
+#include "online.h"
+#include "providerstate.h"
+#include "provider-main.h"
+#include "offline-helper.h"
+#include "lsasqlite.h"
 
-    return dwError;
-}
-
-DWORD
-LikewiseOpenEnumNssArtefacts(
-    HANDLE  hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE  hResume,
-    DWORD   dwMaxNumGroups,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-
-}
-
-VOID
-LikewiseOpenEndEnumNssArtefacts(
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE hResume
-    )
-{
-
-    return;
-}
-
+#include "externs.h"
+#endif

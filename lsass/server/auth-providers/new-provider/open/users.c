@@ -46,12 +46,16 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
+#include "lsaopen.h"
+
+#if 0
 DWORD
 (*CHECKUSERINLIST)(
     HANDLE hMiniProvider,
     PCSTR  pszLoginId,
     PCSTR  pszListName
     );
+#endif
 
 DWORD
 LikewiseOpenLookupUserByName(
@@ -61,8 +65,26 @@ LikewiseOpenLookupUserByName(
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
     )
+{
+    DWORD dwError = 0;
 
+    return dwError;
+}
 
+DWORD
+LikewiseOpenLookupUserById(
+    HANDLE  hMiniProvider,
+    uid_t   uid,
+    DWORD   dwUserInfoLevel,
+    PVOID*  ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
+#if 0
 DWORD
 LikewiseOpenGetGroupsForUser(
     HANDLE  hMiniProvider,
@@ -91,6 +113,7 @@ LikewiseOpenGetGroupsForUser(
 
     return dwError;
 }
+#endif
 
 DWORD
 LikewiseOpenBeginEnumUsers(
@@ -103,7 +126,6 @@ LikewiseOpenBeginEnumUsers(
 {
     DWORD dwError = 0;
 
-                    );
     return (dwError);
 }
 
@@ -129,14 +151,15 @@ LikewiseOpenEndEnumUsers(
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
 
-    return dwError;
+    return;
 }
 
 DWORD
 OnlineGetUsersByName()
 {
+    DWORD dwError = 0;
 
-
+    return dwError;
 }
+

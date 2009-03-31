@@ -46,8 +46,10 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
+#include "lsaenterprise.h"
+
 DWORD
-LikewiseEnterpriseOpenMiniProvider
+LikewiseEnterpriseOpenMiniProvider(
     uid_t peerUID,
     gid_t peerGID,
     PHANDLE phMiniProvider
@@ -56,45 +58,67 @@ LikewiseEnterpriseOpenMiniProvider
     DWORD dwError = 0;
 
     return dwError;
-
 }
 
 VOID
-LikewiseEnterpriseCloseHandle
+LikewiseEnterpriseCloseMiniProvider(
     HANDLE hMiniProvider
     )
 {
 
-
+    return;
 }
 
+#if 0
 DWORD
 (*AUTHENTICATEUSER)(
     HANDLE hMiniProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
 
 DWORD
 (*AUTHENTICATEUSEREX)(
     HANDLE hMiniProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
     PLSA_AUTH_USER_INFO *ppUserInfo
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
 
 DWORD
 (*CHECKUSERINLIST)(
     HANDLE hMiniProvider,
     PCSTR  pszLoginId,
     PCSTR  pszListName
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
 DWORD
 (*LOOKUPUSERBYNAME)(
     HANDLE  hMiniProvider,
     PCSTR   pszLoginId,
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
-    );
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+#endif
 
 DWORD
 LikewiseEnterpriseLookupUserById(
@@ -104,7 +128,9 @@ LikewiseEnterpriseLookupUserById(
     PVOID*  ppUserInfo
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 DWORD
@@ -165,8 +191,7 @@ LikewiseEnterpriseBeginEnumUsers(
 {
     DWORD dwError = 0;
 
-                    );
-    return (dwError);
+    return dwError;
 }
 
 DWORD
@@ -191,9 +216,7 @@ LikewiseEnterpriseEndEnumUsers(
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
 
-    return dwError;
 }
 
 DWORD
@@ -223,19 +246,17 @@ LikewiseEnterpriseEnumGroups(
 {
     DWORD dwError = 0;
 
-    return (dwError);
+    return dwError;
 }
 
 VOID
-LikewiseEnterpriseEndEnumGroups
+LikewiseEnterpriseEndEnumGroups(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
 
-    return dwError;
 }
 
 DWORD
@@ -246,7 +267,9 @@ LikewiseEnterpriseChangePassword(
     PCSTR  pszOldPassword
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 DWORD
@@ -260,11 +283,13 @@ LikewiseEnterpriseGetNamesBySidList(
     ADAccountType** ppTypes
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 DWORD
-LikewiseEnterpriseLookupNssArtefactByKey
+LikewiseEnterpriseLookupNssArtefactByKey(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     PCSTR  pszKeyName, PCSTR
@@ -273,8 +298,9 @@ LikewiseEnterpriseLookupNssArtefactByKey
     PVOID* ppNSSArtefactInfo
     )
 {
+    DWORD dwError = 0;
 
-
+    return dwError;
 }
 
 DWORD
@@ -287,8 +313,9 @@ LikewiseEnterpriseBeginEnumNssArtefacts(
     PHANDLE phResume
     )
 {
+    DWORD dwError = 0;
 
-
+    return dwError;
 }
 
 DWORD
@@ -301,7 +328,9 @@ LikewiseEnterpriseEnumNssArtefacts(
     PVOID** pppGroupInfoList
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 VOID
@@ -315,22 +344,25 @@ LikewiseEnterpriseEndEnumNssArtefacts(
 }
 
 DWORD
-InitializeMiniProvider(
+LsaInitializeMiniProvider(
     PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 DWORD
-ShutdownMiniProvider(
+LsaShutdownMiniProvider(
     PSTR pszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
-
 

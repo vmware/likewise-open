@@ -33,122 +33,78 @@
  *
  * Module Name:
  *
- *        lsaprovider.h
+ *        adprovider.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Active Directory Mini Provider Interface
+ *        Active Directory Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Arlene Berry (aberry@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "lsaopen.h"
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
 
-DWORD
-LikewiseOpenOpenMiniProvider(
-    uid_t peerUID,
-    gid_t peerGID,
-    PHANDLE phMiniProvider
-    )
-{
-    DWORD dwError = 0;
+#include <openssl/md4.h>
+#include <openssl/rand.h>
+#include <openssl/des.h>
+#include <sqlite3.h>
+#include <eventlog.h>
+#include <lwps/lwps.h>
+#include <lwnet.h>
+#include <lwio/lwio.h>
 
-    return dwError;
-
-}
-
-VOID
-LikewiseOpenCloseMiniProvider(
-    HANDLE hMiniProvider
-    )
-{
-
-    return;
-}
-
+#include "lsautils.h"
+#include "lsaunistr.h"
+#include "lsaipc.h"
+#include "lsaprovider.h"
 #if 0
-DWORD
-(*AUTHENTICATEUSER)(
-    HANDLE hMiniProvider,
-    PCSTR  pszLoginId,
-    PCSTR  pszPassword
-    );
-
-DWORD
-(*AUTHENTICATEUSEREX)(
-    HANDLE hMiniProvider,
-    PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_AUTH_USER_INFO *ppUserInfo
-    );
-
-DWORD
-(*CHECKUSERINLIST)(
-    HANDLE hMiniProvider,
-    PCSTR  pszLoginId,
-    PCSTR  pszListName
-    );
-DWORD
-(*LOOKUPUSERBYNAME)(
-    HANDLE  hMiniProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
+#include "lsaadprovider.h"
 #endif
 
-DWORD
-LikewiseOpenChangePassword(
-    HANDLE hMiniProvider,
-    PCSTR  pszLoginId,
-    PCSTR  pszPassword,
-    PCSTR  pszOldPassword
-    )
-{
-    DWORD dwError = 0;
+#include "lsasrvutils.h"
+#include "lsakrb5.h"
+#include "lsaldap.h"
+#include "lsadb.h"
 
-    return dwError;
-}
+#if 0
+#include "addef.h"
+#include "media-sense.h"
+#include "adstruct.h"
+#include "adcfg.h"
+#include "adldapdef.h"
+#include "adnetapi.h"
+#include "lsadm.h"
+#include "lsadmengine.h"
+#include "lsadmwrap.h"
+#include "lsaum.h"
+#include "lsaumproc.h"
+#include "state_store.h"
+#include "adldap.h"
+#include "adldap_p.h"
+#include "batch.h"
+#include "unprov.h"
+#include "ad_marshal_group.h"
+#include "ad_marshal_nss_artefact.h"
+#include "ad_marshal_nss_artefact_p.h"
+#include "ad_marshal_user.h"
+#include "ad_marshal_user_p.h"
+#include "cache.h"
+#include "cellldap.h"
+#include "defldap.h"
+#include "enumstate.h"
+#include "machinepwd_p.h"
+#include "offline.h"
+#include "online.h"
+#include "providerstate.h"
+#include "provider-main.h"
+#include "offline-helper.h"
+#include "lsasqlite.h"
 
-DWORD
-LikewiseOpenGetNamesBySidList(
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    size_t sCount,
-    PSTR*  ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-DWORD
-LsaInitializeMiniProvider(
-    PCSTR pszConfigFilePath,
-    PSTR* ppszProviderName,
-    PLSA_MINIPROVIDER_FUNCTION_TABLE* ppFnTable
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-DWORD
-LsaShutdownMiniProvider(
-    PSTR pszProviderName,
-    PLSA_MINIPROVIDER_FUNCTION_TABLE pFnTable
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
+#include "externs.h"
+#endif

@@ -46,28 +46,9 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-DWORD
-LikewiseOpenOpenMiniProvider
-    uid_t peerUID,
-    gid_t peerGID,
-    PHANDLE phMiniProvider
-    )
-{
-    DWORD dwError = 0;
+#include "lsaopen.h"
 
-    return dwError;
-
-}
-
-VOID
-LikewiseOpenCloseHandle
-    HANDLE hMiniProvider
-    )
-{
-
-
-}
-
+#if 0
 DWORD
 (*AUTHENTICATEUSER)(
     HANDLE hMiniProvider,
@@ -95,32 +76,7 @@ DWORD
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
     );
-
-DWORD
-LikewiseOpenLookupUserById(
-    HANDLE  hMiniProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    )
-{
-
-}
-
-DWORD
-LikewiseOpenLookupGroupByName(
-    HANDLE  hMiniProvider,
-    DWORD dwConnectMode,
-    PCSTR   pszLoginId,
-    LSA_FIND_FLAGS FindFlags,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-
-    return (dwError);
-}
+#endif
 
 DWORD
 LikewiseOpenLookupGroupById(
@@ -147,48 +103,6 @@ LikewiseOpenGetGroupsForUser(
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-DWORD
-LikewiseOpenBeginEnumUsers(
-    HANDLE  hMiniProvider,
-    DWORD dwConnectMode,
-    DWORD   dwInfoLevel,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-
-                    );
-    return (dwError);
-}
-
-DWORD
-LikewiseOpenEnumUsers(
-    HANDLE  hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE  hResume,
-    DWORD   dwMaxUsers,
-    PDWORD  pdwUsersFound,
-    PVOID** pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-VOID
-LikewiseOpenEndEnumUsers(
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE hResume
     )
 {
     DWORD dwError = 0;
@@ -227,110 +141,13 @@ LikewiseOpenEnumGroups(
 }
 
 VOID
-LikewiseOpenEndEnumGroups
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE hResume
-    )
-{
-    DWORD dwError = 0;
-
-    return dwError;
-}
-
-DWORD
-LikewiseOpenChangePassword(
-    HANDLE hMiniProvider,
-    PCSTR  pszLoginId,
-    PCSTR  pszPassword,
-    PCSTR  pszOldPassword
-    )
-{
-
-}
-
-DWORD
-LikewiseOpenGetNamesBySidList(
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    size_t sCount,
-    PSTR*  ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
-    )
-{
-
-}
-
-DWORD
-LikewiseOpenLookupNssArtefactByKey
-    HANDLE hMiniProvider,
-    DWORD dwConnectMode,
-    PCSTR  pszKeyName, PCSTR
-    pszMapName, DWORD  dwInfoLevel,
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
-    PVOID* ppNSSArtefactInfo
-    )
-{
-
-
-}
-
-DWORD
-LikewiseOpenBeginEnumNssArtefacts(
-    HANDLE  hMiniProvider,
-    DWORD   dwConnectMode,
-    DWORD   dwInfoLevel,
-    PCSTR   pszMapName,
-    LSA_NIS_MAP_QUERY_FLAGS dwFlags,
-    PHANDLE phResume
-    )
-{
-
-
-}
-
-DWORD
-LikewiseOpenEnumNssArtefacts(
-    HANDLE  hMiniProvider,
-    DWORD dwConnectMode,
-    HANDLE  hResume,
-    DWORD   dwMaxNumGroups,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-
-}
-
-VOID
-LikewiseOpenEndEnumNssArtefacts(
+LikewiseOpenEndEnumGroups(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     HANDLE hResume
     )
 {
 
+    return;
 }
-
-DWORD
-InitializeMiniProvider(
-    PCSTR pszConfigFilePath,
-    PSTR* ppszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
-    )
-{
-
-}
-
-DWORD
-ShutdownMiniProvider(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
-    )
-{
-
-}
-
 
