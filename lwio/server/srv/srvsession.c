@@ -363,6 +363,10 @@ SrvSessionFree(
 
     IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
 
+    if (pSession->pIoSecurityContext) {
+        IoSecurityFreeSecurityContext(&pSession->pIoSecurityContext);
+    }
+
     LwRtlMemoryFree(pSession);
 }
 

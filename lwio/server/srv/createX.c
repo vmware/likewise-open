@@ -60,7 +60,6 @@ SrvProcessNTCreateAndX(
     IO_FILE_HANDLE      hFile = NULL;
     PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
     IO_STATUS_BLOCK     ioStatusBlock = {0};
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
     PIO_FILE_NAME       pFilename = NULL;
@@ -132,7 +131,7 @@ SrvProcessNTCreateAndX(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     pFilename,
                     pSecurityDescriptor,
                     pSecurityQOS,

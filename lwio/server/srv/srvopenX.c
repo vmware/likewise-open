@@ -67,7 +67,6 @@ SrvProcessOpenAndX(
     USHORT               usCreateOptions = FILE_NON_DIRECTORY_FILE;
     USHORT               usShareAccess = 0;
     PSMB_PACKET          pSmbResponse = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -191,7 +190,7 @@ SrvProcessOpenAndX(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     pFilename,
                     pSecurityDescriptor,
                     pSecurityQOS,

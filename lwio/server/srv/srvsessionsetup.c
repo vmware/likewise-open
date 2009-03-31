@@ -63,6 +63,7 @@ SrvProcessSessionSetup(
     PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
     PSMB_SRV_SESSION pSession = NULL;
+    UNICODE_STRING uniUsername = {0};
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -108,6 +109,19 @@ SrvProcessSessionSetup(
              BAIL_ON_NT_STATUS(ntStatus);
         }
 
+        /* Generate and store the IoSecurityContext */
+
+        ntStatus = RtlUnicodeStringAllocateFromCString(
+                       &uniUsername,
+                       pSession->pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoSecurityCreateSecurityContextFromUsername(
+                       &pSession->pIoSecurityContext,
+                       &uniUsername);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+
         pSmbResponse->pSMBHeader->uid = pSession->uid;
 
         SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_READY);
@@ -116,6 +130,7 @@ SrvProcessSessionSetup(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+    RtlUnicodeStringFree(&uniUsername);
 
     if (pSession)
     {
@@ -352,3 +367,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -774,7 +774,6 @@ SrvGetNativeFilesystem(
     IO_FILE_HANDLE hFile = NULL;
     IO_FILE_NAME   fileName = {0};
     PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
     IO_STATUS_BLOCK     ioStatusBlock = {0};
@@ -782,16 +781,23 @@ SrvGetNativeFilesystem(
     PBYTE    pVolumeInfo = NULL;
     USHORT   usBytesAllocated = 0;
     PFILE_FS_ATTRIBUTE_INFORMATION pFsAttrInfo = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pIoSecContext = NULL;
 
     SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     fileName.FileName = pShareInfo->pwszPath;
 
+    ntStatus = IoSecurityCreateSecurityContextFromUidGid(&pIoSecContext,
+							 0,
+							 0,
+							 NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = IoCreateFile(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pIoSecContext,
                     &fileName,
                     pSecurityDescriptor,
                     pSecurityQOS,
@@ -873,6 +879,12 @@ cleanup:
     {
         IoCloseFile(hFile);
     }
+
+    if (pIoSecContext)
+    {
+        IoSecurityFreeSecurityContext(&pIoSecContext);
+    }
+
 
     return ntStatus;
 

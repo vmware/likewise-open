@@ -278,6 +278,9 @@ typedef struct _SMB_SRV_SESSION
     USHORT            nextAvailableTid;
 
     PSTR              pszClientPrincipalName;
+
+    PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
+
 } SMB_SRV_SESSION, *PSMB_SRV_SESSION;
 
 typedef struct _SMB_SRV_CONNECTION

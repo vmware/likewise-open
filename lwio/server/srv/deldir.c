@@ -50,7 +50,6 @@ SrvProcessDeleteDirectory(
     IO_FILE_HANDLE  hFile = NULL;
     IO_FILE_NAME    fileName = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID  pSecurityDescriptor = NULL;
     PVOID  pSecurityQOS = NULL;
     USHORT usPacketByteCount = 0;
@@ -100,7 +99,7 @@ SrvProcessDeleteDirectory(
                     &hFile,
                     NULL,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     &fileName,
                     pSecurityDescriptor,
                     pSecurityQOS,

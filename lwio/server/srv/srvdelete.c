@@ -224,6 +224,7 @@ SrvDeleteFiles(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderCreateSearchSpace(
+                    pSession->pIoSecurityContext,
                     pSession->hFinderRepository,
                     pwszFilesystemPath2,
                     pwszSearchPattern2,
@@ -243,7 +244,6 @@ SrvDeleteFiles(
         IO_STATUS_BLOCK ioStatusBlock = {0};
         PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult = NULL;
         IO_FILE_NAME fileName = {0};
-        PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
         PVOID  pSecurityDescriptor = NULL;
         PVOID  pSecurityQOS = NULL;
 
@@ -325,7 +325,7 @@ SrvDeleteFiles(
                             &hFile,
                             NULL,
                             &ioStatusBlock,
-                            pSecurityContext,
+                            pSession->pIoSecurityContext,
                             &fileName,
                             pSecurityDescriptor,
                             pSecurityQOS,

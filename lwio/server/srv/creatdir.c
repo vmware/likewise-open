@@ -54,7 +54,6 @@ SrvProcessCreateDirectory(
     PVOID           pSecurityDescriptor = NULL;
     PVOID           pSecurityQOS = NULL;
     IO_FILE_NAME    fileName = {0};
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -101,7 +100,7 @@ SrvProcessCreateDirectory(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     &fileName,
                     pSecurityDescriptor,
                     pSecurityQOS,
