@@ -157,6 +157,78 @@ error:
  ***************************************************************/
 
 NTSTATUS
+PvfsGetSecurityDescriptorFilename(
+    IN PCSTR pszFilename,
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSECURITY_DESCRIPTOR_RELATIVE pFullSecDesc = NULL;
+    ULONG FullSecDescLen = 0;
+    BOOLEAN bNoStoredSecDesc = FALSE;
+    PVFS_STAT Stat = {0};
+
+    FullSecDescLen = 1024;
+    do
+    {
+        ntError = PvfsReallocateMemory((PVOID*)&pFullSecDesc, FullSecDescLen);
+        BAIL_ON_NT_STATUS(ntError);
+
+#ifdef HAVE_EA_SUPPORT
+        /* Try to get from EA but short circuit future attempts this go
+           round if there is nothing there */
+
+        if (!bNoStoredSecDesc) {
+            ntError = PvfsGetSecurityDescriptorFilenameXattr(pszFilename,
+                                                             pFullSecDesc,
+                                                             &FullSecDescLen);
+        }
+#endif
+        /* Fallback to generating a default secdesc */
+
+        if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
+        {
+            bNoStoredSecDesc = TRUE;
+
+            ntError = PvfsSysStat(pszFilename, &Stat);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (S_ISDIR(Stat.s_mode)) {
+                ntError = CreateDefaultSecDescDir(pFullSecDesc, &FullSecDescLen);
+            } else {
+                ntError = CreateDefaultSecDescFile(pFullSecDesc, &FullSecDescLen);
+            }
+        }
+
+        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            FullSecDescLen *= 2;
+        }
+    } while ((ntError != STATUS_SUCCESS) &&
+             (FullSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlQuerySecurityDescriptorInfo(SecInfo,
+                                             pSecDesc,
+                                             pSecDescLen,
+                                             pFullSecDesc);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PVFS_SAFE_FREE_MEMORY(pFullSecDesc);
+
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
 PvfsSetSecurityDescriptorFile(
     IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,

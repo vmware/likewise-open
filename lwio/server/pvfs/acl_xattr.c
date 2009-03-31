@@ -98,6 +98,38 @@ error:
  ***************************************************************/
 
 NTSTATUS
+PvfsGetSecurityDescriptorFilenameXattr(
+    IN PCSTR pszFilename,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    )
+{
+    NTSTATUS ntError = STATUS_NO_SECURITY_ON_OBJECT;
+    int iEaSize = 0;
+    int unixerr = 0;
+
+    iEaSize = getxattr(pszFilename,
+                       PVFS_EA_SECDESC_NAME,
+                       (PVOID)pSecDesc,
+                       (size_t)*pSecDescLen);
+    if (iEaSize == -1) {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+    *pSecDescLen = iEaSize;
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/****************************************************************
+ ***************************************************************/
+
+NTSTATUS
 PvfsSetSecurityDescriptorFileXattr(
     IN PPVFS_CCB pCcb,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
