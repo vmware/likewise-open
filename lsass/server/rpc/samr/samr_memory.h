@@ -89,4 +89,64 @@ SamrSrvFreeMemory(
     );
 
 
+NTSTATUS
+SamrSrvAllocateSidFromWC16String(
+    PSID *ppSid,
+    PCWSTR pwszSidStr,
+    void *pParent
+    );
+
+
+NTSTATUS
+SamrSrvDuplicateSid(
+    PSID *ppSidOut,
+    PSID *pSidIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+SamrSrvGetFromUnicodeString(
+    PWSTR *ppwszOut,
+    UnicodeString *pIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+SamrSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+SamrSrvInitUnicodeString(
+    UnicodeString *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+SamrSrvInitUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    );
+
+
+void
+SamrSrvFreeUnicodeString(
+    UnicodeString *pStr
+    );
+
+
+void
+SamrSrvFreeUnicodeStringEx(
+    UnicodeStringEx *pStr
+    );
+
+
 #endif /* _SAMRSRV_MEMORY_H_ */
