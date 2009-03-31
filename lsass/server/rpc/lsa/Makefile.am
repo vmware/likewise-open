@@ -34,13 +34,15 @@ liblsa_srv_la_CFLAGS = \
     -I$(rpc_srcdir)/samr \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
-    @LWBASE_INCLUDES@
+    @LWBASE_INCLUDES@ \
+    @NETLOGON_INCLUDES@
 
 liblsa_srv_la_LIBADD = \
     @DCERPC_LIBS@ \
     @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LWBASE_LIBS@ \
+    @NETLOGON_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
