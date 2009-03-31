@@ -920,7 +920,7 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
 };
 
 NTSTATUS
-LsaMapSecurityCreateContext(
+MapSecurityPluginCreateContext(
     OUT PLW_MAP_SECURITY_PLUGIN_CONTEXT* Context,
     OUT PLW_MAP_SECURITY_PLUGIN_INTERFACE* Interface
     )
@@ -928,7 +928,7 @@ LsaMapSecurityCreateContext(
     NTSTATUS status = STATUS_SUCCESS;
     PLW_MAP_SECURITY_PLUGIN_CONTEXT context = NULL;
     // compiler type check for this function
-    LWMSP_CREATE_CONTEXT_CALLBACK unused = LsaMapSecurityCreateContext;
+    LWMSP_CREATE_CONTEXT_CALLBACK unused = MapSecurityPluginCreateContext;
 
     assert(unused);
 
