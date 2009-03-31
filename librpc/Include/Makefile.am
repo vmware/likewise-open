@@ -37,7 +37,6 @@ include_HEADERS = \
 	lwrpc/LMaccess.h \
 	lwrpc/LMjoin.h \
 	lwrpc/LMErr.h \
-	lwrpc/LMldap.h \
 	lwrpc/LMdebug.h \
 	lwrpc/LMcrypt.h \
 	lwrpc/LMmem.h \
