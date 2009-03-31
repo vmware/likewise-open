@@ -51,8 +51,6 @@ LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
 
 rpc_binding_vector_p_t gpLsaSrvBinding = NULL;
 
-LSA_RPC_WORKER gWorker;
-
 
 /*
 local variables:
