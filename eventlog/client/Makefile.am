@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libeventlog.la
+lib_LTLIBRARIES = libeventlog.la libeventlog-mac.la
 
 idl_srcdir=$(top_srcdir)/idl
 
@@ -13,6 +13,18 @@ libeventlog_la_LIBADD = \
 libeventlog_la_CPPFLAGS = \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@
+
+libeventlog_mac_la_SOURCES = \
+    $(libeventlog_la_SOURCES)
+
+libeventlog_mac_la_LIBADD = \
+    $(libeventlog_la_LIBADD)
+
+libeventlog_mac_la_LDFLAGS = \
+    -module -avoid-version
+
+libeventlog_mac_la_CPPFLAGS = \
+    $(libeventlog_la_CPPFLAGS)
 
 CLEANFILES = eventlog_h.h eventlog_cstub.c eventlog_sstub.c
 
