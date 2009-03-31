@@ -111,7 +111,7 @@ cleanup:
 }
 
 NTSTATUS
-IopSecurityCreateSecurityContextFromUidGid(
+IoSecurityCreateSecurityContextFromUidGid(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     IN uid_t Uid,
     IN gid_t Gid,

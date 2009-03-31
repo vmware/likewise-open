@@ -342,6 +342,14 @@ IoSecurityFreeSecurityContext(
     );
 
 NTSTATUS
+IoSecurityCreateSecurityContextFromUidGid(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN uid_t Uid,
+    IN gid_t Gid,
+    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    );
+
+NTSTATUS
 IoSecurityCreateSecurityContextFromUsername(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     IN PUNICODE_STRING Username

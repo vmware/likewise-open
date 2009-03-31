@@ -163,7 +163,7 @@ IopIpcCreateFile(
                     &gid);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IopSecurityCreateSecurityContextFromUidGid(
+    status = IoSecurityCreateSecurityContextFromUidGid(
                     &securityContext,
                     uid,
                     gid,
