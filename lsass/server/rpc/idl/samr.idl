@@ -123,10 +123,10 @@ cpp_quote("#endif")
 
     /* function 0x0c */
     NTSTATUS __SamrCreateUser(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE *hDomain,
         [in,ref] UnicodeString *account_name,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *user_handle,
+        [out] ACCOUNT_HANDLE *hUser,
         [out,ref] uint32 *rid
         );
 
@@ -142,10 +142,10 @@ cpp_quote("#endif")
 
     /* function 0x0e */
     NTSTATUS __SamrCreateDomAlias(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *alias_name,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *alias_handle,
+        [out] ACCOUNT_HANDLE *hAlias,
         [out,ref] uint32 *rid
         );
 
@@ -290,11 +290,11 @@ cpp_quote("#endif")
 
     /* function 0x32 */
     NTSTATUS __SamrCreateUser2(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeStringEx *account_name,
         [in] uint32 account_flags,
         [in] uint32 access_mask,
-        [out,ref] PolicyHandle *user_handle,
+        [out] ACCOUNT_HANDLE *hUser,
         [out,ref] uint32 *access_granted,
         [out,ref] uint32 *rid
         );
