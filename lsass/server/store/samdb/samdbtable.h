@@ -75,7 +75,7 @@
 #define SAM_DB_COL_USER_INFO_FLAGS      "UserInfoFlags"
 #define SAM_DB_COL_GECOS                "Gecos"
 #define SAM_DB_COL_HOME_DIR             "Homedir"
-#define SAM_DB_COL_SHELL                "Shell"
+#define SAM_DB_COL_SHELL                "LoginShell"
 #define SAM_DB_COL_PASSWORD_CHANGE_TIME "PasswdChangeTime"
 #define SAM_DB_COL_FULL_NAME            "FullName"
 #define SAM_DB_COL_ACCOUNT_EXPIRY       "AccountExpiry"
@@ -167,51 +167,51 @@ typedef enum
 
 /* These are the strings exchanged through the Directory API */
 #define SAM_DB_DIR_ATTR_RECORD_ID \
-    {'r','e','c','o','r','d','-','i','d',0}
+    {'O','b','j','e','c','t','R','e','c','o','r','d','I','d',0}
 #define SAM_DB_DIR_ATTR_OBJECT_SID \
-    {'o','b','j','e','c','t','-','s','i','d',0}
+    {'O','b','j','e','c','t','S','I','D',0}
 #define SAM_DB_DIR_ATTR_DISTINGUISHED_NAME  \
-    {'d','i','s','t','i','n','g','u','i','s','h','e','d','-','n','a','m','e',0}
+    {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_PARENT_DN \
-    {'p','a','r','e','n','t','-','d','n',0}
+    {'P','a','r','e','n','t','D','N',0}
 #define SAM_DB_DIR_ATTR_OBJECT_CLASS \
-    {'o','b','j','e','c','t','-','c','l','a','s','s',0}
+    {'O','b','j','e','c','t','C','l','a','s','s',0}
 #define SAM_DB_DIR_ATTR_DOMAIN \
-    {'d','o','m','a','i','n',0}
+    {'D','o','m','a','i','n',0}
 #define SAM_DB_DIR_ATTR_NETBIOS_NAME \
-    {'n','e','t','b','i','o','s','-','n','a','m','e',0}
+    {'N','e','t','B','I','O','S','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_COMMON_NAME \
-    {'c','o','m','m','o','n','-','n','a','m','e',0}
+    {'C','o','m','m','o','n','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME \
-    {'s','a','m','-','a','c','c','o','u','n','t','-','n','a','m','e',0}
+    {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_DESCRIPTION \
-    {'d','e','s','c','r','i','p','t','i','o','n',0}
+    {'D','e','s','c','r','i','p','t','i','o','n',0}
 #define SAM_DB_DIR_ATTR_UID \
-    {'u','s','e','r','-','i','d',0}
+    {'U','I','D',0}
 #define SAM_DB_DIR_ATTR_PASSWORD \
-    {'p','a','s','s','w','o','r','d',0}
+    {'P','a','s','s','w','o','r','d',0}
 #define SAM_DB_DIR_ATTR_USER_INFO_FLAGS \
-    {'u','s','e','r','-','i','n','f','o','-','f','l','a','g','s',0}
+    {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
 #define SAM_DB_DIR_ATTR_GECOS \
-    {'g','e','c','o','s',0}
+    {'G','e','c','o','s',0}
 #define SAM_DB_DIR_ATTR_HOME_DIR \
-    {'h','o','m','e','-','d','i','r',0}
+    {'H','o','m','e','d','i','r',0}
 #define SAM_DB_DIR_ATTR_SHELL \
-    {'l','o','g','i','n','-','s','h','e','l','l',0}
+    {'L','o','g','i','n','S','h','e','l','l',0}
 #define SAM_DB_DIR_ATTR_PASSWORD_CHANGE_TIME \
-    {'p','a','s','s','w','o','r','d','-','c','h','a','n','g','e','-','t','i','m','e',0}
+    {'P','a','s','s','w','d','C','h','a','n','g','e','T','i','m','e',0}
 #define SAM_DB_DIR_ATTR_FULL_NAME \
-    {'f','u','l','l','-','n','a','m','e',0}
+    {'F','u','l','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY \
-    {'a','c','c','o','n','t','-','e','x','p','i','r','y',0}
+    {'A','c','c','o','n','t','E','x','p','i','r','y',0}
 #define SAM_DB_DIR_ATTR_LM_HASH \
-    {'l','m','-','h','a','s','h',0}
+    {'L','M','H','a','s','h',0}
 #define SAM_DB_DIR_ATTR_NT_HASH \
-    {'n','t','-','h','a','s','h',0}
+    {'N','T','H','a','s','h',0}
 #define SAM_DB_DIR_ATTR_GID \
-    {'g','r','o','u','p','-','i','d',0}
+    {'G','I','D',0}
 #define SAM_DB_DIR_ATTR_CREATED_TIME \
-    {'c','r','e','a','t','e','d','-','t','i','m','e',0}
+    {'C','r','e','a','t','e','d','T','i','m','e',0}
 
 typedef DWORD SAM_DB_ATTR_FLAGS;
 
