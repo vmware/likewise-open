@@ -1,4 +1,5 @@
 SUBDIRS=   \
     rpcctl \
-    lsa    \
-    samr
+    samr   \
+    lsa
+
