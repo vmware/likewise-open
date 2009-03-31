@@ -305,7 +305,7 @@ LwMapSecurityGetSidFromId(
     }
 
 cleanup:
-    if (!NT_SUCCESS(sid))
+    if (!NT_SUCCESS(status) && sid)
     {
         Context->PluginInterface->FreeSid(
                         Context->PluginContext,
