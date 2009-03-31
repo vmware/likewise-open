@@ -105,7 +105,7 @@ SamDbSchemaAddValidateDirMods(
                 if (!wc16scasecmp(mods[dwNumMods].pwszAttrName,
                                   &pAttrMapInfo->wszAttributeName[0]))
                 {
-                    if (pMod)
+                    if (!pAttrMap->bIsMultiValued && pMod)
                     {
                         dwError = LSA_ERROR_INVALID_PARAMETER;
                         BAIL_ON_SAMDB_ERROR(dwError);
@@ -117,8 +117,13 @@ SamDbSchemaAddValidateDirMods(
                 dwNumMods++;
             }
 
-            // Ensure a value has been specified
-            if (!pMod || !pMod->ulNumValues)
+            // We could have an attribute that is always provided by the db
+            // For instance, the rowid. The user will not specify these values.
+            // However, these values are mandatory for the object to exist.
+            if ((!pMod || !pMod->ulNumValues) &&
+                !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED) &&
+                !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) &&
+                !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
             {
                 dwError = LSA_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
