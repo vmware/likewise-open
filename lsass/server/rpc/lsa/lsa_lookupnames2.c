@@ -93,6 +93,7 @@ LsaSrvLookupNames2(
     DWORD dwBuiltinNamesNum = 0;
     PWSTR *ppwszDomainNames = NULL;
     DWORD dwDomainNamesNum = 0;
+    PSTR pszDomainFqdn = NULL;
     PSTR pszDcName = NULL;
     PWSTR pwszDcName = NULL;
     RefDomainList *pRemoteDomains = NULL;
@@ -304,6 +305,13 @@ LsaSrvLookupNames2(
     }
 
     if (dwDomainNamesNum) {
+        dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LWNetGetDomainController(pszDomainFqdn,
+                                           &pszDcName);
+        BAIL_ON_LSA_ERROR(dwError);
+
         status = LwIoGetThreadAccessToken(&pAccessToken);
         BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -519,6 +527,14 @@ cleanup:
         LsaSrvFreeMemory(pwszAcctName);
     }
 
+    if (pszDomainFqdn) {
+        LWNetFreeString(pszDomainFqdn);
+    }
+
+    if (pszDcName) {
+        LWNetFreeString(pszDcName);
+    }
+
     if (dwRids) {
         SamrFreeMemory(dwRids);
     }
@@ -538,12 +554,18 @@ cleanup:
     return status;
 
 error:
+    if (pDomains) {
+        LsaSrvFreeMemory(pDomains);
+    }
+
     if (pSidArray->sids) {
         LsaSrvFreeMemory(pSidArray->sids);
     }
 
+    *domains    = NULL;
     sids->count = 0;
     sids->sids  = NULL;
+    *count      = 0;
     goto cleanup;
 }
 

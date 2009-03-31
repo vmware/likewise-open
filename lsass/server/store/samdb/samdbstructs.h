@@ -105,7 +105,8 @@ typedef struct _SAM_DB_COLUMN_VALUE
 
     PDIRECTORY_MOD            pDirMod;
 
-    PATTRIBUTE_VALUE          pAttrValue;
+    ULONG            ulNumValues;
+    PATTRIBUTE_VALUE pAttrValues;
 
     struct _SAM_DB_COLUMN_VALUE* pNext;
 

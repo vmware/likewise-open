@@ -165,6 +165,9 @@ SrvProcessTreeConnectAndX(
                     pConnection->pShareDbContext,
                     pwszSharename,
                     &pShareInfo);
+    if (ntStatus == STATUS_NOT_FOUND) {
+        ntStatus = STATUS_BAD_NETWORK_NAME;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSessionCreateTree(

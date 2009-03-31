@@ -89,6 +89,47 @@ cleanup:
 }
 
 NTSTATUS
+LwRtlUnicodeStringAllocateFromAnsiString(
+    OUT PUNICODE_STRING pNewString,
+    IN PANSI_STRING pOriginalString
+    )
+{
+    NTSTATUS status = 0;
+    ANSI_STRING terminatedOriginalString = { 0 };
+    PSTR pszTerminatedString = NULL;
+    UNICODE_STRING newString = { 0 };
+
+    if (LW_RTL_STRING_IS_NULL_TERMINATED(pOriginalString))
+    {
+        pszTerminatedString = pOriginalString->Buffer;
+    }
+    else
+    {
+        // Since duplicate always does NULL-termination, we can
+        // safely use the Buffer field as a WC16String.
+
+        status = LwRtlAnsiStringDuplicate(&terminatedOriginalString, pOriginalString);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        pszTerminatedString = terminatedOriginalString.Buffer;
+    }
+
+    status = LwRtlUnicodeStringAllocateFromCString(&newString, pszTerminatedString);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        LwRtlUnicodeStringFree(&newString);
+    }
+    LwRtlAnsiStringFree(&terminatedOriginalString);
+
+    *pNewString = newString;
+
+    return status;
+}
+
+NTSTATUS
 LwRtlUnicodeStringAllocateFromWC16String(
     OUT PUNICODE_STRING pString,
     IN PCWSTR pszString

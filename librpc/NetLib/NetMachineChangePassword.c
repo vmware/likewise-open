@@ -103,7 +103,14 @@ NetMachineChangePassword(
     goto_if_ntstatus_not_success(status, error);
 
     /* specify credentials for domain controller connection */
-    sw16printf(nr.RemoteName, "\\\\%S\\IPC$", domain_controller_name);
+    if (sw16printfw(nr.RemoteName,
+           domain_controller_name_len + 8,
+            L"\\\\%ws\\IPC$",
+            domain_controller_name) < 0)
+    {
+        status = ErrnoToNtStatus(errno);
+        goto_if_ntstatus_not_success(status, error);
+    }
     conn_err = WNetAddConnection2(&nr, oldpassword, username);
     goto_if_winerr_not_success(conn_err, error);
 

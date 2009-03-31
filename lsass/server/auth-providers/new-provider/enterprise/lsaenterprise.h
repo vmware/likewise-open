@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,63 +33,78 @@
  *
  * Module Name:
  *
- *        eventdlapi.h
+ *        adprovider.h
  *
  * Abstract:
  *
- *        Likewise Site Manager
- * 
- *        Eventlog API
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Active Directory Provider
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
  */
 
-#ifndef __EVENTDLAPI_H__
-#define __EVENTDLAPI_H__
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
 
-#ifdef _WIN32
-#include "Stdafx.h"
+#include <openssl/md4.h>
+#include <openssl/rand.h>
+#include <openssl/des.h>
+#include <sqlite3.h>
+#include <eventlog.h>
+#include <lwps/lwps.h>
+#include <lwnet.h>
+#include <lwio/lwio.h>
+
+#include "lsautils.h"
+#include "lsaunistr.h"
+#include "lsaipc.h"
+#include "lsaprovider.h"
+#if 0
+#include "lsaadprovider.h"
 #endif
 
+#include "lsasrvutils.h"
+#include "lsakrb5.h"
+#include "lsaldap.h"
+#include "lsadb.h"
 
-typedef VOID  (*PFN_FREE_EVENT_RECORD)(
-			PEVENT_LOG_RECORD pEventRecord
-			);
+#if 0
+#include "addef.h"
+#include "media-sense.h"
+#include "adstruct.h"
+#include "adcfg.h"
+#include "adldapdef.h"
+#include "adnetapi.h"
+#include "lsadm.h"
+#include "lsadmengine.h"
+#include "lsadmwrap.h"
+#include "lsaum.h"
+#include "lsaumproc.h"
+#include "state_store.h"
+#include "adldap.h"
+#include "adldap_p.h"
+#include "batch.h"
+#include "unprov.h"
+#include "ad_marshal_group.h"
+#include "ad_marshal_nss_artefact.h"
+#include "ad_marshal_nss_artefact_p.h"
+#include "ad_marshal_user.h"
+#include "ad_marshal_user_p.h"
+#include "cache.h"
+#include "cellldap.h"
+#include "defldap.h"
+#include "enumstate.h"
+#include "machinepwd_p.h"
+#include "offline.h"
+#include "online.h"
+#include "providerstate.h"
+#include "provider-main.h"
+#include "offline-helper.h"
+#include "lsasqlite.h"
 
-typedef DWORD (*PFN_OPEN_EVENT_LOG_EX) (
-                        PCSTR   pszServerName,
-                        PCSTR   pszEventTableCategoryId,
-                        PCSTR   pszSource,
-                        DWORD   dwEventSourceId,
-                        PCSTR   pszUser,
-                        PCSTR   pszComputer,
-                        PHANDLE phEventLog
-                        );
-
-typedef DWORD (*PFN_CLOSE_EVENT_LOG)(
-			HANDLE hEventLog
-			);
-
-typedef DWORD (*PFN_WRITE_EVENT_LOG_BASE)(
-    			HANDLE hEventLog,
-    			EVENT_LOG_RECORD eventRecord
-    			);
-
-typedef struct __EVENTAPIFUNCTIONTABLE
-{
-	PFN_FREE_EVENT_RECORD      pfnFreeEventRecord;
-	PFN_OPEN_EVENT_LOG_EX      pfnOpenEventLogEx;
-	PFN_CLOSE_EVENT_LOG        pfnCloseEventLog;
-	PFN_WRITE_EVENT_LOG_BASE   pfnWriteEventLogBase;
-
-} EVENTAPIFUNCTIONTABLE, *PEVENTAPIFUNCTIONTABLE;
-
-#define EVENTAPI_FREE_EVENT_RECORD_FUNCTION     "LWIFreeEventRecord"
-#define EVENTAPI_OPEN_EVENT_LOG_EX_FUNCTION     "LWIOpenEventLogEx"
-#define EVENTAPI_CLOSE_EVENT_LOG_FUNCTION       "LWICloseEventLog"
-#define EVENTAPI_WRITE_EVENT_LOG_BASE_FUNCTION  "LWIWriteEventLogBase"
-
-
-#endif /* __EVENTDLAPI_H__ */
+#include "externs.h"
+#endif

@@ -699,9 +699,11 @@ SrvConnectionAcquireSessionId_inlock(
     {
         PSMB_SRV_SESSION pSession = NULL;
 
-        if (!candidateUid || (candidateUid == UINT16_MAX))
+	/* 0 is never a valid session vuid */
+
+        if ((candidateUid == 0) || (candidateUid == UINT16_MAX))
         {
-            candidateUid++;
+            candidateUid = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
@@ -710,9 +712,13 @@ SrvConnectionAcquireSessionId_inlock(
                         (PVOID*)&pSession);
         if (ntStatus == STATUS_NOT_FOUND)
         {
-            ntStatus = 0;
+            ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
+	else
+	{
+            candidateUid++;
+	}
         BAIL_ON_NT_STATUS(ntStatus);
 
     } while ((candidateUid != pConnection->nextAvailableUid) && !bFound);
@@ -723,8 +729,12 @@ SrvConnectionAcquireSessionId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pConnection->nextAvailableUid = candidateUid + 1;
     *pUid = candidateUid;
+
+    /* Increment by 1 by make sure tyo deal with wraparound */
+
+    candidateUid++;
+    pConnection->nextAvailableUid = candidateUid ? candidateUid : 1;
 
 cleanup:
 

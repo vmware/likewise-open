@@ -1,7 +1,7 @@
 AC_INIT(lwmapsecurity, 0.1, support@likewisesoftware.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
-AC_CANONICAL_HOST
+AC_CONFIG_MACRO_DIR([m4])
 
 LWMAPSECURITY_CPPFLAGS=""
 LWMAPSECURITY_CFLAGS="-Wall -Werror -Wmissing-prototypes"
@@ -9,11 +9,15 @@ LWMAPSECURITY_LDFLAGS=""
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"
 
+# Platform-specific stuff
+
+MOD_EXT=".so"
 case "$host_os:$host_cpu" in
         solaris*:*)
                 LWMAPSECURITY_CPPFLAGS="$LWMAPSECURITY_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"
 		;;
 	hpux*:hppa*)
+		MOD_EXT=".sl"
 		LWMAPSECURITY_CPPFLAGS="$LWMAPSECURITY_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
 		;;
 	hpux*:ia64*)
@@ -27,6 +31,12 @@ esac
 AC_SUBST(LWMAPSECURITY_CPPFLAGS)
 AC_SUBST(LWMAPSECURITY_CFLAGS)
 AC_SUBST(LWMAPSECURITY_LDFLAGS)
+
+AC_SUBST(MOD_EXT)
+AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
+
+AS_AC_EXPAND(LIBDIR, $libdir)
+AC_DEFINE_UNQUOTED(LIBDIR, "$LIBDIR", [Library directory])
 
 # Checks for programs.
 AC_PROG_CC
@@ -64,10 +74,8 @@ AC_SUBST(LWBASE_LIBS)
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 
-AC_CHECK_FUNCS([strndup])
-
 # Checks for header files.
-AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
+AC_CHECK_HEADERS([dlfcn.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN

@@ -69,7 +69,7 @@ NTSTATUS __SamrClose(
 }
 
 
-NTSTATUS samr_Function02(
+NTSTATUS _samr_Function02(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -78,7 +78,7 @@ NTSTATUS samr_Function02(
 }
 
 
-NTSTATUS samr_Function03(
+NTSTATUS _samr_Function03(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -87,7 +87,7 @@ NTSTATUS samr_Function03(
 }
 
 
-NTSTATUS samr_Function04(
+NTSTATUS _samr_Function04(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -165,7 +165,7 @@ NTSTATUS __SamrQueryDomainInfo(
 }
 
 
-NTSTATUS samr_Function09(
+NTSTATUS _samr_Function09(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -174,7 +174,7 @@ NTSTATUS samr_Function09(
 }
 
 
-NTSTATUS samr_Function0a(
+NTSTATUS _samr_Function0a(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -183,7 +183,7 @@ NTSTATUS samr_Function0a(
 }
 
 
-NTSTATUS samr_Function0b(
+NTSTATUS _samr_Function0b(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -311,7 +311,7 @@ NTSTATUS __SamrLookupRids(
 }
 
 
-NTSTATUS samr_Function13(
+NTSTATUS _samr_Function13(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -320,7 +320,7 @@ NTSTATUS samr_Function13(
 }
 
 
-NTSTATUS samr_Function14(
+NTSTATUS _samr_Function14(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -329,7 +329,7 @@ NTSTATUS samr_Function14(
 }
 
 
-NTSTATUS samr_Function15(
+NTSTATUS _samr_Function15(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -338,7 +338,7 @@ NTSTATUS samr_Function15(
 }
 
 
-NTSTATUS samr_Function16(
+NTSTATUS _samr_Function16(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -347,7 +347,7 @@ NTSTATUS samr_Function16(
 }
 
 
-NTSTATUS samr_Function17(
+NTSTATUS _samr_Function17(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -356,7 +356,7 @@ NTSTATUS samr_Function17(
 }
 
 
-NTSTATUS samr_Function18(
+NTSTATUS _samr_Function18(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -365,7 +365,7 @@ NTSTATUS samr_Function18(
 }
 
 
-NTSTATUS samr_Function19(
+NTSTATUS _samr_Function19(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -374,7 +374,7 @@ NTSTATUS samr_Function19(
 }
 
 
-NTSTATUS samr_Function1a(
+NTSTATUS _samr_Function1a(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -532,7 +532,7 @@ NTSTATUS __SamrSetUserInfo(
 }
 
 
-NTSTATUS samr_Function26(
+NTSTATUS _samr_Function26(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -552,7 +552,7 @@ NTSTATUS __SamrGetUserGroups(
 }
 
 
-NTSTATUS samr_Function28(
+NTSTATUS _samr_Function28(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -561,7 +561,7 @@ NTSTATUS samr_Function28(
 }
 
 
-NTSTATUS samr_Function29(
+NTSTATUS _samr_Function29(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -570,7 +570,7 @@ NTSTATUS samr_Function29(
 }
 
 
-NTSTATUS samr_Function2a(
+NTSTATUS _samr_Function2a(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -579,7 +579,7 @@ NTSTATUS samr_Function2a(
 }
 
 
-NTSTATUS samr_Function2b(
+NTSTATUS _samr_Function2b(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -599,7 +599,7 @@ NTSTATUS __SamrGetUserPwInfo(
 }
 
 
-NTSTATUS samr_Function2d(
+NTSTATUS _samr_Function2d(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -608,7 +608,7 @@ NTSTATUS samr_Function2d(
 }
 
 
-NTSTATUS samr_Function2e(
+NTSTATUS _samr_Function2e(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -617,7 +617,7 @@ NTSTATUS samr_Function2e(
 }
 
 
-NTSTATUS samr_Function2f(
+NTSTATUS _samr_Function2f(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -626,7 +626,7 @@ NTSTATUS samr_Function2f(
 }
 
 
-NTSTATUS samr_Function30(
+NTSTATUS _samr_Function30(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -635,7 +635,7 @@ NTSTATUS samr_Function30(
 }
 
 
-NTSTATUS samr_Function31(
+NTSTATUS _samr_Function31(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -660,7 +660,7 @@ NTSTATUS __SamrCreateUser2(
 }
 
 
-NTSTATUS samr_Function33(
+NTSTATUS _samr_Function33(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -669,7 +669,7 @@ NTSTATUS samr_Function33(
 }
 
 
-NTSTATUS samr_Function34(
+NTSTATUS _samr_Function34(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -678,7 +678,7 @@ NTSTATUS samr_Function34(
 }
 
 
-NTSTATUS samr_Function35(
+NTSTATUS _samr_Function35(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -687,7 +687,7 @@ NTSTATUS samr_Function35(
 }
 
 
-NTSTATUS samr_Function36(
+NTSTATUS _samr_Function36(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -712,7 +712,7 @@ NTSTATUS __SamrChangePasswordUser2(
 }
 
 
-NTSTATUS samr_Function38(
+NTSTATUS _samr_Function38(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -740,7 +740,7 @@ NTSTATUS __SamrConnect2(
 }
 
 
-NTSTATUS samr_Function3a(
+NTSTATUS _samr_Function3a(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -749,7 +749,7 @@ NTSTATUS samr_Function3a(
 }
 
 
-NTSTATUS samr_Function3b(
+NTSTATUS _samr_Function3b(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -758,7 +758,7 @@ NTSTATUS samr_Function3b(
 }
 
 
-NTSTATUS samr_Function3c(
+NTSTATUS _samr_Function3c(
     /* [in] */ handle_t IDL_handle
     )
 {
@@ -767,7 +767,7 @@ NTSTATUS samr_Function3c(
 }
 
 
-NTSTATUS samr_Function3d(
+NTSTATUS _samr_Function3d(
     /* [in] */ handle_t IDL_handle
     )
 {

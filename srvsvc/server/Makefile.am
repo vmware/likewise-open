@@ -34,6 +34,7 @@ libsrvsvc_ss_la_CPPFLAGS = \
     @DCERPC_INCLUDES@
 
 libwkssvc_ss_la_CFLAGS = \
+    $(AM_CFLAGS) \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@
 

@@ -47,6 +47,13 @@
  */
 #include "includes.h"
 
+#define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
+#define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
+#define INFORMATION_EVENT_TYPE      "Information"
+#define WARNING_EVENT_TYPE          "Warning"
+#define ERROR_EVENT_TYPE            "Error"
+
+
 VOID
 LWNetSrvInitEventlogInterface(
     VOID
@@ -60,16 +67,18 @@ LWNetSrvInitEventlogInterface(
     CHAR szEventLogLibPath[PATH_MAX+1];
     BOOLEAN bExists = FALSE;
     PEVENTAPIFUNCTIONTABLE  pFuncTable = NULL;
-    PFN_INITIALIZE_EVENTAPI pfnInitEventApi = NULL;
-    PFN_SHUTDOWN_EVENTAPI   pfnShutdownEventApi = NULL;
     BOOLEAN bInLock = FALSE;
     
     ENTER_EVENTLOG_WRITER_LOCK(bInLock);
     
     dwError = LWNetGetLibDirPath(&pszLibDirPath);
     BAIL_ON_LWNET_ERROR(dwError);
-    
-    sprintf(szEventLogLibPath, "%s/libeventdlapi.so", pszLibDirPath);
+
+#if defined (__LWI_DARWIN__)
+    sprintf(szEventLogLibPath, "%s/libeventlog-mac.so", pszLibDirPath);
+#else
+    sprintf(szEventLogLibPath, "%s/libeventlog.%s", pszLibDirPath, MOD_EXT);
+#endif
     
     dwError = LWNetCheckFileExists(szEventLogLibPath, &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
@@ -92,37 +101,71 @@ LWNetSrvInitEventlogInterface(
         BAIL_ON_LWNET_ERROR(dwError);
     }
     
+    dwError = LWNetAllocateMemory(
+                    sizeof(EVENTAPIFUNCTIONTABLE),
+                    (PVOID*)&pFuncTable);
+    BAIL_ON_LWNET_ERROR(dwError);
+
     dlerror();
-    pfnInitEventApi = (PFN_INITIALIZE_EVENTAPI)dlsym(
+    pFuncTable->pfnFreeEventRecord = (PFN_FREE_EVENT_RECORD)dlsym(
                                 pLibHandle, 
-                                EVENTAPI_INITIALIZE_FUNCTION);
-    if (pfnInitEventApi == NULL) {
+                                EVENTAPI_FREE_EVENT_RECORD_FUNCTION);
+    if (pFuncTable->pfnFreeEventRecord == NULL) {
         pszError = dlerror();
         
         LWNET_LOG_ERROR("Error: Failed to lookup symbol %s in Eventlog Module [%s]",
+                      EVENTAPI_FREE_EVENT_RECORD_FUNCTION,
                       IsNullOrEmptyString(pszError) ? "" : pszError);
         
         dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
-    
+
     dlerror();
-    pfnShutdownEventApi = (PFN_SHUTDOWN_EVENTAPI)dlsym(
+    pFuncTable->pfnOpenEventLogEx = (PFN_OPEN_EVENT_LOG_EX)dlsym(
                                 pLibHandle,
-                                EVENTAPI_SHUTDOWN_FUNCTION);
-    if (pfnShutdownEventApi == NULL) {
+                                EVENTAPI_OPEN_EVENT_LOG_EX_FUNCTION);
+    if (pFuncTable->pfnOpenEventLogEx == NULL) {
         pszError = dlerror();
         
         LWNET_LOG_ERROR("Error: Failed to lookup symbol %s in Eventlog Module [%s]",
-                        IsNullOrEmptyString(pszError) ? "" : pszError);
+                      EVENTAPI_OPEN_EVENT_LOG_EX_FUNCTION,
+                      IsNullOrEmptyString(pszError) ? "" : pszError);
         
         dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
-    
-    dwError = pfnInitEventApi(&pFuncTable);
-    BAIL_ON_LWNET_ERROR(dwError);
-    
+
+    dlerror();
+    pFuncTable->pfnCloseEventLog = (PFN_CLOSE_EVENT_LOG)dlsym(
+                                pLibHandle,
+                                EVENTAPI_CLOSE_EVENT_LOG_FUNCTION);
+    if (pFuncTable->pfnCloseEventLog == NULL) {
+        pszError = dlerror();
+
+        LWNET_LOG_ERROR("Error: Failed to lookup symbol %s in Eventlog Module [%s]",
+                      EVENTAPI_CLOSE_EVENT_LOG_FUNCTION,
+                      IsNullOrEmptyString(pszError) ? "" : pszError);
+
+        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    dlerror();
+    pFuncTable->pfnWriteEventLogBase = (PFN_WRITE_EVENT_LOG_BASE)dlsym(
+                                pLibHandle,
+                                EVENTAPI_WRITE_EVENT_LOG_BASE_FUNCTION);
+    if (pFuncTable->pfnWriteEventLogBase == NULL) {
+        pszError = dlerror();
+
+        LWNET_LOG_ERROR("Error: Failed to lookup symbol %s in Eventlog Module [%s]",
+                      EVENTAPI_WRITE_EVENT_LOG_BASE_FUNCTION,
+                      IsNullOrEmptyString(pszError) ? "" : pszError);
+
+        dwError = LWNET_ERROR_LOOKUP_SYMBOL_FAILED;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
     dwError = LWNetSrvValidateEventlogInterface(pFuncTable);
     BAIL_ON_LWNET_ERROR(dwError);
     
@@ -133,7 +176,6 @@ LWNetSrvInitEventlogInterface(
     
     pEventLogItf->pFuncTable = pFuncTable;
     pEventLogItf->pLibHandle = pLibHandle;
-    pEventLogItf->pfnShutdownEventApi = pfnShutdownEventApi;
     
     ghEventLogItf = (HANDLE)pEventLogItf;
     
@@ -147,10 +189,6 @@ cleanup:
     
 error:
 
-    if (pfnShutdownEventApi) {
-        pfnShutdownEventApi();
-    }
-    
     if (pLibHandle) {
         dlclose(pLibHandle);
     }
@@ -170,21 +208,9 @@ LWNetSrvValidateEventlogInterface(
     DWORD dwError = 0;
     
     if (!pFuncTable ||
-        !pFuncTable->pfnClearEventLog ||
         !pFuncTable->pfnCloseEventLog ||
-        !pFuncTable->pfnCountEventLog ||
-        !pFuncTable->pfnDeleteFromEventLog ||
         !pFuncTable->pfnFreeEventRecord ||
-        !pFuncTable->pfnOpenEventLog ||
         !pFuncTable->pfnOpenEventLogEx ||
-        !pFuncTable->pfnReadEventLog ||
-        !pFuncTable->pfnSetEventLogComputer ||
-        !pFuncTable->pfnSetEventLogSource ||
-        !pFuncTable->pfnSetEventLogTableCategory ||
-        !pFuncTable->pfnSetEventLogTableCategoryId ||
-        !pFuncTable->pfnSetEventLogType ||
-        !pFuncTable->pfnSetEventLogUser ||
-        !pFuncTable->pfnWriteEventLog ||
         !pFuncTable->pfnWriteEventLogBase)
     {
        dwError = LWNET_ERROR_INVALID_EVENTLOG;
@@ -204,26 +230,25 @@ LWNetSrvShutdownEventlogInterface(
     
     PEVENTLOG_INTERFACE pEventLogItf = (PEVENTLOG_INTERFACE)ghEventLogItf;
     if (pEventLogItf) {
-       if (pEventLogItf->pfnShutdownEventApi) {
-          pEventLogItf->pfnShutdownEventApi();
-       }
        if (pEventLogItf->pLibHandle) {
            dlclose(pEventLogItf->pLibHandle);
+           pEventLogItf->pLibHandle = NULL;
        }
        LWNetFreeMemory(pEventLogItf);
     }
+
+    ghEventLogItf = NULL;
     
     LEAVE_EVENTLOG_WRITER_LOCK(bInLock);
 }
 
 DWORD
 LWNetSrvOpenEventLog(
-    HANDLE  hServer,
+    PSTR    pszCategoryType,
     PHANDLE phEventLog
     )
 {
     DWORD dwError = 0;
-    PLWNET_SRV_API_STATE pServerState = (PLWNET_SRV_API_STATE)hServer;
     PEVENTLOG_INTERFACE pEventLogItf = NULL;
     BOOLEAN bInLock = FALSE;
     
@@ -236,19 +261,15 @@ LWNetSrvOpenEventLog(
     
     pEventLogItf = (PEVENTLOG_INTERFACE)ghEventLogItf;
 
-    if (pServerState->hEventLog == (HANDLE)NULL) {
-       dwError = pEventLogItf->pFuncTable->pfnOpenEventLogEx(
-                      NULL,
-                      TableCategorySystem,
-                      "Likewise Site Manager",
-                      0x9000,
-                      "likewise-netlogond",
-                      NULL,
-                      &pServerState->hEventLog);
-       BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    *phEventLog = pServerState->hEventLog;
+    dwError = pEventLogItf->pFuncTable->pfnOpenEventLogEx(
+                   NULL,            // Server name (defaults to local computer eventlogd)
+                   pszCategoryType, // Table Category ID (Security, System, ...),
+                   "Likewise NETLOGON", // Source
+                   0,
+                   "SYSTEM",
+                   NULL,
+                   phEventLog);
+    BAIL_ON_LWNET_ERROR(dwError);
 
 cleanup:
 
@@ -292,11 +313,8 @@ error:
 }
 
 DWORD
-LWNetSrvLogInfoEvent(
-    HANDLE hServer,
-    PCSTR  pszEventType,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
+LWNetSrvLogEvent(
+    EVENT_LOG_RECORD event
     )
 {
     DWORD dwError = 0;
@@ -312,19 +330,17 @@ LWNetSrvLogInfoEvent(
     
     pEventLogItf = (PEVENTLOG_INTERFACE)ghEventLogItf;
 
-    dwError = LWNetSrvOpenEventLog(
-                   hServer,
-                   &hEventLog);
+    dwError = LWNetSrvOpenEventLog("System", &hEventLog);
     BAIL_ON_LWNET_ERROR(dwError); 
 
-    dwError = pEventLogItf->pFuncTable->pfnWriteEventLog(
+    dwError = pEventLogItf->pFuncTable->pfnWriteEventLogBase(
                    hEventLog,
-                   pszEventType,
-                   pszCategory,
-                   pszDescription);
+                   event);
     BAIL_ON_LWNET_ERROR(dwError);
 
 cleanup:
+
+    LWNetSrvCloseEventLog(hEventLog);
 
     LEAVE_EVENTLOG_READER_LOCK(bInLock);
 
@@ -334,4 +350,80 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LWNetSrvLogInformationEvent(
+    DWORD  dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = INFORMATION_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = NULL;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWNetSrvLogEvent(event);
+}
+
+DWORD
+LWNetSrvLogWarningEvent(
+    DWORD  dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = WARNING_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = NULL;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWNetSrvLogEvent(event);
+}
+
+DWORD
+LWNetSrvLogErrorEvent(
+    DWORD  dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    )
+{
+    EVENT_LOG_RECORD event = {0};
+
+    event.dwEventRecordId = 0;
+    event.pszEventTableCategoryId = NULL;
+    event.pszEventType = ERROR_EVENT_TYPE;
+    event.dwEventDateTime = 0;
+    event.pszEventSource = NULL;
+    event.pszEventCategory = (PSTR) pszCategory;
+    event.dwEventSourceId = dwEventID;
+    event.pszUser = NULL;
+    event.pszComputer = NULL;
+    event.pszDescription = (PSTR) pszDescription;
+    event.pszData = (PSTR) pszData;
+
+    return LWNetSrvLogEvent(event);
+}
+
 

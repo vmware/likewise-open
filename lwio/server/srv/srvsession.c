@@ -251,9 +251,11 @@ SrvSessionAcquireTreeId_inlock(
     {
         PSMB_SRV_TREE pTree = NULL;
 
-        if (!candidateTid || (candidateTid == UINT16_MAX))
+        /* 0 is never a valid tid */
+
+        if ((candidateTid == 0) || (candidateTid == UINT16_MAX))
         {
-            candidateTid++;
+            candidateTid = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
@@ -262,9 +264,13 @@ SrvSessionAcquireTreeId_inlock(
                         (PVOID*)&pTree);
         if (ntStatus == STATUS_NOT_FOUND)
         {
-            ntStatus = 0;
+            ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
+	else
+	{
+            candidateTid++;
+	}
         BAIL_ON_NT_STATUS(ntStatus);
 
     } while ((candidateTid != pSession->nextAvailableTid) && !bFound);
@@ -275,8 +281,12 @@ SrvSessionAcquireTreeId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pSession->nextAvailableTid = candidateTid + 1;
     *pTid = candidateTid;
+
+    /* Increment by 1 by make sure tyo deal with wraparound */
+
+    candidateTid++;
+    pSession->nextAvailableTid = candidateTid ? candidateTid : 1;
 
 cleanup:
 
@@ -356,3 +366,12 @@ SrvSessionFree(
     LwRtlMemoryFree(pSession);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -110,6 +110,14 @@ NtStatusToErrno(NTSTATUS status)
 }
 
 int
+ErrnoToNtStatus(int uerror)
+{
+    struct table_entry *e = find(match_uerror, &uerror);
+
+    return (e) ? e->status : (NTSTATUS)-1;
+}
+
+int
 ErrnoToWin32Error(int uerror)
 {
     struct table_entry *e = find(match_uerror, &uerror);
@@ -150,6 +158,21 @@ LdapErrToWin32Error(int lderr)
 {
     const struct lderr_winerr *e = find_lderr(lderr);
     return (e) ? e->winerr : -1;
+}
+
+int
+ErrnoToLdapErr(int uerror)
+{
+    unsigned int i = 0;
+    int winerror = ErrnoToWin32Error(uerror);
+
+    for (i = 0; ldaperr_winerr_map[i].lderrstr; i++) {
+        if (ldaperr_winerr_map[i].winerr == winerror) {
+            return ldaperr_winerr_map[i].lderr;
+        }
+    }
+
+    return -1;
 }
 
 int

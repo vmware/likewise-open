@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -44,18 +44,18 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LSAPROVIDER_H__
-#define __LSAPROVIDER_H__
+#ifndef __LSAMINIPROVIDER_H__
+#define __LSAMINIPROVIDER_H__
 
 #include "lsautils.h"
 
-typedef DWORD (*PFNOPENHANDLE)(
+typedef DWORD (*PFNOPENMINIPROVIDER)(
                     uid_t peerUID,
                     gid_t peerGID,
                     PHANDLE phProvider
                     );
 
-typedef VOID  (*PFNCLOSEHANDLE)(HANDLE hProvider);
+typedef VOID  (*PFNCLOSEMINIPROVIDER)(HANDLE hProvider);
 
 typedef BOOLEAN (*PFNSERVICESDOMAIN)(PCSTR pszDomain);
 
@@ -245,14 +245,16 @@ typedef VOID (*PFNEND_ENUM_NSS_ARTEFACTS)(
                         HANDLE hResume
                         );
 
+#if 0
 typedef DWORD (*PFNGET_STATUS)(
                 HANDLE hProvider,
-                PLSA_AUTH_PROVIDER_STATUS* ppAuthProviderStatus
+                PLSA_MINI_PROVIDER_STATUS* ppAuthProviderStatus
                 );
 
 typedef VOID (*PFNFREE_STATUS)(
-                PLSA_AUTH_PROVIDER_STATUS pAuthProviderStatus
+                PLSA_MINI_PROVIDER_STATUS pAuthProviderStatus
                 );
+#endif
 
 typedef DWORD (*PFNREFRESH_CONFIGURATION)();
 
@@ -267,10 +269,10 @@ typedef DWORD (*PFNPROVIDER_IO_CONTROL) (
                 PVOID* ppOutputBuffer
                 );
 
-typedef struct __LSA_PROVIDER_FUNCTION_TABLE
+typedef struct __LSA_MINIPROVIDER_FUNCTION_TABLE
 {
-    PFNOPENHANDLE                  pfnOpenHandle;
-    PFNCLOSEHANDLE                 pfnCloseHandle;
+    PFNOPENMINIPROVIDER            pfnOpenMiniProvider;
+    PFNCLOSEMINIPROVIDER           pfnCloseMiniProvider;
     PFNSERVICESDOMAIN              pfnServicesDomain;
     PFNAUTHENTICATEUSER            pfnAuthenticateUser;
     PFNAUTHENTICATEUSEREX          pfnAuthenticateUserEx;
@@ -300,26 +302,28 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNBEGIN_ENUM_NSS_ARTEFACTS    pfnBeginEnumNSSArtefacts;
     PFNENUMNSS_ARTEFACTS           pfnEnumNSSArtefacts;
     PFNEND_ENUM_NSS_ARTEFACTS      pfnEndEnumNSSArtefacts;
+#if 0
     PFNGET_STATUS                  pfnGetStatus;
     PFNFREE_STATUS                 pfnFreeStatus;
+#endif
     PFNREFRESH_CONFIGURATION       pfnRefreshConfiguration;
     PFNPROVIDER_IO_CONTROL         pfnProviderIoControl;
-} LSA_PROVIDER_FUNCTION_TABLE, *PLSA_PROVIDER_FUNCTION_TABLE;
+} LSA_MINIPROVIDER_FUNCTION_TABLE, *PLSA_MINIPROVIDER_FUNCTION_TABLE;
 
-#define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"
+#define LSA_SYMBOL_NAME_INITIALIZE_MINIPROVIDER "LsaInitializeMiniProvider"
 
-typedef DWORD (*PFNINITIALIZEPROVIDER)(
+typedef DWORD (*PFNINITIALIZEMINIPROVIDER)(
                     PCSTR pszConfigFilePath,
                     PSTR* ppszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
+                    PLSA_MINIPROVIDER_FUNCTION_TABLE* ppFnTable
                     );
 
-#define LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER "LsaShutdownProvider"
+#define LSA_SYMBOL_NAME_SHUTDOWN_PROVIDER "LsaShutdownMiniProvider"
 
-typedef DWORD (*PFNSHUTDOWNPROVIDER)(
+typedef DWORD (*PFNSHUTDOWNMINIPROVIDER)(
                     PSTR pszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+                    PLSA_MINIPROVIDER_FUNCTION_TABLE pFnTable
                     );
 
-#endif /* __LSAPROVIDER_H__ */
+#endif /* __LSAMINIPROVIDER_H__ */
 

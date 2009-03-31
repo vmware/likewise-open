@@ -226,7 +226,15 @@ NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
                                 dep);
     goto_if_ntstatus_not_success(status, error);
 
-    sw16printf(nbt_workstation, "\\\\%S", workstation);
+    if (sw16printfw(
+            nbt_workstation,
+            nbt_workstation_len + 3,
+            L"\\\\%ws",
+            workstation) < 0)
+    {
+        status = ErrnoToNtStatus(errno);
+        goto_if_ntstatus_not_success(status, error);
+    }
 
     status = InitUnicodeString(&ptr->domain_name, domain);
     goto_if_ntstatus_not_success(status, error);

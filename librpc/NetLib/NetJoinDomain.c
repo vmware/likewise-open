@@ -239,6 +239,7 @@ NetJoinDomainLocalInternal(
     wchar16_t *machacct_name = NULL;
     wchar16_t machine_pass[MACHPASS_LEN+1];
     wchar16_t *account_name = NULL;
+    size_t account_name_cch = 0;
     wchar16_t *dns_domain_name = NULL;
     wchar16_t *domain_controller_name = NULL;
     uint32 rid, newacct;
@@ -323,11 +324,19 @@ NetJoinDomainLocalInternal(
     get_random_string_w16(machine_pass, sizeof(machine_pass)/sizeof(wchar16_t));
 
     /* create account$ name */
-    account_name = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                       (wc16slen(machacct_name) + 2));
+    account_name_cch = wc16slen(machacct_name) + 2;
+    account_name = (wchar16_t*) malloc(sizeof(wchar16_t) * account_name_cch);
     goto_if_no_memory_winerr(account_name, disconn_samr);
 
-    sw16printf(account_name, "%S$", machacct_name);
+    if (sw16printfw(
+                account_name,
+                account_name_cch,
+                L"%ws$",
+                machacct_name) < 0)
+    {
+        status = ErrnoToNtStatus(errno);
+        goto_if_ntstatus_not_success(status, disconn_samr);
+    }
 
     /* for start, let's assume the account already exists */
     newacct = false;

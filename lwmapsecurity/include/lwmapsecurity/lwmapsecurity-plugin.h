@@ -1,7 +1,7 @@
 #ifndef __LW_MAP_SECURITY_PLUGIN_H__
 #define __LW_MAP_SECURITY_PLUGIN_H__
 
-#include <lwmapsecurity/lwmapsecurity-types.h>
+#include <lw/security-types.h>
 #include <lw/ntstatus.h>
 
 NTSTATUS
@@ -11,6 +11,18 @@ LwMapSecurityInitializeSidFromUnmappedId(
     IN BOOLEAN IsUser,
     IN ULONG Id
     );
+
+typedef struct _ACCESS_TOKEN_CREATE_INFORMATION {
+    PTOKEN_USER User;
+    PTOKEN_GROUPS Groups;
+#if 0
+    TOKEN_PRIVILEGES Privileges;
+#endif
+    PTOKEN_OWNER Owner;
+    PTOKEN_PRIMARY_GROUP PrimaryGroup;
+    PTOKEN_DEFAULT_DACL DefaultDacl;
+    PTOKEN_UNIX Unix;
+} ACCESS_TOKEN_CREATE_INFORMATION, *PACCESS_TOKEN_CREATE_INFORMATION;
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT *PLW_MAP_SECURITY_PLUGIN_CONTEXT;
 
@@ -38,6 +50,14 @@ NTSTATUS
     OUT PSID* Sid,
     IN BOOLEAN IsUser,
     IN ULONG Id
+    );
+
+typedef
+NTSTATUS
+(*LWMSP_DUPLICATE_SID_CALLBACK)(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN OUT PSID* Sid,
+    IN PSID OriginalSid
     );
 
 typedef
@@ -75,6 +95,7 @@ typedef struct _LW_MAP_SECURITY_PLUGIN_INTERFACE {
     LWMSP_FREE_CONTEXT_CALLBACK FreeContext;
     LWMSP_GET_ID_FROM_SID_CALLBACK GetIdFromSid;
     LWMSP_GET_SID_FROM_ID_CALLBACK GetSidFromId;
+    LWMSP_DUPLICATE_SID_CALLBACK DuplicateSid;
     LWMSP_FREE_SID_CALLBACK FreeSid;
     LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_UID_CALLBACK GetAccessTokenCreateInformationFromUid;
     LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_USERNAME_CALLBACK GetAccessTokenCreateInformationFromUsername;

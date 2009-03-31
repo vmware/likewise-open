@@ -46,9 +46,10 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
+#include "lsaopen.h"
 
 DWORD
-LikewiseOpenLookupNssArtefactByKey
+LikewiseOpenLookupNssArtefactByKey(
     HANDLE hMiniProvider,
     DWORD dwConnectMode,
     PCSTR  pszKeyName, PCSTR
@@ -57,8 +58,9 @@ LikewiseOpenLookupNssArtefactByKey
     PVOID* ppNSSArtefactInfo
     )
 {
+    DWORD dwError = 0;
 
-
+    return dwError;
 }
 
 DWORD
@@ -74,7 +76,7 @@ LikewiseOpenBeginEnumNssArtefacts(
 
     DWORD dwError = 0;
 
-    return(dwError);
+    return dwError;
 }
 
 DWORD
@@ -89,7 +91,7 @@ LikewiseOpenEnumNssArtefacts(
 {
     DWORD dwError = 0;
 
-    return(dwError);
+    return dwError;
 
 }
 
@@ -100,7 +102,6 @@ LikewiseOpenEndEnumNssArtefacts(
     HANDLE hResume
     )
 {
-    DWORD dwError = 0;
 
     return;
 }

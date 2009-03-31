@@ -226,6 +226,8 @@ PvfsSetFileAttributes(
 
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetFileAttributesXattr(pCcb, Attributes);
+#else
+    ntError = STATUS_SUCCESS;
 #endif
 
     BAIL_ON_NT_STATUS(ntError);

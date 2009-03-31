@@ -723,12 +723,6 @@ SMBWc16sLen(
     );
 
 DWORD
-SMBSW16printf(
-    PWSTR* ppwszStrOutput,
-    PCSTR     pszFormat,
-    ...);
-
-DWORD
 SMBWc16sCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond

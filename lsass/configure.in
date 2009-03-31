@@ -826,7 +826,7 @@ AC_CONFIG_FILES([Makefile
 		 nsswitch/hpux/Makefile
 		 nsswitch/solaris/Makefile
 		 nsswitch/mac/Makefile
-		 tokencreateinfo/Makefile
+		 lwmapsecurity/Makefile
 		 gssntlm/Makefile
                  gssntlm/client/Makefile
 		 gssntlm/common/Makefile

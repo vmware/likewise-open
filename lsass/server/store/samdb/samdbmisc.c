@@ -220,6 +220,28 @@ error:
     goto cleanup;
 }
 
+VOID
+SamDbFreeColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColValueList
+    )
+{
+    while (pColValueList)
+    {
+        PSAM_DB_COLUMN_VALUE pTmp = pColValueList;
+
+        pColValueList = pColValueList->pNext;
+
+        if (pTmp->pAttrValues)
+        {
+            DirectoryFreeAttributeValues(
+                    pTmp->pAttrValues,
+                    pTmp->ulNumValues);
+        }
+
+        DirectoryFreeMemory(pTmp);
+    }
+}
+
 DWORD
 SamDbGetNumberOfDependents_inlock(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,

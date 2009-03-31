@@ -231,45 +231,6 @@ SMBWc16sCaseCmp(
 }
 
 DWORD
-SMBSW16printf(
-    PWSTR* ppwszStrOutput,
-    PCSTR     pszFormat,
-    ...)
-{
-    DWORD dwError = 0;
-    INT ret = 0;
-    PWSTR pwszStrOutput = NULL;
-    va_list args;
-
-    va_start(args, pszFormat);
-
-    ret = sw16printf(
-                  pwszStrOutput,
-                  pszFormat,
-                  args);
-
-    if (ret == -1){
-        dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
-    }
-
-    *ppwszStrOutput = pwszStrOutput;
-
-cleanup:
-
-    va_end(args);
-
-    return dwError;
-
-error:
-
-    SMB_SAFE_FREE_MEMORY(pwszStrOutput);
-
-    goto cleanup;
-
-}
-
-DWORD
 SMBWc16sDup(
     PCWSTR pwszInput,
     PWSTR* pwszOutput

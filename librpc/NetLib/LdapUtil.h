@@ -32,48 +32,137 @@
 #define _LDAP_UTIL_H_
 
 
-int LdapModAddStrValue(LDAPMod **mod, const char *t, const wchar16_t *sv);
+int
+LdapModAddStrValue(
+    LDAPMod **mod,
+    const char *t,
+    const wchar16_t *wsv
+    );
 
-int LdapModReplStrValue(LDAPMod **mod, const char *t, const wchar16_t *sv);
 
-int LdapModAddIntValue(LDAPMod **mod, const char *t, const int iv);
+int
+LdapModReplStrValue(
+    LDAPMod **mod,
+    const char *t,
+    const wchar16_t *wsv
+    );
 
-int LdapModFree(LDAPMod **mod);
 
-int LdapMessageFree(LDAPMessage *msg);
+int
+LdapModAddIntValue(
+    LDAPMod **mod,
+    const char *t,
+    const int iv
+    );
 
-int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
-                       uint32 security);
 
-int LdapCloseConnection(LDAP *ldconn);
+int
+LdapModFree(
+    LDAPMod **mod
+    );
 
-int LdapGetDirectoryInfo(LDAPMessage **info, LDAPMessage **result, LDAP *ld);
 
-wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
-                             int *count);
+int
+LdapMessageFree(
+    LDAPMessage *msg
+    );
 
-void LdapAttributeValueFree(wchar16_t *val[]);
 
-wchar16_t* LdapAttrValDn(const wchar16_t *name, const wchar16_t *value,
-                         const wchar16_t *base);
+int
+LdapInitConnection(
+    LDAP **ldconn,
+    const wchar16_t *host,
+    uint32 security
+    );
 
-wchar16_t* LdapAttrValSamAcctName(const wchar16_t *name);
 
-wchar16_t* LdapAttrValDnsHostName(const wchar16_t *name, const wchar16_t *dnsdomain);
+int
+LdapCloseConnection(
+    LDAP *ldconn
+    );
 
-wchar16_t *LdapAttrValSvcPrincipalName(const wchar16_t *name);
 
-int LdapMachAcctCreate(LDAP *ld, const wchar16_t *name, const wchar16_t *ou);
+int
+LdapGetDirectoryInfo(
+    LDAPMessage **info,
+    LDAPMessage **result,
+    LDAP *ld
+    );
 
-int LdapMachAcctSearch(LDAPMessage **out, LDAP *ld, const wchar16_t *name,
-                       const wchar16_t *base);
 
-int LdapMachAcctMove(LDAP *ld, const wchar16_t *dn, const wchar16_t *name,
-                     const wchar16_t *newparent);
+wchar16_t**
+LdapAttributeGet(
+    LDAP *ld,
+    LDAPMessage *info,
+    const wchar16_t *name,
+    int *count
+    );
 
-int LdapMachAcctSetAttribute(LDAP *ld, const wchar16_t *dn,
-                             const wchar16_t *name, const wchar16_t **value,
-                             int new);
+
+void
+LdapAttributeValueFree(
+    wchar16_t *val[]
+    );
+
+
+wchar16_t*
+LdapAttrValDnsHostName(
+    const wchar16_t *name,
+    const wchar16_t *dnsdomain
+    );
+
+
+wchar16_t*
+LdapAttrValSvcPrincipalName(
+    const wchar16_t *name
+    );
+
+
+int
+LdapMachAcctCreate(
+    LDAP *ld,
+    const wchar16_t *name,
+    const wchar16_t *ou
+    );
+
+
+int
+LdapMachDnsNameSearch(
+    LDAPMessage **out,
+    LDAP *ld,
+    const wchar16_t *name,
+    const wchar16_t *dns_domain_name,
+    const wchar16_t *base
+    );
+
+
+int
+LdapMachAcctSearch(
+    LDAPMessage **out,
+    LDAP *ld,
+    const wchar16_t *name,
+    const wchar16_t *base
+    );
+
+
+int
+LdapMachAcctMove(
+    LDAP *ld,
+    const wchar16_t *dn,
+    const wchar16_t *name,
+    const wchar16_t *newparent
+    );
+
+
+int
+LdapMachAcctSetAttribute(
+    LDAP *ld,
+    const wchar16_t *dn,
+    const wchar16_t *name,
+    const wchar16_t *value[],
+    int new
+    );
+
 
 #endif /* _LDAP_UTIL_H_ */
 

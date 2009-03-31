@@ -50,6 +50,7 @@
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
 #include <lwio/lwio.h>
+#include <lwnet.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>

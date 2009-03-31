@@ -74,16 +74,14 @@ int TestMprIncorrectAuthSession(struct test *t, const wchar16_t *hostname,
 
     hostname_size = wc16slen(hostname);
 
-    nr.RemoteName = (wchar16_t*) malloc((hostname_size + 8) * sizeof(wchar16_t));
+    nr.RemoteName = asw16printfw(L"\\\\%ws\\IPC$", hostname);
     if (nr.RemoteName == NULL) return false;
-
-    sw16printf(nr.RemoteName, "\\\\%S\\IPC$", hostname);
 
     username = ambstowc16s(incuser);
     password = ambstowc16s(incpass);
 
-    printfw16("Adding connection with incorrect credentials"
-              "user:[%S], pass:[%S]\n", user, pass);
+    w16printfw(L"Adding connection with incorrect credentials"
+              L"user:[%ws], pass:[%ws]\n", user, pass);
 
     ret = WNetAddConnection2(&nr, password, username);
     printf("WNetAddConnection2: ret = %d\n", ret);
@@ -138,12 +136,11 @@ int TestMprCorrectAuthSession(struct test *t, const wchar16_t *hostname,
 
     hostname_size = wc16slen(hostname);
 
-    nr.RemoteName = (wchar16_t*) malloc((hostname_size + 8) * sizeof(wchar16_t));
+    nr.RemoteName = asw16printfw(L"\\\\%ws\\IPC$", hostname);
     if (nr.RemoteName == NULL) return false;
 
-    sw16printf(nr.RemoteName, "\\\\%S\\IPC$", hostname);
-
-    printfw16("Adding connection with correct credentials user:[%S]/pass:[%S]\n",
+    w16printfw(L"Adding connection with correct credentials "
+            L"user:[%ws]/pass:[%ws]\n",
 	       username, password);
     ret = WNetAddConnection2(&nr, password, username);
     printf("WNetAddConnection2: ret = %d\n", ret);

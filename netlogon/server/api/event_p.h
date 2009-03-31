@@ -51,11 +51,11 @@
 #include "evtstruct.h"
 #include "eventdlapi.h"
 
+
 typedef struct __EVENTLOG_INTERFACE
 {
     PVOID pLibHandle;
     PEVENTAPIFUNCTIONTABLE  pFuncTable;
-    PFN_SHUTDOWN_EVENTAPI   pfnShutdownEventApi;
 } EVENTLOG_INTERFACE, *PEVENTLOG_INTERFACE;
 
 VOID
@@ -75,7 +75,7 @@ LWNetSrvShutdownEventlogInterface(
 
 DWORD
 LWNetSrvOpenEventLog(
-    HANDLE  hServer,
+    PSTR    pszCategoryType,
     PHANDLE phEventLog
     );
 
@@ -85,11 +85,8 @@ LWNetSrvCloseEventLog(
     );
 
 DWORD
-LWNetSrvLogInfoEvent(
-    HANDLE hServer,
-    PCSTR  pszEventType,
-    PCSTR  pszCategory,
-    PCSTR  pszDescription
+LWNetSrvLogEvent(
+    EVENT_LOG_RECORD event
     );
 
 #endif /* __EVENT_P_H__ */

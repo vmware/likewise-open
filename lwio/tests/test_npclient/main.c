@@ -187,7 +187,7 @@ main(
         {
             assert(cbRead <= BUFFER_SIZE);
 
-            printfw16("%S\n", wszBuf);  
+            w16printfw(L"%ws\n", wszBuf);
         }
 
     } while (!bSuccess);

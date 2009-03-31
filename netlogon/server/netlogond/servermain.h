@@ -186,5 +186,26 @@ LWNetSrvSetProcessToExit(
     BOOLEAN bExit
     );
 
+VOID
+LWNetSrvLogProcessStartedEvent(
+    VOID
+    );
+
+VOID
+LWNetSrvLogProcessStoppedEvent(
+    DWORD dwExitCode
+    );
+
+VOID
+LWNetSrvLogProcessFailureEvent(
+    DWORD dwErrCode
+    );
+
+DWORD
+LWNetGetErrorMessageForLoggingEvent(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg
+    );
+
 #endif /* __SERVERMAIN_H__ */
 

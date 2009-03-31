@@ -612,6 +612,11 @@ W16PrintfCore(
                 case TYPE_STRING:
                     {
                         void* pvArg = va_arg(args, void *);
+                        if (pvArg == NULL)
+                        {
+                            pvArg = "(null)";
+                            dwLengthModifier = LENGTH_CHAR;
+                        }
                         switch (dwLengthModifier)
                         {
                             case LENGTH_UNSET:
@@ -693,6 +698,11 @@ W16PrintfCore(
                 case TYPE_WRITTEN_COUNT:
                     {
                         size_t *psArg = va_arg(args, size_t *);
+                        if (psArg == NULL)
+                        {
+                            errno = EINVAL;
+                            return -1;
+                        }
                         *psArg = pBuffer->sWrittenCount;
                     }
                     break;

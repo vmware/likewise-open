@@ -179,7 +179,16 @@ const uint16 lookup_level = 1;
                                    info);
         goto_if_ntstatus_not_success(status, error);
 
-        sw16printf(can_username, "%S\\%S", domainname, username);
+        if (sw16printfw(
+                    can_username,
+                    name_size,
+                    L"%ws\\%ws",
+                    domainname,
+                    username) < 0)
+        {
+            status = ErrnoToNtStatus(errno);
+            goto_if_ntstatus_not_success(status, error);
+        }
         info[i].lgrmi3_domainandname = can_username;
 
         domainname_size = 0;

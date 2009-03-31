@@ -221,7 +221,7 @@ PvfsSetSecurityDescriptorFile(
                                                  pNewSecDesc,
                                                  NewSecDescLen);
 #else
-    ntError = STATUS_ACCESS_DENIED;
+    ntError = STATUS_SUCCESS;
 #endif
 
     BAIL_ON_NT_STATUS(ntError);
