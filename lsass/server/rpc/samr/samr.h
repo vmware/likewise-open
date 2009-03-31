@@ -86,6 +86,17 @@ SamrSrvOpenDomain(
 
 
 NTSTATUS
+SamrSrvCreateUser(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    UnicodeString *account_name,
+    uint32 access_mask,
+    ACCOUNT_HANDLE *hUser,
+    uint32 *rid
+    );
+
+
+NTSTATUS
 SamrSrvEnumDomainUsers(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
@@ -94,6 +105,17 @@ SamrSrvEnumDomainUsers(
     uint32 max_size,
     RidNameArray **names,
     uint32 *num_entries
+    );
+
+
+NTSTATUS
+SamrSrvCreateDomAlias(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    UnicodeString *alias_name,
+    uint32 access_mask,
+    ACCOUNT_HANDLE *hAlias,
+    uint32 *rid
     );
 
 
@@ -158,6 +180,19 @@ SamrSrvQueryUserInfo(
 
 
 NTSTATUS
+SamrSrvCreateUser2(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    UnicodeStringEx *account_name,
+    uint32 account_flags,
+    uint32 access_mask,
+    ACCOUNT_HANDLE *hUser,
+    uint32 *access_granted,
+    uint32 *rid
+    );
+
+
+NTSTATUS
 SamrSrvConnect2(
     handle_t hBinding,
     uint32 size,
@@ -165,6 +200,21 @@ SamrSrvConnect2(
     uint32 access_mask,
     CONNECT_HANDLE *hConn
     );
+
+
+NTSTATUS
+SamrSrvCreateAccount(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    UnicodeStringEx *account_name,
+    PSTR pszObjectClass,
+    uint32 account_flags,
+    uint32 access_mask,
+    ACCOUNT_HANDLE *hAccount,
+    uint32 *access_granted,
+    uint32 *rid
+    );
+
 
 
 #endif /* _SAMR_H_ */
