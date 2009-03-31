@@ -95,6 +95,9 @@ main(
     dwError = LWNetSrvStartListenThread();
     BAIL_ON_LWNET_ERROR(dwError);
 
+    // Post service started event to eventlog
+    LWNetSrvLogProcessStartedEvent();
+
     // Handle signals, blocking until we are supposed to exit.
     dwError = LWNetSrvHandleSignals();
     BAIL_ON_LWNET_ERROR(dwError);
@@ -102,6 +105,9 @@ main(
  cleanup:
 
     LWNET_LOG_VERBOSE("LWNet main cleaning up");
+
+    // Post service stopped event to eventlog
+    LWNetSrvLogProcessStoppedEvent(dwError);
 
     LWNetSrvStopProcess();
 
@@ -120,6 +126,9 @@ main(
  error:
 
     LWNET_LOG_ERROR("LWNET Process exiting due to error [Code:%d]", dwError);
+
+    // Post service failed event to eventlog
+    LWNetSrvLogProcessFailureEvent(dwError);
 
     goto cleanup;
 }
@@ -777,3 +786,170 @@ LWNetSrvSetProcessToExit(
 
     LWNET_UNLOCK_SERVERINFO(bInLock);
 }
+
+VOID
+LWNetSrvLogProcessStartedEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LWNetAllocateStringPrintf(
+                 &pszDescription,
+                 "The Likewise site manager service was started.");
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    LWNetSrvLogInformationEvent(
+            LWNET_EVENT_INFO_SERVICE_STARTED,
+            SERVICE_EVENT_CATEGORY,
+            pszDescription,
+            NULL);
+
+cleanup:
+
+    LWNET_SAFE_FREE_STRING(pszDescription);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+LWNetSrvLogProcessStoppedEvent(
+    DWORD dwExitCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LWNetAllocateStringPrintf(
+                 &pszDescription,
+                 "The Likewise site manager service was stopped");
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetGetErrorMessageForLoggingEvent(
+                         dwExitCode,
+                         &pszData);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (dwExitCode)
+    {
+        LWNetSrvLogErrorEvent(
+                LWNET_EVENT_ERROR_SERVICE_STOPPED,
+                SERVICE_EVENT_CATEGORY,
+                pszDescription,
+                pszData);
+    }
+    else
+    {
+        LWNetSrvLogInformationEvent(
+                LWNET_EVENT_INFO_SERVICE_STOPPED,
+                SERVICE_EVENT_CATEGORY,
+                pszDescription,
+                pszData);
+    }
+
+cleanup:
+
+    LWNET_SAFE_FREE_STRING(pszDescription);
+    LWNET_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+VOID
+LWNetSrvLogProcessFailureEvent(
+    DWORD dwErrCode
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PSTR pszData = NULL;
+
+    dwError = LWNetAllocateStringPrintf(
+                 &pszDescription,
+                 "The Likewise site manager service stopped running due to an error");
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetGetErrorMessageForLoggingEvent(
+                         dwErrCode,
+                         &pszData);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    LWNetSrvLogErrorEvent(
+            LWNET_EVENT_ERROR_SERVICE_START_FAILURE,
+            SERVICE_EVENT_CATEGORY,
+            pszDescription,
+            pszData);
+
+cleanup:
+
+    LWNET_SAFE_FREE_STRING(pszDescription);
+    LWNET_SAFE_FREE_STRING(pszData);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LWNetGetErrorMessageForLoggingEvent(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg
+    )
+{
+    DWORD dwErrorBufferSize = 0;
+    DWORD dwError = 0;
+    DWORD dwLen = 0;
+    PSTR  pszErrorMsg = NULL;
+    PSTR  pszErrorBuffer = NULL;
+
+    dwErrorBufferSize = LWNetGetErrorString(dwErrCode, NULL, 0);
+
+    if (!dwErrorBufferSize)
+        goto cleanup;
+
+    dwError = LWNetAllocateMemory(
+                dwErrorBufferSize,
+                (PVOID*)&pszErrorBuffer);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwLen = LWNetGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
+
+    if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+    {
+        dwError = LWNetAllocateStringPrintf(
+                     &pszErrorMsg,
+                     "Error: %s [error code: %d]",
+                     pszErrorBuffer,
+                     dwErrCode);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    *ppszErrorMsg = pszErrorMsg;
+
+cleanup:
+
+    LWNET_SAFE_FREE_STRING(pszErrorBuffer);
+
+    return dwError;
+
+error:
+
+    LWNET_SAFE_FREE_STRING(pszErrorMsg);
+
+    *ppszErrorMsg = NULL;
+
+    goto cleanup;
+}
+

@@ -99,5 +99,41 @@ LWNetSrvGetCurrentDomain(
     PSTR* ppszDomain
     );
 
+
+// Netlogon service event types
+#define SERVICE_EVENT_CATEGORY      "Service"
+#define NETWORK_EVENT_CATEGORY      "Network"
+
+// Netlogon service events
+#define LWNET_EVENT_INFO_SERVICE_STARTED                             1000
+#define LWNET_EVENT_ERROR_SERVICE_START_FAILURE                      1001
+#define LWNET_EVENT_INFO_SERVICE_STOPPED                             1002
+#define LWNET_EVENT_ERROR_SERVICE_STOPPED                            1003
+#define LWNET_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED               1004
+
+DWORD
+LWNetSrvLogInformationEvent(
+    DWORD dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LWNetSrvLogWarningEvent(
+    DWORD dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
+DWORD
+LWNetSrvLogErrorEvent(
+    DWORD dwEventID,
+    PCSTR  pszCategory,
+    PCSTR  pszDescription,
+    PCSTR  pszData
+    );
+
 #endif /* __LWNETSRVAPI_H__ */
 

@@ -58,120 +58,38 @@ typedef VOID  (*PFN_FREE_EVENT_RECORD)(
 			PEVENT_LOG_RECORD pEventRecord
 			);
 
-typedef DWORD (*PFN_OPEN_EVENT_LOG)(
-			PCSTR   pszServerName,
-			PHANDLE phEventLog
-			);
-
 typedef DWORD (*PFN_OPEN_EVENT_LOG_EX) (
-			PCSTR   pszServerName,
-    			DWORD   dwEventTableCategoryId,
-    			PCSTR   pszSource,
-    			DWORD   dwEventSourceId,
-    			PCSTR   pszUser,
-    			PCSTR   pszComputer,
-    			PHANDLE phEventLog
-    			);
+                        PCSTR   pszServerName,
+                        PCSTR   pszEventTableCategoryId,
+                        PCSTR   pszSource,
+                        DWORD   dwEventSourceId,
+                        PCSTR   pszUser,
+                        PCSTR   pszComputer,
+                        PHANDLE phEventLog
+                        );
 
 typedef DWORD (*PFN_CLOSE_EVENT_LOG)(
 			HANDLE hEventLog
 			);
-
-typedef DWORD (*PFN_READ_EVENT_LOG)(
-			HANDLE hEventLog,
-    			DWORD dwLastRecordId,
-    			DWORD nRecordsPerPage,
-    			PCWSTR sqlFilter,
-    			PDWORD pdwNumReturned,
-    			EVENT_LOG_RECORD** eventRecords
-    			);
-
-
-typedef DWORD (*PFN_COUNT_EVENT_LOG)(
-    			HANDLE hEventLog,
-    			PCWSTR sqlFilter,
-    			DWORD* pdwNumMatched
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_TABLE_CATEGORY_ID)(
-			HANDLE hEventLog,
-    			DWORD dwEventTableCategoryId
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_TYPE)(
-    			HANDLE hEventLog,
-    			PCSTR pszEventType
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_SOURCE)(
-    			HANDLE hEventLog,
-    			PCSTR pszEventSource,
-    			DWORD dwEventSourceId
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_TABLE_CATEGORY)(
-    			HANDLE hEventLog,
-    			PCSTR pszEventCategory
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_USER)(
-    			HANDLE hEventLog,
-    			PCSTR pszUser
-    			);
-
-typedef DWORD (*PFN_SET_EVENT_LOG_COMPUTER)(
-    			HANDLE hEventLog,
-    			PCSTR pszComputer
-    			);
 
 typedef DWORD (*PFN_WRITE_EVENT_LOG_BASE)(
     			HANDLE hEventLog,
     			EVENT_LOG_RECORD eventRecord
     			);
 
-typedef DWORD (*PFN_WRITE_EVENT_LOG)(
-    			HANDLE hEventLog,
-    			PCSTR eventType,
-    			PCSTR eventCategory,
-    			PCSTR eventDescription
-    			);
-
-typedef DWORD (*PFN_DELETE_FROM_EVENT_LOG)(
-    			HANDLE hEventLog,
-    			PCWSTR sqlFilter
-    			);
-
-typedef DWORD (*PFN_CLEAR_EVENT_LOG)(
-    			HANDLE hEventLog
-    			);
-
 typedef struct __EVENTAPIFUNCTIONTABLE
 {
 	PFN_FREE_EVENT_RECORD      pfnFreeEventRecord;
-	PFN_OPEN_EVENT_LOG         pfnOpenEventLog;
 	PFN_OPEN_EVENT_LOG_EX      pfnOpenEventLogEx;
 	PFN_CLOSE_EVENT_LOG        pfnCloseEventLog;
-	PFN_READ_EVENT_LOG         pfnReadEventLog;
-	PFN_COUNT_EVENT_LOG        pfnCountEventLog;
-	PFN_SET_EVENT_LOG_TYPE     pfnSetEventLogType;
-	PFN_SET_EVENT_LOG_SOURCE   pfnSetEventLogSource;
-	PFN_SET_EVENT_LOG_USER     pfnSetEventLogUser;
-	PFN_SET_EVENT_LOG_COMPUTER pfnSetEventLogComputer;
 	PFN_WRITE_EVENT_LOG_BASE   pfnWriteEventLogBase;
-	PFN_WRITE_EVENT_LOG        pfnWriteEventLog;
-	PFN_DELETE_FROM_EVENT_LOG  pfnDeleteFromEventLog;
-	PFN_CLEAR_EVENT_LOG        pfnClearEventLog;
-	PFN_SET_EVENT_LOG_TABLE_CATEGORY_ID pfnSetEventLogTableCategoryId;
-	PFN_SET_EVENT_LOG_TABLE_CATEGORY    pfnSetEventLogTableCategory;
 
 } EVENTAPIFUNCTIONTABLE, *PEVENTAPIFUNCTIONTABLE;
 
-#define EVENTAPI_INITIALIZE_FUNCTION "LWInitializeEventInterface"
-#define EVENTAPI_SHUTDOWN_FUNCTION   "LWShutdownEventInterface"
+#define EVENTAPI_FREE_EVENT_RECORD_FUNCTION     "LWIFreeEventRecord"
+#define EVENTAPI_OPEN_EVENT_LOG_EX_FUNCTION     "LWIOpenEventLogEx"
+#define EVENTAPI_CLOSE_EVENT_LOG_FUNCTION       "LWICloseEventLog"
+#define EVENTAPI_WRITE_EVENT_LOG_BASE_FUNCTION  "LWIWriteEventLogBase"
 
-typedef DWORD (*PFN_INITIALIZE_EVENTAPI)(
-                        PEVENTAPIFUNCTIONTABLE* ppFnTable
-                        );
-typedef DWORD (*PFN_SHUTDOWN_EVENTAPI)(VOID);
 
 #endif /* __EVENTDLAPI_H__ */

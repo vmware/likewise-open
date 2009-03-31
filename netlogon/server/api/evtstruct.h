@@ -42,10 +42,10 @@
 #ifndef __EVTSTRUCT_H__
 #define __EVTSTRUCT_H__
 
-typedef struct _EVENT_LOG_RECORD 
+typedef struct _EVENT_LOG_RECORD
 {
     DWORD   dwEventRecordId;
-    DWORD   dwEventTableCategoryId;
+    PSTR    pszEventTableCategoryId;
     PSTR    pszEventType;
     DWORD   dwEventDateTime;
     PSTR    pszEventSource;
@@ -54,7 +54,8 @@ typedef struct _EVENT_LOG_RECORD
     PSTR    pszUser;
     PSTR    pszComputer;
     PSTR    pszDescription;
-    
+    PSTR    pszData;
+
 } EVENT_LOG_RECORD, *PEVENT_LOG_RECORD;
 
 typedef enum
