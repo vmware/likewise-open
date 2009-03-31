@@ -160,32 +160,36 @@ LsaMapSecurityResolveObjectInfo(
     }
 
     status = LsaMapSecurityOpenConnection(Context, &hConnection);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    if (IsUser)
+    if (NT_SUCCESS(status))
     {
-        if (pszName)
+        if (IsUser)
         {
-            dwError = LsaFindUserByName(hConnection, pszName, 0, OUT_PPVOID(&pUserInfo));
+            if (pszName)
+            {
+                dwError = LsaFindUserByName(hConnection, pszName, 0, OUT_PPVOID(&pUserInfo));
+            }
+            else
+            {
+                dwError = LsaFindUserById(hConnection, id, 0, OUT_PPVOID(&pUserInfo));
+            }
         }
         else
         {
-            dwError = LsaFindUserById(hConnection, id, 0, OUT_PPVOID(&pUserInfo));
+            if (pszName)
+            {
+                dwError = LsaFindGroupByName(hConnection, pszName, 0, 0, OUT_PPVOID(&pGroupInfo));
+            }
+            else
+            {
+                dwError = LsaFindGroupById(hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
+            }
         }
+        LsaMapSecurityCloseConnection(Context, &hConnection);
     }
     else
     {
-        if (pszName)
-        {
-            dwError = LsaFindGroupByName(hConnection, pszName, 0, 0, OUT_PPVOID(&pGroupInfo));
-        }
-        else
-        {
-            dwError = LsaFindGroupById(hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
-        }
+        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
     }
-
-    LsaMapSecurityCloseConnection(Context, &hConnection);
 
     if (IS_NOT_FOUND_ERROR(dwError))
     {
@@ -231,7 +235,7 @@ LsaMapSecurityResolveObjectInfo(
 
     if (IsUser)
     {
-        assert(!pszName || (id == pUserInfo->uid));
+        assert(pszName || (id == pUserInfo->uid));
 
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
@@ -245,7 +249,7 @@ LsaMapSecurityResolveObjectInfo(
     }
     else
     {
-        assert(!pszName || (id == pGroupInfo->gid));
+        assert(pszName || (id == pGroupInfo->gid));
 
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
 
@@ -365,6 +369,17 @@ cleanup:
     *pObjectInfo = objectInfo;
 
     return status;
+}
+
+static
+NTSTATUS
+LsaMapSecurityDuplicateSid(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN OUT PSID* Sid,
+    IN PSID OriginalSid
+    )
+{
+    return RtlDuplicateSid(Sid, OriginalSid);
 }
 
 static
@@ -495,16 +510,16 @@ LsaMapSecurityAllocateAccessTokenCreateInformation(
     status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Groups));
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlSafeAddULONG(&size, size, sizeof(createInformation->Owner));
+    status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Owner));
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlSafeAddULONG(&size, size, sizeof(createInformation->PrimaryGroup));
+    status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->PrimaryGroup));
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlSafeAddULONG(&size, size, sizeof(createInformation->DefaultDacl));
+    status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->DefaultDacl));
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlSafeAddULONG(&size, size, sizeof(createInformation->Unix));
+    status = RtlSafeAddULONG(&size, size, sizeof(*createInformation->Unix));
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = RTL_ALLOCATE(&createInformation, ACCESS_TOKEN_CREATE_INFORMATION, size);
@@ -526,10 +541,13 @@ LsaMapSecurityAllocateAccessTokenCreateInformation(
     createInformation->PrimaryGroup = location;
     location = LwRtlOffsetToPointer(location, sizeof(*createInformation->PrimaryGroup));
 
+    createInformation->DefaultDacl = location;
+    location = LwRtlOffsetToPointer(location, sizeof(*createInformation->DefaultDacl));
+
     createInformation->Unix = location;
     location = LwRtlOffsetToPointer(location, sizeof(*createInformation->Unix));
 
-    assert(LwRtlOffsetToPointer(location, size) == location);
+    assert(LwRtlOffsetToPointer(createInformation, size) == location);
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -913,6 +931,7 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
     .FreeContext = LsaMapSecurityFreeContext,
     .GetIdFromSid = LsaMapSecurityGetIdFromSid,
     .GetSidFromId = LsaMapSecurityGetSidFromId,
+    .DuplicateSid = LsaMapSecurityDuplicateSid,
     .FreeSid = LsaMapSecurityFreeSid,
     .GetAccessTokenCreateInformationFromUid = LsaMapSecurityGetAccessTokenCreateInformationFromUid,
     .GetAccessTokenCreateInformationFromUsername = LsaMapSecurityGetAccessTokenCreateInformationFromUsername,
