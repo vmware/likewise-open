@@ -309,6 +309,9 @@ error:
 }
 
 /****************************************************************
+ ATTN: Always use RTL routines when allocating memory for
+ PSECURITY_DESCRIPTOR_ABSOLUTE.  Else the Free() here will not
+ be symmetic.
  ***************************************************************/
 
 VOID
@@ -316,7 +319,30 @@ PvfsFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
     )
 {
-    /* Fixme:  Actually free the SD */
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSID pOwner = NULL;
+    PSID pGroup = NULL;
+    PACL pDacl = NULL;
+    PACL pSacl = NULL;
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bPresent = FALSE;
+
+    if (pSecDesc) {
+        return;
+    }
+
+    ntError = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
+    ntError = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
+
+    ntError = RtlGetDaclSecurityDescriptor(pSecDesc, &bPresent, &pDacl, &bDefaulted);
+    ntError = RtlGetSaclSecurityDescriptor(pSecDesc, &bPresent, &pSacl, &bDefaulted);
+
+    RTL_FREE(&pSecDesc);
+    RTL_FREE(&pOwner);
+    RTL_FREE(&pGroup);
+    RTL_FREE(&pDacl);
+    RTL_FREE(&pSacl);
+
     return;
 }
 
@@ -364,8 +390,9 @@ CreateDefaultSecDesc(
     PACL pDacl = NULL;
     PSID pSid = NULL;
 
-    ntError= PvfsAllocateMemory((PVOID*)&pSecDesc,
-                                SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    ntError= RTL_ALLOCATE(&pSecDesc,
+                          VOID,
+                          SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlCreateSecurityDescriptorAbsolute(pSecDesc,
@@ -476,7 +503,7 @@ BuildDefaultDaclFile(
         RtlLengthSid(pEveryoneSid) -
         dwSidCount * sizeof(ULONG);
 
-    ntError= PvfsAllocateMemory((PVOID*)&pDacl, dwSizeDacl);
+    ntError= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
@@ -504,6 +531,7 @@ BuildDefaultDaclFile(
     BAIL_ON_NT_STATUS(ntError);
 
     *ppDacl = pDacl;
+    pDacl = NULL;
     ntError = STATUS_SUCCESS;
 
 cleanup:
@@ -513,11 +541,11 @@ cleanup:
     RTL_FREE(&pUsersSid);
     RTL_FREE(&pEveryoneSid);
 
+    RTL_FREE(&pDacl);
+
     return ntError;
 
 error:
-    PVFS_SAFE_FREE_MEMORY(pDacl);
-
     goto cleanup;
 }
 
@@ -564,7 +592,7 @@ BuildDefaultDaclDirectory(
         RtlLengthSid(pCreatorOwnerSid) -
         dwSidCount * sizeof(ULONG);
 
-    ntError= PvfsAllocateMemory((PVOID*)&pDacl, dwSizeDacl);
+    ntError= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
@@ -599,6 +627,7 @@ BuildDefaultDaclDirectory(
     BAIL_ON_NT_STATUS(ntError);
 
     *ppDacl = pDacl;
+    pDacl = NULL;
     ntError = STATUS_SUCCESS;
 
 cleanup:
@@ -609,11 +638,11 @@ cleanup:
     RTL_FREE(&pEveryoneSid);
     RTL_FREE(&pCreatorOwnerSid);
 
+    RTL_FREE(&pDacl);
+
     return ntError;
 
 error:
-    PVFS_SAFE_FREE_MEMORY(pDacl);
-
     goto cleanup;
 }
 
