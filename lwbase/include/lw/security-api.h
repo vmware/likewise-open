@@ -489,7 +489,7 @@ NTSTATUS
 RtlCreateWellKnownSid(
     IN WELL_KNOWN_SID_TYPE WellKnownSidType,
     IN OPTIONAL PSID DomainOrComputerSid,
-    OUT PSID* Sid,
+    OUT OPTIONAL PSID Sid,
     IN OUT PULONG SidSize
     );
 

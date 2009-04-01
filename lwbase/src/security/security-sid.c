@@ -901,6 +901,62 @@ NTSTATUS
 RtlCreateWellKnownSid(
     IN WELL_KNOWN_SID_TYPE WellKnownSidType,
     IN OPTIONAL PSID DomainOrComputerSid,
-    OUT PSID* Sid,
+    OUT OPTIONAL PSID Sid,
     IN OUT PULONG SidSize
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    union {
+        SID Sid;
+        UCHAR Buffer[SID_MAX_SIZE];
+    } sidBuffer = { .Buffer = { 0 } };
+    ULONG size = *SidSize;
+    ULONG sizeRequired = 0;
+
+    switch (WellKnownSidType)
+    {
+        case WinWorldSid:
+        {
+            // S-1-1-0
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_WORLD_SID_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+            break;
+        }
+        case WinAuthenticatedUserSid:
+        {
+            // S-1-5-11
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+            sidBuffer.Sid.SubAuthority[0] = SECURITY_AUTHENTICATED_USER_RID;
+            break;
+        }
+        default:
+            status = STATUS_NOT_IMPLEMENTED;
+            GOTO_CLEANUP();
+    }
+
+    sizeRequired = RtlLengthSid(&sidBuffer.Sid);
+    if (size < sizeRequired)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    RtlCopyMemory(Sid, &sidBuffer.Sid, sizeRequired);
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (Sid)
+        {
+            RtlZeroMemory(Sid, size);
+        }
+    }
+
+    *SidSize = sizeRequired;
+
+    return status;
+}
