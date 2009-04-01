@@ -97,8 +97,8 @@
                  SAM_DB_COL_DISTINGUISHED_NAME   " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_PARENT_DN            " TEXT,\n"                    \
                  SAM_DB_COL_OBJECT_CLASS         " INTEGER,\n"                 \
-                 SAM_DB_COL_DOMAIN               " TEXT NOT NULL,\n"           \
-                 SAM_DB_COL_NETBIOS_NAME         " TEXT,\n"                    \
+                 SAM_DB_COL_DOMAIN               " TEXT COLLATE NOCASE,\n"     \
+                 SAM_DB_COL_NETBIOS_NAME         " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_COMMON_NAME          " TEXT,\n"                    \
                  SAM_DB_COL_SAM_ACCOUNT_NAME     " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_DESCRIPTION          " TEXT,\n"                    \
