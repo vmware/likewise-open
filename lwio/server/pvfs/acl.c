@@ -499,7 +499,7 @@ BuildDefaultDaclFile(
     ntError = RtlAddAccessAllowedAceEx(pDacl,
                                        ACL_REVISION,
                                        0,
-                                       FILE_GENERIC_READ,
+                                       FILE_ALL_ACCESS,
                                        pEveryoneSid);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -587,7 +587,7 @@ BuildDefaultDaclDirectory(
     ntError = RtlAddAccessAllowedAceEx(pDacl,
                                        ACL_REVISION,
                                        0,
-                                       FILE_GENERIC_READ,
+                                       FILE_ALL_ACCESS,
                                        pEveryoneSid);
     BAIL_ON_NT_STATUS(ntError);
 
