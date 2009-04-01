@@ -48,7 +48,8 @@
 #include "includes.h"
 
 
-NTSTATUS SamrSrvLookupDomain(
+NTSTATUS
+SamrSrvLookupDomain(
     /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn,
     /* [in] */ UnicodeString *domain_name,
@@ -56,14 +57,16 @@ NTSTATUS SamrSrvLookupDomain(
     )
 {
     CHAR szDnToken[] = "DC";
-    CHAR szFilter[] = "(objectclass=domain)";
+    wchar_t wszFilter[] = L"(&(objectclass=domain)(domain-name=%ws)";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PCONNECT_CONTEXT pConn = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
+    PWSTR pwszDomainName = NULL;
     DWORD dwBaseLen = 0;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
+    DWORD dwFilterLen = 0;
     PWSTR pwszAttrDomainSid = NULL;
     PWSTR wszAttributes[2];
     PDIRECTORY_ENTRY pEntries = NULL;
@@ -74,42 +77,55 @@ NTSTATUS SamrSrvLookupDomain(
 
     memset(wszAttributes, 0, sizeof(wszAttributes));
 
-    pConn = (PCONNECT_CONTEXT)hConn;
+    pConnCtx = (PCONNECT_CONTEXT)hConn;
 
-    if (pConn == NULL || pConn->Type != SamrContextConnect) {
+    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
         status = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
+
+    status = SamrSrvGetFromUnicodeString(&pwszDomainName,
+                                         domain_name,
+                                         pConnCtx);
+    BAIL_ON_NO_MEMORY(pwszDomainName);
 
     dwBaseLen = domain_name->size +
                 ((sizeof(szDnToken) + 2) * sizeof(WCHAR));
 
     status = SamrSrvAllocateMemory((void**)&pwszBase,
                                    dwBaseLen,
-                                   NULL);
+                                   pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    sw16printf(pwszBase, "%s=%S",
-               (PSTR)szDnToken,
-               domain_name->string);
+    sw16printfw(pwszBase, dwBaseLen, L"%hhs=%ws",
+                (PSTR)szDnToken,
+                pwszDomainName);
 
-    dwError = LsaMbsToWc16s(szFilter, &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
+    dwFilterLen = domain_name->size +
+                  ((wcslen(wszFilter) + 2) * sizeof(WCHAR));
+
+    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+                                   dwFilterLen,
+                                   pConnCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    sw16printfw(pwszFilter, dwFilterLen, wszFilter,
+                pwszDomainName);
 
     dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_DOMAIN_SID,
                             &pwszAttrDomainSid);
     BAIL_ON_LSA_ERROR(dwError);
 
     wszAttributes[0] = pwszAttrDomainSid;
+    wszAttributes[1] = NULL;
 
-    dwError = DirectorySearch(pConn->hDirectory,
+    dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
                               dwScope,
                               pwszFilter,
                               wszAttributes,
                               TRUE,
-                              &pEntries,
-                              &dwCount);
+                              &pEntries,                              &dwCount);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (dwCount == 1) {
@@ -121,14 +137,23 @@ NTSTATUS SamrSrvLookupDomain(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            status = RtlAllocateSidFromWC16String(&pDomainSid,
-                                                  pAttrVal->pwszStringValue);
+            status = SamrSrvAllocateSidFromWC16String(&pDomainSid,
+                                                      pAttrVal->pwszStringValue,
+                                                      pConnCtx);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {
             status = STATUS_INTERNAL_ERROR;
             BAIL_ON_NTSTATUS_ERROR(status);
         }
+
+    } else if (dwCount == 0) {
+        status = STATUS_NO_SUCH_DOMAIN;
+        BAIL_ON_NTSTATUS_ERROR(status);
+
+    } else {
+        status = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     *ppSid = pDomainSid;
@@ -138,8 +163,12 @@ cleanup:
         SamrSrvFreeMemory(pwszBase);
     }
 
+    if (pwszDomainName) {
+        SamrSrvFreeMemory(pwszDomainName);
+    }
+
     if (pwszFilter) {
-        LSA_SAFE_FREE_MEMORY(pwszFilter);
+        SamrSrvFreeMemory(pwszFilter);
     }
 
     if (pEntries) {
@@ -150,7 +179,7 @@ cleanup:
 
 error:
     if (pDomainSid) {
-        RTL_FREE(&pDomainSid);
+        SamrSrvFreeMemory(&pDomainSid);
     }
 
     *ppSid = NULL;

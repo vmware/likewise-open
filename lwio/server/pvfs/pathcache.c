@@ -49,6 +49,9 @@
 /* Forward declarations */
 
 
+/* Structs */
+
+
 /* Code */
 
 
@@ -80,7 +83,7 @@ PvfsPathCacheLookup(
     IN  PCSTR pszOriginalPath
     )
 {
-    NTSTATUS ntError = STATUS_NOT_FOUND;
+    NTSTATUS ntError = STATUS_OBJECT_PATH_NOT_FOUND;
 
     BAIL_ON_NT_STATUS(ntError);
 

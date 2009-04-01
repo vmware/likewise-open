@@ -151,12 +151,9 @@ SamrSrvEnumDomains(
             pDomains->count = dwCount;
             pDomains->entries[dwCount - 1].idx = i;
 
-            status = InitUnicodeString(&(pDomains->entries[dwCount - 1].name),
-                                       pAttrVal->pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            status = SamrSrvAddDepMemory(pDomains->entries[dwCount - 1].name.string,
-                                         pDomains->entries);
+            status = SamrSrvInitUnicodeString(&(pDomains->entries[dwCount - 1].name),
+                                              pAttrVal->pwszStringValue,
+                                              pDomains->entries);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {

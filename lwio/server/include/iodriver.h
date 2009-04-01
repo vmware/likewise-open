@@ -317,6 +317,48 @@ IoMemoryFree(
         } \
     } while (0)
 
+//
+// Security Context
+//
+
+PIO_SECURITY_CONTEXT_PROCESS_INFORMATION
+IoSecurityGetProcessInfo(
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
+    );
+
+PACCESS_TOKEN
+IoSecurityGetAccessToken(
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
+    );
+
+LW_PIO_ACCESS_TOKEN
+IoSecurityGetCredentials(
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
+    );
+
+VOID
+IoSecurityFreeSecurityContext(
+    IN OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext
+    );
+
+NTSTATUS
+IoSecurityCreateSecurityContextFromUidGid(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN uid_t Uid,
+    IN gid_t Gid,
+    IN OPTIONAL LW_PIO_ACCESS_TOKEN Credentials
+    );
+
+NTSTATUS
+IoSecurityCreateSecurityContextFromUsername(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN PUNICODE_STRING Username
+    );
+
+//
+// Logging
+//
+
 #define IO_LOG_ENTER(Format, ...) \
     SMB_LOG_DEBUG("ENTER: " Format, ## __VA_ARGS__)
 

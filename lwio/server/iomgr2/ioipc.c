@@ -150,15 +150,24 @@ IopIpcCreateFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IO_FILE_HANDLE fileHandle = NULL;
     IO_FILE_NAME fileName = { 0 };
-    IO_CREATE_SECURITY_CONTEXT securityContext = { {0, 0}, NULL };
+    uid_t uid = 0;
+    gid_t gid = 0;
+    PIO_CREATE_SECURITY_CONTEXT securityContext = NULL;
     PIO_ECP_LIST pEcpList = NULL;
 
     assert(messageType == pRequest->tag);
 
     status = IopIpcGetProcessSecurity(
                     pAssoc,
-                    &securityContext.Process.Uid,
-                    &securityContext.Process.Gid);
+                    &uid,
+                    &gid);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IoSecurityCreateSecurityContextFromUidGid(
+                    &securityContext,
+                    uid,
+                    gid,
+                    pMessage->pSecurityToken);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_CREATE_FILE_RESULT, sizeof(*pReply));
@@ -166,8 +175,6 @@ IopIpcCreateFile(
 
     pResponse->tag = replyType;
     pResponse->object = pReply;
-
-    securityContext.pAccessToken = pMessage->pSecurityToken;
 
     fileName = pMessage->FileName;
 
@@ -195,7 +202,7 @@ IopIpcCreateFile(
                             &fileHandle,
                             NULL,
                             &ioStatusBlock,
-                            &securityContext,
+                            securityContext,
                             &fileName,
                             NULL,
                             NULL,
@@ -235,6 +242,7 @@ cleanup:
         }
     }
 
+    IoSecurityFreeSecurityContext(&securityContext);
     IoRtlEcpListFree(&pEcpList);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);

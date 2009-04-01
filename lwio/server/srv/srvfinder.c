@@ -275,6 +275,7 @@ error:
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     HANDLE         hFinderRepository,
     PWSTR          pwszFilesystemPath,
     PWSTR          pwszSearchPattern,
@@ -292,7 +293,6 @@ SrvFinderCreateSearchSpace(
     IO_FILE_NAME        fileName = {0};
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
     PSRV_SEARCH_SPACE pSearchSpace = NULL;
     USHORT   usCandidateSearchId = 0;
@@ -307,7 +307,7 @@ SrvFinderCreateSearchSpace(
                     &hFile,
                     NULL,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pIoSecurityContext,
                     &fileName,
                     pSecurityDescriptor,
                     pSecurityQOS,

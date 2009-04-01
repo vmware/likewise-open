@@ -165,17 +165,22 @@ PvfsCreateDirCreate(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
     /* Should check parent here */
 
-    ntError = PvfsAccessCheckDir(pSecCtx,
-                                 pszDiskDirname,
-                                 Args.DesiredAccess,
+    ntError = PvfsAccessCheckDir(pCcb->pUserToken,
+                                 pszDirname,
+                                 FILE_ADD_SUBDIRECTORY,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    GrantedAccess = FILE_ALL_ACCESS;
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -208,9 +213,11 @@ PvfsCreateDirCreate(
     /* Directory Properties */
 
     if (pSecCtx) {
+        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
         ntError = PvfsSysChown(pCcb,
-                               pSecCtx->Process.Uid,
-                               pSecCtx->Process.Gid);
+                               pProcess->Uid,
+                               pProcess->Gid);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -276,12 +283,15 @@ PvfsCreateDirOpen(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
 
-    ntError = PvfsAccessCheckDir(pSecCtx,
+    ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                  pszDiskFilename,
                                  Args.DesiredAccess,
                                  &GrantedAccess);
@@ -375,6 +385,9 @@ PvfsCreateDirOpenIf(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Check for file existence */
 
     ntError = PvfsLookupFile(&pszDiskFilename,
@@ -391,19 +404,20 @@ PvfsCreateDirOpenIf(
                                            pszRelativeFilename);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDiskDirname,
-                                     Args.DesiredAccess,
+        ntError = PvfsAccessCheckDir(pCcb->pUserToken,
+                                     pszDirname,
+                                     FILE_ADD_SUBDIRECTORY,
                                      &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
     }
     else
     {
-        ntError = PvfsAccessCheckDir(pSecCtx,
+        ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                      pszDiskFilename,
                                      Args.DesiredAccess,
                                      &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
     }
-    BAIL_ON_NT_STATUS(ntError);
 
     if (!bFileExisted) {
         ntError = PvfsSysMkDir(pszDiskFilename, 0700);
@@ -443,9 +457,11 @@ PvfsCreateDirOpenIf(
     if (bDirCreated)
     {
         if (pSecCtx) {
+            PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
             ntError = PvfsSysChown(pCcb,
-                                   pSecCtx->Process.Uid,
-                                   pSecCtx->Process.Gid);
+                                   pProcess->Uid,
+                                   pProcess->Gid);
             BAIL_ON_NT_STATUS(ntError);
         }
 

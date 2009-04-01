@@ -378,7 +378,11 @@ RtlCreateAccessToken(
     IN OPTIONAL PTOKEN_UNIX Unix
     );
 
-// NEW
+VOID
+RtlReferenceAccessToken(
+    IN PACCESS_TOKEN AccessToken
+    );
+
 VOID
 RtlReleaseAccessToken(
     IN OUT PACCESS_TOKEN* AccessToken
@@ -485,7 +489,7 @@ NTSTATUS
 RtlCreateWellKnownSid(
     IN WELL_KNOWN_SID_TYPE WellKnownSidType,
     IN OPTIONAL PSID DomainOrComputerSid,
-    OUT PSID* Sid,
+    OUT OPTIONAL PSID Sid,
     IN OUT PULONG SidSize
     );
 

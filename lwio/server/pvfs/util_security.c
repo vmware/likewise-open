@@ -60,6 +60,34 @@
  **********************************************************/
 
 NTSTATUS
+PvfsAcquireAccessToken(
+    PPVFS_CCB pCcb,
+    PIO_CREATE_SECURITY_CONTEXT pIoSecCtx
+    )
+{
+    NTSTATUS ntError= STATUS_UNSUCCESSFUL;
+
+    pCcb->pUserToken = IoSecurityGetAccessToken(pIoSecCtx);
+    if (pCcb->pUserToken == NULL) {
+        ntError = STATUS_NO_TOKEN;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    RtlReferenceAccessToken(pCcb->pUserToken);
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
 PvfsAccessCheckFileHandle(
     PPVFS_CCB pCcb,
     ACCESS_MASK AccessRequired
@@ -101,23 +129,14 @@ PvfsAccessCheckAnyFileHandle(
 
 NTSTATUS
 PvfsAccessCheckDir(
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszDirectory,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted)
 {
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    /* For now this is just the same as file access */
 
-    BAIL_ON_INVALID_PTR(pGranted, ntError);
-
-    *pGranted = FILE_ALL_ACCESS;
-    ntError = STATUS_SUCCESS;
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
+    return PvfsAccessCheckFile(pToken, pszDirectory, Desired, pGranted);
 }
 
 /***********************************************************
@@ -125,29 +144,126 @@ error:
 
 NTSTATUS
 PvfsAccessCheckFile(
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszFilename,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted)
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    ACCESS_MASK AccessMask = Desired;
+    ACCESS_MASK AccessMask = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
+    ULONG SecDescRelLen = 1024;
+    SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
+                                    GROUP_SECURITY_INFORMATION |
+                                    DACL_SECURITY_INFORMATION);
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    ULONG SecDescLen = 0;
+    PACL pDacl = NULL;
+    ULONG DaclLen = 0;
+    PACL pSacl = NULL;
+    ULONG SaclLen = 0;
+    PSID pOwner = NULL;
+    ULONG OwnerLen = 0;
+    PSID pGroup = NULL;
+    ULONG GroupLen = 0;
 
+    BAIL_ON_INVALID_PTR(pToken, ntError);
     BAIL_ON_INVALID_PTR(pGranted, ntError);
 
+    do
+    {
+        ntError = PvfsReallocateMemory((PVOID*)&pSecDescRel, SecDescRelLen);
+        BAIL_ON_NT_STATUS(ntError);
 
-    /* Give them what they accessed for (minus the
-       ACCESS_SYSTEM_SECURITY bit */
+        ntError = PvfsGetSecurityDescriptorFilename(pszFilename,
+                                                    SecInfo,
+                                                    pSecDescRel,
+                                                    &SecDescRelLen);
+        if (ntError == STATUS_BUFFER_TOO_SMALL) {
+            SecDescRelLen *= 2;
+        } else {
+            BAIL_ON_NT_STATUS(ntError);
+        }
 
-    RtlMapGenericMask(&AccessMask, &gPvfsFileGenericMapping);
+    } while ((ntError != STATUS_SUCCESS) &&
+             (SecDescRelLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
+    BAIL_ON_NT_STATUS(ntError);
 
-    AccessMask &= ~ACCESS_SYSTEM_SECURITY;
+    /* Get sizes */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
+                                          pSecDesc, &SecDescLen,
+                                          pDacl, &DaclLen,
+                                          pSacl, &SaclLen,
+                                          pOwner, &OwnerLen,
+                                          pGroup, &GroupLen);
+    if (ntError == STATUS_BUFFER_TOO_SMALL) {
+        ntError = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Allocate -- Always use RTL routines for Absolute SDs */
+
+    ntError = RTL_ALLOCATE(&pSecDesc, VOID, SecDescLen);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (OwnerLen) {
+        ntError = RTL_ALLOCATE(&pOwner, SID, OwnerLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (GroupLen) {
+        ntError = RTL_ALLOCATE(&pGroup, SID, GroupLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (DaclLen) {
+        ntError = RTL_ALLOCATE(&pDacl, VOID, DaclLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (SaclLen) {
+        ntError = RTL_ALLOCATE(&pSacl, VOID, SaclLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Translate the SD */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
+                                          pSecDesc, &SecDescLen,
+                                          pDacl, &DaclLen,
+                                          pSacl, &SaclLen,
+                                          pOwner, &OwnerLen,
+                                          pGroup, &GroupLen);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Now check access */
+
+    /* Remove the SACL bit */
+
+    Desired &= ~ACCESS_SYSTEM_SECURITY;
+
+    if (!RtlAccessCheck(pSecDesc,
+                        pToken,
+                        Desired,
+                        0,
+                        &gPvfsFileGenericMapping,
+                        &AccessMask,
+                        &ntError))
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     *pGranted = AccessMask;
-
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PVFS_SAFE_FREE_MEMORY(pSecDescRel);
+
+    if (pSecDesc) {
+        PvfsFreeAbsoluteSecurityDescriptor(pSecDesc);
+    }
+
     return ntError;
 
 error:

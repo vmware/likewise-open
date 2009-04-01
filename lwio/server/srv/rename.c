@@ -33,6 +33,7 @@
 static
 NTSTATUS
 SrvExecuteRename(
+    PSMB_SRV_SESSION pSession,
     PSMB_SRV_TREE pTree,
     USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
@@ -88,6 +89,7 @@ SrvProcessRename(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvExecuteRename(
+                    pSession,
                     pTree,
                     pRequestHeader->usSearchAttributes,
                     pwszOldName,
@@ -123,6 +125,7 @@ error:
 static
 NTSTATUS
 SrvExecuteRename(
+    PSMB_SRV_SESSION pSession,
     PSMB_SRV_TREE pTree,
     USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
@@ -136,7 +139,6 @@ SrvExecuteRename(
     IO_FILE_HANDLE  hFile = NULL;
     IO_FILE_HANDLE  hDir  = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID        pSecurityDescriptor = NULL;
     PVOID        pSecurityQOS = NULL;
     IO_FILE_NAME oldName = {0};
@@ -166,7 +168,7 @@ SrvExecuteRename(
                     &hDir,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     &dirPath,
                     pSecurityDescriptor,
                     pSecurityQOS,
@@ -191,7 +193,7 @@ SrvExecuteRename(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     &oldName,
                     pSecurityDescriptor,
                     pSecurityQOS,

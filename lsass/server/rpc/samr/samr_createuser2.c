@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrCreateUser2 function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_createuser2.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrCreateUser2 function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,22 +48,36 @@
 
 
 NTSTATUS
-SamrCreateUser2(
-    /* [in] */ PolicyHandle *domain_handle,
+SamrSrvCreateUser2(
+    /* [in] */ handle_t hBinding,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeStringEx *account_name,
     /* [in] */ uint32 account_flags,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *user_handle,
+    /* [out] */ ACCOUNT_HANDLE *hUser,
     /* [out] */ uint32 *access_granted,
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvCreateAccount(hBinding,
+                                  hDomain,
+                                  account_name,
+                                  "user",
+                                  account_flags,
+                                  access_mask,
+                                  hUser,
+                                  access_granted,
+                                  rid);
 
 cleanup:
     return status;
 
 error:
+    *hUser          = NULL;
+    *access_granted = 0;
+    *rid            = 0;
     goto cleanup;
 }
 

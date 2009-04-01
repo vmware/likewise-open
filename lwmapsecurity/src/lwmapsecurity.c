@@ -46,18 +46,32 @@
 #include <lw/security-api.h>
 #include <lw/rtlgoto.h>
 #include <lw/base.h>
+#include <lw/safeint.h>
 #include "config.h"
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
-//#include <lw/safeint.h>
-//#include <assert.h>
 
-#define LOG_ERROR(szFmt, ...)
+#define ENABLE_LOGGING 0
 
-#define LW_MAP_SECURITY_PLUGIN_PATH "/opt/likewise/" LIBDIR "/liblwmapsecurity_lsass" MOD_EXT
+#if ENABLE_LOGGING
+#include <stdio.h>
+#endif
+
+#define SAFE_LOG_STRING(String) \
+    ( (String) ? (String) : "<null>" )
+
+#if ENABLE_LOGGING
+#define LOG_ERROR(Format, ...) \
+    fprintf(stderr, Format, ## __VA_ARGS__)
+#else
+#define LOG_ERROR(Format, ...)
+#endif
+
+#define LW_MAP_SECURITY_PLUGIN_PATH LIBDIR "/liblwmapsecurity_lsass" MOD_EXT
 
 typedef struct _LW_MAP_SECURITY_CONTEXT {
+    PSTR LibraryPath;
     PVOID LibraryHandle;
     PLW_MAP_SECURITY_PLUGIN_CONTEXT PluginContext;
     PLW_MAP_SECURITY_PLUGIN_INTERFACE PluginInterface;
@@ -131,7 +145,6 @@ LwMapSecurityCreateContext(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    PCSTR pszPath = LW_MAP_SECURITY_PLUGIN_PATH;
     PCSTR pszError = NULL;
     PLW_MAP_SECURITY_CONTEXT pContext = NULL;
     LWMSP_CREATE_CONTEXT_CALLBACK pCreateContexCallback = NULL;
@@ -139,14 +152,20 @@ LwMapSecurityCreateContext(
     status = RTL_ALLOCATE(&pContext, LW_MAP_SECURITY_CONTEXT, sizeof(*pContext));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
+    status = RtlCStringDuplicate(&pContext->LibraryPath, LW_MAP_SECURITY_PLUGIN_PATH);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     dlerror();
 
-    pContext->LibraryHandle = dlopen(pszPath, RTLD_NOW | RTLD_GLOBAL);
+    pContext->LibraryHandle = dlopen(pContext->LibraryPath, RTLD_NOW | RTLD_GLOBAL);
     if (!pContext->LibraryHandle)
     {
+#if ENABLE_LOGGING
+        int error = errno;
+#endif
         pszError = dlerror();
 
-        LOG_ERROR("Failed to load %s (%s)", pszPath, SMB_SAFE_LOG_STRING(pszError));
+        LOG_ERROR("Failed to load %s (%s (%d))", pContext->LibraryPath, SAFE_LOG_STRING(pszError), error);
 
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_EE(EE);
@@ -159,7 +178,7 @@ LwMapSecurityCreateContext(
         pszError = dlerror();
 
         LOG_ERROR("Failed to load " LWMSP_CREATE_CONTEXT_FUNCTION_NAME " function from %s (%s)",
-                  pszPath, SMB_SAFE_LOG_STRING(pszError));
+                  pContext->LibraryPath, SAFE_LOG_STRING(pszError));
 
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_EE(EE);
@@ -197,9 +216,10 @@ LwMapSecurityFreeContext(
             int err = dlclose(context->LibraryHandle);
             if (err)
             {
-                LOG_ERROR("Failed to dlclose() %s", LW_MAP_SECURITY_PLUGIN_PATH);
+                LOG_ERROR("Failed to dlclose() %s", context->LibraryPath);
             }
         }
+        RtlCStringFree(&context->LibraryPath);
         RtlMemoryFree(context);
         *Context = NULL;
     }
@@ -346,6 +366,124 @@ LwMapSecurityFreeAccessTokenCreateInformation(
     }
 }
 
+static
+NTSTATUS
+LwMapSecurityCreateExtendedGroups(
+    OUT PTOKEN_GROUPS* ExtendedTokenGroups,
+    IN PTOKEN_GROUPS OriginalTokenGroups,
+    IN ULONG SidCount,
+    IN PSID* Sids
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PTOKEN_GROUPS tokenGroups = NULL;
+    ULONG groupCount = OriginalTokenGroups->GroupCount + SidCount;
+    ULONG size = 0;
+    ULONG i = 0;
+
+    status = RtlSafeMultiplyULONG(&size, groupCount, sizeof(tokenGroups->Groups[0]));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlSafeAddULONG(&size, size, sizeof(*tokenGroups));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RTL_ALLOCATE(&tokenGroups, TOKEN_GROUPS, size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    for (i = 0; i < SidCount; i++)
+    {
+        tokenGroups->Groups[tokenGroups->GroupCount].Attributes = SE_GROUP_ENABLED;
+        tokenGroups->Groups[tokenGroups->GroupCount].Sid = Sids[i];
+        tokenGroups->GroupCount++;
+    }
+
+    for (i = 0; i < OriginalTokenGroups->GroupCount; i++)
+    {
+        tokenGroups->Groups[tokenGroups->GroupCount] = OriginalTokenGroups->Groups[i];
+        tokenGroups->GroupCount++;
+    }
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RTL_FREE(&tokenGroups);
+    }
+
+    *ExtendedTokenGroups = tokenGroups;
+
+    return status;
+}
+
+static
+NTSTATUS
+LwMapSecurityCreateExtendedAccessToken(
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PTOKEN_USER User,
+    IN PTOKEN_GROUPS Groups,
+    IN PTOKEN_OWNER Owner,
+    IN PTOKEN_PRIMARY_GROUP PrimaryGroup,
+    IN PTOKEN_DEFAULT_DACL DefaultDacl,
+    IN OPTIONAL PTOKEN_UNIX Unix
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN accessToken = NULL;
+    ULONG sidBuffer1[SID_MAX_SIZE / sizeof(ULONG) + 1] = { 0 };
+    ULONG sidBuffer2[SID_MAX_SIZE / sizeof(ULONG) + 1] = { 0 };
+    PSID sids[2] = { (PSID) sidBuffer1, (PSID) sidBuffer2 };
+    ULONG sidCount = LW_ARRAY_SIZE(sids);
+    ULONG size = 0;
+    PTOKEN_GROUPS extendedGroups = NULL;
+
+    size = sizeof(sidBuffer1);
+    status = RtlCreateWellKnownSid(
+                    WinWorldSid,
+                    NULL,
+                    (PSID) sidBuffer1,
+                    &size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    size = sizeof(sidBuffer2);
+    status = RtlCreateWellKnownSid(
+                    WinAuthenticatedUserSid,
+                    NULL,
+                    (PSID) sidBuffer2,
+                    &size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LwMapSecurityCreateExtendedGroups(
+                    &extendedGroups,
+                    Groups,
+                    sidCount,
+                    sids);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAccessToken(
+                    &accessToken,
+                    User,
+                    extendedGroups,
+                    Owner,
+                    PrimaryGroup,
+                    DefaultDacl,
+                    Unix);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (accessToken)
+        {
+            RtlReleaseAccessToken(&accessToken);
+        }
+    }
+
+    RTL_FREE(&extendedGroups);
+
+    *AccessToken = accessToken;
+
+    return status;
+}
+
 NTSTATUS
 LwMapSecurityCreateAccessTokenFromUidGid(
     IN PLW_MAP_SECURITY_CONTEXT Context,
@@ -384,7 +522,7 @@ LwMapSecurityCreateAccessTokenFromUidGid(
         tokenUser.User.Sid = userSid;
 
         tokenGroupsUnion.tokenGroups.GroupCount = 1;
-        tokenGroupsUnion.tokenGroups.Groups[1].Sid = groupSid;
+        tokenGroupsUnion.tokenGroups.Groups[0].Sid = groupSid;
 
         tokenOwner.Owner = userSid;
         tokenPrimaryGroup.PrimaryGroup = groupSid;
@@ -393,7 +531,7 @@ LwMapSecurityCreateAccessTokenFromUidGid(
         tokenUnix.Gid = Gid;
         tokenUnix.Umask = 0;
 
-        status = RtlCreateAccessToken(
+        status = LwMapSecurityCreateExtendedAccessToken(
                         &accessToken,
                         &tokenUser,
                         &tokenGroupsUnion.tokenGroups,
@@ -412,7 +550,7 @@ LwMapSecurityCreateAccessTokenFromUidGid(
                         &Gid);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        status = RtlCreateAccessToken(
+        status = LwMapSecurityCreateExtendedAccessToken(
                         &accessToken,
                         createInformation->User,
                         createInformation->Groups,
@@ -441,7 +579,6 @@ cleanup:
     return status;
 }
 
-
 NTSTATUS
 LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
@@ -459,7 +596,7 @@ LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
                     Username);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlCreateAccessToken(
+    status = LwMapSecurityCreateExtendedAccessToken(
                     &accessToken,
                     createInformation->User,
                     createInformation->Groups,

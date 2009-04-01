@@ -211,6 +211,27 @@ AC_ARG_WITH([lwbase-libs],
 		LWBASE_LDFLAGS="-L$withval"
         ])
 
+# lwmapsecurity
+
+AC_ARG_WITH([lwmapsecurity],
+        [AC_HELP_STRING([--with-lwmapsecurity=<dir>], [use lwmapsecurity located in prefix <dir>])],
+        [
+		LWMAPSECURITY_INCLUDES="-I$withval/include"
+        LWMAPSECURITY_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lwmapsecurity-includes],
+        [AC_HELP_STRING([--with-lwmapsecurity-includes=<dir>], [use lwmapsecurity includes located in <dir>])],
+        [
+		LWMAPSECURITY_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lwmapsecurity-libs],
+        [AC_HELP_STRING([--with-lwmapsecurity-libs=<dir>], [use lwmapsecurity libs located in <dir>])],
+        [
+		LWMAPSECURITY_LDFLAGS="-L$withval"
+        ])
+
 # sqlite
 
 AC_ARG_WITH([sqlite],
@@ -429,6 +450,13 @@ AC_SUBST(LWBASE_INCLUDES)
 AC_SUBST(LWBASE_LDFLAGS)
 AC_SUBST(LWBASE_NOTHR_LIBS)
 AC_SUBST(LWBASE_LIBS)
+
+AC_CHECK_HEADER([lwmapsecurity/lwmapsecurity.h],,[AC_MSG_ERROR([Could not find lwmapsecurity headers])])
+AC_CHECK_LIB([lwmapsecurity], [LwMapSecurityCreateContext], [LWMAPSECURITY_LIBS="-llwmapsecurity"], [AC_MSG_ERROR([Could not find liblwmapsecurity])], [$LWMAPSECURITY_LDFLAGS])
+
+AC_SUBST(LWMAPSECURITY_INCLUDES)
+AC_SUBST(LWMAPSECURITY_LDFLAGS)
+AC_SUBST(LWMAPSECURITY_LIBS)
 
 AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/types.h>

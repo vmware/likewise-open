@@ -36,6 +36,38 @@
 #define TEXT(str)  str
 #endif
 
+/* The WC16STR macro can be used to create wchar16_t string literals on Linux
+ * and Windows. The macro takes a string literal as input. Only one instance
+ * can occur per line.
+ *
+ * At the top of the .c file, after wchar16.h has been included, but before any
+ * wchar16_t string literals are used, WC16STR_INSERT must occur on a line by
+ * itself.
+ *
+ * Here is an example usage:
+#include <wc16printf.h>
+
+WC16STR_INSERT
+
+int main()
+{
+    fw16printf(stdout,
+        WC16STR("%ws\n"),
+        WC16STR("sample string"));
+    return 0;
+}
+*/
+
+#ifdef _WIN32
+#define WC16STR(x) 	L##x
+#else
+#define _WC16STR3(x) 	gwsz ## x
+#define _WC16STR2(x) 	_WC16STR3(x)
+#define WC16STR(x) 	_WC16STR2(__LINE__)
+#endif
+
+#define WC16STR_INSERT
+
 #ifdef _WIN32
 #define snprintf(dest, count, ...) _snprintf(dest, count, __VA_ARGS__)
 #endif

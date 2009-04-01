@@ -50,6 +50,11 @@
 
 #include "pvfs.h"
 
+NTSTATUS
+PvfsAcquireAccessToken(
+    PPVFS_CCB pCcb,
+    PIO_CREATE_SECURITY_CONTEXT pIoSecCtx
+    );
 
 NTSTATUS
 PvfsAccessCheckFileHandle(
@@ -65,14 +70,14 @@ PvfsAccessCheckAnyFileHandle(
 
 NTSTATUS
 PvfsAccessCheckDir(
-    PIO_CREATE_SECURITY_CONTEXT SecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszDirectory,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted);
 
 NTSTATUS
 PvfsAccessCheckFile(
-    PIO_CREATE_SECURITY_CONTEXT SecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszFilename,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted);

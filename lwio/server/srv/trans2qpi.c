@@ -178,7 +178,6 @@ SrvBuildQueryPathInfoResponse(
     IO_FILE_HANDLE   hFile = NULL;
     IO_STATUS_BLOCK ioStatusBlock = {0};
     PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock = NULL;
-    PIO_CREATE_SECURITY_CONTEXT pSecurityContext = NULL;
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
     IO_FILE_NAME        filename = {0};
@@ -207,7 +206,7 @@ SrvBuildQueryPathInfoResponse(
                     &hFile,
                     pAsyncControlBlock,
                     &ioStatusBlock,
-                    pSecurityContext,
+                    pSession->pIoSecurityContext,
                     &filename,
                     pSecurityDescriptor,
                     pSecurityQOS,

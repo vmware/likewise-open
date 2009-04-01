@@ -273,6 +273,14 @@ PvfsLookupPath(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PVFS_STAT Stat = {0};
 
+    /* Check the cache */
+
+    ntError = PvfsPathCacheLookup(ppszDiskPath, pszPath);
+    if (ntError == STATUS_SUCCESS)
+    {
+        goto cleanup;
+    }
+
     /* See if we are lucky */
 
     ntError = PvfsSysStat(pszPath, &Stat);
@@ -293,6 +301,8 @@ PvfsLookupPath(
         ntError = STATUS_OBJECT_NAME_NOT_FOUND;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    /* Resolve the path */
 
     ntError = PvfsResolvePath(ppszDiskPath, pszPath);
     BAIL_ON_NT_STATUS(ntError);
@@ -317,7 +327,6 @@ PvfsLookupFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PSTR pszFullPath = NULL;
-    PVFS_STAT Stat = {0};
 
     ntError = RtlCStringAllocatePrintf(&pszFullPath,
                                        "%s/%s",
@@ -325,28 +334,8 @@ PvfsLookupFile(
                                        pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Fast path.  Case is correct */
-
-    ntError = PvfsSysStat(pszFullPath, &Stat);
-    if (ntError == STATUS_SUCCESS) {
-        *ppszDiskPath = pszFullPath;
-        pszFullPath = NULL;
-
-        ntError = PvfsPathCacheAdd(*ppszDiskPath);
-        BAIL_ON_NT_STATUS(ntError);
-
-        goto cleanup;
-    }
-
-    /* Case sensitive searches end here if we hit a failure */
-
-    if (bCaseSensitive) {
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = PvfsResolvePath(ppszDiskPath, pszFullPath);
+    ntError = PvfsLookupPath(ppszDiskPath, pszFullPath, bCaseSensitive);
     BAIL_ON_NT_STATUS(ntError);
-
 
 cleanup:
     RtlCStringFree(&pszFullPath);
@@ -372,6 +361,7 @@ PvfsResolvePath(
     PSTR pszPath = NULL;
     PVFS_STAT Stat = {0};
     PSTR pszResolvedPath = NULL;
+    PSTR pszResWorkingPath = NULL;
     PSTR pszWorkingPath = NULL;
     DWORD Length = PATH_MAX;
     DIR *pDir = NULL;
@@ -391,9 +381,7 @@ PvfsResolvePath(
     ntError = RtlCStringDuplicate(&pszPath, pszLookupPath);
     BAIL_ON_NT_STATUS(ntError);
 
-    pszComponent = pszPath+1;
-    strncpy(pszResolvedPath, "/", Length-1);
-    Length -= 1;
+    pszComponent = pszPath + 1;
 
     while (pszComponent && (Length > 0))
     {
@@ -406,14 +394,29 @@ PvfsResolvePath(
         snprintf(pszWorkingPath, PATH_MAX-1, "%s/%s",
                  pszResolvedPath, pszComponent);
 
-        ntError = PvfsSysStat(pszWorkingPath, &Stat);
-        if (ntError == STATUS_SUCCESS)
+        /* Try cache first */
+
+        if(PvfsPathCacheLookup(&pszResWorkingPath, pszWorkingPath) == STATUS_SUCCESS)
         {
-            strncat(pszResolvedPath, "/", Length-1);
-            Length -= 1;
-            strncat(pszResolvedPath, pszComponent, Length-1);
-            Length -= RtlCStringNumChars(pszComponent);
+            strncpy(pszResolvedPath, pszResWorkingPath, PATH_MAX-1);
+            Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);
+            RtlCStringFree(&pszResWorkingPath);
         }
+
+        /* Maybe an exact match on disk? */
+
+        else if (PvfsSysStat(pszWorkingPath, &Stat)== STATUS_SUCCESS)
+        {
+            strncpy(pszResolvedPath, pszWorkingPath, PATH_MAX-1);
+            Length = PATH_MAX - RtlCStringNumChars(pszResolvedPath);
+            RtlCStringFree(&pszResWorkingPath);
+
+            ntError = PvfsPathCacheAdd(pszResolvedPath);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        /* Do the work ourselves */
+
         else
         {
             /* Enumerate directory entries and look for a match */
@@ -448,10 +451,14 @@ PvfsResolvePath(
             ntError = PvfsSysCloseDir(pDir);
             pDir = NULL;
             BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsPathCacheAdd(pszResolvedPath);
+            BAIL_ON_NT_STATUS(ntError);
+
         }
 
-        ntError = PvfsPathCacheAdd(pszResolvedPath);
-        BAIL_ON_NT_STATUS(ntError);
+        /* Cleanup for next loop */
+
 
         if (pszCursor) {
             *pszCursor = '/';
@@ -477,6 +484,7 @@ PvfsResolvePath(
 cleanup:
     RtlCStringFree(&pszPath);
     RtlCStringFree(&pszWorkingPath);
+    RtlCStringFree(&pszResWorkingPath);
     RtlCStringFree(&pszResolvedPath);
 
     if (pDir) {

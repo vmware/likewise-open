@@ -1,5 +1,32 @@
 #include "includes.h"
 
+static
+DWORD
+SamDbBuildSqlQuery(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszFilter,
+    PWSTR                  wszAttributes[],
+    PSTR*                  ppszQuery,
+    PBOOLEAN               pbMembersAttrExists,
+    PSAM_DB_COLUMN_VALUE*  ppColumnValueList
+    );
+
+static
+PSAM_DB_COLUMN_VALUE
+SamDbSearchReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    );
+
+static
+DWORD
+SamDbSearchExecute(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    );
+
 DWORD
 SamDbSearchObject(
     HANDLE            hDirectory,
@@ -12,82 +39,516 @@ SamDbSearchObject(
     PDWORD            pdwNumEntries
     )
 {
-#if 0
     DWORD dwError = 0;
-    SAMDB_ENTRY_TYPE entryType = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    PSTR  pszQuery = NULL;
+    BOOLEAN bMembersAttrExists = FALSE;
+    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PDIRECTORY_ENTRY pDirectoryEntries = NULL;
+    DWORD            dwNumEntries = 0;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
     dwError = SamDbBuildSqlQuery(
+                    pDirectoryContext,
                     pwszFilter,
                     wszAttributes,
-                    &pszQuery
-                    );
-    BAIL_ON_ERROR(dwError);
+                    &pszQuery,
+                    &bMembersAttrExists,
+                    &pColumnValueList);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbMakeSqlQuery(
-                    &ppszString
-                    );
-    BAIL_ON_ERROR(dwError);
-
-    dwError = SamDbExecuteSqlQuery(
-                    ppszString,
-
-    dwError = SamDbMarshallData(
-                    pszSqlQuery,
-                    ppszResult,
-                    nRows,
-                    nCols,
+    dwError = SamDbSearchExecute(
+                    pDirectoryContext,
+                    pszQuery,
+                    pColumnValueList,
                     &pDirectoryEntries,
-                    &dwNumEntries
-                    );
+                    &dwNumEntries);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppDirectoryEntries = pDirectoryEntries;
     *pdwNumEntries = dwNumEntries;
 
 cleanup:
 
+    if (pColumnValueList)
+    {
+        SamDbFreeColumnValueList(pColumnValueList);
+    }
+
     return(dwError);
 
 error:
 
-    goto cleanup;
-#else
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwNumEntries);
+    }
 
-    return 0;
-#endif
+    goto cleanup;
 }
 
+#define SAM_DB_SEARCH_QUERY_PREFIX          "SELECT "
+#define SAM_DB_SEARCH_QUERY_FIELD_SEPARATOR ","
+#define SAM_DB_SEARCH_QUERY_FROM            " FROM " SAM_DB_OBJECTS_TABLE " "
+#define SAM_DB_SEARCH_QUERY_SUFFIX          ";"
+
+static
 DWORD
 SamDbBuildSqlQuery(
-    PWSTR pwszFilter,
-    PWSTR wszAttributes[],
-    PSTR * ppszQuery
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszFilter,
+    PWSTR                  wszAttributes[],
+    PSTR*                  ppszQuery,
+    PBOOLEAN               pbMembersAttrExists,
+    PSAM_DB_COLUMN_VALUE*  ppColumnValueList
     )
 {
     DWORD dwError = 0;
+    BOOLEAN bMembersAttrExists = FALSE;
+    DWORD dwQueryLen = 0;
+    DWORD dwColNamesLen = 0;
+    DWORD dwNumAttrs = 0;
+    PSTR  pszQuery = NULL;
+    PSTR  pszQueryCursor = NULL;
+    PSTR  pszCursor = NULL;
+    PSTR  pszFilter = NULL;
+    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PSAM_DB_COLUMN_VALUE pIter = NULL;
 
-#if 0
-    dwError = SamDbExtractMemberShip(
-                        wszAttributes,
-                        &wszNewAttributes,
-                        &bMembersAttributeExists
-                        );
-    BAIL_ON_ERROR(dwError);
-
-    sprintf(pszQuery,"select ");
-
-    for (i = 0; i < dwNumAttributes; i++) {
-
-        strcat(pszQuery, wszNewAttributes[i]);
-        strcat(pszQuery", ");
+    if (pwszFilter)
+    {
+        dwError = LsaWc16sToMbs(
+                        pwszFilter,
+                        &pszFilter);
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    strcat(pszQuery, "from object_table");
+    while (wszAttributes[dwNumAttrs])
+    {
+        PWSTR pwszAttrName = wszAttributes[dwNumAttrs];
+        wchar16_t wszMembersAttrName[] = SAM_DB_DIR_ATTR_MEMBERS;
 
-    // Now concatenate the where clause
+        if (!wc16scasecmp(pwszAttrName, &wszMembersAttrName[0]))
+        {
+            bMembersAttrExists = TRUE;
+        }
+        else
+        {
+            PSAM_DB_COLUMN_VALUE  pColumnValue = NULL;
+            PSAM_DB_ATTRIBUTE_MAP pAttrMap = NULL;
 
-    strcat(pszQuery, pwszFilter);
+            dwError = SamDbAttributeLookupByName(
+                            pDirectoryContext->pAttrLookup,
+                            pwszAttrName,
+                            &pAttrMap);
+            BAIL_ON_SAMDB_ERROR(dwError);
 
-#endif
+            if (!pAttrMap->bIsQueryable)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
 
-    return (dwError);
+            dwError = DirectoryAllocateMemory(
+                            sizeof(SAM_DB_COLUMN_VALUE),
+                            (PVOID*)pColumnValue);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            pColumnValue->pAttrMap = pAttrMap;
+            pColumnValue->pNext = pColumnValueList;
+            pColumnValueList = pColumnValue;
+            pColumnValue = NULL;
+
+            if (dwColNamesLen)
+            {
+                dwColNamesLen += sizeof(SAM_DB_SEARCH_QUERY_FIELD_SEPARATOR)-1;
+            }
+
+            dwColNamesLen += strlen(&pAttrMap->szDbColumnName[0]);
+        }
+
+        dwNumAttrs++;
+    }
+
+    dwQueryLen = sizeof(SAM_DB_SEARCH_QUERY_PREFIX) - 1;
+    dwQueryLen += dwColNamesLen;
+    dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_FROM) - 1;
+
+    if (pwszFilter && *pwszFilter)
+    {
+        dwQueryLen += wc16slen(pwszFilter);
+    }
+    dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_SUFFIX) - 1;
+    dwQueryLen++;
+
+    dwError = DirectoryAllocateMemory(
+                    dwQueryLen,
+                    (PVOID*)&pszQuery);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    pColumnValueList = SamDbSearchReverseColumnValueList(pColumnValueList);
+
+    pszQueryCursor = pszQuery;
+    dwColNamesLen = 0;
+
+    pszCursor = SAM_DB_SEARCH_QUERY_PREFIX;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
+    }
+
+    for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
+    {
+        if (dwColNamesLen)
+        {
+            pszCursor = SAM_DB_SEARCH_QUERY_FIELD_SEPARATOR;
+            while (pszCursor && *pszCursor)
+            {
+                *pszQueryCursor++ = *pszCursor++;
+                dwColNamesLen++;
+            }
+        }
+
+        pszCursor = &pIter->pAttrMap->szDbColumnName[0];
+        while (pszCursor && *pszCursor)
+        {
+            *pszQueryCursor++ = *pszCursor++;
+            dwColNamesLen++;
+        }
+    }
+
+    pszCursor = SAM_DB_SEARCH_QUERY_PREFIX;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
+    }
+
+    pszCursor = pszFilter;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
+    }
+
+    pszCursor = SAM_DB_SEARCH_QUERY_SUFFIX;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
+    }
+
+    *ppszQuery = pszQuery;
+    *pbMembersAttrExists = bMembersAttrExists;
+    *ppColumnValueList = pColumnValueList;
+
+cleanup:
+
+    DIRECTORY_FREE_STRING(pszFilter);
+
+    return dwError;
+
+error:
+
+    *ppszQuery = NULL;
+    *pbMembersAttrExists = FALSE;
+    *ppColumnValueList = NULL;
+
+    DIRECTORY_FREE_STRING(pszQuery);
+
+    if (pColumnValueList)
+    {
+        SamDbFreeColumnValueList(pColumnValueList);
+    }
+
+    goto cleanup;
+}
+
+static
+PSAM_DB_COLUMN_VALUE
+SamDbSearchReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    )
+{
+    PSAM_DB_COLUMN_VALUE pP = NULL;
+    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
+    PSAM_DB_COLUMN_VALUE pR = NULL;
+
+    while( pQ )
+    {
+        pR = pQ->pNext;
+        pQ->pNext = pP;
+        pP = pQ;
+        pQ = pR;
+    }
+
+    return pP;
+}
+
+static
+DWORD
+SamDbSearchExecute(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    )
+{
+    DWORD                dwError = 0;
+    PDIRECTORY_ENTRY     pDirectoryEntries = NULL;
+    DWORD                dwNumEntries = 0;
+    DWORD                dwTotalEntries = 0;
+    DWORD                dwEntriesAvailable = 0;
+    sqlite3_stmt*        pSqlStatement = NULL;
+    DWORD                dwNumCols = 0;
+    PSAM_DB_COLUMN_VALUE pIter = NULL;
+    PDIRECTORY_ATTRIBUTE pAttrs = NULL;
+    DWORD                dwNumAttrs = 0;
+    BOOLEAN              bInLock = FALSE;
+
+    for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
+    {
+        dwNumCols++;
+    }
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQuery,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    while ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
+    {
+        DWORD iCol = 0;
+
+        dwNumAttrs = sqlite3_column_count(pSqlStatement);
+        if (dwNumAttrs != dwNumCols)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        if (!dwEntriesAvailable)
+        {
+            DWORD dwNewEntryCount = dwTotalEntries + 5;
+
+            dwError = DirectoryReallocMemory(
+                            pDirectoryEntries,
+                            (PVOID*)&pDirectoryEntries,
+                            dwNewEntryCount * sizeof(DIRECTORY_ENTRY));
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwEntriesAvailable = dwNewEntryCount - dwTotalEntries;
+
+            memset(pDirectoryEntries+(dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
+                   0,
+                   dwEntriesAvailable * sizeof(DIRECTORY_ENTRY));
+
+            dwTotalEntries = dwNewEntryCount;
+        }
+
+        dwError = DirectoryAllocateMemory(
+                        sizeof(DIRECTORY_ATTRIBUTE) * dwNumAttrs,
+                        (PVOID*)&pAttrs);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        for (pIter = pColumnValueList; pIter; pIter = pIter->pNext, iCol++)
+        {
+            PDIRECTORY_ATTRIBUTE pAttr = &pAttrs[iCol];
+            DWORD dwAttrLen = 0;
+
+            dwError = DirectoryAllocateStringW(
+                            pIter->pAttrMap->wszDirectoryAttribute,
+                            &pAttr->pwszName);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            switch (pIter->pAttrMap->attributeType)
+            {
+                case SAMDB_ATTR_TYPE_TEXT:
+
+                    dwAttrLen = sqlite3_column_bytes(pSqlStatement, iCol);
+                    if (dwAttrLen)
+                    {
+                        PATTRIBUTE_VALUE pAttrVal = NULL;
+
+                        const unsigned char* pszStringVal = NULL;
+
+                        pszStringVal = sqlite3_column_text(
+                                            pSqlStatement,
+                                            iCol);
+
+                        dwError = DirectoryAllocateMemory(
+                                        sizeof(ATTRIBUTE_VALUE),
+                                        (PVOID*)&pAttr->pValues);
+                        BAIL_ON_SAMDB_ERROR(dwError);
+
+                        pAttr->ulNumValues = 1;
+
+                        pAttrVal = &pAttr->pValues[0];
+
+                        pAttrVal->Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+
+                        dwError = LsaMbsToWc16s(
+                                        (PCSTR)pszStringVal,
+                                        &pAttrVal->pwszStringValue);
+                        BAIL_ON_SAMDB_ERROR(dwError);
+                    }
+                    else
+                    {
+                        pAttr->ulNumValues = 0;
+                    }
+
+                    break;
+
+                case SAMDB_ATTR_TYPE_INT32:
+                case SAMDB_ATTR_TYPE_DATETIME:
+
+                    dwError = DirectoryAllocateMemory(
+                            sizeof(ATTRIBUTE_VALUE),
+                            (PVOID*)&pAttr->pValues);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    pAttr->ulNumValues = 1;
+
+                    pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_INTEGER;
+                    pAttr->pValues[0].ulValue = sqlite3_column_int(
+                                                    pSqlStatement,
+                                                    iCol);
+
+                    break;
+
+                case SAMDB_ATTR_TYPE_INT64:
+
+                    dwError = DirectoryAllocateMemory(
+                                    sizeof(ATTRIBUTE_VALUE),
+                                    (PVOID*)&pAttr->pValues);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    pAttr->ulNumValues = 1;
+
+                    pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+                    pAttr->pValues[0].llValue = sqlite3_column_int64(
+                                                    pSqlStatement,
+                                                    iCol);
+
+                    break;
+
+                case SAMDB_ATTR_TYPE_BOOLEAN:
+
+                    dwError = DirectoryAllocateMemory(
+                                    sizeof(ATTRIBUTE_VALUE),
+                                    (PVOID*)&pAttr->pValues);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+
+                    pAttr->ulNumValues = 1;
+
+                    pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_BOOLEAN;
+
+                    if (sqlite3_column_int(pSqlStatement, iCol))
+                    {
+                        pAttr->pValues[0].bBooleanValue = TRUE;
+                    }
+                    else
+                    {
+                        pAttr->pValues[0].bBooleanValue = FALSE;
+                    }
+
+                    break;
+
+                case SAMDB_ATTR_TYPE_BLOB:
+
+                    dwAttrLen = sqlite3_column_bytes(pSqlStatement, iCol);
+                    if (dwAttrLen)
+                    {
+                        PATTRIBUTE_VALUE pAttrVal = NULL;
+
+                        PCVOID pBlob = sqlite3_column_blob(
+                                                pSqlStatement,
+                                                iCol);
+
+                        dwError = DirectoryAllocateMemory(
+                                        sizeof(ATTRIBUTE_VALUE),
+                                        (PVOID*)&pAttr->pValues);
+                        BAIL_ON_SAMDB_ERROR(dwError);
+
+                        pAttr->ulNumValues = 1;
+
+                        pAttrVal = &pAttr->pValues[0];
+
+                        pAttrVal->Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+
+                        dwError = DirectoryAllocateMemory(
+                                    sizeof(OCTET_STRING),
+                                    (PVOID*)&pAttrVal->pOctetString);
+                        BAIL_ON_SAMDB_ERROR(dwError);
+
+                        dwError = DirectoryAllocateMemory(
+                                    dwAttrLen,
+                                    (PVOID*)&pAttrVal->pOctetString->pBytes);
+                        BAIL_ON_SAMDB_ERROR(dwError);
+
+                        memcpy(pAttrVal->pOctetString->pBytes,
+                                pBlob,
+                                dwAttrLen);
+
+                        pAttrVal->pOctetString->ulNumBytes = dwAttrLen;
+                    }
+                    else
+                    {
+                        pAttr->ulNumValues = 0;
+                    }
+
+                    break;
+
+                default:
+
+                    dwError = LSA_ERROR_INTERNAL;
+                    BAIL_ON_SAMDB_ERROR(dwError);
+            }
+        }
+
+        pDirectoryEntries[dwNumEntries].ulNumAttributes = dwNumAttrs;
+        pDirectoryEntries[dwNumEntries].pAttributes = pAttrs;
+
+        pAttrs = NULL;
+        dwNumAttrs = 0;
+
+        dwNumEntries++;
+        dwEntriesAvailable--;
+    }
+
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    *ppDirectoryEntries = pDirectoryEntries;
+    *pdwNumEntries = dwNumEntries;
+
+cleanup:
+
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+
+    return dwError;
+
+error:
+
+    *ppDirectoryEntries = NULL;
+    *pdwNumEntries = 0;
+
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwTotalEntries);
+    }
+
+    goto cleanup;
 }

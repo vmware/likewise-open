@@ -10,7 +10,8 @@ libiomgr2_la_SOURCES = \
     iofile.c \
     iomem.c \
     ioapi.c \
-    ioipc.c
+    ioipc.c \
+    iosecurity.c
 
 libiomgr2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1 \
@@ -21,6 +22,7 @@ libiomgr2_la_LIBADD = \
     @top_builddir@/ipc/liblwioipc.la \
     @top_builddir@/logging_r/liblwiolog_r.la  \
     @top_builddir@/utils/liblwioutils.la \
+    @LWMAPSECURITY_LIBS@ \
     @LWBASE_LIBS@ \
     @LWMSG_LIBS@ \
     @UUID_LIBS@  \

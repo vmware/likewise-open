@@ -202,6 +202,229 @@ error:
 }
 
 
+NTSTATUS
+SamrSrvAllocateSidFromWC16String(
+    PSID *ppSid,
+    PCWSTR pwszSidStr,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pSid = NULL;
+
+    status = RtlAllocateSidFromWC16String(&pSid,
+                                          pwszSidStr);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = SamrSrvAddDepMemory(pSid, pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppSid = pSid;
+
+cleanup:
+    return status;
+
+error:
+    if (pSid) {
+        RTL_FREE(&pSid);
+    }
+
+    *ppSid = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvDuplicateSid(
+    PSID *ppSidOut,
+    PSID *pSidIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pSid = NULL;
+
+    status = RtlDuplicateSid(&pSid, pSidIn);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = SamrSrvAddDepMemory(pSid, pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppSidOut = pSid;
+
+cleanup:
+    return status;
+
+error:
+    if (pSid) {
+        RTL_FREE(&pSid);
+    }
+
+    *ppSidOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvGetFromUnicodeString(
+    PWSTR *ppwszOut,
+    UnicodeString *pIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszStr = NULL;
+
+    status = SamrSrvAllocateMemory((void**)&pwszStr,
+                                   (pIn->size + 1) * sizeof(WCHAR),
+                                   pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    wc16sncpy(pwszStr, pIn->string, pIn->len);
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return status;
+
+error:
+    if (pwszStr) {
+        SamrSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszStr = NULL;
+
+    status = SamrSrvAllocateMemory((void**)&pwszStr,
+                                   (pIn->size) * sizeof(WCHAR),
+                                   pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    wc16sncpy(pwszStr, pIn->string, pIn->len);
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return status;
+
+error:
+    if (pwszStr) {
+        SamrSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvInitUnicodeString(
+    UnicodeString *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR *pwszStr = NULL;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
+    dwSize = dwLen * sizeof(WCHAR);
+
+    status = SamrSrvAllocateMemory((void**)&(pOut->string),
+                                   dwSize,
+                                   pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pwszIn, dwSize);
+    pOut->size = dwSize;
+    pOut->len  = dwSize;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        SamrSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvInitUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR *pwszStr = NULL;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
+    dwSize = (dwLen + 1) * sizeof(WCHAR);
+
+    status = SamrSrvAllocateMemory((void**)&(pOut->string),
+                                   dwSize,
+                                   pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pwszIn, dwSize - 1);
+    pOut->size = dwSize;
+    pOut->len  = dwSize - 1;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        SamrSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
+void
+SamrSrvFreeUnicodeString(
+    UnicodeString *pStr
+    )
+{
+    SamrSrvFreeMemory(pStr->string);
+    pStr->len  = 0;
+    pStr->size = 0;
+}
+
+
+void
+SamrSrvFreeUnicodeStringEx(
+    UnicodeStringEx *pStr
+    )
+{
+    SamrSrvFreeMemory(pStr->string);
+    pStr->len  = 0;
+    pStr->size = 0;
+}
+
+
 /*
 local variables:
 mode: c

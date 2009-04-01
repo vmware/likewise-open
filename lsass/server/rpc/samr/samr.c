@@ -194,14 +194,21 @@ NTSTATUS _samr_Function0b(
 
 NTSTATUS __SamrCreateUser(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE *hDomain,
     /* [in] */ UnicodeString *account_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *user_handle,
+    /* [out] */ ACCOUNT_HANDLE *hUser,
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvCreateUser(IDL_handle,
+                               hDomain,
+                               account_name,
+                               access_mask,
+                               hUser,
+                               rid);
     return status;
 }
 
@@ -231,14 +238,21 @@ NTSTATUS __SamrEnumDomainUsers(
 
 NTSTATUS __SamrCreateDomAlias(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeString *alias_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *alias_handle,
+    /* [out] */ ACCOUNT_HANDLE *hAlias,
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvCreateDomAlias(IDL_handle,
+                                   hDomain,
+                                   alias_name,
+                                   access_mask,
+                                   hAlias,
+                                   rid);
     return status;
 }
 
@@ -646,16 +660,25 @@ NTSTATUS _samr_Function31(
 
 NTSTATUS __SamrCreateUser2(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeStringEx *account_name,
     /* [in] */ uint32 account_flags,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *user_handle,
+    /* [out] */ ACCOUNT_HANDLE *hUser,
     /* [out] */ uint32 *access_granted,
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvCreateUser2(IDL_handle,
+                                hDomain,
+                                account_name,
+                                account_flags,
+                                access_mask,
+                                hUser,
+                                access_granted,
+                                rid);
     return status;
 }
 

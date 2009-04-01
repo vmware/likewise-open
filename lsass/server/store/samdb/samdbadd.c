@@ -1181,9 +1181,150 @@ SamDbAddBindValues(
     )
 {
     DWORD dwError = 0;
+    PSAM_DB_COLUMN_VALUE pIter = pColumnValueList;
+    DWORD iParam = 0;
 
-    // TODO
+    for (; pIter; pIter = pIter->pNext)
+    {
+        if (pIter->pAttrValues)
+        {
+            if (pIter->ulNumValues > 1)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+            }
+        }
+        else if (pIter->pDirMod)
+        {
+            if (pIter->ulNumValues > 1)
+            {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+            }
+        }
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        switch (pIter->pAttrMap->attributeType)
+        {
+            case SAMDB_ATTR_TYPE_TEXT:
+            {
+                PSTR pszValue = NULL;
+
+                if (pIter->pAttrValues)
+                {
+                    pszValue = pIter->pAttrValues[0].pszStringValue;
+                }
+                else
+                if (pIter->pDirMod)
+                {
+                    pszValue = pIter->pDirMod->pAttrValues[0].pszStringValue;
+                }
+
+                if (pszValue)
+                {
+                    dwError = sqlite3_bind_text(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pszValue,
+                                    -1,
+                                    SQLITE_TRANSIENT);
+                }
+                else
+                {
+                    dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+                }
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+            }
+
+            case SAMDB_ATTR_TYPE_INT32:
+            case SAMDB_ATTR_TYPE_BOOLEAN:
+            case SAMDB_ATTR_TYPE_DATETIME:
+
+                if (pIter->pAttrValues)
+                {
+                    dwError = sqlite3_bind_int(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pIter->pAttrValues[0].ulValue);
+                }
+                else
+                if (pIter->pDirMod)
+                {
+                    dwError = sqlite3_bind_int(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pIter->pDirMod->pAttrValues[0].ulValue);
+                }
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_ATTR_TYPE_INT64:
+
+                if (pIter->pAttrValues)
+                {
+                    dwError = sqlite3_bind_int(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pIter->pAttrValues[0].llValue);
+                }
+                else
+                if (pIter->pDirMod)
+                {
+                    dwError = sqlite3_bind_int(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pIter->pDirMod->pAttrValues[0].llValue);
+                }
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+
+            case SAMDB_ATTR_TYPE_BLOB:
+            {
+                POCTET_STRING pOctetString = NULL;
+
+                if (pIter->pAttrValues)
+                {
+                    pOctetString = pIter->pAttrValues[0].pOctetString;
+                }
+                else
+                if (pIter->pDirMod)
+                {
+                    pOctetString = pIter->pDirMod->pAttrValues[0].pOctetString;
+                }
+
+                if (pOctetString)
+                {
+                    dwError = sqlite3_bind_blob(
+                                    pSqlStatement,
+                                    ++iParam,
+                                    pOctetString->pBytes,
+                                    pOctetString->ulNumBytes,
+                                    SQLITE_TRANSIENT);
+                }
+                else
+                {
+                    dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
+                }
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+            }
+
+            default:
+
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_SAMDB_ERROR(dwError);
+        }
+    }
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 

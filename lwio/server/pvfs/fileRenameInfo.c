@@ -112,6 +112,10 @@ PvfsSetFileRenameInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PSTR pszNewFilename = NULL;
     PSTR pszNewPathname = NULL;
+    ACCESS_MASK DirGranted = 0;
+    ACCESS_MASK DirDesired = 0;
+    PSTR pszNewFileDirname = NULL;
+    PSTR pszNewFileBasename = NULL;
 
     /* Sanity checks */
 
@@ -122,22 +126,30 @@ PvfsSetFileRenameInfo(
 
     pFileInfo = (PFILE_RENAME_INFORMATION)Args.FileInformation;
 
-    if (pFileInfo->RootDirectory)
-    {
-        ntError =  PvfsAcquireCCB(pFileInfo->RootDirectory, &pRootDirCcb);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
-    BAIL_ON_NT_STATUS(ntError);
-
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Real work starts here */
+    if (pFileInfo->RootDirectory)
+    {
+        ntError =  PvfsAcquireCCB(pFileInfo->RootDirectory, &pRootDirCcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (!PVFS_IS_DIR(pRootDirCcb)) {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    /* Make sure we have DELETE permissions on the source file */
+
+    ntError = PvfsAccessCheckFileHandle(pCcb, DELETE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Make sure we can add the new object to the parent directory
+       (not necessarily the same as the RootDirectory handle) */
 
     ntError = PvfsWC16CanonicalPathName(&pszNewFilename, pFileInfo->FileName);
     BAIL_ON_NT_STATUS(ntError);
@@ -153,6 +165,22 @@ PvfsSetFileRenameInfo(
         PVFS_SAFE_FREE_MEMORY(pszNewFilename);
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    ntError = PvfsFileSplitPath(&pszNewFileDirname, &pszNewFileBasename, pszNewPathname);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (PVFS_IS_DIR(pCcb)) {
+        DirDesired = FILE_ADD_SUBDIRECTORY;
+    } else {
+        DirDesired = FILE_ADD_FILE;
+    }
+    ntError = PvfsAccessCheckFile(pCcb->pUserToken,
+                                  pszNewFileDirname,
+                                  DirDesired,
+                                  &DirGranted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Real work starts here */
 
     /* Check for an existing file if not asked to overwrite */
 

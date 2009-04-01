@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrCreateUser function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_createuser.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrCreateUser function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,20 +48,59 @@
 
 
 NTSTATUS
-SamrCreateUser(
-    /* [in] */ PolicyHandle *domain_handle,
+SamrSrvCreateUser(
+    /* [in] */ handle_t hBinding,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeString *account_name,
     /* [in] */ uint32 access_mask,
-    /* [out] */ PolicyHandle *user_handle,
+    /* [out] */ ACCOUNT_HANDLE *hUser,
     /* [out] */ uint32 *rid
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+    PWSTR pwszUserName = NULL;
+    UnicodeStringEx UserName;
+    uint32 ulAccessGranted = 0;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+        status = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    status = SamrSrvGetFromUnicodeString(&pwszUserName,
+                                         account_name,
+                                         pDomCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = SamrSrvInitUnicodeStringEx(&UserName,
+                                        pwszUserName,
+                                        pDomCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = SamrSrvCreateAccount(hBinding,
+                                  hDomain,
+                                  &UserName,
+                                  "user",
+                                  ACB_NORMAL,
+                                  access_mask,
+                                  hUser,
+                                  &ulAccessGranted,
+                                  rid);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
+    if (pwszUserName) {
+        SamrSrvFreeMemory(pwszUserName);
+    }
+
+    SamrSrvFreeUnicodeStringEx(&UserName);
+
     return status;
 
 error:
+    *hUser          = NULL;
+    *rid            = 0;
     goto cleanup;
 }
 

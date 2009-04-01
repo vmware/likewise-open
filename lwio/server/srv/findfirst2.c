@@ -313,6 +313,7 @@ SrvBuildFindFirst2Response(
     SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvFinderCreateSearchSpace(
+                    pSession->pIoSecurityContext,
                     pSession->hFinderRepository,
                     pwszFilesystemPath,
                     pwszSearchPattern2,

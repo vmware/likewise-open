@@ -56,6 +56,7 @@ SrvFinderCreateRepository(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     HANDLE         hFinderRepository,
     PWSTR          pwszFilesystemPath,
     PWSTR          pwszSearchPattern,

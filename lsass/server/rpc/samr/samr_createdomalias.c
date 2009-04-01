@@ -33,83 +33,77 @@
  *
  * Module Name:
  *
- *        samr_contexthandle.h
+ *        samr_createdomalias2.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        Samr context handles
+ *        SamrCreateDomAlias function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _SAMR_CONTEXT_HANDLE_H_
-#define _SAMR_CONTEXT_HANDLE_H_
+#include "includes.h"
 
 
-enum SamrContextType {
-    SamrContextConnect = 0,
-    SamrContextDomain,
-    SamrContextAccount
-};
+NTSTATUS
+SamrSrvCreateDomAlias(
+    /* [in] */ handle_t hBinding,
+    /* [in] */ DOMAIN_HANDLE hDomain,
+    /* [in] */ UnicodeString *alias_name,
+    /* [in] */ uint32 access_mask,
+    /* [out] */ ACCOUNT_HANDLE *hAlias,
+    /* [out] */ uint32 *rid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+    PWSTR pwszAliasName = NULL;
+    UnicodeStringEx Name;
+    uint32 ulAccessGranted = 0;
 
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
-typedef struct samr_generic_context {
-    enum SamrContextType    Type;
-    LONG                    refcount;
-} SAMR_GENERIC_CONTEXT, *PSAMR_GENERIC_CONTEXT;
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+        status = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
 
+    status = SamrSrvGetFromUnicodeString(&pwszAliasName,
+                                         alias_name,
+                                         pDomCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-typedef struct samr_connect_context {
-    enum SamrContextType    Type;
-    LONG                    refcount;
-    PACCESS_TOKEN           pUserToken;
-    HANDLE                  hDirectory;
-} CONNECT_CONTEXT, *PCONNECT_CONTEXT;
+    status = SamrSrvInitUnicodeStringEx(&Name,
+                                        pwszAliasName,
+                                        pDomCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
+    status = SamrSrvCreateAccount(hBinding,
+                                  hDomain,
+                                  &Name,
+                                  "group",
+                                  0,
+                                  access_mask,
+                                  hAlias,
+                                  &ulAccessGranted,
+                                  rid);
 
-typedef struct samr_domain_context {
-    enum SamrContextType Type;
-    LONG                 refcount;
-    PWSTR                pwszDn;
-    PWSTR                pwszDomainName;
-    PSID                 pDomainSid;
-    PCONNECT_CONTEXT     pConnCtx;
-} DOMAIN_CONTEXT, *PDOMAIN_CONTEXT;
+cleanup:
+    if (pwszAliasName) {
+        SamrSrvFreeMemory(pwszAliasName);
+    }
 
+    SamrSrvFreeUnicodeStringEx(&Name);
 
-typedef struct samr_account_context {
-    enum SamrContextType Type;
-    LONG                 refcount;
-    PWSTR                pwszDn;
-    PWSTR                pwszName;
-    DWORD                dwRid;
-    DWORD                dwAccountType;
-    PSID                 pSid;
-    PDOMAIN_CONTEXT      pDomCtx;
-} ACCOUNT_CONTEXT, *PACCOUNT_CONTEXT;
+    return status;
 
-
-void
-CONNECT_HANDLE_rundown(
-    void *hContext
-    );
-
-
-void
-DOMAIN_HANDLE_rundown(
-    void *hContext
-    );
-
-
-void
-ACCOUNT_HANDLE_rundown(
-    void *hContext
-    );
-
-
-#endif /* _SAMR_CONTEXT_HANDLE_H_ */
+error:
+    *hAlias = NULL;
+    *rid    = 0;
+    goto cleanup;
+}
 
 
 /*
