@@ -51,8 +51,8 @@ libsamr_srv_la_LIBADD = \
     @LIBUNISTR_LIBS@ \
     @LWBASE_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
-    $(rpc_srcdir)/samr/libsamr_cfg.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
+    libsamr_cfg.la \
     libsamr_ss.la
 
 libsamr_ss_la_SOURCES = samr_sstub.c
@@ -76,7 +76,6 @@ libsamr_cfg_la_SOURCES = \
     samr_cfg.c
 
 libsamr_cfg_la_CFLAGS = \
-    -static \
     -DLIBRPC_BUILD \
     $(FEATURETEST_FLAGS) \
     -I$(srv_srcdir)/include \
