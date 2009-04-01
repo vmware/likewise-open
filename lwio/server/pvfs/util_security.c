@@ -178,22 +178,30 @@ PvfsAccessCheckFile(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Allocate */
+    /* Allocate -- Always use RTL routines for Absolute SDs */
 
-    ntError = PvfsAllocateMemory((PVOID*)&pSecDesc, SecDescLen);
+    ntError = RTL_ALLOCATE(&pSecDesc, VOID, SecDescLen);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory((PVOID*)&pOwner, OwnerLen);
-    BAIL_ON_NT_STATUS(ntError);
+    if (OwnerLen) {
+        ntError = RTL_ALLOCATE(&pOwner, SID, OwnerLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
-    ntError = PvfsAllocateMemory((PVOID*)&pGroup, GroupLen);
-    BAIL_ON_NT_STATUS(ntError);
+    if (GroupLen) {
+        ntError = RTL_ALLOCATE(&pGroup, SID, GroupLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
-    ntError = PvfsAllocateMemory((PVOID*)&pDacl, DaclLen);
-    BAIL_ON_NT_STATUS(ntError);
+    if (DaclLen) {
+        ntError = RTL_ALLOCATE(&pDacl, VOID, DaclLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
-    ntError = PvfsAllocateMemory((PVOID*)&pSacl, SaclLen);
-    BAIL_ON_NT_STATUS(ntError);
+    if (SaclLen) {
+        ntError = RTL_ALLOCATE(&pSacl, VOID, SaclLen);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     /* Translate the SD */
 
