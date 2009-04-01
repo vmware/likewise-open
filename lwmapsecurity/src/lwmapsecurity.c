@@ -596,7 +596,7 @@ LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
                     Username);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlCreateAccessToken(
+    status = LwMapSecurityCreateExtendedAccessToken(
                     &accessToken,
                     createInformation->User,
                     createInformation->Groups,
