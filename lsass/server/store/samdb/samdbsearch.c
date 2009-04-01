@@ -41,6 +41,41 @@ SamDbSearchObject(
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbSearchObject_inlock(
+                    hDirectory,
+                    pwszBase,
+                    ulScope,
+                    pwszFilter,
+                    wszAttributes,
+                    ulAttributesOnly,
+                    ppDirectoryEntries,
+                    pdwNumEntries);
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+
+    return dwError;
+}
+
+DWORD
+SamDbSearchObject_inlock(
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     PSTR  pszQuery = NULL;
     BOOLEAN bMembersAttrExists = FALSE;
     PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
@@ -303,14 +338,11 @@ SamDbSearchExecute(
     PSAM_DB_COLUMN_VALUE pIter = NULL;
     PDIRECTORY_ATTRIBUTE pAttrs = NULL;
     DWORD                dwNumAttrs = 0;
-    BOOLEAN              bInLock = FALSE;
 
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
         dwNumCols++;
     }
-
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -535,8 +567,6 @@ cleanup:
     {
         sqlite3_finalize(pSqlStatement);
     }
-
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     return dwError;
 
