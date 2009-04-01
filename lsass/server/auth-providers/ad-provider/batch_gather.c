@@ -650,7 +650,30 @@ LsaAdBatchGatherRealObject(
     IN LDAPMessage* pMessage
     )
 {
+    return LsaAdBatchGatherRealObjectInternal(
+                pItem,
+                NULL,
+                NULL,
+                ObjectType,
+                ppszSid,
+                hDirectory,
+                pMessage);
+}
+
+DWORD
+LsaAdBatchGatherRealObjectInternal(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN OPTIONAL PDWORD pdwDirectoryMode,
+    IN OPTIONAL ADConfigurationMode* pAdMode,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OUT OPTIONAL PSTR* ppszSid,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    )
+{
     DWORD dwError = 0;
+    DWORD dwDirectoryMode = pdwDirectoryMode == NULL ? gpADProviderData->dwDirectoryMode : *pdwDirectoryMode;
+    ADConfigurationMode adMode = pAdMode == NULL ? gpADProviderData->adConfigurationMode : *pAdMode;
 
     SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL);
 
@@ -705,7 +728,7 @@ LsaAdBatchGatherRealObject(
     }
 
     // Handle cases where real contains pseudo.
-    if (LsaAdBatchIsDefaultSchemaMode())
+    if (DEFAULT_MODE == dwDirectoryMode && SchemaMode == adMode)
     {
         // But only if we are not being called by a pseudo
         // lookup for default schema mode.
@@ -719,7 +742,7 @@ LsaAdBatchGatherRealObject(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    else if (LsaAdBatchIsUnprovisionedMode())
+    else if (UNPROVISIONED_MODE == dwDirectoryMode)
     {
         dwError = LsaAdBatchGatherUnprovisionedMode(
                         pItem,
