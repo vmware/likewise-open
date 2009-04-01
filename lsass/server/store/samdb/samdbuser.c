@@ -50,6 +50,22 @@
 
 #include "includes.h"
 
+static
+DWORD
+SamDbSetPassword_inlock(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
+
+static
+DWORD
+SamDbVerifyPassword_inlock(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
+
 DWORD
 SamDbSetPassword(
     HANDLE hBindHandle,
@@ -58,10 +74,138 @@ SamDbSetPassword(
     )
 {
     DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    BOOLEAN bInLock = FALSE;
 
-    // TODO
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbSetPassword_inlock(
+                    hBindHandle,
+                    pwszUserDN,
+                    pwszPassword);
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     return dwError;
+}
+
+static
+DWORD
+SamDbSetPassword_inlock(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    )
+{
+    DWORD dwError = 0;
+    BYTE lmHash[16];
+    BYTE ntHash[16];
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    PCSTR pszQueryTemplate = "UPDATE " SAM_DB_OBJECTS_TABLE \
+                             "   SET " SAM_DB_COL_LM_HASH " = ?1," \
+                             "   SET " SAM_DB_COL_NT_HASH " = ?2"  \
+                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?3" \
+                             "   AND " SAM_DB_COL_OBJECT_CLASS " = ?4";
+    sqlite3_stmt* pSqlStatement = NULL;
+    PSTR pszPassword = NULL;
+    PSTR pszUserDN = NULL;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_USER;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    dwError = LsaWc16sToMbs(
+                    pwszPassword,
+                    &pszPassword);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserDN,
+                    &pszUserDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    memset(&lmHash[0], 0, sizeof(lmHash));
+    memset(&ntHash[0], 0, sizeof(ntHash));
+
+    dwError = SamDbComputeLMHash(
+                pszPassword,
+                &lmHash[0],
+                sizeof(lmHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbComputeNTHash(
+                pszPassword,
+                &ntHash[0],
+                sizeof(ntHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_blob(
+                    pSqlStatement,
+                    1,
+                    &lmHash[0],
+                    sizeof(lmHash),
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_blob(
+                    pSqlStatement,
+                    2,
+                    &ntHash[0],
+                    sizeof(ntHash),
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(
+                    pSqlStatement,
+                    3,
+                    pszUserDN,
+                    -1,
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(
+                    pSqlStatement,
+                    4,
+                    objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_step(pSqlStatement);
+    if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!sqlite3_changes(pDirectoryContext->pDbContext->pDbHandle))
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    DIRECTORY_FREE_STRING(pszPassword);
+    DIRECTORY_FREE_STRING(pszUserDN);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -73,10 +217,34 @@ SamDbChangePassword(
     )
 {
     DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    BOOLEAN bInLock = FALSE;
 
-    // TODO
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbVerifyPassword_inlock(
+                    hBindHandle,
+                    pwszUserDN,
+                    pwszOldPassword);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbSetPassword_inlock(
+                    hBindHandle,
+                    pwszUserDN,
+                    pwszNewPassword);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+cleanup:
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -87,10 +255,170 @@ SamDbVerifyPassword(
     )
 {
     DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    BOOLEAN bInLock = FALSE;
 
-    // TODO
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbVerifyPassword_inlock(
+                    hBindHandle,
+                    pwszUserDN,
+                    pwszPassword);
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     return dwError;
+}
+
+static
+DWORD
+SamDbVerifyPassword_inlock(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    )
+{
+    DWORD dwError = 0;
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    PSTR pszPassword = NULL;
+    PSTR pszUserDN = NULL;
+    BYTE lmHash[16];
+    BYTE ntHash[16];
+    BYTE lmHashDbValue[16];
+    BYTE ntHashDbValue[16];
+    sqlite3_stmt* pSqlStatement = NULL;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_USER;
+    PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_LM_HASH "," \
+                                       SAM_DB_COL_NT_HASH     \
+                             "  FROM " SAM_DB_OBJECTS_TABLE   \
+                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1" \
+                             "   AND " SAM_DB_COL_OBJECT_CLASS " = ?2";
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    dwError = LsaWc16sToMbs(
+                    pwszPassword,
+                    &pszPassword);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserDN,
+                    &pszUserDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    memset(&lmHash[0], 0, sizeof(lmHash));
+    memset(&ntHash[0], 0, sizeof(ntHash));
+
+    memset(&lmHashDbValue[0], 0, sizeof(lmHashDbValue));
+    memset(&ntHashDbValue[0], 0, sizeof(ntHashDbValue));
+
+    dwError = SamDbComputeLMHash(
+                pszPassword,
+                &lmHash[0],
+                sizeof(lmHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbComputeNTHash(
+                pszPassword,
+                &ntHash[0],
+                sizeof(ntHash));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(
+                    pSqlStatement,
+                    1,
+                    pszUserDN,
+                    -1,
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(
+                    pSqlStatement,
+                    2,
+                    objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+    else
+    if (dwError == SQLITE_ROW)
+    {
+        DWORD dwNumBytes = 0;
+
+        if (sqlite3_column_count(pSqlStatement) != 2)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwNumBytes = sqlite3_column_bytes(pSqlStatement, 0);
+        if (dwNumBytes)
+        {
+            if (dwNumBytes != sizeof(lmHash))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
+            else
+            {
+                PCVOID pData = sqlite3_column_blob(pSqlStatement, 0);
+
+                memcpy(&lmHash[0], pData, dwNumBytes);
+            }
+        }
+
+        dwNumBytes = sqlite3_column_bytes(pSqlStatement, 1);
+        if (dwNumBytes)
+        {
+            if (dwNumBytes != sizeof(ntHash))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_SAMDB_ERROR(dwError);
+            }
+            else
+            {
+                PCVOID pData = sqlite3_column_blob(pSqlStatement, 1);
+
+                memcpy(&ntHash[0], pData, dwNumBytes);
+            }
+        }
+    }
+
+    if (memcmp(&lmHash[0], &lmHashDbValue[0], sizeof(lmHash)) ||
+        memcmp(&ntHash[0], &ntHashDbValue[0], sizeof(ntHash)))
+    {
+        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    DIRECTORY_FREE_STRING(pszPassword);
+    DIRECTORY_FREE_STRING(pszUserDN);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 
