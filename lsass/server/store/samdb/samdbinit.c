@@ -20,14 +20,14 @@ static
 DWORD
 SamDbAddBuiltin(
     HANDLE hDirectory,
-    PCSTR  pszDomain
+    PCSTR  pszDomainDN
     );
 
 static
 DWORD
 SamDbAddMachineDomain(
     HANDLE hDirectory,
-    PCSTR  pszDomain,
+    PCSTR  pszDomainDN,
     PCSTR  pszNetBIOSName
     );
 
@@ -35,7 +35,7 @@ static
 DWORD
 SamDbAddLocalGroup(
     HANDLE hDirectory,
-    PCSTR  pszDomain,
+    PCSTR  pszDomainDN,
     PCSTR  pszGroupName,
     PCSTR  pszGroupSID,
     DWORD  dwGID
@@ -45,7 +45,7 @@ static
 DWORD
 SamDbAddLocalDomain(
     HANDLE hDirectory,
-    PCSTR  pszDomainName,
+    PCSTR  pszDomainDN,
     PCSTR  pszNetBIOSName,
     PCSTR  pszMachineSID
     );
@@ -235,6 +235,7 @@ SamDbAddDefaultEntries(
 {
     DWORD  dwError = 0;
     PSTR   pszHostname = NULL;
+    PSTR   pszDomainDN = NULL;
     CHAR   szNetBIOSName[16];
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
@@ -248,20 +249,27 @@ SamDbAddDefaultEntries(
     dwError = SamDbInitConfig(hDirectory);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    dwError = LsaAllocateStringPrintf(
+                    &pszDomainDN,
+                    "DC=%s",
+                    pszHostname);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     dwError = SamDbAddMachineDomain(
                     hDirectory,
-                    pszHostname,
+                    pszDomainDN,
                     &szNetBIOSName[0]);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbAddBuiltin(
                     hDirectory,
-                    pszHostname);
+                    pszDomainDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
-    DIRECTORY_FREE_MEMORY(pszHostname);
+    DIRECTORY_FREE_STRING(pszHostname);
+    DIRECTORY_FREE_STRING(pszDomainDN);
 
     return dwError;
 
@@ -274,12 +282,12 @@ static
 DWORD
 SamDbAddBuiltin(
     HANDLE hDirectory,
-    PCSTR  pszDomain
+    PCSTR  pszDomainDN
     )
 {
     return SamDbAddLocalGroup(
                     hDirectory,
-                    pszDomain,
+                    pszDomainDN,
                     SAMDB_BUILTIN_TAG,
                     SAMDB_BUILTIN_SID,
                     SAMDB_BUILTIN_GID);
@@ -289,7 +297,7 @@ static
 DWORD
 SamDbAddMachineDomain(
     HANDLE hDirectory,
-    PCSTR  pszDomain,
+    PCSTR  pszDomainDN,
     PCSTR  pszNetBIOSName
     )
 {
@@ -318,7 +326,7 @@ SamDbAddMachineDomain(
 
     dwError = SamDbAddLocalDomain(
                     hDirectory,
-                    pszDomain,
+                    pszDomainDN,
                     pszNetBIOSName,
                     pszMachineSID);
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -341,13 +349,13 @@ static
 DWORD
 SamDbAddLocalDomain(
     HANDLE hDirectory,
-    PCSTR  pszDomainName,
+    PCSTR  pszDomainDN,
     PCSTR  pszNetBIOSName,
     PCSTR  pszMachineSID
     )
 {
     DWORD     dwError = 0;
-    PWSTR     pwszObjectName = NULL;
+    PWSTR     pwszObjectDN = NULL;
     PWSTR     pwszMachineSID = NULL;
     PWSTR     pwszNetBIOSName = NULL;
     ATTRIBUTE_VALUE avMachineSID = {0};
@@ -358,8 +366,8 @@ SamDbAddLocalDomain(
     memset(mods, 0, sizeof(mods));
 
     dwError = LsaMbsToWc16s(
-                    pszDomainName,
-                    &pwszObjectName);
+                    pszDomainDN,
+                    &pwszObjectDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
@@ -394,26 +402,18 @@ SamDbAddLocalDomain(
     avNetBIOSName.pwszStringValue = pwszNetBIOSName;
     mods[1].pAttrValues = &avNetBIOSName;
 
-    dwError = SamDbAddDomain(
+    dwError = SamDbAddObject(
                     hDirectory,
-                    pwszObjectName,
+                    pwszObjectDN,
                     mods);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
 
-    if (pwszObjectName)
-    {
-        DirectoryFreeMemory(pwszObjectName);
-    }
-    if (pwszMachineSID)
-    {
-        DirectoryFreeMemory(pwszMachineSID);
-    }
-    if (pwszNetBIOSName)
-    {
-        DirectoryFreeMemory(pwszNetBIOSName);
-    }
+    DIRECTORY_FREE_MEMORY(pwszObjectDN);
+    DIRECTORY_FREE_MEMORY(pwszMachineSID);
+    DIRECTORY_FREE_MEMORY(pwszNetBIOSName);
+
     for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
     {
         if (mods[iMod].pwszAttrName)
@@ -433,7 +433,7 @@ static
 DWORD
 SamDbAddLocalGroup(
     HANDLE hDirectory,
-    PCSTR  pszDomain,
+    PCSTR  pszDomainDN,
     PCSTR  pszGroupName,
     PCSTR  pszGroupSID,
     DWORD  dwGID
@@ -454,9 +454,9 @@ SamDbAddLocalGroup(
 
     dwError = LsaAllocateStringPrintf(
                     &pszObjectDN,
-                    "CN=%s,DC=%s",
+                    "CN=%s,%s",
                     pszGroupName,
-                    pszDomain);
+                    pszDomainDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
