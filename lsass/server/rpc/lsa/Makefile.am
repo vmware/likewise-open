@@ -44,7 +44,7 @@ liblsa_srv_la_LIBADD = \
     @LWBASE_LIBS@ \
     @NETLOGON_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
-    $(rpc_srcdir)/samr/libsamr_srv.la \
+    $(rpc_srcdir)/samr/libsamr_cfg.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
 
