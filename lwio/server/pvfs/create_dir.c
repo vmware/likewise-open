@@ -172,10 +172,12 @@ PvfsCreateDirCreate(
     /* Should check parent here */
 
     ntError = PvfsAccessCheckDir(pSecCtx,
-                                 pszDiskDirname,
-                                 Args.DesiredAccess,
+                                 pszDirname,
+                                 FILE_ADD_SUBDIRECTORY,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    GrantedAccess = FILE_ALL_ACCESS;
 
     ntError = MapPosixOpenFlags(&unixFlags, GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
@@ -394,9 +396,10 @@ PvfsCreateDirOpenIf(
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDiskDirname,
-                                     Args.DesiredAccess,
+                                     pszDirname,
+                                     FILE_ADD_SUBDIRECTORY,
                                      &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
     }
     else
     {
@@ -404,8 +407,8 @@ PvfsCreateDirOpenIf(
                                      pszDiskFilename,
                                      Args.DesiredAccess,
                                      &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
     }
-    BAIL_ON_NT_STATUS(ntError);
 
     if (!bFileExisted) {
         ntError = PvfsSysMkDir(pszDiskFilename, 0700);

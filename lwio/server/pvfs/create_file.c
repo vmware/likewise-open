@@ -193,16 +193,16 @@ PvfsCreateFileSupersede(
     {
         FILE_ATTRIBUTES Attributes = 0;
 
-        ntError = PvfsCheckShareMode(pszDiskFilename,
-                                     Args.ShareAccess,
-                                     Args.DesiredAccess,
-                                     &pFcb);
-        BAIL_ON_NT_STATUS(ntError);
-
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,
                                       &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsCheckShareMode(pszDiskFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess,
+                                     &pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
         /* Check for ReadOnly bit */
@@ -236,18 +236,23 @@ PvfsCreateFileSupersede(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    ntError = PvfsAccessCheckDir(pSecCtx,
+                                 pszDirectory,
+                                 Args.DesiredAccess,
+                                 &GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* This should actually be another check against the
+       newly created SD */
+
+    GrantedAccess = FILE_ALL_ACCESS;
+
     /* This should get us a new FCB */
 
     ntError = PvfsCheckShareMode(pszDiskFilename,
                                  Args.ShareAccess,
                                  Args.DesiredAccess,
                                  &pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAccessCheckDir(pSecCtx,
-                                 pszDirectory,
-                                 Args.DesiredAccess,
-                                 &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
@@ -385,14 +390,6 @@ PvfsCreateFileCreate(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Need to go ahead andcreate a share mode entry */
-
-    ntError = PvfsCheckShareMode(pszDiskFilename,
-                                 Args.ShareAccess,
-                                 Args.DesiredAccess,
-                                 &pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
     /* Check that we can add files to the parent directory.  If
        we can, then the granted access on the file should be
        ALL_ACCESS. */
@@ -402,6 +399,20 @@ PvfsCreateFileCreate(
                                  FILE_ADD_FILE,
                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* This should actually be another check against the
+       newly created SD */
+
+    GrantedAccess = FILE_ALL_ACCESS;
+
+    /* Need to go ahead andcreate a share mode entry */
+
+    ntError = PvfsCheckShareMode(pszDiskFilename,
+                                 Args.ShareAccess,
+                                 Args.DesiredAccess,
+                                 &pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
 
@@ -516,17 +527,18 @@ PvfsCreateFileOpen(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAccessCheckFile(pSecCtx,
+                                  pszDiskFilename,
+                                  Args.DesiredAccess,
+                                  &GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsCheckShareMode(pszDiskFilename,
                                  Args.ShareAccess,
                                  Args.DesiredAccess,
                                  &pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAccessCheckFile(pSecCtx,
-                                  pszDiskFilename,
-                                  Args.DesiredAccess,
-                                  &GrantedAccess);
-    BAIL_ON_NT_STATUS(ntError);
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
 
@@ -651,31 +663,39 @@ PvfsCreateFileOpenIf(
                                            pszRelativeFilename);
         BAIL_ON_NT_STATUS(ntError);
 
+        ntError = PvfsAccessCheckDir(pSecCtx,
+                                     pszDiskDirname,
+                                     FILE_ADD_FILE,
+                                     &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* This should actually be another check against the
+           newly created SD */
+
+        GrantedAccess = FILE_ALL_ACCESS;
+
         ntError = PvfsCheckShareMode(pszDiskFilename,
                                      Args.ShareAccess,
                                      Args.DesiredAccess,
                                      &pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDiskDirname,
-                                     Args.DesiredAccess,
-                                     &GrantedAccess);
     }
     else
     {
-        ntError = PvfsCheckShareMode(pszDiskFilename,
-                                     Args.ShareAccess,
-                                     Args.DesiredAccess,
-                                     &pFcb);
-        BAIL_ON_NT_STATUS(ntError);
-
         ntError = PvfsAccessCheckFile(pSecCtx,
                                       pszDiskFilename,
                                       Args.DesiredAccess,
                                       &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsCheckShareMode(pszDiskFilename,
+                                     Args.ShareAccess,
+                                     Args.DesiredAccess,
+                                     &pFcb);
+        BAIL_ON_NT_STATUS(ntError);
+
     }
-    BAIL_ON_NT_STATUS(ntError);
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
 
@@ -797,19 +817,16 @@ PvfsCreateFileOverwrite(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Just check access on the file and allow the open to
-       validate existence */
+    ntError = PvfsAccessCheckFile(pSecCtx,
+                                  pszDiskFilename,
+                                  Args.DesiredAccess,
+                                  &GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckShareMode(pszDiskFilename,
                                  Args.ShareAccess,
                                  Args.DesiredAccess,
                                  &pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsAccessCheckFile(pSecCtx,
-                                  pszDiskFilename,
-                                  Args.DesiredAccess,
-                                  &GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
@@ -957,6 +974,14 @@ PvfsCreateFileOverwriteIf(
                                            pszRelativeFilename);
         BAIL_ON_NT_STATUS(ntError);
 
+        ntError = PvfsAccessCheckDir(pSecCtx,
+                                     pszDiskDirname,
+                                     Args.DesiredAccess,
+                                     &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
+        GrantedAccess = FILE_ALL_ACCESS;
+
         /* Need a new share mode anyways */
 
         ntError = PvfsCheckShareMode(pszDiskFilename,
@@ -964,26 +989,21 @@ PvfsCreateFileOverwriteIf(
                                      Args.DesiredAccess,
                                      &pFcb);
         BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsAccessCheckDir(pSecCtx,
-                                     pszDiskDirname,
-                                     Args.DesiredAccess,
-                                     &GrantedAccess);
     }
     else
     {
+        ntError = PvfsAccessCheckFile(pSecCtx,
+                                      pszDiskFilename,
+                                      Args.DesiredAccess,
+                                      &GrantedAccess);
+        BAIL_ON_NT_STATUS(ntError);
+
         ntError = PvfsCheckShareMode(pszDiskFilename,
                                      Args.ShareAccess,
                                      Args.DesiredAccess,
                                      &pFcb);
         BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsAccessCheckFile(pSecCtx,
-                                      pszDiskFilename,
-                                      Args.DesiredAccess,
-                                      &GrantedAccess);
     }
-    BAIL_ON_NT_STATUS(ntError);
 
     /* Can't set DELETE_ON_CLOSE for ReadOnly files */
 
