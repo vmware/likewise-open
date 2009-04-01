@@ -46,6 +46,7 @@
 #include <lw/security-api.h>
 #include <lw/rtlgoto.h>
 #include <lw/base.h>
+#include <lw/safeint.h>
 #include "config.h"
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
@@ -365,6 +366,124 @@ LwMapSecurityFreeAccessTokenCreateInformation(
     }
 }
 
+static
+NTSTATUS
+LwMapSecurityCreateExtendedGroups(
+    OUT PTOKEN_GROUPS* ExtendedTokenGroups,
+    IN PTOKEN_GROUPS OriginalTokenGroups,
+    IN ULONG SidCount,
+    IN PSID* Sids
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PTOKEN_GROUPS tokenGroups = NULL;
+    ULONG groupCount = OriginalTokenGroups->GroupCount + SidCount;
+    ULONG size = 0;
+    ULONG i = 0;
+
+    status = RtlSafeMultiplyULONG(&size, groupCount, sizeof(tokenGroups->Groups[0]));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlSafeAddULONG(&size, size, sizeof(*tokenGroups));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RTL_ALLOCATE(&tokenGroups, TOKEN_GROUPS, size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    for (i = 0; i < SidCount; i++)
+    {
+        tokenGroups->Groups[tokenGroups->GroupCount].Attributes = SE_GROUP_ENABLED;
+        tokenGroups->Groups[tokenGroups->GroupCount].Sid = Sids[i];
+        tokenGroups->GroupCount++;
+    }
+
+    for (i = 0; i < OriginalTokenGroups->GroupCount; i++)
+    {
+        tokenGroups->Groups[tokenGroups->GroupCount] = OriginalTokenGroups->Groups[i];
+        tokenGroups->GroupCount++;
+    }
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        RTL_FREE(&tokenGroups);
+    }
+
+    *ExtendedTokenGroups = tokenGroups;
+
+    return status;
+}
+
+static
+NTSTATUS
+LwMapSecurityCreateExtendedAccessToken(
+    OUT PACCESS_TOKEN* AccessToken,
+    IN PTOKEN_USER User,
+    IN PTOKEN_GROUPS Groups,
+    IN PTOKEN_OWNER Owner,
+    IN PTOKEN_PRIMARY_GROUP PrimaryGroup,
+    IN PTOKEN_DEFAULT_DACL DefaultDacl,
+    IN OPTIONAL PTOKEN_UNIX Unix
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN accessToken = NULL;
+    ULONG sidBuffer1[SID_MAX_SIZE / sizeof(ULONG) + 1] = { 0 };
+    ULONG sidBuffer2[SID_MAX_SIZE / sizeof(ULONG) + 1] = { 0 };
+    PSID sids[2] = { (PSID) sidBuffer1, (PSID) sidBuffer2 };
+    ULONG sidCount = LW_ARRAY_SIZE(sids);
+    ULONG size = 0;
+    PTOKEN_GROUPS extendedGroups = NULL;
+
+    size = sizeof(sidBuffer1);
+    status = RtlCreateWellKnownSid(
+                    WinWorldSid,
+                    NULL,
+                    (PSID) sidBuffer1,
+                    &size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    size = sizeof(sidBuffer2);
+    status = RtlCreateWellKnownSid(
+                    WinAuthenticatedUserSid,
+                    NULL,
+                    (PSID) sidBuffer2,
+                    &size);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LwMapSecurityCreateExtendedGroups(
+                    &extendedGroups,
+                    Groups,
+                    sidCount,
+                    sids);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAccessToken(
+                    &accessToken,
+                    User,
+                    extendedGroups,
+                    Owner,
+                    PrimaryGroup,
+                    DefaultDacl,
+                    Unix);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (accessToken)
+        {
+            RtlReleaseAccessToken(&accessToken);
+        }
+    }
+
+    RTL_FREE(&extendedGroups);
+
+    *AccessToken = accessToken;
+
+    return status;
+}
+
 NTSTATUS
 LwMapSecurityCreateAccessTokenFromUidGid(
     IN PLW_MAP_SECURITY_CONTEXT Context,
@@ -412,7 +531,7 @@ LwMapSecurityCreateAccessTokenFromUidGid(
         tokenUnix.Gid = Gid;
         tokenUnix.Umask = 0;
 
-        status = RtlCreateAccessToken(
+        status = LwMapSecurityCreateExtendedAccessToken(
                         &accessToken,
                         &tokenUser,
                         &tokenGroupsUnion.tokenGroups,
@@ -431,7 +550,7 @@ LwMapSecurityCreateAccessTokenFromUidGid(
                         &Gid);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        status = RtlCreateAccessToken(
+        status = LwMapSecurityCreateExtendedAccessToken(
                         &accessToken,
                         createInformation->User,
                         createInformation->Groups,
@@ -459,7 +578,6 @@ cleanup:
 
     return status;
 }
-
 
 NTSTATUS
 LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
