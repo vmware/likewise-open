@@ -1,5 +1,5 @@
 DWORD
-LsaProviderLocal_DbFindUserByName(
+LsaLPDbFindUserByName(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszUserName,
@@ -8,7 +8,7 @@ LsaProviderLocal_DbFindUserByName(
     );
 
 DWORD
-LsaProviderLocal_DbEnumUsers_0(
+LsaLPDbEnumUsers_0(
     HANDLE hDb,
     DWORD  dwOffset,
     DWORD  dwLimit,
@@ -18,28 +18,28 @@ LsaProviderLocal_DbEnumUsers_0(
 
 
 DWORD
-LsaProviderLocal_DbFindUserByName_0(
+LsaLPDbFindUserByName_0(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
-LsaProviderLocal_DbFindUserByName_1(
+LsaLPDbFindUserByName_1(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
-LsaProviderLocal_DbFindUserByName_2(
+LsaLPDbFindUserByName_2(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
-LsaProviderLocal_DbEnumUsers_1(
+LsaLPDbEnumUsers_1(
     HANDLE hDb,
     DWORD  dwOffset,
     DWORD  dwLimit,
@@ -48,7 +48,7 @@ LsaProviderLocal_DbEnumUsers_1(
     );
 
 DWORD
-LsaProviderLocal_DbEnumUsers(
+LsaLPDbEnumUsers(
     HANDLE  hDb,
     DWORD   dwUserInfoLevel,
     DWORD   dwStartingRecordId,
@@ -58,7 +58,7 @@ LsaProviderLocal_DbEnumUsers(
     );;
 
 DWORD
-LsaProviderLocal_DbFindUserById(
+LsaLPDbFindUserById(
     HANDLE hDb,
     uid_t  uid,
     DWORD  dwUserInfoLevel,
@@ -66,7 +66,7 @@ LsaProviderLocal_DbFindUserById(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
+LsaLPDbGetGroupsForUser_0_Unsafe(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -74,7 +74,7 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
+LsaLPDbGetGroupsForUser_1_Unsafe(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -83,7 +83,7 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_0_Unsafe(
+LsaLPDbFindUserById_0_Unsafe(
     HANDLE  hDb,
     uid_t   uid,
     PVOID*  ppUserInfo
@@ -91,7 +91,7 @@ LsaProviderLocal_DbFindUserById_0_Unsafe(
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_0(
+LsaLPDbFindUserById_0(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
@@ -99,7 +99,7 @@ LsaProviderLocal_DbFindUserById_0(
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_1(
+LsaLPDbFindUserById_1(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
@@ -107,14 +107,14 @@ LsaProviderLocal_DbFindUserById_1(
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_2(
+LsaLPDbFindUserById_2(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser(
+LsaLPDbGetGroupsForUser(
     HANDLE  hDb,
     uid_t   uid,
     DWORD   dwGroupInfoLevel,

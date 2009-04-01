@@ -63,59 +63,59 @@ typedef struct __LOCAL_CONFIG_HANDLER
 } LOCAL_CONFIG_HANDLER, *PLOCAL_CONFIG_HANDLER;
 
 DWORD
-LsaProviderLocal_InitializeConfig(
+LsaLPInitializeConfig(
     PLOCAL_CONFIG pConfig
     );
 
 DWORD
-LsaProviderLocal_TransferConfigContents(
+LsaLPTransferConfigContents(
     PLOCAL_CONFIG pSrcConfig,
     PLOCAL_CONFIG pDstConfig
     );
 
 VOID
-LsaProviderLocal_FreeConfig(
+LsaLPFreeConfig(
     PLOCAL_CONFIG pConfig
     );
 
 VOID
-LsaProviderLocal_FreeConfigContents(
+LsaLPFreeConfigContents(
     PLOCAL_CONFIG pConfig
     );
 
 DWORD
-LsaProviderLocal_ParseConfigFile(
+LsaLPParseConfigFile(
     PCSTR pszConfigFilePath,
     PLOCAL_CONFIG pConfig
     );
 
 DWORD
-LsaProviderLocal_SetConfigFilePath(
+LsaLPSetConfigFilePath(
     PCSTR pszConfigFilePath
     );
 
 DWORD
-LsaProviderLocal_GetConfigFilePath(
+LsaLPGetConfigFilePath(
     PSTR* ppszConfigFilePath
     );
 
 DWORD
-LsaProviderLocal_GetPasswdChangeInterval(
+LsaLPGetPasswdChangeInterval(
     VOID
     );
 
 DWORD
-LsaProviderLocal_GetPasswdChangeWarningTime(
+LsaLPGetPasswdChangeWarningTime(
     VOID
     );
 
 BOOLEAN
-LsaProviderLocal_GetBooleanConfigValue(
+LsaLPGetBooleanConfigValue(
     PCSTR pszValue
     );
 
 BOOLEAN
-LsaProviderLocal_EventlogEnabled(
+LsaLPEventlogEnabled(
     VOID
     );
 

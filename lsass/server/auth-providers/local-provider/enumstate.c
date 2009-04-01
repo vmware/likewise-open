@@ -49,40 +49,40 @@
 #include "localprovider.h"
 
 DWORD
-LsaProviderLocal_CreateUserState(
+LsaLPCreateUserState(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    return LsaProviderLocal_CreateEnumState(
+    return LsaLPCreateEnumState(
                 dwInfoLevel,
                 ppEnumState);
 }
 
 VOID
-LsaProviderLocal_FreeUserState(
+LsaLPFreeUserState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    return LsaProviderLocal_FreeEnumState(pEnumState);
+    return LsaLPFreeEnumState(pEnumState);
 }
 
 DWORD
-LsaProviderLocal_CreateGroupState(
+LsaLPCreateGroupState(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    return LsaProviderLocal_CreateEnumState(
+    return LsaLPCreateEnumState(
                     dwInfoLevel,
                     ppEnumState);
 }
 
 DWORD
-LsaProviderLocal_CreateEnumState(
+LsaLPCreateEnumState(
     DWORD dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
     )
@@ -112,23 +112,23 @@ error:
     }
     
     if (pEnumState) {
-       LsaProviderLocal_FreeEnumState(pEnumState);
+       LsaLPFreeEnumState(pEnumState);
     }
 
     goto cleanup;
 }
 
 VOID
-LsaProviderLocal_FreeGroupState(
+LsaLPFreeGroupState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    return LsaProviderLocal_FreeEnumState(pEnumState);
+    return LsaLPFreeEnumState(pEnumState);
 }
 
 VOID
-LsaProviderLocal_FreeEnumState(
+LsaLPFreeEnumState(
     PLOCAL_PROVIDER_ENUM_STATE pEnumState
     )
 {

@@ -58,7 +58,7 @@
 
 
 DWORD
-LsaProviderLocal_DbCheckGroupMembershipRecord_Unsafe(
+LsaLPDbCheckGroupMembershipRecord_Unsafe(
     HANDLE   hDb,
     uid_t    uid,
     gid_t    gid,
@@ -123,7 +123,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbGetNextAvailableUid_Unsafe(
+LsaLPDbGetNextAvailableUid_Unsafe(
     HANDLE hDb,
     uid_t* pUID
     )
@@ -182,7 +182,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbGetNextAvailableGid_Unsafe(
+LsaLPDbGetNextAvailableGid_Unsafe(
     HANDLE hDb,
     gid_t* pGID
     )
@@ -240,7 +240,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetLMHash_Unsafe(
+LsaLPDbGetLMHash_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PBYTE* ppHash,
@@ -313,7 +313,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetNTHash_Unsafe(
+LsaLPDbGetNTHash_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PBYTE* ppHash,
@@ -387,7 +387,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
+LsaLPDbWriteToGroupInfo_0_Unsafe(
     PSTR*  ppszResult,
     int    nRows,
     int    nCols,
@@ -470,7 +470,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
+LsaLPDbWriteToGroupInfo_1_Unsafe(
     PSTR*  ppszResult,
     int    nRows,
     int    nCols,
@@ -561,7 +561,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbWriteMembersToGroupInfo_1(
+LsaLPDbWriteMembersToGroupInfo_1(
     PSTR*  ppszResult,
     int    nRows,
     int    nCols,
@@ -619,7 +619,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbWriteToUserInfo_0_Unsafe(
+LsaLPDbWriteToUserInfo_0_Unsafe(
         PSTR* ppszResult,
         int nRows,
         int nCols,
@@ -738,7 +738,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
+LsaLPDbWriteToUserInfo_1_Unsafe(
         PSTR* ppszResult,
         int nRows,
         int nCols,
@@ -859,7 +859,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
+LsaLPDbWriteToUserInfo_2_Unsafe(
     PSTR* ppszResult,
     int nRows,
     int nCols,
@@ -977,8 +977,8 @@ LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
                         DWORD  dwSecondsToPasswdExpiry = 0;
                         time_t lastPasswdChangeTime = atoi(ppszResult[iVal]);
                         time_t curTime = time(NULL);
-                        DWORD dwPasswdChangeInterval = LsaProviderLocal_GetPasswdChangeInterval();                        
-                        DWORD dwPasswdChangeWarningTime = LsaProviderLocal_GetPasswdChangeWarningTime();
+                        DWORD dwPasswdChangeInterval = LsaLPGetPasswdChangeInterval();
+                        DWORD dwPasswdChangeWarningTime = LsaLPGetPasswdChangeWarningTime();
 
                         pUserInfo->bPasswordNeverExpires = FALSE;
                         
@@ -1053,7 +1053,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserByName_0_Unsafe(
+LsaLPDbFindUserByName_0_Unsafe(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
@@ -1094,7 +1094,7 @@ LsaProviderLocal_DbFindUserByName_0_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
               
-    dwError = LsaProviderLocal_DbWriteToUserInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_0_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -1140,7 +1140,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbEnableUser(
+LsaLPDbEnableUser(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1150,7 +1150,7 @@ LsaProviderLocal_DbEnableUser(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1158,7 +1158,7 @@ LsaProviderLocal_DbEnableUser(
     
     dwUserInfoFlags  &= (DWORD)~LW_ACCOUNT_DISABLED;
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1176,7 +1176,7 @@ error:
 }
     
 DWORD
-LsaProviderLocal_DbDisableUser(
+LsaLPDbDisableUser(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1186,7 +1186,7 @@ LsaProviderLocal_DbDisableUser(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1194,7 +1194,7 @@ LsaProviderLocal_DbDisableUser(
     
     dwUserInfoFlags  |= (DWORD)LW_ACCOUNT_DISABLED;
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1212,7 +1212,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbIsUserEnabled(
+LsaLPDbIsUserEnabled(
     HANDLE hDb,
     uid_t  uid,
     PBOOLEAN pbEnabled
@@ -1223,7 +1223,7 @@ LsaProviderLocal_DbIsUserEnabled(
     
     ENTER_RW_READER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                         hDb,
                         uid,
                         &dwUserInfoFlags);
@@ -1245,7 +1245,7 @@ error:
 }
     
 DWORD
-LsaProviderLocal_DbUnlockUser(
+LsaLPDbUnlockUser(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1255,7 +1255,7 @@ LsaProviderLocal_DbUnlockUser(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1263,7 +1263,7 @@ LsaProviderLocal_DbUnlockUser(
     
     dwUserInfoFlags  &= (DWORD)~LW_ACCOUNT_LOCKED_OUT;
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1281,7 +1281,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbLockUser(
+LsaLPDbLockUser(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1291,7 +1291,7 @@ LsaProviderLocal_DbLockUser(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1299,7 +1299,7 @@ LsaProviderLocal_DbLockUser(
     
     dwUserInfoFlags  |= (DWORD)LW_ACCOUNT_LOCKED_OUT;
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1317,7 +1317,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbIsUserLocked(
+LsaLPDbIsUserLocked(
     HANDLE   hDb,
     uid_t    uid,
     PBOOLEAN pbLocked
@@ -1328,7 +1328,7 @@ LsaProviderLocal_DbIsUserLocked(
      
     ENTER_RW_READER_LOCK;
      
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                          hDb,
                          uid,
                          &dwUserInfoFlags);
@@ -1350,7 +1350,7 @@ LsaProviderLocal_DbIsUserLocked(
 }
 
 DWORD
-LsaProviderLocal_DbAllowUserToChangePassword(
+LsaLPDbAllowUserToChangePassword(
     HANDLE  hDb,
     uid_t   uid,
     BOOLEAN bAllow
@@ -1361,7 +1361,7 @@ LsaProviderLocal_DbAllowUserToChangePassword(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1373,7 +1373,7 @@ LsaProviderLocal_DbAllowUserToChangePassword(
         dwUserInfoFlags |= (DWORD)LW_CANNOT_CHANGE_PASSWORD;
     }
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1391,7 +1391,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbCanUserChangePassword(
+LsaLPDbCanUserChangePassword(
     HANDLE  hDb,
     uid_t   uid,
     PBOOLEAN pbCanChangePassword
@@ -1402,7 +1402,7 @@ LsaProviderLocal_DbCanUserChangePassword(
      
     ENTER_RW_READER_LOCK;
      
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                          hDb,
                          uid,
                          &dwUserInfoFlags);
@@ -1424,7 +1424,7 @@ LsaProviderLocal_DbCanUserChangePassword(
 }
 
 DWORD
-LsaProviderLocal_DbSetPasswordExpires(
+LsaLPDbSetPasswordExpires(
     HANDLE  hDb,
     uid_t   uid,
     BOOLEAN bPasswordExpires
@@ -1435,7 +1435,7 @@ LsaProviderLocal_DbSetPasswordExpires(
     
     ENTER_RW_WRITER_LOCK;
     
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     &dwUserInfoFlags);
@@ -1447,7 +1447,7 @@ LsaProviderLocal_DbSetPasswordExpires(
         dwUserInfoFlags |= (DWORD)LW_PASSWORD_CANNOT_EXPIRE;
     }
     
-    dwError = LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbSetUserInfoFlags_Unsafe(
                     hDb,
                     uid,
                     dwUserInfoFlags);
@@ -1465,7 +1465,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbCheckPasswordExpires(
+LsaLPDbCheckPasswordExpires(
     HANDLE   hDb,
     uid_t    uid,
     PBOOLEAN pbPasswordExpires
@@ -1476,7 +1476,7 @@ LsaProviderLocal_DbCheckPasswordExpires(
       
     ENTER_RW_READER_LOCK;
       
-    dwError = LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+    dwError = LsaLPDbGetUserInfoFlags_Unsafe(
                           hDb,
                           uid,
                           &dwUserInfoFlags);
@@ -1498,7 +1498,7 @@ LsaProviderLocal_DbCheckPasswordExpires(
 }
     
 DWORD
-LsaProviderLocal_DbSetChangePasswordOnNextLogon(
+LsaLPDbSetChangePasswordOnNextLogon(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1545,7 +1545,7 @@ error:
 }
     
 DWORD
-LsaProviderLocal_DbSetAccountExpiryDate(
+LsaLPDbSetAccountExpiryDate(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszExpiryDate
@@ -1605,7 +1605,7 @@ error:
 }
     
 DWORD
-LsaProviderLocal_DbRemoveFromGroups(
+LsaLPDbRemoveFromGroups(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszGroupList
@@ -1623,7 +1623,7 @@ LsaProviderLocal_DbRemoveFromGroups(
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
     
-    dwError = LsaProviderLocal_DbFindUserById(
+    dwError = LsaLPDbFindUserById(
                     hDb,
                     uid,
                     dwUserInfoLevel,
@@ -1643,7 +1643,7 @@ LsaProviderLocal_DbRemoveFromGroups(
     {
         LsaStripWhitespace(pszToken, TRUE, TRUE);
         // Check if the group exists
-        dwError = LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+        dwError = LsaLPDbFindGroupByName_0_Unsafe(
                         hDb,
                         NULL,
                         pszToken,
@@ -1675,7 +1675,7 @@ LsaProviderLocal_DbRemoveFromGroups(
        
        for (; pListMember; pListMember = pListMember->pNext)
        {
-           dwError = LsaProviderLocal_DbRemoveGroupMembership_Unsafe(
+           dwError = LsaLPDbRemoveGroupMembership_Unsafe(
                                hDb,
                                uid,
                                *((gid_t*)(pListMember->pItem)));
@@ -1702,7 +1702,7 @@ cleanup:
     }
     
     if (pGIDList) {
-       LsaDLinkedListForEach(pGIDList, &LsaProviderLocal_DbFreeGIDInList, NULL);
+       LsaDLinkedListForEach(pGIDList, &LsaLPDbFreeGIDInList, NULL);
        LsaDLinkedListFree(pGIDList);
     }
 
@@ -1714,7 +1714,7 @@ error:
 }
     
 DWORD
-LsaProviderLocal_DbAddToGroups(
+LsaLPDbAddToGroups(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszGroupList
@@ -1732,7 +1732,7 @@ LsaProviderLocal_DbAddToGroups(
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
     
-    dwError = LsaProviderLocal_DbFindUserById(
+    dwError = LsaLPDbFindUserById(
                     hDb,
                     uid,
                     dwUserInfoLevel,
@@ -1754,7 +1754,7 @@ LsaProviderLocal_DbAddToGroups(
         
         LsaStripWhitespace(pszToken, TRUE, TRUE);
         // Check if the group exists
-        dwError = LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+        dwError = LsaLPDbFindGroupByName_0_Unsafe(
                         hDb,
                         NULL,
                         pszToken,
@@ -1764,7 +1764,7 @@ LsaProviderLocal_DbAddToGroups(
         if (((PLSA_USER_INFO_0)pUserInfo)->gid == ((PLSA_GROUP_INFO_0)pGroupInfo)->gid) {
            bMembershipExists = TRUE;
         } else {
-           dwError = LsaProviderLocal_DbCheckGroupMembershipRecord_Unsafe(
+           dwError = LsaLPDbCheckGroupMembershipRecord_Unsafe(
                            hDb,
                            uid,
                            ((PLSA_GROUP_INFO_0)pGroupInfo)->gid,
@@ -1796,7 +1796,7 @@ LsaProviderLocal_DbAddToGroups(
        
        for (; pListMember; pListMember = pListMember->pNext)
        {
-           dwError = LsaProviderLocal_DbAddGroupMembership_Unsafe(
+           dwError = LsaLPDbAddGroupMembership_Unsafe(
                                hDb,
                                uid,
                                *((gid_t*)(pListMember->pItem)));
@@ -1823,7 +1823,7 @@ cleanup:
     }
     
     if (pGIDList) {
-       LsaDLinkedListForEach(pGIDList, &LsaProviderLocal_DbFreeGIDInList, NULL);
+       LsaDLinkedListForEach(pGIDList, &LsaLPDbFreeGIDInList, NULL);
        LsaDLinkedListFree(pGIDList);
     }
 
@@ -1835,7 +1835,7 @@ error:
 }
 
 VOID
-LsaProviderLocal_DbFreeGIDInList(
+LsaLPDbFreeGIDInList(
     PVOID pGID,
     PVOID pUserData
     )
@@ -1844,7 +1844,7 @@ LsaProviderLocal_DbFreeGIDInList(
 }
 
 DWORD
-LsaProviderLocal_DbDeleteUser(
+LsaLPDbDeleteUser(
     HANDLE hDb,
     uid_t  uid
     )
@@ -1885,7 +1885,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbRemoveGroupMembership_Unsafe(
+LsaLPDbRemoveGroupMembership_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     gid_t  gid
@@ -1925,7 +1925,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbAddGroupMembership_Unsafe(
+LsaLPDbAddGroupMembership_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     gid_t  gid
@@ -1965,7 +1965,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+LsaLPDbGetUserInfoFlags_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PDWORD pdwUserInfoFlags
@@ -2022,7 +2022,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+LsaLPDbSetUserInfoFlags_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     DWORD  dwUserInfoFlags
@@ -2062,7 +2062,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetUserCount(
+LsaLPDbGetUserCount(
     HANDLE hDb,
     PINT pUserCount)
 {
@@ -2107,7 +2107,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetGroupCount(
+LsaLPDbGetGroupCount(
     HANDLE hDb,
     PINT pGroupCount)
 {

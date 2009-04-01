@@ -50,27 +50,27 @@
 #define __LSASSDB_H__
 
 void
-LsaProviderLocal_DbInitGlobals(
+LsaLPDbInitGlobals(
     void
     );
 
 DWORD
-LsaProviderLocal_DbCreate(
+LsaLPDbCreate(
     void
     );
 
 DWORD
-LsaProviderLocal_DbOpen(
+LsaLPDbOpen(
     PHANDLE phDb
     );
 
 void
-LsaProviderLocal_DbClose(
+LsaLPDbClose(
     HANDLE hDb
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupById(
+LsaLPDbFindGroupById(
     HANDLE hDb,
     gid_t  gid,
     DWORD  dwGroupInfoLevel,
@@ -78,7 +78,7 @@ LsaProviderLocal_DbFindGroupById(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupByName(
+LsaLPDbFindGroupByName(
     HANDLE hDb,
     PCSTR  pszDomain,
     PCSTR  pszGroupName,
@@ -87,7 +87,7 @@ LsaProviderLocal_DbFindGroupByName(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
+LsaLPDbGetGroupsForUser_0_Unsafe(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -95,7 +95,7 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0(
+LsaLPDbGetGroupsForUser_0(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -103,7 +103,7 @@ LsaProviderLocal_DbGetGroupsForUser_0(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser(
+LsaLPDbGetGroupsForUser(
     HANDLE  hDb,
     uid_t   uid,
     DWORD   dwGroupInfoLevel,
@@ -112,7 +112,7 @@ LsaProviderLocal_DbGetGroupsForUser(
     );
 
 DWORD
-LsaProviderLocal_DbEnumGroups(
+LsaLPDbEnumGroups(
     HANDLE  hDb,
     DWORD   dwGroupInfoLevel,
     DWORD   dwStartingRecordId,
@@ -122,7 +122,7 @@ LsaProviderLocal_DbEnumGroups(
     );
 
 DWORD
-LsaProviderLocal_DbFindUserById(
+LsaLPDbFindUserById(
     HANDLE hDb,
     uid_t  uid,
     DWORD  dwUserInfoLevel,
@@ -130,7 +130,7 @@ LsaProviderLocal_DbFindUserById(
     );
 
 DWORD
-LsaProviderLocal_DbFindUserByName(
+LsaLPDbFindUserByName(
     HANDLE hDb,
     PCSTR  pszDomain,
     PCSTR  pszUserName,
@@ -139,7 +139,7 @@ LsaProviderLocal_DbFindUserByName(
     );
 
 DWORD
-LsaProviderLocal_DbEnumUsers(
+LsaLPDbEnumUsers(
     HANDLE  hDb,
     DWORD   dwUserInfoLevel,
     DWORD   dwStartingRecordId,
@@ -149,132 +149,132 @@ LsaProviderLocal_DbEnumUsers(
     );
 
 DWORD
-LsaProviderLocal_DbChangePassword(
+LsaLPDbChangePassword(
     HANDLE hDb,
     uid_t uid,
     PCSTR pszPassword
     );
 
 DWORD
-LsaProviderLocal_DbAddUser(
+LsaLPDbAddUser(
     HANDLE hDb,
     DWORD  dwUserInfoLevel,
     PVOID  pUserInfo
     );
 
 DWORD
-LsaProviderLocal_DbModifyUser(
+LsaLPDbModifyUser(
     HANDLE hDb,
     PLSA_USER_MOD_INFO pUserModInfo
     );
 
 DWORD
-LsaProviderLocal_DbEnableUser(
+LsaLPDbEnableUser(
     HANDLE hDb,
     uid_t  uid
     );
     
 DWORD
-LsaProviderLocal_DbDisableUser(
+LsaLPDbDisableUser(
     HANDLE hDb,
     uid_t  uid
     );
 
 DWORD
-LsaProviderLocal_DbIsUserEnabled(
+LsaLPDbIsUserEnabled(
     HANDLE hDb,
     uid_t  uid,
     PBOOLEAN pbEnabled
     );
     
 DWORD
-LsaProviderLocal_DbUnlockUser(
+LsaLPDbUnlockUser(
     HANDLE hDb,
     uid_t  uid
     );
 
 DWORD
-LsaProviderLocal_DbLockUser(
+LsaLPDbLockUser(
     HANDLE hDb,
     uid_t  uid
     );
 
 DWORD
-LsaProviderLocal_DbIsUserLocked(
+LsaLPDbIsUserLocked(
     HANDLE   hDb,
     uid_t    uid,
     PBOOLEAN pbLocked
     );
 
 DWORD
-LsaProviderLocal_DbAllowUserToChangePassword(
+LsaLPDbAllowUserToChangePassword(
     HANDLE  hDb,
     uid_t   uid,
     BOOLEAN bAllow
     );
 
 DWORD
-LsaProviderLocal_DbCanUserChangePassword(
+LsaLPDbCanUserChangePassword(
     HANDLE  hDb,
     uid_t   uid,
     PBOOLEAN pbCanChangePassword
     );
 
 DWORD
-LsaProviderLocal_DbSetPasswordExpires(
+LsaLPDbSetPasswordExpires(
     HANDLE  hDb,
     uid_t   uid,
     BOOLEAN bPasswordExpires
     );
 
 DWORD
-LsaProviderLocal_DbCheckPasswordExpires(
+LsaLPDbCheckPasswordExpires(
     HANDLE   hDb,
     uid_t    uid,
     PBOOLEAN pbPasswordExpires
     );
     
 DWORD
-LsaProviderLocal_DbSetChangePasswordOnNextLogon(
+LsaLPDbSetChangePasswordOnNextLogon(
     HANDLE hDb,
     uid_t  uid
     );
     
 DWORD
-LsaProviderLocal_DbSetAccountExpiryDate(
+LsaLPDbSetAccountExpiryDate(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszExpiryDate
     );
     
 DWORD
-LsaProviderLocal_DbRemoveFromGroups(
+LsaLPDbRemoveFromGroups(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszGroupList
     );
     
 DWORD
-LsaProviderLocal_DbAddToGroups(
+LsaLPDbAddToGroups(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszGroupList
     );
 
 VOID
-LsaProviderLocal_DbFreeGIDInList(
+LsaLPDbFreeGIDInList(
     PVOID pGID,
     PVOID pUserData
     );
 
 DWORD
-LsaProviderLocal_DbDeleteUser(
+LsaLPDbDeleteUser(
     HANDLE hDb,
     uid_t  uid
     );
 
 DWORD
-LsaProviderLocal_DbAddGroup(
+LsaLPDbAddGroup(
     HANDLE hDb,
     PCSTR  pszDomain,
     DWORD  dwGroupInfoLevel,
@@ -282,46 +282,46 @@ LsaProviderLocal_DbAddGroup(
     );
 
 DWORD
-LsaProviderLocal_DbDeleteGroup(
+LsaLPDbDeleteGroup(
     HANDLE hDb,
     gid_t  gid
     );
 
 DWORD
-LsaProviderLocal_DbRemoveGroupMembership_Unsafe(
-    HANDLE hDb,
-    uid_t  uid,
-    gid_t  gid
-    );
-
-DWORD
-LsaProviderLocal_DbAddGroupMembership_Unsafe(
+LsaLPDbRemoveGroupMembership_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     gid_t  gid
     );
 
 DWORD
-LsaProviderLocal_DbGetUserInfoFlags_Unsafe(
+LsaLPDbAddGroupMembership_Unsafe(
+    HANDLE hDb,
+    uid_t  uid,
+    gid_t  gid
+    );
+
+DWORD
+LsaLPDbGetUserInfoFlags_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PDWORD pdwUserInfoFlags
     );
 
 DWORD
-LsaProviderLocal_DbSetUserInfoFlags_Unsafe(
+LsaLPDbSetUserInfoFlags_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     DWORD  dwUserInfoFlags
     );
 
 DWORD
-LsaProviderLocal_DbGetUserCount(
+LsaLPDbGetUserCount(
     HANDLE hDb,
     PINT pUserCount);
 
 DWORD
-LsaProviderLocal_DbGetGroupCount(
+LsaLPDbGetGroupCount(
     HANDLE hDb,
     PINT pGroupCount);
 

@@ -57,7 +57,7 @@
 #define LOCAL_GROUP_SID_FORMAT "S-1-22-2-%ld"
 
 DWORD
-LsaProviderLocal_DbFindUserByName(
+LsaLPDbFindUserByName(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszUserName,
@@ -71,7 +71,7 @@ LsaProviderLocal_DbFindUserByName(
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbFindUserByName_0(
+            dwError = LsaLPDbFindUserByName_0(
                             hDb,
                             pszUserName,
                             ppUserInfo
@@ -80,7 +80,7 @@ LsaProviderLocal_DbFindUserByName(
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbFindUserByName_1(
+            dwError = LsaLPDbFindUserByName_1(
                             hDb,
                             pszUserName,
                             ppUserInfo
@@ -89,7 +89,7 @@ LsaProviderLocal_DbFindUserByName(
         }
         case 2:
         {
-            dwError = LsaProviderLocal_DbFindUserByName_2(
+            dwError = LsaLPDbFindUserByName_2(
                             hDb,
                             pszUserName,
                             ppUserInfo
@@ -103,7 +103,7 @@ LsaProviderLocal_DbFindUserByName(
 
 
 DWORD
-LsaProviderLocal_DbEnumUsers_0(
+LsaLPDbEnumUsers_0(
     HANDLE hDb,
     DWORD  dwOffset,
     DWORD  dwLimit,
@@ -153,7 +153,7 @@ LsaProviderLocal_DbEnumUsers_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DirWriteToUserInfo_0_Unsafe(
+    dwError = LsaLPDirWriteToUserInfo_0_Unsafe(
                         pEntries,
                         dwCount,
                         &ppUserInfoList,
@@ -196,7 +196,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserByName_0(
+LsaLPDbFindUserByName_0(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
@@ -206,7 +206,7 @@ LsaProviderLocal_DbFindUserByName_0(
 
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindUserByName_0_Unsafe(
+    dwError = LsaLPDbFindUserByName_0_Unsafe(
                     hDb,
                     pszUserName,
                     ppUserInfo
@@ -219,7 +219,7 @@ LsaProviderLocal_DbFindUserByName_0(
 
 
 DWORD
-LsaProviderLocal_DbFindUserByName_1(
+LsaLPDbFindUserByName_1(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
@@ -281,7 +281,7 @@ LsaProviderLocal_DbFindUserByName_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -295,7 +295,7 @@ LsaProviderLocal_DbFindUserByName_1(
     {
         PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList + iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pLMHash,
@@ -303,7 +303,7 @@ LsaProviderLocal_DbFindUserByName_1(
                         );
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pNTHash,
@@ -356,7 +356,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserByName_2(
+LsaLPDbFindUserByName_2(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
@@ -404,7 +404,7 @@ LsaProviderLocal_DbFindUserByName_2(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -418,7 +418,7 @@ LsaProviderLocal_DbFindUserByName_2(
     {
         PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList + iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pLMHash,
@@ -426,7 +426,7 @@ LsaProviderLocal_DbFindUserByName_2(
                         );
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pNTHash,
@@ -479,7 +479,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbEnumUsers_1(
+LsaLPDbEnumUsers_1(
     HANDLE hDb,
     DWORD  dwOffset,
     DWORD  dwLimit,
@@ -531,7 +531,7 @@ LsaProviderLocal_DbEnumUsers_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -545,7 +545,7 @@ LsaProviderLocal_DbEnumUsers_1(
     {
         PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList+iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pLMHash,
@@ -553,7 +553,7 @@ LsaProviderLocal_DbEnumUsers_1(
                             );
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pNTHash,
@@ -607,7 +607,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbEnumUsers_2(
+LsaLPDbEnumUsers_2(
     HANDLE  hDb,
     DWORD   dwOffset,
     DWORD   dwLimit,
@@ -669,7 +669,7 @@ LsaProviderLocal_DbEnumUsers_2(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -683,7 +683,7 @@ LsaProviderLocal_DbEnumUsers_2(
     {
         PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList + iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pLMHash,
@@ -691,7 +691,7 @@ LsaProviderLocal_DbEnumUsers_2(
                             );
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pNTHash,
@@ -744,7 +744,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbEnumUsers(
+LsaLPDbEnumUsers(
     HANDLE  hDb,
     DWORD   dwUserInfoLevel,
     DWORD   dwStartingRecordId,
@@ -759,7 +759,7 @@ LsaProviderLocal_DbEnumUsers(
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbEnumUsers_0(
+            dwError = LsaLPDbEnumUsers_0(
                                 hDb,
                                 dwStartingRecordId,
                                 nMaxUsers,
@@ -770,7 +770,7 @@ LsaProviderLocal_DbEnumUsers(
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbEnumUsers_1(
+            dwError = LsaLPDbEnumUsers_1(
                                 hDb,
                                 dwStartingRecordId,
                                 nMaxUsers,
@@ -781,7 +781,7 @@ LsaProviderLocal_DbEnumUsers(
         }
         case 2:
         {
-            dwError = LsaProviderLocal_DbEnumUsers_2(
+            dwError = LsaLPDbEnumUsers_2(
                                 hDb,
                                 dwStartingRecordId,
                                 nMaxUsers,
@@ -796,7 +796,7 @@ LsaProviderLocal_DbEnumUsers(
 }
 
 DWORD
-LsaProviderLocal_DbFindUserById(
+LsaLPDbFindUserById(
     HANDLE hDb,
     uid_t  uid,
     DWORD  dwUserInfoLevel,
@@ -809,17 +809,17 @@ LsaProviderLocal_DbFindUserById(
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbFindUserById_0(hDb, uid, ppUserInfo);
+            dwError = LsaLPDbFindUserById_0(hDb, uid, ppUserInfo);
             break;
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbFindUserById_1(hDb, uid, ppUserInfo);
+            dwError = LsaLPDbFindUserById_1(hDb, uid, ppUserInfo);
             break;
         }
         case 2:
         {
-            dwError = LsaProviderLocal_DbFindUserById_2(hDb, uid, ppUserInfo);
+            dwError = LsaLPDbFindUserById_2(hDb, uid, ppUserInfo);
             break;
         }
     }
@@ -828,7 +828,7 @@ LsaProviderLocal_DbFindUserById(
 }
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
+LsaLPDbGetGroupsForUser_0_Unsafe(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -877,7 +877,7 @@ LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_0_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -918,7 +918,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
+LsaLPDbGetGroupsForUser_1_Unsafe(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -959,7 +959,7 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_1_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -1013,7 +1013,7 @@ LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
+            dwError = LsaLPDbWriteMembersToGroupInfo_1(
                         ppszResult,
                         nRows,
                         nCols,
@@ -1059,7 +1059,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_0_Unsafe(
+LsaLPDbFindUserById_0_Unsafe(
     HANDLE  hDb,
     uid_t   uid,
     PVOID*  ppUserInfo
@@ -1109,7 +1109,7 @@ LsaProviderLocal_DbFindUserById_0_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_0_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -1151,7 +1151,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_0(
+LsaLPDbFindUserById_0(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
@@ -1161,7 +1161,7 @@ LsaProviderLocal_DbFindUserById_0(
 
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindUserById_0_Unsafe(
+    dwError = LsaLPDbFindUserById_0_Unsafe(
                 hDb,
                 uid,
                 ppUserInfo
@@ -1174,7 +1174,7 @@ LsaProviderLocal_DbFindUserById_0(
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_1(
+LsaLPDbFindUserById_1(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
@@ -1231,7 +1231,7 @@ LsaProviderLocal_DbFindUserById_1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -1244,14 +1244,14 @@ LsaProviderLocal_DbFindUserById_1(
     {
         PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList+iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pLMHash,
                             &dwLMHashLen);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                             hDb,
                             pUserInfo->uid,
                             &pNTHash,
@@ -1304,7 +1304,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbFindUserById_2(
+LsaLPDbFindUserById_2(
     HANDLE hDb,
     uid_t  uid,
     PVOID* ppUserInfo
@@ -1361,7 +1361,7 @@ LsaProviderLocal_DbFindUserById_2(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToUserInfo_2_Unsafe(
+    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
                         ppszResult,
                         nRows,
                         nCols,
@@ -1375,7 +1375,7 @@ LsaProviderLocal_DbFindUserById_2(
     {
         PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList+iUser);
 
-        dwError = LsaProviderLocal_DbGetLMHash_Unsafe(
+        dwError = LsaLPDbGetLMHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pLMHash,
@@ -1383,7 +1383,7 @@ LsaProviderLocal_DbFindUserById_2(
                         );
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbGetNTHash_Unsafe(
+        dwError = LsaLPDbGetNTHash_Unsafe(
                         hDb,
                         pUserInfo->uid,
                         &pNTHash,
@@ -1435,7 +1435,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser(
+LsaLPDbGetGroupsForUser(
     HANDLE  hDb,
     uid_t   uid,
     DWORD   dwGroupInfoLevel,
@@ -1449,7 +1449,7 @@ LsaProviderLocal_DbGetGroupsForUser(
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbGetGroupsForUser_0(
+            dwError = LsaLPDbGetGroupsForUser_0(
                                 hDb,
                                 uid,
                                 pdwGroupsFound,
@@ -1459,7 +1459,7 @@ LsaProviderLocal_DbGetGroupsForUser(
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbGetGroupsForUser_1(
+            dwError = LsaLPDbGetGroupsForUser_1(
                                 hDb,
                                 uid,
                                 pdwGroupsFound,
@@ -1476,7 +1476,7 @@ LsaProviderLocal_DbGetGroupsForUser(
 // Start from here
 
 DWORD
-LsaProviderLocal_DbUpdateHash_Unsafe(
+LsaLPDbUpdateHash_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PCSTR  pszDbStatement,
@@ -1543,14 +1543,14 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbUpdateNTHash_Unsafe(
+LsaLPDbUpdateNTHash_Unsafe(
     HANDLE hDb,
     uid_t  uid,
     PBYTE  pHash,
     DWORD  dwHashLen
     )
 {
-    return LsaProviderLocal_DbUpdateHash_Unsafe(
+    return LsaLPDbUpdateHash_Unsafe(
                 hDb,
                 uid,
                 DB_QUERY_UPDATE_NT_OWF_FOR_UID,
@@ -1560,7 +1560,7 @@ LsaProviderLocal_DbUpdateNTHash_Unsafe(
 }
 
 DWORD
-LsaProviderLocal_DbChangePassword(
+LsaLPDbChangePassword(
     HANDLE hDb,
     uid_t uid,
     PCSTR pszPassword
@@ -1594,7 +1594,7 @@ LsaProviderLocal_DbChangePassword(
 
     // TODO: Implement the update within a transaction
 
-    dwError = LsaProviderLocal_DbUpdateNTHash_Unsafe(
+    dwError = LsaLPDbUpdateNTHash_Unsafe(
                         hDb,
                         uid,
                         pNTHash,
@@ -1602,7 +1602,7 @@ LsaProviderLocal_DbChangePassword(
     BAIL_ON_LSA_ERROR(dwError);
 
 #ifdef NOT_YET
-    dwError = LsaProviderLocal_DbUpdateLMHash_Unsafe(
+    dwError = LsaLPDbUpdateLMHash_Unsafe(
                         hDb,
                         uid,
                         pLMHash,
@@ -1628,7 +1628,7 @@ error:
 
 
 DWORD
-LsaProviderLocal_DbAddUser(
+LsaLPDbAddUser(
     HANDLE hDb,
     DWORD  dwUserInfoLevel,
     PVOID  pUserInfo
@@ -1669,7 +1669,7 @@ LsaProviderLocal_DbAddUser(
     if (!pUser->uid) {
 
        // We got a write lock; nobody can steal this uid from us
-       dwError = LsaProviderLocal_DbGetNextAvailableUid_Unsafe(
+       dwError = LsaLPDbGetNextAvailableUid_Unsafe(
                            hDb,
                            &pUser->uid
                            );
@@ -1677,7 +1677,7 @@ LsaProviderLocal_DbAddUser(
 
     } else {
 
-       dwError = LsaProviderLocal_DbFindUserById_0_Unsafe(
+       dwError = LsaLPDbFindUserById_0_Unsafe(
                            hDb,
                            pUser->uid,
                            &pExistingUserInfo
@@ -1694,7 +1694,7 @@ LsaProviderLocal_DbAddUser(
        }
     }
 
-    dwError = LsaProviderLocal_DbFindUserByName_0_Unsafe(
+    dwError = LsaLPDbFindUserByName_0_Unsafe(
                            hDb,
                            pUser->pszName,
                            &pExistingUserInfo);
@@ -1709,7 +1709,7 @@ LsaProviderLocal_DbAddUser(
            BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbFindGroupById_0_Unsafe(
+    dwError = LsaLPDbFindGroupById_0_Unsafe(
                         hDb,
                         pUser->gid,
                         &pGroupInfo
@@ -1763,7 +1763,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_DbModifyUser(
+LsaLPDbModifyUser(
     HANDLE hDb,
     PLSA_USER_MOD_INFO pUserModInfo
     )
@@ -1774,7 +1774,7 @@ LsaProviderLocal_DbModifyUser(
 
     // TODO: Implement this in a database transaction
 
-    dwError = LsaProviderLocal_DbFindUserById(
+    dwError = LsaLPDbFindUserById(
                         hDb,
                         pUserModInfo->uid,
                         dwUserInfoLevel,
@@ -1782,33 +1782,33 @@ LsaProviderLocal_DbModifyUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserModInfo->actions.bEnableUser) {
-        dwError = LsaProviderLocal_DbEnableUser(
+        dwError = LsaLPDbEnableUser(
                        hDb,
                        pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bDisableUser) {
-        dwError = LsaProviderLocal_DbDisableUser(
+        dwError = LsaLPDbDisableUser(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bUnlockUser) {
-        dwError = LsaProviderLocal_DbUnlockUser(
+        dwError = LsaLPDbUnlockUser(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bSetChangePasswordOnNextLogon) {
-        dwError = LsaProviderLocal_DbSetChangePasswordOnNextLogon(
+        dwError = LsaLPDbSetChangePasswordOnNextLogon(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaProviderLocal_DbSetPasswordExpires(
+        dwError = LsaLPDbSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         TRUE);
@@ -1816,7 +1816,7 @@ LsaProviderLocal_DbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetAccountExpiryDate) {
-        dwError = LsaProviderLocal_DbSetAccountExpiryDate(
+        dwError = LsaLPDbSetAccountExpiryDate(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszExpiryDate);
@@ -1824,7 +1824,7 @@ LsaProviderLocal_DbModifyUser(
     }
 
     if (pUserModInfo->actions.bRemoveFromGroups) {
-        dwError = LsaProviderLocal_DbRemoveFromGroups(
+        dwError = LsaLPDbRemoveFromGroups(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszRemoveFromGroups);
@@ -1832,7 +1832,7 @@ LsaProviderLocal_DbModifyUser(
     }
 
     if (pUserModInfo->actions.bAddToGroups) {
-        dwError = LsaProviderLocal_DbAddToGroups(
+        dwError = LsaLPDbAddToGroups(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszAddToGroups);
@@ -1840,7 +1840,7 @@ LsaProviderLocal_DbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetPasswordMustExpire) {
-        dwError = LsaProviderLocal_DbSetPasswordExpires(
+        dwError = LsaLPDbSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         TRUE);
@@ -1848,7 +1848,7 @@ LsaProviderLocal_DbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetPasswordNeverExpires) {
-        dwError = LsaProviderLocal_DbSetPasswordExpires(
+        dwError = LsaLPDbSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         FALSE);

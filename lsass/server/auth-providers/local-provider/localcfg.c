@@ -81,7 +81,7 @@ static LOCAL_CONFIG_HANDLER gLocalConfigHandlers[] =
 };
 
 DWORD
-LsaProviderLocal_InitializeConfig(
+LsaLPInitializeConfig(
     PLOCAL_CONFIG pConfig
     )
 {
@@ -96,7 +96,7 @@ LsaProviderLocal_InitializeConfig(
 }
 
 DWORD
-LsaProviderLocal_TransferConfigContents(
+LsaLPTransferConfigContents(
     PLOCAL_CONFIG pSrcConfig,
     PLOCAL_CONFIG pDstConfig
     )
@@ -111,16 +111,16 @@ LsaProviderLocal_TransferConfigContents(
 }
 
 VOID
-LsaProviderLocal_FreeConfig(
+LsaLPFreeConfig(
     PLOCAL_CONFIG pConfig
     )
 {
-    LsaProviderLocal_FreeConfigContents(pConfig);
+    LsaLPFreeConfigContents(pConfig);
     LsaFreeMemory(pConfig);
 }
 
 VOID
-LsaProviderLocal_FreeConfigContents(
+LsaLPFreeConfigContents(
     PLOCAL_CONFIG pConfig
     )
 {
@@ -128,7 +128,7 @@ LsaProviderLocal_FreeConfigContents(
 }
 
 DWORD
-LsaProviderLocal_ParseConfigFile(
+LsaLPParseConfigFile(
     PCSTR pszConfigFilePath,
     PLOCAL_CONFIG pConfig
     )
@@ -136,15 +136,15 @@ LsaProviderLocal_ParseConfigFile(
     return LsaParseConfigFile(
                 pszConfigFilePath,
                 LSA_CFG_OPTION_STRIP_ALL,
-                &LsaProviderLocal_ConfigStartSection,
+                &LsaLPConfigStartSection,
                 NULL,
-                &LsaProviderLocal_ConfigNameValuePair,
+                &LsaLPConfigNameValuePair,
                 NULL,
                 pConfig);
 }
 
 DWORD
-LsaProviderLocal_ConfigStartSection(
+LsaLPConfigStartSection(
     PCSTR    pszSectionName,
     PVOID    pData,
     PBOOLEAN pbSkipSection,
@@ -183,7 +183,7 @@ done:
 }
 
 DWORD
-LsaProviderLocal_ConfigNameValuePair(
+LsaLPConfigNameValuePair(
     PCSTR    pszName,
     PCSTR    pszValue,
     PVOID    pData,
@@ -222,7 +222,7 @@ Local_SetConfig_EnableEventLog(
     PCSTR          pszValue
     )
 {
-    pConfig->bEnableEventLog = LsaProviderLocal_GetBooleanConfigValue(pszValue);
+    pConfig->bEnableEventLog = LsaLPGetBooleanConfigValue(pszValue);
 
     return 0;
 }
@@ -324,7 +324,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_SetConfigFilePath(
+LsaLPSetConfigFilePath(
     PCSTR pszConfigFilePath
     )
 {
@@ -360,7 +360,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_GetConfigFilePath(
+LsaLPGetConfigFilePath(
     PSTR* ppszConfigFilePath
     )
 {
@@ -395,7 +395,7 @@ error:
 }
 
 DWORD
-LsaProviderLocal_GetPasswdChangeInterval(
+LsaLPGetPasswdChangeInterval(
     VOID
     )
 {
@@ -410,7 +410,7 @@ LsaProviderLocal_GetPasswdChangeInterval(
 }
 
 DWORD
-LsaProviderLocal_GetPasswdChangeWarningTime(
+LsaLPGetPasswdChangeWarningTime(
     VOID
     )
 {
@@ -425,7 +425,7 @@ LsaProviderLocal_GetPasswdChangeWarningTime(
 }
 
 BOOLEAN
-LsaProviderLocal_GetBooleanConfigValue(
+LsaLPGetBooleanConfigValue(
     PCSTR pszValue
     )
 {
@@ -444,7 +444,7 @@ LsaProviderLocal_GetBooleanConfigValue(
 }
 
 BOOLEAN
-LsaProviderLocal_EventlogEnabled(
+LsaLPEventlogEnabled(
     VOID
     )
 {

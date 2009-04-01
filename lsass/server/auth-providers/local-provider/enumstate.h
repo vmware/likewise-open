@@ -50,39 +50,39 @@
 #define __ENUM_STATE_H__
 
 DWORD
-LsaProviderLocal_CreateUserState(
+LsaLPCreateUserState(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     );
 
 VOID
-LsaProviderLocal_FreeUserState(
+LsaLPFreeUserState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     );
 
 DWORD
-LsaProviderLocal_CreateGroupState(
+LsaLPCreateGroupState(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     );
 
 DWORD
-LsaProviderLocal_CreateEnumState(
+LsaLPCreateEnumState(
     DWORD dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
     );
 
 VOID
-LsaProviderLocal_FreeGroupState(
+LsaLPFreeGroupState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE pEnumState
     );
 
 VOID
-LsaProviderLocal_FreeEnumState(
+LsaLPFreeEnumState(
     PLOCAL_PROVIDER_ENUM_STATE pEnumState
     );
 
