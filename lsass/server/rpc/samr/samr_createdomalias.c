@@ -95,7 +95,7 @@ cleanup:
         SamrSrvFreeMemory(pwszAliasName);
     }
 
-    SamrSrvFreeUnicodeString(&Name);
+    SamrSrvFreeUnicodeStringEx(&Name);
 
     return status;
 
