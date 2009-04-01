@@ -6,6 +6,7 @@ SamDbBuildSqlQuery(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PWSTR                  pwszFilter,
     PWSTR                  wszAttributes[],
+    ULONG                  ulAttributesOnly,
     PSTR*                  ppszQuery,
     PBOOLEAN               pbMembersAttrExists,
     PSAM_DB_COLUMN_VALUE*  ppColumnValueList
@@ -23,6 +24,29 @@ SamDbSearchExecute(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszQuery,
     PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    );
+
+static
+DWORD
+SamDbSearchMarshallResultsAttributes(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    );
+
+static
+DWORD
+SamDbSearchMarshallResultsAttributesValues(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
     PDIRECTORY_ENTRY*      ppDirectoryEntries,
     PDWORD                 pdwNumEntries
     );
@@ -88,6 +112,7 @@ SamDbSearchObject_inlock(
                     pDirectoryContext,
                     pwszFilter,
                     wszAttributes,
+                    ulAttributesOnly,
                     &pszQuery,
                     &bMembersAttrExists,
                     &pColumnValueList);
@@ -97,6 +122,7 @@ SamDbSearchObject_inlock(
                     pDirectoryContext,
                     pszQuery,
                     pColumnValueList,
+                    ulAttributesOnly,
                     &pDirectoryEntries,
                     &dwNumEntries);
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -134,6 +160,7 @@ SamDbBuildSqlQuery(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PWSTR                  pwszFilter,
     PWSTR                  wszAttributes[],
+    ULONG                  ulAttributesOnly,
     PSTR*                  ppszQuery,
     PBOOLEAN               pbMembersAttrExists,
     PSAM_DB_COLUMN_VALUE*  ppColumnValueList
@@ -324,6 +351,111 @@ SamDbSearchExecute(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszQuery,
     PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+
+    if (ulAttributesOnly)
+    {
+        dwError = SamDbSearchMarshallResultsAttributes(
+                        pDirectoryContext,
+                        pszQuery,
+                        pColumnValueList,
+                        ulAttributesOnly,
+                        ppDirectoryEntries,
+                        pdwNumEntries);
+    }
+    else
+    {
+        dwError = SamDbSearchMarshallResultsAttributesValues(
+                        pDirectoryContext,
+                        pszQuery,
+                        pColumnValueList,
+                        ulAttributesOnly,
+                        ppDirectoryEntries,
+                        pdwNumEntries);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+SamDbSearchMarshallResultsAttributes(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
+    PDIRECTORY_ENTRY*      ppDirectoryEntries,
+    PDWORD                 pdwNumEntries
+    )
+{
+    DWORD                dwError = 0;
+    PDIRECTORY_ENTRY     pDirectoryEntries = NULL;
+    PDIRECTORY_ENTRY     pDirEntry = NULL;
+    DWORD                dwNumEntries = 0;
+    DWORD                iCol = 0;
+    PSAM_DB_COLUMN_VALUE pIter = NULL;
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(DIRECTORY_ENTRY),
+                    (PVOID*)&pDirectoryEntries);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwNumEntries = 1;
+
+    pDirEntry = &pDirectoryEntries[0];
+
+    for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
+    {
+        pDirEntry->ulNumAttributes++;
+    }
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(DIRECTORY_ATTRIBUTE) * pDirEntry->ulNumAttributes,
+                    (PVOID*)&pDirEntry->pAttributes);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    for (pIter = pColumnValueList; pIter; pIter = pIter->pNext, iCol++)
+    {
+        PDIRECTORY_ATTRIBUTE pAttr = &pDirEntry->pAttributes[iCol];
+
+        dwError = DirectoryAllocateStringW(
+                        pIter->pAttrMap->wszDirectoryAttribute,
+                        &pAttr->pwszName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    *ppDirectoryEntries = pDirectoryEntries;
+    *pdwNumEntries = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppDirectoryEntries = NULL;
+    *pdwNumEntries = 0;
+
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbSearchMarshallResultsAttributesValues(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszQuery,
+    PSAM_DB_COLUMN_VALUE   pColumnValueList,
+    ULONG                  ulAttributesOnly,
     PDIRECTORY_ENTRY*      ppDirectoryEntries,
     PDWORD                 pdwNumEntries
     )
