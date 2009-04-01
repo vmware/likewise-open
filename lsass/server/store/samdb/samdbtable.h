@@ -210,6 +210,8 @@ typedef enum
     {'N','T','H','a','s','h',0}
 #define SAM_DB_DIR_ATTR_GID \
     {'G','I','D',0}
+#define SAM_DB_DIR_ATTR_MEMBERS \
+    {'M','e','m','b','e','r','s',0};
 #define SAM_DB_DIR_ATTR_CREATED_TIME \
     {'C','r','e','a','t','e','d','T','i','m','e',0}
 
@@ -223,6 +225,13 @@ typedef DWORD SAM_DB_ATTR_FLAGS;
 #define SAM_DB_ATTR_FLAGS_GENERATED_BY_DB            0x00000010
 #define SAM_DB_ATTR_FLAGS_DERIVATIVE                 0x00000020
 
+#define SAM_DB_IS_A_ROW_ID         TRUE
+#define SAM_DB_IS_NOT_A_ROW_ID     FALSE
+#define SAM_DB_IS_MULTI_VALUED     TRUE
+#define SAM_DB_IS_NOT_MULTI_VALUED FALSE
+#define SAM_DB_IS_QUERYABLE        TRUE
+#define SAM_DB_IS_NOT_QUERYABLE    FALSE
+
 typedef struct _SAM_DB_ATTRIBUTE_MAP
 {
     wchar16_t       wszDirectoryAttribute[SAM_DB_DIR_ATTR_NAME_MAX_LEN];
@@ -230,6 +239,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     SAMDB_ATTR_TYPE attributeType;
     BOOLEAN         bIsRowId;
     BOOLEAN         bIsMultiValued;
+    BOOLEAN         bIsQueryable;
 
 } SAM_DB_ATTRIBUTE_MAP, *PSAM_DB_ATTRIBUTE_MAP;
 
@@ -238,162 +248,185 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_DIR_ATTR_RECORD_ID,            \
         SAM_DB_COL_RECORD_ID,                 \
         SAMDB_ATTR_TYPE_INT64,                \
-        TRUE,                                 \
-        FALSE                                 \
+        SAM_DB_IS_A_ROW_ID,                   \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_OBJECT_SID,           \
         SAM_DB_COL_OBJECT_SID,                \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_DISTINGUISHED_NAME,   \
         SAM_DB_COL_DISTINGUISHED_NAME,        \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_PARENT_DN,            \
         SAM_DB_COL_PARENT_DN,                 \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_OBJECT_CLASS,         \
         SAM_DB_COL_OBJECT_CLASS,              \
         SAMDB_ATTR_TYPE_INT32,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_DOMAIN,               \
         SAM_DB_COL_DOMAIN,                    \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_NETBIOS_NAME,         \
         SAM_DB_COL_NETBIOS_NAME,              \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_COMMON_NAME,          \
         SAM_DB_COL_COMMON_NAME,               \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,     \
         SAM_DB_COL_SAM_ACCOUNT_NAME,          \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_DESCRIPTION,          \
         SAM_DB_COL_DESCRIPTION,               \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_UID,                  \
         SAM_DB_COL_UID,                       \
         SAMDB_ATTR_TYPE_INT32,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_PASSWORD,             \
         SAM_DB_COL_PASSWORD,                  \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_USER_INFO_FLAGS,      \
         SAM_DB_COL_USER_INFO_FLAGS,           \
         SAMDB_ATTR_TYPE_INT32,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_GECOS,                \
         SAM_DB_COL_GECOS,                     \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_HOME_DIR,             \
         SAM_DB_COL_HOME_DIR,                  \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_SHELL,                \
         SAM_DB_COL_SHELL,                     \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_PASSWORD_CHANGE_TIME, \
         SAM_DB_COL_PASSWORD_CHANGE_TIME,      \
         SAMDB_ATTR_TYPE_INT32,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_FULL_NAME,            \
         SAM_DB_COL_FULL_NAME,                 \
         SAMDB_ATTR_TYPE_TEXT,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY,       \
         SAM_DB_COL_ACCOUNT_EXPIRY,            \
         SAMDB_ATTR_TYPE_INT64,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_LM_HASH,              \
         SAM_DB_COL_LM_HASH,                   \
         SAMDB_ATTR_TYPE_BLOB,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_NT_HASH,              \
         SAM_DB_COL_NT_HASH,                   \
         SAMDB_ATTR_TYPE_BLOB,                 \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_GID,                  \
         SAM_DB_COL_GID,                       \
         SAMDB_ATTR_TYPE_INT32,                \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_CREATED_TIME,         \
         SAM_DB_COL_CREATED_TIME,              \
         SAMDB_ATTR_TYPE_DATETIME,             \
-        FALSE,                                \
-        FALSE                                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
     }
 
 typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
