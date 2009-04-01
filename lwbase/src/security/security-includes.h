@@ -40,6 +40,7 @@
 #include "security-api2.h"
 #include "security-types-internal.h"
 #include <lw/rtlgoto.h>
+#include <lw/atomic.h>
 #include <lw/rtlmemory.h>
 #include <lw/swab.h>
 #include <lw/safeint.h>

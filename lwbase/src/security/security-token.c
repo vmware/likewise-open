@@ -279,8 +279,7 @@ RtlReferenceAccessToken(
     IN PACCESS_TOKEN AccessToken
     )
 {
-    // TODO-Interlocked access for MT-safety
-    AccessToken->ReferenceCount++;
+    InterlockedIncrement(&AccessToken->ReferenceCount);
 }
 
 VOID
@@ -292,15 +291,9 @@ RtlReleaseAccessToken(
 
     if (accessToken)
     {
-        // TODO-Interlocked access for MT-safety
-
-        if (accessToken->ReferenceCount <= 1)
+        if (InterlockedDecrement(&accessToken->ReferenceCount) <= 0)
         {
-            RTL_FREE(AccessToken);
-        }
-        else
-        {
-            accessToken->ReferenceCount--;
+            RTL_FREE(&accessToken);
         }
     }
 }
