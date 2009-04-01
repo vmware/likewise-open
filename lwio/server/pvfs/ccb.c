@@ -110,6 +110,12 @@ PvfsFreeCCB(
     if (pCCB->pFcb) {
         PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(pCCB->pFcb);
+        pCCB->pFcb = NULL;
+    }
+
+    if (pCCB->pUserToken) {
+        RtlReleaseAccessToken(&pCCB->pUserToken);
+        pCCB->pUserToken = NULL;
     }
 
     if (pCCB->LockTable.ExclusiveLocks.pLocks) {

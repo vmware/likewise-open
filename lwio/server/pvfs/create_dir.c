@@ -165,13 +165,16 @@ PvfsCreateDirCreate(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
     /* Should check parent here */
 
-    ntError = PvfsAccessCheckDir(pSecCtx,
+    ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                  pszDirname,
                                  FILE_ADD_SUBDIRECTORY,
                                  &GrantedAccess);
@@ -280,12 +283,15 @@ PvfsCreateDirOpen(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsAllocateMemory((PVOID)&pCcb->pDirContext,
                                  sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
 
-    ntError = PvfsAccessCheckDir(pSecCtx,
+    ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                  pszDiskFilename,
                                  Args.DesiredAccess,
                                  &GrantedAccess);
@@ -379,6 +385,9 @@ PvfsCreateDirOpenIf(
     ntError = PvfsAllocateCCB(&pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsAcquireAccessToken(pCcb, pSecCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Check for file existence */
 
     ntError = PvfsLookupFile(&pszDiskFilename,
@@ -395,7 +404,7 @@ PvfsCreateDirOpenIf(
                                            pszRelativeFilename);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsAccessCheckDir(pSecCtx,
+        ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                      pszDirname,
                                      FILE_ADD_SUBDIRECTORY,
                                      &GrantedAccess);
@@ -403,7 +412,7 @@ PvfsCreateDirOpenIf(
     }
     else
     {
-        ntError = PvfsAccessCheckDir(pSecCtx,
+        ntError = PvfsAccessCheckDir(pCcb->pUserToken,
                                      pszDiskFilename,
                                      Args.DesiredAccess,
                                      &GrantedAccess);

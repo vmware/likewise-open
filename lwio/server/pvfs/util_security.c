@@ -60,6 +60,34 @@
  **********************************************************/
 
 NTSTATUS
+PvfsAcquireAccessToken(
+    PPVFS_CCB pCcb,
+    PIO_CREATE_SECURITY_CONTEXT pIoSecCtx
+    )
+{
+    NTSTATUS ntError= STATUS_UNSUCCESSFUL;
+
+    pCcb->pUserToken = IoSecurityGetAccessToken(pIoSecCtx);
+    if (pCcb->pUserToken == NULL) {
+        ntError = STATUS_NO_TOKEN;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    RtlReferenceAccessToken(pCcb->pUserToken);
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************
+ **********************************************************/
+
+NTSTATUS
 PvfsAccessCheckFileHandle(
     PPVFS_CCB pCcb,
     ACCESS_MASK AccessRequired
@@ -101,14 +129,14 @@ PvfsAccessCheckAnyFileHandle(
 
 NTSTATUS
 PvfsAccessCheckDir(
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszDirectory,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted)
 {
     /* For now this is just the same as file access */
 
-    return PvfsAccessCheckFile(pSecCtx, pszDirectory, Desired, pGranted);
+    return PvfsAccessCheckFile(pToken, pszDirectory, Desired, pGranted);
 }
 
 /***********************************************************
@@ -116,14 +144,13 @@ PvfsAccessCheckDir(
 
 NTSTATUS
 PvfsAccessCheckFile(
-    PIO_CREATE_SECURITY_CONTEXT pSecCtx,
+    PACCESS_TOKEN pToken,
     PCSTR pszFilename,
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted)
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     ACCESS_MASK AccessMask = 0;
-    PACCESS_TOKEN pToken = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG SecDescRelLen = 1024;
     SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
@@ -140,11 +167,8 @@ PvfsAccessCheckFile(
     PSID pGroup = NULL;
     ULONG GroupLen = 0;
 
-    BAIL_ON_INVALID_PTR(pSecCtx, ntError);
-    BAIL_ON_INVALID_PTR(pGranted, ntError);
-
-    pToken = IoSecurityGetAccessToken(pSecCtx);
     BAIL_ON_INVALID_PTR(pToken, ntError);
+    BAIL_ON_INVALID_PTR(pGranted, ntError);
 
     do
     {

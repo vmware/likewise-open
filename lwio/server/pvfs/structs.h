@@ -194,6 +194,8 @@ typedef struct _PVFS_CCB
     FILE_SHARE_FLAGS ShareFlags;
     ACCESS_MASK AccessGranted;
 
+    PACCESS_TOKEN pUserToken;
+
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
