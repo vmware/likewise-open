@@ -220,6 +220,26 @@ error:
     goto cleanup;
 }
 
+PSAM_DB_COLUMN_VALUE
+SamDbReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    )
+{
+    PSAM_DB_COLUMN_VALUE pP = NULL;
+    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
+    PSAM_DB_COLUMN_VALUE pR = NULL;
+
+    while( pQ )
+    {
+        pR = pQ->pNext;
+        pQ->pNext = pP;
+        pP = pQ;
+        pQ = pR;
+    }
+
+    return pP;
+}
+
 VOID
 SamDbFreeColumnValueList(
     PSAM_DB_COLUMN_VALUE pColValueList

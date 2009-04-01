@@ -13,12 +13,6 @@ SamDbBuildSqlQuery(
     );
 
 static
-PSAM_DB_COLUMN_VALUE
-SamDbSearchReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    );
-
-static
 DWORD
 SamDbSearchExecute(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
@@ -249,7 +243,7 @@ SamDbBuildSqlQuery(
                     (PVOID*)&pszQuery);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    pColumnValueList = SamDbSearchReverseColumnValueList(pColumnValueList);
+    pColumnValueList = SamDbReverseColumnValueList(pColumnValueList);
 
     pszQueryCursor = pszQuery;
     dwColNamesLen = 0;
@@ -322,27 +316,6 @@ error:
     }
 
     goto cleanup;
-}
-
-static
-PSAM_DB_COLUMN_VALUE
-SamDbSearchReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    )
-{
-    PSAM_DB_COLUMN_VALUE pP = NULL;
-    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
-    PSAM_DB_COLUMN_VALUE pR = NULL;
-
-    while( pQ )
-    {
-        pR = pQ->pNext;
-        pQ->pNext = pP;
-        pP = pQ;
-        pQ = pR;
-    }
-
-    return pP;
 }
 
 static

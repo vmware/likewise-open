@@ -78,6 +78,11 @@ SamDbFindObjectClassMapInfo(
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
     );
 
+PSAM_DB_COLUMN_VALUE
+SamDbReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    );
+
 VOID
 SamDbFreeColumnValueList(
     PSAM_DB_COLUMN_VALUE pColValueList
