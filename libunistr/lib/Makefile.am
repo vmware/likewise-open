@@ -1,5 +1,7 @@
 lib_LTLIBRARIES = libunistr.la
 
+bin_SCRIPTS = parse_WC16STR.sh
+
 AM_CFLAGS=-fPIC -Werror -Wall
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
