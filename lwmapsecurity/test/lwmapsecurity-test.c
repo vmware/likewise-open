@@ -172,7 +172,7 @@ DumpTokenUnixInfo(
     ASSERT_NT_SUCCESS_STATUS(status);
 
     LOG("Unix.Uid = %u", tokenUnix.Uid);
-    LOG("Unix.Gid = %u", tokenUnix.Uid);
+    LOG("Unix.Gid = %u", tokenUnix.Gid);
     LOG("Unix.Umask = 0%03o", tokenUnix.Umask);
 }
 
