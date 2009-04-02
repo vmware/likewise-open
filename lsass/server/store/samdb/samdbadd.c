@@ -361,6 +361,8 @@ SamDbBuildAddObjectQuery(
     //
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
+        if (pIter->pAttrMap->bIsRowId) continue;
+
         if (dwColNamesLen)
         {
             dwColNamesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR) - 1;
@@ -415,6 +417,8 @@ SamDbBuildAddObjectQuery(
 
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
+        if (pIter->pAttrMap->bIsRowId) continue;
+
         if (dwColNamesLen)
         {
             pszCursor = SAMDB_ADD_OBJECT_QUERY_SEPARATOR;
@@ -437,7 +441,7 @@ SamDbBuildAddObjectQuery(
             pszCursor = SAMDB_ADD_OBJECT_QUERY_SEPARATOR;
             while (pszCursor && *pszCursor)
             {
-                *pszQueryCursor++ = *pszCursor++;
+                *pszQueryValuesCursor++ = *pszCursor++;
             }
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR)  - 1;
         }
@@ -447,7 +451,7 @@ SamDbBuildAddObjectQuery(
             pszCursor = SAMDB_ADD_OBJECT_QUERY_ROWID;
             while (pszCursor && *pszCursor)
             {
-                *pszQueryValuesCursor++ = *pszCursor;
+                *pszQueryValuesCursor++ = *pszCursor++;
             }
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
         }
@@ -458,10 +462,16 @@ SamDbBuildAddObjectQuery(
             pszCursor = &szBuf[0];
             while (pszCursor && *pszCursor)
             {
-                *pszQueryValuesCursor++ = *pszCursor;
+                *pszQueryValuesCursor++ = *pszCursor++;
                 dwColValuesLen++;
             }
         }
+    }
+
+    pszCursor = SAMDB_ADD_OBJECT_QUERY_MEDIAN;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
     }
 
     pszCursor = SAMDB_ADD_OBJECT_QUERY_SUFFIX;
@@ -525,7 +535,7 @@ SamDbBuildAddColumnValueList(
                         &pColumnValue->pAttrMap);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        for (; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
+        for (iMap = 0; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
         {
             PSAMDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
 
