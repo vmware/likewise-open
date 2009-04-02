@@ -356,8 +356,10 @@ SamDbAddLocalDomain(
 {
     DWORD     dwError = 0;
     PWSTR     pwszObjectDN = NULL;
+    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
     PWSTR     pwszMachineSID = NULL;
     PWSTR     pwszNetBIOSName = NULL;
+    wchar16_t wszAttrNameNetBIOSName[] = SAM_DB_DIR_ATTR_NETBIOS_NAME;
     ATTRIBUTE_VALUE avMachineSID = {0};
     ATTRIBUTE_VALUE avNetBIOSName = {0};
     DIRECTORY_MOD mods[3];
@@ -375,32 +377,24 @@ SamDbAddLocalDomain(
                     &pwszMachineSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avMachineSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avMachineSID.pwszStringValue = pwszMachineSID;
+    mods[iMod].pAttrValues = &avMachineSID;
+
     dwError = LsaMbsToWc16s(
                     pszNetBIOSName,
                     &pwszNetBIOSName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaMbsToWc16s(
-                    DIRECTORY_ATTR_TAG_DOMAIN_SID,
-                    &mods[0].pwszAttrName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    mods[0].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[0].ulNumValues = 1;
-    avMachineSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avMachineSID.pwszStringValue = pwszMachineSID;
-    mods[0].pAttrValues = &avMachineSID;
-
-    dwError = LsaMbsToWc16s(
-                    DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME,
-                    &mods[1].pwszAttrName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    mods[1].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[1].ulNumValues = 1;
+    mods[++iMod].pwszAttrName = &wszAttrNameNetBIOSName[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
     avNetBIOSName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avNetBIOSName.pwszStringValue = pwszNetBIOSName;
-    mods[1].pAttrValues = &avNetBIOSName;
+    mods[iMod].pAttrValues = &avNetBIOSName;
 
     dwError = SamDbAddObject(
                     hDirectory,
@@ -413,14 +407,6 @@ cleanup:
     DIRECTORY_FREE_MEMORY(pwszObjectDN);
     DIRECTORY_FREE_MEMORY(pwszMachineSID);
     DIRECTORY_FREE_MEMORY(pwszNetBIOSName);
-
-    for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
-    {
-        if (mods[iMod].pwszAttrName)
-        {
-            DirectoryFreeMemory(mods[iMod].pwszAttrName);
-        }
-    }
 
     return dwError;
 
@@ -440,6 +426,9 @@ SamDbAddLocalGroup(
     )
 {
     DWORD dwError = 0;
+    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameGroupName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameGID[]       = SAM_DB_DIR_ATTR_GID;
     PSTR      pszObjectDN = NULL;
     PWSTR     pwszObjectDN = NULL;
     PWSTR     pwszGroupSID = NULL;
@@ -474,40 +463,28 @@ SamDbAddLocalGroup(
                     &pwszGroupSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaMbsToWc16s(
-                    DIRECTORY_ATTR_TAG_GROUP_SID,
-                    &mods[0].pwszAttrName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    mods[0].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[0].ulNumValues = 1;
+    mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
     avGroupSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avGroupSID.pwszStringValue = pwszGroupSID;
-    mods[0].pAttrValues = &avGroupSID;
+    mods[iMod].pAttrValues = &avGroupSID;
 
-    dwError = LsaMbsToWc16s(
-                    DIRECTORY_ATTR_TAG_GROUP_NAME,
-                    &mods[1].pwszAttrName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    mods[1].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[1].ulNumValues = 1;
+    mods[++iMod].pwszAttrName = &wszAttrNameGroupName[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
     avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avGroupName.pwszStringValue = pwszGroupName;
-    mods[1].pAttrValues = &avGroupName;
+    mods[iMod].pAttrValues = &avGroupName;
 
-    dwError = LsaMbsToWc16s(
-                    DIRECTORY_ATTR_TAG_GID,
-                    &mods[1].pwszAttrName);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    mods[2].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[2].ulNumValues = 1;
+    mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
     avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
     avGID.ulValue = dwGID;
-    mods[2].pAttrValues = &avGID;
+    mods[iMod].pAttrValues = &avGID;
 
-    dwError = SamDbAddGroup(
+    dwError = SamDbAddObject(
                     hDirectory,
                     pwszObjectDN,
                     mods);
@@ -519,11 +496,6 @@ cleanup:
     DIRECTORY_FREE_MEMORY(pwszObjectDN);
     DIRECTORY_FREE_MEMORY(pwszGroupSID);
     DIRECTORY_FREE_MEMORY(pwszGroupName);
-
-    for (iMod = 0; iMod < sizeof(mods)/sizeof(mods[0]); iMod++)
-    {
-        DIRECTORY_FREE_MEMORY(mods[iMod].pwszAttrName);
-    }
 
     return dwError;
 
