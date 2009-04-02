@@ -53,6 +53,7 @@
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
+#include <lwrpc/displayinfo.h>
 
 #include <lsa/lsa.h>
 #include <lsautils.h>
