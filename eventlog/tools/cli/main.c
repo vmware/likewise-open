@@ -49,9 +49,8 @@
 #define ACTION_SHOW 1
 #define ACTION_TABLE 2
 #define ACTION_COUNT 3
-#define ACTION_IMPORT 4
-#define ACTION_EXPORT 5
-#define ACTION_DELETE 6
+#define ACTION_EXPORT 4
+#define ACTION_DELETE 5
 #define ACTION_LAST 6
 
 #define TRY DCETHREAD_TRY
@@ -63,12 +62,11 @@ void
 ShowUsage()
 {
     printf("Usage: lw-eventlog-cli [-h] | { [-s [<sql_filter>|-]] | [-c [<sql_filter>|-]] | [-t [<sql_filter> | -]]\n");
-    printf(" | [-i <csv_path> [<table_category_id>]] | [-e [<csv_path>|-]] | [-d [<sql_filter>|-]] }  <ip_address>\n\n");
+    printf(" | [-e [<csv_path>|-]] | [-d [<sql_filter>|-]] }  <ip_address>\n\n");
     printf("\t-h\tShow help\n");
     printf("\t-s\tShows a detailed, human-readable listing of the records matching sql_filter, or - for all records.\n");
     printf("\t-t\tShows a summary table of the records matching sql_filter, or - for all records.\n");
     printf("\t-c\tShows a count of the number of records matching sql_filter, or - for all records.\n");
-    printf("\t-i\tImports CSV data to the database from the given path\n");
     printf("\t-e\tExports CSV data from the database to the given path, or - to print to the command line\n");
     printf("\t-d\tDeletes the records matching sql_filter, or - to delete all records, re-initializing the database\n");
     printf("\nExamples:\n");
@@ -148,9 +146,6 @@ ParseArgs(
     else if (strcmp(pszArg, "-c") == 0) {
         actionLocal = ACTION_COUNT;
     }
-    else if (strcmp(pszArg, "-i") == 0) {
-        actionLocal = ACTION_IMPORT;
-    }
     else if (strcmp(pszArg, "-e") == 0) {
         actionLocal = ACTION_EXPORT;
     }
@@ -177,22 +172,6 @@ ParseArgs(
         BAIL_ON_EVT_ERROR(dwError);
         strcpy(pstrArgLocal, pszArg);
     }
-
-    //handle the optional eventCategoryId in the case where
-    //one is provided for an import of a windows XP event log
-    if (iArg <= maxIndex &&
-        actionLocal == ACTION_IMPORT &&
-        argv[iArg] != NULL &&
-        *(argv[iArg]) != '-' &&
-        strchr(argv[iArg], '.') == NULL) //if this arg is the IP address, ignore.
-    {
-        EVT_LOG_VERBOSE("  Category ID = %s", argv[iArg]);
-        dwError = EVTAllocateString(argv[iArg++], (PSTR*)pszEventTableCategoryId);
-        BAIL_ON_EVT_ERROR(dwError);
-
-        bEventTableCategoryIdInCSV = FALSE;
-    }
-
 
     while (iArg+2 <= maxIndex)
     {
@@ -278,18 +257,7 @@ main(
         dwError = LWIOpenEventLog(ipAddress, (PHANDLE)&pEventLogHandle);
         BAIL_ON_EVT_ERROR(dwError);
 
-        if (action == ACTION_IMPORT)
-        {
-            dwError = ParseAndAddEvents(
-                        pEventLogHandle,
-                        argCopy,
-                        pszEventTableCategoryId,
-                        bEventTableCategoryIdInCSV,
-                        AddEventRecord
-                        );
-            BAIL_ON_EVT_ERROR(dwError);
-        }
-        else if (action == ACTION_EXPORT)
+        if (action == ACTION_EXPORT)
         {
             FILE* fpExport = NULL;
 
