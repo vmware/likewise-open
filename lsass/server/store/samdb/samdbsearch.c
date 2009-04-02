@@ -400,6 +400,49 @@ SamDbSearchMarshallResultsAttributes(
                         pIter->pAttrMap->wszDirectoryAttribute,
                         &pAttr->pwszName);
         BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = DirectoryAllocateMemory(
+                        sizeof(ATTRIBUTE_VALUE),
+                        (PVOID*)&pAttr->pValues);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        pAttr->ulNumValues = 1;
+
+        switch (pIter->pAttrMap->attributeType)
+        {
+            case SAMDB_ATTR_TYPE_TEXT:
+
+                pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+
+                break;
+
+            case SAMDB_ATTR_TYPE_INT32:
+            case SAMDB_ATTR_TYPE_BOOLEAN:
+            case SAMDB_ATTR_TYPE_DATETIME:
+
+                pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_INTEGER;
+
+                break;
+
+            case SAMDB_ATTR_TYPE_INT64:
+
+                pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+
+                break;
+
+            case SAMDB_ATTR_TYPE_BLOB:
+
+                pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+
+                break;
+
+            default:
+
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_SAMDB_ERROR(dwError);
+
+                break;
+        }
     }
 
     *ppDirectoryEntries = pDirectoryEntries;
