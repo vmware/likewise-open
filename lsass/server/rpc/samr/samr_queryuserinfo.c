@@ -307,20 +307,12 @@ SamrSrvQueryUserInfo(
         status = SamrFillUserInfo14(pEntry, pUserInfo);
         break;
 
-    case 15:
-        status = SamrFillUserInfo15(pEntry, pUserInfo);
-        break;
-
     case 16:
         status = SamrFillUserInfo16(pEntry, pUserInfo);
         break;
 
     case 17:
         status = SamrFillUserInfo17(pEntry, pUserInfo);
-        break;
-
-    case 18:
-        status = SamrFillUserInfo18(pEntry, pUserInfo);
         break;
 
     case 20:
