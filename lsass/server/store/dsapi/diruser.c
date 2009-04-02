@@ -128,3 +128,27 @@ error:
 
     return dwError;
 }
+
+DWORD
+DirectoryGetNumberOfUsers(
+    HANDLE hBindHandle,
+    PDWORD pdwNumUsers
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnGetNumberOfUsers(
+                    pContext->hBindHandle,
+                    pdwNumUsers);
+
+error:
+
+    return dwError;
+}

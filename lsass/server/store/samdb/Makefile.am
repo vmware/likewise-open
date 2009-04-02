@@ -10,6 +10,7 @@ libsamdb_la_SOURCES =     \
         samdbdel.c        \
         samdbdn.c         \
         samdbglobals.c    \
+        samdbgroup.c      \
         samdbinit.c       \
         samdblock.c       \
         samdbmisc.c       \

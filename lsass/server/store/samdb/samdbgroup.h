@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -35,72 +35,25 @@
  *
  * Module Name:
  *
- *        samdbmisc.h
+ *        samdbgroup.h
  *
  * Abstract:
  *
- *        Likewise SAM DB
  *
- *        Misc Functions
+ *      Likewise SAM Database Provider
+ *
+ *      SAM Group Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-
-#ifndef __SAMDB_MISC_H__
-#define __SAMDB_MISC_H__
-
-DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
+#ifndef __SAM_DB_GROUP_H__
+#define __SAM_DB_GROUP_H__
 
 DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
+SamDbGetGroupCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
     );
 
-DWORD
-SamDbGetObjectClass(
-    DIRECTORY_MOD       Modifications[],
-    SAMDB_OBJECT_CLASS* pObjectClass
-    );
-
-DWORD
-SamDbFindObjectClassMapInfo(
-    SAMDB_OBJECT_CLASS                   objectClass,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
-    DWORD                                dwNumMapInfos,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
-    );
-
-PSAM_DB_COLUMN_VALUE
-SamDbReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    );
-
-VOID
-SamDbFreeColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColValueList
-    );
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    );
-
-DWORD
-SamDbGetObjectCount(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    SAMDB_OBJECT_CLASS     objectClass,
-    PDWORD                 pdwNumObjects
-    );
-
-#endif /* __SAMDB_MISC_H__ */
-
+#endif /* __SAM_DB_GROUP_H__ */

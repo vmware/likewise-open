@@ -261,7 +261,9 @@ DirectoryValidateProvider(
         !pProvider->pProviderFnTbl->pfnDirectoryChangePassword ||
         !pProvider->pProviderFnTbl->pfnDirectoryVerifyPassword ||
         !pProvider->pProviderFnTbl->pfnDirectoryOpen ||
-        !pProvider->pProviderFnTbl->pfnDirectorySearch)
+        !pProvider->pProviderFnTbl->pfnDirectorySearch ||
+        !pProvider->pProviderFnTbl->pfnDirectoryGetUserCount ||
+        !pProvider->pProviderFnTbl->pfnDirectoryGetGroupCount)
     {
         dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
     }

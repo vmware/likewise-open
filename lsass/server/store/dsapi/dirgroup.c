@@ -35,72 +35,41 @@
  *
  * Module Name:
  *
- *        samdbmisc.h
+ *        dirgroup.c
  *
  * Abstract:
  *
- *        Likewise SAM DB
  *
- *        Misc Functions
+ *      Likewise Directory Wrapper Interface
+ *
+ *      Group Management Routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-
-#ifndef __SAMDB_MISC_H__
-#define __SAMDB_MISC_H__
+#include "includes.h"
 
 DWORD
-SamDbComputeLMHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
+DirectoryGetNumberOfGroups(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
 
-DWORD
-SamDbComputeNTHash(
-    PCSTR pszPassword,
-    PBYTE pHash,
-    DWORD dwHashByteLen
-    );
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
 
-DWORD
-SamDbGetObjectClass(
-    DIRECTORY_MOD       Modifications[],
-    SAMDB_OBJECT_CLASS* pObjectClass
-    );
+    dwError = pContext->pProvider->pProviderFnTbl->pfnGetNumberOfGroups(
+                    pContext->hBindHandle,
+                    pdwNumGroups);
 
-DWORD
-SamDbFindObjectClassMapInfo(
-    SAMDB_OBJECT_CLASS                   objectClass,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO  pMapInfos,
-    DWORD                                dwNumMapInfos,
-    PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
-    );
+error:
 
-PSAM_DB_COLUMN_VALUE
-SamDbReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    );
-
-VOID
-SamDbFreeColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColValueList
-    );
-
-DWORD
-SamDbGetNumberOfDependents_inlock(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    PCSTR                  pszObjectDN,
-    PDWORD                 pdwNumDependents
-    );
-
-DWORD
-SamDbGetObjectCount(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    SAMDB_OBJECT_CLASS     objectClass,
-    PDWORD                 pdwNumObjects
-    );
-
-#endif /* __SAMDB_MISC_H__ */
+    return dwError;
+}
 

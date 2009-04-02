@@ -118,7 +118,7 @@ typedef struct _DIRECTORY_ENTRY
     if (pMem) { \
         DirectoryFreeMemory(pMem); \
         *(pMem) = NULL; \
-    }s
+    }
 
 DWORD
 DirectoryOpen(
@@ -163,6 +163,40 @@ DWORD
 DirectoryDeleteObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN
+    );
+
+DWORD
+DirectorySetPassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
+
+DWORD
+DirectoryVerifyPassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszPassword
+    );
+
+DWORD
+DirectoryGetNumberOfUsers(
+    HANDLE hBindHandle,
+    PDWORD pdwNumUsers
+    );
+
+DWORD
+DirectoryGetNumberOfGroups(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
+    );
+
+DWORD
+DirectoryChangePassword(
+    HANDLE hBindHandle,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
     );
 
 VOID

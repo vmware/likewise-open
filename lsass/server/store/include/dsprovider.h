@@ -61,6 +61,16 @@ typedef DWORD (*PFNDIRECTORYSEARCH)(
                     PDWORD            pdwNumEntries
                     );
 
+typedef DWORD (*PFNDIRECTORYGETUSERCOUNT)(
+                    HANDLE hDirectory,
+                    PDWORD pdwNumUsers
+                    );
+
+typedef DWORD (*PFNDIRECTORYGETGROUPCOUNT)(
+                    HANDLE hDirectory,
+                    PDWORD pdwNumGroups
+                    );
+
 typedef DWORD (*PFNDIRECTORYDELETE)(
                     HANDLE hDirectory,
                     PWSTR  pwszObjectDN
@@ -81,6 +91,8 @@ typedef struct __LSA_DIRECTORY_PROVIDER_FUNCTION_TABLE
     PFNDIRECTORYVERIFYPASSWORD pfnDirectoryVerifyPassword;
     PFNDIRECTORYDELETE         pfnDirectoryDelete;
     PFNDIRECTORYSEARCH         pfnDirectorySearch;
+    PFNDIRECTORYGETUSERCOUNT   pfnDirectoryGetUserCount;
+    PFNDIRECTORYGETGROUPCOUNT  pfnDirectoryGetGroupCount;
     PFNDIRECTORYCLOSE          pfnDirectoryClose;
 
 } DIRECTORY_PROVIDER_FUNCTION_TABLE, *PDIRECTORY_PROVIDER_FUNCTION_TABLE;
