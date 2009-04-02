@@ -150,7 +150,7 @@ LsaSrvLookupNames2(
     dwError = gethostname(szHostname, sizeof(szHostname));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SamrSrvConfigGetLpcSocketPath(&pszSamrLpcSocketPath);
+    dwError = LsaSrvConfigGetSamrLpcSocketPath(&pszSamrLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     rpcstatus = InitSamrBindingFull(&hSamrBinding,
