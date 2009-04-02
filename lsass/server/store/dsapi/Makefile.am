@@ -11,7 +11,8 @@ libdsapi_la_SOURCES = \
         dirmodify.c   \
         diropen.c     \
         dirprovider.c \
-        dirsearch.c
+        dirsearch.c   \
+        diruser.c
 
 libdsapi_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1 \
