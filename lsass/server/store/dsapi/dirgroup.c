@@ -50,7 +50,7 @@
 #include "includes.h"
 
 DWORD
-DirectoryGetNumberOfGroups(
+DirectoryGetGroupCount(
     HANDLE hBindHandle,
     PDWORD pdwNumGroups
     )

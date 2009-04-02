@@ -130,7 +130,7 @@ error:
 }
 
 DWORD
-DirectoryGetNumberOfUsers(
+DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers
     )

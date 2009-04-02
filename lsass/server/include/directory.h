@@ -180,13 +180,13 @@ DirectoryVerifyPassword(
     );
 
 DWORD
-DirectoryGetNumberOfUsers(
+DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers
     );
 
 DWORD
-DirectoryGetNumberOfGroups(
+DirectoryGetGroupCount(
     HANDLE hBindHandle,
     PDWORD pdwNumGroups
     );
