@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrQueryDomainInfo function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_querydomaininfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrQueryDomainInfo function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,13 +48,22 @@
 
 
 NTSTATUS
-SamrQueryDomainInfo(
-    /* [in] */ PolicyHandle *domain_handle,
+SamrSrvQueryDomainInfo(
+    /* [in] */ handle_t hBinding,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint16 level,
     /* [out] */ DomainInfo **info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+        status = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
 
 cleanup:
     return status;
