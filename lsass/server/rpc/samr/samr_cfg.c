@@ -108,12 +108,12 @@ SamrSrvParseConfigFile(
     NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaParseConfigFile(pszConfigFilePath,
-                                LSA_CFG_OPTION_STRIP_ALL,
-                                &SamrSrvConfigStartSection,
-                                NULL,
-                                &SamrSrvConfigNameValuePair,
-                                NULL,
-                                pConfig);
+                                 LSA_CFG_OPTION_STRIP_ALL,
+                                 &SamrSrvConfigStartSection,
+                                 NULL,
+                                 &SamrSrvConfigNameValuePair,
+                                 NULL,
+                                 pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -134,6 +134,7 @@ SamrSrvConfigStartSection(
     )
 {
     DWORD dwError = 0;
+    PCSTR pszLibName = NULL;
 
     if (IsNullOrEmptyString(pszSectionName) ||
         strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
@@ -142,7 +143,19 @@ SamrSrvConfigStartSection(
         goto cleanup;
     }
 
+    if (!strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
+                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
+
+        pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
+        if (IsNullOrEmptyString(pszLibName) ||
+            strcasecmp(pszLibName, LSA_CFG_TAG_SAMR_RPC_SERVER)) {
+            *pbSkipSection = TRUE;
+            goto cleanup;
+        }
+    }
+
 cleanup:
+    *pbContinue = TRUE;
     return dwError;
 }
 
@@ -176,7 +189,6 @@ SamrSrvConfigNameValuePair(
             break;
         }
     }
-
 
 cleanup:
     return dwError;
