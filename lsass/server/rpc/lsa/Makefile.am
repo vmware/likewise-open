@@ -7,6 +7,7 @@ lib_LTLIBRARIES = liblsa_ss.la liblsa_srv.la
 liblsa_srv_la_SOURCES = \
     globals.c \
     lsa.c \
+    lsa_cfg.c \
     lsa_srv.c \
     lsa_memory.c \
     lsa_openpolicy2.c \
@@ -44,7 +45,6 @@ liblsa_srv_la_LIBADD = \
     @LWBASE_LIBS@ \
     @NETLOGON_LIBS@ \
     $(rpc_srcdir)/rpcctl/librpcctl.la \
-    $(rpc_srcdir)/samr/libsamr_cfg.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     liblsa_ss.la
 
