@@ -155,19 +155,19 @@
     #
     nss-enumeration-enabled = @ENABLE_NSS_ENUM_DEFAULT@
 
-[auth provider:lsa-local-provider]
-
-    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
-
-    # Default: 30d
-    # Minimum: 1d
-    # Maximum: 180d
-    password-lifespan = 30d
-
-    # Default: 14d
-    # Minimum: 1h
-    # Maximum: 30d (must be less than lifespan)
-    password-change-warning-time = 14d
+#[auth provider:lsa-local-provider]
+#
+#    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
+#
+#    # Default: 30d
+#    # Minimum: 1d
+#    # Maximum: 180d
+#    password-lifespan = 30d
+#
+#    # Default: 14d
+#    # Minimum: 1h
+#    # Maximum: 30d (must be less than lifespan)
+#    password-change-warning-time = 14d
 
 #[rpc server:lsarpc]
 #    path = @rpcserverdir@/liblsa_srv@MOD_EXT@
