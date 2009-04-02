@@ -155,12 +155,17 @@ NTSTATUS __SamrOpenDomain(
 
 NTSTATUS __SamrQueryDomainInfo(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ uint16 level,
     /* [out] */ DomainInfo **info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvQueryDomainInfo(IDL_handle,
+                                    hDomain,
+                                    level,
+                                    info);
     return status;
 }
 
@@ -566,11 +571,29 @@ NTSTATUS __SamrGetUserGroups(
 }
 
 
-NTSTATUS _samr_Function28(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS __SamrQueryDisplayInfo(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ DOMAIN_HANDLE hDomain,
+    /* [in] */ uint16 level,
+    /* [in] */ uint32 start_idx,
+    /* [in] */ uint32 max_entries,
+    /* [in] */ uint32 buf_size,
+    /* [out] */ uint32 *total_size,
+    /* [out] */ uint32 *returned_size,
+    /* [out] */ SamrDisplayInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvQueryDisplayInfo(IDL_handle,
+                                     hDomain,
+                                     level,
+                                     start_idx,
+                                     max_entries,
+                                     buf_size,
+                                     total_size,
+                                     returned_size,
+                                     info);
     return status;
 }
 

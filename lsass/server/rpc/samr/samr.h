@@ -86,6 +86,15 @@ SamrSrvOpenDomain(
 
 
 NTSTATUS
+SamrSrvQueryDomainInfo(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    uint16 level,
+    DomainInfo **info
+    );
+
+
+NTSTATUS
 SamrSrvCreateUser(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
@@ -176,6 +185,20 @@ SamrSrvQueryUserInfo(
     ACCOUNT_HANDLE hUser,
     uint16 level,
     UserInfo **info
+    );
+
+
+NTSTATUS
+SamrSrvQueryDisplayInfo(
+    handle_t IDL_handle,
+    DOMAIN_HANDLE hDomain,
+    uint16 level,
+    uint32 start_idx,
+    uint32 max_entries,
+    uint32 buf_size,
+    uint32 *total_size,
+    uint32 *returned_size,
+    SamrDisplayInfo *info
     );
 
 
