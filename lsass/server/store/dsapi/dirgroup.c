@@ -56,7 +56,7 @@ DirectoryGetNumberOfGroups(
     )
 {
     DWORD dwError = 0;
-    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hBindHandle;
 
     if (!pContext || !pContext->pProvider)
     {
@@ -64,7 +64,7 @@ DirectoryGetNumberOfGroups(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
-    dwError = pContext->pProvider->pProviderFnTbl->pfnGetNumberOfGroups(
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetGroupCount(
                     pContext->hBindHandle,
                     pdwNumGroups);
 

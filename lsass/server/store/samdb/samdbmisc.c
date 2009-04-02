@@ -286,14 +286,13 @@ SamDbGetObjectCount(
     )
 {
     DWORD dwError = 0;
-    PSAM_DIRECTORY_CONTEXT pDirContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
     sqlite3_stmt* pSqlStatement = NULL;
     BOOLEAN bInLock = FALSE;
     DWORD   dwNumObjects = 0;
     PCSTR pszQueryTemplate = "SELECT count(*) FROM " SAM_DB_OBJECTS_TABLE \
                              " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1";
 
-    SAMDB_LOCK_RWLOCK_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -332,7 +331,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWLOCK(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     return dwError;
 

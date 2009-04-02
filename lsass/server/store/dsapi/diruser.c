@@ -136,7 +136,7 @@ DirectoryGetNumberOfUsers(
     )
 {
     DWORD dwError = 0;
-    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hBindHandle;
 
     if (!pContext || !pContext->pProvider)
     {
@@ -144,7 +144,7 @@ DirectoryGetNumberOfUsers(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
-    dwError = pContext->pProvider->pProviderFnTbl->pfnGetNumberOfUsers(
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetUserCount(
                     pContext->hBindHandle,
                     pdwNumUsers);
 
