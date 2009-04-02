@@ -14,6 +14,7 @@ interface samr
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
+#include <lwrpc/displayinfo.h>
 
     /* DomainInfo union returned from SamrQueryDomainInfo */
     typedef [switch_type(uint16)] union domain_info {
@@ -63,6 +64,15 @@ interface samr
         [case(25)] UserInfo25 info25;
         [case(26)] UserInfo26 info26;
     } UserInfo;
+
+    /* SamrDisplayInfo union returned from SamrQueryDisplayInfo */
+    typedef [switch_type(uint16)] union samr_display_info {
+        [case(1)] SamrDisplayInfoFull info1;
+        [case(2)] SamrDisplayInfoGeneral info2;
+        [case(3)] SamrDisplayInfoGeneralGroups info3;
+        [case(4)] SamrDisplayInfoAscii info4;
+        [case(5)] SamrDisplayInfoAscii info5;
+    } SamrDisplayInfo;
 
     /* function 0x00 */
     NTSTATUS SamrConnect(
@@ -264,7 +274,18 @@ interface samr
         [out] RidWithAttributeArray **rids
         );
 
-    NTSTATUS samr_Function28();
+    /* function 0x28 */
+    NTSTATUS _SamrQueryDisplayInfo(
+        [in,ref] PolicyHandle *domain_handle,
+        [in] uint16 level,
+        [in] uint32 start_idx,
+        [in] uint32 max_entries,
+        [in] uint32 buf_size,
+        [out,ref] uint32 *total_size,
+        [out,ref] uint32 *returned_size,
+        [out,ref,switch_is(level)] SamrDisplayInfo *info
+        );
+
     NTSTATUS samr_Function29();
     NTSTATUS samr_Function2a();
     NTSTATUS samr_Function2b();
