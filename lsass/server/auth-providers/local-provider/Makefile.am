@@ -1,30 +1,27 @@
 provider_LTLIBRARIES = liblsass_auth_provider_local.la
 
 liblsass_auth_provider_local_la_SOURCES = \
-       crypt.c     \
-       db.c        \
-       dbinit.c    \
-       enumstate.c \
-       localcfg.c  \
-       globals.c   \
-       provider-main.c
+    lpcfg.c       \
+    lpenumstate.c \
+    lpevent.c     \
+    lpglobals.c   \
+    lpgroup.c     \
+    lpmain.c      \
+    lpuser.c
 
 liblsass_auth_provider_local_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1              \
-	-I@top_srcdir@/server/include      \
-	@SQLITE_INCLUDES@
+    -I@top_srcdir@/server/include
 
 #netapi is needed for NTLMv1EncryptChallenge
 liblsass_auth_provider_local_la_LIBADD = \
     @top_builddir@/server/store/dsapi/libdsapi.la \
-	@top_builddir@/utils/liblsautils.la \
-	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/server/srvutils/liblsasrvutils.la \
-	@top_builddir@/lsaunistr/liblsaunistr.la \
-	@SQLITE_LIBS@ \
-	@NETAPI_LIBS@
+    @top_builddir@/utils/liblsautils.la \
+    @top_builddir@/logging_r/liblsalog_r.la \
+    @top_builddir@/server/srvutils/liblsasrvutils.la \
+    @top_builddir@/lsaunistr/liblsaunistr.la \
+    @NETAPI_LIBS@
 
 liblsass_auth_provider_local_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic \
-	@SQLITE_LDFLAGS@ \
+	-module -avoid-version -export-dynamic -export-symbols=lp.sym \
 	@NETAPI_LDFLAGS@

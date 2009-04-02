@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,104 +33,56 @@
  *
  * Module Name:
  *
- *        enum-state.c
+ *        lpevent.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Local Authentication Provider
- * 
- *        Enumeration State Utilities
+ *
+ *        Event Logging
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "localprovider.h"
 
-DWORD
-LsaLPCreateUserState(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
-    )
-{
-    return LsaLPCreateEnumState(
-                dwInfoLevel,
-                ppEnumState);
-}
+#ifndef __LP_EVENT_H__
+#define __LP_EVENT_H__
 
 VOID
-LsaLPFreeUserState(
-    HANDLE hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
-    )
-{
-    return LsaLPFreeEnumState(pEnumState);
-}
-
-DWORD
-LsaLPCreateGroupState(
-    HANDLE hProvider,
-    DWORD  dwInfoLevel,
-    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
-    )
-{
-    return LsaLPCreateEnumState(
-                    dwInfoLevel,
-                    ppEnumState);
-}
-
-DWORD
-LsaLPCreateEnumState(
-    DWORD dwInfoLevel,
-    PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-    
-    dwError = LsaAllocateMemory(
-        sizeof(LOCAL_PROVIDER_ENUM_STATE),
-        (PVOID*)&pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    pEnumState->dwInfoLevel = dwInfoLevel;
-    
-    if (ppNewEnumState) {
-       *ppNewEnumState = pEnumState;
-    }
-    
-cleanup:
-
-    return dwError;
-    
-error:
-
-    if (ppNewEnumState) {
-        *ppNewEnumState = NULL;
-    }
-    
-    if (pEnumState) {
-       LsaLPFreeEnumState(pEnumState);
-    }
-
-    goto cleanup;
-}
+LsaLPLogServiceStartEvent(
+    DWORD dwError);
 
 VOID
-LsaLPFreeGroupState(
-    HANDLE hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
-    )
-{
-    return LsaLPFreeEnumState(pEnumState);
-}
+LsaLPLogConfigReloadEvent(
+    VOID);
 
 VOID
-LsaLPFreeEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState
-    )
-{
-    LsaFreeMemory(pEnumState);
-}
+LsaProviderLocalLogUserPWChangeSuccessEvent(
+    PCSTR pszLoginId
+    );
+
+VOID
+LsaLPLogUserAddEvent(
+    PCSTR pszUsername,
+    uid_t uid
+    );
+
+VOID
+LsaLPLogUserDeleteEvent(
+    uid_t uid
+    );
+
+VOID
+LsaLPLogGroupAddEvent(
+    PCSTR pszGroupname,
+    gid_t gid
+    );
+
+VOID
+LsaLPLogGroupDeleteEvent(
+    gid_t gid
+    );
+
+#endif /* __LP_EVENT_H__ */

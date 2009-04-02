@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        localcfg.c
+ *        lpcfg.c
  *
  * Abstract:
  *
@@ -47,7 +47,7 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
-#include "localprovider.h"
+#include "includes.h"
 
 static
 DWORD
@@ -89,7 +89,7 @@ LsaLPInitializeConfig(
 
     pConfig->dwPasswdChangeInterval = LOCAL_PASSWORD_CHANGE_INTERVAL_DEFAULT;
     pConfig->dwPasswdChangeWarningTime = LOCAL_PASSWORD_CHANGE_WARNING_TIME_DEFAULT;
-    
+
     pConfig->bEnableEventLog = FALSE;
 
     return 0;
@@ -155,7 +155,7 @@ LsaLPConfigStartSection(
     PCSTR pszLibName = NULL;
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
-    
+
     if (IsNullOrEmptyString(pszSectionName) ||
         (strncasecmp(pszSectionName, LOCAL_CFG_TAG_AUTH_PROVIDER, sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1) &&
          strncasecmp(pszSectionName, "global", sizeof("global")-1)))
@@ -163,7 +163,7 @@ LsaLPConfigStartSection(
         bSkipSection = TRUE;
         goto done;
     }
-    
+
     if (!strncasecmp(pszSectionName, LOCAL_CFG_TAG_AUTH_PROVIDER, sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER) - 1;
@@ -193,7 +193,7 @@ LsaLPConfigNameValuePair(
     DWORD dwError = 0;
     DWORD iHandler = 0;
     DWORD nHandlers = sizeof(gLocalConfigHandlers)/sizeof(gLocalConfigHandlers[0]);
-    
+
     if (!IsNullOrEmptyString(pszName))
     {
         for (; iHandler < nHandlers; iHandler++)

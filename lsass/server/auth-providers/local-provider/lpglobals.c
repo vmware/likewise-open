@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        lpglobals.c
  *
  * Abstract:
  *
@@ -46,7 +46,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "localprovider.h"
+#include "includes.h"
 
 PCSTR gpszLocalProviderName = "lsa-local-provider";
 
@@ -54,41 +54,41 @@ PSTR gpszConfigFilePath = NULL;
 
 LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
 {
-    &LsaLPOpenHandle,
-    &LsaLPCloseHandle,
-    &LsaLPServicesDomain,
-    &LsaLPAuthenticateUser,
-    &LsaLPAuthenticateUserEx,
-    &LsaLPValidateUser,
-    &LsaLPCheckUserInList,
-    &LsaLPFindUserByName,
-    &LsaLPFindUserById,
-    &LsaLPBeginEnumUsers,
-    &LsaLPEnumUsers,
-    &LsaLPEndEnumUsers,
-    &LsaLPFindGroupByName,
-    &LsaLPFindGroupById,
-    &LsaLPGetGroupsForUser,
-    &LsaLPBeginEnumGroups,
-    &LsaLPEnumGroups,
-    &LsaLPEndEnumGroups,
-    &LsaLPChangePassword,
-    &LsaLPAddUser,
-    &LsaLPModifyUser,
-    &LsaLPDeleteUser,
-    &LsaLPAddGroup,
-    &LsaLPDeleteGroup,
-    &LsaLPOpenSession,
-    &LsaLPCloseSession,
-    &LsaLPGetNamesBySidList,
-    &LsaLPFindNSSArtefactByKey,
-    &LsaLPBeginEnumNSSArtefacts,
-    &LsaLPEnumNSSArtefacts,
-    &LsaLPEndEnumNSSArtefacts,
-    &LsaLPGetStatus,
-    &LsaLPFreeStatus,
-    &LsaLPRefreshConfiguration,
-    &LsaLPProviderIoControl
+    .pfnOpenHandle             = &LsaLPOpenHandle,
+    .pfnCloseHandle            = &LsaLPCloseHandle,
+    .pfnServicesDomain         = &LsaLPServicesDomain,
+    .pfnAuthenticateUser       = &LsaLPAuthenticateUser,
+    .pfnAuthenticateUserEx     = &LsaLPAuthenticateUserEx,
+    .pfnValidateUser           = &LsaLPValidateUser,
+    .pfnCheckUserInList        = &LsaLPCheckUserInList,
+    .pfnLookupUserByName       = &LsaLPFindUserByName,
+    .pfnLookupUserById         = &LsaLPFindUserById,
+    .pfnBeginEnumUsers         = &LsaLPBeginEnumUsers,
+    .pfnEnumUsers              = &LsaLPEnumUsers,
+    .pfnEndEnumUsers           = &LsaLPEndEnumUsers,
+    .pfnLookupGroupByName      = &LsaLPFindGroupByName,
+    .pfnLookupGroupById        = &LsaLPFindGroupById,
+    .pfnGetGroupsForUser       = &LsaLPGetGroupsForUser,
+    .pfnBeginEnumGroups        = &LsaLPBeginEnumGroups,
+    .pfnEnumGroups             = &LsaLPEnumGroups,
+    .pfnEndEnumGroups          = &LsaLPEndEnumGroups,
+    .pfnChangePassword         = &LsaLPChangePassword,
+    .pfnAddUser                = &LsaLPAddUser,
+    .pfnModifyUser             = &LsaLPModifyUser,
+    .pfnDeleteUser             = &LsaLPDeleteUser,
+    .pfnAddGroup               = &LsaLPAddGroup,
+    .pfnDeleteGroup            = &LsaLPDeleteGroup,
+    .pfnOpenSession            = &LsaLPOpenSession,
+    .pfnCloseSession           = &LsaLPCloseSession,
+    .pfnGetNamesBySidList      = &LsaLPGetNamesBySidList,
+    .pfnLookupNSSArtefactByKey = &LsaLPFindNSSArtefactByKey,
+    .pfnBeginEnumNSSArtefacts  = &LsaLPBeginEnumNSSArtefacts,
+    .pfnEnumNSSArtefacts       = &LsaLPEnumNSSArtefacts,
+    .pfnEndEnumNSSArtefacts    = &LsaLPEndEnumNSSArtefacts,
+    .pfnGetStatus              = &LsaLPGetStatus,
+    .pfnFreeStatus             = &LsaLPFreeStatus,
+    .pfnRefreshConfiguration   = &LsaLPRefreshConfiguration,
+    .pfnProviderIoControl      = &LsaLPProviderIoControl
 };
 
 pthread_rwlock_t g_dbLock;

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        lpmain.h
  *
  * Abstract:
  *
@@ -46,13 +46,13 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __PROVIDER_MAIN_H__
-#define __PROVIDER_MAIN_H__
+#ifndef __LPMAIN_H__
+#define __LPMAIN_H__
 
 DWORD
 LsaInitializeProvider(
-    PCSTR pszConfigFilePath,
-    PSTR* ppszProviderName,
+    PCSTR                         pszConfigFilePath,
+    PSTR*                         ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     );
 
@@ -79,7 +79,7 @@ LsaLPOpenHandle(
     PHANDLE phProvider
     );
 
-void
+VOID
 LsaLPCloseHandle(
     HANDLE hProvider
     );
@@ -347,41 +347,6 @@ LsaLPProviderIoControl(
     IN PVOID   pInputBuffer,
     OUT DWORD* pdwOutputBufferSize,
     OUT PVOID* ppOutputBuffer
-    );
-
-VOID
-LsaLocalProviderLogServiceStartEvent(
-    DWORD dwError);
-
-VOID
-LsaLocalProviderLogConfigReloadEvent(
-    VOID);
-
-VOID
-LsaProviderLocalLogUserPWChangeSuccessEvent(
-    PCSTR pszLoginId
-    );
-
-VOID
-LsaLocalProviderLogUserAddEvent(
-    PCSTR pszUsername,
-    uid_t uid
-    );
-
-VOID
-LsaLocalProviderLogUserDeleteEvent(
-    uid_t uid
-    );
-
-VOID
-LsaLocalProviderLogGroupAddEvent(
-    PCSTR pszGroupname,
-    gid_t gid
-    );
-
-VOID
-LsaLocalProviderLogGroupDeleteEvent(
-    gid_t gid
     );
 
 #endif /* __PROVIDER_MAIN_H__ */

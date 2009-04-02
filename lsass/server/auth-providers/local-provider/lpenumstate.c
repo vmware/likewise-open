@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,45 +33,104 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpenumstate.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider
+ *
+ *        Enumeration State Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "includes.h"
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+DWORD
+LsaLPCreateUserState(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
+    )
+{
+    return LsaLPCreateEnumState(
+                dwInfoLevel,
+                ppEnumState);
+}
 
-#include <openssl/md4.h>
-#include <sqlite3.h>
-#include <eventlog.h>
+VOID
+LsaLPFreeUserState(
+    HANDLE hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
+    )
+{
+    return LsaLPFreeEnumState(pEnumState);
+}
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
+DWORD
+LsaLPCreateGroupState(
+    HANDLE hProvider,
+    DWORD  dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
+    )
+{
+    return LsaLPCreateEnumState(
+                    dwInfoLevel,
+                    ppEnumState);
+}
 
-#include "lsaprovider.h"
+DWORD
+LsaLPCreateEnumState(
+    DWORD dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "crypt.h"
-#include "db.h"
-#include "dbquery.h"
-#include "enumstate.h"
-#include "localcfg.h"
-#include "provider-main.h"
-#include "dbuser.h"
-#include "dbgroup.h"
+    dwError = LsaAllocateMemory(
+        sizeof(LOCAL_PROVIDER_ENUM_STATE),
+        (PVOID*)&pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "externs.h"
+    pEnumState->dwInfoLevel = dwInfoLevel;
 
-#include <lwrpc/LMcrypt.h>
+    if (ppNewEnumState) {
+       *ppNewEnumState = pEnumState;
+    }
 
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (ppNewEnumState) {
+        *ppNewEnumState = NULL;
+    }
+
+    if (pEnumState) {
+       LsaLPFreeEnumState(pEnumState);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LsaLPFreeGroupState(
+    HANDLE hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
+    )
+{
+    return LsaLPFreeEnumState(pEnumState);
+}
+
+VOID
+LsaLPFreeEnumState(
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
+    )
+{
+    LsaFreeMemory(pEnumState);
+}

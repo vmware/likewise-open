@@ -46,7 +46,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "localprovider.h"
+#include "includes.h"
 
 #define LW_ACCOUNT_DISABLED       1
 #define LW_CANNOT_CHANGE_PASSWORD (1 << 1)
@@ -66,7 +66,7 @@ LsaLPDbFindUserByName(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-
+#if 0
     switch(dwUserInfoLevel)
     {
         case 0:
@@ -97,7 +97,7 @@ LsaLPDbFindUserByName(
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
@@ -112,6 +112,7 @@ LsaLPDbEnumUsers_0(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -191,6 +192,9 @@ error:
     *pdwNumUsersFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -203,7 +207,7 @@ LsaLPDbFindUserByName_0(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
     dwError = LsaLPDbFindUserByName_0_Unsafe(
@@ -213,7 +217,7 @@ LsaLPDbFindUserByName_0(
                     );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
@@ -226,6 +230,7 @@ LsaLPDbFindUserByName_1(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -338,6 +343,9 @@ error:
     *ppUserInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -349,6 +357,7 @@ LsaLPDbFindUserByName_2(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -461,6 +470,9 @@ error:
     *ppUserInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -474,6 +486,7 @@ LsaLPDbEnumUsers_1(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -590,6 +603,9 @@ error:
     *pdwNumUsersFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -603,6 +619,7 @@ LsaLPDbEnumUsers_2(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -719,6 +736,9 @@ error:
     *pdwNumUsersFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
@@ -732,7 +752,7 @@ LsaLPDbEnumUsers(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-
+#if 0
     switch (dwUserInfoLevel)
     {
         case 0:
@@ -769,7 +789,7 @@ LsaLPDbEnumUsers(
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
@@ -782,7 +802,7 @@ LsaLPDbFindUserById(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-
+#if 0
     switch(dwUserInfoLevel)
     {
         case 0:
@@ -801,7 +821,7 @@ LsaLPDbFindUserById(
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
@@ -814,6 +834,7 @@ LsaLPDbGetGroupsForUser_0_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -884,6 +905,9 @@ error:
     *pdwGroupsFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
@@ -895,6 +919,7 @@ LsaLPDbGetGroupsForUser_1_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -1015,6 +1040,9 @@ error:
     *pdwGroupsFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -1026,6 +1054,7 @@ LsaLPDbFindUserById_0_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -1098,6 +1127,9 @@ error:
     *ppUserInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -1109,7 +1141,7 @@ LsaLPDbFindUserById_0(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
     dwError = LsaLPDbFindUserById_0_Unsafe(
@@ -1119,7 +1151,7 @@ LsaLPDbFindUserById_0(
                 );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
@@ -1132,6 +1164,7 @@ LsaLPDbFindUserById_1(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -1242,6 +1275,9 @@ error:
     *ppUserInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -1253,6 +1289,7 @@ LsaLPDbFindUserById_2(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -1365,6 +1402,9 @@ error:
     *ppUserInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
@@ -1377,7 +1417,7 @@ LsaLPDbGetGroupsForUser(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
+#if 0
     switch(dwGroupInfoLevel)
     {
         case 0:
@@ -1402,7 +1442,7 @@ LsaLPDbGetGroupsForUser(
         }
 
     }
-
+#endif
     return dwError;
 }
 
@@ -1418,6 +1458,7 @@ LsaLPDbUpdateHash_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR  pszQuery = NULL;
     PSTR  pszError = NULL;
@@ -1472,6 +1513,9 @@ error:
     }
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -1483,6 +1527,7 @@ LsaLPDbUpdateNTHash_Unsafe(
     DWORD  dwHashLen
     )
 {
+#if 0
     return LsaLPDbUpdateHash_Unsafe(
                 hDb,
                 uid,
@@ -1490,6 +1535,9 @@ LsaLPDbUpdateNTHash_Unsafe(
                 pHash,
                 dwHashLen
                 );
+#else
+    return 0;
+#endif
 }
 
 DWORD
@@ -1500,6 +1548,7 @@ LsaLPDbChangePassword(
     )
 {
     DWORD dwError = 0;
+#if 0
     PBYTE pNTHash = NULL;
     DWORD dwNTHashLen = 0;
     PBYTE pLMHash = NULL;
@@ -1557,6 +1606,9 @@ cleanup:
 error:
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
@@ -1568,6 +1620,7 @@ LsaLPDbAddUser(
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
@@ -1693,6 +1746,9 @@ error:
     }
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
@@ -1702,6 +1758,7 @@ LsaLPDbModifyUser(
     )
 {
     DWORD dwError = 0;
+#if 0
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
 
@@ -1799,4 +1856,7 @@ cleanup:
 error:
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
