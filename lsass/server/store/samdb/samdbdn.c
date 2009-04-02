@@ -138,6 +138,8 @@ SamDbGetDNComponents(
             dwError = LSA_ERROR_INVALID_LDAP_DN;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
+
+	pToken = pToken->pNext;
     }
 
     if (dwObjectNameLen)
