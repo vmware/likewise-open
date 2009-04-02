@@ -52,6 +52,10 @@ LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
 rpc_binding_vector_p_t gpLsaSrvBinding = NULL;
 
 
+PSTR gpszConfigFilePath = NULL;
+LSA_SRV_CONFIG gLsaSrvConfig;
+
+
 /*
 local variables:
 mode: c

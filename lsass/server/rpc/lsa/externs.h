@@ -49,6 +49,9 @@ extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
 
 extern rpc_binding_vector_p_t gpLsaSrvBinding;
 
+extern PSTR gpszConfigFilePath;
+extern LSA_SRV_CONFIG gLsaSrvConfig;
+
 #endif /* _EXTERNS_H_ */
 
 
