@@ -211,22 +211,34 @@ SamrSrvAllocateSidFromWC16String(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSID pSid = NULL;
+    ULONG ulSidSize = 0;
+    PSID pSidCopy = NULL;
 
     status = RtlAllocateSidFromWC16String(&pSid,
                                           pwszSidStr);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvAddDepMemory(pSid, pParent);
+    ulSidSize = RtlLengthSid(pSid);
+    status = SamrSrvAllocateMemory((void**)&pSidCopy,
+                                   ulSidSize,
+                                   pParent);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    *ppSid = pSid;
+    status = RtlCopySid(ulSidSize, pSidCopy, pSid);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppSid = pSidCopy;
 
 cleanup:
+    if (pSid) {
+        RTL_FREE(&pSid);
+    }
+
     return status;
 
 error:
-    if (pSid) {
-        RTL_FREE(&pSid);
+    if (pSidCopy) {
+        RTL_FREE(&pSidCopy);
     }
 
     *ppSid = NULL;
@@ -243,11 +255,15 @@ SamrSrvDuplicateSid(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSID pSid = NULL;
+    ULONG ulSidSize = 0;
 
-    status = RtlDuplicateSid(&pSid, pSidIn);
+    ulSidSize = RtlLengthSid(pSidIn);
+    status = SamrSrvAllocateMemory((void**)&pSid,
+                                   ulSidSize,
+                                   pParent);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvAddDepMemory(pSid, pParent);
+    status = RtlCopySid(ulSidSize, pSid, pSidIn);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     *ppSidOut = pSid;
@@ -280,7 +296,7 @@ SamrSrvGetFromUnicodeString(
                                    pParent);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    wc16sncpy(pwszStr, pIn->string, pIn->len);
+    wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
     *ppwszOut = pwszStr;
 
 cleanup:
@@ -311,7 +327,7 @@ SamrSrvGetFromUnicodeStringEx(
                                    pParent);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    wc16sncpy(pwszStr, pIn->string, pIn->len);
+    wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
     *ppwszOut = pwszStr;
 
 cleanup:
