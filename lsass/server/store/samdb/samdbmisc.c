@@ -220,6 +220,26 @@ error:
     goto cleanup;
 }
 
+PSAM_DB_COLUMN_VALUE
+SamDbReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    )
+{
+    PSAM_DB_COLUMN_VALUE pP = NULL;
+    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
+    PSAM_DB_COLUMN_VALUE pR = NULL;
+
+    while( pQ )
+    {
+        pR = pQ->pNext;
+        pQ->pNext = pP;
+        pP = pQ;
+        pQ = pR;
+    }
+
+    return pP;
+}
+
 VOID
 SamDbFreeColumnValueList(
     PSAM_DB_COLUMN_VALUE pColValueList
@@ -256,4 +276,66 @@ SamDbGetNumberOfDependents_inlock(
     *pdwNumDependents = 0;
 
     return dwError;
+}
+
+DWORD
+SamDbGetObjectCount(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    PDWORD                 pdwNumObjects
+    )
+{
+    DWORD dwError = 0;
+    sqlite3_stmt* pSqlStatement = NULL;
+    BOOLEAN bInLock = FALSE;
+    DWORD   dwNumObjects = 0;
+    PCSTR pszQueryTemplate = "SELECT count(*) FROM " SAM_DB_OBJECTS_TABLE \
+                             " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1";
+
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(
+                    pSqlStatement,
+                    1,
+                    objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
+    {
+        if (sqlite3_column_count(pSqlStatement) != 1)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwNumObjects = sqlite3_column_int(
+                            pSqlStatement,
+                            0);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    *pdwNumObjects = dwNumObjects;
+
+cleanup:
+
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }

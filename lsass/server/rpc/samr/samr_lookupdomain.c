@@ -57,17 +57,21 @@ SamrSrvLookupDomain(
     )
 {
     CHAR szDnToken[] = "DC";
-    wchar_t wszFilter[] = L"(&(objectclass=domain)(domain-name=%ws)";
+    wchar_t wszFilter[] = L"%ws=%d AND %ws=\'%ws\'";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrCommonName[] = DS_ATTR_COMMON_NAME;
+    WCHAR wszAttrObjectSID[] = DS_ATTR_OBJECT_SID;
+    DWORD dwObjectClass = DS_OBJECT_CLASS_DOMAIN;
+    WCHAR wszBuiltinDomainName[] = SAMR_BUILTIN_DOMAIN_NAME;
     PWSTR pwszDomainName = NULL;
     DWORD dwBaseLen = 0;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
-    PWSTR pwszAttrDomainSid = NULL;
     PWSTR wszAttributes[2];
     PDIRECTORY_ENTRY pEntries = NULL;
     DWORD dwCount = 0;
@@ -89,34 +93,29 @@ SamrSrvLookupDomain(
                                          pConnCtx);
     BAIL_ON_NO_MEMORY(pwszDomainName);
 
+    if (!wc16scasecmp(pwszDomainName, wszBuiltinDomainName)) {
+        dwObjectClass = DS_OBJECT_CLASS_BUILTIN_DOMAIN;
+    }
+
     dwBaseLen = domain_name->size +
                 ((sizeof(szDnToken) + 2) * sizeof(WCHAR));
 
-    status = SamrSrvAllocateMemory((void**)&pwszBase,
-                                   dwBaseLen,
-                                   pConnCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    sw16printfw(pwszBase, dwBaseLen, L"%hhs=%ws",
-                (PSTR)szDnToken,
-                pwszDomainName);
-
-    dwFilterLen = domain_name->size +
-                  ((wcslen(wszFilter) + 2) * sizeof(WCHAR));
+    dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
+                  10 +
+                  (sizeof(wszAttrCommonName) - 1) +
+                  domain_name->len +
+                  sizeof(wszFilter);
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen,
                                    pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilter,
-                pwszDomainName);
+    sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilter,
+                wszAttrObjectClass, dwObjectClass,
+                wszAttrCommonName, pwszDomainName);
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_DOMAIN_SID,
-                            &pwszAttrDomainSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    wszAttributes[0] = pwszAttrDomainSid;
+    wszAttributes[0] = wszAttrObjectSID;
     wszAttributes[1] = NULL;
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
@@ -124,8 +123,9 @@ SamrSrvLookupDomain(
                               dwScope,
                               pwszFilter,
                               wszAttributes,
-                              TRUE,
-                              &pEntries,                              &dwCount);
+                              FALSE,
+                              &pEntries,
+                              &dwCount);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (dwCount == 1) {

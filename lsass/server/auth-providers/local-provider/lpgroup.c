@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lsassdb.c
+ *        lpgroup.c
  *
  * Abstract:
  *
@@ -46,10 +46,10 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "localprovider.h"
+#include "includes.h"
 
 DWORD
-LsaProviderLocal_DbFindGroupByName(
+LsaLPDbFindGroupByName(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -58,12 +58,12 @@ LsaProviderLocal_DbFindGroupByName(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
+#if 0
     switch(dwGroupInfoLevel)
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbFindGroupByName_0(
+            dwError = LsaLPDbFindGroupByName_0(
                                 hDb,
                                 pszDomain,
                                 pszGroupName,
@@ -73,7 +73,7 @@ LsaProviderLocal_DbFindGroupByName(
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbFindGroupByName_1(
+            dwError = LsaLPDbFindGroupByName_1(
                                 hDb,
                                 pszDomain,
                                 pszGroupName,
@@ -82,14 +82,14 @@ LsaProviderLocal_DbFindGroupByName(
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
 
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_0(
+LsaLPDbFindGroupByName_0(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -97,10 +97,10 @@ LsaProviderLocal_DbFindGroupByName_0(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+    dwError = LsaLPDbFindGroupByName_0_Unsafe(
                      hDb,
                      pszDomain,
                      pszGroupName,
@@ -108,13 +108,13 @@ LsaProviderLocal_DbFindGroupByName_0(
                      );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_1(
+LsaLPDbFindGroupByName_1(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -122,10 +122,10 @@ LsaProviderLocal_DbFindGroupByName_1(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindGroupByName_1_Unsafe(
+    dwError = LsaLPDbFindGroupByName_1_Unsafe(
                      hDb,
                      pszDomain,
                      pszGroupName,
@@ -133,12 +133,12 @@ LsaProviderLocal_DbFindGroupByName_1(
                      );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0(
+LsaLPDbGetGroupsForUser_0(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -146,10 +146,10 @@ LsaProviderLocal_DbGetGroupsForUser_0(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbGetGroupsForUser_0_Unsafe(
+    dwError = LsaLPDbGetGroupsForUser_0_Unsafe(
                      hDb,
                      uid,
                      pdwGroupsFound,
@@ -157,14 +157,14 @@ LsaProviderLocal_DbGetGroupsForUser_0(
                      );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
 
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_1(
+LsaLPDbGetGroupsForUser_1(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -172,10 +172,10 @@ LsaProviderLocal_DbGetGroupsForUser_1(
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbGetGroupsForUser_1_Unsafe(
+    dwError = LsaLPDbGetGroupsForUser_1_Unsafe(
                      hDb,
                      uid,
                      pdwGroupsFound,
@@ -183,14 +183,14 @@ LsaProviderLocal_DbGetGroupsForUser_1(
                      );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
 
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+LsaLPDbFindGroupByName_0_Unsafe(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -198,6 +198,7 @@ LsaProviderLocal_DbFindGroupByName_0_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -231,7 +232,7 @@ LsaProviderLocal_DbFindGroupByName_0_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_0_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -269,11 +270,14 @@ error:
     *ppGroupInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_1_Unsafe(
+LsaLPDbFindGroupByName_1_Unsafe(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -281,6 +285,7 @@ LsaProviderLocal_DbFindGroupByName_1_Unsafe(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -315,7 +320,7 @@ LsaProviderLocal_DbFindGroupByName_1_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_1_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -361,7 +366,7 @@ LsaProviderLocal_DbFindGroupByName_1_Unsafe(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
+            dwError = LsaLPDbWriteMembersToGroupInfo_1(
                         ppszResult,
                         nRows,
                         nCols,
@@ -402,12 +407,15 @@ error:
     *ppGroupInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 
 DWORD
-LsaProviderLocal_DbEnumGroups_0(
+LsaLPDbEnumGroups_0(
     HANDLE    hDb,
     DWORD     dwOffset,
     DWORD     dwLimit,
@@ -416,6 +424,7 @@ LsaProviderLocal_DbEnumGroups_0(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -456,7 +465,7 @@ LsaProviderLocal_DbEnumGroups_0(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_0_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -515,11 +524,14 @@ error:
     *pdwNumGroupsFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DbEnumGroups_1(
+LsaLPDbEnumGroups_1(
     HANDLE    hDb,
     DWORD     dwOffset,
     DWORD     dwLimit,
@@ -528,6 +540,7 @@ LsaProviderLocal_DbEnumGroups_1(
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -568,7 +581,7 @@ LsaProviderLocal_DbEnumGroups_1(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_1_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -617,7 +630,7 @@ LsaProviderLocal_DbEnumGroups_1(
                BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
+            dwError = LsaLPDbWriteMembersToGroupInfo_1(
                         ppszResult,
                         nRows,
                         nCols,
@@ -661,10 +674,13 @@ error:
     *pdwNumGroupsFound = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
-LsaProviderLocal_DbEnumGroups(
+LsaLPDbEnumGroups(
     HANDLE  hDb,
     DWORD   dwGroupInfoLevel,
     DWORD   dwStartingRecordId,
@@ -674,12 +690,12 @@ LsaProviderLocal_DbEnumGroups(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
+#if 0
     switch(dwGroupInfoLevel)
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbEnumGroups_0(
+            dwError = LsaLPDbEnumGroups_0(
                             hDb,
                             dwStartingRecordId,
                             nMaxGroups,
@@ -690,7 +706,7 @@ LsaProviderLocal_DbEnumGroups(
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbEnumGroups_1(
+            dwError = LsaLPDbEnumGroups_1(
                             hDb,
                             dwStartingRecordId,
                             nMaxGroups,
@@ -700,13 +716,13 @@ LsaProviderLocal_DbEnumGroups(
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
 
 DWORD
-LsaProviderLocal_DbFindGroupById(
+LsaLPDbFindGroupById(
     HANDLE  hDb,
     gid_t   gid,
     DWORD   dwGroupInfoLevel,
@@ -714,81 +730,77 @@ LsaProviderLocal_DbFindGroupById(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
+#if 0
     switch(dwGroupInfoLevel)
     {
         case 0:
         {
-            dwError = LsaProviderLocal_DbFindGroupById_0(hDb, gid, ppGroupInfo);
+            dwError = LsaLPDbFindGroupById_0(hDb, gid, ppGroupInfo);
             break;
         }
         case 1:
         {
-            dwError = LsaProviderLocal_DbFindGroupById_1(hDb, gid, ppGroupInfo);
+            dwError = LsaLPDbFindGroupById_1(hDb, gid, ppGroupInfo);
             break;
         }
     }
-
+#endif
     return dwError;
 }
 
-
-static
 DWORD
-LsaProviderLocal_DbFindGroupById_0(
+LsaLPDbFindGroupById_0(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindGroupById_0_Unsafe(
+    dwError = LsaLPDbFindGroupById_0_Unsafe(
                        hDb,
                        gid,
                        ppGroupInfo
                        );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
-static
 DWORD
-LsaProviderLocal_DbFindGroupById_1(
+LsaLPDbFindGroupById_1(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
-
+#if 0
     ENTER_RW_READER_LOCK;
 
-    dwError = LsaProviderLocal_DbFindGroupById_1_Unsafe(
+    dwError = LsaLPDbFindGroupById_1_Unsafe(
                        hDb,
                        gid,
                        ppGroupInfo
                        );
 
     LEAVE_RW_READER_LOCK;
-
+#endif
     return dwError;
 }
 
-
-static
 DWORD
-LsaProviderLocal_DbFindGroupById_0_Unsafe(
+LsaLPDbFindGroupById_0_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -821,7 +833,7 @@ LsaProviderLocal_DbFindGroupById_0_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_0_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_0_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -859,17 +871,20 @@ error:
     *ppGroupInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
-static
 DWORD
-LsaProviderLocal_DbFindGroupById_1_Unsafe(
+LsaLPDbFindGroupById_1_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
+#if 0
     PSTR pszQuery = NULL;
     PSTR pszError = NULL;
     int  nRows = 0;
@@ -903,7 +918,7 @@ LsaProviderLocal_DbFindGroupById_1_Unsafe(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaProviderLocal_DbWriteToGroupInfo_1_Unsafe(
+    dwError = LsaLPDbWriteToGroupInfo_1_Unsafe(
                     ppszResult,
                     nRows,
                     nCols,
@@ -949,7 +964,7 @@ LsaProviderLocal_DbFindGroupById_1_Unsafe(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaProviderLocal_DbWriteMembersToGroupInfo_1(
+            dwError = LsaLPDbWriteMembersToGroupInfo_1(
                         ppszResult,
                         nRows,
                         nCols,
@@ -990,11 +1005,14 @@ error:
     *ppGroupInfo = NULL;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DbAddGroup(
+LsaLPDbAddGroup(
     HANDLE hDb,
     PCSTR  pszDomain,
     DWORD  dwGroupInfoLevel,
@@ -1002,6 +1020,7 @@ LsaProviderLocal_DbAddGroup(
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     BOOLEAN bReleaseLock = FALSE;
     PVOID pExistingGroup = NULL;
@@ -1028,13 +1047,13 @@ LsaProviderLocal_DbAddGroup(
     // This will not let root be added - which is ok.
     if (!pGroup->gid) {
        // We got a write lock; nobody can steal this gid from us
-       dwError = LsaProviderLocal_DbGetNextAvailableGid_Unsafe(
+       dwError = LsaLPDbGetNextAvailableGid_Unsafe(
                            hDb,
                            &pGroup->gid
                            );
        BAIL_ON_LSA_ERROR(dwError);
     } else {
-       dwError = LsaProviderLocal_DbFindGroupById_0_Unsafe(
+       dwError = LsaLPDbFindGroupById_0_Unsafe(
                        hDb,
                        pGroup->gid,
                        &pExistingGroup
@@ -1051,7 +1070,7 @@ LsaProviderLocal_DbAddGroup(
        }
     }
 
-    dwError = LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+    dwError = LsaLPDbFindGroupByName_0_Unsafe(
                     hDb,
                     pszDomain,
                     pGroup->pszName,
@@ -1105,17 +1124,21 @@ error:
     }
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DetermineNumberUsersWithPrimaryGroup_Unsafe(
+LsaLPDetermineNumberUsersWithPrimaryGroup_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PDWORD pdwNMembers
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR* ppszResult = NULL;
     PSTR  pszQuery = NULL;
@@ -1163,17 +1186,21 @@ error:
     *pdwNMembers = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DetermineNumberGroupMembers(
+LsaLPDetermineNumberGroupMembers(
     HANDLE hDb,
     gid_t  gid,
     PDWORD pdwNMembers
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     PSTR* ppszResult = NULL;
     PSTR  pszQuery = NULL;
@@ -1221,22 +1248,26 @@ error:
     *pdwNMembers = 0;
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 
 DWORD
-LsaProviderLocal_DetermineGroupCanBeDeleted_Unsafe(
+LsaLPDetermineGroupCanBeDeleted_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PBOOLEAN pbCanBeDeleted
     )
 {
     DWORD dwError = 0;
+#if 0
     BOOLEAN bResult = FALSE;
     DWORD dwNUsers_w_primaryGroup = 0;
     DWORD dwNGroupMembers = 0;
 
-    dwError = LsaProviderLocal_DetermineNumberUsersWithPrimaryGroup_Unsafe(
+    dwError = LsaLPDetermineNumberUsersWithPrimaryGroup_Unsafe(
                     hDb,
                     gid,
                     &dwNUsers_w_primaryGroup);
@@ -1246,7 +1277,7 @@ LsaProviderLocal_DetermineGroupCanBeDeleted_Unsafe(
         goto cleanup;
     }
 
-    dwError = LsaProviderLocal_DetermineNumberGroupMembers(
+    dwError = LsaLPDetermineNumberGroupMembers(
                     hDb,
                     gid,
                     &dwNGroupMembers);
@@ -1267,15 +1298,19 @@ cleanup:
 error:
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 DWORD
-LsaProviderLocal_DbDeleteGroup(
+LsaLPDbDeleteGroup(
     HANDLE hDb,
     gid_t  gid
     )
 {
     DWORD dwError = 0;
+#if 0
     sqlite3* pDbHandle = (sqlite3*)hDb;
     BOOLEAN  bCanBeDeleted = FALSE;
     PSTR     pszError = NULL;
@@ -1283,7 +1318,7 @@ LsaProviderLocal_DbDeleteGroup(
 
     ENTER_RW_WRITER_LOCK;
 
-    dwError = LsaProviderLocal_DetermineGroupCanBeDeleted_Unsafe(
+    dwError = LsaLPDetermineGroupCanBeDeleted_Unsafe(
                         hDb,
                         gid,
                         &bCanBeDeleted);
@@ -1316,6 +1351,9 @@ cleanup:
 error:
 
     goto cleanup;
+#else
+    return dwError;
+#endif
 }
 
 

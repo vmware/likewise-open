@@ -1,5 +1,5 @@
 DWORD
-LsaProviderLocal_DbFindGroupByName(
+LsaLPDbFindGroupByName(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -8,7 +8,7 @@ LsaProviderLocal_DbFindGroupByName(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_0(
+LsaLPDbFindGroupByName_0(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -16,7 +16,7 @@ LsaProviderLocal_DbFindGroupByName_0(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_1(
+LsaLPDbFindGroupByName_1(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -24,7 +24,7 @@ LsaProviderLocal_DbFindGroupByName_1(
     );
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_0(
+LsaLPDbGetGroupsForUser_0(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -33,7 +33,7 @@ LsaProviderLocal_DbGetGroupsForUser_0(
 
 
 DWORD
-LsaProviderLocal_DbGetGroupsForUser_1(
+LsaLPDbGetGroupsForUser_1(
     HANDLE  hDb,
     uid_t uid,
     PDWORD  pdwGroupsFound,
@@ -41,7 +41,7 @@ LsaProviderLocal_DbGetGroupsForUser_1(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_0_Unsafe(
+LsaLPDbFindGroupByName_0_Unsafe(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -49,7 +49,7 @@ LsaProviderLocal_DbFindGroupByName_0_Unsafe(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupByName_1_Unsafe(
+LsaLPDbFindGroupByName_1_Unsafe(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
@@ -58,7 +58,7 @@ LsaProviderLocal_DbFindGroupByName_1_Unsafe(
 
 
 DWORD
-LsaProviderLocal_DbEnumGroups_0(
+LsaLPDbEnumGroups_0(
     HANDLE    hDb,
     DWORD     dwOffset,
     DWORD     dwLimit,
@@ -67,7 +67,7 @@ LsaProviderLocal_DbEnumGroups_0(
     );
 
 DWORD
-LsaProviderLocal_DbEnumGroups_1(
+LsaLPDbEnumGroups_1(
     HANDLE    hDb,
     DWORD     dwOffset,
     DWORD     dwLimit,
@@ -76,7 +76,7 @@ LsaProviderLocal_DbEnumGroups_1(
     );
 
 DWORD
-LsaProviderLocal_DbEnumGroups(
+LsaLPDbEnumGroups(
     HANDLE  hDb,
     DWORD   dwGroupInfoLevel,
     DWORD   dwStartingRecordId,
@@ -86,7 +86,7 @@ LsaProviderLocal_DbEnumGroups(
     );
 
 DWORD
-LsaProviderLocal_DbFindGroupById(
+LsaLPDbFindGroupById(
     HANDLE  hDb,
     gid_t   gid,
     DWORD   dwGroupInfoLevel,
@@ -95,7 +95,7 @@ LsaProviderLocal_DbFindGroupById(
 
 
 DWORD
-LsaProviderLocal_DbFindGroupById_0(
+LsaLPDbFindGroupById_0(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
@@ -103,7 +103,7 @@ LsaProviderLocal_DbFindGroupById_0(
 
 
 DWORD
-LsaProviderLocal_DbFindGroupById_1(
+LsaLPDbFindGroupById_1(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
@@ -111,7 +111,7 @@ LsaProviderLocal_DbFindGroupById_1(
 
 
 DWORD
-LsaProviderLocal_DbFindGroupById_0_Unsafe(
+LsaLPDbFindGroupById_0_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo
@@ -119,7 +119,7 @@ LsaProviderLocal_DbFindGroupById_0_Unsafe(
 
 
 DWORD
-LsaProviderLocal_DbFindGroupById_1_Unsafe(
+LsaLPDbFindGroupById_1_Unsafe(
     HANDLE hDb,
     gid_t  gid,
     PVOID* ppGroupInfo

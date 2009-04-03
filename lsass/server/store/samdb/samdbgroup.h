@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,31 +28,32 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        externs.h
+ *        samdbgroup.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider
+ *      Likewise SAM Database Provider
  *
- *        External Variables
+ *      SAM Group Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
+#ifndef __SAM_DB_GROUP_H__
+#define __SAM_DB_GROUP_H__
 
-extern PCSTR gpszLocalProviderName;
+DWORD
+SamDbGetGroupCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumGroups
+    );
 
-extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
-
-extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
-
-#endif /* __EXTERNS_H__ */
+#endif /* __SAM_DB_GROUP_H__ */

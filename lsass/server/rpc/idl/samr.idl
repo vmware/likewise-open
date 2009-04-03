@@ -16,6 +16,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
+#include <lwrpc/displayinfo.h>
 #include "samrdefs.h"
 
     /* DomainInfo union returned from SamrQueryDomainInfo */
@@ -67,6 +68,15 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
         [case(26)] UserInfo26 info26;
     } UserInfo;
 
+    /* SamrDisplayInfo union returned from SamrQueryDisplayInfo */
+    typedef [switch_type(uint16)] union samr_display_info {
+        [case(1)] SamrDisplayInfoFull info1;
+        [case(2)] SamrDisplayInfoGeneral info2;
+        [case(3)] SamrDisplayInfoGeneralGroups info3;
+        [case(4)] SamrDisplayInfoAscii info4;
+        [case(5)] SamrDisplayInfoAscii info5;
+    } SamrDisplayInfo;
+
 cpp_quote("#endif")
 
 
@@ -112,7 +122,7 @@ cpp_quote("#endif")
 
     /* function 0x08 */
     NTSTATUS __SamrQueryDomainInfo(
-        [in,ref] PolicyHandle *domain_handle,
+        [in] DOMAIN_HANDLE hDomain,
         [in] uint16 level,
         [out,switch_is(level)] DomainInfo **info
         );
@@ -271,7 +281,18 @@ cpp_quote("#endif")
         [out] RidWithAttributeArray **rids
         );
 
-    NTSTATUS _samr_Function28();
+    /* function 0x28 */
+    NTSTATUS __SamrQueryDisplayInfo(
+        [in] DOMAIN_HANDLE hDomain,
+        [in] uint16 level,
+        [in] uint32 start_idx,
+        [in] uint32 max_entries,
+        [in] uint32 buf_size,
+        [out,ref] uint32 *total_size,
+        [out,ref] uint32 *returned_size,
+        [out,ref,switch_is(level)] SamrDisplayInfo *info
+        );
+
     NTSTATUS _samr_Function29();
     NTSTATUS _samr_Function2a();
     NTSTATUS _samr_Function2b();

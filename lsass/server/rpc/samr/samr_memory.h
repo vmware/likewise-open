@@ -100,7 +100,7 @@ SamrSrvAllocateSidFromWC16String(
 NTSTATUS
 SamrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID *pSidIn,
+    PSID pSidIn,
     void *pParent
     );
 

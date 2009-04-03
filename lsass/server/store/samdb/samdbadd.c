@@ -47,12 +47,6 @@ SamDbBuildAddColumnValueList(
     );
 
 static
-PSAM_DB_COLUMN_VALUE
-SamDbReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    );
-
-static
 DWORD
 SamDbAddGenerateValues(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
@@ -148,6 +142,14 @@ SamDbAddBindValues(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PSAM_DB_COLUMN_VALUE   pColumnValueList,
     sqlite3_stmt*          pSqlStatement
+    );
+
+static
+DWORD
+SamDbFindDomainSID(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDomainName,
+    PSTR*                  ppszDomainSID
     );
 
 static SAMDB_ADD_VALUE_GENERATOR gSamDbValueGenerators[] =
@@ -359,6 +361,8 @@ SamDbBuildAddObjectQuery(
     //
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
+        if (pIter->pAttrMap->bIsRowId) continue;
+
         if (dwColNamesLen)
         {
             dwColNamesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR) - 1;
@@ -413,6 +417,8 @@ SamDbBuildAddObjectQuery(
 
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
+        if (pIter->pAttrMap->bIsRowId) continue;
+
         if (dwColNamesLen)
         {
             pszCursor = SAMDB_ADD_OBJECT_QUERY_SEPARATOR;
@@ -435,7 +441,7 @@ SamDbBuildAddObjectQuery(
             pszCursor = SAMDB_ADD_OBJECT_QUERY_SEPARATOR;
             while (pszCursor && *pszCursor)
             {
-                *pszQueryCursor++ = *pszCursor++;
+                *pszQueryValuesCursor++ = *pszCursor++;
             }
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR)  - 1;
         }
@@ -445,7 +451,7 @@ SamDbBuildAddObjectQuery(
             pszCursor = SAMDB_ADD_OBJECT_QUERY_ROWID;
             while (pszCursor && *pszCursor)
             {
-                *pszQueryValuesCursor++ = *pszCursor;
+                *pszQueryValuesCursor++ = *pszCursor++;
             }
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
         }
@@ -456,10 +462,16 @@ SamDbBuildAddObjectQuery(
             pszCursor = &szBuf[0];
             while (pszCursor && *pszCursor)
             {
-                *pszQueryValuesCursor++ = *pszCursor;
+                *pszQueryValuesCursor++ = *pszCursor++;
                 dwColValuesLen++;
             }
         }
+    }
+
+    pszCursor = SAMDB_ADD_OBJECT_QUERY_MEDIAN;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
     }
 
     pszCursor = SAMDB_ADD_OBJECT_QUERY_SUFFIX;
@@ -523,7 +535,7 @@ SamDbBuildAddColumnValueList(
                         &pColumnValue->pAttrMap);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        for (; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
+        for (iMap = 0; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
         {
             PSAMDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
 
@@ -537,7 +549,12 @@ SamDbBuildAddColumnValueList(
                 break;
             }
         }
-        assert(pColumnValue->pAttrMapInfo != NULL);
+
+        if (!pColumnValue->pAttrMapInfo)
+        {
+            dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
 
         pColumnValue->pNext = pColumnValueList;
         pColumnValueList = pColumnValue;
@@ -620,27 +637,6 @@ error:
 }
 
 static
-PSAM_DB_COLUMN_VALUE
-SamDbReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    )
-{
-    PSAM_DB_COLUMN_VALUE pP = NULL;
-    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
-    PSAM_DB_COLUMN_VALUE pR = NULL;
-
-    while( pQ )
-    {
-        pR = pQ->pNext;
-        pQ->pNext = pP;
-        pP = pQ;
-        pQ = pR;
-    }
-
-    return pP;
-}
-
-static
 DWORD
 SamDbAddGenerateValues(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
@@ -704,19 +700,23 @@ SamDbAddGenerateValues(
                             &pIter->ulNumValues);
             BAIL_ON_SAMDB_ERROR(dwError);
         }
-
-        if (!pIter->pDirMod)
+        else
+        if (pIter->pDirMod && pIter->pDirMod->pAttrValues)
         {
-            dwError = LSA_ERROR_INTERNAL;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
-
-        dwError = SamDbAddConvertUnicodeAttrValues(
+            dwError = SamDbAddConvertUnicodeAttrValues(
                             pIter->pDirMod->pAttrValues,
                             pIter->pDirMod->ulNumValues,
                             &pIter->pAttrValues,
                             &pIter->ulNumValues);
-        BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+
 
     }
 
@@ -850,7 +850,11 @@ SamDbAddGenerateObjectSID(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    // TODO: Find the Domain SID
+    dwError = SamDbFindDomainSID(
+                    pDirectoryContext,
+                    pwszDomainName,
+                    &pszDomainSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = DirectoryAllocateMemory(
                     sizeof(ATTRIBUTE_VALUE),
@@ -1328,3 +1332,101 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+SamDbFindDomainSID(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDomainName,
+    PSTR*                  ppszDomainSID
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t wszSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttributes[] =
+                {
+                    &wszSID[0],
+                    NULL
+                };
+    PDIRECTORY_ENTRY pDirEntries = NULL;
+    DWORD dwNumEntries = 0;
+    PSTR  pszFilter    = NULL;
+    PWSTR pwszFilter   = NULL;
+    PSTR  pszDomainSID = NULL;
+    PSTR  pszDomainName = NULL;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_DOMAIN;
+    PCSTR pszQueryClause = " WHERE " SAM_DB_COL_DOMAIN       " = \"%s\"" \
+                           "   AND " SAM_DB_COL_OBJECT_CLASS " = %d;";
+
+    dwError = LsaWc16sToMbs(
+                    pwszDomainName,
+                    &pszDomainName);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszQueryClause,
+                    pszDomainName,
+                    objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbSearchObject_inlock(
+                    pDirectoryContext,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttributes,
+                    FALSE,
+                    &pDirEntries,
+                    &dwNumEntries);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if (!dwNumEntries)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    if (!pDirEntries[0].ulNumAttributes ||
+        !pDirEntries[0].pAttributes[0].ulNumValues ||
+        pDirEntries[0].pAttributes[0].pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    dwError = LsaWc16sToMbs(
+                    pDirEntries[0].pAttributes[0].pValues[0].pwszStringValue,
+                    &pszDomainSID);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    *ppszDomainSID = pszDomainSID;
+
+cleanup:
+
+    DIRECTORY_FREE_STRING(pszDomainName);
+    DIRECTORY_FREE_STRING(pszFilter);
+    DIRECTORY_FREE_MEMORY(pwszFilter);
+
+    if (pDirEntries)
+    {
+        DirectoryFreeEntries(pDirEntries, dwNumEntries);
+    }
+
+    return dwError;
+
+error:
+
+    *ppszDomainSID = NULL;
+
+    goto cleanup;
+}

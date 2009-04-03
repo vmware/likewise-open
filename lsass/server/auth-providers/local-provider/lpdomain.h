@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        lpdomain.h
  *
  * Abstract:
  *
@@ -41,18 +41,23 @@
  *
  *        Local Authentication Provider
  *
- *        External Variables
+ *        Domain Management
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern PCSTR gpszLocalProviderName;
+#ifndef __LP_DOMAIN_H__
+#define __LP_DOMAIN_H__
 
-extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
+DWORD
+LocalGetDomainInfo(
+    PWSTR pwszUserDN,
+    PWSTR pwszCredentials,
+    ULONG ulMethod,
+    PSTR* ppszNetBIOSName,
+    PSTR* ppszLocalDomain
+    );
 
-extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
+#endif /* __LP_DOMAIN_H__ */
 
-#endif /* __EXTERNS_H__ */

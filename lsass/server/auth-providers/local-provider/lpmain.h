@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        lpmain.h
  *
  * Abstract:
  *
@@ -46,18 +46,18 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __PROVIDER_MAIN_H__
-#define __PROVIDER_MAIN_H__
+#ifndef __LPMAIN_H__
+#define __LPMAIN_H__
 
 DWORD
 LsaInitializeProvider(
-    PCSTR pszConfigFilePath,
-    PSTR* ppszProviderName,
+    PCSTR                         pszConfigFilePath,
+    PSTR*                         ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
     );
 
 DWORD
-LsaProviderLocal_ConfigStartSection(
+LsaLPConfigStartSection(
     PCSTR    pszSectionName,
     PVOID    pData,
     PBOOLEAN pbSkipSection,
@@ -65,7 +65,7 @@ LsaProviderLocal_ConfigStartSection(
     );
 
 DWORD
-LsaProviderLocal_ConfigNameValuePair(
+LsaLPConfigNameValuePair(
     PCSTR    pszName,
     PCSTR    pszValue,
     PVOID    pData,
@@ -73,52 +73,52 @@ LsaProviderLocal_ConfigNameValuePair(
     );
 
 DWORD
-LsaProviderLocal_OpenHandle(
+LsaLPOpenHandle(
     uid_t uid,
     gid_t gid,
     PHANDLE phProvider
     );
 
-void
-LsaProviderLocal_CloseHandle(
+VOID
+LsaLPCloseHandle(
     HANDLE hProvider
     );
 
 BOOLEAN
-LsaProviderLocal_ServicesDomain(
+LsaLPServicesDomain(
     PCSTR pszDomain
     );
 
 DWORD
-LsaProviderLocal_AuthenticateUser(
+LsaLPAuthenticateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
 
 DWORD
-LsaProviderLocal_AuthenticateUserEx(
+LsaLPAuthenticateUserEx(
     HANDLE hProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
     PLSA_AUTH_USER_INFO *ppUserInfo
     );
 
 DWORD
-LsaProviderLocal_ValidateUser(
+LsaLPValidateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
 
 DWORD
-LsaProviderLocal_CheckUserInList(
+LsaLPCheckUserInList(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszListName
     );
 
 DWORD
-LsaProviderLocal_FindUserByName(
+LsaLPFindUserByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
     DWORD   dwUserInfoLevel,
@@ -126,7 +126,7 @@ LsaProviderLocal_FindUserByName(
     );
 
 DWORD
-LsaProviderLocal_FindUserById(
+LsaLPFindUserById(
     HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwUserInfoLevel,
@@ -134,7 +134,7 @@ LsaProviderLocal_FindUserById(
     );
 
 DWORD
-LsaProviderLocal_BeginEnumUsers(
+LsaLPBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     LSA_FIND_FLAGS FindFlags,
@@ -142,7 +142,7 @@ LsaProviderLocal_BeginEnumUsers(
     );
 
 DWORD
-LsaProviderLocal_EnumUsers(
+LsaLPEnumUsers(
     HANDLE   hProvider,
     HANDLE   hResume,
     DWORD    dwMaxNumRecords,
@@ -151,13 +151,13 @@ LsaProviderLocal_EnumUsers(
     );
 
 VOID
-LsaProviderLocal_EndEnumUsers(
+LsaLPEndEnumUsers(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaProviderLocal_FindGroupByName(
+LsaLPFindGroupByName(
     IN HANDLE hProvider,
     IN PCSTR pszGroupName,
     IN LSA_FIND_FLAGS FindFlags,
@@ -166,7 +166,7 @@ LsaProviderLocal_FindGroupByName(
     );
 
 DWORD
-LsaProviderLocal_FindGroupById(
+LsaLPFindGroupById(
     IN HANDLE hProvider,
     IN gid_t gid,
     IN LSA_FIND_FLAGS FindFlags,
@@ -175,7 +175,7 @@ LsaProviderLocal_FindGroupById(
     );
 
 DWORD
-LsaProviderLocal_GetGroupsForUser(
+LsaLPGetGroupsForUser(
     IN HANDLE hProvider,
     IN uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
@@ -185,7 +185,7 @@ LsaProviderLocal_GetGroupsForUser(
     );
 
 DWORD
-LsaProviderLocal_BeginEnumGroups(
+LsaLPBeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckOnline,
@@ -194,7 +194,7 @@ LsaProviderLocal_BeginEnumGroups(
     );
 
 DWORD
-LsaProviderLocal_EnumGroups(
+LsaLPEnumGroups(
     HANDLE   hProvider,
     HANDLE   hResume,
     DWORD    dwMaxGroups,
@@ -203,13 +203,13 @@ LsaProviderLocal_EnumGroups(
     );
 
 VOID
-LsaProviderLocal_EndEnumGroups(
+LsaLPEndEnumGroups(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaProviderLocal_ChangePassword(
+LsaLPChangePassword(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword,
@@ -217,57 +217,45 @@ LsaProviderLocal_ChangePassword(
     );
 
 DWORD
-LsaProviderLocal_AddUser(
+LsaLPAddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
     PVOID  pUserInfo
     );
 
 DWORD
-LsaProviderLocal_ModifyUser(
+LsaLPModifyUser(
     HANDLE hProvider,
     PLSA_USER_MOD_INFO pUserModInfo
     );
 
 DWORD
-LsaProviderLocal_DeleteUser(
+LsaLPDeleteUser(
     HANDLE hProvider,
     uid_t  uid
     );
 
 DWORD
-LsaProviderLocal_AddGroup(
+LsaLPAddGroup(
     HANDLE hProvider,
     DWORD  dwGroupInfoLevel,
     PVOID  pGroupInfo
     );
 
 DWORD
-LsaProviderLocal_DeleteGroup(
+LsaLPDeleteGroup(
     HANDLE hProvider,
     gid_t  gid
     );
 
 DWORD
-LsaProviderLocal_OpenSession(
+LsaLPOpenSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     );
 
 DWORD
-LsaProviderLocal_CreateHomeDirectory(
-    PLSA_USER_INFO_0 pUserInfo
-    );
-
-DWORD
-LsaProviderLocal_ProvisionHomeDir(
-    uid_t ownerUid,
-    gid_t ownerGid,
-    PCSTR pszHomedirPath
-    );
-
-DWORD
-LsaProviderLocal_CloseSession(
+LsaLPCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     );
@@ -279,7 +267,7 @@ LsaShutdownProvider(
     );
 
 DWORD
-LsaProviderLocal_GetNamesBySidList(
+LsaLPGetNamesBySidList(
     HANDLE          hProvider,
     size_t          sCount,
     PSTR*           ppszSidList,
@@ -288,7 +276,7 @@ LsaProviderLocal_GetNamesBySidList(
     ADAccountType** ppTypes);
 
 DWORD
-LsaProviderLocal_FindNSSArtefactByKey(
+LsaLPFindNSSArtefactByKey(
     HANDLE hProvider,
     PCSTR  pszKeyName,
     PCSTR  pszMapName,
@@ -298,7 +286,7 @@ LsaProviderLocal_FindNSSArtefactByKey(
     );
 
 DWORD
-LsaProviderLocal_BeginEnumNSSArtefacts(
+LsaLPBeginEnumNSSArtefacts(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
@@ -307,7 +295,7 @@ LsaProviderLocal_BeginEnumNSSArtefacts(
     );
 
 DWORD
-LsaProviderLocal_EnumNSSArtefacts(
+LsaLPEnumNSSArtefacts(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxNSSArtefacts,
@@ -316,29 +304,29 @@ LsaProviderLocal_EnumNSSArtefacts(
     );
 
 VOID
-LsaProviderLocal_EndEnumNSSArtefacts(
+LsaLPEndEnumNSSArtefacts(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaProviderLocal_GetStatus(
+LsaLPGetStatus(
     HANDLE hProvider,
     PLSA_AUTH_PROVIDER_STATUS* ppProviderStatus
     );
 
 VOID
-LsaProviderLocal_FreeStatus(
+LsaLPFreeStatus(
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus
     );
 
 DWORD
-LsaProviderLocal_RefreshConfiguration(
+LsaLPRefreshConfiguration(
     HANDLE hProvider
     );
 
 DWORD
-LsaProviderLocal_ProviderIoControl(
+LsaLPProviderIoControl(
     IN HANDLE  hProvider,
     IN uid_t   peerUID,
     IN uid_t   peerGID,
@@ -347,41 +335,6 @@ LsaProviderLocal_ProviderIoControl(
     IN PVOID   pInputBuffer,
     OUT DWORD* pdwOutputBufferSize,
     OUT PVOID* ppOutputBuffer
-    );
-
-VOID
-LsaLocalProviderLogServiceStartEvent(
-    DWORD dwError);
-
-VOID
-LsaLocalProviderLogConfigReloadEvent(
-    VOID);
-
-VOID
-LsaProviderLocalLogUserPWChangeSuccessEvent(
-    PCSTR pszLoginId
-    );
-
-VOID
-LsaLocalProviderLogUserAddEvent(
-    PCSTR pszUsername,
-    uid_t uid
-    );
-
-VOID
-LsaLocalProviderLogUserDeleteEvent(
-    uid_t uid
-    );
-
-VOID
-LsaLocalProviderLogGroupAddEvent(
-    PCSTR pszGroupname,
-    gid_t gid
-    );
-
-VOID
-LsaLocalProviderLogGroupDeleteEvent(
-    gid_t gid
     );
 
 #endif /* __PROVIDER_MAIN_H__ */

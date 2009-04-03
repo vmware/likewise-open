@@ -58,6 +58,7 @@
 #include "samdbtrans.h"
 #include "samdbschema.h"
 #include "samdbuser.h"
+#include "samdbgroup.h"
 #include "samdbattrlookup.h"
 
 #include "externs.h"

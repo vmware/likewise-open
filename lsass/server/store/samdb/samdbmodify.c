@@ -30,12 +30,6 @@ SamDbUpdateBuildColumnValueList(
     );
 
 static
-PSAM_DB_COLUMN_VALUE
-SamDbUpdateReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    );
-
-static
 DWORD
 SamDbUpdateBindValues(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
@@ -432,7 +426,7 @@ SamDbUpdateBuildColumnValueList(
         dwNumMods++;
     }
 
-    *ppColumnValueList = SamDbUpdateReverseColumnValueList(pColumnValueList);
+    *ppColumnValueList = SamDbReverseColumnValueList(pColumnValueList);
 
 cleanup:
 
@@ -452,27 +446,6 @@ error:
     }
 
     goto cleanup;
-}
-
-static
-PSAM_DB_COLUMN_VALUE
-SamDbUpdateReverseColumnValueList(
-    PSAM_DB_COLUMN_VALUE pColumnValueList
-    )
-{
-    PSAM_DB_COLUMN_VALUE pP = NULL;
-    PSAM_DB_COLUMN_VALUE pQ = pColumnValueList;
-    PSAM_DB_COLUMN_VALUE pR = NULL;
-
-    while( pQ )
-    {
-        pR = pQ->pNext;
-        pQ->pNext = pP;
-        pP = pQ;
-        pQ = pR;
-    }
-
-    return pP;
 }
 
 static

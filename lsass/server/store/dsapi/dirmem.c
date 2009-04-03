@@ -111,7 +111,7 @@ DirectoryFreeMemory(
 
 DWORD
 DirectoryAllocateString(
-    PSTR  pszInputString,
+    PCSTR pszInputString,
     PSTR* ppszOutputString
     )
 {
@@ -128,7 +128,7 @@ DirectoryAllocateString(
     sByteLen = strlen(pszInputString);
 
     dwError = DirectoryAllocateMemory(
-                sByteLen,
+                sByteLen + 1,
                 (PVOID *)&pszOutputString);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 

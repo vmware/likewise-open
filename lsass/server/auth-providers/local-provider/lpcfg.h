@@ -50,73 +50,51 @@
 #ifndef __LOCAL_CFG_H__
 #define __LOCAL_CFG_H__
 
-typedef DWORD (*PFN_LOCAL_CONFIG_HANDLER)(
-                    PLOCAL_CONFIG pConfig,
-                    PCSTR             pszName,
-                    PCSTR             pszValue
-                    );
-
-typedef struct __LOCAL_CONFIG_HANDLER
-{
-    PCSTR                    pszId;
-    PFN_LOCAL_CONFIG_HANDLER pfnHandler;
-} LOCAL_CONFIG_HANDLER, *PLOCAL_CONFIG_HANDLER;
-
 DWORD
-LsaProviderLocal_InitializeConfig(
+LocalCfgInitialize(
     PLOCAL_CONFIG pConfig
     );
 
 DWORD
-LsaProviderLocal_TransferConfigContents(
+LocalCfgTransferContents(
     PLOCAL_CONFIG pSrcConfig,
     PLOCAL_CONFIG pDstConfig
     );
 
-VOID
-LsaProviderLocal_FreeConfig(
-    PLOCAL_CONFIG pConfig
-    );
-
-VOID
-LsaProviderLocal_FreeConfigContents(
+DWORD
+LocalCfgParseFile(
+    PCSTR         pszConfigFilePath,
     PLOCAL_CONFIG pConfig
     );
 
 DWORD
-LsaProviderLocal_ParseConfigFile(
-    PCSTR pszConfigFilePath,
-    PLOCAL_CONFIG pConfig
-    );
-
-DWORD
-LsaProviderLocal_SetConfigFilePath(
-    PCSTR pszConfigFilePath
-    );
-
-DWORD
-LsaProviderLocal_GetConfigFilePath(
+LocalCfgGetFilePath(
     PSTR* ppszConfigFilePath
     );
 
 DWORD
-LsaProviderLocal_GetPasswdChangeInterval(
-    VOID
+LocalCfgGetPasswordChangeInterval(
+    PDWORD pdwPasswdChangeInterval
     );
 
 DWORD
-LsaProviderLocal_GetPasswdChangeWarningTime(
-    VOID
+LocalCfgGetPasswordChangeWarningTime(
+    PDWORD pdwPasswdChangeWarningTime
     );
 
-BOOLEAN
-LsaProviderLocal_GetBooleanConfigValue(
-    PCSTR pszValue
+DWORD
+LocalCfgIsEventlogEnabled(
+    PBOOLEAN pbValue
     );
 
-BOOLEAN
-LsaProviderLocal_EventlogEnabled(
-    VOID
+VOID
+LocalCfgFree(
+    PLOCAL_CONFIG pConfig
+    );
+
+VOID
+LocalCfgFreeContents(
+    PLOCAL_CONFIG pConfig
     );
 
 #endif /* __LOCAL_CFG_H__ */

@@ -50,13 +50,44 @@
 #define LOCAL_CFG_TAG_LOCAL_PROVIDER "lsa-local-provider"
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
 
-#define LOCAL_PASSWORD_CHANGE_INTERVAL_MINIMUM LSA_SECONDS_IN_DAY
-#define LOCAL_PASSWORD_CHANGE_INTERVAL_DEFAULT (30 * LSA_SECONDS_IN_DAY)
-#define LOCAL_PASSWORD_CHANGE_INTERVAL_MAXIMUM (180 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM LSA_SECONDS_IN_DAY
+#define LOCAL_PASSWD_CHANGE_INTERVAL_DEFAULT (30 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM (180 * LSA_SECONDS_IN_DAY)
 
-#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_MINIMUM LSA_SECONDS_IN_HOUR
-#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_DEFAULT (14 * LSA_SECONDS_IN_DAY)
-#define LOCAL_PASSWORD_CHANGE_WARNING_TIME_MAXIMUM (30 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM LSA_SECONDS_IN_HOUR
+#define LOCAL_PASSWD_CHANGE_WARNING_TIME_DEFAULT (14 * LSA_SECONDS_IN_DAY)
+#define LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM (30 * LSA_SECONDS_IN_DAY)
+
+#define LOCAL_LOCK_MUTEX(bInLock, pMutex)  \
+        if (!bInLock) {                    \
+           pthread_mutex_lock(pMutex);     \
+           bInLock = TRUE;                 \
+        }
+
+#define LOCAL_UNLOCK_MUTEX(bInLock, pMutex) \
+        if (bInLock) {                      \
+           pthread_mutex_unlock(pMutex);    \
+           bInLock = FALSE;                 \
+        }
+
+#define LOCAL_OBJECT_CLASS_DOMAIN          1
+
+#define LOCAL_DB_DIR_ATTR_OBJECT_CLASS     "ObjectClass"
+#define LOCAL_DB_DIR_ATTR_DOMAIN           "Domain"
+#define LOCAL_DB_DIR_ATTR_NETBIOS_NAME     "NetBIOSName"
+#define LOCAL_DB_DIR_ATTR_COMMON_NAME      "CommonName"
+#define LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME "SamAccountName"
+
+#define LOCAL_DIR_ATTR_OBJECT_CLASS  \
+    {'O','b','j','e','c','t','C','l','a','s','s',0}
+#define LOCAL_DIR_ATTR_DOMAIN \
+    {'D','o','m','a','i','n',0}
+#define LOCAL_DIR_ATTR_NETBIOS_NAME \
+    {'N','e','t','B','I','O','S','N','a','m','e',0}
+#define LOCAL_DIR_ATTR_COMMON_NAME \
+    {'C','o','m','m','o','n','N','a','m','e',0}
+#define LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME \
+    {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
 
 #endif /* __LPDEFS_H__ */
 

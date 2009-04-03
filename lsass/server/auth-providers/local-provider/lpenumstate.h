@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        enumstate.h
  *
  * Abstract:
  *
@@ -41,61 +41,49 @@
  *
  *        Local Authentication Provider
  *
- *        Global Variables
+ *        Enumeration State Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "localprovider.h"
+#ifndef __ENUM_STATE_H__
+#define __ENUM_STATE_H__
 
-PCSTR gpszLocalProviderName = "lsa-local-provider";
+DWORD
+LsaLPCreateUserState(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
+    );
 
-PSTR gpszConfigFilePath = NULL;
+VOID
+LsaLPFreeUserState(
+    HANDLE hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE  pEnumState
+    );
 
-LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
-{
-    &LsaProviderLocal_OpenHandle,
-    &LsaProviderLocal_CloseHandle,
-    &LsaProviderLocal_ServicesDomain,
-    &LsaProviderLocal_AuthenticateUser,
-    &LsaProviderLocal_AuthenticateUserEx,
-    &LsaProviderLocal_ValidateUser,
-    &LsaProviderLocal_CheckUserInList,
-    &LsaProviderLocal_FindUserByName,
-    &LsaProviderLocal_FindUserById,
-    &LsaProviderLocal_BeginEnumUsers,
-    &LsaProviderLocal_EnumUsers,
-    &LsaProviderLocal_EndEnumUsers,
-    &LsaProviderLocal_FindGroupByName,
-    &LsaProviderLocal_FindGroupById,
-    &LsaProviderLocal_GetGroupsForUser,
-    &LsaProviderLocal_BeginEnumGroups,
-    &LsaProviderLocal_EnumGroups,
-    &LsaProviderLocal_EndEnumGroups,
-    &LsaProviderLocal_ChangePassword,
-    &LsaProviderLocal_AddUser,
-    &LsaProviderLocal_ModifyUser,
-    &LsaProviderLocal_DeleteUser,
-    &LsaProviderLocal_AddGroup,
-    &LsaProviderLocal_DeleteGroup,
-    &LsaProviderLocal_OpenSession,
-    &LsaProviderLocal_CloseSession,
-    &LsaProviderLocal_GetNamesBySidList,
-    &LsaProviderLocal_FindNSSArtefactByKey,
-    &LsaProviderLocal_BeginEnumNSSArtefacts,
-    &LsaProviderLocal_EnumNSSArtefacts,
-    &LsaProviderLocal_EndEnumNSSArtefacts,
-    &LsaProviderLocal_GetStatus,
-    &LsaProviderLocal_FreeStatus,
-    &LsaProviderLocal_RefreshConfiguration,
-    &LsaProviderLocal_ProviderIoControl
-};
+DWORD
+LsaLPCreateGroupState(
+    HANDLE hProvider,
+    DWORD  dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
+    );
 
-pthread_rwlock_t g_dbLock;
+DWORD
+LsaLPCreateEnumState(
+    DWORD dwInfoLevel,
+    PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
+    );
 
-pthread_rwlock_t gProviderLocalGlobalDataLock;
+VOID
+LsaLPFreeGroupState(
+    HANDLE hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
+    );
 
-LOCAL_CONFIG gLocalConfig = {0};
+VOID
+LsaLPFreeEnumState(
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState
+    );
 
-PSTR gProviderLocal_Hostname = NULL;
-
+#endif /* __ENUM_STATE_H__ */

@@ -120,7 +120,7 @@ SamDbSchemaAddValidateDirMods(
             // We could have an attribute that is always provided by the db
             // For instance, the rowid. The user will not specify these values.
             // However, these values are mandatory for the object to exist.
-            if ((!pMod || !pMod->ulNumValues) &&
+            if ((!pMod || (pMod && !pMod->ulNumValues)) &&
                 !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED) &&
                 !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) &&
                 !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
@@ -131,7 +131,7 @@ SamDbSchemaAddValidateDirMods(
 
             // Match Types
             // TODO: Match multi-valued types against expectations
-            for (; iValue < pMod->ulNumValues; iValue++)
+            for (; pMod && iValue < pMod->ulNumValues; iValue++)
             {
                 PATTRIBUTE_VALUE pAttrValue = &pMod->pAttrValues[iValue];
 
@@ -280,3 +280,13 @@ SamDbIsMatchedType(
 
     return bResult;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

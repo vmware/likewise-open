@@ -33,26 +33,43 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        localprovider.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider
- *
- *        External Variables
+ *        Local Authentication Provider (Private include)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern PCSTR gpszLocalProviderName;
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
 
-extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
+#include <eventlog.h>
 
-extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
+#include "lsautils.h"
+#include "lsasrvutils.h"
+#include "lsaunistr.h"
 
-#endif /* __EXTERNS_H__ */
+#include "lsaprovider.h"
+#include "directory.h"
+
+#include "lpdefs.h"
+#include "lpstructs.h"
+#include "lpenumstate.h"
+#include "lpcfg.h"
+#include "lpmain.h"
+#include "lpuser.h"
+#include "lpgroup.h"
+#include "lpevent.h"
+#include "lpdomain.h"
+
+#include "externs.h"
+
+#include <lwrpc/LMcrypt.h>
+

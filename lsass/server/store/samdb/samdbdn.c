@@ -138,6 +138,8 @@ SamDbGetDNComponents(
             dwError = LSA_ERROR_INVALID_LDAP_DN;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
+
+	pToken = pToken->pNext;
     }
 
     if (dwObjectNameLen)
@@ -239,12 +241,12 @@ SamDbGetDnToken(
     )
 {
     DWORD  dwError = 0;
-    wchar16_t wszCNPrefix[] = {'C', 'N', 0};
-    DWORD dwLenCNPrefix = sizeof(wszCNPrefix) - sizeof(wchar16_t);
-    wchar16_t wszDCPrefix[] = {'D', 'C', 0};
-    DWORD dwLenDCPrefix = sizeof(wszDCPrefix) - sizeof(wchar16_t);
-    wchar16_t wszOUPrefix[] = {'O', 'U', 0};
-    DWORD dwLenOUPrefix = sizeof(wszOUPrefix) - sizeof(wchar16_t);
+    wchar16_t wszCNPrefix[] = {'C', 'N', '=', 0};
+    DWORD dwLenCNPrefix = (sizeof(wszCNPrefix)-sizeof(wchar16_t))/sizeof(wchar16_t);
+    wchar16_t wszDCPrefix[] = {'D', 'C', '=', 0};
+    DWORD dwLenDCPrefix = (sizeof(wszDCPrefix)-sizeof(wchar16_t))/sizeof(wchar16_t);
+    wchar16_t wszOUPrefix[] = {'O', 'U', '=', 0};
+    DWORD dwLenOUPrefix = (sizeof(wszOUPrefix)-sizeof(wchar16_t))/sizeof(wchar16_t);
     wchar16_t wszComma[] = {',', 0};
     DWORD dwLenUsed = 0;
     PSAMDB_DN_TOKEN pToken = NULL;
@@ -255,7 +257,9 @@ SamDbGetDnToken(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     if ((dwAvailableLen > dwLenCNPrefix) &&
-        !memcmp(pwszObjectNameCursor, wszCNPrefix, dwLenCNPrefix))
+        !memcmp((PBYTE)pwszObjectNameCursor,
+                (PBYTE)&wszCNPrefix[0],
+                dwLenCNPrefix * sizeof(wchar16_t)))
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_CN;
 
@@ -265,7 +269,9 @@ SamDbGetDnToken(
     }
     else
     if ((dwAvailableLen > dwLenOUPrefix) &&
-        !memcmp(pwszObjectNameCursor, wszOUPrefix, dwLenOUPrefix))
+        !memcmp((PBYTE)pwszObjectNameCursor,
+                (PBYTE)&wszOUPrefix[0],
+                dwLenOUPrefix * sizeof(wchar16_t)))
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_OU;
 
@@ -275,7 +281,9 @@ SamDbGetDnToken(
     }
     else
     if ((dwAvailableLen > dwLenDCPrefix) &&
-        !memcmp(pwszObjectNameCursor, wszDCPrefix, dwLenDCPrefix))
+        !memcmp((PBYTE)pwszObjectNameCursor,
+                (PBYTE)&wszDCPrefix[0],
+                dwLenDCPrefix * sizeof(wchar16_t)))
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_DC;
 
@@ -296,14 +304,15 @@ SamDbGetDnToken(
     }
 
     pToken->pwszToken = pwszObjectNameCursor;
-    while (dwAvailableLen && (*pwszObjectNameCursor++ != wszComma[0]))
+    while (dwAvailableLen && (*pwszObjectNameCursor != wszComma[0]))
     {
         dwAvailableLen--;
         pToken->dwLen++;
         dwLenUsed++;
+        pwszObjectNameCursor++;
     }
 
-    if (dwAvailableLen && (*pwszObjectNameCursor) == wszComma[0])
+    if (dwAvailableLen && (*pwszObjectNameCursor == wszComma[0]))
     {
         dwLenUsed++;
     }

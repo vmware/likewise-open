@@ -57,7 +57,7 @@
 #define LOCAL_GROUP_SID_FORMAT "S-1-22-2-%ld"
 
 void
-LsaProviderLocal_DbInitGlobals(
+LsaLPDbInitGlobals(
     void
     )
 {
@@ -68,7 +68,7 @@ LsaProviderLocal_DbInitGlobals(
 // TODO: Implement a DB Handle Pool
 //
 DWORD
-LsaProviderLocal_DbOpen(
+LsaLPDbOpen(
     PHANDLE phDb
     )
 {
@@ -96,7 +96,7 @@ error:
 }
 
 void
-LsaProviderLocal_DbClose(
+LsaLPDbClose(
     HANDLE hDb
     )
 {
@@ -107,7 +107,7 @@ LsaProviderLocal_DbClose(
 }
 
 DWORD
-LsaProviderLocal_DbCreate(
+LsaLPDbCreate(
     void
     )
 {
@@ -140,7 +140,7 @@ LsaProviderLocal_DbCreate(
     dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaProviderLocal_DbOpen(&hDb);
+    dwError = LsaLPDbOpen(&hDb);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDbHandle = (sqlite3*)hDb;
@@ -200,7 +200,7 @@ LsaProviderLocal_DbCreate(
 cleanup:
 
     if (hDb != (HANDLE)NULL) {
-       LsaProviderLocal_DbClose(hDb);
+       LsaLPDbClose(hDb);
     }
 
     return dwError;

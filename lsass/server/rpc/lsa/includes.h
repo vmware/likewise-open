@@ -59,6 +59,7 @@
 #include <directory.h>
 #include <samr_srv.h>
 
+#include "lsa_cfg.h"
 #include "lsa_srv.h"
 #include "lsadefs.h"
 #include "lsa_contexthandle.h"

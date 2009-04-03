@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        lpevent.h
  *
  * Abstract:
  *
@@ -41,18 +41,48 @@
  *
  *        Local Authentication Provider
  *
- *        External Variables
+ *        Event Logging
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern PCSTR gpszLocalProviderName;
+#ifndef __LP_EVENT_H__
+#define __LP_EVENT_H__
 
-extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
+VOID
+LocalEventLogServiceStart(
+    DWORD dwError);
 
-extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
+VOID
+LocalEventLogConfigReload(
+    VOID);
 
-#endif /* __EXTERNS_H__ */
+VOID
+LocalEventLogUserPWChangeSuccess(
+    PCSTR pszLoginId
+    );
+
+VOID
+LocalEventLogUserAdd(
+    PCSTR pszUsername,
+    uid_t uid
+    );
+
+VOID
+LocalEventLogUserDelete(
+    uid_t uid
+    );
+
+VOID
+LocalEventLogGroupAdd(
+    PCSTR pszGroupname,
+    gid_t gid
+    );
+
+VOID
+LocalEventLogGroupDelete(
+    gid_t gid
+    );
+
+#endif /* __LP_EVENT_H__ */

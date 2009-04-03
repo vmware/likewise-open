@@ -78,6 +78,11 @@ SamDbFindObjectClassMapInfo(
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO* ppMapInfo
     );
 
+PSAM_DB_COLUMN_VALUE
+SamDbReverseColumnValueList(
+    PSAM_DB_COLUMN_VALUE pColumnValueList
+    );
+
 VOID
 SamDbFreeColumnValueList(
     PSAM_DB_COLUMN_VALUE pColValueList
@@ -88,6 +93,13 @@ SamDbGetNumberOfDependents_inlock(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PCSTR                  pszObjectDN,
     PDWORD                 pdwNumDependents
+    );
+
+DWORD
+SamDbGetObjectCount(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    PDWORD                 pdwNumObjects
     );
 
 #endif /* __SAMDB_MISC_H__ */

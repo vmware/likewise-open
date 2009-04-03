@@ -421,5 +421,15 @@ error:
     goto cleanup;
 }
 
-
+DWORD
+SamDbGetUserCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumUsers
+    )
+{
+    return SamDbGetObjectCount(
+                hBindHandle,
+                SAMDB_OBJECT_CLASS_USER,
+                pdwNumUsers);
+}
 

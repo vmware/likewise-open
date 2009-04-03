@@ -738,7 +738,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 LsaAdBatchQueryCellConfigurationMode(
     IN PCSTR pszDnsDomainName,
@@ -2288,7 +2287,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 LsaAdBatchIsDefaultCell(
     IN PCSTR pszCellDN,

@@ -46,6 +46,18 @@ SamDbSearchObject(
     );
 
 DWORD
+SamDbSearchObject_inlock(
+    HANDLE            hDirectory,
+    PWSTR             pwszBase,
+    ULONG             ulScope,
+    PWSTR             pwszFilter,
+    PWSTR             wszAttributes[],
+    ULONG             ulAttributesOnly,
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
 SamDbDeleteObject(
     HANDLE hBindHandle,
     PWSTR  pwszObjectDN

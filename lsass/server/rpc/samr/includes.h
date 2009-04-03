@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <pthread.h>
+#include <wchar.h>
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
@@ -53,6 +54,7 @@
 #include <lwrpc/domaininfo.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
+#include <lwrpc/displayinfo.h>
 
 #include <lsa/lsa.h>
 #include <lsautils.h>

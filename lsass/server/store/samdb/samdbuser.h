@@ -72,4 +72,10 @@ SamDbVerifyPassword(
     PWSTR  pwszPassword
     );
 
+DWORD
+SamDbGetUserCount(
+    HANDLE hBindHandle,
+    PDWORD pdwNumUsers
+    );
+
 #endif /* __SAM_DB_USER_H__ */

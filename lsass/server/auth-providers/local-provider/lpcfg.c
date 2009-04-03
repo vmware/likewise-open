@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        localcfg.c
+ *        lpcfg.c
  *
  * Abstract:
  *
@@ -47,11 +47,29 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
-#include "localprovider.h"
+#include "includes.h"
 
 static
 DWORD
-Local_SetConfig_EnableEventLog(
+LocalCfgStartSection(
+    PCSTR    pszSectionName,
+    PVOID    pData,
+    PBOOLEAN pbSkipSection,
+    PBOOLEAN pbContinue
+    );
+
+static
+DWORD
+LocalCfgNameValuePair(
+    PCSTR    pszName,
+    PCSTR    pszValue,
+    PVOID    pData,
+    PBOOLEAN pbContinue
+    );
+
+static
+DWORD
+LocalCfgEnableEventLog(
     PLOCAL_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
@@ -59,7 +77,7 @@ Local_SetConfig_EnableEventLog(
 
 static
 DWORD
-Local_SetConfig_PasswordLifespan(
+LocalCfgPasswordLifespan(
     PLOCAL_CONFIG pConfig,
     PCSTR         pszName,
     PCSTR         pszValue
@@ -67,36 +85,55 @@ Local_SetConfig_PasswordLifespan(
 
 static
 DWORD
-Local_SetConfig_PasswordChangeWarningTime(
+LocalCfgPasswordChangeWarningTime(
     PLOCAL_CONFIG pConfig,
     PCSTR         pszName,
     PCSTR         pszValue
     );
 
-static LOCAL_CONFIG_HANDLER gLocalConfigHandlers[] =
+static
+BOOLEAN
+LocalCfgGetBooleanValue(
+    PCSTR pszValue
+    );
+
+typedef DWORD (*PFN_LOCAL_CFG_HANDLER)(
+                    PLOCAL_CONFIG pConfig,
+                    PCSTR         pszName,
+                    PCSTR         pszValue
+                    );
+
+typedef struct __LOCAL_CFG_HANDLER
 {
-    {"enable-eventlog",            &Local_SetConfig_EnableEventLog},
-    {"password-lifespan",     &Local_SetConfig_PasswordLifespan},
-    {"password-change-warning-time",  &Local_SetConfig_PasswordChangeWarningTime}
+    PCSTR                 pszId;
+    PFN_LOCAL_CFG_HANDLER pfnHandler;
+
+} LOCAL_CFG_HANDLER, *PLOCAL_CFG_HANDLER;
+
+static LOCAL_CFG_HANDLER gLocalCfgHandlers[] =
+{
+    {"enable-eventlog",              &LocalCfgEnableEventLog},
+    {"password-lifespan",            &LocalCfgPasswordLifespan},
+    {"password-change-warning-time", &LocalCfgPasswordChangeWarningTime}
 };
 
 DWORD
-LsaProviderLocal_InitializeConfig(
+LocalCfgInitialize(
     PLOCAL_CONFIG pConfig
     )
 {
     memset(pConfig, 0, sizeof(LOCAL_CONFIG));
 
-    pConfig->dwPasswdChangeInterval = LOCAL_PASSWORD_CHANGE_INTERVAL_DEFAULT;
-    pConfig->dwPasswdChangeWarningTime = LOCAL_PASSWORD_CHANGE_WARNING_TIME_DEFAULT;
-    
+    pConfig->dwPasswdChangeInterval = LOCAL_PASSWD_CHANGE_INTERVAL_DEFAULT;
+    pConfig->dwPasswdChangeWarningTime = LOCAL_PASSWD_CHANGE_WARNING_TIME_DEFAULT;
+
     pConfig->bEnableEventLog = FALSE;
 
     return 0;
 }
 
 DWORD
-LsaProviderLocal_TransferConfigContents(
+LocalCfgTransferContents(
     PLOCAL_CONFIG pSrcConfig,
     PLOCAL_CONFIG pDstConfig
     )
@@ -110,41 +147,137 @@ LsaProviderLocal_TransferConfigContents(
     return 0;
 }
 
-VOID
-LsaProviderLocal_FreeConfig(
-    PLOCAL_CONFIG pConfig
-    )
-{
-    LsaProviderLocal_FreeConfigContents(pConfig);
-    LsaFreeMemory(pConfig);
-}
-
-VOID
-LsaProviderLocal_FreeConfigContents(
-    PLOCAL_CONFIG pConfig
-    )
-{
-    // Nothing to do yet.
-}
-
 DWORD
-LsaProviderLocal_ParseConfigFile(
-    PCSTR pszConfigFilePath,
+LocalCfgParseFile(
+    PCSTR         pszConfigFilePath,
     PLOCAL_CONFIG pConfig
     )
 {
     return LsaParseConfigFile(
                 pszConfigFilePath,
                 LSA_CFG_OPTION_STRIP_ALL,
-                &LsaProviderLocal_ConfigStartSection,
+                &LocalCfgStartSection,
                 NULL,
-                &LsaProviderLocal_ConfigNameValuePair,
+                &LocalCfgNameValuePair,
                 NULL,
                 pConfig);
 }
 
+
 DWORD
-LsaProviderLocal_ConfigStartSection(
+LocalCfgGetFilePath(
+    PSTR* ppszConfigFilePath
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR pszConfigFilePath = NULL;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    if (!IsNullOrEmptyString(gLPGlobals.pszConfigFilePath))
+    {
+        dwError = LsaAllocateString(
+                        gLPGlobals.pszConfigFilePath,
+                        &pszConfigFilePath);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppszConfigFilePath = pszConfigFilePath;
+
+cleanup:
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    return dwError;
+
+error:
+
+    *ppszConfigFilePath = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LocalCfgGetPasswordChangeInterval(
+    PDWORD pdwPasswdChangeInterval
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwPasswdChangeInterval = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwPasswdChangeInterval = gLPGlobals.cfg.dwPasswdChangeInterval;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwPasswdChangeInterval = dwPasswdChangeInterval;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetPasswordChangeWarningTime(
+    PDWORD pdwPasswdChangeWarningTime
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwPasswdChangeWarningTime = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwPasswdChangeWarningTime = gLPGlobals.cfg.dwPasswdChangeWarningTime;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwPasswdChangeWarningTime = dwPasswdChangeWarningTime;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgIsEventlogEnabled(
+    PBOOLEAN pbValue
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bResult = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    bResult = gLPGlobals.cfg.bEnableEventLog;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pbValue = bResult;
+
+    return dwError;
+}
+
+VOID
+LocalCfgFree(
+    PLOCAL_CONFIG pConfig
+    )
+{
+    LocalCfgFreeContents(pConfig);
+    LsaFreeMemory(pConfig);
+}
+
+VOID
+LocalCfgFreeContents(
+    PLOCAL_CONFIG pConfig
+    )
+{
+    // Nothing to do yet.
+}
+
+static
+DWORD
+LocalCfgStartSection(
     PCSTR    pszSectionName,
     PVOID    pData,
     PBOOLEAN pbSkipSection,
@@ -155,16 +288,20 @@ LsaProviderLocal_ConfigStartSection(
     PCSTR pszLibName = NULL;
     BOOLEAN bContinue = TRUE;
     BOOLEAN bSkipSection = FALSE;
-    
+
     if (IsNullOrEmptyString(pszSectionName) ||
-        (strncasecmp(pszSectionName, LOCAL_CFG_TAG_AUTH_PROVIDER, sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1) &&
+        (strncasecmp(pszSectionName,
+                     LOCAL_CFG_TAG_AUTH_PROVIDER,
+                     sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1) &&
          strncasecmp(pszSectionName, "global", sizeof("global")-1)))
     {
         bSkipSection = TRUE;
         goto done;
     }
-    
-    if (!strncasecmp(pszSectionName, LOCAL_CFG_TAG_AUTH_PROVIDER, sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1))
+
+    if (!strncasecmp(pszSectionName,
+                     LOCAL_CFG_TAG_AUTH_PROVIDER,
+                     sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER)-1))
     {
         pszLibName = pszSectionName + sizeof(LOCAL_CFG_TAG_AUTH_PROVIDER) - 1;
         if (IsNullOrEmptyString(pszLibName) ||
@@ -182,8 +319,9 @@ done:
     return dwError;
 }
 
+static
 DWORD
-LsaProviderLocal_ConfigNameValuePair(
+LocalCfgNameValuePair(
     PCSTR    pszName,
     PCSTR    pszValue,
     PVOID    pData,
@@ -192,18 +330,18 @@ LsaProviderLocal_ConfigNameValuePair(
 {
     DWORD dwError = 0;
     DWORD iHandler = 0;
-    DWORD nHandlers = sizeof(gLocalConfigHandlers)/sizeof(gLocalConfigHandlers[0]);
-    
+    DWORD nHandlers = sizeof(gLocalCfgHandlers)/sizeof(gLocalCfgHandlers[0]);
+
     if (!IsNullOrEmptyString(pszName))
     {
         for (; iHandler < nHandlers; iHandler++)
         {
-            if (!strcasecmp(gLocalConfigHandlers[iHandler].pszId, pszName))
+            if (!strcasecmp(gLocalCfgHandlers[iHandler].pszId, pszName))
             {
-                gLocalConfigHandlers[iHandler].pfnHandler(
-                                (PLOCAL_CONFIG)pData,
-                                pszName,
-                                pszValue);
+                gLocalCfgHandlers[iHandler].pfnHandler(
+                                                (PLOCAL_CONFIG)pData,
+                                                pszName,
+                                                pszValue);
                 break;
             }
         }
@@ -216,20 +354,20 @@ LsaProviderLocal_ConfigNameValuePair(
 
 static
 DWORD
-Local_SetConfig_EnableEventLog(
+LocalCfgEnableEventLog(
     PLOCAL_CONFIG pConfig,
     PCSTR          pszName,
     PCSTR          pszValue
     )
 {
-    pConfig->bEnableEventLog = LsaProviderLocal_GetBooleanConfigValue(pszValue);
+    pConfig->bEnableEventLog = LocalCfgGetBooleanValue(pszValue);
 
     return 0;
 }
 
 static
 DWORD
-Local_SetConfig_PasswordLifespan(
+LocalCfgPasswordLifespan(
     PLOCAL_CONFIG pConfig,
     PCSTR         pszName,
     PCSTR         pszValue
@@ -246,20 +384,20 @@ Local_SetConfig_PasswordLifespan(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (dwPasswdChangeInterval < LOCAL_PASSWORD_CHANGE_INTERVAL_MINIMUM)
+    if (dwPasswdChangeInterval < LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM)
     {
         LSA_LOG_ERROR("Failed to set PasswdChangeInterval to %u.  Minimum is %u.",
                         dwPasswdChangeInterval,
-                        LOCAL_PASSWORD_CHANGE_INTERVAL_MINIMUM);
+                        LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM);
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (dwPasswdChangeInterval > LOCAL_PASSWORD_CHANGE_INTERVAL_MAXIMUM)
+    if (dwPasswdChangeInterval > LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM)
     {
         LSA_LOG_ERROR("Failed to set PasswdChangeInterval to %u.  Maximum is %u.",
                         dwPasswdChangeInterval,
-                        LOCAL_PASSWORD_CHANGE_INTERVAL_MAXIMUM);
+                        LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM);
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -277,7 +415,7 @@ error:
 
 static
 DWORD
-Local_SetConfig_PasswordChangeWarningTime(
+LocalCfgPasswordChangeWarningTime(
     PLOCAL_CONFIG pConfig,
     PCSTR         pszName,
     PCSTR         pszValue
@@ -294,20 +432,20 @@ Local_SetConfig_PasswordChangeWarningTime(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (dwPasswdChangeWarningTime < LOCAL_PASSWORD_CHANGE_WARNING_TIME_MINIMUM)
+    if (dwPasswdChangeWarningTime < LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM)
     {
         LSA_LOG_ERROR("Failed to set PasswdChangeWarningTime to %u.  Minimum is %u.",
                         dwPasswdChangeWarningTime,
-                        LOCAL_PASSWORD_CHANGE_WARNING_TIME_MINIMUM);
+                        LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM);
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (dwPasswdChangeWarningTime > LOCAL_PASSWORD_CHANGE_WARNING_TIME_MAXIMUM)
+    if (dwPasswdChangeWarningTime > LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM)
     {
         LSA_LOG_ERROR("Failed to set PasswdChangeWarningTime to %u.  Maximum is %u.",
                         dwPasswdChangeWarningTime,
-                        LOCAL_PASSWORD_CHANGE_WARNING_TIME_MAXIMUM);
+                        LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM);
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -323,109 +461,9 @@ error:
     goto cleanup;
 }
 
-DWORD
-LsaProviderLocal_SetConfigFilePath(
-    PCSTR pszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszConfigFilePathLocal = NULL;
-
-    BAIL_ON_INVALID_STRING(pszConfigFilePath);
-
-    dwError = LsaAllocateString(
-                    pszConfigFilePath,
-                    &pszConfigFilePathLocal
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ENTER_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
-
-    gpszConfigFilePath = pszConfigFilePathLocal;
-
-cleanup:
-
-    LEAVE_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    LSA_SAFE_FREE_STRING(pszConfigFilePathLocal);
-
-    goto cleanup;
-}
-
-DWORD
-LsaProviderLocal_GetConfigFilePath(
-    PSTR* ppszConfigFilePath
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszConfigFilePath = NULL;
-
-    ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    if (!IsNullOrEmptyString(gpszConfigFilePath))
-    {
-        dwError = LsaAllocateString(
-                        gpszConfigFilePath,
-                        &pszConfigFilePath
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *ppszConfigFilePath = pszConfigFilePath;
-
-cleanup:
-
-    LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    *ppszConfigFilePath = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaProviderLocal_GetPasswdChangeInterval(
-    VOID
-    )
-{
-    DWORD dwPasswdChangeInterval = 0;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    dwPasswdChangeInterval = gLocalConfig.dwPasswdChangeInterval;
-    LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwPasswdChangeInterval;
-}
-
-DWORD
-LsaProviderLocal_GetPasswdChangeWarningTime(
-    VOID
-    )
-{
-    DWORD dwPasswdChangeWarningTime = 0;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    dwPasswdChangeWarningTime = gLocalConfig.dwPasswdChangeWarningTime;
-    LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwPasswdChangeWarningTime;
-}
-
+static
 BOOLEAN
-LsaProviderLocal_GetBooleanConfigValue(
+LocalCfgGetBooleanValue(
     PCSTR pszValue
     )
 {
@@ -443,20 +481,4 @@ LsaProviderLocal_GetBooleanConfigValue(
     return bResult;
 }
 
-BOOLEAN
-LsaProviderLocal_EventlogEnabled(
-    VOID
-    )
-{
-    BOOLEAN bResult = FALSE;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    bResult = gLocalConfig.bEnableEventLog;
-
-    LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return bResult;
-}
 

@@ -188,6 +188,7 @@ RdrAcquireEstablishedSession(
     PSMB_SESSION pSession = NULL;
     BOOLEAN bInSessionLock = FALSE;
     BOOLEAN bInSocketLock = FALSE;
+    BOOLEAN bSessionSetupInProgress = FALSE;
 
     ntStatus = SMBSrvClientSessionCreate(
         ppSocket,
@@ -207,7 +208,7 @@ RdrAcquireEstablishedSession(
         SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
         ntStatus = SMBSocketWaitSessionSetup(pSession->pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
-        pSession->pSocket->bSessionSetupInProgress = TRUE;
+        pSession->pSocket->bSessionSetupInProgress = bSessionSetupInProgress = TRUE;
         SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
 
         ntStatus = SessionSetup(
@@ -242,7 +243,7 @@ RdrAcquireEstablishedSession(
 
         /* Wake up anyone waiting for session setup exclusion */
         SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
-        pSession->pSocket->bSessionSetupInProgress = FALSE;
+        pSession->pSocket->bSessionSetupInProgress = bSessionSetupInProgress = FALSE;
         pthread_cond_broadcast(&pSession->pSocket->event);
         SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
     }
@@ -264,6 +265,13 @@ cleanup:
 error:
 
     *ppSession = NULL;
+
+    if (bSessionSetupInProgress)
+    {
+        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        pSession->pSocket->bSessionSetupInProgress = FALSE;
+        pthread_cond_broadcast(&pSession->pSocket->event);
+    }
 
     SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
     SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
@@ -289,6 +297,7 @@ RdrAcquireConnectedTree(
     BOOLEAN bInTreeLock = FALSE;
     BOOLEAN bInSessionLock = FALSE;
     PWSTR pwszPath = NULL;
+    BOOLEAN bTreeConnectInProgress = TRUE;
 
     ntStatus = SMBSrvClientTreeCreate(
         ppSession,
@@ -307,7 +316,7 @@ RdrAcquireConnectedTree(
         SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
         ntStatus = SMBSessionWaitTreeConnect(pTree->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
-        pTree->pSession->bTreeConnectInProgress = TRUE;
+        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = TRUE;
         SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
         ntStatus = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
@@ -326,7 +335,7 @@ RdrAcquireConnectedTree(
 
         /* Wake up anyone waiting for tree connect exclusion */
         SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
-        pTree->pSession->bTreeConnectInProgress = FALSE;
+        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
         pthread_cond_broadcast(&pTree->pSession->event);
         SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
     }
@@ -347,6 +356,13 @@ cleanup:
 error:
 
     *ppTree = NULL;
+
+    if (bTreeConnectInProgress)
+    {
+        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
+        pthread_cond_broadcast(&pTree->pSession->event);
+    }
 
     SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
     SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);

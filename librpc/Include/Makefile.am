@@ -29,6 +29,7 @@ include_HEADERS = \
 	lwrpc/userinfo.h \
 	lwrpc/aliasinfo.h \
 	lwrpc/domaininfo.h \
+        lwrpc/displayinfo.h \
 	lwrpc/samrflags.h \
 	lwrpc/netlogon.h \
 	lwrpc/netlogonbinding.h \

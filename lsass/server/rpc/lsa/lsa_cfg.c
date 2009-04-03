@@ -33,19 +33,39 @@
  *
  * Module Name:
  *
- *        samr_cfg.c
+ *        lsa_cfg.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        Samr rpc server configuration
+ *        Lsa rpc server configuration
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 
 #include "includes.h"
+
+
+static
+DWORD
+LsaSrvConfigStartSection(
+    PCSTR    pszSectionName,
+    PVOID    pData,
+    PBOOLEAN pbSkipSection,
+    PBOOLEAN pbContinue
+    );
+
+
+static
+DWORD
+LsaSrvConfigNameValuePair(
+    PCSTR    pszName,
+    PCSTR    pszValue,
+    PVOID    pData,
+    PBOOLEAN pbContinue
+    );
 
 
 static
@@ -70,50 +90,74 @@ SamrSrvConfigNameValuePair(
 
 static
 DWORD
-SamrSrvConfigSetLpcSocketPath(
-    PSAMR_SRV_CONFIG pConfig,
+LsaSrvConfigSetLpcSocketPath(
+    PLSA_SRV_CONFIG pConfig,
     PCSTR            pszName,
     PCSTR            pszValue
     );
 
 
-static SAMR_SRV_CONFIG_HANDLER gSamrSrvConfigHandlers[] =
+static
+DWORD
+LsaSrvConfigSetSamrLpcSocketPath(
+    PLSA_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    );
+
+
+static LSA_SRV_CONFIG_HANDLER gLsaSrvConfigHandlers[] =
 {
-    { "lpc-socket-path",                &SamrSrvConfigSetLpcSocketPath }
+    { "lpc-socket-path",                &LsaSrvConfigSetLpcSocketPath }
+};
+
+
+static LSA_SRV_CONFIG_HANDLER gSamrSrvConfigHandlers[] =
+{
+    { "lpc-socket-path",                &LsaSrvConfigSetSamrLpcSocketPath }
 };
 
 
 DWORD
-SamrSrvInitialiseConfig(
-    PSAMR_SRV_CONFIG pConfig
+LsaSrvInitialiseConfig(
+    PLSA_SRV_CONFIG pConfig
     )
 {
     DWORD dwError = 0;
 
     memset(pConfig, 0, sizeof(*pConfig));
 
-    pConfig->pszLpcSocketPath = LSA_DEFAULT_LPC_SOCKET_PATH;
+    pConfig->pszLpcSocketPath     = LSA_DEFAULT_LPC_SOCKET_PATH;
+    pConfig->pszSamrLpcSocketPath = LSA_DEFAULT_LPC_SOCKET_PATH;
 
     return dwError;
 }
 
 
 DWORD
-SamrSrvParseConfigFile(
+LsaSrvParseConfigFile(
     PCSTR pszConfigFilePath,
-    PSAMR_SRV_CONFIG pConfig
+    PLSA_SRV_CONFIG pConfig
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaParseConfigFile(pszConfigFilePath,
                                  LSA_CFG_OPTION_STRIP_ALL,
-                                 &SamrSrvConfigStartSection,
+                                 &LsaSrvConfigStartSection,
                                  NULL,
-                                 &SamrSrvConfigNameValuePair,
+                                 &LsaSrvConfigNameValuePair,
                                  NULL,
                                  pConfig);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaParseConfigFile(pszConfigFilePath,
+				 LSA_CFG_OPTION_STRIP_ALL,
+				 &SamrSrvConfigStartSection,
+				 NULL,
+				 &SamrSrvConfigNameValuePair,
+				 NULL,
+				 pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -121,6 +165,77 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+static
+DWORD
+LsaSrvConfigStartSection(
+    PCSTR    pszSectionName,
+    PVOID    pData,
+    PBOOLEAN pbSkipSection,
+    PBOOLEAN pbContinue
+    )
+{
+    DWORD dwError = 0;
+    PCSTR pszLibName = NULL;
+
+    if (IsNullOrEmptyString(pszSectionName) ||
+        strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
+                    sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
+        *pbSkipSection = TRUE;
+        goto cleanup;
+    }
+
+    if (!strncasecmp(pszSectionName, LSA_CFG_TAG_RPC_SERVER,
+                     sizeof(LSA_CFG_TAG_RPC_SERVER) - 1)) {
+
+        pszLibName = pszSectionName + sizeof(LSA_CFG_TAG_RPC_SERVER) - 1;
+        if (IsNullOrEmptyString(pszLibName) ||
+            strcasecmp(pszLibName, LSA_CFG_TAG_LSA_RPC_SERVER)) {
+            *pbSkipSection = TRUE;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    *pbContinue = TRUE;
+    return dwError;
+}
+
+
+static
+DWORD
+LsaSrvConfigNameValuePair(
+    PCSTR    pszName,
+    PCSTR    pszValue,
+    PVOID    pData,
+    PBOOLEAN pbContinue
+    )
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    DWORD dwNumHandlers = 0;
+
+    if (IsNullOrEmptyString(pszName)) {
+        *pbContinue = TRUE;
+        goto cleanup;
+    }
+
+    dwNumHandlers = sizeof(gLsaSrvConfigHandlers)
+                    /sizeof(gLsaSrvConfigHandlers[0]);
+
+    for (i = 0; i < dwNumHandlers; i++) {
+        if (!strcasecmp(gLsaSrvConfigHandlers[i].pszId, pszName)) {
+            gLsaSrvConfigHandlers[i].pFnHandler((PLSA_SRV_CONFIG)pData,
+                                                         pszName,
+                                                         pszValue);
+            break;
+        }
+    }
+
+cleanup:
+    return dwError;
 }
 
 
@@ -178,12 +293,12 @@ SamrSrvConfigNameValuePair(
         goto cleanup;
     }
 
-    dwNumHandlers = sizeof(gSamrSrvConfigHandlers)
-                    /sizeof(gSamrSrvConfigHandlers[0]);
+    dwNumHandlers = sizeof(gLsaSrvConfigHandlers)
+                    /sizeof(gLsaSrvConfigHandlers[0]);
 
     for (i = 0; i < dwNumHandlers; i++) {
-        if (!strcasecmp(gSamrSrvConfigHandlers[i].pszId, pszName)) {
-            gSamrSrvConfigHandlers[i].pFnHandler((PSAMR_SRV_CONFIG)pData,
+        if (!strcasecmp(gLsaSrvConfigHandlers[i].pszId, pszName)) {
+            gSamrSrvConfigHandlers[i].pFnHandler((PLSA_SRV_CONFIG)pData,
                                                          pszName,
                                                          pszValue);
             break;
@@ -197,14 +312,13 @@ cleanup:
 
 static
 DWORD
-SamrSrvConfigSetLpcSocketPath(
-    PSAMR_SRV_CONFIG pConfig,
+LsaSrvConfigSetLpcSocketPath(
+    PLSA_SRV_CONFIG pConfig,
     PCSTR pszName,
     PCSTR pszValue
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaAllocateString(pszValue,
                                 &pConfig->pszLpcSocketPath);
@@ -219,8 +333,31 @@ error:
 }
 
 
+static
 DWORD
-SamrSrvConfigGetLpcSocketPath(
+LsaSrvConfigSetSamrLpcSocketPath(
+    PLSA_SRV_CONFIG pConfig,
+    PCSTR pszName,
+    PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaAllocateString(pszValue,
+                                &pConfig->pszSamrLpcSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    pConfig->pszSamrLpcSocketPath = NULL;
+    goto cleanup;
+}
+
+
+DWORD
+LsaSrvConfigGetLpcSocketPath(
     PSTR *ppszLpcSocketPath
     )
 {
@@ -231,11 +368,11 @@ SamrSrvConfigGetLpcSocketPath(
 
     GLOBAL_DATA_LOCK(bLocked);
 
-    if (IsNullOrEmptyString(gSamrSrvConfig.pszLpcSocketPath)) {
+    if (IsNullOrEmptyString(gLsaSrvConfig.pszLpcSocketPath)) {
         goto cleanup;
     }
 
-    dwError = LsaAllocateString(gSamrSrvConfig.pszLpcSocketPath,
+    dwError = LsaAllocateString(gLsaSrvConfig.pszLpcSocketPath,
                                 &pszLpcSocketPath);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -251,7 +388,38 @@ error:
 
 
 DWORD
-SamrSrvSetConfigFilePath(
+LsaSrvConfigGetSamrLpcSocketPath(
+    PSTR *ppszSamrLpcSocketPath
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOL bLocked = 0;
+    PSTR pszLpcSocketPath = NULL;
+
+    GLOBAL_DATA_LOCK(bLocked);
+
+    if (IsNullOrEmptyString(gLsaSrvConfig.pszSamrLpcSocketPath)) {
+        goto cleanup;
+    }
+
+    dwError = LsaAllocateString(gLsaSrvConfig.pszSamrLpcSocketPath,
+                                &pszLpcSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszSamrLpcSocketPath = pszLpcSocketPath;
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(bLocked);
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+LsaSrvSetConfigFilePath(
     PCSTR pszConfigFilePath
     )
 {
@@ -284,7 +452,6 @@ error:
 
     goto cleanup;
 }
-
 
 
 /*

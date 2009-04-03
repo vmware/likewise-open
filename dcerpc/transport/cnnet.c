@@ -2060,7 +2060,7 @@ unsigned32              *st;
         break;
         
         case RPC_C_SOCKET_EACCESS:
-        *st = rpc_s_access_control_info_inv;
+        *st = rpc_s_invalid_credentials;
         break;
         
         case RPC_C_SOCKET_ECONNABORTED:
