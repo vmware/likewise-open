@@ -6,23 +6,23 @@
 #
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 92 9
-#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop LSMBD 
+#LWI_STARTUP_TYPE_REDHAT# description: Start and Stop LWIOD 
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
-#LWI_STARTUP_TYPE_SUSE# Provides: lsmbd
+#LWI_STARTUP_TYPE_SUSE# Provides: lwiod
 #LWI_STARTUP_TYPE_SUSE# Required-Start: $network $remote_fs 
 #LWI_STARTUP_TYPE_SUSE# Required-Stop: $network $remote_fs
 #LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5
 #LWI_STARTUP_TYPE_SUSE# Default-Stop: 0 1 2 6
-#LWI_STARTUP_TYPE_SUSE# Description: Start and Stop LSMBD
+#LWI_STARTUP_TYPE_SUSE# Description: Start and Stop LWIOD
 #LWI_STARTUP_TYPE_SUSE### END INIT INFO
 
-PROG_DESC="Likewise Server Message Block Service"
-PROG_BIN=PREFIX_DIR/sbin/lsmbd
+PROG_DESC="Likewise IO Manager Service"
+PROG_BIN=PREFIX_DIR/sbin/lwiod
 PROG_ARGS="--start-as-daemon"
-PROG_ERR=/var/lib/likewise/lsmbd/lsmbd.err
-PIDFILE=/var/run/lsmbd.pid
-SCRIPTNAME="lsmbd"
+PROG_ERR=/var/lib/likewise/lwiod/lwiod.err
+PIDFILE=/var/run/lwiod.pid
+SCRIPTNAME="lwiod"
 
 . EXECDIR/init-base.sh
