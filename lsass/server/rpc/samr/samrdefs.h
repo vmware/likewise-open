@@ -27,6 +27,24 @@ typedef void* ACCOUNT_HANDLE;
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 
 
+#define DS_ATTR_OBJECT_CLASS \
+    {'O','b','j','e','c','t','C','l','a','s','s',0}
+#define DS_ATTR_OBJECT_SID \
+    {'O','b','j','e','c','t','S','I','D',0}
+#define DS_ATTR_COMMON_NAME \
+    {'C','o','m','m','o','n','N','a','m','e',0}
+#define DS_ATTR_NETBIOS_NAME \
+    {'N','e','t','B','I','O','S','N','a','m','e',0}
+
+
+#define DS_OBJECT_CLASS_DOMAIN           (1)
+#define DS_OBJECT_CLASS_BUILTIN_DOMAIN   (2)
+
+
+#define SAMR_BUILTIN_DOMAIN_NAME \
+    {'B','U','I','L','T','I','N',0}
+
+
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
         if ((status) != STATUS_SUCCESS) {                \
