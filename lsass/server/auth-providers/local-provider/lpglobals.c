@@ -48,9 +48,7 @@
  */
 #include "includes.h"
 
-PCSTR gpszLocalProviderName = "lsa-local-provider";
-
-PSTR gpszConfigFilePath = NULL;
+PCSTR gpszLocalProviderName = LOCAL_CFG_TAG_LOCAL_PROVIDER;
 
 LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
 {
@@ -91,11 +89,6 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     .pfnProviderIoControl      = &LsaLPProviderIoControl
 };
 
-pthread_rwlock_t g_dbLock;
+LOCAL_PROVIDER_GLOBALS gLPGlobals = { PTHREAD_MUTEX_INITIALIZER };
 
-pthread_rwlock_t gProviderLocalGlobalDataLock;
-
-LOCAL_CONFIG gLocalConfig = {0};
-
-PSTR gProviderLocal_Hostname = NULL;
 

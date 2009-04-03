@@ -55,32 +55,36 @@ LsaInitializeProvider(
 {
     DWORD dwError = 0;
     LOCAL_CONFIG config = {0};
+    BOOLEAN bEventLogEnabled = FALSE;
 
-    pthread_rwlock_init(&gProviderLocalGlobalDataLock, NULL);
-
-    dwError = LsaDnsGetHostInfo(&gProviderLocal_Hostname);
+    dwError = LsaDnsGetHostInfo(&gLPGlobals.pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszConfigFilePath)) {
 
-        dwError = LsaLPParseConfigFile(
+        dwError = LocalCfgParseFile(
                         pszConfigFilePath,
                         &config);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaLPTransferConfigContents(
+        dwError = LocalCfgTransferContents(
                         &config,
-                        &gLocalConfig);
+                        &gLPGlobals.cfg);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaLPSetConfigFilePath(pszConfigFilePath);
+        dwError = LsaAllocateString(
+                        pszConfigFilePath,
+                        &gLPGlobals.pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
 
     }
 
-    if (LsaLPEventlogEnabled())
+    dwError = LocalCfgIsEventlogEnabled(&bEventLogEnabled);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bEventLogEnabled)
     {
-        LsaLPLogServiceStartEvent(dwError);
+        LocalEventLogServiceStart(dwError);
     }
 
     *ppszProviderName = (PSTR)gpszLocalProviderName;
@@ -92,12 +96,12 @@ cleanup:
 
 error:
 
-    if (LsaLPEventlogEnabled())
+    if (bEventLogEnabled)
     {
-        LsaLPLogServiceStartEvent(dwError);
+        LocalEventLogServiceStart(dwError);
     }
 
-    LsaLPFreeConfigContents(&config);
+    LocalCfgFreeContents(&config);
 
     *ppszProviderName = NULL;
     *ppFunctionTable = NULL;
@@ -163,7 +167,7 @@ LsaLPServicesDomain(
 
     if (IsNullOrEmptyString(pszDomain) ||
         !strcasecmp(pszDomain, "localhost") ||
-        !strcasecmp(pszDomain, gProviderLocal_Hostname))
+        !strcasecmp(pszDomain, gLPGlobals.pszHostname))
     {
         bResult = TRUE;
     }
@@ -1122,7 +1126,7 @@ LsaLPAddUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaLPEventlogEnabled()){
-        LsaLPLogUserAddEvent(pLoginInfo->pszName, ((PLSA_USER_INFO_0)pUserInfo)->uid);
+        LocalEventLogUserAdd(pLoginInfo->pszName, ((PLSA_USER_INFO_0)pUserInfo)->uid);
     }
 
 cleanup:
@@ -1212,7 +1216,7 @@ LsaLPDeleteUser(
 
     if (LsaLPEventlogEnabled())
     {
-        LsaLPLogUserDeleteEvent(uid);
+        LocalEventLogUserDelete(uid);
     }
 
 cleanup:
@@ -1283,7 +1287,7 @@ LsaLPAddGroup(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaLPEventlogEnabled()){
-        LsaLPLogGroupAddEvent(pLoginInfo->pszName, ((PLSA_GROUP_INFO_0)pGroupInfo)->gid);
+        LocalEventLogGroupAdd(pLoginInfo->pszName, ((PLSA_GROUP_INFO_0)pGroupInfo)->gid);
     }
 
 cleanup:
@@ -1332,7 +1336,7 @@ LsaLPDeleteGroup(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaLPEventlogEnabled()){
-        LsaLPLogGroupDeleteEvent(gid);
+        LocalEventLogGroupDelete(gid);
     }
 
 cleanup:
@@ -1535,10 +1539,9 @@ LsaShutdownProvider(
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    // TODO: Should we grab the global lock?
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
 
-    LSA_SAFE_FREE_STRING(gProviderLocal_Hostname);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszHostname);
 
     return 0;
 }
@@ -1667,37 +1670,37 @@ LsaLPRefreshConfiguration(
     LOCAL_CONFIG config = {0};
     BOOLEAN bInLock = FALSE;
 
-    dwError = LsaLPGetConfigFilePath(&pszConfigFilePath);
+    dwError = LocalCfgGetFilePath(&pszConfigFilePath);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszConfigFilePath))
     {
-        dwError = LsaLPParseConfigFile(
+        dwError = LocalCfgParseFile(
                         pszConfigFilePath,
                         &config);
         BAIL_ON_LSA_ERROR(dwError);
 
-        ENTER_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+        LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-        dwError = LsaLPTransferConfigContents(
+        dwError = LocalCfgTransferContents(
                         &config,
-                        &gLocalConfig);
+                        &gLPGlobals.cfg);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    LsaLPLogConfigReloadEvent();
+    LocalEventLogConfigReload();
 
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszConfigFilePath);
 
-    LEAVE_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
     return dwError;
 
 error:
 
-    LsaLPFreeConfigContents(&config);
+    LocalCfgFreeContents(&config);
 
     goto cleanup;
 }

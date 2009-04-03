@@ -51,37 +51,37 @@
 #define __LP_EVENT_H__
 
 VOID
-LsaLPLogServiceStartEvent(
+LocalEventLogServiceStart(
     DWORD dwError);
 
 VOID
-LsaLPLogConfigReloadEvent(
+LocalEventLogConfigReload(
     VOID);
 
 VOID
-LsaProviderLocalLogUserPWChangeSuccessEvent(
+LocalEventLogUserPWChangeSuccess(
     PCSTR pszLoginId
     );
 
 VOID
-LsaLPLogUserAddEvent(
+LocalEventLogUserAdd(
     PCSTR pszUsername,
     uid_t uid
     );
 
 VOID
-LsaLPLogUserDeleteEvent(
+LocalEventLogUserDelete(
     uid_t uid
     );
 
 VOID
-LsaLPLogGroupAddEvent(
+LocalEventLogGroupAdd(
     PCSTR pszGroupname,
     gid_t gid
     );
 
 VOID
-LsaLPLogGroupDeleteEvent(
+LocalEventLogGroupDelete(
     gid_t gid
     );
 

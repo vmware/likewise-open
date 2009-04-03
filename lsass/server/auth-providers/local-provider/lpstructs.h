@@ -72,5 +72,16 @@ typedef struct __LOCAL_CONFIG
     BOOLEAN   bEnableEventLog;
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 
+typedef struct _LOCAL_PROVIDER_GLOBALS
+{
+    pthread_mutex_t mutex;
+
+    PSTR            pszConfigFilePath;
+    PSTR            pszHostname;
+
+    LOCAL_CONFIG    cfg;
+
+} LOCAL_PROVIDER_GLOBALS, *PLOCAL_PROVIDER_GLOBALS;
+
 #endif /* __LPSTRUCTS_H__ */
 

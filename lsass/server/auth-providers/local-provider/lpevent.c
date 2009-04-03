@@ -50,7 +50,7 @@
 #include "includes.h"
 
 VOID
-LsaLPLogServiceStartEvent(
+LocalEventLogServiceStart(
     DWORD dwErrCode
     )
 {
@@ -136,12 +136,24 @@ error:
 }
 
 VOID
-LsaLPLogConfigReloadEvent(
+LocalEventLogConfigReload(
     VOID
     )
 {
-    DWORD dwError = 0;
-    PSTR pszDescription = NULL;
+    DWORD   dwError = 0;
+    PSTR    pszDescription = NULL;
+    DWORD   dwPasswdChangeInterval = 0;
+    DWORD   dwPasswdChangeWarningTime = 0;
+    BOOLEAN bEventlogEnabled = FALSE;
+
+    dwError = LocalCfgGetPasswordChangeInterval(&dwPasswdChangeInterval);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalCfgGetPasswordChangeWarningTime(&dwPasswdChangeWarningTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
@@ -152,9 +164,9 @@ LsaLPLogConfigReloadEvent(
                  "     Password change warning time : %d\r\n" \
                  "     Enable event log:              %s",
                  LSA_SAFE_LOG_STRING(gpszLocalProviderName),
-                 gLocalConfig.dwPasswdChangeInterval,
-                 gLocalConfig.dwPasswdChangeWarningTime,
-                 gLocalConfig.bEnableEventLog ? "true" : "false");
+                 dwPasswdChangeInterval,
+                 dwPasswdChangeWarningTime,
+                 bEventlogEnabled ? "true" : "false");
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaSrvLogServiceSuccessEvent(
@@ -175,7 +187,7 @@ error:
 }
 
 VOID
-LsaLPLogUserAddEvent(
+LocalEventLogUserAdd(
     PCSTR pszUsername,
     uid_t uid
     )
@@ -206,11 +218,12 @@ cleanup:
     return;
 
 error:
+
     goto cleanup;
 }
 
 VOID
-LsaLPLogUserDeleteEvent(
+LocalEventLogUserDelete(
     uid_t uid
     )
 {
@@ -238,11 +251,12 @@ cleanup:
     return;
 
 error:
+
     goto cleanup;
 }
 
 VOID
-LsaLPLogGroupAddEvent(
+LocalEventLogGroupAdd(
     PCSTR pszGroupname,
     gid_t gid
     )
@@ -273,11 +287,12 @@ cleanup:
     return;
 
 error:
+
     goto cleanup;
 }
 
 VOID
-LsaLPLogGroupDeleteEvent(
+LocalEventLogGroupDelete(
     gid_t gid
     )
 {
@@ -305,5 +320,6 @@ cleanup:
     return;
 
 error:
+
     goto cleanup;
 }

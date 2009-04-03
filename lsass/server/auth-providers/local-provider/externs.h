@@ -49,54 +49,10 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern pthread_rwlock_t gProviderLocalGlobalDataLock;
-
-#define ENTER_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock)          \
-        if (!bInLock) {                                          \
-           pthread_rwlock_rdlock(&gProviderLocalGlobalDataLock); \
-           bInLock = TRUE;                                       \
-        }
-
-#define LEAVE_LOCAL_GLOBAL_DATA_RW_READER_LOCK(bInLock)          \
-        if (bInLock) {                                           \
-           pthread_rwlock_unlock(&gProviderLocalGlobalDataLock); \
-           bInLock = FALSE;                                      \
-        }
-
-#define ENTER_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock)          \
-        if (!bInLock) {                                          \
-           pthread_rwlock_wrlock(&gProviderLocalGlobalDataLock); \
-           bInLock = TRUE;                                       \
-        }
-
-#define LEAVE_LOCAL_GLOBAL_DATA_RW_WRITER_LOCK(bInLock)     \
-        if (bInLock) {                                           \
-           pthread_rwlock_unlock(&gProviderLocalGlobalDataLock); \
-           bInLock = FALSE;                                      \
-        }
-
 extern PCSTR gpszLocalProviderName;
-
-extern PSTR  gpszConfigFilePath;
 
 extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
 
-/*
- * Database
- */
-#define LSASS_DB_DIR CACHEDIR     "/db"
-#define LSASS_DB     LSASS_DB_DIR "/lsass-local.db"
-
-extern pthread_rwlock_t g_dbLock;
-
-#define ENTER_RW_READER_LOCK pthread_rwlock_rdlock(&g_dbLock)
-#define LEAVE_RW_READER_LOCK pthread_rwlock_unlock(&g_dbLock)
-
-#define ENTER_RW_WRITER_LOCK pthread_rwlock_wrlock(&g_dbLock)
-#define LEAVE_RW_WRITER_LOCK pthread_rwlock_unlock(&g_dbLock)
-
-extern LOCAL_CONFIG gLocalConfig;
-
-extern PSTR gProviderLocal_Hostname;
+extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
 
 #endif /* __EXTERNS_H__ */
