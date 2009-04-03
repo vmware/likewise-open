@@ -208,7 +208,7 @@ SamDbBuildSqlQuery(
 
             dwError = DirectoryAllocateMemory(
                             sizeof(SAM_DB_COLUMN_VALUE),
-                            (PVOID*)pColumnValue);
+                            (PVOID*)&pColumnValue);
             BAIL_ON_SAMDB_ERROR(dwError);
 
             pColumnValue->pAttrMap = pAttrMap;

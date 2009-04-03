@@ -35,11 +35,12 @@ SamDbAddMachineDomain(
 static
 DWORD
 SamDbAddLocalGroup(
-    HANDLE hDirectory,
-    PCSTR  pszDomainDN,
-    PCSTR  pszGroupName,
-    PCSTR  pszGroupSID,
-    DWORD  dwGID
+    HANDLE             hDirectory,
+    PCSTR              pszDomainDN,
+    PCSTR              pszGroupName,
+    PCSTR              pszGroupSID,
+    SAMDB_OBJECT_CLASS objectClass,
+    DWORD              dwGID
     );
 
 static
@@ -295,6 +296,7 @@ SamDbAddBuiltin(
                     pszDomainDN,
                     SAMDB_BUILTIN_TAG,
                     SAMDB_BUILTIN_SID,
+                    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN,
                     SAMDB_BUILTIN_GID);
 }
 
@@ -467,16 +469,19 @@ error:
 static
 DWORD
 SamDbAddLocalGroup(
-    HANDLE hDirectory,
-    PCSTR  pszDomainDN,
-    PCSTR  pszGroupName,
-    PCSTR  pszGroupSID,
-    DWORD  dwGID
+    HANDLE             hDirectory,
+    PCSTR              pszDomainDN,
+    PCSTR              pszGroupName,
+    PCSTR              pszGroupSID,
+    SAMDB_OBJECT_CLASS objectClass,
+    DWORD              dwGID
     )
 {
     DWORD dwError = 0;
+    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
     wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameGroupName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
     wchar16_t wszAttrNameGID[]       = SAM_DB_DIR_ATTR_GID;
     PSTR      pszObjectDN = NULL;
     PWSTR     pwszObjectDN = NULL;
@@ -485,7 +490,8 @@ SamDbAddLocalGroup(
     ATTRIBUTE_VALUE avGroupName = {0};
     ATTRIBUTE_VALUE avGroupSID = {0};
     ATTRIBUTE_VALUE avGID = {0};
-    DIRECTORY_MOD mods[4];
+    ATTRIBUTE_VALUE avObjectClass = {0};
+    DIRECTORY_MOD mods[6];
     ULONG     iMod = 0;
 
     memset(mods, 0, sizeof(mods));
@@ -519,11 +525,23 @@ SamDbAddLocalGroup(
     avGroupSID.pwszStringValue = pwszGroupSID;
     mods[iMod].pAttrValues = &avGroupSID;
 
+    mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    avObjectClass.ulValue = objectClass;
+    mods[iMod].pAttrValues = &avObjectClass;
+
     mods[++iMod].pwszAttrName = &wszAttrNameGroupName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
     avGroupName.pwszStringValue = pwszGroupName;
+    mods[iMod].pAttrValues = &avGroupName;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
     mods[iMod].pAttrValues = &avGroupName;
 
     mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
