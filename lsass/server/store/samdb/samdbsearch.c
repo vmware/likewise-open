@@ -146,6 +146,7 @@ error:
 #define SAM_DB_SEARCH_QUERY_PREFIX          "SELECT "
 #define SAM_DB_SEARCH_QUERY_FIELD_SEPARATOR ","
 #define SAM_DB_SEARCH_QUERY_FROM            " FROM " SAM_DB_OBJECTS_TABLE " "
+#define SAM_DB_SEARCH_QUERY_WHERE           " WHERE "
 #define SAM_DB_SEARCH_QUERY_SUFFIX          ";"
 
 static
@@ -230,6 +231,7 @@ SamDbBuildSqlQuery(
     dwQueryLen = sizeof(SAM_DB_SEARCH_QUERY_PREFIX) - 1;
     dwQueryLen += dwColNamesLen;
     dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_FROM) - 1;
+    dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_WHERE) - 1;
 
     if (pwszFilter && *pwszFilter)
     {
@@ -275,6 +277,12 @@ SamDbBuildSqlQuery(
     }
 
     pszCursor = SAM_DB_SEARCH_QUERY_FROM;
+    while (pszCursor && *pszCursor)
+    {
+        *pszQueryCursor++ = *pszCursor++;
+    }
+
+    pszCursor = SAM_DB_SEARCH_QUERY_WHERE;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;
