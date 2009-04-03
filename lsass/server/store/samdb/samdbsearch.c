@@ -274,7 +274,7 @@ SamDbBuildSqlQuery(
         }
     }
 
-    pszCursor = SAM_DB_SEARCH_QUERY_PREFIX;
+    pszCursor = SAM_DB_SEARCH_QUERY_FROM;
     while (pszCursor && *pszCursor)
     {
         *pszQueryCursor++ = *pszCursor++;

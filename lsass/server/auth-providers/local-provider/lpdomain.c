@@ -71,7 +71,8 @@ LocalGetDomainInfo(
     HANDLE hDirectory  = NULL;
     DWORD  objectClass = LOCAL_OBJECT_CLASS_DOMAIN;
     PCSTR  pszFilterTemplate = " WHERE " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d"\
-                               "   AND " LOCAL_DB_DIR_ATTR_COMMON_NAME  " = %s";
+                               "   AND " LOCAL_DB_DIR_ATTR_COMMON_NAME  \
+                               " = \"%s\"";
     PSTR   pszFilter = NULL;
     PWSTR  pwszFilter = NULL;
     wchar16_t wszAttrNameDomain[]      = LOCAL_DIR_ATTR_DOMAIN;
