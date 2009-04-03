@@ -63,7 +63,7 @@ LocalGetDomainInfo(
     PWSTR pwszCredentials,
     ULONG ulMethod,
     PSTR* ppszNetBIOSName,
-    PSTR* ppszLocalDomain
+    PSTR* ppszDomainName
     )
 {
     DWORD  dwError = 0;
@@ -74,8 +74,8 @@ LocalGetDomainInfo(
                                "   AND " LOCAL_DB_DIR_ATTR_COMMON_NAME  " = %s";
     PSTR   pszFilter = NULL;
     PWSTR  pwszFilter = NULL;
-    wchar16_t wszAttrNameDomain[]      = LOCAL_DB_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameNetBIOSName[] = LOCAL_DB_DIR_ATTR_NETBIOS_NAME;
+    wchar16_t wszAttrNameDomain[]      = LOCAL_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameNetBIOSName[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR  wszAttrs[] =
     {
             &wszAttrNameDomain[0],
@@ -87,6 +87,7 @@ LocalGetDomainInfo(
     PDIRECTORY_ENTRY pEntry   = NULL;
     DWORD            dwNumEntries = 0;
     DWORD            iAttr = 0;
+    ULONG            ulScope = 0;
     PSTR  pszDomainName  = NULL;
     PSTR  pszNetBIOSName = NULL;
 
@@ -102,7 +103,7 @@ LocalGetDomainInfo(
                     pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaWc16sToMbs(
+    dwError = LsaMbsToWc16s(
                     pszFilter,
                     &pwszFilter);
     BAIL_ON_LSA_ERROR(dwError);
@@ -120,8 +121,9 @@ LocalGetDomainInfo(
     dwError = DirectorySearch(
                     hDirectory,
                     NULL,
+                    ulScope,
                     pwszFilter,
-                    wszAttributes,
+                    wszAttrs,
                     FALSE,
                     &pEntries,
                     &dwNumEntries);

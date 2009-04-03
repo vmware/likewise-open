@@ -549,7 +549,12 @@ SamDbBuildAddColumnValueList(
                 break;
             }
         }
-        assert(pColumnValue->pAttrMapInfo != NULL);
+
+        if (!pColumnValue->pAttrMapInfo)
+        {
+            dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
 
         pColumnValue->pNext = pColumnValueList;
         pColumnValueList = pColumnValue;
@@ -695,19 +700,23 @@ SamDbAddGenerateValues(
                             &pIter->ulNumValues);
             BAIL_ON_SAMDB_ERROR(dwError);
         }
-
-        if (!pIter->pDirMod)
+        else
+        if (pIter->pDirMod && pIter->pDirMod->pAttrValues)
         {
-            dwError = LSA_ERROR_INTERNAL;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
-
-        dwError = SamDbAddConvertUnicodeAttrValues(
+            dwError = SamDbAddConvertUnicodeAttrValues(
                             pIter->pDirMod->pAttrValues,
                             pIter->pDirMod->ulNumValues,
                             &pIter->pAttrValues,
                             &pIter->ulNumValues);
-        BAIL_ON_SAMDB_ERROR(dwError);
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+
 
     }
 

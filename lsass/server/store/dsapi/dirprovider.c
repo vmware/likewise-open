@@ -103,6 +103,7 @@ DirectoryGetProviderInfo(
     )
 {
     DWORD dwError = 0;
+    CHAR  szProviderPath[] = SAM_DB_PROVIDER_PATH;
     PDIRECTORY_PROVIDER_INFO pProviderInfo = NULL;
 
     dwError = DirectoryAllocateMemory(
@@ -113,7 +114,7 @@ DirectoryGetProviderInfo(
     pProviderInfo->dirType = LOCAL_SAM;
 
     dwError = DirectoryAllocateString(
-                    SAM_DB_PROVIDER_PATH,
+                    &szProviderPath[0],
                     &pProviderInfo->pszProviderPath);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 

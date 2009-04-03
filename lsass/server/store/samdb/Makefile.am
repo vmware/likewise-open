@@ -24,11 +24,14 @@ libsamdb_la_SOURCES =     \
 libsamdb_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
-	-I@top_srcdir@/server/store/include
+	-I@top_srcdir@/server/store/include \
+	@SQLITE_INCLUDES@
 
 libsamdb_la_LIBADD = \
     @UUID_LIBS@ \
-    @top_builddir@/server/store/dsapi/libdsapi.la
+    @top_builddir@/server/store/dsapi/libdsapi.la \
+    @SQLITE_LIBS@
 
 libsamdb_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic -export-symbols=samdb.sym
+	-module -avoid-version -export-dynamic -export-symbols=samdb.sym \
+	@SQLITE_LDFLAGS@

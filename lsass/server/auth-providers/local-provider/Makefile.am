@@ -2,6 +2,7 @@ provider_LTLIBRARIES = liblsass_auth_provider_local.la
 
 liblsass_auth_provider_local_la_SOURCES = \
     lpcfg.c       \
+    lpdomain.c    \
     lpenumstate.c \
     lpevent.c     \
     lpglobals.c   \

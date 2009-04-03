@@ -284,7 +284,7 @@ DirectoryAllocateStringW(
 
 DWORD
 DirectoryAllocateString(
-    PSTR  pszInputString,
+    PCSTR pszInputString,
     PSTR* ppszOutputString
     );
 
