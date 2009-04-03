@@ -49,225 +49,234 @@
 
 static int FreeStructPasswd(void *p)
 {
-	struct passwd *pw = p;
+    struct passwd *pw = p;
 
-	if (!p)
-		return 0;
+    if (!p)
+        return 0;
 
-	_WBC_FREE(pw->pw_name);
-	_WBC_FREE(pw->pw_gecos);
-	_WBC_FREE(pw->pw_shell);
-	_WBC_FREE(pw->pw_dir);
+    _WBC_FREE(pw->pw_name);
+    _WBC_FREE(pw->pw_gecos);
+    _WBC_FREE(pw->pw_shell);
+    _WBC_FREE(pw->pw_dir);
 
-	return 0;	
+    return 0;
 }
 
 static DWORD FillStructPasswdFromUserInfo0(struct passwd **pwd, LSA_USER_INFO_0 *pUser)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	struct passwd *pw = NULL;
-	
-	pw = _wbc_malloc_zero(sizeof(struct passwd), FreeStructPasswd);
-	BAIL_ON_NULL_PTR(pw, dwErr);
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    struct passwd *pw = NULL;
 
-	pw->pw_uid = pUser->uid;
-	pw->pw_gid = pUser->gid;
+    pw = _wbc_malloc_zero(sizeof(struct passwd), FreeStructPasswd);
+    BAIL_ON_NULL_PTR(pw, dwErr);
 
-	/* Always have to have a name, loginShell, and homedir */
+    pw->pw_uid = pUser->uid;
+    pw->pw_gid = pUser->gid;
 
-	pw->pw_name = _wbc_strdup(pUser->pszName);
-	BAIL_ON_NULL_PTR(pw->pw_name, dwErr);
+    /* Always have to have a name, loginShell, and homedir */
 
-	pw->pw_dir = _wbc_strdup(pUser->pszHomedir);
-	BAIL_ON_NULL_PTR(pw->pw_dir, dwErr);
+    pw->pw_name = _wbc_strdup(pUser->pszName);
+    BAIL_ON_NULL_PTR(pw->pw_name, dwErr);
 
-	pw->pw_shell = _wbc_strdup(pUser->pszShell);
-	BAIL_ON_NULL_PTR(pw->pw_shell, dwErr);
+    pw->pw_dir = _wbc_strdup(pUser->pszHomedir);
+    BAIL_ON_NULL_PTR(pw->pw_dir, dwErr);
 
-	/* Gecos and passwd fields are technically optional */
+    pw->pw_shell = _wbc_strdup(pUser->pszShell);
+    BAIL_ON_NULL_PTR(pw->pw_shell, dwErr);
 
-	if (pUser->pszGecos) {
-		pw->pw_gecos = _wbc_strdup(pUser->pszGecos);
-		BAIL_ON_NULL_PTR(pw->pw_gecos, dwErr);
-	}
-	
-	if (pUser->pszPasswd) {
-		pw->pw_passwd = _wbc_strdup(pUser->pszPasswd);
-	} else {
-		pw->pw_passwd = _wbc_strdup("x");		
-	}
-	BAIL_ON_NULL_PTR(pw->pw_passwd, dwErr);
+    /* Gecos and passwd fields are technically optional */
 
-	*pwd = pw;
-	dwErr = LSA_ERROR_SUCCESS;	
+    if (pUser->pszGecos) {
+        pw->pw_gecos = _wbc_strdup(pUser->pszGecos);
+        BAIL_ON_NULL_PTR(pw->pw_gecos, dwErr);
+    }
+
+    if (pUser->pszPasswd) {
+        pw->pw_passwd = _wbc_strdup(pUser->pszPasswd);
+    } else {
+        pw->pw_passwd = _wbc_strdup("x");
+    }
+    BAIL_ON_NULL_PTR(pw->pw_passwd, dwErr);
+
+    *pwd = pw;
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		if (pw) {
-			_WBC_FREE(pw);
-		}
-	}
-	
-	return dwErr;
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        if (pw) {
+            _WBC_FREE(pw);
+        }
+    }
+
+    return dwErr;
 }
 
 wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
 {
-	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(name, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
+    LSA_USER_INFO_0 *pUserInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	*pwd = NULL;
+    BAIL_ON_NULL_PTR_PARAM(name, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    *pwd = NULL;
 
-	dwErr = LsaFindUserByName(hLsa, name, 0, (PVOID*)&pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindUserByName(hLsa, name, 0, (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = FillStructPasswdFromUserInfo0(pwd, pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
-	
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = FillStructPasswdFromUserInfo0(pwd, pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
+
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(*pwd);
-	}	
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(*pwd);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pUserInfo) {
-		LsaFreeUserInfo(0, pUserInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pUserInfo) {
+        LsaFreeUserInfo(0, pUserInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 
 wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
 {
-	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
+    LSA_USER_INFO_0 *pUserInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	*pwd = NULL;
+    BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    *pwd = NULL;
 
-	dwErr = LsaFindUserById(hLsa, uid, 0, (PVOID*)&pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindUserById(hLsa, uid, 0, (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = FillStructPasswdFromUserInfo0(pwd, pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
-	
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = FillStructPasswdFromUserInfo0(pwd, pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
+
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(*pwd);
-	}	
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(*pwd);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pUserInfo) {
-		LsaFreeUserInfo(0, pUserInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pUserInfo) {
+        LsaFreeUserInfo(0, pUserInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 wbcErr wbcSetpwent(void)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcEndpwent(void)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcGetpwent(struct passwd **pwd)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 wbcErr wbcGetGroups(const char *account,
-		    uint32_t *num_groups,
-		    gid_t **groups)
+            uint32_t *num_groups,
+            gid_t **groups)
 {
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	DWORD dwNumGids = 0;
-	gid_t *gids = NULL;	
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    DWORD dwNumGids = 0;
+    gid_t *gids = NULL;
 
-	BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
-	
-	*groups = NULL;
-	*num_groups = 0;
+    BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    *groups = NULL;
+    *num_groups = 0;
 
-	dwErr = LsaGetGidsForUserByName(hLsa, account, 
-					&dwNumGids, &gids);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaGetGidsForUserByName(hLsa, account,
+                    &dwNumGids, &gids);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	*groups = _wbc_malloc_zero(sizeof(gid_t)*dwNumGids, NULL);
-	BAIL_ON_NULL_PTR(*groups, dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
 
-	memcpy(*groups, gids, sizeof(gid_t)*dwNumGids);
-	*num_groups = dwNumGids;
+    *groups = _wbc_malloc_zero(sizeof(gid_t)*dwNumGids, NULL);
+    BAIL_ON_NULL_PTR(*groups, dwErr);
 
-	dwErr = LSA_ERROR_SUCCESS;	
-	
+    memcpy(*groups, gids, sizeof(gid_t)*dwNumGids);
+    *num_groups = dwNumGids;
+
+    dwErr = LSA_ERROR_SUCCESS;
+
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(*groups);
-	}	
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(*groups);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (gids) {
-		LsaFreeMemory(gids);		
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (gids) {
+        LsaFreeMemory(gids);
+    }
 
-	return wbc_status;
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

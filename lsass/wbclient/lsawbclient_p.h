@@ -60,56 +60,56 @@
 
 /* Common macros */
 
-#define _WBC_FREE(x)				\
-	do {					\
-		_wbc_free((void *)x);			\
-		(x) = NULL;			\
-	} while (0);
+#define _WBC_FREE(x)                \
+    do {                    \
+        _wbc_free((void *)x);            \
+        (x) = NULL;            \
+    } while (0);
 
-#define _WBC_FREE_CONST_DISCARD(x)		\
-	do {					\
-		_wbc_free((void*)x);		\
-		(x) = NULL;			\
-	} while (0);
+#define _WBC_FREE_CONST_DISCARD(x)        \
+    do {                    \
+        _wbc_free((void*)x);        \
+        (x) = NULL;            \
+    } while (0);
 
-#define BAIL_ON_WBC_ERR(x)			\
-	do {					\
-		if (x != WBC_ERR_SUCCESS)	\
-			goto done;		\
-	} while(0);
+#define BAIL_ON_WBC_ERR(x)            \
+    do {                    \
+        if (x != WBC_ERR_SUCCESS)    \
+            goto done;        \
+    } while(0);
 
-#define BAIL_ON_LSA_ERR(x)			\
-	do {					\
-		if (x != LSA_ERROR_SUCCESS)	\
-			goto done;		\
-	} while(0);
+#define BAIL_ON_LSA_ERR(x)            \
+    do {                    \
+        if (x != LSA_ERROR_SUCCESS)    \
+            goto done;        \
+    } while(0);
 
-#define BAIL_ON_NETLOGON_ERR(x)			\
-	do {					\
-	    if (x != LWNET_ERROR_SUCCESS)	\
-		    goto done;			\
-	} while(0);
+#define BAIL_ON_NETLOGON_ERR(x)            \
+    do {                    \
+        if (x != LWNET_ERROR_SUCCESS)    \
+            goto done;            \
+    } while(0);
 
 
-#define BAIL_ON_NULL_PTR(x, y)				\
-	do {						\
-		if (x == NULL) {			\
-			y = LSA_ERROR_OUT_OF_MEMORY;	\
-			goto done;			\
-		}					\
-	} while(0);
+#define BAIL_ON_NULL_PTR(x, y)                \
+    do {                        \
+        if (x == NULL) {            \
+            y = LSA_ERROR_OUT_OF_MEMORY;    \
+            goto done;            \
+        }                    \
+    } while(0);
 
-#define BAIL_ON_NULL_PTR_PARAM(x, y)				\
-	do {							\
-		if (x == NULL) {				\
-			y = LSA_ERROR_INVALID_PARAMETER;	\
-			goto done;				\
-		}						\
-	} while(0);
+#define BAIL_ON_NULL_PTR_PARAM(x, y)                \
+    do {                            \
+        if (x == NULL) {                \
+            y = LSA_ERROR_INVALID_PARAMETER;    \
+            goto done;                \
+        }                        \
+    } while(0);
 
 #define LSA_ERROR_IS_OK(x)         ((x) == LSA_ERROR_SUCCESS)
 
-		
+
 /* local private functions */
 
 DWORD  map_wbc_to_lsa_error(wbcErr);
@@ -127,3 +127,12 @@ char* _wbc_strdup(const char *str);
 int   _wbc_free_string_array(void *p);
 
 #endif /* _LSAWBCLIENT_P_H */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

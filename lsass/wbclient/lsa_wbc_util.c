@@ -49,22 +49,22 @@
 #include "lwnet.h"
 
 struct _wbc_err_string {
-	wbcErr wbc_err;
-	const char *errstr;
+    wbcErr wbc_err;
+    const char *errstr;
 };
 
 static struct _wbc_err_string wbcErrorMap[] = {
-	{ WBC_ERR_SUCCESS, "No error" },
-	{ WBC_ERR_NOT_IMPLEMENTED, "Function not implemented" },
-	{ WBC_ERR_UNKNOWN_FAILURE, "Unknown Failure" },
-	{ WBC_ERR_NO_MEMORY, "Out of memory" },
-	{ WBC_ERR_INVALID_SID, "Invalid Security Identifier" },
-	{ WBC_ERR_INVALID_PARAM, "Invalid Parameter" },
-	{ WBC_ERR_WINBIND_NOT_AVAILABLE, "Security service not available" },
-	{ WBC_ERR_DOMAIN_NOT_FOUND, "Domain not found" },
-	{ WBC_ERR_INVALID_RESPONSE, "Invalid response received from security authority" },
-	{ WBC_ERR_NSS_ERROR, "Name server switch error" },
-	{ WBC_ERR_AUTH_ERROR, "Authentication error" }
+    { WBC_ERR_SUCCESS, "No error" },
+    { WBC_ERR_NOT_IMPLEMENTED, "Function not implemented" },
+    { WBC_ERR_UNKNOWN_FAILURE, "Unknown Failure" },
+    { WBC_ERR_NO_MEMORY, "Out of memory" },
+    { WBC_ERR_INVALID_SID, "Invalid Security Identifier" },
+    { WBC_ERR_INVALID_PARAM, "Invalid Parameter" },
+    { WBC_ERR_WINBIND_NOT_AVAILABLE, "Security service not available" },
+    { WBC_ERR_DOMAIN_NOT_FOUND, "Domain not found" },
+    { WBC_ERR_INVALID_RESPONSE, "Invalid response received from security authority" },
+    { WBC_ERR_NSS_ERROR, "Name server switch error" },
+    { WBC_ERR_AUTH_ERROR, "Authentication error" }
 };
 
 /* @brief Convert a wbcErr to a human readable string
@@ -76,132 +76,141 @@ static struct _wbc_err_string wbcErrorMap[] = {
 
 const char *wbcErrorString(wbcErr error)
 {
-	int i = 0;
-	size_t table_size = sizeof(wbcErrorMap) / sizeof(struct _wbc_err_string);
+    int i = 0;
+    size_t table_size = sizeof(wbcErrorMap) / sizeof(struct _wbc_err_string);
 
-	for (i=0; i<table_size; i++) {
-		if (error == wbcErrorMap[i].wbc_err) {			
-			return wbcErrorMap[i].errstr;
-		}
-	}
+    for (i=0; i<table_size; i++) {
+        if (error == wbcErrorMap[i].wbc_err) {
+            return wbcErrorMap[i].errstr;
+        }
+    }
 
-	return "Unmapped error";
+    return "Unmapped error";
 }
 
 void wbcFreeMemory(void* p)
 {
-	if (p)
-		_WBC_FREE(p);	
+    if (p)
+        _WBC_FREE(p);
 
-	return;	
+    return;
 }
 
 wbcErr wbcPing(void)
 {
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	/* Just open and close an LsaServerHandle */
+    /* Just open and close an LsaServerHandle */
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
 
 done:
-	wbc_status = map_error_to_wbc_status(dwErr);
-	
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 static int FreeInterfaceDetails(void *p)
 {
-	struct wbcInterfaceDetails *iface;	
+    struct wbcInterfaceDetails *iface;
 
-	if (!p)
-		return 0;
-	
-	iface = (struct wbcInterfaceDetails*)p;
-	
-	_WBC_FREE_CONST_DISCARD(iface->netbios_domain);
-	_WBC_FREE_CONST_DISCARD(iface->dns_domain);
+    if (!p)
+        return 0;
 
-	return 0;	
+    iface = (struct wbcInterfaceDetails*)p;
+
+    _WBC_FREE_CONST_DISCARD(iface->netbios_domain);
+    _WBC_FREE_CONST_DISCARD(iface->dns_domain);
+
+    return 0;
 }
 
 
 wbcErr wbcInterfaceDetails(struct wbcInterfaceDetails **details)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;	
-	PSTR pszMyDnsDomain = NULL;	
-	PLWNET_DC_INFO pDcInfo = NULL;
-	
-	BAIL_ON_NULL_PTR_PARAM(details, dwErr);
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    PSTR pszMyDnsDomain = NULL;
+    PLWNET_DC_INFO pDcInfo = NULL;
 
-	/* Find our domain */
+    BAIL_ON_NULL_PTR_PARAM(details, dwErr);
 
-	dwErr = LWNetGetCurrentDomain(&pszMyDnsDomain);
-	BAIL_ON_NETLOGON_ERR(dwErr);
+    /* Find our domain */
 
-	/* Find DC to get the the short domain name */
+    dwErr = LWNetGetCurrentDomain(&pszMyDnsDomain);
+    BAIL_ON_NETLOGON_ERR(dwErr);
 
-	dwErr = LWNetGetDCName(NULL, pszMyDnsDomain, NULL, 0, &pDcInfo);
-	BAIL_ON_NETLOGON_ERR(dwErr);
+    /* Find DC to get the the short domain name */
 
-	/* extra check until API is complete */
+    dwErr = LWNetGetDCName(NULL, pszMyDnsDomain, NULL, 0, &pDcInfo);
+    BAIL_ON_NETLOGON_ERR(dwErr);
 
-	BAIL_ON_NULL_PTR(pDcInfo, dwErr);
+    /* extra check until API is complete */
 
-	*details = _wbc_malloc(sizeof(struct wbcInterfaceDetails), 
-			       FreeInterfaceDetails);
-	BAIL_ON_NULL_PTR(*details, dwErr);
+    BAIL_ON_NULL_PTR(pDcInfo, dwErr);
 
-	(*details)->interface_version = LSA_WBC_INTERFACE_VERSION;
-	(*details)->winbind_version   = LSA_WBC_WINBIND_VERSION;
-	(*details)->winbind_separator = '\\';
+    *details = _wbc_malloc(sizeof(struct wbcInterfaceDetails),
+                   FreeInterfaceDetails);
+    BAIL_ON_NULL_PTR(*details, dwErr);
 
-	/* FIXME!  need to fill in real valid strings here */
+    (*details)->interface_version = LSA_WBC_INTERFACE_VERSION;
+    (*details)->winbind_version   = LSA_WBC_WINBIND_VERSION;
+    (*details)->winbind_separator = '\\';
 
-	(*details)->netbios_name = "";
+    /* FIXME!  need to fill in real valid strings here */
 
-	(*details)->netbios_domain = _wbc_strdup(pDcInfo->pszNetBIOSDomainName);
-	BAIL_ON_NULL_PTR((*details)->netbios_domain, dwErr);
+    (*details)->netbios_name = "";
 
-	(*details)->dns_domain = _wbc_strdup(pDcInfo->pszFullyQualifiedDomainName);	
-	BAIL_ON_NULL_PTR((*details)->dns_domain, dwErr);
+    (*details)->netbios_domain = _wbc_strdup(pDcInfo->pszNetBIOSDomainName);
+    BAIL_ON_NULL_PTR((*details)->netbios_domain, dwErr);
+
+    (*details)->dns_domain = _wbc_strdup(pDcInfo->pszFullyQualifiedDomainName);
+    BAIL_ON_NULL_PTR((*details)->dns_domain, dwErr);
 
 done:
-	if (pszMyDnsDomain)
-		LWNetFreeString(pszMyDnsDomain);
+    if (pszMyDnsDomain)
+        LWNetFreeString(pszMyDnsDomain);
 
-	LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
-	
-	return wbc_status;	
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
+
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 wbcErr wbcLibraryDetails(struct wbcLibraryDetails **details)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;	
-	
-	BAIL_ON_NULL_PTR_PARAM(details, dwErr);
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	*details = _wbc_malloc(sizeof(struct wbcLibraryDetails), NULL);
-	BAIL_ON_NULL_PTR(*details, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(details, dwErr);
 
-	(*details)->major_version   = LSA_WBC_LIBRARY_MAJOR_VERSION;
-	(*details)->minor_version   = LSA_WBC_LIBRARY_MINOR_VERSION;
-	(*details)->vendor_version  = LSA_WBC_LIBRARY_VENDOR_STRING;
+    *details = _wbc_malloc(sizeof(struct wbcLibraryDetails), NULL);
+    BAIL_ON_NULL_PTR(*details, dwErr);
+
+    (*details)->major_version   = LSA_WBC_LIBRARY_MAJOR_VERSION;
+    (*details)->minor_version   = LSA_WBC_LIBRARY_MINOR_VERSION;
+    (*details)->vendor_version  = LSA_WBC_LIBRARY_VENDOR_STRING;
 
 done:
-	wbc_status = map_error_to_wbc_status(dwErr);
+    wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;	
+    return wbc_status;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

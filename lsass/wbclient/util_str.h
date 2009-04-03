@@ -54,8 +54,8 @@
 
 VOID
 StrUpper(
-	PSTR pszString
-	);
+    PSTR pszString
+    );
 
 /***********************************************************
  * Is pszStr1 a substring of pszStr2 ?
@@ -63,9 +63,9 @@ StrUpper(
 
 BOOLEAN
 StrEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2
-	);
+    PCSTR pszStr1,
+    PCSTR pszStr2
+    );
 
 
 /***********************************************************
@@ -73,9 +73,18 @@ StrEqual(
 
 BOOLEAN
 StrnEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2,
-	DWORD dwChars
-	);
+    PCSTR pszStr1,
+    PCSTR pszStr2,
+    DWORD dwChars
+    );
 
 #endif    /* __UTIL_STR_H */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

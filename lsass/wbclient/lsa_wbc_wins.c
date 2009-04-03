@@ -47,13 +47,22 @@
 
 wbcErr wbcResolveWinsByName(const char *name, char **ip)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 wbcErr wbcResolveWinsByIP(const char *ip, char **name)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

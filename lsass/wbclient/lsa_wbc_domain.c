@@ -49,24 +49,33 @@
 
 
 wbcErr wbcDomainInfo(const char *domain,
-		     struct wbcDomainInfo **info)
+             struct wbcDomainInfo **info)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcListTrusts(struct wbcDomainInfo **domains, 
-		     size_t *num_domains)
+             size_t *num_domains)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcCheckTrustCredentials(const char *domain,
-				struct wbcAuthErrorInfo **error)
+                struct wbcAuthErrorInfo **error)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

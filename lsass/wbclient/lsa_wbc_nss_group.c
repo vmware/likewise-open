@@ -49,196 +49,205 @@
 
 static int FreeStructGroup(void *p)
 {
-	struct group *grp = (struct group*)p;
+    struct group *grp = (struct group*)p;
 
-	if (!p)
-		return 0;
+    if (!p)
+        return 0;
 
-	_WBC_FREE(grp->gr_name);
-	_WBC_FREE(grp->gr_passwd);
-	_WBC_FREE(grp->gr_mem);
+    _WBC_FREE(grp->gr_name);
+    _WBC_FREE(grp->gr_passwd);
+    _WBC_FREE(grp->gr_mem);
 
-	return 0;	
+    return 0;
 }
 
 static DWORD CopyGroupMembers(struct group *gr, LSA_GROUP_INFO_1 *pGroup)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	int i;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    int i;
 
-	/* Easy case is when there are no listed members */
+    /* Easy case is when there are no listed members */
 
-	if (pGroup->ppszMembers == NULL) {
-		return LSA_ERROR_SUCCESS;
-	}	
+    if (pGroup->ppszMembers == NULL) {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	/* Get the number of group members */
+    /* Get the number of group members */
 
-	for (i=0; pGroup->ppszMembers[i]; i++) {		
-		/* do nothing; just get count */;
-	}
-	i++;	
+    for (i=0; pGroup->ppszMembers[i]; i++) {
+        /* do nothing; just get count */;
+    }
+    i++;
 
-	/* Don't forget terminating NULL string */
+    /* Don't forget terminating NULL string */
 
-	gr->gr_mem = _wbc_malloc_zero(sizeof(char*)*i, _wbc_free_string_array);
-	BAIL_ON_NULL_PTR(gr->gr_mem, dwErr);
+    gr->gr_mem = _wbc_malloc_zero(sizeof(char*)*i, _wbc_free_string_array);
+    BAIL_ON_NULL_PTR(gr->gr_mem, dwErr);
 
-	/* Now copy */
+    /* Now copy */
 
-	for (i=0; pGroup->ppszMembers[i]; i++) {		
-		gr->gr_mem[i] = _wbc_strdup(pGroup->ppszMembers[i]);
-		BAIL_ON_NULL_PTR(gr->gr_mem[i], dwErr);		
-	}
+    for (i=0; pGroup->ppszMembers[i]; i++) {
+        gr->gr_mem[i] = _wbc_strdup(pGroup->ppszMembers[i]);
+        BAIL_ON_NULL_PTR(gr->gr_mem[i], dwErr);
+    }
 
-	dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	return dwErr;	
+    return dwErr;
 }
 
 static DWORD FillStructGroupFromGroupInfo0(struct group **grp, LSA_GROUP_INFO_1 *pGroup)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	struct group *gr = NULL;
-	
-	gr = _wbc_malloc_zero(sizeof(struct group), FreeStructGroup);
-	BAIL_ON_NULL_PTR(gr, dwErr);
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    struct group *gr = NULL;
 
-	gr->gr_gid = pGroup->gid;
+    gr = _wbc_malloc_zero(sizeof(struct group), FreeStructGroup);
+    BAIL_ON_NULL_PTR(gr, dwErr);
 
-	/* Always have to have a name */
+    gr->gr_gid = pGroup->gid;
 
-	gr->gr_name = _wbc_strdup(pGroup->pszName);
-	BAIL_ON_NULL_PTR(gr->gr_name, dwErr);
+    /* Always have to have a name */
 
-	/* Gecos and passwd fields are technically optional */
+    gr->gr_name = _wbc_strdup(pGroup->pszName);
+    BAIL_ON_NULL_PTR(gr->gr_name, dwErr);
 
-	if (pGroup->pszPasswd) {
-		gr->gr_passwd = _wbc_strdup(pGroup->pszPasswd);
-	} else {
-		gr->gr_passwd = _wbc_strdup("x");		
-	}
-	BAIL_ON_NULL_PTR(gr->gr_passwd, dwErr);
+    /* Gecos and passwd fields are technically optional */
 
-	dwErr = CopyGroupMembers(gr, pGroup);
-	BAIL_ON_LSA_ERR(dwErr);
-	
-	*grp = gr;
-	dwErr = LSA_ERROR_SUCCESS;	
+    if (pGroup->pszPasswd) {
+        gr->gr_passwd = _wbc_strdup(pGroup->pszPasswd);
+    } else {
+        gr->gr_passwd = _wbc_strdup("x");
+    }
+    BAIL_ON_NULL_PTR(gr->gr_passwd, dwErr);
+
+    dwErr = CopyGroupMembers(gr, pGroup);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    *grp = gr;
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		if (gr) {
-			_WBC_FREE(gr);
-		}
-	}
-	
-	return dwErr;
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        if (gr) {
+            _WBC_FREE(gr);
+        }
+    }
+
+    return dwErr;
 }
 
 wbcErr wbcGetgrnam(const char *name, struct group **grp)
 {
-	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(name, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
-	
-	*grp = NULL;
+    LSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_NULL_PTR_PARAM(name, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
 
-	dwErr = LsaFindGroupByName(hLsa, name, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    *grp = NULL;
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = FillStructGroupFromGroupInfo0(grp, pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
-	
+    dwErr = LsaFindGroupByName(hLsa, name, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = FillStructGroupFromGroupInfo0(grp, pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
+
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(*grp);
-	}	
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(*grp);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfo(1, pGroupInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(1, pGroupInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 {
-	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
+    LSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	*grp = NULL;
+    BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    *grp = NULL;
 
-	dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = FillStructGroupFromGroupInfo0(grp, pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
-	
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = FillStructGroupFromGroupInfo0(grp, pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
+
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(*grp);
-	}	
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(*grp);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfo(1, pGroupInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(1, pGroupInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcSetgrent(void)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcEndgrent(void)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcGetgrent(struct group **grp)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
