@@ -550,7 +550,9 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
         SAM_DB_DIR_ATTR_DOMAIN,                                  \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY |                            \
+         SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)            \
     }
 
 #define SAMDB_GROUP_ATTRIBUTE_MAP                                \
