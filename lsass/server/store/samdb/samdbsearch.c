@@ -179,6 +179,8 @@ SamDbBuildSqlQuery(
                         pwszFilter,
                         &pszFilter);
         BAIL_ON_SAMDB_ERROR(dwError);
+
+        LsaStripWhitespace(pszFilter, TRUE, TRUE);
     }
 
     while (wszAttributes[dwNumAttrs])
@@ -231,11 +233,11 @@ SamDbBuildSqlQuery(
     dwQueryLen = sizeof(SAM_DB_SEARCH_QUERY_PREFIX) - 1;
     dwQueryLen += dwColNamesLen;
     dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_FROM) - 1;
-    dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_WHERE) - 1;
 
-    if (pwszFilter && *pwszFilter)
+    if (pszFilter && *pszFilter)
     {
-        dwQueryLen += wc16slen(pwszFilter);
+        dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_WHERE) - 1;
+        dwQueryLen += strlen(pszFilter);
     }
     dwQueryLen += sizeof(SAM_DB_SEARCH_QUERY_SUFFIX) - 1;
     dwQueryLen++;
@@ -282,16 +284,19 @@ SamDbBuildSqlQuery(
         *pszQueryCursor++ = *pszCursor++;
     }
 
-    pszCursor = SAM_DB_SEARCH_QUERY_WHERE;
-    while (pszCursor && *pszCursor)
+    if (pszFilter && *pszFilter)
     {
-        *pszQueryCursor++ = *pszCursor++;
-    }
+        pszCursor = SAM_DB_SEARCH_QUERY_WHERE;
+        while (pszCursor && *pszCursor)
+        {
+            *pszQueryCursor++ = *pszCursor++;
+        }
 
-    pszCursor = pszFilter;
-    while (pszCursor && *pszCursor)
-    {
-        *pszQueryCursor++ = *pszCursor++;
+        pszCursor = pszFilter;
+        while (pszCursor && *pszCursor)
+        {
+            *pszQueryCursor++ = *pszCursor++;
+        }
     }
 
     pszCursor = SAM_DB_SEARCH_QUERY_SUFFIX;
