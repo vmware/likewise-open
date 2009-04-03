@@ -56,8 +56,16 @@ LsaInitializeProvider(
     DWORD dwError = 0;
     LOCAL_CONFIG config = {0};
     BOOLEAN bEventLogEnabled = FALSE;
+    PWSTR   pwszUserDN = NULL;
+    PWSTR   pwszCredentials = NULL;
+    ULONG   ulMethod = 0;
 
-    dwError = LsaDnsGetHostInfo(&gLPGlobals.pszHostname);
+    dwError = LocalGetDomainInfo(
+                    pwszUserDN,
+                    pwszCredentials,
+                    ulMethod,
+                    &gLPGlobals.pszLocalDomain,
+                    &gLPGlobals.pszNetBIOSName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszConfigFilePath)) {
@@ -165,9 +173,9 @@ LsaLPServicesDomain(
 {
     BOOLEAN bResult = FALSE;
 
-    if (IsNullOrEmptyString(pszDomain) ||
-        !strcasecmp(pszDomain, "localhost") ||
-        !strcasecmp(pszDomain, gLPGlobals.pszHostname))
+    if (!IsNullOrEmptyString(pszDomain) &&
+        (!strcasecmp(pszDomain, gLPGlobals.pszNetBIOSName) ||
+         !strcasecmp(pszDomain, gLPGlobals.pszLocalDomain)))
     {
         bResult = TRUE;
     }
@@ -1411,99 +1419,6 @@ error:
 }
 
 DWORD
-LsaLPCreateHomeDirectory(
-    PLSA_USER_INFO_0 pUserInfo
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
-    mode_t  umask = 022;
-    mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
-    BOOLEAN bRemoveDir = FALSE;
-
-    if (IsNullOrEmptyString(pUserInfo->pszHomedir)) {
-       LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined", (long)pUserInfo->uid);
-       dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaCheckDirectoryExists(
-                    pUserInfo->pszHomedir,
-                    &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bExists)
-    {
-       dwError = LsaCreateDirectory(
-                    pUserInfo->pszHomedir,
-                    perms & (~umask));
-       BAIL_ON_LSA_ERROR(dwError);
-
-       bRemoveDir = TRUE;
-
-       dwError = LsaChangeOwner(
-                    pUserInfo->pszHomedir,
-                    pUserInfo->uid,
-                    pUserInfo->gid);
-       BAIL_ON_LSA_ERROR(dwError);
-
-       bRemoveDir = FALSE;
-
-       dwError = LsaLPProvisionHomeDir(
-                       pUserInfo->uid,
-                       pUserInfo->gid,
-                       pUserInfo->pszHomedir);
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (bRemoveDir) {
-       LsaRemoveDirectory(pUserInfo->pszHomedir);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LsaLPProvisionHomeDir(
-    uid_t ownerUid,
-    gid_t ownerGid,
-    PCSTR pszHomedirPath
-    )
-{
-    DWORD   dwError = 0;
-    BOOLEAN bExists = FALSE;
-
-    dwError = LsaCheckDirectoryExists(
-                    "/etc/skel",
-                    &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (bExists) {
-        dwError = LsaCopyDirectory(
-                    "/etc/skel",
-                    ownerUid,
-                    ownerGid,
-                    pszHomedirPath);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-
-DWORD
 LsaLPCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
@@ -1540,8 +1455,8 @@ LsaShutdownProvider(
     )
 {
     LSA_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
-
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszHostname);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
 
     return 0;
 }

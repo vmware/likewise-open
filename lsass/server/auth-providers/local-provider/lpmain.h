@@ -255,18 +255,6 @@ LsaLPOpenSession(
     );
 
 DWORD
-LsaLPCreateHomeDirectory(
-    PLSA_USER_INFO_0 pUserInfo
-    );
-
-DWORD
-LsaLPProvisionHomeDir(
-    uid_t ownerUid,
-    gid_t ownerGid,
-    PCSTR pszHomedirPath
-    );
-
-DWORD
 LsaLPCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId

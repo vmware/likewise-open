@@ -77,7 +77,8 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     pthread_mutex_t mutex;
 
     PSTR            pszConfigFilePath;
-    PSTR            pszHostname;
+    PSTR            pszLocalDomain;
+    PSTR            pszNetBIOSName;
 
     LOCAL_CONFIG    cfg;
 

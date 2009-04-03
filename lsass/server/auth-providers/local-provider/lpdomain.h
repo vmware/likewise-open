@@ -33,43 +33,31 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpdomain.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider
+ *
+ *        Domain Management
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#ifndef __LP_DOMAIN_H__
+#define __LP_DOMAIN_H__
 
-#include <eventlog.h>
+DWORD
+LocalGetDomainInfo(
+    PWSTR pwszUserDN,
+    PWSTR pwszCredentials,
+    ULONG ulMethod,
+    PSTR* ppszNetBIOSName,
+    PSTR* ppszLocalDomain
+    );
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
-
-#include "lsaprovider.h"
-#include "directory.h"
-
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-
-#include "externs.h"
-
-#include <lwrpc/LMcrypt.h>
+#endif /* __LP_DOMAIN_H__ */
 
