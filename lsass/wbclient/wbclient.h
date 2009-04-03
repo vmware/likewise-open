@@ -444,7 +444,7 @@ wbcErr wbcGetGroups(const char *account,
 wbcErr wbcDomainInfo(const char *domain,
              struct wbcDomainInfo **info);
 
-wbcErr wbcListTrusts(struct wbcDomainInfo **domains, 
+wbcErr wbcListTrusts(struct wbcDomainInfo **domains,
              size_t *num_domains);
 
 
