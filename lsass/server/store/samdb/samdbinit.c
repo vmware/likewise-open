@@ -34,13 +34,12 @@ SamDbAddMachineDomain(
 
 static
 DWORD
-SamDbAddLocalGroup(
+SamDbAddContainer(
     HANDLE             hDirectory,
     PCSTR              pszDomainDN,
     PCSTR              pszGroupName,
     PCSTR              pszGroupSID,
-    SAMDB_OBJECT_CLASS objectClass,
-    DWORD              dwGID
+    SAMDB_OBJECT_CLASS objectClass
     );
 
 static
@@ -291,13 +290,12 @@ SamDbAddBuiltin(
     PCSTR  pszDomainDN
     )
 {
-    return SamDbAddLocalGroup(
+    return SamDbAddContainer(
                     hDirectory,
                     pszDomainDN,
                     SAMDB_BUILTIN_TAG,
                     SAMDB_BUILTIN_SID,
-                    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN,
-                    SAMDB_BUILTIN_GID);
+                    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN);
 }
 
 static
@@ -468,30 +466,27 @@ error:
 
 static
 DWORD
-SamDbAddLocalGroup(
+SamDbAddContainer(
     HANDLE             hDirectory,
     PCSTR              pszDomainDN,
-    PCSTR              pszGroupName,
-    PCSTR              pszGroupSID,
-    SAMDB_OBJECT_CLASS objectClass,
-    DWORD              dwGID
+    PCSTR              pszName,
+    PCSTR              pszSID,
+    SAMDB_OBJECT_CLASS objectClass
     )
 {
     DWORD dwError = 0;
     wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
     wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameGroupName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameContainerName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    wchar16_t wszAttrNameGID[]       = SAM_DB_DIR_ATTR_GID;
     PSTR      pszObjectDN = NULL;
     PWSTR     pwszObjectDN = NULL;
-    PWSTR     pwszGroupSID = NULL;
-    PWSTR     pwszGroupName = NULL;
-    ATTRIBUTE_VALUE avGroupName = {0};
-    ATTRIBUTE_VALUE avGroupSID = {0};
-    ATTRIBUTE_VALUE avGID = {0};
+    PWSTR     pwszSID = NULL;
+    PWSTR     pwszContainerName = NULL;
+    ATTRIBUTE_VALUE avContainerName = {0};
+    ATTRIBUTE_VALUE avSID = {0};
     ATTRIBUTE_VALUE avObjectClass = {0};
-    DIRECTORY_MOD mods[6];
+    DIRECTORY_MOD mods[5];
     ULONG     iMod = 0;
 
     memset(mods, 0, sizeof(mods));
@@ -499,7 +494,7 @@ SamDbAddLocalGroup(
     dwError = LsaAllocateStringPrintf(
                     &pszObjectDN,
                     "CN=%s,%s",
-                    pszGroupName,
+                    pszName,
                     pszDomainDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -509,21 +504,21 @@ SamDbAddLocalGroup(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
-                    pszGroupName,
-                    &pwszGroupName);
+                    pszName,
+                    &pwszContainerName);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
-                    pszGroupSID,
-                    &pwszGroupSID);
+                    pszSID,
+                    &pwszSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
-    avGroupSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avGroupSID.pwszStringValue = pwszGroupSID;
-    mods[iMod].pAttrValues = &avGroupSID;
+    avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avSID.pwszStringValue = pwszSID;
+    mods[iMod].pAttrValues = &avSID;
 
     mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
@@ -532,24 +527,17 @@ SamDbAddLocalGroup(
     avObjectClass.ulValue = objectClass;
     mods[iMod].pAttrValues = &avObjectClass;
 
-    mods[++iMod].pwszAttrName = &wszAttrNameGroupName[0];
+    mods[++iMod].pwszAttrName = &wszAttrNameContainerName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
-    avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avGroupName.pwszStringValue = pwszGroupName;
-    mods[iMod].pAttrValues = &avGroupName;
+    avContainerName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avContainerName.pwszStringValue = pwszContainerName;
+    mods[iMod].pAttrValues = &avContainerName;
 
     mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
-    mods[iMod].pAttrValues = &avGroupName;
-
-    mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
-    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-    mods[iMod].ulNumValues = 1;
-    avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    avGID.ulValue = dwGID;
-    mods[iMod].pAttrValues = &avGID;
+    mods[iMod].pAttrValues = &avContainerName;
 
     dwError = SamDbAddObject(
                     hDirectory,
@@ -561,8 +549,8 @@ cleanup:
 
     DIRECTORY_FREE_STRING(pszObjectDN);
     DIRECTORY_FREE_MEMORY(pwszObjectDN);
-    DIRECTORY_FREE_MEMORY(pwszGroupSID);
-    DIRECTORY_FREE_MEMORY(pwszGroupName);
+    DIRECTORY_FREE_MEMORY(pwszSID);
+    DIRECTORY_FREE_MEMORY(pwszContainerName);
 
     return dwError;
 
