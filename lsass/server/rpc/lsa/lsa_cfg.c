@@ -141,7 +141,6 @@ LsaSrvParseConfigFile(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaParseConfigFile(pszConfigFilePath,
                                  LSA_CFG_OPTION_STRIP_ALL,
@@ -320,7 +319,6 @@ LsaSrvConfigSetLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaAllocateString(pszValue,
                                 &pConfig->pszLpcSocketPath);
@@ -344,7 +342,6 @@ LsaSrvConfigSetSamrLpcSocketPath(
     )
 {
     DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
 
     dwError = LsaAllocateString(pszValue,
                                 &pConfig->pszSamrLpcSocketPath);

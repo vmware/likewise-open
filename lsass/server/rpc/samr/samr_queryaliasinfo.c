@@ -187,11 +187,7 @@ SamrFillAliasInfo1(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     AliasInfoAll *pInfoAll = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszName = NULL;
-    PWSTR pwszDescription = NULL;
-    DWORD dwNumMembers = 0;
 
     pInfoAll = &(pInfo->all);
 
@@ -235,11 +231,8 @@ SamrFillAliasInfo2(
     AliasInfo *pInfo
     )
 {
-    WCHAR wszEmptyString[] = { (WCHAR)'\0' };
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszName = NULL;
 
     /* name */
@@ -271,15 +264,10 @@ SamrFillAliasInfo3(
     AliasInfo *pInfo
     )
 {
-    WCHAR wszEmptyString[] = { (WCHAR)'\0' };
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
-    PWSTR pwszDescription = NULL;
 
     /* name */
-    status = InitUnicodeString(&pInfo->description, wszEmptyString);
+    status = InitUnicodeString(&pInfo->description, NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvAddDepMemory(pInfo->description.string, pInfo);

@@ -70,6 +70,7 @@ SamrSrvCreateUser2(
                                   hUser,
                                   access_granted,
                                   rid);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     return status;

@@ -237,7 +237,7 @@ error:
 NTSTATUS
 SamrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID *pSidIn,
+    PSID pSidIn,
     void *pParent
     )
 {
@@ -335,7 +335,6 @@ SamrSrvInitUnicodeString(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PWSTR *pwszStr = NULL;
     DWORD dwLen = 0;
     DWORD dwSize = 0;
 
@@ -373,7 +372,6 @@ SamrSrvInitUnicodeStringEx(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PWSTR *pwszStr = NULL;
     DWORD dwLen = 0;
     DWORD dwSize = 0;
 

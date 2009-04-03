@@ -351,12 +351,9 @@ SamrFillUserInfo1(
     UserInfo *pInfo
     )
 {
-    WCHAR wszEmptyString[] = { (WCHAR)'\0' };
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo1 *pInfo1 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
     DWORD dwPrimaryGid = 0;
@@ -423,13 +420,7 @@ SamrFillUserInfo2(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo2 *pInfo2 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
-    PWSTR pwszComment = NULL;
-    DWORD dwCountryCode = 0;
-    DWORD dwCodePage = 0;
 
     pInfo2 = &(pInfo->info2);
 
@@ -466,26 +457,11 @@ SamrFillUserInfo3(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo3 *pInfo3 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
     DWORD dwRid = 0;
     DWORD dwPrimaryGid = 0;
     PWSTR pwszHomeDirectory = NULL;
-    PWSTR pwszHomeDrive = NULL;
-    PWSTR pwszLogonScript = NULL;
-    PWSTR pwszProfilePath = NULL;
-    PWSTR pwszWorkstations = NULL;
-    NtTime tLastLogon = 0;
-    NtTime tLastLogoff = 0;
-    NtTime tLastPassChange = 0;
-    NtTime tAllowPassChange = 0;
-    NtTime tForcePassChange = 0;
-    PWSTR pwszComment = NULL;
-    DWORD dwBadPassCount = 0;
-    DWORD dwLogonCount = 0;
-    DWORD dwAcctFlags = 0;
 
     pInfo3 = &(pInfo->info3);
 
@@ -588,10 +564,7 @@ SamrFillUserInfo4(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo4 *pInfo4 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo4 = &(pInfo->info4);
 
@@ -612,17 +585,11 @@ SamrFillUserInfo5(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo5 *pInfo5 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
     DWORD dwRid = 0;
     DWORD dwPrimaryGid = 0;
     PWSTR pwszHomeDirectory = NULL;
-    PWSTR pwszHomeDrive = NULL;
-    PWSTR pwszLogonScript = NULL;
-    PWSTR pwszProfilePath = NULL;
-    PWSTR pwszWorkstations = NULL;
 
     pInfo5 = &(pInfo->info5);
 
@@ -736,8 +703,6 @@ SamrFillUserInfo6(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo6 *pInfo6 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
 
@@ -784,8 +749,6 @@ SamrFillUserInfo7(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo7 *pInfo7 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszUsername = NULL;
 
     pInfo7 = &(pInfo->info7);
@@ -820,8 +783,6 @@ SamrFillUserInfo8(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo8 *pInfo8 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszFullName = NULL;
 
     pInfo8 = &(pInfo->info8);
@@ -856,8 +817,6 @@ SamrFillUserInfo9(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo9 *pInfo9 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD dwPrimaryGid = 0;
 
     pInfo9 = &(pInfo->info9);
@@ -890,10 +849,7 @@ SamrFillUserInfo10(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo10 *pInfo10 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszHomeDirectory = NULL;
-    PWSTR pwszHomeDrive = NULL;
 
     pInfo10 = &(pInfo->info10);
 
@@ -929,10 +885,7 @@ SamrFillUserInfo11(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo11 *pInfo11 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo11 = &(pInfo->info11);
 
@@ -960,8 +913,6 @@ SamrFillUserInfo12(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo12 *pInfo12 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
     PWSTR pwszProfilePath = NULL;
 
     pInfo12 = &(pInfo->info12);
@@ -994,10 +945,7 @@ SamrFillUserInfo13(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo13 *pInfo13 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo13 = &(pInfo->info13);
 
@@ -1023,10 +971,7 @@ SamrFillUserInfo14(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo14 *pInfo14 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo14 = &(pInfo->info14);
 
@@ -1052,10 +997,7 @@ SamrFillUserInfo16(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo16 *pInfo16 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo16 = &(pInfo->info16);
 
@@ -1074,10 +1016,7 @@ SamrFillUserInfo17(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo17 *pInfo17 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo17 = &(pInfo->info17);
 
@@ -1096,10 +1035,7 @@ SamrFillUserInfo20(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo20 *pInfo20 = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
 
     pInfo20 = &(pInfo->info20);
 

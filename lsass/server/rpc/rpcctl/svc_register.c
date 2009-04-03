@@ -217,7 +217,7 @@ RpcSvcBindRpcInterface(
         rpc_ep_register(SrvInterface,
                         pSrvBinding,
                         NULL,
-                        pszSrvDescription,
+                        (unsigned char*)pszSrvDescription,
                         &rpcstatus);
     }
     DCETHREAD_CATCH_ALL(THIS_CATCH)
