@@ -146,6 +146,13 @@ LocalDirEnumUsers_2(
     );
 
 DWORD
+LocalDirAddUser(
+    HANDLE hProvider,
+    DWORD  dwInfoLevel,
+    PVOID  pUserInfo
+    );
+
+DWORD
 LocalCreateHomeDirectory(
     PLSA_USER_INFO_0 pUserInfo
     );

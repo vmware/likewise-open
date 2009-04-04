@@ -33,44 +33,78 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpaccess.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider
+ *
+ *        Access Check API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#include "includes.h"
 
-#include <eventlog.h>
+DWORD
+LocalCheckForAddAccess(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
+    BAIL_ON_INVALID_HANDLE(hProvider);
 
-#include "lsaprovider.h"
-#include "directory.h"
+    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_ADD))
+    {
+        dwError = EACCES;
+    }
 
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-#include "lpaccess.h"
+error:
 
-#include "externs.h"
+    return dwError;
+}
 
-#include <lwrpc/LMcrypt.h>
+DWORD
+LocalCheckForModifyAccess(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_MODIFY))
+    {
+        dwError = EACCES;
+    }
+
+error:
+
+    return dwError;
+}
+
+DWORD
+LocalCheckForDeleteAccess(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_DELETE))
+    {
+        dwError = EACCES;
+    }
+
+error:
+
+    return dwError;
+}

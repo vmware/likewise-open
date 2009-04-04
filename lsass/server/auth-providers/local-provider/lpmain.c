@@ -136,6 +136,19 @@ LocalOpenHandle(
     pContext->uid = uid;
     pContext->gid = gid;
 
+    // TODO: Extend access checks to groups also
+    if (!pContext->uid)
+    {
+        pContext->accessFlags = (LOCAL_ACCESS_FLAG_ALLOW_ADD |
+                                 LOCAL_ACCESS_FLAG_ALLOW_MODIFY |
+                                 LOCAL_ACCESS_FLAG_ALLOW_DELETE |
+                                 LOCAL_ACCESS_FLAG_ALLOW_QUERY);
+    }
+    else
+    {
+        pContext->accessFlags = LOCAL_ACCESS_FLAG_ALLOW_QUERY;
+    }
+
     dwError = DirectoryOpen(&pContext->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1016,91 +1029,26 @@ LocalAddUser(
     )
 {
     DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
-    if (pContext->uid) {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    BAIL_ON_INVALID_HANDLE(hProvider);
+    BAIL_ON_INVALID_POINTER(pUserInfo);
 
-    switch(dwUserInfoLevel)
-    {
-        case 0:
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_0)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-
-        case 1:
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_1)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-
-        case 2:
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_2)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-
-        default:
-
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName)) {
-        dwError = LSA_ERROR_NOT_HANDLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pContext->uid) {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForAddAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbAddUser(
-                    hDb,
+    dwError = LocalDirAddUser(
+                    hProvider,
                     dwUserInfoLevel,
-                    pUserInfo
-                    );
+                    pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-    if (LocalEventlogEnabled()){
-        LocalEventLogUserAdd(pLoginInfo->pszName, ((PLSA_USER_INFO_0)pUserInfo)->uid);
-    }
 
 cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
 
     return dwError;
 
 error:
 
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
