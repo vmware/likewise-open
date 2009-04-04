@@ -49,40 +49,40 @@
 #include "includes.h"
 
 DWORD
-LsaLPCreateUserState(
+LocalCreateUserState(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    return LsaLPCreateEnumState(
+    return LocalCreateEnumState(
                 dwInfoLevel,
                 ppEnumState);
 }
 
 VOID
-LsaLPFreeUserState(
+LocalFreeUserState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    return LsaLPFreeEnumState(pEnumState);
+    return LocalFreeEnumState(pEnumState);
 }
 
 DWORD
-LsaLPCreateGroupState(
+LocalCreateGroupState(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    return LsaLPCreateEnumState(
+    return LocalCreateEnumState(
                     dwInfoLevel,
                     ppEnumState);
 }
 
 DWORD
-LsaLPCreateEnumState(
+LocalCreateEnumState(
     DWORD dwInfoLevel,
     PLOCAL_PROVIDER_ENUM_STATE* ppNewEnumState
     )
@@ -112,23 +112,23 @@ error:
     }
 
     if (pEnumState) {
-       LsaLPFreeEnumState(pEnumState);
+       LocalFreeEnumState(pEnumState);
     }
 
     goto cleanup;
 }
 
 VOID
-LsaLPFreeGroupState(
+LocalFreeGroupState(
     HANDLE hProvider,
     PLOCAL_PROVIDER_ENUM_STATE  pEnumState
     )
 {
-    return LsaLPFreeEnumState(pEnumState);
+    return LocalFreeEnumState(pEnumState);
 }
 
 VOID
-LsaLPFreeEnumState(
+LocalFreeEnumState(
     PLOCAL_PROVIDER_ENUM_STATE pEnumState
     )
 {

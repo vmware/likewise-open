@@ -41,23 +41,15 @@
  *
  *        Local Authentication Provider
  *
- *        User/Group Database Interface
+ *        Directory User Management API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 #include "includes.h"
 
-#define LW_ACCOUNT_DISABLED       1
-#define LW_CANNOT_CHANGE_PASSWORD (1 << 1)
-#define LW_PASSWORD_CANNOT_EXPIRE (1 << 2)
-#define LW_ACCOUNT_LOCKED_OUT     (1 << 3)
-
-#define LOCAL_USER_SID_FORMAT "S-1-22-1-%ld"
-#define LOCAL_GROUP_SID_FORMAT "S-1-22-2-%ld"
-
 DWORD
-LsaLPDbFindUserByName(
+LocalDirFindUserByName(
     HANDLE  hDb,
     PCSTR   pszDomain,
     PCSTR   pszUserName,
@@ -65,686 +57,159 @@ LsaLPDbFindUserByName(
     PVOID*  ppUserInfo
     )
 {
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-#if 0
+    DWORD dwError = 0;
+
     switch(dwUserInfoLevel)
     {
         case 0:
-        {
-            dwError = LsaLPDbFindUserByName_0(
+
+            dwError = LocalDirFindUserByName_0(
                             hDb,
                             pszUserName,
                             ppUserInfo
                             );
             break;
-        }
+
         case 1:
-        {
-            dwError = LsaLPDbFindUserByName_1(
+
+            dwError = LocalDirFindUserByName_1(
                             hDb,
                             pszUserName,
                             ppUserInfo
                             );
             break;
-        }
+
         case 2:
-        {
-            dwError = LsaLPDbFindUserByName_2(
+
+            dwError = LocalDirFindUserByName_2(
                             hDb,
                             pszUserName,
                             ppUserInfo
                             );
             break;
-        }
+
+        default:
+
+            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+
+            break;
     }
-#endif
+
     return dwError;
 }
 
-
 DWORD
-LsaLPDbEnumUsers_0(
-    HANDLE hDb,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 7;
-    PLSA_USER_INFO_0* ppUserInfoList = NULL;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_FIND_USERS_0_LIMIT,
-                    dwLimit,
-                    dwOffset
-                    );
-
-    dwError = sqlite3_get_table(
-                    pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        dwError = LSA_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > dwLimit)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_0_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-    *pdwNumUsersFound = dwNumUsersFound;
-
-cleanup:
-
-    if (pszQuery) {
-        sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
-    }
-
-    LEAVE_RW_READER_LOCK;
-
-    return dwError;
-
-error:
-
-    if (pszError) {
-        LSA_LOG_ERROR("%s", pszError);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    *pppUserInfoList = NULL;
-    *pdwNumUsersFound = 0;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
-}
-
-
-
-DWORD
-LsaLPDbFindUserByName_0(
+LocalDirFindUserByName_0(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    ENTER_RW_READER_LOCK;
 
-    dwError = LsaLPDbFindUserByName_0_Unsafe(
-                    hDb,
-                    pszUserName,
-                    ppUserInfo
-                    );
-
-    LEAVE_RW_READER_LOCK;
-#endif
     return dwError;
 }
 
 
 DWORD
-LsaLPDbFindUserByName_1(
+LocalDirFindUserByName_1(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 7;
-    PLSA_USER_INFO_1* ppUserInfoList = NULL;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 1;
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-    PBYTE pLMHash = NULL;
-    DWORD dwLMHashLen = 0;
-    DWORD iUser = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_1_BY_NAME,
-                               pszUserName);
-
-    dwError = sqlite3_get_table(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-       dwError = LSA_ERROR_NO_SUCH_USER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList + iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pLMHash,
-                        &dwLMHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pNTHash,
-                        &dwNTHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *ppUserInfo = *ppUserInfoList;
-    *ppUserInfoList = NULL;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LEAVE_RW_READER_LOCK;
 
     return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 
 DWORD
-LsaLPDbFindUserByName_2(
+LocalDirFindUserByName_2(
     HANDLE hDb,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 10;
-    PLSA_USER_INFO_2* ppUserInfoList = NULL;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 2;
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-    PBYTE pLMHash = NULL;
-    DWORD dwLMHashLen = 0;
-    DWORD iUser = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_2_BY_NAME,
-                               pszUserName);
-
-    dwError = sqlite3_get_table(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-       dwError = LSA_ERROR_NO_SUCH_USER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList + iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pLMHash,
-                        &dwLMHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pNTHash,
-                        &dwNTHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *ppUserInfo = *ppUserInfoList;
-    *ppUserInfoList = NULL;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LEAVE_RW_READER_LOCK;
 
     return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
+DWORD
+LocalDirFindUserById(
+    HANDLE hLocal,
+    uid_t  uid,
+    DWORD  dwInfoLevel,
+    PVOID* ppUserInfo
+    )
+{
+    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+
+    switch(dwInfoLevel)
+    {
+        case 0:
+
+            dwError = LocalDirFindUserById_0(hLocal, uid, ppUserInfo);
+
+            break;
+
+        case 1:
+
+            dwError = LocalDirFindUserById_1(hLocal, uid, ppUserInfo);
+
+            break;
+
+        case 2:
+
+            dwError = LocalDirFindUserById_2(hLocal, uid, ppUserInfo);
+
+            break;
+    }
+
+    return dwError;
+}
 
 DWORD
-LsaLPDbEnumUsers_1(
-    HANDLE hDb,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
+LocalDirFindUserById_0(
+    HANDLE hLocal,
+    uid_t  uid,
+    PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 7;
-    PLSA_USER_INFO_1* ppUserInfoList = NULL;
-    DWORD iUser = 0;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 1;
-    PBYTE pLMHash = NULL;
-    DWORD dwLMHashLen = 0;
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_FIND_USERS_1_LIMIT,
-                    dwLimit,
-                    dwOffset
-                    );
-
-    dwError = sqlite3_get_table(
-                    pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        dwError = LSA_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > dwLimit)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList+iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pLMHash,
-                            &dwLMHashLen
-                            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pNTHash,
-                            &dwNTHashLen
-                            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-    *pdwNumUsersFound = dwNumUsersFound;
-
-cleanup:
-
-    if (pszQuery) {
-        sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
-    }
-
-    LEAVE_RW_READER_LOCK;
 
     return dwError;
-
-error:
-
-    if (pszError) {
-        LSA_LOG_ERROR("%s", pszError);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-
-    *pppUserInfoList = NULL;
-    *pdwNumUsersFound = 0;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
-
 DWORD
-LsaLPDbEnumUsers_2(
-    HANDLE  hDb,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
+LocalDirFindUserById_1(
+    HANDLE hLocal,
+    uid_t  uid,
+    PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 10;
-    PLSA_USER_INFO_2* ppUserInfoList = NULL;
-    DWORD iUser = 0;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 2;
-    PBYTE pNTHash = NULL;
-    PBYTE pLMHash = NULL;
-    DWORD dwNTHashLen = 0;
-    DWORD dwLMHashLen = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(
-                    DB_QUERY_FIND_USERS_2_LIMIT,
-                    dwLimit,
-                    dwOffset
-                    );
-
-    dwError = sqlite3_get_table(
-                    pDbHandle,
-                    pszQuery,
-                    &ppszResult,
-                    &nRows,
-                    &nCols,
-                    &pszError
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        dwError = LSA_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > dwLimit)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppUserInfoList,
-                    &dwNumUsersFound
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList + iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pLMHash,
-                            &dwLMHashLen
-                            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pNTHash,
-                            &dwNTHashLen
-                            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-    *pdwNumUsersFound = dwNumUsersFound;
-
-cleanup:
-
-    if (pszQuery) {
-        sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
-    }
-
-    LEAVE_RW_READER_LOCK;
 
     return dwError;
-
-error:
-
-    if (pszError) {
-        LSA_LOG_ERROR("%s", pszError);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-
-    *pppUserInfoList = NULL;
-    *pdwNumUsersFound = 0;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
-LsaLPDbEnumUsers(
-    HANDLE  hDb,
-    DWORD   dwUserInfoLevel,
+LocalDirFindUserById_2(
+    HANDLE hLocal,
+    uid_t  uid,
+    PVOID* ppUserInfo
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
+DWORD
+LocalDirEnumUsers(
+    HANDLE  hLocal,
+    DWORD   dwInfoLevel,
     DWORD   dwStartingRecordId,
     DWORD   nMaxUsers,
     PDWORD  pdwNumUsersFound,
@@ -752,13 +217,13 @@ LsaLPDbEnumUsers(
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-#if 0
-    switch (dwUserInfoLevel)
+
+    switch (dwInfoLevel)
     {
         case 0:
         {
-            dwError = LsaLPDbEnumUsers_0(
-                                hDb,
+            dwError = LocalDirEnumUsers_0(
+                                hLocal,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -768,8 +233,8 @@ LsaLPDbEnumUsers(
         }
         case 1:
         {
-            dwError = LsaLPDbEnumUsers_1(
-                                hDb,
+            dwError = LocalDirEnumUsers_1(
+                                hLocal,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -779,8 +244,8 @@ LsaLPDbEnumUsers(
         }
         case 2:
         {
-            dwError = LsaLPDbEnumUsers_2(
-                                hDb,
+            dwError = LocalDirEnumUsers_2(
+                                hLocal,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -789,641 +254,70 @@ LsaLPDbEnumUsers(
             break;
         }
     }
-#endif
+
     return dwError;
 }
 
 DWORD
-LsaLPDbFindUserById(
-    HANDLE hDb,
-    uid_t  uid,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
-#if 0
-    switch(dwUserInfoLevel)
-    {
-        case 0:
-        {
-            dwError = LsaLPDbFindUserById_0(hDb, uid, ppUserInfo);
-            break;
-        }
-        case 1:
-        {
-            dwError = LsaLPDbFindUserById_1(hDb, uid, ppUserInfo);
-            break;
-        }
-        case 2:
-        {
-            dwError = LsaLPDbFindUserById_2(hDb, uid, ppUserInfo);
-            break;
-        }
-    }
-#endif
-    return dwError;
-}
-
-DWORD
-LsaLPDbGetGroupsForUser_0_Unsafe(
-    HANDLE  hDb,
-    uid_t uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+LocalDirEnumUsers_0(
+    HANDLE  hLocal,
+    DWORD   dwOffset,
+    DWORD   dwLimit,
+    PDWORD  pdwNumUsersFound,
+    PVOID** pppUserInfoList
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 3;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 0;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_GROUPS_0_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        goto cleanup;
-    }
-
-    if ((nCols != nExpectedCols)) {
-       dwError = LSA_ERROR_DATA_ERROR;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToGroupInfo_0_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pdwGroupsFound = dwNumGroupsFound;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
 
     return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    if (ppGroupInfoList) {
-       LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-
-    *pppGroupInfoList = NULL;
-    *pdwGroupsFound = 0;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
-LsaLPDbGetGroupsForUser_1_Unsafe(
-    HANDLE  hDb,
-    uid_t uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+LocalDirEnumUsers_1(
+    HANDLE hLocal,
+    DWORD  dwOffset,
+    DWORD  dwLimit,
+    PDWORD pdwNumUsersFound,
+    PVOID** pppUserInfoList
     )
 {
     DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 3;
-    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    DWORD dwGroupInfoLevel = 1;
-    DWORD iGroup = 0;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_GROUPS_1_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(pDbHandle,
-                                pszQuery,
-                                &ppszResult,
-                                &nRows,
-                                &nCols,
-                                &pszError
-                               );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-        goto cleanup;
-    }
-
-    if ((nCols != nExpectedCols)) {
-       dwError = LSA_ERROR_DATA_ERROR;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToGroupInfo_1_Unsafe(
-                    ppszResult,
-                    nRows,
-                    nCols,
-                    nExpectedCols,
-                    &ppGroupInfoList,
-                    &dwNumGroupsFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
-    {
-        PLSA_GROUP_INFO_1 pGroupInfo = *(ppGroupInfoList + iGroup);
-
-        if (pszQuery) {
-            sqlite3_free(pszQuery);
-            pszQuery = NULL;
-        }
-
-        if (ppszResult) {
-            sqlite3_free_table(ppszResult);
-            ppszResult = NULL;
-        }
-
-        // Find the group members
-        nRows = 0;
-        nCols = 0;
-        nExpectedCols = 1;
-        pszQuery = sqlite3_mprintf(DB_QUERY_FIND_GROUP_MEMBERS_BY_GID,
-                                   pGroupInfo->gid);
-
-        dwError = sqlite3_get_table(pDbHandle,
-                                    pszQuery,
-                                    &ppszResult,
-                                    &nRows,
-                                    &nCols,
-                                    &pszError
-                                   );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (nRows) {
-            if (nCols != nExpectedCols) {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            dwError = LsaLPDbWriteMembersToGroupInfo_1(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        pGroupInfo
-                        );
-            BAIL_ON_LSA_ERROR(dwError);
-        } else {
-            pGroupInfo->ppszMembers = NULL;
-        }
-    }
-
-    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
-    *pdwGroupsFound = dwNumGroupsFound;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
 
     return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    if (ppGroupInfoList) {
-       LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroupsFound);
-    }
-
-    *pppGroupInfoList = NULL;
-    *pdwGroupsFound = 0;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 
 DWORD
-LsaLPDbFindUserById_0_Unsafe(
-    HANDLE  hDb,
+LocalDirEnumUsers_2(
+    HANDLE  hLocal,
+    DWORD   dwOffset,
+    DWORD   dwLimit,
+    PDWORD  pdwNumUsersFound,
+    PVOID** pppUserInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
+
+DWORD
+LocalDirGetGroupsForUser(
+    HANDLE  hLocal,
     uid_t   uid,
-    PVOID*  ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 7;
-    PLSA_USER_INFO_0* ppUserInfoList = NULL;
-    DWORD dwUserInfoLevel = 0;
-    DWORD dwNumUsersFound = 0;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_0_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-       dwError = LSA_ERROR_NO_SUCH_USER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_0_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppUserInfo = *ppUserInfoList;
-    *ppUserInfoList = NULL;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
-}
-
-
-DWORD
-LsaLPDbFindUserById_0(
-    HANDLE hDb,
-    uid_t  uid,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    ENTER_RW_READER_LOCK;
-
-    dwError = LsaLPDbFindUserById_0_Unsafe(
-                hDb,
-                uid,
-                ppUserInfo
-                );
-
-    LEAVE_RW_READER_LOCK;
-#endif
-    return dwError;
-}
-
-
-DWORD
-LsaLPDbFindUserById_1(
-    HANDLE hDb,
-    uid_t  uid,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 7;
-    PLSA_USER_INFO_1* ppUserInfoList = NULL;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 1;
-    PBYTE pLMHash = NULL;
-    DWORD dwLMHashLen = 0;
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-    DWORD iUser = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_1_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-       dwError = LSA_ERROR_NO_SUCH_USER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_1_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_1 pUserInfo = *(ppUserInfoList+iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pLMHash,
-                            &dwLMHashLen);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                            hDb,
-                            pUserInfo->uid,
-                            &pNTHash,
-                            &dwNTHashLen
-                            );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *ppUserInfo = *(ppUserInfoList);
-    *ppUserInfoList = NULL;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LEAVE_RW_READER_LOCK;
-
-    return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
-}
-
-
-DWORD
-LsaLPDbFindUserById_2(
-    HANDLE hDb,
-    uid_t  uid,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    PSTR pszQuery = NULL;
-    PSTR pszError = NULL;
-    int  nRows = 0;
-    int  nCols = 0;
-    PSTR* ppszResult = NULL;
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    DWORD nExpectedCols = 10;
-    PLSA_USER_INFO_2* ppUserInfoList = NULL;
-    DWORD dwNumUsersFound = 0;
-    DWORD dwUserInfoLevel = 2;
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-    PBYTE pLMHash = NULL;
-    DWORD dwLMHashLen = 0;
-    DWORD iUser = 0;
-
-    ENTER_RW_READER_LOCK;
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_FIND_USER_2_BY_UID,
-                               uid);
-
-    dwError = sqlite3_get_table(
-                        pDbHandle,
-                        pszQuery,
-                        &ppszResult,
-                        &nRows,
-                        &nCols,
-                        &pszError
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!nRows) {
-       dwError = LSA_ERROR_NO_SUCH_USER;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if ((nCols != nExpectedCols) || (nRows > 1)) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbWriteToUserInfo_2_Unsafe(
-                        ppszResult,
-                        nRows,
-                        nCols,
-                        nExpectedCols,
-                        &ppUserInfoList,
-                        &dwNumUsersFound
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (iUser = 0; iUser < dwNumUsersFound; iUser++)
-    {
-        PLSA_USER_INFO_2 pUserInfo = *(ppUserInfoList+iUser);
-
-        dwError = LsaLPDbGetLMHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pLMHash,
-                        &dwLMHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaLPDbGetNTHash_Unsafe(
-                        hDb,
-                        pUserInfo->uid,
-                        &pNTHash,
-                        &dwNTHashLen
-                        );
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pUserInfo->pLMHash = pLMHash;
-        pLMHash = NULL;
-        pUserInfo->dwLMHashLen = dwLMHashLen;
-        pUserInfo->pNTHash = pNTHash;
-        pNTHash = NULL;
-        pUserInfo->dwNTHashLen = dwNTHashLen;
-    }
-
-    *ppUserInfo = *ppUserInfoList;
-    *ppUserInfoList = NULL;
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (ppszResult) {
-       sqlite3_free_table(ppszResult);
-    }
-
-    if (ppUserInfoList) {
-        LsaFreeUserInfoList(dwUserInfoLevel, (PVOID*)ppUserInfoList, dwNumUsersFound);
-    }
-
-    LEAVE_RW_READER_LOCK;
-
-    return dwError;
-
-error:
-
-    if (pszError) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pNTHash);
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
-}
-
-DWORD
-LsaLPDbGetGroupsForUser(
-    HANDLE  hDb,
-    uid_t   uid,
-    DWORD   dwGroupInfoLevel,
+    DWORD   dwInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-#if 0
-    switch(dwGroupInfoLevel)
+
+    switch(dwInfoLevel)
     {
         case 0:
         {
-            dwError = LsaLPDbGetGroupsForUser_0(
-                                hDb,
+            dwError = LocalDirGetGroupsForUser_0(
+                                hLocal,
                                 uid,
                                 pdwGroupsFound,
                                 pppGroupInfoList
@@ -1432,8 +326,8 @@ LsaLPDbGetGroupsForUser(
         }
         case 1:
         {
-            dwError = LsaLPDbGetGroupsForUser_1(
-                                hDb,
+            dwError = LocalDirGetGroupsForUser_1(
+                                hLocal,
                                 uid,
                                 pdwGroupsFound,
                                 pppGroupInfoList
@@ -1442,318 +336,63 @@ LsaLPDbGetGroupsForUser(
         }
 
     }
-#endif
+
     return dwError;
 }
 
-// Start from here
-
 DWORD
-LsaLPDbUpdateHash_Unsafe(
-    HANDLE hDb,
-    uid_t  uid,
-    PCSTR  pszDbStatement,
-    PBYTE  pHash,
-    DWORD  dwHashLen
+LocalDirGetGroupsForUser_0_Unsafe(
+    HANDLE  hLocal,
+    uid_t   uid,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
-#if 0
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    PSTR  pszQuery = NULL;
-    PSTR  pszError = NULL;
-    DWORD dwHashVal_1 = 0;
-    DWORD dwHashVal_2 = 0;
-    DWORD dwHashVal_3 = 0;
-    DWORD dwHashVal_4 = 0;
-    PBYTE pTmpHash = NULL;
-
-    if (dwHashLen != 16) {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    // TODO: Adjust for endian-ness
-    pTmpHash = pHash;
-    memcpy(&dwHashVal_1, pTmpHash, sizeof(dwHashVal_1));
-    pTmpHash += sizeof(dwHashVal_1);
-    memcpy(&dwHashVal_2, pTmpHash, sizeof(dwHashVal_2));
-    pTmpHash += sizeof(dwHashVal_2);
-    memcpy(&dwHashVal_3, pTmpHash, sizeof(dwHashVal_3));
-    pTmpHash += sizeof(dwHashVal_3);
-    memcpy(&dwHashVal_4, pTmpHash, sizeof(dwHashVal_4));
-
-    pszQuery = sqlite3_mprintf(pszDbStatement,
-                               dwHashVal_1,
-                               dwHashVal_2,
-                               dwHashVal_3,
-                               dwHashVal_4,
-                               time(NULL),
-                               uid);
-
-    dwError = sqlite3_exec(pDbHandle,
-                           pszQuery,
-                           NULL,
-                           NULL,
-                           &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
 
     return dwError;
-
-error:
-
-    if (pszError) {
-        LSA_LOG_ERROR("%s", pszError);
-    }
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
-}
-
-
-DWORD
-LsaLPDbUpdateNTHash_Unsafe(
-    HANDLE hDb,
-    uid_t  uid,
-    PBYTE  pHash,
-    DWORD  dwHashLen
-    )
-{
-#if 0
-    return LsaLPDbUpdateHash_Unsafe(
-                hDb,
-                uid,
-                DB_QUERY_UPDATE_NT_OWF_FOR_UID,
-                pHash,
-                dwHashLen
-                );
-#else
-    return 0;
-#endif
 }
 
 DWORD
-LsaLPDbChangePassword(
-    HANDLE hDb,
-    uid_t uid,
-    PCSTR pszPassword
+LocalDirGetGroupsForUser_1_Unsafe(
+    HANDLE  hLocal,
+    uid_t   uid,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
-#if 0
-    PBYTE pNTHash = NULL;
-    DWORD dwNTHashLen = 0;
-    PBYTE pLMHash = NULL;
-#ifdef NOT_YET
-    DWORD dwLMHashLen = 0;
-#endif
-    BOOLEAN bReleaseLock = FALSE;
-
-#ifdef NOT_YET
-    dwError = LsaSrvComputeLMHash(
-                      pszPassword,
-                      &pLMHash,
-                      &dwLMHashLen);
-    BAIL_ON_LSA_ERROR(dwError);
-#endif
-
-    dwError = LsaSrvComputeNTHash(
-                      pszPassword,
-                      &pNTHash,
-                      &dwNTHashLen);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ENTER_RW_WRITER_LOCK;
-    bReleaseLock = TRUE;
-
-    // TODO: Implement the update within a transaction
-
-    dwError = LsaLPDbUpdateNTHash_Unsafe(
-                        hDb,
-                        uid,
-                        pNTHash,
-                        dwNTHashLen);
-    BAIL_ON_LSA_ERROR(dwError);
-
-#ifdef NOT_YET
-    dwError = LsaLPDbUpdateLMHash_Unsafe(
-                        hDb,
-                        uid,
-                        pLMHash,
-                        dwLMHashLen);
-    BAIL_ON_LSA_ERROR(dwError);
-#endif
-
-cleanup:
-
-    if (bReleaseLock) {
-       LEAVE_RW_WRITER_LOCK;
-    }
-
-    LSA_SAFE_FREE_MEMORY(pLMHash);
-    LSA_SAFE_FREE_MEMORY(pNTHash);
 
     return dwError;
-
-error:
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
+DWORD
+LocalDirChangePassword(
+    HANDLE hLocal,
+    uid_t  uid,
+    PCSTR  pszPassword
+    )
+{
+    DWORD dwError = 0;
+
+    return dwError;
+}
 
 DWORD
-LsaLPDbAddUser(
-    HANDLE hDb,
-    DWORD  dwUserInfoLevel,
+LocalDirAddUser(
+    HANDLE hLocal,
+    DWORD  dwInfoLevel,
     PVOID  pUserInfo
     )
 {
     DWORD dwError = 0;
-#if 0
-    sqlite3* pDbHandle = (sqlite3*)hDb;
-    PSTR pszError = NULL;
-    PSTR pszQuery = NULL;
-    PLSA_USER_INFO_0 pUser = NULL;
-    BOOLEAN bReleaseLock = FALSE;
-    PVOID pExistingUserInfo = NULL;
-    PVOID pGroupInfo = NULL;
-    DWORD  dwExistingUserInfoLevel = 0;
-    DWORD  dwGroupInfoLevel = 0;
-
-    if (dwUserInfoLevel != 0) {
-        dwError = LSA_ERROR_INVALID_USER_INFO_LEVEL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pUser = (PLSA_USER_INFO_0)pUserInfo;
-
-    ENTER_RW_WRITER_LOCK;
-    bReleaseLock = TRUE;
-
-    if (IsNullOrEmptyString(pUser->pszName)) {
-        dwError = LSA_ERROR_INVALID_LOGIN_ID;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (IsNullOrEmptyString(pUser->pszHomedir)) {
-        dwError = LSA_ERROR_INVALID_HOMEDIR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    // This will not let root be added - which is ok.
-    if (!pUser->uid) {
-
-       // We got a write lock; nobody can steal this uid from us
-       dwError = LsaLPDbGetNextAvailableUid_Unsafe(
-                           hDb,
-                           &pUser->uid
-                           );
-       BAIL_ON_LSA_ERROR(dwError);
-
-    } else {
-
-       dwError = LsaLPDbFindUserById_0_Unsafe(
-                           hDb,
-                           pUser->uid,
-                           &pExistingUserInfo
-                           );
-       if (dwError) {
-          if (dwError == LSA_ERROR_NO_SUCH_USER) {
-              dwError = 0;
-          } else {
-             BAIL_ON_LSA_ERROR(dwError);
-          }
-       } else {
-          dwError = LSA_ERROR_USER_EXISTS;
-          BAIL_ON_LSA_ERROR(dwError);
-       }
-    }
-
-    dwError = LsaLPDbFindUserByName_0_Unsafe(
-                           hDb,
-                           pUser->pszName,
-                           &pExistingUserInfo);
-    if (dwError) {
-           if (dwError == LSA_ERROR_NO_SUCH_USER) {
-               dwError = 0;
-           } else {
-               BAIL_ON_LSA_ERROR(dwError);
-           }
-    } else {
-           dwError = LSA_ERROR_USER_EXISTS;
-           BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaLPDbFindGroupById_0_Unsafe(
-                        hDb,
-                        pUser->gid,
-                        &pGroupInfo
-                        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_USER,
-                               pUser->pszName,
-                               pUser->pszPasswd,
-                               pUser->uid,
-                               pUser->gid,
-                               pUser->pszGecos,
-                               pUser->pszHomedir,
-                               pUser->pszShell,
-                               pUser->pszName);
-
-    dwError = sqlite3_exec(pDbHandle,
-                           pszQuery,
-                           NULL,
-                           NULL,
-                           &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (pszQuery) {
-       sqlite3_free(pszQuery);
-    }
-
-    if (bReleaseLock) {
-        LEAVE_RW_WRITER_LOCK;
-    }
-
-    if (pExistingUserInfo) {
-        LsaFreeUserInfo(dwExistingUserInfoLevel, pExistingUserInfo);
-    }
-
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-    }
 
     return dwError;
-
-error:
-
-    if (!IsNullOrEmptyString(pszError)) {
-       LSA_LOG_ERROR("%s", pszError);
-    }
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
-LsaLPDbModifyUser(
-    HANDLE hDb,
+LocalDirModifyUser(
+    HANDLE             hLocal,
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
@@ -1764,7 +403,7 @@ LsaLPDbModifyUser(
 
     // TODO: Implement this in a database transaction
 
-    dwError = LsaLPDbFindUserById(
+    dwError = LocalFindUserById(
                         hDb,
                         pUserModInfo->uid,
                         dwUserInfoLevel,
@@ -1772,33 +411,33 @@ LsaLPDbModifyUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserModInfo->actions.bEnableUser) {
-        dwError = LsaLPDbEnableUser(
+        dwError = LocalEnableUser(
                        hDb,
                        pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bDisableUser) {
-        dwError = LsaLPDbDisableUser(
+        dwError = LocalDisableUser(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bUnlockUser) {
-        dwError = LsaLPDbUnlockUser(
+        dwError = LocalUnlockUser(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bSetChangePasswordOnNextLogon) {
-        dwError = LsaLPDbSetChangePasswordOnNextLogon(
+        dwError = LocalSetChangePasswordOnNextLogon(
                         hDb,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaLPDbSetPasswordExpires(
+        dwError = LocalSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         TRUE);
@@ -1806,7 +445,7 @@ LsaLPDbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetAccountExpiryDate) {
-        dwError = LsaLPDbSetAccountExpiryDate(
+        dwError = LocalSetAccountExpiryDate(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszExpiryDate);
@@ -1814,7 +453,7 @@ LsaLPDbModifyUser(
     }
 
     if (pUserModInfo->actions.bRemoveFromGroups) {
-        dwError = LsaLPDbRemoveFromGroups(
+        dwError = LocalRemoveFromGroups(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszRemoveFromGroups);
@@ -1822,7 +461,7 @@ LsaLPDbModifyUser(
     }
 
     if (pUserModInfo->actions.bAddToGroups) {
-        dwError = LsaLPDbAddToGroups(
+        dwError = LocalAddToGroups(
                         hDb,
                         pUserModInfo->uid,
                         pUserModInfo->pszAddToGroups);
@@ -1830,7 +469,7 @@ LsaLPDbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetPasswordMustExpire) {
-        dwError = LsaLPDbSetPasswordExpires(
+        dwError = LocalSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         TRUE);
@@ -1838,7 +477,7 @@ LsaLPDbModifyUser(
     }
 
     if (pUserModInfo->actions.bSetPasswordNeverExpires) {
-        dwError = LsaLPDbSetPasswordExpires(
+        dwError = LocalSetPasswordExpires(
                         hDb,
                         pUserModInfo->uid,
                         FALSE);
@@ -1862,7 +501,7 @@ error:
 }
 
 DWORD
-LsaLPCreateHomeDirectory(
+LocalCreateHomeDirectory(
     PLSA_USER_INFO_0 pUserInfo
     )
 {
@@ -1872,8 +511,10 @@ LsaLPCreateHomeDirectory(
     mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BOOLEAN bRemoveDir = FALSE;
 
-    if (IsNullOrEmptyString(pUserInfo->pszHomedir)) {
-       LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined", (long)pUserInfo->uid);
+    if (IsNullOrEmptyString(pUserInfo->pszHomedir))
+    {
+       LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined",
+                     (long)pUserInfo->uid);
        dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
        BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1900,7 +541,7 @@ LsaLPCreateHomeDirectory(
 
        bRemoveDir = FALSE;
 
-       dwError = LsaLPProvisionHomeDir(
+       dwError = LocalProvisionHomeDir(
                        pUserInfo->uid,
                        pUserInfo->gid,
                        pUserInfo->pszHomedir);
@@ -1921,7 +562,7 @@ error:
 }
 
 DWORD
-LsaLPProvisionHomeDir(
+LocalProvisionHomeDir(
     uid_t ownerUid,
     gid_t ownerGid,
     PCSTR pszHomedirPath
@@ -1935,7 +576,8 @@ LsaLPProvisionHomeDir(
                     &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (bExists) {
+    if (bExists)
+    {
         dwError = LsaCopyDirectory(
                     "/etc/skel",
                     ownerUid,
@@ -1952,4 +594,43 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LocalCheckAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo2
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    BAIL_ON_INVALID_POINTER(pUserInfo2);
+
+    if (pUserInfo2->bAccountDisabled)
+    {
+        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bAccountLocked)
+    {
+        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bAccountExpired)
+    {
+        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserInfo2->bPasswordExpired)
+    {
+        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+error:
+
+    return dwError;
+}
+
 
