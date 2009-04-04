@@ -83,6 +83,7 @@ typedef struct _SAM_DB_DOMAIN_INFO
 typedef struct _SAMDB_DN_TOKEN
 {
     SAMDB_DN_TOKEN_TYPE tokenType;
+    PWSTR               pwszDN;
     PWSTR               pwszToken;
     DWORD               dwLen;
 
