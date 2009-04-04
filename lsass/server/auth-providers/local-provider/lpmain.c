@@ -470,6 +470,11 @@ LocalFindUserByName(
     PVOID pUserInfo = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
                     NULL,
@@ -528,11 +533,8 @@ LocalFindUserById(
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
 
-    if (uid == 0)
-    {
-	dwError = LSA_ERROR_NO_SUCH_USER;
-	BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirFindUserById(
                     hProvider,

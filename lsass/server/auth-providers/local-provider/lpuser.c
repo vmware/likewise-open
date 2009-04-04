@@ -146,6 +146,12 @@ LocalDirFindUserById(
 {
     DWORD dwError = 0;
 
+    if (uid == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     switch(dwInfoLevel)
     {
         case 0:
@@ -172,6 +178,8 @@ LocalDirFindUserById(
 
             break;
     }
+
+error:
 
     return dwError;
 }
@@ -621,40 +629,23 @@ LocalDirAddUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    BOOLEAN bEventlogEnabled = FALSE;
 
     switch(dwInfoLevel)
     {
         case 0:
 
-            BAIL_ON_INVALID_STRING(((PLSA_USER_INFO_0)(pUserInfo))->pszName);
-
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_0)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
+            dwError = LocalDirAddUser_0((PLSA_USER_INFO_0)pUserInfo);
             break;
 
         case 1:
 
-            BAIL_ON_INVALID_STRING(((PLSA_USER_INFO_1)(pUserInfo))->pszName);
-
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_1)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
+            dwError = LocalDirAddUser_1((PLSA_USER_INFO_1)pUserInfo);
 
             break;
 
         case 2:
 
-            BAIL_ON_INVALID_STRING(((PLSA_USER_INFO_2)(pUserInfo))->pszName);
-
-            dwError = LsaCrackDomainQualifiedName(
-                            ((PLSA_USER_INFO_2)(pUserInfo))->pszName,
-                            NULL,
-                            &pLoginInfo);
+            dwError = LocalDirAddUser_2((PLSA_USER_INFO_2)pUserInfo);
 
             break;
 
@@ -666,16 +657,139 @@ LocalDirAddUser(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirAddUser_0(
+    PLSA_USER_INFO_0     pUserInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bEventlogEnabled = FALSE;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+
+    BAIL_ON_INVALID_STRING(pUserInfo->pszName);
+
+    dwError = LsaCrackDomainQualifiedName(
+                    pUserInfo->pszName,
+                    NULL,
+                    &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    // TODO: Add the user object
+    // TODO:
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (bEventlogEnabled)
+    {
+        LocalEventLogUserAdd(pLoginInfo->pszName,
+                             ((PLSA_USER_INFO_0)pUserInfo)->uid);
+    }
+
+cleanup:
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirAddUser_1(
+    PLSA_USER_INFO_1     pUserInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bEventlogEnabled = FALSE;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+
+    BAIL_ON_INVALID_STRING(pUserInfo->pszName);
+
+    dwError = LsaCrackDomainQualifiedName(
+                    pUserInfo->pszName,
+                    NULL,
+                    &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    {
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO:
+
+    dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bEventlogEnabled)
+    {
+        LocalEventLogUserAdd(pLoginInfo->pszName,
+                             ((PLSA_USER_INFO_0)pUserInfo)->uid);
+    }
+
+cleanup:
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirAddUser_2(
+    PLSA_USER_INFO_2     pUserInfo
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bEventlogEnabled = FALSE;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+
+    BAIL_ON_INVALID_STRING(pUserInfo->pszName);
+
+    dwError = LsaCrackDomainQualifiedName(
+                    pUserInfo->pszName,
+                    NULL,
+                    &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    {
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO:
+
+    dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (bEventlogEnabled)
     {
         LocalEventLogUserAdd(pLoginInfo->pszName,

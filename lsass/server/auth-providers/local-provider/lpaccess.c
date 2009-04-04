@@ -90,6 +90,26 @@ error:
 }
 
 DWORD
+LocalCheckForQueryAccess(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_QUERY))
+    {
+        dwError = EACCES;
+    }
+
+error:
+
+    return dwError;
+}
+
+DWORD
 LocalCheckForDeleteAccess(
     HANDLE hProvider
     )

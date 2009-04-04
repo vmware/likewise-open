@@ -60,6 +60,11 @@ LocalCheckForModifyAccess(
     );
 
 DWORD
+LocalCheckForQueryAccess(
+    HANDLE hProvider
+    );
+
+DWORD
 LocalCheckForDeleteAccess(
     HANDLE hProvider
     );
