@@ -136,6 +136,9 @@ LocalOpenHandle(
     pContext->uid = uid;
     pContext->gid = gid;
 
+    dwError = DirectoryOpen(&pContext->hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
     *phProvider = (HANDLE)pContext;
 
 cleanup:
@@ -160,6 +163,11 @@ LocalCloseHandle(
     )
 {
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+
+    if (pContext->hDirectory)
+    {
+        DirectoryClose(pContext->hDirectory);
+    }
 
     if (pContext)
     {
@@ -446,8 +454,6 @@ LocalFindUserByName(
     )
 {
     DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
     PVOID pUserInfo = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
@@ -457,7 +463,8 @@ LocalFindUserByName(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName)) {
+    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    {
         dwError = LSA_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -468,11 +475,8 @@ LocalFindUserByName(
 	BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalDbOpen(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDbFindUserByName(
-                    hDb,
+    dwError = LocalDirFindUserByName(
+                    hProvider,
                     pLoginInfo->pszDomainNetBiosName,
                     pLoginInfo->pszName,
                     dwUserInfoLevel,
@@ -483,10 +487,6 @@ LocalFindUserByName(
     *ppUserInfo = pUserInfo;
 
 cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
 
     if (pLoginInfo)
     {
@@ -502,10 +502,6 @@ error:
     }
 
     goto cleanup;
-#else
-
-    return dwError;
-#endif
 }
 
 DWORD
@@ -517,12 +513,7 @@ LocalFindUserById(
     )
 {
     DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
     PVOID pUserInfo = NULL;
-
-    dwError = LocalDbOpen(&hDb);
-    BAIL_ON_LSA_ERROR(dwError);
 
     if (uid == 0)
     {
@@ -530,8 +521,8 @@ LocalFindUserById(
 	BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalDbFindUserById(
-                    hDb,
+    dwError = LocalDirFindUserById(
+                    hProvider,
                     uid,
                     dwUserInfoLevel,
                     &pUserInfo
@@ -542,22 +533,16 @@ LocalFindUserById(
 
 cleanup:
 
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
-
     return dwError;
 
 error:
 
-    if (pUserInfo) {
+    if (pUserInfo)
+    {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD

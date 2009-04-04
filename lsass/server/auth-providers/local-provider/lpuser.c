@@ -50,8 +50,8 @@
 
 DWORD
 LocalDirFindUserByName(
-    HANDLE  hDb,
-    PCSTR   pszDomain,
+    HANDLE  hProvider,
+    PCSTR   pszNetBIOSName,
     PCSTR   pszUserName,
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
@@ -64,7 +64,7 @@ LocalDirFindUserByName(
         case 0:
 
             dwError = LocalDirFindUserByName_0(
-                            hDb,
+                            hProvider,
                             pszUserName,
                             ppUserInfo
                             );
@@ -73,7 +73,7 @@ LocalDirFindUserByName(
         case 1:
 
             dwError = LocalDirFindUserByName_1(
-                            hDb,
+                            hProvider,
                             pszUserName,
                             ppUserInfo
                             );
@@ -82,7 +82,7 @@ LocalDirFindUserByName(
         case 2:
 
             dwError = LocalDirFindUserByName_2(
-                            hDb,
+                            hProvider,
                             pszUserName,
                             ppUserInfo
                             );
@@ -100,7 +100,7 @@ LocalDirFindUserByName(
 
 DWORD
 LocalDirFindUserByName_0(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
@@ -113,7 +113,7 @@ LocalDirFindUserByName_0(
 
 DWORD
 LocalDirFindUserByName_1(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
@@ -126,7 +126,7 @@ LocalDirFindUserByName_1(
 
 DWORD
 LocalDirFindUserByName_2(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     )
@@ -138,31 +138,37 @@ LocalDirFindUserByName_2(
 
 DWORD
 LocalDirFindUserById(
-    HANDLE hLocal,
+    HANDLE hProvider,
     uid_t  uid,
     DWORD  dwInfoLevel,
     PVOID* ppUserInfo
     )
 {
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+    DWORD dwError = 0;
 
     switch(dwInfoLevel)
     {
         case 0:
 
-            dwError = LocalDirFindUserById_0(hLocal, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_0(hProvider, uid, ppUserInfo);
 
             break;
 
         case 1:
 
-            dwError = LocalDirFindUserById_1(hLocal, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_1(hProvider, uid, ppUserInfo);
 
             break;
 
         case 2:
 
-            dwError = LocalDirFindUserById_2(hLocal, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_2(hProvider, uid, ppUserInfo);
+
+            break;
+
+        default:
+
+            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -172,19 +178,248 @@ LocalDirFindUserById(
 
 DWORD
 LocalDirFindUserById_0(
-    HANDLE hLocal,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNamePassword[] = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameGecos[] = LOCAL_DIR_ATTR_GECOS;
+    wchar16_t wszAttrNameShell[] = LOCAL_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[] = LOCAL_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameUID[0],
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNamePassword[0],
+        &wszAttrNameGecos[0],
+        &wszAttrNameShell[0],
+        &wszAttrNameHomedir[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate = LOCAL_DB_DIR_ATTR_UID " = %u" \
+                              " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
+    DWORD iAttr = 0;
+
+    // Should we include the domain also?
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    uid,
+                    LOCAL_OBJECT_CLASS_USER);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_USER_INFO_0),
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (; iAttr < pEntry->ulNumAttributes; iAttr++)
+    {
+        PDIRECTORY_ATTRIBUTE pAttr = &pEntry->pAttributes[iAttr];
+
+        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameUID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            pUserInfo->uid = pAttr->pValues[0].ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameGID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            pUserInfo->gid = pAttr->pValues[0].ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameSamAccountName[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaWc16sToMbs(
+                            pAttr->pValues[0].pwszStringValue,
+                            &pUserInfo->pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNamePassword[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].pwszStringValue,
+                                &pUserInfo->pszPasswd);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameGecos[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].pwszStringValue,
+                                &pUserInfo->pszGecos);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameShell[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].pwszStringValue,
+                                &pUserInfo->pszShell);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameHomedir[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].pwszStringValue,
+                                &pUserInfo->pszHomedir);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameObjectSID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaWc16sToMbs(
+                            pAttr->pValues[0].pwszStringValue,
+                            &pUserInfo->pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *ppUserInfo = pUserInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
+
+error:
+
+    *ppUserInfo = pUserInfo;
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(0, pUserInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
 LocalDirFindUserById_1(
-    HANDLE hLocal,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     )
@@ -196,7 +431,7 @@ LocalDirFindUserById_1(
 
 DWORD
 LocalDirFindUserById_2(
-    HANDLE hLocal,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     )
@@ -208,7 +443,7 @@ LocalDirFindUserById_2(
 
 DWORD
 LocalDirEnumUsers(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     DWORD   dwInfoLevel,
     DWORD   dwStartingRecordId,
     DWORD   nMaxUsers,
@@ -223,7 +458,7 @@ LocalDirEnumUsers(
         case 0:
         {
             dwError = LocalDirEnumUsers_0(
-                                hLocal,
+                                hProvider,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -234,7 +469,7 @@ LocalDirEnumUsers(
         case 1:
         {
             dwError = LocalDirEnumUsers_1(
-                                hLocal,
+                                hProvider,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -245,7 +480,7 @@ LocalDirEnumUsers(
         case 2:
         {
             dwError = LocalDirEnumUsers_2(
-                                hLocal,
+                                hProvider,
                                 dwStartingRecordId,
                                 nMaxUsers,
                                 pdwNumUsersFound,
@@ -260,7 +495,7 @@ LocalDirEnumUsers(
 
 DWORD
 LocalDirEnumUsers_0(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     DWORD   dwOffset,
     DWORD   dwLimit,
     PDWORD  pdwNumUsersFound,
@@ -274,7 +509,7 @@ LocalDirEnumUsers_0(
 
 DWORD
 LocalDirEnumUsers_1(
-    HANDLE hLocal,
+    HANDLE hProvider,
     DWORD  dwOffset,
     DWORD  dwLimit,
     PDWORD pdwNumUsersFound,
@@ -289,7 +524,7 @@ LocalDirEnumUsers_1(
 
 DWORD
 LocalDirEnumUsers_2(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     DWORD   dwOffset,
     DWORD   dwLimit,
     PDWORD  pdwNumUsersFound,
@@ -303,7 +538,7 @@ LocalDirEnumUsers_2(
 
 DWORD
 LocalDirGetGroupsForUser(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwInfoLevel,
     PDWORD  pdwGroupsFound,
@@ -317,7 +552,7 @@ LocalDirGetGroupsForUser(
         case 0:
         {
             dwError = LocalDirGetGroupsForUser_0(
-                                hLocal,
+                                hProvider,
                                 uid,
                                 pdwGroupsFound,
                                 pppGroupInfoList
@@ -327,7 +562,7 @@ LocalDirGetGroupsForUser(
         case 1:
         {
             dwError = LocalDirGetGroupsForUser_1(
-                                hLocal,
+                                hProvider,
                                 uid,
                                 pdwGroupsFound,
                                 pppGroupInfoList
@@ -342,7 +577,7 @@ LocalDirGetGroupsForUser(
 
 DWORD
 LocalDirGetGroupsForUser_0_Unsafe(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     uid_t   uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -355,7 +590,7 @@ LocalDirGetGroupsForUser_0_Unsafe(
 
 DWORD
 LocalDirGetGroupsForUser_1_Unsafe(
-    HANDLE  hLocal,
+    HANDLE  hProvider,
     uid_t   uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -368,7 +603,7 @@ LocalDirGetGroupsForUser_1_Unsafe(
 
 DWORD
 LocalDirChangePassword(
-    HANDLE hLocal,
+    HANDLE hProvider,
     uid_t  uid,
     PCSTR  pszPassword
     )
@@ -380,7 +615,7 @@ LocalDirChangePassword(
 
 DWORD
 LocalDirAddUser(
-    HANDLE hLocal,
+    HANDLE hProvider,
     DWORD  dwInfoLevel,
     PVOID  pUserInfo
     )
@@ -392,7 +627,7 @@ LocalDirAddUser(
 
 DWORD
 LocalDirModifyUser(
-    HANDLE             hLocal,
+    HANDLE             hProvider,
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
@@ -404,7 +639,7 @@ LocalDirModifyUser(
     // TODO: Implement this in a database transaction
 
     dwError = LocalFindUserById(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         dwUserInfoLevel,
                         &pUserInfo);
@@ -412,33 +647,33 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bEnableUser) {
         dwError = LocalEnableUser(
-                       hDb,
+                       hProvider,
                        pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bDisableUser) {
         dwError = LocalDisableUser(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bUnlockUser) {
         dwError = LocalUnlockUser(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bSetChangePasswordOnNextLogon) {
         dwError = LocalSetChangePasswordOnNextLogon(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LocalSetPasswordExpires(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         TRUE);
         BAIL_ON_LSA_ERROR(dwError);
@@ -446,7 +681,7 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bSetAccountExpiryDate) {
         dwError = LocalSetAccountExpiryDate(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         pUserModInfo->pszExpiryDate);
         BAIL_ON_LSA_ERROR(dwError);
@@ -454,7 +689,7 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bRemoveFromGroups) {
         dwError = LocalRemoveFromGroups(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         pUserModInfo->pszRemoveFromGroups);
         BAIL_ON_LSA_ERROR(dwError);
@@ -462,7 +697,7 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bAddToGroups) {
         dwError = LocalAddToGroups(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         pUserModInfo->pszAddToGroups);
         BAIL_ON_LSA_ERROR(dwError);
@@ -470,7 +705,7 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bSetPasswordMustExpire) {
         dwError = LocalSetPasswordExpires(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         TRUE);
         BAIL_ON_LSA_ERROR(dwError);
@@ -478,7 +713,7 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bSetPasswordNeverExpires) {
         dwError = LocalSetPasswordExpires(
-                        hDb,
+                        hProvider,
                         pUserModInfo->uid,
                         FALSE);
         BAIL_ON_LSA_ERROR(dwError);

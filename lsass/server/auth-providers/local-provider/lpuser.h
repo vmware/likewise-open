@@ -51,8 +51,8 @@
 
 DWORD
 LocalDirFindUserByName(
-    HANDLE  hDb,
-    PCSTR   pszDomain,
+    HANDLE  hProvider,
+    PCSTR   pszNetBIOSName,
     PCSTR   pszUserName,
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
@@ -60,28 +60,28 @@ LocalDirFindUserByName(
 
 DWORD
 LocalDirFindUserByName_0(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirFindUserByName_1(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirFindUserByName_2(
-    HANDLE hDb,
+    HANDLE hProvider,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirFindUserById(
-    HANDLE hDb,
+    HANDLE hProvider,
     uid_t  uid,
     DWORD  dwUserInfoLevel,
     PVOID* ppUserInfo
@@ -89,28 +89,28 @@ LocalDirFindUserById(
 
 DWORD
 LocalDirFindUserById_0(
-    HANDLE hDb,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirFindUserById_1(
-    HANDLE hDb,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirFindUserById_2(
-    HANDLE hDb,
+    HANDLE hProvider,
     uid_t  uid,
     PVOID* ppUserInfo
     );
 
 DWORD
 LocalDirEnumUsers(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     DWORD   dwUserInfoLevel,
     DWORD   dwStartingRecordId,
     DWORD   nMaxUsers,
@@ -120,7 +120,7 @@ LocalDirEnumUsers(
 
 DWORD
 LocalDirEnumUsers_0(
-    HANDLE hDb,
+    HANDLE hProvider,
     DWORD  dwOffset,
     DWORD  dwLimit,
     PDWORD pdwNumUsersFound,
@@ -129,7 +129,7 @@ LocalDirEnumUsers_0(
 
 DWORD
 LocalDirEnumUsers_1(
-    HANDLE hDb,
+    HANDLE hProvider,
     DWORD  dwOffset,
     DWORD  dwLimit,
     PDWORD pdwNumUsersFound,

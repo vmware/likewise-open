@@ -63,6 +63,9 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 {
     uid_t uid;
     gid_t gid;
+
+    HANDLE hDirectory;
+
 } LOCAL_PROVIDER_CONTEXT, *PLOCAL_PROVIDER_CONTEXT;
 
 typedef struct __LOCAL_CONFIG
