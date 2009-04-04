@@ -69,6 +69,7 @@
 #define SAM_DB_COL_NETBIOS_NAME         "NetBIOSName"
 #define SAM_DB_COL_COMMON_NAME          "CommonName"
 #define SAM_DB_COL_SAM_ACCOUNT_NAME     "SamAccountName"
+#define SAM_DB_COL_USER_PRINCIPAL_NAME  "UserPrincipalName"
 #define SAM_DB_COL_DESCRIPTION          "Description"
 #define SAM_DB_COL_UID                  "UID"
 #define SAM_DB_COL_PASSWORD             "Password"
@@ -101,6 +102,7 @@
                  SAM_DB_COL_NETBIOS_NAME         " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_COMMON_NAME          " TEXT,\n"                    \
                  SAM_DB_COL_SAM_ACCOUNT_NAME     " TEXT COLLATE NOCASE,\n"     \
+                 SAM_DB_COL_USER_PRINCIPAL_NAME  " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_DESCRIPTION          " TEXT,\n"                    \
                  SAM_DB_COL_UID                  " INTEGER,\n"                 \
                  SAM_DB_COL_PASSWORD             " TEXT,\n"                    \
@@ -184,6 +186,8 @@ typedef enum
     {'C','o','m','m','o','n','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME \
     {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
+#define SAM_DB_DIR_ATTR_USER_PRINCIPAL_NAME \
+    {'U','s','e','r','P','r','i','n','c','i','p','a','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_DESCRIPTION \
     {'D','e','s','c','r','i','p','t','i','o','n',0}
 #define SAM_DB_DIR_ATTR_UID \
@@ -311,6 +315,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,     \
         SAM_DB_COL_SAM_ACCOUNT_NAME,          \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_USER_PRINCIPAL_NAME,  \
+        SAM_DB_COL_USER_PRINCIPAL_NAME,       \
         SAMDB_ATTR_TYPE_TEXT,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -486,6 +498,10 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_USER_PRINCIPAL_NAME,                     \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_COMMON_NAME,                             \
