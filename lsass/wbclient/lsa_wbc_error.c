@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -49,101 +49,110 @@
 #include "lwnet.h"
 
 struct _ErrorMap {
-	DWORD dwError;
-	wbcErr wbcError;
+    DWORD dwError;
+    wbcErr wbcError;
 };
 
 static struct _ErrorMap LsaErrorTable[] = {
-	{ LSA_ERROR_SUCCESS, WBC_ERR_SUCCESS },
-	{ LSA_ERROR_NOT_IMPLEMENTED, WBC_ERR_NOT_IMPLEMENTED },
-	{ LSA_ERROR_INTERNAL, WBC_ERR_UNKNOWN_FAILURE },
-	{ LSA_ERROR_OUT_OF_MEMORY, WBC_ERR_NO_MEMORY },
-	{ LSA_ERROR_INVALID_SID, WBC_ERR_INVALID_SID },
-	{ LSA_ERROR_INVALID_PARAMETER, WBC_ERR_INVALID_PARAM },
-	{ LSA_ERROR_SERVICE_NOT_AVAILABLE, WBC_ERR_WINBIND_NOT_AVAILABLE },
-	{ LSA_ERROR_NO_SUCH_DOMAIN, WBC_ERR_DOMAIN_NOT_FOUND },
-	{ LSA_ERROR_INVALID_SERVICE_RESPONSE, WBC_ERR_INVALID_RESPONSE },
-	{ LSA_ERROR_NSS_ERROR, WBC_ERR_NSS_ERROR },
-	{ LSA_ERROR_AUTH_ERROR, WBC_ERR_AUTH_ERROR }
+    { LSA_ERROR_SUCCESS, WBC_ERR_SUCCESS },
+    { LSA_ERROR_NOT_IMPLEMENTED, WBC_ERR_NOT_IMPLEMENTED },
+    { LSA_ERROR_INTERNAL, WBC_ERR_UNKNOWN_FAILURE },
+    { LSA_ERROR_OUT_OF_MEMORY, WBC_ERR_NO_MEMORY },
+    { LSA_ERROR_INVALID_SID, WBC_ERR_INVALID_SID },
+    { LSA_ERROR_INVALID_PARAMETER, WBC_ERR_INVALID_PARAM },
+    { LSA_ERROR_SERVICE_NOT_AVAILABLE, WBC_ERR_WINBIND_NOT_AVAILABLE },
+    { LSA_ERROR_NO_SUCH_DOMAIN, WBC_ERR_DOMAIN_NOT_FOUND },
+    { LSA_ERROR_INVALID_SERVICE_RESPONSE, WBC_ERR_INVALID_RESPONSE },
+    { LSA_ERROR_NSS_ERROR, WBC_ERR_NSS_ERROR },
+    { LSA_ERROR_AUTH_ERROR, WBC_ERR_AUTH_ERROR }
 };
 
 static struct _ErrorMap NetlogonErrorTable[] = {
-	{ LWNET_ERROR_SUCCESS, WBC_ERR_SUCCESS },
-	
+    { LWNET_ERROR_SUCCESS, WBC_ERR_SUCCESS },
+
 };
 
 static struct _ErrorMap WbcErrorTable[] = {
-	{ LSA_ERROR_SUCCESS, WBC_ERR_SUCCESS },
-	{ LSA_ERROR_NOT_IMPLEMENTED, WBC_ERR_NOT_IMPLEMENTED },
-	{ LSA_ERROR_INTERNAL, WBC_ERR_UNKNOWN_FAILURE },
-	{ LSA_ERROR_OUT_OF_MEMORY, WBC_ERR_NO_MEMORY },
-	{ LSA_ERROR_INVALID_SID, WBC_ERR_INVALID_SID },
-	{ LSA_ERROR_INVALID_PARAMETER, WBC_ERR_INVALID_PARAM },
-	{ LSA_ERROR_SERVICE_NOT_AVAILABLE, WBC_ERR_WINBIND_NOT_AVAILABLE },
-	{ LSA_ERROR_NO_SUCH_DOMAIN, WBC_ERR_DOMAIN_NOT_FOUND },
-	{ LSA_ERROR_INVALID_SERVICE_RESPONSE, WBC_ERR_INVALID_RESPONSE },
-	{ LSA_ERROR_NSS_ERROR, WBC_ERR_NSS_ERROR },
-	{ LSA_ERROR_AUTH_ERROR, WBC_ERR_AUTH_ERROR }
+    { LSA_ERROR_SUCCESS, WBC_ERR_SUCCESS },
+    { LSA_ERROR_NOT_IMPLEMENTED, WBC_ERR_NOT_IMPLEMENTED },
+    { LSA_ERROR_INTERNAL, WBC_ERR_UNKNOWN_FAILURE },
+    { LSA_ERROR_OUT_OF_MEMORY, WBC_ERR_NO_MEMORY },
+    { LSA_ERROR_INVALID_SID, WBC_ERR_INVALID_SID },
+    { LSA_ERROR_INVALID_PARAMETER, WBC_ERR_INVALID_PARAM },
+    { LSA_ERROR_SERVICE_NOT_AVAILABLE, WBC_ERR_WINBIND_NOT_AVAILABLE },
+    { LSA_ERROR_NO_SUCH_DOMAIN, WBC_ERR_DOMAIN_NOT_FOUND },
+    { LSA_ERROR_INVALID_SERVICE_RESPONSE, WBC_ERR_INVALID_RESPONSE },
+    { LSA_ERROR_NSS_ERROR, WBC_ERR_NSS_ERROR },
+    { LSA_ERROR_AUTH_ERROR, WBC_ERR_AUTH_ERROR }
 };
-	
+
 static wbcErr map_lsa_to_wbc_error(DWORD err)
 {
-	int i = 0;
-	size_t num_map_entries = sizeof(LsaErrorTable) / sizeof(struct _ErrorMap);
+    int i = 0;
+    size_t num_map_entries = sizeof(LsaErrorTable) / sizeof(struct _ErrorMap);
 
-	for (i=0; i<num_map_entries; i++) {
-		if (LsaErrorTable[i].dwError == err) {			
-			return LsaErrorTable[i].wbcError;
-		}
-	}
-	
-	return WBC_ERR_UNKNOWN_FAILURE;	
+    for (i=0; i<num_map_entries; i++) {
+        if (LsaErrorTable[i].dwError == err) {
+            return LsaErrorTable[i].wbcError;
+        }
+    }
+
+    return WBC_ERR_UNKNOWN_FAILURE;
 }
 
 static wbcErr map_netlogon_to_wbc_error(DWORD err)
 {
-	int i = 0;
-	size_t num_map_entries = sizeof(NetlogonErrorTable) / sizeof(struct _ErrorMap);
+    int i = 0;
+    size_t num_map_entries = sizeof(NetlogonErrorTable) / sizeof(struct _ErrorMap);
 
-	for (i=0; i<num_map_entries; i++) {
-		if (NetlogonErrorTable[i].dwError == err) {			
-			return NetlogonErrorTable[i].wbcError;
-		}
-	}
-	
-	return WBC_ERR_UNKNOWN_FAILURE;	
+    for (i=0; i<num_map_entries; i++) {
+        if (NetlogonErrorTable[i].dwError == err) {
+            return NetlogonErrorTable[i].wbcError;
+        }
+    }
+
+    return WBC_ERR_UNKNOWN_FAILURE;
 }
 
 wbcErr map_error_to_wbc_status(DWORD err)
 {
-	if (err == 0)
-		return WBC_ERR_SUCCESS;
+    if (err == 0)
+        return WBC_ERR_SUCCESS;
 
-	/* Use the correct mapping table */
+    /* Use the correct mapping table */
 
-	if (LWNET_ERROR_MASK(err) == LWNET_ERROR_MASK(LWNET_ERROR_SUCCESS))
-		return map_netlogon_to_wbc_error(err);
-	
-	if (LSA_ERROR_MASK(err) == LSA_ERROR_MASK(LSA_ERROR_SUCCESS))
-		return map_lsa_to_wbc_error(err);
-	
+    if (LWNET_ERROR_MASK(err) == LWNET_ERROR_MASK(LWNET_ERROR_SUCCESS))
+        return map_netlogon_to_wbc_error(err);
 
-	/* Return the default value generic error */
+    if (LSA_ERROR_MASK(err) == LSA_ERROR_MASK(LSA_ERROR_SUCCESS))
+        return map_lsa_to_wbc_error(err);
 
-	return WBC_ERR_UNKNOWN_FAILURE;	
+
+    /* Return the default value generic error */
+
+    return WBC_ERR_UNKNOWN_FAILURE;
 }
 
 
 DWORD map_wbc_to_lsa_error(wbcErr err)
 {
-	int i = 0;
-	size_t num_map_entries = sizeof(WbcErrorTable) / sizeof(struct _ErrorMap);
+    int i = 0;
+    size_t num_map_entries = sizeof(WbcErrorTable) / sizeof(struct _ErrorMap);
 
-	for (i=0; i<num_map_entries; i++) {
-		if (WbcErrorTable[i].wbcError == err) {			
-			return WbcErrorTable[i].dwError;
-		}
-	}
-	
-	return LSA_ERROR_INTERNAL;	
+    for (i=0; i<num_map_entries; i++) {
+        if (WbcErrorTable[i].wbcError == err) {
+            return WbcErrorTable[i].dwError;
+        }
+    }
+
+    return LSA_ERROR_INTERNAL;
 }
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

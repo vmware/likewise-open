@@ -71,15 +71,26 @@
         }
 
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
+#define LOCAL_OBJECT_CLASS_USER            5
 
 #define LOCAL_DB_DIR_ATTR_OBJECT_CLASS     "ObjectClass"
+#define LOCAL_DB_DIR_ATTR_OBJECT_SID       "ObjectSID"
 #define LOCAL_DB_DIR_ATTR_DOMAIN           "Domain"
 #define LOCAL_DB_DIR_ATTR_NETBIOS_NAME     "NetBIOSName"
 #define LOCAL_DB_DIR_ATTR_COMMON_NAME      "CommonName"
 #define LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME "SamAccountName"
+#define LOCAL_DB_DIR_ATTR_UID              "UID"
+#define LOCAL_DB_DIR_ATTR_GID              "GID"
+#define LOCAL_DB_DIR_ATTR_PASSWORD         "Password"
+#define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS  "UserInfoFlags"
+#define LOCAL_DB_DIR_ATTR_GECOS            "Gecos"
+#define LOCAL_DB_DIR_ATTR_HOME_DIR         "Homedir"
+#define LOCAL_DB_DIR_ATTR_SHELL            "LoginShell"
 
 #define LOCAL_DIR_ATTR_OBJECT_CLASS  \
     {'O','b','j','e','c','t','C','l','a','s','s',0}
+#define LOCAL_DIR_ATTR_OBJECT_SID \
+    {'O','b','j','e','c','t','S','I','D',0}
 #define LOCAL_DIR_ATTR_DOMAIN \
     {'D','o','m','a','i','n',0}
 #define LOCAL_DIR_ATTR_NETBIOS_NAME \
@@ -88,6 +99,29 @@
     {'C','o','m','m','o','n','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME \
     {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
+#define LOCAL_DIR_ATTR_UID \
+    {'U','I','D',0}
+#define LOCAL_DIR_ATTR_GID \
+    {'G','I','D',0}
+#define LOCAL_DIR_ATTR_PASSWORD \
+    {'P','a','s','s','w','o','r','d',0}
+#define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
+    {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
+#define LOCAL_DIR_ATTR_GECOS \
+    {'G','e','c','o','s',0}
+#define LOCAL_DIR_ATTR_HOME_DIR \
+    {'H','o','m','e','d','i','r',0}
+#define LOCAL_DIR_ATTR_SHELL \
+    {'L','o','g','i','n','S','h','e','l','l',0}
+
+typedef DWORD LOCAL_ACCESS_FLAG;
+
+#define LOCAL_ACCESS_FLAG_ALLOW_NONE   0x00000000
+#define LOCAL_ACCESS_FLAG_ALLOW_QUERY  0x00000001
+#define LOCAL_ACCESS_FLAG_ALLOW_ADD    0x00000002
+#define LOCAL_ACCESS_FLAG_ALLOW_DELETE 0x00000004
+#define LOCAL_ACCESS_FLAG_ALLOW_MODIFY 0x00000008
+
 
 #endif /* __LPDEFS_H__ */
 

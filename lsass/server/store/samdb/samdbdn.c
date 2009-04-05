@@ -159,7 +159,7 @@ SamDbGetDNComponents(
     if (pParentDNToken)
     {
         dwError = DirectoryAllocateStringW(
-                    pParentDNToken->pwszToken,
+                    pParentDNToken->pwszDN,
                     &pwszParentDN);
         BAIL_ON_SAMDB_ERROR(dwError);
     }
@@ -263,6 +263,8 @@ SamDbGetDnToken(
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_CN;
 
+        pToken->pwszDN = pwszObjectNameCursor;
+
         pwszObjectNameCursor += dwLenCNPrefix;
         dwAvailableLen -= dwLenCNPrefix;
         dwLenUsed += dwLenCNPrefix;
@@ -275,6 +277,8 @@ SamDbGetDnToken(
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_OU;
 
+        pToken->pwszDN = pwszObjectNameCursor;
+
         pwszObjectNameCursor += dwLenOUPrefix;
         dwAvailableLen -= dwLenOUPrefix;
         dwLenUsed += dwLenOUPrefix;
@@ -286,6 +290,8 @@ SamDbGetDnToken(
                 dwLenDCPrefix * sizeof(wchar16_t)))
     {
         pToken->tokenType = SAMDB_DN_TOKEN_TYPE_DC;
+
+        pToken->pwszDN = pwszObjectNameCursor;
 
         pwszObjectNameCursor += dwLenDCPrefix;
         dwAvailableLen -= dwLenDCPrefix;

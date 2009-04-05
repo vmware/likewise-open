@@ -49,253 +49,262 @@
 
 
 wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
-			 bool domain_groups_only,
-			 uint32_t *num_sids,
-			 struct wbcDomainSid **sids)
+             bool domain_groups_only,
+             uint32_t *num_sids,
+             struct wbcDomainSid **sids)
 {
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	DWORD dwNumGids = 0;
-	gid_t *gids = NULL;
-	int i = 0;
-	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	struct wbcDomainSid *sidList = NULL;
-	PSTR pszSidString = NULL;
-	PSTR ppszSidList[2];
-	CHAR pszAccountName[512] = "";
-	PLSA_SID_INFO pNameList = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    DWORD dwNumGids = 0;
+    gid_t *gids = NULL;
+    int i = 0;
+    LSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    struct wbcDomainSid *sidList = NULL;
+    PSTR pszSidString = NULL;
+    PSTR ppszSidList[2];
+    CHAR pszAccountName[512] = "";
+    PLSA_SID_INFO pNameList = NULL;
         CHAR chDomainSeparator = 0;
 
-	BAIL_ON_NULL_PTR_PARAM(user_sid, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(num_sids, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(sids, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(user_sid, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(num_sids, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(sids, dwErr);
 
-	/* Conver the SID to a name */
+    /* Conver the SID to a name */
 
-	wbc_status = wbcSidToString(user_sid, &pszSidString);
-	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);
+    wbc_status = wbcSidToString(user_sid, &pszSidString);
+    dwErr = map_wbc_to_lsa_error(wbc_status);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	/* map the SID to a name */
+    /* map the SID to a name */
 
-	ppszSidList[0] = pszSidString;
-	ppszSidList[1] = NULL;
+    ppszSidList[0] = pszSidString;
+    ppszSidList[1] = NULL;
 
-	dwErr = LsaGetNamesBySidList(
+    dwErr = LsaGetNamesBySidList(
                 hLsa,
                 1,
                 ppszSidList,
                 &pNameList,
                 &chDomainSeparator);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	if (pNameList[0].accountType != AccountType_User) {
-		dwErr = LSA_ERROR_NO_SUCH_USER;
-		BAIL_ON_LSA_ERR(dwErr);
-	}
+    if (pNameList[0].accountType != AccountType_User) {
+        dwErr = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
 
-	snprintf(pszAccountName,
-		 sizeof(pszAccountName),
-		 "%s%c%s",
-		 pNameList[0].pszDomainName,
+    snprintf(pszAccountName,
+         sizeof(pszAccountName),
+         "%s%c%s",
+         pNameList[0].pszDomainName,
                  chDomainSeparator,
-		 pNameList[0].pszSamAccountName);
+         pNameList[0].pszSamAccountName);
 
-	/* Now lookup groups for user SID */
+    /* Now lookup groups for user SID */
 
-	dwErr = LsaGetGidsForUserByName(hLsa, pszAccountName,
-					&dwNumGids, &gids);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaGetGidsForUserByName(hLsa, pszAccountName,
+                    &dwNumGids, &gids);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	/* Allocate array for sids */
+    /* Allocate array for sids */
 
-	sidList = _wbc_malloc_zero(sizeof(struct wbcDomainSid)*dwNumGids, NULL);
-	BAIL_ON_NULL_PTR(sidList, dwErr);
+    sidList = _wbc_malloc_zero(sizeof(struct wbcDomainSid)*dwNumGids, NULL);
+    BAIL_ON_NULL_PTR(sidList, dwErr);
 
-	/* Now convert gids to SIDs */
+    /* Now convert gids to SIDs */
 
-	for (i=0; i<dwNumGids; i++) {
-		dwErr = LsaFindGroupById(hLsa, gids[i], LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
-		BAIL_ON_LSA_ERR(dwErr);
+    for (i=0; i<dwNumGids; i++) {
+        dwErr = LsaFindGroupById(hLsa, gids[i], LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		wbc_status = wbcStringToSid(pGroupInfo->pszSid, &sidList[i]);
-		dwErr = map_wbc_to_lsa_error(wbc_status);
-		BAIL_ON_LSA_ERR(dwErr);
+        wbc_status = wbcStringToSid(pGroupInfo->pszSid, &sidList[i]);
+        dwErr = map_wbc_to_lsa_error(wbc_status);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		LsaFreeGroupInfo(1, pGroupInfo);
-		pGroupInfo = NULL;
-	}
+        LsaFreeGroupInfo(1, pGroupInfo);
+        pGroupInfo = NULL;
+    }
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
 
-	*sids = sidList;
-	*num_sids = dwNumGids;
+    *sids = sidList;
+    *num_sids = dwNumGids;
 
-	dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	if (pNameList) {
-		LsaFreeSIDInfoList(pNameList, 1);
-	}
+    if (pNameList) {
+        LsaFreeSIDInfoList(pNameList, 1);
+    }
 
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(sidList);
-	}
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(sidList);
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (gids) {
-		LsaFreeMemory(gids);
-	}
+    if (gids) {
+        LsaFreeMemory(gids);
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfo(1, pGroupInfo);
-	}
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(1, pGroupInfo);
+    }
 
-	wbc_status = map_error_to_wbc_status(dwErr);
+    wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;
+    return wbc_status;
 }
 
 static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
-			    LSA_USER_INFO_0 **ppUserInfo, DWORD userInfoSize)
+                LSA_USER_INFO_0 **ppUserInfo, DWORD userInfoSize)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	char **ppUsers = NULL;
-	uint32_t nUsers = 0;
-	int i;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    char **ppUsers = NULL;
+    uint32_t nUsers = 0;
+    int i;
 
-	BAIL_ON_NULL_PTR_PARAM(pppUserList, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(pUserSize, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(pppUserList, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(pUserSize, dwErr);
 
-	/* Check for a no-op */
+    /* Check for a no-op */
 
-	if (!ppUserInfo || (userInfoSize == 0)) {
-		return LSA_ERROR_SUCCESS;
-	}
+    if (!ppUserInfo || (userInfoSize == 0)) {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	ppUsers = *pppUserList;
-	nUsers = *pUserSize;
+    ppUsers = *pppUserList;
+    nUsers = *pUserSize;
 
-	if (!ppUsers) {
-		ppUsers = _wbc_malloc((userInfoSize+1) * sizeof(char*),
-				       _wbc_free_string_array);
-		BAIL_ON_NULL_PTR(ppUsers, dwErr);
-	} else {
-		ppUsers = _wbc_realloc(*pppUserList,
-					(userInfoSize+1) * sizeof(char*));
-		BAIL_ON_NULL_PTR(ppUsers, dwErr);
-	}
+    if (!ppUsers) {
+        ppUsers = _wbc_malloc((userInfoSize+1) * sizeof(char*),
+                       _wbc_free_string_array);
+        BAIL_ON_NULL_PTR(ppUsers, dwErr);
+    } else {
+        ppUsers = _wbc_realloc(*pppUserList,
+                    (userInfoSize+1) * sizeof(char*));
+        BAIL_ON_NULL_PTR(ppUsers, dwErr);
+    }
 
-	for (i=0; i<userInfoSize; i++) {
-		ppUsers[nUsers] = _wbc_strdup(ppUserInfo[i]->pszName);
-		BAIL_ON_NULL_PTR(ppUsers[nUsers], dwErr);
+    for (i=0; i<userInfoSize; i++) {
+        ppUsers[nUsers] = _wbc_strdup(ppUserInfo[i]->pszName);
+        BAIL_ON_NULL_PTR(ppUsers[nUsers], dwErr);
 
-		nUsers++;
-	}
+        nUsers++;
+    }
 
-	/* Terminate */
+    /* Terminate */
 
-	ppUsers[nUsers] = NULL;
+    ppUsers[nUsers] = NULL;
 
-	*pppUserList = ppUsers;
+    *pppUserList = ppUsers;
         *pUserSize = nUsers;
 
-	dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LSA_ERROR_SUCCESS;
 done:
-	if (dwErr != LSA_ERROR_SUCCESS)  {
-		_WBC_FREE(ppUsers);
-	}
+    if (dwErr != LSA_ERROR_SUCCESS)  {
+        _WBC_FREE(ppUsers);
+    }
 
-	return dwErr;
+    return dwErr;
 }
 
 wbcErr wbcListUsers(const char *domain_name,
-		    uint32_t *num_users,
-		    const char ***users)
+            uint32_t *num_users,
+            const char ***users)
 {
-	LSA_USER_INFO_0 **pUserInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	HANDLE hResume = (HANDLE)NULL;
-	DWORD dwNumUsers = 0;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	bool bDone = false;
-	uint32_t userSize = 0;
-	char **userList = NULL;
+    LSA_USER_INFO_0 **pUserInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    HANDLE hResume = (HANDLE)NULL;
+    DWORD dwNumUsers = 0;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    bool bDone = false;
+    uint32_t userSize = 0;
+    char **userList = NULL;
 
-	/* For now ignore the domain name nutil the LsaXXX() API supports it */
+    /* For now ignore the domain name nutil the LsaXXX() API supports it */
 
-	BAIL_ON_NULL_PTR_PARAM(users, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(num_users, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(users, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(num_users, dwErr);
 
-	*users = NULL;
-	*num_users = 0;
+    *users = NULL;
+    *num_users = 0;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaBeginEnumUsers(hLsa, 0, 250, 0, &hResume);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaBeginEnumUsers(hLsa, 0, 250, 0, &hResume);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	while (!bDone) {
-		dwErr = LsaEnumUsers(hLsa, hResume,
-				     &dwNumUsers,
-				     (PVOID**)&pUserInfo);
-		BAIL_ON_LSA_ERR(dwErr);
+    while (!bDone) {
+        dwErr = LsaEnumUsers(hLsa, hResume,
+                     &dwNumUsers,
+                     (PVOID**)&pUserInfo);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		/* Add new users to list */
+        /* Add new users to list */
 
-		dwErr = AddUsersToList(&userList, &userSize,
-				       pUserInfo, dwNumUsers);
-		BAIL_ON_LSA_ERR(dwErr);
+        dwErr = AddUsersToList(&userList, &userSize,
+                       pUserInfo, dwNumUsers);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		/* FIXME! */
+        /* FIXME! */
 
-		if (dwNumUsers == 0) {
-			bDone = true;
-			continue;
-		}
+        if (dwNumUsers == 0) {
+            bDone = true;
+            continue;
+        }
 
-		LsaFreeUserInfoList(0, (PVOID*)pUserInfo, dwNumUsers);
-		pUserInfo = NULL;
+        LsaFreeUserInfoList(0, (PVOID*)pUserInfo, dwNumUsers);
+        pUserInfo = NULL;
 
-	}
+    }
 
-	*users = (const char **)userList;
-	*num_users = userSize;
+    *users = (const char **)userList;
+    *num_users = userSize;
 
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(userList);
-	}
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(userList);
+    }
 
-	if (hResume) {
-		LsaEndEnumUsers(hLsa, hResume);
-		hResume = (HANDLE)NULL;
-	}
+    if (hResume) {
+        LsaEndEnumUsers(hLsa, hResume);
+        hResume = (HANDLE)NULL;
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pUserInfo) {
-		LsaFreeUserInfoList(0, (PVOID*)&pUserInfo, dwNumUsers);
-	}
+    if (pUserInfo) {
+        LsaFreeUserInfoList(0, (PVOID*)&pUserInfo, dwNumUsers);
+    }
 
-	wbc_status = map_error_to_wbc_status(dwErr);
+    wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;
+    return wbc_status;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

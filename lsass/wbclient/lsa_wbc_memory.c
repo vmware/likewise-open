@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -50,118 +50,127 @@
 
 #define MEM_MAGIC  0x28736512
 struct _wbc_mem_header {
-	uint32_t magic;	
-	mem_destructor_t free_fn;	
+    uint32_t magic;
+    mem_destructor_t free_fn;
 };
 
 static size_t MEM_HDR_SIZE = sizeof(struct _wbc_mem_header);
 
 void *_wbc_malloc(size_t size, mem_destructor_t destructor)
 {
-	void *p = NULL;
-	struct _wbc_mem_header *p_hdr;	
+    void *p = NULL;
+    struct _wbc_mem_header *p_hdr;
 
-	if (size == 0)
-		return NULL;
+    if (size == 0)
+        return NULL;
 
-	if ((p = malloc(size+MEM_HDR_SIZE)) == NULL) {
-		return NULL;
-	}
+    if ((p = malloc(size+MEM_HDR_SIZE)) == NULL) {
+        return NULL;
+    }
 
-	p_hdr = (struct _wbc_mem_header*)p;
-	
-	p_hdr->magic = MEM_MAGIC;
-	p_hdr->free_fn = destructor;
-	
-	return (p+MEM_HDR_SIZE);
+    p_hdr = (struct _wbc_mem_header*)p;
+
+    p_hdr->magic = MEM_MAGIC;
+    p_hdr->free_fn = destructor;
+
+    return (p+MEM_HDR_SIZE);
 }
 
 void *_wbc_realloc(void *p, size_t new_size)
 {
-	struct _wbc_mem_header *chunk;
-	void *new_p = NULL;	
-	
-	chunk = (struct _wbc_mem_header*)(p - MEM_HDR_SIZE);
-       	assert(chunk->magic == MEM_MAGIC);
-	
-	if (new_size == 0) {
-		_WBC_FREE(p);
-		return NULL;		
-	}
+    struct _wbc_mem_header *chunk;
+    void *new_p = NULL;
 
-	if ((new_p = realloc(chunk, new_size+MEM_HDR_SIZE)) == NULL) {
-		return NULL;
-	}	
+    chunk = (struct _wbc_mem_header*)(p - MEM_HDR_SIZE);
+           assert(chunk->magic == MEM_MAGIC);
 
-	return (new_p+MEM_HDR_SIZE);
+    if (new_size == 0) {
+        _WBC_FREE(p);
+        return NULL;
+    }
+
+    if ((new_p = realloc(chunk, new_size+MEM_HDR_SIZE)) == NULL) {
+        return NULL;
+    }
+
+    return (new_p+MEM_HDR_SIZE);
 }
 
 void *_wbc_malloc_zero(size_t size, mem_destructor_t destructor)
 {
-	void *p;
-	
-	if (size == 0)
-		return NULL;
-	
-	if ((p = _wbc_malloc(size, destructor)) == NULL){		
-		return NULL;
-	}
+    void *p;
 
-	memset(p, 0x0, size);
+    if (size == 0)
+        return NULL;
 
-	return p;
+    if ((p = _wbc_malloc(size, destructor)) == NULL){
+        return NULL;
+    }
+
+    memset(p, 0x0, size);
+
+    return p;
 }
 
 
 void _wbc_free(void *p)
 {
-	struct _wbc_mem_header *chunk;
-	
-	if (!p)
-		return;
-	
-	chunk = (struct _wbc_mem_header*)(p - MEM_HDR_SIZE);
+    struct _wbc_mem_header *chunk;
 
-       	assert(chunk->magic == MEM_MAGIC);
-	
-	if (chunk->free_fn)
-		chunk->free_fn(p);
+    if (!p)
+        return;
 
-	free(chunk);
+    chunk = (struct _wbc_mem_header*)(p - MEM_HDR_SIZE);
+
+           assert(chunk->magic == MEM_MAGIC);
+
+    if (chunk->free_fn)
+        chunk->free_fn(p);
+
+    free(chunk);
 }
 
 char* _wbc_strdup(const char *str)
 {
-	size_t len = 0;
-	char *p = NULL;	
-	
-	if (!str)
-		return NULL;
-	
-	len = strlen(str);	
-	if ((p = _wbc_malloc(len+1, NULL)) == NULL) {
-		return NULL;
-	}
+    size_t len = 0;
+    char *p = NULL;
 
-	/* Copy and NULL terminate */
+    if (!str)
+        return NULL;
 
-	strncpy(p, str, len);
-	p[len] = '\0';
-	
-	return p;
+    len = strlen(str);
+    if ((p = _wbc_malloc(len+1, NULL)) == NULL) {
+        return NULL;
+    }
+
+    /* Copy and NULL terminate */
+
+    strncpy(p, str, len);
+    p[len] = '\0';
+
+    return p;
 }
 
 int _wbc_free_string_array(void *p)
 {
-	char **members = (char**)p;
-	int i = 0;
+    char **members = (char**)p;
+    int i = 0;
 
-	if (!p)
-		return 0;
+    if (!p)
+        return 0;
 
-	for (i=0; members[i]; i++) {
-		_WBC_FREE(members[i]);
-	}
+    for (i=0; members[i]; i++) {
+        _WBC_FREE(members[i]);
+    }
 
-	return 0;	
+    return 0;
 }
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

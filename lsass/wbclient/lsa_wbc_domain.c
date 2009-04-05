@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -49,24 +49,33 @@
 
 
 wbcErr wbcDomainInfo(const char *domain,
-		     struct wbcDomainInfo **info)
+             struct wbcDomainInfo **info)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
-wbcErr wbcListTrusts(struct wbcDomainInfo **domains, 
-		     size_t *num_domains)
+wbcErr wbcListTrusts(struct wbcDomainInfo **domains,
+             size_t *num_domains)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcCheckTrustCredentials(const char *domain,
-				struct wbcAuthErrorInfo **error)
+                struct wbcAuthErrorInfo **error)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -53,17 +53,17 @@
 
 VOID
 StrUpper(
-	PSTR pszString
-	)
+    PSTR pszString
+    )
 {
-	CHAR *p = pszString;
-	
-	while (p && *p) {
-		*p = toupper(*p);
-		p++;		
-	}
-	
-	return;	
+    CHAR *p = pszString;
+
+    while (p && *p) {
+        *p = toupper(*p);
+        p++;
+    }
+
+    return;
 }
 
 
@@ -73,50 +73,50 @@ StrUpper(
 
 BOOLEAN
 StrEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2
-	)
+    PCSTR pszStr1,
+    PCSTR pszStr2
+    )
 {
-	DWORD dwError = LSA_ERROR_INTERNAL;	
-	PSTR pszCopy1 = NULL;
-	PSTR pszCopy2 = NULL;
-	BOOLEAN bEqual = FALSE;	
-	
-	/* If same pointer, then must be equal */
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PSTR pszCopy1 = NULL;
+    PSTR pszCopy2 = NULL;
+    BOOLEAN bEqual = FALSE;
 
-	if (pszStr1 == pszStr2)
-		return TRUE;
+    /* If same pointer, then must be equal */
 
-	/* If either is NULL, cannot be substrings */
+    if (pszStr1 == pszStr2)
+        return TRUE;
 
-	if (!pszStr1 || !pszStr2)
-		return FALSE;
+    /* If either is NULL, cannot be substrings */
 
-	/* Check lengths */
+    if (!pszStr1 || !pszStr2)
+        return FALSE;
 
-	if (strlen(pszStr1) != strlen(pszStr2))
-		return FALSE;	
+    /* Check lengths */
 
-	/* Now copy, convert to upper case, and compare */
+    if (strlen(pszStr1) != strlen(pszStr2))
+        return FALSE;
 
-	pszCopy1 = _wbc_strdup(pszStr1);
-	BAIL_ON_NULL_PTR(pszCopy1, dwError);
+    /* Now copy, convert to upper case, and compare */
 
-	pszCopy2 = _wbc_strdup(pszStr2);
-	BAIL_ON_NULL_PTR(pszCopy2, dwError);
+    pszCopy1 = _wbc_strdup(pszStr1);
+    BAIL_ON_NULL_PTR(pszCopy1, dwError);
 
-	StrUpper(pszCopy1);
-	StrUpper(pszCopy2);
-	
-	if (strcmp(pszCopy1, pszCopy2) == 0) {		
-		bEqual = TRUE;		
-	}
-	
+    pszCopy2 = _wbc_strdup(pszStr2);
+    BAIL_ON_NULL_PTR(pszCopy2, dwError);
+
+    StrUpper(pszCopy1);
+    StrUpper(pszCopy2);
+
+    if (strcmp(pszCopy1, pszCopy2) == 0) {
+        bEqual = TRUE;
+    }
+
 done:
-	_WBC_FREE(pszCopy1);
-	_WBC_FREE(pszCopy2);
-	
-	return bEqual;	
+    _WBC_FREE(pszCopy1);
+    _WBC_FREE(pszCopy2);
+
+    return bEqual;
 }
 
 /***********************************************************
@@ -124,50 +124,59 @@ done:
 
 BOOLEAN
 StrnEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2,
-	DWORD dwChars
-	)
+    PCSTR pszStr1,
+    PCSTR pszStr2,
+    DWORD dwChars
+    )
 {
-	DWORD dwLen1, dwLen2;
-	DWORD dwError = LSA_ERROR_INTERNAL;	
-	PSTR pszCopy1 = NULL;	
-	PSTR pszCopy2 = NULL;
-	BOOLEAN bResult = FALSE;	
-	
-	/* If same pointer, then must be equal */
+    DWORD dwLen1, dwLen2;
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PSTR pszCopy1 = NULL;
+    PSTR pszCopy2 = NULL;
+    BOOLEAN bResult = FALSE;
 
-	if (pszStr1 == pszStr2)
-		return TRUE;
+    /* If same pointer, then must be equal */
 
-	/* If either is NULL, cannot be substrings */
+    if (pszStr1 == pszStr2)
+        return TRUE;
 
-	if (!pszStr1 || !pszStr2)
-		return FALSE;
+    /* If either is NULL, cannot be substrings */
 
-	dwLen1 = strlen(pszStr1);
-	dwLen2 = strlen(pszStr2);
+    if (!pszStr1 || !pszStr2)
+        return FALSE;
 
-	pszCopy1 = _wbc_strdup(pszStr1);
-	BAIL_ON_NULL_PTR(pszCopy1, dwError);
+    dwLen1 = strlen(pszStr1);
+    dwLen2 = strlen(pszStr2);
 
-	pszCopy2 = _wbc_strdup(pszStr2);
-	BAIL_ON_NULL_PTR(pszCopy2, dwError);
+    pszCopy1 = _wbc_strdup(pszStr1);
+    BAIL_ON_NULL_PTR(pszCopy1, dwError);
 
-	if (dwLen1 > dwChars) {
-		*(pszCopy1 + dwChars) = '\0';		
-	}
-	if (dwLen2 > dwChars) {
-		*(pszCopy2 + dwChars) = '\0';		
-	}
+    pszCopy2 = _wbc_strdup(pszStr2);
+    BAIL_ON_NULL_PTR(pszCopy2, dwError);
 
-	bResult = StrEqual(pszCopy1, pszCopy2);
+    if (dwLen1 > dwChars) {
+        *(pszCopy1 + dwChars) = '\0';
+    }
+    if (dwLen2 > dwChars) {
+        *(pszCopy2 + dwChars) = '\0';
+    }
+
+    bResult = StrEqual(pszCopy1, pszCopy2);
 
 done:
-	_WBC_FREE(pszCopy1);
-	_WBC_FREE(pszCopy2);
+    _WBC_FREE(pszCopy1);
+    _WBC_FREE(pszCopy2);
 
-	return bResult;	
+    return bResult;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

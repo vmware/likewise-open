@@ -48,134 +48,143 @@
 #include "lsaclient.h"
 
 static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
-			     LSA_GROUP_INFO_0 **ppGroupInfo, DWORD groupInfoSize)
+                 LSA_GROUP_INFO_0 **ppGroupInfo, DWORD groupInfoSize)
 {
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	char **ppGroups = NULL;
-	uint32_t nGroups = 0;
-	int i;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    char **ppGroups = NULL;
+    uint32_t nGroups = 0;
+    int i;
 
-	BAIL_ON_NULL_PTR_PARAM(pppGroupList, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(pGroupSize, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(pppGroupList, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(pGroupSize, dwErr);
 
-	/* Check for a no-op */
+    /* Check for a no-op */
 
-	if (!ppGroupInfo || (groupInfoSize == 0)) {
-		return LSA_ERROR_SUCCESS;
-	}
+    if (!ppGroupInfo || (groupInfoSize == 0)) {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	ppGroups = *pppGroupList;
-	nGroups = *pGroupSize;
+    ppGroups = *pppGroupList;
+    nGroups = *pGroupSize;
 
-	if (!ppGroups) {
-		ppGroups = _wbc_malloc((groupInfoSize+1) * sizeof(char*),
-				       _wbc_free_string_array);
-		BAIL_ON_NULL_PTR(ppGroups, dwErr);
-	} else {
-		ppGroups = _wbc_realloc(*pppGroupList,
-					(groupInfoSize+1) * sizeof(char*));
-		BAIL_ON_NULL_PTR(ppGroups, dwErr);
-	}
+    if (!ppGroups) {
+        ppGroups = _wbc_malloc((groupInfoSize+1) * sizeof(char*),
+                       _wbc_free_string_array);
+        BAIL_ON_NULL_PTR(ppGroups, dwErr);
+    } else {
+        ppGroups = _wbc_realloc(*pppGroupList,
+                    (groupInfoSize+1) * sizeof(char*));
+        BAIL_ON_NULL_PTR(ppGroups, dwErr);
+    }
 
-	for (i=0; i<groupInfoSize; i++) {
-		ppGroups[nGroups] = _wbc_strdup(ppGroupInfo[i]->pszName);
-		BAIL_ON_NULL_PTR(ppGroups[nGroups], dwErr);
+    for (i=0; i<groupInfoSize; i++) {
+        ppGroups[nGroups] = _wbc_strdup(ppGroupInfo[i]->pszName);
+        BAIL_ON_NULL_PTR(ppGroups[nGroups], dwErr);
 
-		nGroups++;
-	}
+        nGroups++;
+    }
 
-	/* Terminate */
+    /* Terminate */
 
-	ppGroups[nGroups] = NULL;
+    ppGroups[nGroups] = NULL;
 
-	*pppGroupList = ppGroups;
+    *pppGroupList = ppGroups;
         *pGroupSize = nGroups;
 
-	dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LSA_ERROR_SUCCESS;
 done:
-	if (dwErr != LSA_ERROR_SUCCESS)  {
-		_WBC_FREE(ppGroups);
-	}
+    if (dwErr != LSA_ERROR_SUCCESS)  {
+        _WBC_FREE(ppGroups);
+    }
 
-	return dwErr;
+    return dwErr;
 }
 
 
 wbcErr wbcListGroups(const char *domain_name,
-		     uint32_t *num_groups,
-		     const char ***groups)
+             uint32_t *num_groups,
+             const char ***groups)
 {
-	LSA_GROUP_INFO_0 **pGroupInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	HANDLE hResume = (HANDLE)NULL;
-	DWORD dwNumGroups = 0;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	bool bDone = false;
-	uint32_t groupSize = 0;
-	char **groupList = NULL;
+    LSA_GROUP_INFO_0 **pGroupInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    HANDLE hResume = (HANDLE)NULL;
+    DWORD dwNumGroups = 0;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    bool bDone = false;
+    uint32_t groupSize = 0;
+    char **groupList = NULL;
 
-	/* For now ignore the domain name nutil the LsaXXX() API supports it */
+    /* For now ignore the domain name nutil the LsaXXX() API supports it */
 
-	BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
-	BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(groups, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(num_groups, dwErr);
 
-	*groups = NULL;
-	*num_groups = 0;
+    *groups = NULL;
+    *num_groups = 0;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaBeginEnumGroups(hLsa, 0, 250, 0, &hResume);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaBeginEnumGroups(hLsa, 0, 250, 0, &hResume);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	while (!bDone) {
-		dwErr = LsaEnumGroups(hLsa, hResume,
-				      &dwNumGroups,
-				      (PVOID**)&pGroupInfo);
-		BAIL_ON_LSA_ERR(dwErr);
+    while (!bDone) {
+        dwErr = LsaEnumGroups(hLsa, hResume,
+                      &dwNumGroups,
+                      (PVOID**)&pGroupInfo);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		/* Add new groups to list */
+        /* Add new groups to list */
 
-		dwErr = AddGroupsToList(&groupList, &groupSize,
-					pGroupInfo, dwNumGroups);
-		BAIL_ON_LSA_ERR(dwErr);
+        dwErr = AddGroupsToList(&groupList, &groupSize,
+                    pGroupInfo, dwNumGroups);
+        BAIL_ON_LSA_ERR(dwErr);
 
-		/* FIXME! */
+        /* FIXME! */
 
-		if (dwNumGroups == 0) {
-			bDone = true;
-			continue;
-		}
+        if (dwNumGroups == 0) {
+            bDone = true;
+            continue;
+        }
 
-		LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
-		pGroupInfo = NULL;
+        LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
+        pGroupInfo = NULL;
 
-	}
+    }
 
-	*groups = (const char **)groupList;
-	*num_groups = groupSize;
+    *groups = (const char **)groupList;
+    *num_groups = groupSize;
 
 done:
-	if (dwErr != LSA_ERROR_SUCCESS) {
-		_WBC_FREE(groupList);
-	}
+    if (dwErr != LSA_ERROR_SUCCESS) {
+        _WBC_FREE(groupList);
+    }
 
-	if (hResume) {
-		LsaEndEnumGroups(hLsa, hResume);
-		hResume = (HANDLE)NULL;
-	}
+    if (hResume) {
+        LsaEndEnumGroups(hLsa, hResume);
+        hResume = (HANDLE)NULL;
+    }
 
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
-	}
+    if (pGroupInfo) {
+        LsaFreeGroupInfoList(0, (PVOID*)pGroupInfo, dwNumGroups);
+    }
 
-	wbc_status = map_error_to_wbc_status(dwErr);
+    wbc_status = map_error_to_wbc_status(dwErr);
 
-	return wbc_status;
+    return wbc_status;
 }
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

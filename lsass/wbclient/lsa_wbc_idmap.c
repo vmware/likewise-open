@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  * Authors: Gerald Carter <gcarter@likewisesoftware.com>
  *
  */
@@ -49,289 +49,298 @@
 
 
 wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
-		   uid_t *puid)
+           uid_t *puid)
 {
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	PSTR pszSidString = NULL;
-	PSTR ppszSidList[2];
-	CHAR pszAccountName[512] ="";	
-	LSA_USER_INFO_0 *pUserInfo = NULL;
-	PLSA_SID_INFO pNameList = NULL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    PSTR pszSidString = NULL;
+    PSTR ppszSidList[2];
+    CHAR pszAccountName[512] ="";
+    LSA_USER_INFO_0 *pUserInfo = NULL;
+    PLSA_SID_INFO pNameList = NULL;
         CHAR chDomainSeparator = 0;
-	
-	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);	
 
-	/* Validate the SID */
+    BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
-	wbc_status = wbcSidToString(sid, &pszSidString);
-	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);	
+    /* Validate the SID */
 
-	ppszSidList[0] = pszSidString;
-	ppszSidList[1] = NULL;	
+    wbc_status = wbcSidToString(sid, &pszSidString);
+    dwErr = map_wbc_to_lsa_error(wbc_status);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    ppszSidList[0] = pszSidString;
+    ppszSidList[1] = NULL;
 
-	dwErr = LsaGetNamesBySidList(
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = LsaGetNamesBySidList(
                 hLsa,
                 1,
                 ppszSidList,
                 &pNameList,
                 &chDomainSeparator);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	/* Make sure we have a user accouint */
+    /* Make sure we have a user accouint */
 
-	if (pNameList[0].accountType != AccountType_User) {
-		dwErr = LSA_ERROR_NO_SUCH_USER;
-		BAIL_ON_LSA_ERR(dwErr);		
-	}
+    if (pNameList[0].accountType != AccountType_User) {
+        dwErr = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
 
-	/* Lookup the username to get the uid */
+    /* Lookup the username to get the uid */
 
-	snprintf(pszAccountName, 
-		 sizeof(pszAccountName),
-		 "%s%c%s",
-		 pNameList[0].pszDomainName,
+    snprintf(pszAccountName,
+         sizeof(pszAccountName),
+         "%s%c%s",
+         pNameList[0].pszDomainName,
                  chDomainSeparator,
-		 pNameList[0].pszSamAccountName);
+         pNameList[0].pszSamAccountName);
 
-	dwErr = LsaFindUserByName(hLsa, pszAccountName, 0, (PVOID*)&pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindUserByName(hLsa, pszAccountName, 0, (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
 
-	*puid = pUserInfo->uid;	
-	
-	dwErr = LSA_ERROR_SUCCESS;	
+    *puid = pUserInfo->uid;
+
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	if (pNameList) {
-		LsaFreeSIDInfoList(pNameList, 1);
-	}
+    if (pNameList) {
+        LsaFreeSIDInfoList(pNameList, 1);
+    }
 
-	if (pszSidString) {
-		wbcFreeMemory(pszSidString);
-	}
-	
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (pszSidString) {
+        wbcFreeMemory(pszSidString);
+    }
 
-	if (pUserInfo) {
-		LsaFreeUserInfo(0, pUserInfo);
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	wbc_status = map_error_to_wbc_status(dwErr);
-	
-	return wbc_status;	
+    if (pUserInfo) {
+        LsaFreeUserInfo(0, pUserInfo);
+    }
+
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcUidToSid(uid_t uid,
-		   struct wbcDomainSid *sid)
+           struct wbcDomainSid *sid)
 {
-	LSA_USER_INFO_0 *pUserInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
+    LSA_USER_INFO_0 *pUserInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
-	dwErr = LsaFindUserById(hLsa, uid, 0, (PVOID*)&pUserInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindUserById(hLsa, uid, 0, (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	wbc_status = wbcStringToSid(pUserInfo->pszSid, sid);
-	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    wbc_status = wbcStringToSid(pUserInfo->pszSid, sid);
+    dwErr = map_wbc_to_lsa_error(wbc_status);
+    BAIL_ON_LSA_ERR(dwErr);
 
 done:
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pUserInfo) {
-		LsaFreeUserInfo(0, pUserInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pUserInfo) {
+        LsaFreeUserInfo(0, pUserInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
-		   gid_t *pgid)
+           gid_t *pgid)
 {
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	PSTR pszSidString = NULL;
-	PSTR ppszSidList[2];
-	CHAR pszAccountName[512] ="";	
-	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	PLSA_SID_INFO pNameList = NULL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    PSTR pszSidString = NULL;
+    PSTR ppszSidList[2];
+    CHAR pszAccountName[512] ="";
+    LSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    PLSA_SID_INFO pNameList = NULL;
         CHAR chDomainSeparator = 0;
 
-	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);	
+    BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
-	/* Validate the SID */
+    /* Validate the SID */
 
-	wbc_status = wbcSidToString(sid, &pszSidString);
-	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);	
+    wbc_status = wbcSidToString(sid, &pszSidString);
+    dwErr = map_wbc_to_lsa_error(wbc_status);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	ppszSidList[0] = pszSidString;
-	ppszSidList[1] = NULL;	
+    ppszSidList[0] = pszSidString;
+    ppszSidList[1] = NULL;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaGetNamesBySidList(
+    dwErr = LsaGetNamesBySidList(
                 hLsa,
                 1,
                 ppszSidList,
-		&pNameList,
+        &pNameList,
                 &chDomainSeparator);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	/* Make sure we have a user accouint */
+    /* Make sure we have a user accouint */
 
-	if (pNameList[0].accountType != AccountType_Group) {
-		dwErr = LSA_ERROR_NO_SUCH_GROUP;
-		BAIL_ON_LSA_ERR(dwErr);
-	}
+    if (pNameList[0].accountType != AccountType_Group) {
+        dwErr = LSA_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
 
-	/* Lookup the username to get the uid */
+    /* Lookup the username to get the uid */
 
-	snprintf(pszAccountName, 
-		 sizeof(pszAccountName),
-		 "%s%c%s",
-		 pNameList[0].pszDomainName,
+    snprintf(pszAccountName,
+         sizeof(pszAccountName),
+         "%s%c%s",
+         pNameList[0].pszDomainName,
                  chDomainSeparator,
-		 pNameList[0].pszSamAccountName);
+         pNameList[0].pszSamAccountName);
 
-	dwErr = LsaFindGroupByName(hLsa, pszAccountName, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindGroupByName(hLsa, pszAccountName, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
 
-	*pgid = pGroupInfo->gid;	
-	
-	dwErr = LSA_ERROR_SUCCESS;	
+    *pgid = pGroupInfo->gid;
+
+    dwErr = LSA_ERROR_SUCCESS;
 
 done:
-	if (pNameList) {
-		LsaFreeSIDInfoList(pNameList, 1);
-	}
-	if (pszSidString) {
-		wbcFreeMemory(pszSidString);
-	}
-	
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (pNameList) {
+        LsaFreeSIDInfoList(pNameList, 1);
+    }
+    if (pszSidString) {
+        wbcFreeMemory(pszSidString);
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfo(1, pGroupInfo);
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	wbc_status = map_error_to_wbc_status(dwErr);
-	
-	return wbc_status;
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(1, pGroupInfo);
+    }
+
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcGidToSid(gid_t gid,
-		   struct wbcDomainSid *sid)
+           struct wbcDomainSid *sid)
 {
-	LSA_GROUP_INFO_1 *pGroupInfo = NULL;
-	HANDLE hLsa = (HANDLE)NULL;
-	DWORD dwErr = LSA_ERROR_INTERNAL;
-	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-	
-	BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
+    LSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    HANDLE hLsa = (HANDLE)NULL;
+    DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
-	dwErr = LsaOpenServer(&hLsa);
-	BAIL_ON_LSA_ERR(dwErr);
+    BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
-	dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	dwErr = LsaCloseServer(hLsa);
-	hLsa = (HANDLE)NULL;	
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaFindGroupById(hLsa, gid, LSA_FIND_FLAGS_NSS, 1, (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERR(dwErr);
 
-	wbc_status = wbcStringToSid(pGroupInfo->pszSid, sid);
-	dwErr = map_wbc_to_lsa_error(wbc_status);
-	BAIL_ON_LSA_ERR(dwErr);
+    dwErr = LsaCloseServer(hLsa);
+    hLsa = (HANDLE)NULL;
+    BAIL_ON_LSA_ERR(dwErr);
+
+    wbc_status = wbcStringToSid(pGroupInfo->pszSid, sid);
+    dwErr = map_wbc_to_lsa_error(wbc_status);
+    BAIL_ON_LSA_ERR(dwErr);
 
 done:
-	if (hLsa) {
-		LsaCloseServer(hLsa);
-		hLsa = (HANDLE)NULL;
-	}
+    if (hLsa) {
+        LsaCloseServer(hLsa);
+        hLsa = (HANDLE)NULL;
+    }
 
-	if (pGroupInfo) {
-		LsaFreeGroupInfo(1, pGroupInfo);
-	}
-	
-	wbc_status = map_error_to_wbc_status(dwErr);
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(1, pGroupInfo);
+    }
 
-	return wbc_status;	
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
 }
 
 
 wbcErr wbcAllocateUid(uid_t *puid)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcAllocateGid(gid_t *pgid)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcSetUidMapping(uid_t uid, const struct wbcDomainSid *sid)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcSetGidMapping(gid_t gid, const struct wbcDomainSid *sid)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcSetUidHwm(uid_t uid_hwm)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
 wbcErr wbcSetGidHwm(gid_t gid_hwm)
 {
-	return WBC_ERR_NOT_IMPLEMENTED;	
+    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 

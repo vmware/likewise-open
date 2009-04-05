@@ -33,44 +33,40 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpaccess.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider
+ *
+ *        Access Check API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __LP_ACCESS_H__
+#define __LP_ACCESS_H__
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+DWORD
+LocalCheckForAddAccess(
+    HANDLE hProvider
+    );
 
-#include <eventlog.h>
+DWORD
+LocalCheckForModifyAccess(
+    HANDLE hProvider
+    );
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
+DWORD
+LocalCheckForQueryAccess(
+    HANDLE hProvider
+    );
 
-#include "lsaprovider.h"
-#include "directory.h"
+DWORD
+LocalCheckForDeleteAccess(
+    HANDLE hProvider
+    );
 
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-#include "lpaccess.h"
-
-#include "externs.h"
-
-#include <lwrpc/LMcrypt.h>
-
+#endif /* __LP_ACCESS_H__ */

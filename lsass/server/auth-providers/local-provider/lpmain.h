@@ -57,68 +57,52 @@ LsaInitializeProvider(
     );
 
 DWORD
-LsaLPConfigStartSection(
-    PCSTR    pszSectionName,
-    PVOID    pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LsaLPConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PVOID    pData,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LsaLPOpenHandle(
+LocalOpenHandle(
     uid_t uid,
     gid_t gid,
     PHANDLE phProvider
     );
 
 VOID
-LsaLPCloseHandle(
+LocalCloseHandle(
     HANDLE hProvider
     );
 
 BOOLEAN
-LsaLPServicesDomain(
+LocalServicesDomain(
     PCSTR pszDomain
     );
 
 DWORD
-LsaLPAuthenticateUser(
+LocalAuthenticateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
 
 DWORD
-LsaLPAuthenticateUserEx(
+LocalAuthenticateUserEx(
     HANDLE hProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
     PLSA_AUTH_USER_INFO *ppUserInfo
     );
 
 DWORD
-LsaLPValidateUser(
+LocalValidateUser(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword
     );
 
 DWORD
-LsaLPCheckUserInList(
+LocalCheckUserInList(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszListName
     );
 
 DWORD
-LsaLPFindUserByName(
+LocalFindUserByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
     DWORD   dwUserInfoLevel,
@@ -126,7 +110,7 @@ LsaLPFindUserByName(
     );
 
 DWORD
-LsaLPFindUserById(
+LocalFindUserById(
     HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwUserInfoLevel,
@@ -134,7 +118,7 @@ LsaLPFindUserById(
     );
 
 DWORD
-LsaLPBeginEnumUsers(
+LocalBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     LSA_FIND_FLAGS FindFlags,
@@ -142,7 +126,7 @@ LsaLPBeginEnumUsers(
     );
 
 DWORD
-LsaLPEnumUsers(
+LocalEnumUsers(
     HANDLE   hProvider,
     HANDLE   hResume,
     DWORD    dwMaxNumRecords,
@@ -151,13 +135,13 @@ LsaLPEnumUsers(
     );
 
 VOID
-LsaLPEndEnumUsers(
+LocalEndEnumUsers(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaLPFindGroupByName(
+LocalFindGroupByName(
     IN HANDLE hProvider,
     IN PCSTR pszGroupName,
     IN LSA_FIND_FLAGS FindFlags,
@@ -166,7 +150,7 @@ LsaLPFindGroupByName(
     );
 
 DWORD
-LsaLPFindGroupById(
+LocalFindGroupById(
     IN HANDLE hProvider,
     IN gid_t gid,
     IN LSA_FIND_FLAGS FindFlags,
@@ -175,7 +159,7 @@ LsaLPFindGroupById(
     );
 
 DWORD
-LsaLPGetGroupsForUser(
+LocalGetGroupsForUser(
     IN HANDLE hProvider,
     IN uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
@@ -185,7 +169,7 @@ LsaLPGetGroupsForUser(
     );
 
 DWORD
-LsaLPBeginEnumGroups(
+LocalBeginEnumGroups(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     BOOLEAN bCheckOnline,
@@ -194,7 +178,7 @@ LsaLPBeginEnumGroups(
     );
 
 DWORD
-LsaLPEnumGroups(
+LocalEnumGroups(
     HANDLE   hProvider,
     HANDLE   hResume,
     DWORD    dwMaxGroups,
@@ -203,13 +187,13 @@ LsaLPEnumGroups(
     );
 
 VOID
-LsaLPEndEnumGroups(
+LocalEndEnumGroups(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaLPChangePassword(
+LocalChangePassword(
     HANDLE hProvider,
     PCSTR  pszLoginId,
     PCSTR  pszPassword,
@@ -217,45 +201,45 @@ LsaLPChangePassword(
     );
 
 DWORD
-LsaLPAddUser(
+LocalAddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
     PVOID  pUserInfo
     );
 
 DWORD
-LsaLPModifyUser(
+LocalModifyUser(
     HANDLE hProvider,
     PLSA_USER_MOD_INFO pUserModInfo
     );
 
 DWORD
-LsaLPDeleteUser(
+LocalDeleteUser(
     HANDLE hProvider,
     uid_t  uid
     );
 
 DWORD
-LsaLPAddGroup(
+LocalAddGroup(
     HANDLE hProvider,
     DWORD  dwGroupInfoLevel,
     PVOID  pGroupInfo
     );
 
 DWORD
-LsaLPDeleteGroup(
+LocalDeleteGroup(
     HANDLE hProvider,
     gid_t  gid
     );
 
 DWORD
-LsaLPOpenSession(
+LocalOpenSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     );
 
 DWORD
-LsaLPCloseSession(
+LocalCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     );
@@ -267,7 +251,7 @@ LsaShutdownProvider(
     );
 
 DWORD
-LsaLPGetNamesBySidList(
+LocalGetNamesBySidList(
     HANDLE          hProvider,
     size_t          sCount,
     PSTR*           ppszSidList,
@@ -276,7 +260,7 @@ LsaLPGetNamesBySidList(
     ADAccountType** ppTypes);
 
 DWORD
-LsaLPFindNSSArtefactByKey(
+LocalFindNSSArtefactByKey(
     HANDLE hProvider,
     PCSTR  pszKeyName,
     PCSTR  pszMapName,
@@ -286,7 +270,7 @@ LsaLPFindNSSArtefactByKey(
     );
 
 DWORD
-LsaLPBeginEnumNSSArtefacts(
+LocalBeginEnumNSSArtefacts(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
     PCSTR   pszMapName,
@@ -295,7 +279,7 @@ LsaLPBeginEnumNSSArtefacts(
     );
 
 DWORD
-LsaLPEnumNSSArtefacts(
+LocalEnumNSSArtefacts(
     HANDLE  hProvider,
     HANDLE  hResume,
     DWORD   dwMaxNSSArtefacts,
@@ -304,29 +288,29 @@ LsaLPEnumNSSArtefacts(
     );
 
 VOID
-LsaLPEndEnumNSSArtefacts(
+LocalEndEnumNSSArtefacts(
     HANDLE hProvider,
     HANDLE hResume
     );
 
 DWORD
-LsaLPGetStatus(
+LocalGetStatus(
     HANDLE hProvider,
     PLSA_AUTH_PROVIDER_STATUS* ppProviderStatus
     );
 
 VOID
-LsaLPFreeStatus(
+LocalFreeStatus(
     PLSA_AUTH_PROVIDER_STATUS pProviderStatus
     );
 
 DWORD
-LsaLPRefreshConfiguration(
+LocalRefreshConfiguration(
     HANDLE hProvider
     );
 
 DWORD
-LsaLPProviderIoControl(
+LocalIoControl(
     IN HANDLE  hProvider,
     IN uid_t   peerUID,
     IN uid_t   peerGID,

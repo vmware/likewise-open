@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -30,7 +30,7 @@
 
 /*
  *  Copyright (C) Likewise Software. All rights reserved.
- *  
+ *
  *  Module Name:
  *
  *     provider-main.c
@@ -54,8 +54,8 @@
 
 VOID
 StrUpper(
-	PSTR pszString
-	);
+    PSTR pszString
+    );
 
 /***********************************************************
  * Is pszStr1 a substring of pszStr2 ?
@@ -63,9 +63,9 @@ StrUpper(
 
 BOOLEAN
 StrEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2
-	);
+    PCSTR pszStr1,
+    PCSTR pszStr2
+    );
 
 
 /***********************************************************
@@ -73,9 +73,18 @@ StrEqual(
 
 BOOLEAN
 StrnEqual(
-	PCSTR pszStr1,
-	PCSTR pszStr2,
-	DWORD dwChars
-	);
+    PCSTR pszStr1,
+    PCSTR pszStr2,
+    DWORD dwChars
+    );
 
 #endif    /* __UTIL_STR_H */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
