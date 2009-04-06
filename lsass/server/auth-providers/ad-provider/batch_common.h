@@ -182,6 +182,19 @@ LsaAdBatchIsUnprovisionedMode(
     VOID
     );
 
+DWORD
+LsaAdBatchIsDefaultCell(
+    IN PCSTR pszCellDN,
+    OUT PBOOLEAN pbIsDefaultCell
+    );
+
+DWORD
+LsaAdBatchQueryCellConfigurationMode(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszCellDN,
+    OUT ADConfigurationMode* pAdMode
+    );
+
 PCSTR
 LsaAdBatchFindKeywordAttributeWithEqual(
     IN DWORD dwKeywordValuesCount,

@@ -260,6 +260,8 @@ DWORD
 LsaAdBatchEnumProcessRealMessages(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszNetbiosDomainName,
+    IN DWORD dwDirectoryMode,
+    IN ADConfigurationMode adMode,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessages,
@@ -284,8 +286,10 @@ LsaAdBatchEnumProcessRealMessages(
     {
         LSA_AD_BATCH_ITEM batchItem = { { 0 }, 0 };
 
-        dwError = LsaAdBatchGatherRealObject(
+        dwError = LsaAdBatchGatherRealObjectInternal(
                         &batchItem,
+                        &dwDirectoryMode,
+                        &adMode,
                         ObjectType,
                         NULL,
                         hDirectory,
@@ -419,7 +423,8 @@ LsaAdBatchEnumProcessMessages(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszNetbiosDomainName,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
-    IN BOOLEAN bIsByRealObject,
+    IN DWORD dwDirectoryMode,
+    IN ADConfigurationMode adMode,
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessages,
     IN DWORD dwMaxCount,
@@ -450,11 +455,14 @@ LsaAdBatchEnumProcessMessages(
        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (bIsByRealObject)
+    if ((DEFAULT_MODE == dwDirectoryMode && SchemaMode == adMode) ||
+        (UNPROVISIONED_MODE == dwDirectoryMode))
     {
         dwError = LsaAdBatchEnumProcessRealMessages(
                         pszDnsDomainName,
                         pszNetbiosDomainName,
+                        dwDirectoryMode,
+                        adMode,
                         ObjectType,
                         hDirectory,
                         pMessages,
@@ -501,8 +509,8 @@ LsaAdBatchEnumObjectsInCell(
     IN PLSA_DM_LDAP_CONNECTION pConn,
     IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
-    IN BOOLEAN bIsByRealObject,
-    IN BOOLEAN bIsSchemaMode,
+    IN DWORD dwDirectoryMode,
+    IN ADConfigurationMode adMode,
     IN OPTIONAL PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszCellDn,
     IN DWORD dwMaxObjectsCount,
@@ -544,7 +552,7 @@ LsaAdBatchEnumObjectsInCell(
         AD_LDAP_SHELL_TAG,
         NULL
     };
-    PSTR* pszAttributeList = bIsByRealObject ? szRealAttributeList : szBacklinkAttributeList;
+    PSTR* pszAttributeList = NULL;
     PSTR pszScopeRoot = NULL;
     PCSTR pszQuery = NULL;
     PSTR pszNetbiosDomainName = NULL;
@@ -554,8 +562,18 @@ LsaAdBatchEnumObjectsInCell(
     PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
     DWORD dwTotalObjectsCount = 0;
     HANDLE hDirectory = NULL;
+    BOOLEAN bIsByRealObject = FALSE;
+    BOOLEAN bIsSchemaMode = SchemaMode == adMode;
 
     LSA_ASSERT(!pCookie->bSearchFinished);
+
+    if ((DEFAULT_MODE == dwDirectoryMode && SchemaMode == adMode) ||
+        (UNPROVISIONED_MODE == dwDirectoryMode))
+    {
+        bIsByRealObject = TRUE;
+    }
+
+    pszAttributeList = bIsByRealObject ? szRealAttributeList : szBacklinkAttributeList;
 
     dwError = LsaAdBatchEnumGetScopeRoot(
                     ObjectType,
@@ -590,12 +608,17 @@ LsaAdBatchEnumObjectsInCell(
                         pszDnsDomainName,
                         pszNetbiosDomainName,
                         ObjectType,
-                        bIsByRealObject,
+                        dwDirectoryMode,
+                        adMode,
                         hDirectory,
                         pMessage,
                         dwRemainingObjectsWanted,
                         &dwObjectsCount,
                         &ppObjects);
+        if (dwError == LSA_ERROR_NO_MORE_USERS || dwError == LSA_ERROR_NO_MORE_GROUPS)
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
 
         ldap_msgfree(pMessage);
@@ -642,8 +665,6 @@ DWORD
 LsaAdBatchEnumObjectsInLinkedCells(
     IN OUT PLSA_SEARCH_COOKIE pCookie,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
-    IN BOOLEAN bIsByRealObject,
-    IN BOOLEAN bIsSchemaMode,
     IN DWORD dwMaxObjectsCount,
     OUT PDWORD pdwObjectsCount,
     OUT PLSA_SECURITY_OBJECT** pppObjects
@@ -655,6 +676,8 @@ LsaAdBatchEnumObjectsInLinkedCells(
     PLSA_SECURITY_OBJECT* ppObjects = *pppObjects;
     DWORD dwObjectsCount = *pdwObjectsCount;
     PAD_CELL_COOKIE_DATA pCookieData = NULL;
+    ADConfigurationMode adMode = gpADProviderData->adConfigurationMode;
+    BOOLEAN bIsDefaultCell = gpADProviderData->dwDirectoryMode == DEFAULT_MODE;
 
     LSA_ASSERT(pCookie->pfnFree == LsaAdBatchFreeCellCookie);
     pCookieData = (PAD_CELL_COOKIE_DATA)pCookie->pvData;
@@ -672,12 +695,23 @@ LsaAdBatchEnumObjectsInLinkedCells(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
+        // determine schema/non-schema mode in the current cell
+        dwError = LsaAdBatchQueryCellConfigurationMode(
+                       gpADProviderData->szDomain,
+                       pCellInfo->pszCellDN,
+                       &adMode);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaAdBatchIsDefaultCell(pCellInfo->pszCellDN,
+                                          &bIsDefaultCell);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = LsaAdBatchEnumObjectsInCell(
                         pCookieData->pLdapConn,
                         &pCookieData->LdapCookie,
                         ObjectType,
-                        bIsByRealObject,
-                        bIsSchemaMode,
+                        bIsDefaultCell ? DEFAULT_MODE : CELL_MODE,
+                        adMode,
                         pCellInfo->pszDomain,
                         pCellInfo->pszCellDN,
                         dwMaxObjectsCount - dwObjectsCount,
@@ -736,22 +770,15 @@ LsaAdBatchEnumObjects(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bIsByRealObject = FALSE;
     LSA_AD_BATCH_OBJECT_TYPE objectType = 0;
     DWORD dwObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    BOOLEAN bIsSchemaMode = (gpADProviderData->adConfigurationMode == SchemaMode) ? TRUE : FALSE;
     PAD_CELL_COOKIE_DATA pCookieData = NULL;
     DWORD dwTotalObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppTotalObjects = NULL;
     DWORD dwInput = 0;
     DWORD dwOutput = 0;
     PSTR pszCopiedSid = NULL;
-
-    if (LsaAdBatchIsDefaultSchemaMode() || LsaAdBatchIsUnprovisionedMode())
-    {
-        bIsByRealObject = TRUE;
-    }
 
     dwError = LsaAdBatchAccountTypeToObjectType(AccountType, &objectType);
     BAIL_ON_LSA_ERROR(dwError);
@@ -810,8 +837,8 @@ LsaAdBatchEnumObjects(
                             pCookieData->pLdapConn,
                             &pCookieData->LdapCookie,
                             objectType,
-                            bIsByRealObject,
-                            bIsSchemaMode,
+                            gpADProviderData->dwDirectoryMode,
+                            gpADProviderData->adConfigurationMode,
                             gpADProviderData->szDomain,
                             gpADProviderData->cell.szCellDN,
                             dwMaxObjectsCount - dwTotalObjectsCount,
@@ -843,8 +870,6 @@ LsaAdBatchEnumObjects(
             dwError = LsaAdBatchEnumObjectsInLinkedCells(
                          pCookie,
                          objectType,
-                         bIsByRealObject,
-                         bIsSchemaMode,
                          dwMaxObjectsCount - dwTotalObjectsCount,
                          &dwObjectsCount,
                          &ppObjects);
@@ -876,7 +901,7 @@ LsaAdBatchEnumObjects(
                 {
                     // This is a new entry; let's track it in the hash
 
-                    if (pCookieData->pEnumeratedSids->sCount * 2 > 
+                    if (pCookieData->pEnumeratedSids->sCount * 2 >
                         pCookieData->pEnumeratedSids->sTableSize)
                     {
                         // Enlarge the hash table to avoid collisions

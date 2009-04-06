@@ -59,6 +59,17 @@ LsaAdBatchGatherRpcObject(
     );
 
 DWORD
+LsaAdBatchGatherRealObjectInternal(
+    IN OUT PLSA_AD_BATCH_ITEM pItem,
+    IN OPTIONAL PDWORD pdwDirectoryMode,
+    IN OPTIONAL ADConfigurationMode* pAdMode,
+    IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
+    IN OUT OPTIONAL PSTR* ppszSid,
+    IN HANDLE hDirectory,
+    IN LDAPMessage* pMessage
+    );
+
+DWORD
 LsaAdBatchGatherRealObject(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
     IN LSA_AD_BATCH_OBJECT_TYPE ObjectType,
