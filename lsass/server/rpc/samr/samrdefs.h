@@ -27,6 +27,8 @@ typedef void* ACCOUNT_HANDLE;
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 
 
+#define DS_ATTR_DISTINGUISHED_NAME  \
+    {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define DS_ATTR_OBJECT_CLASS \
     {'O','b','j','e','c','t','C','l','a','s','s',0}
 #define DS_ATTR_OBJECT_SID \
@@ -35,10 +37,20 @@ typedef void* ACCOUNT_HANDLE;
     {'C','o','m','m','o','n','N','a','m','e',0}
 #define DS_ATTR_NETBIOS_NAME \
     {'N','e','t','B','I','O','S','N','a','m','e',0}
+#define DS_ATTR_COMMON_NAME \
+    {'C','o','m','m','o','n','N','a','m','e',0}
+#define DS_ATTR_SAM_ACCOUNT_NAME \
+    {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
+#define DS_ATTR_UID \
+    {'U','I','D',0}
+#define DS_ATTR_GID \
+    {'G','I','D',0}
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)
 #define DS_OBJECT_CLASS_BUILTIN_DOMAIN   (2)
+#define DS_OBJECT_CLASS_GROUP            (4)
+#define DS_OBJECT_CLASS_USER             (5)
 
 
 #define SAMR_BUILTIN_DOMAIN_NAME \
