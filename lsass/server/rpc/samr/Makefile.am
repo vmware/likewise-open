@@ -17,6 +17,7 @@ libsamr_srv_la_SOURCES = \
     samr_opendomain.c \
     samr_close.c \
     samr_lookupnames.c \
+    samr_openaccount.c \
     samr_openuser.c \
     samr_openalias.c \
     samr_enumdomainusers.c \
