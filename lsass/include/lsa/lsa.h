@@ -570,6 +570,7 @@ typedef enum
     LSA_ATTRIBUTE_VALUE_TYPE_UNICODE_STRING,
     LSA_ATTRIBUTE_VALUE_TYPE_ANSI_STRING,
     LSA_ATTRIBUTE_VALUE_TYPE_BOOLEAN,
+    LSA_ATTRIBUTE_VALUE_TYPE_OCTET_STREAM,
     LSA_ATTRIBUTE_VALUE_TYPE_SENTINEL
 } LSA_ATTRIBUTE_VALUE_TYPE, *PLSA_ATTRIBUTE_VALUE_TYPE;
 
@@ -596,26 +597,26 @@ typedef enum
     LSA_ATTRIBUTE_TYPE_SENTINEL
 } LSA_ATTRIBUTE_TYPE, *PLSA_ATTRIBUTE_TYPE;
 
-typedef struct __LSA_OCTET_STRING
+typedef struct __LSA_OCTET_STREAM
 {
     ULONG ulNumBytes;
     PBYTE pBytes;
 
-} LSA_OCTET_STRING, *PLSA_OCTET_STRING;
+} LSA_OCTET_STREAM, *PLSA_OCTET_STREAM;
 
 typedef struct __LSA_ATTRIBUTE_VALUE
 {
     LSA_ATTRIBUTE_VALUE_TYPE attrValueType;
 
-    union
+    union __LSA_ATTR_VALUE_DATA
     {
-        ULONG  ulValue;
-        LONG64 llValue;
-        PWSTR  pwszStringValue;
-        PSTR   pszStringValue;
-        BOOL   bBooleanValue;
-        PLSA_OCTET_STRING pOctetString;
-    };
+        ULONG             ulValue;
+        LONG64            llValue;
+        PWSTR             pwszStringValue;
+        PSTR              pszStringValue;
+        BOOLEAN           bBooleanValue;
+        PLSA_OCTET_STREAM pOctetStream;
+    } data;
 
 } LSA_ATTRIBUTE_VALUE, *PLSA_ATTRIBUTE_VALUE;
 
