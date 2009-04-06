@@ -914,6 +914,88 @@ error:
 }
 
 
+NTSTATUS
+NetrAllocateDcNameInfo(
+    DsrDcNameInfo **out,
+    DsrDcNameInfo *in
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DsrDcNameInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(DsrDcNameInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    if (in->dc_name) {
+        ptr->dc_name = wc16sdup(in->dc_name);
+        goto_if_no_memory_ntstatus(ptr->dc_name, error);
+
+        status = NetrAddDepMemory(ptr->dc_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->dc_address) {
+        ptr->dc_address = wc16sdup(in->dc_address);
+        goto_if_no_memory_ntstatus(ptr->dc_address, error);
+
+        status = NetrAddDepMemory(ptr->dc_address, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    ptr->address_type = in->address_type;
+
+    memcpy(&ptr->domain_guid, &in->domain_guid, sizeof(ptr->domain_guid));
+
+    if (in->domain_name) {
+        ptr->domain_name = wc16sdup(in->domain_name);
+        goto_if_no_memory_ntstatus(ptr->domain_name, error);
+
+        status = NetrAddDepMemory(ptr->domain_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->forest_name) {
+        ptr->forest_name = wc16sdup(in->forest_name);
+        goto_if_no_memory_ntstatus(ptr->forest_name, error);
+
+        status = NetrAddDepMemory(ptr->forest_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->dc_site_name) {
+        ptr->dc_site_name = wc16sdup(in->dc_site_name);
+        goto_if_no_memory_ntstatus(ptr->dc_site_name, error);
+
+        status = NetrAddDepMemory(ptr->dc_site_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->cli_site_name) {
+        ptr->cli_site_name = wc16sdup(in->cli_site_name);
+        goto_if_no_memory_ntstatus(ptr->cli_site_name, error);
+
+        status = NetrAddDepMemory(ptr->cli_site_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+    goto cleanup;
+}
+
 
 /*
 local variables:

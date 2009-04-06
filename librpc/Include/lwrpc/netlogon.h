@@ -205,6 +205,18 @@ DsrEnumerateDomainTrusts(
     );
 
 
+WINERR
+DsrGetDcName(
+    handle_t binding_handle,
+    const wchar16_t *server,
+    const wchar16_t *domain,
+    const Guid *domain_guid,
+    const Guid *site_guid,
+    uint32 get_dc_flags,
+    DsrDcNameInfo **out_info
+    );
+
+
 void
 NetrCredentialsInit(
     NetrCredentials *creds,

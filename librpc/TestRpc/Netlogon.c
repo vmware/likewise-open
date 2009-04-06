@@ -43,6 +43,7 @@
 #include <dce/schannel.h>
 #include <lwio/lwio.h>
 #include <wc16str.h>
+#include <lwnet.h>
 #include <lw/ntstatus.h>
 
 #include <lwrpc/types.h>
@@ -206,6 +207,9 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     HANDLE store = (HANDLE)NULL;
     LWPS_PASSWORD_INFO *pi = NULL;
     char host[128] = {0};
+    NetrDomainQuery Query;
+    NetrDomainQuery1 Query1;
+    NetrDomainInfo *pInfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -282,7 +286,26 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
 
     status = NetrOpenSchannel(netr_b, machacct, hostname, server, domain,
                               computer, machpass, &creds, &schn_b);
-    if (status != STATUS_SUCCESS) return false;
+    if (status != STATUS_SUCCESS) goto close;
+
+    memset(&Query1, 0, sizeof(Query1));
+
+    Query1.workstation_domain = domain;
+    Query1.workstation_site   = ambstowc16s("Default-First-Site-Name");
+
+    Query.query1 = &Query1;
+
+    status = NetrGetDomainInfo(schn_b, &creds, server, computer,
+                               1, &Query, &pInfo);
+    if (status != STATUS_SUCCESS) goto close;
+
+    NetrFreeMemory(pInfo);
+
+    status = NetrGetDomainInfo(schn_b, &creds, server, computer,
+                               1, &Query, &pInfo);
+    if (status != STATUS_SUCCESS) goto close;
+
+    NetrFreeMemory(pInfo);
 
     CALL_MSRPC(status = NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
                                                 username, password,
@@ -703,6 +726,56 @@ done:
 }
 
 
+int TestNetlogonGetDcName(struct test *t, const wchar16_t *hostname,
+                          const wchar16_t *user, const wchar16_t *pass,
+                          struct parameter *options, int optcount)
+{
+    const uint32 def_getdcflags = DS_FORCE_REDISCOVERY;
+    const char *def_domain_name = "DOMAIN";
+
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    handle_t netr_b = NULL;
+    enum param_err perr = perr_success;
+    uint32 getdcflags = 0;
+    wchar16_t *domain_name = NULL;
+    DsrDcNameInfo *info = NULL;
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
+
+    perr = fetch_value(options, optcount, "getdcflags", pt_uint32, &getdcflags,
+                       &def_getdcflags);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "domainname", pt_w16string, &domain_name,
+                       &def_domain_name);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    PARAM_INFO("getdcflags", pt_uint32, &getdcflags);
+    PARAM_INFO("domainname", pt_w16string, domain_name);
+
+    netr_b = CreateNetlogonBinding(&netr_b, hostname);
+    if (netr_b == NULL) return false;
+
+    CALL_NETAPI(err = DsrGetDcName(netr_b, hostname, domain_name,
+                                   NULL, NULL, getdcflags, &info));
+    if (err != ERROR_SUCCESS) goto done;
+
+    NetrFreeMemory((void*)info);
+
+    FreeNetlogonBinding(&netr_b);
+    RELEASE_SESSION_CREDS;
+
+done:
+    NetrDestroyMemory();
+
+    return (status == STATUS_SUCCESS &&
+            err == ERROR_SUCCESS);
+}
+
+
 void SetupNetlogonTests(struct test *t)
 {
     NetrInitMemory();
@@ -713,6 +786,7 @@ void SetupNetlogonTests(struct test *t)
     AddTest(t, "NETR-SAM-LOGON", TestNetlogonSamLogon);
     AddTest(t, "NETR-SAM-LOGOFF", TestNetlogonSamLogoff);
     AddTest(t, "NETR-SAM-LOGON-EX", TestNetlogonSamLogonEx);
+    AddTest(t, "NETR-DSR-GET-DC-NAME", TestNetlogonGetDcName);
 }
 
 

@@ -104,7 +104,17 @@ interface netlogon
     NTSTATUS netr_Function11();
     NTSTATUS netr_Function12();
     NTSTATUS netr_Function13();
-    NTSTATUS netr_Function14();
+
+    /* function 0x14 */
+    NTSTATUS _DsrGetDcName(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *domain_name,
+        [in,unique] Guid *domain_guid,
+        [in,unique] Guid *site_guid,
+        [in] uint32 get_dc_flags,
+        [out,ref] DsrDcNameInfo **info
+        );
+
     NTSTATUS netr_Function15();
     NTSTATUS netr_Function16();
     NTSTATUS netr_Function17();
