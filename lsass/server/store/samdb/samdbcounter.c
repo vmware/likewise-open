@@ -157,9 +157,9 @@ SamDbGetNextAvailableGID(
 {
     DWORD dwError = 0;
     PCSTR pszQueryTemplate =
-        "SELECT UIDCounter FROM " SAM_DB_CONFIG_TABLE \
+        "SELECT GIDCounter FROM " SAM_DB_CONFIG_TABLE \
         "; UPDATE " SAM_DB_CONFIG_TABLE               \
-        "   SET UIDCounter = UIDCounter + 1";
+        "   SET GIDCounter = GIDCounter + 1";
     DWORD dwGID = 0;
 
     dwError = SamDbGetNextAvailableId(
