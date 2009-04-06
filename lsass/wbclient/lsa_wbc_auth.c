@@ -475,6 +475,40 @@ FreeWbcErrorInfo(
 }
 
 
+static NTSTATUS
+MapLsaErrorToNtStatus(
+    DWORD LsaError
+    )
+{
+    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
+
+    switch(LsaError)
+    {
+    case LSA_ERROR_SUCCESS:
+        ntStatus = STATUS_SUCCESS;
+        break;
+    case LSA_ERROR_LOGON_FAILURE:
+        ntStatus = STATUS_LOGON_FAILURE;
+        break;
+    case LSA_ERROR_PASSWORD_EXPIRED:
+        ntStatus = STATUS_PASSWORD_EXPIRED;
+        break;
+    case LSA_ERROR_ACCOUNT_EXPIRED:
+        ntStatus = STATUS_ACCOUNT_EXPIRED;
+        break;
+    case LSA_ERROR_ACCOUNT_LOCKED:
+        ntStatus = STATUS_ACCOUNT_LOCKED_OUT;
+        break;
+    case LSA_ERROR_ACCOUNT_DISABLED:
+        ntStatus = STATUS_ACCOUNT_DISABLED;
+        break;
+    default:
+        break;
+    }
+
+    return ntStatus;
+}
+
 static DWORD
 FillErrorInfo(
     DWORD dwError,
@@ -482,6 +516,7 @@ FillErrorInfo(
     )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
+    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
 
     struct wbcAuthErrorInfo *pError = NULL;
 
@@ -490,6 +525,10 @@ FillErrorInfo(
     BAIL_ON_NULL_PTR(pError, dwErr);
 
     /* Fill in errors here */
+
+    ntStatus = MapLsaErrorToNtStatus(dwError);
+
+    pError->nt_status = ntStatus;
 
     *ppWbcError = pError;
 
@@ -574,6 +613,8 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
     /* Copy OUT params */
     *info = pWbcUserInfo;
 
+    FillErrorInfo(dwErr, error);
+
 
 done:
     if (hLsa) {
@@ -586,9 +627,6 @@ done:
 
     if (!LSA_ERROR_IS_OK(dwErr)) {
         _WBC_FREE(pWbcUserInfo);
-
-        /* Try to explain why we failed */
-        FillErrorInfo(dwErr, error);
     }
 
     wbc_status = map_error_to_wbc_status(dwErr);
