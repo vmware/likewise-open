@@ -68,8 +68,7 @@ SamrSrvLookupNames(
     PWSTR pwszDn = NULL;
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
-    WCHAR wszAttrUid[] = DS_ATTR_UID;
-    WCHAR wszAttrGid[] = DS_ATTR_GID;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     DWORD dwObjectClassUser = DS_OBJECT_CLASS_USER;
     DWORD dwObjectClassGroup = DS_OBJECT_CLASS_GROUP;
     DWORD dwScope = 0;
@@ -83,6 +82,11 @@ SamrSrvLookupNames(
     PDIRECTORY_ATTRIBUTE pAttr = NULL;
     PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD dwEntriesNum = 0;
+    PWSTR pwszSid = NULL;
+    PSID pSid = NULL;
+    DWORD dwObjectClass = 0;
+    DWORD dwRid = 0;
+    DWORD dwType = 0;
     BOOLEAN bNamesFound = FALSE;
     BOOLEAN bNamesNotFound = FALSE;
 
@@ -147,8 +151,8 @@ SamrSrvLookupNames(
                     wszAttrObjectClass, dwObjectClassGroup,
                     wszAttrSamAccountName, pwszName);
 
-        wszAttributes[0] = wszAttrUid;
-        wszAttributes[1] = wszAttrGid;
+        wszAttributes[0] = wszAttrObjectSid;
+        wszAttributes[1] = wszAttrObjectClass;
         wszAttributes[2] = NULL;
 
         pEntry   = NULL;
@@ -166,53 +170,48 @@ SamrSrvLookupNames(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (dwEntriesNum == 1) {
-            pEntry = &(pEntries[0]);
+            pEntry  = &(pEntries[0]);
 
-            dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                       wszAttrUid,
-                                                       &pAttr);
-            if (pAttr && dwError == 0) {
-                dwError = DirectoryGetAttributeValue(pAttr,
-                                                     &pAttrVal);
-                BAIL_ON_LSA_ERROR(dwError);
+            pwszSid       = NULL;
+            dwRid         = 0;
+            dwType        = 0;
+            dwObjectClass = 0;
 
-                if (pAttrVal &&
-                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_INTEGER) {
+            dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                                       wszAttrObjectSid,
+                                                       DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                                       &pwszSid);
+            if (pwszSid && dwError == 0) {
+                status = RtlAllocateSidFromWC16String(&pSid, pwszSid);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
-                    pIds->ids[i]   = pAttrVal->ulValue;
-                    pTypes->ids[i] = SID_TYPE_USER;
-
-                    bNamesFound = TRUE;
-
-                } else {
-                    status = STATUS_INTERNAL_ERROR;
-                    BAIL_ON_NTSTATUS_ERROR(status);
-                }
-
-            } else {
-                pAttr = NULL;
-                dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                           wszAttrGid,
-                                                           &pAttr);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                dwError = DirectoryGetAttributeValue(pAttr,
-                                                     &pAttrVal);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                if (pAttrVal &&
-                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_INTEGER) {
-
-                    pIds->ids[i]   = pAttrVal->ulValue;
-                    pTypes->ids[i] = SID_TYPE_ALIAS;
-
-                    bNamesFound = TRUE;
-
-                } else {
-                    status = STATUS_INTERNAL_ERROR;
-                    BAIL_ON_NTSTATUS_ERROR(status);
-                }
+                dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
             }
+
+            dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                                       wszAttrObjectClass,
+                                                       DIRECTORY_ATTR_TYPE_INTEGER,
+                                                       &dwObjectClass);
+            if (dwError == 0) {
+                switch (dwObjectClass) {
+                case DS_OBJECT_CLASS_USER:
+                    dwType = SID_TYPE_USER;
+                    break;
+
+                case DS_OBJECT_CLASS_GROUP:
+                    dwType = SID_TYPE_ALIAS;
+                    break;
+
+                default:
+                    status = STATUS_INTERNAL_ERROR;
+                }
+
+                BAIL_ON_NTSTATUS_ERROR(status);
+            }
+
+
+            pIds->ids[i]   = dwRid;
+            pTypes->ids[i] = dwType;
 
         } else if (dwEntriesNum == 0) {
             pIds->ids[i]   = 0;
@@ -239,6 +238,10 @@ SamrSrvLookupNames(
             SamrSrvFreeMemory(pwszName);
             pwszName = NULL;
         }
+
+        if (pSid) {
+            RTL_FREE(&pSid);
+        }
     }
 
     ids->count   = pIds->count;
@@ -258,6 +261,10 @@ SamrSrvLookupNames(
 cleanup:
     if (pwszName) {
         SamrSrvFreeMemory(pwszName);
+    }
+
+    if (pSid) {
+        RTL_FREE(&pSid);
     }
 
     if (pwszFilter) {
