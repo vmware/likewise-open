@@ -44,37 +44,81 @@
 #include <lwmsg/assoc.h>
 #include <lwmsg/session.h>
 #include "context-private.h"
+#include "util-private.h"
+#include "dispatch-private.h"
 
 #include <pthread.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
-typedef enum LWMsgServerState
+typedef enum ServerTaskType
 {
-    LWMSG_SERVER_STOPPED = 0,
-    LWMSG_SERVER_RUNNING,
-    LWMSG_SERVER_SHUTDOWN
-} LWMsgServerState;
+    SERVER_TASK_LISTEN,
+    SERVER_TASK_ACCEPT,
+    SERVER_TASK_BEGIN_ESTABLISH,
+    SERVER_TASK_FINISH_ESTABLISH,
+    SERVER_TASK_BEGIN_RECV,
+    SERVER_TASK_FINISH_RECV,
+    SERVER_TASK_BEGIN_SEND,
+    SERVER_TASK_FINISH_SEND,
+    SERVER_TASK_BEGIN_CLOSE,
+    SERVER_TASK_FINISH_CLOSE,
+    SERVER_TASK_BEGIN_RESET,
+    SERVER_TASK_FINISH_RESET,
+    SERVER_TASK_DISPATCH,
+    SERVER_TASK_BEGIN_ASYNC,
+    SERVER_TASK_FINISH_ASYNC
+} ServerTaskType;
 
-typedef struct AssocQueue
+typedef struct ServerTask
 {
-    size_t size;
-    volatile size_t count;
-    LWMsgAssoc** volatile queue;
-    pthread_cond_t event;
-} AssocQueue;
+    LWMsgRing ring;
+    ServerTaskType volatile type;
+    LWMsgBool blocked;
+    int fd;
+    LWMsgAssoc* assoc;
+    LWMsgDispatchHandle dispatch;
+    LWMsgMessage incoming_message;
+    LWMsgMessage outgoing_message;
+    LWMsgTime deadline;
+} ServerTask;
+
+typedef struct ServerIoThread
+{
+    LWMsgServer* server;
+    pthread_t thread;
+    LWMsgRing volatile tasks;
+    size_t volatile num_events;
+    pthread_mutex_t lock;
+    int event[2];
+    LWMsgBool shutdown;
+} ServerIoThread;
+
+typedef struct ServerDispatchThread
+{
+    LWMsgServer* server;
+    pthread_t thread;
+} ServerDispatchThread;
+
+typedef enum ServerState
+{
+    SERVER_STATE_STOPPED = 0,
+    SERVER_STATE_STARTING,
+    SERVER_STATE_STARTED,
+    SERVER_STATE_STOPPING,
+    SERVER_STATE_ERROR
+} ServerState;
 
 struct LWMsgServer
 {    
     LWMsgContext context;
     LWMsgProtocol* protocol;
     LWMsgSessionManager* manager;
-    LWMsgDispatchFunction* dispatch_vector;
-    size_t dispatch_vector_length;
-    LWMsgServerMode mode;
-    int fd;
-    char* endpoint;
-    mode_t permissions;
     size_t max_clients;
     size_t max_dispatch;
+    size_t max_io;
     size_t max_backlog;
     struct
     {
@@ -82,43 +126,45 @@ struct LWMsgServer
         LWMsgTime establish;
         LWMsgTime idle;
     } timeout;
-    void* user_data;
-    LWMsgServerConnectFunction connect_callback;
-    LWMsgServerConnectFunction session_callback;
+    void* dispatch_data;
+    LWMsgSessionConstructor session_construct;
+    LWMsgSessionDestructor session_destruct;
+    void* session_construct_data;
 
-    /* Worker thread pool */
-    pthread_t* worker_threads;
-    /* Listener thread */
-    pthread_t listen_thread;
+    /* IO Block */
+    struct
+    {
+        ServerIoThread* threads;
+        unsigned int volatile next_index;
+        pthread_mutex_t lock;
+    } io;
 
-    /* Associations that we are listening for messages from */
-    AssocQueue listen_assocs;
-    /* Associations that need to be serviced */
-    AssocQueue service_assocs;
+    /* Dispatch block */
+    struct
+    {
+        LWMsgDispatchSpec** vector;
+        size_t vector_length;
+        ServerDispatchThread* threads;
+        LWMsgRing tasks;
+        pthread_mutex_t lock;
+        pthread_cond_t event;
+        LWMsgBool shutdown;
+    } dispatch;
+
+    /* Initial set of IO tasks */
+    LWMsgRing io_tasks;
+
     /* Total number of connected clients */
     size_t num_clients;
 
-    /* Synchronization lock for accessing this structure */
     pthread_mutex_t lock;
-    /* State change event */
-    pthread_cond_t state_changed;
-    /* Interrupt for blocking operations in worker threads */
-    LWMsgConnectionSignal* interrupt;
-    /* Self-pipe to wake up listener thread when an association goes back in its queue */
-    int listen_notify[2];
-
-    /* Server state */
-    LWMsgServerState volatile state;
+    pthread_cond_t event;
+    ServerState state;
+    LWMsgStatus error;
 };
 
-typedef enum LWMsgServerTimeoutLevel
-{
-    LWMSG_SERVER_TIMEOUT_SAFE,
-    LWMSG_SERVER_TIMEOUT_UNSAFE,
-    LWMSG_SERVER_TIMEOUT_END
-} LWMsgServerTimeoutLevel;
-
-#define SERVER_RAISE_ERROR(_server_, _status_, ...) RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)
+#define SERVER_RAISE_ERROR(_server_, _status_, ...) \
+    RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)
 
 #define SERVER_RAISE_ERROR_LOCK(_server_, _lock_, _status_, ...) \
     do                                                           \
@@ -146,5 +192,78 @@ typedef enum LWMsgServerTimeoutLevel
             lwmsg_server_unlock((_server_));    \
         }                                       \
     } while (0)
+
+LWMsgStatus
+lwmsg_server_task_new(
+    ServerTaskType type,
+    ServerTask** task
+    );
+
+LWMsgStatus
+lwmsg_server_task_new_listen(
+    int fd,
+    ServerTask** task
+    );
+
+void
+lwmsg_server_task_delete(
+    ServerTask* task
+    );
+
+LWMsgStatus
+lwmsg_server_task_perform(
+    LWMsgServer* server,
+    ServerIoThread* thread,
+    ServerTask** task,
+    LWMsgBool shutdown,
+    LWMsgTime* current_time,
+    LWMsgTime* next_deadline
+    );
+
+LWMsgStatus
+lwmsg_server_task_prepare_select(
+    LWMsgServer* server,
+    ServerTask* task,
+    int* nfds,
+    fd_set* readset,
+    fd_set* writeset
+    );
+
+void
+lwmsg_server_queue_io_task(
+    LWMsgServer* server,
+    ServerTask* task
+    );
+
+void
+lwmsg_server_queue_dispatch_task(
+    LWMsgServer* server,
+    ServerTask* task
+    );
+
+void*
+lwmsg_server_dispatch_thread(
+    void* data
+    );
+
+void*
+lwmsg_server_io_thread(
+    void* data
+    );
+
+LWMsgBool
+lwmsg_server_acquire_client_slot(
+    LWMsgServer* server
+    );
+
+void
+lwmsg_server_release_client_slot(
+    LWMsgServer* server
+    );
+
+size_t
+lwmsg_server_get_num_clients(
+    LWMsgServer* server
+    );
 
 #endif

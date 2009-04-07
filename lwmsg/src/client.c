@@ -509,14 +509,12 @@ lwmsg_client_shutdown(
     {
         if (client->assoc_pool[i])
         {
-            BAIL_ON_ERROR(status = lwmsg_assoc_close(client->assoc_pool[i]));
+            lwmsg_assoc_close(client->assoc_pool[i]);
             lwmsg_assoc_delete(client->assoc_pool[i]);
             client->assoc_pool[i] = NULL;
             client->assoc_pool_created--;
         }
     }
-
-error:
 
     lwmsg_client_unlock(client);
 

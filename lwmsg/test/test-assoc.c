@@ -67,6 +67,8 @@ empty_sender(void* _assoc)
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
     LWMsgMessageTag reply_type;
     void* reply_object;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_transact(assoc, EMPTY_REQUEST, NULL, &reply_type, &reply_object));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, EMPTY_REPLY);
@@ -84,6 +86,8 @@ empty_receiver(void* _assoc)
     LWMsgAssoc* assoc = (LWMsgAssoc*) _assoc;
     LWMsgMessageTag request_type;
     void* request_object;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &request_type, &request_object));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, EMPTY_REQUEST);
@@ -208,6 +212,8 @@ foo_sender(void* _assoc)
     FooReply* reply;
     size_t i;
     
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     request.size = 1024;
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_transact(assoc, FOO_REQUEST, &request, &reply_type, &reply_object));
@@ -240,6 +246,8 @@ foo_receiver(void* _assoc)
     FooReply* reply;
     size_t i;
     
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &request_type, &request_object));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, FOO_REQUEST);
     request = request_object;
@@ -393,9 +401,6 @@ MU_TEST(assoc, foo_send_timeout_connect)
     int sockets[2];
     LWMsgAssoc* send_assoc = NULL;
     static LWMsgProtocol* foo_protocol = NULL;
-    FooRequest request;
-    LWMsgMessage request_msg;
-    LWMsgMessage reply_msg;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTime time = {0, 200000};
     
@@ -416,13 +421,9 @@ MU_TEST(assoc, foo_send_timeout_connect)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
     
-    request.size = 4;
-    request_msg.tag = FOO_REQUEST;
-    request_msg.object = &request;
-
     lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
 
-    status = lwmsg_assoc_send_message_transact(send_assoc, &request_msg, &reply_msg);
+    status = lwmsg_assoc_establish(send_assoc);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_TIMEOUT);
 
     MU_TRY_ASSOC(send_assoc, lwmsg_assoc_close(send_assoc));
@@ -483,6 +484,8 @@ auth_sender(void* _assoc)
     request_msg.tag = AUTH_REQUEST;
     request_msg.object = &request;
 
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message_transact(assoc, &request_msg, &reply_msg));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, AUTH_REPLY);
@@ -513,6 +516,8 @@ auth_receiver(void* _assoc)
     LWMsgMessage reply_msg;
     LWMsgSecurityToken* token;
     
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, AUTH_REQUEST);
     request = request_msg.object;
@@ -726,6 +731,8 @@ handle_sender(void* _assoc)
     request_msg.tag = HANDLE_CREATE_REQUEST;
     request_msg.object = &create_request;
 
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message_transact(assoc, &request_msg, &reply_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, HANDLE_CREATE_REPLY);
 
@@ -868,10 +875,12 @@ handle_receiver(void* _assoc)
     LWMsgMessage send_message;
     size_t i;
 
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     do
     {
         MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &recv_message));
-        for (i = 0; handle_dispatch[i].func; i++)
+        for (i = 0; handle_dispatch[i].type != LWMSG_DISPATCH_TYPE_END; i++)
         {
             if (recv_message.tag == handle_dispatch[i].tag)
             {
@@ -879,7 +888,11 @@ handle_receiver(void* _assoc)
             }
         }
 
-        status = handle_dispatch[i].func(assoc, &recv_message, &send_message, NULL);
+        status = ((LWMsgAssocDispatchFunction) handle_dispatch[i].data)(
+            assoc,
+            &recv_message,
+            &send_message,
+            NULL);
 
         MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &send_message));
 
@@ -1015,6 +1028,8 @@ fd_sender(void* _assoc)
         MU_FAILURE("write(): %s", strerror(errno));
     }
 
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_transact(assoc, FD_REQUEST, &request, &reply_type, &reply_object));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, FD_REPLY);
 
@@ -1041,6 +1056,8 @@ fd_receiver(void* _assoc)
     FdRequest* request;
     FdReply reply;
     char buffer[1024];
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &request_type, &request_object));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, FD_REQUEST);

@@ -204,7 +204,11 @@ MU_TEST(session, trivial_send_recv)
     pthread_t sender;
     pthread_t receiver;
     LWMsgProtocol* trivial_protocol = NULL;
-    LWMsgSessionManager* manager = NULL;
+    LWMsgSessionManager* send_manager = NULL;
+    LWMsgSessionManager* recv_manager = NULL;
+
+    MU_TRY(lwmsg_shared_session_manager_new(&send_manager));
+    MU_TRY(lwmsg_shared_session_manager_new(&recv_manager));
 
     MU_TRY(lwmsg_protocol_new(NULL, &trivial_protocol));
     MU_TRY_PROTOCOL(trivial_protocol, lwmsg_protocol_add_protocol_spec(trivial_protocol, trivialprotocol_spec));
@@ -256,11 +260,11 @@ MU_TEST(session, trivial_send_recv)
                sockets_b[1]));
 
     /* Put send sockets and recv sockets into same session managers */
-    MU_TRY(lwmsg_assoc_get_session_manager(send_assocs[0], &manager));
-    MU_TRY(lwmsg_assoc_set_session_manager(send_assocs[1], manager));
+    MU_TRY(lwmsg_assoc_set_session_manager(send_assocs[0], send_manager));
+    MU_TRY(lwmsg_assoc_set_session_manager(send_assocs[1], send_manager));
 
-    MU_TRY(lwmsg_assoc_get_session_manager(recv_assocs[0], &manager));
-    MU_TRY(lwmsg_assoc_set_session_manager(recv_assocs[1], manager));
+    MU_TRY(lwmsg_assoc_set_session_manager(recv_assocs[0], recv_manager));
+    MU_TRY(lwmsg_assoc_set_session_manager(recv_assocs[1], recv_manager));
 
     if ((err = pthread_create(&sender, NULL, trivial_sender, send_assocs)))
     {

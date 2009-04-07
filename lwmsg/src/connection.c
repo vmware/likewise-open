@@ -55,8 +55,8 @@ lwmsg_connection_construct(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_construct_buffer(&priv->sendbuffer));
-    BAIL_ON_ERROR(status = lwmsg_connection_construct_buffer(&priv->recvbuffer));
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->recvbuffer));
 
     priv->packet_size = 2048;
     priv->fd = -1;
@@ -78,8 +78,8 @@ lwmsg_connection_destruct(
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     LWMsgSessionManager* manager = NULL;
 
-    lwmsg_connection_destruct_buffer(&priv->sendbuffer);
-    lwmsg_connection_destruct_buffer(&priv->recvbuffer);
+    lwmsg_connection_buffer_destruct(&priv->sendbuffer);
+    lwmsg_connection_buffer_destruct(&priv->recvbuffer);
 
     if (priv->fd != -1)
     {
@@ -107,7 +107,7 @@ lwmsg_connection_destruct(
             abort();
         }
 
-        if (lwmsg_session_manager_leave_session(manager, priv->session, NULL))
+        if (lwmsg_session_manager_leave_session(manager, priv->session))
         {
             /* Neither should this */
             abort();
@@ -125,7 +125,7 @@ lwmsg_connection_close(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_CLOSE));
+    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_CLOSE));
 
 error:
 
@@ -139,7 +139,7 @@ lwmsg_connection_reset(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_RESET));
+    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_RESET));
 
 error:
 
@@ -155,13 +155,11 @@ lwmsg_connection_send_msg(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
-    priv->message = message;
+    priv->params.message = message;
     
-    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_SEND));
+    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_SEND));
 
 error:
-
-    priv->message = NULL;
 
     return status;
 }
@@ -175,13 +173,51 @@ lwmsg_connection_recv_msg(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     
-    priv->message = message;
+    priv->params.message = message;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_RECV));
+    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_RECV));
 
 error:
 
-    priv->message = NULL;
+    return status;
+}
+
+static LWMsgStatus
+lwmsg_connection_finish(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_FINISH));
+
+error:
+
+    return status;
+}
+
+static LWMsgStatus
+lwmsg_connection_set_nonblock(
+    LWMsgAssoc* assoc,
+    LWMsgBool nonblock
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+    switch (lwmsg_assoc_get_state(assoc))
+    {
+    case LWMSG_ASSOC_STATE_NOT_ESTABLISHED:
+    case LWMSG_ASSOC_STATE_IDLE:
+    case LWMSG_ASSOC_STATE_CLOSED:
+        priv->is_nonblock = nonblock;
+        break;
+    default:
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE,
+                          "Cannot set blocking while connection is busy");
+    }
+
+error:
 
     return status;
 }
@@ -237,25 +273,24 @@ lwmsg_connection_get_state(
 
     switch (priv->state)
     {
+    case CONNECTION_STATE_NONE:
+        return LWMSG_ASSOC_STATE_NONE;
     case CONNECTION_STATE_START:
-        if (priv->fd != -1 || priv->endpoint != NULL)
-        {
-            return LWMSG_ASSOC_STATE_READY_SEND_RECV;
-        }
-        else
-        {
-            return LWMSG_ASSOC_STATE_NOT_READY;
-        }
+        return LWMSG_ASSOC_STATE_NOT_ESTABLISHED;
     case CONNECTION_STATE_IDLE:
-        return LWMSG_ASSOC_STATE_READY_SEND_RECV;
-    case CONNECTION_STATE_WAIT_SEND_REPLY:
-        return LWMSG_ASSOC_STATE_READY_SEND;
-    case CONNECTION_STATE_WAIT_RECV_REPLY:
-        return LWMSG_ASSOC_STATE_READY_RECV;
+        return LWMSG_ASSOC_STATE_IDLE;
+    case CONNECTION_STATE_FINISH_SEND_MESSAGE:
+    case CONNECTION_STATE_FINISH_SEND_HANDSHAKE:
+        return LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV;
+    case CONNECTION_STATE_FINISH_RECV_MESSAGE:
+    case CONNECTION_STATE_FINISH_RECV_HANDSHAKE:
+        return LWMSG_ASSOC_STATE_BLOCKED_RECV;
     case CONNECTION_STATE_CLOSED:
         return LWMSG_ASSOC_STATE_CLOSED;
+    case CONNECTION_STATE_ERROR:
+        return LWMSG_ASSOC_STATE_ERROR;
     default:
-        return LWMSG_ASSOC_STATE_IN_PROGRESS;
+        return LWMSG_ASSOC_STATE_BUSY;
     }
 }
 
@@ -308,7 +343,10 @@ error:
 static
 LWMsgStatus
 lwmsg_connection_establish(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -316,12 +354,16 @@ lwmsg_connection_establish(
 
     if (!priv->session)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_STATE_NONE, CONNECTION_EVENT_NONE));
+        priv->params.establish.construct = construct;
+        priv->params.establish.destruct = destruct;
+        priv->params.establish.construct_data = data;
+
+        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_ESTABLISH));
     }
 
 error:
 
-     return status;
+    return status;
 }
 
 static LWMsgAssocClass connection_class =
@@ -337,7 +379,9 @@ static LWMsgAssocClass connection_class =
     .get_session = lwmsg_connection_get_session,
     .get_state = lwmsg_connection_get_state,
     .set_timeout = lwmsg_connection_set_timeout,
-    .establish = lwmsg_connection_establish
+    .establish = lwmsg_connection_establish,
+    .set_nonblock = lwmsg_connection_set_nonblock,
+    .finish = lwmsg_connection_finish
 };
 
 LWMsgStatus
@@ -442,98 +486,4 @@ lwmsg_connection_set_endpoint(
 error:
 
     return status;
-}
-
-LWMsgStatus
-lwmsg_connection_set_interrupt_signal(
-    LWMsgAssoc* assoc,
-    LWMsgConnectionSignal* signal
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);  
-
-    priv->interrupt = signal;
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_connection_signal_new(
-    LWMsgConnectionSignal** out_signal
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgConnectionSignal* signal = NULL;
-
-    signal = calloc(1, sizeof(*signal));
-
-    if (signal == NULL)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-    }
-
-    if (pipe(signal->fd))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    *out_signal = signal;
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_connection_signal_raise(
-    LWMsgConnectionSignal* signal
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    char c = 0;
-    int ret = 0;
-
-    ret = write(signal->fd[1], &c, 1);
-
-    if (ret < 1)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_connection_signal_lower(
-    LWMsgConnectionSignal* signal
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    char c = 0;
-    int ret = 0;
-
-    ret = read(signal->fd[0], &c, 1);
-
-    if (ret < 1)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-error:
-
-    return status;
-}
-
-void
-lwmsg_connection_signal_delete(
-    LWMsgConnectionSignal* signal
-    )
-{
-    close(signal->fd[0]);
-    close(signal->fd[1]);
-
-    free(signal);
 }
