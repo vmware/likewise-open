@@ -35,6 +35,8 @@ typedef void* ACCOUNT_HANDLE;
     {'O','b','j','e','c','t','S','I','D',0}
 #define DS_ATTR_COMMON_NAME \
     {'C','o','m','m','o','n','N','a','m','e',0}
+#define DS_ATTR_DOMAIN \
+    {'D','o','m','a','i','n',0}
 #define DS_ATTR_NETBIOS_NAME \
     {'N','e','t','B','I','O','S','N','a','m','e',0}
 #define DS_ATTR_COMMON_NAME \
@@ -45,6 +47,12 @@ typedef void* ACCOUNT_HANDLE;
     {'U','I','D',0}
 #define DS_ATTR_GID \
     {'G','I','D',0}
+#define DS_ATTR_FULL_NAME \
+    {'F','u','l','l','N','a','m','e',0}
+#define DS_ATTR_DESCRIPTION \
+    {'D','e','s','c','r','i','p','t','i','o','n',0}
+#define DS_ATTR_HOME_DIR \
+    {'H','o','m','e','d','i','r',0}
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)
