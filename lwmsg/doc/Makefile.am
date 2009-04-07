@@ -1,6 +1,15 @@
 MKDIR_P = @MKDIR_P@
 
 if HAVE_DOXYGEN
+
+if HAVE_DOXYGEN_PDF
+DOXYGEN_PDF_TARGET=doxygen-pdf
+DOXYGEN_PDF_INSTALL_TARGET=doxygen-pdf-install
+else
+DOXYGEN_PDF_TARGET=
+DOXYGEN_PDF_INSTALL_TARGET=
+endif
+
 DOXYGEN_DEPS = \
 	Doxyfile.in \
 	main.doxy \
@@ -34,10 +43,10 @@ doxygen-pdf-install: lwmsg.pdf
 	$(MKDIR_P) -m 755 $(DESTDIR)$(docdir)/pdf
 	$(INSTALL_DATA) $< $(DESTDIR)$(docdir)/pdf
 
-all-local: doxygen-html doxygen-pdf
+all-local: doxygen-html $(DOXYGEN_PDF_TARGET)
 
-install-data-local: doxygen-html-install doxygen-pdf-install
+install-data-local: doxygen-html-install $(DOXYGEN_PDF_INSTALL)
 
-.PHONY: doxygen-pdf doxygen-html-install doxygen-pdf-install
+.PHONY: doxygen-pdf doxygen-html-install $(DOXYGEN_PDF_INSTALL)
 
 endif

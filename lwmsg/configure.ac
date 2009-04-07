@@ -2,6 +2,7 @@ AC_INIT(lwmsg, 0.1, support@likewisesoftware.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
+AC_CONFIG_MACRO_DIR([m4])
 
 LWMSG_CPPFLAGS=""
 LWMSG_CFLAGS="-Wall -Werror -Wmissing-prototypes"
@@ -42,15 +43,11 @@ AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 AC_PROG_LIBTOOL
 
-AC_CHECK_PROG([DOXYGEN], [doxygen], [doxygen], [false])
-if test x"$DOXYGEN" != x"false"
-then
-	HAVE_DOXYGEN=true
-else
-	HAVE_DOXYGEN=false
-fi
-
+#LW_PROG_DOXYGEN_MIN_VERSION([1.5.3])
+LW_USE_DOXYGEN([1.5.3])
+AC_SUBST([DOXYGEN],[$DOXYGEN])
 AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
+AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
