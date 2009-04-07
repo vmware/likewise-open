@@ -143,7 +143,6 @@ LWNetCloseServer(
     return dwError;
 }
 
-
 DWORD
 LWNetTransactGetDCName(
     HANDLE hConnection,
@@ -151,6 +150,8 @@ LWNetTransactGetDCName(
     PCSTR pszDomainFQDN,
     PCSTR pszSiteName,
     DWORD dwFlags,
+    DWORD dwBlackListCount,
+    PSTR* ppszAddressBlackList,
     PLWNET_DC_INFO* ppDCInfo
     )
 {
@@ -167,6 +168,8 @@ LWNetTransactGetDCName(
     dcReq.pszDomainFQDN = pszDomainFQDN;
     dcReq.pszSiteName = pszSiteName;
     dcReq.dwFlags = dwFlags;
+    dcReq.dwBlackListCount = dwBlackListCount;
+    dcReq.ppszAddressBlackList = ppszAddressBlackList;
 
     request.tag = LWNET_Q_DCINFO;
     request.object = &dcReq;
