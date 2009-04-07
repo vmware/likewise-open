@@ -226,6 +226,17 @@ SamrSrvConnect2(
 
 
 NTSTATUS
+SamrSrvOpenAccount(
+    handle_t hBinding,
+    DOMAIN_HANDLE *hDomain,
+    uint32 access_mask,
+    uint32 rid,
+    uint32 objectClass,
+    ACCOUNT_HANDLE *hAccount
+    );
+
+
+NTSTATUS
 SamrSrvCreateAccount(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,

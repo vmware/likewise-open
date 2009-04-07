@@ -447,6 +447,59 @@ typedef union netr_domain_info {
 #endif /* _DCE_IDL_ */
 
 
+/* address type flags */
+#define DS_ADDRESS_TYPE_INET             (0x0001)
+#define DS_ADDRESS_TYPE_NETBIOS          (0x0002)
+
+/* DC flags */
+#define DS_SERVER_PDC                    (0x00000001)
+#define DS_SERVER_GC                     (0x00000004)
+#define DS_SERVER_LDAP                   (0x00000008)
+#define DS_SERVER_DS                     (0x00000010)
+#define DS_SERVER_KDC                    (0x00000020)
+#define DS_SERVER_TIMESERV               (0x00000040)
+#define DS_SERVER_CLOSEST                (0x00000080)
+#define DS_SERVER_WRITABLE               (0x00000100)
+#define DS_SERVER_GOOD_TIMESERV          (0x00000200)
+#define DS_SERVER_NDNC                   (0x00000400)
+#define DS_SERVER_SELECT_SECRET_DOMAIN_6 (0x00000800)
+#define DS_SERVER_FULL_SECRET_DOMAIN_6   (0x00001000)
+#define DS_DNS_CONTROLLER                (0x20000000)
+#define DS_DNS_DOMAIN                    (0x40000000)
+#define DS_DNS_FOREST                    (0x80000000)
+
+
+typedef struct dsr_dc_name_info {
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *dc_name;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *dc_address;
+    uint16 address_type;
+    Guid domain_guid;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *domain_name;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *forest_name;
+    uint32 flags;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *dc_site_name;
+#ifdef _DCE_IDL_
+    [string]
+#endif
+    wchar16_t *cli_site_name;
+} DsrDcNameInfo;
+
+
 #endif /* _NETRDEFS_H_ */
 
 

@@ -53,157 +53,30 @@ SamrSrvOpenAlias(
     /* [in] */ DOMAIN_HANDLE *hDomain,
     /* [in] */ uint32 access_mask,
     /* [in] */ uint32 rid,
-    /* [out] */ ACCOUNT_HANDLE *hAlias
+    /* [out] */ ACCOUNT_HANDLE *phAlias
     )
 {
-    CHAR szFilterFmt[] = "(&(objectclass=group)(gid=%d))";
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    PDOMAIN_CONTEXT pDomCtx = NULL;
-    PACCOUNT_CONTEXT pAccCtx = NULL;
-    HANDLE hDirectory = NULL;
-    PWSTR pwszAttrNameGroupname = NULL;
-    PWSTR pwszAttrNameSid = NULL;
-    PWSTR pwszDn = NULL;
-    DWORD dwScope = 0;
-    PWSTR pwszFilter = NULL;
-    PWSTR wszAttributes[3];
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
-    DWORD dwEntriesNum = 0;
-    DWORD i = 0;
-    PWSTR pwszName = NULL;
-    DWORD dwNameLen = 0;
-    PSID pSid = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
 
-    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
-
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-    hDirectory = pDomCtx->pConnCtx->hDirectory;
-    pwszDn     = pDomCtx->pwszDn;
-
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GROUP_NAME,
-                            &pwszAttrNameGroupname);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GROUP_SID,
-                            &pwszAttrNameSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    status = SamrSrvAllocateMemory((void**)&pAccCtx,
-                                   sizeof(*pAccCtx),
-                                   NULL);
+    status = SamrSrvOpenAccount(hBinding,
+                                hDomain,
+                                access_mask,
+                                rid,
+                                DS_OBJECT_CLASS_GROUP,
+                                &hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   (sizeof (szFilterFmt) + 10)
-                                   * sizeof(WCHAR),
-                                   NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
+    pAcctCtx->dwAccountType = SID_TYPE_ALIAS;
 
-    sw16printf(pwszFilter, szFilterFmt, rid);
-
-    wszAttributes[0] = pwszAttrNameGroupname;
-    wszAttributes[1] = pwszAttrNameSid;
-    wszAttributes[2] = NULL;
-
-    dwError = DirectorySearch(hDirectory,
-                              pwszDn,
-                              dwScope,
-                              pwszFilter,
-                              wszAttributes,
-                              TRUE,
-                              &pEntries,
-                              &dwEntriesNum);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwEntriesNum == 1) {
-        pEntry = &(pEntries[0]);
-
-        for (i = 0; pEntry->ulNumAttributes; i++) {
-            pAttr = &(pEntry->pAttributes[i]);
-
-            dwError = DirectoryGetAttributeValue(pAttr,
-                                                 &pAttrVal);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (!wc16scmp(pAttr->pwszName, pwszAttrNameGroupname) &&
-                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
-                dwNameLen = wc16slen(pAttrVal->pwszStringValue);
-
-                status = SamrSrvAllocateMemory((void**)&pwszName,
-                                               (dwNameLen + 1) * sizeof(WCHAR),
-                                               pAccCtx);
-                BAIL_ON_NTSTATUS_ERROR(status);
-
-                wc16sncpy(pwszName, pAttrVal->pwszStringValue, dwNameLen);
-
-
-            } else if (!wc16scmp(pAttr->pwszName, pwszAttrNameSid) &&
-                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
-                status = RtlAllocateSidFromWC16String(&pSid,
-                                                      pAttrVal->pwszStringValue);
-                BAIL_ON_NTSTATUS_ERROR(status);
-            }
-        }
-
-    } else if (dwEntriesNum == 0) {
-        status = STATUS_NO_SUCH_ALIAS;
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-    } else {
-        status = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-    pAccCtx->Type          = SamrContextAccount;
-    pAccCtx->refcount      = 1;
-    pAccCtx->pwszName      = pwszName;
-    pAccCtx->pSid          = pSid;
-    pAccCtx->dwAccountType = SID_TYPE_ALIAS;
-
-    InterlockedIncrement(&pAccCtx->refcount);
-
-    *hAlias = (ACCOUNT_HANDLE)pAccCtx;
+    *phAlias = hAlias;
 
 cleanup:
-    if (pwszAttrNameGroupname) {
-        SamrSrvFreeMemory(pwszAttrNameGroupname);
-    }
-
-    if (pwszAttrNameSid) {
-        SamrSrvFreeMemory(pwszAttrNameSid);
-    }
-
-    if (pwszFilter) {
-        SamrSrvFreeMemory(pwszFilter);
-    }
-
-    if (pEntries) {
-        DirectoryFreeEntries(pEntries, dwEntriesNum);
-    }
-
     return status;
 
 error:
-    if (pAccCtx) {
-        InterlockedDecrement(&pAccCtx->refcount);
-        ACCOUNT_HANDLE_rundown((ACCOUNT_HANDLE)pAccCtx);
-    }
-
-    if (pSid) {
-        RTL_FREE(&pSid);
-    }
-
-    *hAlias = NULL;
     goto cleanup;
 }
 

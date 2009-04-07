@@ -56,17 +56,23 @@ SamrSrvOpenDomain(
     /* [out] */ DOMAIN_HANDLE *hDomain
     )
 {
-    CHAR szFilter[] = "(objectclass=domain)";
+    wchar_t wszFilter[] = L"(%ws=%d OR %ws=%d) AND %ws='%ws'";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PWSTR pwszBase = NULL;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrCommonName[] = DS_ATTR_COMMON_NAME;
+    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    DWORD dwObjectClassDomain = DS_OBJECT_CLASS_DOMAIN;
+    DWORD dwObjectClassBuiltin = DS_OBJECT_CLASS_BUILTIN_DOMAIN;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
-    PWSTR wszAttributes[3];
-    PWSTR pwszAttrDomainName = NULL;
-    PWSTR pwszAttrDomainSid = NULL;
+    DWORD dwFilterLen = 0;
+    PWSTR wszAttributes[4];
+    PWSTR pwszDomainSid = NULL;
     PDIRECTORY_ENTRY pEntries = NULL;
     DWORD dwEntriesNum = 0;
     PDIRECTORY_ENTRY pEntry = NULL;
@@ -88,27 +94,41 @@ SamrSrvOpenDomain(
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    dwError = LsaMbsToWc16s(szFilter, &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
+    status = RtlAllocateWC16StringFromSid(&pwszDomainSid, sid);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_DOMAIN_NAME,
-                            &pwszAttrDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
+    dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
+                  10 +
+                  (sizeof(wszFilter) / sizeof(wszFilter[0])) +
+                  ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
+                  10 +
+                  ((sizeof(wszAttrObjectSid) / sizeof(WCHAR)) - 1) +
+                  wc16slen(pwszDomainSid);
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_DOMAIN_SID,
-                            &pwszAttrDomainSid);
-    BAIL_ON_LSA_ERROR(dwError);
+    status = SamrSrvAllocateMemory((void**)&pwszFilter,
+                                   dwFilterLen * sizeof(*pwszFilter),
+                                   pConnCtx);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-    wszAttributes[0] = pwszAttrDomainName;
-    wszAttributes[1] = pwszAttrDomainSid;
-    wszAttributes[2] = NULL;
+    sw16printfw(pwszFilter, dwFilterLen, wszFilter,
+                &wszAttrObjectClass[0],
+                dwObjectClassDomain,
+                &wszAttrObjectClass[0],
+                dwObjectClassBuiltin,
+                &wszAttrObjectSid[0],
+                pwszDomainSid);
+
+    wszAttributes[0] = wszAttrCommonName;
+    wszAttributes[1] = wszAttrObjectSid;
+    wszAttributes[2] = wszAttrDn;
+    wszAttributes[3] = NULL;
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
                               dwScope,
                               pwszFilter,
                               wszAttributes,
-                              TRUE,
+                              FALSE,
                               &pEntries,
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
@@ -121,7 +141,7 @@ SamrSrvOpenDomain(
     for (i = 0; i < dwEntriesNum; i++) {
         pEntry = &(pEntries[i]);
         dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                   pwszAttrDomainSid,
+                                                   wszAttrObjectSid,
                                                    &pAttrDomainSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -132,18 +152,16 @@ SamrSrvOpenDomain(
         if (pAttrVal &&
             pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-            status = RtlAllocateSidFromWC16String(&pDomainSid,
-                                                  pAttrVal->pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            status = SamrSrvAddDepMemory(pDomainSid, pDomCtx);
+            status = SamrSrvAllocateSidFromWC16String(&pDomainSid,
+                                                      pAttrVal->pwszStringValue,
+                                                      pDomCtx);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             pAttrVal = NULL;
 
             if (RtlEqualSid(pDomainSid, sid)) {
                 dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                           pwszAttrDomainName,
+                                                           wszAttrCommonName,
                                                            &pAttrDomainName);
                 BAIL_ON_LSA_ERROR(dwError);
 
@@ -173,9 +191,9 @@ SamrSrvOpenDomain(
             }
 
 
-            dwError = DirectoryGetEntryAttributeByNameA(pEntry,
-                                                        DIRECTORY_ATTR_TAG_DN,
-                                                        &pAttrDn);
+            dwError = DirectoryGetEntryAttributeByName(pEntry,
+                                                       wszAttrDn,
+                                                       &pAttrDn);
             BAIL_ON_LSA_ERROR(dwError);
 
             pAttrVal = NULL;
@@ -215,16 +233,12 @@ SamrSrvOpenDomain(
     *hDomain = (DOMAIN_HANDLE)pDomCtx;
 
 cleanup:
-    if (pwszAttrDomainName) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrDomainName);
-    }
-
-    if (pwszAttrDomainSid) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrDomainSid);
+    if (pwszDomainSid) {
+        RTL_FREE(&pwszDomainSid);
     }
 
     if (pwszFilter) {
-        LSA_SAFE_FREE_MEMORY(pwszFilter);
+        SamrSrvFreeMemory(pwszFilter);
     }
 
     if (pEntries) {

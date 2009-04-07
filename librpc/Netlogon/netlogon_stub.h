@@ -134,9 +134,15 @@ extern NTSTATUS netr_Function13(
     /* [in] */ handle_t IDL_handle
 #endif
 );
-extern NTSTATUS netr_Function14(
+extern NTSTATUS _DsrGetDcName(
 #ifdef IDL_PROTOTYPES
-    /* [in] */ handle_t IDL_handle
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ wchar16_t *domain_name,
+    /* [in] */ Guid *domain_guid,
+    /* [in] */ Guid *site_guid,
+    /* [in] */ uint32 get_dc_flags,
+    /* [out] */ DsrDcNameInfo **info
 #endif
 );
 extern NTSTATUS netr_Function15(

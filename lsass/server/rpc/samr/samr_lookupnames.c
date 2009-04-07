@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -57,9 +57,8 @@ SamrSrvLookupNames(
     /* [out] */ Ids *types
     )
 {
-    CHAR szFilterFmt[] = "(|(&(objectclass=user)(user-name=%S))"
-                           "(&(objectclass=group)(group-name=%S)))";
-
+    const wchar_t wszFilterFmt[] = L"(%ws=%d AND %ws='%ws') OR "
+                                   L"(%ws=%d AND %ws='%ws')";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     PDOMAIN_CONTEXT pDomCtx = NULL;
@@ -67,11 +66,15 @@ SamrSrvLookupNames(
     Ids *pIds = NULL;
     Ids *pTypes = NULL;
     PWSTR pwszDn = NULL;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    DWORD dwObjectClassUser = DS_OBJECT_CLASS_USER;
+    DWORD dwObjectClassGroup = DS_OBJECT_CLASS_GROUP;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
+    DWORD dwFilterLen = 0;
     PWSTR wszAttributes[3];
-    PWSTR pwszAttrNameGid = NULL;
-    PWSTR pwszAttrNameUid = NULL;
     DWORD i = 0;
     PWSTR pwszName = NULL;
     PDIRECTORY_ENTRY pEntries = NULL;
@@ -79,6 +82,13 @@ SamrSrvLookupNames(
     PDIRECTORY_ATTRIBUTE pAttr = NULL;
     PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD dwEntriesNum = 0;
+    PWSTR pwszSid = NULL;
+    PSID pSid = NULL;
+    DWORD dwObjectClass = 0;
+    DWORD dwRid = 0;
+    DWORD dwType = 0;
+    BOOLEAN bNamesFound = FALSE;
+    BOOLEAN bNamesNotFound = FALSE;
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
@@ -112,32 +122,37 @@ SamrSrvLookupNames(
                                    pDomCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_GID, &pwszAttrNameGid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(DIRECTORY_ATTR_TAG_UID, &pwszAttrNameUid);
-    BAIL_ON_LSA_ERROR(dwError);
-
     for (i = 0; i < num_names; i++) {
         UnicodeString *name = &(names[i]);
 
-        status = SamrSrvAllocateMemory((void**)&pwszName,
-                                       name->size * sizeof(WCHAR),
-                                       NULL);
+        status = SamrSrvGetFromUnicodeString(&pwszName,
+                                             name,
+                                             pDomCtx);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        wc16sncpy(pwszName, name->string, name->len);
+        dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
+                      10 +
+                      ((sizeof(wszAttrSamAccountName) / sizeof(WCHAR)) - 1) +
+                      wc16slen(pwszName) +
+                      ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
+                      10 +
+                      ((sizeof(wszAttrSamAccountName) / sizeof(WCHAR)) - 1) +
+                      wc16slen(pwszName) +
+                      (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
         status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                       (name->size * 2 + sizeof(szFilterFmt))
-                                       * sizeof(WCHAR),
+                                       dwFilterLen * sizeof(WCHAR),
                                        NULL);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-        sw16printf(pwszFilter, szFilterFmt, pwszName);
+        sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectClass, dwObjectClassUser,
+                    wszAttrSamAccountName, pwszName,
+                    wszAttrObjectClass, dwObjectClassGroup,
+                    wszAttrSamAccountName, pwszName);
 
-        wszAttributes[0] = pwszAttrNameUid;
-        wszAttributes[1] = pwszAttrNameGid;
+        wszAttributes[0] = wszAttrObjectSid;
+        wszAttributes[1] = wszAttrObjectClass;
         wszAttributes[2] = NULL;
 
         pEntry   = NULL;
@@ -149,59 +164,60 @@ SamrSrvLookupNames(
                                   dwScope,
                                   pwszFilter,
                                   wszAttributes,
-                                  TRUE,
+                                  FALSE,
                                   &pEntries,
                                   &dwEntriesNum);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (dwEntriesNum == 1) {
-            pEntry = &(pEntries[0]);
+            pEntry  = &(pEntries[0]);
 
-            dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                       pwszAttrNameUid,
-                                                       &pAttr);
-            if (pAttr && dwError == 0) {
-                dwError = DirectoryGetAttributeValue(pAttr,
-                                                     &pAttrVal);
-                BAIL_ON_LSA_ERROR(dwError);
+            pwszSid       = NULL;
+            dwRid         = 0;
+            dwType        = 0;
+            dwObjectClass = 0;
 
-                if (pAttrVal &&
-                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
+            dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                                       wszAttrObjectSid,
+                                                       DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                                       &pwszSid);
+            if (pwszSid && dwError == 0) {
+                status = RtlAllocateSidFromWC16String(&pSid, pwszSid);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
-                    pIds->ids[i]   = pAttrVal->ulValue;
-                    pTypes->ids[i] = SID_TYPE_USER;
-
-                } else {
-                    status = STATUS_INTERNAL_ERROR;
-                    BAIL_ON_NTSTATUS_ERROR(status);
-                }
-
-            } else {
-                pAttr = NULL;
-                dwError = DirectoryGetEntryAttributeByName(pEntry,
-                                                           pwszAttrNameGid,
-                                                           &pAttr);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                dwError = DirectoryGetAttributeValue(pAttr,
-                                                     &pAttrVal);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                if (pAttrVal &&
-                    pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
-
-                    pIds->ids[i]   = pAttrVal->ulValue;
-                    pTypes->ids[i] = SID_TYPE_ALIAS;
-
-                } else {
-                    status = STATUS_INTERNAL_ERROR;
-                    BAIL_ON_NTSTATUS_ERROR(status);
-                }
+                dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
             }
+
+            dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                                       wszAttrObjectClass,
+                                                       DIRECTORY_ATTR_TYPE_INTEGER,
+                                                       &dwObjectClass);
+            if (dwError == 0) {
+                switch (dwObjectClass) {
+                case DS_OBJECT_CLASS_USER:
+                    dwType = SID_TYPE_USER;
+                    break;
+
+                case DS_OBJECT_CLASS_GROUP:
+                    dwType = SID_TYPE_ALIAS;
+                    break;
+
+                default:
+                    status = STATUS_INTERNAL_ERROR;
+                }
+
+                BAIL_ON_NTSTATUS_ERROR(status);
+            }
+
+
+            pIds->ids[i]   = dwRid;
+            pTypes->ids[i] = dwType;
 
         } else if (dwEntriesNum == 0) {
             pIds->ids[i]   = 0;
             pTypes->ids[i] = SID_TYPE_UNKNOWN;
+
+            bNamesNotFound = TRUE;
 
         } else {
             status = STATUS_INTERNAL_ERROR;
@@ -222,6 +238,10 @@ SamrSrvLookupNames(
             SamrSrvFreeMemory(pwszName);
             pwszName = NULL;
         }
+
+        if (pSid) {
+            RTL_FREE(&pSid);
+        }
     }
 
     ids->count   = pIds->count;
@@ -229,17 +249,22 @@ SamrSrvLookupNames(
     types->count = pTypes->count;
     types->ids   = pTypes->ids;
 
+    if (status == STATUS_SUCCESS) {
+        if (bNamesFound && bNamesNotFound) {
+            status = STATUS_SOME_UNMAPPED;
+
+        } else if (!bNamesFound && bNamesNotFound) {
+            status = STATUS_NONE_MAPPED;
+        }
+    }
+
 cleanup:
-    if (pwszAttrNameGid) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrNameGid);
-    }
-
-    if (pwszAttrNameGid) {
-        LSA_SAFE_FREE_MEMORY(pwszAttrNameUid);
-    }
-
     if (pwszName) {
         SamrSrvFreeMemory(pwszName);
+    }
+
+    if (pSid) {
+        RTL_FREE(&pSid);
     }
 
     if (pwszFilter) {

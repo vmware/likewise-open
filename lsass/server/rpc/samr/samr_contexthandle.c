@@ -79,6 +79,18 @@ DOMAIN_HANDLE_rundown(
     InterlockedDecrement(&pDomCtx->refcount);
     if (pDomCtx->refcount) return;
 
+    if (pDomCtx->pDomainSid) {
+        SamrSrvFreeMemory(pDomCtx->pDomainSid);
+    }
+
+    if (pDomCtx->pwszDomainName) {
+        SamrSrvFreeMemory(pDomCtx->pwszDomainName);
+    }
+
+    if (pDomCtx->pwszDn) {
+        SamrSrvFreeMemory(pDomCtx->pwszDn);
+    }
+
     CONNECT_HANDLE_rundown((CONNECT_HANDLE)pDomCtx->pConnCtx);
     SamrSrvFreeMemory(pDomCtx);
 }

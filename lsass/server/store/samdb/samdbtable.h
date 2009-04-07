@@ -122,7 +122,8 @@
      "CHECK(" SAM_DB_COL_OBJECT_CLASS      " == 1 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 2 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 3 \n"                          \
-            " OR " SAM_DB_COL_OBJECT_CLASS " == 4)\n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 4 \n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 5)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
                  "GroupRecordId  INTEGER,\n"                                   \
@@ -556,11 +557,13 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                            \
         SAM_DB_DIR_ATTR_NT_HASH,                                 \
         SAM_DB_ATTR_FLAGS_NONE                                   \
-    },                                                           \
+    }                                                            \
+    /* It's not certain this is mandatory attribute
     {                                                            \
         SAM_DB_DIR_ATTR_GID,                                     \
         SAM_DB_ATTR_FLAGS_MANDATORY                              \
     }
+    */
 
 #define SAMDB_CONTAINER_ATTRIBUTE_MAP                            \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \

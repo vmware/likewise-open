@@ -29,7 +29,8 @@ SamDbAddMachineDomain(
     HANDLE hDirectory,
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
-    PCSTR  pszNetBIOSName
+    PCSTR  pszNetBIOSName,
+    PSID   *ppMachineSid
     );
 
 static
@@ -51,6 +52,22 @@ SamDbAddLocalDomain(
     PCSTR  pszNetBIOSName,
     PCSTR  pszMachineSID
     );
+
+static
+DWORD
+SamDbAddBuiltinAccounts(
+    HANDLE             hDirectory,
+    PCSTR              pszDomainDN
+    );
+
+static
+DWORD
+SamDbAddLocalAccounts(
+    HANDLE    hDirectory,
+    PCSTR     pszDomainDN,
+    PSID      pMachineSid
+    );
+
 
 DWORD
 DirectoryInitializeProvider(
@@ -241,6 +258,7 @@ SamDbAddDefaultEntries(
     PSTR   pszHostname = NULL;
     PSTR   pszDomainDN = NULL;
     CHAR   szNetBIOSName[16];
+    PSID   pMachineSid = NULL;
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -263,12 +281,24 @@ SamDbAddDefaultEntries(
                     hDirectory,
                     pszDomainDN,
                     pszHostname,
-                    &szNetBIOSName[0]);
+                    &szNetBIOSName[0],
+                    &pMachineSid);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbAddBuiltin(
                     hDirectory,
                     pszDomainDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddBuiltinAccounts(
+                    hDirectory,
+                    pszDomainDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbAddLocalAccounts(
+                    hDirectory,
+                    pszDomainDN,
+                    pMachineSid);
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
@@ -304,14 +334,20 @@ SamDbAddMachineDomain(
     HANDLE hDirectory,
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
-    PCSTR  pszNetBIOSName
+    PCSTR  pszNetBIOSName,
+    PSID   *ppMachineSid
     )
 {
+    const ULONG ulSubAuthCount = 4;
     DWORD  dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG  ulSidLength = 0;
     PSTR   pszMachineSID = NULL;
     ULONG  ulSubAuth[3];
     PBYTE  pSubAuth = NULL;
     uuid_t GUID;
+    PSID   pMachineSid = NULL;
+    SID_IDENTIFIER_AUTHORITY AuthId = { SECURITY_NT_AUTHORITY };
 
     uuid_generate(GUID);
 
@@ -321,6 +357,25 @@ SamDbAddMachineDomain(
     ulSubAuth[1] = *((PULONG)pSubAuth);
     pSubAuth += sizeof(ULONG);
     ulSubAuth[2] = *((PULONG)pSubAuth);
+
+    ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
+
+    dwError = LsaAllocateMemory(ulSidLength,
+                                (void**)&pMachineSid);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    status = RtlInitializeSid(pMachineSid,
+                              &AuthId,
+                              ulSubAuthCount);
+    if (status != 0) {
+        dwError = LSA_ERROR_SAM_INIT_ERROR;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    pMachineSid->SubAuthority[0] = 21;
+    pMachineSid->SubAuthority[1] = ulSubAuth[0];
+    pMachineSid->SubAuthority[2] = ulSubAuth[1];
+    pMachineSid->SubAuthority[3] = ulSubAuth[2];
 
     dwError = LsaAllocateStringPrintf(
                     &pszMachineSID,
@@ -337,6 +392,8 @@ SamDbAddMachineDomain(
                     pszNetBIOSName,
                     pszMachineSID);
     BAIL_ON_SAMDB_ERROR(dwError);
+
+    *ppMachineSid = pMachineSid;
 
 cleanup:
 
@@ -558,6 +615,409 @@ error:
 
     goto cleanup;
 }
+
+
+static
+DWORD
+SamDbAddBuiltinAccounts(
+    HANDLE             hDirectory,
+    PCSTR              pszDomainDN
+    )
+{
+    struct builtin_account {
+        PCSTR               pszName;
+        PCSTR               pszSID;
+        PCSTR               pszDescription;
+        SAMDB_OBJECT_CLASS  objectClass;
+    } BuiltinAccounts[] = {
+        {
+            .pszName        = "Administrators",
+            .pszSID         = "S-1-5-32-544",
+            .pszDescription = "Administrators have complete and unrestricted "
+                              "access to the computer/domain",
+            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+        },
+        {
+            .pszName        = "Guests",
+            .pszSID         = "S-1-5-32-544",
+            .pszDescription = "Guests have the same access as members of the "
+                              "Users group by default, except for the Guest "
+                              "account which is further restricted",
+            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+        }
+    };
+
+    DWORD dwError = 0;
+    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
+    PCSTR     pszName = NULL;
+    PCSTR     pszSID = NULL;
+    PCSTR     pszDescription = NULL;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+    PSTR      pszObjectDN = NULL;
+    PWSTR     pwszObjectDN = NULL;
+    PWSTR     pwszSamAccountName = NULL;
+    PWSTR     pwszSID = NULL;
+    PWSTR     pwszDescription = NULL;
+    ATTRIBUTE_VALUE avGroupName = {0};
+    ATTRIBUTE_VALUE avSID = {0};
+    ATTRIBUTE_VALUE avObjectClass = {0};
+    ATTRIBUTE_VALUE avDescription = {0};
+    DIRECTORY_MOD mods[6];
+    ULONG     iMod = 0;
+    DWORD     i = 0;
+
+    for (i = 0; i < sizeof(BuiltinAccounts)/sizeof(BuiltinAccounts[0]); i++) {
+
+        pszName        = BuiltinAccounts[i].pszName;
+        pszSID         = BuiltinAccounts[i].pszSID;
+        pszDescription = BuiltinAccounts[i].pszDescription;
+        objectClass    = BuiltinAccounts[i].objectClass;
+
+        iMod = 0;
+        memset(mods, 0, sizeof(mods));
+
+        dwError = LsaAllocateStringPrintf(
+                        &pszObjectDN,
+                        "CN=%s,CN=Builtin,%s",
+                        pszName,
+                        pszDomainDN);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszObjectDN,
+                        &pwszObjectDN);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszName,
+                        &pwszSamAccountName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszSID,
+                        &pwszSID);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszDescription,
+                        &pwszDescription);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avSID.pwszStringValue = pwszSID;
+        mods[iMod].pAttrValues = &avSID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avObjectClass.ulValue = objectClass;
+        mods[iMod].pAttrValues = &avObjectClass;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avGroupName.pwszStringValue = pwszSamAccountName;
+        mods[iMod].pAttrValues = &avGroupName;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        mods[iMod].pAttrValues = &avGroupName;
+
+        avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avDescription.pwszStringValue = pwszDescription;
+        mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        mods[iMod].pAttrValues = &avDescription;
+
+        mods[++iMod].pwszAttrName = NULL;
+        mods[iMod].pAttrValues = NULL;
+
+        dwError = SamDbAddObject(
+                        hDirectory,
+                        pwszObjectDN,
+                        mods);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        if (pszObjectDN) {
+            DIRECTORY_FREE_STRING(pszObjectDN);
+            pszObjectDN = NULL;
+        }
+
+        if (pwszObjectDN) {
+            DIRECTORY_FREE_MEMORY(pwszObjectDN);
+            pwszObjectDN = NULL;
+        }
+
+        if (pwszSamAccountName) {
+            DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+            pwszSamAccountName = NULL;
+        }
+
+        if (pwszSID) {
+            DIRECTORY_FREE_MEMORY(pwszSID);
+            pwszSID = NULL;
+        }
+
+        if (pwszDescription) {
+            DIRECTORY_FREE_MEMORY(pwszDescription);
+            pwszDescription = NULL;
+        }
+    }
+
+cleanup:
+    if (pszObjectDN) {
+        DIRECTORY_FREE_STRING(pszObjectDN);
+    }
+
+    if (pwszObjectDN) {
+        DIRECTORY_FREE_MEMORY(pwszObjectDN);
+    }
+
+    if (pwszSamAccountName) {
+        DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+    }
+
+    if (pwszSID) {
+        DIRECTORY_FREE_MEMORY(pwszSID);
+    }
+
+    if (pwszDescription) {
+        DIRECTORY_FREE_MEMORY(pwszDescription);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+static
+DWORD
+SamDbAddLocalAccounts(
+    HANDLE    hDirectory,
+    PCSTR     pszDomainDN,
+    PSID      pMachineSid
+    )
+{
+    struct local_account {
+        PCSTR               pszName;
+        DWORD               dwRid;
+        PCSTR               pszDescription;
+        SAMDB_OBJECT_CLASS  objectClass;
+    } LocalAccounts[] = {
+        {
+            .pszName        = "Administrator",
+            .dwRid          = DOMAIN_USER_RID_ADMIN,
+            .pszDescription = "Built-in account for administering the "
+                              "computer/domain",
+            .objectClass    = SAMDB_OBJECT_CLASS_USER
+        },
+        {
+            .pszName        = "Guest",
+            .dwRid          = DOMAIN_USER_RID_GUEST,
+            .pszDescription = "Built-in account for guest access to the "
+                              "computer/domain",
+            .objectClass    = SAMDB_OBJECT_CLASS_USER
+        }
+    };
+
+    DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
+    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
+    PCSTR     pszName = NULL;
+    DWORD     dwRid = 0;
+    PCSTR     pszDescription = NULL;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+    PSTR      pszObjectDN = NULL;
+    PSID      pUserSid = NULL;
+    ULONG     ulUserSidLength = 0;
+    PWSTR     pwszSamAccountName = NULL;
+    PWSTR     pwszObjectDN = NULL;
+    PWSTR     pwszSID = NULL;
+    PWSTR     pwszDescription = NULL;
+    ATTRIBUTE_VALUE avGroupName = {0};
+    ATTRIBUTE_VALUE avSID = {0};
+    ATTRIBUTE_VALUE avObjectClass = {0};
+    ATTRIBUTE_VALUE avDescription = {0};
+    DIRECTORY_MOD mods[6];
+    ULONG     iMod = 0;
+    DWORD     i = 0;
+
+    for (i = 0; i < sizeof(LocalAccounts)/sizeof(LocalAccounts[0]); i++) {
+
+        pszName        = LocalAccounts[i].pszName;
+        dwRid          = LocalAccounts[i].dwRid;
+        pszDescription = LocalAccounts[i].pszDescription;
+        objectClass    = LocalAccounts[i].objectClass;
+
+        iMod    = 0;
+        memset(mods, 0, sizeof(mods));
+
+        ulUserSidLength = RtlLengthRequiredSid(
+                                  pMachineSid->SubAuthorityCount + 1);
+        dwError = LsaAllocateMemory(ulUserSidLength, (void**)&pUserSid);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        status = RtlCopySid(ulUserSidLength, pUserSid, pMachineSid);
+        if (status != 0) {
+            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        status = RtlAppendRidSid(ulUserSidLength, pUserSid, dwRid);
+        if (status != 0) {
+            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwError = LsaAllocateStringPrintf(
+                        &pszObjectDN,
+                        "CN=%s,CN=Users,%s",
+                        pszName,
+                        pszDomainDN);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszObjectDN,
+                        &pwszObjectDN);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszName,
+                        &pwszSamAccountName);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszDescription,
+                        &pwszDescription);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        status = RtlAllocateWC16StringFromSid(
+                        &pwszSID,
+                        pUserSid);
+        if (status != 0) {
+            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avSID.pwszStringValue = pwszSID;
+        mods[iMod].pAttrValues = &avSID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avObjectClass.ulValue = objectClass;
+        mods[iMod].pAttrValues = &avObjectClass;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avGroupName.pwszStringValue = pwszSamAccountName;
+        mods[iMod].pAttrValues = &avGroupName;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        mods[iMod].pAttrValues = &avGroupName;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avDescription.pwszStringValue = pwszDescription;
+        mods[iMod].pAttrValues = &avDescription;
+
+        mods[++iMod].pwszAttrName = NULL;
+        mods[iMod].pAttrValues = NULL;
+
+        dwError = SamDbAddObject(
+                        hDirectory,
+                        pwszObjectDN,
+                        mods);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        if (pszObjectDN) {
+            DIRECTORY_FREE_STRING(pszObjectDN);
+            pszObjectDN = NULL;
+        }
+
+        if (pwszObjectDN) {
+            DIRECTORY_FREE_MEMORY(pwszObjectDN);
+            pwszObjectDN = NULL;
+        }
+
+        if (pwszSamAccountName) {
+            DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+            pwszSamAccountName = NULL;
+        }
+
+        if (pwszDescription) {
+            DIRECTORY_FREE_MEMORY(pwszDescription);
+            pwszDescription = NULL;
+        }
+
+        if (pwszSID) {
+            RTL_FREE(&pwszSID);
+            pwszSID = NULL;
+        }
+
+        if (pUserSid) {
+            DIRECTORY_FREE_MEMORY(pUserSid);
+            pUserSid = NULL;
+        }
+    }
+
+cleanup:
+    if (pszObjectDN) {
+        DIRECTORY_FREE_STRING(pszObjectDN);
+    }
+
+    if (pwszObjectDN) {
+        DIRECTORY_FREE_MEMORY(pwszObjectDN);
+    }
+
+    if (pwszSamAccountName) {
+        DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+    }
+
+    if (pwszSID) {
+        RTL_FREE(&pwszSID);
+    }
+
+    if (pUserSid) {
+        LSA_SAFE_FREE_MEMORY(pUserSid);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 /*
 local variables:

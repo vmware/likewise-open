@@ -255,6 +255,32 @@ NetrCleanStubDomainInfo(
 }
 
 
+void
+NetrCleanStubDcNameInfo(
+    DsrDcNameInfo *r
+    )
+{
+    SAFE_FREE(r->dc_name);
+    SAFE_FREE(r->dc_address);
+    SAFE_FREE(r->domain_name);
+    SAFE_FREE(r->forest_name);
+    SAFE_FREE(r->dc_site_name);
+    SAFE_FREE(r->cli_site_name);
+}
+
+
+void
+NetrFreeStubDcNameInfo(
+    DsrDcNameInfo *ptr
+    )
+{
+    if (ptr == NULL) return;
+
+    NetrCleanStubDcNameInfo(ptr);
+    SAFE_FREE(ptr);
+}
+
+
 /*
 local variables:
 mode: c
