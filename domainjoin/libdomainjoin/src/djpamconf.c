@@ -1366,6 +1366,8 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_mysql"))
         return TRUE;
+    if(!strcmp(buffer, "pam_gnome_keyring"))
+        return TRUE;
 
     /* pam_lwidentity will only prompt for domain users during the password phase. All in all, it doesn't store passwords for subsequent modules in the password phase. */
     if(PamModuleIsLwidentity(phase, module) && !strcmp(phase, "auth"))
