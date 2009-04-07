@@ -191,13 +191,14 @@ SamrSrvQueryUserInfo(
     /* [out] */ UserInfo **info
     )
 {
-    CHAR szFilterFmt[] = "(&(objectclass=user)(uid=%d))";
+    wchar_t wszFilterFmt[] = L"%ws='%ws'";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PACCOUNT_CONTEXT pAccCtx = NULL;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
+    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
@@ -206,25 +207,29 @@ SamrSrvQueryUserInfo(
     DWORD dwEntriesNum = 0;
     UserInfo *pUserInfo = NULL;
 
-    pAccCtx = (PACCOUNT_CONTEXT)hUser;
+    pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
-    if (pAccCtx == NULL || pAccCtx->Type == SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
         status = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    pDomCtx  = pAccCtx->pDomCtx;
+    pDomCtx  = pAcctCtx->pDomCtx;
     pConnCtx = pDomCtx->pConnCtx;
 
     pwszBase = pDomCtx->pwszDn;
 
-    dwFilterLen = sizeof(szFilterFmt) + 10;
+    dwFilterLen = ((sizeof(wszAttrDn)/sizeof(WCHAR)) - 1) +
+                  wc16slen(pAcctCtx->pwszDn) +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(WCHAR),
-                                   NULL);
+                                   pAcctCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    sw16printf(pwszFilter, szFilterFmt, pAccCtx->dwRid);
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrDn, pAcctCtx->pwszDn);
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
@@ -247,7 +252,7 @@ SamrSrvQueryUserInfo(
 
     status = SamrSrvAllocateMemory((void**)&pUserInfo,
                                    sizeof(*pUserInfo),
-                                   pAccCtx);
+                                   pAcctCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -332,6 +337,10 @@ cleanup:
         SamrSrvFreeMemory(pwszFilter);
     }
 
+    if (pEntry) {
+        DirectoryFreeEntries(pEntry, dwEntriesNum);
+    }
+
     return status;
 
 error:
@@ -354,17 +363,22 @@ SamrFillUserInfo1(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo1 *pInfo1 = NULL;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
     DWORD dwPrimaryGid = 0;
+    PWSTR pwszDescription = NULL;
+    PWSTR pwszComment = NULL;
 
     pInfo1 = &(pInfo->info1);
 
     /* account_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszUsername);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo1->account_name, pwszUsername,
@@ -373,10 +387,10 @@ SamrFillUserInfo1(
 
 
     /* full name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_FULLNAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszFullName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrFullName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo1->full_name, pwszFullName,
@@ -385,21 +399,21 @@ SamrFillUserInfo1(
 
 
     /* primary_gid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwPrimaryGid);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pInfo1->primary_gid = dwPrimaryGid;
 
     /* description */
-    status = SamrSrvInitUnicodeString(&pInfo1->description, NULL, pInfo);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrDescription,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszDescription);
+    BAIL_ON_LSA_ERROR(dwError);
+    status = SamrSrvInitUnicodeString(&pInfo1->description, pwszDescription,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
     /* comment */
-    status = SamrSrvInitUnicodeString(&pInfo1->comment, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo1->comment, pwszComment, pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -421,15 +435,17 @@ SamrFillUserInfo2(
 {
     NTSTATUS status = STATUS_SUCCESS;
     UserInfo2 *pInfo2 = NULL;
+    PWSTR pwszComment = NULL;
+    PWSTR pwszUnknown1 = NULL;
 
     pInfo2 = &(pInfo->info2);
 
     /* comment */
-    status = SamrSrvInitUnicodeString(&pInfo2->comment, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo2->comment, pwszComment, pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* unknown1 */
-    status = SamrSrvInitUnicodeString(&pInfo2->unknown1, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo2->unknown1, pwszUnknown1, pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* country_code */
@@ -457,19 +473,28 @@ SamrFillUserInfo3(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo3 *pInfo3 = NULL;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
+    WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
-    DWORD dwRid = 0;
+    PWSTR pwszSid = NULL;
+    PSID pSid = NULL;
     DWORD dwPrimaryGid = 0;
     PWSTR pwszHomeDirectory = NULL;
+    PWSTR pwszHomeDrive = NULL;
+    PWSTR pwszLogonScript = NULL;
+    PWSTR pwszProfilePath = NULL;
+    PWSTR pwszWorkstations = NULL;
 
     pInfo3 = &(pInfo->info3);
 
     /* account_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszUsername);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo3->account_name, pwszUsername,
@@ -477,10 +502,10 @@ SamrFillUserInfo3(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* full_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_FULLNAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszFullName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrFullName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo3->full_name, pwszFullName,
@@ -488,30 +513,26 @@ SamrFillUserInfo3(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* rid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_UID,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwRid);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrObjectSid,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pInfo3->rid = dwRid;
+    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid, pInfo);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pInfo3->rid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
 
     /* primary_gid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwPrimaryGid);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pInfo3->primary_gid = dwPrimaryGid;
 
-
     /* home_directory */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_HOMEDIR,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszHomeDirectory);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrHomeDirectory,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo3->home_directory, pwszHomeDirectory,
@@ -520,19 +541,23 @@ SamrFillUserInfo3(
 
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo3->home_drive, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->home_drive, pwszHomeDrive,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo3->logon_script, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->logon_script, pwszLogonScript,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* profile_path */
-    status = SamrSrvInitUnicodeString(&pInfo3->profile_path, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->profile_path, pwszProfilePath,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo3->workstations, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->workstations, pwszWorkstations,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* last_logon */
@@ -548,6 +573,10 @@ SamrFillUserInfo3(
     pInfo3->account_flags = ACB_NORMAL;
 
 cleanup:
+    if (pSid) {
+        SamrSrvFreeMemory(pSid);
+    }
+
     return status;
 
 error:
@@ -585,19 +614,29 @@ SamrFillUserInfo5(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo5 *pInfo5 = NULL;
+    WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
+    WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
-    DWORD dwRid = 0;
+    PWSTR pwszSid = NULL;
+    PSID pSid = NULL;
     DWORD dwPrimaryGid = 0;
     PWSTR pwszHomeDirectory = NULL;
+    PWSTR pwszHomeDrive = NULL;
+    PWSTR pwszLogonScript = NULL;
+    PWSTR pwszProfilePath = NULL;
+    PWSTR pwszWorkstations = NULL;
+    PWSTR pwszDescription = NULL;
 
     pInfo5 = &(pInfo->info5);
 
     /* account_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszUsername);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo5->account_name, pwszUsername,
@@ -606,10 +645,10 @@ SamrFillUserInfo5(
 
 
     /* full_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_FULLNAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszFullName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrFullName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo5->full_name, pwszFullName,
@@ -618,30 +657,27 @@ SamrFillUserInfo5(
 
 
     /* rid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_UID,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwRid);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrObjectSid,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pInfo5->rid = dwRid;
+    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid, pInfo);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pInfo5->rid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
 
     /* primary_gid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwPrimaryGid);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pInfo5->primary_gid = dwPrimaryGid;
 
 
     /* home_directory */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_HOMEDIR,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszHomeDirectory);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrHomeDirectory,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo5->home_directory, pwszHomeDirectory,
@@ -650,23 +686,28 @@ SamrFillUserInfo5(
 
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo5->home_drive, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->home_drive, pwszHomeDrive,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo5->logon_script, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->logon_script, pwszLogonScript,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* profile_path */
-    status = SamrSrvInitUnicodeString(&pInfo5->profile_path, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->profile_path, pwszProfilePath,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* description */
-    status = SamrSrvInitUnicodeString(&pInfo5->description, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->description, pwszDescription,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo5->workstations, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->workstations, pwszWorkstations,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* last_logon */
@@ -685,6 +726,10 @@ SamrFillUserInfo5(
     pInfo5->account_flags = ACB_NORMAL;
 
 cleanup:
+    if (pSid) {
+        SamrSrvFreeMemory(pSid);
+    }
+
     return status;
 
 error:
@@ -703,16 +748,18 @@ SamrFillUserInfo6(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo6 *pInfo6 = NULL;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     PWSTR pwszUsername = NULL;
     PWSTR pwszFullName = NULL;
 
     pInfo6 = &(pInfo->info6);
 
     /* account_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszUsername);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo6->account_name, pwszUsername,
@@ -720,10 +767,10 @@ SamrFillUserInfo6(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* full_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_FULLNAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszFullName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrFullName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo6->full_name, pwszFullName,
@@ -749,15 +796,16 @@ SamrFillUserInfo7(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo7 *pInfo7 = NULL;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     PWSTR pwszUsername = NULL;
 
     pInfo7 = &(pInfo->info7);
 
     /* account_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszUsername);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo7->account_name, pwszUsername,
@@ -783,15 +831,16 @@ SamrFillUserInfo8(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo8 *pInfo8 = NULL;
+    WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     PWSTR pwszFullName = NULL;
 
     pInfo8 = &(pInfo->info8);
 
     /* full_name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_FULLNAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszFullName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrFullName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo8->full_name, pwszFullName,
@@ -815,27 +864,15 @@ SamrFillUserInfo9(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo9 *pInfo9 = NULL;
     DWORD dwPrimaryGid = 0;
 
     pInfo9 = &(pInfo->info9);
 
     /* primary_gid */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN,
-                                                DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                                &dwPrimaryGid);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pInfo9->primary_gid = dwPrimaryGid;
 
-cleanup:
     return status;
-
-error:
-    memset(pInfo9, 0, sizeof(*pInfo9));
-    goto cleanup;
 }
 
 
@@ -849,15 +886,17 @@ SamrFillUserInfo10(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     UserInfo10 *pInfo10 = NULL;
+    WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
     PWSTR pwszHomeDirectory = NULL;
+    PWSTR pwszHomeDrive = NULL;
 
     pInfo10 = &(pInfo->info10);
 
     /* home_directory */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_HOMEDIR,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszHomeDirectory);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrHomeDirectory,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvInitUnicodeString(&pInfo10->home_directory, pwszHomeDirectory,
@@ -865,7 +904,8 @@ SamrFillUserInfo10(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo10->home_drive, NULL, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo10->home_drive, pwszHomeDrive,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -886,11 +926,12 @@ SamrFillUserInfo11(
 {
     NTSTATUS status = STATUS_SUCCESS;
     UserInfo11 *pInfo11 = NULL;
+    PWSTR pwszLogonScript = NULL;
 
     pInfo11 = &(pInfo->info11);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo11->logon_script, NULL,
+    status = SamrSrvInitUnicodeString(&pInfo11->logon_script, pwszLogonScript,
                                       pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -911,19 +952,12 @@ SamrFillUserInfo12(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     UserInfo12 *pInfo12 = NULL;
     PWSTR pwszProfilePath = NULL;
 
     pInfo12 = &(pInfo->info12);
 
-    /* home_directory */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_HOMEDIR,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszProfilePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
+    /* profile_path */
     status = SamrSrvInitUnicodeString(&pInfo12->profile_path, pwszProfilePath,
                                       pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -946,11 +980,12 @@ SamrFillUserInfo13(
 {
     NTSTATUS status = STATUS_SUCCESS;
     UserInfo13 *pInfo13 = NULL;
+    PWSTR pwszDescription = NULL;
 
     pInfo13 = &(pInfo->info13);
 
     /* description */
-    status = SamrSrvInitUnicodeString(&pInfo13->description, NULL,
+    status = SamrSrvInitUnicodeString(&pInfo13->description, pwszDescription,
                                       pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -972,11 +1007,12 @@ SamrFillUserInfo14(
 {
     NTSTATUS status = STATUS_SUCCESS;
     UserInfo14 *pInfo14 = NULL;
+    PWSTR pwszWorkstations = NULL;
 
     pInfo14 = &(pInfo->info14);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo14->workstations, NULL,
+    status = SamrSrvInitUnicodeString(&pInfo14->workstations, pwszWorkstations,
                                       pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -1020,7 +1056,7 @@ SamrFillUserInfo17(
 
     pInfo17 = &(pInfo->info17);
 
-    /* account_flags */
+    /* account_expiry */
     pInfo17->account_expiry = 0;
 
     return status;
@@ -1036,11 +1072,12 @@ SamrFillUserInfo20(
 {
     NTSTATUS status = STATUS_SUCCESS;
     UserInfo20 *pInfo20 = NULL;
+    PWSTR pwszParameters = NULL;
 
     pInfo20 = &(pInfo->info20);
 
-    /* account_flags */
-    status = SamrSrvInitUnicodeString(&pInfo20->parameters, NULL,
+    /* parameters */
+    status = SamrSrvInitUnicodeString(&pInfo20->parameters, pwszParameters,
                                       pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
