@@ -13,6 +13,12 @@ AC_SUBST(RM)
 LDSHFLAGS="${LDSHFLAGS} -shared -fPIC"
 AC_SUBST(LDSHFLAGS)
 
+AC_ARG_WITH([libxml2],
+        [AC_HELP_STRING([--without-libxml2], [Do not use libxml2 (will disable ESX firewall editing)])],
+        [],
+        [with_libxml2=yes]
+)
+
 AC_ARG_WITH(
         libxml2-dir,
         [  --with-libxml2-dir=<prefix>     look for libxml2 headers/libraries in <prefix>],
@@ -237,7 +243,10 @@ LIBPTHREAD=""
 AC_CHECK_LIB([pthread], [pthread_create], [LIBPTHREAD="-lpthread"])
 
 LIBXML2_LIBS=""
+AS_IF([test "x$with_libxml2" != xno],[
 AC_CHECK_LIB([xml2], [xmlParseFile], [LIBXML2_LIBS="-lxml2 -lm"], AC_MSG_ERROR([Use --with-libxml2-dir to find libxml2.so]), [$LIBXML2_LDFLAGS -lxml2 -lm $LIBPTHREAD])
+AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the `xml2' library (-lxml2).])
+])
 
 AC_SUBST(LIBXML2_INCLUDE)
 AC_SUBST(LIBXML2_LDFLAGS)
