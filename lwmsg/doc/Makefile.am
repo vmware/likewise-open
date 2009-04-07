@@ -47,6 +47,6 @@ all-local: doxygen-html $(DOXYGEN_PDF_TARGET)
 
 install-data-local: doxygen-html-install $(DOXYGEN_PDF_INSTALL)
 
-.PHONY: doxygen-pdf doxygen-html-install $(DOXYGEN_PDF_INSTALL)
+.PHONY: doxygen-pdf doxygen-html-install doxygen-pdf-install
 
 endif
