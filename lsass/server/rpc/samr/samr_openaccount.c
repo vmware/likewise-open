@@ -226,6 +226,7 @@ SamrSrvOpenAccount(
     pAcctCtx->pwszName      = pwszName;
     pAcctCtx->pSid          = pSid;
     pAcctCtx->dwRid         = dwRid;
+    pAcctCtx->pDomCtx       = pDomCtx;
 
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
@@ -244,10 +245,6 @@ cleanup:
 
     if (pwszAccountSid) {
         RTL_FREE(&pwszAccountSid);
-    }
-
-    if (pwszAccountDn) {
-        SamrSrvFreeMemory(pwszAccountDn);
     }
 
     if (pEntries) {
