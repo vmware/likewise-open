@@ -502,6 +502,8 @@ LsaAdBatchMarshal(
 
     pObject->enabled = !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
 
+    pObject->userInfo.bIsInOneWayTrustedDomain = IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ONE_WAY);
+
     // Transfer the data
     LSA_XFER_STRING(pItem->pszSid, pObject->pszObjectSid);
     LSA_XFER_STRING(pItem->pszSamAccountName, pObject->pszSamAccountName);

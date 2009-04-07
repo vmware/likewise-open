@@ -1168,6 +1168,52 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_ServicesDomainUser(
+    IN PCSTR pszLoginId,
+    IN PCSTR pszNetBiosName,
+    OUT PBOOLEAN pbFoundDomain
+    )
+{
+    BOOLEAN bFoundDomain = FALSE;
+    DWORD dwError = 0;
+
+    bFoundDomain = AD_ServicesDomain(pszNetBiosName);
+
+    if (!bFoundDomain)
+    {
+        dwError = LsaDmEngineGetDomainInfoWithNT4Name(
+                     pszNetBiosName,
+                     pszLoginId,
+                     NULL,
+                     NULL);
+        if (!dwError)
+        {
+            bFoundDomain = TRUE;
+        }
+        else if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+        {
+            dwError = 0;
+            goto cleanup;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!bFoundDomain)
+    {
+        LSA_LOG_INFO("%s was passed unknown domain '%s'", __FUNCTION__, pszNetBiosName);
+    }
+
+cleanup:
+    *pbFoundDomain = bFoundDomain;
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 AD_OnlineAuthenticateUser(
     HANDLE hProvider,
@@ -1189,6 +1235,7 @@ AD_OnlineAuthenticateUser(
     PSTR pszUserDnsDomainName = NULL;
     PSTR pszFreeUpn = NULL;
     PSTR pszUpn = NULL;
+    BOOLEAN bFoundDomain = FALSE;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -1196,7 +1243,13 @@ AD_OnlineAuthenticateUser(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName)) {
+    dwError = AD_ServicesDomainUser(
+                    pszLoginId,
+                    pLoginInfo->pszDomainNetBiosName,
+                    &bFoundDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!bFoundDomain) {
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1251,10 +1304,11 @@ AD_OnlineAuthenticateUser(
 
         LSA_LOG_DEBUG("Using generated UPN instead of '%s'", pUserInfo->userInfo.pszUPN);
 
-        dwError = LsaDmWrapGetDomainName(
-                        pUserInfo->pszNetbiosDomainName,
-                        &pszUserDnsDomainName,
-                        NULL);
+        dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+                       pUserInfo->pszObjectSid,
+                       &pszUserDnsDomainName,
+                       NULL,
+                       NULL);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = ADGetLDAPUPNString(
@@ -1852,7 +1906,6 @@ AD_OnlineFindUserObjectById(
 {
     DWORD dwError =  0;
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
-    PSTR   pszNT4Name = NULL;
 
     if (uid == 0) {
     	dwError = LSA_ERROR_NO_SUCH_USER;
@@ -1886,9 +1939,6 @@ AD_OnlineFindUserObjectById(
     *ppResult = pCachedUser;
 
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszNT4Name);
-
     return dwError;
 
 error:
@@ -2274,7 +2324,6 @@ AD_OnlineFindGroupById(
 {
     DWORD dwError =  0;
     PLSA_SECURITY_OBJECT pCachedGroup = NULL;
-    PSTR   pszNT4Name = NULL;
 
     if (gid == 0)
     {
@@ -2320,8 +2369,6 @@ AD_OnlineFindGroupById(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
-
     LsaDbSafeFreeObject(&pCachedGroup);
 
     return dwError;
@@ -2425,6 +2472,7 @@ AD_OnlineChangePassword(
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
+    BOOLEAN bFoundDomain = FALSE;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2432,7 +2480,14 @@ AD_OnlineChangePassword(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    dwError = AD_ServicesDomainUser(
+                    pszLoginId,
+                    pLoginInfo->pszDomainNetBiosName,
+                    &bFoundDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    //if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    if (!bFoundDomain)
     {
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
@@ -2480,10 +2535,11 @@ AD_OnlineChangePassword(
     }
 
     // Make sure that we are affinitized.
-    dwError = LsaDmWrapGetDomainName(
-                        pCachedUser->pszNetbiosDomainName,
-                        &pszFullDomainName,
-                        NULL);
+    dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+                       pCachedUser->pszObjectSid,
+                       &pszFullDomainName,
+                       NULL,
+                       NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LWNetGetDomainController(pszFullDomainName,
@@ -3808,41 +3864,14 @@ error:
 }
 
 DWORD
-AD_CanonicalizeDomainsInCrackedNameInfo(
-    IN OUT PLSA_LOGIN_NAME_INFO pNameInfo
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszDomainName = NULL;
-
-    BAIL_ON_INVALID_STRING(pNameInfo->pszDomainNetBiosName);
-
-    pszDomainName = pNameInfo->pszDomainNetBiosName;
-    pNameInfo->pszDomainNetBiosName = NULL;
-    LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
-
-    dwError = LsaDmWrapGetDomainName(pszDomainName,
-                                     &pNameInfo->pszFullDomainName,
-                                     &pNameInfo->pszDomainNetBiosName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    LSA_SAFE_FREE_STRING(pszDomainName);
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-DWORD
 AD_UpdateUserObjectFlags(
     IN OUT PLSA_SECURITY_OBJECT pUser
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    struct timeval current_tv;
+    struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
-    int64_t qwNanosecsToPasswordExpiry;
+    int64_t qwNanosecsToPasswordExpiry = 0;
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
@@ -3859,8 +3888,11 @@ AD_UpdateUserObjectFlags(
         pUser->userInfo.bAccountExpired = TRUE;
     }
 
-    qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-        (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+    if (!pUser->userInfo.bIsInOneWayTrustedDomain)
+    {
+        qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
+               (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+    }
 
     if (!pUser->userInfo.bPasswordNeverExpires &&
         gpADProviderData->adMaxPwdAge != 0 &&

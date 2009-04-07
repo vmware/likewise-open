@@ -49,7 +49,7 @@
 
 #define LSA_DB_TABLE_NAME_CACHE_TAGS       "lwicachetags"
 #define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects2"
-#define LSA_DB_TABLE_NAME_USERS            "lwiusers2"
+#define LSA_DB_TABLE_NAME_USERS            "lwiusers3"
 #define LSA_DB_TABLE_NAME_VERIFIERS        "lwipasswordverifiers"
 #define LSA_DB_TABLE_NAME_GROUPS           "lwigroups2"
 #define LSA_DB_TABLE_NAME_MEMBERSHIP       "lwigroupmembership2"
@@ -88,6 +88,9 @@
     "    );\n" \
     _LSA_DB_SQL_CREATE_INDEX(LSA_DB_TABLE_NAME_OBJECTS, "CacheId") \
     "\n" \
+    _LSA_DB_SQL_DROP_INDEX("lwiusers2", "UPN") \
+    _LSA_DB_SQL_DROP_TABLE("lwiusers2") \
+    "\n" \
     _LSA_DB_SQL_CREATE_TABLE(LSA_DB_TABLE_NAME_USERS) "(\n" \
     "    ObjectSid text PRIMARY KEY,\n" \
     "    Uid integer,\n" \
@@ -100,6 +103,7 @@
     "    Homedir text,\n" \
     "    PwdLastSet integer,\n" \
     "    GeneratedUPN integer,\n" \
+    "    InOneWayTrustedDomain integer,\n" \
     "    AccountExpires integer,\n" \
     "    PasswordExpired integer,\n" \
     "    PasswordNeverExpires integer,\n" \
