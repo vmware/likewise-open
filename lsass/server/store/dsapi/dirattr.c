@@ -290,6 +290,10 @@ DirectoryGetEntryAttrValueByName(
                                          &pAttrVal);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 
+    if (!pAttrVal) {
+        goto cleanup;
+    }
+
     bTypeIsCorrect = (pAttrVal->Type == AttrType);
 
     switch (pAttrVal->Type) {
