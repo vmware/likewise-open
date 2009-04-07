@@ -219,7 +219,12 @@ LsaLdapOpenDirectoryWithReaffinity(
 {
     DWORD dwError = 0;
     HANDLE hDirectory = 0;
-    DWORD dwInternalFlags = dwFlags;
+#define MAX_SERVERS_TO_TRY 5
+    PSTR ppszBlackList[MAX_SERVERS_TO_TRY] = {0};
+    DWORD dwBlackListCount = 0;
+    DWORD dwGetDcNameFlags = 0;
+    PLWNET_DC_INFO pDCInfo = NULL;
+    DWORD dwIndex = 0;
 
     if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
     {
@@ -230,81 +235,84 @@ LsaLdapOpenDirectoryWithReaffinity(
 
     if (bNeedGc)
     {
-        dwInternalFlags |= LSA_LDAP_OPT_GLOBAL_CATALOG;
-    }
-
-    dwError = LsaLdapOpenDirectoryWithAffinity(pszDnsDomainOrForestName,
-                                               dwInternalFlags,
-                                               FALSE,
-                                               &hDirectory);
-    if (!dwError)
-    {
-        goto cleanup;
-    }
-
-    LSA_LOG_DEBUG("Trying to re-affinitize for %s '%s' (dwError = %d (0x%08x))",
-                  bNeedGc ? "forest" : "domain", pszDnsDomainOrForestName, dwError, dwError);
-    dwError = LsaLdapOpenDirectoryWithAffinity(pszDnsDomainOrForestName,
-                                               dwInternalFlags,
-                                               TRUE,
-                                               &hDirectory);
-    LSA_LOG_DEBUG("Re-affinitze result for %s '%s' (dwError = %d (0x%08x))",
-                   bNeedGc ? "forest" : "domain", pszDnsDomainOrForestName, dwError, dwError);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    *phDirectory = hDirectory;
-    return dwError;
-
-error:
-    LsaLdapCloseDirectory(hDirectory);
-    hDirectory = 0;
-    goto cleanup;
-}
-
-DWORD
-LsaLdapOpenDirectoryWithAffinity(
-    IN PCSTR pszDnsDomainOrForestName,
-    IN DWORD dwFlags,
-    IN BOOLEAN bForceRediscovery,
-    OUT PHANDLE phDirectory
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwGetDcNameFlags = 0;
-    PLWNET_DC_INFO pDCInfo = NULL;
-    HANDLE hDirectory = 0;
-
-    if (bForceRediscovery)
-    {
-        dwGetDcNameFlags |= DS_FORCE_REDISCOVERY;
-    }
-
-    if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
-    {
         dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
     }
 
-    dwError = LWNetGetDCName(NULL,
-                             pszDnsDomainOrForestName,
-                             NULL,
-                             dwGetDcNameFlags,
-                             &pDCInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    while (TRUE)
+    {
+        LWNET_SAFE_FREE_DC_INFO(pDCInfo);
 
-    LSA_LOG_DEBUG("Using DC '%s' for domain '%s'",
-                  pDCInfo->pszDomainControllerName,
-                  pDCInfo->pszFullyQualifiedDomainName);
+        if (dwBlackListCount == 1)
+        {
+            // Try to update netlogon's affinity cache for all programs (not
+            // just lsass). Netlogon will not update its cache if a blacklist
+            // is passed in. So calling without the blacklist will trigger
+            // netlogon to update its cache. Afterwards, the blacklist will be
+            // passed in. If it matches what's in netlogon's cache, no network
+            // queries will be issued.
+            dwError = LWNetGetDCNameWithBlacklist(
+                            NULL,
+                            pszDnsDomainOrForestName,
+                            NULL,
+                            dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
+                            0,
+                            NULL,
+                            &pDCInfo);
+            LWNET_SAFE_FREE_DC_INFO(pDCInfo);
+        }
 
-    dwError = LsaLdapOpenDirectoryServer(pDCInfo->pszDomainControllerAddress,
-                                         pDCInfo->pszDomainControllerName,
-                                         dwFlags,
-                                         &hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LWNetGetDCNameWithBlacklist(
+                        NULL,
+                        pszDnsDomainOrForestName,
+                        NULL,
+                        dwGetDcNameFlags,
+                        dwBlackListCount,
+                        ppszBlackList,
+                        &pDCInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_LOG_DEBUG("Using DC '%s' for domain '%s' (affinitization attempt %d)",
+                      pDCInfo->pszDomainControllerName,
+                      pDCInfo->pszFullyQualifiedDomainName,
+                      dwBlackListCount);
+
+        dwError = LsaLdapOpenDirectoryServer(
+                        pDCInfo->pszDomainControllerAddress,
+                        pDCInfo->pszDomainControllerName,
+                        dwFlags,
+                        &hDirectory);
+        if (!dwError)
+        {
+            break;
+        }
+        LSA_LOG_DEBUG("Ldap open failed for %s '%s' (dwError = %d (0x%08x))",
+                      bNeedGc ? "forest" : "domain",
+                      pszDnsDomainOrForestName,
+                      dwError,
+                      dwError);
+
+        if (dwBlackListCount < MAX_SERVERS_TO_TRY)
+        {
+            dwError = LsaAllocateString(
+                            pDCInfo->pszDomainControllerAddress,
+                            &ppszBlackList[dwBlackListCount]);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwBlackListCount++;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *phDirectory = hDirectory;
 
 cleanup:
+    for (dwIndex = 0; dwIndex < dwBlackListCount; dwIndex++)
+    {
+        LSA_SAFE_FREE_STRING(ppszBlackList[dwIndex]);
+    }
     LWNET_SAFE_FREE_DC_INFO(pDCInfo);
-    *phDirectory = hDirectory;
     return dwError;
 
 error:
