@@ -470,7 +470,7 @@ SMBGSSContextNegotiate(
             break;
 
         case GSS_S_FAILURE:
-            if (dwMinorStatus == KRB5KRB_AP_ERR_SKEW)
+            if (dwMinorStatus == (DWORD) KRB5KRB_AP_ERR_SKEW)
             {
                 dwError = SMB_ERROR_CLOCK_SKEW;
             }
