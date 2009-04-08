@@ -26,6 +26,10 @@ function component_configure
     FEATURETEST_FLAGS="-D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -D_LARGEFILE64_SOURCE -D_XOPEN_SOURCE=500"
 
     cd ${COMP_SOURCES}/replace
+
+    run_autogen ${COMP_SOURCES}/replace
+    exit_on_error $?
+
     ./configure \
 	--disable-shared \
 	--prefix=${PREFIXDIR} \
@@ -35,6 +39,10 @@ function component_configure
 	LDFLAGS="${LDFLAGS} -fPIC"
 
     cd ${COMP_SOURCES}/.
+
+    run_autogen ${COMP_SOURCES}
+    exit_on_error $?
+
     ./configure \
 	--disable-static \
 	--prefix=${PREFIXDIR} \

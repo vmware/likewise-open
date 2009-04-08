@@ -27,6 +27,9 @@ function component_configure
 {
     _setup_build_env
 
+    run_autogen ${COMP_SOURCES}
+    exit_on_error $?
+
     ./configure \
 	--enable-dependency-tracking \
 	--prefix=${PREFIXDIR} \

@@ -30,6 +30,9 @@ function component_configure
 
     local with_linker=
 
+    run_autogen ${COMP_SOURCES}
+    exit_on_error $?
+
     ./configure                                               \
 	--prefix=${PREFIXDIR}                                 \
         --libdir=${PREFIXDIR}/${_lib}                \

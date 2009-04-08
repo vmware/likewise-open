@@ -107,3 +107,40 @@ function libtool_rewrite_staging
 	${_LBREWRITE} -staging ${lafile} ${PREFIXDIR} ${STAGE_INSTALL_DIR}
     done
 }
+
+function run_autogen
+{
+    local _target="$1"
+    local _autogen="${_target}/autogen.sh"
+    local _configure="${_target}/configure"
+    local _autogen_modtime=0
+    local _configure_modtime=0
+    local _must_run_autogen=0
+
+    if [ -z "${_target}" ]; then
+	return 1
+    fi
+
+    if [ -f "${_configure}" ];
+    then
+	if [ -f "${_autogen}" -o -h  "${_autogen}" ] && [ -x "${_autogen}" ]; 
+	then
+	    _autogen_modtime=`stat -c %Y ${_autogen}`
+	    _configure_modtime=`stat -c %Y ${_configure}`
+
+	    if [ ${_autogen_modtime} -ge ${_configure_modtime} ]; then
+		_must_run_autogen=1
+	    fi
+	fi
+    else
+	_must_run_autogen=1
+    fi
+
+    if [ ${_must_run_autogen} -eq 1 ]; then
+	echo "Running autogen.sh..."
+	(${_autogen})
+	return $?
+    fi
+
+    return 0
+}

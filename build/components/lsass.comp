@@ -44,6 +44,9 @@ function component_configure
     _setup_build_env
     _setup_dirs
 
+    run_autogen ${COMP_SOURCES}
+    exit_on_error $?
+
     ./configure                                  \
 	--prefix=${PREFIXDIR}                    \
         --libdir=${PREFIXDIR}/${_lib}   \
