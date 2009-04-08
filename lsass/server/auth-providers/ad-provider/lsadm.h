@@ -359,8 +359,7 @@ LsaDmSetForceOfflineState(
 
 DWORD
 LsaDmTransitionOffline(
-    IN PCSTR pszDomainName,
-    IN BOOLEAN bIsGc
+    IN PCSTR pszDomainName
     );
 ///<
 /// Transition a domain to offline mode.

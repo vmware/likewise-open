@@ -3501,7 +3501,7 @@ AD_InitializeOperatingMode(
             // tell the domain manager about it.
             // Note that we can only transition offline
             // now that we set up the domains in the domain manager.
-            dwError = LsaDmTransitionOffline(pszDomain, FALSE);
+            dwError = LsaDmTransitionOffline(pszDomain);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -3697,7 +3697,7 @@ LsaAdProviderLsaKrb5TransitionOfflineCallback(
     IN PCSTR pszRealm
     )
 {
-    LsaDmTransitionOffline(pszRealm, FALSE);
+    LsaDmTransitionOffline(pszRealm);
 }
 
 static

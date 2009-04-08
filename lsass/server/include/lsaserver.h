@@ -82,17 +82,11 @@ LsaSrvGetDispatchSpec(
     void
     );
 
-void
-LsaSrvIpcDestructSession(
-    LWMsgSecurityToken* pToken,
-    void* pSessionData
-    );
-
 LWMsgStatus
-LsaSrvIpcConstructSession(
-    LWMsgSecurityToken* pToken,
-    void* pData,
-    void** ppSessionData
+LsaSrvIpcOpenServer(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
     );
 
 #endif /* __LSASERVER_H__ */

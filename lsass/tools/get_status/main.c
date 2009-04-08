@@ -408,8 +408,6 @@ PrintStatus(
                     printf("\t\t                  [0x%.04x - Transitive 1 way child]\n", LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD);
                 if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_FOREST_ROOT)
                     printf("\t\t                  [0x%.04x - Forest root]\n", LSA_DM_DOMAIN_FLAG_FOREST_ROOT);
-                if (pDomainInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_GC_OFFLINE)
-                    printf("\t\t                  [0x%.04x - GC offline]\n", LSA_DM_DOMAIN_FLAG_GC_OFFLINE);
                 
                 if (pDomainInfo->pDCInfo)
                 {

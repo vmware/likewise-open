@@ -65,6 +65,15 @@ LsaLdapOpenDirectoryWithReaffinity(
 
 static
 DWORD
+LsaLdapOpenDirectoryWithAffinity(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN DWORD dwFlags,
+    IN BOOLEAN bForceRediscovery,
+    OUT PHANDLE phDirectory
+    );
+
+static
+DWORD
 LsaLdapBindDirectoryAnonymous(
     HANDLE hDirectory
     );
