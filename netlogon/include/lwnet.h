@@ -263,18 +263,6 @@ LWNetGetDCName(
 
 LWNET_API
 DWORD
-LWNetGetDCNameWithBlacklist(
-    IN PCSTR pszServerFQDN,
-    IN PCSTR pszDomainFQDN,
-    IN PCSTR pszSiteName,
-    IN DWORD dwFlags,
-    IN DWORD dwBlackListCount,
-    IN OPTIONAL PSTR* ppszAddressBlackList,
-    OUT PLWNET_DC_INFO* ppDCInfo
-    );
-
-LWNET_API
-DWORD
 LWNetGetDomainController(
     PCSTR pszDomainFQDN,
     PSTR* ppszDomainControllerFQDN

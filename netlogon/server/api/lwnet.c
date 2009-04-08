@@ -69,7 +69,7 @@ LWNetSrvPingCLdap(
     LWNET_UNIX_MS_TIME_T stopTime = 0;
 
     dwError = LWNetAllocateStringPrintf(&pszQuery,
-                                        "(&(DnsDomain=%s)(NtVer=\\06\\00\\00\\80))",
+                                        "(&(DnsDomain=%s)(NtVer=\\06\\00\\00\\20))",
                                         pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -496,61 +496,11 @@ error:
     return dwError;
 }
 
-VOID
-LWNetFilterFromBlackList(
-    IN DWORD dwBlackListCount,
-    IN OPTIONAL PSTR* ppszAddressBlackList,
-    IN OUT PDWORD pdwServerCount,
-    IN OUT PDNS_SERVER_INFO pServerArray
-    )
-{
-    DWORD dwServerRead = 0;
-    DWORD dwServerWrote = 0;
-    DWORD dwBlackIndex = 0;
-    BOOLEAN bBlackListed = FALSE;
-
-    LWNET_LOG_INFO("Filtering list of %d servers with list of %d black listed servers", *pdwServerCount, dwBlackListCount);
-
-    if (!dwBlackListCount)
-    {
-        return;
-    }
-
-    for (dwServerRead = 0; dwServerRead < *pdwServerCount; dwServerRead++)
-    {
-        bBlackListed = FALSE;
-        for (dwBlackIndex = 0;
-             !bBlackListed && dwBlackIndex < dwBlackListCount;
-             dwBlackIndex++)
-        {
-            if (!strcmp(pServerArray[dwServerRead].pszAddress,
-                        ppszAddressBlackList[dwBlackIndex]))
-            {
-                bBlackListed = TRUE;
-                LWNET_LOG_INFO("Filtering server %s since it is black listed",
-                        pServerArray->pszAddress);
-            }
-        }
-        /* If bBlackListed is true, this server array entry will get
-         * overwritten with the next non-blacklisted entry. The address and
-         * name strings inside of the entry do not need to be freed because
-         * they are allocated in the same memory block as the array.
-         */
-        if (!bBlackListed)
-        {
-            pServerArray[dwServerWrote++] = pServerArray[dwServerRead];
-        }
-    }
-    *pdwServerCount = dwServerWrote;
-}
-
 DWORD
 LWNetSrvGetDCNameDiscover(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
-    IN DWORD dwBlackListCount,
-    IN OPTIONAL PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
     OUT OPTIONAL PDWORD pdwServerCount
@@ -576,17 +526,6 @@ LWNetSrvGetDCNameDiscover(
     dwError = LWNetDnsSrvQuery(pszDnsDomainName, pszSiteName, dwDsFlags,
                                &pServerArray, &dwServerCount);
     BAIL_ON_LWNET_ERROR(dwError);
-
-    LWNetFilterFromBlackList(
-        dwBlackListCount,
-        ppszAddressBlackList,
-        &dwServerCount,
-        pServerArray);
-    if (!dwServerCount)
-    {
-        dwError = LWNET_ERROR_INVALID_DNS_RESPONSE;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
 
     // If we do not have a site, use CLDAP to one DC to get the desired site.
     if (IsNullOrEmptyString(pszSiteName))
@@ -627,8 +566,6 @@ LWNetSrvGetDCNameDiscover(
         dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
                                             pszClientSiteName,
                                             dwDsFlags,
-                                            dwBlackListCount,
-                                            ppszAddressBlackList,
                                             &pDcInfo,
                                             &pServerArray, &dwServerCount);
         BAIL_ON_LWNET_ERROR(dwError);

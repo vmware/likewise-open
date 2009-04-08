@@ -92,8 +92,6 @@ LWNetSrvIpcGetDCName(
         pReq->pszDomainFQDN,
         pReq->pszSiteName,
         pReq->dwFlags,
-        pReq->dwBlackListCount,
-        pReq->ppszAddressBlackList,
         &pDCInfo);
 
     if (!dwError)

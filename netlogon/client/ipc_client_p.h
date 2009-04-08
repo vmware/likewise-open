@@ -75,8 +75,6 @@ LWNetTransactGetDCName(
     PCSTR pszDomainFQDN,
     PCSTR pszSiteName,
     DWORD dwFlags,
-    DWORD dwBlackListCount,
-    PSTR* ppszAddressBlackList,
     PLWNET_DC_INFO* ppDCInfo
     );
 

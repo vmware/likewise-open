@@ -123,8 +123,6 @@ LWNetGetDCName(
         pszDomainFQDN,
         pszSiteName,
         dwFlagsLocal,
-        0,
-        NULL,
         &pDCInfo);
     BAIL_ON_LWNET_ERROR(dwError);
     
@@ -144,65 +142,6 @@ cleanup:
         
     return dwError;
     
-error:
-
-    if (pDCInfo)
-    {
-        LWNetFreeDCInfo(pDCInfo);
-    }
-
-    *ppDCInfo = NULL;
-
-    goto cleanup;
-}
-
-LWNET_API
-DWORD
-LWNetGetDCNameWithBlacklist(
-    PCSTR pszServerFQDN,
-    PCSTR pszDomainFQDN,
-    PCSTR pszSiteName,
-    DWORD dwFlags,
-    DWORD dwBlackListCount,
-    PSTR* ppszAddressBlackList,
-    PLWNET_DC_INFO* ppDCInfo
-    )
-{
-    DWORD dwError = 0;
-    PLWNET_DC_INFO pDCInfo = NULL;
-    HANDLE hServer = 0;
-
-    dwError = LWNetOpenServer(
-                    &hServer);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetTransactGetDCName(
-                    hServer,
-                    pszServerFQDN,
-                    pszDomainFQDN,
-                    pszSiteName,
-                    dwFlags,
-                    dwBlackListCount,
-                    ppszAddressBlackList,
-                    &pDCInfo);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    *ppDCInfo = pDCInfo;
-
-cleanup:
-
-    if (hServer)
-    {
-        DWORD dwErrorLocal = 0;
-        dwErrorLocal = LWNetCloseServer(hServer);
-        if(!dwError)
-        {
-            dwError = dwErrorLocal;
-        }
-    }
-
-    return dwError;
-
 error:
 
     if (pDCInfo)

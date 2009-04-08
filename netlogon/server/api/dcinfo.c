@@ -55,8 +55,6 @@ LWNetSrvGetDCName(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
-    IN DWORD dwBlackListCount,
-    IN PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo
     )
 //
@@ -75,7 +73,6 @@ LWNetSrvGetDCName(
     PLWNET_DC_INFO pNewDcInfo = NULL;
     PDNS_SERVER_INFO pServerArray = NULL;
     DWORD dwServerCount = 0;
-    DWORD dwIndex = 0;
 
     LWNET_LOG_INFO("Looking for a DC in domain '%s', site '%s' with flags %X",
             LWNET_SAFE_LOG_STRING(pszDnsDomainName),
@@ -87,15 +84,6 @@ LWNetSrvGetDCName(
         LWNET_LOG_ERROR("Cannot specify computer name: '%s'", pszServerName);
         dwError = LWNET_ERROR_INVALID_PARAMETER;
         BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    for (dwIndex = 0; dwIndex < dwBlackListCount; dwIndex++)
-    {
-        if (!ppszAddressBlackList[dwIndex])
-        {
-            dwError = LWNET_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LWNET_ERROR(dwError);
-        }
     }
 
     // Look up in cache
@@ -164,73 +152,44 @@ LWNetSrvGetDCName(
                                                    lastDiscovered,
                                                    pNewDcInfo);
                     BAIL_ON_LWNET_ERROR(dwError);
+
+                    goto error;
                 }
-                else
-                {
-                    // now we need to bottom out and find us new info.
-                    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-                }
+                // now we need to bottom out and find us new info.
+                // TODO-dalmeida-2008/06/30 -- Perhaps we are just supposed to fail.
+                // NEED TO TEST THIS SCENARIO
             }
             else
             {
                 // cached data is fine
                 dwError = 0;
+                goto error;
             }
         }
     }
 
-    for (dwIndex = 0; pDcInfo && dwIndex < dwBlackListCount; dwIndex++)
-    {
-        if (!strcmp(pDcInfo->pszDomainControllerAddress,
-                    ppszAddressBlackList[dwIndex]))
-        {
-            LWNET_SAFE_FREE_DC_INFO(pDcInfo);
-        }
-    }
+    LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
-    if (!pDcInfo)
+    dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
+                                        pszSiteName,
+                                        dwDsFlags,
+                                        &pDcInfo,
+                                        &pServerArray,
+                                        &dwServerCount);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetCacheUpdateDiscover(pszDnsDomainName, pszSiteName, dwDsFlags, pDcInfo);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetCacheUpdateDiscover(pszDnsDomainName, pDcInfo->pszDCSiteName, dwDsFlags, pDcInfo);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    // Will only affinitize for KDC/LDAP (i.e., not PDC/GC) and if the site is the same.
+    if (!(dwDsFlags & (DS_PDC_REQUIRED | DS_GC_SERVER_REQUIRED)) &&
+        (IsNullOrEmptyString(pszSiteName) || !strcasecmp(pDcInfo->pszDCSiteName, pszSiteName)))
     {
-        dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
-                                            pszSiteName,
-                                            dwDsFlags,
-                                            dwBlackListCount,
-                                            ppszAddressBlackList,
-                                            &pDcInfo,
-                                            &pServerArray,
-                                            &dwServerCount);
+        dwError = LWNetKrb5UpdateAffinity(pszDnsDomainName, pDcInfo, pServerArray, dwServerCount);
         BAIL_ON_LWNET_ERROR(dwError);
-
-        // Do not update the cache if a black list is passed in. Otherwise,
-        // callers would have too much control over which DC is affinitized.
-        if (dwBlackListCount == 0)
-        {
-            dwError = LWNetCacheUpdateDiscover(
-                            pszDnsDomainName,
-                            pszSiteName,
-                            dwDsFlags,
-                            pDcInfo);
-            BAIL_ON_LWNET_ERROR(dwError);
-
-            dwError = LWNetCacheUpdateDiscover(
-                            pszDnsDomainName,
-                            pDcInfo->pszDCSiteName,
-                            dwDsFlags,
-                            pDcInfo);
-            BAIL_ON_LWNET_ERROR(dwError);
-
-            // Will only affinitize for KDC/LDAP (i.e., not PDC/GC) and if the site is the same.
-            if (!(dwDsFlags & (DS_PDC_REQUIRED | DS_GC_SERVER_REQUIRED)) &&
-                (IsNullOrEmptyString(pszSiteName) ||
-                 !strcasecmp(pDcInfo->pszDCSiteName, pszSiteName)))
-            {
-                dwError = LWNetKrb5UpdateAffinity(
-                                pszDnsDomainName,
-                                pDcInfo,
-                                pServerArray,
-                                dwServerCount);
-                BAIL_ON_LWNET_ERROR(dwError);
-            }
-        }
     }
 
 error:
@@ -259,8 +218,6 @@ LWNetSrvGetDomainController(
                                 pszDomainFQDN,
                                 NULL,
                                 DS_DIRECTORY_SERVICE_REQUIRED,
-                                0,
-                                NULL,
                                 &pDcInfo);
     BAIL_ON_LWNET_ERROR(dwError);
 
