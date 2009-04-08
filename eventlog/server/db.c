@@ -118,18 +118,18 @@
                                         Computer,              \
                                         Description,           \
                                         Data                   \
-                                     )                       \
-                                VALUES( NULL,                 \
-                                        \"%s\",               \
-                                        \"%s\",               \
-                                        %d,                   \
-                                        \"%s\",               \
-                                        \"%s\",               \
-                                        %d,                   \
-                                        \"%s\",               \
-                                        \"%s\",               \
-                                        \"%s\",               \
-                                        \"%s\")"
+                                     )                         \
+                                VALUES( NULL,                  \
+                                        %Q,                    \
+                                        %Q,                    \
+                                        %d,                    \
+                                        %Q,                    \
+                                        %Q,                    \
+                                        %d,                    \
+                                        %Q,                    \
+                                        %Q,                    \
+                                        %Q,                    \
+                                        %Q)"
 
 //Delete the record over 'n' entries
 #define DB_QUERY_DELETE_ABOVE_LIMIT "DELETE FROM     lwievents    \
@@ -158,6 +158,12 @@ BuildEventLogRecordList(
     DWORD ,
     DWORD ,
     EVENT_LOG_RECORD** 
+    );
+
+static
+DWORD
+SrvCheckSqlFilter(
+    PSTR pszFilter
     );
 
 //public interface
@@ -229,6 +235,83 @@ SrvCloseEventDatabase(
     return dwError;
 }
 
+static
+DWORD
+SrvCheckSqlFilter(
+    PSTR pszFilter
+    )
+{
+    enum {
+        COMMAND,
+        SINGLE_QUOTE,
+        DOUBLE_QUOTE,
+        BACK_QUOTE,
+    } mode = COMMAND;
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+
+    while (pszFilter[dwIndex])
+    {
+        switch(mode)
+        {
+            case COMMAND:
+                switch (pszFilter[dwIndex])
+                {
+                    case ';':
+                        dwError = EINVAL;
+                        BAIL_ON_EVT_ERROR(dwError);
+                        break;
+                    case '\'':
+                        mode = SINGLE_QUOTE;
+                        break;
+                    case '\"':
+                        mode = DOUBLE_QUOTE;
+                        break;
+                    case '`':
+                        mode = BACK_QUOTE;
+                        break;
+                }
+                break;
+            case SINGLE_QUOTE:
+                switch (pszFilter[dwIndex])
+                {
+                    case '\'':
+                        mode = COMMAND;
+                        break;
+                }
+                break;
+            case DOUBLE_QUOTE:
+                switch (pszFilter[dwIndex])
+                {
+                    case '\"':
+                        mode = COMMAND;
+                        break;
+                }
+                break;
+            case BACK_QUOTE:
+                switch (pszFilter[dwIndex])
+                {
+                    case '`':
+                        mode = COMMAND;
+                        break;
+                }
+                break;
+        }
+        dwIndex++;
+    }
+
+    if (mode != COMMAND)
+    {
+        dwError = EINVAL;
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 DWORD
 SrvEventLogCount(
@@ -239,37 +322,60 @@ SrvEventLogCount(
 {
 
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
+    PSTR  pszQuery = NULL;
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
     ENTER_RW_READER_LOCK;
 
     if (sqlFilter == NULL) {
-        sprintf(szQuery, DB_QUERY_COUNT_ALL);
+        dwError = EVTAllocateStringPrintf(
+                        &pszQuery,
+                        DB_QUERY_COUNT_ALL);
+        BAIL_ON_EVT_ERROR(dwError);
     }
     else {
-        sprintf(szQuery, DB_QUERY_COUNT, sqlFilter);
+        dwError = SrvCheckSqlFilter(sqlFilter);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = EVTAllocateStringPrintf(
+                        &pszQuery,
+                        DB_QUERY_COUNT,
+                        sqlFilter);
+        BAIL_ON_EVT_ERROR(dwError);
     }
 
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvQueryEventLog(
+                    hDB,
+                    pszQuery,
+                    &nRows,
+                    &nCols,
+                    &ppszResult);
+    BAIL_ON_EVT_ERROR(dwError);
 
-    if (nRows == 1) {
+    if (nRows == 1)
+    {
         *pdwNumMatched = (DWORD) atoi(ppszResult[1]);
-        BAIL_ON_EVT_ERROR(dwError);
-    } else {
+    }
+    else
+    {
         EVT_LOG_VERBOSE("Could not find count of event logs in database");
+        dwError = EINVAL;
+        BAIL_ON_EVT_ERROR(dwError);
     }
 
  cleanup:
     if (ppszResult) {
         sqlite3_free_table(ppszResult);
     }
+    EVT_SAFE_FREE_STRING(pszQuery);
+
     LEAVE_RW_READER_LOCK;
     return dwError;
- error:
-    goto cleanup;
 
+ error:
+    *pdwNumMatched = 0;
+    goto cleanup;
 }
 
 DWORD
@@ -284,20 +390,36 @@ SrvReadEventLog(
 {
 
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
+    PSTR  pszQuery = NULL;
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
     ENTER_RW_READER_LOCK;
 
     if (IsNullOrEmptyString(sqlFilter)) {
-        sprintf(szQuery, DB_QUERY_ALL_WITH_LIMIT, (long)nRecordsPerPage, (long)dwStartingRowId);
+        dwError = EVTAllocateStringPrintf(
+                        &pszQuery,
+                        DB_QUERY_ALL_WITH_LIMIT,
+                        (long)nRecordsPerPage,
+                        (long)dwStartingRowId);
+        BAIL_ON_EVT_ERROR(dwError);
     }
-    else {
-        sprintf(szQuery, DB_QUERY_WITH_LIMIT, sqlFilter, (long)nRecordsPerPage, (long)dwStartingRowId);
+    else
+    {
+        dwError = SrvCheckSqlFilter(sqlFilter);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = EVTAllocateStringPrintf(
+                        &pszQuery,
+                        DB_QUERY_WITH_LIMIT,
+                        sqlFilter,
+                        (long)nRecordsPerPage,
+                        (long)dwStartingRowId);
+        BAIL_ON_EVT_ERROR(dwError);
     }
 
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvQueryEventLog(hDB, pszQuery, &nRows, &nCols, &ppszResult);
+    BAIL_ON_EVT_ERROR(dwError);
 
     if (nRows > 0) {
 
@@ -319,9 +441,12 @@ SrvReadEventLog(
     if (ppszResult) {
         sqlite3_free_table(ppszResult);
     }
+    EVT_SAFE_FREE_STRING(pszQuery);
     LEAVE_RW_READER_LOCK;
     return dwError;
  error:
+    *pdwNumReturned = 0;
+    *eventRecords = NULL;
     goto cleanup;
 
 }
@@ -345,8 +470,7 @@ SrvWriteEventLog(
 
     ENTER_RW_WRITER_LOCK;
     
-    dwError = EVTAllocateStringPrintf(
-               &pszQuery,
+    pszQuery = sqlite3_mprintf(
                DB_QUERY_INSERT_EVENT,
                IsNullOrEmptyString(pEventRecord->pszEventTableCategoryId) ? "" : pEventRecord->pszEventTableCategoryId,
                IsNullOrEmptyString(pEventRecord->pszEventType) ? "" : pEventRecord->pszEventType,
@@ -358,7 +482,11 @@ SrvWriteEventLog(
                IsNullOrEmptyString(pEventRecord->pszComputer) ? "" : pEventRecord->pszComputer,
                IsNullOrEmptyString(pEventRecord->pszDescription) ? "" : pEventRecord->pszDescription,
                IsNullOrEmptyString(pEventRecord->pszData) ? "" : pEventRecord->pszData);
-    BAIL_ON_EVT_ERROR(dwError);
+    if (!pszQuery)
+    {
+        dwError = ENOMEM;
+        BAIL_ON_EVT_ERROR(dwError);
+    }
 
     dwError = SrvQueryEventLog(hDB, pszQuery, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);
@@ -368,7 +496,7 @@ SrvWriteEventLog(
  cleanup: 
     
     if (pszQuery){
-        EVTFreeString(pszQuery);
+        sqlite3_free(pszQuery);
     }
     
     if (ppszResult) {
@@ -547,26 +675,34 @@ SrvDeleteFromEventLog(
     PSTR sqlFilter
     )
 {
-    if (sqlFilter == NULL) {
-    return 0;
-    }
-
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
+    PSTR  pszQuery = NULL;
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
     ENTER_RW_WRITER_LOCK;
 
-    sprintf(szQuery, DB_QUERY_DELETE, sqlFilter);
+    if (sqlFilter == NULL) {
+        goto cleanup;
+    }
 
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvCheckSqlFilter(sqlFilter);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = EVTAllocateStringPrintf(
+                    &pszQuery,
+                    DB_QUERY_DELETE,
+                    sqlFilter);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = SrvQueryEventLog(hDB, pszQuery, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);
 
  cleanup:
     if (ppszResult) {
         sqlite3_free_table(ppszResult);
     }
+    EVT_SAFE_FREE_STRING(pszQuery);
     LEAVE_RW_WRITER_LOCK;
     return dwError;
  error:
@@ -709,10 +845,6 @@ SrvQueryEventLog(
         dwError = EVT_ERROR_INVALID_DB_HANDLE;
         BAIL_ON_EVT_ERROR(dwError);
     }
-
-
-    dwError = EVTCompressWhitespace(szQuery);
-    BAIL_ON_EVT_ERROR(dwError);
 
     EVT_LOG_INFO("evtdb: SrvQueryEventLog: query={%s}\n\n", szQuery);
 

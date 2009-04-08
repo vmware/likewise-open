@@ -54,15 +54,6 @@ ParseEvents(
     );
 
 DWORD
-ParseAndAddEvents(
-    PEVENT_LOG_HANDLE pEventLogHandle,
-    PSTR   pszFilePath,
-    PSTR   pszEventTableCategoryId,
-    BOOLEAN bEventTableCategoryIdInCSV,
-    PFNEventRecordProcessor eventRecordProcessor
-    );
-
-DWORD
 PrintEventRecords(
     FILE* output, 
     EVENT_LOG_RECORD* eventRecords, 
