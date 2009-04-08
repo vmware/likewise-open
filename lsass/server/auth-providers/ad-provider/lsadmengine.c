@@ -652,6 +652,11 @@ error:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
 
+    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
+
     goto cleanup;
 }
 
@@ -797,6 +802,11 @@ error:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     LSA_SAFE_FREE_STRING(pszDomainSid);
+
+    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
 
     goto cleanup;
 }

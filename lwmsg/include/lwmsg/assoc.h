@@ -137,24 +137,20 @@ typedef struct LWMsgAssoc LWMsgAssoc;
  */
 typedef enum LWMsgAssocState
 {
-    /** @brief Unspecified state */
+    /** Unspecified state */
     LWMSG_ASSOC_STATE_NONE,
-    /** @brief Association is not established */
-    LWMSG_ASSOC_STATE_NOT_ESTABLISHED,
-    /** @brief Association is idle */
-    LWMSG_ASSOC_STATE_IDLE,
-    /** @brief Association is blocked waiting to send */
-    LWMSG_ASSOC_STATE_BLOCKED_SEND,
-    /** @brief Association is blocked waiting to receive */
-    LWMSG_ASSOC_STATE_BLOCKED_RECV,
-    /** @brief Association is blocked waiting to send and/or receive */
-    LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV,
-    /** @brief Association is closed */
-    LWMSG_ASSOC_STATE_CLOSED,
-    /** @brief Association is busy */
-    LWMSG_ASSOC_STATE_BUSY,
-    /** @brief Association experienced an error */
-    LWMSG_ASSOC_STATE_ERROR
+    /** Association not ready */
+    LWMSG_ASSOC_STATE_NOT_READY,
+    /** Operation is in progress */
+    LWMSG_ASSOC_STATE_IN_PROGRESS,
+    /** Ready to send or receive a message */
+    LWMSG_ASSOC_STATE_READY_SEND_RECV,
+    /** Ready to send a message */
+    LWMSG_ASSOC_STATE_READY_SEND,
+    /** Ready to receive a message */
+    LWMSG_ASSOC_STATE_READY_RECV,
+    /** Association is closed */
+    LWMSG_ASSOC_STATE_CLOSED
 } LWMsgAssocState;
 
 /**
@@ -294,8 +290,6 @@ typedef struct LWMsgAssocClass
      * @lwmsg_endstatus
      */
     LWMsgStatus (*reset)(LWMsgAssoc* assoc);
-    LWMsgStatus (*finish)(LWMsgAssoc* assoc);
-    LWMsgStatus (*set_nonblock)(LWMsgAssoc* assoc, LWMsgBool nonblock);
     /**
      * @ingroup assoc_impl
      * @brief Peer security token access method
@@ -367,9 +361,6 @@ typedef struct LWMsgAssocClass
      * its peer if it has not already.
      *
      * @param[in] assoc the association
-     * @param[in] construct session constructor function
-     * @param[in] destruct session destructor function
-     * @param[in] data user data pointer to pass to the session constructor
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, the operation timed out}
@@ -379,10 +370,7 @@ typedef struct LWMsgAssocClass
      */
     LWMsgStatus
     (*establish)(
-        LWMsgAssoc* assoc,
-        LWMsgSessionConstructor construct,
-        LWMsgSessionDestructor destruct,
-        void* data
+        LWMsgAssoc* assoc
         );
 } LWMsgAssocClass;
 
@@ -402,7 +390,7 @@ typedef struct LWMsgAssocClass
  * @lwmsg_etc{callback-specific failure}
  * @lwmsg_endstatus
  */
-typedef LWMsgStatus (*LWMsgAssocDispatchFunction) (
+typedef LWMsgStatus (*LWMsgDispatchFunction) (
     LWMsgAssoc* assoc,
     const LWMsgMessage* in,
     LWMsgMessage* out,
@@ -569,7 +557,7 @@ lwmsg_assoc_send_message_transact(
 LWMsgStatus
 lwmsg_assoc_recv_message_transact(
     LWMsgAssoc* assoc,
-    LWMsgAssocDispatchFunction dispatch,
+    LWMsgDispatchFunction dispatch,
     void* data
     );
 
@@ -703,17 +691,6 @@ lwmsg_assoc_close(
 LWMsgStatus
 lwmsg_assoc_reset(
     LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_assoc_finish(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_assoc_set_nonblock(
-    LWMsgAssoc* assoc,
-    LWMsgBool nonblock
     );
 
 /**
@@ -1028,6 +1005,30 @@ lwmsg_assoc_set_action(
 
 /**
  * @ingroup assoc
+ * @brief Set user data for session
+ *
+ * Sets a user data pointer for the session which the specified association is
+ * part of.  If a cleanup function is provided, it will be called when the
+ * session is destroyed.
+ *
+ * @param[in] assoc the association
+ * @param[in] data the user data pointer
+ * @param[in] cleanup a cleanup function for the data pointer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, no session was established}
+ * @lwmsg_etc{implementation-specific failure}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    );
+
+/**
+ * @ingroup assoc
  * @brief Get user data for session
  *
  * Gets a user data pointer for the session which the specified assocation
@@ -1087,13 +1088,6 @@ lwmsg_assoc_establish(
     LWMsgAssoc* assoc
     );
 
-LWMsgStatus
-lwmsg_assoc_set_session_functions(
-    LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
-    void* data
-    );
 
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;

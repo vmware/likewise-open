@@ -127,11 +127,9 @@ LsaSrvStartListenThread(
                                   &idleTimeout));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_session_functions(
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_session_callback(
                                   gpServer,
-                                  LsaSrvIpcConstructSession,
-                                  LsaSrvIpcDestructSession,
-                                  NULL));
+                                  LsaSrvIpcOpenServer));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_start(gpServer));

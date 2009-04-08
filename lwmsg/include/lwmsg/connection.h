@@ -114,6 +114,16 @@ typedef enum LWMsgConnectionMode
 } LWMsgConnectionMode;
 
 /**
+ * @brief Mechanism for interrupting connections
+ *
+ * An opaque structure which provides a means to interrupt
+ * a blocking operation on a connection.  Unlike most lwmsg
+ * structures, it is thread safe.  Signals are similar
+ * to semaphores in their operation but not in their typcial usage.
+ */
+typedef struct LWMsgConnectionSignal LWMsgConnectionSignal;
+
+/**
  * @brief Create a new connection
  *
  * Creates a new connection which speaks the specified protocol.
@@ -208,6 +218,99 @@ lwmsg_connection_set_endpoint(
     LWMsgAssoc* assoc,
     LWMsgConnectionMode mode,
     const char* endpoint
+    );
+
+/**
+ * @brief Set interrupt signal
+ *
+ * Sets the #LWMsgConnectionSignal object which will be
+ * monitored by blocking operations on the specified connection.
+ * While the provided signal is raised, all blocking operations
+ * on the connection will immediately return with #LWMSG_STATUS_INTERRUPT,
+ * including those already in progress.
+ *
+ * This mechanism is provided to allow blocking operations in
+ * multithreaded applications to be safely and cleanly interrupted
+ * by another thread, allowing for timely and orderly application shutdown.
+ *
+ * @param assoc the connection
+ * @param signal the signal
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the interrupt signal cannot be changed in the connection's present state}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_connection_set_interrupt_signal(
+    LWMsgAssoc* assoc,
+    LWMsgConnectionSignal* signal
+    );
+
+/**
+ * @brief Create new signal
+ *
+ * Creates a new signal object which may be used to asynchronously
+ * interrupt blocking connection operations.
+ *
+ * @param out_signal the created signal
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_connection_signal_new(
+    LWMsgConnectionSignal** out_signal
+    );
+
+/**
+ * @brief Raise a signal
+ *
+ * Raises a signal, causing any connections subscribed to the signal to immediately
+ * begin returning #LWMSG_STATUS_INTERRUPT on blocking operations.  This behavior will
+ * continue as long as the signal remains raised.  Signals are recursive, and will
+ * remain raised until they are lowered as many times as they are raised.
+ *
+ * @param signal the created signal
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_connection_signal_raise(
+    LWMsgConnectionSignal* signal
+    );
+
+/**
+ * @brief Lower a signal
+ *
+ * Lowers a signal, causing connections subscribed to the signal to return
+ * to normal behavior.  Signals are recursive and must be lowered as many
+ * times as they are raised to return to baseline.  If an unraised signal
+ * is lowered, this function will block until it is raised.
+ *
+ * @param signal the signal
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_connection_signal_lower(
+    LWMsgConnectionSignal* signal
+    );
+
+/**
+ * @brief Delete a signal
+ *
+ * Deletes the specified signal.  It is the callers responsibility to ensure
+ * that no connections remain which reference the signal.
+ *
+ * @param signal the signal to delete
+ */
+void
+lwmsg_connection_signal_delete(
+    LWMsgConnectionSignal* signal
     );
 
 /**

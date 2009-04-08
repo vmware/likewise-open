@@ -157,29 +157,21 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
-    void* construct_data,
-    LWMsgSession** session
+    LWMsgSession** session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->enter_session(
-        manager,
-        rsmid,
-        rtoken,
-        construct,
-        destruct,
-        construct_data,
-        session);
+    return manager->mclass->enter_session(manager, rsmid, rtoken, session, assoc_count);
 }
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    LWMsgSession* session,
+    size_t* assoc_count
     )
 {
-    return manager->mclass->leave_session(manager, session);
+    return manager->mclass->leave_session(manager, session, assoc_count);
 }
 
 LWMsgStatus
@@ -275,6 +267,17 @@ lwmsg_session_manager_handle_id_to_pointer (
     )
 {
     return manager->mclass->handle_id_to_pointer(manager, session, type, htype, hid, ptr);
+}
+
+LWMsgStatus
+lwmsg_session_manager_set_session_data (
+    LWMsgSessionManager* manager,
+    LWMsgSession* session,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    return manager->mclass->set_session_data(manager, session, data, cleanup);
 }
 
 void*

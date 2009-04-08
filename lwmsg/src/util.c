@@ -51,16 +51,11 @@ char* lwmsg_formatv(const char* fmt, va_list ap)
 {
     int len;
     va_list my_ap;
-    char* str, *str_new;
+    char* str;
 
     /* Some versions of vsnprintf won't accept
        a null or zero-length buffer */
     str = malloc(1);
-
-    if (!str)
-    {
-        return NULL;
-    }
     
     va_copy(my_ap, ap);
     
@@ -78,13 +73,7 @@ char* lwmsg_formatv(const char* fmt, va_list ap)
         {
             capacity *= 2;
             va_copy(my_ap, ap);
-            str_new = realloc(str, capacity);
-            if (!str_new)
-            {
-                free(str);
-                return NULL;
-            }
-            str = str_new;
+            str = realloc(str, capacity);
         } while ((len = vsnprintf(str, capacity-1, fmt, my_ap)) == -1 || capacity <= len);
         str[len] = '\0';
         
@@ -94,16 +83,8 @@ char* lwmsg_formatv(const char* fmt, va_list ap)
     {
         va_copy(my_ap, ap);
         
-        str_new = realloc(str, len+1);
+        str = realloc(str, len+1);
         
-        if (!str_new)
-        {
-            free(str);
-            return NULL;
-        }
-
-        str = str_new;
-
         if (vsnprintf(str, len+1, fmt, my_ap) < len)
             return NULL;
         else
@@ -181,6 +162,7 @@ lwmsg_convert_string_buffer(
                 if(errno != E2BIG)
                 {
                     cblen = -1;
+                    fprintf(stderr, "error: %s\n", strerror(errno));
                     break;
                 }
             }

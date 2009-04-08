@@ -59,6 +59,142 @@
 #include <strings.h>
 #endif
 
+static LWMsgStatus
+assoc_queue_setup(
+    LWMsgServer* server,
+    AssocQueue* queue,
+    size_t size
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    queue->size = size;
+    queue->count = 0;
+    queue->queue = calloc(size, sizeof(*(queue->queue)));
+
+    if (!queue->queue)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    if (pthread_cond_init(&queue->event, NULL))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+done:
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static void
+assoc_queue_teardown(
+    LWMsgServer* server,
+    AssocQueue* queue
+    )
+{
+    size_t i;
+    pthread_cond_destroy(&queue->event);
+
+    if (queue->queue)
+    {
+        for (i = 0; i < queue->size; i++)
+        {
+            if (queue->queue[i])
+            {
+                lwmsg_assoc_delete(queue->queue[i]);
+            }
+        }
+        free(queue->queue);
+    }
+}
+
+static void
+assoc_queue_add(
+    LWMsgServer* server,
+    AssocQueue* queue,
+    LWMsgAssoc* assoc
+    )
+{
+    size_t i;
+
+    while (queue->count == queue->size && server->state == LWMSG_SERVER_RUNNING)
+    {
+        pthread_cond_wait(&queue->event, &server->lock);
+    }
+
+    if (server->state == LWMSG_SERVER_SHUTDOWN)
+    {
+        return;
+    }
+
+    for (i = 0; i < queue->size; i++)
+    {
+        if (queue->queue[i] == NULL)
+        {
+            queue->queue[i] = assoc;
+            queue->count++;
+            pthread_cond_signal(&queue->event);
+            break;
+        }
+    }
+}
+
+static void
+assoc_queue_remove(
+    LWMsgServer* server,
+    AssocQueue* queue,
+    LWMsgAssoc** assoc
+    )
+{
+    size_t i;
+
+    while (queue->count == 0 && server->state == LWMSG_SERVER_RUNNING)
+    {
+        pthread_cond_wait(&queue->event, &server->lock);
+    }
+
+    if (server->state == LWMSG_SERVER_SHUTDOWN)
+    {
+        *assoc = NULL;
+        return;
+    }
+
+    for (i = 0; i < queue->size; i++)
+    {
+        if (queue->queue[i])
+        {
+            *assoc = queue->queue[i];
+            queue->queue[i] = NULL;
+            queue->count--;
+            pthread_cond_signal(&queue->event);
+            break;
+        }
+    }
+}
+
+static void
+assoc_queue_remove_at_index(
+    LWMsgServer* server,
+    AssocQueue* queue,
+    size_t index,
+    LWMsgAssoc** assoc
+    )
+{
+    if (assoc)
+    {
+        *assoc = queue->queue[index];
+    }
+
+    queue->queue[index] = NULL;
+    queue->count--;
+    pthread_cond_signal(&queue->event);
+}
+
 static void
 lwmsg_server_lock(
     LWMsgServer* server
@@ -73,6 +209,522 @@ lwmsg_server_unlock(
     )
 {
     pthread_mutex_unlock(&server->lock);
+}
+
+static void
+lwmsg_server_wait_state_changed(
+    LWMsgServer* server
+    )
+{
+    pthread_cond_wait(&server->state_changed, &server->lock);
+}
+
+static void
+lwmsg_server_change_state(
+    LWMsgServer* server,
+    LWMsgServerState state
+    )
+{
+    server->state = state;
+    pthread_cond_broadcast(&server->state_changed);
+}
+
+
+/* Should be called with server locked */
+static LWMsgStatus
+lwmsg_server_accept_client(
+    LWMsgServer* server,
+    int sock
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAssoc* assoc = NULL;
+    ConnectionPrivate* priv = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+
+    priv = lwmsg_assoc_get_private(assoc);
+
+    /* Make assoc's internal context route through us */
+    assoc->context.parent = &server->context;
+
+    if (server->timeout.message.seconds >= 0)
+    {
+        lwmsg_assoc_set_timeout(assoc, LWMSG_TIMEOUT_MESSAGE, &server->timeout.message);
+    }
+
+    if (server->timeout.establish.seconds >= 0)
+    {
+        lwmsg_assoc_set_timeout(assoc, LWMSG_TIMEOUT_ESTABLISH, &server->timeout.establish);
+    }
+
+    if (server->interrupt)
+    {
+        lwmsg_connection_set_interrupt_signal(assoc, server->interrupt);
+    }
+
+    if (server->manager)
+    {
+        lwmsg_assoc_set_session_manager(assoc, server->manager);
+    }
+
+    switch (server->mode)
+    {
+    case LWMSG_SERVER_MODE_LOCAL:
+        BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_LOCAL, sock));
+        break;
+    case LWMSG_SERVER_MODE_REMOTE:
+        BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_REMOTE, sock));
+        break;
+    default:
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_STATE, "Invalid connection mode");
+        break;
+    }
+
+    status = lwmsg_assoc_establish(assoc);
+
+    /* Invoke connection callback */
+    if (status == LWMSG_STATUS_SUCCESS && server->connect_callback)
+    {
+        status = server->connect_callback(
+            server,
+            assoc,
+            server->user_data);
+    }
+
+    if (status == LWMSG_STATUS_SUCCESS &&
+        server->session_callback && priv->is_session_leader)
+    {
+        status = server->session_callback(
+            server,
+            assoc,
+            server->user_data);
+    }
+
+    switch(status)
+    {
+    case LWMSG_STATUS_SUCCESS:
+        /* Association successfully accepted */
+        assoc_queue_add(server, &server->listen_assocs, assoc);
+        server->num_clients++;
+        break;
+    default:
+        /* Handle an error from the establish call or
+           either of the callbacks by dropping the client
+           and continuing without bailing out of the
+           listener thread */
+        lwmsg_assoc_close(assoc);
+        lwmsg_assoc_delete(assoc);
+        status = LWMSG_STATUS_SUCCESS;
+        break;
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (assoc)
+    {
+        lwmsg_assoc_delete(assoc);
+    }
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+lwmsg_server_timeout_clients(
+    LWMsgServer* server,
+    LWMsgTime* next
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t i;
+    LWMsgTime now;
+    LWMsgTime abs_timeout;
+    LWMsgTime soonest_timeout;
+    ConnectionPrivate* priv = NULL;
+    LWMsgAssoc* assoc = NULL;
+    LWMsgServerTimeoutLevel level;
+    LWMsgSession* session = NULL;
+    size_t num_handles;
+    size_t num_assocs;
+
+    BAIL_ON_ERROR(status = lwmsg_time_now(&now));
+
+    soonest_timeout.seconds = 0x7fffffff;
+    soonest_timeout.microseconds = 0x7fffffff;
+
+    /* Move through our available levels of aggressiveness
+       until we manage to free up some client slots */
+    for (level = LWMSG_SERVER_TIMEOUT_SAFE;
+         server->num_clients == server->max_clients && level < LWMSG_SERVER_TIMEOUT_END;
+         level++)
+    {
+        for (i = 0; i < server->listen_assocs.size; i++)
+        {
+            assoc = server->listen_assocs.queue[i];
+
+            if (assoc)
+            {
+                priv = lwmsg_assoc_get_private(assoc);
+
+                lwmsg_time_sum(&priv->last_time, &server->timeout.idle, &abs_timeout);
+
+                /* If the connection has exceeded its timeout */
+                if (lwmsg_time_compare(&abs_timeout, &now) == LWMSG_TIME_LESSER)
+                {
+                    /* Find out how many connections and handles are in its session */
+                    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
+                    num_assocs = lwmsg_session_manager_get_session_assoc_count(server->manager, session);
+                    num_handles = lwmsg_session_manager_get_session_handle_count(server->manager, session);
+
+                    if (num_assocs == 1 &&
+                        num_handles > 0 &&
+                        level <= LWMSG_SERVER_TIMEOUT_SAFE)
+                    {
+                        /* Try not to close a connection if it is the last
+                           in its session and there are handles that would be
+                           invalidated */
+                        continue;
+                    }
+                    else
+                    {
+                        /* We don't care if the reset fails */
+                        lwmsg_assoc_reset(assoc);
+                        lwmsg_assoc_delete(assoc);
+                        assoc_queue_remove_at_index(server, &server->listen_assocs, i, NULL);
+                        server->num_clients--;
+                    }
+                }
+                else
+                {
+                    /* Calculate when we'll next need to wake up */
+                    if (lwmsg_time_compare(&abs_timeout, &soonest_timeout) == LWMSG_TIME_LESSER)
+                    {
+                        soonest_timeout = abs_timeout;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Schedule ourselves to wake up and do timeout processing again if:
+       - We are out of free client slots
+       - There are currently idle clients
+    */
+    if (server->num_clients == server->max_clients && server->listen_assocs.count)
+    {
+        *next = soonest_timeout;
+    }
+    else
+    {
+        next->seconds = -1;
+        next->microseconds = -1;
+    }
+
+error:
+
+    return status;
+}
+
+
+static void*
+lwmsg_server_listen_thread(
+    void* arg
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgServer* server = (LWMsgServer*) arg;
+    struct sockaddr clientaddr;
+    socklen_t clientaddr_len;
+    int sock = 0;
+    int locked = 0;
+    fd_set readfds;
+    int nfds = 0;
+    int ret = 0;
+    size_t i = 0;
+    size_t count = 0;
+    ConnectionPrivate* priv = NULL;
+    char c = 0;
+    LWMsgAssoc* assoc = NULL;
+    LWMsgTime next;
+    LWMsgTime timeout;
+    LWMsgTime now;
+    struct timeval timeval;
+
+    SERVER_LOCK(server, locked);
+
+    while (1)
+    {
+        /* Begin setting up set of descriptors to wait on */
+        next.seconds = -1;
+        FD_ZERO(&readfds);
+        nfds = 0;
+
+        /* We always wait on the notify fd so we can be woken up
+           by another thread */
+        FD_SET(server->listen_notify[0], &readfds);
+        if (nfds < server->listen_notify[0] + 1)
+        {
+            nfds = server->listen_notify[0] + 1;
+        }
+
+        if (server->state == LWMSG_SERVER_SHUTDOWN)
+        {
+            goto done;
+        }
+
+        /* If we are out of client slots, start timing out old connections */
+        if (server->num_clients == server->max_clients &&
+            server->timeout.idle.seconds >= 0)
+        {
+            BAIL_ON_ERROR(status = lwmsg_server_timeout_clients(server, &next));
+        }
+
+        /* Listen for more connections if we have free slots */
+        if (server->num_clients < server->max_clients)
+        {
+            FD_SET(server->fd, &readfds);
+            if (nfds < server->fd + 1)
+            {
+                nfds = server->fd + 1;
+            }
+        }
+
+        /* Add all assocs in the listen queue to fd set */
+        for (i = 0, count = server->listen_assocs.count; i < server->listen_assocs.size && count; i++)
+        {
+            if (server->listen_assocs.queue[i])
+            {
+                priv = lwmsg_assoc_get_private(server->listen_assocs.queue[i]);
+
+                /* If there is already residual data, don't bother waiting for more */
+                if (priv->recvbuffer.base_length > 0)
+                {
+                    assoc_queue_remove_at_index(server, &server->listen_assocs, i, &assoc);
+                    assoc_queue_add(server, &server->service_assocs, assoc);
+
+                    if (server->state == LWMSG_SERVER_SHUTDOWN)
+                    {
+                        goto done;
+                    }
+
+                    pthread_cond_signal(&server->listen_assocs.event);
+                }
+                else
+                {
+                    FD_SET(priv->fd, &readfds);
+                    if (nfds < priv->fd + 1)
+                    {
+                        nfds = priv->fd + 1;
+                    }
+                }
+
+                count--;
+            }
+        }
+
+        SERVER_UNLOCK(server, locked);
+
+        /* Wait for something to happen */
+        do
+        {
+            if (next.seconds != -1)
+            {
+                lwmsg_time_now(&now);
+                lwmsg_time_difference(&now, &next, &timeout);
+
+                if (timeout.seconds < 0 || timeout.microseconds < 0)
+                {
+                    /* Normalize negative wakeup time (next has already passed)
+                       to 0, turning the select into a poll */
+                    timeout.seconds = timeout.microseconds = 0;
+                }
+                timeval.tv_sec = timeout.seconds;
+                timeval.tv_usec = timeout.microseconds;
+            }
+            ret = select(nfds, &readfds, NULL, NULL, next.seconds == -1 ? NULL: &timeval);
+        } while (ret == -1 && errno == EINTR);
+
+        if (ret == -1)
+        {
+            switch (errno)
+            {
+            case ENOMEM:
+                BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+            default:
+                BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            }
+        }
+
+        /* If someone woke us up explicitly, consume the signal byte */
+        if (FD_ISSET(server->listen_notify[0], &readfds))
+        {
+            if (read(server->listen_notify[0], &c, 1) != 1)
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+            }
+        }
+
+        /* Lock server to access listen queue and check state */
+        SERVER_LOCK(server, locked);
+
+        if (server->state == LWMSG_SERVER_SHUTDOWN)
+        {
+            goto done;
+        }
+
+        /* Check for associations that are ready to be serviced */
+        for (i = 0, count = server->listen_assocs.count; i < server->listen_assocs.size && count; i++)
+        {
+            if (server->listen_assocs.queue[i])
+            {
+                priv = lwmsg_assoc_get_private(server->listen_assocs.queue[i]);
+                if (FD_ISSET(priv->fd, &readfds))
+                {
+                    assoc_queue_remove_at_index(server, &server->listen_assocs, i, &assoc);
+                    assoc_queue_add(server, &server->service_assocs, assoc);
+
+                    if (server->state == LWMSG_SERVER_SHUTDOWN)
+                    {
+                        goto done;
+                    }
+
+                    pthread_cond_signal(&server->listen_assocs.event);
+                }
+                count--;
+            }
+        }
+
+        /* Check for an incoming connection */
+        if (FD_ISSET(server->fd, &readfds))
+        {
+            clientaddr_len = sizeof(clientaddr);
+            sock = accept(server->fd, &clientaddr, &clientaddr_len);
+
+            if (sock == -1)
+            {
+                switch (errno)
+                {
+                case EMFILE:
+                case ENFILE:
+                    BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+                default:
+                    BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+                }
+            }
+
+            BAIL_ON_ERROR(status = lwmsg_server_accept_client(server, sock));
+        }
+    }
+
+done:
+
+    SERVER_UNLOCK(server, locked);
+
+    return NULL;
+
+error:
+
+    goto done;
+}
+
+static
+LWMsgStatus
+lwmsg_server_dispatch_message(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* recv_message,
+    LWMsgMessage* send_message,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgServer* server = (LWMsgServer*) data;
+
+    if (server->dispatch_vector[recv_message->tag] == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    BAIL_ON_ERROR(status = server->dispatch_vector[recv_message->tag](
+                      assoc,
+                      recv_message,
+                      send_message,
+                      server->user_data));
+
+error:
+
+    return status;
+}
+
+static void*
+lwmsg_server_worker_thread(void* arg)
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgServer* server = (LWMsgServer*) arg;
+    LWMsgAssoc* assoc = NULL;
+    int locked = 0;
+    char c = 0;
+
+    while (1)
+    {
+        SERVER_LOCK(server, locked);
+
+        assoc_queue_remove(server, &server->service_assocs, &assoc);
+
+        if (server->state == LWMSG_SERVER_SHUTDOWN)
+        {
+            break;
+        }
+
+        SERVER_UNLOCK(server, locked);
+
+        status = lwmsg_assoc_recv_message_transact(
+            assoc,
+            lwmsg_server_dispatch_message,
+            server
+            );
+
+        /* Connection errors are not fatal to the thread, so handle them */
+        switch (status)
+        {
+        case LWMSG_STATUS_SUCCESS:
+            /* Put association back on listen queue */
+            SERVER_LOCK(server, locked);
+            assoc_queue_add(server, &server->listen_assocs, assoc);
+            SERVER_UNLOCK(server, locked);
+            break;
+        default:
+            /* Shut down and free the association */
+            /* Ignore subsequent errors when attempting close */
+            lwmsg_assoc_close(assoc);
+            lwmsg_assoc_delete(assoc);
+            SERVER_LOCK(server, locked);
+            server->num_clients--;
+            SERVER_UNLOCK(server, locked);
+            status = LWMSG_STATUS_SUCCESS;
+            break;
+        }
+
+        if (write(server->listen_notify[1], &c, 1) != 1)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        }
+    }
+
+error:
+
+    SERVER_UNLOCK(server, locked);
+
+    if (assoc)
+    {
+        lwmsg_assoc_delete(assoc);
+    }
+
+    return NULL;
 }
 
 LWMsgStatus
@@ -92,47 +744,37 @@ lwmsg_server_new(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
+    server->fd = -1;
+    server->max_clients = 8;
+    server->max_backlog = 4;
+    server->max_dispatch = 4;
+    server->protocol = protocol;
+
     memset(&server->timeout, 0xFF, sizeof(server->timeout));
 
     lwmsg_context_setup(&server->context, &protocol->context);
+
+    err = pipe(server->listen_notify);
+    if (err)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
 
     err = pthread_mutex_init(&server->lock, NULL);
     if (err)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
-    err = pthread_mutex_init(&server->io.lock, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    err = pthread_mutex_init(&server->dispatch.lock, NULL);
+
+    err = pthread_cond_init(&server->state_changed, NULL);
     if (err)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-    err = pthread_cond_init(&server->event, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    err = pthread_cond_init(&server->dispatch.event, NULL);
-    if (err)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    lwmsg_ring_init(&server->io_tasks);
-    lwmsg_ring_init(&server->dispatch.tasks);
+    BAIL_ON_ERROR(status = lwmsg_connection_signal_new(&server->interrupt));
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&server->manager));
-
-    server->max_clients = 100;
-    server->max_io = 2;
-    server->max_dispatch = 4;
-    server->max_backlog = 8;
-    server->protocol = protocol;
 
     *out_server = server;
 
@@ -146,21 +788,24 @@ lwmsg_server_delete(
     LWMsgServer* server
     )
 {
-    lwmsg_context_cleanup(&server->context);
-    lwmsg_session_manager_delete(server->manager);
+    lwmsg_server_lock(server);
 
-    pthread_mutex_destroy(&server->lock);
-    pthread_mutex_destroy(&server->io.lock);
-    pthread_mutex_destroy(&server->dispatch.lock);
-
-    pthread_cond_destroy(&server->event);
-    pthread_cond_destroy(&server->dispatch.event);
-
-    if (server->dispatch.vector)
+    while (server->state != LWMSG_SERVER_STOPPED)
     {
-        free(server->dispatch.vector);
+        lwmsg_server_wait_state_changed(server);
     }
 
+    lwmsg_server_unlock(server);
+
+    lwmsg_context_cleanup(&server->context);
+    lwmsg_connection_signal_delete(server->interrupt);
+    lwmsg_session_manager_delete(server->manager);
+    free(server->endpoint);
+    free(server->worker_threads);
+    if (server->dispatch_vector)
+    {
+        free(server->dispatch_vector);
+    }
     free(server);
 }
 
@@ -176,7 +821,7 @@ lwmsg_server_set_timeout(
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
@@ -230,36 +875,12 @@ lwmsg_server_set_max_clients(
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
     server->max_clients = max_clients;
-
-error:
-
-    lwmsg_server_unlock(server);
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_server_set_max_io(
-    LWMsgServer* server,
-    unsigned int max_io
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    lwmsg_server_lock(server);
-
-    if (server->state != SERVER_STATE_STOPPED)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-
-    server->max_io = max_io;
 
 error:
 
@@ -278,7 +899,7 @@ lwmsg_server_set_max_dispatch(
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
@@ -302,7 +923,7 @@ lwmsg_server_set_max_backlog(
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
@@ -324,12 +945,12 @@ lwmsg_server_add_dispatch_spec(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     size_t max_message_tag = 0;
-    LWMsgDispatchSpec** new_vector = NULL;
+    LWMsgDispatchFunction* new_vector = NULL;
     size_t i;
 
     lwmsg_server_lock(server);
 
-    for (i = 0; table[i].type != LWMSG_DISPATCH_TYPE_END; i++)
+    for (i = 0; table[i].func; i++)
     {
         if (table[i].tag > max_message_tag)
         {
@@ -337,26 +958,26 @@ lwmsg_server_add_dispatch_spec(
         }
     }
 
-    if (server->dispatch.vector_length < max_message_tag + 1)
+    if (server->dispatch_vector_length < max_message_tag + 1)
     {
-        new_vector = realloc(server->dispatch.vector, sizeof(*new_vector) * (max_message_tag + 1));
+        new_vector = realloc(server->dispatch_vector, sizeof(*new_vector) * (max_message_tag + 1));
 
         if (!new_vector)
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
         }
-        
-        /* Zero out new elements of vector */
-        memset(new_vector + server->dispatch.vector_length, 0,
-               (max_message_tag + 1 - server->dispatch.vector_length) * sizeof(*new_vector));
 
-        server->dispatch.vector_length = max_message_tag + 1;
-        server->dispatch.vector = new_vector;
+        /* Zero out new elements of vector */
+        memset(new_vector + server->dispatch_vector_length, 0,
+               (max_message_tag + 1 - server->dispatch_vector_length) * sizeof(*new_vector));
+
+        server->dispatch_vector_length = max_message_tag + 1;
+        server->dispatch_vector = new_vector;
     }
 
-    for (i = 0; table[i].type != LWMSG_DISPATCH_TYPE_END; i++)
+    for (i = 0; table[i].func; i++)
     {
-        server->dispatch.vector[table[i].tag] = &table[i];
+        server->dispatch_vector[table[i].tag] = table[i].func;
     }
 
 error:
@@ -374,11 +995,10 @@ lwmsg_server_set_fd(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerTask* task = NULL;
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
@@ -388,9 +1008,47 @@ lwmsg_server_set_fd(
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(fd, &task));
+    server->mode = mode;
+    server->fd = fd;
 
-    lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_endpoint(
+    LWMsgServer* server,
+    LWMsgServerMode mode,
+    const char* endpoint,
+    mode_t      permissions
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED || server->fd != -1 || server->endpoint != NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    if (endpoint == NULL)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
+    server->mode = mode;
+    server->endpoint = strdup(endpoint);
+
+    if (!server->endpoint)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    server->permissions = permissions;
 
 error:
 
@@ -400,11 +1058,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_server_create_local_socket(
-    LWMsgServer* server,
-    const char* endpoint,
-    mode_t mode,
-    int* fd
+lwmsg_server_create_local_listen_socket(
+    LWMsgServer* server
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -420,12 +1075,12 @@ lwmsg_server_create_local_socket(
 
     sockaddr.sun_family = AF_UNIX;
 
-    if (strlen(endpoint) > sizeof(sockaddr.sun_path))
+    if (strlen(server->endpoint) > sizeof(sockaddr.sun_path))
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
-    strcpy(sockaddr.sun_path, endpoint);
+    strcpy(sockaddr.sun_path, server->endpoint);
     unlink(sockaddr.sun_path);
 
     if (bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
@@ -433,278 +1088,21 @@ lwmsg_server_create_local_socket(
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-    if (chmod(sockaddr.sun_path, mode) < 0)
+    if (chmod(sockaddr.sun_path, server->permissions) < 0)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-    *fd = sock;
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_server_set_endpoint(
-    LWMsgServer* server,
-    LWMsgServerMode mode,
-    const char* endpoint,
-    mode_t      permissions
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerTask* task = NULL;
-    int fd = -1;
-
-    lwmsg_server_lock(server);
-
-    if (server->state != SERVER_STATE_STOPPED)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-
-    if (endpoint == NULL)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-    }
-
-    switch (mode)
-    {
-    case LWMSG_SERVER_MODE_LOCAL:
-        BAIL_ON_ERROR(status = lwmsg_server_create_local_socket(
-                          server,
-                          endpoint,
-                          permissions,
-                          &fd));
-        break;
-    default:
-        BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(fd, &task));
-    fd = -1;
-
-    lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
-    task = NULL;
-
-error:
-
-    lwmsg_server_unlock(server);
-
-    if (fd != -1)
-    {
-        close(fd);
-    }
-
-    if (task)
-    {
-        lwmsg_server_task_delete(task);
-    }
-
-    return status;
-}
-
-static
-LWMsgStatus
-lwmsg_server_init_dispatch_thread(
-    LWMsgServer* server,
-    ServerDispatchThread* dispatch_thread
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    dispatch_thread->server = server;
-
-    if (pthread_create(
-            &dispatch_thread->thread,
-            NULL,
-            lwmsg_server_dispatch_thread,
-            dispatch_thread))
+    if (listen(sock, server->max_backlog))
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-done:
-
-    return status;
+    server->fd = sock;
 
 error:
 
-    goto done;
-}
-
-static
-LWMsgStatus
-lwmsg_server_init_io_thread(
-    LWMsgServer* server,
-    ServerIoThread* io_thread
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgBool lock_init = LWMSG_FALSE;
-    LWMsgBool event_init = LWMSG_FALSE;
-
-    io_thread->server = server;
-    lwmsg_ring_init((LWMsgRing*) &io_thread->tasks);
-    if (pthread_mutex_init(&io_thread->lock, NULL))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    lock_init = LWMSG_TRUE;
-
-    if (pipe(io_thread->event))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-    event_init = LWMSG_TRUE;
-
-    if (pthread_create(
-            &io_thread->thread,
-            NULL,
-            lwmsg_server_io_thread,
-            io_thread))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-done:
-
     return status;
-
-error:
-
-    if (lock_init)
-    {
-        pthread_mutex_destroy(&io_thread->lock);
-    }
-
-    if (event_init)
-    {
-        close(io_thread->event[0]);
-        close(io_thread->event[1]);
-    }
-
-    goto done;
-}
-
-static
-void
-lwmsg_server_destroy_io_thread(
-    ServerIoThread* thread
-    )
-{
-    pthread_mutex_lock(&thread->lock);
-    thread->shutdown = LWMSG_TRUE;
-    thread->num_events++;
-    lwmsg_server_signal_io_thread(thread);
-    pthread_mutex_unlock(&thread->lock);
-
-    pthread_join(thread->thread, NULL);
-
-    pthread_mutex_destroy(&thread->lock);
-    close(thread->event[0]);
-    close(thread->event[1]);
-}
-
-static
-void
-lwmsg_server_destroy_dispatch_thread(
-    ServerDispatchThread* thread
-    )
-{
-    pthread_join(thread->thread, NULL);
-}
-
-static
-LWMsgStatus
-lwmsg_server_startup(
-    LWMsgServer* server
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgRing* iter = NULL;
-    LWMsgRing* next = NULL;
-    ServerTask* task = NULL;
-    size_t io_index = 0;
-    size_t dispatch_index = 0;
-    ServerIoThread* io_thread = NULL;
-    ServerDispatchThread* dispatch_thread = NULL;
-
-    /* Allocate and spin up IO threads */
-    BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(
-                      server->max_io,
-                      &server->io.threads));
-
-    for (io_index = 0; io_index < server->max_io; io_index++)
-    {
-        io_thread = &server->io.threads[io_index];
-
-        BAIL_ON_ERROR(status = lwmsg_server_init_io_thread(server, io_thread));
-    }
-
-    /* Allocate and spin up dispatch threads */
-    BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(
-                      server->max_dispatch,
-                      &server->dispatch.threads));
-
-    for (dispatch_index = 0; dispatch_index <  server->max_dispatch; dispatch_index++)
-    {
-        dispatch_thread = &server->dispatch.threads[dispatch_index];
-
-        BAIL_ON_ERROR(status = lwmsg_server_init_dispatch_thread(server, dispatch_thread));
-    }
-
-    /* Inject initial IO tasks into IO threads */
-    for (iter = server->io_tasks.next; iter != &server->io_tasks; iter = next)
-    {
-        next = iter->next;
-        task = LWMSG_OBJECT_FROM_MEMBER(iter, ServerTask, ring);
-
-        lwmsg_ring_remove(iter);
-        lwmsg_server_queue_io_task(server, task);
-    }
-
-done:
-
-    return status;
-
-error:
-
-    if (server->io.threads)
-    {
-        if (io_index)
-        {
-            for (--io_index; io_index; --io_index)
-            {
-                lwmsg_server_destroy_io_thread(&server->io.threads[io_index]);
-            }
-        }
-
-        free(server->io.threads);
-        server->io.threads = NULL;
-    }
-
-    if (server->dispatch.threads)
-    {
-        if (dispatch_index)
-        {
-            pthread_mutex_lock(&server->dispatch.lock);
-            server->dispatch.shutdown = LWMSG_TRUE;
-            pthread_cond_broadcast(&server->dispatch.event);
-            pthread_mutex_unlock(&server->dispatch.lock);
-
-            for (--dispatch_index; dispatch_index; --dispatch_index)
-            {
-                lwmsg_server_destroy_dispatch_thread(&server->dispatch.threads[dispatch_index]);
-            }
-        }
-
-        free(server->dispatch.threads);
-        server->dispatch.threads = NULL;
-    }
-
-    goto done;
 }
 
 LWMsgStatus
@@ -713,126 +1111,64 @@ lwmsg_server_start(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgBool locked = LWMSG_FALSE;
+    size_t i;
+    int err = 0;
 
-    SERVER_LOCK(server, locked);
+    lwmsg_server_lock(server);
 
-    if (server->state == SERVER_STATE_STOPPED)
+    /* Create listen socket if we don't have one already */
+    if (server->fd == -1)
     {
-        server->state = SERVER_STATE_STARTING;
-        SERVER_UNLOCK(server, locked);
-
-        BAIL_ON_ERROR(status = lwmsg_server_startup(server));
-
-        SERVER_LOCK(server, locked);
-        server->state = SERVER_STATE_STARTED;
-        pthread_cond_broadcast(&server->event);
-    }
-    else if (server->state == SERVER_STATE_STARTING)
-    {
-        /* Wait for someone else to finish starting server */
-        while (server->state == SERVER_STATE_STARTING)
+        switch (server->mode)
         {
-            pthread_cond_wait(&server->event, &server->lock);
+        case LWMSG_SERVER_MODE_LOCAL:
+            BAIL_ON_ERROR(status = lwmsg_server_create_local_listen_socket(server));
+            break;
+        case LWMSG_SERVER_MODE_REMOTE:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+            break;
+        default:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+            break;
         }
     }
 
-    if (server->state == SERVER_STATE_ERROR)
+    /* Create assoc queues */
+    BAIL_ON_ERROR(status = assoc_queue_setup(server, &server->listen_assocs, server->max_clients));
+    BAIL_ON_ERROR(status = assoc_queue_setup(server, &server->service_assocs, server->max_clients));
+
+    /* Allocate and populate thread pool */
+    server->worker_threads = calloc(server->max_dispatch, sizeof(*server->worker_threads));
+    if (!server->worker_threads)
     {
-        BAIL_ON_ERROR(status = server->error);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-done:
+    for (i = 0; i < server->max_dispatch; i++)
+    {
+        err = pthread_create(
+            &server->worker_threads[i],
+            NULL,
+            lwmsg_server_worker_thread,
+            server);
+        if (err)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+        }
+    }
 
-    SERVER_UNLOCK(server, locked);
+    /* Create listen thread */
+    err = pthread_create(&server->listen_thread, NULL, lwmsg_server_listen_thread, server);
+    if (err)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
 
-    return status;
+    lwmsg_server_change_state(server, LWMSG_SERVER_RUNNING);
 
 error:
 
-    SERVER_LOCK(server, locked);
-    server->state = SERVER_STATE_ERROR;
-    server->error = status;
-    pthread_cond_broadcast(&server->event);
-
-    goto done;
-}
-
-static
-LWMsgStatus
-lwmsg_server_shutdown(
-    LWMsgServer* server
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerIoThread* io_thread = NULL;
-    ServerDispatchThread* dispatch_thread = NULL;
-    LWMsgRing* iter = NULL;
-    LWMsgRing* next = NULL;
-    ServerTask* task = NULL;
-    size_t i = 0;
-
-    /* Notify IO threads */
-    for (i = 0; i < server->max_io; i++)
-    {
-        io_thread = &server->io.threads[i];
-
-        pthread_mutex_lock(&io_thread->lock);
-        io_thread->shutdown = LWMSG_TRUE;
-        io_thread->num_events++;
-        lwmsg_server_signal_io_thread(io_thread);
-        pthread_mutex_unlock(&io_thread->lock);
-    }
-
-    /* Notify dispatch threads */
-    pthread_mutex_lock(&server->dispatch.lock);
-    server->dispatch.shutdown = LWMSG_TRUE;
-    pthread_cond_broadcast(&server->dispatch.event);
-    pthread_mutex_unlock(&server->dispatch.lock);
-
-    /* Clean up IO threads */
-    for (i = 0; i < server->max_io; i++)
-    {
-        io_thread = &server->io.threads[i];
-
-        pthread_join(io_thread->thread, NULL);
-
-        for (iter = io_thread->tasks.next; iter != &io_thread->tasks; iter = next)
-        {
-            next = iter->next;
-
-            task = LWMSG_OBJECT_FROM_MEMBER(iter, ServerTask, ring);
-
-            lwmsg_server_task_delete(task);
-        }
-
-        pthread_mutex_destroy(&io_thread->lock);
-        close(io_thread->event[0]);
-        close(io_thread->event[1]);
-    }
-
-    free(server->io.threads);
-    server->io.threads = NULL;
-
-    /* Clean up dispatch threads */
-    for (i = 0; i < server->max_dispatch; i++)
-    {
-        dispatch_thread = &server->dispatch.threads[i];
-
-        pthread_join(dispatch_thread->thread, NULL);
-    }
-
-    for (iter = server->dispatch.tasks.next; iter != &server->dispatch.tasks; iter = next)
-    {
-         next = iter->next;
-
-         task = LWMSG_OBJECT_FROM_MEMBER(iter, ServerTask, ring);
-
-         lwmsg_server_task_delete(task);
-    }
-
-    free(server->dispatch.threads);
-    server->dispatch.threads = NULL;
+    lwmsg_server_unlock(server);
 
     return status;
 }
@@ -843,71 +1179,102 @@ lwmsg_server_stop(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgBool locked = LWMSG_FALSE;
+    int err;
+    size_t i;
+    int locked = 0;
+    char c = 0;
 
     SERVER_LOCK(server, locked);
 
-    if (server->state == SERVER_STATE_STARTED)
+    if (server->state != LWMSG_SERVER_RUNNING)
     {
-        server->state = SERVER_STATE_STOPPING;
-        SERVER_UNLOCK(server, locked);
-
-        BAIL_ON_ERROR(status = lwmsg_server_shutdown(server));
-
-        SERVER_LOCK(server, locked);
-        server->state = SERVER_STATE_STOPPED;
-        pthread_cond_broadcast(&server->event);
+        SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_STATE, "Server not running");
     }
-    else if (server->state == SERVER_STATE_STOPPING)
+
+    lwmsg_server_change_state(server, LWMSG_SERVER_SHUTDOWN);
+
+    /* Interrupt all worker_threads waiting on I/O */
+    BAIL_ON_ERROR(status = lwmsg_connection_signal_raise(server->interrupt));
+
+    /* Interrupt all worker_threads waiting on a condition */
+    err = pthread_cond_broadcast(&server->service_assocs.event);
+    if (err)
     {
-        /* Wait for someone else to finish stopping server */
-        while (server->state == SERVER_STATE_STOPPING)
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
+
+    /* Interrupt listener thread */
+    err = pthread_cond_broadcast(&server->listen_assocs.event);
+    if (err)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
+
+    if (write(server->listen_notify[1], &c, 1) != 1)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
+
+    SERVER_UNLOCK(server, locked);
+
+    /* Wait for listener thread to stop */
+    err = pthread_join(server->listen_thread, NULL);
+    if (err)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
+    }
+
+    /* Wait for worker_threads in thread pool to stop */
+    for (i = 0; i < server->max_dispatch; i++)
+    {
+        err = pthread_join(server->worker_threads[i], NULL);
+        if (err)
         {
-            pthread_cond_wait(&server->event, &server->lock);
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
         }
     }
 
-    if (server->state == SERVER_STATE_ERROR)
+    SERVER_LOCK(server, locked);
+
+    /* Tear down queues, freeing any remaining associations */
+    assoc_queue_teardown(server, &server->listen_assocs);
+    assoc_queue_teardown(server, &server->service_assocs);
+
+    BAIL_ON_ERROR(status = lwmsg_connection_signal_lower(server->interrupt));
+    close(server->fd);
+    server->fd = -1;
+
+    if (server->endpoint && server->mode == LWMSG_SERVER_MODE_LOCAL)
     {
-        BAIL_ON_ERROR(status = server->error);
+        unlink(server->endpoint);
     }
 
-done:
+    lwmsg_server_change_state(server, LWMSG_SERVER_STOPPED);
+    SERVER_UNLOCK(server, locked);
+
+error:
 
     SERVER_UNLOCK(server, locked);
 
     return status;
-
-error:
-
-    SERVER_LOCK(server, locked);
-    server->state = SERVER_STATE_ERROR;
-    server->error = status;
-    pthread_cond_broadcast(&server->event);
-
-    goto done;
 }
 
 LWMsgStatus
-lwmsg_server_set_session_functions(
+lwmsg_server_set_connect_callback(
     LWMsgServer* server,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
-    void* data
+    LWMsgServerConnectFunction func
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
-    server->session_construct = construct;
-    server->session_destruct = destruct;
-    server->session_construct_data = data;
+    server->connect_callback = func;
 
 error:
 
@@ -917,7 +1284,31 @@ error:
 }
 
 LWMsgStatus
-lwmsg_server_set_dispatch_data(
+lwmsg_server_set_session_callback(
+    LWMsgServer* server,
+    LWMsgServerConnectFunction func
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != LWMSG_SERVER_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    server->session_callback = func;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_server_set_user_data(
     LWMsgServer* server,
     void* data
     )
@@ -926,12 +1317,12 @@ lwmsg_server_set_dispatch_data(
 
     lwmsg_server_lock(server);
 
-    if (server->state != SERVER_STATE_STOPPED)
+    if (server->state != LWMSG_SERVER_STOPPED)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
 
-    server->dispatch_data = data;
+    server->user_data = data;
 
 error:
 
@@ -941,138 +1332,9 @@ error:
 }
 
 void*
-lwmsg_server_get_dispatch_data(
+lwmsg_server_get_user_data(
     LWMsgServer* server
     )
 {
-    return server->dispatch_data;
-}
-
-void
-lwmsg_server_signal_io_thread(
-    ServerIoThread* thread
-    )
-{
-    char c = 0;
-    int res = 0;
-
-    do
-    {
-        res = write(thread->event[1], &c, sizeof(c));
-    } while (res == -1 && errno == EINTR);
-
-    ABORT_IF_FALSE(res == sizeof(c));
-}
-
-void
-lwmsg_server_queue_io_task(
-    LWMsgServer* server,
-    ServerTask* task
-    )
-{
-    ServerIoThread* thread = NULL;
-
-    pthread_mutex_lock(&server->io.lock);
-    thread = &server->io.threads[server->io.next_index];
-    server->io.next_index = (server->io.next_index + 1) % server->max_io;
-    pthread_mutex_unlock(&server->io.lock);
-
-    pthread_mutex_lock(&thread->lock);
-    lwmsg_ring_insert_before((LWMsgRing*) &thread->tasks, &task->ring);
-    thread->num_events++;
-    lwmsg_server_signal_io_thread(thread);
-    pthread_mutex_unlock(&thread->lock);
-}
-
-void
-lwmsg_server_queue_dispatch_task(
-    LWMsgServer* server,
-    ServerTask* task
-    )
-{
-    pthread_mutex_lock(&server->dispatch.lock);
-    lwmsg_ring_insert_before(&server->dispatch.tasks, &task->ring);
-    pthread_cond_signal(&server->dispatch.event);
-    pthread_mutex_unlock(&server->dispatch.lock);
-}
-
-static
-void
-lwmsg_server_wake_io_threads(
-    LWMsgServer* server
-    )
-{
-    size_t i = 0;
-    ServerIoThread* thread = NULL;
-
-    for (i = 0; i < server->max_io; i++)
-    {
-        thread = &server->io.threads[i];
-        pthread_mutex_lock(&thread->lock);
-        thread->num_events++;
-        lwmsg_server_signal_io_thread(thread);
-        pthread_mutex_unlock(&thread->lock);
-    }
-}
-
-LWMsgBool
-lwmsg_server_acquire_client_slot(
-    LWMsgServer* server
-    )
-{
-    LWMsgBool result = LWMSG_FALSE;
-    LWMsgBool wake = LWMSG_FALSE;
-
-    lwmsg_server_lock(server);
-    if (server->num_clients < server->max_clients)
-    {
-        if (++server->num_clients == server->max_clients)
-        {
-            wake = LWMSG_TRUE;
-        }
-        result = LWMSG_TRUE;
-    }
-
-    lwmsg_server_unlock(server);
-
-    if (wake)
-    {
-        lwmsg_server_wake_io_threads(server);
-    }
-
-    return result;
-}
-
-void
-lwmsg_server_release_client_slot(
-    LWMsgServer* server
-    )
-{
-    LWMsgBool wake = LWMSG_FALSE;
-
-    lwmsg_server_lock(server);
-    if (server->num_clients-- == server->max_clients)
-    {
-        wake = LWMSG_TRUE;
-    }
-    lwmsg_server_unlock(server);
-
-    if (wake)
-    {
-        lwmsg_server_wake_io_threads(server);
-    }
-}
-
-size_t
-lwmsg_server_get_num_clients(
-    LWMsgServer* server
-    )
-{
-    size_t result = 0;
-
-    lwmsg_server_lock(server);
-    result = server->num_clients;
-    lwmsg_server_unlock(server);
-
-    return result;
+    return server->user_data;
 }

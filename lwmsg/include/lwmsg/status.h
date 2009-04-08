@@ -162,10 +162,7 @@ typedef enum
      * Invalid handle
      * @hideinitializer
      */
-    LWMSG_STATUS_INVALID_HANDLE = 23,
-    LWMSG_STATUS_BUSY = 24,
-    LWMSG_STATUS_NOT_FINISHED = 25,
-    LWMSG_STATUS_INTERNAL = 26,
+    LWMSG_STATUS_INVALID_HANDLE = 23
 } LWMsgStatus;
 
 #define LWMSG_STATUS_COUNT (22)

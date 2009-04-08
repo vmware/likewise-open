@@ -64,14 +64,13 @@
                     goto retry;                                         \
                 }                                                       \
             case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                    \
+                BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));       \
                 if (retries > MAX_RETRIES)                              \
                 {                                                       \
                     BAIL_ON_ERROR(status = __s__);                      \
                 }                                                       \
                 else                                                    \
                 {                                                       \
-                    BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));   \
-                    BAIL_ON_ERROR(status = lwmsg_assoc_establish(__a__)); \
                     retries++;                                          \
                     goto retry;                                         \
                 }                                                       \
@@ -376,7 +375,7 @@ error:
 LWMsgStatus
 lwmsg_assoc_recv_message_transact(
     LWMsgAssoc* assoc,
-    LWMsgAssocDispatchFunction dispatch,
+    LWMsgDispatchFunction dispatch,
     void* data
     )
 {
@@ -542,18 +541,8 @@ lwmsg_assoc_free_message(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeSpec* type = NULL;
 
-    if (message->tag != -1)
-    {
-        BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
-
-        if (type != NULL)
-        {
-            BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
-        }
-
-        message->tag = -1;
-        message->object = NULL;
-    }
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
+    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
 
 error:
 
@@ -658,6 +647,32 @@ error:
 }
 
 LWMsgStatus
+lwmsg_assoc_set_session_data(
+    LWMsgAssoc* assoc,
+    void* data,
+    LWMsgSessionDataCleanupFunction cleanup
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
+
+    /* In order to set the session data, we first need a session */
+    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
+
+    BAIL_ON_ERROR(status = lwmsg_session_manager_set_session_data(
+                      manager,
+                      session,
+                      data,
+                      cleanup));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
 lwmsg_assoc_get_session_data(
     LWMsgAssoc* assoc,
     void** data
@@ -698,43 +713,6 @@ lwmsg_assoc_establish(
     LWMsgAssoc* assoc
     )
 {
-    return assoc->aclass->establish(
-        assoc,
-        assoc->construct,
-        assoc->destruct,
-        assoc->construct_data);
+    return assoc->aclass->establish(assoc);
 }
 
-LWMsgStatus
-lwmsg_assoc_finish(
-    LWMsgAssoc* assoc
-    )
-{
-    return assoc->aclass->finish(assoc);
-}
-
-LWMsgStatus
-lwmsg_assoc_set_nonblock(
-    LWMsgAssoc* assoc,
-    LWMsgBool nonblock
-    )
-{
-    return assoc->aclass->set_nonblock(assoc, nonblock);
-}
-
-LWMsgStatus
-lwmsg_assoc_set_session_functions(
-    LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
-    void* data
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    assoc->construct = construct;
-    assoc->destruct = destruct;
-    assoc->construct_data = data;
-
-    return status;
-}

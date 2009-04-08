@@ -49,18 +49,26 @@
 static
 DWORD
 LsaSrvIpcCheckPermissions(
-    LWMsgSecurityToken* token,
+    LWMsgAssoc* assoc,
     uid_t* puid,
     gid_t* pgid
     )
 {
     DWORD dwError = 0;
+    LWMsgSecurityToken* token = NULL;
     uid_t euid;
     gid_t egid;
 
-    if (strcmp(lwmsg_security_token_get_type(token), "local"))
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_peer_security_token(assoc, &token));
+    if (dwError)
     {
-        LSA_LOG_WARNING("Unsupported authentication type");
+        LSA_LOG_ERROR("Failed to get authentication information for association %p", assoc);
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        LSA_LOG_WARNING("Unsupported authentication type on association %p", assoc);
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -79,20 +87,11 @@ error:
     return dwError;
 }
 
-void
-LsaSrvIpcDestructSession(
-    LWMsgSecurityToken* pToken,
-    void* pSessionData
-    )
-{
-    LsaSrvCloseServer(pSessionData);
-}
-
 LWMsgStatus
-LsaSrvIpcConstructSession(
-    LWMsgSecurityToken* pToken,
-    void* pData,
-    void** ppSessionData
+LsaSrvIpcOpenServer(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    void* data
     )
 {
     DWORD dwError = 0;
@@ -100,19 +99,26 @@ LsaSrvIpcConstructSession(
     uid_t UID;
     gid_t GID;
 
-    dwError = LsaSrvIpcCheckPermissions(pToken, &UID, &GID);
+    LSA_LOG_VERBOSE("LsaSrvIpc open hServer of on association %p", assoc);
+
+    dwError = LsaSrvIpcCheckPermissions(assoc, &UID, &GID);
+    if (!dwError)
+    {
+        LSA_LOG_VERBOSE("Successfully opened hServer for association %p",
+                        assoc);
+
+        dwError = LsaSrvOpenServer(UID, GID, &Handle);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvOpenServer(UID, GID, &Handle);
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_session_data(assoc, (PVOID)Handle, LsaSrvCloseServer));
     BAIL_ON_LSA_ERROR(dwError);
-
-    *ppSessionData = Handle;
 
 cleanup:
-
     return MAP_LSA_ERROR_IPC(dwError);
 
 error:
-
     goto cleanup;
 }
