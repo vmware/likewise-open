@@ -116,6 +116,17 @@ RpcLWIEventLogCount(
 {
     DWORD  dwError = 0;
     HANDLE hDB = (HANDLE)NULL;
+    PEVTALLOWEDDATA pAllowAccessTo = NULL;
+
+    dwError = EVTGetAllowReadToLocked( &pAllowAccessTo );
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowAccessTo);
+
+    EVTUnlockServerInfo();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
@@ -151,6 +162,17 @@ RpcLWIReadEventLog(
 {
     DWORD  dwError = 0;
     HANDLE hDB = (HANDLE)NULL;
+    PEVTALLOWEDDATA pAllowAccessTo = NULL;
+
+    dwError = EVTGetAllowReadToLocked( &pAllowAccessTo );
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = LWICheckSecurity(
+                  bindingHandle,
+                  pAllowAccessTo);
+
+    EVTUnlockServerInfo();
+    BAIL_ON_EVT_ERROR(dwError);
 
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
