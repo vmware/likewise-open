@@ -44,7 +44,28 @@
 
 #include <stdarg.h>
 #include <string.h>
-#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define ABORT_ON_ERROR(_x_)                                     \
+    do                                                          \
+    {                                                           \
+        if ((_x_))                                              \
+        {                                                       \
+            fprintf(stderr, "Expression failed: %s\n", #_x_);   \
+            abort();                                            \
+        }                                                       \
+    } while (0)
+
+#define ABORT_IF_FALSE(_x_)                                             \
+    do                                                                  \
+    {                                                                   \
+        if (!(_x_))                                                     \
+        {                                                               \
+            fprintf(stderr, "Expression was false: %s\n", #_x_);        \
+            abort();                                                    \
+        }                                                               \
+    } while (0)
 
 #define BAIL_ON_ERROR(_x_)                      \
     do                                          \
@@ -222,7 +243,7 @@ lwmsg_ring_sanity(
     LWMsgRing* ring
     )
 {
-    assert(ring->prev->next == ring && ring->next->prev == ring);
+    ABORT_IF_FALSE(ring->prev->next == ring && ring->next->prev == ring);
 }
 
 static inline
@@ -234,7 +255,7 @@ lwmsg_ring_insert_after(
 {
     lwmsg_ring_sanity(anchor);
     lwmsg_ring_sanity(element);
-    assert(element->prev == element->next && element->prev == element);
+    ABORT_IF_FALSE(element->prev == element->next && element->prev == element);
 
     element->next = anchor->next;
     element->prev = anchor;
@@ -252,7 +273,7 @@ lwmsg_ring_insert_before(
 {
     lwmsg_ring_sanity(anchor);
     lwmsg_ring_sanity(element);
-    assert(element->prev == element->next && element->prev == element);
+    ABORT_IF_FALSE(element->prev == element->next && element->prev == element);
 
     element->next = anchor;
     element->prev = anchor->prev;

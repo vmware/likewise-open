@@ -611,13 +611,12 @@ lwmsg_server_task_complete_async(
     )
 {
     ServerIoThread* thread = (ServerIoThread*) data;
-    char c = 0;
 
     /* Poke the thread owning the task so it wakes up and
        notices the dispatch completed */
     pthread_mutex_lock(&thread->lock);
     thread->num_events++;
-    write(thread->event[1], &c, sizeof(c));
+    lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 }
 

@@ -594,12 +594,10 @@ lwmsg_server_destroy_io_thread(
     ServerIoThread* thread
     )
 {
-    char c = 0;
-
     pthread_mutex_lock(&thread->lock);
     thread->shutdown = LWMSG_TRUE;
     thread->num_events++;
-    write(thread->event[1], &c, sizeof(c));
+    lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 
     pthread_join(thread->thread, NULL);
@@ -773,7 +771,6 @@ lwmsg_server_shutdown(
     LWMsgRing* next = NULL;
     ServerTask* task = NULL;
     size_t i = 0;
-    char c = 0;
 
     /* Notify IO threads */
     for (i = 0; i < server->max_io; i++)
@@ -783,7 +780,7 @@ lwmsg_server_shutdown(
         pthread_mutex_lock(&io_thread->lock);
         io_thread->shutdown = LWMSG_TRUE;
         io_thread->num_events++;
-        write(io_thread->event[1], &c, sizeof(c));
+        lwmsg_server_signal_io_thread(io_thread);
         pthread_mutex_unlock(&io_thread->lock);
     }
 
@@ -952,13 +949,28 @@ lwmsg_server_get_dispatch_data(
 }
 
 void
+lwmsg_server_signal_io_thread(
+    ServerIoThread* thread
+    )
+{
+    char c = 0;
+    int res = 0;
+
+    do
+    {
+        res = write(thread->event[1], &c, sizeof(c));
+    } while (res == -1 && errno == EINTR);
+
+    ABORT_IF_FALSE(res == sizeof(c));
+}
+
+void
 lwmsg_server_queue_io_task(
     LWMsgServer* server,
     ServerTask* task
     )
 {
     ServerIoThread* thread = NULL;
-    char c = 0;
 
     pthread_mutex_lock(&server->io.lock);
     thread = &server->io.threads[server->io.next_index];
@@ -968,7 +980,7 @@ lwmsg_server_queue_io_task(
     pthread_mutex_lock(&thread->lock);
     lwmsg_ring_insert_before((LWMsgRing*) &thread->tasks, &task->ring);
     thread->num_events++;
-    write(thread->event[1], &c, sizeof(c));
+    lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 }
 
@@ -991,7 +1003,6 @@ lwmsg_server_wake_io_threads(
     )
 {
     size_t i = 0;
-    char c = 0;
     ServerIoThread* thread = NULL;
 
     for (i = 0; i < server->max_io; i++)
@@ -999,7 +1010,7 @@ lwmsg_server_wake_io_threads(
         thread = &server->io.threads[i];
         pthread_mutex_lock(&thread->lock);
         thread->num_events++;
-        write(thread->event[1], &c, sizeof(c));
+        lwmsg_server_signal_io_thread(thread);
         pthread_mutex_unlock(&thread->lock);
     }
 }

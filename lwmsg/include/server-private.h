@@ -230,6 +230,11 @@ lwmsg_server_task_prepare_select(
     );
 
 void
+lwmsg_server_signal_io_thread(
+    ServerIoThread* thread
+    );
+
+void
 lwmsg_server_queue_io_task(
     LWMsgServer* server,
     ServerTask* task
