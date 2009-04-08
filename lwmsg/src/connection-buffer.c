@@ -40,14 +40,18 @@
 #include "util-private.h"
 
 LWMsgStatus
-lwmsg_connection_buffer_construct(ConnectionBuffer* buffer)
+lwmsg_connection_construct_buffer(ConnectionBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    memset(buffer, 0, sizeof(*buffer));
+    buffer->base_length = 0;
+    buffer->base_capacity = 2048;
+    buffer->base = buffer->cursor = malloc(buffer->base_capacity);
 
-    lwmsg_ring_init(&buffer->pending);
-    lwmsg_ring_init(&buffer->unused);
+    if (!buffer->base)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
 
     buffer->fd_capacity = MAX_FD_PAYLOAD;
     buffer->fd_length = 0;
@@ -64,6 +68,11 @@ done:
 
 error:
 
+    if (buffer->base)
+    {
+        free(buffer->base);
+    }
+
     if (buffer->fd)
     {
         free(buffer->fd);
@@ -73,136 +82,49 @@ error:
 }
 
 void
-lwmsg_connection_buffer_destruct(ConnectionBuffer* buffer)
+lwmsg_connection_destruct_buffer(ConnectionBuffer* buffer)
 {
-    LWMsgRing* ring, *next;
+    if (buffer->base)
+    {
+        free(buffer->base);
+    }
 
     if (buffer->fd)
     {
         free(buffer->fd);
     }
 
-    for (ring = buffer->pending.next; ring != &buffer->pending; ring = next)
-    {
-        next = ring->next;
-        free(LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring));
-    }
-
-    for (ring = buffer->unused.next; ring != &buffer->unused; ring = next)
-    {
-        next = ring->next;
-        free(LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring));
-    }
-
     memset(buffer, 0, sizeof(*buffer));
 }
 
+void
+lwmsg_connection_buffer_reset(ConnectionBuffer* buffer)
+{
+    buffer->cursor = buffer->base;
+    buffer->base_length = 0;
+}
+
 LWMsgStatus
-lwmsg_connection_buffer_create_fragment(
-    ConnectionBuffer* buffer,
-    size_t length,
-    ConnectionFragment** fragment
-    )
+lwmsg_connection_buffer_resize(ConnectionBuffer* buffer, size_t size)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionFragment* frag = NULL;
+    unsigned char* newbase = NULL;
 
-    if (buffer->unused.next != &buffer->unused)
+    newbase = realloc(buffer->base, size);
+
+    if (!newbase)
     {
-        frag = LWMSG_OBJECT_FROM_MEMBER(buffer->unused.next, ConnectionFragment, ring);
-        lwmsg_ring_remove(buffer->unused.next);
-        buffer->num_unused--;
-        memset(frag->data, 0, length);
-    }
-    else
-    {
-        frag = calloc(1, offsetof(ConnectionFragment, data) + length);
-        if (!frag)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-        }
-        lwmsg_ring_init(&frag->ring);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    frag->cursor = frag->data;
-
-    *fragment = frag;
+    buffer->cursor = newbase + (buffer->cursor - buffer->base);
+    buffer->base = newbase;
+    buffer->base_capacity = size;
 
 error:
 
     return status;
 }
-
-void
-lwmsg_connection_buffer_queue_fragment(
-    ConnectionBuffer* buffer,
-    ConnectionFragment* fragment
-    )
-{
-    lwmsg_ring_insert_before(&buffer->pending, &fragment->ring);
-    buffer->num_pending++;
-}
-
-ConnectionFragment*
-lwmsg_connection_buffer_dequeue_fragment(
-    ConnectionBuffer* buffer
-    )
-{
-    LWMsgRing* ring = NULL;
-
-    if (buffer->pending.next == &buffer->pending)
-    {
-        return NULL;
-    }
-    else
-    {
-        ring = buffer->pending.next;
-        lwmsg_ring_remove(ring);
-        buffer->num_pending--;
-        return LWMSG_OBJECT_FROM_MEMBER(ring, ConnectionFragment, ring);
-    }
-}
-
-ConnectionFragment*
-lwmsg_connection_buffer_get_first_fragment(
-    ConnectionBuffer* buffer
-    )
-{
-    if (buffer->pending.next != &buffer->pending)
-    {
-        return LWMSG_OBJECT_FROM_MEMBER(buffer->pending.next, ConnectionFragment, ring);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-ConnectionFragment*
-lwmsg_connection_buffer_get_last_fragment(
-    ConnectionBuffer* buffer
-    )
-{
-    if (buffer->pending.prev != &buffer->pending)
-    {
-        return LWMSG_OBJECT_FROM_MEMBER(buffer->pending.prev, ConnectionFragment, ring);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-void
-lwmsg_connection_buffer_free_fragment(
-    ConnectionBuffer* buffer,
-    ConnectionFragment* fragment
-    )
-{
-    lwmsg_ring_insert_after(&buffer->unused, &fragment->ring);
-    buffer->num_unused++;
-}
-
 
 LWMsgStatus
 lwmsg_connection_buffer_ensure_fd_capacity(ConnectionBuffer* buffer, size_t needed)
@@ -233,3 +155,4 @@ error:
     
     return status;
 }
+

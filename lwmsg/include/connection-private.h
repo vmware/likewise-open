@@ -43,8 +43,6 @@
 #include <inttypes.h>
 #include <lwmsg/connection.h>
 
-#include "util-private.h"
-
 #if (defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) || HAVE_DECL_SO_PEERCRED
 #define HAVE_PEERID_METHOD
 #endif
@@ -57,75 +55,56 @@ typedef enum ConnectionState
     CONNECTION_STATE_NONE,
     /* Start state */
     CONNECTION_STATE_START,
-    /* Begin connect */
-    CONNECTION_STATE_BEGIN_CONNECT,
-    /* Finish connect() call */
-    CONNECTION_STATE_FINISH_CONNECT,
-    /* Begin sending handshake */
-    CONNECTION_STATE_BEGIN_SEND_HANDSHAKE,
-    /* Finish sending handshake */
-    CONNECTION_STATE_FINISH_SEND_HANDSHAKE,
-    /* Begin receiving handshake */
-    CONNECTION_STATE_BEGIN_RECV_HANDSHAKE,
-    /* Finish receiving handshake */
-    CONNECTION_STATE_FINISH_RECV_HANDSHAKE,
-    /* Idle */
+    /* Establishing basic connection */
+    CONNECTION_STATE_ESTABLISH,
+    /* Basic connection established */
+    CONNECTION_STATE_CONNECTED,
+    /* Send greeting */
+    CONNECTION_STATE_SEND_GREETING,
+    /* Recv greeting */
+    CONNECTION_STATE_RECV_GREETING,
+    /* Ready state (connected, handshake complete, no operation in progress) */
     CONNECTION_STATE_IDLE,
-    /* Begin sending a message */
-    CONNECTION_STATE_BEGIN_SEND_MESSAGE,
-    /* Begin receiving a message */
-    CONNECTION_STATE_BEGIN_RECV_MESSAGE,
-    /* Begin a close */
-    CONNECTION_STATE_BEGIN_CLOSE,
-    /* Finish a close */
-    CONNECTION_STATE_FINISH_CLOSE,
-    /* Begin a reset */
-    CONNECTION_STATE_BEGIN_RESET,
-    /* Finish a reset */
-    CONNECTION_STATE_FINISH_RESET,
-    /* Finish sending a message */
-    CONNECTION_STATE_FINISH_SEND_MESSAGE,
-    /* Finish receiving a message */
-    CONNECTION_STATE_FINISH_RECV_MESSAGE,
-    /* Closed */
-    CONNECTION_STATE_CLOSED,
-    /* Error */
-    CONNECTION_STATE_ERROR
+    /* Sending a message in progress */
+    CONNECTION_STATE_SEND_MESSAGE,
+    /* Receiving a reply in progress */
+    CONNECTION_STATE_RECV_REPLY,
+    /* Sending a reply in progress */
+    CONNECTION_STATE_SEND_REPLY,
+    /* Receiving a reply in progress */
+    CONNECTION_STATE_RECV_MESSAGE,
+    /* A message was received, waiting for client to give us a reply to send */
+    CONNECTION_STATE_WAIT_SEND_REPLY,
+    /* A message was sent, waiting for client to ask for reply */
+    CONNECTION_STATE_WAIT_RECV_REPLY,
+    /* Connection is closed */
+    CONNECTION_STATE_CLOSED
 } ConnectionState;
 
 typedef enum ConnectionEvent
 {
     /* No event */
     CONNECTION_EVENT_NONE,
-    /* Establish session */
-    CONNECTION_EVENT_ESTABLISH,
     /* Send a message (start or send fragment) */
     CONNECTION_EVENT_SEND,
     /* Receive a message (start or receive fragment) */
     CONNECTION_EVENT_RECV,
+    /* Operation complete (done sending or receiving message) */
+    CONNECTION_EVENT_DONE,
     /* Close connection */
     CONNECTION_EVENT_CLOSE,
     /* Reset connection */
     CONNECTION_EVENT_RESET,
     /* Abort connection */
     CONNECTION_EVENT_ABORT,
-    /* Finish operation */
-    CONNECTION_EVENT_FINISH
 } ConnectionEvent;
-
-typedef struct ConnectionFragment
-{
-    LWMsgRing ring;
-    unsigned char* cursor;
-    unsigned char data[];
-} ConnectionFragment;
 
 typedef struct ConnectionBuffer
 {
-    LWMsgRing pending;
-    LWMsgRing unused;
-    size_t num_pending;
-    size_t num_unused;
+    size_t base_capacity;
+    size_t base_length;
+    unsigned char* base;
+    unsigned char* cursor;
     size_t fd_capacity;
     size_t fd_length;
     int* fd;
@@ -134,6 +113,8 @@ typedef struct ConnectionBuffer
 typedef enum ConnectionPacketType
 {   
     CONNECTION_PACKET_MESSAGE = 1,
+    CONNECTION_PACKET_REPLY = 2,
+    CONNECTION_PACKET_FRAGMENT = 3,
     CONNECTION_PACKET_GREETING = 4,
     CONNECTION_PACKET_SHUTDOWN = 5
 } ConnectionPacketType;
@@ -152,18 +133,8 @@ typedef struct ConnectionPrivate
     ConnectionBuffer recvbuffer;
     /* Current state of connection state machine */
     ConnectionState state;
-    /* Parameters */
-    union
-    {
-        LWMsgMessage* message;
-        struct
-        {
-            LWMsgSessionConstructor construct;
-            LWMsgSessionDestructor destruct;
-            void* construct_data;
-        } establish;
-    } params;
-
+    /* Message currently being processed */
+    LWMsgMessage* message;
     /* Timeouts (relative) */
     struct
     {
@@ -184,8 +155,10 @@ typedef struct ConnectionPrivate
     LWMsgSecurityToken* sec_token;
     /* Session handle */
     LWMsgSession* session;
-    /* Flag: this connection is nonblocking */
-    unsigned is_nonblock:1;
+    /* Interrupt channel */
+    LWMsgConnectionSignal* interrupt;
+    /* Flag: this connection is the first in its session */
+    unsigned is_session_leader:1;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags
@@ -193,19 +166,25 @@ typedef enum ConnectionGreetingFlags
     CONNECTION_GREETING_AUTH_LOCAL = 1
 } ConnectionGreetingFlags;
 
-typedef enum ConnectionPacketFlags
+typedef enum ConnectionShutdownType
 {
-    CONNECTION_PACKET_FLAG_FIRST_FRAGMENT = 0x1,
-    CONNECTION_PACKET_FLAG_LAST_FRAGMENT = 0x2
-} ConnectionPacketFlags;
+    CONNECTION_SHUTDOWN_CLOSE = 0,
+    CONNECTION_SHUTDOWN_RESET = 1,
+    CONNECTION_SHUTDOWN_ABORT = 2
+} ConnectionShutdownType;
 
-#define CONNECTION_PACKET_FLAG_SINGLE (CONNECTION_PACKET_FLAG_FIRST_FRAGMENT | CONNECTION_PACKET_FLAG_LAST_FRAGMENT)
+typedef enum ConnectionShutdownReason
+{
+    CONNECTION_SHUTDOWN_NORMAL = 0,
+    CONNECTION_SHUTDOWN_TIMEOUT = 1,
+    CONNECTION_SHUTDOWN_ACCESS_DENIED = 2,
+    CONNECTION_SHUTDOWN_MALFORMED = 3
+} ConnectionShutdownReason;
 
 typedef struct ConnectionPacket
 {
     uint32_t length;
     uint8_t type;
-    uint8_t flags;
     union
     {
         struct ConnectionPacketBase
@@ -223,10 +202,16 @@ typedef struct ConnectionPacket
         } PACKED greeting;
         struct ConnectionPacketShutdown
         {
-            uint32_t status;
+            uint8_t type;
+            uint8_t reason;
         } PACKED shutdown;
     } PACKED contents;
 } PACKED ConnectionPacket;
+
+struct LWMsgConnectionSignal
+{
+    int fd[2];
+};
 
 typedef struct LocalTokenPrivate
 {
@@ -239,13 +224,19 @@ typedef struct LocalTokenPrivate
 #define MAX_FD_PAYLOAD 256
 
 LWMsgStatus
-lwmsg_connection_buffer_construct(
+lwmsg_connection_construct_buffer(
     ConnectionBuffer* buffer
     );
 
 void
-lwmsg_connection_buffer_destruct(
+lwmsg_connection_destruct_buffer(
     ConnectionBuffer* buffer
+    );
+
+LWMsgStatus
+lwmsg_connection_buffer_resize(
+    ConnectionBuffer* buffer,
+    size_t size
     );
 
 LWMsgStatus
@@ -254,43 +245,15 @@ lwmsg_connection_buffer_ensure_fd_capacity(
     size_t needed
     );
 
-LWMsgStatus
-lwmsg_connection_buffer_create_fragment(
-    ConnectionBuffer* buffer,
-    size_t length,
-    ConnectionFragment** fragment
-    );
-
 void
-lwmsg_connection_buffer_queue_fragment(
-    ConnectionBuffer* buffer,
-    ConnectionFragment* fragment
-    );
-
-ConnectionFragment*
-lwmsg_connection_buffer_dequeue_fragment(
+lwmsg_connection_buffer_reset(
     ConnectionBuffer* buffer
-    );
-
-ConnectionFragment*
-lwmsg_connection_buffer_get_first_fragment(
-    ConnectionBuffer* buffer
-    );
-
-ConnectionFragment*
-lwmsg_connection_buffer_get_last_fragment(
-    ConnectionBuffer* buffer
-    );
-
-void
-lwmsg_connection_buffer_free_fragment(
-    ConnectionBuffer* buffer,
-    ConnectionFragment* fragment
     );
 
 LWMsgStatus
 lwmsg_connection_run(
     LWMsgAssoc* assoc,
+    ConnectionState target,
     ConnectionEvent event
     );
 
@@ -307,18 +270,62 @@ lwmsg_connection_dequeue_fd(
     );
 
 LWMsgStatus
-lwmsg_connection_begin_timeout(
+lwmsg_connection_recv_packet(
     LWMsgAssoc* assoc,
-    LWMsgTime* value
+    ConnectionPacket** out_packet
     );
 
 LWMsgStatus
-lwmsg_connection_flush(
+lwmsg_connection_send_packet(
+    LWMsgAssoc* assoc,
+    ConnectionPacket* packet,
+    ConnectionPacket** urgent
+    );
+
+LWMsgStatus
+lwmsg_connection_discard_recv_packet(
+    LWMsgAssoc* assoc,
+    ConnectionPacket* packet
+    );
+
+LWMsgStatus
+lwmsg_connection_discard_send_packet(
+    LWMsgAssoc* assoc,
+    ConnectionPacket* packet
+    );
+
+LWMsgBool
+lwmsg_connection_packet_is_urgent(
+    ConnectionPacket* packet
+    );
+
+LWMsgStatus
+lwmsg_connection_queue_packet(
+    LWMsgAssoc* assoc,
+    ConnectionPacketType type,
+    size_t size,
+    ConnectionPacket** out_packet
+    );
+
+LWMsgStatus
+lwmsg_connection_send_greeting(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_check(
+lwmsg_connection_recv_greeting(
+    LWMsgAssoc* assoc
+    );
+
+LWMsgStatus
+lwmsg_connection_send_shutdown(
+    LWMsgAssoc* assoc,
+    ConnectionShutdownType type,
+    ConnectionShutdownReason reason
+    );
+
+LWMsgStatus
+lwmsg_connection_connect_local(
     LWMsgAssoc* assoc
     );
 
@@ -341,72 +348,6 @@ lwmsg_connection_get_endpoint_owner(
     const char* endpoint,
     uid_t *uid,
     gid_t *gid
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_connect(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_connect(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_connect_existing(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_send_handshake(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_send_handshake(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_recv_handshake(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_recv_handshake(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_send_message(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_send_message(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_recv_message(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_recv_message(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_connection_begin_send_shutdown(
-    LWMsgAssoc* assoc,
-    LWMsgStatus reason
-    );
-
-LWMsgStatus
-lwmsg_connection_finish_send_shutdown(
-    LWMsgAssoc* assoc
     );
 
 #endif

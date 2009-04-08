@@ -66,8 +66,7 @@ static const char* default_message[] =
     [LWMSG_STATUS_PEER_ABORT] = "Connection aborted by peer",
     [LWMSG_STATUS_SESSION_LOST] = "Session lost",
     [LWMSG_STATUS_UNSUPPORTED] = "Unsupported operation",
-    [LWMSG_STATUS_INVALID_HANDLE] = "Invalid handle",
-    [LWMSG_STATUS_BUSY] = "Conflicting operation already in progress"
+    [LWMSG_STATUS_INVALID_HANDLE] = "Invalid handle"
 };
 
 void
@@ -169,13 +168,9 @@ lwmsg_error_message(
     {
         return context->message;
     }
-    else if (status < (sizeof(default_message) / sizeof(*default_message)))
-    {
-        return default_message[status];
-    }
     else
     {
-        return "unknown";
+        return default_message[status];
     }
 }
 
