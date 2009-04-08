@@ -3,28 +3,31 @@
 BASEDIR=`dirname $0`/../..
 RELEASE=""
 DIRS="\
-	krb5 \
-	openldap \
-	lwmsg \
-	centutils \
-	dcerpc \
-	domainjoin \
-	eventlog \
-	libgss \
-	libiconv \
-	libkeytab \
-	librpc \
-	libunistr \
-	lsass \
-	netlogon \
-	lsmb \
-	build \
-	config \
-	packaging \
-	pstore \
-	sqlite \
-	lwdns \
-	"
+  krb5 \
+  openldap \
+  lwmsg \
+  centutils \
+  dcerpc \
+  domainjoin \
+  eventlog \
+  libgss \
+  libiconv \
+  libkeytab \
+  librpc \
+  libunistr \
+  lsass \
+  netlogon \
+  lwio \
+  build \
+  config \
+  packaging \
+  pstore \
+  sqlite \
+  lwdns \
+  libtdb \
+  lwmapsecurity \
+  srvsvc \
+"
 
 . ${BASEDIR}/packaging/scripts/functions
 VERSION=$(get_lwopen_version)
@@ -42,7 +45,7 @@ for dir in ${DIRS}; do
 		$BASEDIR/$dir $BASEDIR/../$TARGET/ || exit 1
 done
 
-for file in Build.sh Makefile Configure.sh autogen.sh; do
+for file in Build.sh Makefile Configure.sh autogen.sh packaging/scripts/autogen.sh; do
 	cp -p $file $BASEDIR/../$TARGET/ || exit 1
 done
 
