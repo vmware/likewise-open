@@ -32,6 +32,7 @@ DIRS="\
 	netlogon \
 	lwmsg \
 	lwio \
+	libtdb/replace \
 	libtdb \
 	pstore \
 	dcerpc \
