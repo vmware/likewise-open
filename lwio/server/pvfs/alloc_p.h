@@ -61,12 +61,12 @@ PvfsReallocateMemory(
 
 VOID
 PvfsFreeMemory(
-    IN OUT PVOID pBuffer
+    IN OUT PVOID *ppBuffer
     );
 
 NTSTATUS
 PvfsFreeIrpContext(
-	PPVFS_IRP_CONTEXT pIrpContext
+	PPVFS_IRP_CONTEXT *ppIrpContext
     );
 
 NTSTATUS

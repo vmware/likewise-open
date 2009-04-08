@@ -105,13 +105,10 @@ PvfsReallocateMemory(
  **********************************************************/
 VOID
 PvfsFreeMemory(
-    IN OUT PVOID pBuffer
+    IN OUT PVOID *ppBuffer
     )
 {
-    if (pBuffer) {
-        RtlMemoryFree(pBuffer);
-    }
-
+    RTL_FREE(ppBuffer);
 }
 
 /***********************************************************
@@ -119,14 +116,14 @@ PvfsFreeMemory(
 
 NTSTATUS
 PvfsFreeIrpContext(
-	PPVFS_IRP_CONTEXT pIrpContext
+	PPVFS_IRP_CONTEXT *ppIrpContext
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    if (pIrpContext)
+    if (ppIrpContext && *ppIrpContext)
     {
-        PVFS_SAFE_FREE_MEMORY(pIrpContext);
+        PVFS_FREE(ppIrpContext);
     }
 
     return ntError;

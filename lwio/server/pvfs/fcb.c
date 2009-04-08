@@ -141,7 +141,7 @@ PvfsFreeFCB(
     pthread_rwlock_destroy(&pFcb->rwLock);
     pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
-    PvfsFreeMemory(pFcb);
+    PVFS_FREE(&pFcb);
 
     return STATUS_SUCCESS;
 }
@@ -483,7 +483,7 @@ PvfsRemoveCCBFromFCB(
 
     }
 
-    PvfsFreeMemory(pCursor);
+    PVFS_FREE(&pCursor);
 
     ntError = STATUS_SUCCESS;
 

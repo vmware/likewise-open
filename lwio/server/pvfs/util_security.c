@@ -258,11 +258,8 @@ PvfsAccessCheckFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pSecDescRel);
-
-    if (pSecDesc) {
-        PvfsFreeAbsoluteSecurityDescriptor(pSecDesc);
-    }
+    PVFS_FREE(&pSecDescRel);
+    PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
 
     return ntError;
 

@@ -74,7 +74,7 @@ PvfsSetSecurityDescriptorFile(
 
 VOID
 PvfsFreeAbsoluteSecurityDescriptor(
-    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 

@@ -246,8 +246,8 @@ cleanup:
 
     if (!bCaseSensitive)
     {
-        PVFS_SAFE_FREE_MEMORY(pszPathUpper);
-        PVFS_SAFE_FREE_MEMORY(pszPatternUpper);
+        PVFS_FREE(&pszPathUpper);
+        PVFS_FREE(&pszPatternUpper);
     }
 
 

@@ -162,11 +162,13 @@ PvfsSetFileRenameInfo(
                                            "%s/%s",
                                            pRootDirCcb->pszFilename,
                                            pszNewFilename);
-        PVFS_SAFE_FREE_MEMORY(pszNewFilename);
+        PVFS_FREE(&pszNewFilename);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsFileSplitPath(&pszNewFileDirname, &pszNewFileBasename, pszNewPathname);
+    ntError = PvfsFileSplitPath(&pszNewFileDirname,
+                                &pszNewFileBasename,
+                                pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     if (PVFS_IS_DIR(pCcb)) {
@@ -201,7 +203,7 @@ PvfsSetFileRenameInfo(
     ntError = PvfsSysRename(pCcb->pszFilename, pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
 
-    PVFS_SAFE_FREE_MEMORY(pCcb->pszFilename);
+    PVFS_FREE(&pCcb->pszFilename);
     pCcb->pszFilename = pszNewPathname;
     pszNewPathname = NULL;
 
@@ -209,7 +211,9 @@ PvfsSetFileRenameInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pszNewPathname);
+    RTL_FREE(&pszNewPathname);
+    RTL_FREE(&pszNewFileDirname);
+    RTL_FREE(&pszNewFileBasename);
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
