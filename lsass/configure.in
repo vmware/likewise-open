@@ -6,6 +6,7 @@ AC_INIT(lsass, 5.0.0, support@likewisesoftware.com)
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([include/config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 AM_CPPFLAGS=""
 AM_CFLAGS=""
@@ -607,15 +608,10 @@ AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_MKDIR_P
 
-AC_CHECK_PROG([DOXYGEN], [doxygen], [doxygen], [false])
-if test x"$DOXYGEN" != x"false"
-then
-	HAVE_DOXYGEN=true
-else
-	HAVE_DOXYGEN=false
-fi
-
+LW_USE_DOXYGEN([1.5.3])
+AC_SUBST([DOXYGEN],[$DOXYGEN])
 AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
+AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
 AC_CHECK_LIB([nsl], [gethostname], [NSL_LIBS="-lnsl"])
 AC_CHECK_LIB([dl], [dlopen], [DL_LIBS="-ldl"])
