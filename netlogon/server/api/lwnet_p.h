@@ -121,11 +121,21 @@ LWNetSrvPingCLdapArray(
     OUT PLWNET_DC_INFO* ppDcInfo
     );
 
+VOID
+LWNetFilterFromBlackList(
+    IN DWORD dwBlackListCount,
+    IN PSTR* ppszAddressBlackList,
+    IN OUT PDWORD pdwServerCount,
+    IN OUT PDNS_SERVER_INFO pServerArray
+    );
+
 DWORD
 LWNetSrvGetDCNameDiscover(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
+    IN DWORD dwBlackListCount,
+    IN PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
     OUT OPTIONAL PDWORD pdwServerCount
