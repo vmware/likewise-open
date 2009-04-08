@@ -455,6 +455,8 @@ SMBGSSContextNegotiate(
 
     smb_display_status("gss_init_sec_context", dwMajorStatus, dwMinorStatus);
 
+    BAIL_ON_SEC_ERROR(dwMajorStatus);
+
     switch (dwMajorStatus)
     {
         case GSS_S_CONTINUE_NEEDED:
@@ -467,18 +469,6 @@ SMBGSSContextNegotiate(
 
             pContext->state = SMB_GSS_SEC_CONTEXT_STATE_COMPLETE;
 
-            break;
-
-        case GSS_S_FAILURE:
-            if (dwMinorStatus == (DWORD) KRB5KRB_AP_ERR_SKEW)
-            {
-                dwError = SMB_ERROR_CLOCK_SKEW;
-            }
-            else
-            {
-                dwError = SMB_ERROR_GSS;
-            }
-            BAIL_ON_SMB_ERROR(dwError);
             break;
 
         default:
@@ -509,6 +499,10 @@ cleanup:
     gss_release_buffer(&dwMinorStatus, &output_desc);
 
     return dwError;
+
+sec_error:
+
+    dwError = SMB_ERROR_GSS;
 
 error:
 
