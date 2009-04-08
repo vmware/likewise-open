@@ -1,6 +1,0 @@
-Code residing in the server directory is licensed under the GNU 
-General Public License version 2. See server/COPYING for details.
-
-Code residing in the ctlib and npclib directories is licensed 
-under the GNU Lesser General Public License version 2.1.  See 
-{npclib,ctlib}/COPYING for details.
