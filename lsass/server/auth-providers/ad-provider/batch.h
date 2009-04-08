@@ -84,5 +84,11 @@ LsaAdBatchEnumObjects(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
+DWORD
+LsaAdBatchGetDomainFromNT4Name(
+    OUT PSTR* ppszDomainName,
+    IN PCSTR pszNT4Name
+    );
+
 #endif /* __BATCH_H__ */
 

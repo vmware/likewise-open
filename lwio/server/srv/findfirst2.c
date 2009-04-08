@@ -635,30 +635,21 @@ SrvBuildSearchPath(
     }
 
     *ppwszFilesystemPath = pwszFilesystemPath;
+    pwszFilesystemPath = NULL;
+
     *ppwszSearchPattern = pwszSearchPattern2;
+    pwszSearchPattern2 = NULL;
 
 cleanup:
-
-    if (pwszSearchPattern3)
-    {
-        LwRtlMemoryFree(pwszSearchPattern3);
-    }
+    RTL_FREE(&pwszFilesystemPath);
+    RTL_FREE(&pwszSearchPattern2);
+    RTL_FREE(&pwszSearchPattern3);
 
     return ntStatus;
 
 error:
-
     *ppwszFilesystemPath = NULL;
     *ppwszSearchPattern = NULL;
-
-    if (pwszFilesystemPath)
-    {
-        LwRtlMemoryFree(pwszFilesystemPath);
-    }
-    if (pwszSearchPattern2)
-    {
-        LwRtlMemoryFree(pwszSearchPattern2);
-    }
 
     goto cleanup;
 }

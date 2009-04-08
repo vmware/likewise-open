@@ -147,3 +147,85 @@ lwmsg_time_normalize(
         time->seconds += 1;
     }
 }
+
+LWMsgBool
+lwmsg_time_is_positive(
+    LWMsgTime* time
+    )
+{
+    return (time->seconds >= 0 && time->microseconds >= 0);
+}
+
+void
+lwmsg_clock_init(
+    LWMsgClock* clock
+    )
+{
+    memset(clock, 0, sizeof(*clock));
+}
+
+static
+LWMsgStatus
+lwmsg_clock_update(
+    LWMsgClock* clock
+    )
+{
+    LWMsgTime now, diff;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+
+    BAIL_ON_ERROR(status = lwmsg_time_now(&now));
+
+    if (clock->last_time.seconds == 0 &&
+        clock->last_time.microseconds == 0)
+    {
+        clock->adjust.seconds = -now.seconds;
+        clock->adjust.microseconds = -now.microseconds;
+    }
+    else if (lwmsg_time_compare(&now, &clock->last_time) <= LWMSG_TIME_EQUAL)
+    {
+        lwmsg_time_difference(&now, &clock->last_time, &diff);
+        diff.microseconds++;
+        lwmsg_time_sum(&clock->adjust, &diff, &clock->adjust);
+    }
+
+    clock->last_time = now;
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_clock_get_wall_time(
+    LWMsgClock* clock,
+    LWMsgTime* time
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_clock_update(clock));
+
+    *time = clock->last_time;
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_clock_get_monotonic_time(
+    LWMsgClock* clock,
+    LWMsgTime* time
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_clock_update(clock));
+
+    lwmsg_time_sum(&clock->last_time, &clock->adjust, time);
+
+error:
+
+    return status;
+}

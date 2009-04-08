@@ -65,7 +65,14 @@ int IsDceRpcConnError(uint32 v)
     /* check if returned exception code is one of
        connection related exceptions */
     conn_error = (v == rpc_s_connection_closed ||
-                  v == rpc_s_connect_timed_out);
+                  v == rpc_s_connect_timed_out ||
+                  /* Invalid credentials is listed as a connection error
+                   * because it may be specific to a given domain controller.
+                   * That is, reconnecting to a different DC with the same
+                   * credentials may work. */
+                  v == rpc_s_invalid_credentials ||
+                  v == rpc_s_auth_skew ||
+                  v == rpc_s_cannot_connect);
     return conn_error;
 }
 

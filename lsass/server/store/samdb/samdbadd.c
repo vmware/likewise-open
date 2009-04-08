@@ -129,6 +129,18 @@ SamDbAddGenerateDomain(
 
 static
 DWORD
+SamDbAddGeneratePrimaryGroup(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    );
+
+static
+DWORD
 SamDbAddConvertUnicodeAttrValues(
     PATTRIBUTE_VALUE  pSrcValues,
     DWORD             dwSrcNumValues,
@@ -177,6 +189,10 @@ static SAMDB_ADD_VALUE_GENERATOR gSamDbValueGenerators[] =
     {
         SAM_DB_COL_DOMAIN,
         &SamDbAddGenerateDomain
+    },
+    {
+        SAM_DB_COL_PRIMARY_GROUP,
+        &SamDbAddGeneratePrimaryGroup
     }
 };
 
@@ -757,7 +773,7 @@ SamDbAddGenerateUID(
 
     dwError = SamDbGetNextAvailableUID(
                     pDirectoryContext,
-                    &pAttrValue->ulValue);
+                    &pAttrValue->data.ulValue);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppAttrValues = pAttrValue;
@@ -804,7 +820,7 @@ SamDbAddGenerateGID(
 
     dwError = SamDbGetNextAvailableGID(
                     pDirectoryContext,
-                    &pAttrValue->ulValue);
+                    &pAttrValue->data.ulValue);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppAttrValues = pAttrValue;
@@ -869,7 +885,7 @@ SamDbAddGenerateObjectSID(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(
-                    &pAttrValue->pszStringValue,
+                    &pAttrValue->data.pszStringValue,
                     "%s-%u",
                     pszDomainSID,
                     dwRID);
@@ -923,7 +939,7 @@ SamDbAddGenerateParentDN(
     {
         dwError = LsaWc16sToMbs(
                         pwszParentDN,
-                        &pAttrValue->pszStringValue);
+                        &pAttrValue->data.pszStringValue);
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -973,7 +989,7 @@ SamDbAddGenerateDN(
     {
         dwError = LsaWc16sToMbs(
                         pwszDN,
-                        &pAttrValue->pszStringValue);
+                        &pAttrValue->data.pszStringValue);
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -1023,11 +1039,54 @@ SamDbAddGenerateDomain(
     {
         dwError = LsaWc16sToMbs(
                         pwszDomainName,
-                        &pAttrValue->pszStringValue);
+                        &pAttrValue->data.pszStringValue);
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
     *ppAttrValues  = pAttrValue;
+    *pdwNumValues = 1;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
+
+    if (pAttrValue)
+    {
+        DirectoryFreeAttributeValues(pAttrValue, 1);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddGeneratePrimaryGroup(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    )
+{
+    DWORD dwError = 0;
+    PATTRIBUTE_VALUE pAttrValue = NULL;
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(ATTRIBUTE_VALUE),
+                    (PVOID*)&pAttrValue);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    pAttrValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    pAttrValue->data.ulValue = DOMAIN_GROUP_RID_USERS;
+
+    *ppAttrValues = pAttrValue;
     *pdwNumValues = 1;
 
 cleanup:
@@ -1081,8 +1140,8 @@ SamDbAddConvertUnicodeAttrValues(
             case DIRECTORY_ATTR_TYPE_ANSI_STRING:
 
                 dwError = DirectoryAllocateString(
-                                pSrcValue->pszStringValue,
-                                &pTgtValue->pszStringValue);
+                                pSrcValue->data.pszStringValue,
+                                &pTgtValue->data.pszStringValue);
                 BAIL_ON_SAMDB_ERROR(dwError);
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
@@ -1092,8 +1151,8 @@ SamDbAddConvertUnicodeAttrValues(
             case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
 
                 dwError = LsaWc16sToMbs(
-                                pSrcValue->pwszStringValue,
-                                &pTgtValue->pszStringValue);
+                                pSrcValue->data.pwszStringValue,
+                                &pTgtValue->data.pszStringValue);
                 BAIL_ON_SAMDB_ERROR(dwError);
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
@@ -1105,7 +1164,7 @@ SamDbAddConvertUnicodeAttrValues(
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
 
-                pTgtValue->ulValue = pSrcValue->ulValue;
+                pTgtValue->data.ulValue = pSrcValue->data.ulValue;
 
                 break;
 
@@ -1113,7 +1172,7 @@ SamDbAddConvertUnicodeAttrValues(
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_BOOLEAN;
 
-                pTgtValue->ulValue = pSrcValue->ulValue;
+                pTgtValue->data.ulValue = pSrcValue->data.ulValue;
 
                 break;
 
@@ -1121,7 +1180,7 @@ SamDbAddConvertUnicodeAttrValues(
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
 
-                pTgtValue->llValue = pSrcValue->llValue;
+                pTgtValue->data.llValue = pSrcValue->data.llValue;
 
                 break;
 
@@ -1129,21 +1188,21 @@ SamDbAddConvertUnicodeAttrValues(
 
                 dwError = DirectoryAllocateMemory(
                             sizeof(OCTET_STRING),
-                            (PVOID*)&pTgtValue->pOctetString);
+                            (PVOID*)&pTgtValue->data.pOctetString);
                 BAIL_ON_SAMDB_ERROR(dwError);
 
-                if (pSrcValue->pOctetString->ulNumBytes)
+                if (pSrcValue->data.pOctetString->ulNumBytes)
                 {
                     dwError = DirectoryAllocateMemory(
-                                    pSrcValue->pOctetString->ulNumBytes,
-                                    (PVOID*)&pTgtValue->pOctetString->pBytes);
+                                    pSrcValue->data.pOctetString->ulNumBytes,
+                                    (PVOID*)&pTgtValue->data.pOctetString->pBytes);
                     BAIL_ON_SAMDB_ERROR(dwError);
 
-                    pTgtValue->pOctetString->ulNumBytes = pSrcValue->pOctetString->ulNumBytes;
+                    pTgtValue->data.pOctetString->ulNumBytes = pSrcValue->data.pOctetString->ulNumBytes;
 
-                    memcpy( pTgtValue->pOctetString->pBytes,
-                            pSrcValue->pOctetString->pBytes,
-                            pSrcValue->pOctetString->ulNumBytes);
+                    memcpy( pTgtValue->data.pOctetString->pBytes,
+                            pSrcValue->data.pOctetString->pBytes,
+                            pSrcValue->data.pOctetString->ulNumBytes);
                 }
 
                 break;
@@ -1214,12 +1273,12 @@ SamDbAddBindValues(
 
                 if (pIter->pAttrValues)
                 {
-                    pszValue = pIter->pAttrValues[0].pszStringValue;
+                    pszValue = pIter->pAttrValues[0].data.pszStringValue;
                 }
                 else
                 if (pIter->pDirMod)
                 {
-                    pszValue = pIter->pDirMod->pAttrValues[0].pszStringValue;
+                    pszValue = pIter->pDirMod->pAttrValues[0].data.pszStringValue;
                 }
 
                 if (pszValue)
@@ -1249,7 +1308,7 @@ SamDbAddBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pAttrValues[0].ulValue);
+                                    pIter->pAttrValues[0].data.ulValue);
                 }
                 else
                 if (pIter->pDirMod)
@@ -1257,7 +1316,7 @@ SamDbAddBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pDirMod->pAttrValues[0].ulValue);
+                                    pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
                 BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -1270,7 +1329,7 @@ SamDbAddBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pAttrValues[0].llValue);
+                                    pIter->pAttrValues[0].data.llValue);
                 }
                 else
                 if (pIter->pDirMod)
@@ -1278,7 +1337,7 @@ SamDbAddBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pDirMod->pAttrValues[0].llValue);
+                                    pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
                 BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -1290,12 +1349,12 @@ SamDbAddBindValues(
 
                 if (pIter->pAttrValues)
                 {
-                    pOctetString = pIter->pAttrValues[0].pOctetString;
+                    pOctetString = pIter->pAttrValues[0].data.pOctetString;
                 }
                 else
                 if (pIter->pDirMod)
                 {
-                    pOctetString = pIter->pDirMod->pAttrValues[0].pOctetString;
+                    pOctetString = pIter->pDirMod->pAttrValues[0].data.pOctetString;
                 }
 
                 if (pOctetString)
@@ -1405,7 +1464,7 @@ SamDbFindDomainSID(
     }
 
     dwError = LsaWc16sToMbs(
-                    pDirEntries[0].pAttributes[0].pValues[0].pwszStringValue,
+                    pDirEntries[0].pAttributes[0].pValues[0].data.pwszStringValue,
                     &pszDomainSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 

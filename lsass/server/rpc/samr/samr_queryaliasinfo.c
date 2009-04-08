@@ -79,13 +79,14 @@ SamrSrvQueryAliasInfo(
     /* [out] */ AliasInfo **info
     )
 {
-    CHAR szFilterFmt[] = "(&(objectclass=group)(gid=%d))";
+    wchar_t wszFilterFmt[] = L"%ws='%ws'";
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PACCOUNT_CONTEXT pAccCtx = NULL;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
+    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
@@ -94,25 +95,29 @@ SamrSrvQueryAliasInfo(
     DWORD dwEntriesNum = 0;
     AliasInfo *pAliasInfo = NULL;
 
-    pAccCtx = (PACCOUNT_CONTEXT)hAlias;
+    pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
-    if (pAccCtx == NULL || pAccCtx->Type == SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
         status = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    pDomCtx  = pAccCtx->pDomCtx;
+    pDomCtx  = pAcctCtx->pDomCtx;
     pConnCtx = pDomCtx->pConnCtx;
 
     pwszBase = pDomCtx->pwszDn;
 
-    dwFilterLen = sizeof(szFilterFmt) + 10;
+    dwFilterLen = ((sizeof(wszAttrDn)/sizeof(WCHAR)) - 1) +
+                  wc16slen(pAcctCtx->pwszDn) +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
                                    dwFilterLen * sizeof(WCHAR),
-                                   NULL);
+                                   pAcctCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    sw16printf(pwszFilter, szFilterFmt, pAccCtx->dwRid);
+    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                wszAttrDn, pAcctCtx->pwszDn);
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
@@ -135,7 +140,7 @@ SamrSrvQueryAliasInfo(
 
     status = SamrSrvAllocateMemory((void**)&pAliasInfo,
                                    sizeof(*pAliasInfo),
-                                   pAccCtx);
+                                   pAcctCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -164,6 +169,10 @@ cleanup:
         SamrSrvFreeMemory(pwszFilter);
     }
 
+    if (pEntry) {
+        DirectoryFreeEntries(pEntry, dwEntriesNum);
+    }
+
     return status;
 
 error:
@@ -183,36 +192,38 @@ SamrFillAliasInfo1(
     AliasInfo *pInfo
     )
 {
-    WCHAR wszEmptyString[] = { (WCHAR)'\0' };
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
     AliasInfoAll *pInfoAll = NULL;
+    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     PWSTR pwszName = NULL;
+    PWSTR pwszDescription = NULL;
 
     pInfoAll = &(pInfo->all);
 
     /* name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_GROUP_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = InitUnicodeString(&pInfoAll->name, pwszName);
+    status = SamrSrvInitUnicodeString(&pInfoAll->name, pwszName, pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrSrvAddDepMemory(pInfoAll->name.string, pInfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
 
     /* num_members */
     pInfoAll->num_members = 0;
 
     /* description */
-    status = InitUnicodeString(&pInfoAll->description, wszEmptyString);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrDescription,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszDescription);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAddDepMemory(pInfoAll->description.string, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfoAll->description, pwszDescription,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -233,19 +244,17 @@ SamrFillAliasInfo2(
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = 0;
+    WCHAR wszAttrSamrAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     PWSTR pwszName = NULL;
 
     /* name */
-    dwError = DirectoryGetEntryAttrValueByNameA(pEntry,
-                                                DIRECTORY_ATTR_TAG_GROUP_NAME,
-                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                                &pwszName);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrSamrAccountName,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = InitUnicodeString(&pInfo->name, pwszName);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrSrvAddDepMemory(pInfo->name.string, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo->name, pwszName, pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -265,12 +274,19 @@ SamrFillAliasInfo3(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
+    PWSTR pwszDescription = NULL;
 
     /* name */
-    status = InitUnicodeString(&pInfo->description, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    dwError = DirectoryGetEntryAttrValueByName(pEntry,
+                                               wszAttrDescription,
+                                               DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                               &pwszDescription);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAddDepMemory(pInfo->description.string, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo->description, pwszDescription,
+                                      pInfo);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

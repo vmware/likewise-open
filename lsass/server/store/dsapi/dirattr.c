@@ -107,18 +107,29 @@ DirectoryFreeAttributeValues(
         {
             case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
 
-                if (pAttrValue->pwszStringValue)
+                if (pAttrValue->data.pwszStringValue)
                 {
-                    DirectoryFreeMemory(pAttrValue->pwszStringValue);
+                    DirectoryFreeMemory(pAttrValue->data.pwszStringValue);
                 }
 
                 break;
 
             case DIRECTORY_ATTR_TYPE_ANSI_STRING:
 
-                if (pAttrValue->pszStringValue)
+                if (pAttrValue->data.pszStringValue)
                 {
-                    DirectoryFreeMemory(pAttrValue->pszStringValue);
+                    DirectoryFreeMemory(pAttrValue->data.pszStringValue);
+                }
+
+                break;
+
+            case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+
+                if (pAttrValue->data.pOctetString)
+                {
+                    DIRECTORY_FREE_MEMORY(pAttrValue->data.pOctetString->pBytes);
+
+                    DirectoryFreeMemory(pAttrValue->data.pOctetString);
                 }
 
                 break;
@@ -290,32 +301,36 @@ DirectoryGetEntryAttrValueByName(
                                          &pAttrVal);
     BAIL_ON_DIRECTORY_ERROR(dwError);
 
+    if (!pAttrVal) {
+        goto cleanup;
+    }
+
     bTypeIsCorrect = (pAttrVal->Type == AttrType);
 
     switch (pAttrVal->Type) {
     case DIRECTORY_ATTR_TYPE_BOOLEAN:
         pbValue = (BOOLEAN*)pValue;
-        *pbValue = (bTypeIsCorrect) ? pAttrVal->bBooleanValue : FALSE;
+        *pbValue = (bTypeIsCorrect) ? pAttrVal->data.bBooleanValue : FALSE;
         break;
 
     case DIRECTORY_ATTR_TYPE_INTEGER:
         pulValue = (ULONG*)pValue;
-        *pulValue = (bTypeIsCorrect) ? pAttrVal->ulValue : 0;
+        *pulValue = (bTypeIsCorrect) ? pAttrVal->data.ulValue : 0;
         break;
 
     case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:
         pllValue = (LONG64*)pValue;
-        *pllValue = (bTypeIsCorrect) ? pAttrVal->llValue : 0;
+        *pllValue = (bTypeIsCorrect) ? pAttrVal->data.llValue : 0;
         break;
 
     case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
         ppwszValue = (PWSTR*)pValue;
-        *ppwszValue = (bTypeIsCorrect) ? pAttrVal->pwszStringValue : NULL;
+        *ppwszValue = (bTypeIsCorrect) ? pAttrVal->data.pwszStringValue : NULL;
         break;
 
     case DIRECTORY_ATTR_TYPE_ANSI_STRING:
         ppszValue = (PSTR*)pValue;
-        *ppszValue = (bTypeIsCorrect) ? pAttrVal->pszStringValue : NULL;
+        *ppszValue = (bTypeIsCorrect) ? pAttrVal->data.pszStringValue : NULL;
         break;
 
     default:

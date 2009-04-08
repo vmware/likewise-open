@@ -172,21 +172,21 @@ SamrSrvOpenAccount(
             if (!wc16scmp(pAttr->pwszName, wszAttrSamAccountName) &&
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-                dwNameLen = wc16slen(pAttrVal->pwszStringValue);
+                dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
 
                 status = SamrSrvAllocateMemory((void**)&pwszName,
                                                (dwNameLen + 1) * sizeof(WCHAR),
                                                pAcctCtx);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
-                wc16sncpy(pwszName, pAttrVal->pwszStringValue, dwNameLen);
+                wc16sncpy(pwszName, pAttrVal->data.pwszStringValue, dwNameLen);
 
 
             } else if (!wc16scmp(pAttr->pwszName, wszAttrObjectSid) &&
                        pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 status = SamrSrvAllocateSidFromWC16String(&pSid,
-                                                          pAttrVal->pwszStringValue,
+                                                          pAttrVal->data.pwszStringValue,
                                                           pAcctCtx);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
@@ -200,14 +200,14 @@ SamrSrvOpenAccount(
             } else if (!wc16scmp(pAttr->pwszName, wszAttrDn) &&
                        pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-                dwDnLen = wc16slen(pAttrVal->pwszStringValue);
+                dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
 
                 status = SamrSrvAllocateMemory((void**)&pwszAccountDn,
                                                (dwDnLen + 1) * sizeof(WCHAR),
                                                pAcctCtx);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
-                wc16sncpy(pwszAccountDn, pAttrVal->pwszStringValue, dwDnLen);
+                wc16sncpy(pwszAccountDn, pAttrVal->data.pwszStringValue, dwDnLen);
             }
         }
 
@@ -226,6 +226,7 @@ SamrSrvOpenAccount(
     pAcctCtx->pwszName      = pwszName;
     pAcctCtx->pSid          = pSid;
     pAcctCtx->dwRid         = dwRid;
+    pAcctCtx->pDomCtx       = pDomCtx;
 
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
@@ -244,10 +245,6 @@ cleanup:
 
     if (pwszAccountSid) {
         RTL_FREE(&pwszAccountSid);
-    }
-
-    if (pwszAccountDn) {
-        SamrSrvFreeMemory(pwszAccountDn);
     }
 
     if (pEntries) {

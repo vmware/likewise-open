@@ -42,6 +42,7 @@
 #include <lwmsg/protocol.h>
 #include <lwmsg/time.h>
 #include <lwmsg/assoc.h>
+#include <lwmsg/dispatch.h>
 
 /**
  * @file server.h
@@ -65,6 +66,37 @@
  *
  */
 
+#ifndef DOXYGEN
+typedef enum LWMsgDispatchType
+{
+    LWMSG_DISPATCH_TYPE_END,
+    LWMSG_DISPATCH_TYPE_OLD,
+    LWMSG_DISPATCH_TYPE_SYNC,
+    LWMSG_DISPATCH_TYPE_ASYNC
+} LWMsgDispatchType;
+#endif
+
+typedef
+LWMsgStatus
+(*LWMsgServerDispatchFunction) (
+    LWMsgDispatchHandle* handle,
+    LWMsgMessage* request,
+    LWMsgMessage* response,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_server_dispatch_get_security_token(
+    LWMsgDispatchHandle* handle,
+    LWMsgSecurityToken** token
+    );
+
+LWMsgStatus
+lwmsg_server_dispatch_get_session_data(
+    LWMsgDispatchHandle* handle,
+    void** session_data
+    );
+
 /**
  * @ingroup server
  * @brief Dispatch specification
@@ -77,23 +109,32 @@
 typedef struct LWMsgDispatchSpec
 #ifndef DOXYGEN
 {
+    LWMsgDispatchType type;
     LWMsgMessageTag tag;
-    LWMsgDispatchFunction func;
+    void* data;
 }
 #endif
 const LWMsgDispatchSpec;
 
 /**
  * @ingroup server
- * @brief Define message handle in a dispatch table
+ * @brief Define message handle in a dispatch table <b>(DEPRECATED)</b>
  *
  * This macro is used in dispatch table construction to
  * define the handler for a particular message type.
  * @param _type the message type
  * @param _func the callback to handle the specified message type
  * @hideinitializer
+ * @deprecated use LWMSG_DISPATCH_SYNC() or LWMSG_DISPATCH_ASYNC() instead
  */
-#define LWMSG_DISPATCH(_type, _func) {(_type), (_func)}
+#define LWMSG_DISPATCH(_tag, _func) \
+    {LWMSG_DISPATCH_TYPE_OLD, (_tag), (void*) (LWMsgAssocDispatchFunction) (_func)}
+
+#define LWMSG_DISPATCH_SYNC(_tag, _func) \
+    {LWMSG_DISPATCH_TYPE_SYNC, _tag, (void*) (LWMsgServerDispatchFunction) (_func)}
+
+#define LWMSG_DISPATCH_ASYNC(_tag, _func) \
+    {LWMSG_DISPATCH_TYPE_ASYNC, _tag, (void*) (LWMsgServerDispatchFunction) (_func)}
 
 /**
  * @ingroup server
@@ -103,7 +144,7 @@ const LWMsgDispatchSpec;
  * mark the end of the table
  * @hideinitializer
  */
-#define LWMSG_DISPATCH_END {0, NULL}
+#define LWMSG_DISPATCH_END {LWMSG_DISPATCH_TYPE_END, -1, NULL}
 
 
 /**
@@ -129,37 +170,6 @@ typedef enum LWMsgServerMode
     /** Server should support remote connectiosn (listen on a TCP socket) */
     LWMSG_SERVER_MODE_REMOTE
 } LWMsgServerMode;
-
-/**
- * @ingroup server
- * @brief Connection callback
- *
- * A function which is invoked whenever a new connection is
- * established with a client.  Use #lwmsg_server_set_connect_callback()
- * to register one with a server. There is no guarantee as to which server
- * thread the callback will be invoked in. It is guaranteed that no other
- * server thread will attempt to use the association until the callback
- * returns.  Returning a status code other than #LWMSG_STATUS_SUCCESS will
- * cause the connection to be rejected.
- *
- * @warning This function must leave the association in a usable state --
- * #lwmsg_assoc_get_state() should return #LWMSG_ASSOC_STATE_READY_RECV
- * or #LWMSG_ASSOC_STATE_READY_SEND_RECV.
- *
- * @param server the server object
- * @param assoc the association with the client
- * @param data the user data pointer set with #lwmsg_server_set_user_data()
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{a status code indicating the reason for rejection}
- * (e.g. #LWMSG_STATUS_SECURITY)
- */
-typedef LWMsgStatus
-(*LWMsgServerConnectFunction) (
-    LWMsgServer* server,
-    LWMsgAssoc* assoc,
-    void* data
-    );
 
 /**
  * @ingroup server
@@ -265,6 +275,26 @@ lwmsg_server_set_max_dispatch(
 
 /**
  * @ingroup server
+ * @brief Set maximum number of simultaneous IO operations
+ *
+ * Sets the maximum numbers of simultaneous IO operations which will be
+ * performed.
+ *
+ * @param server the server object
+ * @param max_io the maximum number of simultaneous IO operations
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_server_set_max_io(
+    LWMsgServer* server,
+    unsigned int max_io
+    );
+
+/**
+ * @ingroup server
  * @brief Set maximum number of backlogged connections
  *
  * Sets the maximum numbers of pending connections which the server will keep
@@ -355,16 +385,19 @@ lwmsg_server_set_endpoint(
     mode_t      permissions
     );
 
+LWMsgStatus
+lwmsg_server_set_session_functions(
+    LWMsgServer* server,
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* data
+    );
+
 /**
  * @ingroup server
- * @brief Set user data pointer
+ * @brief Set dispatch data pointer
  *
- * Sets the user data pointer which is passed to various callback
- * functions invoked by the server, such as:
- *
- * - Message dispatch functions
- * - Connect callback
- *
+ * Sets the user data pointer which is passed to dispatch functions.
  * This function may only be used while the server is stopped.
  *
  * @param server the server object
@@ -375,71 +408,24 @@ lwmsg_server_set_endpoint(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_server_set_user_data(
+lwmsg_server_set_dispatch_data(
     LWMsgServer* server,
     void* data
     );
 
 /**
  * @ingroup server
- * @brief Get user data pointer
+ * @brief Get dispatch data pointer
  *
- * Gets the user data pointer which is passed to various callback
- * functions invoked by the server.  If no pointer was explicitly
- * set, the value defaults to NULL.
- *
+ * Gets the user data pointer which is passed to dispatch functions.
+ * If no pointer was explicitly set, the value defaults to NULL.
  *
  * @param server the server object
  * @return the data pointer
  */
 void*
-lwmsg_server_get_user_data(
+lwmsg_server_get_dispatch_data(
     LWMsgServer* server
-    );
-
-/**
- * @ingroup server
- * @brief Set connection callback
- *
- * Sets a function which will be invoked whenever a new connection
- * is created.
- *
- * This function may only be used while the server is stopped.
- *
- * @param server the server object
- * @param func the callback function
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already running}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_set_connect_callback(
-    LWMsgServer* server,
-    LWMsgServerConnectFunction func
-    );
-
-/**
- * @ingroup server
- * @brief Set session callback
- *
- * Sets a function which will be invoked whenever a new connection
- * is created which begins a new session.  This is in addition
- * to any function registered by #lwmsg_server_set_connect_callback()
- *
- * This function may only be used while the server is stopped.
- *
- * @param server the server object
- * @param func the callback function
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the server is already running}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_server_set_session_callback(
-    LWMsgServer* server,
-    LWMsgServerConnectFunction func
     );
 
 /**

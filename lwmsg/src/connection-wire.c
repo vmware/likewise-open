@@ -41,6 +41,8 @@
 #include "util-private.h"
 #include "convert.h"
 #include "xnet-private.h"
+#include <lwmsg/marshal.h>
+#include <lwmsg/unmarshal.h>
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -79,7 +81,6 @@ lwmsg_connection_packet_ntoh(ConnectionPacket* packet)
     switch (packet->type)
     {
     case CONNECTION_PACKET_MESSAGE:
-    case CONNECTION_PACKET_REPLY:
         packet->contents.msg.type = lwmsg_convert_uint16(packet->contents.msg.type, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
         break;
     case CONNECTION_PACKET_GREETING:
@@ -88,93 +89,32 @@ lwmsg_connection_packet_ntoh(ConnectionPacket* packet)
             LWMSG_BIG_ENDIAN,
             LWMSG_NATIVE_ENDIAN);
         break;
+    case CONNECTION_PACKET_SHUTDOWN:
+        packet->contents.shutdown.status = lwmsg_convert_uint32(
+            packet->contents.shutdown.status,
+            LWMSG_BIG_ENDIAN,
+            LWMSG_NATIVE_ENDIAN);
+        break;
     }
 }
 
 static
-LWMsgStatus
-lwmsg_connection_packet_verify_syntax(
-    LWMsgAssoc* assoc,
+uint32_t
+lwmsg_connection_packet_length(
     ConnectionPacket* packet
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    size_t length = lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
-
-    switch ((ConnectionPacketType) packet->type)
-    {
-    case CONNECTION_PACKET_MESSAGE:
-    case CONNECTION_PACKET_REPLY:
-        if (length < CONNECTION_PACKET_SIZE(ConnectionPacketMsg))
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Truncated message or reply packet");
-        }
-        break;
-    case CONNECTION_PACKET_GREETING:
-        if (length != CONNECTION_PACKET_SIZE(ConnectionPacketGreeting))
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Invalid greeting packet");
-        }
-        break;
-    case CONNECTION_PACKET_SHUTDOWN:
-        if (length != CONNECTION_PACKET_SIZE(ConnectionPacketShutdown))
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Invalid shutdown packet");
-        }
-        if (packet->contents.shutdown.type > CONNECTION_SHUTDOWN_ABORT)
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Invalid shutdown type in shutdown packet");
-        }
-        if (packet->contents.shutdown.reason > CONNECTION_SHUTDOWN_MALFORMED)
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Invalid shutdown reason in shutdown packet");
-        }
-        break;
-    case CONNECTION_PACKET_FRAGMENT:
-        if (length < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                              "Truncated fragment packet");
-        }
-        break;
-    default:
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED,
-                          "Unrecognized packet type");
-        break;
-    }
-
-error:
-
-    return status;
+    return lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
 }
 
+static
 LWMsgBool
-lwmsg_connection_packet_is_urgent(
-    ConnectionPacket* packet
+lwmsg_connection_fragment_is_complete(
+    ConnectionFragment* fragment
     )
 {
-    switch (packet->type)
-    {
-    case CONNECTION_PACKET_SHUTDOWN:
-        return LWMSG_TRUE;
-    default:
-        return LWMSG_FALSE;
-    }
-}
-
-static LWMsgBool
-lwmsg_connection_urgent_packet_pending(
-    ConnectionBuffer* buffer
-    )
-{
-    return 
-        buffer->base_length >= CONNECTION_PACKET_SIZE(ConnectionPacketBase) &&
-        lwmsg_connection_packet_is_urgent((ConnectionPacket*) buffer->base);
+    return !((fragment->cursor - fragment->data) < CONNECTION_PACKET_SIZE(ConnectionPacketBase) ||
+             (fragment->cursor - fragment->data) < lwmsg_connection_packet_length((ConnectionPacket*)fragment->data));
 }
 
 static LWMsgStatus
@@ -220,92 +160,77 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_recvbuffer(LWMsgAssoc* assoc)
+lwmsg_connection_recv_fragment(
+    LWMsgAssoc* assoc,
+    ConnectionFragment* fragment
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     ConnectionBuffer* buffer = &priv->recvbuffer;
-    struct msghdr msghdr = {0};
-    struct iovec iovec = {0};
-    union
+    size_t length = 0;
+
+    /* While we do not have an entire packet, repeat */
+    while (!lwmsg_connection_fragment_is_complete(fragment))
     {
-        struct cmsghdr cm;
-        char buf[CMSG_SPACE(sizeof(int) * MAX_FD_PAYLOAD)];
-    } buf_un;
-    struct cmsghdr *cmsg = NULL;
-    size_t received = 0;
-
-    iovec.iov_base = buffer->base + buffer->base_length;
-    iovec.iov_len = buffer->base_capacity - buffer->base_length;
-    
-    msghdr.msg_iov = &iovec;
-    msghdr.msg_iovlen = 1;
-
-    msghdr.msg_control = buf_un.buf;
-    msghdr.msg_controllen = sizeof(buf_un.buf);
-
-    BAIL_ON_ERROR(status = lwmsg_connection_recvmsg(priv->fd, &msghdr, 0, &received));
-
-    buffer->base_length += received;
-
-    if (msghdr.msg_controllen > 0 &&
-        /* Work around bizarre behavior of X/Open recvmsg on HP-UX 11.11 */
-        msghdr.msg_controllen <= sizeof(buf_un.buf))
-    {
-        for (cmsg = CMSG_FIRSTHDR(&msghdr); cmsg; cmsg = CMSG_NXTHDR(&msghdr, cmsg))
+        struct msghdr msghdr = {0};
+        struct iovec iovec = {0};
+        union
         {
-            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            struct cmsghdr cm;
+            char buf[CMSG_SPACE(sizeof(int) * MAX_FD_PAYLOAD)];
+        } buf_un;
+        struct cmsghdr *cmsg = NULL;
+        size_t received = 0;
+
+        iovec.iov_base = fragment->cursor;
+
+        if ((fragment->cursor - fragment->data) < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
+        {
+            /* If we have not received a full packet header, ask for the remainder */
+            iovec.iov_len = CONNECTION_PACKET_SIZE(ConnectionPacketBase) - (fragment->cursor - fragment->data);
+        }
+        else
+        {
+            /* Otherwise, we know the length of the packet, so ask for the rest of it */
+            length = lwmsg_connection_packet_length((ConnectionPacket*)fragment->data);
+            if (length > priv->packet_size)
             {
-                size_t numfds = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(*cmsg))) / sizeof(int);
-                BAIL_ON_ERROR(status = lwmsg_connection_buffer_ensure_fd_capacity(buffer, numfds));
-                memcpy(buffer->fd + buffer->fd_length, CMSG_DATA(cmsg), numfds * sizeof(int));
-                buffer->fd_length += numfds;
+                BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            }
+
+            iovec.iov_len = length - (fragment->cursor - fragment->data);
+        }
+
+        msghdr.msg_iov = &iovec;
+        msghdr.msg_iovlen = 1;
+
+        msghdr.msg_control = buf_un.buf;
+        msghdr.msg_controllen = sizeof(buf_un.buf);
+
+        BAIL_ON_ERROR(status = lwmsg_connection_recvmsg(priv->fd, &msghdr, 0, &received));
+        
+        fragment->cursor += received;
+
+        if (msghdr.msg_controllen > 0 &&
+            /* Work around bizarre behavior of X/Open recvmsg on HP-UX 11.11 */
+            msghdr.msg_controllen <= sizeof(buf_un.buf))
+        {
+            for (cmsg = CMSG_FIRSTHDR(&msghdr); cmsg; cmsg = CMSG_NXTHDR(&msghdr, cmsg))
+            {
+                if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+                {
+                    size_t numfds = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(*cmsg))) / sizeof(int);
+                    BAIL_ON_ERROR(status = lwmsg_connection_buffer_ensure_fd_capacity(buffer, numfds));
+                    memcpy(buffer->fd + buffer->fd_length, CMSG_DATA(cmsg), numfds * sizeof(int));
+                    buffer->fd_length += numfds;
+                }
             }
         }
     }
 
 error:
 
-    return status;
-}
-
-LWMsgStatus
-lwmsg_connection_discard_recv_packet(
-    LWMsgAssoc* assoc,
-    ConnectionPacket* packet
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionBuffer* buffer = &priv->recvbuffer;
-
-    if (buffer->base_length >= CONNECTION_PACKET_SIZE(ConnectionPacketBase))
-    {
-        size_t used = packet->length;
-        
-        memmove(buffer->base, buffer->base + used, buffer->base_length - used);
-        buffer->base_length -= used;
-    }
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_connection_discard_send_packet(
-    LWMsgAssoc* assoc,
-    ConnectionPacket* packet
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionBuffer* buffer = &priv->sendbuffer;
-
-    if (buffer->base_length >= CONNECTION_PACKET_SIZE(ConnectionPacketBase))
-    {
-        buffer->cursor = buffer->base;
-        buffer->base_length = 0;
-    }
-    
     return status;
 }
 
@@ -352,7 +277,10 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_sendbuffer(LWMsgAssoc* assoc)
+lwmsg_connection_send_fragment(
+    LWMsgAssoc* assoc,
+    ConnectionFragment* fragment
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
@@ -374,8 +302,10 @@ lwmsg_connection_sendbuffer(LWMsgAssoc* assoc)
         fds_to_send = MAX_FD_PAYLOAD;
     }
 
-    iovec.iov_base = buffer->cursor;
-    iovec.iov_len = buffer->base_length - (buffer->cursor - buffer->base);
+    iovec.iov_base = fragment->cursor;
+    iovec.iov_len =
+        lwmsg_connection_packet_length((ConnectionPacket*) fragment->data)
+        - (fragment->cursor - fragment->data);
     
     msghdr.msg_iov = &iovec;
     msghdr.msg_iovlen = 1;
@@ -395,7 +325,7 @@ lwmsg_connection_sendbuffer(LWMsgAssoc* assoc)
 
     BAIL_ON_ERROR(status = lwmsg_connection_sendmsg(priv->fd, &msghdr, 0, &sent));
 
-    buffer->cursor += sent;
+    fragment->cursor += sent;
 
     /* Close sent fds since they were copies */
     for (i = 0; i < fds_to_send; i++)
@@ -494,6 +424,61 @@ error:
 
 static
 LWMsgStatus
+lwmsg_connection_check_full_fragment(
+    LWMsgAssoc* assoc,
+    ConnectionFragment* fragment
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPacket* packet = (ConnectionPacket*) fragment->data;
+
+    switch (packet->type)
+    {
+    case CONNECTION_PACKET_SHUTDOWN:
+        status = lwmsg_convert_uint32(
+                    packet->contents.shutdown.status,
+                    LWMSG_BIG_ENDIAN,
+                    LWMSG_NATIVE_ENDIAN);
+
+        switch (status)
+        {
+        case LWMSG_STATUS_PEER_CLOSE:
+        case LWMSG_STATUS_PEER_ABORT:
+        case LWMSG_STATUS_PEER_RESET:
+            BAIL_ON_ERROR(status);
+            break;
+        default:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_PEER_ABORT);
+            break;
+        }
+        break;
+    case CONNECTION_PACKET_MESSAGE:
+        if (lwmsg_connection_packet_length(packet) < CONNECTION_PACKET_SIZE(ConnectionPacketMsg))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+        break;
+    case CONNECTION_PACKET_GREETING:
+        if (lwmsg_connection_packet_length(packet) != CONNECTION_PACKET_SIZE(ConnectionPacketGreeting))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+        break;
+    }
+
+error:
+
+    return status;
+}
+
+/*
+   Perform one round of sending and receiving:
+
+   - Attempt to send one fragment if any are pending
+   - Attempt to receive one fragment if data is available
+*/
+static
+LWMsgStatus
 lwmsg_connection_transceive(
     LWMsgAssoc* assoc
     )
@@ -502,102 +487,147 @@ lwmsg_connection_transceive(
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     ConnectionBuffer* sendbuffer = &priv->sendbuffer;
     ConnectionBuffer* recvbuffer = &priv->recvbuffer;
+    ConnectionFragment* fragment = NULL;
     int fd = priv->fd;
     fd_set readfds;
     fd_set writefds;
     int nfds = 0;
     int ret = 0;
     struct timeval timeout = {0, 0};
+    LWMsgBool do_recv = LWMSG_FALSE;
+    LWMsgBool do_send = LWMSG_FALSE;
+    LWMsgBool did_recv = LWMSG_FALSE;
+    LWMsgBool did_send = LWMSG_FALSE;
 
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
-    nfds = 0;
+    if (!priv->is_nonblock)
+    {
+        /* If we are in blocking mode, we first need to select() */
+        FD_ZERO(&readfds);
+        FD_ZERO(&writefds);
+        nfds = 0;
 
-    if (fd == -1)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_EOF);
-    }
-
-    if (sendbuffer->cursor < sendbuffer->base + sendbuffer->base_length)
-    {
-        FD_SET(fd, &writefds);
-        if (nfds < fd + 1)
+        /* Wait to write if we have any pending fragments in the send buffer */
+        if (sendbuffer->num_pending)
         {
-            nfds = fd + 1;
-        }
-    }
-    
-    if (recvbuffer->base_length < recvbuffer->base_capacity)
-    {
-        FD_SET(fd, &readfds);
-        if (nfds < fd + 1)
-        {
-            nfds = fd + 1;
-        }
-    }
-    
-    if (nfds)
-    {
-        if (priv->interrupt)
-        {
-            FD_SET(priv->interrupt->fd[0], &readfds);
-            if (nfds < priv->interrupt->fd[0] + 1)
+            FD_SET(fd, &writefds);
+            if (nfds < fd + 1)
             {
-                nfds = priv->interrupt->fd[0] + 1;
+                nfds = fd + 1;
             }
         }
 
-        BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
-
-        do
+        /* Wait to read if we have any incomplete fragments in the receive buffer */
+        if (recvbuffer->num_pending &&
+            !lwmsg_connection_fragment_is_complete(
+                lwmsg_connection_buffer_get_last_fragment(recvbuffer)))
         {
-            ret = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
-        } while (ret == -1 && errno == EINTR);
-
-        if (ret == -1)
-        {
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-        }
-        else if (ret > 0)
-        {
-            if (priv->interrupt && FD_ISSET(priv->interrupt->fd[0], &readfds))
+            FD_SET(fd, &readfds);
+            if (nfds < fd + 1)
             {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_INTERRUPT);
+                nfds = fd + 1;
             }
+        }
 
-            if (FD_ISSET(fd, &readfds))
+        if (nfds)
+        {
+            BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
+
+            do
             {
-                status = lwmsg_connection_recvbuffer(assoc);
-                if (status == LWMSG_STATUS_AGAIN)
+                ret = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
+            } while (ret == -1 && errno == EINTR);
+
+            if (ret == -1)
+            {
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+            }
+            else if (ret > 0)
+            {
+                if (FD_ISSET(fd, &readfds))
                 {
-                    /* Swallow STATUS_AGAIN errors since this function is
-                       not guaranteed to make progress on each call */
-                    status = LWMSG_STATUS_SUCCESS;
+                    do_recv = LWMSG_TRUE;
                 }
-                BAIL_ON_ERROR(status);
-            }
 
-            if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
-            {
-                goto error;
-            }
-
-            if (FD_ISSET(fd, &writefds))
-            {
-                status = lwmsg_connection_sendbuffer(assoc);
-                if (status == LWMSG_STATUS_AGAIN)
+                if (FD_ISSET(fd, &writefds))
                 {
-                    /* Swallow STATUS_AGAIN errors since this function is
-                       not guaranteed to make progress on each call */
-                    status = LWMSG_STATUS_SUCCESS;
+                    do_send = LWMSG_TRUE;
                 }
-                BAIL_ON_ERROR(status);
+            }
+            else
+            {
+                BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
             }
         }
-        else
+    }
+    else
+    {
+        /* We receive if we have an incomplete fragment in the recv buffer */
+        do_recv =
+            recvbuffer->num_pending > 0 &&
+            !lwmsg_connection_fragment_is_complete(
+                lwmsg_connection_buffer_get_last_fragment(recvbuffer));
+        /* We send if we have any fragments in the send buffer */
+        do_send = sendbuffer->num_pending > 0;
+    }
+
+    if (do_recv)
+    {
+        fragment = lwmsg_connection_buffer_get_last_fragment(recvbuffer);
+
+        status = lwmsg_connection_recv_fragment(assoc, fragment);
+
+        switch (status)
         {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_TIMEOUT);
+        case LWMSG_STATUS_AGAIN:
+            status = LWMSG_STATUS_SUCCESS;
+            break;
+        case LWMSG_STATUS_EOF:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_PEER_CLOSE);
+            break;
+        default:
+            BAIL_ON_ERROR(status);
+
+            did_recv = LWMSG_TRUE;
+
+            if (lwmsg_connection_fragment_is_complete(fragment))
+            {
+                BAIL_ON_ERROR(status = lwmsg_connection_check_full_fragment(assoc, fragment));
+            }
         }
+    }
+
+    if (do_send)
+    {
+        fragment = lwmsg_connection_buffer_get_first_fragment(sendbuffer);
+
+        status = lwmsg_connection_send_fragment(assoc, fragment);
+        switch (status)
+        {
+        case LWMSG_STATUS_AGAIN:
+            status = LWMSG_STATUS_SUCCESS;
+            break;
+        case LWMSG_STATUS_EOF:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_PEER_CLOSE);
+            break;
+        default:
+            BAIL_ON_ERROR(status);
+
+            did_send = LWMSG_TRUE;
+
+            /* We sucessfully sent the entire fragment, so remove it */
+            lwmsg_connection_buffer_dequeue_fragment(sendbuffer);
+            lwmsg_connection_buffer_free_fragment(sendbuffer, fragment);
+        }
+    }
+
+    if (priv->is_nonblock && (do_recv || do_send) && !(did_recv || did_send))
+    {
+        /* We are in non-blocking mode.
+           We wanted to do work.
+           We did not succeed in doing any.
+
+           This means that the current operation cannot complete and needs to be finished later */
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FINISHED);
     }
 
 error:
@@ -605,131 +635,518 @@ error:
     return status;
 }
 
+static
 LWMsgStatus
-lwmsg_connection_recv_packet(
+lwmsg_connection_recv_full_fragment(
     LWMsgAssoc* assoc,
-    ConnectionPacket** out_packet
+    ConnectionFragment** fragment
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     ConnectionBuffer* buffer = &priv->recvbuffer;
+    ConnectionFragment* frag = NULL;
     ConnectionPacket* packet = NULL;
-    size_t curlength = 0;
-    
-    /* If not enough data to decode a packet header is in the buffer, transceive until there is */
-    while (buffer->base_length < CONNECTION_PACKET_SIZE(ConnectionPacketBase))
+
+    if (buffer->num_pending == 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                          buffer,
+                          priv->packet_size,
+                          &frag));
+        lwmsg_connection_buffer_queue_fragment(buffer, frag);
+    }
+    else
+    {
+        frag = lwmsg_connection_buffer_get_first_fragment(buffer);
+    }
+
+    while (!lwmsg_connection_fragment_is_complete(frag))
     {
         BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
     }
 
-    packet = (ConnectionPacket*) buffer->base;
-    curlength = lwmsg_convert_uint32(packet->length, LWMSG_BIG_ENDIAN, LWMSG_NATIVE_ENDIAN);
-
-    /* Ensure the length of the packet is no greater than the negotiated size */
-    if (curlength > priv->packet_size)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
-    }
-
-    /* Transceive until we have the entire packet */
-    while (buffer->base_length < curlength)
-    {
-        BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_connection_packet_verify_syntax(assoc, packet));
+    packet = (ConnectionPacket*) frag->data;
 
     lwmsg_connection_packet_ntoh(packet);
 
-    *out_packet = packet;
+    lwmsg_connection_buffer_dequeue_fragment(buffer);
+
+    *fragment = frag;
 
 error:
 
     return status;
 }
 
-/* Invariants
- * - Only one packet is queued at a time
- * - The queue packet is always at the start of the buffer
- */
-LWMsgStatus
-lwmsg_connection_queue_packet(
-    LWMsgAssoc* assoc,
-    ConnectionPacketType type,
-    size_t size,
-    ConnectionPacket** out_packet
-    )
+static unsigned char*
+lwmsg_connection_packet_payload(ConnectionPacket* packet)
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv =  lwmsg_assoc_get_private(assoc);
-    ConnectionPacket* packet = (ConnectionPacket*) priv->sendbuffer.base;
-
-    if (size > priv->sendbuffer.base_capacity)
+    switch (packet->type)
     {
-        // Internal error
-        BAIL_ON_ERROR(status = LWMSG_STATUS_ERROR);
+    case CONNECTION_PACKET_MESSAGE:
+        return (unsigned char*) packet + CONNECTION_PACKET_SIZE(ConnectionPacketMsg);
     }
 
-    packet->type = type;
-    packet->length = size;
+    return NULL;
+}
 
-    *out_packet = packet;
+static void
+lwmsg_connection_load_fragment(
+    LWMsgBuffer* buffer,
+    ConnectionFragment* fragment,
+    size_t space
+    )
+{
+    ConnectionPacket* packet = (ConnectionPacket*) fragment->data;
+
+    buffer->base = (unsigned char*) fragment;
+    buffer->cursor = lwmsg_connection_packet_payload(packet);
+    buffer->end = fragment->data + space;
+}
+
+static LWMsgStatus
+lwmsg_connection_recv_wrap(LWMsgBuffer* buffer, size_t needed)
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = (ConnectionFragment*) buffer->base;
+    ConnectionPacket* packet = NULL;
+
+    buffer->base = NULL;
+
+    /* Discard packet */
+    lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, fragment);
+    fragment = NULL;
+
+    if (needed)
+    {
+        fragment = lwmsg_connection_buffer_get_first_fragment(&priv->recvbuffer);
+        if (!fragment)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+        lwmsg_connection_buffer_dequeue_fragment(&priv->recvbuffer);
+
+        packet = (ConnectionPacket*) fragment->data;
+
+        lwmsg_connection_packet_ntoh(packet);
+
+        lwmsg_connection_load_fragment(buffer, fragment, packet->length);
+        fragment = NULL;
+    }
 
 error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, fragment);
+    }
+
+    return status;
+}
+
+static LWMsgStatus
+lwmsg_connection_send_wrap(LWMsgBuffer* buffer, size_t needed)
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = (ConnectionFragment*) buffer->base;
+    ConnectionPacket* packet = (ConnectionPacket*) fragment->data;
+
+    buffer->base = NULL;
+
+    /* Update size of packet based on amount of buffer that was used */
+    packet->length = buffer->cursor - (unsigned char*) packet;
+
+    /* If the marshaller is done, this is the last fragment */
+    if (needed == 0)
+    {
+        packet->flags |= CONNECTION_PACKET_FLAG_LAST_FRAGMENT;
+    }
+
+    /* Put the packet in network byte order */
+    lwmsg_connection_packet_ntoh(packet);
+
+    /* Now that the packet is complete, send it */
+    lwmsg_connection_buffer_queue_fragment(
+                      &priv->sendbuffer,
+                      fragment);
+    fragment = NULL;
+
+    /* Flush the send buffer */
+    status = lwmsg_connection_flush(assoc);
+
+    if (needed && status == LWMSG_STATUS_NOT_FINISHED)
+    {
+        /* If we have more to marshal but we can't send,
+           ignore it for now and continue to queue up packets */
+        status = LWMSG_STATUS_SUCCESS;
+    }
+
+    BAIL_ON_ERROR(status);
+
+    /* If we have more fragments to send, allocate a new packet */
+    if (needed)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                          &priv->sendbuffer,
+                          priv->packet_size,
+                          &fragment));
+
+        packet = (ConnectionPacket*) fragment->data;
+        packet->type = CONNECTION_PACKET_MESSAGE;
+        packet->flags = 0;
+        packet->contents.msg.type = priv->params.message->tag;
+
+        lwmsg_connection_load_fragment(buffer, fragment, priv->packet_size);
+        fragment = NULL;
+    }
+
+error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->sendbuffer, fragment);
+    }
 
     return status;
 }
 
 LWMsgStatus
-lwmsg_connection_send_packet(
+lwmsg_connection_begin_timeout(
     LWMsgAssoc* assoc,
-    ConnectionPacket* packet,
-    ConnectionPacket** urgent
+    LWMsgTime* value
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    ConnectionBuffer* buffer = &priv->sendbuffer;
 
-    buffer->cursor = buffer->base;
-    buffer->base_length = packet->length;
-
-    lwmsg_connection_packet_ntoh(packet);
-    
-    /* Transceive until we send the entire packet */
-    while (buffer->cursor < buffer->base + buffer->base_length)
+    if (!priv->is_nonblock)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
+        /* Record current timeout value */
+        priv->timeout.current = *value;
+        /* Get current time */
+        BAIL_ON_ERROR(status = lwmsg_time_now(&priv->last_time));
+
+        if (value->seconds >= 0)
+        {
+            /* Calculate absolute deadline */
+            lwmsg_time_sum(&priv->last_time, value, &priv->end_time);
+        }
+        else
+        {
+            /* Mark deadline as unset */
+            memset(&priv->end_time, 0xFF, sizeof(priv->last_time));
+        }
     }
 
 error:
-
-    if (status == LWMSG_STATUS_EOF && urgent)
-    {
-        /* If we get an EOF while writing, try to read an urgent packet */
-        lwmsg_connection_transceive(assoc);
-
-        if (lwmsg_connection_urgent_packet_pending(&priv->recvbuffer))
-        {
-            *urgent = (ConnectionPacket*) priv->recvbuffer.base;
-
-            lwmsg_connection_packet_ntoh(*urgent);
-
-            status = LWMSG_STATUS_SUCCESS;
-        }
-    }
 
     return status;
 }
 
 LWMsgStatus
-lwmsg_connection_send_greeting(
+lwmsg_connection_flush(
     LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = NULL;
+
+    /* When performing a flush, have a packet ready in the
+       recv buffer so that we can catch peer shutdown packets */
+    if (priv->recvbuffer.num_pending == 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                          &priv->recvbuffer,
+                          priv->packet_size,
+                          &fragment));
+
+        lwmsg_connection_buffer_queue_fragment(&priv->recvbuffer, fragment);
+    }
+
+    while (priv->sendbuffer.num_pending > 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_check(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = NULL;
+
+    if (priv->recvbuffer.num_pending == 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                          &priv->recvbuffer,
+                          priv->packet_size,
+                          &fragment));
+
+        lwmsg_connection_buffer_queue_fragment(&priv->recvbuffer, fragment);
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
+
+error:
+
+    if (status == LWMSG_STATUS_NOT_FINISHED)
+    {
+        status = LWMSG_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+static
+LWMsgStatus
+lwmsg_connection_begin_connect_local(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    struct sockaddr_un sockaddr;
+    long opts = 0;
+
+    priv->fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    
+    if (priv->fd == -1)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+    }
+
+    /* Get socket flags */
+    if ((opts = fcntl(priv->fd, F_GETFL, 0)) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not get socket flags: %s", strerror(errno));
+    }
+
+    /* Set non-blocking flag */
+    opts |= O_NONBLOCK;
+
+    /* Set socket flags */
+    if (fcntl(priv->fd, F_SETFL, opts) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not set socket flags: %s", strerror(errno));
+    }
+
+    sockaddr.sun_family = AF_UNIX;
+
+    if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
+    }
+
+    strcpy(sockaddr.sun_path, priv->endpoint);
+
+    if (connect(priv->fd, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) < 0)
+    {
+        switch (errno)
+        {
+        case 0:
+            status = LWMSG_STATUS_SUCCESS;
+            break;
+        case EINPROGRESS:
+            /* We are only supposed to BEGIN the operation, so
+               we don't return LWMSG_STATUS_NOT_FINISHED */
+            status = LWMSG_STATUS_SUCCESS;
+            break;
+        case ENOENT:
+            status = LWMSG_STATUS_FILE_NOT_FOUND;
+            break;
+        case ECONNREFUSED:
+            status = LWMSG_STATUS_CONNECTION_REFUSED;
+            break;
+        default:
+            status = LWMSG_STATUS_SYSTEM;
+            break;
+        }
+        BAIL_ON_ERROR(status);
+    }
+
+done:
+
+    return status;
+
+error:
+
+    if (priv->fd >= 0)
+    {
+        close(priv->fd);
+        priv->fd = -1;
+    }
+
+    goto done;
+}
+
+LWMsgStatus
+lwmsg_connection_begin_connect(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+    switch (priv->mode)
+    {
+    case LWMSG_CONNECTION_MODE_LOCAL:
+        BAIL_ON_ERROR(status = lwmsg_connection_begin_connect_local(assoc));
+        break;
+    case LWMSG_CONNECTION_MODE_REMOTE:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+        break;
+    default:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INTERNAL);
+        break;
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_connect(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    long err = 0;
+    socklen_t len = 0;
+    fd_set readfds;
+    fd_set writefds;
+    struct timeval timeout = {0, 0};
+    int nfds = 0;
+
+    if (!priv->is_nonblock)
+    {
+        do
+        {
+            /* Check for a timeout and get the value to pass to select */
+            BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
+            FD_ZERO(&writefds);
+            FD_ZERO(&readfds);
+            FD_SET(priv->fd, &writefds);
+
+            nfds = priv->fd + 1;
+
+            err = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
+        } while (err == 0);
+
+        if (err < 0)
+        {
+            /* Select failed for some reason */
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+        }
+    }
+
+    /* If we make it here, our connect operation should be done */
+    len = sizeof(err);
+    /* Use getsockopt to extract the result of the connect call */
+    if (getsockopt(priv->fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+    {
+        /* Getsockopt failed for some reason */
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+    }
+
+    switch (err)
+    {
+    case 0:
+        status = LWMSG_STATUS_SUCCESS;
+        break;
+    case EINPROGRESS:
+        status = LWMSG_STATUS_NOT_FINISHED;
+    case ENOENT:
+        status = LWMSG_STATUS_FILE_NOT_FOUND;
+        break;
+    case ECONNREFUSED:
+        status = LWMSG_STATUS_CONNECTION_REFUSED;
+        break;
+    default:
+        status = LWMSG_STATUS_SYSTEM;
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
+
+done:
+
+    return status;
+
+error:
+
+    if (status != LWMSG_STATUS_NOT_FINISHED)
+    {
+        if (priv->fd != -1)
+        {
+            close(priv->fd);
+            priv->fd = -1;
+        }
+    }
+
+    goto done;
+}
+
+LWMsgStatus
+lwmsg_connection_connect_existing(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    long opts = 0;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.establish));
+
+    /* Get socket flags */
+    if ((opts = fcntl(priv->fd, F_GETFL, 0)) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not get socket flags: %s", strerror(errno));
+    }
+
+    /* Set non-blocking flag */
+    opts |= O_NONBLOCK;
+
+    /* Set socket flags */
+    if (fcntl(priv->fd, F_SETFL, opts) < 0)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
+                          "Could not set socket flags: %s", strerror(errno));
+    }
+
+error:
+
+    return status;
+}
+
+
+LWMsgStatus
+lwmsg_connection_begin_send_handshake(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fds[2] = { -1, -1 };
     LWMsgSessionManager* manager = NULL;
@@ -739,12 +1156,16 @@ lwmsg_connection_send_greeting(
     
     smid = lwmsg_session_manager_get_id(manager);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_queue_packet(
-                      assoc,
-                      CONNECTION_PACKET_GREETING,
-                      CONNECTION_PACKET_SIZE(ConnectionPacketGreeting),
-                      &packet));
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                      &priv->sendbuffer,
+                      priv->packet_size,
+                      &fragment));
 
+    packet = (ConnectionPacket*) fragment->data;
+
+    packet->type = CONNECTION_PACKET_GREETING;
+    packet->length = CONNECTION_PACKET_SIZE(ConnectionPacketGreeting);
+    packet->flags = CONNECTION_PACKET_FLAG_SINGLE;
     packet->contents.greeting.packet_size = (uint32_t) priv->packet_size;
     packet->contents.greeting.flags = 0;
     
@@ -786,9 +1207,10 @@ lwmsg_connection_send_greeting(
     }
 #endif
 
-    BAIL_ON_ERROR(status = lwmsg_connection_send_packet(assoc, packet, NULL));
+    lwmsg_connection_packet_ntoh(packet);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_discard_send_packet(assoc, packet));
+    lwmsg_connection_buffer_queue_fragment(&priv->sendbuffer, fragment);
+    fragment = NULL;
 
 error:
 
@@ -802,26 +1224,54 @@ error:
         close(fds[1]);
     }
 
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->sendbuffer, fragment);
+    }
+
     return status;
 }
 
+LWMsgStatus
+lwmsg_connection_finish_send_handshake(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_flush(assoc));
+
+error:
+
+    return status;
+}
 
 LWMsgStatus
-lwmsg_connection_recv_greeting(
+lwmsg_connection_begin_recv_handshake(
+    LWMsgAssoc* assoc
+    )
+{
+    return LWMSG_STATUS_SUCCESS;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_recv_handshake(
     LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fd = -1;
     LWMsgSessionManager* manager = NULL;
-    size_t assoc_count = 0;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-
-    BAIL_ON_ERROR(status = lwmsg_connection_recv_packet(assoc, &packet));
     
+    BAIL_ON_ERROR(status = lwmsg_connection_recv_full_fragment(assoc, &fragment));
+
+    packet = (ConnectionPacket*) fragment->data;
+
     if (packet->type != CONNECTION_PACKET_GREETING)
     {
         ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed greeting packet");
@@ -884,19 +1334,23 @@ lwmsg_connection_recv_greeting(
                       manager,
                       (LWMsgSessionID*) packet->contents.greeting.smid,
                       priv->sec_token,
-                      &priv->session,
-                      &assoc_count));
+                      priv->params.establish.construct,
+                      priv->params.establish.destruct,
+                      priv->params.establish.construct_data,
+                      &priv->session));
 
-    /* Record whether we are the session leader (first assoc in a session) */
-    priv->is_session_leader = (assoc_count == 1);
-
-    /* Discard packet */
-    BAIL_ON_ERROR(status = lwmsg_connection_discard_recv_packet(assoc, packet));
-
-    BAIL_ON_ERROR(status = lwmsg_connection_buffer_resize(&priv->recvbuffer, priv->packet_size));
-    BAIL_ON_ERROR(status = lwmsg_connection_buffer_resize(&priv->sendbuffer, priv->packet_size));
+    /* Reconstruct buffers in case our packet size changed */
+    lwmsg_connection_buffer_destruct(&priv->recvbuffer);
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->recvbuffer));
+    lwmsg_connection_buffer_destruct(&priv->sendbuffer);
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
 
 error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, fragment);
+    }
 
     if (fd != -1)
     {
@@ -907,27 +1361,101 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_send_shutdown(
-    LWMsgAssoc* assoc,
-    ConnectionShutdownType type,
-    ConnectionShutdownReason reason
+lwmsg_connection_begin_send_message(
+    LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    LWMsgProtocol* prot = lwmsg_assoc_get_protocol(assoc);
+    LWMsgContext* context = &assoc->context;
+    LWMsgTypeSpec* type = NULL;
+    ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
+    LWMsgMessage* message = priv->params.message;
+    LWMsgBuffer buffer;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_queue_packet(
+    memset(&buffer, 0, sizeof(buffer));
+
+    status = lwmsg_protocol_get_message_type(prot, message->tag, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
+
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                      &priv->sendbuffer,
+                      priv->packet_size,
+                      &fragment));
+
+    packet = (ConnectionPacket*) fragment->data;
+
+    packet->type = CONNECTION_PACKET_MESSAGE;
+    packet->flags = CONNECTION_PACKET_FLAG_FIRST_FRAGMENT;
+    packet->contents.msg.type = message->tag;
+
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
                       assoc,
-                      CONNECTION_PACKET_SHUTDOWN,
-                      CONNECTION_PACKET_SIZE(ConnectionPacketShutdown),
-                      &packet));
+                      &priv->timeout.message));
 
-    packet->contents.shutdown.type = type;
-    packet->contents.shutdown.reason = reason;
+    /* If the message has no payload, send a zero-length message */
+    if (type == NULL)
+    {
+        packet->length = CONNECTION_PACKET_SIZE(ConnectionPacketMsg);
+        packet->flags |= CONNECTION_PACKET_FLAG_LAST_FRAGMENT;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_send_packet(assoc, packet, NULL));
+        lwmsg_connection_packet_ntoh(packet);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_discard_send_packet(assoc, packet));
+        lwmsg_connection_buffer_queue_fragment(&priv->sendbuffer, fragment);
+        fragment = NULL;
+    }
+    else
+    {
+        lwmsg_connection_load_fragment(&buffer, fragment, priv->packet_size);
+        fragment = NULL;
+
+        buffer.wrap = lwmsg_connection_send_wrap;
+        buffer.data = assoc;
+
+        BAIL_ON_ERROR(status = lwmsg_marshal(
+                          context,
+                          type,
+                          message->object,
+                          &buffer));
+    }
+
+error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->sendbuffer, fragment);
+    }
+
+    if (buffer.base)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->sendbuffer, (ConnectionFragment*) buffer.base);
+    }
+
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_send_message(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_flush(assoc));
 
 error:
 
@@ -935,138 +1463,173 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_connect_local(
+lwmsg_connection_begin_recv_message(
     LWMsgAssoc* assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
-    struct sockaddr_un sockaddr;
-    int sock = -1;
-    long opts = 0;
-    long err = 0;
-    socklen_t len;
-    fd_set readfds;
-    fd_set writefds;
-    struct timeval timeout = {0, 0};
-    int nfds = 0;
 
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (sock == -1)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-    }
-
-    /* Get socket flags */
-    if ((opts = fcntl(sock, F_GETFL, 0)) < 0)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not get socket flags: %s", strerror(errno));
-    }
-
-    /* Set non-blocking flag */
-    opts |= O_NONBLOCK;
-
-    /* Set socket flags */
-    if (fcntl(sock, F_SETFL, opts) < 0)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not set socket flags: %s", strerror(errno));
-    }
-
-    sockaddr.sun_family = AF_UNIX;
-
-    if (strlen(priv->endpoint) + 1 > sizeof(sockaddr.sun_path))
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_PARAMETER, "Endpoint is too long for underlying protocol");
-    }
-
-    strcpy(sockaddr.sun_path, priv->endpoint);
-
-    if (connect(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) < 0)
-    {
-        if (errno == EINPROGRESS)
-        {
-            /* The connect hasn't completed.  We need to go into a select
-               until the socket becomes writable or we time out */
-
-            do
-            {
-                /* Check for a timeout and get the value to pass to select */
-                BAIL_ON_ERROR(status = lwmsg_connection_check_timeout(assoc, &timeout));
-                FD_ZERO(&writefds);
-                FD_ZERO(&readfds);
-                FD_SET(sock, &writefds);
-
-                nfds = sock + 1;
-
-                /* If there is an interrupt channel set, wait on it as well */
-                if (priv->interrupt)
-                {
-                    FD_SET(priv->interrupt->fd[0], &readfds);
-                    if (nfds < priv->interrupt->fd[0] + 1)
-                    {
-                        nfds = priv->interrupt->fd[0] + 1;
-                    }
-                }
-
-                err = select(nfds, &readfds, &writefds, NULL, priv->end_time.seconds >= 0 ? &timeout : NULL);
-            } while (err == 0 || (err == -1 && errno == EINTR));
-
-            if (err < 0)
-            {
-                /* Select failed for some reason */
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-            }
-
-            if (priv->interrupt && FD_ISSET(priv->interrupt->fd[0], &readfds))
-            {
-                /* We have been interrupted */
-                BAIL_ON_ERROR(status = LWMSG_STATUS_INTERRUPT);
-            }
-
-            /* If we make it here, our connect operation completed */
-            len = sizeof(err);
-            /* Use getsockopt to extract the result of the connect call */
-            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
-            {
-                /* Getsockopt failed for some reason */
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
-            }
-        }
-        else
-        {
-            err = errno;
-        }
-    }
-
-    if (err)
-    {
-        switch (err)
-        {
-        case ENOENT:
-            status = LWMSG_STATUS_FILE_NOT_FOUND;
-            break;
-        case ECONNREFUSED:
-            status = LWMSG_STATUS_CONNECTION_REFUSED;
-            break;
-        default:
-            status = LWMSG_STATUS_SYSTEM;
-            break;
-        }
-        ASSOC_RAISE_ERROR(assoc, status, "%s", strerror(err));
-    }
-
-    priv->fd = sock;
-    sock = -1;
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.message));
 
 error:
 
-    if (sock != -1)
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_recv_message(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    LWMsgProtocol* prot = lwmsg_assoc_get_protocol(assoc);
+    LWMsgContext* context = &assoc->context;
+    LWMsgTypeSpec* type = NULL;
+    ConnectionFragment* last_frag = NULL; /* Do not free */
+    ConnectionFragment* fragment = NULL;
+    ConnectionPacket* packet = NULL;
+    LWMsgBuffer buffer;
+    ConnectionBuffer* recvbuffer = &priv->recvbuffer;
+
+    memset(&buffer, 0, sizeof(buffer));
+
+    /* Keep reading packets until we get the final fragment */
+    while (!(last_frag = lwmsg_connection_buffer_get_last_fragment(recvbuffer)) ||
+           !lwmsg_connection_fragment_is_complete(last_frag) ||
+           !(((ConnectionPacket*) last_frag->data)->flags & CONNECTION_PACKET_FLAG_LAST_FRAGMENT))
     {
-        close(sock);
+        /* If there is no fragment in the recv buffer or the last fragment in the buffer
+           is complete add a new fragment to the buffer to recv into */
+        if (last_frag == NULL || lwmsg_connection_fragment_is_complete(last_frag))
+        {
+            BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                          recvbuffer,
+                          priv->packet_size,
+                          &last_frag));
+            lwmsg_connection_buffer_queue_fragment(recvbuffer, last_frag);
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_connection_transceive(assoc));
+
+        packet = (ConnectionPacket*) last_frag->data;
+
+        if (lwmsg_connection_fragment_is_complete(last_frag) &&
+            packet->type != CONNECTION_PACKET_MESSAGE)
+        {
+            RAISE_ERROR(context, LWMSG_STATUS_MALFORMED, "Did not receive message packet as expected");
+        }
     }
+
+    fragment = lwmsg_connection_buffer_get_first_fragment(recvbuffer);
+    lwmsg_connection_buffer_dequeue_fragment(recvbuffer);
+
+    packet = (ConnectionPacket*) fragment->data;
+
+    lwmsg_connection_packet_ntoh(packet);
+
+    status = lwmsg_protocol_get_message_type(prot, packet->contents.msg.type, &type);
+
+    switch (status)
+    {
+    case LWMSG_STATUS_NOT_FOUND:
+        status = LWMSG_STATUS_MALFORMED;
+        break;
+    default:
+        break;
+    }
+
+    BAIL_ON_ERROR(status);
+
+    priv->params.message->tag = packet->contents.msg.type;
+
+    if (type == NULL)
+    {
+        /* If message has no payload, just set the payload to NULL */
+        priv->params.message->object = NULL;
+    }
+    else
+    {
+        lwmsg_connection_load_fragment(&buffer, fragment, packet->length);
+        fragment = NULL;
+
+        buffer.wrap = lwmsg_connection_recv_wrap;
+        buffer.data = assoc;
+
+        BAIL_ON_ERROR(status = lwmsg_unmarshal(
+                          context,
+                          type,
+                          &buffer,
+                          &priv->params.message->object));
+    }
+
+error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, fragment);
+    }
+
+    if (buffer.base)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, (ConnectionFragment*) buffer.base);
+    }
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_begin_send_shutdown(
+    LWMsgAssoc* assoc,
+    LWMsgStatus reason
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPacket* packet = NULL;
+    ConnectionFragment* fragment = NULL;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+
+    /* Set up timeout */
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
+                      assoc,
+                      &priv->timeout.establish));
+
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                      &priv->sendbuffer,
+                      priv->packet_size,
+                      &fragment));
+
+    packet = (ConnectionPacket*) fragment->data;
+
+    packet->type = CONNECTION_PACKET_SHUTDOWN;
+    packet->length = CONNECTION_PACKET_SIZE(ConnectionPacketShutdown);
+    packet->flags = CONNECTION_PACKET_FLAG_SINGLE;
+    packet->contents.shutdown.status = reason;
+
+    lwmsg_connection_packet_ntoh(packet);
+
+    lwmsg_connection_buffer_queue_fragment(&priv->sendbuffer, fragment);
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_send_shutdown(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    /* Flush the send buffer */
+    BAIL_ON_ERROR(status = lwmsg_connection_flush(assoc));
+
+error:
 
     return status;
 }

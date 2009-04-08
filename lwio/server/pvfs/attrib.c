@@ -165,6 +165,8 @@ PvfsGetFilenameAttributes(
                 *pAttributes |= FILE_ATTRIBUTE_HIDDEN;
             }
         }
+
+        RTL_FREE(&pszRelativeFilename);
     }
 
     ntError = PvfsSysStat(pszPath, &Stat);

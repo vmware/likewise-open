@@ -269,7 +269,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 LsaAdBatchGetDomainFromNT4Name(
     OUT PSTR* ppszDomainName,
@@ -372,7 +371,7 @@ LsaAdBatchCreateDomainEntry(
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-            dwError = LsaDmWrapGetDomainNameAndSidByObjectSid(
+            dwError = LsaDmEngineGetDomainInfoWithObjectSid(
                             pszMatchTerm,
                             &pszDnsDomainName,
                             &pszNetbiosDomainName,
@@ -386,9 +385,11 @@ LsaAdBatchCreateDomainEntry(
                                                      pszMatchTerm);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaDmWrapGetDomainName(pszDomainName,
-                                             &pszDnsDomainName,
-                                             &pszNetbiosDomainName);
+            dwError = LsaDmEngineGetDomainInfoWithNT4Name(
+                           pszDomainName,
+                           pszMatchTerm,
+                           &pszDnsDomainName,
+                           &pszNetbiosDomainName);
             BAIL_ON_LSA_ERROR(dwError);
 
             break;

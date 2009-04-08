@@ -154,17 +154,20 @@ LocalDirAddUser(
 
 DWORD
 LocalDirAddUser_0(
-    PLSA_USER_INFO_0     pUserInfo
+    HANDLE           hProvider,
+    PLSA_USER_INFO_0 pUserInfo
     );
 
 DWORD
 LocalDirAddUser_1(
-    PLSA_USER_INFO_1     pUserInfo
+    HANDLE           hProvider,
+    PLSA_USER_INFO_1 pUserInfo
     );
 
 DWORD
 LocalDirAddUser_2(
-    PLSA_USER_INFO_2     pUserInfo
+    HANDLE           hProvider,
+    PLSA_USER_INFO_2 pUserInfo
     );
 
 DWORD

@@ -215,7 +215,8 @@ LsaDmpSetForceOfflineState(
 DWORD
 LsaDmpTransitionOffline(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PCSTR pszDomainName
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsGc
     );
 
 DWORD
@@ -227,7 +228,8 @@ LsaDmpTransitionOnline(
 BOOLEAN
 LsaDmpIsDomainOffline(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN OPTIONAL PCSTR pszDomainName
+    IN OPTIONAL PCSTR pszDomainName,
+    IN BOOLEAN bIsGC
     );
 
 DWORD
@@ -305,7 +307,8 @@ ADLogDomainOnlineEvent(
 
 VOID
 ADLogDomainOfflineEvent(
-    PCSTR pszDomainName
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsGc
     );
 
 #endif /* __LSA_DM_P_H__ */

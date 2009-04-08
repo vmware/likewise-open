@@ -75,12 +75,11 @@
 
 /* Memory Macros */
 
-#define PVFS_SAFE_FREE_MEMORY(p) \
-    do {                         \
-        if ((p) != NULL) {       \
-            PvfsFreeMemory(p);   \
-            p = NULL;            \
-        }                        \
+#define PVFS_FREE(pp)                           \
+    do {                                        \
+        if ((*pp) != NULL) {                    \
+            PvfsFreeMemory((PVOID*)pp);         \
+        }                                       \
     } while(0);
 
 

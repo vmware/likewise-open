@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -947,6 +947,8 @@ NetrAllocateDcNameInfo(
     }
 
     ptr->address_type = in->address_type;
+
+    ptr->flags = in->flags;
 
     memcpy(&ptr->domain_guid, &in->domain_guid, sizeof(ptr->domain_guid));
 

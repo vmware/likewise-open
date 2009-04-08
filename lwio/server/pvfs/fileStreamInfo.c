@@ -152,7 +152,7 @@ cleanup:
         PvfsReleaseCCB(pCcb);
     }
 
-    PVFS_SAFE_FREE_MEMORY(pwszStreamName);
+    PVFS_FREE(&pwszStreamName);
 
     return ntError;
 

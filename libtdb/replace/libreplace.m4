@@ -358,4 +358,3 @@ AC__LIBREPLACE_ALL_CHECKS_END
 
 m4_include(libreplace_cc.m4)
 m4_include(libreplace_macros.m4)
-m4_include(autoconf-2.60.m4)

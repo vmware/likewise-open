@@ -31,9 +31,11 @@
 #include "domainjoin.h"
 #include "djfirewall.h"
 #include <djmodule.h>
+#ifdef HAVE_LIBXML2
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xmlsave.h>
+#endif
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -378,6 +380,7 @@ cleanup:
     ;
 }
 
+#if HAVE_LIBXML2
 static xmlNodePtr GetNewXmlNode(xmlDocPtr destDoc)
 {
     xmlDocPtr doc = NULL;
@@ -458,6 +461,7 @@ static xmlNodePtr GetNewXmlNode(xmlDocPtr destDoc)
 
     return root;
 }
+#endif // HAVE_LIBXML2
 
 CENTERROR
 DJUpdateServicesFile(
@@ -467,6 +471,7 @@ DJUpdateServicesFile(
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
+#if HAVE_LIBXML2
     PSTR tempFilename = NULL;
     BOOLEAN same;
 
@@ -567,6 +572,9 @@ cleanup:
     if(saveContext != NULL)
         xmlSaveClose(saveContext);
     CT_SAFE_FREE_STRING(tempFilename);
+#else // HAVE_LIBXML2
+    *modified = 0;
+#endif // HAVE_LIBXML2
     return ceError;
 }
 
@@ -577,6 +585,7 @@ DJConfigureFirewallForAuth(
     )
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
+#if HAVE_LIBXML2
     PSTR finalFilename = NULL;
     BOOLEAN exists;
 
@@ -622,6 +631,7 @@ DJConfigureFirewallForAuth(
 
 cleanup:
     CT_SAFE_FREE_STRING(finalFilename);
+#endif // HAVE_LIBXML2
     return ceError;
 }
 

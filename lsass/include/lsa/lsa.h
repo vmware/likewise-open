@@ -241,7 +241,8 @@
 #define LSA_ERROR_SAM_INIT_ERROR                            0x8091 // 32913
 #define LSA_ERROR_OBJECT_IN_USE                             0x8092 // 32914
 #define LSA_ERROR_NO_SUCH_ATTRIBUTE                         0x8093 // 32915
-#define LSA_ERROR_SENTINEL                                  0x8094 // 32916
+#define LSA_ERROR_GET_DC_NAME_FAILED                        0x8094 // 32916
+#define LSA_ERROR_SENTINEL                                  0x8095 // 32917
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -284,6 +285,7 @@ typedef DWORD LSA_DM_DOMAIN_FLAGS, *PLSA_DM_DOMAIN_FLAGS;
 #define LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE         0x00000004
 #define LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD 0x00000008
 #define LSA_DM_DOMAIN_FLAG_FOREST_ROOT           0x00000010
+#define LSA_DM_DOMAIN_FLAG_GC_OFFLINE            0x00000020
 
 #define LSA_DM_DOMAIN_FLAGS_VALID_MASK \
     ( \
@@ -292,6 +294,7 @@ typedef DWORD LSA_DM_DOMAIN_FLAGS, *PLSA_DM_DOMAIN_FLAGS;
         LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE | \
         LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD | \
         LSA_DM_DOMAIN_FLAG_FOREST_ROOT | \
+        LSA_DM_DOMAIN_FLAG_GC_OFFLINE | \
         0 \
     )
 

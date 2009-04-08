@@ -97,16 +97,16 @@ SamrSrvCreateAccount(
                                    pAccCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    AttrValObjectClass.Type              = DIRECTORY_ATTR_TYPE_ANSI_STRING;
-    AttrValObjectClass.pszStringValue    = pszObjectClass;
+    AttrValObjectClass.Type                = DIRECTORY_ATTR_TYPE_ANSI_STRING;
+    AttrValObjectClass.data.pszStringValue = pszObjectClass;
 
     AttrValAccountName.Type              = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    AttrValAccountName.pwszStringValue   = pwszAccountName;
+    AttrValAccountName.data.pwszStringValue   = pwszAccountName;
 
     if (!strcmp(pszObjectClass, "user")) {
         AttrValAccountFlags.Type         = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
-        AttrValAccountFlags.ulValue      = account_flags;
-        AttrValAccountFlags.ulValue     |= ACB_NORMAL | ACB_DISABLED;
+        AttrValAccountFlags.data.ulValue = account_flags;
+        AttrValAccountFlags.data.ulValue |= ACB_NORMAL | ACB_DISABLED;
     }
 
     DirMod[i].ulOperationFlags = DIR_MOD_FLAGS_ADD;

@@ -118,18 +118,14 @@ PvfsFreeCCB(
         pCCB->pUserToken = NULL;
     }
 
-    if (pCCB->LockTable.ExclusiveLocks.pLocks) {
-        PvfsFreeMemory(pCCB->LockTable.ExclusiveLocks.pLocks);
-    }
-    if (pCCB->LockTable.SharedLocks.pLocks) {
-        PvfsFreeMemory(pCCB->LockTable.SharedLocks.pLocks);
-    }
+    PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);
+    PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);
 
     pthread_rwlock_destroy(&pCCB->LockTable.rwLock);
     pthread_mutex_destroy(&pCCB->FileMutex);
     pthread_mutex_destroy(&pCCB->ControlMutex);
 
-    PvfsFreeMemory(pCCB);
+    PVFS_FREE(&pCCB);
 
     return STATUS_SUCCESS;
 }

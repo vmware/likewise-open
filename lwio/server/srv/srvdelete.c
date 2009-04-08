@@ -376,18 +376,12 @@ cleanup:
     {
         IoCloseFile(hFile);
     }
-    if (pData)
-    {
-        LwRtlMemoryFree(pData);
-    }
-    if (pwszFilename)
-    {
-        LwRtlMemoryFree(pwszFilename);
-    }
-    if (pwszFilePath)
-    {
-        LwRtlMemoryFree(pwszFilePath);
-    }
+
+    RTL_FREE(&pData);
+    RTL_FREE(&pwszFilename);
+    RTL_FREE(&pwszFilePath);
+    RTL_FREE(&pwszFilesystemPath2);
+    RTL_FREE(&pwszSearchPattern2);
 
     return ntStatus;
 

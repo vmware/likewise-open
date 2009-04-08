@@ -487,12 +487,12 @@ SamDbUpdateBindValues(
 
                 if (pIter->pAttrValues)
                 {
-                    pszValue = pIter->pAttrValues[0].pszStringValue;
+                    pszValue = pIter->pAttrValues[0].data.pszStringValue;
                 }
                 else
                 if (pIter->pDirMod)
                 {
-                    pszValue = pIter->pDirMod->pAttrValues[0].pszStringValue;
+                    pszValue = pIter->pDirMod->pAttrValues[0].data.pszStringValue;
                 }
 
                 if (pszValue)
@@ -522,7 +522,7 @@ SamDbUpdateBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pAttrValues[0].ulValue);
+                                    pIter->pAttrValues[0].data.ulValue);
                 }
                 else
                 if (pIter->pDirMod)
@@ -530,7 +530,7 @@ SamDbUpdateBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pDirMod->pAttrValues[0].ulValue);
+                                    pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
                 BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -543,7 +543,7 @@ SamDbUpdateBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pAttrValues[0].llValue);
+                                    pIter->pAttrValues[0].data.llValue);
                 }
                 else
                 if (pIter->pDirMod)
@@ -551,7 +551,7 @@ SamDbUpdateBindValues(
                     dwError = sqlite3_bind_int(
                                     pSqlStatement,
                                     ++iParam,
-                                    pIter->pDirMod->pAttrValues[0].llValue);
+                                    pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
                 BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -563,12 +563,12 @@ SamDbUpdateBindValues(
 
                 if (pIter->pAttrValues)
                 {
-                    pOctetString = pIter->pAttrValues[0].pOctetString;
+                    pOctetString = pIter->pAttrValues[0].data.pOctetString;
                 }
                 else
                 if (pIter->pDirMod)
                 {
-                    pOctetString = pIter->pDirMod->pAttrValues[0].pOctetString;
+                    pOctetString = pIter->pDirMod->pAttrValues[0].data.pOctetString;
                 }
 
                 if (pOctetString)

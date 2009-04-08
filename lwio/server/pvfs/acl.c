@@ -144,7 +144,7 @@ PvfsGetSecurityDescriptorFile(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pFullSecDesc);
+    PVFS_FREE(&pFullSecDesc);
 
     return ntError;
 
@@ -216,7 +216,7 @@ PvfsGetSecurityDescriptorFilename(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pFullSecDesc);
+    PVFS_FREE(&pFullSecDesc);
 
     return ntError;
 
@@ -299,8 +299,8 @@ PvfsSetSecurityDescriptorFile(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    PVFS_SAFE_FREE_MEMORY(pSDCur);
-    PVFS_SAFE_FREE_MEMORY(pNewSecDesc);
+    PVFS_FREE(&pSDCur);
+    PVFS_FREE(&pNewSecDesc);
 
     return ntError;
 
@@ -316,7 +316,7 @@ error:
 
 VOID
 PvfsFreeAbsoluteSecurityDescriptor(
-    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -326,10 +326,13 @@ PvfsFreeAbsoluteSecurityDescriptor(
     PACL pSacl = NULL;
     BOOLEAN bDefaulted = FALSE;
     BOOLEAN bPresent = FALSE;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
 
-    if (pSecDesc) {
+    if ((ppSecDesc == NULL) || (*ppSecDesc == NULL)) {
         return;
     }
+
+    pSecDesc = *ppSecDesc;
 
     ntError = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
     ntError = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
@@ -342,6 +345,8 @@ PvfsFreeAbsoluteSecurityDescriptor(
     RTL_FREE(&pGroup);
     RTL_FREE(&pDacl);
     RTL_FREE(&pSacl);
+
+    *ppSecDesc = NULL;
 
     return;
 }
@@ -450,19 +455,14 @@ CreateDefaultSecDesc(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (pSecDesc) {
-        PvfsFreeAbsoluteSecurityDescriptor(pSecDesc);
-    }
+    RTL_FREE(&pDacl);
+    RTL_FREE(&pSid);
+
+    PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
 
     return ntError;
 
 error:
-
-    PVFS_SAFE_FREE_MEMORY(pDacl);
-
-    /* Use RtlFree for SIDs */
-    RTL_FREE(&pSid);
-
     goto cleanup;
 }
 

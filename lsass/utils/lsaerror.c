@@ -347,7 +347,9 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_OBJECT_IN_USE                                   : 32914
     "The object is in use",
     // LSA_ERROR_NO_SUCH_ATTRIBUTE                               : 32915
-    "No such attribute was found"
+    "No such attribute was found",
+    // LSA_ERROR_GET_DC_NAME_FAILED                              : 32916
+    "Get domain controller name failed"
 };
 
 size_t

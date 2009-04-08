@@ -1223,6 +1223,13 @@ LsaDbUnpackUserInfo(
     dwError = LsaSqliteReadBoolean(
         pstQuery,
         piColumnPos,
+        "InOneWayTrustedDomain",
+        &pResult->userInfo.bIsInOneWayTrustedDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSqliteReadBoolean(
+        pstQuery,
+        piColumnPos,
         "PasswordExpired",
         &pResult->userInfo.bPasswordExpired);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1588,6 +1595,7 @@ LsaDbStoreObjectEntries(
                             "PwdLastSet,"
                             "AccountExpires,"
                             "GeneratedUPN,"
+                            "InOneWayTrustedDomain,"
                             "PasswordExpired,"
                             "PasswordNeverExpires,"
                             "PromptPasswordChange,"
@@ -1608,6 +1616,7 @@ LsaDbStoreObjectEntries(
                             "%llu," //pwdlastset
                             "%llu," //account expires
                             "%d," //generatedUPN
+                            "%d," //InOneWayTrustedDomain
                             "%d," //passwordExpired
                             "%d," //passwordNeverExpires
                             "%d," //promptPasswordChange
@@ -1630,6 +1639,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->userInfo.qwPwdLastSet,
                         ppObjects[sIndex]->userInfo.qwAccountExpires,
                         ppObjects[sIndex]->userInfo.bIsGeneratedUPN,
+                        ppObjects[sIndex]->userInfo.bIsInOneWayTrustedDomain,
                         ppObjects[sIndex]->userInfo.bPasswordExpired,
                         ppObjects[sIndex]->userInfo.bPasswordNeverExpires,
                         ppObjects[sIndex]->userInfo.bPromptPasswordChange,
@@ -2531,7 +2541,7 @@ LsaDbQueryObjectMulti(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 29; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 30; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
@@ -2584,7 +2594,7 @@ LsaDbQueryObjectMulti(
     }
     else
     {
-        iColumnPos += 18; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 19; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == AccountType_Group && pObject->enabled)
@@ -2782,7 +2792,7 @@ LsaDbQueryObject(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 29; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 30; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
@@ -2843,7 +2853,7 @@ LsaDbQueryObject(
     }
     else
     {
-        iColumnPos += 18; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 19; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == AccountType_Group && pObject->enabled)
@@ -2920,6 +2930,7 @@ LsaDbGetObjectFieldList(
         LSA_DB_TABLE_NAME_USERS ".PwdLastSet, "
         LSA_DB_TABLE_NAME_USERS ".AccountExpires, "
         LSA_DB_TABLE_NAME_USERS ".GeneratedUPN, "
+        LSA_DB_TABLE_NAME_USERS ".InOneWayTrustedDomain, "
         LSA_DB_TABLE_NAME_USERS ".PasswordExpired, "
         LSA_DB_TABLE_NAME_USERS ".PasswordNeverExpires, "
         LSA_DB_TABLE_NAME_USERS ".PromptPasswordChange, "

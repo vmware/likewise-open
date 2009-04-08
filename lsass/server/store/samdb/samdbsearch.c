@@ -586,7 +586,7 @@ SamDbSearchMarshallResultsAttributesValues(
 
                         dwError = LsaMbsToWc16s(
                                         (PCSTR)pszStringVal,
-                                        &pAttrVal->pwszStringValue);
+                                        &pAttrVal->data.pwszStringValue);
                         BAIL_ON_SAMDB_ERROR(dwError);
                     }
                     else
@@ -607,9 +607,9 @@ SamDbSearchMarshallResultsAttributesValues(
                     pAttr->ulNumValues = 1;
 
                     pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_INTEGER;
-                    pAttr->pValues[0].ulValue = sqlite3_column_int(
-                                                    pSqlStatement,
-                                                    iCol);
+                    pAttr->pValues[0].data.ulValue = sqlite3_column_int(
+                                                        pSqlStatement,
+                                                        iCol);
 
                     break;
 
@@ -623,9 +623,9 @@ SamDbSearchMarshallResultsAttributesValues(
                     pAttr->ulNumValues = 1;
 
                     pAttr->pValues[0].Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
-                    pAttr->pValues[0].llValue = sqlite3_column_int64(
-                                                    pSqlStatement,
-                                                    iCol);
+                    pAttr->pValues[0].data.llValue = sqlite3_column_int64(
+                                                        pSqlStatement,
+                                                        iCol);
 
                     break;
 
@@ -642,11 +642,11 @@ SamDbSearchMarshallResultsAttributesValues(
 
                     if (sqlite3_column_int(pSqlStatement, iCol))
                     {
-                        pAttr->pValues[0].bBooleanValue = TRUE;
+                        pAttr->pValues[0].data.bBooleanValue = TRUE;
                     }
                     else
                     {
-                        pAttr->pValues[0].bBooleanValue = FALSE;
+                        pAttr->pValues[0].data.bBooleanValue = FALSE;
                     }
 
                     break;
@@ -675,19 +675,19 @@ SamDbSearchMarshallResultsAttributesValues(
 
                         dwError = DirectoryAllocateMemory(
                                     sizeof(OCTET_STRING),
-                                    (PVOID*)&pAttrVal->pOctetString);
+                                    (PVOID*)&pAttrVal->data.pOctetString);
                         BAIL_ON_SAMDB_ERROR(dwError);
 
                         dwError = DirectoryAllocateMemory(
                                     dwAttrLen,
-                                    (PVOID*)&pAttrVal->pOctetString->pBytes);
+                                    (PVOID*)&pAttrVal->data.pOctetString->pBytes);
                         BAIL_ON_SAMDB_ERROR(dwError);
 
-                        memcpy(pAttrVal->pOctetString->pBytes,
+                        memcpy(pAttrVal->data.pOctetString->pBytes,
                                 pBlob,
                                 dwAttrLen);
 
-                        pAttrVal->pOctetString->ulNumBytes = dwAttrLen;
+                        pAttrVal->data.pOctetString->ulNumBytes = dwAttrLen;
                     }
                     else
                     {

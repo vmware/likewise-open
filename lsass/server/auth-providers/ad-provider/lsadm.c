@@ -331,10 +331,11 @@ LsaDmSetForceOfflineState(
 
 DWORD
 LsaDmTransitionOffline(
-    IN PCSTR pszDomainName
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsGc
     )
 {
-    return LsaDmpTransitionOffline(gLsaDmState, pszDomainName);
+    return LsaDmpTransitionOffline(gLsaDmState, pszDomainName, bIsGc);
 }
 
 DWORD
@@ -350,7 +351,15 @@ LsaDmIsDomainOffline(
     IN OPTIONAL PCSTR pszDomainName
     )
 {
-    return LsaDmpIsDomainOffline(gLsaDmState, pszDomainName);
+    return LsaDmpIsDomainOffline(gLsaDmState, pszDomainName, FALSE);
+}
+
+BOOLEAN
+LsaDmIsForestGcOffline(
+    IN OPTIONAL PCSTR pszForestName
+    )
+{
+    return LsaDmpIsDomainOffline(gLsaDmState, pszForestName, TRUE);
 }
 
 DWORD
@@ -805,7 +814,8 @@ LsaDmConnectDomain(
         dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
     }
 
-    if (LsaDmIsDomainOffline(pszDnsDomainOrForestName))
+    if ( (!bUseGc && LsaDmIsDomainOffline(pszDnsDomainOrForestName)) ||
+         (bUseGc && LsaDmIsForestGcOffline(pszDnsDomainOrForestName)))
     {
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
@@ -871,7 +881,9 @@ cleanup:
 error:
     if (bIsNetworkError)
     {
-        DWORD dwLocalError = LsaDmTransitionOffline(pszDnsDomainOrForestName);
+        DWORD dwLocalError = LsaDmTransitionOffline(
+                pszDnsDomainOrForestName,
+                bUseGc);
         if (dwLocalError)
         {
             LSA_LOG_DEBUG("Error %d transitioning %s offline",

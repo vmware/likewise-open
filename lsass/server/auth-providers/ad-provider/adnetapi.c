@@ -1081,6 +1081,124 @@ AD_FreeDomainTrusts(
 }
 
 DWORD
+AD_DsGetDcName(
+    IN PCSTR pszServerName,
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bReturnDnsName,
+    OUT PSTR* ppszDomainDnsOrFlatName,
+    OUT PSTR* ppszDomainForestDnsName,
+    OUT OPTIONAL PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwcServerName = NULL;
+    PWSTR pwcDomainName = NULL;
+    RPCSTATUS status = 0;
+    handle_t netr_b = NULL;
+    WINERR winError = 0;
+    BOOLEAN bIsNetworkError = FALSE;
+    LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
+    const uint32 dwGetDcNameflags = bReturnDnsName ? DS_RETURN_DNS_NAME : DS_RETURN_FLAT_NAME;
+    DsrDcNameInfo* pDcNameInfo = NULL;
+    PSTR pszDomainDnsOrFlatName = NULL;
+    PSTR pszDomainForestDnsName = NULL;
+
+    dwError = LsaMbsToWc16s(pszServerName, &pwcServerName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_SetSystemAccess(&pOldToken);
+    BAIL_ON_LSA_ERROR(dwError);
+    bChangedToken = TRUE;
+
+    status = LwIoGetThreadAccessToken(&pAccessToken);
+    dwError = LwNtStatusToUnixErrno(status);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    status = InitNetlogonBindingDefault(&netr_b,
+                                        pszServerName,
+                                        pAccessToken,
+                                        FALSE);
+    if (status != 0)
+    {
+        LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
+                       pszServerName, status);
+        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        bIsNetworkError = TRUE;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaMbsToWc16s(pszDomainName, &pwcDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    winError = DsrGetDcName(netr_b,
+                            pwcServerName,
+                            pwcDomainName,
+                            NULL,
+                            NULL,
+                            dwGetDcNameflags,
+                            &pDcNameInfo);
+    if (winError)
+    {
+        LSA_LOG_DEBUG("Failed to get dc name information for %s at %s (error %d)",
+                      pszDomainName,
+                      pszServerName,
+                      winError);
+        dwError = LSA_ERROR_GET_DC_NAME_FAILED;
+        if (IsDceRpcConnError(winError))
+        {
+            bIsNetworkError = TRUE;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaWc16sToMbs(pDcNameInfo->domain_name, &pszDomainDnsOrFlatName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaWc16sToMbs(pDcNameInfo->forest_name, &pszDomainForestDnsName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (netr_b)
+    {
+        FreeNetlogonBinding(&netr_b);
+        netr_b = NULL;
+    }
+    LSA_SAFE_FREE_MEMORY(pwcServerName);
+    LSA_SAFE_FREE_MEMORY(pwcDomainName);
+    if (bChangedToken)
+    {
+        LwIoSetThreadAccessToken(pOldToken);
+    }
+    if (pOldToken != NULL)
+    {
+        LwIoDeleteAccessToken(pOldToken);
+    }
+    if (pAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
+    }
+    NetrFreeMemory((void*)pDcNameInfo);
+
+    *ppszDomainDnsOrFlatName = pszDomainDnsOrFlatName;
+    *ppszDomainForestDnsName = pszDomainForestDnsName;
+
+    if (pbIsNetworkError)
+    {
+        *pbIsNetworkError = bIsNetworkError;
+    }
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszDomainDnsOrFlatName);
+    LSA_SAFE_FREE_STRING(pszDomainForestDnsName);
+
+    goto cleanup;
+}
+
+DWORD
 AD_MapNetApiError(
     DWORD dwADError
     )

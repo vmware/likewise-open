@@ -78,8 +78,8 @@ PvfsFreeDirectoryContext(
     }
 
 
-    PVFS_SAFE_FREE_MEMORY(pDirCtx->pDirEntries);
-    PVFS_SAFE_FREE_MEMORY(pDirCtx);
+    PVFS_FREE(&pDirCtx->pDirEntries);
+    PVFS_FREE(&pDirCtx);
 
     return;
 }

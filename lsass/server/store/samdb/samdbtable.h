@@ -82,6 +82,7 @@
 #define SAM_DB_COL_ACCOUNT_EXPIRY       "AccountExpiry"
 #define SAM_DB_COL_LM_HASH              "LMHash"
 #define SAM_DB_COL_NT_HASH              "NTHash"
+#define SAM_DB_COL_PRIMARY_GROUP        "PrimaryGroup"
 #define SAM_DB_COL_GID                  "GID"
 #define SAM_DB_COL_CREATED_TIME         "CreatedTime"
 
@@ -115,6 +116,7 @@
                  SAM_DB_COL_ACCOUNT_EXPIRY       " INTEGER,\n"                 \
                  SAM_DB_COL_LM_HASH              " BLOB,\n"                    \
                  SAM_DB_COL_NT_HASH              " BLOB,\n"                    \
+                 SAM_DB_COL_PRIMARY_GROUP        " INTEGER,\n"                 \
                  SAM_DB_COL_GID                  " INTEGER,\n"                 \
                  SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
      "UNIQUE(" SAM_DB_COL_OBJECT_SID ", " SAM_DB_COL_DISTINGUISHED_NAME "),\n" \
@@ -213,6 +215,8 @@ typedef enum
     {'L','M','H','a','s','h',0}
 #define SAM_DB_DIR_ATTR_NT_HASH \
     {'N','T','H','a','s','h',0}
+#define SAM_DB_DIR_ATTR_PRIMARY_GROUP \
+    {'P','r','i','m','a','r','y','G','r','o','u','p',0}
 #define SAM_DB_DIR_ATTR_GID \
     {'G','I','D',0}
 #define SAM_DB_DIR_ATTR_MEMBERS \
@@ -426,6 +430,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
+        SAM_DB_DIR_ATTR_PRIMARY_GROUP,        \
+        SAM_DB_COL_PRIMARY_GROUP,             \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
         SAM_DB_DIR_ATTR_GID,                  \
         SAM_DB_COL_GID,                       \
         SAMDB_ATTR_TYPE_INT32,                \
@@ -557,13 +569,12 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                            \
         SAM_DB_DIR_ATTR_NT_HASH,                                 \
         SAM_DB_ATTR_FLAGS_NONE                                   \
-    }                                                            \
-    /* It's not certain this is mandatory attribute
+    },                                                           \
     {                                                            \
-        SAM_DB_DIR_ATTR_GID,                                     \
-        SAM_DB_ATTR_FLAGS_MANDATORY                              \
+        SAM_DB_DIR_ATTR_PRIMARY_GROUP,                           \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)            \
     }
-    */
 
 #define SAMDB_CONTAINER_ATTRIBUTE_MAP                            \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \

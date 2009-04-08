@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -63,7 +63,7 @@ SamrSrvLookupDomain(
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrCommonName[] = DS_ATTR_COMMON_NAME;
+    WCHAR wszAttrDomain[] = DS_ATTR_DOMAIN;
     WCHAR wszAttrObjectSID[] = DS_ATTR_OBJECT_SID;
     DWORD dwObjectClass = DS_OBJECT_CLASS_DOMAIN;
     WCHAR wszBuiltinDomainName[] = SAMR_BUILTIN_DOMAIN_NAME;
@@ -102,7 +102,7 @@ SamrSrvLookupDomain(
 
     dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
                   10 +
-                  (sizeof(wszAttrCommonName) - 1) +
+                  (sizeof(wszAttrDomain) - 1) +
                   domain_name->len +
                   sizeof(wszFilter);
 
@@ -113,7 +113,7 @@ SamrSrvLookupDomain(
 
     sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilter,
                 wszAttrObjectClass, dwObjectClass,
-                wszAttrCommonName, pwszDomainName);
+                wszAttrDomain, pwszDomainName);
 
     wszAttributes[0] = wszAttrObjectSID;
     wszAttributes[1] = NULL;
@@ -137,9 +137,10 @@ SamrSrvLookupDomain(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            status = SamrSrvAllocateSidFromWC16String(&pDomainSid,
-                                                      pAttrVal->pwszStringValue,
-                                                      pConnCtx);
+            status = SamrSrvAllocateSidFromWC16String(
+                            &pDomainSid,
+                            pAttrVal->data.pwszStringValue,
+                            pConnCtx);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {

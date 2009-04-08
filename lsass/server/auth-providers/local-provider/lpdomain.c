@@ -226,10 +226,10 @@ LocalGetSingleAttrValue(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pAttrs[0].pwszStringValue)
+    if (pAttrs[0].data.pwszStringValue)
     {
         dwError = LsaWc16sToMbs(
-                        pAttrs[0].pwszStringValue,
+                        pAttrs[0].data.pwszStringValue,
                         &pszValue);
         BAIL_ON_LSA_ERROR(dwError);
     }

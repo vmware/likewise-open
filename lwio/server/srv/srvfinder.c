@@ -1945,5 +1945,12 @@ SrvFinderFreeSearchSpace(
         LwRtlMemoryFree(pSearchSpace->pFileInfo);
     }
 
+    if (pSearchSpace->pwszSearchPattern)
+    {
+        SMBFreeMemory(pSearchSpace->pwszSearchPattern);
+
+    }
+
+
     LwRtlMemoryFree(pSearchSpace);
 }

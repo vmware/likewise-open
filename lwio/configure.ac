@@ -405,9 +405,17 @@ AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
 AC_CHECK_HEADERS([sys/vfs.h])
 AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
 
+AC_ARG_WITH([libattr],
+        [AC_HELP_STRING([--without-libattr], [Do not use libattr])],
+        [],
+        [with_libattr=yes]
+)
+
+AS_IF([test "x$with_libattr" != xno],[
 AC_CHECK_HEADERS([attr/xattr.h])
 AC_CHECK_FUNCS([setxattr fsetxattr getxattr fgetxattr])
 AC_CHECK_LIB([attr], [getxattr], [XATTR_LIBS="-lattr"])
+])
 AC_SUBST(XATTR_LIBS)
 
 AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])

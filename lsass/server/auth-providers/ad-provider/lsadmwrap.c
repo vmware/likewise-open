@@ -292,6 +292,13 @@ typedef struct _LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT {
     OUT DWORD dwCount;
 } LSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT, *PLSA_DM_WRAP_ENUM_DOMAIN_TRUSTS_CALLBACK_CONTEXT;
 
+typedef struct _LSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT {
+    IN PCSTR pszDomainName;
+    IN BOOLEAN bReturnDnsName;
+    OUT PSTR pszDomainDnsOrFlatName;
+    OUT PSTR pszDomainForestDnsName;
+} LSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT, *PLSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT;
+
 typedef struct _LSA_DM_WRAP_AUTH_USER_EX_CALLBACK_CONTEXT {
     IN PLSA_AUTH_USER_PARAMS pUserParams;
     OUT PLSA_AUTH_USER_INFO  *ppUserInfo;
@@ -413,6 +420,27 @@ LsaDmWrappDsEnumerateDomainTrustsCallback(
                                          &pCtx->pTrusts,
                                          &pCtx->dwCount,
                                          pbIsNetworkError);
+    return dwError;
+}
+
+static
+DWORD
+LsaDmWrappDsGetDcNameCallback(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN OPTIONAL PLWNET_DC_INFO pDcInfo,
+    IN OPTIONAL PVOID pContext,
+    OUT PBOOLEAN pbIsNetworkError
+    )
+{
+    DWORD dwError = 0;
+    PLSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT) pContext;
+
+    dwError = AD_DsGetDcName(pDcInfo->pszDomainControllerName,
+                             pCtx->pszDomainName,
+                             pCtx->bReturnDnsName,
+                             &pCtx->pszDomainDnsOrFlatName,
+                             &pCtx->pszDomainForestDnsName,
+                             pbIsNetworkError);
     return dwError;
 }
 
@@ -573,6 +601,37 @@ LsaDmWrapDsEnumerateDomainTrusts(
 
     *ppTrusts = context.pTrusts;
     *pdwCount = context.dwCount;
+
+    return dwError;
+}
+
+DWORD
+LsaDmWrapDsGetDcName(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszFindDomainName,
+    IN BOOLEAN bReturnDnsName,
+    OUT PSTR* ppszDomainDnsOrFlatName,
+    OUT OPTIONAL PSTR* ppszDomainForestDnsName
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_GET_DC_NAME_CALLBACK_CONTEXT context = { 0 };
+
+    context.pszDomainName = pszFindDomainName;
+    context.bReturnDnsName = bReturnDnsName;
+
+    dwError = LsaDmConnectDomain(pszDnsDomainName,
+                                 LSA_DM_CONNECT_DOMAIN_FLAG_AUTH |
+                                 LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO,
+                                 NULL,
+                                 LsaDmWrappDsGetDcNameCallback,
+                                 &context);
+
+    *ppszDomainDnsOrFlatName = context.pszDomainDnsOrFlatName;
+    if (ppszDomainForestDnsName)
+    {
+        *ppszDomainForestDnsName = context.pszDomainForestDnsName;
+    }
 
     return dwError;
 }
