@@ -42,7 +42,7 @@ typedef struct _ATTRIBUTE_VALUE
 {
     DIRECTORY_ATTR_TYPE Type;
 
-    union
+    union _ATTRIBUTE_VALUE_DATA
     {
         ULONG  ulValue;
         LONG64 llValue;
@@ -50,7 +50,7 @@ typedef struct _ATTRIBUTE_VALUE
         PSTR   pszStringValue;
         BOOL   bBooleanValue;
         POCTET_STRING pOctetString;
-    };
+    } data;
 
 } ATTRIBUTE_VALUE, *PATTRIBUTE_VALUE;
 
@@ -113,7 +113,7 @@ typedef struct _DIRECTORY_ENTRY
 #define DIRECTORY_FREE_STRING_AND_RESET(pszStr) \
     if (pszStr) { \
         DirectoryFreeString(pszStr); \
-        *(pszStr) = NULL; \
+        (pszStr) = NULL; \
     }
 
 #define DIRECTORY_FREE_MEMORY(pMem) \
@@ -124,7 +124,7 @@ typedef struct _DIRECTORY_ENTRY
 #define DIRECTORY_FREE_MEMORY_AND_RESET(pMem) \
     if (pMem) { \
         DirectoryFreeMemory(pMem); \
-        *(pMem) = NULL; \
+        (pMem) = NULL; \
     }
 
 DWORD

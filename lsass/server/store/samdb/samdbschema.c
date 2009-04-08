@@ -144,9 +144,9 @@ SamDbSchemaAddValidateDirMods(
                 }
 
                 if (((pAttrValue->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) &&
-                     !pAttrValue->pwszStringValue) ||
+                     !pAttrValue->data.pwszStringValue) ||
                     ((pAttrValue->Type == DIRECTORY_ATTR_TYPE_ANSI_STRING) &&
-                     !pAttrValue->pszStringValue))
+                     !pAttrValue->data.pszStringValue))
                 {
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);

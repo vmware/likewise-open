@@ -151,7 +151,7 @@ SamrSrvEnumDomainAliases(
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
             dwSize += sizeof(uint32);
-            dwSize += wc16slen(pAttrVal->pwszStringValue) * sizeof(WCHAR);
+            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(WCHAR);
             dwSize += 2 * sizeof(uint16);
 
             if (dwSize < max_size && pNames->entries) {
@@ -176,7 +176,7 @@ SamrSrvEnumDomainAliases(
             pNames->count = dwCount;
 
             status = InitUnicodeString(&(pNames->entries[dwCount - 1].name),
-                                       pAttrVal->pwszStringValue);
+                                       pAttrVal->data.pwszStringValue);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrSrvAddDepMemory(pNames->entries[dwCount - 1].name.string,
@@ -201,7 +201,7 @@ SamrSrvEnumDomainAliases(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_LARGE_INTEGER) {
-            pNames->entries[dwCount - 1].rid = pAttrVal->ulValue;
+            pNames->entries[dwCount - 1].rid = pAttrVal->data.ulValue;
 
         } else {
             status = STATUS_INTERNAL_ERROR;

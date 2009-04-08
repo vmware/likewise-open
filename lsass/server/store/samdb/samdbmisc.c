@@ -139,7 +139,7 @@ SamDbGetObjectClass(
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
-            switch (pAttrValue->ulValue)
+            switch (pAttrValue->data.ulValue)
             {
                 case SAMDB_OBJECT_CLASS_DOMAIN:
                 case SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN:
@@ -147,7 +147,7 @@ SamDbGetObjectClass(
                 case SAMDB_OBJECT_CLASS_GROUP:
                 case SAMDB_OBJECT_CLASS_USER:
 
-                    objectClass = pAttrValue->ulValue;
+                    objectClass = pAttrValue->data.ulValue;
 
                     break;
 

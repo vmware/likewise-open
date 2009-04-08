@@ -137,9 +137,10 @@ SamrSrvLookupDomain(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            status = SamrSrvAllocateSidFromWC16String(&pDomainSid,
-                                                      pAttrVal->pwszStringValue,
-                                                      pConnCtx);
+            status = SamrSrvAllocateSidFromWC16String(
+                            &pDomainSid,
+                            pAttrVal->data.pwszStringValue,
+                            pConnCtx);
             BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {

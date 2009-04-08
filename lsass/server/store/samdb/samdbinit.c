@@ -448,7 +448,7 @@ SamDbAddLocalDomain(
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    avObjectClass.ulValue = SAMDB_OBJECT_CLASS_DOMAIN;
+    avObjectClass.data.ulValue = SAMDB_OBJECT_CLASS_DOMAIN;
     mods[iMod].pAttrValues = &avObjectClass;
 
     dwError = LsaMbsToWc16s(
@@ -460,7 +460,7 @@ SamDbAddLocalDomain(
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avMachineSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avMachineSID.pwszStringValue = pwszMachineSID;
+    avMachineSID.data.pwszStringValue = pwszMachineSID;
     mods[iMod].pAttrValues = &avMachineSID;
 
     dwError = LsaMbsToWc16s(
@@ -472,7 +472,7 @@ SamDbAddLocalDomain(
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avDomainName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avDomainName.pwszStringValue = pwszDomainName;
+    avDomainName.data.pwszStringValue = pwszDomainName;
     mods[iMod].pAttrValues = &avDomainName;
 
     mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
@@ -494,7 +494,7 @@ SamDbAddLocalDomain(
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avNetBIOSName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avNetBIOSName.pwszStringValue = pwszNetBIOSName;
+    avNetBIOSName.data.pwszStringValue = pwszNetBIOSName;
     mods[iMod].pAttrValues = &avNetBIOSName;
 
     mods[++iMod].pwszAttrName = NULL;
@@ -574,21 +574,21 @@ SamDbAddContainer(
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avSID.pwszStringValue = pwszSID;
+    avSID.data.pwszStringValue = pwszSID;
     mods[iMod].pAttrValues = &avSID;
 
     mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    avObjectClass.ulValue = objectClass;
+    avObjectClass.data.ulValue = objectClass;
     mods[iMod].pAttrValues = &avObjectClass;
 
     mods[++iMod].pwszAttrName = &wszAttrNameContainerName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avContainerName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-    avContainerName.pwszStringValue = pwszContainerName;
+    avContainerName.data.pwszStringValue = pwszContainerName;
     mods[iMod].pAttrValues = &avContainerName;
 
     mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
@@ -711,21 +711,21 @@ SamDbAddBuiltinAccounts(
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avSID.pwszStringValue = pwszSID;
+        avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
 
         mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avObjectClass.ulValue = objectClass;
+        avObjectClass.data.ulValue = objectClass;
         mods[iMod].pAttrValues = &avObjectClass;
 
         mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avGroupName.pwszStringValue = pwszSamAccountName;
+        avGroupName.data.pwszStringValue = pwszSamAccountName;
         mods[iMod].pAttrValues = &avGroupName;
 
         mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
@@ -734,7 +734,7 @@ SamDbAddBuiltinAccounts(
         mods[iMod].pAttrValues = &avGroupName;
 
         avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avDescription.pwszStringValue = pwszDescription;
+        avDescription.data.pwszStringValue = pwszDescription;
         mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
@@ -749,52 +749,20 @@ SamDbAddBuiltinAccounts(
                         mods);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        if (pszObjectDN) {
-            DIRECTORY_FREE_STRING(pszObjectDN);
-            pszObjectDN = NULL;
-        }
-
-        if (pwszObjectDN) {
-            DIRECTORY_FREE_MEMORY(pwszObjectDN);
-            pwszObjectDN = NULL;
-        }
-
-        if (pwszSamAccountName) {
-            DIRECTORY_FREE_MEMORY(pwszSamAccountName);
-            pwszSamAccountName = NULL;
-        }
-
-        if (pwszSID) {
-            DIRECTORY_FREE_MEMORY(pwszSID);
-            pwszSID = NULL;
-        }
-
-        if (pwszDescription) {
-            DIRECTORY_FREE_MEMORY(pwszDescription);
-            pwszDescription = NULL;
-        }
+        DIRECTORY_FREE_STRING_AND_RESET(pszObjectDN);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszObjectDN);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszSamAccountName);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszSID);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszDescription);
     }
 
 cleanup:
-    if (pszObjectDN) {
-        DIRECTORY_FREE_STRING(pszObjectDN);
-    }
 
-    if (pwszObjectDN) {
-        DIRECTORY_FREE_MEMORY(pwszObjectDN);
-    }
-
-    if (pwszSamAccountName) {
-        DIRECTORY_FREE_MEMORY(pwszSamAccountName);
-    }
-
-    if (pwszSID) {
-        DIRECTORY_FREE_MEMORY(pwszSID);
-    }
-
-    if (pwszDescription) {
-        DIRECTORY_FREE_MEMORY(pwszDescription);
-    }
+    DIRECTORY_FREE_STRING(pszObjectDN);
+    DIRECTORY_FREE_MEMORY(pwszObjectDN);
+    DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+    DIRECTORY_FREE_MEMORY(pwszSID);
+    DIRECTORY_FREE_MEMORY(pwszDescription);
 
     return dwError;
 
@@ -921,21 +889,21 @@ SamDbAddLocalAccounts(
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avSID.pwszStringValue = pwszSID;
+        avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
 
         mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avObjectClass.ulValue = objectClass;
+        avObjectClass.data.ulValue = objectClass;
         mods[iMod].pAttrValues = &avObjectClass;
 
         mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avGroupName.pwszStringValue = pwszSamAccountName;
+        avGroupName.data.pwszStringValue = pwszSamAccountName;
         mods[iMod].pAttrValues = &avGroupName;
 
         mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
@@ -947,7 +915,7 @@ SamDbAddLocalAccounts(
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avDescription.pwszStringValue = pwszDescription;
+        avDescription.data.pwszStringValue = pwszDescription;
         mods[iMod].pAttrValues = &avDescription;
 
         mods[++iMod].pwszAttrName = NULL;

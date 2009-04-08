@@ -144,7 +144,7 @@ SamrSrvEnumDomains(
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
             //            dwSize += sizeof(uint32);
-            dwSize += wc16slen(pAttrVal->pwszStringValue) * sizeof(wchar16_t);
+            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(wchar16_t);
             //            dwSize += 2 * sizeof(uint16);
 
             if (dwSize < size && pDomains->entries) {
@@ -167,7 +167,7 @@ SamrSrvEnumDomains(
             pDomains->entries[dwCount - 1].idx = i;
 
             status = SamrSrvInitUnicodeString(&(pDomains->entries[dwCount - 1].name),
-                                              pAttrVal->pwszStringValue,
+                                              pAttrVal->data.pwszStringValue,
                                               pDomains->entries);
             BAIL_ON_NTSTATUS_ERROR(status);
 

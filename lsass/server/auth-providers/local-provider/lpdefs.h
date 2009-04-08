@@ -113,6 +113,12 @@
     {'H','o','m','e','d','i','r',0}
 #define LOCAL_DIR_ATTR_SHELL \
     {'L','o','g','i','n','S','h','e','l','l',0}
+#define LOCAL_DIR_CN_PREFIX \
+    {'C','N','=',0}
+#define LOCAL_DIR_OU_PREFIX \
+    {'O','U','=',0}
+#define LOCAL_DIR_DC_PREFIX \
+    {'D','C','=',0}
 
 typedef DWORD LOCAL_ACCESS_FLAG;
 
