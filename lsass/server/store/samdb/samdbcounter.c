@@ -130,6 +130,7 @@ SamDbGetNextAvailableUID(
         "   SET UIDCounter = UIDCounter + 1";
     DWORD dwUID = 0;
 
+    // TODO: Make sure the id is not being used
     dwError = SamDbGetNextAvailableId(
                     hDirectory,
                     pszQueryTemplate,
@@ -162,6 +163,7 @@ SamDbGetNextAvailableGID(
         "   SET GIDCounter = GIDCounter + 1";
     DWORD dwGID = 0;
 
+    // TODO: Make sure the id is not being used
     dwError = SamDbGetNextAvailableId(
                     hDirectory,
                     pszQueryTemplate,
@@ -194,6 +196,7 @@ SamDbGetNextAvailableRID(
         "   SET RIDCounter = RIDCounter + 1";
     DWORD dwRID = 0;
 
+    // TODO: Make sure the id is not being used
     dwError = SamDbGetNextAvailableId(
                     hDirectory,
                     pszQueryTemplate,
