@@ -1,6 +1,7 @@
 #!/bin/bash -c "exit 1"
 
-COMP_SOURCES=${BUILD_ROOT}/libtdb
+COMP_NAME="libtdb"
+COMP_SOURCES="${BUILD_ROOT}/${COMP_NAME}"
 
 function _setup_build_env
 {
@@ -67,8 +68,14 @@ function component_install
 {
     _setup_build_env
 
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+
+    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${STAGE_INSTALL_DIR}
+
     cd ${COMP_SOURCES}/replace
-    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
     _SHLIBEXT="so"
     _SONAMEFLAG="-Wl,-soname="
@@ -80,7 +87,9 @@ function component_install
     PICFLAG="-fPIC" \
     SONAMEFLAG="${_SONAMEFLAG}" \
     SHLIBEXT="${_SHLIBEXT}" \
-    DESTDIR=${STAGE_INSTALL_DIR} install
+    DESTDIR=${INSTALL_ROOT} install
+
+    rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
 
     libtool_rewrite_staging
 }

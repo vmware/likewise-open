@@ -1,6 +1,7 @@
 #!/bin/bash -c "exit 1"
 
-COMP_SOURCES=${BUILD_ROOT}/domainjoin
+COMP_NAME="domainjoin"
+COMP_SOURCES="${BUILD_ROOT}/${COMP_NAME}"
 
 function _setup_build_env
 {
@@ -58,29 +59,46 @@ function component_install
 {
     _setup_build_env
 
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+    local INSTALL_PREFIX_ROOT="${INSTALL_ROOT}/${PREFIXDIR}"
     local STAGING_PREFIX_DIR=${STAGE_INSTALL_DIR}/${PREFIXDIR}
 
-    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${INSTALL_PREFIX_ROOT}
+    mkdir -p ${STAGE_INSTALL_DIR}
+
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
     mkdir -m 755 -p ${STAGING_PREFIX_DIR}/bin
     mkdir -m 755 -p ${STAGING_PREFIX_DIR}/${_lib}
     mkdir -m 755 -p ${STAGING_PREFIX_DIR}/include
     mkdir -m 755 -p ${STAGING_PREFIX_DIR}/share/likewise
 
-    cp libdomainjoin/include/*.h ${STAGING_PREFIX_DIR}/include/
-    cp scripts/ConfigureLogin ${STAGING_PREFIX_DIR}/bin/
-    cp scripts/gpcron ${STAGING_PREFIX_DIR}/bin/
+
+    mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/bin
+    mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/${_lib}
+    mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/include
+    mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/share/likewise
+
+    cp libdomainjoin/include/*.h ${INSTALL_PREFIX_ROOT}/include/
+    cp scripts/ConfigureLogin ${INSTALL_PREFIX_ROOT}/bin/
+    cp scripts/gpcron ${INSTALL_PREFIX_ROOT}/bin/
 
     if [ -x domainjoin-gui/gtk/domainjoin-gtk ] ; then
-        mkdir -m 755 -p ${STAGING_PREFIX_DIR}/share
+        mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/share
 
-        mv ${STAGING_PREFIX_DIR}/bin/domainjoin-gtk ${STAGING_PREFIX_DIR}/bin/domainjoin-gui
-        cp domainjoin-gui/gtk/domainjoin-gtk.glade ${STAGING_PREFIX_DIR}/share/likewise
-        cp domainjoin-gui/gtk/*.png ${STAGING_PREFIX_DIR}/share/likewise
+        mv ${INSTALL_PREFIX_ROOT}/bin/domainjoin-gtk ${INSTALL_PREFIX_ROOT}/bin/domainjoin-gui
+        cp domainjoin-gui/gtk/domainjoin-gtk.glade ${INSTALL_PREFIX_ROOT}/share/likewise
+        cp domainjoin-gui/gtk/*.png ${INSTALL_PREFIX_ROOT}/share/likewise
     fi
 
     if [ -f domainjoin-gui/carbon/libdomainjoin-mac/src/libdomainjoin-mac.so.1 ]; then
-       cp domainjoin-gui/carbon/libdomainjoin-mac/src/libdomainjoin-mac.so* ${STAGING_PREFIX_DIR}/${_lib}/
+       cp domainjoin-gui/carbon/libdomainjoin-mac/src/libdomainjoin-mac.so* ${INSTALL_PREFIX_ROOT}/${_lib}/
 
     fi
+
+    rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
+
+    libtool_rewrite_staging
 }

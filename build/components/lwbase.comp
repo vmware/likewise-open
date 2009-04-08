@@ -1,6 +1,7 @@
 #!/bin/sh
 
-COMP_SOURCES="${BUILD_ROOT}/lwbase"
+COMP_NAME="lwbase"
+COMP_SOURCES="${BUILD_ROOT}/${COMP_NAME}"
 
 function _setup_build_env
 {
@@ -36,7 +37,15 @@ function component_install
 {
     _setup_build_env
 
-    ${MAKE} DESTDIR=${STAGE_INSTALL_DIR} install
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+
+    [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${STAGE_INSTALL_DIR}
+
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
+
+    rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
 
     libtool_rewrite_staging
 }

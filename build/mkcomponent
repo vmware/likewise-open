@@ -13,7 +13,8 @@ LOCALSTATEDIR="/var/lib/${PRODUCTNAME}"
 SCRIPTDIR=""
 LIBEXECDIR="${PREFIXDIR}/bin"
 
-STAGE_INSTALL_DIR="${BUILD_ROOT}/build-install"
+STAGE_INSTALL_DIR="${BUILD_ROOT}/stage-install"
+STAGE_COMP_DIR="${BUILD_ROOT}/stage-components"
 
 ## Check if we have any overrides
 if [ -n "${BUILD_PREFIXDIR}" ]; then

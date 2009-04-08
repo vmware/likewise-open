@@ -4,7 +4,8 @@
 # krb5.comp -- see ../../helper.sh for how this file works.
 #
 
-COMP_SOURCES=${BUILD_ROOT}/krb5
+COMP_NAME="krb5"
+COMP_SOURCES=${BUILD_ROOT}/${COMP_NAME}
 
 function _setup_build_env
 {
@@ -71,17 +72,18 @@ function component_install
 {
     _setup_build_env
 
-    local INSTALL_ROOT="${STAGE_INSTALL_DIR}-krb5"
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
     local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
     local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
     local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
 
     [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
     mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${STAGE_INSTALL_DIR}
+
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
-    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/${_lib}
-    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/include
+    mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/{bin,include,${_lib}}
     mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
 
     for file in kinit klist kdestroy kpasswd kvno ksu krb5-config; do
@@ -95,7 +97,8 @@ function component_install
     rsync -a --exclude=kerberosIV ${INSTALL_PREFIX_DIR}/include/ ${STAGING_PREFIX_DIR}/include/.
 
     # Do we want to also exclude some others (libdes425, libgssrpc)?
-    rsync -a --exclude=krb5 --exclude=bin --exclude="libkadm5*" --exclude="libkdb5*" ${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
+    rsync -a --exclude=krb5 --exclude=bin --exclude="libkadm5*" --exclude="libkdb5*" \
+	${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
 
     # Create default krb5.conf
     echo "[libdefaults]" > ${STAGING_SYSCONF_DIR}/krb5.conf
