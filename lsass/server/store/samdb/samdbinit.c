@@ -62,14 +62,6 @@ SamDbAddBuiltinAccounts(
 
 static
 DWORD
-SamDbAddLocalGroups(
-    HANDLE    hDirectory,
-    PCSTR     pszDomainDN,
-    PSID      pMachineSid
-    );
-
-static
-DWORD
 SamDbAddLocalAccounts(
     HANDLE    hDirectory,
     PCSTR     pszDomainDN,
@@ -301,12 +293,6 @@ SamDbAddDefaultEntries(
     dwError = SamDbAddBuiltinAccounts(
                     hDirectory,
                     pszDomainDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbAddLocalGroups(
-                    hDirectory,
-                    pszDomainDN,
-                    pMachineSid);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbAddLocalAccounts(
@@ -658,6 +644,12 @@ SamDbAddBuiltinAccounts(
                               "Users group by default, except for the Guest "
                               "account which is further restricted",
             .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+        },
+        {
+            .pszName        = "Users",
+            .pszSID         = "S-1-5-32-545",
+            .pszDescription = "Default group for all users",
+            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
         }
     };
 
@@ -784,204 +776,6 @@ error:
 
     goto cleanup;
 }
-
-static
-DWORD
-SamDbAddLocalGroups(
-    HANDLE    hDirectory,
-    PCSTR     pszDomainDN,
-    PSID      pMachineSid
-    )
-{
-    struct LocalGroup {
-        PCSTR               pszName;
-        DWORD               dwRid;
-        DWORD               dwGID;
-        PCSTR               pszDescription;
-        SAMDB_OBJECT_CLASS  objectClass;
-    } localGroups[] =
-    {
-        {
-            .pszName        = "Users",
-            .dwRid          = DOMAIN_GROUP_RID_USERS,
-            .dwGID          = DOMAIN_GROUP_RID_USERS,
-            .pszDescription = "Local group that includes all users",
-            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
-        }
-    };
-
-    DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t wszAttrNameGID[] = SAM_DB_DIR_ATTR_GID;
-    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
-    PCSTR     pszName = NULL;
-    DWORD     dwRid = 0;
-    DWORD     dwGID = 0;
-    PCSTR     pszDescription = NULL;
-    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
-    PSTR      pszObjectDN = NULL;
-    PSID      pGroupSid = NULL;
-    ULONG     ulGroupSidLength = 0;
-    PWSTR     pwszSamAccountName = NULL;
-    PWSTR     pwszObjectDN = NULL;
-    PWSTR     pwszSID = NULL;
-    PWSTR     pwszDescription = NULL;
-    ATTRIBUTE_VALUE avGID = {0};
-    ATTRIBUTE_VALUE avGroupName = {0};
-    ATTRIBUTE_VALUE avSID = {0};
-    ATTRIBUTE_VALUE avObjectClass = {0};
-    ATTRIBUTE_VALUE avDescription = {0};
-    DIRECTORY_MOD mods[7];
-    ULONG     iMod = 0;
-    DWORD     i = 0;
-
-    for (i = 0; i < sizeof(localGroups)/sizeof(localGroups[0]); i++)
-    {
-        pszName        = localGroups[i].pszName;
-        dwRid          = localGroups[i].dwRid;
-        dwGID          = localGroups[i].dwGID;
-        pszDescription = localGroups[i].pszDescription;
-        objectClass    = localGroups[i].objectClass;
-
-        iMod    = 0;
-        memset(mods, 0, sizeof(mods));
-
-        ulGroupSidLength = RtlLengthRequiredSid(
-                                  pMachineSid->SubAuthorityCount + 1);
-
-        dwError = LsaAllocateMemory(ulGroupSidLength, (void**)&pGroupSid);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        status = RtlCopySid(ulGroupSidLength, pGroupSid, pMachineSid);
-        if (status != 0)
-        {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
-
-        status = RtlAppendRidSid(ulGroupSidLength, pGroupSid, dwRid);
-        if (status != 0)
-        {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
-
-        dwError = LsaAllocateStringPrintf(
-                        &pszObjectDN,
-                        "CN=%s,%s",
-                        pszName,
-                        pszDomainDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszObjectDN,
-                        &pwszObjectDN);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszName,
-                        &pwszSamAccountName);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszDescription,
-                        &pwszDescription);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        status = RtlAllocateWC16StringFromSid(
-                        &pwszSID,
-                        pGroupSid);
-        if (status != 0) {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
-            BAIL_ON_SAMDB_ERROR(dwError);
-        }
-
-        mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avSID.data.pwszStringValue = pwszSID;
-        mods[iMod].pAttrValues = &avSID;
-
-        mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avObjectClass.data.ulValue = objectClass;
-        mods[iMod].pAttrValues = &avObjectClass;
-
-        mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avGID.data.ulValue = dwGID;
-        mods[iMod].pAttrValues = &avGID;
-
-        mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avGroupName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avGroupName.data.pwszStringValue = pwszSamAccountName;
-        mods[iMod].pAttrValues = &avGroupName;
-
-        mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        mods[iMod].pAttrValues = &avGroupName;
-
-        mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avDescription.data.pwszStringValue = pwszDescription;
-        mods[iMod].pAttrValues = &avDescription;
-
-        mods[++iMod].pwszAttrName = NULL;
-        mods[iMod].pAttrValues = NULL;
-
-        dwError = SamDbAddObject(
-                        hDirectory,
-                        pwszObjectDN,
-                        mods);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        DIRECTORY_FREE_STRING_AND_RESET(pszObjectDN);
-        DIRECTORY_FREE_MEMORY_AND_RESET(pwszObjectDN);
-        DIRECTORY_FREE_MEMORY_AND_RESET(pwszSamAccountName);
-        DIRECTORY_FREE_MEMORY_AND_RESET(pwszDescription);
-
-        if (pwszSID) {
-            RTL_FREE(&pwszSID);
-            pwszSID = NULL;
-        }
-
-        DIRECTORY_FREE_MEMORY_AND_RESET(pGroupSid);
-    }
-
-cleanup:
-
-    DIRECTORY_FREE_STRING(pszObjectDN);
-    DIRECTORY_FREE_MEMORY(pwszObjectDN);
-    DIRECTORY_FREE_MEMORY(pwszSamAccountName);
-
-    if (pwszSID) {
-        RTL_FREE(&pwszSID);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pGroupSid);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-
 
 static
 DWORD

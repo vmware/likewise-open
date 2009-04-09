@@ -51,8 +51,8 @@
 
 DWORD
 LocalDirFindGroupByName(
-    HANDLE  hDb,
-    PCSTR   pszDomain,
+    HANDLE  hProvider,
+    PCSTR   pszDomainName,
     PCSTR   pszGroupName,
     DWORD   dwGroupInfoLevel,
     PVOID*  ppGroupInfo
@@ -60,7 +60,7 @@ LocalDirFindGroupByName(
 
 DWORD
 LocalDirFindGroupByName_0(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
@@ -68,7 +68,7 @@ LocalDirFindGroupByName_0(
 
 DWORD
 LocalDirGetGroupsForUser(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     uid_t   uid,
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
@@ -77,7 +77,7 @@ LocalDirGetGroupsForUser(
 
 DWORD
 LocalDirFindGroupByName_1(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
@@ -85,7 +85,7 @@ LocalDirFindGroupByName_1(
 
 DWORD
 LocalDirGetGroupsForUser_0(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     uid_t uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -94,7 +94,7 @@ LocalDirGetGroupsForUser_0(
 
 DWORD
 LocalDirGetGroupsForUser_1(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     uid_t uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -102,7 +102,7 @@ LocalDirGetGroupsForUser_1(
 
 DWORD
 LocalDirFindGroupByName_0(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
@@ -110,7 +110,7 @@ LocalDirFindGroupByName_0(
 
 DWORD
 LocalDirFindGroupByName_1(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
     PVOID*  ppGroupInfo
@@ -118,7 +118,7 @@ LocalDirFindGroupByName_1(
 
 DWORD
 LocalDirEnumGroups(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     DWORD   dwGroupInfoLevel,
     DWORD   dwStartingRecordId,
     DWORD   nMaxGroups,
@@ -128,7 +128,7 @@ LocalDirEnumGroups(
 
 DWORD
 LocalDirEnumGroups_0(
-    HANDLE    hDb,
+    HANDLE    hProvider,
     DWORD     dwOffset,
     DWORD     dwLimit,
     PDWORD    pdwNumGroupsFound,
@@ -137,7 +137,7 @@ LocalDirEnumGroups_0(
 
 DWORD
 LocalDirEnumGroups_1(
-    HANDLE    hDb,
+    HANDLE    hProvider,
     DWORD     dwOffset,
     DWORD     dwLimit,
     PDWORD    pdwNumGroupsFound,
@@ -146,7 +146,7 @@ LocalDirEnumGroups_1(
 
 DWORD
 LocalDirFindGroupById(
-    HANDLE  hDb,
+    HANDLE  hProvider,
     gid_t   gid,
     DWORD   dwGroupInfoLevel,
     PVOID*  ppGroupInfo
@@ -154,16 +154,41 @@ LocalDirFindGroupById(
 
 DWORD
 LocalDirFindGroupById_0(
-    HANDLE hDb,
+    HANDLE hProvider,
     gid_t  gid,
     PVOID* ppGroupInfo
     );
 
 DWORD
 LocalDirFindGroupById_1(
-    HANDLE hDb,
+    HANDLE hProvider,
     gid_t  gid,
     PVOID* ppGroupInfo
+    );
+
+DWORD
+LocalDirAddGroup(
+    HANDLE hProvider,
+    DWORD  dwInfoLevel,
+    PVOID  pGroupInfo
+    );
+
+DWORD
+LocalDirAddGroup_0(
+    HANDLE            hProvider,
+    PLSA_GROUP_INFO_0 pGroupInfo
+    );
+
+DWORD
+LocalDirAddGroup_1(
+    HANDLE            hProvider,
+    PLSA_GROUP_INFO_1 pGroupInfo
+    );
+
+DWORD
+LocalDirDeleteGroup(
+    HANDLE hProvider,
+    PWSTR  pwszGroupDN
     );
 
 #endif /* __LP_GROUP_H__ */

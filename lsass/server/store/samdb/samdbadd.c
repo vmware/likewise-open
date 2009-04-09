@@ -1084,7 +1084,7 @@ SamDbAddGeneratePrimaryGroup(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     pAttrValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    pAttrValue->data.ulValue = DOMAIN_GROUP_RID_USERS;
+    pAttrValue->data.ulValue = DOMAIN_ALIAS_RID_USERS;
 
     *ppAttrValues = pAttrValue;
     *pdwNumValues = 1;

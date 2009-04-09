@@ -69,6 +69,7 @@
 #include "lpevent.h"
 #include "lpdomain.h"
 #include "lpaccess.h"
+#include "lpmisc.h"
 
 #include "externs.h"
 

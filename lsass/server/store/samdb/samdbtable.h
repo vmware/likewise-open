@@ -210,7 +210,7 @@ typedef enum
 #define SAM_DB_DIR_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY \
-    {'A','c','c','o','n','t','E','x','p','i','r','y',0}
+    {'A','c','c','o','u','n','t','E','x','p','i','r','y',0}
 #define SAM_DB_DIR_ATTR_LM_HASH \
     {'L','M','H','a','s','h',0}
 #define SAM_DB_DIR_ATTR_NT_HASH \

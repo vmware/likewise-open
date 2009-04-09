@@ -90,6 +90,29 @@ error:
 }
 
 DWORD
+LocalCheckForPasswordChangeAccess(
+    HANDLE hProvider,
+    uid_t  targetUid
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    // TODO: Check if the user is allowed to change the password
+
+    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_MODIFY))
+    {
+        dwError = EACCES;
+    }
+
+error:
+
+    return dwError;
+}
+
+DWORD
 LocalCheckForQueryAccess(
     HANDLE hProvider
     )

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lpaccess.h
+ *        lpmisc.c
  *
  * Abstract:
  *
@@ -41,38 +41,56 @@
  *
  *        Local Authentication Provider
  *
- *        Access Check API
+ *        Miscellaneous
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LP_ACCESS_H__
-#define __LP_ACCESS_H__
+
+#include "includes.h"
+
 
 DWORD
-LocalCheckForAddAccess(
-    HANDLE hProvider
-    );
+LocalBuildDN(
+    PLSA_LOGIN_NAME_INFO pLoginInfo,
+    PWSTR*               ppwszDN
+    )
+{
+    DWORD dwError = 0;
+    WCHAR wszCNPrefix[] = LOCAL_DIR_CN_PREFIX;
+    PWSTR pwszName = NULL;
+    PWSTR pwszDN = NULL;
 
-DWORD
-LocalCheckForModifyAccess(
-    HANDLE hProvider
-    );
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszName,
+                    &pwszName);
+    BAIL_ON_LSA_ERROR(dwError);
 
-DWORD
-LocalCheckForPasswordChangeAccess(
-    HANDLE hProvider,
-    uid_t  targetUid
-    );
+    dwError = LsaAllocateMemory(
+                    sizeof(wszCNPrefix) + strlen(pLoginInfo->pszName) * sizeof(WCHAR),
+                    (PVOID*)&pwszDN);
+    BAIL_ON_LSA_ERROR(dwError);
 
-DWORD
-LocalCheckForQueryAccess(
-    HANDLE hProvider
-    );
+    // Build CN=<sam account name>
+    memcpy((PBYTE)pwszDN, (PBYTE)&wszCNPrefix[0], sizeof(wszCNPrefix) - sizeof(WCHAR));
 
-DWORD
-LocalCheckForDeleteAccess(
-    HANDLE hProvider
-    );
+    memcpy((PBYTE)(pwszDN + sizeof(wszCNPrefix) - sizeof(WCHAR)),
+           (PBYTE)pwszName,
+           strlen(pLoginInfo->pszName) * sizeof(WCHAR));
 
-#endif /* __LP_ACCESS_H__ */
+    *ppwszDN = pwszDN;
+
+cleanup:
+
+    LSA_SAFE_FREE_MEMORY(pwszName);
+
+    return dwError;
+
+error:
+
+    *ppwszDN = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszDN);
+
+    goto cleanup;
+}
