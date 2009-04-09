@@ -45,6 +45,18 @@ NetrCleanStubValidationInfo(
     );
 
 
+void
+NetrCleanStubDcNameInfo(
+    DsrDcNameInfo *r
+    );
+
+
+void
+NetrFreeStubDcNameInfo(
+    DsrDcNameInfo *ptr
+    );
+
+
 #endif /* _NETR_STUB_MEMORY_H */
 
 
