@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -54,6 +54,22 @@
 DWORD
 LsaDmEngineDiscoverTrusts(
     IN PCSTR pszDnsPrimaryDomainName
+    );
+
+DWORD
+LsaDmEngineGetDomainInfoWithNT4Name(
+    IN PCSTR pszDomainName,
+    IN PCSTR pszObjectName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetBiosDomainName
+    );
+
+DWORD
+LsaDmEngineGetDomainInfoWithObjectSid(
+    IN PCSTR pszObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetBiosDomainName,
+    OUT OPTIONAL PSTR* ppszDomainSid
     );
 
 #endif /* __LSA_DM_ENGINE_H__ */

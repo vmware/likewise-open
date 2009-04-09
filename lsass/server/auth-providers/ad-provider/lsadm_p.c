@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -116,10 +116,10 @@ typedef struct _LSA_DM_DOMAIN_STATE {
     /// Typically NULL for external trusts as it is
     /// not needed in that case.
     PSTR pszForestName;
-    
+
     /// Lsa internal trust category
     LSA_TRUST_DIRECTION dwTrustDirection;
-    LSA_TRUST_MODE dwTrustMode;    
+    LSA_TRUST_MODE dwTrustMode;
 
     /// These three are NULL unless someone explictily stored DC/GC info.
     PSTR pszClientSiteName;
@@ -692,7 +692,7 @@ LsaDmpModifyStateFlags(
     LsaDmpAcquireMutex(Handle->pMutex);
 
     stateFlags = Handle->StateFlags;
-    
+
     ClearFlag(stateFlags, ClearFlags);
     SetFlag(stateFlags, SetFlags);
 
@@ -842,7 +842,7 @@ LsaDmpDomainSetDcInfoInternal(
                          LOG_WRAP_STRING(pDomain->pszClientSiteName),
                          pDcInfo->pszClientSiteName);
         }
-        
+
         dwError = LsaAllocateString(pDcInfo->pszClientSiteName, &pszClientSiteName);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1329,7 +1329,7 @@ LsaDmpAddTrustedDomain(
         dwError = LSA_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (IS_BOTH_OR_NEITHER(pszTrusteeDnsDomainName, IsSetFlag(dwTrustFlags, NETR_TRUST_FLAG_PRIMARY)))
     {
         if (pszTrusteeDnsDomainName)
@@ -1628,17 +1628,17 @@ LsaDmpEnumDomainsFilteredCallback(
         DWORD dwNewCapacity = 0;
         DWORD dwNewSize = 0;
         DWORD dwSize = 0;
-    
+
         // Note that the first time needs to use at least 2.
         dwNewCapacity = LSA_MAX(2, pEnumContext->dwCapacity + 10);
         dwNewSize = sizeof(pItems[0]) * dwNewCapacity;
-    
+
         dwError = LsaAllocateMemory(dwNewSize, (PVOID*)&pItems);
         BAIL_ON_LSA_ERROR(dwError);
-    
+
         dwSize = sizeof(pItems[0]) * pEnumContext->dwCapacity;
         memcpy(pItems, pEnumContext->pItems, dwSize);
-    
+
         pEnumContext->dwCapacity = dwNewCapacity;
         LsaFreeMemory(pEnumContext->pItems);
         pEnumContext->pItems = pItems;
@@ -1802,7 +1802,7 @@ LsaDmpQueryDomainInfoInternal(
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-        
+
     LsaDmpAcquireMutex(Handle->pMutex);
     bIsAcquired = TRUE;
 
@@ -2188,7 +2188,7 @@ LsaDmpSetForceOfflineState(
 
     LsaDmpAcquireMutex(Handle->pMutex);
     bIsAcquired = TRUE;
-    
+
     if (!pszDomainName)
     {
         // Handle global case.
@@ -2712,7 +2712,7 @@ LsaDmpLdapOpen(
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
 
     BAIL_ON_INVALID_STRING(pszDnsDomainName);
- 
+
     // If the global offline state says everything is offline, don't
     // return anything off the free list (the free list is only cleared when a
     // domain goes offline, not when the machine goes globally offline).

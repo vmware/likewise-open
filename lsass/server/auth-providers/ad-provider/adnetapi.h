@@ -146,6 +146,16 @@ AD_SidToString(
     );
 
 DWORD
+AD_DsGetDcName(
+    IN PCSTR pszServerName,
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bReturnDnsName,
+    OUT PSTR* ppszDomainDnsOrFlatName,
+    OUT PSTR* ppszDomainForestDnsName,
+    OUT OPTIONAL PBOOLEAN pbIsNetworkError
+    );
+
+DWORD
 AD_MapNetApiError(
     DWORD dwADError
     );

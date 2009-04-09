@@ -513,13 +513,23 @@ AD_AuthenticateUserEx(
     DWORD dwError = LSA_ERROR_INTERNAL;
     PSTR pszDnsDomain = NULL;
     PSTR pszNetbiosDomain = NULL;
+    PSTR pszNT4Name = NULL;
 
-    /* The NTLM pass-through authentiocation gives us the NT4
-       style name.  We need the DNS domain fpr for the LsaDmConnectDomain() */
+    /* The NTLM pass-through authentication gives us the NT4
+       style name.  We need the DNS domain for for the LsaDmConnectDomain() */
 
-    dwError = LsaDmWrapGetDomainName(pUserParams->pszDomain,
-				     &pszDnsDomain,
-				     &pszNetbiosDomain);
+    dwError = LsaAllocateStringPrintf(
+                    &pszNT4Name,
+                    "%s\\%s",
+                    pUserParams->pszDomain,
+                    pUserParams->pszAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmEngineGetDomainInfoWithNT4Name(
+                    pUserParams->pszDomain,
+                    pszNT4Name,
+                    &pszDnsDomain,
+                    &pszNetbiosDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Authenticate (passing through the proper server affinity calls) */
@@ -530,6 +540,7 @@ AD_AuthenticateUserEx(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LSA_SAFE_FREE_STRING(pszNT4Name);
     LSA_SAFE_FREE_MEMORY(pszDnsDomain);
     LSA_SAFE_FREE_MEMORY(pszNetbiosDomain);
 
@@ -1882,10 +1893,11 @@ AD_GroupObjectToGroupInfo(
             break;
         case 1:
             // need to expand membership
-            dwError = LsaDmWrapGetDomainName(
-                            pGroupObject->pszNetbiosDomainName,
-                            &pszFullDomainName,
-                            NULL);
+            dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+                         pGroupObject->pszObjectSid,
+                         &pszFullDomainName,
+                         NULL,
+                         NULL);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = AD_GetExpandedGroupUsers(
