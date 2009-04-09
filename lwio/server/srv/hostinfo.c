@@ -13,7 +13,6 @@ SrvAcquireHostInfo(
     )
 {
     NTSTATUS ntStatus = 0;
-    CHAR szHostname[256];
     PSTR pszDomain = NULL;
     PSRV_HOST_INFO pHostInfo = NULL;
     PSRV_HOST_INFO pNewHostInfo = NULL;
@@ -34,14 +33,7 @@ SrvAcquireHostInfo(
         ntStatus = LWNetGetCurrentDomain(&pszDomain);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (gethostname(szHostname, sizeof(szHostname)) != 0)
-        {
-            ntStatus = LwUnixErrnoToNtStatus(errno);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        ntStatus = SMBAllocateString(
-                        szHostname,
+        ntStatus = LwioGetHostInfo(
                         &pHostInfo->pszHostname);
         BAIL_ON_NT_STATUS(ntStatus);
 

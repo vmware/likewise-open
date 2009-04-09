@@ -228,18 +228,11 @@ SrvInitialize(
     NTSTATUS ntStatus = 0;
     INT      iReader = 0;
     INT      iWorker = 0;
-    CHAR     szHostname[256];
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
-
-    if (gethostname(szHostname, sizeof(szHostname)) != 0)
-    {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareDBContext);
     BAIL_ON_NT_STATUS(ntStatus);
