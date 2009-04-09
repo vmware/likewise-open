@@ -116,7 +116,10 @@ cleanup:
     
 error:
 
-    *ppszResponse = NULL;
+    if (ppszResponse != NULL)
+    {
+        *ppszResponse = NULL;
+    }
     
     LSA_SAFE_CLEAR_FREE_STRING(pszResponse);
 
