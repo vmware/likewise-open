@@ -73,7 +73,7 @@
 #define SAM_DB_COL_DESCRIPTION          "Description"
 #define SAM_DB_COL_UID                  "UID"
 #define SAM_DB_COL_PASSWORD             "Password"
-#define SAM_DB_COL_USER_INFO_FLAGS      "UserInfoFlags"
+#define SAM_DB_COL_ACCOUNT_FLAGS        "AccountFlags"
 #define SAM_DB_COL_GECOS                "Gecos"
 #define SAM_DB_COL_HOME_DIR             "Homedir"
 #define SAM_DB_COL_SHELL                "LoginShell"
@@ -107,7 +107,7 @@
                  SAM_DB_COL_DESCRIPTION          " TEXT,\n"                    \
                  SAM_DB_COL_UID                  " INTEGER,\n"                 \
                  SAM_DB_COL_PASSWORD             " TEXT,\n"                    \
-                 SAM_DB_COL_USER_INFO_FLAGS      " INTEGER,\n"                 \
+                 SAM_DB_COL_ACCOUNT_FLAGS        " INTEGER,\n"                 \
                  SAM_DB_COL_GECOS                " TEXT,\n"                    \
                  SAM_DB_COL_HOME_DIR             " TEXT,\n"                    \
                  SAM_DB_COL_SHELL                " TEXT,\n"                    \
@@ -197,8 +197,8 @@ typedef enum
     {'U','I','D',0}
 #define SAM_DB_DIR_ATTR_PASSWORD \
     {'P','a','s','s','w','o','r','d',0}
-#define SAM_DB_DIR_ATTR_USER_INFO_FLAGS \
-    {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
+#define SAM_DB_DIR_ATTR_ACCOUNT_FLAGS \
+    {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define SAM_DB_DIR_ATTR_GECOS \
     {'G','e','c','o','s',0}
 #define SAM_DB_DIR_ATTR_HOME_DIR \
@@ -358,8 +358,8 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
-        SAM_DB_DIR_ATTR_USER_INFO_FLAGS,      \
-        SAM_DB_COL_USER_INFO_FLAGS,           \
+        SAM_DB_DIR_ATTR_ACCOUNT_FLAGS,      \
+        SAM_DB_COL_ACCOUNT_FLAGS  ,           \
         SAMDB_ATTR_TYPE_INT32,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -535,7 +535,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
-        SAM_DB_DIR_ATTR_USER_INFO_FLAGS,                         \
+        SAM_DB_DIR_ATTR_ACCOUNT_FLAGS,                           \
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
@@ -639,3 +639,13 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
 
 
 #endif /* __SAM_DB_TABLE_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
