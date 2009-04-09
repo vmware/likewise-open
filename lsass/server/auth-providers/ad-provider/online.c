@@ -1259,18 +1259,18 @@ AD_OnlineAuthenticateUser(
 
     LSA_SAFE_FREE_STRING(pLoginInfo->pszFullDomainName);
 
-    dwError = AD_DetermineTrustModeandDomainName(
-                        pLoginInfo->pszDomainNetBiosName,
-                        &dwTrustDirection,
-                        NULL,
-                        &pLoginInfo->pszFullDomainName,
-                        NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = AD_FindUserObjectByName(
                     hProvider,
                     pszLoginId,
                     &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_DetermineTrustModeandDomainName(
+                        pUserInfo->pszNetbiosDomainName,
+                        &dwTrustDirection,
+                        NULL,
+                        &pLoginInfo->pszFullDomainName,
+                        NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_VerifyUserAccountCanLogin(
