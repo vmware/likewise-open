@@ -83,6 +83,7 @@ DWORD
 AD_NetUserChangePassword(
     PCSTR pszDomainName,
     PCSTR pszLoginId,
+    PCSTR pszUserPrincipalName,
     PCSTR pszOldPassword,
     PCSTR pszNewPassword
     );

@@ -75,7 +75,7 @@ LsaNetJoinDomain(
     DWORD dwOptions = (NETSETUP_JOIN_DOMAIN |
                        NETSETUP_ACCT_CREATE |
                        NETSETUP_DOMAIN_JOIN_IF_JOINED);
-    LSA_ACCESS_TOKEN_FREE_INFO accessInfo = {0};
+    PLSA_ACCESS_TOKEN_FREE_INFO pAccessInfo = NULL;
 
     BAIL_ON_INVALID_STRING(pszHostname);
     BAIL_ON_INVALID_STRING(pszDomain);
@@ -86,12 +86,12 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaSetSMBAccessToken(
+    dwError = LsaSetSMBAccessTokenWithFlags(
                 pszDomain,
                 pszUsername,
                 pszPassword,
                 dwFlags,
-                &accessInfo);
+                &pAccessInfo);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LsaMbsToWc16s(
@@ -154,7 +154,7 @@ LsaNetJoinDomain(
     
 cleanup:
 
-    LsaFreeSMBAccessTokenContents(&accessInfo);
+    LsaFreeSMBAccessToken(&pAccessInfo);
 
     LSA_SAFE_FREE_STRING(pszOU_DN);
     LSA_SAFE_FREE_MEMORY(pwszHostname);
