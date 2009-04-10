@@ -123,6 +123,7 @@ LsaSetSMBAccessToken(
     pFreeInfo->hAccessToken = hAccessToken;
 
 cleanup:
+    *ppFreeInfo = pFreeInfo;
 
     return dwError;
 
@@ -145,6 +146,7 @@ error:
     if (pFreeInfo)
     {
         LsaFreeMemory(pFreeInfo);
+        pFreeInfo = NULL;
     }
 
     goto cleanup;
