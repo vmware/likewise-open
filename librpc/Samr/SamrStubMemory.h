@@ -63,6 +63,8 @@ void SamrCleanStubUserInfo(UserInfo *r, uint16 level);
 
 void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level);
 
+void SamrCleanStubDisplayInfo(SamrDisplayInfo *ptr, uint16 level);
+
 
 #endif /* _SAMR_STUB_MEMORY_H */
 
