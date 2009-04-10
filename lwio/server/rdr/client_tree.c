@@ -351,6 +351,8 @@ RdrAcquireConnectedTree(
 
 cleanup:
 
+    RTL_FREE(&pwszPath);
+
     return ntStatus;
 
 error:

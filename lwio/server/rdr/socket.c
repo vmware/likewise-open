@@ -573,14 +573,6 @@ cleanup:
 
     if (pPacket)
     {
-        if (pPacket->pRawBuffer)
-        {
-            SMBPacketBufferFree(
-                pSocket->hPacketAllocator,
-                pPacket->pRawBuffer,
-                pPacket->bufferLen);
-        }
-
         SMBPacketFree(pSocket->hPacketAllocator, pPacket);
     }
 
