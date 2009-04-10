@@ -27,6 +27,8 @@ typedef void* ACCOUNT_HANDLE;
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 
 
+#define DS_ATTR_RECORD_ID \
+    {'O','b','j','e','c','t','R','e','c','o','r','d','I','d',0}
 #define DS_ATTR_DISTINGUISHED_NAME  \
     {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define DS_ATTR_OBJECT_CLASS \
@@ -53,6 +55,8 @@ typedef void* ACCOUNT_HANDLE;
     {'D','e','s','c','r','i','p','t','i','o','n',0}
 #define DS_ATTR_HOME_DIR \
     {'H','o','m','e','d','i','r',0}
+#define DS_ATTR_ACCOUNT_FLAGS \
+    {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)

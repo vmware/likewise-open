@@ -332,6 +332,106 @@ void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level)
 }
 
 
+static
+void
+SamrCleanStubDisplayInfoFull(
+    SamrDisplayInfoFull *ptr
+    )
+{
+    uint32 i = 0;
+
+    for (i = 0; i < ptr->count; i++) {
+        SamrDisplayEntryFull *e = &(ptr->entries[i]);
+
+        FreeUnicodeString(&e->account_name);
+        FreeUnicodeString(&e->description);
+        FreeUnicodeString(&e->full_name);
+    }
+}
+
+
+static
+void
+SamrCleanStubDisplayInfoGeneral(
+    SamrDisplayInfoGeneral *ptr
+    )
+{
+    uint32 i = 0;
+
+    for (i = 0; i < ptr->count; i++) {
+        SamrDisplayEntryGeneral *e = &(ptr->entries[i]);
+
+        FreeUnicodeString(&e->account_name);
+        FreeUnicodeString(&e->description);
+    }
+}
+
+
+static
+void
+SamrCleanStubDisplayInfoGeneralGroups(
+    SamrDisplayInfoGeneralGroups *ptr
+    )
+{
+    uint32 i = 0;
+
+    for (i = 0; i < ptr->count; i++) {
+        SamrDisplayEntryGeneralGroup *e = &(ptr->entries[i]);
+
+        FreeUnicodeString(&e->account_name);
+        FreeUnicodeString(&e->description);
+    }
+}
+
+
+static
+void
+SamrCleanStubDisplayInfoAscii(
+    SamrDisplayInfoAscii *ptr
+    )
+{
+    uint32 i = 0;
+
+    for (i = 0; i < ptr->count; i++) {
+        SamrDisplayEntryAscii *e = &(ptr->entries[i]);
+
+        if (e->account_name.Buffer) {
+            SamrFreeMemory(e->account_name.Buffer);
+        }
+    }
+}
+
+
+void
+SamrCleanStubDisplayInfo(
+    SamrDisplayInfo *ptr,
+    uint16 level
+    )
+{
+    switch (level) {
+    case 1:
+        SamrCleanStubDisplayInfoFull(&ptr->info1);
+        break;
+
+    case 2:
+        SamrCleanStubDisplayInfoGeneral(&ptr->info2);
+        break;
+
+    case 3:
+        SamrCleanStubDisplayInfoGeneralGroups(&ptr->info3);
+        break;
+
+    case 4:
+        SamrCleanStubDisplayInfoAscii(&ptr->info4);
+        break;
+
+    case 5:
+        SamrCleanStubDisplayInfoAscii(&ptr->info5);
+        break;
+    }
+}
+
+
 
 /*
 local variables:

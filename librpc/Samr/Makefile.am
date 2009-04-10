@@ -37,7 +37,8 @@ libsamr_la_SOURCES = \
 	SamrCreateUser2.c \
 	SamrGetUserPwInfo.c \
 	SamrChangePasswordUser2.c \
-	SamrGetUserGroups.c
+	SamrGetUserGroups.c \
+	SamrQueryDisplayInfo.c
 
 libsamr_cs_la_SOURCES = samr_cstub.c
 

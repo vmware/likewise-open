@@ -46,6 +46,7 @@
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/domaininfo.h>
+#include <lwrpc/displayinfo.h>
 
 
 NTSTATUS
@@ -302,6 +303,20 @@ SamrGetUserGroups(
     uint32 **attributes,
     uint32 *count
     );
+
+NTSTATUS
+SamrQueryDisplayInfo(
+    handle_t b,
+    PolicyHandle *domain_h,
+    uint16 level,
+    uint32 start_idx,
+    uint32 max_entries,
+    uint32 buf_size,
+    uint32 *out_total_size,
+    uint32 *out_returned_size,
+    SamrDisplayInfo **out_info
+    );
+
 
 NTSTATUS
 SamrInitMemory(

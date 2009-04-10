@@ -226,6 +226,19 @@ SamrSrvConnect2(
 
 
 NTSTATUS
+SamrSrvEnumDomainAccounts(
+    handle_t hBinding,
+    DOMAIN_HANDLE hDomain,
+    uint32 *resume,
+    DWORD dwObjectClass,
+    uint32 account_flags,
+    uint32 max_size,
+    RidNameArray **names,
+    uint32 *num_entries
+    );
+
+
+NTSTATUS
 SamrSrvOpenAccount(
     handle_t hBinding,
     DOMAIN_HANDLE *hDomain,
