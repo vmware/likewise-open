@@ -41,8 +41,13 @@ function _get_base_cflags
 {
     local flags="${BUILD_CFLAGS}"
 
-    flags="$flags -O2 -g -fmessage-length=0 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2"
-    flags="${flags}"
+    if [ -n "${ENABLE_DEBUG}" ]; then
+	flags="${flags} -ggdb"
+    else
+	flags="${flags} -O2 -g"
+    fi
+
+    flags="${flags} -fmessage-length=0 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2"
 
     echo "$flags"
 }

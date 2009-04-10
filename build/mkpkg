@@ -57,6 +57,15 @@ function _make_deb
 	> "${PKG_PACKAGE_DIR}/debian/$file"
     done
 
+    if [ -n "${ENABLE_DEBUG}" ]; then
+	local rules_file="${PKG_PACKAGE_DIR}/debian/rules"
+	local tmp_rules_file="${PKG_PACKAGE_DIR}/debian/rules.no_dhstrip"
+
+	sed 's/dh_strip.*//g' $rules_file > $tmp_rules_file
+	mv -f $tmp_rules_file $rules_file
+	exit_on_error $?
+    fi
+
     chmod 755 "${PKG_PACKAGE_DIR}/debian/rules"
 
     echo "Building likewise-open-${PKG_NAME} ${PKG_TYPE}..."
@@ -96,7 +105,6 @@ function print_pkg_list
     local _pkg_files=`ls ${BUILD_ROOT}/build/packages/*/*.func 2>/dev/null | sort`
     local _pkg_name=""
 
-    warn ""
     warn "Valid individual component names are:"
     for _f in ${_pkg_files}; do
 	_pkg_name=`basename ${_f}`
@@ -111,10 +119,26 @@ function print_pkg_list
 
 function main
 {
-    local _PKG_NAME="$1"
-    local _PKG_DIR="${BUILD_ROOT}/build/packages/${_PKG_NAME}"
+    local _PKG_NAME=""
+    local _PKG_DIR=""
     local DEFAULT_PKG_TYPE=""
     local PKG_TYPE=""
+
+    parseOptionsDone=""
+    while [[ -z "${parseOptionsDone}" ]]; do
+	case "$1" in
+	    --debug)
+		export ENABLE_DEBUG="1"
+		shift
+		;;
+	    *)
+		parseOptionsDone="1"
+		;;
+	esac
+    done
+
+    _PKG_NAME="$1"
+    _PKG_DIR="${BUILD_ROOT}/build/packages/${_PKG_NAME}"
 
     case "${_PKG_NAME}" in
 	all)
@@ -122,7 +146,9 @@ function main
 	*)
 	    if [ ! -f "${_PKG_DIR}/${_PKG_NAME}.func" ];
 	    then
-		warn "Usage: $0 <pkg_name | all>"
+		warn "Usage: $0 [options] <pkg_name | all>"
+		warn "    --debug           Enable debug symbols in packages"
+		warn ""
 		print_pkg_list
 		exit 1
 	    fi
