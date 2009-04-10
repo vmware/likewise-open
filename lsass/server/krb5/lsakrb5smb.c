@@ -112,10 +112,13 @@ LsaSetSMBAccessToken(
         &hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBSetThreadToken(hAccessToken);
+    dwError = LsaAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
+    dwError = SMBGetThreadToken(&pFreeInfo->hAccessToken);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SMBSetThreadToken(hAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     pFreeInfo->ctx = ctx;
