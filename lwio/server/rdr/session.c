@@ -246,6 +246,7 @@ SMBSessionFree(
     pthread_mutex_destroy(&pSession->mutex);
 
     SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
+    SMB_SAFE_FREE_MEMORY(pSession->pszPrincipal);
 
     if (pSession->pSocket)
     {
