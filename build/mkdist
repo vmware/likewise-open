@@ -6,8 +6,8 @@ umask 022
 
 . ${BUILD_ROOT}/build/lib/VARS
 
-COMP_ALL="${__COMP_LIST}"
-SUPPORT_DIR="build config packaging"
+COMP_ALL="${__COMP_LIST} lwio-fuse"
+SUPPORT_DIRS="build config packaging"
 
 DIRS="${COMP_ALL} ${SUPPORT_DIRS}"
 
@@ -32,6 +32,11 @@ find $TARGET -name "*.sh" | xargs chmod u+x
 	(cd `dirname $f` && ./autogen.sh); \
         echo " "; \
     done)
+
+(cd $TARGET && \
+    sed "s/^LIKEWISE_OPEN_REVISION=.*/LIKEWISE_OPEN_REVISION=${LIKEWISE_OPEN_REVISION}/g" build/lib/VARS > build/lib/VARS.new; \
+    /bin/mv -f build/lib/VARS.new build/lib/VARS \
+)
 
 tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
 [ "$TARGET" != "/" ] && /bin/rm -rf $TARGET
