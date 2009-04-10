@@ -71,21 +71,26 @@
         }
 
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
+#define LOCAL_OBJECT_CLASS_GROUP           4
 #define LOCAL_OBJECT_CLASS_USER            5
 
-#define LOCAL_DB_DIR_ATTR_OBJECT_CLASS     "ObjectClass"
-#define LOCAL_DB_DIR_ATTR_OBJECT_SID       "ObjectSID"
-#define LOCAL_DB_DIR_ATTR_DOMAIN           "Domain"
-#define LOCAL_DB_DIR_ATTR_NETBIOS_NAME     "NetBIOSName"
-#define LOCAL_DB_DIR_ATTR_COMMON_NAME      "CommonName"
-#define LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME "SamAccountName"
-#define LOCAL_DB_DIR_ATTR_UID              "UID"
-#define LOCAL_DB_DIR_ATTR_GID              "GID"
-#define LOCAL_DB_DIR_ATTR_PASSWORD         "Password"
-#define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS  "UserInfoFlags"
-#define LOCAL_DB_DIR_ATTR_GECOS            "Gecos"
-#define LOCAL_DB_DIR_ATTR_HOME_DIR         "Homedir"
-#define LOCAL_DB_DIR_ATTR_SHELL            "LoginShell"
+#define LOCAL_DB_DIR_ATTR_OBJECT_CLASS         "ObjectClass"
+#define LOCAL_DB_DIR_ATTR_OBJECT_SID           "ObjectSID"
+#define LOCAL_DB_DIR_ATTR_DOMAIN               "Domain"
+#define LOCAL_DB_DIR_ATTR_NETBIOS_NAME         "NetBIOSName"
+#define LOCAL_DB_DIR_ATTR_COMMON_NAME          "CommonName"
+#define LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME     "SamAccountName"
+#define LOCAL_DB_DIR_ATTR_USER_PRINCIPAL_NAME  "UserPrincipalName"
+#define LOCAL_DB_DIR_ATTR_UID                  "UID"
+#define LOCAL_DB_DIR_ATTR_GID                  "GID"
+#define LOCAL_DB_DIR_ATTR_PASSWORD             "Password"
+#define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS      "UserInfoFlags"
+#define LOCAL_DB_DIR_ATTR_PASSWORD_CHANGE_TIME "PasswdChangeTime"
+#define LOCAL_DB_DIR_ATTR_FULL_NAME            "FullName"
+#define LOCAL_DB_DIR_ATTR_ACCOUNT_EXPIRY       "AccountExpiry"
+#define LOCAL_DB_DIR_ATTR_GECOS                "Gecos"
+#define LOCAL_DB_DIR_ATTR_HOME_DIR             "Homedir"
+#define LOCAL_DB_DIR_ATTR_SHELL                "LoginShell"
 
 #define LOCAL_DIR_ATTR_OBJECT_CLASS  \
     {'O','b','j','e','c','t','C','l','a','s','s',0}
@@ -99,6 +104,8 @@
     {'C','o','m','m','o','n','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME \
     {'S','a','m','A','c','c','o','u','n','t','N','a','m','e',0}
+#define LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME \
+    {'U','s','e','r','P','r','i','n','c','i','p','a','l','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_UID \
     {'U','I','D',0}
 #define LOCAL_DIR_ATTR_GID \
@@ -107,6 +114,12 @@
     {'P','a','s','s','w','o','r','d',0}
 #define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
     {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
+#define LOCAL_DIR_ATTR_PASSWORD_CHANGE_TIME \
+    {'P','a','s','s','w','d','C','h','a','n','g','e','T','i','m','e',0}
+#define LOCAL_DIR_ATTR_FULL_NAME \
+    {'F','u','l','l','N','a','m','e',0}
+#define LOCAL_DIR_ATTR_ACCOUNT_EXPIRY \
+    {'A','c','c','o','u','n','t','E','x','p','i','r','y',0}
 #define LOCAL_DIR_ATTR_GECOS \
     {'G','e','c','o','s',0}
 #define LOCAL_DIR_ATTR_HOME_DIR \

@@ -1128,6 +1128,11 @@ SMBGetLibDirPath(
     );
 
 DWORD
+LwioGetHostInfo(
+    PSTR* ppszHostname
+    );
+
+DWORD
 SMBParseConfigFile(
     PCSTR                     pszFilePath,
     DWORD                     dwOptions,

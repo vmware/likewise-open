@@ -141,6 +141,18 @@ SamDbAddGeneratePrimaryGroup(
 
 static
 DWORD
+SamDbAddGenerateAccountFlags(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    );
+
+static
+DWORD
 SamDbAddConvertUnicodeAttrValues(
     PATTRIBUTE_VALUE  pSrcValues,
     DWORD             dwSrcNumValues,
@@ -193,6 +205,10 @@ static SAMDB_ADD_VALUE_GENERATOR gSamDbValueGenerators[] =
     {
         SAM_DB_COL_PRIMARY_GROUP,
         &SamDbAddGeneratePrimaryGroup
+    },
+    {
+        SAM_DB_COL_ACCOUNT_FLAGS,
+	&SamDbAddGenerateAccountFlags
     }
 };
 
@@ -1084,7 +1100,7 @@ SamDbAddGeneratePrimaryGroup(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     pAttrValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    pAttrValue->data.ulValue = DOMAIN_GROUP_RID_USERS;
+    pAttrValue->data.ulValue = DOMAIN_ALIAS_RID_USERS;
 
     *ppAttrValues = pAttrValue;
     *pdwNumValues = 1;
@@ -1095,6 +1111,48 @@ cleanup:
 
 error:
 
+    *ppAttrValues = NULL;
+    *pdwNumValues = 0;
+
+    if (pAttrValue)
+    {
+        DirectoryFreeAttributeValues(pAttrValue, 1);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddGenerateAccountFlags(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    )
+{
+    DWORD dwError = 0;
+    PATTRIBUTE_VALUE pAttrValue = NULL;
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(ATTRIBUTE_VALUE),
+		    (PVOID*)&pAttrValue);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    pAttrValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    pAttrValue->data.ulValue = SAMDB_ACB_NORMAL | SAMDB_ACB_DISABLED;
+
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
+
+cleanup:
+
+    return dwError;
+
+error:
     *ppAttrValues = NULL;
     *pdwNumValues = 0;
 

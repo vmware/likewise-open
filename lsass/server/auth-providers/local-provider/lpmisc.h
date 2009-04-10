@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lpaccess.h
+ *        lpmisc.h
  *
  * Abstract:
  *
@@ -41,38 +41,20 @@
  *
  *        Local Authentication Provider
  *
- *        Access Check API
+ *        Miscellaneous
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LP_ACCESS_H__
-#define __LP_ACCESS_H__
+
+#ifndef __LP_MISC_H__
+#define __LP_MISC_H__
 
 DWORD
-LocalCheckForAddAccess(
-    HANDLE hProvider
+LocalBuildDN(
+    PLSA_LOGIN_NAME_INFO pLoginInfo,
+    PWSTR*               ppwszDN
     );
 
-DWORD
-LocalCheckForModifyAccess(
-    HANDLE hProvider
-    );
+#endif /* __LP_MISC_H__ */
 
-DWORD
-LocalCheckForPasswordChangeAccess(
-    HANDLE hProvider,
-    uid_t  targetUid
-    );
-
-DWORD
-LocalCheckForQueryAccess(
-    HANDLE hProvider
-    );
-
-DWORD
-LocalCheckForDeleteAccess(
-    HANDLE hProvider
-    );
-
-#endif /* __LP_ACCESS_H__ */

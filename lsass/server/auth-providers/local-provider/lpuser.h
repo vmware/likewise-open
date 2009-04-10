@@ -52,7 +52,7 @@
 DWORD
 LocalDirFindUserByName(
     HANDLE  hProvider,
-    PCSTR   pszNetBIOSName,
+    PCSTR   pszDomainName,
     PCSTR   pszUserName,
     DWORD   dwUserInfoLevel,
     PVOID*  ppUserInfo
@@ -61,6 +61,7 @@ LocalDirFindUserByName(
 DWORD
 LocalDirFindUserByName_0(
     HANDLE hProvider,
+    PCSTR  pszDomainName,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
@@ -68,6 +69,7 @@ LocalDirFindUserByName_0(
 DWORD
 LocalDirFindUserByName_1(
     HANDLE hProvider,
+    PCSTR  pszDomainName,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
@@ -75,6 +77,7 @@ LocalDirFindUserByName_1(
 DWORD
 LocalDirFindUserByName_2(
     HANDLE hProvider,
+    PCSTR  pszDomainName,
     PCSTR  pszUserName,
     PVOID* ppUserInfo
     );
@@ -168,6 +171,20 @@ DWORD
 LocalDirAddUser_2(
     HANDLE           hProvider,
     PLSA_USER_INFO_2 pUserInfo
+    );
+
+DWORD
+LocalDirDeleteUser(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    );
+
+DWORD
+LocalDirChangePassword(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszOldPassword,
+    PWSTR  pwszNewPassword
     );
 
 DWORD
