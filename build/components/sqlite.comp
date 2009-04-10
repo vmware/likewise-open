@@ -67,3 +67,20 @@ function component_install
     libtool_rewrite_staging
 }
 
+function component_populate
+{
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+    local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
+
+    local POPULATE_DIR="$1"
+
+    if [ -z "${POPULATE_DIR}" ] || [ ! -d "${POPULATE_DIR}" ]; then
+	echo "Non-existent or invalid populate dircetory given: ${POPULATE_DIR}"
+	return 1
+    fi
+
+    rsync -a --exclude "include" ${INSTALL_ROOT}/ ${POPULATE_DIR}/
+}
+

@@ -51,8 +51,39 @@ function component_install
 
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
+    if [ ! -d ${INSTALL_ROOT}/etc/init.d ]; then
+	mkdir -p ${INSTALL_ROOT}/etc/init.d
+	exit_on_error $?
+    fi
+
+    cat ${BUILD_ROOT}/config/${COMP_NAME}d | sed \
+        -e s:PREFIX_DIR:${PREFIXDIR}: \
+        -e s:EXECDIR:${PREFIXDIR}/bin: \
+        -e s:#LWI_STARTUP_TYPE_REDHAT:: \
+    > ${INSTALL_ROOT}/etc/init.d/${COMP_NAME}d
+
+    chmod 755 ${INSTALL_ROOT}/etc/init.d/${COMP_NAME}d
+
     rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
 
     libtool_rewrite_staging
+}
+
+
+function component_populate
+{
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+    local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
+
+    local POPULATE_DIR="$1"
+
+    if [ -z "${POPULATE_DIR}" ] || [ ! -d "${POPULATE_DIR}" ]; then
+	echo "Non-existent or invalid populate dircetory given: ${POPULATE_DIR}"
+	return 1
+    fi
+
+    rsync -a --exclude "include" ${INSTALL_ROOT}/ ${POPULATE_DIR}/
 }
 

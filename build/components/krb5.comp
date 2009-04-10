@@ -83,6 +83,15 @@ function component_install
 
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
 
+    /bin/rm -rf ${INSTALL_PREFIX_DIR}/{sbin,share,var}
+
+    for file in compile_et; do
+	/bin/rm ${INSTALL_PREFIX_DIR}/bin/$file
+    done
+
+    cp -pf ${BUILD_ROOT}/config/krb5.conf.default \
+	${INSTALL_ROOT}/etc/krb5.conf    
+
     mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/{bin,include,${_lib}}
     mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
 
@@ -100,11 +109,30 @@ function component_install
     rsync -a --exclude=krb5 --exclude=bin --exclude="libkadm5*" --exclude="libkdb5*" \
 	${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
 
-    # Create default krb5.conf
-    echo "[libdefaults]" > ${STAGING_SYSCONF_DIR}/krb5.conf
 
     # Fix up libtool/dylib files
     libtool_rewrite_staging
 }
 
 
+function component_populate
+{
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+    local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
+
+    local POPULATE_DIR="$1"
+
+    if [ -z "${POPULATE_DIR}" ] || [ ! -d "${POPULATE_DIR}" ]; then
+	echo "Non-existent or invalid populate dircetory given: ${POPULATE_DIR}"
+	return 1
+    fi
+
+    rsync -a --exclude "include" ${INSTALL_ROOT}/ ${POPULATE_DIR}/
+    mkdir -p ${POPULATE_DIR}/etc/likewise
+    
+    install -m 0644 \
+	${BUILD_ROOT}/config/krb5.conf.default \
+	${POPULATE_DIR}/etc/likewise/krb5.conf
+}
