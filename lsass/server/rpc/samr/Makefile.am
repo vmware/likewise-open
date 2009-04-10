@@ -20,6 +20,7 @@ libsamr_srv_la_SOURCES = \
     samr_openaccount.c \
     samr_openuser.c \
     samr_openalias.c \
+    samr_enumdomainaccounts.c \
     samr_enumdomainusers.c \
     samr_enumdomainaliases.c \
     samr_queryuserinfo.c \
