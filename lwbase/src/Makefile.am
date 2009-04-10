@@ -16,16 +16,18 @@ liblwbase_nothr_la_SOURCES = \
         rbtree.c \
         security/security-sid.c \
         security/security-acl.c \
-        security/security-sd.c \
-        security/security-token.c
+        security/security-sd.c
 
 liblwbase_nothr_la_LIBADD = \
         @LIBUNISTR_LIBS@
 
 liblwbase_la_SOURCES = \
-	atomic.c
+	atomic.c \
+        security/security-token.c
 
-liblwbase_la_LIBADD = liblwbase_nothr.la
+liblwbase_la_LIBADD = \
+        @LIB_PTHREAD@ \
+        liblwbase_nothr.la
 
 libsecdesc_la_SOURCES = \
         secdesc/rtlpolhnd.c
