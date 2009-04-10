@@ -86,6 +86,11 @@
 #define SAM_DB_COL_GID                  "GID"
 #define SAM_DB_COL_MAX_PWD_AGE          "MaxPwdAge"
 #define SAM_DB_COL_PWD_PROMPT_TIME      "PwdPromptTime"
+#define SAM_DB_COL_LAST_LOGON           "LastLogon"
+#define SAM_DB_COL_LAST_LOGOFF          "LastLogoff"
+#define SAM_DB_COL_LOCKOUT_TIME         "LockoutTime"
+#define SAM_DB_COL_LOGON_COUNT          "LogonCount"
+#define SAM_DB_COL_BAD_PASSWORD_COUNT   "BadPwdCount"
 #define SAM_DB_COL_CREATED_TIME         "CreatedTime"
 
 #define SAM_DB_QUERY_CREATE_TABLES  \
@@ -122,6 +127,11 @@
                  SAM_DB_COL_GID                  " INTEGER,\n"                 \
                  SAM_DB_COL_MAX_PWD_AGE          " INTEGER,\n"                 \
                  SAM_DB_COL_PWD_PROMPT_TIME      " INTEGER,\n"                 \
+                 SAM_DB_COL_LAST_LOGON           " INTEGER,\n"                 \
+                 SAM_DB_COL_LAST_LOGOFF          " INTEGER,\n"                 \
+                 SAM_DB_COL_LOCKOUT_TIME         " INTEGER,\n"                 \
+                 SAM_DB_COL_LOGON_COUNT          " INTEGER,\n"                 \
+                 SAM_DB_COL_BAD_PASSWORD_COUNT   " INTEGER,\n"                 \
                  SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
      "UNIQUE(" SAM_DB_COL_OBJECT_SID ", " SAM_DB_COL_DISTINGUISHED_NAME "),\n" \
      "UNIQUE(" SAM_DB_COL_DISTINGUISHED_NAME ", " SAM_DB_COL_PARENT_DN "),\n"  \
@@ -227,6 +237,16 @@ typedef enum
     {'M','a','x','P','w','d','A','g','e',0}
 #define SAM_DB_DIR_ATTR_PWD_PROMPT_TIME \
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
+#define SAM_DB_DIR_ATTR_LAST_LOGON \
+    {'L','a','s','t','L','o','g','o','n',0}
+#define SAM_DB_DIR_ATTR_LAST_LOGOFF \
+    {'L','a','s','t','L','o','g','o','f','f',0}
+#define SAM_DB_DIR_ATTR_LOCKOUT_TIME \
+    {'L','o','c','k','o','u','t','T','i','m','e',0}
+#define SAM_DB_DIR_ATTR_LOGON_COUNT \
+    {'L','o','g','o','n','C','o','u','n','t',0}
+#define SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT \
+    {'B','a','d','P','w','d','C','o','u','n','t',0}
 #define SAM_DB_DIR_ATTR_MEMBERS \
     {'M','e','m','b','e','r','s',0}
 #define SAM_DB_DIR_ATTR_CREATED_TIME \
@@ -470,6 +490,46 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
+        SAM_DB_DIR_ATTR_LAST_LOGON,           \
+        SAM_DB_COL_LAST_LOGON,                \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LAST_LOGOFF,          \
+        SAM_DB_COL_LAST_LOGOFF,               \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOCKOUT_TIME,         \
+        SAM_DB_COL_LOCKOUT_TIME,              \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOGON_COUNT,          \
+        SAM_DB_COL_LOGON_COUNT,               \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT,   \
+        SAM_DB_COL_BAD_PASSWORD_COUNT,        \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
         SAM_DB_DIR_ATTR_CREATED_TIME,         \
         SAM_DB_COL_CREATED_TIME,              \
         SAMDB_ATTR_TYPE_DATETIME,             \
@@ -598,6 +658,26 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_DIR_ATTR_PRIMARY_GROUP,                           \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
          SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)            \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LAST_LOGON,                              \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LAST_LOGOFF,                             \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOCKOUT_TIME,                            \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOGON_COUNT,                             \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT,                      \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
     }
 
 #define SAMDB_CONTAINER_ATTRIBUTE_MAP                            \
