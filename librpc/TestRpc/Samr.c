@@ -1266,14 +1266,15 @@ done:
 }
 
 
-#define DISPLAY_ACCOUNTS(type, names, rids, num)                \
+#define DISPLAY_ACCOUNTS(type, flags, names, rids, num)         \
     {                                                           \
         uint32 i;                                               \
         for (i = 0; i < num; i++) {                             \
             wchar16_t *name = enum_names[i];                    \
             uint32 rid = enum_rids[i];                          \
                                                                 \
-            w16printfw(L"%hhs: %ws (rid=0x%x)\n", type, name, rid);  \
+            w16printfw(L"%hhs (flags=0x%08x): %ws (rid=0x%x)\n",\
+                       (type), (flags), (name), (rid));         \
         }                                                       \
     }
 
@@ -1293,6 +1294,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
 
     const int def_specifydomain = 0;
     const char *def_domainname = "BUILTIN";
+    const int def_acb_flags = 0;
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t samr_binding = NULL;
@@ -1300,6 +1302,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     uint32 resume = 0;
     uint32 num_entries = 0;
     uint32 max_size = 0;
+    uint32 acb_flags = 0;
     uint32 account_flags = 0;
     wchar16_t **enum_names = NULL;
     wchar16_t *domname = NULL;
@@ -1316,6 +1319,10 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
 
     perr = fetch_value(options, optcount, "domainname", pt_w16string,
                        &domainname, &def_domainname);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "acbflags", pt_uint32,
+                       &acb_flags, &def_acb_flags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     SET_SESSION_CREDS(pCreds);
@@ -1356,7 +1363,8 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
 
         if (status == STATUS_SUCCESS ||
             status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("User", enum_names, enum_rids, num_entries);
+            DISPLAY_ACCOUNTS("User", account_flags, enum_names, enum_rids,
+                             num_entries);
 
         if (enum_names) SamrFreeMemory((void*)enum_names);
         if (enum_rids) SamrFreeMemory((void*)enum_rids);
@@ -1371,7 +1379,8 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
             status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("Domain trust", enum_names, enum_rids, num_entries);
+            DISPLAY_ACCOUNTS("Domain trust", account_flags, enum_names,
+                             enum_rids, num_entries);
 
         if (enum_names) SamrFreeMemory((void*)enum_names);
         if (enum_rids) SamrFreeMemory((void*)enum_rids);
@@ -1386,7 +1395,8 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
             status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("Workstation", enum_names, enum_rids, num_entries);
+            DISPLAY_ACCOUNTS("Workstation", account_flags, enum_names,
+                             enum_rids, num_entries);
 
         if (enum_names) SamrFreeMemory((void*)enum_names);
         if (enum_rids) SamrFreeMemory((void*)enum_rids);
@@ -1394,14 +1404,15 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     } while (status == STATUS_MORE_ENTRIES);
 
     resume = 0;
-    account_flags = ACB_DISABLED | ACB_NORMAL;
+    account_flags = acb_flags;
     do {
         status = SamrEnumDomainUsers(samr_binding, &dom_handle, &resume,
                                      account_flags, max_size, &enum_names,
                                      &enum_rids, &num_entries);
         if (status == STATUS_SUCCESS ||
             status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("Disabled", enum_names, enum_rids, num_entries);
+            DISPLAY_ACCOUNTS("Account", account_flags,
+                             enum_names, enum_rids, num_entries);
 
         if (enum_names) SamrFreeMemory((void*)enum_names);
         if (enum_rids) SamrFreeMemory((void*)enum_rids);
@@ -1428,6 +1439,209 @@ done:
 
     return (status == STATUS_SUCCESS);
 }
+
+
+int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
+                             const wchar16_t *user, const wchar16_t *pass,
+                             struct parameter *options, int optcount)
+{
+    const uint32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
+                                    SAMR_ACCESS_ENUM_DOMAINS |
+                                    SAMR_ACCESS_CONNECT_TO_SERVER;
+
+    const uint32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                   DOMAIN_ACCESS_CREATE_USER |
+                                   DOMAIN_ACCESS_CREATE_ALIAS |
+                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
+
+    const int def_specifydomain = 0;
+    const char *def_domainname = "BUILTIN";
+    const int def_level = 0;
+    const int def_max_entries = 64;
+    const int def_buf_size = 512;
+
+    NTSTATUS status = STATUS_SUCCESS;
+    handle_t samr_binding = NULL;
+    enum param_err perr = perr_success;
+    wchar16_t *domname = NULL;
+    wchar16_t *domainname = NULL;
+    PolicyHandle conn_handle = {0};
+    PolicyHandle dom_handle = {0};
+    PSID sid = NULL;
+    int specifydomain = 0;
+    int32 level = 0;
+    uint32 start_idx = 0;
+    uint32 max_entries = 0;
+    uint32 buf_size = 0;
+    uint32 total_size = 0;
+    uint32 returned_size = 0;
+    SamrDisplayInfo *info = NULL;
+
+    perr = fetch_value(options, optcount, "specifydomain", pt_int32,
+                       &specifydomain, &def_specifydomain);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "domainname", pt_w16string,
+                       &domainname, &def_domainname);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "level", pt_int32, &level,
+                       &def_level);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "maxentries", pt_int32, &max_entries,
+                       &def_max_entries);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "maxsize", pt_int32, &buf_size,
+                       &def_buf_size);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(pCreds);
+
+    samr_binding = CreateSamrBinding(&samr_binding, hostname);
+    if (samr_binding == NULL) return false;
+
+    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
+                          &conn_handle);
+    if (status != 0) rpc_fail(status);
+
+    if (specifydomain) {
+        domname = wc16sdup(domainname);
+
+    } else {
+        status = GetSamDomainName(&domname, hostname);
+        if (status != 0) rpc_fail(status);
+    }
+
+    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
+                            sid, &dom_handle);
+    if (status != 0) rpc_fail(status);
+
+    if (level == 0) {
+        for (level = 1; level <= 5; level++) {
+            start_idx = 0;
+
+            do {
+                CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding,
+                                                         &dom_handle,
+                                                         (uint16)level,
+                                                         start_idx,
+                                                         max_entries,
+                                                         buf_size,
+                                                         &total_size,
+                                                         &returned_size,
+                                                         &info));
+                switch (level) {
+                case 1:
+                    if (info && info->info1.count) {
+                        start_idx =
+                            info->info1.entries[info->info1.count - 1].idx + 1;
+                    }
+                    break;
+                case 2:
+                    if (info && info->info2.count) {
+                        start_idx =
+                            info->info2.entries[info->info2.count - 1].idx + 1;
+                    }
+                    break;
+                case 3:
+                    if (info && info->info3.count) {
+                        start_idx =
+                            info->info3.entries[info->info3.count - 1].idx + 1;
+                    }
+                    break;
+                case 4:
+                    if (info && info->info4.count) {
+                        start_idx =
+                            info->info4.entries[info->info4.count - 1].idx + 1;
+                    }
+                    break;
+                case 5:
+                    if (info && info->info5.count) {
+                        start_idx =
+                            info->info5.entries[info->info5.count - 1].idx + 1;
+                    }
+                    break;
+                }
+
+                if (info) {
+                    SamrFreeMemory(info);
+                }
+            } while (status == STATUS_MORE_ENTRIES);
+        }
+
+    } else {
+        do {
+            CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding, &dom_handle,
+                                                     (uint16)level, start_idx,
+                                                     max_entries, buf_size,
+                                                     &total_size, &returned_size,
+                                                     &info));
+            switch (level) {
+            case 1:
+                if (info && info->info1.count) {
+                    start_idx =
+                        info->info1.entries[info->info1.count - 1].idx + 1;
+                }
+                break;
+            case 2:
+                if (info && info->info2.count) {
+                    start_idx =
+                        info->info2.entries[info->info2.count - 1].idx + 1;
+                }
+                break;
+            case 3:
+                if (info && info->info3.count) {
+                    start_idx =
+                        info->info3.entries[info->info3.count - 1].idx + 1;
+                }
+                break;
+            case 4:
+                if (info && info->info4.count) {
+                    start_idx =
+                        info->info4.entries[info->info4.count - 1].idx + 1;
+                }
+                break;
+            case 5:
+                if (info && info->info5.count) {
+                    start_idx =
+                        info->info5.entries[info->info5.count - 1].idx + 1;
+                }
+                break;
+            }
+
+            if (info) {
+                SamrFreeMemory(info);
+            }
+
+        } while (status == STATUS_MORE_ENTRIES);
+    }
+
+    SamrClose(samr_binding, &dom_handle);
+    if (status != 0) rpc_fail(status);
+
+    SamrClose(samr_binding, &conn_handle);
+    if (status != 0) rpc_fail(status);
+
+    FreeSamrBinding(&samr_binding);
+    RELEASE_SESSION_CREDS;
+
+done:
+    if (sid) {
+        SamrFreeMemory((void*)sid);
+    }
+
+    SAFE_FREE(domname);
+    SAFE_FREE(domainname);
+
+    return (status == STATUS_SUCCESS);
+}
+
 
 
 #define DISPLAY_DOMAINS(names, num)                             \
@@ -2040,7 +2254,8 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
 
         if (status == STATUS_SUCCESS ||
             status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("Alias", enum_names, enum_rids, num_entries);
+            DISPLAY_ACCOUNTS("Alias", account_flags, enum_names, enum_rids,
+                             num_entries);
 
         if (enum_names) SamrFreeMemory((void*)enum_names);
         if (enum_rids) SamrFreeMemory((void*)enum_rids);
@@ -2542,6 +2757,7 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-ENUM-ALIASES", TestSamrEnumAliases);
     AddTest(t, "SAMR-GET-USER-GROUPS", TestSamrGetUserGroups);
     AddTest(t, "SAMR-GET-USER-ALIASES", TestSamrGetUserAliases);
+    AddTest(t, "SAMR-QUERY-DISPLAY-INFO", TestSamrQueryDisplayInfo);
 }
 
 
