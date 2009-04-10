@@ -1,4 +1,4 @@
-/* This file is a copy of excerpt from generated lsa_h.h header.
+/* This file is a copy of excerpt from generated samr_h.h header.
    It has to be in sync with original idl file.
  */
 
@@ -288,9 +288,17 @@ extern NTSTATUS _SamrGetUserGroups(
     /* [out] */ RidWithAttributeArray **rids
 #endif
 );
-extern NTSTATUS samr_Function28(
+extern NTSTATUS _SamrQueryDisplayInfo(
 #ifdef IDL_PROTOTYPES
-    /* [in] */ handle_t IDL_handle
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ PolicyHandle *domain_handle,
+    /* [in] */ uint16 level,
+    /* [in] */ uint32 start_idx,
+    /* [in] */ uint32 max_entries,
+    /* [in] */ uint32 buf_size,
+    /* [out] */ uint32 *total_size,
+    /* [out] */ uint32 *returned_size,
+    /* [out] */ SamrDisplayInfo *info
 #endif
 );
 extern NTSTATUS samr_Function29(
