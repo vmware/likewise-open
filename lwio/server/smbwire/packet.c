@@ -170,10 +170,13 @@ SMBPacketFree(
     PLWIO_PACKET_ALLOCATOR pPacketAllocator = NULL;
     BOOLEAN bInLock = FALSE;
 
-    SMBPacketBufferFree(
-                hPacketAllocator,
-                pPacket->pRawBuffer,
-                pPacket->bufferLen);
+    if (pPacket->pRawBuffer)
+    {
+        SMBPacketBufferFree(
+            hPacketAllocator,
+            pPacket->pRawBuffer,
+            pPacket->bufferLen);
+    }
 
     pPacketAllocator = hPacketAllocator;
 
