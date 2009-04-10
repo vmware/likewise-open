@@ -101,13 +101,26 @@ ACCOUNT_HANDLE_rundown(
     void *hContext
     )
 {
-    PACCOUNT_CONTEXT pAccCtx = (PACCOUNT_CONTEXT)hContext;
+    PACCOUNT_CONTEXT pAcctCtx = (PACCOUNT_CONTEXT)hContext;
 
-    InterlockedDecrement(&pAccCtx->refcount);
-    if (pAccCtx->refcount) return;
+    InterlockedDecrement(&pAcctCtx->refcount);
+    if (pAcctCtx->refcount) return;
 
-    DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAccCtx->pDomCtx);
-    SamrSrvFreeMemory(pAccCtx);
+    if (pAcctCtx->pwszDn) {
+        SamrSrvFreeMemory(pAcctCtx->pwszDn);
+    }
+
+    if (pAcctCtx->pwszName) {
+        SamrSrvFreeMemory(pAcctCtx->pwszName);
+    }
+
+    if (pAcctCtx->pSid) {
+        SamrSrvFreeMemory(pAcctCtx->pSid);
+    }
+
+
+    DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAcctCtx->pDomCtx);
+    SamrSrvFreeMemory(pAcctCtx);
 }
 
 
