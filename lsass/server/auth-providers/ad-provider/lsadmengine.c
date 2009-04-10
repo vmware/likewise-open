@@ -641,9 +641,17 @@ cleanup:
     {
         *ppszDnsDomainName = pszDnsDomainName;
     }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
     if (ppszNetBiosDomainName)
     {
         *ppszNetBiosDomainName = pszNetbiosDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     }
 
     return dwError;
@@ -786,15 +794,26 @@ cleanup:
     {
         *ppszDnsDomainName = pszDnsDomainName;
     }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
     if (ppszNetBiosDomainName)
     {
         *ppszNetBiosDomainName = pszNetbiosDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     }
     if (ppszDomainSid)
     {
         *ppszDomainSid = pszDomainSid;
     }
-
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDomainSid);
+    }
 
     return dwError;
 
