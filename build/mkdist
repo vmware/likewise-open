@@ -8,24 +8,31 @@ umask 022
 
 COMP_ALL="${__COMP_LIST} lwio-fuse"
 SUPPORT_DIRS="build config packaging"
+SUPPORT_FILES="README LICENSE"
 
 DIRS="${COMP_ALL} ${SUPPORT_DIRS}"
+FILES="${SUPPORT_FILES}"
 
 VERSION=$(LikewiseOpenVersion)
 TARGET=likewise-open-$VERSION
-/bin/rm -rf $BUILD_ROOT/../$TARGET || exit 1
-mkdir $BUILD_ROOT/../$TARGET || exit 1
+
+[ -d $BUILD_ROOT/../${TARGET} ] && /bin/rm -rf $BUILD_ROOT/../${TARGET}
+mkdir $BUILD_ROOT/../${TARGET} || exit 1
 
 for dir in ${DIRS}; do
-	echo "Copying $dir..."
-	rsync -a --exclude=.git* --exclude=.svn --exclude=*~ --exclude=*bak \
-		$BUILD_ROOT/$dir $BUILD_ROOT/../$TARGET/ || exit 1
+    echo "Copying ${dir}..."
+    rsync -a --exclude=.git* --exclude=.svn --exclude=*~ --exclude=*bak \
+	${BUILD_ROOT}/${dir} ${BUILD_ROOT}/../${TARGET}/ || exit 1
+done
+
+for file in ${FILES}; do
+    cp -p ${file} ${BUILD_ROOT}/../${TARGET}/ || exit 1
 done
 
 cd $BUILD_ROOT/..
 
-find $TARGET -name "*.sh" | xargs chmod u+x
-(cd $TARGET && \
+find ${TARGET} -name "*.sh" | xargs chmod u+x
+(cd ${TARGET} && \
     for f in `find . -name autogen.sh`; \
     do \
         echo "Running autogen.sh in `dirname $f`..."; \
@@ -33,11 +40,12 @@ find $TARGET -name "*.sh" | xargs chmod u+x
         echo " "; \
     done)
 
-(cd $TARGET && \
+(cd ${TARGET} && \
     sed "s/^LIKEWISE_OPEN_REVISION=.*/LIKEWISE_OPEN_REVISION=${LIKEWISE_OPEN_REVISION}/g" build/lib/VARS > build/lib/VARS.new; \
     /bin/mv -f build/lib/VARS.new build/lib/VARS \
 )
 
-tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
-[ "$TARGET" != "/" ] && /bin/rm -rf $TARGET
+tar cf - ${TARGET} | gzip -9 > likewise-open-$VERSION.tar.gz
+[ "${TARGET}" != "/" ] && /bin/rm -rf ${TARGET}
+
 

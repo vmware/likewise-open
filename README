@@ -1,20 +1,60 @@
-Intructions on building likewise-open
-=====================================
+                          =================================
+                          README File for Likewise Open 5.2
+                          =================================
 
-The likewise-open build is driven by a series of shell scripts.  While
-the code is portable among a variety of *nix based platforms (Linux, Solaris,
-AIX, HP-UX, and OS X), this build system is primarily intended for Linux
-platforms.
+Likewise Open has several goals:
 
-The easist way to begin a build is to run:
+(a) Simply the process of joining non-Microsoft hosts to Active Directory
+    domains,
+(b) Simply the management of these hosts, and
+(c) Provide a rich development platform for writing applications in
+    heterogeneous networks.
+
+We hope you find this software useful.
+
+
+                                            -- Gerald Carter
+                                               Likewise Open Project Lead
+                                               <gcarter@likewise.com>
+
+
+Instructions on building likewise-open
+======================================
+
+The likewise-open build is driven by a series of shell scripts.
+While the code is portable among a variety of *nix based platforms
+(Linux, Solaris, AIX, HP-UX, and OS X), this build system is 
+primarily intended for Linux platforms.
+
+The easiest way to begin a build is to run:
 
   $ build/mkcomp all
 
-This will the necessary components and install them to the staging/install-root/
-directory.  
+This will the necessary components and install them to the 
+staging/install-root/ directory.  
 
-You may then create a set of packages by executing (currently only debs
-are supported)
+You may then create a set of packages by executing (currently only
+debs are supported)
 
   $ build/mkpkg all
+
+Both mkcomp and mkpkg support the --debug option for including
+(and not tripping) debug symbols.
+
+
+Getting Help
+============
+
+The main Likewise Open web site is at http://www.likewise.com/open_community/.
+From here you will find links to the project forums, and pre-built package 
+downloads.
+
+If you find any bugs, please file a report at http://lobugs.likewise.com/
+
+There are also mailing lists available for developer interaction at
+http://lists.likewisesoftware.com/.  Note that likewise-open-discuss user
+community list has been deprecated in favor of the forums.  But the 
+likewise-open-dev list is still available.
+
+====
 
