@@ -103,11 +103,11 @@ typedef struct samr_display_info_ascii {
 
 #ifndef _DCE_IDL_
 typedef union samr_display_info  {
-    SamrDisplayInfoFull info1;
-    SamrDisplayInfoGeneral info2;
+    SamrDisplayInfoFull          info1;
+    SamrDisplayInfoGeneral       info2;
     SamrDisplayInfoGeneralGroups info3;
-    SamrDisplayInfoAscii info4;
-    SamrDisplayInfoAscii info5;
+    SamrDisplayInfoAscii         info4;
+    SamrDisplayInfoAscii         info5;
 } SamrDisplayInfo;
 #endif /* _DCE_IDL_ */
 
