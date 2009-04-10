@@ -1,0 +1,12 @@
+*~
+*.rej
+*.o
+*.so
+*.la
+*.lo
+.libs
+autom4te.cache
+config.log
+config.status
+config.cache
+staging
