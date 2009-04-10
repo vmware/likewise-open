@@ -1,0 +1,20 @@
+Intructions on building likewise-open
+=====================================
+
+The likewise-open build is driven by a series of shell scripts.  While
+the code is portable among a variety of *nix based platforms (Linux, Solaris,
+AIX, HP-UX, and OS X), this build system is primarily intended for Linux
+platforms.
+
+The easist way to begin a build is to run:
+
+  $ build/mkcomp all
+
+This will the necessary components and install them to the staging/install-root/
+directory.  
+
+You may then create a set of packages by executing (currently only debs
+are supported)
+
+  $ build/mkpkg all
+

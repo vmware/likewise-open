@@ -45,6 +45,7 @@ export SYSCONFIDIR PREFIX LOCALSTATEDIR STAGE_INSTALL_DIR
 ##
 . ${BUILD_ROOT}/build/lib/common.sh
 . ${BUILD_ROOT}/build/lib/mkcomp-helper.sh
+. ${BUILD_ROOT}/build/lib/VARS
 
 function build_component
 {

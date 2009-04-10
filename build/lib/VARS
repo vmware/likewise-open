@@ -1,0 +1,30 @@
+##
+## Likewise Open version
+##   The REVISION is generated from the SVN rev number sin the log
+##
+LIKEWISE_OPEN_MAJOR=5
+LIKEWISE_OPEN_MINOR=2
+LIKEWISE_OPEN_BUILD=0
+LIKEWISE_OPEN_REVISION=`git log | grep '\(.*: r[1-9].*\)' | cut -d: -f2 | sed -e 's:\s*r::' -e 's:)$::' | sort -n | tail -1`
+
+## List of all components necessary 
+__COMP_LIST="krb5 openldap libunistr lwbase \
+    lwmapsecurity lwmsg centutils \
+    sqlite libtdb pstore \
+    netlogon lwio libkeytab libgss \
+    dcerpc librpc eventlog lsass \
+    lwdns domainjoin srvsvc \
+"
+
+function LikewiseOpenVersion
+{
+    echo "${LIKEWISE_OPEN_MAJOR}.${LIKEWISE_OPEN_MINOR}.${LIKEWISE_OPEN_BUILD}.${LIKEWISE_OPEN_REVISION}"
+}
+
+
+function PrintVersionData
+{
+    echo "VERSION=${LIKEWISE_OPEN_MAJOR}.${LIKEWISE_OPEN_MINOR}"
+    echo "BUILD=${LIKEWISE_OPEN_BUILD}"
+    echo "REVISION=${LIKEWISE_OPEN_REVISION}"
+}

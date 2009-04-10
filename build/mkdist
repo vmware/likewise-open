@@ -1,0 +1,38 @@
+#!/bin/bash
+
+BUILD_ROOT=`(cd $(dirname $0)/.. && pwd)`
+
+umask 022
+
+. ${BUILD_ROOT}/build/lib/VARS
+
+COMP_ALL="${__COMP_LIST}"
+SUPPORT_DIR="build config packaging"
+
+DIRS="${COMP_ALL} ${SUPPORT_DIRS}"
+
+VERSION=$(LikewiseOpenVersion)
+TARGET=likewise-open-$VERSION
+/bin/rm -rf $BUILD_ROOT/../$TARGET || exit 1
+mkdir $BUILD_ROOT/../$TARGET || exit 1
+
+for dir in ${DIRS}; do
+	echo "Copying $dir..."
+	rsync -a --exclude=.git* --exclude=.svn --exclude=*~ --exclude=*bak \
+		$BUILD_ROOT/$dir $BUILD_ROOT/../$TARGET/ || exit 1
+done
+
+cd $BUILD_ROOT/..
+
+find $TARGET -name "*.sh" | xargs chmod u+x
+(cd $TARGET && \
+    for f in `find . -name autogen.sh`; \
+    do \
+        echo "Running autogen.sh in `dirname $f`..."; \
+	(cd `dirname $f` && ./autogen.sh); \
+        echo " "; \
+    done)
+
+tar cf - $TARGET | gzip -9 > likewise-open-$VERSION.tar.gz
+[ "$TARGET" != "/" ] && /bin/rm -rf $TARGET
+
