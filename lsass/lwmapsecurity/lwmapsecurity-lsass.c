@@ -880,6 +880,7 @@ cleanup:
         LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
     }
 
+    LwRtlCStringFree(&pszUsername);
     LsaMapSecurityFreeObjectInfo(&objectInfo);
 
     *CreateInformation = createInformation;

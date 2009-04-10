@@ -37,6 +37,7 @@
  */
 
 #include "security-includes.h"
+#include <lw/atomic.h>
 
 //
 // ACCESS_MASK Functions
@@ -279,8 +280,7 @@ RtlReferenceAccessToken(
     IN PACCESS_TOKEN AccessToken
     )
 {
-    // TODO-Interlocked access for MT-safety
-    AccessToken->ReferenceCount++;
+    LwInterlockedIncrement(&AccessToken->ReferenceCount);
 }
 
 VOID
@@ -292,15 +292,11 @@ RtlReleaseAccessToken(
 
     if (accessToken)
     {
-        // TODO-Interlocked access for MT-safety
-
-        if (accessToken->ReferenceCount <= 1)
+        LONG count = LwInterlockedDecrement(&accessToken->ReferenceCount);
+        assert(count >= 0);
+        if (0 == count)
         {
             RTL_FREE(AccessToken);
-        }
-        else
-        {
-            accessToken->ReferenceCount--;
         }
     }
 }
