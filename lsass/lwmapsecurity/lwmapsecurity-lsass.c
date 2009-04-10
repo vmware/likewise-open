@@ -661,8 +661,16 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
                     0,
                     &groupInfoCount,
                     (PVOID**)OUT_PPVOID(&ppGroupInfoList));
-    status = LsaLsaErrorToNtStatus(dwError);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (IS_NOT_FOUND_ERROR(dwError))
+    {
+        dwError = 0;
+        groupInfoCount = 0;
+    }
+    else
+    {
+        status = LsaLsaErrorToNtStatus(dwError);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     LsaMapSecurityCloseConnection(Context, &hConnection);
 
