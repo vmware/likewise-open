@@ -1438,6 +1438,324 @@ error:
 }
 
 
+static
+NTSTATUS
+SamrCopyDisplayEntryFull(
+    SamrDisplayEntryFull *out,
+    SamrDisplayEntryFull *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->idx           = in->idx;
+    out->rid           = in->rid;
+    out->account_flags = in->account_flags;
+
+    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayInfoFull(
+    SamrDisplayInfoFull *out,
+    SamrDisplayInfoFull *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32 i = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->count = in->count;
+
+    status = SamrAllocateMemory((void**)&out->entries,
+                                sizeof(out->entries[0]) * out->count,
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    for (i = 0; i < out->count; i++) {
+        status = SamrCopyDisplayEntryFull(&(out->entries[i]),
+                                          &(in->entries[i]),
+                                          out->entries);
+        goto_if_ntstatus_not_success(status, cleanup);
+    }
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayEntryGeneral(
+    SamrDisplayEntryGeneral *out,
+    SamrDisplayEntryGeneral *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->idx           = in->idx;
+    out->rid           = in->rid;
+    out->account_flags = in->account_flags;
+
+    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayInfoGeneral(
+    SamrDisplayInfoGeneral *out,
+    SamrDisplayInfoGeneral *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32 i = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->count = in->count;
+
+    status = SamrAllocateMemory((void**)&out->entries,
+                                sizeof(out->entries[0]) * out->count,
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    for (i = 0; i < out->count; i++) {
+        status = SamrCopyDisplayEntryGeneral(&(out->entries[i]),
+                                             &(in->entries[i]),
+                                             out->entries);
+        goto_if_ntstatus_not_success(status, cleanup);
+    }
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayEntryGeneralGroup(
+    SamrDisplayEntryGeneralGroup *out,
+    SamrDisplayEntryGeneralGroup *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->idx           = in->idx;
+    out->rid           = in->rid;
+    out->account_flags = in->account_flags;
+
+    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayInfoGeneralGroups(
+    SamrDisplayInfoGeneralGroups *out,
+    SamrDisplayInfoGeneralGroups *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32 i = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->count = in->count;
+
+    status = SamrAllocateMemory((void**)&out->entries,
+                                sizeof(out->entries[0]) * out->count,
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    for (i = 0; i < out->count; i++) {
+        status = SamrCopyDisplayEntryGeneralGroup(&(out->entries[i]),
+                                                  &(in->entries[i]),
+                                                  out->entries);
+        goto_if_ntstatus_not_success(status, cleanup);
+    }
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayEntryAscii(
+    SamrDisplayEntryAscii *out,
+    SamrDisplayEntryAscii *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->idx                        = in->idx;
+    out->account_name.Length        = in->account_name.Length;
+    out->account_name.MaximumLength = in->account_name.MaximumLength;
+
+    status = SamrAllocateMemory((void**)&out->account_name.Buffer,
+                                sizeof(CHAR) * out->account_name.MaximumLength,
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    memcpy(out->account_name.Buffer,
+           in->account_name.Buffer,
+           out->account_name.Length);
+
+cleanup:
+    return status;
+}
+
+
+static
+NTSTATUS
+SamrCopyDisplayInfoAscii(
+    SamrDisplayInfoAscii *out,
+    SamrDisplayInfoAscii *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32 i = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    out->count = in->count;
+
+    status = SamrAllocateMemory((void**)&out->entries,
+                                sizeof(out->entries[0]) * out->count,
+                                dep);
+    goto_if_ntstatus_not_success(status, cleanup);
+
+    for (i = 0; i < out->count; i++) {
+        status = SamrCopyDisplayEntryAscii(&(out->entries[i]),
+                                           &(in->entries[i]),
+                                           out->entries);
+        goto_if_ntstatus_not_success(status, cleanup);
+    }
+
+cleanup:
+    return status;
+}
+
+
+NTSTATUS
+SamrAllocateDisplayInfo(
+    SamrDisplayInfo **out,
+    SamrDisplayInfo *in,
+    uint16 level
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    SamrDisplayInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = SamrAllocateMemory((void**)&ptr, sizeof(*ptr),
+                                NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    switch (level) {
+    case 1:
+        status = SamrCopyDisplayInfoFull(&ptr->info1,
+                                         &in->info1,
+                                         ptr);
+        break;
+
+    case 2:
+        status = SamrCopyDisplayInfoGeneral(&ptr->info2,
+                                            &in->info2,
+                                            ptr);
+        break;
+
+    case 3:
+        status = SamrCopyDisplayInfoGeneralGroups(&ptr->info3,
+                                                  &in->info3,
+                                                  ptr);
+        break;
+
+    case 4:
+        status = SamrCopyDisplayInfoAscii(&ptr->info4,
+                                          &in->info4,
+                                          ptr);
+        break;
+
+    case 5:
+        status = SamrCopyDisplayInfoAscii(&ptr->info5,
+                                          &in->info5,
+                                          ptr);
+
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+        goto error;
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        SamrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
