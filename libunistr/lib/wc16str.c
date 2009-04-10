@@ -736,11 +736,18 @@ size_t __mbsnbcnt(const char *src, size_t cchFind)
     iconv_t handle = iconv_open("UCS-4", "");
     size_t cbFind = strlen(src);
     char *srcPos = (char *)src;
+    size_t retValue = -1;
+
     if (iconv_count(handle, (ICONV_IN_TYPE) &srcPos, &cbFind, &cchFind) < 0)
     {
-        return -1;
+        iconv_close(handle);
+        goto cleanup;
     }
-    return srcPos - src;
+    retValue = srcPos - src;
+
+cleanup:
+    iconv_close(handle);
+    return retValue;
 }
 #endif
 
