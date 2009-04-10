@@ -76,9 +76,11 @@ SamrSrvEnumDomains(
     PDIRECTORY_ATTRIBUTE pAttr = NULL;
     PATTRIBUTE_VALUE pAttrVal = NULL;
     DWORD i = 0;
+    DWORD dwResume = 0;
     DWORD dwCount = 0;
     DWORD dwSize = 0;
     EntryArray *pDomains = NULL;
+    Entry *pDomain = NULL;
 
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
@@ -122,17 +124,52 @@ SamrSrvEnumDomains(
                                    pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    //    dwSize += sizeof(pDomains->count);
-
-    i       = *resume;
-    dwCount = 0;
+    i = (*resume);
 
     if (i >= dwEntriesNum) {
-        i = 0;
         status = STATUS_NO_MORE_ENTRIES;
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    while (dwSize < size && i < dwEntriesNum) {
+    dwSize += sizeof(pDomains->count);
+    for (; dwSize < size && i < dwEntriesNum; i++) {
+        pEntry = &(pEntries[i]);
+
+        dwError = DirectoryGetEntryAttributeSingle(pEntry,
+                                                   &pAttr);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetAttributeValue(pAttr, &pAttrVal);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pAttrVal &&
+            pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
+
+            dwSize += sizeof(uint32);
+            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(wchar16_t);
+            dwSize += 2 * sizeof(uint16);
+
+            dwCount++;
+
+        } else {
+            status = STATUS_INTERNAL_ERROR;
+            BAIL_ON_NTSTATUS_ERROR(status);
+        }
+    }
+
+    /* At least one domain entry is returned regardless of declared
+       max response size */
+    dwCount  = (!dwCount) ? 1 : dwCount;
+    dwResume = (*resume) + dwCount;
+
+    status = SamrSrvAllocateMemory((void**)&pDomains->entries,
+                                   sizeof(pDomains->entries[0]) * dwCount,
+                                   pDomains);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    pDomains->count = dwCount;
+
+    for (i = (*resume); i < dwResume; i++) {
         pEntry = &(pEntries[i]);
 
         dwError = DirectoryGetEntryAttributeSingle(pEntry,
@@ -143,30 +180,10 @@ SamrSrvEnumDomains(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            //            dwSize += sizeof(uint32);
-            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(wchar16_t);
-            //            dwSize += 2 * sizeof(uint16);
+            pDomain = &(pDomains->entries[i - (*resume)]);
 
-            if (dwSize < size && pDomains->entries) {
-                status = SamrSrvReallocMemory((void**)&pDomains->entries,
-                                              sizeof(pDomains->entries[0]) * (++dwCount),
-                                              pDomains->entries);
-
-            } else if (dwSize < size && !pDomains->entries) {
-                status = SamrSrvAllocateMemory((void**)&pDomains->entries,
-                                               sizeof(pDomains->entries[0]) * (++dwCount),
-                                               pDomains);
-            } else {
-                status = STATUS_MORE_ENTRIES;
-                break;
-            }
-
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            pDomains->count = dwCount;
-            pDomains->entries[dwCount - 1].idx = i;
-
-            status = SamrSrvInitUnicodeString(&(pDomains->entries[dwCount - 1].name),
+            pDomain->idx = i;
+            status = SamrSrvInitUnicodeString(&pDomain->name,
                                               pAttrVal->data.pwszStringValue,
                                               pDomains->entries);
             BAIL_ON_NTSTATUS_ERROR(status);
@@ -175,11 +192,13 @@ SamrSrvEnumDomains(
             status = STATUS_INTERNAL_ERROR;
             BAIL_ON_NTSTATUS_ERROR(status);
         }
-
-        i++;
     }
 
-    *resume      = i;
+    if (dwResume < dwEntriesNum) {
+        status = STATUS_MORE_ENTRIES;
+    }
+
+    *resume      = dwResume;
     *num_entries = dwCount;
     *domains     = pDomains;
 
