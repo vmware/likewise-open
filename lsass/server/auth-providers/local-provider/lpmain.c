@@ -65,7 +65,9 @@ LsaInitializeProvider(
                     pwszCredentials,
                     ulMethod,
                     &gLPGlobals.pszLocalDomain,
-                    &gLPGlobals.pszNetBIOSName);
+                    &gLPGlobals.pszNetBIOSName,
+                    &gLPGlobals.llMaxPwdAge,
+                    &gLPGlobals.llPwdChangeTime);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszConfigFilePath)) {

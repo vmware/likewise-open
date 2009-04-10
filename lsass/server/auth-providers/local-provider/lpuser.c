@@ -597,6 +597,8 @@ LocalDirFindUserByName_1(
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
 
+    pUserInfo->bIsLocalUser = TRUE;
+
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -644,7 +646,7 @@ LocalDirFindUserByName_2(
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
-    wchar16_t wszAttrNamePasswdChange[]   = LOCAL_DIR_ATTR_PASSWORD_CHANGE_TIME;
+    wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -658,7 +660,7 @@ LocalDirFindUserByName_2(
         &wszAttrNameObjectSID[0],
         &wszAttrNameUserInfoFlags[0],
         &wszAttrNameAccountExpiry[0],
-        &wszAttrNamePasswdChange[0],
+        &wszAttrNamePasswdLastSet[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -669,13 +671,14 @@ LocalDirFindUserByName_2(
                     LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
                     " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR  pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    DWORD dwInfoLevel = 2;
-    DWORD iAttr = 0;
-    PLSA_USER_INFO_1 pUserInfo = NULL;
-
-    // TODO: Add additional fields
+    PSTR   pszFilter = NULL;
+    PWSTR  pwszFilter = NULL;
+    DWORD  dwUserInfoFlags = 0;
+    LONG64 llAccountExpiry = 0;
+    LONG64 llPasswordLastSet = 0;
+    DWORD  dwInfoLevel = 2;
+    DWORD  iAttr = 0;
+    PLSA_USER_INFO_2 pUserInfo = NULL;
 
     dwError = LsaAllocateStringPrintf(
                     &pszFilter,
@@ -862,6 +865,39 @@ LocalDirFindUserByName_2(
                             &pUserInfo->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
         }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameUserInfoFlags[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwUserInfoFlags = pAttr->pValues[0].data.ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameAccountExpiry[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            llAccountExpiry = pAttr->pValues[0].data.llValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNamePasswdLastSet[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            llPasswordLastSet = pAttr->pValues[0].data.llValue;
+        }
         else
         {
             dwError = LSA_ERROR_DATA_ERROR;
@@ -882,6 +918,15 @@ LocalDirFindUserByName_2(
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
+
+    pUserInfo->bIsLocalUser = TRUE;
+
+    dwError = LocalMarshallAccountFlags(
+                    pUserInfo,
+                    dwUserInfoFlags,
+                    llPasswordLastSet,
+                    llAccountExpiry);
+    BAIL_ON_LSA_ERROR(dwError);
 
     *ppUserInfo = pUserInfo;
 
@@ -1470,6 +1515,8 @@ LocalDirFindUserById_1(
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
 
+    pUserInfo->bIsLocalUser = TRUE;
+
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -1505,8 +1552,346 @@ LocalDirFindUserById_2(
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
+    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
+    wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameUID[0],
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNamePassword[0],
+        &wszAttrNameGecos[0],
+        &wszAttrNameShell[0],
+        &wszAttrNameHomedir[0],
+        &wszAttrNameUPN[0],
+        &wszAttrNameObjectSID[0],
+        &wszAttrNameUserInfoFlags[0],
+        &wszAttrNameAccountExpiry[0],
+        &wszAttrNamePasswdLastSet[0],
+        &wszAttrNameDomain[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_UID " = %u" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR  pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PSTR  pszDomain = NULL;
+    DWORD dwUserInfoFlags = 0;
+    LONG64 llAccountExpiry = 0;
+    LONG64 llPasswordLastSet = 0;
+    DWORD dwInfoLevel = 2;
+    DWORD iAttr = 0;
+    PLSA_USER_INFO_2 pUserInfo = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    uid,
+                    LOCAL_OBJECT_CLASS_USER);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_USER_INFO_2),
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (; iAttr < pEntry->ulNumAttributes; iAttr++)
+    {
+        PDIRECTORY_ATTRIBUTE pAttr = &pEntry->pAttributes[iAttr];
+
+        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameUID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            pUserInfo->uid = pAttr->pValues[0].data.ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameGID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            pUserInfo->gid = pAttr->pValues[0].data.ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameSamAccountName[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaWc16sToMbs(
+                            pAttr->pValues[0].data.pwszStringValue,
+                            &pUserInfo->pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNamePassword[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].data.pwszStringValue,
+                                &pUserInfo->pszPasswd);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameGecos[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].data.pwszStringValue,
+                                &pUserInfo->pszGecos);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameShell[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].data.pwszStringValue,
+                                &pUserInfo->pszShell);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameHomedir[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].data.pwszStringValue,
+                                &pUserInfo->pszHomedir);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameUPN[0]))
+        {
+            if (pAttr->ulNumValues > 0)
+            {
+                if ((pAttr->ulNumValues != 1) ||
+                    (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+                {
+                    dwError = LSA_ERROR_DATA_ERROR;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                dwError = LsaWc16sToMbs(
+                                pAttr->pValues[0].data.pwszStringValue,
+                                &pUserInfo->pszUPN);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameDomain[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaWc16sToMbs(
+                            pAttr->pValues[0].data.pwszStringValue,
+                            &pszDomain);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameObjectSID[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = LsaWc16sToMbs(
+                            pAttr->pValues[0].data.pwszStringValue,
+                            &pUserInfo->pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameUserInfoFlags[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwUserInfoFlags = pAttr->pValues[0].data.ulValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameAccountExpiry[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            llAccountExpiry = pAttr->pValues[0].data.llValue;
+        }
+        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNamePasswdLastSet[0]))
+        {
+            if ((pAttr->ulNumValues != 1) ||
+                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
+            {
+                dwError = LSA_ERROR_DATA_ERROR;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            llPasswordLastSet = pAttr->pValues[0].data.llValue;
+        }
+        else
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (IsNullOrEmptyString(pUserInfo->pszUPN))
+    {
+        if (IsNullOrEmptyString(pszDomain))
+        {
+            dwError = LSA_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LsaAllocateStringPrintf(
+                        &pUserInfo->pszUPN,
+                        "%s@%s",
+                        pUserInfo->pszName,
+                        pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LsaStrToUpper(pUserInfo->pszUPN + strlen(pUserInfo->pszName) + 1);
+
+        pUserInfo->bIsGeneratedUPN = TRUE;
+    }
+
+    pUserInfo->bIsLocalUser = TRUE;
+
+    dwError = LocalMarshallAccountFlags(
+                    pUserInfo,
+                    dwUserInfoFlags,
+                    llPasswordLastSet,
+                    llAccountExpiry);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppUserInfo = pUserInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LSA_SAFE_FREE_STRING(pszDomain);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
+
+error:
+
+    *ppUserInfo = pUserInfo;
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -2247,4 +2632,112 @@ error:
     return dwError;
 }
 
+DWORD
+LocalMarshallAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo,
+    DWORD            dwUserInfoFlags,
+    LONG64           llPwdLastSet,
+    LONG64           llAcctExpiry
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bPasswordNeverExpires = FALSE;
+    BOOLEAN bAccountDisabled = FALSE;
+    BOOLEAN bUserCanChangePassword = FALSE;
+    BOOLEAN bAccountLocked = FALSE;
+    BOOLEAN bAccountExpired = FALSE;
+    BOOLEAN bPasswordExpired = FALSE;
+    BOOLEAN bPromptPasswordChange = FALSE;
+    DWORD   dwDaysToPasswordExpiry = 0;
+
+    if (dwUserInfoFlags & LOCAL_ACB_PWNOEXP)
+    {
+        bPasswordNeverExpires = TRUE;
+    }
+
+    if (dwUserInfoFlags & LOCAL_ACB_DISABLED)
+    {
+        bAccountDisabled = TRUE;
+    }
+
+    if (dwUserInfoFlags & LOCAL_ACB_DOMTRUST)
+    {
+        bUserCanChangePassword = TRUE;
+    }
+
+    if (dwUserInfoFlags & LOCAL_ACB_NORMAL)
+    {
+        bAccountLocked = TRUE;
+    }
+
+    if (!bPasswordNeverExpires)
+    {
+        // Password expires
+
+        if (dwUserInfoFlags & LOCAL_ACB_PW_EXPIRED)
+        {
+            bPasswordExpired = TRUE;
+            dwDaysToPasswordExpiry = 0;
+            bPromptPasswordChange = TRUE;
+        }
+        else
+        {
+            // Account has not expired yet
+
+            LONG64 llMaxPwdAge = 0;
+            LONG64 llPwdChangeTime = 0;
+            LONG64 llCurTime = 0;
+            LONG64 llTimeToExpiry = 0;
+
+            dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LocalCfgGetPasswordChangeWarningTime(&llPwdChangeTime);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            bPasswordExpired = FALSE;
+
+            llCurTime = LocalGetNTTime(time(NULL));
+            llTimeToExpiry = llMaxPwdAge - (llCurTime - llPwdLastSet);
+
+            if (llTimeToExpiry <= llPwdChangeTime)
+            {
+                bPromptPasswordChange = TRUE;
+            }
+            else
+            {
+                bPromptPasswordChange = FALSE;
+            }
+
+            dwDaysToPasswordExpiry = llTimeToExpiry/(24 * 60 * 60 * 10000000LL);
+        }
+    }
+    else
+    {
+        // Password never expires
+        bPasswordExpired = FALSE;
+        dwDaysToPasswordExpiry = 0;
+        bPromptPasswordChange = FALSE;
+    }
+
+    if (llAcctExpiry)
+    {
+        LONG64 llCurTime = LocalGetNTTime(time(NULL));
+
+        bAccountExpired = (llCurTime > llAcctExpiry) ? TRUE : FALSE;
+    }
+
+    pUserInfo->bAccountDisabled       = bAccountDisabled;
+    pUserInfo->bAccountExpired        = bAccountExpired;
+    pUserInfo->bAccountLocked         = bAccountLocked;
+    pUserInfo->bPasswordExpired       = bPasswordExpired;
+    pUserInfo->bPasswordNeverExpires  = bPasswordNeverExpires;
+    pUserInfo->bPromptPasswordChange  = bPromptPasswordChange;
+    pUserInfo->bUserCanChangePassword = bUserCanChangePassword;
+    pUserInfo->dwDaysToPasswordExpiry = dwDaysToPasswordExpiry;
+
+error:
+
+    return dwError;
+}
 

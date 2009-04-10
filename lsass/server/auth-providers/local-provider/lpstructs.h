@@ -72,8 +72,6 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 
 typedef struct __LOCAL_CONFIG
 {
-    DWORD     dwPasswdChangeInterval;
-    DWORD     dwPasswdChangeWarningTime;
     BOOLEAN   bEnableEventLog;
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 
@@ -84,6 +82,9 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     PSTR            pszConfigFilePath;
     PSTR            pszLocalDomain;
     PSTR            pszNetBIOSName;
+
+    LONG64          llMaxPwdAge;
+    LONG64          llPwdChangeTime;
 
     LOCAL_CONFIG    cfg;
 

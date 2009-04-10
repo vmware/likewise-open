@@ -204,4 +204,12 @@ LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
     );
 
+DWORD
+LocalMarshallAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo,
+    DWORD            dwUserInfoFlags,
+    LONG64           llPwdLastSet,
+    LONG64           llAcctExpiry
+    );
+
 #endif /* __LP_USER_H__ */

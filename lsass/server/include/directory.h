@@ -206,6 +206,12 @@ DirectoryChangePassword(
     PWSTR  pwszNewPassword
     );
 
+DWORD
+DirectoryGetPasswordChangeInterval(
+    HANDLE hBindHandle,
+    PDWORD pdwInterval
+    );
+
 VOID
 DirectoryClose(
     HANDLE hDirectory
