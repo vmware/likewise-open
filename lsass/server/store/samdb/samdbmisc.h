@@ -102,5 +102,10 @@ SamDbGetObjectCount(
     PDWORD                 pdwNumObjects
     );
 
+LONG64
+SamDbGetNTTime(
+    time_t timeVal
+    );
+
 #endif /* __SAMDB_MISC_H__ */
 

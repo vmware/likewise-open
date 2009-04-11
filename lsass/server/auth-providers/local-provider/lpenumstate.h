@@ -83,7 +83,7 @@ LocalFreeGroupState(
 
 VOID
 LocalFreeEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState
+    HANDLE hResume
     );
 
 #endif /* __ENUM_STATE_H__ */

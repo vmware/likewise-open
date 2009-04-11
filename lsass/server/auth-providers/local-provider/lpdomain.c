@@ -51,19 +51,29 @@
 
 static
 DWORD
-LocalGetSingleAttrValue(
+LocalGetSingleStringAttrValue(
     PATTRIBUTE_VALUE pAttrs,
     DWORD            dwNumAttrs,
     PSTR*            ppszValue
     );
 
+static
+DWORD
+LocalGetSingleLargeIntegerAttrValue(
+    PATTRIBUTE_VALUE pAttrs,
+    DWORD            dwNumAttrs,
+    PLONG64          pllAttrValue
+    );
+
 DWORD
 LocalGetDomainInfo(
-    PWSTR pwszUserDN,
-    PWSTR pwszCredentials,
-    ULONG ulMethod,
-    PSTR* ppszNetBIOSName,
-    PSTR* ppszDomainName
+    PWSTR   pwszUserDN,
+    PWSTR   pwszCredentials,
+    ULONG   ulMethod,
+    PSTR*   ppszNetBIOSName,
+    PSTR*   ppszDomainName,
+    PLONG64 pllMaxPwdAge,
+    PLONG64 pllPwdChangeTime
     )
 {
     DWORD  dwError = 0;
@@ -77,10 +87,14 @@ LocalGetDomainInfo(
     PWSTR  pwszFilter = NULL;
     wchar16_t wszAttrNameDomain[]      = LOCAL_DIR_ATTR_DOMAIN;
     wchar16_t wszAttrNameNetBIOSName[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    wchar16_t wszAttrNameMaxPwdAge[]   = LOCAL_DIR_ATTR_MAX_PWD_AGE;
+    wchar16_t wszAttrNamePwdChangeTime[] = LOCAL_DIR_ATTR_PWD_PROMPT_TIME;
     PWSTR  wszAttrs[] =
     {
             &wszAttrNameDomain[0],
             &wszAttrNameNetBIOSName[0],
+            &wszAttrNameMaxPwdAge[0],
+            &wszAttrNamePwdChangeTime[0],
             NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -89,8 +103,10 @@ LocalGetDomainInfo(
     DWORD            dwNumEntries = 0;
     DWORD            iAttr = 0;
     ULONG            ulScope = 0;
-    PSTR  pszDomainName  = NULL;
-    PSTR  pszNetBIOSName = NULL;
+    PSTR   pszDomainName  = NULL;
+    PSTR   pszNetBIOSName = NULL;
+    LONG64 llMaxPwdAge = 0;
+    LONG64 llPwdChangeTime = 0;
 
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
@@ -155,7 +171,7 @@ LocalGetDomainInfo(
 
         if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameDomain[0]))
         {
-            dwError = LocalGetSingleAttrValue(
+            dwError = LocalGetSingleStringAttrValue(
                             pAttr->pValues,
                             pAttr->ulNumValues,
                             &pszDomainName);
@@ -163,10 +179,26 @@ LocalGetDomainInfo(
         else
         if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameNetBIOSName[0]))
         {
-            dwError = LocalGetSingleAttrValue(
+            dwError = LocalGetSingleStringAttrValue(
                             pAttr->pValues,
                             pAttr->ulNumValues,
                             &pszNetBIOSName);
+        }
+        else
+        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameMaxPwdAge[0]))
+        {
+            dwError = LocalGetSingleLargeIntegerAttrValue(
+                            pAttr->pValues,
+                            pAttr->ulNumValues,
+                            &llMaxPwdAge);
+        }
+        else
+        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNamePwdChangeTime[0]))
+        {
+            dwError = LocalGetSingleLargeIntegerAttrValue(
+                            pAttr->pValues,
+                            pAttr->ulNumValues,
+                            &llPwdChangeTime);
         }
         else
         {
@@ -177,6 +209,8 @@ LocalGetDomainInfo(
 
     *ppszDomainName = pszDomainName;
     *ppszNetBIOSName = pszNetBIOSName;
+    *pllMaxPwdAge = llMaxPwdAge;
+    *pllPwdChangeTime = llPwdChangeTime;
 
 cleanup:
 
@@ -201,6 +235,8 @@ error:
 
     *ppszDomainName = NULL;
     *ppszNetBIOSName = NULL;
+    *pllMaxPwdAge = 0;
+    *pllPwdChangeTime = 0;
 
     LSA_SAFE_FREE_STRING(pszDomainName);
     LSA_SAFE_FREE_STRING(pszNetBIOSName);
@@ -210,7 +246,7 @@ error:
 
 static
 DWORD
-LocalGetSingleAttrValue(
+LocalGetSingleStringAttrValue(
     PATTRIBUTE_VALUE pAttrs,
     DWORD            dwNumAttrs,
     PSTR*            ppszValue
@@ -245,6 +281,36 @@ error:
     LSA_SAFE_FREE_STRING(pszValue);
 
     *ppszValue = NULL;
+
+    goto cleanup;
+}
+
+static
+DWORD
+LocalGetSingleLargeIntegerAttrValue(
+    PATTRIBUTE_VALUE pAttrs,
+    DWORD            dwNumAttrs,
+    PLONG64          pllAttrValue
+    )
+{
+    DWORD dwError = 0;
+
+    if ((dwNumAttrs != 1) ||
+        (pAttrs[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pllAttrValue = pAttrs[0].data.llValue;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pllAttrValue = 0;
 
     goto cleanup;
 }

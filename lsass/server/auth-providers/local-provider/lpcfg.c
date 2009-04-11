@@ -76,22 +76,6 @@ LocalCfgEnableEventLog(
     );
 
 static
-DWORD
-LocalCfgPasswordLifespan(
-    PLOCAL_CONFIG pConfig,
-    PCSTR         pszName,
-    PCSTR         pszValue
-    );
-
-static
-DWORD
-LocalCfgPasswordChangeWarningTime(
-    PLOCAL_CONFIG pConfig,
-    PCSTR         pszName,
-    PCSTR         pszValue
-    );
-
-static
 BOOLEAN
 LocalCfgGetBooleanValue(
     PCSTR pszValue
@@ -112,9 +96,7 @@ typedef struct __LOCAL_CFG_HANDLER
 
 static LOCAL_CFG_HANDLER gLocalCfgHandlers[] =
 {
-    {"enable-eventlog",              &LocalCfgEnableEventLog},
-    {"password-lifespan",            &LocalCfgPasswordLifespan},
-    {"password-change-warning-time", &LocalCfgPasswordChangeWarningTime}
+    {"enable-eventlog",              &LocalCfgEnableEventLog}
 };
 
 DWORD
@@ -123,9 +105,6 @@ LocalCfgInitialize(
     )
 {
     memset(pConfig, 0, sizeof(LOCAL_CONFIG));
-
-    pConfig->dwPasswdChangeInterval = LOCAL_PASSWD_CHANGE_INTERVAL_DEFAULT;
-    pConfig->dwPasswdChangeWarningTime = LOCAL_PASSWD_CHANGE_WARNING_TIME_DEFAULT;
 
     pConfig->bEnableEventLog = FALSE;
 
@@ -199,41 +178,41 @@ error:
 }
 
 DWORD
-LocalCfgGetPasswordChangeInterval(
-    PDWORD pdwPasswdChangeInterval
+LocalCfgGetMaxPasswordAge(
+    PLONG64 pllMaxPwdAge
     )
 {
-    DWORD dwError = 0;
-    DWORD dwPasswdChangeInterval = 0;
+    DWORD  dwError = 0;
+    LONG64 llMaxPwdAge = 0;
     BOOLEAN bInLock = FALSE;
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwPasswdChangeInterval = gLPGlobals.cfg.dwPasswdChangeInterval;
+    llMaxPwdAge = gLPGlobals.llMaxPwdAge;
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    *pdwPasswdChangeInterval = dwPasswdChangeInterval;
+    *pllMaxPwdAge = llMaxPwdAge;
 
     return dwError;
 }
 
 DWORD
 LocalCfgGetPasswordChangeWarningTime(
-    PDWORD pdwPasswdChangeWarningTime
+    PLONG64 pllPasswdChangeWarningTime
     )
 {
     DWORD dwError = 0;
-    DWORD dwPasswdChangeWarningTime = 0;
+    LONG64 llPasswdChangeWarningTime = 0;
     BOOLEAN bInLock = FALSE;
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    dwPasswdChangeWarningTime = gLPGlobals.cfg.dwPasswdChangeWarningTime;
+    llPasswdChangeWarningTime = gLPGlobals.llPwdChangeTime;
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    *pdwPasswdChangeWarningTime = dwPasswdChangeWarningTime;
+    *pllPasswdChangeWarningTime = llPasswdChangeWarningTime;
 
     return dwError;
 }
@@ -363,102 +342,6 @@ LocalCfgEnableEventLog(
     pConfig->bEnableEventLog = LocalCfgGetBooleanValue(pszValue);
 
     return 0;
-}
-
-static
-DWORD
-LocalCfgPasswordLifespan(
-    PLOCAL_CONFIG pConfig,
-    PCSTR         pszName,
-    PCSTR         pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwPasswdChangeInterval = 0;
-
-    if (!IsNullOrEmptyString(pszValue))
-    {
-        dwError = LsaParseDateString(
-                        pszValue,
-                        &dwPasswdChangeInterval);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwPasswdChangeInterval < LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM)
-    {
-        LSA_LOG_ERROR("Failed to set PasswdChangeInterval to %u.  Minimum is %u.",
-                        dwPasswdChangeInterval,
-                        LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwPasswdChangeInterval > LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM)
-    {
-        LSA_LOG_ERROR("Failed to set PasswdChangeInterval to %u.  Maximum is %u.",
-                        dwPasswdChangeInterval,
-                        LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->dwPasswdChangeInterval = dwPasswdChangeInterval;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalCfgPasswordChangeWarningTime(
-    PLOCAL_CONFIG pConfig,
-    PCSTR         pszName,
-    PCSTR         pszValue
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwPasswdChangeWarningTime = 0;
-
-    if (!IsNullOrEmptyString(pszValue))
-    {
-        dwError = LsaParseDateString(
-                        pszValue,
-                        &dwPasswdChangeWarningTime);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwPasswdChangeWarningTime < LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM)
-    {
-        LSA_LOG_ERROR("Failed to set PasswdChangeWarningTime to %u.  Minimum is %u.",
-                        dwPasswdChangeWarningTime,
-                        LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (dwPasswdChangeWarningTime > LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM)
-    {
-        LSA_LOG_ERROR("Failed to set PasswdChangeWarningTime to %u.  Maximum is %u.",
-                        dwPasswdChangeWarningTime,
-                        LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pConfig->dwPasswdChangeWarningTime = dwPasswdChangeWarningTime;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
 }
 
 static

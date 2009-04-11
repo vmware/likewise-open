@@ -236,6 +236,7 @@ LsaLdapOpenDirectoryWithReaffinity(
     if (bNeedGc)
     {
         dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
+        dwFlags |= LSA_LDAP_OPT_GLOBAL_CATALOG;
     }
 
     while (TRUE)

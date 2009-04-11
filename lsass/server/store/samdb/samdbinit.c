@@ -50,7 +50,9 @@ SamDbAddLocalDomain(
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
     PCSTR  pszNetBIOSName,
-    PCSTR  pszMachineSID
+    PCSTR  pszMachineSID,
+    LONG64 llMaxPwdAge,
+    LONG64 llPwdChangeTime
     );
 
 static
@@ -348,6 +350,8 @@ SamDbAddMachineDomain(
     uuid_t GUID;
     PSID   pMachineSid = NULL;
     SID_IDENTIFIER_AUTHORITY AuthId = { SECURITY_NT_AUTHORITY };
+    LONG64 llMaxPwdAge = SAMDB_MAX_PWD_AGE_DEFAULT * 10000000LL;
+    LONG64 llPwdPromptTime = SAMDB_PASSWD_PROMPT_TIME_DEFAULT * 10000000LL;
 
     uuid_generate(GUID);
 
@@ -390,7 +394,9 @@ SamDbAddMachineDomain(
                     pszDomainDN,
                     pszDomainName,
                     pszNetBIOSName,
-                    pszMachineSID);
+                    pszMachineSID,
+                    llMaxPwdAge,
+                    llPwdPromptTime);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppMachineSid = pMachineSid;
@@ -416,16 +422,20 @@ SamDbAddLocalDomain(
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
     PCSTR  pszNetBIOSName,
-    PCSTR  pszMachineSID
+    PCSTR  pszMachineSID,
+    LONG64 llMaxPwdAge,
+    LONG64 llPwdChangeTime
     )
 {
     DWORD     dwError = 0;
-    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrNameObjectSID[]   = SAM_DB_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameNetBIOSName[] = SAM_DB_DIR_ATTR_NETBIOS_NAME;
-    wchar16_t wszAttrNameDomain[]      = SAM_DB_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameCommonName[]  = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameObjectClass[]    = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[]      = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSName[]    = SAM_DB_DIR_ATTR_NETBIOS_NAME;
+    wchar16_t wszAttrNameDomain[]         = SAM_DB_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
     wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameMaxPwdAge[]      = SAM_DB_DIR_ATTR_MAX_PWD_AGE;
+    wchar16_t wszAttrNamePwdChangeTime[]  = SAM_DB_DIR_ATTR_PWD_PROMPT_TIME;
     PWSTR     pwszObjectDN    = NULL;
     PWSTR     pwszMachineSID  = NULL;
     PWSTR     pwszDomainName  = NULL;
@@ -434,7 +444,9 @@ SamDbAddLocalDomain(
     ATTRIBUTE_VALUE avMachineSID  = {0};
     ATTRIBUTE_VALUE avDomainName  = {0};
     ATTRIBUTE_VALUE avNetBIOSName = {0};
-    DIRECTORY_MOD mods[7];
+    ATTRIBUTE_VALUE avMaxPwdAge   = {0};
+    ATTRIBUTE_VALUE avPwdChangeTime = {0};
+    DIRECTORY_MOD mods[9];
     ULONG     iMod = 0;
 
     memset(mods, 0, sizeof(mods));
@@ -500,6 +512,20 @@ SamDbAddLocalDomain(
     mods[++iMod].pwszAttrName = NULL;
     mods[iMod].ulNumValues = 0;
     mods[iMod].pAttrValues = NULL;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameMaxPwdAge[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avMaxPwdAge.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avMaxPwdAge.data.llValue = llMaxPwdAge;
+    mods[iMod].pAttrValues = &avMaxPwdAge;
+
+    mods[++iMod].pwszAttrName = &wszAttrNamePwdChangeTime[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avPwdChangeTime.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avPwdChangeTime.data.llValue = llPwdChangeTime;
+    mods[iMod].pAttrValues = &avPwdChangeTime;
 
     dwError = SamDbAddObject(
                     hDirectory,

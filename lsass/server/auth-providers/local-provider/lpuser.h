@@ -112,38 +112,17 @@ LocalDirFindUserById_2(
     );
 
 DWORD
+LocalDirBeginEnumUsers(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PHANDLE phResume
+    );
+
+DWORD
 LocalDirEnumUsers(
     HANDLE  hProvider,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwStartingRecordId,
+    HANDLE  hResume,
     DWORD   nMaxUsers,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_0(
-    HANDLE hProvider,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_1(
-    HANDLE hProvider,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_2(
-    HANDLE  hLocal,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
     PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     );
@@ -202,6 +181,14 @@ LocalProvisionHomeDir(
 DWORD
 LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
+    );
+
+DWORD
+LocalMarshallAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo,
+    DWORD            dwUserInfoFlags,
+    LONG64           llPwdLastSet,
+    LONG64           llAcctExpiry
     );
 
 #endif /* __LP_USER_H__ */

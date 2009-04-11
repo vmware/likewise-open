@@ -1,3 +1,0 @@
-                  Likewise Open Directory Service PlugIn 5.1
-
-Installed as a package dependency of Likewise Open.

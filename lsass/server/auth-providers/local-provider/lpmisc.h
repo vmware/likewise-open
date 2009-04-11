@@ -56,5 +56,10 @@ LocalBuildDN(
     PWSTR*               ppwszDN
     );
 
+LONG64
+LocalGetNTTime(
+    time_t timeVal
+    );
+
 #endif /* __LP_MISC_H__ */
 

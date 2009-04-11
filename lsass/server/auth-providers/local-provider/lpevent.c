@@ -142,14 +142,14 @@ LocalEventLogConfigReload(
 {
     DWORD   dwError = 0;
     PSTR    pszDescription = NULL;
-    DWORD   dwPasswdChangeInterval = 0;
-    DWORD   dwPasswdChangeWarningTime = 0;
+    LONG64  llMaxPwdAge = 0;
+    LONG64  llPasswdChangeWarningTime = 0;
     BOOLEAN bEventlogEnabled = FALSE;
 
-    dwError = LocalCfgGetPasswordChangeInterval(&dwPasswdChangeInterval);
+    dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalCfgGetPasswordChangeWarningTime(&dwPasswdChangeWarningTime);
+    dwError = LocalCfgGetPasswordChangeWarningTime(&llPasswdChangeWarningTime);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
@@ -160,12 +160,12 @@ LocalEventLogConfigReload(
                  "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
                  "     Authentication provider:       %s\r\n\r\n" \
                  "     Current settings are...\r\n" \
-                 "     Password change interval:      %d\r\n" \
+                 "     Password change interval:      %dr\n" \
                  "     Password change warning time : %d\r\n" \
                  "     Enable event log:              %s",
                  LSA_SAFE_LOG_STRING(gpszLocalProviderName),
-                 dwPasswdChangeInterval,
-                 dwPasswdChangeWarningTime,
+                 llMaxPwdAge/10000000LL,
+                 llPasswdChangeWarningTime/10000000LL,
                  bEventlogEnabled ? "true" : "false");
     BAIL_ON_LSA_ERROR(dwError);
 

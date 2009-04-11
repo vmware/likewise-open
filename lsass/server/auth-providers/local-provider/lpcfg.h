@@ -73,13 +73,13 @@ LocalCfgGetFilePath(
     );
 
 DWORD
-LocalCfgGetPasswordChangeInterval(
-    PDWORD pdwPasswdChangeInterval
+LocalCfgGetMaxPasswordAge(
+    PLONG64 pllMaxPwdAge
     );
 
 DWORD
 LocalCfgGetPasswordChangeWarningTime(
-    PDWORD pdwPasswdChangeWarningTime
+    PLONG64 pllPasswdChangeWarningTime
     );
 
 DWORD

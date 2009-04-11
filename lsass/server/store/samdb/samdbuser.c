@@ -103,11 +103,13 @@ SamDbSetPassword_inlock(
     BYTE lmHash[16];
     BYTE ntHash[16];
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    LONG64 llCurTime = 0;
     PCSTR pszQueryTemplate = "UPDATE " SAM_DB_OBJECTS_TABLE \
                              "   SET " SAM_DB_COL_LM_HASH " = ?1," \
-                             "   SET " SAM_DB_COL_NT_HASH " = ?2"  \
-                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?3" \
-                             "   AND " SAM_DB_COL_OBJECT_CLASS " = ?4";
+                             "   SET " SAM_DB_COL_NT_HASH " = ?2," \
+                             "   SET " SAM_DB_COL_PASSWORD_LAST_SET " = ?3"  \
+                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?4" \
+                             "   AND " SAM_DB_COL_OBJECT_CLASS " = ?5";
     sqlite3_stmt* pSqlStatement = NULL;
     PSTR pszPassword = NULL;
     PSTR pszUserDN = NULL;
@@ -148,6 +150,8 @@ SamDbSetPassword_inlock(
                 sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    llCurTime = SamDbGetNTTime(time(NULL));
+
     dwError = sqlite3_bind_blob(
                     pSqlStatement,
                     1,
@@ -164,9 +168,15 @@ SamDbSetPassword_inlock(
                     SQLITE_TRANSIENT);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = sqlite3_bind_text(
+    dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     3,
+                    llCurTime);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(
+                    pSqlStatement,
+                    4,
                     pszUserDN,
                     -1,
                     SQLITE_TRANSIENT);
@@ -174,7 +184,7 @@ SamDbSetPassword_inlock(
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
-                    4,
+                    5,
                     objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 

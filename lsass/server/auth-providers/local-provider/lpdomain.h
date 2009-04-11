@@ -52,11 +52,13 @@
 
 DWORD
 LocalGetDomainInfo(
-    PWSTR pwszUserDN,
-    PWSTR pwszCredentials,
-    ULONG ulMethod,
-    PSTR* ppszNetBIOSName,
-    PSTR* ppszLocalDomain
+    PWSTR   pwszUserDN,
+    PWSTR   pwszCredentials,
+    ULONG   ulMethod,
+    PSTR*   ppszNetBIOSName,
+    PSTR*   ppszLocalDomain,
+    PLONG64 pllMaxPwdAge,
+    PLONG64 pllPwdChangeTime
     );
 
 #endif /* __LP_DOMAIN_H__ */

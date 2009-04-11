@@ -50,14 +50,6 @@
 #define LOCAL_CFG_TAG_LOCAL_PROVIDER "lsa-local-provider"
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
 
-#define LOCAL_PASSWD_CHANGE_INTERVAL_MINIMUM LSA_SECONDS_IN_DAY
-#define LOCAL_PASSWD_CHANGE_INTERVAL_DEFAULT (30 * LSA_SECONDS_IN_DAY)
-#define LOCAL_PASSWD_CHANGE_INTERVAL_MAXIMUM (180 * LSA_SECONDS_IN_DAY)
-
-#define LOCAL_PASSWD_CHANGE_WARNING_TIME_MINIMUM LSA_SECONDS_IN_HOUR
-#define LOCAL_PASSWD_CHANGE_WARNING_TIME_DEFAULT (14 * LSA_SECONDS_IN_DAY)
-#define LOCAL_PASSWD_CHANGE_WARNING_TIME_MAXIMUM (30 * LSA_SECONDS_IN_DAY)
-
 #define LOCAL_LOCK_MUTEX(bInLock, pMutex)  \
         if (!bInLock) {                    \
            pthread_mutex_lock(pMutex);     \
@@ -85,12 +77,14 @@
 #define LOCAL_DB_DIR_ATTR_GID                  "GID"
 #define LOCAL_DB_DIR_ATTR_PASSWORD             "Password"
 #define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS      "UserInfoFlags"
-#define LOCAL_DB_DIR_ATTR_PASSWORD_CHANGE_TIME "PasswdChangeTime"
+#define LOCAL_DB_DIR_ATTR_PASSWORD_LAST_SET    "PasswordLastSet"
 #define LOCAL_DB_DIR_ATTR_FULL_NAME            "FullName"
 #define LOCAL_DB_DIR_ATTR_ACCOUNT_EXPIRY       "AccountExpiry"
 #define LOCAL_DB_DIR_ATTR_GECOS                "Gecos"
 #define LOCAL_DB_DIR_ATTR_HOME_DIR             "Homedir"
 #define LOCAL_DB_DIR_ATTR_SHELL                "LoginShell"
+#define LOCAL_DB_DIR_ATTR_MAX_PWD_AGE          "MaxPwdAge"
+#define LOCAL_DB_DIR_ATTR_PWD_PROMPT_TIME      "PwdPromptTime"
 
 #define LOCAL_DIR_ATTR_OBJECT_CLASS  \
     {'O','b','j','e','c','t','C','l','a','s','s',0}
@@ -114,8 +108,8 @@
     {'P','a','s','s','w','o','r','d',0}
 #define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
     {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
-#define LOCAL_DIR_ATTR_PASSWORD_CHANGE_TIME \
-    {'P','a','s','s','w','d','C','h','a','n','g','e','T','i','m','e',0}
+#define LOCAL_DIR_ATTR_PASSWORD_LAST_SET \
+    {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
 #define LOCAL_DIR_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_ACCOUNT_EXPIRY \
@@ -126,6 +120,10 @@
     {'H','o','m','e','d','i','r',0}
 #define LOCAL_DIR_ATTR_SHELL \
     {'L','o','g','i','n','S','h','e','l','l',0}
+#define LOCAL_DIR_ATTR_MAX_PWD_AGE \
+    {'M','a','x','P','w','d','A','g','e',0}
+#define LOCAL_DIR_ATTR_PWD_PROMPT_TIME \
+    {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
 #define LOCAL_DIR_CN_PREFIX \
     {'C','N','=',0}
 #define LOCAL_DIR_OU_PREFIX \
@@ -140,6 +138,28 @@ typedef DWORD LOCAL_ACCESS_FLAG;
 #define LOCAL_ACCESS_FLAG_ALLOW_ADD    0x00000002
 #define LOCAL_ACCESS_FLAG_ALLOW_DELETE 0x00000004
 #define LOCAL_ACCESS_FLAG_ALLOW_MODIFY 0x00000008
+
+typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
+
+#define LOCAL_ACB_DISABLED                 (0x00000001)
+#define LOCAL_ACB_HOMDIRREQ                (0x00000002)
+#define LOCAL_ACB_PWNOTREQ                 (0x00000004)
+#define LOCAL_ACB_TEMPDUP                  (0x00000008)
+#define LOCAL_ACB_NORMAL                   (0x00000010)
+#define LOCAL_ACB_MNS                      (0x00000020)
+#define LOCAL_ACB_DOMTRUST                 (0x00000040)
+#define LOCAL_ACB_WSTRUST                  (0x00000080)
+#define LOCAL_ACB_SVRTRUST                 (0x00000100)
+#define LOCAL_ACB_PWNOEXP                  (0x00000200)
+#define LOCAL_ACB_AUTOLOCK                 (0x00000400)
+#define LOCAL_ACB_ENC_TXT_PWD_ALLOWED      (0x00000800)
+#define LOCAL_ACB_SMARTCARD_REQUIRED       (0x00001000)
+#define LOCAL_ACB_TRUSTED_FOR_DELEGATION   (0x00002000)
+#define LOCAL_ACB_NOT_DELEGATED            (0x00004000)
+#define LOCAL_ACB_USE_DES_KEY_ONLY         (0x00008000)
+#define LOCAL_ACB_DONT_REQUIRE_PREAUTH     (0x00010000)
+#define LOCAL_ACB_PW_EXPIRED               (0x00020000)
+#define LOCAL_ACB_NO_AUTH_DATA_REQD        (0x00080000)
 
 
 #endif /* __LPDEFS_H__ */

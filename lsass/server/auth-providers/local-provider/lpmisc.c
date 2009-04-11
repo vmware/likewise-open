@@ -94,3 +94,11 @@ error:
 
     goto cleanup;
 }
+
+LONG64
+LocalGetNTTime(
+    time_t timeVal
+    )
+{
+    return (timeVal + 11644473600LL) * 10000000LL;
+}
