@@ -112,38 +112,17 @@ LocalDirFindUserById_2(
     );
 
 DWORD
+LocalDirBeginEnumUsers(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PHANDLE phResume
+    );
+
+DWORD
 LocalDirEnumUsers(
     HANDLE  hProvider,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwStartingRecordId,
+    HANDLE  hResume,
     DWORD   nMaxUsers,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_0(
-    HANDLE hProvider,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_1(
-    HANDLE hProvider,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LocalDirEnumUsers_2(
-    HANDLE  hLocal,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
     PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     );

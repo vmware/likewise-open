@@ -55,9 +55,7 @@ LocalCreateUserState(
     PLOCAL_PROVIDER_ENUM_STATE* ppEnumState
     )
 {
-    return LocalCreateEnumState(
-                dwInfoLevel,
-                ppEnumState);
+    return LocalCreateEnumState(dwInfoLevel, ppEnumState);
 }
 
 VOID
@@ -91,15 +89,13 @@ LocalCreateEnumState(
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
     dwError = LsaAllocateMemory(
-        sizeof(LOCAL_PROVIDER_ENUM_STATE),
-        (PVOID*)&pEnumState);
+                    sizeof(LOCAL_PROVIDER_ENUM_STATE),
+                    (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
     pEnumState->dwInfoLevel = dwInfoLevel;
 
-    if (ppNewEnumState) {
-       *ppNewEnumState = pEnumState;
-    }
+    *ppNewEnumState = pEnumState;
 
 cleanup:
 
@@ -107,11 +103,10 @@ cleanup:
 
 error:
 
-    if (ppNewEnumState) {
-        *ppNewEnumState = NULL;
-    }
+    *ppNewEnumState = NULL;
 
-    if (pEnumState) {
+    if (pEnumState)
+    {
        LocalFreeEnumState(pEnumState);
     }
 
@@ -129,8 +124,15 @@ LocalFreeGroupState(
 
 VOID
 LocalFreeEnumState(
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState
+    HANDLE hResume
     )
 {
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
+
+    if (pEnumState->pEntries)
+    {
+        DirectoryFreeEntries(pEnumState->pEntries, pEnumState->dwNumEntries);
+    }
+
     LsaFreeMemory(pEnumState);
 }

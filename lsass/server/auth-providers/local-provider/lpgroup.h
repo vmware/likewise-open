@@ -117,31 +117,19 @@ LocalDirFindGroupByName_1(
     );
 
 DWORD
+LocalDirBeginEnumGroups(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PHANDLE phResume
+    );
+
+DWORD
 LocalDirEnumGroups(
     HANDLE  hProvider,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwStartingRecordId,
+    HANDLE  hResume,
     DWORD   nMaxGroups,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirEnumGroups_0(
-    HANDLE    hProvider,
-    DWORD     dwOffset,
-    DWORD     dwLimit,
-    PDWORD    pdwNumGroupsFound,
-    PVOID**   pppGroupInfoList
-    );
-
-DWORD
-LocalDirEnumGroups_1(
-    HANDLE    hProvider,
-    DWORD     dwOffset,
-    DWORD     dwLimit,
-    PDWORD    pdwNumGroupsFound,
-    PVOID**   pppGroupInfoList
     );
 
 DWORD

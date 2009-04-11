@@ -53,6 +53,9 @@ typedef struct __LOCAL_PROVIDER_ENUM_STATE {
 
     PSTR  pszGUID;
 
+    PDIRECTORY_ENTRY pEntries;
+    DWORD            dwNumEntries;
+
     DWORD dwNextStartingId;
 
     struct __LOCAL_PROVIDER_ENUM_STATE* pNext;

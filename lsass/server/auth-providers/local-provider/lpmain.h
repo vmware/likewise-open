@@ -119,10 +119,10 @@ LocalFindUserById(
 
 DWORD
 LocalBeginEnumUsers(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
+    HANDLE         hProvider,
+    DWORD          dwInfoLevel,
+    LSA_FIND_FLAGS dwFindFlags,
+    PHANDLE        phResume
     );
 
 DWORD

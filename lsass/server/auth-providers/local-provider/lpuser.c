@@ -48,6 +48,36 @@
  */
 #include "includes.h"
 
+static
+DWORD
+LocalDirEnumUsers_0(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
+    );
+
+static
+DWORD
+LocalDirEnumUsers_1(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
+    );
+
+static
+DWORD
+LocalDirEnumUsers_2(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
+    );
+
 DWORD
 LocalDirFindUserByName(
     HANDLE  hProvider,
@@ -1895,96 +1925,149 @@ error:
 }
 
 DWORD
-LocalDirEnumUsers(
+LocalDirBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
-    DWORD   dwStartingRecordId,
+    PHANDLE phResume
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
+
+    dwError = LocalCreateGroupState(
+                        hProvider,
+                        dwInfoLevel,
+                        &pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // TODO: Query all users
+
+    *phResume = (HANDLE)pEnumState;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *phResume = (HANDLE)NULL;
+
+    if (pEnumState)
+    {
+        LocalFreeEnumState(pEnumState);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirEnumUsers(
+    HANDLE  hProvider,
+    HANDLE  hResume,
     DWORD   nMaxUsers,
     PDWORD  pdwNumUsersFound,
     PVOID** pppUserInfoList
     )
 {
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
 
-    switch (dwInfoLevel)
+    BAIL_ON_INVALID_POINTER(pEnumState);
+
+    switch (pEnumState->dwInfoLevel)
     {
         case 0:
-        {
+
             dwError = LocalDirEnumUsers_0(
                                 hProvider,
-                                dwStartingRecordId,
+                                pEnumState,
                                 nMaxUsers,
                                 pdwNumUsersFound,
                                 pppUserInfoList
                                 );
             break;
-        }
+
         case 1:
-        {
+
             dwError = LocalDirEnumUsers_1(
                                 hProvider,
-                                dwStartingRecordId,
+                                pEnumState,
                                 nMaxUsers,
                                 pdwNumUsersFound,
                                 pppUserInfoList
                                 );
             break;
-        }
+
         case 2:
-        {
+
             dwError = LocalDirEnumUsers_2(
                                 hProvider,
-                                dwStartingRecordId,
+                                pEnumState,
                                 nMaxUsers,
                                 pdwNumUsersFound,
                                 pppUserInfoList
                                 );
             break;
-        }
+
+        default:
+
+            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+
+            break;
     }
 
+error:
+
     return dwError;
 }
 
+static
 DWORD
 LocalDirEnumUsers_0(
-    HANDLE  hProvider,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
     )
 {
     DWORD dwError = 0;
 
+    // TODO:
+
     return dwError;
 }
 
+static
 DWORD
 LocalDirEnumUsers_1(
-    HANDLE hProvider,
-    DWORD  dwOffset,
-    DWORD  dwLimit,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
     )
 {
     DWORD dwError = 0;
+
+    // TODO:
 
     return dwError;
 }
 
-
+static
 DWORD
 LocalDirEnumUsers_2(
-    HANDLE  hProvider,
-    DWORD   dwOffset,
-    DWORD   dwLimit,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxUsers,
+    PDWORD                     pdwNumUsersFound,
+    PVOID**                    pppUserInfoList
     )
 {
     DWORD dwError = 0;
+
+    // TODO:
 
     return dwError;
 }

@@ -611,22 +611,25 @@ error:
 
 DWORD
 LocalBeginEnumUsers(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
+    HANDLE         hProvider,
+    DWORD          dwInfoLevel,
+    LSA_FIND_FLAGS dwFindFlags,
+    PHANDLE        phResume
     )
 {
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
+    DWORD  dwError = 0;
+    HANDLE hResume = (HANDLE)NULL;
 
-    dwError = LocalCreateUserState(
-                        hProvider,
-                        dwInfoLevel,
-                        &pEnumState);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *phResume = (HANDLE)pEnumState;
+    dwError = LocalDirBeginEnumUsers(
+                        hProvider,
+                        dwInfoLevel,
+                        &hResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phResume = hResume;
 
 cleanup:
 
@@ -635,6 +638,11 @@ cleanup:
 error:
 
     *phResume = (HANDLE)NULL;
+
+    if (hResume)
+    {
+        LocalFreeEnumState(hResume);
+    }
 
     goto cleanup;
 }
@@ -649,48 +657,22 @@ LocalEnumUsers(
     )
 {
     DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-    pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbEnumUsers(
-                    hDb,
-                    pEnumState->dwInfoLevel,
-                    pEnumState->dwNextStartingId,
+    dwError =  LocalDirEnumUsers(
+                    hProvider,
+                    hResume,
                     dwMaxNumRecords,
                     pdwUsersFound,
                     pppUserInfoList
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (*pdwUsersFound) {
-        pEnumState->dwNextStartingId += *pdwUsersFound;
-    }
-
-cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
-
-    return dwError;
-
 error:
 
-    *pdwUsersFound = 0;
-    *pppUserInfoList = NULL;
-
-    goto cleanup;
-#else
-    *pdwUsersFound = 0;
-    *pppUserInfoList = NULL;
     return dwError;
-#endif
 }
 
 VOID
@@ -815,16 +797,19 @@ LocalBeginEnumGroups(
     PHANDLE phResume
     )
 {
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
+    DWORD  dwError = 0;
+    HANDLE hResume = NULL;
 
-    dwError = LocalCreateGroupState(
-                        hProvider,
-                        dwInfoLevel,
-                        &pEnumState);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *phResume = (HANDLE)pEnumState;
+    dwError = LocalDirBeginEnumGroups(
+                        hProvider,
+                        dwInfoLevel,
+                        &hResume);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phResume = hResume;
 
 cleanup:
 
@@ -833,6 +818,11 @@ cleanup:
 error:
 
     *phResume = (HANDLE)NULL;
+
+    if (hResume)
+    {
+        LocalFreeEnumState(hResume);
+    }
 
     goto cleanup;
 }
@@ -847,46 +837,22 @@ LocalEnumGroups(
     )
 {
     DWORD dwError = 0;
-#if 0
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
-    HANDLE hDb = (HANDLE)NULL;
 
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbEnumGroups(
-                    hDb,
-                    pEnumState->dwInfoLevel,
-                    pEnumState->dwNextStartingId,
+    dwError = LocalDirEnumGroups(
+                    hProvider,
+                    hResume,
                     dwMaxGroups,
                     pdwGroupsFound,
                     pppGroupInfoList
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (*pdwGroupsFound) {
-        pEnumState->dwNextStartingId += *pdwGroupsFound;
-    }
-
-cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
-
-    return dwError;
-
 error:
 
-    *pdwGroupsFound = 0;
-    *pppGroupInfoList = NULL;
-
-    goto cleanup;
-#else
-    *pdwGroupsFound = 0;
-    *pppGroupInfoList = NULL;
     return dwError;
-#endif
 }
 
 VOID
@@ -895,9 +861,7 @@ LocalEndEnumGroups(
     HANDLE hResume
     )
 {
-    LocalFreeGroupState(
-            hProvider,
-            (PLOCAL_PROVIDER_ENUM_STATE)hResume);
+    LocalFreeGroupState(hProvider, (PLOCAL_PROVIDER_ENUM_STATE)hResume);
 }
 
 DWORD

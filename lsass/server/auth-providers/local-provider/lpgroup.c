@@ -48,6 +48,26 @@
  */
 #include "includes.h"
 
+static
+DWORD
+LocalDirEnumGroups_0(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxGroups,
+    PDWORD                     pdwNumGroupsFound,
+    PVOID**                    pppGroupInfoList
+    );
+
+static
+DWORD
+LocalDirEnumGroups_1(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxGroups,
+    PDWORD                     pdwNumGroupsFound,
+    PVOID**                    pppGroupInfoList
+    );
+
 DWORD
 LocalDirFindGroupByName(
     HANDLE  hProvider,
@@ -287,52 +307,62 @@ LocalDirGetGroupsForUser_1(
 }
 
 DWORD
-LocalDirEnumGroups_0(
-    HANDLE    hProvider,
-    DWORD     dwOffset,
-    DWORD     dwLimit,
-    PDWORD    pdwNumGroupsFound,
-    PVOID**   pppGroupInfoList
+LocalDirBeginEnumGroups(
+    HANDLE  hProvider,
+    DWORD   dwInfoLevel,
+    PHANDLE phResume
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
+
+    dwError = LocalCreateGroupState(
+                        hProvider,
+                        dwInfoLevel,
+                        &pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // TODO: Query all groups
+
+    *phResume = (HANDLE)pEnumState;
+
+cleanup:
 
     return dwError;
-}
 
-DWORD
-LocalDirEnumGroups_1(
-    HANDLE    hProvider,
-    DWORD     dwOffset,
-    DWORD     dwLimit,
-    PDWORD    pdwNumGroupsFound,
-    PVOID**   pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
+error:
 
-    return dwError;
+    *phResume = (HANDLE)NULL;
+
+    if (pEnumState)
+    {
+        LocalFreeEnumState(pEnumState);
+    }
+
+    goto cleanup;
 }
 
 DWORD
 LocalDirEnumGroups(
     HANDLE  hProvider,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwStartingRecordId,
+    HANDLE  hResume,
     DWORD   nMaxGroups,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
 
-    switch(dwGroupInfoLevel)
+    BAIL_ON_INVALID_POINTER(pEnumState);
+
+    switch(pEnumState->dwInfoLevel)
     {
         case 0:
 
             dwError = LocalDirEnumGroups_0(
                             hProvider,
-                            dwStartingRecordId,
+                            pEnumState,
                             nMaxGroups,
                             pdwGroupsFound,
                             pppGroupInfoList
@@ -343,7 +373,7 @@ LocalDirEnumGroups(
 
             dwError = LocalDirEnumGroups_1(
                             hProvider,
-                            dwStartingRecordId,
+                            pEnumState,
                             nMaxGroups,
                             pdwGroupsFound,
                             pppGroupInfoList
@@ -356,6 +386,42 @@ LocalDirEnumGroups(
 
             break;
     }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+LocalDirEnumGroups_0(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxGroups,
+    PDWORD                     pdwNumGroupsFound,
+    PVOID**                    pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
+}
+
+static
+DWORD
+LocalDirEnumGroups_1(
+    HANDLE                     hProvider,
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
+    DWORD                      dwNumMaxGroups,
+    PDWORD                     pdwNumGroupsFound,
+    PVOID**                    pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
 
     return dwError;
 }
