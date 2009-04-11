@@ -115,6 +115,7 @@ SMBResponseFree(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bInTreeLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pResponse->mutex);
 
@@ -124,6 +125,17 @@ SMBResponseFree(
 
     if (pResponse->pTree)
     {
+        SMB_LOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
+
+        SMB_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]",
+                      pResponse->mid, pResponse->pTree);
+
+        SMBHashRemoveKey(
+            pResponse->pTree->pResponseHash,
+            &pResponse->mid);
+
+        SMB_UNLOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
+
         SMBTreeRelease(pResponse->pTree);
     }
 
