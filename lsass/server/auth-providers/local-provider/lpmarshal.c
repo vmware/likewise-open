@@ -563,6 +563,60 @@ error:
 }
 
 DWORD
+LocalMarshalEntryToGroupInfo_0(
+    PDIRECTORY_ENTRY   pEntry,
+    PLSA_GROUP_INFO_0* ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    DWORD dwInfoLevel = 0;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+
+    dwError = LsaAllocateMemory(
+                        sizeof(LSA_GROUP_INFO_0),
+                        (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToInteger(
+                    pEntry,
+                    &wszAttrNameGID[0],
+                    &pGroupInfo->gid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameSamAccountName[0],
+                    &pGroupInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameObjectSID[0],
+                    &pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppGroupInfo = NULL;
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,

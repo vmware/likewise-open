@@ -79,6 +79,12 @@ LocalMarshallAccountFlags(
     );
 
 DWORD
+LocalMarshalEntryToGroupInfo_0(
+    PDIRECTORY_ENTRY   pEntry,
+    PLSA_GROUP_INFO_0* ppGroupInfo
+    );
+
+DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,

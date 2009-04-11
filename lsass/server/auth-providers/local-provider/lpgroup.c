@@ -142,7 +142,6 @@ LocalDirFindGroupByName_0(
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD iAttr = 0;
 
     dwError = LsaAllocateStringPrintf(
                     &pszFilter,
@@ -185,60 +184,10 @@ LocalDirFindGroupByName_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
-                    sizeof(LSA_GROUP_INFO_0),
-                    (PVOID*)&pGroupInfo);
+    dwError = LocalMarshalEntryToGroupInfo_0(
+                    pEntry,
+                    &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-    for (; iAttr < pEntry->ulNumAttributes; iAttr++)
-    {
-        PDIRECTORY_ATTRIBUTE pAttr = &pEntry->pAttributes[iAttr];
-
-        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameGID[0]))
-        {
-            if ((pAttr->ulNumValues != 1) ||
-                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_INTEGER))
-            {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            pGroupInfo->gid = pAttr->pValues[0].data.ulValue;
-        }
-        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameSamAccountName[0]))
-        {
-            if ((pAttr->ulNumValues != 1) ||
-                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
-            {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            dwError = LsaWc16sToMbs(
-                            pAttr->pValues[0].data.pwszStringValue,
-                            &pGroupInfo->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        else if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameObjectSID[0]))
-        {
-            if ((pAttr->ulNumValues != 1) ||
-                (pAttr->pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
-            {
-                dwError = LSA_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            dwError = LsaWc16sToMbs(
-                            pAttr->pValues[0].data.pwszStringValue,
-                            &pGroupInfo->pszSid);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        else
-        {
-            dwError = LSA_ERROR_DATA_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
 
     *ppGroupInfo = pGroupInfo;
 
@@ -466,8 +415,97 @@ LocalDirFindGroupById_0(
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_GID " = %u" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    gid,
+                    LOCAL_OBJECT_CLASS_GROUP);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalMarshalEntryToGroupInfo_0(
+                    pEntry,
+                    &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
+
+error:
+
+    *ppGroupInfo = pGroupInfo;
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(0, pGroupInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
