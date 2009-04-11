@@ -33,46 +33,94 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpmarshal.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider (Defines)
+ *
+ *        Marshal from DIRECTORY structures to lsass info levels
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+#ifndef __LP_MARSHAL_H__
+#define __LP_MARSHAL_H__
 
-#include <eventlog.h>
+DWORD
+LocalMarshalEntryToUserInfo_0(
+    PDIRECTORY_ENTRY  pEntry,
+    PLSA_USER_INFO_0* ppUserInfo
+    );
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
+DWORD
+LocalMarshalEntryToUserInfo_1(
+    PDIRECTORY_ENTRY  pEntry,
+    PCSTR             pszDomainName,
+    PLSA_USER_INFO_1* ppUserInfo
+    );
 
-#include "lsaprovider.h"
-#include "directory.h"
+DWORD
+LocalMarshalEntryToUserInfo_2(
+    PDIRECTORY_ENTRY  pEntry,
+    PCSTR             pszDomainName,
+    PLSA_USER_INFO_2* ppUserInfo
+    );
 
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-#include "lpaccess.h"
-#include "lpmisc.h"
-#include "lpmarshal.h"
+DWORD
+LocalMarshallAccountFlags(
+    PLSA_USER_INFO_2 pUserInfo,
+    DWORD            dwUserInfoFlags,
+    LONG64           llPwdLastSet,
+    LONG64           llAcctExpiry
+    );
 
-#include "externs.h"
+DWORD
+LocalMarshalAttrToInteger(
+    PDIRECTORY_ENTRY pEntry,
+    PWSTR            pwszAttrName,
+    PDWORD           pdwValue
+    );
 
-#include <lwrpc/LMcrypt.h>
+DWORD
+LocalMarshalAttrToLargeInteger(
+    PDIRECTORY_ENTRY pEntry,
+    PWSTR            pwszAttrName,
+    PLONG64          pllValue
+    );
+
+DWORD
+LocalMarshalAttrToANSIString(
+    PDIRECTORY_ENTRY pAttr,
+    PWSTR            pwszAttrName,
+    PSTR*            ppszValue
+    );
+
+DWORD
+LocalMarshalAttrToANSIFromUnicodeString(
+    PDIRECTORY_ENTRY pAttr,
+    PWSTR            pwszAttrName,
+    PSTR*            ppszValue
+    );
+
+DWORD
+LocalMarshalAttrToOctetStream(
+    PDIRECTORY_ENTRY pAttr,
+    PWSTR            pwszAttrName,
+    PBYTE*           ppData,
+    PDWORD           pdwDataLen
+    );
+
+DWORD
+LocalMarshalAttrToBOOLEAN(
+    PDIRECTORY_ENTRY pAttr,
+    PWSTR            pwszAttrName,
+    PBOOLEAN         pbValue
+    );
+
+#endif /* __LP_MARSHAL_H__ */
+
 
