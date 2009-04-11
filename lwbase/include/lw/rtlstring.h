@@ -25,7 +25,22 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
-*/
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        rtlstring.h
+ *
+ * Abstract:
+ *
+ *        Base String API
+ *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
+ */
 
 #ifndef __RTL_STRING_H__
 #define __RTL_STRING_H__

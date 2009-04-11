@@ -25,7 +25,22 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
-*/
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        rtlstring_ansi.c
+ *
+ * Abstract:
+ *
+ *        Base C-Style WCHAR String Functions
+ *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
+ */
 
 #include "includes.h"
 #include <lw/rtlstring.h>

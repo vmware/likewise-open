@@ -21,7 +21,22 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
-*/
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        security-types-internal.h
+ *
+ * Abstract:
+ *
+ *        Base Security Internal Types
+ *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
+ */
 
 #ifndef __LW_SECURITY_TYPES_INTERNAL_H__
 #define __LW_SECURITY_TYPES_INTERNAL_H__

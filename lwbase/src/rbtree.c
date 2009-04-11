@@ -25,7 +25,7 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
-*/
+ */
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.

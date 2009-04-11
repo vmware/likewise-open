@@ -21,7 +21,20 @@
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
-*/
+ */
+
+/*
+ * Module Name:
+ *
+ *        security-api2.h
+ *
+ * Abstract:
+ *
+ *        Base Security API - Internal Functions (for now).
+ *
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
+ */
 
 #ifndef __LW_SECURITY_API2_H__
 #define __LW_SECURITY_API2_H__
