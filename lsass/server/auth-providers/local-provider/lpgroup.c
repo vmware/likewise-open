@@ -226,6 +226,8 @@ LocalDirFindGroupByName_1(
 {
     DWORD dwError = 0;
 
+    // TODO:
+
     return dwError;
 }
 
@@ -239,6 +241,8 @@ LocalDirGetGroupsForUser_0(
 {
     DWORD dwError = 0;
 
+    // TODO:
+
     return dwError;
 }
 
@@ -251,6 +255,8 @@ LocalDirGetGroupsForUser_1(
     )
 {
     DWORD dwError = 0;
+
+    // TODO:
 
     return dwError;
 }
@@ -516,6 +522,8 @@ LocalDirFindGroupById_1(
     )
 {
     DWORD dwError = 0;
+
+    // TODO:
 
     return dwError;
 }

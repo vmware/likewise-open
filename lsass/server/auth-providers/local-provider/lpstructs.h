@@ -47,7 +47,10 @@
 #ifndef __LPSTRUCTS_H__
 #define __LPSTRUCTS_H__
 
-typedef struct __LOCAL_PROVIDER_ENUM_STATE {
+typedef struct __LOCAL_PROVIDER_ENUM_STATE
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
     DWORD dwInfoLevel;
 
