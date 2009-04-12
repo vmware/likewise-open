@@ -53,6 +53,7 @@
 DWORD
 LocalMarshalEntryToUserInfo_0(
     PDIRECTORY_ENTRY  pEntry,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_0* ppUserInfo
     );
 
@@ -60,6 +61,7 @@ DWORD
 LocalMarshalEntryToUserInfo_1(
     PDIRECTORY_ENTRY  pEntry,
     PCSTR             pszDomainName,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_1* ppUserInfo
     );
 
@@ -67,6 +69,7 @@ DWORD
 LocalMarshalEntryToUserInfo_2(
     PDIRECTORY_ENTRY  pEntry,
     PCSTR             pszDomainName,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_2* ppUserInfo
     );
 
@@ -103,6 +106,13 @@ LocalMarshalAttrToANSIString(
     PDIRECTORY_ENTRY pAttr,
     PWSTR            pwszAttrName,
     PSTR*            ppszValue
+    );
+
+DWORD
+LocalMarshalAttrToUnicodeString(
+    PDIRECTORY_ENTRY pEntry,
+    PWSTR            pwszAttrName,
+    PWSTR*           ppwszValue
     );
 
 DWORD

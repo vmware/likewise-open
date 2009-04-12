@@ -60,6 +60,7 @@ LocalFindAttribute(
 DWORD
 LocalMarshalEntryToUserInfo_0(
     PDIRECTORY_ENTRY  pEntry,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_0* ppUserInfo
     )
 {
@@ -72,7 +73,9 @@ LocalMarshalEntryToUserInfo_0(
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PLSA_USER_INFO_0 pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
     DWORD dwInfoLevel = 0;
 
     dwError = LsaAllocateMemory(
@@ -142,6 +145,19 @@ LocalMarshalEntryToUserInfo_0(
                     &pUserInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -150,7 +166,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -164,6 +186,7 @@ DWORD
 LocalMarshalEntryToUserInfo_1(
     PDIRECTORY_ENTRY  pEntry,
     PCSTR             pszDomainName,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_1* ppUserInfo
     )
 {
@@ -177,7 +200,9 @@ LocalMarshalEntryToUserInfo_1(
     wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]        = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PLSA_USER_INFO_1 pUserInfo = NULL;
+    PWSTR  pwszUserDN = NULL;
     DWORD dwInfoLevel = 1;
 
     dwError = LsaAllocateMemory(
@@ -257,6 +282,15 @@ LocalMarshalEntryToUserInfo_1(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (IsNullOrEmptyString(pUserInfo->pszUPN))
     {
         dwError = LsaAllocateStringPrintf(
@@ -273,6 +307,10 @@ LocalMarshalEntryToUserInfo_1(
 
     pUserInfo->bIsLocalUser = TRUE;
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -281,7 +319,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -295,6 +339,7 @@ DWORD
 LocalMarshalEntryToUserInfo_2(
     PDIRECTORY_ENTRY  pEntry,
     PCSTR             pszDomainName,
+    PWSTR*            ppwszUserDN,
     PLSA_USER_INFO_2* ppUserInfo
     )
 {
@@ -311,8 +356,10 @@ LocalMarshalEntryToUserInfo_2(
     wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PLSA_USER_INFO_2 pUserInfo = NULL;
-    DWORD dwInfoLevel = 2;
+    PWSTR pwszUserDN = NULL;
+    DWORD  dwInfoLevel = 2;
     DWORD  dwUserInfoFlags = 0;
     LONG64 llAccountExpiry = 0;
     LONG64 llPasswordLastSet = 0;
@@ -412,6 +459,15 @@ LocalMarshalEntryToUserInfo_2(
                         &llPasswordLastSet);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     if (IsNullOrEmptyString(pUserInfo->pszUPN))
     {
         dwError = LsaAllocateStringPrintf(
@@ -435,6 +491,10 @@ LocalMarshalEntryToUserInfo_2(
                     llAccountExpiry);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -443,7 +503,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -777,6 +843,76 @@ error:
     *ppszValue = NULL;
 
     LSA_SAFE_FREE_STRING(pszValue);
+
+    goto cleanup;
+}
+
+DWORD
+LocalMarshalAttrToUnicodeString(
+    PDIRECTORY_ENTRY pEntry,
+    PWSTR            pwszAttrName,
+    PWSTR*           ppwszValue
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_ATTRIBUTE pAttr = NULL;
+    PATTRIBUTE_VALUE pAttrValue = NULL;
+    PWSTR            pwszValue = NULL;
+    DWORD            dwLen = 0;
+
+    BAIL_ON_INVALID_POINTER(pEntry);
+
+    dwError = LocalFindAttribute(
+                    pEntry,
+                    pwszAttrName,
+                    &pAttr);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pAttr->ulNumValues > 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    else if (pAttr->ulNumValues == 0)
+    {
+        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+    }
+    else
+    {
+        pAttrValue = &pAttr->pValues[0];
+
+        if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+        {
+            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+        }
+        else if (!pAttrValue->data.pwszStringValue)
+        {
+            dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        }
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwLen = wc16slen(pAttrValue->data.pwszStringValue);
+
+    dwError = LsaAllocateMemory(
+                    (dwLen + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszValue);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy((PBYTE)pwszValue,
+           (PBYTE)pAttrValue->data.pwszStringValue,
+           dwLen * sizeof(wchar16_t));
+
+    *ppwszValue = pwszValue;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppwszValue = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszValue);
 
     goto cleanup;
 }

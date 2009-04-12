@@ -101,11 +101,12 @@ LocalDirEnumUsers_2(
 
 DWORD
 LocalDirFindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszDomainName,
-    PCSTR   pszUserName,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
+    HANDLE hProvider,
+    PCSTR  pszDomainName,
+    PCSTR  pszUserName,
+    DWORD  dwUserInfoLevel,
+    PWSTR* ppwszUserDN,
+    PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
@@ -118,6 +119,7 @@ LocalDirFindUserByName(
                             hProvider,
                             pszDomainName,
                             pszUserName,
+                            ppwszUserDN,
                             ppUserInfo
                             );
             break;
@@ -128,6 +130,7 @@ LocalDirFindUserByName(
                             hProvider,
                             pszDomainName,
                             pszUserName,
+                            ppwszUserDN,
                             ppUserInfo
                             );
             break;
@@ -138,6 +141,7 @@ LocalDirFindUserByName(
                             hProvider,
                             pszDomainName,
                             pszUserName,
+                            ppwszUserDN,
                             ppUserInfo
                             );
             break;
@@ -157,6 +161,7 @@ LocalDirFindUserByName_0(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
@@ -170,6 +175,7 @@ LocalDirFindUserByName_0(
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -180,6 +186,7 @@ LocalDirFindUserByName_0(
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -192,6 +199,7 @@ LocalDirFindUserByName_0(
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
+    PWSTR pwszUserDN = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
 
     dwError = LsaAllocateStringPrintf(
@@ -237,9 +245,14 @@ LocalDirFindUserByName_0(
 
     dwError = LocalMarshalEntryToUserInfo_0(
                     pEntry,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -256,7 +269,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -271,6 +290,7 @@ LocalDirFindUserByName_1(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
@@ -285,6 +305,7 @@ LocalDirFindUserByName_1(
     wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -296,6 +317,7 @@ LocalDirFindUserByName_1(
         &wszAttrNameHomedir[0],
         &wszAttrNameUPN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -308,6 +330,7 @@ LocalDirFindUserByName_1(
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR  pszFilter = NULL;
     PWSTR pwszFilter = NULL;
+    PWSTR pwszUserDN = NULL;
     DWORD dwInfoLevel = 1;
     PLSA_USER_INFO_1 pUserInfo = NULL;
 
@@ -355,9 +378,14 @@ LocalDirFindUserByName_1(
     dwError = LocalMarshalEntryToUserInfo_1(
                     pEntry,
                     pszDomainName,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -374,7 +402,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -389,6 +423,7 @@ LocalDirFindUserByName_2(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
@@ -406,6 +441,7 @@ LocalDirFindUserByName_2(
     wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -420,6 +456,7 @@ LocalDirFindUserByName_2(
         &wszAttrNameUserInfoFlags[0],
         &wszAttrNameAccountExpiry[0],
         &wszAttrNamePasswdLastSet[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -432,6 +469,7 @@ LocalDirFindUserByName_2(
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR   pszFilter = NULL;
     PWSTR  pwszFilter = NULL;
+    PWSTR  pwszUserDN = NULL;
     DWORD  dwInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
 
@@ -479,9 +517,14 @@ LocalDirFindUserByName_2(
     dwError = LocalMarshalEntryToUserInfo_2(
                     pEntry,
                     pszDomainName,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -498,7 +541,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -513,6 +562,7 @@ LocalDirFindUserById(
     HANDLE hProvider,
     uid_t  uid,
     DWORD  dwInfoLevel,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
@@ -528,19 +578,31 @@ LocalDirFindUserById(
     {
         case 0:
 
-            dwError = LocalDirFindUserById_0(hProvider, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_0(
+                            hProvider,
+                            uid,
+                            ppwszUserDN,
+                            ppUserInfo);
 
             break;
 
         case 1:
 
-            dwError = LocalDirFindUserById_1(hProvider, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_1(
+                            hProvider,
+                            uid,
+                            ppwszUserDN,
+                            ppUserInfo);
 
             break;
 
         case 2:
 
-            dwError = LocalDirFindUserById_2(hProvider, uid, ppUserInfo);
+            dwError = LocalDirFindUserById_2(
+                            hProvider,
+                            uid,
+                            ppwszUserDN,
+                            ppUserInfo);
 
             break;
 
@@ -560,19 +622,21 @@ DWORD
 LocalDirFindUserById_0(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[] = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[] = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[] = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[] = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
+    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -583,6 +647,7 @@ LocalDirFindUserById_0(
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -594,6 +659,7 @@ LocalDirFindUserById_0(
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
 
     // Should we include the domain also?
     dwError = LsaAllocateStringPrintf(
@@ -638,9 +704,14 @@ LocalDirFindUserById_0(
 
     dwError = LocalMarshalEntryToUserInfo_0(
                     pEntry,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -657,7 +728,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -671,21 +748,23 @@ DWORD
 LocalDirFindUserById_1(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]  = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]     = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]     = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameDomain[]    = LOCAL_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
+    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
+    wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -698,6 +777,7 @@ LocalDirFindUserById_1(
         &wszAttrNameUPN[0],
         &wszAttrNameDomain[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -712,6 +792,7 @@ LocalDirFindUserById_1(
     PSTR  pszDomain = NULL;
     DWORD dwInfoLevel = 1;
     PLSA_USER_INFO_1 pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
 
     dwError = LsaAllocateStringPrintf(
                     &pszFilter,
@@ -762,9 +843,14 @@ LocalDirFindUserById_1(
     dwError = LocalMarshalEntryToUserInfo_1(
                     pEntry,
                     pszDomain,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -782,7 +868,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -796,6 +888,7 @@ DWORD
 LocalDirFindUserById_2(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     )
 {
@@ -814,6 +907,7 @@ LocalDirFindUserById_2(
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -829,6 +923,7 @@ LocalDirFindUserById_2(
         &wszAttrNameAccountExpiry[0],
         &wszAttrNamePasswdLastSet[0],
         &wszAttrNameDomain[0],
+        &wszAttrNameDN[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -843,6 +938,7 @@ LocalDirFindUserById_2(
     PSTR  pszDomain = NULL;
     DWORD dwInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
 
     dwError = LsaAllocateStringPrintf(
                     &pszFilter,
@@ -893,9 +989,14 @@ LocalDirFindUserById_2(
     dwError = LocalMarshalEntryToUserInfo_2(
                     pEntry,
                     pszDomain,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -913,7 +1014,13 @@ cleanup:
 
 error:
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = NULL;
+    }
     *ppUserInfo = pUserInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo)
     {
@@ -1348,6 +1455,7 @@ LocalDirEnumUsers_0(
 
         dwError = LocalMarshalEntryToUserInfo_0(
                         pEntry,
+                        NULL,
                         &ppUserInfoList[iUser]);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1428,6 +1536,7 @@ LocalDirEnumUsers_1(
         dwError = LocalMarshalEntryToUserInfo_1(
                         pEntry,
                         gLPGlobals.pszLocalDomain,
+                        NULL,
                         &ppUserInfoList[iUser]);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1508,6 +1617,7 @@ LocalDirEnumUsers_2(
         dwError = LocalMarshalEntryToUserInfo_2(
                         pEntry,
                         gLPGlobals.pszLocalDomain,
+                        NULL,
                         &ppUserInfoList[iUser]);
         BAIL_ON_LSA_ERROR(dwError);
     }

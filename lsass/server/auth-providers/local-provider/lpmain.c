@@ -215,70 +215,54 @@ LocalAuthenticateUser(
     )
 {
     DWORD dwError = 0;
-#if 0
-    PBYTE pHash = NULL;
-    DWORD dwHashLen = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     DWORD dwUserInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
-    BOOLEAN bAuthenticated = FALSE;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+    PWSTR pwszUserDN = NULL;
+    PWSTR pwszPassword = NULL;
 
-    dwError = LsaCrackDomainQualifiedName(
-                    pszLoginId,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalFindUserByName(
+    dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
                     dwUserInfoLevel,
+                    &pwszUserDN,
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Check for disable, expired, etc..  accounts */
 
-    dwError = CheckAccountFlags(pUserInfo);
+    dwError = LocalCheckAccountFlags(pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvComputeNTHash(pszPassword, &pHash, &dwHashLen);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    // Either both hashes are null, or they must match
-    bAuthenticated =
-        (((pUserInfo->dwNTHashLen) &&
-         (pUserInfo->dwNTHashLen == dwHashLen) &&
-         (pHash) &&
-         (pUserInfo->pNTHash) &&
-         !memcmp(pUserInfo->pNTHash, pHash, dwHashLen)) ||
-         (!pUserInfo->dwNTHashLen && !dwHashLen));
-
-    if (!bAuthenticated) {
-        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+    if (pszPassword)
+    {
+        dwError = LsaMbsToWc16s(
+                        pszPassword,
+                        &pwszPassword);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = DirectoryVerifyPassword(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
 
-    if (pUserInfo) {
+    if (pUserInfo)
+    {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
 
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
-
-    LSA_SAFE_FREE_MEMORY(pHash);
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LSA_SAFE_FREE_MEMORY(pwszPassword);
 
     return dwError;
 
 error:
 
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 
@@ -391,16 +375,8 @@ LocalValidateUser(
     )
 {
     DWORD dwError = 0;
-#if 0
     DWORD dwUserInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-
-    dwError = LsaCrackDomainQualifiedName(
-                    pszLoginId,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalFindUserByName(
                     hProvider,
@@ -422,32 +398,19 @@ LocalValidateUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->bPasswordExpired) {
+    if (pUserInfo->bPasswordExpired)
+    {
         dwError = LSA_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
-
     return dwError;
 
 error:
 
     goto cleanup;
-#else
-
-    return dwError;
-
-#endif
 }
 
 DWORD
@@ -457,6 +420,8 @@ LocalCheckUserInList(
     PCSTR  pszListName
     )
 {
+    // TODO:
+
     return LSA_ERROR_NOT_HANDLED;
 }
 
@@ -468,8 +433,26 @@ LocalFindUserByName(
     PVOID*  ppUserInfo
     )
 {
+    return LocalFindUserByNameEx(
+                hProvider,
+                pszLoginId,
+                dwUserInfoLevel,
+                NULL,
+                ppUserInfo);
+}
+
+DWORD
+LocalFindUserByNameEx(
+    HANDLE  hProvider,
+    PCSTR   pszLoginId,
+    DWORD   dwUserInfoLevel,
+    PWSTR*  ppwszUserDN,
+    PVOID*  ppUserInfo
+    )
+{
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -491,8 +474,8 @@ LocalFindUserByName(
 
     if (!strcasecmp(pLoginInfo->pszName, "root"))
     {
-	dwError = LSA_ERROR_NO_SUCH_USER;
-	BAIL_ON_LSA_ERROR(dwError);
+        dwError = LSA_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LocalDirFindUserByName(
@@ -500,10 +483,15 @@ LocalFindUserByName(
                     pLoginInfo->pszFullDomainName,
                     pLoginInfo->pszName,
                     dwUserInfoLevel,
+                    ppwszUserDN ? &pwszUserDN : NULL,
                     &pUserInfo
                     );
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
     *ppUserInfo = pUserInfo;
 
 cleanup:
@@ -516,6 +504,14 @@ cleanup:
     return dwError;
 
 error:
+
+    if (ppwszUserDN)
+    {
+        *ppwszUserDN = pwszUserDN;
+    }
+    *ppUserInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
@@ -542,8 +538,8 @@ LocalFindUserById(
                     hProvider,
                     uid,
                     dwUserInfoLevel,
-                    &pUserInfo
-                    );
+                    NULL,
+                    &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppUserInfo = pUserInfo;

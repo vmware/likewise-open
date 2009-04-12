@@ -68,6 +68,7 @@
 
 #define LOCAL_DB_DIR_ATTR_OBJECT_CLASS         "ObjectClass"
 #define LOCAL_DB_DIR_ATTR_OBJECT_SID           "ObjectSID"
+#define LOCAL_DB_DIR_ATTR_DISTINGUISHED_NAME   "DistinguishedName"
 #define LOCAL_DB_DIR_ATTR_DOMAIN               "Domain"
 #define LOCAL_DB_DIR_ATTR_NETBIOS_NAME         "NetBIOSName"
 #define LOCAL_DB_DIR_ATTR_COMMON_NAME          "CommonName"
@@ -90,6 +91,8 @@
     {'O','b','j','e','c','t','C','l','a','s','s',0}
 #define LOCAL_DIR_ATTR_OBJECT_SID \
     {'O','b','j','e','c','t','S','I','D',0}
+#define LOCAL_DIR_ATTR_DISTINGUISHED_NAME  \
+    {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_DOMAIN \
     {'D','o','m','a','i','n',0}
 #define LOCAL_DIR_ATTR_NETBIOS_NAME \
