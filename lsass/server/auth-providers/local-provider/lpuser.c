@@ -50,6 +50,27 @@
 
 static
 DWORD
+LocalDirBeginEnumUsers_0(
+    HANDLE  hProvider,
+    PHANDLE phResume
+    );
+
+static
+DWORD
+LocalDirBeginEnumUsers_1(
+    HANDLE  hProvider,
+    PHANDLE phResume
+    );
+
+static
+DWORD
+LocalDirBeginEnumUsers_2(
+    HANDLE  hProvider,
+    PHANDLE phResume
+    );
+
+static
+DWORD
 LocalDirEnumUsers_0(
     HANDLE                     hProvider,
     PLOCAL_PROVIDER_ENUM_STATE pEnumState,
@@ -76,27 +97,6 @@ LocalDirEnumUsers_2(
     DWORD                      dwNumMaxUsers,
     PDWORD                     pdwNumUsersFound,
     PVOID**                    pppUserInfoList
-    );
-
-static
-DWORD
-LocalDirBeginEnumUsers_0(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    );
-
-static
-DWORD
-LocalDirBeginEnumUsers_1(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    );
-
-static
-DWORD
-LocalDirBeginEnumUsers_2(
-    HANDLE  hProvider,
-    PHANDLE phResume
     );
 
 DWORD
