@@ -687,7 +687,7 @@ LocalMarshalEntryToGroupInfo_0(
                     &dwGid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pUserInfo->gid = dwGid;
+    pGroupInfo->gid = dwGid;
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
