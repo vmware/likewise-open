@@ -360,6 +360,8 @@ LocalMarshalEntryToUserInfo_2(
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -475,6 +477,20 @@ LocalMarshalEntryToUserInfo_2(
                         pEntry,
                         &wszAttrNamePasswdLastSet[0],
                         &llPasswordLastSet);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToOctetStream(
+                        pEntry,
+                        &wszAttrNameNTHash[0],
+                        &pUserInfo->pNTHash,
+                        &pUserInfo->dwNTHashLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToOctetStream(
+                        pEntry,
+                        &wszAttrNameLMHash[0],
+                        &pUserInfo->pLMHash,
+                        &pUserInfo->dwLMHashLen);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppwszUserDN)

@@ -433,6 +433,8 @@ LocalDirFindUserByName_2(
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -448,6 +450,8 @@ LocalDirFindUserByName_2(
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNamePassword[0],
+        &wszAttrNameNTHash[0],
+        &wszAttrNameLMHash[0],
         &wszAttrNameGecos[0],
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],
@@ -898,6 +902,8 @@ LocalDirFindUserById_2(
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -914,6 +920,8 @@ LocalDirFindUserById_2(
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNamePassword[0],
+        &wszAttrNameNTHash[0],
+        &wszAttrNameLMHash[0],
         &wszAttrNameGecos[0],
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],
@@ -1265,6 +1273,8 @@ LocalDirBeginEnumUsers_2(
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -1279,6 +1289,8 @@ LocalDirBeginEnumUsers_2(
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNamePassword[0],
+        &wszAttrNameNTHash[0],
+        &wszAttrNameLMHash[0],
         &wszAttrNameGecos[0],
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],

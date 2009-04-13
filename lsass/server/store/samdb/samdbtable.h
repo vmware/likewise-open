@@ -447,7 +447,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAMDB_ATTR_TYPE_BLOB,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
-        SAM_DB_IS_NOT_QUERYABLE               \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_NT_HASH,              \
@@ -455,7 +455,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAMDB_ATTR_TYPE_BLOB,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
-        SAM_DB_IS_NOT_QUERYABLE               \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_PRIMARY_GROUP,        \

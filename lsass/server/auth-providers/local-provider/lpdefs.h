@@ -77,6 +77,8 @@
 #define LOCAL_DB_DIR_ATTR_UID                  "UID"
 #define LOCAL_DB_DIR_ATTR_GID                  "GID"
 #define LOCAL_DB_DIR_ATTR_PASSWORD             "Password"
+#define LOCAL_DB_DIR_ATTR_LM_HASH              "LMHash"
+#define LOCAL_DB_DIR_ATTR_NT_HASH              "NTHash"
 #define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS      "UserInfoFlags"
 #define LOCAL_DB_DIR_ATTR_PASSWORD_LAST_SET    "PasswordLastSet"
 #define LOCAL_DB_DIR_ATTR_FULL_NAME            "FullName"
@@ -109,6 +111,10 @@
     {'G','I','D',0}
 #define LOCAL_DIR_ATTR_PASSWORD \
     {'P','a','s','s','w','o','r','d',0}
+#define LOCAL_DIR_ATTR_LM_HASH \
+    {'L','M','H','a','s','h',0}
+#define LOCAL_DIR_ATTR_NT_HASH \
+    {'N','T','H','a','s','h',0}
 #define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
     {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
 #define LOCAL_DIR_ATTR_PASSWORD_LAST_SET \
