@@ -85,6 +85,11 @@ SMBSocketFindSessionByUID(
     PSMB_SESSION* ppSession
     );
 
+static
+NTSTATUS
+RdrEaiToNtStatus(
+    int eai
+    );
 
 NTSTATUS
 SMBSocketCreate(
@@ -744,8 +749,6 @@ SMBSocketAddReference(
     SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
-/* @todo: catch signals? */
-/* @todo: set socket option NODELAY for better performance */
 NTSTATUS
 SMBSocketConnect(
     PSMB_SOCKET pSocket
@@ -759,18 +762,14 @@ SMBSocketConnect(
     BOOLEAN bInLock = FALSE;
     struct addrinfo *ai = NULL;
     struct addrinfo hints;
-    int s;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    s = getaddrinfo(pSocket->pszHostname, "445", &hints, &ai);
-    if (s != 0)
-    {
-        ntStatus = LwUnixErrnoToNtStatus(errno);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    ntStatus = RdrEaiToNtStatus(
+        getaddrinfo(pSocket->pszHostname, "445", &hints, &ai));
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if ((fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0)
     {
@@ -1090,6 +1089,7 @@ SMBSocketRelease(
         }
         else
         {
+            SMB_LOG_VERBOSE("Socket %p is eligible for reaping", pSocket);
             RdrReaperPoke(&gRdrRuntime, pSocket->lastActiveTime);
         }
     }
@@ -1183,3 +1183,24 @@ SMBSocketFree(
     /* @todo: use allocator */
     SMBFreeMemory(pSocket);
 }
+
+static
+NTSTATUS
+RdrEaiToNtStatus(
+    int eai
+    )
+{
+    switch (eai)
+    {
+    case 0:
+        return STATUS_SUCCESS;
+    case EAI_NONAME:
+    case EAI_NODATA:
+        return STATUS_BAD_NETWORK_NAME;
+    case EAI_MEMORY:
+        return STATUS_INSUFFICIENT_RESOURCES;
+    default:
+        return STATUS_UNSUCCESSFUL;
+    }
+}
+

@@ -292,6 +292,7 @@ SMBTreeRelease(
         }
         else
         {
+            SMB_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
             RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
         }
     }

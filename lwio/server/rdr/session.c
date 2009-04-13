@@ -221,6 +221,7 @@ SMBSessionRelease(
         }
         else
         {
+            SMB_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
             RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
         }
     }
