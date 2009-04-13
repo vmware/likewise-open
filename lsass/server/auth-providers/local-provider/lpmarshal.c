@@ -674,6 +674,7 @@ LocalMarshalEntryToGroupInfo_0(
     wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
     DWORD dwInfoLevel = 0;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    DWORD dwGid = 0;
 
     dwError = LsaAllocateMemory(
                         sizeof(LSA_GROUP_INFO_0),
@@ -683,8 +684,10 @@ LocalMarshalEntryToGroupInfo_0(
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameGID[0],
-                    &pGroupInfo->gid);
+                    &dwGid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->gid = dwGid;
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
