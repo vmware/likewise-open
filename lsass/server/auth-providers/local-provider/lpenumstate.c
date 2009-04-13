@@ -93,6 +93,9 @@ LocalCreateEnumState(
                     (PVOID*)&pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pthread_mutex_init(&pEnumState->mutex, NULL);
+    pEnumState->pMutex = &pEnumState->mutex;
+
     pEnumState->dwInfoLevel = dwInfoLevel;
 
     *ppNewEnumState = pEnumState;
@@ -128,6 +131,11 @@ LocalFreeEnumState(
     )
 {
     PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
+
+    if (pEnumState->pMutex)
+    {
+        pthread_mutex_destroy(&pEnumState->mutex);
+    }
 
     if (pEnumState->pEntries)
     {

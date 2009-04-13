@@ -110,6 +110,15 @@ LocalFindUserByName(
     );
 
 DWORD
+LocalFindUserByNameEx(
+    HANDLE  hProvider,
+    PCSTR   pszLoginId,
+    DWORD   dwUserInfoLevel,
+    PWSTR*  ppwszUserDN,
+    PVOID*  ppUserInfo
+    );
+
+DWORD
 LocalFindUserById(
     HANDLE  hProvider,
     uid_t   uid,

@@ -68,6 +68,7 @@
 
 #define LOCAL_DB_DIR_ATTR_OBJECT_CLASS         "ObjectClass"
 #define LOCAL_DB_DIR_ATTR_OBJECT_SID           "ObjectSID"
+#define LOCAL_DB_DIR_ATTR_DISTINGUISHED_NAME   "DistinguishedName"
 #define LOCAL_DB_DIR_ATTR_DOMAIN               "Domain"
 #define LOCAL_DB_DIR_ATTR_NETBIOS_NAME         "NetBIOSName"
 #define LOCAL_DB_DIR_ATTR_COMMON_NAME          "CommonName"
@@ -90,6 +91,8 @@
     {'O','b','j','e','c','t','C','l','a','s','s',0}
 #define LOCAL_DIR_ATTR_OBJECT_SID \
     {'O','b','j','e','c','t','S','I','D',0}
+#define LOCAL_DIR_ATTR_DISTINGUISHED_NAME  \
+    {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define LOCAL_DIR_ATTR_DOMAIN \
     {'D','o','m','a','i','n',0}
 #define LOCAL_DIR_ATTR_NETBIOS_NAME \
@@ -124,6 +127,8 @@
     {'M','a','x','P','w','d','A','g','e',0}
 #define LOCAL_DIR_ATTR_PWD_PROMPT_TIME \
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
+
+
 #define LOCAL_DIR_CN_PREFIX \
     {'C','N','=',0}
 #define LOCAL_DIR_OU_PREFIX \
@@ -160,7 +165,6 @@ typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 #define LOCAL_ACB_DONT_REQUIRE_PREAUTH     (0x00010000)
 #define LOCAL_ACB_PW_EXPIRED               (0x00020000)
 #define LOCAL_ACB_NO_AUTH_DATA_REQD        (0x00080000)
-
 
 #endif /* __LPDEFS_H__ */
 

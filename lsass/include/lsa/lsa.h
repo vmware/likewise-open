@@ -242,7 +242,9 @@
 #define LSA_ERROR_OBJECT_IN_USE                             0x8092 // 32914
 #define LSA_ERROR_NO_SUCH_ATTRIBUTE                         0x8093 // 32915
 #define LSA_ERROR_GET_DC_NAME_FAILED                        0x8094 // 32916
-#define LSA_ERROR_SENTINEL                                  0x8095 // 32917
+#define LSA_ERROR_INVALID_ATTRIBUTE_VALUE                   0x8095 // 32917
+#define LSA_ERROR_NO_ATTRIBUTE_VALUE                        0x8096 // 32918
+#define LSA_ERROR_SENTINEL                                  0x8097 // 32919
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 

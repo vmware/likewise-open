@@ -9,6 +9,7 @@ liblsass_auth_provider_local_la_SOURCES = \
     lpglobals.c   \
     lpgroup.c     \
     lpmain.c      \
+    lpmarshal.c   \
     lpmisc.c      \
     lpuser.c
 

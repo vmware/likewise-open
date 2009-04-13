@@ -51,11 +51,12 @@
 
 DWORD
 LocalDirFindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszDomainName,
-    PCSTR   pszUserName,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
+    HANDLE hProvider,
+    PCSTR  pszDomainName,
+    PCSTR  pszUserName,
+    DWORD  dwUserInfoLevel,
+    PWSTR* ppwszUserDN,
+    PVOID* ppUserInfo
     );
 
 DWORD
@@ -63,6 +64,7 @@ LocalDirFindUserByName_0(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -71,6 +73,7 @@ LocalDirFindUserByName_1(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -79,6 +82,7 @@ LocalDirFindUserByName_2(
     HANDLE hProvider,
     PCSTR  pszDomainName,
     PCSTR  pszUserName,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -87,6 +91,7 @@ LocalDirFindUserById(
     HANDLE hProvider,
     uid_t  uid,
     DWORD  dwUserInfoLevel,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -94,6 +99,7 @@ DWORD
 LocalDirFindUserById_0(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -101,6 +107,7 @@ DWORD
 LocalDirFindUserById_1(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -108,6 +115,7 @@ DWORD
 LocalDirFindUserById_2(
     HANDLE hProvider,
     uid_t  uid,
+    PWSTR* ppwszUserDN,
     PVOID* ppUserInfo
     );
 
@@ -181,14 +189,6 @@ LocalProvisionHomeDir(
 DWORD
 LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
-    );
-
-DWORD
-LocalMarshallAccountFlags(
-    PLSA_USER_INFO_2 pUserInfo,
-    DWORD            dwUserInfoFlags,
-    LONG64           llPwdLastSet,
-    LONG64           llAcctExpiry
     );
 
 #endif /* __LP_USER_H__ */

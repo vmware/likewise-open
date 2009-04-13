@@ -70,6 +70,7 @@
 #include "lpdomain.h"
 #include "lpaccess.h"
 #include "lpmisc.h"
+#include "lpmarshal.h"
 
 #include "externs.h"
 
