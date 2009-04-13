@@ -220,6 +220,7 @@ DWORD
 AD_NetUserChangePassword(
     PCSTR pszDomainName,
     PCSTR pszLoginId,
+    PCSTR pszUserPrincipalName,
     PCSTR pszOldPassword,
     PCSTR pszNewPassword
     )
@@ -229,9 +230,18 @@ AD_NetUserChangePassword(
     PWSTR pwszLoginId = NULL;
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
+    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
 
     BAIL_ON_INVALID_STRING(pszDomainName);
     BAIL_ON_INVALID_STRING(pszLoginId);
+
+    dwError = LsaSetSMBAccessToken(
+                    pszDomainName,
+                    pszUserPrincipalName,
+                    pszOldPassword,
+                    FALSE,
+                    &pFreeInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
                     pszDomainName,
@@ -274,6 +284,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszLoginId);
     LSA_SAFE_FREE_MEMORY(pwszOldPassword);
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
+    LsaFreeSMBAccessToken(&pFreeInfo);
 
     return AD_MapNetApiError(dwError);
 

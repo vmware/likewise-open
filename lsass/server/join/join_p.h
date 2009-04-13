@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,9 +38,9 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Join to Active Directory
- * 
+ *
  *        Private Header
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -64,25 +64,13 @@ typedef struct __LSA_MACHINE_ACCT_INFO
 
 } LSA_MACHINE_ACCT_INFO, *PLSA_MACHINE_ACCT_INFO;
 
-typedef struct __LSA_ACCESS_TOKEN_FREE_INFO
-{
-    krb5_context ctx;
-    krb5_ccache cc;
-    PIO_ACCESS_TOKEN hAccessToken;
-} LSA_ACCESS_TOKEN_FREE_INFO, *PLSA_ACCESS_TOKEN_FREE_INFO;
-
 DWORD
-LsaSetSMBAccessToken(
+LsaSetSMBAccessTokenWithFlags(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
-    );
-
-void
-LsaFreeSMBAccessTokenContents(
-    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
     );
 
 DWORD
