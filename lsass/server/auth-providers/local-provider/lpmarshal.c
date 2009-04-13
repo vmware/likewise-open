@@ -77,6 +77,8 @@ LocalMarshalEntryToUserInfo_0(
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
     DWORD dwInfoLevel = 0;
+    DWORD dwUid = 0;
+    DWORD dwGid = 0;
 
     dwError = LsaAllocateMemory(
                         sizeof(LSA_USER_INFO_0),
@@ -86,14 +88,18 @@ LocalMarshalEntryToUserInfo_0(
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameUID[0],
-                    &pUserInfo->uid);
+                    &dwUid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->uid = dwUid;
 
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameGID[0],
-                    &pUserInfo->gid);
+                    &dwGid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->gid = dwGid;
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
@@ -204,6 +210,8 @@ LocalMarshalEntryToUserInfo_1(
     PLSA_USER_INFO_1 pUserInfo = NULL;
     PWSTR  pwszUserDN = NULL;
     DWORD dwInfoLevel = 1;
+    DWORD dwUid = 0;
+    DWORD dwGid = 0;
 
     dwError = LsaAllocateMemory(
                     sizeof(LSA_USER_INFO_1),
@@ -213,14 +221,18 @@ LocalMarshalEntryToUserInfo_1(
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameUID[0],
-                    &pUserInfo->uid);
+                    &dwUid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->uid = dwUid;
 
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameGID[0],
-                    &pUserInfo->gid);
+                    &dwGid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->gid = dwGid;
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
@@ -363,6 +375,8 @@ LocalMarshalEntryToUserInfo_2(
     DWORD  dwUserInfoFlags = 0;
     LONG64 llAccountExpiry = 0;
     LONG64 llPasswordLastSet = 0;
+    DWORD  dwUid = 0;
+    DWORD  dwGid = 0;
 
     dwError = LsaAllocateMemory(
                     sizeof(LSA_USER_INFO_2),
@@ -372,14 +386,18 @@ LocalMarshalEntryToUserInfo_2(
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameUID[0],
-                    &pUserInfo->uid);
+                    &dwUid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->uid = dwUid;
 
     dwError = LocalMarshalAttrToInteger(
                     pEntry,
                     &wszAttrNameGID[0],
-                    &pUserInfo->gid);
+                    &dwGid);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->gid = dwGid;
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
