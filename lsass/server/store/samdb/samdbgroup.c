@@ -61,3 +61,20 @@ SamDbGetGroupCount(
                 SAMDB_OBJECT_CLASS_GROUP,
                 pdwNumGroups);
 }
+
+DWORD
+SamDbGetGroupMembers(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    BOOLEAN           bExpandNestedGroups,
+    PWSTR             wszAttributes[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
+}

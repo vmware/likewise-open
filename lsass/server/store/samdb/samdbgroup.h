@@ -56,4 +56,14 @@ SamDbGetGroupCount(
     PDWORD pdwNumGroups
     );
 
+DWORD
+SamDbGetGroupMembers(
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    BOOLEAN           bExpandNestedGroups,
+    PWSTR             wszAttributes[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
 #endif /* __SAM_DB_GROUP_H__ */

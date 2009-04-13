@@ -50,6 +50,15 @@ typedef DWORD (*PFNDIRECTORYVERIFYPASSWORD)(
                     PWSTR  pwszPassword
                     );
 
+typedef DWORD (*PFNDIRECTORYGETMEMBERS)(
+                    HANDLE            hDirectory,
+                    PWSTR             pwszGroupDN,
+                    BOOLEAN           bExpandNestedGroups,
+                    PWSTR             wszAttributes[],
+                    PDIRECTORY_ENTRY* ppDirectoryEntries,
+                    PDWORD            pdwNumEntries
+                    );
+
 typedef DWORD (*PFNDIRECTORYSEARCH)(
                     HANDLE            hDirectory,
                     PWSTR             pwszBase,
@@ -89,6 +98,7 @@ typedef struct __LSA_DIRECTORY_PROVIDER_FUNCTION_TABLE
     PFNDIRECTORYSETPASSWORD    pfnDirectorySetPassword;
     PFNDIRECTORYCHANGEPASSWORD pfnDirectoryChangePassword;
     PFNDIRECTORYVERIFYPASSWORD pfnDirectoryVerifyPassword;
+    PFNDIRECTORYGETMEMBERS     pfnDirectoryGetMembers;
     PFNDIRECTORYDELETE         pfnDirectoryDelete;
     PFNDIRECTORYSEARCH         pfnDirectorySearch;
     PFNDIRECTORYGETUSERCOUNT   pfnDirectoryGetUserCount;
