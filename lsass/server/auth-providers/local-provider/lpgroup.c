@@ -258,10 +258,116 @@ LocalDirFindGroupByName_1(
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
+                    " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR  pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PWSTR pwszDN = NULL;
+    DWORD dwInfoLevel = 1;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
 
-    // TODO:
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    pszGroupName,
+                    pszDomainName,
+                    LOCAL_OBJECT_CLASS_GROUP);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO: Get the group members
+
+    dwError = LocalMarshalEntryToGroupInfo_1(
+                    pEntry,
+                    (ppwszGroupDN ? &pwszDN : NULL),
+                    &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszDN;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
+
+error:
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszDN);
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -430,10 +536,114 @@ LocalDirFindGroupById_1(
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_GID " = %u" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    DWORD dwInfoLevel = 1;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
 
-    // TODO:
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    gid,
+                    LOCAL_OBJECT_CLASS_GROUP);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // TODO: Get group members
+
+    dwError = LocalMarshalEntryToGroupInfo_1(
+                    pEntry,
+                    (ppwszGroupDN ? &pwszGroupDN : NULL),
+                    &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
+
+error:
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -513,9 +723,9 @@ LocalDirBeginEnumGroups_0(
     DWORD dwError = 0;
     DWORD dwInfoLevel = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
@@ -588,10 +798,75 @@ LocalDirBeginEnumGroups_1(
     )
 {
     DWORD dwError = 0;
+    DWORD dwInfoLevel = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
 
-    // TODO:
+    dwError = LocalCreateGroupState(
+                        hProvider,
+                        dwInfoLevel,
+                        &pEnumState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    gLPGlobals.pszLocalDomain,
+                    LOCAL_OBJECT_CLASS_GROUP);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEnumState->pEntries,
+                    &pEnumState->dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phResume = (HANDLE)pEnumState;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
 
     return dwError;
+
+error:
+
+    *phResume = (HANDLE)NULL;
+
+    if (pEnumState)
+    {
+        LocalFreeEnumState(pEnumState);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -735,10 +1010,80 @@ LocalDirEnumGroups_1(
     )
 {
     DWORD dwError = 0;
+    DWORD dwNumGroupsAvailable = 0;
+    DWORD dwNumGroupsFound = 0;
+    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
+    DWORD iGroup = 0;
+    PWSTR pwszGroupDN = NULL;
+    BOOLEAN bInLock = FALSE;
 
-    // TODO:
+    LOCAL_LOCK_MUTEX(bInLock, &pEnumState->mutex);
+
+    if (pEnumState->dwInfoLevel != 0)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwNumGroupsAvailable = pEnumState->dwNumEntries - pEnumState->dwNextStartingId;
+
+    dwNumGroupsFound = LSA_MIN(dwNumMaxGroups, dwNumGroupsAvailable);
+
+    if (!dwNumGroupsFound)
+    {
+        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(
+                    dwNumGroupsFound * sizeof(PLSA_GROUP_INFO_1),
+                    (PVOID*)&ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (; iGroup < dwNumGroupsFound; iGroup++)
+    {
+        PDIRECTORY_ENTRY pEntry = NULL;
+
+        pEntry = &pEnumState->pEntries[pEnumState->dwNextStartingId + iGroup];
+
+        LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+        dwError = LocalMarshalEntryToGroupInfo_1(
+                        pEntry,
+                        &pwszGroupDN,
+                        &ppGroupInfoList[iGroup]);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        // TODO: get group members
+    }
+
+    pEnumState->dwNextStartingId += dwNumGroupsFound;
+
+    *pdwNumGroupsFound = dwNumGroupsFound;
+    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
+
+cleanup:
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &pEnumState->mutex);
 
     return dwError;
+
+error:
+
+    *pdwNumGroupsFound = 0;
+    *pppGroupInfoList = NULL;
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+                pEnumState->dwInfoLevel,
+                (PVOID*)ppGroupInfoList,
+                dwNumGroupsFound);
+    }
+
+    goto cleanup;
 }
 
 DWORD

@@ -742,6 +742,85 @@ error:
 }
 
 DWORD
+LocalMarshalEntryToGroupInfo_1(
+    PDIRECTORY_ENTRY   pEntry,
+    PWSTR*             ppwszGroupDN,
+    PLSA_GROUP_INFO_1* ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    DWORD dwInfoLevel = 1;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
+    DWORD dwGid = 0;
+
+    dwError = LsaAllocateMemory(
+                        sizeof(LSA_GROUP_INFO_1),
+                        (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToInteger(
+                    pEntry,
+                    &wszAttrNameGID[0],
+                    &dwGid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupInfo->gid = dwGid;
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameSamAccountName[0],
+                    &pGroupInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameObjectSID[0],
+                    &pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppwszGroupDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszGroupDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,
