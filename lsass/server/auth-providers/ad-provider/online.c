@@ -2548,6 +2548,7 @@ AD_OnlineChangePassword(
 
     dwError = AD_NetUserChangePassword(pszDomainController,
                                        pCachedUser->pszSamAccountName,
+                                       pCachedUser->userInfo.pszUPN,
                                        pszOldPassword,
                                        pszPassword);
     BAIL_ON_LSA_ERROR(dwError);

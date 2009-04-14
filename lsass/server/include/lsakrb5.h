@@ -181,6 +181,22 @@ LsaKrb5GetMachineCreds(
     PSTR* ppszDomainDnsName
     );
 
+typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;
+
+DWORD
+LsaSetSMBAccessToken(
+    IN PCSTR pszDomain,
+    IN PCSTR pszUsername,
+    IN PCSTR pszPassword,
+    IN BOOLEAN bSetDefaultCachePath,
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    );
+
+void
+LsaFreeSMBAccessToken(
+    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    );
+
 #endif /* __LSAKRB5_H__ */
 
 

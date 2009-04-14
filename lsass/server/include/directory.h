@@ -187,6 +187,16 @@ DirectoryVerifyPassword(
     );
 
 DWORD
+DirectoryGetMembers(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    BOOLEAN           bExpandNestedGroups,
+    PWSTR             wszAttributes[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
 DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers

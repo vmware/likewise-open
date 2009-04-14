@@ -268,22 +268,20 @@ error:
 
 DWORD
 LocalAuthenticateUserEx(
-    HANDLE hProvider,
+    HANDLE                hProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_AUTH_USER_INFO *ppUserInfo
+    PLSA_AUTH_USER_INFO*  ppUserInfo
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
-#if 0
-    PLSA_USER_INFO_2 pUserInfo2 = NULL;
-    PSTR pszAccountName = NULL;
-    PCSTR pszDomain = NULL;
-    DWORD dwLen = 0;
-    BYTE NTResponse[24] = { 0 };
+    DWORD    dwError = LSA_ERROR_INTERNAL;
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PBYTE pChal = NULL;
-    PBYTE pNTresp = NULL;
-    DWORD dwUserInfoLevel = 2;
+    PCSTR    pszDomain = NULL;
+    BYTE     NTResponse[24] = { 0 };
+    PBYTE    pChal = NULL;
+    PBYTE    pNTresp = NULL;
+    DWORD    dwUserInfoLevel = 2;
+    PSTR     pszAccountName = NULL;
+    PLSA_USER_INFO_2 pUserInfo2 = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
 
@@ -292,37 +290,30 @@ LocalAuthenticateUserEx(
     if (pUserParams->pszDomain)
         pszDomain = pUserParams->pszDomain;
     else
-        pszDomain = "LOCALHOST";
+        pszDomain = gLPGlobals.pszLocalDomain;
 
     /* Allow the next provider to continue if we don't handle this domain */
 
-    if (!LocalServicesDomain(pszDomain)) {
+    if (!LocalServicesDomain(pszDomain))
+    {
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    /* calculate length includeing '\' and terminating NULL */
-
-    dwLen = strlen(pszDomain) + strlen(pUserParams->pszAccountName) + 2;
-    dwError = LsaAllocateMemory(dwLen, (PVOID*)&pszAccountName);
+    dwError = LsaAllocateStringPrintf(
+                     &pszAccountName,
+                     "%s\\%s",
+                     pszDomain,
+                     pUserParams->pszAccountName);
     BAIL_ON_LSA_ERROR(dwError);
-
-    snprintf(pszAccountName, dwLen,
-             "%s\\%s",
-             pszDomain,
-             pUserParams->pszAccountName);
-
-    /* Find the user */
 
     dwError = LocalFindUserByName(hProvider,
-                                              pszAccountName,
-                                              dwUserInfoLevel,
-                                              (PVOID*)&pUserInfo2);
+                                  pszAccountName,
+                                  dwUserInfoLevel,
+                                  (PVOID*)&pUserInfo2);
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Check Account Status */
-
-    dwError = CheckAccountFlags(pUserInfo2);
+    dwError = LocalCheckAccountFlags(pUserInfo2);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* generate the responses and compare */
@@ -351,7 +342,8 @@ LocalAuthenticateUserEx(
 
 cleanup:
 
-    if (pUserInfo2) {
+    if (pUserInfo2)
+    {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo2);
     }
 
@@ -362,9 +354,6 @@ cleanup:
 error:
 
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD

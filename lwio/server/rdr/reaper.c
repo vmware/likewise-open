@@ -351,6 +351,8 @@ cleanup:
                     /* Ref count is 0 and socket has expired,
                        so remove it from the hash and leave it
                        in list to be freed */
+
+                    SMB_LOG_VERBOSE("Socket %p is expired, reaping", pSocket);
                     SMBHashRemoveKey(
                         pRuntime->pSocketHashByName,
                         pSocket->pszHostname
@@ -358,6 +360,7 @@ cleanup:
                 }
                 else
                 {
+                    SMB_LOG_VERBOSE("Socket %p is not expired, waiting", pSocket);
                     /* Ref count is 0 but the socket has not expired,
                        so take it out of the list so it is not freed
                        and calculate when it will expire */
@@ -466,6 +469,8 @@ cleanup:
                                        currentTime,
                                        expirationTime))
                 {
+                    SMB_LOG_VERBOSE("Session %p is expired, reaping", pSession);
+
                     SMBHashRemoveKey(
                         pSocket->pSessionHashByUID,
                         &pSession->uid
@@ -477,6 +482,8 @@ cleanup:
                 }
                 else
                 {
+                    SMB_LOG_VERBOSE("Session %p is not expired, waiting", pSession);
+
                     *pSessionIter = NULL;
 
                     RdrReaperUpdateNextWakeTime(
@@ -553,6 +560,8 @@ cleanup:
                                        currentTime,
                                        expirationTime))
                 {
+                    SMB_LOG_VERBOSE("Tree %p is expired, reaping", pTree);
+
                     /* We can't remove the tree from
                        the TID hash because the receiver
                        thread will need it to deliver the
@@ -568,6 +577,8 @@ cleanup:
                 }
                 else
                 {
+                    SMB_LOG_VERBOSE("Tree %p is not expired, waiting", pTree);
+
                     *pTreeIter = NULL;
 
                     RdrReaperUpdateNextWakeTime(
