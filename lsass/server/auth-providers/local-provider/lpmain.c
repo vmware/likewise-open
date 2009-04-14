@@ -712,6 +712,7 @@ LocalFindGroupByName(
                     pLoginInfo->pszFullDomainName,
                     pLoginInfo->pszName,
                     dwInfoLevel,
+                    NULL,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -754,6 +755,7 @@ LocalFindGroupById(
                     hProvider,
                     gid,
                     dwInfoLevel,
+                    NULL,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 

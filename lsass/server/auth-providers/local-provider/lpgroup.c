@@ -88,6 +88,7 @@ LocalDirFindGroupByName(
     PCSTR   pszDomainName,
     PCSTR   pszGroupName,
     DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
     )
 {
@@ -101,6 +102,7 @@ LocalDirFindGroupByName(
                                 hProvider,
                                 pszDomainName,
                                 pszGroupName,
+                                ppwszGroupDN,
                                 ppGroupInfo
                                 );
             break;
@@ -111,6 +113,7 @@ LocalDirFindGroupByName(
                                 hProvider,
                                 pszDomainName,
                                 pszGroupName,
+                                ppwszGroupDN,
                                 ppGroupInfo
                                 );
             break;
@@ -130,18 +133,21 @@ LocalDirFindGroupByName_0(
     HANDLE  hProvider,
     PCSTR   pszDomainName,
     PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
     )
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
         NULL
     };
@@ -153,8 +159,9 @@ LocalDirFindGroupByName_0(
                     LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
                     " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
+    PSTR  pszFilter = NULL;
     PWSTR pwszFilter = NULL;
+    PWSTR pwszDN = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
 
     dwError = LsaAllocateStringPrintf(
@@ -200,9 +207,14 @@ LocalDirFindGroupByName_0(
 
     dwError = LocalMarshalEntryToGroupInfo_0(
                     pEntry,
+                    (ppwszGroupDN ? &pwszDN : NULL),
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszDN;
+    }
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
@@ -219,7 +231,13 @@ cleanup:
 
 error:
 
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
     *ppGroupInfo = pGroupInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszDN);
 
     if (pGroupInfo)
     {
@@ -235,7 +253,180 @@ LocalDirFindGroupByName_1(
     HANDLE  hProvider,
     PCSTR   pszDomainName,
     PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
+}
+
+DWORD
+LocalDirFindGroupById(
+    HANDLE  hProvider,
+    gid_t   gid,
+    DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
+    PVOID*  ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+
+    switch(dwGroupInfoLevel)
+    {
+        case 0:
+
+            dwError = LocalDirFindGroupById_0(
+                            hProvider,
+                            gid,
+                            ppwszGroupDN,
+                            ppGroupInfo);
+            break;
+
+        case 1:
+
+            dwError = LocalDirFindGroupById_1(
+                            hProvider,
+                            gid,
+                            ppwszGroupDN,
+                            ppGroupInfo);
+            break;
+
+        default:
+
+            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+
+            break;
+    }
+
+    return dwError;
+}
+
+DWORD
+LocalDirFindGroupById_0(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR wszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PCSTR pszFilterTemplate =
+                    LOCAL_DB_DIR_ATTR_GID " = %u" \
+                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    gid,
+                    LOCAL_OBJECT_CLASS_GROUP);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    wszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalMarshalEntryToGroupInfo_0(
+                    pEntry,
+                    (ppwszGroupDN ? &pwszGroupDN : NULL),
+                    &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszFilter);
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    return dwError;
+
+error:
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(0, pGroupInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirFindGroupById_1(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;
@@ -501,6 +692,7 @@ LocalDirEnumGroups_0(
 
         dwError = LocalMarshalEntryToGroupInfo_0(
                         pEntry,
+                        NULL,
                         &ppGroupInfoList[iGroup]);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -540,153 +732,6 @@ LocalDirEnumGroups_1(
     DWORD                      dwNumMaxGroups,
     PDWORD                     pdwNumGroupsFound,
     PVOID**                    pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    // TODO:
-
-    return dwError;
-}
-
-DWORD
-LocalDirFindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirFindGroupById_0(hProvider, gid, ppGroupInfo);
-            break;
-
-        case 1:
-
-            dwError = LocalDirFindGroupById_1(hProvider, gid, ppGroupInfo);
-            break;
-
-        default:
-
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
-            break;
-    }
-
-    return dwError;
-}
-
-DWORD
-LocalDirFindGroupById_0(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNameObjectSID[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_GID " = %u" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-
-    dwError = LsaAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    gid,
-                    LOCAL_OBJECT_CLASS_GROUP);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LSA_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalEntryToGroupInfo_0(
-                    pEntry,
-                    &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppGroupInfo = pGroupInfo;
-
-cleanup:
-
-    LSA_SAFE_FREE_STRING(pszFilter);
-    LSA_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    *ppGroupInfo = pGroupInfo;
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(0, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindGroupById_1(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
     )
 {
     DWORD dwError = 0;

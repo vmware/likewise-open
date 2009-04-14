@@ -55,6 +55,7 @@ LocalDirFindGroupByName(
     PCSTR   pszDomainName,
     PCSTR   pszGroupName,
     DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
     );
 
@@ -63,7 +64,42 @@ LocalDirFindGroupByName_0(
     HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupByName_1(
+    HANDLE  hProvider,
+    PCSTR   pszDomain,
+    PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
+    PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById(
+    HANDLE  hProvider,
+    gid_t   gid,
+    DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
+    PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById_0(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById_1(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
     );
 
 DWORD
@@ -73,14 +109,6 @@ LocalDirGetGroupsForUser(
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirFindGroupByName_1(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
@@ -95,25 +123,9 @@ LocalDirGetGroupsForUser_0(
 DWORD
 LocalDirGetGroupsForUser_1(
     HANDLE  hProvider,
-    uid_t uid,
+    uid_t   uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirFindGroupByName_0(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
-    );
-
-DWORD
-LocalDirFindGroupByName_1(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
@@ -130,28 +142,6 @@ LocalDirEnumGroups(
     DWORD   nMaxGroups,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirFindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
-    );
-
-DWORD
-LocalDirFindGroupById_0(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    );
-
-DWORD
-LocalDirFindGroupById_1(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
     );
 
 DWORD
