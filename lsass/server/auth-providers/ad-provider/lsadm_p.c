@@ -65,6 +65,9 @@
 #define IsLsaDmDomainFlagsOffline(Flags) \
     IsSetFlag(Flags, LSA_DM_DOMAIN_FLAG_OFFLINE | LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE)
 
+#define IsLsaDmDomainFlagsGcOffline(Flags) \
+    IsSetFlag(Flags, LSA_DM_DOMAIN_FLAG_GC_OFFLINE | LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE)
+
 #define LOG_WRAP_BOOL(x)   ((x) ? 'Y' : 'N')
 #define LOG_WRAP_STRING(x) ((x) ? (x) : "(null)")
 
@@ -161,9 +164,6 @@ typedef struct _LSA_DM_THREAD_INFO {
 typedef struct _LSA_DM_STATE {
     /// Offline enabled, global (force or media sense) offline, etc.
     LSA_DM_STATE_FLAGS StateFlags;
-
-    /// Count of offline domains.
-    DWORD dwOfflineCount;
 
     /// Points to primary domain in DomainList.
     PLSA_DM_DOMAIN_STATE pPrimaryDomain;
@@ -2100,8 +2100,12 @@ LsaDmpModifyDomainFlagsByRef(
 {
     BOOLEAN bWasOffline = FALSE;
     BOOLEAN bIsOffline = FALSE;
+    BOOLEAN bGcWasOffline = FALSE;
+    BOOLEAN bGcIsOffline = FALSE;
+    BOOLEAN bNeedFlush = FALSE;
 
     bWasOffline = IsLsaDmDomainFlagsOffline(pDomain->Flags);
+    bGcWasOffline = IsLsaDmDomainFlagsGcOffline(pDomain->Flags);
     if (bIsSet)
     {
         SetFlag(pDomain->Flags, Flags);
@@ -2111,6 +2115,7 @@ LsaDmpModifyDomainFlagsByRef(
         ClearFlag(pDomain->Flags, Flags);
     }
     bIsOffline = IsLsaDmDomainFlagsOffline(pDomain->Flags);
+    bGcIsOffline = IsLsaDmDomainFlagsGcOffline(pDomain->Flags);
 
     if (bWasOffline != bIsOffline)
     {
@@ -2119,21 +2124,36 @@ LsaDmpModifyDomainFlagsByRef(
         if (bIsOffline)
         {
             // We went from !offline -> offline.
-            Handle->dwOfflineCount++;
-
             pDomain->dwDcConnectionPeriod++;
             LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
+        }
+        else
+        {
+            // We went from offline -> !offline.
+            bNeedFlush = TRUE;
+        }
+    }
+
+    if (bGcWasOffline != bGcIsOffline)
+    {
+        LSA_LOG_ALWAYS("Global catalog server for domain '%s' is now %sline",
+                       pDomain->pszDnsName, bIsOffline ? "off" : "on");
+        if (bGcIsOffline)
+        {
             pDomain->dwGcConnectionPeriod++;
             LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
         }
         else
         {
             // We went from offline -> !offline.
-            Handle->dwOfflineCount--;
-
-            // Have to ignore dwError because this function returns void
-            LsaSrvFlushSystemCache();
+            bNeedFlush = TRUE;
         }
+    }
+
+    if (bNeedFlush)
+    {
+        // Have to ignore dwError because this function returns void
+        LsaSrvFlushSystemCache();
     }
 }
 
@@ -2226,13 +2246,34 @@ error:
 DWORD
 LsaDmpTransitionOffline(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN PCSTR pszDomainName
+    IN PCSTR pszDomainName,
+    IN BOOLEAN bIsGc
     )
 {
+    DWORD dwFlags = 0;
+
+    if (bIsGc)
+    {
+        dwFlags = LSA_DM_DOMAIN_FLAG_GC_OFFLINE;
+    }
+    else
+    {
+        dwFlags = LSA_DM_DOMAIN_FLAG_OFFLINE;
+    }
+
+    if (bIsGc)
+    {
+        dwFlags = LSA_DM_DOMAIN_FLAG_GC_OFFLINE;
+    }
+    else
+    {
+        dwFlags = LSA_DM_DOMAIN_FLAG_OFFLINE;
+    }
+
     return LsaDmpModifyDomainFlagsByName(Handle,
                                          pszDomainName,
                                          TRUE,
-                                         LSA_DM_DOMAIN_FLAG_OFFLINE);
+                                         dwFlags);
 }
 
 DWORD
@@ -2244,13 +2285,15 @@ LsaDmpTransitionOnline(
     return LsaDmpModifyDomainFlagsByName(Handle,
                                          pszDomainName,
                                          FALSE,
-                                         LSA_DM_DOMAIN_FLAG_OFFLINE);
+                                         LSA_DM_DOMAIN_FLAG_OFFLINE |
+                                         LSA_DM_DOMAIN_FLAG_GC_OFFLINE);
 }
 
 BOOLEAN
 LsaDmpIsDomainOffline(
     IN LSA_DM_STATE_HANDLE Handle,
-    IN OPTIONAL PCSTR pszDomainName
+    IN OPTIONAL PCSTR pszDomainName,
+    IN BOOLEAN bIsGC
     )
 {
     DWORD dwError = 0;
@@ -2281,7 +2324,14 @@ LsaDmpIsDomainOffline(
         dwError = LsaDmpMustFindDomain(Handle, pszDomainName, &pFoundDomain);
         BAIL_ON_LSA_ERROR(dwError);
 
-        bIsOffline = IsLsaDmDomainFlagsOffline(pFoundDomain->Flags);
+        if (bIsGC)
+        {
+            bIsOffline = IsLsaDmDomainFlagsGcOffline(pFoundDomain->Flags);
+        }
+        else
+        {
+            bIsOffline = IsLsaDmDomainFlagsOffline(pFoundDomain->Flags);
+        }
     }
 
 cleanup:
@@ -2391,7 +2441,8 @@ LsaDmpFilterOfflineCallback(
     IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
     )
 {
-    return IsLsaDmDomainFlagsOffline(pDomainInfo->Flags);
+    return IsLsaDmDomainFlagsOffline(pDomainInfo->Flags) ||
+        IsLsaDmDomainFlagsGcOffline(pDomainInfo->Flags);
 }
 
 static
@@ -2716,7 +2767,7 @@ LsaDmpLdapOpen(
     // If the global offline state says everything is offline, don't
     // return anything off the free list (the free list is only cleared when a
     // domain goes offline, not when the machine goes globally offline).
-    if (LsaDmpIsDomainOffline(Handle, pszDnsDomainName))
+    if (LsaDmpIsDomainOffline(Handle, pszDnsDomainName, bUseGc))
     {
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
