@@ -562,16 +562,27 @@ LocalGetGroupsForUser(
     PVOID**        pppGroupInfoList
     )
 {
-    DWORD dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD  dwNumGroupsFound = 0;
+    DWORD             dwError = 0;
+    PWSTR             pwszUserDN = NULL;
+    DWORD             dwUserInfoLevel = 0;
+    PLSA_USER_INFO_0  pUserInfo = NULL;
+    PVOID*            ppGroupInfoList = NULL;
+    DWORD             dwNumGroupsFound = 0;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDirGetGroupsForUser(
+    dwError = LocalDirFindUserById(
                     hProvider,
                     uid,
+                    dwUserInfoLevel,
+                    &pwszUserDN,
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetGroupsForUser(
+                    hProvider,
+                    pwszUserDN,
                     dwGroupInfoLevel,
                     &dwNumGroupsFound,
                     &ppGroupInfoList);
@@ -581,6 +592,13 @@ LocalGetGroupsForUser(
     *pdwNumGroupsFound = dwNumGroupsFound;
 
 cleanup:
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 

@@ -105,7 +105,7 @@ LocalDirFindGroupById_1(
 DWORD
 LocalDirGetGroupsForUser(
     HANDLE  hProvider,
-    uid_t   uid,
+    PWSTR   pwszUserDN,
     DWORD   dwGroupInfoLevel,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
@@ -114,16 +114,15 @@ LocalDirGetGroupsForUser(
 DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
-    uid_t uid,
+    PWSTR   pwszUserDN,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );
 
-
 DWORD
 LocalDirGetGroupsForUser_1(
     HANDLE  hProvider,
-    uid_t   uid,
+    PWSTR   pwszUserDN,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     );

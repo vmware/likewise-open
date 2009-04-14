@@ -667,9 +667,52 @@ error:
 }
 
 DWORD
+LocalDirGetGroupsForUser(
+    HANDLE  hProvider,
+    PWSTR   pwszUserDN,
+    DWORD   dwInfoLevel,
+    PDWORD  pdwGroupsFound,
+    PVOID** pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    switch(dwInfoLevel)
+    {
+        case 0:
+
+            dwError = LocalDirGetGroupsForUser_0(
+                                hProvider,
+                                pwszUserDN,
+                                pdwGroupsFound,
+                                pppGroupInfoList
+                                );
+            break;
+
+        case 1:
+
+            dwError = LocalDirGetGroupsForUser_1(
+                                hProvider,
+                                pwszUserDN,
+                                pdwGroupsFound,
+                                pppGroupInfoList
+                                );
+            break;
+
+        default:
+
+            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+
+            break;
+    }
+
+    return dwError;
+}
+
+DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
-    uid_t   uid,
+    PWSTR   pwszUserDN,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )
@@ -684,7 +727,7 @@ LocalDirGetGroupsForUser_0(
 DWORD
 LocalDirGetGroupsForUser_1(
     HANDLE  hProvider,
-    uid_t uid,
+    PWSTR   pwszUserDN,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )
