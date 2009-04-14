@@ -130,7 +130,7 @@ error:
 }
 
 DWORD
-DirectoryGetMembers(
+DirectoryGetGroupMembers(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
     PWSTR             pwszAttrs[],
@@ -147,7 +147,7 @@ DirectoryGetMembers(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
-    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetMembers(
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetGroupMembers(
                     pContext->hBindHandle,
                     pwszGroupDN,
                     pwszAttrs,

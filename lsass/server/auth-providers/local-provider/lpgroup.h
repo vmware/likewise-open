@@ -145,6 +145,21 @@ LocalDirEnumGroups(
     );
 
 DWORD
+LocalDirGetGroupMemberNames(
+    PLOCAL_PROVIDER_CONTEXT pContext,
+    PWSTR                   pwszGroupDN,
+    PSTR**                  pppszMembers
+    );
+
+DWORD
+LocalDirGetGroupMembers(
+    PLOCAL_PROVIDER_CONTEXT        pContext,
+    PWSTR                          pwszGroupDN,
+    PLOCAL_PROVIDER_GROUP_MEMBER** pppGroupMembers,
+    PDWORD                         pdwNumMembers
+    );
+
+DWORD
 LocalDirAddGroup(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
@@ -167,6 +182,17 @@ DWORD
 LocalDirDeleteGroup(
     HANDLE hProvider,
     PWSTR  pwszGroupDN
+    );
+
+VOID
+LocalDirFreeGroupMemberList(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberList,
+    DWORD                         dwNumMembers
+    );
+
+VOID
+LocalDirFreeGroupMember(
+    PLOCAL_PROVIDER_GROUP_MEMBER pMember
     );
 
 #endif /* __LP_GROUP_H__ */

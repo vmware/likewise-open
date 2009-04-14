@@ -97,7 +97,7 @@ typedef struct __LSA_DIRECTORY_PROVIDER_FUNCTION_TABLE
     PFNDIRECTORYSETPASSWORD    pfnDirectorySetPassword;
     PFNDIRECTORYCHANGEPASSWORD pfnDirectoryChangePassword;
     PFNDIRECTORYVERIFYPASSWORD pfnDirectoryVerifyPassword;
-    PFNDIRECTORYGETMEMBERS     pfnDirectoryGetMembers;
+    PFNDIRECTORYGETMEMBERS     pfnDirectoryGetGroupMembers;
     PFNDIRECTORYDELETE         pfnDirectoryDelete;
     PFNDIRECTORYSEARCH         pfnDirectorySearch;
     PFNDIRECTORYGETUSERCOUNT   pfnDirectoryGetUserCount;

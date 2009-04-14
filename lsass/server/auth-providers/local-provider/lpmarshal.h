@@ -96,6 +96,13 @@ LocalMarshalEntryToGroupInfo_1(
     );
 
 DWORD
+LocalMarshalEntryToGroupInfoMembers_1(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberEntries,
+    DWORD                         dwNumMemberEntries,
+    PSTR**                        pppszMembers
+    );
+
+DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,

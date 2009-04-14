@@ -50,6 +50,8 @@
 #define LOCAL_CFG_TAG_LOCAL_PROVIDER "lsa-local-provider"
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
 
+#define LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT (5)
+
 #define LOCAL_LOCK_MUTEX(bInLock, pMutex)  \
         if (!bInLock) {                    \
            pthread_mutex_lock(pMutex);     \

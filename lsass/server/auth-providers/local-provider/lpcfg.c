@@ -107,6 +107,7 @@ LocalCfgInitialize(
     memset(pConfig, 0, sizeof(LOCAL_CONFIG));
 
     pConfig->bEnableEventLog = FALSE;
+    pConfig->dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
 
     return 0;
 }
@@ -233,6 +234,26 @@ LocalCfgIsEventlogEnabled(
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
     *pbValue = bResult;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetMaxGroupNestingLevel(
+    PDWORD pdwNestingLevel
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMaxGroupNestingLevel = gLPGlobals.cfg.dwMaxGroupNestingLevel;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwNestingLevel = dwMaxGroupNestingLevel;
 
     return dwError;
 }

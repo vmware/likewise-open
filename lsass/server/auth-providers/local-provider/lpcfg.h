@@ -87,6 +87,11 @@ LocalCfgIsEventlogEnabled(
     PBOOLEAN pbValue
     );
 
+DWORD
+LocalCfgGetMaxGroupNestingLevel(
+    PDWORD pdwNestingLevel
+    );
+
 VOID
 LocalCfgFree(
     PLOCAL_CONFIG pConfig

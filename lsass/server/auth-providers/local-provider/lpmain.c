@@ -54,8 +54,13 @@ LsaInitializeProvider(
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
 {
     DWORD dwError = 0;
-    LOCAL_CONFIG config = {0};
     BOOLEAN bEventLogEnabled = FALSE;
+    DWORD dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
+    LOCAL_CONFIG config =
+    {
+        bEventLogEnabled,
+        dwMaxGroupNestingLevel
+    };
     PWSTR   pwszUserDN = NULL;
     PWSTR   pwszCredentials = NULL;
     ULONG   ulMethod = 0;

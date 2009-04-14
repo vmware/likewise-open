@@ -79,6 +79,8 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 typedef struct __LOCAL_CONFIG
 {
     BOOLEAN   bEnableEventLog;
+    DWORD     dwMaxGroupNestingLevel;
+
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 
 typedef struct _LOCAL_PROVIDER_GLOBALS
@@ -95,6 +97,15 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     LOCAL_CONFIG    cfg;
 
 } LOCAL_PROVIDER_GLOBALS, *PLOCAL_PROVIDER_GLOBALS;
+
+typedef struct _LOCAL_PROVIDER_GROUP_MEMBER
+{
+    PSTR pszDomain;
+    PSTR pszNetbiosDomain;
+    PSTR pszSamAccountName;
+    PSTR pszSID;
+
+} LOCAL_PROVIDER_GROUP_MEMBER, *PLOCAL_PROVIDER_GROUP_MEMBER;
 
 #endif /* __LPSTRUCTS_H__ */
 

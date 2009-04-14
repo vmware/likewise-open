@@ -187,7 +187,7 @@ DirectoryVerifyPassword(
     );
 
 DWORD
-DirectoryGetMembers(
+DirectoryGetGroupMembers(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
     PWSTR             pwszAttrs[],

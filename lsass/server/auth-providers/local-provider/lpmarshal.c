@@ -821,6 +821,50 @@ error:
 }
 
 DWORD
+LocalMarshalEntryToGroupInfoMembers_1(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberEntries,
+    DWORD                         dwNumMemberEntries,
+    PSTR**                        pppszMembers
+    )
+{
+    DWORD dwError = 0;
+    PSTR* ppszMembers = NULL;
+    DWORD iMember = 0;
+
+    dwError = LsaAllocateMemory(
+                    (dwNumMemberEntries + 1) * sizeof(PSTR),
+                    (PVOID*)&ppszMembers);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (; iMember < dwNumMemberEntries; iMember++)
+    {
+        dwError = LsaAllocateStringPrintf(
+                        &ppszMembers[iMember],
+                        "%s\\%s",
+                        ppMemberEntries[iMember]->pszNetbiosDomain,
+                        ppMemberEntries[iMember]->pszSamAccountName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppszMembers = ppszMembers;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppszMembers = NULL;
+
+    if (ppszMembers)
+    {
+        LsaFreeStringArray(ppszMembers, dwNumMemberEntries);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,
