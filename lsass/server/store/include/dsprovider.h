@@ -53,8 +53,7 @@ typedef DWORD (*PFNDIRECTORYVERIFYPASSWORD)(
 typedef DWORD (*PFNDIRECTORYGETMEMBERS)(
                     HANDLE            hDirectory,
                     PWSTR             pwszGroupDN,
-                    BOOLEAN           bExpandNestedGroups,
-                    PWSTR             wszAttributes[],
+                    PWSTR             pwszAttrs[],
                     PDIRECTORY_ENTRY* ppDirectoryEntries,
                     PDWORD            pdwNumEntries
                     );

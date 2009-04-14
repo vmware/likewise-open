@@ -60,8 +60,7 @@ DWORD
 SamDbGetGroupMembers(
     HANDLE            hBindHandle,
     PWSTR             pwszGroupDN,
-    BOOLEAN           bExpandNestedGroups,
-    PWSTR             wszAttributes[],
+    PWSTR             pwszAttrs[],
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
     );

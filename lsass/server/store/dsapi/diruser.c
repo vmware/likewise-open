@@ -133,8 +133,7 @@ DWORD
 DirectoryGetMembers(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    BOOLEAN           bExpandNestedGroups,
-    PWSTR             wszAttributes[],
+    PWSTR             pwszAttrs[],
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
     )
@@ -151,8 +150,7 @@ DirectoryGetMembers(
     dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetMembers(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    bExpandNestedGroups,
-                    wszAttributes,
+                    pwszAttrs,
                     ppDirectoryEntries,
                     pdwNumEntries);
 

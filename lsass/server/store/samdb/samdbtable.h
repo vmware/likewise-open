@@ -61,6 +61,8 @@
 #define SAM_DB_MEMBERS_TABLE "samdbmembers"
 
 #define SAM_DB_COL_RECORD_ID            "ObjectRecordId"
+#define SAM_DB_COL_GROUP_RECORD_ID      "GroupRecordId"
+#define SAM_DB_COL_MEMBER_RECORD_ID     "MemberRecordId"
 #define SAM_DB_COL_OBJECT_SID           "ObjectSID"
 #define SAM_DB_COL_DISTINGUISHED_NAME   "DistinguishedName"
 #define SAM_DB_COL_PARENT_DN            "ParentDN"
@@ -142,20 +144,20 @@
             " OR " SAM_DB_COL_OBJECT_CLASS " == 5)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
-                 "GroupRecordId  INTEGER,\n"                                   \
-                 "MemberRecordId INTEGER,\n"                                   \
-                 "CreatedTime    DATE NOT NULL DEFAULT (DATETIME('now')),\n"   \
-                 "UNIQUE(GroupRecordId, MemberRecordId),\n"                    \
-                 "FOREIGN KEY (GroupRecordId) \n"                              \
-                 "    REFERENCES " SAM_DB_OBJECTS_TABLE " (ObjectRecordId),\n" \
-                 "FOREIGN KEY (MemberRecordId) \n"                             \
-                 "    REFERENCES " SAM_DB_OBJECTS_TABLE " (ObjectRecordId)\n"  \
+                 SAM_DB_COL_GROUP_RECORD_ID       " INTEGER,\n"                \
+                 SAM_DB_COL_MEMBER_RECORD_ID      " INTEGER,\n"                \
+                 SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
+  "UNIQUE(" SAM_DB_COL_GROUP_RECORD_ID ", " SAM_DB_COL_MEMBER_RECORD_ID "),\n" \
+  "FOREIGN KEY (" SAM_DB_COL_GROUP_RECORD_ID ") \n"                            \
+  "    REFERENCES " SAM_DB_OBJECTS_TABLE " (" SAM_DB_COL_RECORD_ID "),\n"      \
+                 "FOREIGN KEY (" SAM_DB_COL_MEMBER_RECORD_ID ") \n"            \
+       "    REFERENCES " SAM_DB_OBJECTS_TABLE " (" SAM_DB_COL_RECORD_ID ")\n"  \
                  ");\n"                                                        \
     "CREATE TRIGGER samdbobjects_delete_object \n"                             \
     "AFTER  DELETE on " SAM_DB_OBJECTS_TABLE "\n"                              \
     "BEGIN\n"                                                                  \
     "  DELETE FROM " SAM_DB_MEMBERS_TABLE "\n"                                 \
-    "   WHERE GroupRecordId = old.ObjectRecordId;\n"                           \
+    "  WHERE " SAM_DB_COL_GROUP_RECORD_ID " = old." SAM_DB_COL_RECORD_ID ";\n" \
     "END;\n"
 
 typedef enum

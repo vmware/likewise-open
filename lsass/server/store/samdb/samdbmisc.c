@@ -292,7 +292,7 @@ SamDbGetObjectCount(
     PCSTR pszQueryTemplate = "SELECT count(*) FROM " SAM_DB_OBJECTS_TABLE \
                              " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1";
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -336,6 +336,105 @@ cleanup:
     return dwError;
 
 error:
+
+    goto cleanup;
+}
+
+DWORD
+SamDbGetObjectRecordId(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    PCSTR                  pszObjectDN,
+    PLONG64                pllObjectRecordId
+    )
+{
+    DWORD   dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    LONG64  llObjectRecordId = 0;
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbGetObjectRecordId_inlock(
+                    pDirectoryContext,
+                    objectClass,
+                    pszObjectDN,
+                    &llObjectRecordId);
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+
+    *pllObjectRecordId = llObjectRecordId;
+
+    return dwError;
+}
+
+DWORD
+SamDbGetObjectRecordId_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    SAMDB_OBJECT_CLASS     objectClass,
+    PCSTR                  pszObjectDN,
+    PLONG64                pllObjectRecordId
+    )
+{
+    DWORD dwError = 0;
+    sqlite3_stmt* pSqlStatement = NULL;
+    LONG64   llObjectRecordId = 0;
+    PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_RECORD_ID \
+                             "  FROM " SAM_DB_OBJECTS_TABLE \
+                             " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1"    \
+                             "   AND " SAM_DB_COL_DISTINGUISHED_NAME " = ?2";
+
+    BAIL_ON_INVALID_POINTER(pszObjectDN);
+
+    dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszQueryTemplate,
+                    -1,
+                    &pSqlStatement,
+                    NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_int(
+                    pSqlStatement,
+                    1,
+                    objectClass);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = sqlite3_bind_text(
+                    pSqlStatement,
+                    2,
+                    pszObjectDN,
+                    -1,
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
+    {
+        if (sqlite3_column_count(pSqlStatement) != 1)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        llObjectRecordId = sqlite3_column_int64(
+                            pSqlStatement,
+                            0);
+    }
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    *pllObjectRecordId = llObjectRecordId;
+
+cleanup:
+
+    if (pSqlStatement)
+    {
+        sqlite3_finalize(pSqlStatement);
+    }
+
+    return dwError;
+
+error:
+
+    *pllObjectRecordId = 0;
 
     goto cleanup;
 }
