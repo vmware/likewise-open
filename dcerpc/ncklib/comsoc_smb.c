@@ -561,10 +561,23 @@ rpc__smb_socket_connect(
         /* Created handle */
         &smb->np);
 
-    if (smb_status)
+    #define STATUS_LOGON_TYPE_NOT_GRANTED 0xc000015b
+    switch (smb_status)
     {
-        serr = -1;
-        goto error;
+        case 0:
+            break;
+
+        case STATUS_LOGON_TYPE_NOT_GRANTED:
+            serr = RPC_C_SOCKET_EACCESS;
+            goto error;
+
+        case SMB_ERROR_CLOCK_SKEW:
+            serr = RPC_C_SOCKET_ETIME;
+            goto error;
+
+        default:
+            serr = -1;
+            goto error;
     }
 
     smb_status = SMBGetSessionKey(
