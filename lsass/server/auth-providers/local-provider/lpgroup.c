@@ -669,7 +669,7 @@ error:
 DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
-    uid_t uid,
+    uid_t   uid,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
     )

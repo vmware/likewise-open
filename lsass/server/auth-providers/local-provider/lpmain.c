@@ -554,49 +554,50 @@ error:
 
 DWORD
 LocalGetGroupsForUser(
-    IN HANDLE hProvider,
-    IN uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    IN PDWORD pdwGroupsFound,
-    IN PVOID** pppGroupInfoList
+    HANDLE         hProvider,
+    uid_t          uid,
+    LSA_FIND_FLAGS dwFindFlags,
+    DWORD          dwGroupInfoLevel,
+    PDWORD         pdwNumGroupsFound,
+    PVOID**        pppGroupInfoList
     )
 {
     DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
+    PVOID* ppGroupInfoList = NULL;
+    DWORD  dwNumGroupsFound = 0;
 
-    if (uid == 0)
-    {
-	dwError = LSA_ERROR_NO_SUCH_USER;
-	BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbGetGroupsForUser(
-                    hDb,
+    dwError = LocalDirGetGroupsForUser(
+                    hProvider,
                     uid,
                     dwGroupInfoLevel,
-                    pdwGroupsFound,
-                    pppGroupInfoList
-                    );
+                    &dwNumGroupsFound,
+                    &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
+    *pppGroupInfoList = ppGroupInfoList;
+    *pdwNumGroupsFound = dwNumGroupsFound;
 
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
-    }
+cleanup:
 
     return dwError;
 
 error:
+
+    *pppGroupInfoList = NULL;
+    *pdwNumGroupsFound = dwNumGroupsFound;
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+                dwGroupInfoLevel,
+                ppGroupInfoList,
+                dwNumGroupsFound);
+    }
+
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
