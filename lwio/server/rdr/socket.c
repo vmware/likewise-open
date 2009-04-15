@@ -1195,7 +1195,9 @@ RdrEaiToNtStatus(
     case 0:
         return STATUS_SUCCESS;
     case EAI_NONAME:
+#ifdef EAI_NODATA
     case EAI_NODATA:
+#endif
         return STATUS_BAD_NETWORK_NAME;
     case EAI_MEMORY:
         return STATUS_INSUFFICIENT_RESOURCES;
