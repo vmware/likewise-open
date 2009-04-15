@@ -109,7 +109,7 @@ NTSTATUS _lsa_Function06(
 
 NTSTATUS __LsaQueryInfoPolicy(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint16 level,
     /* [out] */ LsaPolicyInformation **info
 )
@@ -117,7 +117,7 @@ NTSTATUS __LsaQueryInfoPolicy(
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaSrvQueryInfoPolicy(IDL_handle,
-                                   handle,
+                                   hPolicy,
                                    level,
                                    info);
     return status;
@@ -508,7 +508,7 @@ NTSTATUS _lsa_Function2d(
 
 NTSTATUS __LsaQueryInfoPolicy2(
     /* [in] */ handle_t IDL_handle,
-    /* [in] */ PolicyHandle *handle,
+    /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint16 level,
     /* [out] */ LsaPolicyInformation **info
 )
@@ -516,7 +516,7 @@ NTSTATUS __LsaQueryInfoPolicy2(
     NTSTATUS status = STATUS_SUCCESS;
 
     status = LsaSrvQueryInfoPolicy2(IDL_handle,
-                                    handle,
+                                    hPolicy,
                                     level,
                                     info);
     return status;
