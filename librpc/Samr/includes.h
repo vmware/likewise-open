@@ -60,11 +60,10 @@
 #include <lwrpc/rid.h>
 #include <lwrpc/samr.h>
 
-#include "samr_stub.h"
-
 #include "SamrUtil.h"
 #include "SamrMemory.h"
 #include "SamrStubMemory.h"
+#include "samr_h.h"
 
 #include "externs.h"
 
