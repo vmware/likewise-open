@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -72,4 +72,21 @@
 #define ALIAS_ACCESS_LOOKUP_INFO               0x00000008
 #define ALIAS_ACCESS_SET_INFO                  0x00000010
 
+
+/* client version for SamrConnect[45] */
+#define SAMR_CONNECT_PRE_WIN2K                 (1)
+#define SAMR_CONNECT_WIN2K                     (2)
+#define SAMR_CONNECT_POST_WIN2K                (3)
+
+
 #endif /* _SAMRFLAGS_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
