@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
     }
 
     if (user) {
-        pCreds->username = talloc(pCreds, strlen(user), NULL);
+        pCreds->username = talloc(pCreds, strlen(user) + 1, NULL);
         if (pCreds->username == NULL) {
             printf("Failed to allocate username for user credentials\n");
             goto done;
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
     }
 
     if (pass) {
-        pCreds->password = talloc(pCreds, strlen(pass), NULL);
+        pCreds->password = talloc(pCreds, strlen(pass) + 1, NULL);
         if (pCreds->password == NULL) {
             printf("Failed to allocate password for user credentials\n");
             goto done;
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     }
 
     if (dom) {
-        pCreds->domain = talloc(pCreds, strlen(dom), NULL);
+        pCreds->domain = talloc(pCreds, strlen(dom) + 1, NULL);
         if (pCreds->domain == NULL) {
             printf("Failed to allocate domain for user credentials\n");
             goto done;
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     }
 
     if (wks) {
-        pCreds->workstation = talloc(pCreds, strlen(wks), NULL);
+        pCreds->workstation = talloc(pCreds, strlen(wks) + 1, NULL);
         if (pCreds->workstation == NULL) {
             printf("Failed to allocate workstation for user credentials\n");
             goto done;
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
     }
 
     if (princ) {
-        pCreds->principal = talloc(pCreds, strlen(princ), NULL);
+        pCreds->principal = talloc(pCreds, strlen(princ) + 1, NULL);
         if (pCreds->principal == NULL) {
             printf("Failed to allocate principal for user credentials\n");
             goto done;
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
     }
 
     if (cache) {
-        pCreds->ccache = talloc(pCreds, strlen(cache), NULL);
+        pCreds->ccache = talloc(pCreds, strlen(cache) + 1, NULL);
         if (pCreds->ccache == NULL) {
             printf("Failed to allocate credentials cache for user credentials\n");
             goto done;
@@ -300,6 +300,7 @@ int main(int argc, char *argv[])
     SetupNetlogonTests(tests);
     SetupNetApiTests(tests);
     SetupMprTests(tests);
+    SetupDsrTests(tests);
     
     for (i = 1; i < argc; i++) {
         testname = argv[i];
