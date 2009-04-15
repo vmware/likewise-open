@@ -6,6 +6,7 @@ liblsa_builddir=$(top_srcdir)/Lsa
 libnetlogon_builddir=$(top_srcdir)/Netlogon
 libmpr_builddir=$(top_srcdir)/Mpr
 libnetapi_builddir=$(top_srcdir)/NetLib
+libdssetup_builddir=$(top_srcdir)/dssetup
 
 bin_PROGRAMS = testrpc
 
@@ -16,6 +17,7 @@ testrpc_SOURCES = \
 	Samr.c \
 	Netlogon.c \
 	NetApi.c \
+        dssetup.c \
 	Mpr.c
 
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
@@ -32,4 +34,5 @@ testrpc_LDADD = \
 	$(libmpr_builddir)/libmpr.la \
 	$(libmsrpc_builddir)/libmsrpc.la \
 	$(libnetapi_builddir)/libnetapi.la \
+        $(libdssetup_builddir)/libdssetup.la \
 	@LWBASE_LIBS@
