@@ -205,6 +205,20 @@ DirectoryGetMemberships(
     );
 
 DWORD
+DirectoryAddToGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    );
+
+DWORD
+DirectoryRemoveFromGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    );
+
+DWORD
 DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers

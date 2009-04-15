@@ -190,6 +190,58 @@ error:
 }
 
 DWORD
+DirectoryAddToGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryAddToGroup(
+                    pContext->hBindHandle,
+                    pwszGroupDN,
+                    pwszMemberDN);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+DirectoryRemoveFromGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryRemoveFromGroup(
+                    pContext->hBindHandle,
+                    pwszGroupDN,
+                    pwszMemberDN);
+
+error:
+
+    return dwError;
+}
+
+DWORD
 DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers

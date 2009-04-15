@@ -697,15 +697,35 @@ LocalEndEnumUsers(
 
 DWORD
 LocalFindGroupByName(
-    IN HANDLE hProvider,
-    IN PCSTR pszGroupName,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwInfoLevel,
-    OUT PVOID* ppGroupInfo
+    IN HANDLE         hProvider,
+    IN PCSTR          pszGroupName,
+    IN LSA_FIND_FLAGS dwFindFlags,
+    IN DWORD          dwInfoLevel,
+    OUT PVOID*        ppGroupInfo
+    )
+{
+    return LocalFindGroupByNameEx(
+                hProvider,
+                pszGroupName,
+                dwFindFlags,
+                dwInfoLevel,
+                NULL,
+                ppGroupInfo);
+}
+
+DWORD
+LocalFindGroupByNameEx(
+    IN  HANDLE         hProvider,
+    IN  PCSTR          pszGroupName,
+    IN  LSA_FIND_FLAGS dwFindFlags,
+    IN  DWORD          dwInfoLevel,
+    OUT PWSTR*         ppwszGroupDN,
+    OUT PVOID*         ppGroupInfo
     )
 {
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -736,10 +756,14 @@ LocalFindGroupByName(
                     pLoginInfo->pszFullDomainName,
                     pLoginInfo->pszName,
                     dwInfoLevel,
-                    NULL,
+                    (ppwszGroupDN ? &pwszGroupDN : NULL),
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
@@ -753,7 +777,16 @@ cleanup:
 
 error:
 
-    if (pGroupInfo) {
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
 
@@ -996,38 +1029,19 @@ LocalModifyUser(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    DWORD   dwError = 0;
 
-    if (pContext->uid) {
-       dwError = EACCES;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForModifyAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbModifyUser(
-                        hDb,
-                        pUserModInfo);
+    dwError = LocalDirModifyUser(
+                    hProvider,
+                    pUserModInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-       LocalDbClose(hDb);
-    }
-
-    return dwError;
 
 error:
 
-    goto cleanup;
-#else
     return dwError;
-#endif
 }
 
 DWORD

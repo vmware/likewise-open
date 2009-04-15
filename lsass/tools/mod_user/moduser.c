@@ -488,13 +488,13 @@ ShowUsage(
     fprintf(stdout, "{ --change-password-at-next-logon }\n");
     fprintf(stdout, "{ --password-never-expires }\n");
     fprintf(stdout, "{ --password-must-expire }\n");
-    fprintf(stdout, "{ --add-to-groups comma-separated-group-list }\n");
-    fprintf(stdout, "{ --remove-from-groups comma-separated-group-list }\n");
+    fprintf(stdout, "{ --add-to-group nt4-style-group-name }\n");
+    fprintf(stdout, "{ --remove-from-group nt4-style-group-name }\n");
 
     fprintf(stdout, "\nNotes:\n");
     fprintf(stdout, "a) Set the expiry-date to 0 for an account that must never expire.\n");
-    fprintf(stdout, "b) If both --remove-from-groups and --add-to-groups are specified,\n");
-    fprintf(stdout, "   the user is removed from the specified groups first.\n");
+    fprintf(stdout, "b) If both --remove-from-group and --add-to-group are specified,\n");
+    fprintf(stdout, "   the user is removed from the specified group first.\n");
     fprintf(stdout, "c) The options ""--change-password-at-next-logon"" and \n");
     fprintf(stdout, "   ""--password-never-expires"" cannot be set simultaneously.\n");
 

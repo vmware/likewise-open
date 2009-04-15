@@ -151,11 +151,21 @@ LocalEndEnumUsers(
 
 DWORD
 LocalFindGroupByName(
-    IN HANDLE hProvider,
-    IN PCSTR pszGroupName,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
+    IN  HANDLE         hProvider,
+    IN  PCSTR          pszGroupName,
+    IN  LSA_FIND_FLAGS dwFindFlags,
+    IN  DWORD          dwGroupInfoLevel,
+    OUT PVOID*         ppGroupInfo
+    );
+
+DWORD
+LocalFindGroupByNameEx(
+    IN  HANDLE         hProvider,
+    IN  PCSTR          pszGroupName,
+    IN  LSA_FIND_FLAGS dwFindFlags,
+    IN  DWORD          dwGroupInfoLevel,
+    OUT PWSTR*         ppwszGroupDN,
+    OUT PVOID*         ppGroupInfo
     );
 
 DWORD

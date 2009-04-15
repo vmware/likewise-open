@@ -662,3 +662,31 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbAddToGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
+}
+
+DWORD
+SamDbRemoveFromGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+
+    // TODO:
+
+    return dwError;
+}
+

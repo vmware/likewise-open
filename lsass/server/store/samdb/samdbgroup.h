@@ -74,4 +74,18 @@ SamDbGetUserMemberships(
     PDWORD            pdwNumEntries
     );
 
+DWORD
+SamDbAddToGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
+    );
+
+DWORD
+SamDbRemoveFromGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
+    );
+
 #endif /* __SAM_DB_GROUP_H__ */
