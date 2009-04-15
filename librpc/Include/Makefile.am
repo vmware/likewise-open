@@ -34,6 +34,9 @@ include_HEADERS = \
 	lwrpc/netlogon.h \
 	lwrpc/netlogonbinding.h \
 	lwrpc/netrdefs.h \
+        lwrpc/dssetup.h \
+        lwrpc/dsrbinding.h \
+        lwrpc/dsrdefs.h \
 	lwrpc/LM.h \
 	lwrpc/LMaccess.h \
 	lwrpc/LMjoin.h \

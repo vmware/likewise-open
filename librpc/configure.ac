@@ -239,7 +239,7 @@ AC_CHECK_LIB(lwioclient_nothr, LwIoInitialize, [], AC_MSG_ERROR([liblwioclient_n
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_CHECK_HEADERS([stdlib.h string.h inttypes.h sys/varargs.h])
+AC_CHECK_HEADERS([stdlib.h string.h strings.h inttypes.h sys/varargs.h])
 
 # Check for programs
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
@@ -265,10 +265,16 @@ fi
 AC_SUBST(LIB_moonunit)
 AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
-AC_OUTPUT(Makefile Include/Makefile
-          Error/Makefile Alloc/Makefile
-          MsRpc/Makefile Samr/Makefile Lsa/Makefile
+AC_OUTPUT(Makefile
+          Include/Makefile
+          Error/Makefile
+          Alloc/Makefile
+          MsRpc/Makefile
+          Samr/Makefile
+          Lsa/Makefile
 	  Krb5Pac/Makefile
-          NetLib/Makefile Mpr/Makefile
+          NetLib/Makefile
+          Mpr/Makefile
           Netlogon/Makefile
+          dssetup/Makefile
 	  TestRpc/Makefile)
