@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: LsaQueryInfoPolicy function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_queryinfopolicy.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        LsaQueryInfoPolicy function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -40,12 +50,14 @@
 NTSTATUS
 LsaSrvQueryInfoPolicy(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint16 level,
     LsaPolicyInformation **info
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvQueryInfoPolicy2(b, hPolicy, level, info);
     return status;
 }
 
