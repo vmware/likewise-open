@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -35,18 +35,19 @@ NTSTATUS
 SamrConnect4(
     handle_t b,
     const wchar16_t *sysname,
+    uint32 client_version,
     uint32 access_mask,
     PolicyHandle *conn_handle
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    size_t system_name_len = 0;
     wchar16_t *system_name = NULL;
+    uint32 system_name_len = 0;
     PolicyHandle handle = {0};
 
-    /* the function is identical to SamrConnect2 as long as haven't
-       identified what's the unknown parameter */
-    uint32 unknown = 0;
+    if (!client_version) {
+        client_version = SAMR_CONNECT_POST_WIN2K;
+    }
 
     goto_if_invalid_param_ntstatus(b, cleanup);
     goto_if_invalid_param_ntstatus(sysname, cleanup);
@@ -57,8 +58,8 @@ SamrConnect4(
 
     system_name_len = wc16slen(system_name) + 1;
 
-    DCERPC_CALL(_SamrConnect4(b, system_name, unknown, access_mask,
-                              &handle));
+    DCERPC_CALL(_SamrConnect4(b, system_name_len, system_name, client_version,
+                              access_mask, &handle));
     goto_if_ntstatus_not_success(status, error);
 
     *conn_handle = handle;
