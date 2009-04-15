@@ -47,7 +47,7 @@ cpp_quote("#endif")
 
 	/* function 0x07 */
     NTSTATUS __LsaQueryInfoPolicy(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
@@ -121,7 +121,7 @@ cpp_quote("#endif")
 
 	/* function 0x2e */
     NTSTATUS __LsaQueryInfoPolicy2(
-        [in] PolicyHandle *handle,
+        [in] POLICY_HANDLE hPolicy,
         [in] uint16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
