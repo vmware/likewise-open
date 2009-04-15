@@ -349,12 +349,21 @@ cpp_quote("#endif")
     NTSTATUS _samr_Function3a();
     NTSTATUS _samr_Function3b();
     NTSTATUS _samr_Function3c();
-    NTSTATUS _samr_Function3d();
+
+    /* function 0x3d */
+    NTSTATUS __SamrConnect3(
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 unknown,
+        [in] uint32 access_mask,
+        [out] CONNECT_HANDLE *hConn
+        );
 
     /* function 0x3e */
     NTSTATUS __SamrConnect4(
-        [in,string] wchar16_t *system_name,
-        [in] uint32 unknown,
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 client_access,
         [in] uint32 access_mask,
         [out] CONNECT_HANDLE *hConn
         );
