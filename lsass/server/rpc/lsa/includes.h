@@ -51,6 +51,7 @@
 #include <lwrpc/lsa.h>
 #include <lwio/lwio.h>
 #include <lwnet.h>
+#include <lwps/lwps.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>
