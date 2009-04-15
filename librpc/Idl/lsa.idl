@@ -6,6 +6,9 @@ pointer_default(unique)
 ]
 interface lsa
 {
+
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
+
 #include <lwrpc/types.h>
 #include <security.idl>
 #include <lwrpc/unistrdef.h>
@@ -26,6 +29,9 @@ interface lsa
         [case(LSA_POLICY_INFO_AUDIT_FULL_QUERY)] AuditFullQueryInfo  audit_query;
         [case(LSA_POLICY_INFO_DNS)]              DnsDomainInfo       dns;
     } LsaPolicyInformation;
+
+cpp_quote("#endif")
+
 
 	/* function 0x00 */
     NTSTATUS _LsaClose(

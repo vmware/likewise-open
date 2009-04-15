@@ -6,14 +6,14 @@ pointer_default(unique)
 ]
 interface netlogon
 {
+
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
+
 #include <lwrpc/types.h>
 #include <security.idl>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
 #include <lwrpc/netrdefs.h>
-
-    NTSTATUS netr_Function00();
-    NTSTATUS netr_Function01();
 
     typedef [switch_type(uint16)] union {
         [case(1)] NetrPasswordInfo *password1;
@@ -40,6 +40,12 @@ interface netlogon
         [case(1)] NetrDomainInfo1 *info1;
         [case(2)] NetrDomainInfo1 *info2;
     } NetrDomainInfo;
+
+cpp_quote("#endif")
+
+
+    NTSTATUS netr_Function00();
+    NTSTATUS netr_Function01();
 
     /* function 0x02 */
     NTSTATUS _NetrLogonSamLogon(
