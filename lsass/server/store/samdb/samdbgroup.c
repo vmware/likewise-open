@@ -54,6 +54,7 @@ static
 DWORD
 SamDbBuildGroupSearchSqlQuery(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszSqlQueryTemplate,
     PWSTR                  wszAttributes[],
     PSTR*                  ppszQuery,
     PSAM_DB_COLUMN_VALUE*  ppColumnValueList
@@ -92,6 +93,12 @@ SamDbGetGroupMembers(
     )
 {
     DWORD dwError = 0;
+    PCSTR pszSqlQueryTemplate = \
+            "  FROM " SAM_DB_OBJECTS_TABLE " sdo" \
+            " WHERE sdo." SAM_DB_COL_RECORD_ID \
+            "    IN (SELECT " SAM_DB_COL_MEMBER_RECORD_ID \
+            "          FROM " SAM_DB_MEMBERS_TABLE "sdm" \
+            "         WHERE sdm." SAM_DB_COL_GROUP_RECORD_ID " = ?1);";
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
     PDIRECTORY_ENTRY     pDirectoryEntries = NULL;
@@ -119,6 +126,7 @@ SamDbGetGroupMembers(
 
     dwError = SamDbBuildGroupSearchSqlQuery(
                     pDirectoryContext,
+                    pszSqlQueryTemplate,
                     pwszAttrs,
                     &pszSqlQuery,
                     &pColumnValueList);
@@ -163,6 +171,94 @@ error:
     goto cleanup;
 }
 
+DWORD
+SamDbGetUserMemberships(
+    HANDLE            hBindHandle,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PCSTR pszSqlQueryTemplate = \
+            "  FROM " SAM_DB_OBJECTS_TABLE " sdo" \
+            " WHERE sdo." SAM_DB_COL_RECORD_ID \
+            "    IN (SELECT " SAM_DB_COL_GROUP_RECORD_ID \
+            "          FROM " SAM_DB_MEMBERS_TABLE "sdm" \
+            "         WHERE sdm." SAM_DB_COL_MEMBER_RECORD_ID " = ?1);";
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
+    PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
+    PDIRECTORY_ENTRY     pDirectoryEntries = NULL;
+    DWORD   dwNumEntries = 0;
+    LONG64  llObjectRecordId = 0;
+    PSTR    pszUserDN = NULL;
+    PSTR    pszSqlQuery = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
+
+    dwError = LsaWc16sToMbs(
+                    pwszUserDN,
+                    &pszUserDN);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+
+    dwError = SamDbGetObjectRecordId_inlock(
+                    pDirectoryContext,
+                    SAMDB_OBJECT_CLASS_USER,
+                    pszUserDN,
+                    &llObjectRecordId);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbBuildGroupSearchSqlQuery(
+                    pDirectoryContext,
+                    pszSqlQueryTemplate,
+                    pwszAttrs,
+                    &pszSqlQuery,
+                    &pColumnValueList);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = SamDbGroupSearchExecute(
+                    pDirectoryContext,
+                    pszSqlQuery,
+                    pColumnValueList,
+                    llObjectRecordId,
+                    &pDirectoryEntries,
+                    &dwNumEntries);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    *ppDirectoryEntries = pDirectoryEntries;
+    *pdwNumEntries = dwNumEntries;
+
+cleanup:
+
+    if (pColumnValueList)
+    {
+        SamDbFreeColumnValueList(pColumnValueList);
+    }
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+
+    LSA_SAFE_FREE_STRING(pszUserDN);
+    LSA_SAFE_FREE_STRING(pszSqlQuery);
+
+    return dwError;
+
+error:
+
+    *ppDirectoryEntries = NULL;
+    *pdwNumEntries = 0;
+
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
 #define SAM_DB_GROUP_SEARCH_QUERY_PREFIX          "SELECT "
 #define SAM_DB_GROUP_SEARCH_QUERY_FIELD_SEPARATOR ","
 
@@ -170,6 +266,7 @@ static
 DWORD
 SamDbBuildGroupSearchSqlQuery(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszSqlQueryTemplate,
     PWSTR                  wszAttributes[],
     PSTR*                  ppszQuery,
     PSAM_DB_COLUMN_VALUE*  ppColumnValueList
@@ -179,13 +276,6 @@ SamDbBuildGroupSearchSqlQuery(
     PSTR  pszQuery = NULL;
     PSTR  pszQueryCursor = NULL;
     PCSTR pszCursor = NULL;
-    PCSTR pszSqlQueryTemplate = \
-            "  FROM " SAM_DB_OBJECTS_TABLE " sdo" \
-            " WHERE sdo." SAM_DB_COL_RECORD_ID \
-            "    IN (SELECT " SAM_DB_COL_MEMBER_RECORD_ID \
-            "          FROM " SAM_DB_MEMBERS_TABLE "sdm" \
-            "         WHERE sdm." SAM_DB_COL_GROUP_RECORD_ID " = ?1);";
-
     PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
     PSAM_DB_COLUMN_VALUE pIter = NULL;
     DWORD dwNumAttrs = 0;
@@ -571,3 +661,4 @@ error:
 
     goto cleanup;
 }
+

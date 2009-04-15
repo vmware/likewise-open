@@ -196,6 +196,15 @@ DirectoryGetGroupMembers(
     );
 
 DWORD
+DirectoryGetMemberships(
+    HANDLE            hDirectory,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
 DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers

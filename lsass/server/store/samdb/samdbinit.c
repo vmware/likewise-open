@@ -89,6 +89,7 @@ DirectoryInitializeProvider(
                 .pfnDirectoryChangePassword  = &SamDbChangePassword,
                 .pfnDirectoryVerifyPassword  = &SamDbVerifyPassword,
                 .pfnDirectoryGetGroupMembers = &SamDbGetGroupMembers,
+                .pfnDirectoryGetMemberships  = &SamDbGetUserMemberships,
                 .pfnDirectoryDelete          = &SamDbDeleteObject,
                 .pfnDirectorySearch          = &SamDbSearchObject,
                 .pfnDirectoryGetUserCount    = &SamDbGetUserCount,

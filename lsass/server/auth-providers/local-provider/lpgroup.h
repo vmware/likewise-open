@@ -107,7 +107,7 @@ LocalDirGetGroupsForUser(
     HANDLE  hProvider,
     PWSTR   pwszUserDN,
     DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
     );
 
@@ -115,7 +115,7 @@ DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
     PWSTR   pwszUserDN,
-    PDWORD  pdwGroupsFound,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
     );
 

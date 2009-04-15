@@ -65,4 +65,13 @@ SamDbGetGroupMembers(
     PDWORD            pdwNumEntries
     );
 
+DWORD
+SamDbGetUserMemberships(
+    HANDLE            hBindHandle,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
 #endif /* __SAM_DB_GROUP_H__ */

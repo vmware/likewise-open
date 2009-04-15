@@ -160,6 +160,36 @@ error:
 }
 
 DWORD
+DirectoryGetMemberships(
+    HANDLE            hDirectory,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetMemberships(
+                    pContext->hBindHandle,
+                    pwszUserDN,
+                    pwszAttrs,
+                    ppDirectoryEntries,
+                    pdwNumEntries);
+
+error:
+
+    return dwError;
+}
+
+DWORD
 DirectoryGetUserCount(
     HANDLE hBindHandle,
     PDWORD pdwNumUsers

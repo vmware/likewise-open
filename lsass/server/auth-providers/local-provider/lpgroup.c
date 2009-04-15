@@ -713,30 +713,177 @@ DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
     PWSTR   pwszUserDN,
-    PDWORD  pdwGroupsFound,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR     pwszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    PDIRECTORY_ENTRY   pDirectoryEntries = NULL;
+    DWORD              iEntry = 0;
+    DWORD              dwGroupInfoLevel = 0;
+    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
+    DWORD              dwNumGroupsFound = 0;
 
-    // TODO:
+    dwError = DirectoryGetMemberships(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszAttrs,
+                    &pDirectoryEntries,
+                    &dwNumGroupsFound);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumGroupsFound)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(PLSA_GROUP_INFO_0) * dwNumGroupsFound,
+                        (PVOID*)&ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (; iEntry < dwNumGroupsFound; iEntry++)
+    {
+        PDIRECTORY_ENTRY pEntry = &pDirectoryEntries[iEntry];
+
+        dwError = LocalMarshalEntryToGroupInfo_0(
+                        pEntry,
+                        NULL,
+                        &ppGroupInfoList[iEntry]);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
+    *pdwNumGroupsFound = dwNumGroupsFound;
+
+cleanup:
+
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwNumGroupsFound);
+    }
 
     return dwError;
+
+error:
+
+    *pppGroupInfoList = NULL;
+    *pdwNumGroupsFound = 0;
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+                dwGroupInfoLevel,
+                (PVOID*)ppGroupInfoList,
+                dwNumGroupsFound);
+    }
+
+    goto cleanup;
 }
 
 DWORD
 LocalDirGetGroupsForUser_1(
     HANDLE  hProvider,
     PWSTR   pwszUserDN,
-    PDWORD  pdwGroupsFound,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    PWSTR     pwszAttrs[] =
+    {
+        &wszAttrNameGID[0],
+        &wszAttrNameSamAccountName[0],
+        &wszAttrNameDN[0],
+        &wszAttrNameObjectSID[0],
+        NULL
+    };
+    PDIRECTORY_ENTRY   pDirectoryEntries = NULL;
+    DWORD              iEntry = 0;
+    DWORD              dwGroupInfoLevel = 1;
+    PWSTR              pwszGroupDN = NULL;
+    PLSA_GROUP_INFO_1* ppGroupInfoList = NULL;
+    DWORD              dwNumGroupsFound = 0;
 
-    // TODO:
+    dwError = DirectoryGetMemberships(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszAttrs,
+                    &pDirectoryEntries,
+                    &dwNumGroupsFound);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumGroupsFound)
+    {
+        dwError = LsaAllocateMemory(
+                        sizeof(PLSA_GROUP_INFO_1) * dwNumGroupsFound,
+                        (PVOID*)&ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (; iEntry < dwNumGroupsFound; iEntry++)
+    {
+        PDIRECTORY_ENTRY pEntry = &pDirectoryEntries[iEntry];
+
+        LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+        dwError = LocalMarshalEntryToGroupInfo_1(
+                        pEntry,
+                        &pwszGroupDN,
+                        &ppGroupInfoList[iEntry]);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalDirGetGroupMemberNames(
+                        pContext,
+                        pwszGroupDN,
+                        &ppGroupInfoList[iEntry]->ppszMembers);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppGroupInfoList = (PVOID*)ppGroupInfoList;
+    *pdwNumGroupsFound = dwNumGroupsFound;
+
+cleanup:
+
+    if (pDirectoryEntries)
+    {
+        DirectoryFreeEntries(pDirectoryEntries, dwNumGroupsFound);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
 
     return dwError;
+
+error:
+
+    *pppGroupInfoList = NULL;
+    *pdwNumGroupsFound = 0;
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+                dwGroupInfoLevel,
+                (PVOID*)ppGroupInfoList,
+                dwNumGroupsFound);
+    }
+
+    goto cleanup;
 }
 
 DWORD
