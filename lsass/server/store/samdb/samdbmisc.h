@@ -103,19 +103,19 @@ SamDbGetObjectCount(
     );
 
 DWORD
-SamDbGetObjectRecordId(
+SamDbGetObjectRecordInfo(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    SAMDB_OBJECT_CLASS     objectClass,
     PCSTR                  pszObjectDN,
-    PLONG64                pllObjectRecordId
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
     );
 
 DWORD
-SamDbGetObjectRecordId_inlock(
+SamDbGetObjectRecordInfo_inlock(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
-    SAMDB_OBJECT_CLASS     objectClass,
     PCSTR                  pszObjectDN,
-    PLONG64                pllObjectRecordId
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
     );
 
 LONG64

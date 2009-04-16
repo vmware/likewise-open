@@ -48,7 +48,7 @@ SamDbDeleteObject(
     if (dwNumDependents)
     {
         dwError = LSA_ERROR_OBJECT_IN_USE;
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
 
     dwError = SamDbInitDelObjectStatement(

@@ -240,12 +240,12 @@ SamDbGetNextAvailableId(
                     &nRows,
                     &nCols,
                     &pszError);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     if (!nRows || (nCols != 1))
     {
         dwError = LSA_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_SAMDB_ERROR(dwError);
     }
 
     *pdwId = atoi(ppszResult[1]);
