@@ -665,15 +665,18 @@ error:
 DWORD
 LocalMarshalEntryToGroupInfo_0(
     PDIRECTORY_ENTRY   pEntry,
+    PWSTR*             ppwszGroupDN,
     PLSA_GROUP_INFO_0* ppGroupInfo
     )
 {
     DWORD dwError = 0;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     DWORD dwInfoLevel = 0;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
     DWORD dwGid = 0;
 
     dwError = LsaAllocateMemory(
@@ -701,6 +704,19 @@ LocalMarshalEntryToGroupInfo_0(
                     &pGroupInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszGroupDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszGroupDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
@@ -709,11 +725,140 @@ cleanup:
 
 error:
 
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
     *ppGroupInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
 
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LocalMarshalEntryToGroupInfo_1(
+    PDIRECTORY_ENTRY   pEntry,
+    PWSTR*             ppwszGroupDN,
+    PLSA_GROUP_INFO_1* ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    DWORD dwInfoLevel = 1;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
+    DWORD dwGid = 0;
+
+    dwError = LsaAllocateMemory(
+                        sizeof(LSA_GROUP_INFO_1),
+                        (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToInteger(
+                    pEntry,
+                    &wszAttrNameGID[0],
+                    &dwGid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupInfo->gid = dwGid;
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameSamAccountName[0],
+                    &pGroupInfo->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameObjectSID[0],
+                    &pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppwszGroupDN)
+    {
+        dwError = LocalMarshalAttrToUnicodeString(
+                        pEntry,
+                        &wszAttrNameDN[0],
+                        &pwszGroupDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LocalMarshalEntryToGroupInfoMembers_1(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberEntries,
+    DWORD                         dwNumMemberEntries,
+    PSTR**                        pppszMembers
+    )
+{
+    DWORD dwError = 0;
+    PSTR* ppszMembers = NULL;
+    DWORD iMember = 0;
+
+    dwError = LsaAllocateMemory(
+                    (dwNumMemberEntries + 1) * sizeof(PSTR),
+                    (PVOID*)&ppszMembers);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (; iMember < dwNumMemberEntries; iMember++)
+    {
+        dwError = LsaAllocateStringPrintf(
+                        &ppszMembers[iMember],
+                        "%s\\%s",
+                        ppMemberEntries[iMember]->pszNetbiosDomain,
+                        ppMemberEntries[iMember]->pszSamAccountName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppszMembers = ppszMembers;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppszMembers = NULL;
+
+    if (ppszMembers)
+    {
+        LsaFreeStringArray(ppszMembers, dwNumMemberEntries);
     }
 
     goto cleanup;

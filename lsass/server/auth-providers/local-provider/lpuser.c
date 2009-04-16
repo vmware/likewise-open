@@ -1039,6 +1039,99 @@ error:
 }
 
 DWORD
+LocalDirGetUserInfoFlags(
+    HANDLE hProvider,
+    uid_t  uid,
+    PDWORD pdwUserInfoFlags
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    PWSTR pwszAttrs[] =
+    {
+            &wszAttrNameUserInfoFlags[0],
+            NULL
+    };
+    DWORD dwNumAttrs = (sizeof(pwszAttrs)/sizeof(pwszAttrs[0])) - 1;
+    PCSTR pszFilterTemplate =
+                        LOCAL_DB_DIR_ATTR_UID " = %u" \
+                        " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    PSTR  pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwUserInfoFlags = 0;
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    uid,
+                    LOCAL_OBJECT_CLASS_USER);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    pwszAttrs,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LSA_ERROR_NO_SUCH_USER;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+    if (pEntry->ulNumAttributes != dwNumAttrs)
+    {
+        dwError = LSA_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalMarshalAttrToInteger(
+                    pEntry,
+                    &wszAttrNameUserInfoFlags[0],
+                    &dwUserInfoFlags);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwUserInfoFlags = dwUserInfoFlags;
+
+cleanup:
+
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszFilter);
+    LSA_SAFE_FREE_STRING(pszFilter);
+
+    return dwError;
+
+error:
+
+    *pdwUserInfoFlags = 0;
+
+    goto cleanup;
+}
+
+DWORD
 LocalDirBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
@@ -1662,75 +1755,6 @@ error:
 }
 
 DWORD
-LocalDirGetGroupsForUser(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
-
-    switch(dwInfoLevel)
-    {
-        case 0:
-        {
-            dwError = LocalDirGetGroupsForUser_0(
-                                hProvider,
-                                uid,
-                                pdwGroupsFound,
-                                pppGroupInfoList
-                                );
-            break;
-        }
-        case 1:
-        {
-            dwError = LocalDirGetGroupsForUser_1(
-                                hProvider,
-                                uid,
-                                pdwGroupsFound,
-                                pppGroupInfoList
-                                );
-            break;
-        }
-
-    }
-
-    return dwError;
-}
-
-DWORD
-LocalDirGetGroupsForUser_0_Unsafe(
-    HANDLE  hProvider,
-    uid_t   uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    // TODO:
-
-    return dwError;
-}
-
-DWORD
-LocalDirGetGroupsForUser_1_Unsafe(
-    HANDLE  hProvider,
-    uid_t   uid,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    // TODO:
-
-    return dwError;
-}
-
-DWORD
 LocalDirAddUser(
     HANDLE hProvider,
     DWORD  dwInfoLevel,
@@ -2024,6 +2048,199 @@ LocalDirAddUser_2(
 }
 
 DWORD
+LocalDirModifyUser(
+    HANDLE             hProvider,
+    PLSA_USER_MOD_INFO pUserModInfo
+    )
+{
+    DWORD   dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    DWORD   dwUserInfoLevel = 2;
+    PWSTR   pwszUserDN = NULL;
+    PLSA_USER_INFO_2 pUserInfo = NULL;
+    DWORD   dwUserInfoFlags = 0;
+    DWORD   dwOrigUserInfoFlags = 0;
+    DIRECTORY_MOD mods[] =
+        {
+            /* place-holder for user info flags */
+            {
+                    DIR_MOD_FLAGS_REPLACE,
+                    NULL,
+                    0,
+                    NULL
+            },
+            /* place-holder for account expiry date */
+            {
+                    DIR_MOD_FLAGS_REPLACE,
+                    NULL,
+                    0,
+                    NULL
+            },
+            /* place-holder for terminator */
+            {
+                    DIR_MOD_FLAGS_REPLACE,
+                    NULL,
+                    0,
+                    NULL
+            }
+        };
+    wchar16_t wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
+    ATTRIBUTE_VALUE avUserInfoFlags = {0};
+    ATTRIBUTE_VALUE avAccountExpiry = {0};
+    DWORD   dwNumMods = 0;
+    DWORD             dwGroupInfoLevel = 0;
+    PWSTR             pwszGroupDN_remove = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo_remove = NULL;
+    PWSTR             pwszGroupDN_add   = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
+
+    dwError = LocalCheckForModifyAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirFindUserById(
+                    hProvider,
+                    pUserModInfo->uid,
+                    dwUserInfoLevel,
+                    &pwszUserDN,
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetUserInfoFlags(
+                    hProvider,
+                    pUserModInfo->uid,
+                    &dwOrigUserInfoFlags);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwUserInfoFlags = dwOrigUserInfoFlags;
+
+    if (pUserModInfo->actions.bEnableUser)
+    {
+        dwUserInfoFlags &= ~LOCAL_ACB_DISABLED;
+    }
+    else if (pUserModInfo->actions.bDisableUser)
+    {
+        dwUserInfoFlags |= LOCAL_ACB_DISABLED;
+    }
+
+    if (pUserModInfo->actions.bSetPasswordMustExpire)
+    {
+        dwUserInfoFlags &= ~LOCAL_ACB_PWNOEXP;
+    }
+    else if (pUserModInfo->actions.bSetPasswordNeverExpires)
+    {
+        dwUserInfoFlags |= LOCAL_ACB_PWNOEXP;
+    }
+
+    if (pUserModInfo->actions.bSetChangePasswordOnNextLogon)
+    {
+        dwUserInfoFlags |= LOCAL_ACB_PW_EXPIRED;
+    }
+
+    if (pUserModInfo->actions.bUnlockUser)
+    {
+        dwUserInfoFlags &= ~LOCAL_ACB_NORMAL;
+    }
+
+    if (dwUserInfoFlags != dwOrigUserInfoFlags)
+    {
+        mods[dwNumMods].pwszAttrName = &wszAttrNameUserInfoFlags[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avUserInfoFlags.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avUserInfoFlags.data.ulValue = dwUserInfoFlags;
+        mods[dwNumMods].pAttrValues = &avUserInfoFlags;
+
+        dwNumMods++;
+    }
+
+    if (pUserModInfo->actions.bSetAccountExpiryDate)
+    {
+        struct tm tmbuf = {0};
+
+        if (strptime(pUserModInfo->pszExpiryDate, "%Y-%m-%d", &tmbuf) == NULL)
+        {
+            dwError = errno;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        mods[dwNumMods].pwszAttrName = &wszAttrNameAccountExpiry[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avAccountExpiry.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+        avAccountExpiry.data.llValue = LocalGetNTTime(mktime(&tmbuf));
+        mods[dwNumMods].pAttrValues = &avAccountExpiry;
+
+        dwNumMods++;
+    }
+
+    dwError = DirectoryModifyObject(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pUserModInfo->actions.bRemoveFromGroups)
+    {
+        dwError = LocalFindGroupByNameEx(
+                        hProvider,
+                        pUserModInfo->pszRemoveFromGroups,
+                        0,
+                        dwGroupInfoLevel,
+                        &pwszGroupDN_remove,
+                        (PVOID*)&pGroupInfo_remove);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryRemoveFromGroup(
+                        pContext->hDirectory,
+                        pwszGroupDN_remove,
+                        pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pUserModInfo->actions.bAddToGroups)
+    {
+        dwError = LocalFindGroupByNameEx(
+                        hProvider,
+                        pUserModInfo->pszAddToGroups,
+                        0,
+                        dwGroupInfoLevel,
+                        &pwszGroupDN_add,
+                        (PVOID*)&pGroupInfo_add);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryAddToGroup(
+                        pContext->hDirectory,
+                        pwszGroupDN_add,
+                        pwszUserDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN_remove);
+    if (pGroupInfo_remove)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_remove);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN_add);
+    if (pGroupInfo_add)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_add);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
 LocalDirDeleteUser(
     HANDLE hProvider,
     PWSTR  pwszUserDN
@@ -2040,116 +2257,6 @@ LocalDirDeleteUser(
 error:
 
     return dwError;
-}
-
-DWORD
-LocalDirModifyUser(
-    HANDLE             hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
-    )
-{
-    DWORD dwError = 0;
-#if 0
-    PVOID pUserInfo = NULL;
-    DWORD dwUserInfoLevel = 0;
-
-    // TODO: Implement this in a database transaction
-
-    dwError = LocalFindUserById(
-                        hProvider,
-                        pUserModInfo->uid,
-                        dwUserInfoLevel,
-                        &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pUserModInfo->actions.bEnableUser) {
-        dwError = LocalEnableUser(
-                       hProvider,
-                       pUserModInfo->uid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bDisableUser) {
-        dwError = LocalDisableUser(
-                        hProvider,
-                        pUserModInfo->uid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bUnlockUser) {
-        dwError = LocalUnlockUser(
-                        hProvider,
-                        pUserModInfo->uid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bSetChangePasswordOnNextLogon) {
-        dwError = LocalSetChangePasswordOnNextLogon(
-                        hProvider,
-                        pUserModInfo->uid);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LocalSetPasswordExpires(
-                        hProvider,
-                        pUserModInfo->uid,
-                        TRUE);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bSetAccountExpiryDate) {
-        dwError = LocalSetAccountExpiryDate(
-                        hProvider,
-                        pUserModInfo->uid,
-                        pUserModInfo->pszExpiryDate);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bRemoveFromGroups) {
-        dwError = LocalRemoveFromGroups(
-                        hProvider,
-                        pUserModInfo->uid,
-                        pUserModInfo->pszRemoveFromGroups);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bAddToGroups) {
-        dwError = LocalAddToGroups(
-                        hProvider,
-                        pUserModInfo->uid,
-                        pUserModInfo->pszAddToGroups);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bSetPasswordMustExpire) {
-        dwError = LocalSetPasswordExpires(
-                        hProvider,
-                        pUserModInfo->uid,
-                        TRUE);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pUserModInfo->actions.bSetPasswordNeverExpires) {
-        dwError = LocalSetPasswordExpires(
-                        hProvider,
-                        pUserModInfo->uid,
-                        FALSE);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pUserInfo) {
-       LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD

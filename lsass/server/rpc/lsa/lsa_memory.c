@@ -196,6 +196,221 @@ error:
 }
 
 
+NTSTATUS
+LsaSrvAllocateSidFromWC16String(
+    PSID *ppSid,
+    PCWSTR pwszSidStr,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pSid = NULL;
+    ULONG ulSidSize = 0;
+    PSID pSidCopy = NULL;
+
+    status = RtlAllocateSidFromWC16String(&pSid,
+                                          pwszSidStr);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    ulSidSize = RtlLengthSid(pSid);
+    status = LsaSrvAllocateMemory((void**)&pSidCopy,
+                                  ulSidSize,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = RtlCopySid(ulSidSize, pSidCopy, pSid);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppSid = pSidCopy;
+
+cleanup:
+    if (pSid) {
+        RTL_FREE(&pSid);
+    }
+
+    return status;
+
+error:
+    if (pSidCopy) {
+        RTL_FREE(&pSidCopy);
+    }
+
+    *ppSid = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvDuplicateSid(
+    PSID *ppSidOut,
+    PSID pSidIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pSid = NULL;
+    ULONG ulSidSize = 0;
+
+    ulSidSize = RtlLengthSid(pSidIn);
+    status = LsaSrvAllocateMemory((void**)&pSid,
+                                  ulSidSize,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = RtlCopySid(ulSidSize, pSid, pSidIn);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppSidOut = pSid;
+
+cleanup:
+    return status;
+
+error:
+    if (pSid) {
+        RTL_FREE(&pSid);
+    }
+
+    *ppSidOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvGetFromUnicodeString(
+    PWSTR *ppwszOut,
+    UnicodeString *pIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszStr = NULL;
+
+    status = LsaSrvAllocateMemory((void**)&pwszStr,
+                                  (pIn->size + 1) * sizeof(WCHAR),
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return status;
+
+error:
+    if (pwszStr) {
+        LsaSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszStr = NULL;
+
+    status = LsaSrvAllocateMemory((void**)&pwszStr,
+                                   (pIn->size) * sizeof(WCHAR),
+                                   pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return status;
+
+error:
+    if (pwszStr) {
+        LsaSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvInitUnicodeString(
+    UnicodeString *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
+    dwSize = dwLen * sizeof(WCHAR);
+
+    status = LsaSrvAllocateMemory((void**)&(pOut->string),
+                                  dwSize,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pwszIn, dwSize);
+    pOut->size = dwSize;
+    pOut->len  = dwSize;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        LsaSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvInitUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = (pwszIn) ? wc16slen(pwszIn) : 0;
+    dwSize = (dwLen + 1) * sizeof(WCHAR);
+
+    status = LsaSrvAllocateMemory((void**)&(pOut->string),
+                                  dwSize,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pwszIn, dwSize - 1);
+    pOut->size = dwSize;
+    pOut->len  = dwSize - 1;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        LsaSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c

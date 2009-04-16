@@ -130,11 +130,10 @@ error:
 }
 
 DWORD
-DirectoryGetMembers(
+DirectoryGetGroupMembers(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    BOOLEAN           bExpandNestedGroups,
-    PWSTR             wszAttributes[],
+    PWSTR             pwszAttrs[],
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
     )
@@ -148,13 +147,94 @@ DirectoryGetMembers(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
-    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetMembers(
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetGroupMembers(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    bExpandNestedGroups,
-                    wszAttributes,
+                    pwszAttrs,
                     ppDirectoryEntries,
                     pdwNumEntries);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+DirectoryGetMemberships(
+    HANDLE            hDirectory,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryGetMemberships(
+                    pContext->hBindHandle,
+                    pwszUserDN,
+                    pwszAttrs,
+                    ppDirectoryEntries,
+                    pdwNumEntries);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+DirectoryAddToGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryAddToGroup(
+                    pContext->hBindHandle,
+                    pwszGroupDN,
+                    pwszMemberDN);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+DirectoryRemoveFromGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    )
+{
+    DWORD dwError = 0;
+    PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+
+    if (!pContext || !pContext->pProvider)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryRemoveFromGroup(
+                    pContext->hBindHandle,
+                    pwszGroupDN,
+                    pwszMemberDN);
 
 error:
 

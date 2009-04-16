@@ -61,6 +61,8 @@
 #define SAM_DB_MEMBERS_TABLE "samdbmembers"
 
 #define SAM_DB_COL_RECORD_ID            "ObjectRecordId"
+#define SAM_DB_COL_GROUP_RECORD_ID      "GroupRecordId"
+#define SAM_DB_COL_MEMBER_RECORD_ID     "MemberRecordId"
 #define SAM_DB_COL_OBJECT_SID           "ObjectSID"
 #define SAM_DB_COL_DISTINGUISHED_NAME   "DistinguishedName"
 #define SAM_DB_COL_PARENT_DN            "ParentDN"
@@ -71,6 +73,7 @@
 #define SAM_DB_COL_SAM_ACCOUNT_NAME     "SamAccountName"
 #define SAM_DB_COL_USER_PRINCIPAL_NAME  "UserPrincipalName"
 #define SAM_DB_COL_DESCRIPTION          "Description"
+#define SAM_DB_COL_COMMENT              "Comment"
 #define SAM_DB_COL_UID                  "UID"
 #define SAM_DB_COL_PASSWORD             "Password"
 #define SAM_DB_COL_ACCOUNT_FLAGS        "AccountFlags"
@@ -112,6 +115,7 @@
                  SAM_DB_COL_SAM_ACCOUNT_NAME     " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_USER_PRINCIPAL_NAME  " TEXT COLLATE NOCASE,\n"     \
                  SAM_DB_COL_DESCRIPTION          " TEXT,\n"                    \
+                 SAM_DB_COL_COMMENT              " TEXT,\n"                    \
                  SAM_DB_COL_UID                  " INTEGER,\n"                 \
                  SAM_DB_COL_PASSWORD             " TEXT,\n"                    \
                  SAM_DB_COL_ACCOUNT_FLAGS        " INTEGER,\n"                 \
@@ -142,20 +146,20 @@
             " OR " SAM_DB_COL_OBJECT_CLASS " == 5)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
-                 "GroupRecordId  INTEGER,\n"                                   \
-                 "MemberRecordId INTEGER,\n"                                   \
-                 "CreatedTime    DATE NOT NULL DEFAULT (DATETIME('now')),\n"   \
-                 "UNIQUE(GroupRecordId, MemberRecordId),\n"                    \
-                 "FOREIGN KEY (GroupRecordId) \n"                              \
-                 "    REFERENCES " SAM_DB_OBJECTS_TABLE " (ObjectRecordId),\n" \
-                 "FOREIGN KEY (MemberRecordId) \n"                             \
-                 "    REFERENCES " SAM_DB_OBJECTS_TABLE " (ObjectRecordId)\n"  \
+                 SAM_DB_COL_GROUP_RECORD_ID       " INTEGER,\n"                \
+                 SAM_DB_COL_MEMBER_RECORD_ID      " INTEGER,\n"                \
+                 SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
+  "UNIQUE(" SAM_DB_COL_GROUP_RECORD_ID ", " SAM_DB_COL_MEMBER_RECORD_ID "),\n" \
+  "FOREIGN KEY (" SAM_DB_COL_GROUP_RECORD_ID ") \n"                            \
+  "    REFERENCES " SAM_DB_OBJECTS_TABLE " (" SAM_DB_COL_RECORD_ID "),\n"      \
+                 "FOREIGN KEY (" SAM_DB_COL_MEMBER_RECORD_ID ") \n"            \
+       "    REFERENCES " SAM_DB_OBJECTS_TABLE " (" SAM_DB_COL_RECORD_ID ")\n"  \
                  ");\n"                                                        \
     "CREATE TRIGGER samdbobjects_delete_object \n"                             \
     "AFTER  DELETE on " SAM_DB_OBJECTS_TABLE "\n"                              \
     "BEGIN\n"                                                                  \
     "  DELETE FROM " SAM_DB_MEMBERS_TABLE "\n"                                 \
-    "   WHERE GroupRecordId = old.ObjectRecordId;\n"                           \
+    "  WHERE " SAM_DB_COL_GROUP_RECORD_ID " = old." SAM_DB_COL_RECORD_ID ";\n" \
     "END;\n"
 
 typedef enum
@@ -207,6 +211,8 @@ typedef enum
     {'U','s','e','r','P','r','i','n','c','i','p','a','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_DESCRIPTION \
     {'D','e','s','c','r','i','p','t','i','o','n',0}
+#define SAM_DB_DIR_ATTR_COMMENT \
+    {'C','o','m','m','e','n','t',0}
 #define SAM_DB_DIR_ATTR_UID \
     {'U','I','D',0}
 #define SAM_DB_DIR_ATTR_PASSWORD \
@@ -370,6 +376,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
+        SAM_DB_DIR_ATTR_COMMENT,              \
+        SAM_DB_COL_COMMENT,                   \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
         SAM_DB_DIR_ATTR_UID,                  \
         SAM_DB_COL_UID,                       \
         SAMDB_ATTR_TYPE_INT32,                \
@@ -386,7 +400,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_NOT_QUERYABLE               \
     },                                        \
     {                                         \
-        SAM_DB_DIR_ATTR_ACCOUNT_FLAGS,      \
+        SAM_DB_DIR_ATTR_ACCOUNT_FLAGS,        \
         SAM_DB_COL_ACCOUNT_FLAGS  ,           \
         SAMDB_ATTR_TYPE_INT32,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
@@ -615,6 +629,10 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
+        SAM_DB_DIR_ATTR_COMMENT,                                 \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
         SAM_DB_DIR_ATTR_PASSWORD,                                \
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
@@ -739,6 +757,10 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_COMMENT,                                 \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_MAX_PWD_AGE,                             \

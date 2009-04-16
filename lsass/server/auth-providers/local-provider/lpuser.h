@@ -120,6 +120,13 @@ LocalDirFindUserById_2(
     );
 
 DWORD
+LocalDirGetUserInfoFlags(
+    HANDLE hProvider,
+    uid_t  uid,
+    PDWORD pdwUserInfoFlags
+    );
+
+DWORD
 LocalDirBeginEnumUsers(
     HANDLE  hProvider,
     DWORD   dwInfoLevel,
@@ -158,6 +165,12 @@ DWORD
 LocalDirAddUser_2(
     HANDLE           hProvider,
     PLSA_USER_INFO_2 pUserInfo
+    );
+
+DWORD
+LocalDirModifyUser(
+    HANDLE             hProvider,
+    PLSA_USER_MOD_INFO pUserModInfo
     );
 
 DWORD

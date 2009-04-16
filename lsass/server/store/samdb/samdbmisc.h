@@ -102,6 +102,22 @@ SamDbGetObjectCount(
     PDWORD                 pdwNumObjects
     );
 
+DWORD
+SamDbGetObjectRecordInfo(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectDN,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
+DWORD
+SamDbGetObjectRecordInfo_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectDN,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
 LONG64
 SamDbGetNTTime(
     time_t timeVal

@@ -263,6 +263,27 @@ SamrSrvCreateAccount(
     );
 
 
+NTSTATUS
+SamrSrvConnect3(
+    handle_t hBinding,
+    uint32 size,
+    const wchar16_t *system_name,
+    uint32 unknown1,
+    uint32 access_mask,
+    CONNECT_HANDLE *hConn
+    );
+
+
+NTSTATUS
+SamrSrvConnect4(
+    handle_t hBinding,
+    uint32 size,
+    wchar16_t *system_name,
+    uint32 unknown,
+    uint32 access_mask,
+    CONNECT_HANDLE *hConn
+    );
+
 
 #endif /* _SAMR_H_ */
 

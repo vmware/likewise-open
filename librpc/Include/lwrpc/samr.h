@@ -58,9 +58,18 @@ SamrConnect2(
     );
 
 NTSTATUS
+SamrConnect3(
+    handle_t bind,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    PolicyHandle *conn_handle
+    );
+
+NTSTATUS
 SamrConnect4(
     handle_t bind,
     const wchar16_t *sysname,
+    uint32 client_version,
     uint32 access_mask,
     PolicyHandle *conn_handle
     );

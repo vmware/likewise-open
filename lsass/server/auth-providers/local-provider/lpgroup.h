@@ -55,6 +55,7 @@ LocalDirFindGroupByName(
     PCSTR   pszDomainName,
     PCSTR   pszGroupName,
     DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
     );
 
@@ -63,57 +64,67 @@ LocalDirFindGroupByName_0(
     HANDLE  hProvider,
     PCSTR   pszDomain,
     PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
     PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupByName_1(
+    HANDLE  hProvider,
+    PCSTR   pszDomain,
+    PCSTR   pszGroupName,
+    PWSTR*  ppwszGroupDN,
+    PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById(
+    HANDLE  hProvider,
+    gid_t   gid,
+    DWORD   dwGroupInfoLevel,
+    PWSTR*  ppwszGroupDN,
+    PVOID*  ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById_0(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
+    );
+
+DWORD
+LocalDirFindGroupById_1(
+    HANDLE hProvider,
+    gid_t  gid,
+    PWSTR* ppwszGroupDN,
+    PVOID* ppGroupInfo
     );
 
 DWORD
 LocalDirGetGroupsForUser(
     HANDLE  hProvider,
-    uid_t   uid,
+    PWSTR   pwszUserDN,
     DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirFindGroupByName_1(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
 LocalDirGetGroupsForUser_0(
     HANDLE  hProvider,
-    uid_t uid,
-    PDWORD  pdwGroupsFound,
+    PWSTR   pwszUserDN,
+    PDWORD  pdwNumGroupsFound,
     PVOID** pppGroupInfoList
     );
-
 
 DWORD
 LocalDirGetGroupsForUser_1(
     HANDLE  hProvider,
-    uid_t uid,
+    PWSTR   pwszUserDN,
     PDWORD  pdwGroupsFound,
     PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalDirFindGroupByName_0(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
-    );
-
-DWORD
-LocalDirFindGroupByName_1(
-    HANDLE  hProvider,
-    PCSTR   pszDomain,
-    PCSTR   pszGroupName,
-    PVOID*  ppGroupInfo
     );
 
 DWORD
@@ -133,25 +144,18 @@ LocalDirEnumGroups(
     );
 
 DWORD
-LocalDirFindGroupById(
-    HANDLE  hProvider,
-    gid_t   gid,
-    DWORD   dwGroupInfoLevel,
-    PVOID*  ppGroupInfo
+LocalDirGetGroupMemberNames(
+    PLOCAL_PROVIDER_CONTEXT pContext,
+    PWSTR                   pwszGroupDN,
+    PSTR**                  pppszMembers
     );
 
 DWORD
-LocalDirFindGroupById_0(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
-    );
-
-DWORD
-LocalDirFindGroupById_1(
-    HANDLE hProvider,
-    gid_t  gid,
-    PVOID* ppGroupInfo
+LocalDirGetGroupMembers(
+    PLOCAL_PROVIDER_CONTEXT        pContext,
+    PWSTR                          pwszGroupDN,
+    PLOCAL_PROVIDER_GROUP_MEMBER** pppGroupMembers,
+    PDWORD                         pdwNumMembers
     );
 
 DWORD
@@ -177,6 +181,17 @@ DWORD
 LocalDirDeleteGroup(
     HANDLE hProvider,
     PWSTR  pwszGroupDN
+    );
+
+VOID
+LocalDirFreeGroupMemberList(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberList,
+    DWORD                         dwNumMembers
+    );
+
+VOID
+LocalDirFreeGroupMember(
+    PLOCAL_PROVIDER_GROUP_MEMBER pMember
     );
 
 #endif /* __LP_GROUP_H__ */

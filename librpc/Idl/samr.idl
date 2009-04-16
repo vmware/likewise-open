@@ -6,6 +6,9 @@ pointer_default(unique)
 ]
 interface samr
 {
+
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
+
 #include <lwrpc/types.h>
 #include <lwrpc/unistrdef.h>
 #include <lwrpc/rid.h>
@@ -73,6 +76,9 @@ interface samr
         [case(4)] SamrDisplayInfoAscii info4;
         [case(5)] SamrDisplayInfoAscii info5;
     } SamrDisplayInfo;
+
+cpp_quote("#endif")
+
 
     /* function 0x00 */
     NTSTATUS SamrConnect(
@@ -342,12 +348,21 @@ interface samr
     NTSTATUS samr_Function3a();
     NTSTATUS samr_Function3b();
     NTSTATUS samr_Function3c();
-    NTSTATUS samr_Function3d();
+
+    /* function 0x3d */
+    NTSTATUS _SamrConnect3(
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 unknown,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *connect_handle
+        );
 
     /* function 0x3e */
     NTSTATUS _SamrConnect4(
-        [in,string] wchar16_t *system_name,
-        [in] uint32 unknown,
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 client_version,
         [in] uint32 access_mask,
         [out,ref] PolicyHandle *connect_handle
         );

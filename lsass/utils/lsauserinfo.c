@@ -269,12 +269,14 @@ LsaCoalesceUserInfoList(
                         (PVOID*)&ppUserInfoList_total);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (iUser = 0; iUser < dwNumCurUsersFound; iUser++) {
+    for (iUser = 0; iUser < dwNumCurUsersFound; iUser++)
+    {
         *(ppUserInfoList_total+iUser) = *(ppUserInfoList_current+iUser);
         *(ppUserInfoList_current+iUser) = NULL;
     }
 
-    for (iNewUser = 0; iNewUser < dwNumNewUsersFound; iNewUser++, iUser++) {
+    for (iNewUser = 0; iNewUser < dwNumNewUsersFound; iNewUser++, iUser++)
+    {
         *(ppUserInfoList_total+iUser) = *(ppUserInfoList_new+iNewUser);
         *(ppUserInfoList_new+iNewUser) = NULL;
     }
@@ -408,8 +410,11 @@ LsaModifyUser_AddToGroups(
 
     LSA_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
 
-    if (!IsNullOrEmptyString(pszGroupList)) {
-       dwError = LsaAllocateString(pszGroupList, &pUserModInfo->pszAddToGroups);
+    if (!IsNullOrEmptyString(pszGroupList))
+    {
+       dwError = LsaAllocateString(
+                   pszGroupList,
+                   &pUserModInfo->pszAddToGroups);
        BAIL_ON_LSA_ERROR(dwError);
 
        pUserModInfo->actions.bAddToGroups = TRUE;
@@ -436,8 +441,11 @@ LsaModifyUser_RemoveFromGroups(
 
     LSA_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
 
-    if (!IsNullOrEmptyString(pszGroupList)) {
-       dwError = LsaAllocateString(pszGroupList, &pUserModInfo->pszRemoveFromGroups);
+    if (!IsNullOrEmptyString(pszGroupList))
+    {
+       dwError = LsaAllocateString(
+                   pszGroupList,
+                   &pUserModInfo->pszRemoveFromGroups);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -586,18 +594,29 @@ LsaFreeIpcUserInfoList(
         switch (pUserIpcInfoList->dwUserInfoLevel)
         {
             case 0:
-                LsaFreeUserInfoList(0, (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList0, pUserIpcInfoList->dwNumUsers);
+                LsaFreeUserInfoList(
+                        0,
+                        (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList0,
+                        pUserIpcInfoList->dwNumUsers);
                 break;
             case 1:
-                LsaFreeUserInfoList(1, (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList1, pUserIpcInfoList->dwNumUsers);
+                LsaFreeUserInfoList(
+                        1,
+                        (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList1,
+                        pUserIpcInfoList->dwNumUsers);
                 break;
             case 2:
-                LsaFreeUserInfoList(2, (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList2, pUserIpcInfoList->dwNumUsers);
+                LsaFreeUserInfoList(
+                        2,
+                        (PVOID*)pUserIpcInfoList->ppUserInfoList.ppInfoList2,
+                        pUserIpcInfoList->dwNumUsers);
                 break;
 
             default:
             {
-                LSA_LOG_ERROR("Unsupported User Info Level [%d]", pUserIpcInfoList->dwUserInfoLevel);
+                LSA_LOG_ERROR(
+                        "Unsupported User Info Level [%d]",
+                        pUserIpcInfoList->dwUserInfoLevel);
             }
         }
         LsaFreeMemory(pUserIpcInfoList);
@@ -650,7 +669,8 @@ LsaValidateUserInfoLevel(
     DWORD dwUserInfoLevel
     )
 {
-    return ((dwUserInfoLevel >= 0) && (dwUserInfoLevel <= 2)) ? 0 : LSA_ERROR_INVALID_USER_INFO_LEVEL;
+    return ((dwUserInfoLevel >= 0) &&
+            (dwUserInfoLevel <= 2)) ? 0 : LSA_ERROR_INVALID_USER_INFO_LEVEL;
 }
 
 DWORD

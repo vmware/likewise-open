@@ -57,11 +57,10 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
 
-#include "lsa_stub.h"
-
 #include "LsaUtil.h"
 #include "LsaMemory.h"
 #include "LsaStubMemory.h"
+#include "lsa_h.h"
 
 #include "externs.h"
 

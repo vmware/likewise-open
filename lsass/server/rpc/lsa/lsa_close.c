@@ -55,7 +55,6 @@ LsaSrvClose(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PLSA_GENERIC_CONTEXT pContext = NULL;
 
     pContext = (PLSA_GENERIC_CONTEXT)hIn;

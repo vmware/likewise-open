@@ -261,7 +261,10 @@ DirectoryValidateProvider(
         !pProvider->pProviderFnTbl->pfnDirectorySetPassword ||
         !pProvider->pProviderFnTbl->pfnDirectoryChangePassword ||
         !pProvider->pProviderFnTbl->pfnDirectoryVerifyPassword ||
-        !pProvider->pProviderFnTbl->pfnDirectoryGetMembers ||
+        !pProvider->pProviderFnTbl->pfnDirectoryGetGroupMembers ||
+        !pProvider->pProviderFnTbl->pfnDirectoryGetMemberships ||
+        !pProvider->pProviderFnTbl->pfnDirectoryAddToGroup ||
+        !pProvider->pProviderFnTbl->pfnDirectoryRemoveFromGroup ||
         !pProvider->pProviderFnTbl->pfnDirectoryOpen ||
         !pProvider->pProviderFnTbl->pfnDirectorySearch ||
         !pProvider->pProviderFnTbl->pfnDirectoryGetUserCount ||

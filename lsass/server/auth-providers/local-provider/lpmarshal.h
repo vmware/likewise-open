@@ -84,7 +84,22 @@ LocalMarshallAccountFlags(
 DWORD
 LocalMarshalEntryToGroupInfo_0(
     PDIRECTORY_ENTRY   pEntry,
+    PWSTR*             ppwszGroupDN,
     PLSA_GROUP_INFO_0* ppGroupInfo
+    );
+
+DWORD
+LocalMarshalEntryToGroupInfo_1(
+    PDIRECTORY_ENTRY   pEntry,
+    PWSTR*             ppwszGroupDN,
+    PLSA_GROUP_INFO_1* ppGroupInfo
+    );
+
+DWORD
+LocalMarshalEntryToGroupInfoMembers_1(
+    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberEntries,
+    DWORD                         dwNumMemberEntries,
+    PSTR**                        pppszMembers
     );
 
 DWORD

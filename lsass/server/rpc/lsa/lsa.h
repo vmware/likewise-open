@@ -99,7 +99,7 @@ LsaSrvLookupNames2(
 NTSTATUS
 LsaSrvQueryInfoPolicy(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint16 level,
     LsaPolicyInformation **info
     );
@@ -108,7 +108,7 @@ LsaSrvQueryInfoPolicy(
 NTSTATUS
 LsaSrvQueryInfoPolicy2(
     handle_t b,
-    PolicyHandle *h,
+    POLICY_HANDLE hPolicy,
     uint16 level,
     LsaPolicyInformation **info
     );

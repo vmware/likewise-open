@@ -42,26 +42,35 @@
 #include "includes.h"
 
 
-
-void
+VOID
 LWIFreeEventRecord(
     PEVENT_LOG_RECORD pEventRecord
     )
 {
-    EVT_LOG_VERBOSE("client::eventlog.c FreeEventRecord(pEventRecord=%.16X)\n", pEventRecord);
+    LWIFreeEventRecordList(1, pEventRecord);
+}
 
-    EVT_SAFE_FREE_STRING(pEventRecord->pszEventType);
-    EVT_SAFE_FREE_STRING(pEventRecord->pszEventSource);
-    EVT_SAFE_FREE_STRING(pEventRecord->pszEventCategory);
-    EVT_SAFE_FREE_STRING(pEventRecord->pszUser);
-    EVT_SAFE_FREE_STRING(pEventRecord->pszComputer);
-    EVT_SAFE_FREE_STRING(pEventRecord->pszDescription);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszData);
+VOID
+LWIFreeEventRecordList(
+    DWORD dwRecords,
+    PEVENT_LOG_RECORD pEventRecordList
+    )
+{
+    DWORD dwIndex = 0;
 
-    EVTFreeMemory(pEventRecord);
+    for (dwIndex = 0; dwIndex < dwRecords; dwIndex++)
+    {
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventTableCategoryId);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventType);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventSource);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventCategory);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszUser);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszComputer);
+        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszDescription);
+        EVT_SAFE_FREE_MEMORY(pEventRecordList[dwIndex].pszData);
+    }
 
-    EVT_LOG_VERBOSE("client::eventlog.c FreeEventRecord() Finished\n", pEventRecord);
-
+    EVTFreeMemory(pEventRecordList);
 }
 
 void
@@ -183,6 +192,11 @@ error:
     if (pEventLogHandle)
     {
         LWIFreeEventLogHandle((HANDLE)pEventLogHandle);
+    }
+
+    if (eventBindingLocal)
+    {
+        LWIFreeEventLogRpcBinding(eventBindingLocal);
     }
 
     *phEventLog = (HANDLE) NULL;
@@ -346,6 +360,7 @@ LWIReadEventLog(
 
 
 cleanup:
+    EVT_SAFE_FREE_STRING(sqlFilterChar);
     return dwError;
 
 error:
@@ -392,6 +407,7 @@ LWICountEventLog(
     BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:
+    EVT_SAFE_FREE_STRING(sqlFilterChar);
     return dwError;
 
 error:

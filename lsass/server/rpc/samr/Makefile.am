@@ -12,6 +12,8 @@ libsamr_srv_la_SOURCES = \
     samr_memory.c \
     samr_connect.c \
     samr_connect2.c \
+    samr_connect3.c \
+    samr_connect4.c \
     samr_lookupdomain.c \
     samr_enumdomains.c \
     samr_opendomain.c \

@@ -187,13 +187,35 @@ DirectoryVerifyPassword(
     );
 
 DWORD
-DirectoryGetMembers(
+DirectoryGetGroupMembers(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    BOOLEAN           bExpandNestedGroups,
-    PWSTR             wszAttributes[],
+    PWSTR             pwszAttrs[],
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
+    );
+
+DWORD
+DirectoryGetMemberships(
+    HANDLE            hDirectory,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
+DirectoryAddToGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
+    );
+
+DWORD
+DirectoryRemoveFromGroup(
+    HANDLE            hDirectory,
+    PWSTR             pwszGroupDN,
+    PWSTR             pwszMemberDN
     );
 
 DWORD

@@ -81,19 +81,22 @@ DirectoryInitializeProvider(
     DWORD dwError = 0;
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerAPITable =
         {
-                .pfnDirectoryOpen           = &SamDbOpen,
-                .pfnDirectoryBind           = &SamDbBind,
-                .pfnDirectoryAdd            = &SamDbAddObject,
-                .pfnDirectoryModify         = &SamDbModifyObject,
-                .pfnDirectorySetPassword    = &SamDbSetPassword,
-                .pfnDirectoryChangePassword = &SamDbChangePassword,
-                .pfnDirectoryVerifyPassword = &SamDbVerifyPassword,
-                .pfnDirectoryGetMembers     = &SamDbGetGroupMembers,
-                .pfnDirectoryDelete         = &SamDbDeleteObject,
-                .pfnDirectorySearch         = &SamDbSearchObject,
-                .pfnDirectoryGetUserCount   = &SamDbGetUserCount,
-                .pfnDirectoryGetGroupCount  = &SamDbGetGroupCount,
-                .pfnDirectoryClose          = &SamDbClose
+                .pfnDirectoryOpen            = &SamDbOpen,
+                .pfnDirectoryBind            = &SamDbBind,
+                .pfnDirectoryAdd             = &SamDbAddObject,
+                .pfnDirectoryModify          = &SamDbModifyObject,
+                .pfnDirectorySetPassword     = &SamDbSetPassword,
+                .pfnDirectoryChangePassword  = &SamDbChangePassword,
+                .pfnDirectoryVerifyPassword  = &SamDbVerifyPassword,
+                .pfnDirectoryGetGroupMembers = &SamDbGetGroupMembers,
+                .pfnDirectoryGetMemberships  = &SamDbGetUserMemberships,
+                .pfnDirectoryAddToGroup      = &SamDbAddToGroup,
+                .pfnDirectoryRemoveFromGroup = &SamDbRemoveFromGroup,
+                .pfnDirectoryDelete          = &SamDbDeleteObject,
+                .pfnDirectorySearch          = &SamDbSearchObject,
+                .pfnDirectoryGetUserCount    = &SamDbGetUserCount,
+                .pfnDirectoryGetGroupCount   = &SamDbGetGroupCount,
+                .pfnDirectoryClose           = &SamDbClose
         };
 
     gSamGlobals.pszProviderName = "Likewise SAM Local Database";

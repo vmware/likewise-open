@@ -54,8 +54,13 @@ LsaInitializeProvider(
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
 {
     DWORD dwError = 0;
-    LOCAL_CONFIG config = {0};
     BOOLEAN bEventLogEnabled = FALSE;
+    DWORD dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
+    LOCAL_CONFIG config =
+    {
+        bEventLogEnabled,
+        dwMaxGroupNestingLevel
+    };
     PWSTR   pwszUserDN = NULL;
     PWSTR   pwszCredentials = NULL;
     ULONG   ulMethod = 0;
@@ -549,49 +554,68 @@ error:
 
 DWORD
 LocalGetGroupsForUser(
-    IN HANDLE hProvider,
-    IN uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    IN PDWORD pdwGroupsFound,
-    IN PVOID** pppGroupInfoList
+    HANDLE         hProvider,
+    uid_t          uid,
+    LSA_FIND_FLAGS dwFindFlags,
+    DWORD          dwGroupInfoLevel,
+    PDWORD         pdwNumGroupsFound,
+    PVOID**        pppGroupInfoList
     )
 {
-    DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
+    DWORD             dwError = 0;
+    PWSTR             pwszUserDN = NULL;
+    DWORD             dwUserInfoLevel = 0;
+    PLSA_USER_INFO_0  pUserInfo = NULL;
+    PVOID*            ppGroupInfoList = NULL;
+    DWORD             dwNumGroupsFound = 0;
 
-    if (uid == 0)
-    {
-	dwError = LSA_ERROR_NO_SUCH_USER;
-	BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbGetGroupsForUser(
-                    hDb,
+    dwError = LocalDirFindUserById(
+                    hProvider,
                     uid,
-                    dwGroupInfoLevel,
-                    pdwGroupsFound,
-                    pppGroupInfoList
-                    );
+                    dwUserInfoLevel,
+                    &pwszUserDN,
+                    (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetGroupsForUser(
+                    hProvider,
+                    pwszUserDN,
+                    dwGroupInfoLevel,
+                    &dwNumGroupsFound,
+                    &ppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pppGroupInfoList = ppGroupInfoList;
+    *pdwNumGroupsFound = dwNumGroupsFound;
 
 cleanup:
 
-    if (hDb != (HANDLE)NULL) {
-        LocalDbClose(hDb);
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
 error:
+
+    *pppGroupInfoList = NULL;
+    *pdwNumGroupsFound = dwNumGroupsFound;
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(
+                dwGroupInfoLevel,
+                ppGroupInfoList,
+                dwNumGroupsFound);
+    }
+
     goto cleanup;
-#else
-    return dwError;
-#endif
 }
 
 DWORD
@@ -673,15 +697,35 @@ LocalEndEnumUsers(
 
 DWORD
 LocalFindGroupByName(
-    IN HANDLE hProvider,
-    IN PCSTR pszGroupName,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwInfoLevel,
-    OUT PVOID* ppGroupInfo
+    IN HANDLE         hProvider,
+    IN PCSTR          pszGroupName,
+    IN LSA_FIND_FLAGS dwFindFlags,
+    IN DWORD          dwInfoLevel,
+    OUT PVOID*        ppGroupInfo
+    )
+{
+    return LocalFindGroupByNameEx(
+                hProvider,
+                pszGroupName,
+                dwFindFlags,
+                dwInfoLevel,
+                NULL,
+                ppGroupInfo);
+}
+
+DWORD
+LocalFindGroupByNameEx(
+    IN  HANDLE         hProvider,
+    IN  PCSTR          pszGroupName,
+    IN  LSA_FIND_FLAGS dwFindFlags,
+    IN  DWORD          dwInfoLevel,
+    OUT PWSTR*         ppwszGroupDN,
+    OUT PVOID*         ppGroupInfo
     )
 {
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
+    PWSTR pwszGroupDN = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -712,9 +756,14 @@ LocalFindGroupByName(
                     pLoginInfo->pszFullDomainName,
                     pLoginInfo->pszName,
                     dwInfoLevel,
+                    (ppwszGroupDN ? &pwszGroupDN : NULL),
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = pwszGroupDN;
+    }
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
@@ -728,7 +777,16 @@ cleanup:
 
 error:
 
-    if (pGroupInfo) {
+    if (ppwszGroupDN)
+    {
+        *ppwszGroupDN = NULL;
+    }
+    *ppGroupInfo = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
+
+    if (pGroupInfo)
+    {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
 
@@ -754,6 +812,7 @@ LocalFindGroupById(
                     hProvider,
                     gid,
                     dwInfoLevel,
+                    NULL,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -970,38 +1029,19 @@ LocalModifyUser(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    DWORD dwError = 0;
-#if 0
-    HANDLE hDb = (HANDLE)NULL;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    DWORD   dwError = 0;
 
-    if (pContext->uid) {
-       dwError = EACCES;
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDbOpen(&hDb);
+    dwError = LocalCheckForModifyAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDbModifyUser(
-                        hDb,
-                        pUserModInfo);
+    dwError = LocalDirModifyUser(
+                    hProvider,
+                    pUserModInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (hDb != (HANDLE)NULL) {
-       LocalDbClose(hDb);
-    }
-
-    return dwError;
 
 error:
 
-    goto cleanup;
-#else
     return dwError;
-#endif
 }
 
 DWORD

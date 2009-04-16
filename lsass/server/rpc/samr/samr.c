@@ -813,27 +813,46 @@ NTSTATUS _samr_Function3c(
 }
 
 
-NTSTATUS _samr_Function3d(
-    /* [in] */ handle_t IDL_handle
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
-}
-
-
-NTSTATUS __SamrConnect4(
+NTSTATUS __SamrConnect3(
     /* [in] */ handle_t IDL_handle,
+    /* [in] */ uint32 size,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ uint32 unknown,
     /* [in] */ uint32 access_mask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvConnect3(IDL_handle,
+                             size,
+                             system_name,
+                             unknown,
+                             access_mask,
+                             hConn);
     return status;
 }
 
+
+NTSTATUS __SamrConnect4(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ uint32 size,
+    /* [in] */ wchar16_t *system_name,
+    /* [in] */ uint32 client_access,
+    /* [in] */ uint32 access_mask,
+    /* [out] */ CONNECT_HANDLE *hConn
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvConnect4(IDL_handle,
+                             size,
+                             system_name,
+                             client_access,
+                             access_mask,
+                             hConn);
+    return status;
+}
 
 
 /*

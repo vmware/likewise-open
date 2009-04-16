@@ -60,7 +60,6 @@ LsaSrvLookupNames(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
     UnicodeStringEx *pNames = NULL;
     PWSTR pwszName = NULL;
@@ -168,7 +167,6 @@ LsaSrvParseAccountName(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     PWSTR pwszCursor = NULL;
     PWSTR pwszDomainName = NULL;
     DWORD dwDomainNameLen = 0;
@@ -261,7 +259,6 @@ LsaSrvSetSamrDomain(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
     DWORD i = 0;
     PSAMR_DOMAIN pDomain = NULL;
 

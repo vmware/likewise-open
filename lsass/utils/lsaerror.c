@@ -353,7 +353,9 @@ const char* gLsaErrorMessages[] =
     // LSA_ERROR_INVALID_ATTRIBUTE_VALUE                         : 32917
     "An invalid attribute value was specified",
     // LSA_ERROR_NO_ATTRIBUTE_VALUE                              : 32918
-    "No attribute value was found"
+    "No attribute value was found",
+    // LSA_ERROR_NO_SUCH_OBJECT                                  : 32919
+    "No such object"
 };
 
 size_t

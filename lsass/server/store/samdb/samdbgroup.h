@@ -60,10 +60,32 @@ DWORD
 SamDbGetGroupMembers(
     HANDLE            hBindHandle,
     PWSTR             pwszGroupDN,
-    BOOLEAN           bExpandNestedGroups,
-    PWSTR             wszAttributes[],
+    PWSTR             pwszAttrs[],
     PDIRECTORY_ENTRY* ppDirectoryEntries,
     PDWORD            pdwNumEntries
+    );
+
+DWORD
+SamDbGetUserMemberships(
+    HANDLE            hBindHandle,
+    PWSTR             pwszUserDN,
+    PWSTR             pwszAttrs[],
+    PDIRECTORY_ENTRY* ppDirectoryEntries,
+    PDWORD            pdwNumEntries
+    );
+
+DWORD
+SamDbAddToGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
+    );
+
+DWORD
+SamDbRemoveFromGroup(
+    HANDLE hBindHandle,
+    PWSTR  pwszGroupDN,
+    PWSTR  pwszMemberDN
     );
 
 #endif /* __SAM_DB_GROUP_H__ */

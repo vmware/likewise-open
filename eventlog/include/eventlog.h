@@ -260,6 +260,12 @@ LWIFreeEventRecord(
     );
 
 VOID
+LWIFreeEventRecordList(
+    DWORD dwRecords,
+    PEVENT_LOG_RECORD pEventRecordList
+    );
+
+VOID
 LWIFreeEventLogHandle(
     HANDLE hEventLog
     );

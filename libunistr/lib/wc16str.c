@@ -570,6 +570,13 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
         wchar16_t wcCurrent = src[sPos];
         ((char*)&dest[sPos])[0] = wcCurrent & 0xFF;
         ((char*)&dest[sPos])[1] = (wcCurrent >> 8) & 0xFF;
+
+        if (!wcCurrent)
+        {
+            // return the number of non-null characters that were copied (even
+            // though the null was copied).
+            break;
+        }
     }
 
     return sPos;

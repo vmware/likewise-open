@@ -53,10 +53,14 @@ typedef void* ACCOUNT_HANDLE;
     {'F','u','l','l','N','a','m','e',0}
 #define DS_ATTR_DESCRIPTION \
     {'D','e','s','c','r','i','p','t','i','o','n',0}
+#define DS_ATTR_COMMENT \
+    {'C','o','m','m','e','n','t',0}
 #define DS_ATTR_HOME_DIR \
     {'H','o','m','e','d','i','r',0}
 #define DS_ATTR_ACCOUNT_FLAGS \
     {'A','c','c','o','u','n','t','F','l','a','g','s',0}
+#define DS_ATTR_CREATED_TIME \
+    {'C','r','e','a','t','e','d','T','i','m','e',0}
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)

@@ -89,4 +89,52 @@ LsaSrvFreeMemory(
     );
 
 
+NTSTATUS
+LsaSrvAllocateSidFromWC16String(
+    PSID *ppSid,
+    PCWSTR pwszSidStr,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvDuplicateSid(
+    PSID *ppSidOut,
+    PSID pSidIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvGetFromUnicodeString(
+    PWSTR *ppwszOut,
+    UnicodeString *pIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvInitUnicodeString(
+    UnicodeString *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvInitUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    PCWSTR pwszIn,
+    void *pParent
+    );
+
+
 #endif /* _LSASRV_MEMORY_H_ */

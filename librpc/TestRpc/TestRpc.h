@@ -84,6 +84,7 @@ void SetupLsaTests(struct test *t);
 void SetupNetlogonTests(struct test *t);
 void SetupNetApiTests(struct test *t);
 void SetupMprTests(struct test *t);
+void SetupDsrTests(struct test *t);
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host);
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host);
 handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host);
@@ -311,6 +312,20 @@ extern int verbose_mode;
         netapi_call;                                               \
         printf("= Returned status:\n=   %s (0x%08x)\n",            \
                Win32ErrorToName(err), err);                        \
+    } while (0)
+
+
+#define DISPLAY_ERROR(msg)                                         \
+    do {                                                           \
+        printf("%s:%d ", __FILE__, __LINE__);                      \
+        printf msg;                                                \
+    } while (0)
+
+
+#define DISPLAY_COMMENT(msg)                                       \
+    do {                                                           \
+        printf("%s:%d ", __FILE__, __LINE__);                      \
+        printf msg;                                                \
     } while (0)
 
 

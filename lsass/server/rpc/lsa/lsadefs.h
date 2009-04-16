@@ -20,7 +20,6 @@ typedef void* POLICY_HANDLE;
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \
         if ((status) != STATUS_SUCCESS) {                \
-            dwError = NtStatusToUnixErrno((status));     \
             goto error;                                  \
         }                                                \
     } while (0)
