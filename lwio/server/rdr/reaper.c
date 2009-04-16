@@ -542,7 +542,7 @@ RdrReaperReapSession(
     SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     ntStatus = RdrReaperSnapshotHashValues(
-        pSession->pTreeHashByTID,
+        pSession->pTreeHashByPath,
         (void***) (void*) &pTreeList);
     BAIL_ON_NT_STATUS(ntStatus);
 
