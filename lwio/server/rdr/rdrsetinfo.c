@@ -151,6 +151,17 @@ RdrCommonRename(
 
     pRenameInfo = pIrp->Args.QuerySetInformation.FileInformation;
 
+    if (pFile->fid)
+    {
+        ntStatus = RdrTransactCloseFile(
+            pFile->pTree,
+            pFile->fid
+            );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pFile->fid = 0;
+    }
+
     ntStatus = RdrGetFilePath(
         pRenameInfo->FileName,
         &pwszNewFilePath);
