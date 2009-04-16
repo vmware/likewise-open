@@ -64,6 +64,7 @@
            bInLock = FALSE;                 \
         }
 
+#define LOCAL_OBJECT_CLASS_UNKNOWN         0
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
 #define LOCAL_OBJECT_CLASS_GROUP           4
 #define LOCAL_OBJECT_CLASS_USER            5

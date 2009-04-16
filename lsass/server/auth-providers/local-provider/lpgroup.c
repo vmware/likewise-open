@@ -92,6 +92,14 @@ LocalDirGetGroupMembersInternal(
     PLSA_HASH_TABLE         pMemberships
     );
 
+static
+DWORD
+LocalAddMembersToGroup(
+    PLOCAL_PROVIDER_CONTEXT pContext,
+    PWSTR                   pwszGroupDN,
+    PSTR*                   ppszMembers
+    );
+
 DWORD
 LocalDirFindGroupByName(
     HANDLE  hProvider,
@@ -1872,16 +1880,14 @@ LocalDirAddGroup_1(
                     mods);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // TODO: Add group members
-#if 0
     if (!IsNullOrEmptyString(pGroupInfo->ppszMembers))
     {
-        dwError = DirectoryAddMembers(
+        dwError = LocalAddMembersToGroup(
+                        pContext,
                         pwszGroupDN,
                         pGroupInfo->ppszMembers);
         BAIL_ON_LSA_ERROR(dwError);
     }
-#endif
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1901,6 +1907,104 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pwszGroupDN);
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LocalAddMembersToGroup(
+    PLOCAL_PROVIDER_CONTEXT pContext,
+    PWSTR                   pwszGroupDN,
+    PSTR*                   ppszMembers
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwUserInfoLevel  = 0;
+    DWORD dwGroupInfoLevel = 0;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+    PLSA_USER_INFO_0  pUserInfo = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    PWSTR pwszObjectDN = NULL;
+    DWORD dwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
+    DWORD dwMember = 0;
+
+    while (!IsNullOrEmptyString(ppszMembers[dwMember]))
+    {
+        PCSTR pszMemberId = ppszMembers[dwMember];
+
+        if (pUserInfo)
+        {
+            LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+            pUserInfo = NULL;
+        }
+
+        if (pGroupInfo)
+        {
+            LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+            pGroupInfo = NULL;
+        }
+
+        if (pLoginInfo)
+        {
+            LsaFreeNameInfo(pLoginInfo);
+            pLoginInfo = NULL;
+        }
+
+        dwError = LsaCrackDomainQualifiedName(
+                      pszMemberId,
+                      gLPGlobals.pszLocalDomain,
+                      &pLoginInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalFindObjectByName(
+                      pContext,
+                      pLoginInfo->pszName,
+                      pLoginInfo->pszFullDomainName,
+                      &dwObjectClass,
+                      &pwszObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if ((dwObjectClass != LOCAL_OBJECT_CLASS_USER) &&
+            (dwObjectClass != LOCAL_OBJECT_CLASS_GROUP))
+        {
+            LSA_LOG_ERROR("Skip adding group member [%s] "
+                          "with object class [%d]",
+                          LSA_SAFE_LOG_STRING(pszMemberId),
+                          dwObjectClass);
+        }
+        else
+        {
+            dwError = DirectoryAddToGroup(
+                            pContext->hDirectory,
+                            pwszGroupDN,
+                            pwszObjectDN);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwMember++;
+    }
+
+cleanup:
+
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+    }
 
     return dwError;
 

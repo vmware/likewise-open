@@ -33,47 +33,29 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpobject.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        Local Authentication Provider
+ *
+ *        Object Management Routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __LP_OBJECT_H__
+#define __LP_OBJECT_H__
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
+DWORD
+LocalFindObjectByName(
+    HANDLE hProvider,
+    PCSTR  pszName,
+    PCSTR  pszDomainName,
+    PDWORD pdwObjectClass,
+    PWSTR* ppwszObjectDN
+    );
 
-#include <eventlog.h>
-
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
-
-#include "lsaprovider.h"
-#include "directory.h"
-
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-#include "lpaccess.h"
-#include "lpmisc.h"
-#include "lpmarshal.h"
-#include "lpobject.h"
-
-#include "externs.h"
-
-#include <lwrpc/LMcrypt.h>
-
+#endif /* __LP_OBJECT_H__ */
