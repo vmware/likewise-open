@@ -155,22 +155,62 @@
     #
     nss-enumeration-enabled = @ENABLE_NSS_ENUM_DEFAULT@
 
-#[auth provider:lsa-local-provider]
-#
-#    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
-#
-#    # Default: 30d
-#    # Minimum: 1d
-#    # Maximum: 180d
-#    password-lifespan = 30d
-#
-#    # Default: 14d
-#    # Minimum: 1h
-#    # Maximum: 30d (must be less than lifespan)
-#    password-change-warning-time = 14d
+[auth provider:lsa-local-provider]
+
+    path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@
+
+    # Default: 30d
+    # Minimum: 1d
+    # Maximum: 180d
+    password-lifespan = 30d
+
+    # Default: 14d
+    # Minimum: 1h
+    # Maximum: 30d (must be less than lifespan)
+    password-change-warning-time = 14d
+
+    login-shell-template = /bin/sh
+
+    # Prefix path for user's home directory
+    # Note:
+    #   a) This is used in place of %H in the
+    #      homedir-template setting
+    #   b) Must be an absolute path
+    #
+    # Default: Linux: /home
+    # Default: MacOS: /Users
+    # Default: SunOS: /export/home
+    #
+    # homedir-prefix = <absolute path>
+
+    homedir-template = %H/local/%D/%U
+
+    # Whether home directories should be automatically
+    # created upon user login
+    #
+    # Default: yes
+    # create-homedir = no
+
+    # Umask for home directories
+    # Default: 022
+    #
+    # homedir-umask = 022
+
+    # Paths to skeleton directories for provisioning
+    # home directories
+    #
+    # Note: Use a comma separated list
+    #
+    # Default: /etc/skel
+    #   or
+    # Default: System/Library/User Template/Non_localized,
+    #          /System/Library/User Template/English.lproj
+    #
+    # skeleton-dirs = /etc/skel
 
 #[rpc server:lsarpc]
 #    path = @rpcserverdir@/liblsa_srv@MOD_EXT@
-
+#
 #[rpc server:samr]
 #    path = @rpcserverdir@/libsamr_srv@MOD_EXT@
+
