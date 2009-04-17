@@ -1157,6 +1157,7 @@ LocalOpenSession(
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 0;
+    BOOLEAN bCreateHomedir = FALSE;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
@@ -1181,9 +1182,14 @@ LocalOpenSession(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalCreateHomeDirectory(
-                    (PLSA_USER_INFO_0)pUserInfo);
+    dwError = LocalCfgMustCreateHomedir(&bCreateHomedir);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (bCreateHomedir)
+    {
+        dwError = LocalCreateHomeDirectory((PLSA_USER_INFO_0)pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
 
