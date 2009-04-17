@@ -677,13 +677,6 @@ SMBSocketFindAndSignalResponse(
 
 cleanup:
 
-    if (pResponse)
-    {
-        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
-
-        SMBResponseUnlock(pResponse);
-    }
-
     if (pTree)
     {
         SMBTreeRelease(pTree);
@@ -692,6 +685,13 @@ cleanup:
     if (pSession)
     {
         SMBSessionRelease(pSession);
+    }
+
+    if (pResponse)
+    {
+        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
+
+        SMBResponseUnlock(pResponse);
     }
 
     return ntStatus;
@@ -713,6 +713,9 @@ SMBSocketFindSessionByUID(
        that the reader thread dies before the socket is destroyed */
     NTSTATUS ntStatus = 0;
     PSMB_SESSION pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByUID,
@@ -725,6 +728,8 @@ SMBSocketFindSessionByUID(
     *ppSession = pSession;
 
 cleanup:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
