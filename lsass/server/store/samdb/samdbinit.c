@@ -513,10 +513,6 @@ SamDbAddLocalDomain(
     avNetBIOSName.data.pwszStringValue = pwszNetBIOSName;
     mods[iMod].pAttrValues = &avNetBIOSName;
 
-    mods[++iMod].pwszAttrName = NULL;
-    mods[iMod].ulNumValues = 0;
-    mods[iMod].pAttrValues = NULL;
-
     mods[++iMod].pwszAttrName = &wszAttrNameMaxPwdAge[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
@@ -530,6 +526,10 @@ SamDbAddLocalDomain(
     avPwdChangeTime.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
     avPwdChangeTime.data.llValue = llPwdChangeTime;
     mods[iMod].pAttrValues = &avPwdChangeTime;
+
+    mods[++iMod].pwszAttrName = NULL;
+    mods[iMod].ulNumValues = 0;
+    mods[iMod].pAttrValues = NULL;
 
     dwError = SamDbAddObject(
                     hDirectory,
