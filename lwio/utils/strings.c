@@ -106,7 +106,7 @@ SMBAllocateStringPrintfV(
         dwError = SMBAllocateMemory(
                         dwBufsize, 
                         (PVOID*) &pszSmallBuffer);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
         
         requiredLength = vsnprintf(
                               pszSmallBuffer,
@@ -125,13 +125,13 @@ SMBAllocateStringPrintfV(
     if (requiredLength >= (UINT32_MAX - 1))
     {
         dwError = ENOMEM;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateMemory(
                     requiredLength + 2,
                     (PVOID*)&pszOutputString);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwNewRequiredLength = vsnprintf(
                             pszOutputString,
@@ -141,13 +141,13 @@ SMBAllocateStringPrintfV(
     if (dwNewRequiredLength < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     else if (dwNewRequiredLength > requiredLength)
     {
         /* unexpected, ideally should log something, or use better error code */
         dwError = ENOMEM;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     else if (dwNewRequiredLength < requiredLength)
     {
@@ -164,7 +164,7 @@ cleanup:
     
 error:
 
-    SMB_SAFE_FREE_MEMORY(pszOutputString);
+    LWIO_SAFE_FREE_MEMORY(pszOutputString);
     
     *ppszOutputString = NULL;
 
@@ -345,7 +345,7 @@ SMBEscapeString(
 
     if ( !ppszEscapedString || !pszOrig ) {
         dwError = EINVAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     while(pszTmp && *pszTmp)
@@ -358,7 +358,7 @@ SMBEscapeString(
 
     if (!nQuotes) {
         dwError = SMBAllocateString(pszOrig, &pszNew);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     } else {
         /*
          * We are going to escape each single quote and enclose it in two other
@@ -367,7 +367,7 @@ SMBEscapeString(
         dwError = SMBAllocateMemory(
                       strlen(pszOrig)+3*nQuotes+1,
                       (PVOID*)&pszNew );
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         pszTmp = pszOrig;
         pszNewTmp = pszNew;
@@ -396,7 +396,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_MEMORY(pszNew);
+    LWIO_SAFE_FREE_MEMORY(pszNew);
 
     *ppszEscapedString = NULL;
 
@@ -416,7 +416,7 @@ SMBStrndup(
 
     if (!pszInputString || !ppszOutputString){
         dwError = EINVAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     copylen = strlen(pszInputString);
@@ -424,7 +424,7 @@ SMBStrndup(
         copylen = size;
 
     dwError = SMBAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     memcpy(pszOutputString, pszInputString, copylen);
     pszOutputString[copylen] = 0;
@@ -435,7 +435,7 @@ cleanup:
     return dwError;
     
 error:
-    SMB_SAFE_FREE_STRING(pszOutputString);
+    LWIO_SAFE_FREE_STRING(pszOutputString);
     goto cleanup;
 }
 
@@ -466,7 +466,7 @@ SMBStrDupOrNull(
     if (pszInputString == NULL)
     {
         *ppszOutputString = NULL;
-        return SMB_ERROR_SUCCESS;
+        return LWIO_ERROR_SUCCESS;
     }
     else
     {

@@ -89,14 +89,14 @@ SrvProcessDelete(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SMBAllocateStringW(
                     pTree->pShareInfo->pwszPath,
                     &pwszFilesystemPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     if (pSmbRequest->pSMBHeader->flags2 & FLAG2_KNOWS_LONG_NAMES)
     {
@@ -156,7 +156,7 @@ cleanup:
 
     if (pTree)
     {
-        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
         SrvTreeRelease(pTree);
     }
@@ -364,7 +364,7 @@ cleanup:
                         usSearchId);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to close search space [Id:%d][code:%d]",
+            LWIO_LOG_ERROR("Failed to close search space [Id:%d][code:%d]",
                           usSearchId,
                           ntStatus2);
         }

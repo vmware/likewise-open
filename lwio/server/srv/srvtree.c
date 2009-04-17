@@ -36,7 +36,7 @@ SrvTreeCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_TREE pTree = NULL;
 
-    SMB_LOG_DEBUG("Creating Tree [tid: %u]", tid);
+    LWIO_LOG_DEBUG("Creating Tree [tid: %u]", tid);
 
     ntStatus = LW_RTL_ALLOCATE(&pTree, SMB_SRV_TREE, sizeof(SMB_SRV_TREE));
     BAIL_ON_NT_STATUS(ntStatus);
@@ -48,7 +48,7 @@ SrvTreeCreate(
 
     pTree->tid = tid;
 
-    SMB_LOG_DEBUG("Associating Tree [object:0x%x][tid:%u]",
+    LWIO_LOG_DEBUG("Associating Tree [object:0x%x][tid:%u]",
                     pTree,
                     tid);
 
@@ -91,7 +91,7 @@ SrvTreeFindFile(
     PSMB_SRV_FILE pFile = NULL;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
     ntStatus = LwRtlRBTreeFind(
                     pTree->pFileCollection,
@@ -105,7 +105,7 @@ SrvTreeFindFile(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 
@@ -136,7 +136,7 @@ SrvTreeCreateFile(
     PSMB_SRV_FILE pFile = NULL;
     USHORT  fid = 0;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
     ntStatus = SrvTreeAcquireFileId_inlock(
                     pTree,
@@ -169,7 +169,7 @@ SrvTreeCreateFile(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 
@@ -194,7 +194,7 @@ SrvTreeRemoveFile(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
     ntStatus = LwRtlRBTreeRemove(
                     pTree->pFileCollection,
@@ -203,7 +203,7 @@ SrvTreeRemoveFile(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 
@@ -220,11 +220,11 @@ SrvTreeIsNamedPipe(
     BOOLEAN bResult = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     bResult = (pTree->pShareInfo->service == SHARE_SERVICE_NAMED_PIPE);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     return bResult;
 }
@@ -234,7 +234,7 @@ SrvTreeRelease(
     PSMB_SRV_TREE pTree
     )
 {
-    SMB_LOG_DEBUG("Releasing tree [tid:%u]", pTree->tid);
+    LWIO_LOG_DEBUG("Releasing tree [tid:%u]", pTree->tid);
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
@@ -344,7 +344,7 @@ SrvTreeFree(
     PSMB_SRV_TREE pTree
     )
 {
-    SMB_LOG_DEBUG("Freeing tree [object:0x%x][tid:%u]",
+    LWIO_LOG_DEBUG("Freeing tree [object:0x%x][tid:%u]",
                     pTree,
                     pTree->tid);
 

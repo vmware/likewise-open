@@ -95,8 +95,8 @@ SrvFreeHostInfo(
         pthread_rwlock_destroy(&pHostinfo->mutex);
         pHostinfo->pMutex = NULL;
     }
-    SMB_SAFE_FREE_STRING(pHostinfo->pszHostname);
-    SMB_SAFE_FREE_STRING(pHostinfo->pszDomain);
+    LWIO_SAFE_FREE_STRING(pHostinfo->pszHostname);
+    LWIO_SAFE_FREE_STRING(pHostinfo->pszDomain);
 
     LwRtlMemoryFree(pHostinfo);
 }

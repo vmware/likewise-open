@@ -87,10 +87,10 @@ main(
                     argv[1],
                     &pszSharename,
                     &pszHostname);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvClientInit(SMB_CONFIG_FILE_PATH);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     bCleanupSMBCore = TRUE;
 
@@ -99,7 +99,7 @@ main(
                     "Administrator@KAYA-2K.CORP.CENTERIS.COM",
                     pszSharename,
                     &pTree);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     SMBTreeRelease(pTree);
     pTree = NULL;
@@ -118,8 +118,8 @@ cleanup:
         SMBSrvClientShutdown();
     }
 
-    SMB_SAFE_FREE_STRING(pszHostname);
-    SMB_SAFE_FREE_STRING(pszSharename);
+    LWIO_SAFE_FREE_STRING(pszHostname);
+    LWIO_SAFE_FREE_STRING(pszSharename);
 
     return dwError;
 
@@ -153,15 +153,15 @@ GetHostAndShareNames(
     sLength = strcspn(pszInput, "\\");
     if (!sLength)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBStrndup(
                 pszInput,
                 (DWORD)sLength,
                 &pszHostname);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pszInput += sLength;
 
@@ -169,8 +169,8 @@ GetHostAndShareNames(
     sLength = strspn(pszInput, "\\");
     if (!sLength)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pszInput += sLength;
@@ -178,14 +178,14 @@ GetHostAndShareNames(
     // Share
     if (IsNullOrEmptyString(pszInput))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateString(
                 pszShareName,
                 &pszShareNameLocal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppszHostname = pszHostname;
     *ppszShareName = pszShareNameLocal;
@@ -196,8 +196,8 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszHostname);
-    SMB_SAFE_FREE_STRING(pszShareNameLocal);
+    LWIO_SAFE_FREE_STRING(pszHostname);
+    LWIO_SAFE_FREE_STRING(pszShareNameLocal);
 
     goto cleanup;
 }

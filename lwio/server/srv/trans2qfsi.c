@@ -210,7 +210,7 @@ SrvProcessTrans2QueryFilesystemInformation(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     fileName.FileName = pTree->pShareInfo->pwszPath;
 
@@ -234,7 +234,7 @@ SrvProcessTrans2QueryFilesystemInformation(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     usInfoLevel = *((PUSHORT)pParameters);
 
@@ -348,7 +348,7 @@ cleanup:
 
     if (pTree)
     {
-        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
         SrvTreeRelease(pTree);
     }

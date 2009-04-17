@@ -130,50 +130,50 @@ SMBLogToConsole(
     
     switch (logLevel)
     {
-        case SMB_LOG_LEVEL_ALWAYS:
+        case LWIO_LOG_LEVEL_ALWAYS:
         {
-            pszEntryType = SMB_INFO_TAG;
+            pszEntryType = LWIO_INFO_TAG;
             pTarget = pConsoleLog->fp_out;
             break;
         }
-        case SMB_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_ERROR:
         {
-            pszEntryType = SMB_ERROR_TAG;
+            pszEntryType = LWIO_ERROR_TAG;
             pTarget = pConsoleLog->fp_err;
             break;
         }
 
-        case SMB_LOG_LEVEL_WARNING:
+        case LWIO_LOG_LEVEL_WARNING:
         {
-            pszEntryType = SMB_WARN_TAG;
+            pszEntryType = LWIO_WARN_TAG;
             pTarget = pConsoleLog->fp_err;
             break;
         }
 
-        case SMB_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_INFO:
         {
-            pszEntryType = SMB_INFO_TAG;
+            pszEntryType = LWIO_INFO_TAG;
             pTarget = pConsoleLog->fp_out;
             break;
         }
 
-        case SMB_LOG_LEVEL_VERBOSE:
+        case LWIO_LOG_LEVEL_VERBOSE:
         {
-            pszEntryType = SMB_VERBOSE_TAG;
+            pszEntryType = LWIO_VERBOSE_TAG;
             pTarget = pConsoleLog->fp_out;
             break;
         }
 
-        case SMB_LOG_LEVEL_DEBUG:
+        case LWIO_LOG_LEVEL_DEBUG:
         {
-            pszEntryType = SMB_DEBUG_TAG;
+            pszEntryType = LWIO_DEBUG_TAG;
             pTarget = pConsoleLog->fp_out;
             break;
         }
 
         default:
         {
-            pszEntryType = SMB_VERBOSE_TAG;
+            pszEntryType = LWIO_VERBOSE_TAG;
             pTarget = pConsoleLog->fp_out;
             break;
         }
@@ -182,7 +182,7 @@ SMBLogToConsole(
     currentTime = time(NULL);
     localtime_r(&currentTime, &tmp);
 
-    strftime(timeBuf, sizeof(timeBuf), SMB_LOG_TIME_FORMAT, &tmp);
+    strftime(timeBuf, sizeof(timeBuf), LWIO_LOG_TIME_FORMAT, &tmp);
 
     fprintf(pTarget, "%s:%s:", timeBuf, pszEntryType);
     vfprintf(pTarget, pszFormat, msgList);

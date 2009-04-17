@@ -50,6 +50,7 @@
 #define LOCAL_CFG_TAG_LOCAL_PROVIDER "lsa-local-provider"
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
 
+#define LOCAL_CFG_DEFAULT_LOGIN_SHELL             "/bin/sh"
 #define LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT (5)
 
 #define LOCAL_LOCK_MUTEX(bInLock, pMutex)  \
@@ -64,6 +65,7 @@
            bInLock = FALSE;                 \
         }
 
+#define LOCAL_OBJECT_CLASS_UNKNOWN         0
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
 #define LOCAL_OBJECT_CLASS_GROUP           4
 #define LOCAL_OBJECT_CLASS_USER            5

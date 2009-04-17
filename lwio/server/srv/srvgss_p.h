@@ -12,28 +12,28 @@
         if (ctx)  {                                                   \
             PCSTR pszKrb5Error = krb5_get_error_message(ctx, ret);    \
             if (pszKrb5Error) {                                       \
-                SMB_LOG_ERROR("KRB5 Error at %s:%d: %s",              \
+                LWIO_LOG_ERROR("KRB5 Error at %s:%d: %s",              \
                         __FILE__,                                     \
                         __LINE__,                                     \
                         pszKrb5Error);                                \
                 krb5_free_error_message(ctx, pszKrb5Error);           \
             }                                                         \
         } else {                                                      \
-            SMB_LOG_ERROR("KRB5 Error at %s:%d [Code:%d]",            \
+            LWIO_LOG_ERROR("KRB5 Error at %s:%d [Code:%d]",            \
                     __FILE__,                                         \
                     __LINE__,                                         \
                     ret);                                             \
         }                                                             \
         if (ret == KRB5KDC_ERR_KEY_EXP) {                             \
-            ntStatus = SMB_ERROR_PASSWORD_EXPIRED;                    \
+            ntStatus = LWIO_ERROR_PASSWORD_EXPIRED;                    \
         } else if (ret == KRB5_LIBOS_BADPWDMATCH) {                   \
-            ntStatus = SMB_ERROR_PASSWORD_MISMATCH;                   \
+            ntStatus = LWIO_ERROR_PASSWORD_MISMATCH;                   \
         } else if (ret == KRB5KRB_AP_ERR_SKEW) {                      \
-            ntStatus = SMB_ERROR_CLOCK_SKEW;                          \
+            ntStatus = LWIO_ERROR_CLOCK_SKEW;                          \
         } else if (ret == ENOENT) {                                   \
-            ntStatus = SMB_ERROR_KRB5_NO_KEYS_FOUND;                  \
+            ntStatus = LWIO_ERROR_KRB5_NO_KEYS_FOUND;                  \
         } else {                                                      \
-            ntStatus = SMB_ERROR_KRB5_CALL_FAILED;                    \
+            ntStatus = LWIO_ERROR_KRB5_CALL_FAILED;                    \
         }                                                             \
         goto error;                                                   \
     }

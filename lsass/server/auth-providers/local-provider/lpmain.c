@@ -919,7 +919,6 @@ LocalChangePassword(
     DWORD dwError = 0;
     DWORD dwInfoLevel = 0;
     PWSTR pwszUserDN  = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
@@ -929,22 +928,12 @@ LocalChangePassword(
     dwError = LocalCheckForModifyAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByName(
+    dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
                     dwInfoLevel,
+                    &pwszUserDN,
                     (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaCrackDomainQualifiedName(
-                    pUserInfo->pszName,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalBuildDN(
-                    pLoginInfo,
-                    &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszPassword)
@@ -975,11 +964,6 @@ cleanup:
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
     }
 
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
@@ -1053,7 +1037,6 @@ LocalDeleteUser(
     DWORD dwError = 0;
     DWORD dwInfoLevel = 0;
     PWSTR pwszUserDN  = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLSA_USER_INFO_0 pUserInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -1061,22 +1044,12 @@ LocalDeleteUser(
     dwError = LocalCheckForDeleteAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserById(
+    dwError = LocalDirFindUserById(
                     hProvider,
                     uid,
                     dwInfoLevel,
+                    &pwszUserDN,
                     (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaCrackDomainQualifiedName(
-                    pUserInfo->pszName,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalBuildDN(
-                    pLoginInfo,
-                    &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirDeleteUser(
@@ -1089,11 +1062,6 @@ cleanup:
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
     }
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
@@ -1144,7 +1112,6 @@ LocalDeleteGroup(
     DWORD dwError = 0;
     DWORD dwInfoLevel = 0;
     PWSTR pwszGroupDN  = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -1152,22 +1119,12 @@ LocalDeleteGroup(
     dwError = LocalCheckForDeleteAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserById(
+    dwError = LocalDirFindGroupById(
                     hProvider,
                     gid,
                     dwInfoLevel,
+                    &pwszGroupDN,
                     (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaCrackDomainQualifiedName(
-                    pGroupInfo->pszName,
-                    NULL,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalBuildDN(
-                    pLoginInfo,
-                    &pwszGroupDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirDeleteGroup(
@@ -1180,11 +1137,6 @@ cleanup:
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
     }
 
     LSA_SAFE_FREE_MEMORY(pwszGroupDN);

@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,65 +33,29 @@
  *
  * Module Name:
  *
- *        lwio-semaphore.h
+ *        lpobject.h
  *
  * Abstract:
  *
- *        Likewise IO
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Semaphore Code
+ *        Local Authentication Provider
  *
- * Author: Danilo Almeida (dalmeida@likewise.com)
+ *        Object Management Routines
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __LP_OBJECT_H__
+#define __LP_OBJECT_H__
 
-#ifndef __LWIO_SEMAPHORE_H__
-#define __LWIO_SEMAPHORE_H__
-
-#if defined(__LWI_DARWIN__)
-typedef struct {
-    pthread_mutex_t Mutex;
-    pthread_cond_t Condition;
-    DWORD Count;
-} LSMB_SEMAPHORE, *PLSMB_SEMAPHORE;
-#else
-typedef sem_t LSMB_SEMAPHORE, *PLSMB_SEMAPHORE;
-#endif
-
-#if defined(__LWI_DARWIN__)
-NTSTATUS
-SMBSemaphoreInit(
-    OUT PLSMB_SEMAPHORE pSemaphore,
-    IN DWORD Count
+DWORD
+LocalFindObjectByName(
+    HANDLE hProvider,
+    PCSTR  pszName,
+    PCSTR  pszDomainName,
+    PDWORD pdwObjectClass,
+    PWSTR* ppwszObjectDN
     );
 
-NTSTATUS
-SMBSemaphoreWait(
-    IN PLSMB_SEMAPHORE pSemaphore
-    );
-
-NTSTATUS
-SMBSemaphorePost(
-    IN PLSMB_SEMAPHORE pSemaphore
-    );
-
-VOID
-SMBSemaphoreDestroy(
-    IN OUT PLSMB_SEMAPHORE pSemaphore
-    );
-#else  /* __LWI_DARWIN__ */
-#define _SMB_SEMAPHORE_SYSCALL(x) ((((x) < 0) && errno) ? LwUnixErrnoToNtStatus(errno) : 0)
-
-#define SMBSemaphoreInit(pSemaphore, Count) _SMB_SEMAPHORE_SYSCALL(sem_init(pSemaphore, 0, Count))
-#define SMBSemaphoreWait(pSemaphore) _SMB_SEMAPHORE_SYSCALL(sem_wait(pSemaphore))
-#define SMBSemaphorePost(pSemaphore) _SMB_SEMAPHORE_SYSCALL(sem_post(pSemaphore))
-#define SMBSemaphoreDestroy(pSemaphore) \
-    do { \
-        int localError = _SMB_SEMAPHORE_SYSCALL(sem_destroy(pSemaphore)); \
-        if (localError) \
-        { \
-            LWIO_LOG_ERROR("Failed to destroy semaphore [code: %d]", localError); \
-        } \
-    } while (0)
-#endif /* __LWI_DARWIN__ */
-
-#endif /* __LWIO_SEMAPHORE_H__ */
+#endif /* __LP_OBJECT_H__ */

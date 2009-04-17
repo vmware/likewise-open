@@ -83,7 +83,7 @@ SrvProcessDeleteDirectory(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvBuildFilePath(
                     pTree->pShareInfo->pwszPath,
@@ -91,7 +91,7 @@ SrvProcessDeleteDirectory(
                     &pwszDirectoryPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     fileName.FileName = pwszDirectoryPath;
 
@@ -164,7 +164,7 @@ cleanup:
 
     if (pTree)
     {
-        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
         SrvTreeRelease(pTree);
     }

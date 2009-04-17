@@ -143,14 +143,14 @@ SrvProcessTreeConnectAndX(
                         pSmbRequest->pSMBHeader->tid);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u]. [code:%d]",
+            LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u]. [code:%d]",
                             pSmbRequest->pSMBHeader->tid,
                             pSmbRequest->pSMBHeader->uid,
                             ntStatus2);
         }
     }
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->pHostinfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->pHostinfo->mutex);
 
     ntStatus = SrvGetShareName(
                     pConnection->pHostinfo->pszHostname,
@@ -159,7 +159,7 @@ SrvProcessTreeConnectAndX(
                     &pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
     ntStatus = SrvFindShareByName(
                     pConnection->pShareDbContext,
@@ -189,7 +189,7 @@ SrvProcessTreeConnectAndX(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
     if (pSession)
     {
@@ -226,7 +226,7 @@ error:
                         pSmbRequest->pSMBHeader->tid);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
+            LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
                             pSmbRequest->pSMBHeader->tid,
                             pSmbRequest->pSMBHeader->uid,
                             ntStatus2);
@@ -626,7 +626,7 @@ SrvGetMaximalShareAccessMask(
     BOOLEAN  bInLock = FALSE;
     ACCESS_MASK mask = 0;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     switch (pShareInfo->service)
     {
@@ -667,7 +667,7 @@ SrvGetMaximalShareAccessMask(
 
     *pMask = mask;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     return ntStatus;
 }
@@ -683,7 +683,7 @@ SrvGetGuestShareAccessMask(
     BOOLEAN  bInLock = FALSE;
     ACCESS_MASK mask = 0;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     switch (pShareInfo->service)
     {
@@ -724,7 +724,7 @@ SrvGetGuestShareAccessMask(
 
     *pMask = mask;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     return ntStatus;
 }
@@ -740,7 +740,7 @@ SrvGetServiceName(
     BOOLEAN bInLock = FALSE;
     PSTR pszService = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     ntStatus = SrvShareGetServiceStringId(
                     pShareInfo->service,
@@ -751,7 +751,7 @@ SrvGetServiceName(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     return ntStatus;
 
@@ -783,7 +783,7 @@ SrvGetNativeFilesystem(
     PFILE_FS_ATTRIBUTE_INFORMATION pFsAttrInfo = NULL;
     PIO_CREATE_SECURITY_CONTEXT pIoSecContext = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     fileName.FileName = pShareInfo->pwszPath;
 
@@ -813,7 +813,7 @@ SrvGetNativeFilesystem(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
@@ -868,7 +868,7 @@ SrvGetNativeFilesystem(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     if (pVolumeInfo)
     {

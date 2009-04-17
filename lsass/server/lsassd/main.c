@@ -304,7 +304,7 @@ LsaSrvVerifyLwIoStatus(
     )
 {
     DWORD dwError = 0;
-    PSMB_LOG_INFO pLogInfo = NULL;
+    PLWIO_LOG_INFO pLogInfo = NULL;
     PIO_CONTEXT pContext = NULL;
 
     dwError = LwIoInitialize();

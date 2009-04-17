@@ -28,10 +28,10 @@ SrvFreeShareInfo(
     PSHARE_INFO pShareInfo
     )
 {
-    SMB_SAFE_FREE_STRING(pShareInfo->pszName);
-    SMB_SAFE_FREE_STRING(pShareInfo->pszPath);
-    SMB_SAFE_FREE_STRING(pShareInfo->pszComment);
-    SMB_SAFE_FREE_STRING(pShareInfo->pszSID);
+    LWIO_SAFE_FREE_STRING(pShareInfo->pszName);
+    LWIO_SAFE_FREE_STRING(pShareInfo->pszPath);
+    LWIO_SAFE_FREE_STRING(pShareInfo->pszComment);
+    LWIO_SAFE_FREE_STRING(pShareInfo->pszSID);
 
     LwRtlMemoryFree(pShareInfo);
 }

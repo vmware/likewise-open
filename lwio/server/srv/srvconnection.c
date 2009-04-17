@@ -58,7 +58,7 @@ SrvConnectionCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_CONNECTION pConnection = NULL;
 
-    SMB_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
+    LWIO_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pConnection,
@@ -68,7 +68,7 @@ SrvConnectionCreate(
 
     pConnection->refCount = 1;
 
-    SMB_LOG_DEBUG("Associating connection [object:0x%x][fd:%d]",
+    LWIO_LOG_DEBUG("Associating connection [object:0x%x][fd:%d]",
                     pConnection,
                     pSocket->fd);
 
@@ -128,7 +128,7 @@ SrvConnectionGetFd(
     int fd = -1;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     if (pConnection->pSocket)
     {
@@ -139,7 +139,7 @@ SrvConnectionGetFd(
         pthread_mutex_unlock(&pConnection->pSocket->mutex);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return fd;
 }
@@ -155,7 +155,7 @@ SrvConnectionGetNextSequence(
     ULONG ulRequestSequence = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     switch (pSmbRequest->pSMBHeader->command)
     {
@@ -181,7 +181,7 @@ SrvConnectionGetNextSequence(
 
     *pulRequestSequence = ulRequestSequence;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 }
@@ -194,11 +194,11 @@ SrvConnectionIsInvalid(
     BOOLEAN bInvalid = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     bInvalid = pConnection->state == SMB_SRV_CONN_STATE_INVALID;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return bInvalid;
 }
@@ -210,13 +210,13 @@ SrvConnectionSetInvalid(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    SMB_LOG_DEBUG("Setting connection [fd:%d] to invalid", pConnection->pSocket->fd);
+    LWIO_LOG_DEBUG("Setting connection [fd:%d] to invalid", pConnection->pSocket->fd);
 
     pConnection->state = SMB_SRV_CONN_STATE_INVALID;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
 SMB_SRV_CONN_STATE
@@ -227,11 +227,11 @@ SrvConnectionGetState(
     SMB_SRV_CONN_STATE connState = SMB_SRV_CONN_STATE_INITIAL;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     connState = pConnection->state;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return connState;
 }
@@ -244,11 +244,11 @@ SrvConnectionSetState(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     pConnection->state = connState;
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
 NTSTATUS
@@ -412,7 +412,7 @@ SrvConnectionWriteMessage(
 
     fd = SrvConnectionGetFd(pConnection);
 
-    SMB_LOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
 
     // TODO: Use select to find out if the fd is ready to be written to
 
@@ -443,13 +443,13 @@ SrvConnectionWriteMessage(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
 
     return ntStatus;
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
 
     SrvConnectionSetInvalid(pConnection);
 
@@ -467,7 +467,7 @@ SrvConnectionFindSession(
     PSMB_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     ntStatus = LwRtlRBTreeFind(
                     pConnection->pSessionCollection,
@@ -481,7 +481,7 @@ SrvConnectionFindSession(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
@@ -501,7 +501,7 @@ SrvConnectionRemoveSession(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     ntStatus = LwRtlRBTreeRemove(
                     pConnection->pSessionCollection,
@@ -510,7 +510,7 @@ SrvConnectionRemoveSession(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
@@ -530,7 +530,7 @@ SrvConnectionCreateSession(
     BOOLEAN bInLock = FALSE;
     USHORT  uid = 0;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     ntStatus = SrvConnectionAcquireSessionId_inlock(
                     pConnection,
@@ -554,7 +554,7 @@ SrvConnectionCreateSession(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
@@ -630,11 +630,11 @@ SrvConnectionRelease(
     PSMB_SRV_CONNECTION pConnection
     )
 {
-    SMB_LOG_DEBUG("Releasing connection [fd:%d]", pConnection->pSocket->fd);
+    LWIO_LOG_DEBUG("Releasing connection [fd:%d]", pConnection->pSocket->fd);
 
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
-        SMB_LOG_DEBUG("Freeing connection [object:0x%x][fd:%d]",
+        LWIO_LOG_DEBUG("Freeing connection [object:0x%x][fd:%d]",
                         pConnection,
                         pConnection->pSocket->fd);
 
@@ -781,7 +781,7 @@ SrvConnectionReadMessage(
     ssize_t  sNumBytesRead = 0;
     BOOLEAN  bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     do
     {
@@ -801,7 +801,7 @@ SrvConnectionReadMessage(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 

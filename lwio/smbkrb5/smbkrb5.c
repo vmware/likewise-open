@@ -93,7 +93,7 @@ SMBKrb5Init(
         dwError = SMBAllocateMemory(
                         dwLength,
                         (PVOID*)&pszUsername);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         for (i = 0; i < strlen(pszHostname); i++)
         {
@@ -111,19 +111,19 @@ SMBKrb5Init(
                         NULL,
                         gpszKrb5CachePath,
                         NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         dwError = SMBKrb5SetDefaultCachePath(
                         gpszKrb5CachePath,
                         NULL);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         gbKrb5Initialized = TRUE;
     }
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszUsername);
+    LWIO_SAFE_FREE_STRING(pszUsername);
 
     return dwError;
 
@@ -142,7 +142,7 @@ SMBKrb5Shutdown(
     if (gbKrb5Initialized)
     {
         dwError = SMBKrb5DestroyCache(gpszKrb5CachePath);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         gbKrb5Initialized = FALSE;
     }
@@ -171,17 +171,17 @@ SMBKrb5GetTGTFromKeytab(
     krb5_get_init_creds_opt opts;
 
     ret = krb5_init_context(&ctx);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     ret = krb5_parse_name(ctx, pszUserName, &client_principal);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     /* use krb5_cc_resolve to get an alternate cache */
     ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     ret = krb5_kt_default(ctx, &keytab);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     krb5_get_init_creds_opt_init(&opts);
     krb5_get_init_creds_opt_set_forwardable(&opts, TRUE);
@@ -195,13 +195,13 @@ SMBKrb5GetTGTFromKeytab(
                     NULL, /* in_tkt_service */
                     &opts  /* options        */
                     );
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     ret = krb5_cc_initialize(ctx, cc, client_principal);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     ret = krb5_cc_store_cred(ctx, cc, &creds);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     if (pdwGoodUntilTime)
     {
@@ -256,13 +256,13 @@ SMBKrb5SetDefaultCachePath(
     if (ppszOrigCachePath) {
         if (!IsNullOrEmptyString(pszOrigCachePath)) {
             dwError = SMBAllocateString(pszOrigCachePath, ppszOrigCachePath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         } else {
             *ppszOrigCachePath = NULL;
         }
     }
 
-    SMB_LOG_DEBUG("Cache path set to [%s]", SMB_SAFE_LOG_STRING(pszCachePath));
+    LWIO_LOG_DEBUG("Cache path set to [%s]", SMB_SAFE_LOG_STRING(pszCachePath));
 
 cleanup:
 
@@ -290,16 +290,16 @@ SMBKrb5DestroyCache(
     krb5_ccache cc = NULL;
 
     ret = krb5_init_context(&ctx);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     /* use krb5_cc_resolve to get an alternate cache */
     ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
-    BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+    BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
 
     ret = krb5_cc_destroy(ctx, cc);
     if (ret != 0) {
         if (ret != KRB5_FCC_NOFILE) {
-            BAIL_ON_SMB_KRB_ERROR(ctx, ret);
+            BAIL_ON_LWIO_KRB_ERROR(ctx, ret);
         } else {
             ret = 0;
         }
@@ -329,24 +329,24 @@ SMBGSSContextBuild(
 
     gss_buffer_desc input_name = {0};
 
-    SMB_LOG_DEBUG("Build GSS Context for server [%s]", SMB_SAFE_LOG_STRING(pszServerName));
+    LWIO_LOG_DEBUG("Build GSS Context for server [%s]", SMB_SAFE_LOG_STRING(pszServerName));
 
     dwError = SMBGetServerDomain(pszServerName, &pszDomainName);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     SMBStrToUpper(pszDomainName);
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_GSS_SEC_CONTEXT),
                     (PVOID*)&pContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateStringPrintf(
                     &pContext->pszTargetName,
                     "cifs/%s@%s",
                     pszServerName,
                     pszDomainName);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pContext->state = SMB_GSS_SEC_CONTEXT_STATE_INITIAL;
 
@@ -366,7 +366,7 @@ SMBGSSContextBuild(
     dwError = SMBAllocateMemory(
                     sizeof(CtxtHandle),
                     (PVOID*)&pContext->pGSSContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *pContext->pGSSContext = GSS_C_NO_CONTEXT;
 
@@ -374,13 +374,13 @@ SMBGSSContextBuild(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszDomainName);
+    LWIO_SAFE_FREE_STRING(pszDomainName);
 
     return dwError;
 
 sec_error:
 
-    dwError = SMB_ERROR_GSS;
+    dwError = LWIO_ERROR_GSS;
 
 error:
 
@@ -426,7 +426,7 @@ SMBGSSContextNegotiate(
     static gss_OID_desc gss_spnego_mech_oid_desc =
       {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
 
-    SMB_LOG_DEBUG("Negotiate GSS Context for target [%s]", pContext->pszTargetName);
+    LWIO_LOG_DEBUG("Negotiate GSS Context for target [%s]", pContext->pszTargetName);
 
     if (pContext->state == SMB_GSS_SEC_CONTEXT_STATE_COMPLETE)
     {
@@ -472,19 +472,19 @@ SMBGSSContextNegotiate(
         case GSS_S_FAILURE:
             if (dwMinorStatus == (DWORD) KRB5KRB_AP_ERR_SKEW)
             {
-                dwError = SMB_ERROR_CLOCK_SKEW;
+                dwError = LWIO_ERROR_CLOCK_SKEW;
             }
             else
             {
-                dwError = SMB_ERROR_GSS;
+                dwError = LWIO_ERROR_GSS;
             }
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             break;
 
         default:
 
-            dwError = SMB_ERROR_GSS;
-            BAIL_ON_SMB_ERROR(dwError);
+            dwError = LWIO_ERROR_GSS;
+            BAIL_ON_LWIO_ERROR(dwError);
 
             break;
     }
@@ -494,7 +494,7 @@ SMBGSSContextNegotiate(
         dwError = SMBAllocateMemory(
                         output_desc.length,
                         (PVOID*)&pSecurityBlob);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         memcpy(pSecurityBlob, output_desc.value, output_desc.length);
 
@@ -515,7 +515,7 @@ error:
     *ppSecurityBlob = NULL;
     *pdwSecurityBlobLength = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSecurityBlob);
+    LWIO_SAFE_FREE_MEMORY(pSecurityBlob);
 
     goto cleanup;
 }
@@ -547,14 +547,14 @@ SMBGSSContextGetSessionKey(
                     NULL,
                     &sessionKey);
     smb_display_status("gss_inquire_context2", dwError, dwMinorStatus);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     assert(sessionKey.length > 0);
 
     dwError = SMBAllocateMemory(
                     sessionKey.length * sizeof(BYTE),
                     (PVOID*)&pSessionKey);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     memcpy(pSessionKey, sessionKey.value, sessionKey.length);
 
@@ -574,7 +574,7 @@ error:
     *ppSessionKey = NULL;
     *pdwSessionKeyLength = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSessionKey);
+    LWIO_SAFE_FREE_MEMORY(pSessionKey);
 
     goto cleanup;
 }
@@ -602,7 +602,7 @@ SMBGSSContextFree(
             SMBFreeMemory(pContext->pGSSContext);
         }
 
-        SMB_SAFE_FREE_STRING(pContext->pszTargetName);
+        LWIO_SAFE_FREE_STRING(pContext->pszTargetName);
 
         SMBFreeMemory(pContext);
     }
@@ -628,12 +628,12 @@ SMBGetServerCanonicalName(
 
     if (getaddrinfo(pszServerName, NULL, &hints, &pAddrInfo))
     {
-        dwError = SMB_ERROR_HOST_NOT_FOUND;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_HOST_NOT_FOUND;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateString(pAddrInfo->ai_canonname, ppszNormal);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 error:
 
@@ -662,29 +662,29 @@ SMBGetServerDomain(
     if (pDot)
     {
         dwError = SMBAllocateString(pszServerName, &pszNormal);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     else
     {
         dwError = SMBGetServerCanonicalName(pszServerName, &pszNormal);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateString(strchr(pszNormal, '.') + 1, &pszDomain);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppszDomain = pszDomain;
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pszNormal);
+    LWIO_SAFE_FREE_MEMORY(pszNormal);
 
     return dwError;
 
 error:
 
     *ppszDomain = NULL;
-    SMB_SAFE_FREE_MEMORY(pszDomain);
+    LWIO_SAFE_FREE_MEMORY(pszDomain);
 
     goto cleanup;
 }
@@ -735,14 +735,14 @@ smb_display_status_1(
             case GSS_S_COMPLETE:
             case GSS_S_CONTINUE_NEEDED:
 #endif
-                SMB_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
+                LWIO_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,
                         (char *)msg.value);
                 break;
 
             default:
 
-                SMB_LOG_ERROR("GSS-API error calling %s: %d (%s)\n",
+                LWIO_LOG_ERROR("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,
                         (char *)msg.value);
         }

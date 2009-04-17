@@ -64,10 +64,10 @@ typedef enum SMBIpcMessageType
     SMB_REFRESH_CONFIG,                   // SMB_REQUEST
     SMB_REFRESH_CONFIG_SUCCESS,           // SMB_STATUS_REPLY
     SMB_REFRESH_CONFIG_FAILED,            // SMB_STATUS_REPLY
-    SMB_SET_LOG_INFO,                     // SMB_LOG_INFO
+    SMB_SET_LOG_INFO,                     // LWIO_LOG_INFO
     SMB_SET_LOG_INFO_SUCCESS,             // SMB_STATUS_REPLY
     SMB_SET_LOG_INFO_FAILED,              // SMB_STATUS_REPLY
-    SMB_GET_LOG_INFO,                     // SMB_LOG_INFO
+    SMB_GET_LOG_INFO,                     // LWIO_LOG_INFO
     SMB_GET_LOG_INFO_SUCCESS,             // SMB_STATUS_REPLY
     SMB_GET_LOG_INFO_FAILED,              // SMB_STATUS_REPLY
 } SMBIpcMessageType;

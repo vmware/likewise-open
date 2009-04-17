@@ -24,7 +24,7 @@ SrvFileCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_FILE pFile = NULL;
 
-    SMB_LOG_DEBUG("Creating file [fid:%u]", fid);
+    LWIO_LOG_DEBUG("Creating file [fid:%u]", fid);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pFile,
@@ -54,7 +54,7 @@ SrvFileCreate(
     pFile->createDisposition = createDisposition;
     pFile->createOptions = createOptions;
 
-    SMB_LOG_DEBUG("Associating file [object:0x%x][fid:%u]",
+    LWIO_LOG_DEBUG("Associating file [object:0x%x][fid:%u]",
                     pFile,
                     fid);
 
@@ -81,7 +81,7 @@ SrvFileRelease(
     PSMB_SRV_FILE pFile
     )
 {
-    SMB_LOG_DEBUG("Releasing file [fid:%u]", pFile->fid);
+    LWIO_LOG_DEBUG("Releasing file [fid:%u]", pFile->fid);
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
@@ -95,7 +95,7 @@ SrvFileFree(
     PSMB_SRV_FILE pFile
     )
 {
-    SMB_LOG_DEBUG("Freeing file [object:0x%x][fid:%u]",
+    LWIO_LOG_DEBUG("Freeing file [object:0x%x][fid:%u]",
                     pFile,
                     pFile->fid);
 

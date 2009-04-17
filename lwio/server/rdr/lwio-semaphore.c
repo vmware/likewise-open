@@ -101,7 +101,7 @@ SMBSemaphoreWait(
     BOOLEAN bInLock = FALSE;
     int error = 0;
 
-    SMB_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
 
     while (pSemaphore->Count <= 0)
     {
@@ -112,7 +112,7 @@ SMBSemaphoreWait(
     pSemaphore->Count--;
 
 error:
-    SMB_UNLOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSemaphore->Mutex);
 
     return ntStatus;
 }
@@ -126,14 +126,14 @@ SMBSemaphorePost(
     BOOLEAN bInLock = FALSE;
     int error = 0;
 
-    SMB_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
 
     pSemaphore->Count++;
     error = pthread_cond_signal(&pSemaphore->Condition);
     assert(!error);
     ntStatus = UNIX_TO_NTSTATUS(error);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSemaphore->Mutex);
 
     return ntStatus;
 }
@@ -147,12 +147,12 @@ SMBSemaphoreDestroy(
     error = pthread_cond_destroy(&pSemaphore->Condition);
     if (error)
     {
-        SMB_LOG_ERROR("Failed to destroy semaphore condition [code: %d]", error);
+        LWIO_LOG_ERROR("Failed to destroy semaphore condition [code: %d]", error);
     }
     error = pthread_mutex_destroy(&pSemaphore->Mutex);
     if (error)
     {
-        SMB_LOG_ERROR("Failed to destroy semaphore mutex [code: %d]", error);
+        LWIO_LOG_ERROR("Failed to destroy semaphore mutex [code: %d]", error);
     }
     pSemaphore->Count = 0;
 }

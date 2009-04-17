@@ -59,7 +59,7 @@ SMBQueueCreate(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_QUEUE),
                     (PVOID*)&pQueue);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppQueue = pQueue;
 
@@ -86,7 +86,7 @@ SMBEnqueue(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_QUEUE_ITEM),
                     (PVOID*)&pQueueItem);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pQueueItem->pItem = pItem;
 
@@ -106,7 +106,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_MEMORY(pQueueItem);
+    LWIO_SAFE_FREE_MEMORY(pQueueItem);
 
     goto cleanup;
 }
@@ -157,7 +157,7 @@ SMBQueueForeach(
     for (; pQueueItem; pQueueItem = pQueueItem->pNext)
     {
         dwError = pfnAction(pQueueItem->pItem, pUserData);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 error:

@@ -133,14 +133,14 @@ RdrAcquireNegotiatedSocket(
                     &pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     if (pSocket->state == RDR_SOCKET_STATE_NOT_READY)
     {
         /* We're the first thread to use this socket.
            Go through the connect/negotiate procedure */
         pSocket->state = RDR_SOCKET_STATE_CONNECTING;
-        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
         ntStatus = SMBSocketConnect(pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -153,7 +153,7 @@ RdrAcquireNegotiatedSocket(
         ntStatus = SMBSocketWaitReady(pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
     }
 
     *ppSocket = pSocket;
@@ -166,7 +166,7 @@ error:
 
     *ppSocket = NULL;
 
-    SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     if (pSocket)
     {
@@ -196,20 +196,20 @@ RdrAcquireEstablishedSession(
         &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     if (pSession->state == RDR_SESSION_STATE_NOT_READY)
     {
         /* Begin initializing session */
         pSession->state = RDR_SESSION_STATE_INITIALIZING;
-        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
         /* Exclude other session setups on this socket */
-        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
         ntStatus = SMBSocketWaitSessionSetup(pSession->pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
         pSession->pSocket->bSessionSetupInProgress = bSessionSetupInProgress = TRUE;
-        SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
 
         ntStatus = SessionSetup(
                     pSession->pSocket,
@@ -236,16 +236,16 @@ RdrAcquireEstablishedSession(
         BAIL_ON_NT_STATUS(ntStatus);
 
         /* Wake up anyone waiting for session to be ready */
-        SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+        LWIO_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
         pSession->state = RDR_SESSION_STATE_READY;
         pthread_cond_broadcast(&pSession->event);
-        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
         /* Wake up anyone waiting for session setup exclusion */
-        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
         pSession->pSocket->bSessionSetupInProgress = bSessionSetupInProgress = FALSE;
         pthread_cond_broadcast(&pSession->pSocket->event);
-        SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
     }
     else
     {
@@ -253,7 +253,7 @@ RdrAcquireEstablishedSession(
         ntStatus = SMBSessionWaitReady(pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
     }
 
     *ppSession = pSession;
@@ -268,13 +268,13 @@ error:
 
     if (bSessionSetupInProgress)
     {
-        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
         pSession->pSocket->bSessionSetupInProgress = FALSE;
         pthread_cond_broadcast(&pSession->pSocket->event);
     }
 
-    SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
-    SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     if (pSession)
     {
@@ -305,19 +305,19 @@ RdrAcquireConnectedTree(
         &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
 
     if (pTree->state == RDR_TREE_STATE_NOT_READY)
     {
         pTree->state = RDR_TREE_STATE_INITIALIZING;
-        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
 
         /* Exclude other tree connects in this session */
-        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
         ntStatus = SMBSessionWaitTreeConnect(pTree->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
         pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = TRUE;
-        SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
         ntStatus = SMBMbsToWc16s(pTree->pszPath, &pwszPath);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -328,23 +328,23 @@ RdrAcquireConnectedTree(
         ntStatus = SMBSrvClientSessionAddTreeById(pTree->pSession, pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SMB_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
+        LWIO_LOCK_MUTEX(bInTreeLock, &pTree->mutex);
         pTree->state = RDR_TREE_STATE_READY;
         pthread_cond_broadcast(&pTree->event);
-        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
 
         /* Wake up anyone waiting for tree connect exclusion */
-        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
         pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
         pthread_cond_broadcast(&pTree->pSession->event);
-        SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
     }
     else
     {
         ntStatus = SMBTreeWaitReady(pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+        LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
     }
 
     *ppTree = pTree;
@@ -361,13 +361,13 @@ error:
 
     if (bTreeConnectInProgress)
     {
-        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
         pTree->pSession->bTreeConnectInProgress = bTreeConnectInProgress = FALSE;
         pthread_cond_broadcast(&pTree->pSession->event);
     }
 
-    SMB_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
-    SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInTreeLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
     if (pTree)
     {
@@ -390,7 +390,7 @@ SMBSrvClientTreeCreate(
     BOOLEAN   bInLock = FALSE;
     PSMB_SESSION pSession = *ppSession;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashGetValue(
                 pSession->pTreeHashByPath,
@@ -425,7 +425,7 @@ SMBSrvClientTreeCreate(
         *ppSession = NULL;
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     *ppTree = pTree;
 
@@ -435,7 +435,7 @@ cleanup:
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     *ppTree = NULL;
 
@@ -456,7 +456,7 @@ SMBSrvClientTreeAddResponse(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     /* @todo: if we allocate the MID outside of this function, we need to
        check for a conflict here */
@@ -476,7 +476,7 @@ SMBSrvClientTreeAddResponse(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 

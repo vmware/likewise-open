@@ -128,7 +128,7 @@ SMBPacketAllocate(
 
     pPacketAllocator = hPacketAllocator;
 
-    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     if (pPacketAllocator->pFreePacketStack)
     {
@@ -150,7 +150,7 @@ SMBPacketAllocate(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     return ntStatus;
 
@@ -180,7 +180,7 @@ SMBPacketFree(
 
     pPacketAllocator = hPacketAllocator;
 
-    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     /* If the len is greater than our current allocator len, adjust */
     /* @todo: make free list configurable */
@@ -195,7 +195,7 @@ SMBPacketFree(
         SMBFreeMemory(pPacket);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 }
 
 NTSTATUS
@@ -212,7 +212,7 @@ SMBPacketBufferAllocate(
 
     pPacketAllocator = hPacketAllocator;
 
-    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     /* If the len is greater than our current allocator len, adjust */
     if (len > pPacketAllocator->freeBufferLen)
@@ -243,7 +243,7 @@ SMBPacketBufferAllocate(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     return ntStatus;
 
@@ -264,7 +264,7 @@ SMBPacketBufferFree(
 
     pPacketAllocator = hPacketAllocator;
 
-    SMB_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 
     /* If the len is greater than our current allocator len, adjust */
     /* @todo: make free list configurable */
@@ -282,7 +282,7 @@ SMBPacketBufferFree(
         SMBFreeMemory(pBuffer);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pPacketAllocator->mutex);
 }
 
 VOID
@@ -525,7 +525,7 @@ cleanup:
 
 error:
 
-    SMB_LOG_WARNING("SMB Packet verification failed (status = 0x%08X)", ntStatus);
+    LWIO_LOG_WARNING("SMB Packet verification failed (status = 0x%08X)", ntStatus);
 
     goto cleanup;
 }

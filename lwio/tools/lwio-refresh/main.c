@@ -81,19 +81,19 @@ main(
     if (geteuid() != 0) {
         fprintf(stderr, "This program requires super-user privileges.\n");
         dwError = EACCES;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     ParseArgs(argc, argv);
 
     dwError = LwIoInitialize();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBRefreshConfiguration((HANDLE) pContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -132,7 +132,7 @@ error:
             }
         }
 
-        SMB_SAFE_FREE_STRING(pszErrorBuffer);
+        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -205,7 +205,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = SMB_ERROR_SERVER_UNREACHABLE;
+            dwError2 = LWIO_ERROR_SERVER_UNREACHABLE;
 
             break;
 

@@ -58,7 +58,7 @@ SMBInitLogging_r(
 {
     DWORD dwError = 0;
     
-    SMB_LOCK_LOGGER;
+    LWIO_LOCK_LOGGER;
     
     dwError = SMBInitLogging(
                     pszProgramName,
@@ -66,39 +66,39 @@ SMBInitLogging_r(
                     maxAllowedLogLevel,
                     pszPath);
     
-    SMB_UNLOCK_LOGGER;
+    LWIO_UNLOCK_LOGGER;
     
     return dwError;
 }
 
 DWORD
 SMBLogGetInfo_r(
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     )
 {
     DWORD dwError = 0;
     
-    SMB_LOCK_LOGGER;
+    LWIO_LOCK_LOGGER;
     
     dwError = SMBLogGetInfo(ppLogInfo);
     
-    SMB_UNLOCK_LOGGER;
+    LWIO_UNLOCK_LOGGER;
     
     return dwError;    
 }
 
 DWORD
 SMBLogSetInfo_r(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     )
 {
     DWORD dwError = 0;
     
-    SMB_LOCK_LOGGER;
+    LWIO_LOCK_LOGGER;
     
     dwError = SMBLogSetInfo(pLogInfo);
     
-    SMB_UNLOCK_LOGGER;
+    LWIO_UNLOCK_LOGGER;
     
     return dwError;        
 }
@@ -110,11 +110,11 @@ SMBShutdownLogging_r(
 {
     DWORD dwError = 0;
     
-    SMB_LOCK_LOGGER;
+    LWIO_LOCK_LOGGER;
     
     dwError = SMBShutdownLogging();
     
-    SMB_UNLOCK_LOGGER;
+    LWIO_UNLOCK_LOGGER;
     
     return dwError;
 }

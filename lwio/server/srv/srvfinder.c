@@ -323,7 +323,7 @@ SrvFinderCreateSearchSpace(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     usCandidateSearchId = pFinderRepository->usNextSearchId;
 
@@ -395,7 +395,7 @@ SrvFinderCreateSearchSpace(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     return ntStatus;
 
@@ -431,7 +431,7 @@ SrvFinderGetSearchSpace(
 
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
-    SMB_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     ntStatus = LwRtlRBTreeFind(
                     pFinderRepository->pSearchSpaceCollection,
@@ -445,7 +445,7 @@ SrvFinderGetSearchSpace(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     return ntStatus;
 
@@ -478,7 +478,7 @@ SrvFinderGetSearchResults(
     PSRV_SEARCH_SPACE pSearchSpace = (PSRV_SEARCH_SPACE)hSearchSpace;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSearchSpace->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSearchSpace->mutex);
 
     switch (pSearchSpace->infoLevel)
     {
@@ -625,7 +625,7 @@ SrvFinderGetSearchResults(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSearchSpace->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSearchSpace->mutex);
 
     return ntStatus;
 
@@ -1834,7 +1834,7 @@ SrvFinderCloseSearchSpace(
 
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
-    SMB_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     ntStatus = LwRtlRBTreeRemove(
                     pFinderRepository->pSearchSpaceCollection,
@@ -1843,7 +1843,7 @@ SrvFinderCloseSearchSpace(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
     return ntStatus;
 

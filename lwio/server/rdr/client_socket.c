@@ -137,7 +137,7 @@ _FindOrCreateSocket(
     PSMB_SOCKET pSocket = NULL;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     ntStatus = SMBHashGetValue(
         gRdrRuntime.pSocketHashByName,
@@ -163,13 +163,13 @@ _FindOrCreateSocket(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     *ppSocket = pSocket;
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     return ntStatus;
 
@@ -189,7 +189,7 @@ SMBSrvClientSocketAddSessionByPrincipal(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* @todo: check for race */
     ntStatus = SMBHashSetValue(
@@ -200,7 +200,7 @@ SMBSrvClientSocketAddSessionByPrincipal(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -218,7 +218,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashRemoveKey(
                     pSocket->pSessionHashByPrincipal,
@@ -227,7 +227,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -245,7 +245,7 @@ SMBSrvClientSocketAddSessionByUID(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* No need to check for a race here; the principal hash is always checked
        first */
@@ -257,7 +257,7 @@ SMBSrvClientSocketAddSessionByUID(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -275,7 +275,7 @@ SMBSrvClientSocketRemoveSessionByUID(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashRemoveKey(
                     pSocket->pSessionHashByUID,
@@ -287,7 +287,7 @@ SMBSrvClientSocketRemoveSessionByUID(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 

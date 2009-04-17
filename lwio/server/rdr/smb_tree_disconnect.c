@@ -95,7 +95,7 @@ TreeDisconnect(
        size of bytecount against the size of the remaining packet bytes. */
     packet.pData = packet.pParams;          /* ByteCount */
     packet.bufferUsed += sizeof(uint16_t);
-    *((uint16_t *) packet.pData) = 0;
+    memset(packet.pData, 0, sizeof(uint16_t));
 
     // no byte order conversions necessary (due to zeros)
 

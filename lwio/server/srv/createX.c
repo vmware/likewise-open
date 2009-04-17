@@ -225,7 +225,7 @@ error:
                         pFile->fid);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
+            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%d][Fid:%d][code:%d]",
                           pTree->tid,
                           pFile->fid,
                           ntStatus2);

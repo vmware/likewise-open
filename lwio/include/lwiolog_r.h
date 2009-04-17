@@ -60,12 +60,12 @@ SMBInitLogging_r(
 
 DWORD
 SMBLogGetInfo_r(
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     );
 
 DWORD
 SMBLogSetInfo_r(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     );
 
 DWORD

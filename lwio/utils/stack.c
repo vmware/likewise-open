@@ -59,14 +59,14 @@ SMBStackPush(
     PSMB_STACK pStack = NULL;
 
     if (!ppStack) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_STACK),
                     (PVOID*)&pStack);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pStack->pItem = pItem;
 
@@ -186,7 +186,7 @@ SMBStackForeach(
     for (; pIter; pIter = pIter->pNext)
     {
         dwError = pfnAction(pIter->pItem, pUserData);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 cleanup:

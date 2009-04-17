@@ -251,7 +251,7 @@ error:
 
     if (!IsNullOrEmptyString(pszError))
     {
-       SMB_LOG_ERROR("%s", pszError);
+       LWIO_LOG_ERROR("%s", pszError);
     }
 
     goto cleanup;
@@ -306,7 +306,7 @@ SrvShareDbAdd(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     ntStatus = SrvShareDbAdd_inlock(
                     pShareDBContext,
@@ -320,7 +320,7 @@ SrvShareDbAdd(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 
@@ -396,7 +396,7 @@ error:
 
     if (!IsNullOrEmptyString(pszError))
     {
-       SMB_LOG_ERROR("%s", pszError);
+       LWIO_LOG_ERROR("%s", pszError);
     }
 
     goto cleanup;
@@ -685,7 +685,7 @@ SrvShareDbEnum(
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     ntStatus = SrvShareDbEnum_inlock(
                       pShareDBContext,
@@ -696,7 +696,7 @@ SrvShareDbEnum(
                       pulNumSharesFound
 		      );
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 }
@@ -783,7 +783,7 @@ error:
 
     if (pszError)
     {
-        SMB_LOG_ERROR("%s", pszError);
+        LWIO_LOG_ERROR("%s", pszError);
     }
 
     if (ppShareInfoList)
@@ -820,7 +820,7 @@ SrvShareDbFindByName(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_LOOKUP_SHARE_BY_NAME, pszShareName);
 
@@ -872,7 +872,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     if (ppShareInfoList)
     {
@@ -885,7 +885,7 @@ error:
 
     if (pszError)
     {
-        SMB_LOG_ERROR("%s", pszError);
+        LWIO_LOG_ERROR("%s", pszError);
     }
 
     goto cleanup;
@@ -1045,7 +1045,7 @@ SrvShareDbDelete(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    //    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    //    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_DELETE_SHARE,
@@ -1070,7 +1070,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    //    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    //    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 
@@ -1078,7 +1078,7 @@ error:
 
     if (pszError)
     {
-        SMB_LOG_ERROR("%s", pszError);
+        LWIO_LOG_ERROR("%s", pszError);
     }
 
     goto cleanup;
@@ -1099,7 +1099,7 @@ SrvShareDbGetCount(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     ntStatus = sqlite3_get_table(pDbHandle,
                                 DB_QUERY_COUNT_EXISTING_SHARES,
@@ -1128,7 +1128,7 @@ cleanup:
        sqlite3_free(pszError);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
 
     return ntStatus;
 
@@ -1138,7 +1138,7 @@ error:
 
     if (pszError)
     {
-        SMB_LOG_ERROR("%s", pszError);
+        LWIO_LOG_ERROR("%s", pszError);
     }
 
     goto cleanup;

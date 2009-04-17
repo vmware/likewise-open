@@ -424,7 +424,7 @@ NtIpcLWMsgStatusToNtStatus(
         break;
         
     default:
-        SMB_LOG_ERROR("Failed to map lwmsg error %", LwMsgStatus);
+        LWIO_LOG_ERROR("Failed to map lwmsg error %", LwMsgStatus);
         status = STATUS_NONE_MAPPED;
         break;
     }

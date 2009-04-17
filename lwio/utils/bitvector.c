@@ -59,18 +59,18 @@ SMBBitVectorCreate(
     if (!dwNumBits)
     {
         dwError = ERANGE;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_BIT_VECTOR),
                     (PVOID*)&pBitVector);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateMemory(
                     (((dwNumBits-1)/(sizeof(DWORD)*8)) + 1) * sizeof(DWORD),
                     (PVOID*)&pBitVector->pVector);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pBitVector->dwNumBits = dwNumBits;
 
@@ -97,7 +97,7 @@ SMBBitVectorFree(
     PSMB_BIT_VECTOR pBitVector
     )
 {
-    SMB_SAFE_FREE_MEMORY(pBitVector->pVector);
+    LWIO_SAFE_FREE_MEMORY(pBitVector->pVector);
     SMBFreeMemory(pBitVector);
 }
 
@@ -123,8 +123,8 @@ SMBBitVectorSetBit(
     if (!pBitVector->pVector ||
         (iBit >= pBitVector->dwNumBits))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pBitVector->pVector[iBit/(sizeof(DWORD)*8)] |= (1 << (iBit % (sizeof(DWORD)*8)));
@@ -145,8 +145,8 @@ SMBBitVectorUnsetBit(
     if (!pBitVector->pVector ||
         (iBit >= pBitVector->dwNumBits))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pBitVector->pVector[iBit/(sizeof(DWORD)*8)] &= ~(1 << (iBit %(sizeof(DWORD)*8)));
@@ -170,8 +170,8 @@ SMBBitVectorFirstUnsetBit(
 
     if (!pBitVector->pVector)
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwNSets = (pBitVector->dwNumBits/(sizeof(DWORD) * 8)) + 1;
@@ -199,8 +199,8 @@ SMBBitVectorFirstUnsetBit(
 
     if (!bFound || (dwUnsetBit >= pBitVector->dwNumBits))
     {
-        dwError = SMB_ERROR_NO_BIT_AVAILABLE;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_NO_BIT_AVAILABLE;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *pdwUnsetBit = dwUnsetBit;

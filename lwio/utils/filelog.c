@@ -61,7 +61,7 @@ SMBOpenFileLog(
     
     if (IsNullOrEmptyString(pszFilePath))
     {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
         goto error;
     }
     
@@ -118,34 +118,34 @@ error:
 DWORD
 SMBGetFileLogInfo(
     HANDLE hLog,
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     )
 {
     DWORD dwError = 0;
-    PSMB_LOG_INFO pLogInfo = NULL;
+    PLWIO_LOG_INFO pLogInfo = NULL;
     PSMB_FILE_LOG pFileLog = (PSMB_FILE_LOG)hLog;
     
     BAIL_ON_INVALID_HANDLE(hLog);
     
-    if ((gSMBLogTarget != SMB_LOG_TARGET_FILE) ||
+    if ((gSMBLogTarget != LWIO_LOG_TARGET_FILE) ||
         IsNullOrEmptyString(pFileLog->pszFilePath))
     {
-        dwError = SMB_ERROR_INTERNAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INTERNAL;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_LOG_INFO),
+                    sizeof(LWIO_LOG_INFO),
                     (PVOID*)&pLogInfo);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
     
-    pLogInfo->logTarget = SMB_LOG_TARGET_FILE;
+    pLogInfo->logTarget = LWIO_LOG_TARGET_FILE;
     pLogInfo->maxAllowedLogLevel = gSMBMaxLogLevel;
     
     dwError = SMBAllocateString(
                     pFileLog->pszFilePath,
                     &pLogInfo->pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
     
     *ppLogInfo = pLogInfo;
     
@@ -197,44 +197,44 @@ SMBLogToFile(
     
     switch (logLevel)
     {
-        case SMB_LOG_LEVEL_ALWAYS:
+        case LWIO_LOG_LEVEL_ALWAYS:
         {
-            pszEntryType = SMB_INFO_TAG;
+            pszEntryType = LWIO_INFO_TAG;
             break;
         }
-        case SMB_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_ERROR:
         {
-            pszEntryType = SMB_ERROR_TAG;
-            break;
-        }
-
-        case SMB_LOG_LEVEL_WARNING:
-        {
-            pszEntryType = SMB_WARN_TAG;
+            pszEntryType = LWIO_ERROR_TAG;
             break;
         }
 
-        case SMB_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_WARNING:
         {
-            pszEntryType = SMB_INFO_TAG;
+            pszEntryType = LWIO_WARN_TAG;
             break;
         }
 
-        case SMB_LOG_LEVEL_VERBOSE:
+        case LWIO_LOG_LEVEL_INFO:
         {
-            pszEntryType = SMB_VERBOSE_TAG;
+            pszEntryType = LWIO_INFO_TAG;
             break;
         }
 
-        case SMB_LOG_LEVEL_DEBUG:
+        case LWIO_LOG_LEVEL_VERBOSE:
         {
-            pszEntryType = SMB_DEBUG_TAG;
+            pszEntryType = LWIO_VERBOSE_TAG;
+            break;
+        }
+
+        case LWIO_LOG_LEVEL_DEBUG:
+        {
+            pszEntryType = LWIO_DEBUG_TAG;
             break;
         }
 
         default:
         {
-            pszEntryType = SMB_VERBOSE_TAG;
+            pszEntryType = LWIO_VERBOSE_TAG;
             break;
         }
     }
@@ -242,7 +242,7 @@ SMBLogToFile(
     currentTime = time(NULL);
     localtime_r(&currentTime, &tmp);
 
-    strftime(timeBuf, sizeof(timeBuf), SMB_LOG_TIME_FORMAT, &tmp);
+    strftime(timeBuf, sizeof(timeBuf), LWIO_LOG_TIME_FORMAT, &tmp);
 
     fprintf(pFileLog->fp, "%s:%s:", timeBuf, pszEntryType);
     vfprintf(pFileLog->fp, pszFormat, msgList);
@@ -260,7 +260,7 @@ SMBFreeFileLogInfo(
         fclose(pFileLog->fp);
     }
 
-    SMB_SAFE_FREE_STRING(pFileLog->pszFilePath);
+    LWIO_SAFE_FREE_STRING(pFileLog->pszFilePath);
     
     SMBFreeMemory(pFileLog);
 }

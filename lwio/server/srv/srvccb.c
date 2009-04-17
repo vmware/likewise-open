@@ -66,7 +66,7 @@ SrvCCBGet(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
+    LWIO_LOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 
     ntStatus = SrvCCBFind(pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -77,7 +77,7 @@ SrvCCBGet(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 
     return ntStatus;
 
@@ -118,7 +118,7 @@ SrvCCBAdd(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
+    LWIO_LOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 
     ntStatus = SrvCCBFind(pCCB);
     if (ntStatus == 0)
@@ -133,7 +133,7 @@ SrvCCBAdd(
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 
     return ntStatus;
 }

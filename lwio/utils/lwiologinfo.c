@@ -49,9 +49,9 @@
 
 VOID
 SMBFreeLogInfo(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     )
 {
-    SMB_SAFE_FREE_STRING(pLogInfo->pszPath);
+    LWIO_SAFE_FREE_STRING(pLogInfo->pszPath);
     SMBFreeMemory(pLogInfo);
 }

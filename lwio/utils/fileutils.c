@@ -59,7 +59,7 @@ SMBRemoveFile(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         } else {
             break;
         }
@@ -91,7 +91,7 @@ SMBCheckFileExists(
              break;
            }
            dwError = errno;
-           BAIL_ON_SMB_ERROR(dwError);
+           BAIL_ON_LWIO_ERROR(dwError);
         } else {
           *pbFileExists = 1;
           break;
@@ -124,7 +124,7 @@ SMBCheckSockExists(
              break;
            }
            dwError = errno;
-           BAIL_ON_SMB_ERROR(dwError);
+           BAIL_ON_LWIO_ERROR(dwError);
         } else {
           *pbSockExists = (((statbuf.st_mode & S_IFMT) == S_IFSOCK) ? TRUE : FALSE);
           break;
@@ -165,7 +165,7 @@ SMBChangePermissions(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         } else {
             break;
         }
@@ -188,7 +188,7 @@ SMBChangeOwner(
     
     if (lstat(pszPath, &statbuf) < 0) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     
     while (1) {
@@ -200,7 +200,7 @@ SMBChangeOwner(
                     continue;
                 }
                 dwError = errno;
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
             } else {
                 break;
             }
@@ -212,7 +212,7 @@ SMBChangeOwner(
                     continue;
                 }
                 dwError = errno;
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
             } else {
                 break;
             }
@@ -235,10 +235,10 @@ SMBChangeOwnerAndPermissions(
     DWORD dwError = 0;
 
     dwError = SMBChangeOwner(pszPath, uid, gid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBChangePermissions(pszPath, dwFileMode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 error:
 
@@ -275,7 +275,7 @@ SMBRemoveDirectory(
 
     if ((pDir = opendir(pszPath)) == NULL) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     while ((pDirEntry = readdir(pDir)) != NULL) {
@@ -290,22 +290,22 @@ SMBRemoveDirectory(
 
         if (stat(szBuf, &statbuf) < 0) {
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
 
         if ((statbuf.st_mode & S_IFMT) == S_IFDIR) {
             dwError = SMBRemoveDirectory(szBuf);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             if (rmdir(szBuf) < 0) {
                 dwError = errno;
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
             }
 
         } else {
 
             dwError = SMBRemoveFile(szBuf);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
         }
     }
@@ -342,7 +342,7 @@ SMBCheckDirectoryExists(
                 break;
             }
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
         }
 
@@ -370,11 +370,11 @@ SMBGetCurrentDirectoryPath(
 
     if (getcwd(szBuf, PATH_MAX) == NULL) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateString(szBuf, &pszPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppszPath = pszPath;
 
@@ -412,7 +412,7 @@ SMBCreateDirectoryRecursive(
 
         dwError = SMBAllocateMemory(strlen(pszCurDirPath)+strlen(pszToken)+2,
                                    (PVOID*)&pszDirPath);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         sprintf(pszDirPath,
                 "%s/%s",
@@ -421,18 +421,18 @@ SMBCreateDirectoryRecursive(
 
 
         dwError = SMBCheckDirectoryExists(pszDirPath, &bDirExists);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         if (!bDirExists) {
             if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
                 dwError = errno;
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
             }
             bDirCreated = TRUE;
         }
 
         dwError = SMBChangeDirectory(pszDirPath);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         dwError = SMBCreateDirectoryRecursive(
             pszDirPath,
@@ -442,12 +442,12 @@ SMBCreateDirectoryRecursive(
             dwWorkingFileMode,
             iPart+1
             );
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (bDirCreated && (dwFileMode != dwWorkingFileMode)) {
         dwError = SMBChangePermissions(pszDirPath, dwFileMode);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     if (pszDirPath) {
         SMBFreeMemory(pszDirPath);
@@ -482,7 +482,7 @@ SMBCreateDirectory(
 
     if (pszPath == NULL || *pszPath == '\0') {
         dwError = EINVAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwWorkingFileMode = dwFileMode;
@@ -495,22 +495,22 @@ SMBCreateDirectory(
     }
 
     dwError = SMBGetCurrentDirectoryPath(&pszCurDirPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateString(pszPath, &pszTmpPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (*pszPath == '/') {
         dwError = SMBChangeDirectory("/");
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         dwError = SMBCreateDirectoryRecursive("/", pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
     } else {
 
         dwError = SMBCreateDirectoryRecursive(pszCurDirPath, pszTmpPath, &pszTmp, dwFileMode, dwWorkingFileMode, 0);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
     }
 
@@ -546,7 +546,7 @@ SMBGetOwnerAndPermissions(
 
     if (stat(pszSrcPath, &statbuf) < 0) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *uid = statbuf.st_uid;
@@ -577,24 +577,24 @@ SMBCopyFileWithPerms(
     if (IsNullOrEmptyString(pszSrcPath) ||
         IsNullOrEmptyString(pszDstPath)) {
         dwError = EINVAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateMemory(strlen(pszDstPath)+strlen(pszTmpSuffix)+2,
                                (PVOID*)&pszTmpPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     strcpy(pszTmpPath, pszDstPath);
     strcat(pszTmpPath, pszTmpSuffix);
 
     if ((iFd = open(pszSrcPath, O_RDONLY, S_IRUSR)) < 0) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if ((oFd = open(pszTmpPath, O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR)) < 0) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     bRemoveFile = TRUE;
@@ -606,7 +606,7 @@ SMBCopyFileWithPerms(
                 continue;
 
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
 
         if (dwBytesRead == 0)
@@ -618,7 +618,7 @@ SMBCopyFileWithPerms(
                 continue;
 
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
         }
 
@@ -628,12 +628,12 @@ SMBCopyFileWithPerms(
     close(oFd); oFd = -1;
 
     dwError = SMBMoveFile(pszTmpPath, pszDstPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     bRemoveFile = FALSE;
 
     dwError = SMBChangePermissions(pszDstPath, dwPerms);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 error:
 
@@ -648,7 +648,7 @@ error:
         SMBRemoveFile(pszTmpPath);
     }
 
-    SMB_SAFE_FREE_STRING (pszTmpPath);
+    LWIO_SAFE_FREE_STRING (pszTmpPath);
 
     return dwError;
 }
@@ -666,13 +666,13 @@ SMBCopyFileWithOriginalPerms(
     mode_t mode;
 
     dwError = SMBGetOwnerAndPermissions(pszSrcPath, &uid, &gid, &mode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBCopyFileWithPerms(pszSrcPath, pszDstPath, mode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBChangeOwnerAndPermissions(pszDstPath, uid, gid, mode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 error:
 
@@ -689,7 +689,7 @@ SMBBackupFile(
     CHAR    szBackupPath[PATH_MAX];
 
     dwError = SMBCheckFileExists(pszPath, &bExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (!bExists)
     {
@@ -700,7 +700,7 @@ SMBBackupFile(
     sprintf(szBackupPath, "%s.likewise_lsass.orig", pszPath);
 
     dwError = SMBCheckFileExists(szBackupPath, &bExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (bExists)
     {
@@ -708,7 +708,7 @@ SMBBackupFile(
     }
 
     dwError = SMBCopyFileWithOriginalPerms(pszPath, szBackupPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 done:
 error:
@@ -735,7 +735,7 @@ SMBGetSymlinkTarget(
              continue;
 
           dwError = errno;
-          BAIL_ON_SMB_ERROR(dwError);
+          BAIL_ON_LWIO_ERROR(dwError);
        }
 
        break;
@@ -744,7 +744,7 @@ SMBGetSymlinkTarget(
     dwError = SMBAllocateString(
                     szBuf,
                     &pszTargetPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
     
     *ppszTargetPath = pszTargetPath;
     
@@ -756,7 +756,7 @@ error:
 
     *ppszTargetPath = NULL;
     
-    SMB_SAFE_FREE_STRING(pszTargetPath);
+    LWIO_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
 }
@@ -788,7 +788,7 @@ SMBCopyDirectory(
     
     if (NULL == (pDir = opendir(pszSourceDirPath))) {
        dwError = errno;
-       BAIL_ON_SMB_ERROR(dwError);
+       BAIL_ON_LWIO_ERROR(dwError);
     }
     
     while (NULL != (pDirEntry = readdir(pDir)))
@@ -804,7 +804,7 @@ SMBCopyDirectory(
         
         if (lstat(szSrcPath, &statbuf) < 0) {
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
 
         sprintf(szDstPath, "%s/%s", pszDestDirPath, pDirEntry->d_name);
@@ -814,51 +814,51 @@ SMBCopyDirectory(
             dwError = SMBCreateDirectory(
                             szDstPath,
                             statbuf.st_mode);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             dwError = SMBCopyDirectory(
                             szSrcPath,
                             ownerUid,
                             ownerGid,
                             szDstPath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
         } else if (S_ISREG(statbuf.st_mode)) {
             
             dwError = SMBCopyFileWithOriginalPerms(
                             szSrcPath,
                             szDstPath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
         } else if (S_ISLNK(statbuf.st_mode)) {
             
             dwError = SMBGetSymlinkTarget(
                             szSrcPath,
                             &pszTargetPath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             dwError = SMBCreateSymlink(
                             pszTargetPath,
                             szDstPath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
     }
     
@@ -868,7 +868,7 @@ cleanup:
         closedir(pDir);
     }
     
-    SMB_SAFE_FREE_STRING(pszTargetPath);
+    LWIO_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
     
@@ -908,26 +908,26 @@ SMBGetMatchingFilePathsInFolder(
     BOOLEAN bDirExists = FALSE;
 
     dwError = SMBCheckDirectoryExists(pszDirPath, &bDirExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if(!bDirExists) {
         dwError = ENOENT;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (regcomp(&rx, pszFileNameRegExp, REG_EXTENDED) != 0) {
-        dwError = SMB_ERROR_REGEX_COMPILE_FAILED;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_REGEX_COMPILE_FAILED;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     rxAllocated = TRUE;
 
     dwError = SMBAllocateMemory(sizeof(regmatch_t), (PVOID*)&pResult);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pDir = opendir(pszDirPath);
     if (!pDir) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     while ((pDirEntry = readdir(pDir)) != NULL) {
@@ -954,7 +954,7 @@ SMBGetMatchingFilePathsInFolder(
                 continue;
             }
             dwError = errno;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
 
         /*
@@ -967,10 +967,10 @@ SMBGetMatchingFilePathsInFolder(
             dwNPaths++;
 
             dwError = SMBAllocateMemory(sizeof(PATHNODE), (PVOID*)&pPathNode);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             dwError = SMBAllocateString(szBuf, &pPathNode->pszPath);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             pPathNode->pNext = pPathList;
             pPathList = pPathNode;
@@ -981,7 +981,7 @@ SMBGetMatchingFilePathsInFolder(
     if (pPathList) {
         dwError = SMBAllocateMemory(sizeof(PSTR)*dwNPaths,
                                     (PVOID*)&ppszHostFilePaths);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
         /*
          *  The linked list is in reverse.
          *  Assign values in reverse to get it right
@@ -1002,14 +1002,14 @@ SMBGetMatchingFilePathsInFolder(
 cleanup:
 
     if (pPathNode) {
-        SMB_SAFE_FREE_STRING(pPathNode->pszPath);
+        LWIO_SAFE_FREE_STRING(pPathNode->pszPath);
         SMBFreeMemory(pPathNode);
     }
 
     while(pPathList) {
         pPathNode = pPathList;
         pPathList = pPathList->pNext;
-        SMB_SAFE_FREE_STRING(pPathNode->pszPath);
+        LWIO_SAFE_FREE_STRING(pPathNode->pszPath);
         SMBFreeMemory(pPathNode);
     }
 
@@ -1017,7 +1017,7 @@ cleanup:
         regfree(&rx);
     }
 
-    SMB_SAFE_FREE_MEMORY(pResult);
+    LWIO_SAFE_FREE_MEMORY(pResult);
 
     if (pDir) {
         closedir(pDir);

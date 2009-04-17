@@ -103,7 +103,7 @@ LwIoCloseContext(
             LWMsgStatus status = lwmsg_assoc_close(pContext->pAssoc);
             if (status)
             {
-                SMB_LOG_ERROR("Failed to close association [Error code:%d]", status);
+                LWIO_LOG_ERROR("Failed to close association [Error code:%d]", status);
             }
 
             lwmsg_assoc_delete(pContext->pAssoc);

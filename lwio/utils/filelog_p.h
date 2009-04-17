@@ -72,7 +72,7 @@ SMBLogToFile(
 DWORD
 SMBGetFileLogInfo(
     HANDLE hLog,
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     );
 
 DWORD

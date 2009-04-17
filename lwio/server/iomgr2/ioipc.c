@@ -61,7 +61,7 @@ IopIpcCleanupFileHandle(
         NTSTATUS status = IoCloseFile(fileHandle);
         if (status)
         {
-            SMB_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
+            LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
             assert(FALSE);
         }
     }

@@ -50,17 +50,17 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-#define SMB_ERROR_TAG   "ERROR"
-#define SMB_WARN_TAG    "WARNING"
-#define SMB_INFO_TAG    "INFO"
-#define SMB_VERBOSE_TAG "VERBOSE"
-#define SMB_DEBUG_TAG   "DEBUG"
+#define LWIO_ERROR_TAG   "ERROR"
+#define LWIO_WARN_TAG    "WARNING"
+#define LWIO_INFO_TAG    "INFO"
+#define LWIO_VERBOSE_TAG "VERBOSE"
+#define LWIO_DEBUG_TAG   "DEBUG"
 
-#define SMB_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
+#define LWIO_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 
 extern HANDLE              ghSMBLog;
 extern SMBLogLevel         gSMBLsaMaxLogLevel;
 extern SMBLogTarget        gSMBLogTarget;
-extern PFN_SMB_LOG_MESSAGE gpfnSMBLogger;
+extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 
 #endif /* __EXTERNS_H__ */

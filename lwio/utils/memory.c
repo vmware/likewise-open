@@ -151,14 +151,14 @@ SMBAllocateString(
     PSTR  pszOutputString = NULL;
 
     if (!pszInputString) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwLen = strlen(pszInputString);
 
     dwError = SMBAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (dwLen) {
        memcpy(pszOutputString, pszInputString, dwLen);
@@ -172,7 +172,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszOutputString);
+    LWIO_SAFE_FREE_STRING(pszOutputString);
 
     *ppszOutputString = NULL;
 

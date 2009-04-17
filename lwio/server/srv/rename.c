@@ -154,7 +154,7 @@ SrvExecuteRename(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvBuildFilePath(
                     pTree->pShareInfo->pwszPath,
@@ -184,7 +184,7 @@ SrvExecuteRename(
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     oldName.FileName = pwszOldPath;
     newName.FileName = pwszNewName;
@@ -234,7 +234,7 @@ SrvExecuteRename(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     if (hFile)
     {

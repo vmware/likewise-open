@@ -85,13 +85,13 @@ static LWMsgTypeSpec gStatusReplySpec[] =
 static LWMsgTypeSpec gLogInfoSpec[] =
 {
     /* Begin structure */
-    LWMSG_STRUCT_BEGIN(SMB_LOG_INFO),
+    LWMSG_STRUCT_BEGIN(LWIO_LOG_INFO),
     /* 32-bit unsigned integer */
-    LWMSG_MEMBER_UINT32(SMB_LOG_INFO, maxAllowedLogLevel),
+    LWMSG_MEMBER_UINT32(LWIO_LOG_INFO, maxAllowedLogLevel),
     /* 32-bit unsigned integer */
-    LWMSG_MEMBER_UINT32(SMB_LOG_INFO, logTarget),
+    LWMSG_MEMBER_UINT32(LWIO_LOG_INFO, logTarget),
     /* path - marshal as pointer to string */
-    LWMSG_MEMBER_PSTR(SMB_LOG_INFO, pszPath),
+    LWMSG_MEMBER_PSTR(LWIO_LOG_INFO, pszPath),
     /* End structure */
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END

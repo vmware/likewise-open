@@ -43,8 +43,8 @@ SMBAllocateStringW(
     PWSTR  pwszOutputString = NULL;
 
     if (!pwszInputString) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     sLen = wc16slen(pwszInputString);
@@ -52,7 +52,7 @@ SMBAllocateStringW(
     dwError = SMBAllocateMemory(
                     (sLen + 1 ) * sizeof(wchar16_t),
                     (PVOID *)&pwszOutputString);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (sLen)
     {
@@ -67,7 +67,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_MEMORY(pwszOutputString);
+    LWIO_SAFE_FREE_MEMORY(pwszOutputString);
 
     *ppwszOutputString = NULL;
 
@@ -84,14 +84,14 @@ SMBMbsToWc16s(
     PWSTR pwszOutput = NULL;
 
     if (!pszInput) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pwszOutput = ambstowc16s(pszInput);
     if (!pwszOutput) {
-        dwError = SMB_ERROR_STRING_CONV_FAILED;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_STRING_CONV_FAILED;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *ppwszOutput = pwszOutput;
@@ -119,27 +119,27 @@ SMBWc16snToMbs(
     PSTR pszOutput = NULL;
 
     if (!pwszInput) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pwszTruncated = _wc16sndup(pwszInput, sMaxChars);
     if (!pwszTruncated) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pszOutput = awc16stombs(pwszTruncated);
     if (!pszOutput) {
-        dwError = SMB_ERROR_STRING_CONV_FAILED;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_STRING_CONV_FAILED;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *ppszOutput = pszOutput;
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pwszTruncated);
+    LWIO_SAFE_FREE_MEMORY(pwszTruncated);
 
     return dwError;
 
@@ -160,14 +160,14 @@ SMBWc16sToMbs(
     PSTR pszOutput = NULL;
 
     if (!pwszInput) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pszOutput = awc16stombs(pwszInput);
     if (!pszOutput) {
-        dwError = SMB_ERROR_STRING_CONV_FAILED;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_STRING_CONV_FAILED;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *ppszOutput = pszOutput;
@@ -193,8 +193,8 @@ SMBWc16sLen(
     size_t sLen = 0;
 
     if (!pwszInput) {
-        dwError = SMB_ERROR_INVALID_PARAMETER;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     sLen = wc16slen(pwszInput);
@@ -240,7 +240,7 @@ SMBWc16sDup(
 
     if (!*pwszOutput)
     {
-        return SMB_ERROR_OUT_OF_MEMORY;
+        return LWIO_ERROR_OUT_OF_MEMORY;
     }
     else
     {

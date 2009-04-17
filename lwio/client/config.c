@@ -51,13 +51,13 @@ SMBRefreshConfiguration(
                     &request,
                     &replyType,
                     &pResponse));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     switch (replyType)
     {
         case SMB_REFRESH_CONFIG_SUCCESS:
 
-            SMB_LOG_INFO("Configuration refresh succeeded");
+            LWIO_LOG_INFO("Configuration refresh succeeded");
 
             break;
 
@@ -75,7 +75,7 @@ SMBRefreshConfiguration(
 
             break;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 

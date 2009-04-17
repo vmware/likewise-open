@@ -71,6 +71,7 @@
 #include "lpaccess.h"
 #include "lpmisc.h"
 #include "lpmarshal.h"
+#include "lpobject.h"
 
 #include "externs.h"
 

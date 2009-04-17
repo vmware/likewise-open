@@ -76,11 +76,11 @@ SMBSrvSetupInitialConfig(
     DWORD dwError = 0;
     BOOLEAN bUnlockConfig = FALSE;
 
-    SMB_LOCK_SERVERCONFIG(bUnlockConfig);
+    LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
     dwError = SMBSrvInitializeConfig(gpServerConfig);
 
-    SMB_UNLOCK_SERVERCONFIG(bUnlockConfig);
+    LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
     return dwError;
 }
@@ -97,18 +97,18 @@ SMBSrvRefreshConfig(
     dwError = SMBSrvParseConfig(
                     pszConfigFilePath,
                     &smb_config);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
-    SMB_LOCK_SERVERCONFIG(bUnlockConfig);
+    LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
     dwError = SMBSrvTransferConfigContents(
                     &smb_config,
                     gpServerConfig);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
-    SMB_UNLOCK_SERVERCONFIG(bUnlockConfig);
+    LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
     return dwError;
 
@@ -134,7 +134,7 @@ SMBSrvParseConfig(
     BAIL_ON_INVALID_STRING(pszConfigFilePath);
 
     dwError = SMBSrvInitializeConfig(&smb_config);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBParseConfigFile(
                     pszConfigFilePath,
@@ -144,12 +144,12 @@ SMBSrvParseConfig(
                     &SMBSrvConfigNameValuePair,
                     NULL,
                     &smb_config);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvTransferConfigContents(
                     &smb_config,
                     pConfig);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 

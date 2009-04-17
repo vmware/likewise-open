@@ -184,7 +184,7 @@ error:
         SMBHashSafeFree(&pSocket->pSessionHashByUID);
         SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
 
-        SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
+        LWIO_SAFE_FREE_MEMORY(pSocket->pszHostname);
 
         if (bDestroyCondition)
         {
@@ -243,11 +243,11 @@ SMBSocketTimedOut(
     BOOLEAN bInLock = FALSE;
     BOOLEAN bTimedOut = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     bTimedOut = SMBSocketTimedOut_InLock(pSocket);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return bTimedOut;
 }
@@ -269,7 +269,7 @@ SMBSocketTimedOut_InLock(
     dwDiffSeconds = difftime(time(NULL), pSocket->lastActiveTime);
     if (dwDiffSeconds > 30)
     {
-        SMB_LOG_DEBUG("Socket timed out and was stale for [%d] seconds", dwDiffSeconds);
+        LWIO_LOG_DEBUG("Socket timed out and was stale for [%d] seconds", dwDiffSeconds);
         bTimedOut = TRUE;
     }
 
@@ -284,7 +284,7 @@ SMBSocketIsSignatureRequired(
     BOOLEAN bIsRequired = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (pSocket->pSessionKey &&
         (pSocket->bSignedMessagesRequired ||
@@ -293,7 +293,7 @@ SMBSocketIsSignatureRequired(
         bIsRequired = TRUE;
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return bIsRequired;
 }
@@ -323,11 +323,11 @@ SMBSocketGetNextSequence(
 
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     dwSequence = SMBSocketGetNextSequence_inlock(pSocket);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwSequence;
 }
@@ -339,11 +339,11 @@ SMBSocketUpdateLastActiveTime(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     pSocket->lastActiveTime = time(NULL);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
 NTSTATUS
@@ -381,7 +381,7 @@ SMBSocketSend(
 
     pPacket->haveSignature = bIsSignatureRequired;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (pPacket->pSMBHeader->command != COM_NEGOTIATE)
     {
@@ -403,7 +403,7 @@ SMBSocketSend(
                     pPacket->pRawBuffer,
                     pPacket->bufferUsed);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (writtenLen < 0)
     {
@@ -413,7 +413,7 @@ SMBSocketSend(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -424,7 +424,7 @@ error:
         NTSTATUS localStatus = SMBSemaphorePost(&pSocket->semMpx);
         if (localStatus)
         {
-            SMB_LOG_ERROR("Failed to post semaphore (status = 0x%08X)", localStatus);
+            LWIO_LOG_ERROR("Failed to post semaphore (status = 0x%08X)", localStatus);
         }
     }
 
@@ -509,18 +509,18 @@ SMBSocketReaderMain(
 
     pthread_detach(pthread_self());
 
-    SMB_LOG_INFO("Spawning socket reader thread for [%s]",
+    LWIO_LOG_INFO("Spawning socket reader thread for [%s]",
                  SMB_SAFE_LOG_STRING((char *) pSocket->pszHostname));
 
     /* Wait for thread to become ready */
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     while (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
     {
         pthread_cond_wait(&pSocket->event, &pSocket->mutex);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* When the ref. count drops to zero, pthread_cancel() breaks out of this
        loop */
@@ -581,13 +581,13 @@ cleanup:
         SMBPacketFree(pSocket->hPacketAllocator, pPacket);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return NULL;
 
 error:
 
-    SMB_LOG_ERROR("Error when handling SMB socket[code:%d]", ntStatus);
+    LWIO_LOG_ERROR("Error when handling SMB socket[code:%d]", ntStatus);
 
     goto cleanup;
 }
@@ -620,7 +620,7 @@ SMBSocketFindAndSignalResponse(
         command == COM_SESSION_SETUP_ANDX ||
         command == COM_LOGOFF_ANDX)
     {
-        SMB_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
+        LWIO_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
 
         assert(!pSocket->pSessionPacket);
 
@@ -628,7 +628,7 @@ SMBSocketFindAndSignalResponse(
 
         pthread_cond_broadcast(&pSocket->event);
 
-        SMB_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
 
         goto cleanup;
     }
@@ -644,14 +644,14 @@ SMBSocketFindAndSignalResponse(
     {
         BOOLEAN bSessionInLock = FALSE;
 
-        SMB_LOCK_MUTEX(bSessionInLock, &pSession->mutex);
+        LWIO_LOCK_MUTEX(bSessionInLock, &pSession->mutex);
 
         assert(!pSession->pTreePacket);
         pSession->pTreePacket = pPacket;
 
         pthread_cond_broadcast(&pSession->event);
 
-        SMB_UNLOCK_MUTEX(bSessionInLock, &pSession->mutex);
+        LWIO_UNLOCK_MUTEX(bSessionInLock, &pSession->mutex);
 
         goto cleanup;
     }
@@ -668,7 +668,7 @@ SMBSocketFindAndSignalResponse(
                     &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", mid, pTree, pSocket);
+    LWIO_LOG_DEBUG("Found response [mid: %d] in Tree [0x%x] Socket [0x%x]", mid, pTree, pSocket);
 
     pResponse->pPacket = pPacket;
     pResponse->state = SMB_RESOURCE_STATE_VALID;
@@ -676,13 +676,6 @@ SMBSocketFindAndSignalResponse(
     pthread_cond_broadcast(&pResponse->event);
 
 cleanup:
-
-    if (pResponse)
-    {
-        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
-
-        SMBResponseUnlock(pResponse);
-    }
 
     if (pTree)
     {
@@ -692,6 +685,13 @@ cleanup:
     if (pSession)
     {
         SMBSessionRelease(pSession);
+    }
+
+    if (pResponse)
+    {
+        LWIO_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
+
+        SMBResponseUnlock(pResponse);
     }
 
     return ntStatus;
@@ -713,6 +713,9 @@ SMBSocketFindSessionByUID(
        that the reader thread dies before the socket is destroyed */
     NTSTATUS ntStatus = 0;
     PSMB_SESSION pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByUID,
@@ -725,6 +728,8 @@ SMBSocketFindSessionByUID(
     *ppSession = pSession;
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -742,11 +747,11 @@ SMBSocketAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     pSocket->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
 NTSTATUS
@@ -807,7 +812,7 @@ SMBSocketConnect(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* We are done connecting -- go to negotiation stage */
     pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
@@ -817,7 +822,7 @@ SMBSocketConnect(
 
     pthread_cond_broadcast(&pSocket->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
 cleanup:
 
@@ -908,11 +913,11 @@ SMBSocketInvalidate(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     SMBSocketInvalidate_InLock(pSocket, ntStatus);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
 VOID
@@ -935,13 +940,13 @@ SMBSocketSetState(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     pSocket->state = state;
 
     pthread_cond_broadcast(&pSocket->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 }
 
 NTSTATUS
@@ -961,7 +966,7 @@ SMBSocketReceiveResponse(
     // TODO-The pSocket->pSessionPacket stuff needs to go away
     // so that this function can go away.
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     /* @todo: always check socket state for error */
 
@@ -1014,7 +1019,7 @@ retry_wait:
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     *ppPacket = pPacket;
 
@@ -1041,7 +1046,7 @@ SMBSocketFindSessionByPrincipal(
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
@@ -1055,7 +1060,7 @@ SMBSocketFindSessionByPrincipal(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
@@ -1071,7 +1076,7 @@ SMBSocketRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    LWIO_LOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 
     assert(pSocket->refCount > 0);
 
@@ -1085,16 +1090,21 @@ SMBSocketRelease(
         {
             SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
                              pSocket->pszHostname);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
         }
         else
         {
-            SMB_LOG_VERBOSE("Socket %p is eligible for reaping", pSocket);
+            LWIO_LOG_VERBOSE("Socket %p is eligible for reaping", pSocket);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             RdrReaperPoke(&gRdrRuntime, pSocket->lastActiveTime);
         }
     }
+    else
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    }
 
-    SMB_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
 NTSTATUS
@@ -1157,7 +1167,7 @@ SMBSocketFree(
 
     if ((pSocket->fd >= 0) && (close(pSocket->fd) < 0))
     {
-        SMB_LOG_ERROR("Failed to close socket [fd:%d]", pSocket->fd);
+        LWIO_LOG_ERROR("Failed to close socket [fd:%d]", pSocket->fd);
     }
 
     if (pSocket && pSocket->maxMpxCount)
@@ -1167,8 +1177,8 @@ SMBSocketFree(
 
     pthread_cond_destroy(&pSocket->event);
 
-    SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
-    SMB_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
+    LWIO_SAFE_FREE_MEMORY(pSocket->pszHostname);
+    LWIO_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
 
     /* @todo: assert that the session hashes are empty */
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
@@ -1178,7 +1188,7 @@ SMBSocketFree(
 
     pthread_mutex_destroy(&pSocket->mutex);
 
-    SMB_SAFE_FREE_MEMORY(pSocket->pSessionKey);
+    LWIO_SAFE_FREE_MEMORY(pSocket->pSessionKey);
 
     /* @todo: use allocator */
     SMBFreeMemory(pSocket);

@@ -180,50 +180,50 @@ main(
     DWORD dwError = 0;
 
     dwError = SMBSrvSetDefaults();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvParseArgs(argc,
                               argv,
                               &gServerInfo);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBInitLogging_r(
                     SMBGetProgramName(argv[0]),
                     gServerInfo.logTarget,
                     gServerInfo.maxAllowedLogLevel,
                     gServerInfo.szLogFilePath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
-    SMB_LOG_VERBOSE("Logging started");
+    LWIO_LOG_VERBOSE("Logging started");
 
     if (atexit(SMBSrvExitHandler) < 0) {
        dwError = errno;
-       BAIL_ON_SMB_ERROR(dwError);
+       BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (SMBSrvShouldStartAsDaemon()) {
        dwError = SMBSrvStartAsDaemon();
-       BAIL_ON_SMB_ERROR(dwError);
+       BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     SMBSrvCreatePIDFile();
 
     dwError = SMBSrvInitialize();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvExecute();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
-    SMB_LOG_VERBOSE("SMB main cleaning up");
+    LWIO_LOG_VERBOSE("SMB main cleaning up");
 
     IoCleanup();
 
-    SMB_LOG_INFO("SMB Service exiting...");
+    LWIO_LOG_INFO("SMB Service exiting...");
 
     SMBSrvSetProcessExitCode(dwError);
 
@@ -233,7 +233,7 @@ cleanup:
 
 error:
 
-    SMB_LOG_ERROR("SMB Process exiting due to error [Code:%d]", dwError);
+    LWIO_LOG_ERROR("SMB Process exiting due to error [Code:%d]", dwError);
 
     goto cleanup;
 }
@@ -246,12 +246,14 @@ SMBSrvSetDefaults(
 {
     DWORD dwError = 0;
 
-    gpServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_ERROR;
+    gpServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_ERROR;
 
     *(gpServerInfo->szLogFilePath) = '\0';
 
     strcpy(gpServerInfo->szCachePath, CACHEDIR);
     strcpy(gpServerInfo->szPrefixPath, PREFIXDIR);
+
+    setlocale(LC_ALL, "");
 
     return (dwError);
 }
@@ -303,13 +305,13 @@ SMBSrvParseArgs(
             // don't over-ride that setting
             if (!bLogTargetSet)
             {
-                pSMBServerInfo->logTarget = SMB_LOG_TARGET_SYSLOG;
+                pSMBServerInfo->logTarget = LWIO_LOG_TARGET_SYSLOG;
             }
           }
           else if (strcmp(pArg, "--loglevel") == 0) {
             parseMode = PARSE_MODE_LOGLEVEL;
           } else {
-            SMB_LOG_ERROR("Unrecognized command line option [%s]",
+            LWIO_LOG_ERROR("Unrecognized command line option [%s]",
                           pArg);
             ShowUsage(SMBGetProgramName(argv[0]));
             exit(1);
@@ -327,11 +329,11 @@ SMBSrvParseArgs(
 
           if (!strcmp(pSMBServerInfo->szLogFilePath, "."))
           {
-              pSMBServerInfo->logTarget = SMB_LOG_TARGET_CONSOLE;
+              pSMBServerInfo->logTarget = LWIO_LOG_TARGET_CONSOLE;
           }
           else
           {
-              pSMBServerInfo->logTarget = SMB_LOG_TARGET_FILE;
+              pSMBServerInfo->logTarget = LWIO_LOG_TARGET_FILE;
           }
 
           bLogTargetSet = TRUE;
@@ -346,27 +348,27 @@ SMBSrvParseArgs(
         {
           if (!strcasecmp(pArg, "error")) {
 
-            pSMBServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_ERROR;
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_ERROR;
 
           } else if (!strcasecmp(pArg, "warning")) {
 
-            pSMBServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_WARNING;
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_WARNING;
 
           } else if (!strcasecmp(pArg, "info")) {
 
-            pSMBServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_INFO;
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_INFO;
 
           } else if (!strcasecmp(pArg, "verbose")) {
 
-            pSMBServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_VERBOSE;
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_VERBOSE;
 
           } else if (!strcasecmp(pArg, "debug")) {
 
-            pSMBServerInfo->maxAllowedLogLevel = SMB_LOG_LEVEL_DEBUG;
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_DEBUG;
 
           } else {
 
-            SMB_LOG_ERROR("Error: Invalid log level [%s]", pArg);
+            LWIO_LOG_ERROR("Error: Invalid log level [%s]", pArg);
             ShowUsage(SMBGetProgramName(argv[0]));
             exit(1);
 
@@ -383,19 +385,19 @@ SMBSrvParseArgs(
 
     if (pSMBServerInfo->dwStartAsDaemon)
     {
-        if (pSMBServerInfo->logTarget == SMB_LOG_TARGET_CONSOLE)
+        if (pSMBServerInfo->logTarget == LWIO_LOG_TARGET_CONSOLE)
         {
-            SMB_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
+            LWIO_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
 
-            dwError = SMB_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SMB_ERROR(dwError);
+            dwError = LWIO_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LWIO_ERROR(dwError);
         }
     }
     else
     {
-        if (pSMBServerInfo->logTarget != SMB_LOG_TARGET_FILE)
+        if (pSMBServerInfo->logTarget != LWIO_LOG_TARGET_FILE)
         {
-            pSMBServerInfo->logTarget = SMB_LOG_TARGET_CONSOLE;
+            pSMBServerInfo->logTarget = LWIO_LOG_TARGET_CONSOLE;
         }
     }
 
@@ -454,21 +456,21 @@ SMBSrvExitHandler(
     sprintf(szErrCodeFilePath, "%s/lsasd.err", CACHEDIR);
 
     dwError = SMBCheckFileExists(szErrCodeFilePath, &bFileExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (bFileExists) {
         dwError = SMBRemoveFile(szErrCodeFilePath);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBSrvGetProcessExitCode(&dwExitCode);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (dwExitCode) {
        fp = fopen(szErrCodeFilePath, "w");
        if (fp == NULL) {
           dwError = errno;
-          BAIL_ON_SMB_ERROR(dwError);
+          BAIL_ON_LWIO_ERROR(dwError);
        }
        fprintf(fp, "%d\n", dwExitCode);
     }
@@ -490,17 +492,17 @@ SMBSrvInitialize(
     PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
     dwError = SMBSrvSetupInitialConfig();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvRefreshConfig(
                     pszConfigPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBInitCacheFolders();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = IoInitialize(pszConfigPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 error:
 
@@ -519,13 +521,13 @@ SMBInitCacheFolders(
     dwError = SMBCheckDirectoryExists(
                         CACHEDIR,
                         &bExists);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (!bExists) {
         mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
 
         dwError = SMBCreateDirectory(CACHEDIR, cacheDirMode);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 error:
@@ -542,11 +544,11 @@ SMBSrvShouldStartAsDaemon(
     BOOLEAN bResult = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_SERVERINFO(bInLock);
+    LWIO_LOCK_SERVERINFO(bInLock);
 
     bResult = (gpServerInfo->dwStartAsDaemon != 0);
 
-    SMB_UNLOCK_SERVERINFO(bInLock);
+    LWIO_UNLOCK_SERVERINFO(bInLock);
 
     return bResult;
 }
@@ -577,7 +579,7 @@ SMBSrvStartAsDaemon(
     // ignore this signal and will continue execution.
     if (signal(SIGHUP, SIG_IGN) < 0) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // Spawn a second child
@@ -590,7 +592,7 @@ SMBSrvStartAsDaemon(
 
     // This is the second child executing
     dwError = chdir("/");
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     // Clear our file mode creation mask
     umask(0);
@@ -628,11 +630,11 @@ SMBSrvGetProcessExitCode(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_SERVERINFO(bInLock);
+    LWIO_LOCK_SERVERINFO(bInLock);
 
     *pdwExitCode = gpServerInfo->dwExitCode;
 
-    SMB_UNLOCK_SERVERINFO(bInLock);
+    LWIO_UNLOCK_SERVERINFO(bInLock);
 
     return dwError;
 }
@@ -645,11 +647,11 @@ SMBSrvSetProcessExitCode(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_SERVERINFO(bInLock);
+    LWIO_LOCK_SERVERINFO(bInLock);
 
     gpServerInfo->dwExitCode = dwExitCode;
 
-    SMB_UNLOCK_SERVERINFO(bInLock);
+    LWIO_UNLOCK_SERVERINFO(bInLock);
 }
 
 static
@@ -804,53 +806,53 @@ SMBSrvExecute(
     LWMsgTime timeout = { 30, 0 }; /* 30 seconds */
 
     dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &pProtocol));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoDaemonIpcAddProtocolSpec(pProtocol);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = IoIpcAddProtocolSpec(pProtocol);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pProtocol, &pServer));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoDaemonIpcAddDispatch(pServer);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = IoIpcAddDispatch(pServer);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_endpoint(
                     pServer,
                     LWMSG_SERVER_MODE_LOCAL,
                     LWIO_SERVER_FILENAME,
                     (S_IRWXU | S_IRWXG | S_IRWXO)));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_max_clients(
                     pServer,
                     512));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_max_dispatch(
                     pServer,
-                    6));
-    BAIL_ON_SMB_ERROR(dwError);
+                    10));
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_set_timeout(
                     pServer,
                     LWMSG_TIMEOUT_IDLE,
                     &timeout));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     SMBSrvBlockSignals();
 
     dwError = MAP_LWMSG_STATUS(lwmsg_server_start(pServer));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBHandleSignals();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -862,7 +864,7 @@ cleanup:
 
         if (status2)
         {
-            SMB_LOG_ERROR("Error stopping server. [Error code:%d]", status2);
+            LWIO_LOG_ERROR("Error stopping server. [Error code:%d]", status2);
         }
 
         lwmsg_server_delete(pServer);
@@ -872,7 +874,7 @@ cleanup:
 
 error:
 
-    SMB_LOG_ERROR("SMB Server stopping due to error [code: %d]", dwError);
+    LWIO_LOG_ERROR("SMB Server stopping due to error [code: %d]", dwError);
 
     goto cleanup;
 }
@@ -900,7 +902,7 @@ SMBHandleSignals(
     if (sigaction(SIGINT, &action, NULL) != 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // Unblock SIGINT
@@ -908,7 +910,7 @@ SMBHandleSignals(
     sigaddset(&catch_signal_mask, SIGINT);
 
     dwError = pthread_sigmask(SIG_UNBLOCK, &catch_signal_mask, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     while (!bDone)
     {
@@ -929,7 +931,7 @@ SMBHandleSignals(
                     dwError2 = SMBSrvRefreshConfig(pszConfigPath);
                     if (dwError2)
                     {
-                        SMB_LOG_ERROR("Failed to refresh configuration [code:%d]", dwError2);
+                        LWIO_LOG_ERROR("Failed to refresh configuration [code:%d]", dwError2);
                     }
                 }
 
@@ -1020,11 +1022,11 @@ SMBSrvShouldProcessExit(
     BOOLEAN bExit = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_SERVERINFO(bInLock);
+    LWIO_LOCK_SERVERINFO(bInLock);
 
     bExit = gpServerInfo->bProcessShouldExit;
 
-    SMB_UNLOCK_SERVERINFO(bInLock);
+    LWIO_UNLOCK_SERVERINFO(bInLock);
 
     return bExit;
 }
@@ -1036,10 +1038,10 @@ SMBSrvSetProcessToExit(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_SERVERINFO(bInLock);
+    LWIO_LOCK_SERVERINFO(bInLock);
 
     gpServerInfo->bProcessShouldExit = bExit;
 
-    SMB_UNLOCK_SERVERINFO(bInLock);
+    LWIO_UNLOCK_SERVERINFO(bInLock);
 }
 

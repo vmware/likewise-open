@@ -54,7 +54,7 @@ SMBSetLogLevel(
     SMBLogLevel logLevel
     )
 {
-    SMB_LOG_INFO logInfo = {0};
+    LWIO_LOG_INFO logInfo = {0};
 
     logInfo.maxAllowedLogLevel = logLevel;
 
@@ -67,7 +67,7 @@ SMB_API
 DWORD
 SMBSetLogInfo(
     HANDLE hSMBConnection,
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     )
 {
     DWORD dwError = 0;
@@ -83,7 +83,7 @@ SMBSetLogInfo(
                     pLogInfo,
                     &replyType,
                     &pResponse));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     switch (replyType)
     {
@@ -105,7 +105,7 @@ SMBSetLogInfo(
 
             break;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -125,7 +125,7 @@ SMB_API
 DWORD
 SMBGetLogInfo(
     HANDLE         hSMBConnection,
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     )
 {
     DWORD dwError = 0;
@@ -144,7 +144,7 @@ SMBGetLogInfo(
                     &request,
                     &replyType,
                     &pResponse));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     switch (replyType)
     {
@@ -166,9 +166,9 @@ SMBGetLogInfo(
 
             break;
     }
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
-    *ppLogInfo = (PSMB_LOG_INFO)pResponse;
+    *ppLogInfo = (PLWIO_LOG_INFO)pResponse;
 
 cleanup:
 

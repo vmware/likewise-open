@@ -189,11 +189,11 @@ SMBSessionAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
     pSession->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 }
 
 VOID
@@ -203,7 +203,7 @@ SMBSessionRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
     assert(pSession->refCount > 0);
 
@@ -217,16 +217,20 @@ SMBSessionRelease(
             SMBHashRemoveKey(
                 pSession->pSocket->pSessionHashByUID,
                 &pSession->uid);
+            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             SMBSessionFree(pSession);
         }
         else
         {
-            SMB_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
+            LWIO_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
+            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
         }
     }
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    else
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    }
 }
 
 VOID
@@ -246,8 +250,8 @@ SMBSessionFree(
 
     pthread_mutex_destroy(&pSession->mutex);
 
-    SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
-    SMB_SAFE_FREE_MEMORY(pSession->pszPrincipal);
+    LWIO_SAFE_FREE_MEMORY(pSession->pSessionKey);
+    LWIO_SAFE_FREE_MEMORY(pSession->pszPrincipal);
 
     if (pSession->pSocket)
     {
@@ -266,14 +270,14 @@ SMBSessionInvalidate(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     pSession->state = RDR_SESSION_STATE_ERROR;
     pSession->error = ntStatus;
 
     pthread_cond_broadcast(&pSession->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
 VOID
@@ -284,13 +288,13 @@ SMBSessionSetState(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     pSession->state = state;
 
     pthread_cond_broadcast(&pSession->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
 NTSTATUS
@@ -304,7 +308,7 @@ SMBSessionFindTreeByPath(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashGetValue(
                 pSession->pTreeHashByPath,
@@ -318,7 +322,7 @@ SMBSessionFindTreeByPath(
 
 cleanup:
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -340,7 +344,7 @@ SMBSessionFindTreeById(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSession->pTreeHashByTID,
@@ -354,7 +358,7 @@ SMBSessionFindTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -381,7 +385,7 @@ SMBSessionReceiveResponse(
 
     // TODO-The pSocket->pTreePacket stuff needs to go away
     // so that this function can go away.
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     while (!pSession->pTreePacket)
     {
@@ -431,7 +435,7 @@ retry_wait:
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     *ppPacket = pPacket;
 
@@ -454,11 +458,11 @@ SMBSessionUpdateLastActiveTime(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     pSession->lastActiveTime = time(NULL);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 }
 
 NTSTATUS

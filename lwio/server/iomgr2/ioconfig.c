@@ -71,7 +71,7 @@ IopConfigParseStartSection(
     assert(pState);
     assert(!pState->pDriverConfig);
 
-    SMB_LOG_DEBUG("Section = '%s'", pszSectionName);
+    LWIO_LOG_DEBUG("Section = '%s'", pszSectionName);
 
     if (strncasecmp(pszSectionName, IOP_CONFIG_TAG_DRIVER, sizeof(IOP_CONFIG_TAG_DRIVER)-1))
     {
@@ -82,7 +82,7 @@ IopConfigParseStartSection(
     pszName = pszSectionName + sizeof(IOP_CONFIG_TAG_DRIVER) - 1;
     if (IsNullOrEmptyString(pszName))
     {
-        SMB_LOG_ERROR("No driver name was specified");
+        LWIO_LOG_ERROR("No driver name was specified");
 
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_EE(EE);
@@ -96,7 +96,7 @@ IopConfigParseStartSection(
         PIOP_DRIVER_CONFIG pCheckDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
         if (!strcasecmp(pCheckDriverConfig->pszName, pszName))
         {
-            SMB_LOG_ERROR("Duplicate driver name '%s'", pszName);
+            LWIO_LOG_ERROR("Duplicate driver name '%s'", pszName);
 
             status = STATUS_UNSUCCESSFUL;
             GOTO_CLEANUP_EE(EE);
@@ -149,7 +149,7 @@ IopConfigParseEndSection(
     assert(pState);
     assert(pState->pDriverConfig);
 
-    SMB_LOG_DEBUG("Section = '%s'", pszSectionName);
+    LWIO_LOG_DEBUG("Section = '%s'", pszSectionName);
 
     // Finished last driver, if any.
     if (pState->pDriverConfig)
@@ -196,7 +196,7 @@ IopConfigParseNameValuePair(
     assert(pState->pDriverConfig);
     assert(pState->pDriverConfig->pszName);
 
-    SMB_LOG_DEBUG("Driver = '%s', Name = '%s', Value = '%s'",
+    LWIO_LOG_DEBUG("Driver = '%s', Name = '%s', Value = '%s'",
                   pState->pDriverConfig->pszName,
                   pszName,
                   pszValue);
@@ -208,7 +208,7 @@ IopConfigParseNameValuePair(
 
     if (pState->pDriverConfig->pszPath)
     {
-        SMB_LOG_ERROR("Path for driver '%s' is already defined as '%s'",
+        LWIO_LOG_ERROR("Path for driver '%s' is already defined as '%s'",
                       pState->pDriverConfig->pszName,
                       pState->pDriverConfig->pszPath);
 
@@ -218,7 +218,7 @@ IopConfigParseNameValuePair(
 
     if (IsNullOrEmptyString(pszValue))
     {
-        SMB_LOG_ERROR("Empty path for driver '%s'",
+        LWIO_LOG_ERROR("Empty path for driver '%s'",
                       pState->pDriverConfig->pszName);
 
         status = STATUS_UNSUCCESSFUL;

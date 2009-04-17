@@ -100,7 +100,7 @@ error:
         pthread_mutex_destroy(&pResponse->mutex);
     }
 
-    SMB_SAFE_FREE_MEMORY(pResponse);
+    LWIO_SAFE_FREE_MEMORY(pResponse);
 
     *ppResponse = NULL;
 
@@ -117,7 +117,7 @@ SMBResponseFree(
     BOOLEAN bInLock = FALSE;
     BOOLEAN bInTreeLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pResponse->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pResponse->mutex);
 
     pthread_cond_destroy(&pResponse->event);
 
@@ -125,16 +125,16 @@ SMBResponseFree(
 
     if (pResponse->pTree)
     {
-        SMB_LOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
+        LWIO_LOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
 
-        SMB_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]",
+        LWIO_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]",
                       pResponse->mid, pResponse->pTree);
 
         SMBHashRemoveKey(
             pResponse->pTree->pResponseHash,
             &pResponse->mid);
 
-        SMB_UNLOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
+        LWIO_UNLOCK_MUTEX(bInTreeLock, &pResponse->pTree->mutex);
 
         SMBTreeRelease(pResponse->pTree);
     }
@@ -162,5 +162,5 @@ SMBResponseUnlock(
 {
     BOOLEAN bInLock = TRUE;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pResponse->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pResponse->mutex);
 }

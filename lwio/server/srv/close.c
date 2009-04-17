@@ -98,7 +98,7 @@ SrvProcessCloseAndX(
                                 pRequestHeader->lastWriteTime);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to set the last write time for file [fid:%u][code:%d]",
+            LWIO_LOG_ERROR("Failed to set the last write time for file [fid:%u][code:%d]",
                             pFile->fid,
                             ntStatus2);
         }

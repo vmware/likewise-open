@@ -64,17 +64,17 @@ SMBSrvGetExecutableStatByPid(
                   &pszFilePath,
                   "/proc/%d/object/a.out",
                   pid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if ( stat(pszFilePath, pStat) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszFilePath);
+    LWIO_SAFE_FREE_STRING(pszFilePath);
 
     return dwError;
 
@@ -91,7 +91,7 @@ cleanup:
                    pid) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (pstat_getfiledetails(&fileDetails,
@@ -99,7 +99,7 @@ cleanup:
                     &processStatus.pst_fid_text) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // Fill in the key fields of struct stat, and leave the rest as 0
@@ -153,13 +153,13 @@ cleanup:
                 0) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (sProcInfo != sizeof(procInfo))
     {
         dwError = EINVAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // On FreeBSD 6.1, if one tries to get the pathname of a process where
@@ -168,7 +168,7 @@ cleanup:
     if (procInfo.ki_textvp == NULL)
     {
         dwError = ENOENT;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // Figure out how long the program path is
@@ -181,13 +181,13 @@ cleanup:
                 0) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBAllocateMemory(
                 sPathLen,
                 (PVOID*)&pszPathname);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     // Grab the pathname
     if (sysctl(
@@ -199,18 +199,18 @@ cleanup:
                 0) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if ( stat(pszPathname, pStat) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszPathname);
+    LWIO_SAFE_FREE_STRING(pszPathname);
     return dwError;
 
 #elif HAVE_DECL_KERN_PROCARGS
@@ -240,7 +240,7 @@ cleanup:
                 0) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     // Make sure the result is null terminated
@@ -251,7 +251,7 @@ cleanup:
     if ( stat(szArgumentBuffer, pStat) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 cleanup:
@@ -268,17 +268,17 @@ cleanup:
                   &pszFilePath,
                   "/proc/%d/exe",
                   pid);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if ( stat(pszFilePath, pStat) < 0)
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszFilePath);
+    LWIO_SAFE_FREE_STRING(pszFilePath);
 
     return dwError;
 

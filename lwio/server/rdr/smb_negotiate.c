@@ -156,7 +156,7 @@ Negotiate(
     SMB_LTOH16_INPLACE(pHeader->byteCount);
 
     /* This backlock is safe because the session hash is unlocked. */
-    SMB_LOCK_MUTEX(bSocketLocked, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bSocketLocked, &pSocket->mutex);
 
     pSocket->maxBufferSize = pHeader->maxBufferSize;
     pSocket->maxRawSize = pHeader->maxRawSize;
@@ -190,7 +190,7 @@ Negotiate(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bSocketLocked, &pSocket->mutex);
 
     if (pResponsePacket)
     {

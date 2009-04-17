@@ -61,7 +61,7 @@ SMBDLinkedListPrepend(
     dwError = SMBAllocateMemory(
                   sizeof(SMBDLINKEDLIST),
                   (PVOID*)&pList);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pList->pItem = pItem;
 
@@ -96,7 +96,7 @@ SMBDLinkedListAppend(
     PSMBDLINKEDLIST pList = NULL;
 
     dwError = SMBAllocateMemory(sizeof(SMBDLINKEDLIST), (PVOID*)&pList);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pList->pItem = pItem;
 

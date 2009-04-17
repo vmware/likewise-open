@@ -187,7 +187,7 @@ SrvSocketReaderEnqueueConnection(
 
     pthread_mutex_lock(&pReader->context.mutex);
 
-    SMB_LOG_DEBUG("Enqueueing connection [fd:%d] at reader [id:%u]",
+    LWIO_LOG_DEBUG("Enqueueing connection [fd:%d] at reader [id:%u]",
                     pConnection->pSocket->fd,
                     pReader->readerId);
 
@@ -222,7 +222,7 @@ SrvSocketReaderMain(
     PSMB_SRV_SOCKET_READER_CONTEXT pContext = (PSMB_SRV_SOCKET_READER_CONTEXT)pData;
     SMB_SOCKET_READER_WORK_SET workSet;
 
-    SMB_LOG_DEBUG("Srv reader [id:%u] running", pContext->readerId);
+    LWIO_LOG_DEBUG("Srv reader [id:%u] running", pContext->readerId);
 
     SrvSocketReaderSetActiveState(pContext, TRUE);
 
@@ -288,7 +288,7 @@ cleanup:
 
     SrvSocketReaderSetActiveState(pContext, FALSE);
 
-    SMB_LOG_DEBUG("Srv reader [id:%u] stopping", pContext->readerId);
+    LWIO_LOG_DEBUG("Srv reader [id:%u] stopping", pContext->readerId);
 
     return NULL;
 
@@ -365,7 +365,7 @@ SrvSocketReaderFillFdSet(
 
     FD_SET(pReaderContext->fd[0], &pReaderWorkset->fdset);
 
-    SMB_LOCK_MUTEX(bInLock, &pReaderContext->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pReaderContext->mutex);
 
     ntStatus = LwRtlRBTreeTraverse(
                     pReaderContext->pConnections,
@@ -381,7 +381,7 @@ SrvSocketReaderFillFdSet(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pReaderContext->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pReaderContext->mutex);
 
     return ntStatus;
 
@@ -481,7 +481,7 @@ SrvSocketReaderProcessConnections(
                     {
                         CHAR szIpAddr[256];
 
-                        SMB_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
+                        LWIO_LOG_DEBUG("Connection reset by peer [fd:%d][%s]",
                                         fd,
                                         SMB_SAFE_LOG_STRING(inet_ntop(
                                                                 AF_INET,

@@ -193,7 +193,7 @@ RdrTransactQueryInfoFile(
     pHeader->totalParameterCount = SMB_HTOL16(sizeof(queryHeader));
     pHeader->totalDataCount      = SMB_HTOL16(0);
     pHeader->maxParameterCount   = SMB_HTOL16(sizeof(USHORT)); /* Reply parameters consist of a USHORT */
-    pHeader->maxDataCount        = SMB_HTOL16(ulInfoLength);   /* FIXME: adjust this value for packed/aligned difference */
+    pHeader->maxDataCount        = SMB_HTOL16(ulInfoLength + 100);   /* FIXME: magic number */
     pHeader->maxSetupCount       = SMB_HTOL8(1);
     pHeader->flags               = SMB_HTOL16(0);
     pHeader->timeout             = SMB_HTOL32(0);
