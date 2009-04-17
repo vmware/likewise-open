@@ -288,16 +288,20 @@ SMBTreeRelease(
             SMBHashRemoveKey(
                 pTree->pSession->pTreeHashByTID,
                 &pTree->tid);
+            LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
             SMBTreeFree(pTree);
         }
         else
         {
             LWIO_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
+            LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
             RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
         }
     }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    else
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    }
 }
 
 VOID

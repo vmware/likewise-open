@@ -217,16 +217,20 @@ SMBSessionRelease(
             SMBHashRemoveKey(
                 pSession->pSocket->pSessionHashByUID,
                 &pSession->uid);
+            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             SMBSessionFree(pSession);
         }
         else
         {
             LWIO_LOG_VERBOSE("Session %p is eligible for reaping", pSession);
+            LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             RdrReaperPoke(&gRdrRuntime, pSession->lastActiveTime);
         }
     }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    else
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+    }
 }
 
 VOID

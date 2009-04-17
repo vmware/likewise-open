@@ -1090,16 +1090,21 @@ SMBSocketRelease(
         {
             SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
                              pSocket->pszHostname);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
         }
         else
         {
             LWIO_LOG_VERBOSE("Socket %p is eligible for reaping", pSocket);
+            LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             RdrReaperPoke(&gRdrRuntime, pSocket->lastActiveTime);
         }
     }
+    else
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
+    }
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
 }
 
 NTSTATUS
