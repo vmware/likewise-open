@@ -123,9 +123,24 @@ LsaRpcStartServer(
         { "ncacn_np",      "\\\\pipe\\\\lsarpc" },
         { "ncacn_np",      "\\\\pipe\\\\lsass" },
         { "ncacn_ip_tcp",  NULL },
+        { "ncalrpc",       NULL },  /* endpoint is fetched from config parameter */
         { NULL,            NULL }
     };
     DWORD dwError = 0;
+    DWORD i = 0;
+    PSTR pszLpcSocketPath = NULL;
+
+    dwError = LsaSrvConfigGetLpcSocketPath(&pszLpcSocketPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (EndPoints[i].pszProtocol) {
+        if (strcmp(EndPoints[i].pszProtocol, "ncalrpc") == 0 &&
+            pszLpcSocketPath) {
+            EndPoints[i].pszEndpoint = pszLpcSocketPath;
+        }
+
+        i++;
+    }
 
     dwError = RpcSvcBindRpcInterface(gpLsaSrvBinding,
                                      lsa_v0_0_s_ifspec,
