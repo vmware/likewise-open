@@ -1922,6 +1922,7 @@ LocalDirAddUser_0(
     PWSTR pwszShell = NULL;
     PSTR  pszShell  = NULL;
     PWSTR pwszHomedir = NULL;
+    PSTR  pszHomedir = NULL;
     PWSTR pwszPassword = NULL;
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
@@ -1966,9 +1967,22 @@ LocalDirAddUser_0(
                     pUserInfo->pszHomedir,
                     &pwszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
-
-        attrValues[LOCAL_DAU0_IDX_HOMEDIR].data.pwszStringValue = pwszHomedir;
     }
+    else
+    {
+        dwError = LocalBuildHomeDirPathFromTemplate(
+                        pUserInfo->pszName,
+                        pLoginInfo->pszDomainNetBiosName,
+                        &pszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszHomedir,
+                        &pwszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    attrValues[LOCAL_DAU0_IDX_HOMEDIR].data.pwszStringValue = pwszHomedir;
 
     if (!IsNullOrEmptyString(pUserInfo->pszShell))
     {
@@ -2032,6 +2046,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszShell);
     LSA_SAFE_FREE_STRING(pszShell);
     LSA_SAFE_FREE_MEMORY(pwszHomedir);
+    LSA_SAFE_FREE_STRING(pszHomedir);
     LSA_SAFE_FREE_MEMORY(pwszPassword);
 
     return dwError;
