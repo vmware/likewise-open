@@ -189,13 +189,13 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_SET_FILE_UNIX_HLINK           0x203
 #define SMB_QUERY_MAC_FS_INFO             0x301
 
-typedef UCHAR SMB_LOCK_TYPE;
+typedef UCHAR LWIO_LOCK_TYPE;
 
-#define SMB_LOCK_TYPE_SHARED_LOCK         0x01
-#define SMB_LOCK_TYPE_OPLOCK_RELEASE      0x02
-#define SMB_LOCK_TYPE_CHANGE_LOCK_TYPE    0x04
-#define SMB_LOCK_TYPE_CANCEL_LOCK         0x08
-#define SMB_LOCK_TYPE_LARGE_FILES         0x10
+#define LWIO_LOCK_TYPE_SHARED_LOCK         0x01
+#define LWIO_LOCK_TYPE_OPLOCK_RELEASE      0x02
+#define LWIO_LOCK_TYPE_CHANGE_LOCK_TYPE    0x04
+#define LWIO_LOCK_TYPE_CANCEL_LOCK         0x08
+#define LWIO_LOCK_TYPE_LARGE_FILES         0x10
 
 
 typedef enum
@@ -1351,7 +1351,7 @@ typedef struct
     /* AndX chains will be handled at a higher layer */
 
     USHORT         usFid;
-    SMB_LOCK_TYPE  ucLockType;
+    LWIO_LOCK_TYPE  ucLockType;
     UCHAR          ucOplockLevel;
     ULONG          ulTimeout;
     USHORT         usNumUnlocks;
@@ -1421,17 +1421,17 @@ typedef enum
 {
     ERROR_SMB,
     ERROR_NTSTATUS
-} SMB_ERROR_TYPE;
+} LWIO_ERROR_TYPE;
 
 typedef struct
 {
-    SMB_ERROR_TYPE type;   /* Error type: SMB or NTSTATUS */
+    LWIO_ERROR_TYPE type;   /* Error type: SMB or NTSTATUS */
     union
     {
         SMB_ERROR smb;     /* In error state, system error, if any  */
         NTSTATUS wire;     /* In error state, wire error, if any */
     };
-} SMB_ERROR_BUNDLE;
+} LWIO_ERROR_BUNDLE;
 
 typedef enum
 {

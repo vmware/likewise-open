@@ -301,7 +301,7 @@ SrvBuildFindFirst2Response(
     if (pwszSearchPattern && *pwszSearchPattern == wszBackSlash[0])
         pwszSearchPattern++;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvBuildSearchPath(
                     pTree->pShareInfo->pwszPath,
@@ -310,7 +310,7 @@ SrvBuildFindFirst2Response(
                     &pwszSearchPattern2);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvFinderCreateSearchSpace(
                     pSession->pIoSecurityContext,
@@ -432,7 +432,7 @@ cleanup:
 
     if (pTree)
     {
-        SMB_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
         SrvTreeRelease(pTree);
     }

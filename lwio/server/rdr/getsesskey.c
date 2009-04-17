@@ -64,7 +64,7 @@ RdrGetSessionKey(
 
     pSession = pFile->pTree->pSession;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     if (!pSession->pSessionKey)
     {
@@ -84,7 +84,7 @@ RdrGetSessionKey(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 

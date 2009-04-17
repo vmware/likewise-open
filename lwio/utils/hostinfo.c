@@ -64,7 +64,7 @@ LwioGetHostInfo(
     if ( gethostname(szBuffer, sizeof(szBuffer)) != 0 )
     {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     len = strlen(szBuffer);
@@ -86,7 +86,7 @@ LwioGetHostInfo(
     }
 
     dwError = SMBAllocateString(szBuffer, &pszHostname);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if ( ppszHostname ) {
         *ppszHostname = pszHostname;
@@ -95,7 +95,7 @@ LwioGetHostInfo(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszHostname);
+    LWIO_SAFE_FREE_STRING(pszHostname);
 
     return dwError;
 

@@ -65,7 +65,7 @@ ShowUsage();
 
 DWORD
 PrintLogInfo(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     );
 
 DWORD
@@ -80,41 +80,41 @@ main(
     )
 {
     DWORD dwError = 0;
-    SMBLogLevel logLevel = SMB_LOG_LEVEL_ERROR;
+    SMBLogLevel logLevel = LWIO_LOG_LEVEL_ERROR;
     PIO_CONTEXT pContext = (HANDLE)NULL;
-    PSMB_LOG_INFO pLogInfo = NULL;
+    PLWIO_LOG_INFO pLogInfo = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
 
     if (geteuid() != 0) {
         fprintf(stderr, "This program requires super-user privileges.\n");
         dwError = EACCES;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = ParseArgs(argc, argv, &logLevel);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoInitialize();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSetLogLevel(
         (HANDLE) pContext,
         logLevel);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     fprintf(stdout, "The log level was set successfully\n\n");
 
     dwError = SMBGetLogInfo(
         (HANDLE) pContext,
         &pLogInfo);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = PrintLogInfo(pLogInfo);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -157,7 +157,7 @@ error:
             }
         }
 
-        SMB_SAFE_FREE_STRING(pszErrorBuffer);
+        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -183,7 +183,7 @@ ParseArgs(
     int iArg = 1;
     PSTR pszArg = NULL;
     ParseMode parseMode = PARSE_MODE_OPEN;
-    SMBLogLevel logLevel = SMB_LOG_LEVEL_ERROR;
+    SMBLogLevel logLevel = LWIO_LOG_LEVEL_ERROR;
     BOOLEAN bLogLevelSpecified = FALSE;
 
     do {
@@ -207,27 +207,27 @@ ParseArgs(
                 {
                     if (!strcasecmp(pszArg, "error"))
                     {
-                        logLevel = SMB_LOG_LEVEL_ERROR;
+                        logLevel = LWIO_LOG_LEVEL_ERROR;
                         bLogLevelSpecified = TRUE;
                     }
                     else if (!strcasecmp(pszArg, "warning"))
                     {
-                        logLevel = SMB_LOG_LEVEL_WARNING;
+                        logLevel = LWIO_LOG_LEVEL_WARNING;
                         bLogLevelSpecified = TRUE;
                     }
                     else if (!strcasecmp(pszArg, "info"))
                     {
-                        logLevel = SMB_LOG_LEVEL_INFO;
+                        logLevel = LWIO_LOG_LEVEL_INFO;
                         bLogLevelSpecified = TRUE;
                     }
                     else if (!strcasecmp(pszArg, "verbose"))
                     {
-                        logLevel = SMB_LOG_LEVEL_VERBOSE;
+                        logLevel = LWIO_LOG_LEVEL_VERBOSE;
                         bLogLevelSpecified = TRUE;
                     }
                     else if (!strcasecmp(pszArg, "debug"))
                     {
-                        logLevel = SMB_LOG_LEVEL_DEBUG;
+                        logLevel = LWIO_LOG_LEVEL_DEBUG;
                         bLogLevelSpecified = TRUE;
                     }
                     else
@@ -260,7 +260,7 @@ ShowUsage()
 
 DWORD
 PrintLogInfo(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     )
 {
     DWORD dwError = 0;
@@ -269,45 +269,45 @@ PrintLogInfo(
     fprintf(stdout, "=================\n");
     switch(pLogInfo->logTarget)
     {
-        case SMB_LOG_TARGET_DISABLED:
+        case LWIO_LOG_TARGET_DISABLED:
             fprintf(stdout, "Logging is currently disabled\n");
             break;
-        case SMB_LOG_TARGET_CONSOLE:
+        case LWIO_LOG_TARGET_CONSOLE:
             fprintf(stdout, "SMB Server is logging to console\n");
             break;
-        case SMB_LOG_TARGET_FILE:
+        case LWIO_LOG_TARGET_FILE:
             fprintf(stdout, "SMB Server is logging to file.\n");
             fprintf(stdout, "Log file path: %s\n", pLogInfo->pszPath);
             break;
-        case SMB_LOG_TARGET_SYSLOG:
+        case LWIO_LOG_TARGET_SYSLOG:
             fprintf(stdout, "SMB Server is logging to syslog\n");
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
     }
 
     fprintf(stdout, "Maximum allowed log level: ");
     switch(pLogInfo->maxAllowedLogLevel)
     {
-        case SMB_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_ERROR:
             fprintf(stdout, "%s\n", "error");
             break;
-        case SMB_LOG_LEVEL_WARNING:
+        case LWIO_LOG_LEVEL_WARNING:
             fprintf(stdout, "%s\n", "warning");
             break;
-        case SMB_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_INFO:
             fprintf(stdout, "%s\n", "info");
             break;
-        case SMB_LOG_LEVEL_VERBOSE:
+        case LWIO_LOG_LEVEL_VERBOSE:
             fprintf(stdout, "%s\n", "verbose");
             break;
-        case SMB_LOG_LEVEL_DEBUG:
+        case LWIO_LOG_LEVEL_DEBUG:
             fprintf(stdout, "%s\n", "debug");
             break;
         default:
             dwError = EINVAL;
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
     }
 
 error:
@@ -328,7 +328,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = SMB_ERROR_SERVER_UNREACHABLE;
+            dwError2 = LWIO_ERROR_SERVER_UNREACHABLE;
 
             break;
 

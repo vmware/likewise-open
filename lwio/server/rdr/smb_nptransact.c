@@ -193,7 +193,7 @@ NPTransact(
     // verify interim response
     if (!pResponsePacket->pSMBHeader->wordCount)
     {
-        SMB_LOG_VERBOSE("Received interim response");
+        LWIO_LOG_VERBOSE("Received interim response");
     }
     else if (wReadRemaining)
     {

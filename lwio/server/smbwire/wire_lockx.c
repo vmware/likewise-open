@@ -63,7 +63,7 @@ WireUnmarshallLockingAndXRequest(
 
     if (pRequestHeader->usNumUnlocks)
     {
-        if (pRequestHeader->ucLockType & SMB_LOCK_TYPE_LARGE_FILES)
+        if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
         {
             if (ulBytesAvailable < (sizeof(LOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumUnlocks))
             {
@@ -94,7 +94,7 @@ WireUnmarshallLockingAndXRequest(
 
     if (pRequestHeader->usNumLocks)
     {
-        if (pRequestHeader->ucLockType & SMB_LOCK_TYPE_LARGE_FILES)
+        if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
         {
             if (ulBytesAvailable < (sizeof(LOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks))
             {

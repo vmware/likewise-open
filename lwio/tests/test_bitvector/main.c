@@ -101,26 +101,26 @@ main(
     DWORD dwUnsetBit = 0;
 
     dwError = ParseArgs(argc, argv);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBBitVectorCreate(
                   dwNumBits,
                   &pBitVector);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     // Index starts from 0
     //
     dwError = SMBBitVectorSetBit(pBitVector, 0);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBBitVectorSetBit(pBitVector, dwNumBits);
-    if (dwError != SMB_ERROR_INVALID_PARAMETER)
+    if (dwError != LWIO_ERROR_INVALID_PARAMETER)
     {
-       BAIL_ON_SMB_ERROR(dwError);
+       BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBBitVectorSetBit(pBitVector, dwTestBit);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (SMBBitVectorIsSet(pBitVector, dwTestBit))
     {
@@ -132,10 +132,10 @@ main(
     }
 
     dwError = SMBBitVectorUnsetBit(pBitVector, dwTestBit);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBBitVectorUnsetBit(pBitVector, 0);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (SMBBitVectorIsSet(pBitVector, dwTestBit))
     {
@@ -149,7 +149,7 @@ main(
     dwError = SMBBitVectorFirstUnsetBit(
                 pBitVector,
                 &dwUnsetBit);
-    if ((dwError == SMB_ERROR_NO_BIT_AVAILABLE) ||
+    if ((dwError == LWIO_ERROR_NO_BIT_AVAILABLE) ||
         (!dwError && (dwUnsetBit != 0)))
     {
         printf("Error: Expected (0)\n");
@@ -170,7 +170,7 @@ main(
     dwError = SMBBitVectorFirstUnsetBit(
                 pBitVector,
                 &dwUnsetBit);
-    if ((dwError == SMB_ERROR_NO_BIT_AVAILABLE) ||
+    if ((dwError == LWIO_ERROR_NO_BIT_AVAILABLE) ||
         (!dwError && (dwUnsetBit != dwTestBit)))
     {
         printf("Error: Expected (%d) Found (%d)\n", dwTestBit, dwUnsetBit);
@@ -181,12 +181,12 @@ main(
     }
 
     dwError = SMBBitVectorSetBit(pBitVector, dwTestBit);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBBitVectorFirstUnsetBit(
                 pBitVector,
                 &dwUnsetBit);
-    if (dwError != SMB_ERROR_NO_BIT_AVAILABLE)
+    if (dwError != LWIO_ERROR_NO_BIT_AVAILABLE)
     {
         printf("Error: Expected no bits available. Found (%d)\n", dwUnsetBit);
     }

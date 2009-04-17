@@ -51,7 +51,7 @@
     do { \
         if (EE || status) \
         { \
-            SMB_LOG_DEBUG("LEAVE_IF: -> 0x%08x (EE = %d)", status, EE); \
+            LWIO_LOG_DEBUG("LEAVE_IF: -> 0x%08x (EE = %d)", status, EE); \
         } \
     } while (0)
 
@@ -59,7 +59,7 @@
     do { \
         if (EE || status) \
         { \
-            SMB_LOG_DEBUG("LEAVE_IF: " Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE); \
+            LWIO_LOG_DEBUG("LEAVE_IF: " Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE); \
         } \
     } while (0)
 

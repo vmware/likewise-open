@@ -360,13 +360,13 @@ IoSecurityCreateSecurityContextFromUsername(
 //
 
 #define IO_LOG_ENTER(Format, ...) \
-    SMB_LOG_DEBUG("ENTER: " Format, ## __VA_ARGS__)
+    LWIO_LOG_DEBUG("ENTER: " Format, ## __VA_ARGS__)
 
 #define IO_LOG_LEAVE(Format, ...) \
-    SMB_LOG_DEBUG("LEAVE: " Format, ## __VA_ARGS__)
+    LWIO_LOG_DEBUG("LEAVE: " Format, ## __VA_ARGS__)
 
 #define IO_LOG_ENTER_LEAVE(Format, ...) \
-    SMB_LOG_DEBUG("ENTER/LEAVE: " Format, ## __VA_ARGS__)
+    LWIO_LOG_DEBUG("ENTER/LEAVE: " Format, ## __VA_ARGS__)
 
 #define IO_LOG_LEAVE_ON_STATUS_EE(status, EE) \
     do { \

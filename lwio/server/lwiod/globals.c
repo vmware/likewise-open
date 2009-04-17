@@ -52,8 +52,8 @@ SMBSERVERINFO gServerInfo =
 {
     PTHREAD_MUTEX_INITIALIZER,  /* Lock              */
     0,                          /* Start as daemon   */
-    SMB_LOG_TARGET_DISABLED,    /* log disabled      */
-    SMB_LOG_LEVEL_ERROR,        /* Max Log Level     */
+    LWIO_LOG_TARGET_DISABLED,    /* log disabled      */
+    LWIO_LOG_LEVEL_ERROR,        /* Max Log Level     */
     FALSE,                      /* Enable debug logs */
     "",                         /* Log file path     */
     "",                         /* Cache path        */

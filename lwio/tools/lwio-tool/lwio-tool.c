@@ -103,7 +103,7 @@ DoTestFileApiCreateFile(
                     pEcpList);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    SMB_LOG_ALWAYS("Opened file '%s'", pszPath);
+    LWIO_LOG_ALWAYS("Opened file '%s'", pszPath);
 
 cleanup:
     RtlWC16StringFree(&fileName.FileName);
@@ -171,7 +171,7 @@ DoTestFileApiCreateNamedPipeFile(
                     defaultTimeout);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    SMB_LOG_ALWAYS("Opened named pipe '%s'", pszPath);
+    LWIO_LOG_ALWAYS("Opened named pipe '%s'", pszPath);
 
 cleanup:
     RtlWC16StringFree(&fileName.FileName);
@@ -307,8 +307,8 @@ main(
     // We should really be using printf and just doing logging
     // for diagnostics.
     if (SMBInitLogging(pszProgramName,
-                       SMB_LOG_TARGET_CONSOLE,
-                       SMB_LOG_LEVEL_DEBUG,
+                       LWIO_LOG_TARGET_CONSOLE,
+                       LWIO_LOG_LEVEL_DEBUG,
                        NULL))
     {
         fprintf(stderr, "Failed to initialize logging.\n");

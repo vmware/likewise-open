@@ -57,12 +57,12 @@ SMBHashCreate(
         SMB_HASH_TABLE** ppResult)
 {
     SMB_HASH_TABLE *pResult = NULL;
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
 
     dwError = SMBAllocateMemory(
                     sizeof(*pResult),
                     (PVOID*)&pResult);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pResult->sTableSize = sTableSize;
     pResult->sCount = 0;
@@ -73,7 +73,7 @@ SMBHashCreate(
     dwError = SMBAllocateMemory(
                     sizeof(*pResult->ppEntries) * sTableSize,
                     (PVOID*)&pResult->ppEntries);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppResult = pResult;
 
@@ -97,7 +97,7 @@ void
 SMBHashSafeFree(
         SMB_HASH_TABLE** ppResult)
 {
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     SMB_HASH_ITERATOR iterator;
     SMB_HASH_ENTRY *pEntry = NULL;
 
@@ -107,7 +107,7 @@ SMBHashSafeFree(
     }
 
     dwError = SMBHashGetIterator(*ppResult, &iterator);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     while ((pEntry = SMBHashNext(&iterator)) != NULL)
     {
@@ -115,10 +115,10 @@ SMBHashSafeFree(
         {
             (*ppResult)->fnFree(pEntry);
         }
-        SMB_SAFE_FREE_MEMORY(pEntry);
+        LWIO_SAFE_FREE_MEMORY(pEntry);
     }
 
-    SMB_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
+    LWIO_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
     SMBFreeMemory(*ppResult);
 
     *ppResult = NULL;
@@ -134,7 +134,7 @@ SMBHashSetValue(
         PVOID  pKey,
         PVOID  pValue)
 {
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     SMB_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     SMB_HASH_ENTRY *pNewEntry = NULL;
@@ -162,7 +162,7 @@ SMBHashSetValue(
     dwError = SMBAllocateMemory(
                     sizeof(*pNewEntry),
                     (PVOID*)&pNewEntry);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
     pNewEntry->pKey = pKey;
     pNewEntry->pValue = pValue;
 
@@ -173,7 +173,7 @@ cleanup:
     return dwError;
 
 error:
-    SMB_SAFE_FREE_MEMORY(pNewEntry);
+    LWIO_SAFE_FREE_MEMORY(pNewEntry);
     goto cleanup;
 }
 
@@ -184,7 +184,7 @@ SMBHashGetValue(
         PCVOID  pKey,
         PVOID* ppValue)
 {
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     size_t sBucket = 0;
     SMB_HASH_ENTRY *pExamine = NULL;
 
@@ -223,7 +223,7 @@ SMBHashExists(
     )
 {
     DWORD dwError = SMBHashGetValue(pTable, pKey, NULL);
-    return (SMB_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
+    return (LWIO_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
 }
 
 //Invalidates all iterators
@@ -232,7 +232,7 @@ SMBHashResize(
         SMB_HASH_TABLE *pTable,
         size_t sTableSize)
 {
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     SMB_HASH_ENTRY **ppEntries;
     SMB_HASH_ITERATOR iterator;
     SMB_HASH_ENTRY *pEntry = NULL;
@@ -241,10 +241,10 @@ SMBHashResize(
     dwError = SMBAllocateMemory(
                     sizeof(*ppEntries) * sTableSize,
                     (PVOID*)&ppEntries);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBHashGetIterator(pTable, &iterator);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     while ((pEntry = SMBHashNext(&iterator)) != NULL)
     {
@@ -253,7 +253,7 @@ SMBHashResize(
         ppEntries[sBucket] = pEntry;
     }
 
-    SMB_SAFE_FREE_MEMORY(pTable->ppEntries);
+    LWIO_SAFE_FREE_MEMORY(pTable->ppEntries);
     pTable->ppEntries = ppEntries;
     pTable->sTableSize = sTableSize;
 
@@ -261,7 +261,7 @@ cleanup:
     return dwError;
 
 error:
-    SMB_SAFE_FREE_MEMORY(ppEntries);
+    LWIO_SAFE_FREE_MEMORY(ppEntries);
 
     goto cleanup;
 }
@@ -282,7 +282,7 @@ SMBHashGetIterator(
         pIterator->pEntryPos = NULL;
     }
 
-    return SMB_ERROR_SUCCESS;
+    return LWIO_ERROR_SUCCESS;
 }
 
 // returns NULL after passing the last entry
@@ -320,7 +320,7 @@ SMBHashRemoveKey(
         SMB_HASH_TABLE *pTable,
         PVOID  pKey)
 {
-    DWORD dwError = SMB_ERROR_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     SMB_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     SMB_HASH_ENTRY *pDelete;
@@ -339,7 +339,7 @@ SMBHashRemoveKey(
             //Remove it from the list
             pTable->sCount--;
             *ppExamine = pDelete->pNext;
-            SMB_SAFE_FREE_MEMORY(pDelete);
+            LWIO_SAFE_FREE_MEMORY(pDelete);
             goto cleanup;
         }
 

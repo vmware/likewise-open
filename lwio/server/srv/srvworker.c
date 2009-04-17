@@ -104,7 +104,7 @@ SrvWorkerMain(
     PLWIO_SRV_CONTEXT pIOContext = NULL;
     struct timespec ts = {0, 0};
 
-    SMB_LOG_DEBUG("Srv worker [id:%u] starting", pContext->workerId);
+    LWIO_LOG_DEBUG("Srv worker [id:%u] starting", pContext->workerId);
 
     while (!SrvWorkerMustStop(pContext))
     {
@@ -137,7 +137,7 @@ SrvWorkerMain(
             NTSTATUS ntStatus2 = SrvWorkerExecute(pIOContext);
             if (ntStatus2)
             {
-                SMB_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
             }
         }
     }
@@ -149,7 +149,7 @@ cleanup:
         SrvContextFree(pIOContext);
     }
 
-    SMB_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
+    LWIO_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
 
     return NULL;
 

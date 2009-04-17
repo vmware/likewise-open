@@ -139,7 +139,7 @@ cleanup:
 
 sec_error:
 
-    ntStatus = SMB_ERROR_GSS;
+    ntStatus = LWIO_ERROR_GSS;
 
 error:
 
@@ -338,7 +338,7 @@ SrvGssNewContext(
     pthread_mutex_init(&pContext->mutex, NULL);
     pContext->pMutex = &pContext->mutex;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
 
     ntStatus = SMBAllocateStringPrintf(
                     &pContext->pszMachinePrincipal,
@@ -347,7 +347,7 @@ SrvGssNewContext(
                     pHostinfo->pszDomain);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
 
     SMBStrToUpper(pContext->pszMachinePrincipal);
 
@@ -369,7 +369,7 @@ SrvGssNewContext(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pHostinfo->mutex);
 
     return ntStatus;
 
@@ -417,7 +417,7 @@ SrvGssInitNegotiate(
     static gss_OID_desc gss_spnego_mech_oid_desc =
       {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
 
-    SMB_LOCK_MUTEX(bInLock, pGssContext->pMutex);
+    LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     ntStatus = SrvGssRenew(pGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -475,7 +475,7 @@ SrvGssInitNegotiate(
 
         default:
 
-            ntStatus = SMB_ERROR_GSS;
+            ntStatus = LWIO_ERROR_GSS;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
@@ -499,7 +499,7 @@ SrvGssInitNegotiate(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     gss_release_buffer(&ulMinorStatus, &output_desc);
 
@@ -529,7 +529,7 @@ cleanup:
 
 sec_error:
 
-    ntStatus = SMB_ERROR_GSS;
+    ntStatus = LWIO_ERROR_GSS;
 
 error:
 
@@ -569,7 +569,7 @@ SrvGssContinueNegotiate(
                               {6, (void *)"\x2b\x06\x01\x05\x05\x02"};
     static gss_OID gss_spnego_mech_oid = &gss_spnego_mech_oid_desc;
 
-    SMB_LOCK_MUTEX(bInLock, pGssContext->pMutex);
+    LWIO_LOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     input_desc.length = ulSecurityInputBlobLen;
     input_desc.value = pSecurityInputBlob;
@@ -607,7 +607,7 @@ SrvGssContinueNegotiate(
 
         default:
 
-            ntStatus = SMB_ERROR_GSS;
+            ntStatus = LWIO_ERROR_GSS;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
@@ -631,7 +631,7 @@ SrvGssContinueNegotiate(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
+    LWIO_UNLOCK_MUTEX(bInLock, pGssContext->pMutex);
 
     gss_release_buffer(&ulMinorStatus, &output_desc);
 
@@ -639,7 +639,7 @@ cleanup:
 
 sec_error:
 
-    ntStatus = SMB_ERROR_GSS;
+    ntStatus = LWIO_ERROR_GSS;
 
 error:
 
@@ -667,7 +667,7 @@ SrvGssFreeContext(
         ntStatus = SrvDestroyKrb5Cache(pContext->pszCachePath);
         if (ntStatus)
         {
-            SMB_LOG_ERROR("Failed to destroy kerberos cache path [%s][code:%d]",
+            LWIO_LOG_ERROR("Failed to destroy kerberos cache path [%s][code:%d]",
                           pContext->pszCachePath,
                           ntStatus);
         }
@@ -733,14 +733,14 @@ srv_display_status_1(
             case GSS_S_COMPLETE:
             case GSS_S_CONTINUE_NEEDED:
 #endif
-                SMB_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
+                LWIO_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,
                         (char *)msg.value);
                 break;
 
             default:
 
-                SMB_LOG_ERROR("GSS-API error calling %s: %d (%s)\n",
+                LWIO_LOG_ERROR("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,
                         (char *)msg.value);
         }
@@ -930,7 +930,7 @@ SrvSetDefaultKrb5CachePath(
         }
     }
 
-    SMB_LOG_DEBUG("Cache path set to [%s]", SMB_SAFE_LOG_STRING(pszCachePath));
+    LWIO_LOG_DEBUG("Cache path set to [%s]", SMB_SAFE_LOG_STRING(pszCachePath));
 
 cleanup:
 

@@ -50,7 +50,7 @@ LwIoDaemonIpcRefreshConfiguration(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvRefreshConfig(pszConfigPath);
 
@@ -93,11 +93,11 @@ LwIoDaemonIpcSetLogInfo(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     BAIL_ON_INVALID_POINTER(pRequest->object);
 
-    dwError = SMBLogSetInfo_r((PSMB_LOG_INFO)pRequest->object);
+    dwError = SMBLogSetInfo_r((PLWIO_LOG_INFO)pRequest->object);
 
     /* Transmit failure to client but do not bail out of dispatch loop */
     if (dwError)
@@ -134,12 +134,12 @@ LwIoDaemonIpcGetLogInfo(
     DWORD dwError = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PSMB_STATUS_REPLY pStatusResponse = NULL;
-    PSMB_LOG_INFO pLogInfo = NULL;
+    PLWIO_LOG_INFO pLogInfo = NULL;
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_STATUS_REPLY),
                     (PVOID*)&pStatusResponse);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBLogGetInfo_r(&pLogInfo);
 
@@ -159,7 +159,7 @@ LwIoDaemonIpcGetLogInfo(
 
 cleanup:
 
-    SMB_SAFE_FREE_MEMORY(pStatusResponse);
+    LWIO_SAFE_FREE_MEMORY(pStatusResponse);
 
     return status;
 

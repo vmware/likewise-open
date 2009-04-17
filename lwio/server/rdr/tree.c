@@ -152,7 +152,7 @@ error:
     {
         SMBTreeDestroyContents(pTree);
     }
-    SMB_SAFE_FREE_MEMORY(pTree);
+    LWIO_SAFE_FREE_MEMORY(pTree);
 
     *ppTree = NULL;
 
@@ -197,11 +197,11 @@ SMBTreeAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
     pTree->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
 NTSTATUS
@@ -214,15 +214,15 @@ SMBTreeAcquireMid(
     BOOLEAN bInLock = FALSE;
     WORD wMid = 0;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     wMid = pTree->mid++;
 
-    SMB_LOG_DEBUG("Acquired mid [%d] from Tree [0x%x]", wMid, pTree);
+    LWIO_LOG_DEBUG("Acquired mid [%d] from Tree [0x%x]", wMid, pTree);
 
     *pwMid = wMid;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 }
@@ -236,13 +236,13 @@ SMBTreeSetState(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     pTree->state = state;
 
     pthread_cond_broadcast(&pTree->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 }
@@ -255,14 +255,14 @@ SMBTreeInvalidate(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     pTree->state = RDR_TREE_STATE_ERROR;
     pTree->error = ntStatus;
 
     pthread_cond_broadcast(&pTree->event);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 }
@@ -274,7 +274,7 @@ SMBTreeRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
     assert(pTree->refCount > 0);
 
@@ -292,12 +292,12 @@ SMBTreeRelease(
         }
         else
         {
-            SMB_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
+            LWIO_LOG_VERBOSE("Tree %p is eligible for reaping", pTree);
             RdrReaperPoke(&gRdrRuntime, pTree->lastActiveTime);
         }
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
 VOID
@@ -326,7 +326,7 @@ SMBTreeDestroyContents(
     PSMB_TREE pTree
     )
 {
-    SMB_SAFE_FREE_MEMORY(pTree->pszPath);
+    LWIO_SAFE_FREE_MEMORY(pTree->pszPath);
 
     /* @todo: assert that the session hash is empty */
     SMBHashSafeFree(&pTree->pResponseHash);
@@ -353,14 +353,14 @@ SMBTreeReceiveResponse(
     // use MID allocation from the socket...  so it should become
     // SMBSocketReceiveResponse.
 
-    SMB_LOCK_MUTEX(bResponseInLock, &pResponse->mutex);
+    LWIO_LOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
     while (!pResponse->state == SMB_RESOURCE_STATE_VALID)
     {
         ts.tv_sec = time(NULL) + 30;
         ts.tv_nsec = 0;
 
-        SMB_LOG_DEBUG("Waiting for response for [mid: %d] and Tree [0x%x]", pResponse->mid, pTree);
+        LWIO_LOG_DEBUG("Waiting for response for [mid: %d] and Tree [0x%x]", pResponse->mid, pTree);
 
 retry_wait:
 
@@ -398,11 +398,11 @@ retry_wait:
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
+    LWIO_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
-    SMB_LOCK_MUTEX(bTreeInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bTreeInLock, &pTree->mutex);
 
-    SMB_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]", pResponse->mid, pTree);
+    LWIO_LOG_DEBUG("Removing response [mid: %d] from Tree [0x%x]", pResponse->mid, pTree);
 
     ntStatus = SMBHashRemoveKey(
                     pTree->pResponseHash,
@@ -426,9 +426,9 @@ retry_wait:
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bTreeInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bTreeInLock, &pTree->mutex);
 
-    SMB_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
+    LWIO_UNLOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
     return ntStatus;
 
@@ -451,9 +451,9 @@ SMBTreeFindLockedResponseByMID(
     BOOLEAN bResponseInLock = FALSE;
     PSMB_RESPONSE pResponse = NULL;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
-    SMB_LOG_DEBUG("Trying to find response [mid: %d] in Tree [0x%x]", wMid, pTree);
+    LWIO_LOG_DEBUG("Trying to find response [mid: %d] in Tree [0x%x]", wMid, pTree);
 
     ntStatus = SMBHashGetValue(
                     pTree->pResponseHash,
@@ -461,19 +461,19 @@ SMBTreeFindLockedResponseByMID(
                     (PVOID *) &pResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
-    SMB_LOG_DEBUG("Locking response [mid: %d] in Tree [0x%x]", wMid, pTree);
+    LWIO_LOG_DEBUG("Locking response [mid: %d] in Tree [0x%x]", wMid, pTree);
 
-    SMB_LOCK_MUTEX(bResponseInLock, &pResponse->mutex);
+    LWIO_LOCK_MUTEX(bResponseInLock, &pResponse->mutex);
 
-    SMB_LOG_DEBUG("Locked response [mid: %d] in Tree [0x%x]", wMid, pTree);
+    LWIO_LOG_DEBUG("Locked response [mid: %d] in Tree [0x%x]", wMid, pTree);
 
     *ppResponse = pResponse;
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 

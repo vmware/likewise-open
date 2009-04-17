@@ -41,7 +41,7 @@ IopDriverUnload(
     {
         if (pDriverObject->Config->pszName)
         {
-            SMB_LOG_DEBUG("Unloading driver '%s'", pDriverObject->Config->pszName);
+            LWIO_LOG_DEBUG("Unloading driver '%s'", pDriverObject->Config->pszName);
         }
         if (IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_READY))
         {
@@ -60,7 +60,7 @@ IopDriverUnload(
             int err = dlclose(pDriverObject->LibraryHandle);
             if (err)
             {
-                SMB_LOG_ERROR("Failed to dlclose() for driver '%s' from '%s'",
+                LWIO_LOG_ERROR("Failed to dlclose() for driver '%s' from '%s'",
                               pDriverObject->Config->pszName,
                               pDriverObject->Config->pszPath);
             }
@@ -84,7 +84,7 @@ IopDriverLoad(
     PCSTR pszPath = pDriverConfig->pszPath;
     PCSTR pszName = pDriverConfig->pszName;
 
-    SMB_LOG_DEBUG("Loading driver '%s'", pszName);
+    LWIO_LOG_DEBUG("Loading driver '%s'", pszName);
 
     status = IO_ALLOCATE(&pDriverObject, IO_DRIVER_OBJECT, sizeof(*pDriverObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -102,7 +102,7 @@ IopDriverLoad(
     {
         pszError = dlerror();
 
-        SMB_LOG_ERROR("Failed to load driver '%s' from '%s' (%s)",
+        LWIO_LOG_ERROR("Failed to load driver '%s' from '%s' (%s)",
                       pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
 
         status = STATUS_UNSUCCESSFUL;
@@ -115,7 +115,7 @@ IopDriverLoad(
     {
         pszError = dlerror();
 
-        SMB_LOG_ERROR("Failed to load " IO_DRIVER_ENTRY_FUNCTION_NAME " function for driver %s from %s (%s)",
+        LWIO_LOG_ERROR("Failed to load " IO_DRIVER_ENTRY_FUNCTION_NAME " function for driver %s from %s (%s)",
                       pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
 
         status = STATUS_UNSUCCESSFUL;
@@ -127,7 +127,7 @@ IopDriverLoad(
 
     if (!IsSetFlag(pDriverObject->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
     {
-        SMB_LOG_ERROR(IO_DRIVER_ENTRY_FUNCTION_NAME " did not initialize driver '%s' from '%s'",
+        LWIO_LOG_ERROR(IO_DRIVER_ENTRY_FUNCTION_NAME " did not initialize driver '%s' from '%s'",
                       pszName, pszPath);
 
         status = STATUS_UNSUCCESSFUL;

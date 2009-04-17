@@ -128,7 +128,7 @@ RdrReaperThread(
     struct timespec wakeTime = {0};
     time_t nextWakeupTime = INVALID_TIME;
 
-    SMB_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+    LWIO_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
     while (!pRuntime->bShutdown)
     {
@@ -159,7 +159,7 @@ RdrReaperThread(
             pRuntime->nextWakeupTime = INVALID_TIME;
 
             /* Run reaping algorithm outside the reaper lock to avoid blocking pokes */
-            SMB_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+            LWIO_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
             nextWakeupTime = INVALID_TIME;
 
@@ -169,7 +169,7 @@ RdrReaperThread(
                 &nextWakeupTime);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SMB_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+            LWIO_LOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
             /* Someone may have poked us with a new wakeup time while we did not hold
                the reaper lock, so choose either it or the value we calculated ourselves
@@ -185,7 +185,7 @@ RdrReaperThread(
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
+    LWIO_UNLOCK_MUTEX(bInReaperLock, &pRuntime->reaperMutex);
 
     return NULL;
 }
@@ -301,7 +301,7 @@ RdrReaperReapGlobal(
     time_t expirationTime = pRuntime->expirationTime;
 
     /* Within lock, obtain a snapshot of all sockets and take a reference to each */
-    SMB_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
+    LWIO_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pRuntime->pSocketHashByName,
@@ -314,7 +314,7 @@ RdrReaperReapGlobal(
          pSocket->refCount++;
     }
 
-    SMB_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
     /* Reap sessions within each socket */
     for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
@@ -336,7 +336,7 @@ cleanup:
         /* Within lock, remove reference to each socket.  If the
            socket is expired, destroy it.  Otherwise, update the
            time we should next wake at */
-        SMB_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
+        LWIO_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
         for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
         {
@@ -352,7 +352,7 @@ cleanup:
                        so remove it from the hash and leave it
                        in list to be freed */
 
-                    SMB_LOG_VERBOSE("Socket %p is expired, reaping", pSocket);
+                    LWIO_LOG_VERBOSE("Socket %p is expired, reaping", pSocket);
                     SMBHashRemoveKey(
                         pRuntime->pSocketHashByName,
                         pSocket->pszHostname
@@ -360,7 +360,7 @@ cleanup:
                 }
                 else
                 {
-                    SMB_LOG_VERBOSE("Socket %p is not expired, waiting", pSocket);
+                    LWIO_LOG_VERBOSE("Socket %p is not expired, waiting", pSocket);
                     /* Ref count is 0 but the socket has not expired,
                        so take it out of the list so it is not freed
                        and calculate when it will expire */
@@ -381,7 +381,7 @@ cleanup:
             }
         }
 
-        SMB_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
+        LWIO_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
     }
 
     /* Free everything that was left in the list */
@@ -400,7 +400,7 @@ cleanup:
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
+    LWIO_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
     goto cleanup;
 }
@@ -422,7 +422,7 @@ RdrReaperReapSocket(
     time_t expirationTime = pRuntime->expirationTime;
 
     /* Within lock, obtain a snapshot of all sessions and take a reference to each */
-    SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pSocket->pSessionHashByUID,
@@ -435,7 +435,7 @@ RdrReaperReapSocket(
          pSession->refCount++;
     }
 
-    SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     /* Reap trees within each session */
     for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
@@ -457,7 +457,7 @@ cleanup:
         /* Within lock, remove reference to each session.  If the
            session is expired, destroy it.  Otherwise, update the
            time we should next wake at */
-        SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+        LWIO_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
         for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
         {
@@ -469,7 +469,7 @@ cleanup:
                                        currentTime,
                                        expirationTime))
                 {
-                    SMB_LOG_VERBOSE("Session %p is expired, reaping", pSession);
+                    LWIO_LOG_VERBOSE("Session %p is expired, reaping", pSession);
 
                     SMBHashRemoveKey(
                         pSocket->pSessionHashByUID,
@@ -482,7 +482,7 @@ cleanup:
                 }
                 else
                 {
-                    SMB_LOG_VERBOSE("Session %p is not expired, waiting", pSession);
+                    LWIO_LOG_VERBOSE("Session %p is not expired, waiting", pSession);
 
                     *pSessionIter = NULL;
 
@@ -498,7 +498,7 @@ cleanup:
             }
         }
 
-        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+        LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
     }
 
     for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
@@ -518,7 +518,7 @@ cleanup:
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     goto cleanup;
 }
@@ -539,7 +539,7 @@ RdrReaperReapSession(
     BOOLEAN bInSessionLock = FALSE;
     time_t expirationTime = pRuntime->expirationTime;
 
-    SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pSession->pTreeHashByPath,
@@ -560,7 +560,7 @@ cleanup:
                                        currentTime,
                                        expirationTime))
                 {
-                    SMB_LOG_VERBOSE("Tree %p is expired, reaping", pTree);
+                    LWIO_LOG_VERBOSE("Tree %p is expired, reaping", pTree);
 
                     /* We can't remove the tree from
                        the TID hash because the receiver
@@ -577,7 +577,7 @@ cleanup:
                 }
                 else
                 {
-                    SMB_LOG_VERBOSE("Tree %p is not expired, waiting", pTree);
+                    LWIO_LOG_VERBOSE("Tree %p is not expired, waiting", pTree);
 
                     *pTreeIter = NULL;
 
@@ -594,7 +594,7 @@ cleanup:
         }
     }
 
-    SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     /* Pass one -- disconnect each tree outside the lock.
        We can't free or remove the tree from the session
@@ -608,7 +608,7 @@ cleanup:
         }
     }
 
-    SMB_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     /* Pass two -- remove and free each tree now that they
        are all disconnected */
@@ -626,7 +626,7 @@ cleanup:
         }
     }
 
-    SMB_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     RTL_FREE(&pTreeList);
 

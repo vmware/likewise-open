@@ -125,24 +125,24 @@ SMBSetSyslogMask(
 
     switch (logLevel)
     {
-        case SMB_LOG_LEVEL_ALWAYS:
+        case LWIO_LOG_LEVEL_ALWAYS:
         {
             dwSysLogLevel = LOG_UPTO(LOG_INFO);
             break;
         }
-        case SMB_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_ERROR:
         {
             dwSysLogLevel = LOG_UPTO(LOG_ERR);
             break;
         }
 
-        case SMB_LOG_LEVEL_WARNING:
+        case LWIO_LOG_LEVEL_WARNING:
         {
             dwSysLogLevel = LOG_UPTO(LOG_WARNING);
             break;
         }
 
-        case SMB_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_INFO:
         {
             dwSysLogLevel = LOG_UPTO(LOG_INFO);
             break;
@@ -168,24 +168,24 @@ SMBLogToSyslog(
 {
     switch (logLevel)
     {
-        case SMB_LOG_LEVEL_ALWAYS:
+        case LWIO_LOG_LEVEL_ALWAYS:
         {
             lsmb_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
         }
-        case SMB_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_ERROR:
         {
             lsmb_vsyslog(LOG_ERR, pszFormat, msgList);
             break;
         }
 
-        case SMB_LOG_LEVEL_WARNING:
+        case LWIO_LOG_LEVEL_WARNING:
         {
             lsmb_vsyslog(LOG_WARNING, pszFormat, msgList);
             break;
         }
 
-        case SMB_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_INFO:
         {
             lsmb_vsyslog(LOG_INFO, pszFormat, msgList);
             break;
@@ -226,7 +226,7 @@ SMBFreeSysLogInfo(
         closelog();
     }
     
-    SMB_SAFE_FREE_STRING(pSysLog->pszIdentifier);
+    LWIO_SAFE_FREE_STRING(pSysLog->pszIdentifier);
     
     SMBFreeMemory(pSysLog);
 }

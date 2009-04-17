@@ -35,7 +35,7 @@ SrvSessionCreate(
     NTSTATUS ntStatus = 0;
     PSMB_SRV_SESSION pSession = NULL;
 
-    SMB_LOG_DEBUG("Creating session [uid:%u]", uid);
+    LWIO_LOG_DEBUG("Creating session [uid:%u]", uid);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pSession,
@@ -50,7 +50,7 @@ SrvSessionCreate(
 
     pSession->uid = uid;
 
-    SMB_LOG_DEBUG("Associating session [object:0x%x][uid:%u]", pSession, uid);
+    LWIO_LOG_DEBUG("Associating session [object:0x%x][uid:%u]", pSession, uid);
 
     ntStatus = LwRtlRBTreeCreate(
                     &SrvSessionTreeCompare,
@@ -92,7 +92,7 @@ SrvSessionFindTree(
     BOOLEAN bInLock = FALSE;
     PSMB_SRV_TREE pTree = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
     ntStatus = LwRtlRBTreeFind(
                     pSession->pTreeCollection,
@@ -106,7 +106,7 @@ SrvSessionFindTree(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -126,7 +126,7 @@ SrvSessionRemoveTree(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
     ntStatus = LwRtlRBTreeRemove(
                     pSession->pTreeCollection,
@@ -135,7 +135,7 @@ SrvSessionRemoveTree(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -156,7 +156,7 @@ SrvSessionCreateTree(
     BOOLEAN bInLock = FALSE;
     USHORT  tid = 0;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
     ntStatus = SrvSessionAcquireTreeId_inlock(
                     pSession,
@@ -181,7 +181,7 @@ SrvSessionCreateTree(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -228,7 +228,7 @@ SrvSessionRelease(
     PSMB_SRV_SESSION pSession
     )
 {
-    SMB_LOG_DEBUG("Releasing session [uid:%u]", pSession->uid);
+    LWIO_LOG_DEBUG("Releasing session [uid:%u]", pSession->uid);
 
     if (InterlockedDecrement(&pSession->refcount) == 0)
     {
@@ -341,7 +341,7 @@ SrvSessionFree(
     PSMB_SRV_SESSION pSession
     )
 {
-    SMB_LOG_DEBUG("Freeing session [object:0x%x][uid:%u]",
+    LWIO_LOG_DEBUG("Freeing session [object:0x%x][uid:%u]",
                     pSession,
                     pSession->uid);
 

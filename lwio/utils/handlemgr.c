@@ -55,14 +55,14 @@ SMBHandleManagerCreate(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_HANDLE_MANAGER),
                     (PVOID*)&pHandleManager);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pHandleManager->dwHandleMax = dwHandleMax ? dwHandleMax : SMB_DEFAULT_HANDLE_MAX;
 
     dwError = SMBBitVectorCreate(
                     pHandleManager->dwHandleMax,
                     &pHandleManager->pFreeHandleIndex);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBHashCreate(
                     pHandleManager->dwHandleMax % 421,
@@ -70,7 +70,7 @@ SMBHandleManagerCreate(
                     &SMBHandleManagerHashKey,
                     &SMBHandleManagerFreeKey,
                     &pHandleManager->pHandleTable);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *ppHandleManager = pHandleManager;
 
@@ -109,17 +109,17 @@ SMBHandleManagerAddItem(
     dwError = SMBBitVectorFirstUnsetBit(
                 pHandleMgr->pFreeHandleIndex,
                 &dwAvailableIndex);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_HANDLE_TABLE_ENTRY),
                     (PVOID*)&pEntry);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateMemory(
                     sizeof(DWORD),
                     (PVOID*)&pKey);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pEntry->hType = hType;
     pEntry->pItem = pItem;
@@ -130,12 +130,12 @@ SMBHandleManagerAddItem(
                     pHandleMgr->pHandleTable,
                     pKey,
                     pEntry);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBBitVectorSetBit(
                     pHandleMgr->pFreeHandleIndex,
                     dwAvailableIndex);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -143,13 +143,13 @@ cleanup:
 
 error:
 
-    if (dwError == SMB_ERROR_NO_BIT_AVAILABLE)
+    if (dwError == LWIO_ERROR_NO_BIT_AVAILABLE)
     {
-        dwError = SMB_ERROR_OUT_OF_HANDLES;
+        dwError = LWIO_ERROR_OUT_OF_HANDLES;
     }
 
-    SMB_SAFE_FREE_MEMORY(pEntry);
-    SMB_SAFE_FREE_MEMORY(pKey);
+    LWIO_SAFE_FREE_MEMORY(pEntry);
+    LWIO_SAFE_FREE_MEMORY(pKey);
 
     goto cleanup;
 }
@@ -175,15 +175,15 @@ SMBHandleManagerGetItem(
                 pHandleMgr->pFreeHandleIndex,
                 hItem))
     {
-        dwError = SMB_ERROR_INVALID_HANDLE;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_HANDLE;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBHashGetValue(
                 pHandleMgr->pHandleTable,
                 &hItem,
                 (PVOID*)&pEntry);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     *phType = pEntry->hType;
     *ppItem = pEntry->pItem;
@@ -206,7 +206,7 @@ error:
 
     if (dwError == ENOENT)
     {
-        dwError = SMB_ERROR_INVALID_HANDLE;
+        dwError = LWIO_ERROR_INVALID_HANDLE;
     }
 
     goto cleanup;
@@ -233,15 +233,15 @@ SMBHandleManagerDeleteItem(
                 pHandleMgr->pFreeHandleIndex,
                 hItem))
     {
-        dwError = SMB_ERROR_INVALID_HANDLE;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_HANDLE;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     dwError = SMBHashGetValue(
                 pHandleMgr->pHandleTable,
                 &hItem,
                 (PVOID*)&pEntry);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     hType = pEntry->hType;
     pItem = pEntry->pItem;
@@ -249,13 +249,13 @@ SMBHandleManagerDeleteItem(
     dwError = SMBHashRemoveKey(
                     pHandleMgr->pHandleTable,
                     &hItem);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     // Indicate that this id is available
     dwError = SMBBitVectorUnsetBit(
                 pHandleMgr->pFreeHandleIndex,
                 hItem);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (ppItem)
     {
@@ -285,7 +285,7 @@ error:
 
     if (dwError == ENOENT)
     {
-    dwError = SMB_ERROR_INVALID_HANDLE;
+    dwError = LWIO_ERROR_INVALID_HANDLE;
     }
 
     goto cleanup;
@@ -322,6 +322,6 @@ SMBHandleManagerFreeKey(
     )
 {
     PVOID pHandleTableEntry = (PVOID)pEntry->pKey;
-    SMB_SAFE_FREE_MEMORY(pHandleTableEntry);
+    LWIO_SAFE_FREE_MEMORY(pHandleTableEntry);
 }
 

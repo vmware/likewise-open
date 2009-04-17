@@ -125,7 +125,7 @@ RdrCreateFileEx(
                     &pFile->pszCachePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOG_DEBUG("Principal [%s] Cache Path [%s]",
+    LWIO_LOG_DEBUG("Principal [%s] Cache Path [%s]",
                   SMB_SAFE_LOG_STRING(pFile->pszPrincipal),
                   SMB_SAFE_LOG_STRING(pFile->pszCachePath));
 
@@ -165,10 +165,10 @@ RdrCreateFileEx(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszServer);
-    SMB_SAFE_FREE_STRING(pszShare);
-    SMB_SAFE_FREE_STRING(pszFilename);
-    SMB_SAFE_FREE_MEMORY(pwszFilename);
+    LWIO_SAFE_FREE_STRING(pszServer);
+    LWIO_SAFE_FREE_STRING(pszShare);
+    LWIO_SAFE_FREE_STRING(pszFilename);
+    LWIO_SAFE_FREE_MEMORY(pwszFilename);
 
     return ntStatus;
 
@@ -220,7 +220,7 @@ ParseSharePath(
 
     if (IsNullOrEmptyString(pszIndex) || !isalpha((int)*pszIndex))
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -228,7 +228,7 @@ ParseSharePath(
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -244,7 +244,7 @@ ParseSharePath(
     sLen = strspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -254,7 +254,7 @@ ParseSharePath(
     sLen = strcspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -272,7 +272,7 @@ ParseSharePath(
     sLen = strspn(pszIndex, "\\/");
     if (!sLen)
     {
-        ntStatus = SMB_ERROR_INVALID_PARAMETER;
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -305,15 +305,15 @@ ParseSharePath(
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszPath);
+    LWIO_SAFE_FREE_STRING(pszPath);
 
     return ntStatus;
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszServer);
-    SMB_SAFE_FREE_STRING(pszShare);
-    SMB_SAFE_FREE_STRING(pszFilename);
+    LWIO_SAFE_FREE_STRING(pszServer);
+    LWIO_SAFE_FREE_STRING(pszShare);
+    LWIO_SAFE_FREE_STRING(pszFilename);
 
     *ppszServer = NULL;
     *ppszShare = NULL;

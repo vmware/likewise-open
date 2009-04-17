@@ -79,7 +79,7 @@ SrvProdConsEnqueue(
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSignalEvent = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
     while (pQueue->ulNumItems == pQueue->ulNumMaxItems)
     {
@@ -96,7 +96,7 @@ SrvProdConsEnqueue(
 
     pQueue->ulNumItems++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     if (bSignalEvent)
     {
@@ -105,7 +105,7 @@ SrvProdConsEnqueue(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     return ntStatus;
 
@@ -125,7 +125,7 @@ SrvProdConsDequeue(
     PVOID    pItem = NULL;
     BOOLEAN  bSignalEvent = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
     while (!pQueue->ulNumItems)
     {
@@ -141,7 +141,7 @@ SrvProdConsDequeue(
 
     pQueue->ulNumItems--;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     if (bSignalEvent)
     {
@@ -164,7 +164,7 @@ SrvProdConsTimedDequeue(
     BOOLEAN  bInLock = FALSE;
     PVOID    pItem = NULL;
 
-    SMB_LOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
     if (!pQueue->ulNumItems)
     {
@@ -209,7 +209,7 @@ SrvProdConsTimedDequeue(
 
         pQueue->ulNumItems--;
 
-        SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+        LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
         if (bSignalEvent)
         {
@@ -221,7 +221,7 @@ SrvProdConsTimedDequeue(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
     return ntStatus;
 

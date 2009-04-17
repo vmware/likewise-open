@@ -112,7 +112,7 @@ SrvShareInitContextContents(
     ntStatus = SrvShareDbInit(pDbContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
 
     pDbContext->pShareEntry = NULL;
 
@@ -161,7 +161,7 @@ SrvShareInitContextContents(
     } while (ulNumSharesFound == ulLimit);
 
 cleanup:
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     if (ppShareInfoList)
     {
@@ -311,14 +311,14 @@ SrvShareFreeContextContents(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
 
     if (pDbContext->pShareEntry)
     {
         SrvShareFreeList_inlock(pDbContext);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     SrvShareDbShutdown(pDbContext);
 }
@@ -454,7 +454,7 @@ SrvFindShareByName(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
                         pDbContext,
@@ -462,7 +462,7 @@ SrvFindShareByName(
                         ppShareInfo
                         );
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 }
@@ -559,7 +559,7 @@ SrvShareAddShare(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
                         pDbContext,
@@ -642,7 +642,7 @@ cleanup:
        SrvShareDbClose(pDbContext, hDb);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     if (pShareInfo) {
         SrvShareDbReleaseInfo(pShareInfo);
@@ -692,7 +692,7 @@ SrvShareDeleteShare(
 
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
 
     ntStatus = SrvShareDbOpen(
                     pDbContext,
@@ -718,7 +718,7 @@ cleanup:
        SrvShareDbClose(pDbContext, hDb);
     }
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 
@@ -806,7 +806,7 @@ SrvShareGetInfo(
     BOOLEAN bInLock = FALSE;
     PSHARE_DB_INFO pShareInfo = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
                         pDbContext,
@@ -819,7 +819,7 @@ SrvShareGetInfo(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 
@@ -843,7 +843,7 @@ SrvShareEnumShares(
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSHARE_DB_INFO* ppShares = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
 
     /* Count the number of share entries */
     pShareEntry = pDbContext->pShareEntry;
@@ -878,7 +878,7 @@ SrvShareEnumShares(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
 
     return ntStatus;
 

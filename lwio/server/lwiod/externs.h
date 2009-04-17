@@ -61,13 +61,13 @@ extern pthread_t* gpSignalHandlerThread;
 
 #define PID_FILE_CONTENTS_SIZE ((9 * 2) + 2)
 
-#define SMB_LOCK_SERVERINFO(bInLock)                  \
+#define LWIO_LOCK_SERVERINFO(bInLock)                  \
         if (!bInLock) {                               \
            pthread_mutex_lock(&gpServerInfo->lock);   \
            bInLock = TRUE;                            \
         }
 
-#define SMB_UNLOCK_SERVERINFO(bInLock)                \
+#define LWIO_UNLOCK_SERVERINFO(bInLock)                \
         if (bInLock) {                                \
            pthread_mutex_unlock(&gpServerInfo->lock); \
            bInLock = FALSE;                           \
@@ -77,13 +77,13 @@ extern pthread_mutex_t gServerConfigLock;
 extern SMB_CONFIG      gServerConfig;
 extern PSMB_CONFIG     gpServerConfig;
 
-#define SMB_LOCK_SERVERCONFIG(bInLock)               \
+#define LWIO_LOCK_SERVERCONFIG(bInLock)               \
         if (!bInLock) {                              \
            pthread_mutex_lock(&gServerConfigLock);   \
            bInLock = TRUE;                           \
         }
 
-#define SMB_UNLOCK_SERVERCONFIG(bInLock)             \
+#define LWIO_UNLOCK_SERVERCONFIG(bInLock)             \
         if (bInLock) {                               \
            pthread_mutex_unlock(&gServerConfigLock); \
            bInLock = FALSE;                          \

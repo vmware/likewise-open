@@ -53,7 +53,7 @@ DWORD
 SMBSetupLogging(
 	HANDLE              hLog,
 	SMBLogLevel         maxAllowedLogLevel,
-	PFN_SMB_LOG_MESSAGE pfnLogger
+	PFN_LWIO_LOG_MESSAGE pfnLogger
 	);
 
 VOID

@@ -217,7 +217,7 @@ SessionSetup(
                         &pwszNativeDomain);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SMB_SAFE_FREE_MEMORY(pSecurityBlob2);
+        LWIO_SAFE_FREE_MEMORY(pSecurityBlob2);
 
         ntStatus = SMBGSSContextNegotiate(
                         hSMBGSSContext,
@@ -270,7 +270,7 @@ cleanup:
                 packet.bufferLen);
     }
 
-    SMB_SAFE_FREE_MEMORY(pSecurityBlob2);
+    LWIO_SAFE_FREE_MEMORY(pSecurityBlob2);
 
     return ntStatus;
 
@@ -279,7 +279,7 @@ error:
     *ppSessionKey = NULL;
     *pdwSessionKeyLength = 0;
 
-    SMB_SAFE_FREE_MEMORY(pSessionKey);
+    LWIO_SAFE_FREE_MEMORY(pSessionKey);
 
     goto cleanup;
 }

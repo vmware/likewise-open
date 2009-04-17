@@ -89,7 +89,7 @@ SMBSemaphoreDestroy(
         int localError = _SMB_SEMAPHORE_SYSCALL(sem_destroy(pSemaphore)); \
         if (localError) \
         { \
-            SMB_LOG_ERROR("Failed to destroy semaphore [code: %d]", localError); \
+            LWIO_LOG_ERROR("Failed to destroy semaphore [code: %d]", localError); \
         } \
     } while (0)
 #endif /* __LWI_DARWIN__ */

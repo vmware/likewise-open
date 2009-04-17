@@ -87,10 +87,10 @@ main(
                 argv,
                 &pszSourcePath,
                 &pszTargetPath);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoInitialize();
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     // TODO:
     // Call CreateFile to open the file
@@ -137,7 +137,7 @@ error:
             }
         }
 
-        SMB_SAFE_FREE_STRING(pszErrorBuffer);
+        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
     if (bPrintOrigError)
@@ -190,14 +190,14 @@ ParseArgs(
                     dwError = SMBAllocateString(
                                 pszArg,
                                 &pszSourcePath);
-                    BAIL_ON_SMB_ERROR(dwError);
+                    BAIL_ON_LWIO_ERROR(dwError);
                 }
                 else if (!pszTargetPath)
                 {
                     dwError = SMBAllocateString(
                                 pszArg,
                                 &pszTargetPath);
-                    BAIL_ON_SMB_ERROR(dwError);
+                    BAIL_ON_LWIO_ERROR(dwError);
                 }
                 else
                 {
@@ -253,7 +253,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = SMB_ERROR_SERVER_UNREACHABLE;
+            dwError2 = LWIO_ERROR_SERVER_UNREACHABLE;
 
             break;
 

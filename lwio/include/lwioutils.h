@@ -130,9 +130,9 @@
 #define SMB_LTOH32_INPLACE(x) ((x) = SMB_LTOH32(x))
 #define SMB_LTOH64_INPLACE(x) ((x) = SMB_LTOH64(x))
 
-#define BAIL_ON_SMB_ERROR(dwError)                \
+#define BAIL_ON_LWIO_ERROR(dwError)                \
     if ((dwError)) {                              \
-       SMB_LOG_DEBUG("Error at %s:%d [code: %d]", \
+       LWIO_LOG_DEBUG("Error at %s:%d [code: %d]", \
                      __FILE__,                    \
                      __LINE__,                    \
                      dwError);                    \
@@ -141,7 +141,7 @@
 
 #define BAIL_ON_NT_STATUS(ntStatus)                \
     if ((ntStatus)) {                              \
-       SMB_LOG_DEBUG("Error at %s:%d [status = 0x%08X (%d)]", \
+       LWIO_LOG_DEBUG("Error at %s:%d [status = 0x%08X (%d)]", \
                      __FILE__,                     \
                      __LINE__,                     \
                      ntStatus, ntStatus);          \
@@ -167,10 +167,10 @@
 #define GOTO_CLEANUP_ON_SMB_ERROR(error) \
     _GOTO_CLEANUP_ON_NONZERO(error)
 
-#define GOTO_CLEANUP_ON_SMB_ERROR_EE(error, EE) \
+#define GOTO_CLEANUP_ON_LWIO_ERROR_EE(error, EE) \
     _GOTO_CLEANUP_ON_NONZERO_EE(error, EE)
 
-#define SMB_SAFE_FREE_STRING(str) \
+#define LWIO_SAFE_FREE_STRING(str) \
         do {                      \
            if (str) {             \
               SMBFreeString(str); \
@@ -189,7 +189,7 @@
            }                                  \
         } while(0);
 
-#define SMB_SAFE_FREE_MEMORY(mem) \
+#define LWIO_SAFE_FREE_MEMORY(mem) \
         do {                      \
            if (mem) {             \
               SMBFreeMemory(mem); \
@@ -197,7 +197,7 @@
            }                      \
         } while(0);
 
-#define SMB_SAFE_FREE_STRING_ARRAY(ppszArray)               \
+#define LWIO_SAFE_FREE_STRING_ARRAY(ppszArray)               \
         do {                                                \
            if (ppszArray) {                                 \
                SMBFreeNullTerminatedStringArray(ppszArray); \
@@ -207,51 +207,51 @@
 
 #define IsNullOrEmptyString(str) (!(str) || !(*(str)))
 
-#define SMB_LOCK_MUTEX(bInLock, mutex) \
+#define LWIO_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \
        int thr_err = pthread_mutex_lock(mutex); \
        if (thr_err) { \
-           SMB_LOG_ERROR("Failed to lock mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to lock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
     }
 
-#define SMB_UNLOCK_MUTEX(bInLock, mutex) \
+#define LWIO_UNLOCK_MUTEX(bInLock, mutex) \
     if (bInLock) { \
        int thr_err = pthread_mutex_unlock(mutex); \
        if (thr_err) { \
-           SMB_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \
     }
 
-#define SMB_LOCK_RWMUTEX_SHARED(bInLock, mutex) \
+#define LWIO_LOCK_RWMUTEX_SHARED(bInLock, mutex) \
     if (!bInLock) { \
        int thr_err = pthread_rwlock_rdlock(mutex); \
        if (thr_err) { \
-           SMB_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
     }
 
-#define SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, mutex) \
+#define LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, mutex) \
     if (!bInLock) { \
        int thr_err = pthread_rwlock_wrlock(mutex); \
        if (thr_err) { \
-           SMB_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
     }
 
-#define SMB_UNLOCK_RWMUTEX(bInLock, mutex) \
+#define LWIO_UNLOCK_RWMUTEX(bInLock, mutex) \
     if (bInLock) { \
        int thr_err = pthread_rwlock_unlock(mutex); \
        if (thr_err) { \
-           SMB_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \
@@ -264,30 +264,30 @@
 
 extern pthread_mutex_t gSMBLogLock;
 
-#define SMB_LOCK_LOGGER   pthread_mutex_lock(&gSMBLogLock)
-#define SMB_UNLOCK_LOGGER pthread_mutex_unlock(&gSMBLogLock)
+#define LWIO_LOCK_LOGGER   pthread_mutex_lock(&gSMBLogLock)
+#define LWIO_UNLOCK_LOGGER pthread_mutex_unlock(&gSMBLogLock)
 
-#define _SMB_LOG_WITH_THREAD(Level, Format, ...) \
-    _SMB_LOG_MESSAGE(Level, \
+#define _LWIO_LOG_WITH_THREAD(Level, Format, ...) \
+    _LWIO_LOG_MESSAGE(Level, \
                      "0x%x:" Format, \
                      (unsigned int)pthread_self(), \
                      ## __VA_ARGS__)
 
 #else
 
-#define SMB_LOCK_LOGGER
-#define SMB_UNLOCK_LOGGER
+#define LWIO_LOCK_LOGGER
+#define LWIO_UNLOCK_LOGGER
 
-#define _SMB_LOG_WITH_THREAD(Level, Format, ...) \
-    _SMB_LOG_MESSAGE(Level, \
+#define _LWIO_LOG_WITH_THREAD(Level, Format, ...) \
+    _LWIO_LOG_MESSAGE(Level, \
                     "0x%x:" Format, \
                     (unsigned int)pthread_self(), \
                      ## __VA_ARGS__)
 
 #endif
 
-#define _SMB_LOG_WITH_DEBUG(Level, Format, ...) \
-    _SMB_LOG_WITH_THREAD(Level, \
+#define _LWIO_LOG_WITH_DEBUG(Level, Format, ...) \
+    _LWIO_LOG_WITH_THREAD(Level, \
                          "[%s() %s:%d] " Format, \
                          __FUNCTION__, \
                          __FILE__, \
@@ -296,48 +296,48 @@ extern pthread_mutex_t gSMBLogLock;
 
 extern HANDLE              ghSMBLog;
 extern SMBLogLevel         gSMBMaxLogLevel;
-extern PFN_SMB_LOG_MESSAGE gpfnSMBLogger;
+extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 
-#define _SMB_LOG_MESSAGE(Level, Format, ...) \
+#define _LWIO_LOG_MESSAGE(Level, Format, ...) \
     SMBLogMessage(gpfnSMBLogger, ghSMBLog, Level, Format, ## __VA_ARGS__)
 
-#define _SMB_LOG_IF(Level, Format, ...)                     \
+#define _LWIO_LOG_IF(Level, Format, ...)                     \
     do {                                                    \
-        SMB_LOCK_LOGGER;                                    \
+        LWIO_LOCK_LOGGER;                                    \
         if (gpfnSMBLogger && (gSMBMaxLogLevel >= (Level)))  \
         {                                                   \
-            if (gSMBMaxLogLevel >= SMB_LOG_LEVEL_DEBUG)     \
+            if (gSMBMaxLogLevel >= LWIO_LOG_LEVEL_DEBUG)     \
             {                                               \
-                _SMB_LOG_WITH_DEBUG(Level, Format, ## __VA_ARGS__); \
+                _LWIO_LOG_WITH_DEBUG(Level, Format, ## __VA_ARGS__); \
             }                                               \
             else                                            \
             {                                               \
-                _SMB_LOG_WITH_THREAD(Level, Format, ## __VA_ARGS__); \
+                _LWIO_LOG_WITH_THREAD(Level, Format, ## __VA_ARGS__); \
             }                                               \
         }                                                   \
-        SMB_UNLOCK_LOGGER;                                  \
+        LWIO_UNLOCK_LOGGER;                                  \
     } while (0)
 
 #define SMB_SAFE_LOG_STRING(x) \
     ( (x) ? (x) : "<null>" )
 
-#define SMB_LOG_ALWAYS(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_ALWAYS(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
 
-#define SMB_LOG_ERROR(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_ERROR(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
 
-#define SMB_LOG_WARNING(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_WARNING(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
 
-#define SMB_LOG_INFO(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_INFO(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
 
-#define SMB_LOG_VERBOSE(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_VERBOSE(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
 
-#define SMB_LOG_DEBUG(szFmt, ...) \
-    _SMB_LOG_IF(SMB_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
+#define LWIO_LOG_DEBUG(szFmt, ...) \
+    _LWIO_LOG_IF(LWIO_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
 
 //defined flags in dwOptions
 #define SMB_CFG_OPTION_STRIP_SECTION          0x00000001
@@ -347,26 +347,26 @@ extern PFN_SMB_LOG_MESSAGE gpfnSMBLogger;
 
 #define BAIL_ON_INVALID_STRING(pszParam)          \
         if (IsNullOrEmptyString(pszParam)) {      \
-           dwError = SMB_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_SMB_ERROR(dwError);            \
+           dwError = LWIO_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_HANDLE(hParam)            \
         if (hParam == (HANDLE)NULL) {             \
-           dwError = SMB_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_SMB_ERROR(dwError);            \
+           dwError = LWIO_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_SMBHANDLE(hParam)         \
         if (hParam == (SMBHANDLE) 0) {            \
-           dwError = SMB_ERROR_INVALID_HANDLE;    \
-           BAIL_ON_SMB_ERROR(dwError);            \
+           dwError = LWIO_ERROR_INVALID_HANDLE;    \
+           BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_POINTER(p)                \
         if (NULL == p) {                          \
-           dwError = SMB_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_SMB_ERROR(dwError);            \
+           dwError = LWIO_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LWIO_ERROR(dwError);            \
         }
 
 /*
@@ -1153,17 +1153,17 @@ SMBInitLogging(
 
 DWORD
 SMBLogGetInfo(
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     );
 
 DWORD
 SMBLogSetInfo(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     );
 
 VOID
 SMBLogMessage(
-    PFN_SMB_LOG_MESSAGE pfnLogger,
+    PFN_LWIO_LOG_MESSAGE pfnLogger,
     HANDLE hLog,
     SMBLogLevel logLevel,
     PCSTR  pszFormat,

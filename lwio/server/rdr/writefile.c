@@ -62,7 +62,7 @@ RdrWriteFileEx(
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
     BOOLEAN bFileIsLocked = FALSE;
 
-    SMB_LOCK_MUTEX(bFileIsLocked, &pFile->mutex);
+    LWIO_LOCK_MUTEX(bFileIsLocked, &pFile->mutex);
 
     do
     {
@@ -92,7 +92,7 @@ RdrWriteFileEx(
 
 error:
 
-    SMB_UNLOCK_MUTEX(bFileIsLocked, &pFile->mutex);
+    LWIO_UNLOCK_MUTEX(bFileIsLocked, &pFile->mutex);
 
     *pdwNumBytesWritten = dwNumBytesWritten;
 

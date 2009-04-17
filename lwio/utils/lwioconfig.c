@@ -182,10 +182,10 @@ SMBParseConfigFile(
                     pfnEndSectionHandler,
                     pData,
                     &pParseState);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBCfgParse(pParseState);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 cleanup:
 
@@ -219,26 +219,26 @@ SMBCfgInitParseState(
 
     if ((fp = fopen(pszFilePath, "r")) == NULL) {
         dwError = errno;
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_CONFIG_PARSE_STATE),
                     (PVOID*)&pParseState);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateMemory(
                     sizeof(SMB_STACK),
                     (PVOID*)&pTokenStack);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pParseState->pLexerTokenStack = pTokenStack;
 
     dwError = SMBAllocateString(
                     pszFilePath,
                     &(pParseState->pszFilePath));
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pParseState->fp = fp;
     fp = NULL;
@@ -283,8 +283,8 @@ SMBCfgFreeParseState(
     PSMB_CONFIG_PARSE_STATE pParseState
     )
 {
-    SMB_SAFE_FREE_STRING(pParseState->pszFilePath);
-    SMB_SAFE_FREE_STRING(pParseState->pszSectionName);
+    LWIO_SAFE_FREE_STRING(pParseState->pszFilePath);
+    LWIO_SAFE_FREE_STRING(pParseState->pszSectionName);
     if (pParseState->pLexerTokenStack) {
         SMBCfgFreeTokenStack(&pParseState->pLexerTokenStack);
     }
@@ -313,7 +313,7 @@ SMBCfgParse(
         dwError = SMBCfgGetNextToken(
                         pParseState,
                         &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch (pToken->tokenType)
         {
@@ -322,7 +322,7 @@ SMBCfgParse(
                 dwError = SMBCfgParseComment(
                                 pParseState,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 break;
             }
@@ -334,7 +334,7 @@ SMBCfgParse(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 break;
             }
@@ -344,7 +344,7 @@ SMBCfgParse(
                 dwError = SMBCfgParseSections(
                                 pParseState,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 break;
             }
@@ -355,8 +355,8 @@ SMBCfgParse(
             }
             default:
             {
-                dwError = SMB_ERROR_INVALID_CONFIG;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_CONFIG;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
         }
 
@@ -372,10 +372,10 @@ cleanup:
 
 error:
 
-    if (dwError == SMB_ERROR_INVALID_CONFIG)
+    if (dwError == LWIO_ERROR_INVALID_CONFIG)
     {
         if (pParseState) {
-            SMB_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",
+            LWIO_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",
                           pParseState->dwLine,
                           pParseState->dwCol,
                           IsNullOrEmptyString(pParseState->pszFilePath) ?
@@ -400,7 +400,7 @@ SMBCfgParseSections(
     dwError = SMBCfgParseSectionHeader(
                     pParseState,
                     &bContinue);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     while (bContinue)
     {
@@ -408,7 +408,7 @@ SMBCfgParseSections(
                         pParseState,
                         &pToken
                         );
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch (pToken->tokenType)
         {
@@ -420,7 +420,7 @@ SMBCfgParseSections(
                                 pToken->pszToken,
                                 &bIsAllSpace
                                 );
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 if (bIsAllSpace)
                 {
@@ -428,7 +428,7 @@ SMBCfgParseSections(
                 }
 
                 dwError = SMBStackPush(pToken, &(pParseState->pLexerTokenStack));
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 pToken = NULL;
 
@@ -436,7 +436,7 @@ SMBCfgParseSections(
                                 pParseState,
                                 &bContinue
                                 );
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 break;
             }
 
@@ -446,7 +446,7 @@ SMBCfgParseSections(
                                 pParseState,
                                 &bContinue
                                 );
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 break;
             }
             case SMBCfgNewline:
@@ -457,7 +457,7 @@ SMBCfgParseSections(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 break;
             }
             case SMBCfgLeftSquareBrace:
@@ -465,7 +465,7 @@ SMBCfgParseSections(
                 dwError = SMBCfgParseSectionHeader(
                                 pParseState,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 break;
             }
@@ -476,8 +476,8 @@ SMBCfgParseSections(
             }
             default:
             {
-                dwError = SMB_ERROR_INVALID_CONFIG;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_CONFIG;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
         }
     }
@@ -487,7 +487,7 @@ SMBCfgParseSections(
         dwError = SMBCfgProcessEndSection(
                         pParseState,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *pbContinue = bContinue;
@@ -526,7 +526,7 @@ SMBCfgParseComment(
         dwError = SMBCfgGetNextToken(
                     pParseState,
                     &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch (pToken->tokenType)
         {
@@ -536,7 +536,7 @@ SMBCfgParseComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 bContinue = FALSE;
 
@@ -548,7 +548,7 @@ SMBCfgParseComment(
                                 pParseState,
                                 &pTokenStack,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 bKeepParsing = FALSE;
 
@@ -557,7 +557,7 @@ SMBCfgParseComment(
             default:
             {
                 dwError = SMBStackPush(pToken, &pTokenStack);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 pToken = NULL;
 
@@ -600,7 +600,7 @@ SMBCfgParseSectionHeader(
         dwError = SMBCfgProcessEndSection(
                         pParseState,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
     }
 
@@ -616,7 +616,7 @@ SMBCfgParseSectionHeader(
         dwError = SMBCfgGetNextToken(
                         pParseState,
                         &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch(pToken->tokenType)
         {
@@ -625,7 +625,7 @@ SMBCfgParseSectionHeader(
             case SMBCfgOther:
             {
                 dwError = SMBStackPush(pToken, &pTokenStack);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 pToken = NULL;
                 break;
@@ -633,7 +633,7 @@ SMBCfgParseSectionHeader(
             case SMBCfgRightSquareBrace:
             {
                 dwError = SMBAssertWhitespaceOnly(pParseState);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 bKeepParsing = FALSE;
 
@@ -641,8 +641,8 @@ SMBCfgParseSectionHeader(
             }
             default:
             {
-                dwError = SMB_ERROR_INVALID_CONFIG;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_CONFIG;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
         }
 
@@ -651,7 +651,7 @@ SMBCfgParseSectionHeader(
     dwError = SMBCfgGetNextToken(
                     pParseState,
                     &pToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     switch(pToken->tokenType)
     {
@@ -662,7 +662,7 @@ SMBCfgParseSectionHeader(
                             pParseState,
                             &pTokenStack,
                             &bContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             break;
         }
@@ -672,14 +672,14 @@ SMBCfgParseSectionHeader(
                             pParseState,
                             &pTokenStack,
                             &bContinue);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             if (bContinue) {
 
                 dwError = SMBCfgProcessEndSection(
                                 pParseState,
                                 &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
             }
 
             bContinue = FALSE;
@@ -688,8 +688,8 @@ SMBCfgParseSectionHeader(
         }
         default:
         {
-            dwError = SMB_ERROR_INVALID_CONFIG;
-            BAIL_ON_SMB_ERROR(dwError);
+            dwError = LWIO_ERROR_INVALID_CONFIG;
+            BAIL_ON_LWIO_ERROR(dwError);
         }
     }
 
@@ -726,7 +726,7 @@ SMBAssertWhitespaceOnly(
         dwError = SMBCfgGetNextToken(
                         pParseState,
                         &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch(pToken->tokenType)
         {
@@ -736,8 +736,8 @@ SMBAssertWhitespaceOnly(
                 DWORD i = 0;
                 for (; i < pToken->dwLen; i++) {
                     if (!isspace((int)pToken->pszToken[i])) {
-                        dwError = SMB_ERROR_INVALID_CONFIG;
-                        BAIL_ON_SMB_ERROR(dwError);
+                        dwError = LWIO_ERROR_INVALID_CONFIG;
+                        BAIL_ON_LWIO_ERROR(dwError);
                     }
                 }
                 break;
@@ -746,7 +746,7 @@ SMBAssertWhitespaceOnly(
             case SMBCfgNewline:
             {
                 dwError = SMBStackPush(pToken, &pParseState->pLexerTokenStack);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 pToken = NULL;
 
@@ -756,8 +756,8 @@ SMBAssertWhitespaceOnly(
             }
             default:
             {
-                dwError = SMB_ERROR_INVALID_CONFIG;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_CONFIG;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
         }
     } while (bKeepParsing);
@@ -793,36 +793,36 @@ SMBCfgParseNameValuePair(
     dwError = SMBCfgGetNextToken(
                     pParseState,
                     &pToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if(pToken->tokenType == SMBCfgString)
     {
         dwError = SMBStackPush(pToken, &pTokenStack);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
         pToken = NULL;
     }
     else
     {
-        dwError = SMB_ERROR_INVALID_CONFIG;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_CONFIG;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     //get <equals>
     dwError = SMBCfgGetNextToken(
                     pParseState,
                     &pToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if(pToken->tokenType == SMBCfgEquals)
     {
         dwError = SMBStackPush(pToken, &pTokenStack);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
         pToken = NULL;
     }
     else
     {
-        dwError = SMB_ERROR_INVALID_CONFIG;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_CONFIG;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
 
@@ -831,7 +831,7 @@ SMBCfgParseNameValuePair(
         dwError = SMBCfgGetNextToken(
                         pParseState,
                         &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         switch(pToken->tokenType)
         {
@@ -841,7 +841,7 @@ SMBCfgParseNameValuePair(
             {
 
                 dwError = SMBStackPush(pToken, &pTokenStack);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 pToken = NULL;
 
                 break;
@@ -853,7 +853,7 @@ SMBCfgParseNameValuePair(
                     pParseState,
                     &pTokenStack,
                     &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 bKeepParsing = FALSE;
                 break;
             }
@@ -863,14 +863,14 @@ SMBCfgParseNameValuePair(
                     pParseState,
                     &pTokenStack,
                     &bContinue);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
                 bContinue = FALSE;
                 break;
             }
             default:
             {
-                dwError = SMB_ERROR_INVALID_CONFIG;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_CONFIG;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
         }
     } while(bContinue && bKeepParsing);
@@ -907,7 +907,7 @@ SMBCfgProcessComment(
     dwError = SMBCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszComment);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (pParseState->pfnCommentHandler &&
         !pParseState->bSkipSection) {
@@ -916,14 +916,14 @@ SMBCfgProcessComment(
                         pszComment,
                         pParseState->pData,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *pbContinue = bContinue;
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pszComment);
+    LWIO_SAFE_FREE_STRING(pszComment);
 
     return dwError;
 
@@ -948,11 +948,11 @@ SMBCfgProcessBeginSection(
     dwError = SMBCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszSectionName);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (IsNullOrEmptyString(pszSectionName)) {
-        dwError = SMB_ERROR_INVALID_CONFIG;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_CONFIG;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (pParseState->pfnStartSectionHandler) {
@@ -967,7 +967,7 @@ SMBCfgProcessBeginSection(
                         pParseState->pData,
                         &bSkipSection,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     pParseState->pszSectionName = pszSectionName;
@@ -980,7 +980,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszSectionName);
+    LWIO_SAFE_FREE_STRING(pszSectionName);
     pParseState->pszSectionName = NULL;
     pParseState->bSkipSection = FALSE;
     *pbContinue = FALSE;
@@ -1008,12 +1008,12 @@ SMBCfgProcessNameValuePair(
                     pToken->pszToken,
                     pToken->dwLen,
                     &pszName);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszName)) {
-        dwError = SMB_ERROR_INVALID_CONFIG;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_CONFIG;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     SMBCfgFreeToken(pToken);
@@ -1022,8 +1022,8 @@ SMBCfgProcessNameValuePair(
     pToken = (PSMB_CFG_TOKEN)SMBStackPop(ppTokenStack);
     if (!pToken || pToken->tokenType != SMBCfgEquals)
     {
-        dwError = SMB_ERROR_INVALID_CONFIG;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INVALID_CONFIG;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     SMBCfgFreeToken(pToken);
@@ -1033,7 +1033,7 @@ SMBCfgProcessNameValuePair(
     dwError = SMBCfgProcessTokenStackIntoString(
         ppTokenStack,
         &pszValue);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (pParseState->pfnNameValuePairHandler  &&
         !pParseState->bSkipSection) {
@@ -1049,7 +1049,7 @@ SMBCfgProcessNameValuePair(
                         pszValue,
                         pParseState->pData,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
     }
 
@@ -1067,8 +1067,8 @@ cleanup:
         dwError = SMBCfgFreeTokenStack(ppTokenStack);
     }
 
-    SMB_SAFE_FREE_STRING(pszName);
-    SMB_SAFE_FREE_STRING(pszValue);
+    LWIO_SAFE_FREE_STRING(pszName);
+    LWIO_SAFE_FREE_STRING(pszValue);
 
     return dwError;
 
@@ -1099,14 +1099,14 @@ SMBCfgProcessEndSection(
                         pParseState->pszSectionName,
                         pParseState->pData,
                         &bContinue);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     *pbContinue = bContinue;
 
 cleanup:
 
-    SMB_SAFE_FREE_STRING(pParseState->pszSectionName);
+    LWIO_SAFE_FREE_STRING(pParseState->pszSectionName);
 
     return dwError;
 
@@ -1160,7 +1160,7 @@ SMBCfgProcessTokenStackIntoString(
         dwError = SMBAllocateMemory(
                         (dwRequiredTokenLen + 1) * sizeof(CHAR),
                         (PVOID*)&pszConcatenated);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
 
         pszPos = pszConcatenated;
@@ -1186,7 +1186,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszConcatenated);
+    LWIO_SAFE_FREE_STRING(pszConcatenated);
 
     *ppszConcatenated = NULL;
 
@@ -1208,12 +1208,12 @@ SMBCfgAllocateToken(
     dwError = SMBAllocateMemory(
                     sizeof(SMB_CFG_TOKEN),
                     (PVOID*)&pToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBAllocateMemory(
                     dwMaxLen * sizeof(CHAR),
                     (PVOID*)&pToken->pszToken);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
 
     pToken->tokenType = SMBCfgNone;
@@ -1248,7 +1248,7 @@ SMBCfgReallocToken(
                     pToken->pszToken,
                     (PVOID*)&pToken->pszToken,
                     dwNewSize);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     pToken->dwMaxLen = dwNewSize;
 
@@ -1288,7 +1288,7 @@ SMBCfgCopyToken(
                         (PVOID)  pTokenDst->pszToken,
                         (PVOID*) &pTokenDst->pszToken,
                         (DWORD)  pTokenSrc->dwLen);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         pTokenDst->dwLen = pTokenSrc->dwLen;
         pTokenDst->dwMaxLen = pTokenDst->dwLen;
@@ -1320,7 +1320,7 @@ SMBCfgFreeTokenStack(
             pTokenStack,
             &SMBCfgFreeTokenInStack,
             NULL);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     SMBStackFree(pTokenStack);
 
@@ -1350,7 +1350,7 @@ SMBCfgFreeToken(
     PSMB_CFG_TOKEN pToken
     )
 {
-    SMB_SAFE_FREE_MEMORY(pToken->pszToken);
+    LWIO_SAFE_FREE_MEMORY(pToken->pszToken);
     SMBFreeMemory(pToken);
 }
 
@@ -1376,7 +1376,7 @@ SMBCfgGetNextToken(
         if (pToken_input) {
 
             dwError = SMBCfgCopyToken(pToken, pToken_input);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
 
             SMBCfgFreeToken(pToken);
             pToken = NULL;
@@ -1393,7 +1393,7 @@ SMBCfgGetNextToken(
         dwError = SMBCfgAllocateToken(
                         0,
                         &pToken);
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
 
         bOwnToken = TRUE;
     }
@@ -1430,7 +1430,7 @@ SMBCfgGetNextToken(
                     dwError = SMBCfgReallocToken(
                                     pToken,
                                     pToken->dwMaxLen + SMB_CFG_TOKEN_DEFAULT_LENGTH);
-                    BAIL_ON_SMB_ERROR(dwError);
+                    BAIL_ON_LWIO_ERROR(dwError);
                 }
 
                 pToken->pszToken[pToken->dwLen++] = (BYTE)ch;
@@ -1447,7 +1447,7 @@ SMBCfgGetNextToken(
                 dwError = SMBCfgPushBackCharacter(
                                 pParseState,
                                 (BYTE)ch);
-                BAIL_ON_SMB_ERROR(dwError);
+                BAIL_ON_LWIO_ERROR(dwError);
 
                 break;
         }

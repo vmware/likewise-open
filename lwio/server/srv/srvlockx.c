@@ -123,7 +123,7 @@ SrvProcessLockAndX(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pRequestHeader->ucLockType & SMB_LOCK_TYPE_LARGE_FILES)
+    if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
     {
         ntStatus = SrvExecuteLargeFileLocks(
                         pFile,
@@ -236,7 +236,7 @@ SrvExecuteLargeFileLocks(
 
         llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) | ((LONG64)pLockInfo->ulLengthLow);
 
-        bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
+        bExclusiveLock = !(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
 
         ntStatus = IoLockFile(
                         pFile->hFile,
@@ -273,7 +273,7 @@ error:
                         ulKey);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to unlock large file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
+            LWIO_LOG_ERROR("Failed to unlock large file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
         }
     }
 
@@ -329,7 +329,7 @@ SrvExecuteLocks(
     {
         PLOCKING_ANDX_RANGE pLockInfo = &pLockRange[iLock];
 
-        bExclusiveLock = !(pRequestHeader->ucLockType & SMB_LOCK_TYPE_SHARED_LOCK);
+        bExclusiveLock = !(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
 
         ntStatus = IoLockFile(
                         pFile->hFile,
@@ -366,7 +366,7 @@ error:
                         ulKey);
         if (ntStatus2)
         {
-            SMB_LOG_ERROR("Failed to unlock file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
+            LWIO_LOG_ERROR("Failed to unlock file [fid: %u] [code: %d]", pFile->fid, ntStatus2);
         }
     }
 

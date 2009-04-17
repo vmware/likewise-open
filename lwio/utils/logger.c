@@ -62,11 +62,11 @@ SMBInitLogging(
 
     switch(logTarget)
     {
-        case SMB_LOG_TARGET_DISABLED:
+        case LWIO_LOG_TARGET_DISABLED:
             
             break;
             
-        case SMB_LOG_TARGET_SYSLOG:
+        case LWIO_LOG_TARGET_SYSLOG:
         
             dwError = SMBOpenSyslog(
                         pszProgramName,
@@ -74,39 +74,39 @@ SMBInitLogging(
                         LOG_PID,
                         LOG_DAEMON,
                         &hLog);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
       
             break;
             
-        case SMB_LOG_TARGET_CONSOLE:
+        case LWIO_LOG_TARGET_CONSOLE:
 
             dwError = SMBOpenConsoleLog(
                             maxAllowedLogLevel,
                             &hLog);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
               
             break;
 
-        case SMB_LOG_TARGET_FILE:
+        case LWIO_LOG_TARGET_FILE:
             
             if (IsNullOrEmptyString(pszPath))
             {
-                dwError = SMB_ERROR_INVALID_PARAMETER;
-                BAIL_ON_SMB_ERROR(dwError);
+                dwError = LWIO_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LWIO_ERROR(dwError);
             }
                         
             dwError = SMBOpenFileLog(
                           pszPath,
                           maxAllowedLogLevel,
                           &hLog);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             break;
             
         default:
             
-            dwError = SMB_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SMB_ERROR(dwError);      
+            dwError = LWIO_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LWIO_ERROR(dwError);
     }
     
     gSMBLogTarget = logTarget;
@@ -119,7 +119,7 @@ SMBInitLogging(
 
  error:
  
-    gSMBLogTarget = SMB_LOG_TARGET_DISABLED;
+    gSMBLogTarget = LWIO_LOG_TARGET_DISABLED;
     ghSMBLog = (HANDLE)NULL;
 
     goto cleanup;
@@ -127,40 +127,40 @@ SMBInitLogging(
 
 DWORD
 SMBLogGetInfo(
-    PSMB_LOG_INFO* ppLogInfo
+    PLWIO_LOG_INFO* ppLogInfo
     )
 {
     DWORD dwError = 0;
-    PSMB_LOG_INFO pLogInfo = NULL;
+    PLWIO_LOG_INFO pLogInfo = NULL;
     
     switch(gSMBLogTarget)
     {
-        case SMB_LOG_TARGET_DISABLED:
-        case SMB_LOG_TARGET_CONSOLE:
-        case SMB_LOG_TARGET_SYSLOG:
+        case LWIO_LOG_TARGET_DISABLED:
+        case LWIO_LOG_TARGET_CONSOLE:
+        case LWIO_LOG_TARGET_SYSLOG:
             
             dwError = SMBAllocateMemory(
-                            sizeof(SMB_LOG_INFO),
+                            sizeof(LWIO_LOG_INFO),
                             (PVOID*)&pLogInfo);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             pLogInfo->logTarget = gSMBLogTarget;
             pLogInfo->maxAllowedLogLevel = gSMBMaxLogLevel;
             
             break;
             
-        case SMB_LOG_TARGET_FILE:
+        case LWIO_LOG_TARGET_FILE:
             
             dwError = SMBGetFileLogInfo(
                             ghSMBLog,
                             &pLogInfo);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
             
             break;
             
         default:
-            dwError = SMB_ERROR_INVALID_PARAMETER;
-            BAIL_ON_SMB_ERROR(dwError);
+            dwError = LWIO_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LWIO_ERROR(dwError);
     }
     
     *ppLogInfo = pLogInfo;
@@ -183,7 +183,7 @@ error:
 
 DWORD
 SMBLogSetInfo(
-    PSMB_LOG_INFO pLogInfo
+    PLWIO_LOG_INFO pLogInfo
     )
 {
     DWORD dwError = 0;
@@ -198,7 +198,7 @@ SMBLogSetInfo(
     
     switch (gSMBLogTarget)
     {
-        case SMB_LOG_TARGET_SYSLOG:
+        case LWIO_LOG_TARGET_SYSLOG:
             
             SMBSetSyslogMask(gSMBMaxLogLevel);
             
@@ -229,18 +229,18 @@ SMBShutdownLogging(
     {
         switch(gSMBLogTarget)
         {
-            case SMB_LOG_TARGET_DISABLED:
+            case LWIO_LOG_TARGET_DISABLED:
                 break;
                 
-            case SMB_LOG_TARGET_CONSOLE:
+            case LWIO_LOG_TARGET_CONSOLE:
                 SMBCloseConsoleLog(ghSMBLog);
                 break;
                 
-            case SMB_LOG_TARGET_FILE:
+            case LWIO_LOG_TARGET_FILE:
                 SMBCloseFileLog(ghSMBLog);
                 break;
                 
-            case SMB_LOG_TARGET_SYSLOG:
+            case LWIO_LOG_TARGET_SYSLOG:
                 SMBCloseSyslog(ghSMBLog);
             break;
         }
@@ -253,7 +253,7 @@ DWORD
 SMBSetupLogging(
 	HANDLE              hLog,
 	SMBLogLevel         maxAllowedLogLevel,
-	PFN_SMB_LOG_MESSAGE pfnLogger
+	PFN_LWIO_LOG_MESSAGE pfnLogger
 	)
 {
 	DWORD dwError = 0;
@@ -261,7 +261,7 @@ SMBSetupLogging(
 	if ((hLog == (HANDLE)NULL) ||
 		!pfnLogger)
 	{
-		dwError = SMB_ERROR_INVALID_PARAMETER;
+		dwError = LWIO_ERROR_INVALID_PARAMETER;
 		goto error;
 	}
 	
@@ -279,14 +279,14 @@ SMBResetLogging(
     VOID
     )
 {
-	gSMBMaxLogLevel = SMB_LOG_LEVEL_ERROR;
+	gSMBMaxLogLevel = LWIO_LOG_LEVEL_ERROR;
 	gpfnSMBLogger = NULL;
 	ghSMBLog = (HANDLE)NULL;
 }
 
 VOID
 SMBLogMessage(
-	PFN_SMB_LOG_MESSAGE pfnLogger,
+	PFN_LWIO_LOG_MESSAGE pfnLogger,
 	HANDLE hLog,
 	SMBLogLevel logLevel,
 	PCSTR  pszFormat,
@@ -310,16 +310,16 @@ SMBValidateLogLevel(
 
     switch(dwLogLevel)
     {
-        case SMB_LOG_LEVEL_ALWAYS:
-        case SMB_LOG_LEVEL_ERROR:
-        case SMB_LOG_LEVEL_WARNING:
-        case SMB_LOG_LEVEL_INFO:
-        case SMB_LOG_LEVEL_VERBOSE:
-        case SMB_LOG_LEVEL_DEBUG:
+        case LWIO_LOG_LEVEL_ALWAYS:
+        case LWIO_LOG_LEVEL_ERROR:
+        case LWIO_LOG_LEVEL_WARNING:
+        case LWIO_LOG_LEVEL_INFO:
+        case LWIO_LOG_LEVEL_VERBOSE:
+        case LWIO_LOG_LEVEL_DEBUG:
             dwError = 0;
             break;
         default:
-            dwError = SMB_ERROR_INVALID_LOG_LEVEL;
+            dwError = LWIO_ERROR_INVALID_LOG_LEVEL;
             break;
     }
     

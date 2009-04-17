@@ -215,7 +215,7 @@ SrvDriverShutdown(
 
     if (ntStatus)
     {
-        SMB_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
+        LWIO_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
     }
 }
 

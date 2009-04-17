@@ -68,8 +68,8 @@ ShowUsage(
 
 #define BUFFER_SIZE 512
 
-#define SMB_ERROR_PIPE_BUSY 231L
-#define SMB_ERROR_MORE_DATA 234L
+#define LWIO_ERROR_PIPE_BUSY 231L
+#define LWIO_ERROR_MORE_DATA 234L
 
 int
 main(
@@ -91,22 +91,22 @@ main(
     DWORD dwMode = 0;
 
     dwError = ParseArgs(argc, argv, &pszPipename);
-    BAIL_ON_SMB_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     if (!mbstowc16s(&wszPipe[0],
                     pszPipename,
                     sizeof(wszPipe)))
     {
-        dwError = SMB_ERROR_INTERNAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INTERNAL;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     if (!mbstowc16s(&wszClientMessage[0],
                     pszDefaultClientMessage,
                     sizeof(wszClientMessage)))
     {
-        dwError = SMB_ERROR_INTERNAL;
-        BAIL_ON_SMB_ERROR(dwError);
+        dwError = LWIO_ERROR_INTERNAL;
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     while(1)
@@ -125,7 +125,7 @@ main(
             break;
         }
 
-        if (GetLastError() == SMB_ERROR_PIPE_BUSY)
+        if (GetLastError() == LWIO_ERROR_PIPE_BUSY)
         {
             printf("Failed to open pipe\n");
             goto cleanup;
@@ -150,7 +150,7 @@ main(
         printf("SetNamedPipeHandleState failed\n");
 
         dwError = GetLastError();
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
     */
 
@@ -164,7 +164,7 @@ main(
     {
         printf("Write failed\n");
         dwError = GetLastError();
-        BAIL_ON_SMB_ERROR(dwError);
+        BAIL_ON_LWIO_ERROR(dwError);
     }
 
     do
@@ -177,7 +177,7 @@ main(
                         BUFFER_SIZE * sizeof(wchar16_t),
                         &cbRead,
                         NULL);
-        if (!bSuccess && GetLastError() != SMB_ERROR_MORE_DATA)
+        if (!bSuccess && GetLastError() != LWIO_ERROR_MORE_DATA)
         {
             break;
         }
@@ -199,8 +199,8 @@ cleanup:
         CloseHandle(hPipe);
     }
 
-    SMB_SAFE_FREE_STRING(pszShare);
-    SMB_SAFE_FREE_STRING(pszPipename);
+    LWIO_SAFE_FREE_STRING(pszShare);
+    LWIO_SAFE_FREE_STRING(pszPipename);
 
     return (dwError);
 
@@ -237,12 +237,12 @@ ParseArgs(
         }
         else
         {
-            SMB_SAFE_FREE_STRING(pszPipename);
+            LWIO_SAFE_FREE_STRING(pszPipename);
 
             dwError = SMBAllocateString(
                             pszArg,
                             &pszPipename);
-            BAIL_ON_SMB_ERROR(dwError);
+            BAIL_ON_LWIO_ERROR(dwError);
         }
 
     } while (iArg < argc);
@@ -264,7 +264,7 @@ error:
 
     *ppszPipename = NULL;
 
-    SMB_SAFE_FREE_STRING(pszPipename);
+    LWIO_SAFE_FREE_STRING(pszPipename);
 
     goto cleanup;
 }

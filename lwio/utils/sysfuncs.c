@@ -115,7 +115,7 @@ lsmb_vsyslog(
         syslog(priority, "%s", buffer);
     }
 
-    SMB_SAFE_FREE_STRING(buffer);
+    LWIO_SAFE_FREE_STRING(buffer);
 #endif /* ! HAVE_VSYSLOG */
 }
 

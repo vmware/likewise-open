@@ -43,7 +43,7 @@ SMBSrvClientSessionCreate(
     BOOLEAN bInLock = FALSE;
     PSMB_SOCKET pSocket = *ppSocket;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
@@ -79,7 +79,7 @@ SMBSrvClientSessionCreate(
         *ppSocket = NULL;
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     *ppSession = pSession;
 
@@ -89,7 +89,7 @@ cleanup:
 
 error:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     if (pSession)
     {
@@ -158,7 +158,7 @@ SMBSrvClientSessionAddTreeById(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     /* No need to check for a race here; the path hash is always checked
        first */
@@ -170,7 +170,7 @@ SMBSrvClientSessionAddTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -188,7 +188,7 @@ SMBSrvClientSessionRemoveTreeById(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashRemoveKey(
                     pSession->pTreeHashByTID,
@@ -199,7 +199,7 @@ SMBSrvClientSessionRemoveTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -217,7 +217,7 @@ SMBSrvClientSessionAddTreeByPath(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     /* @todo: check for race */
     ntStatus = SMBHashSetValue(
@@ -228,7 +228,7 @@ SMBSrvClientSessionAddTreeByPath(
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 
@@ -246,14 +246,14 @@ SMBSrvClientSessionRemoveTreeByPath(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     ntStatus = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
 

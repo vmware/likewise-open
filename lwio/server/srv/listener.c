@@ -148,14 +148,14 @@ SrvListenerShutdown(
     {
         if (pListener->context.pMutex)
         {
-            SMB_LOCK_MUTEX(bInLock, &pListener->context.mutex);
+            LWIO_LOCK_MUTEX(bInLock, &pListener->context.mutex);
         }
 
         pListener->context.bStop = TRUE;
 
         if (pListener->context.pMutex)
         {
-            SMB_UNLOCK_MUTEX(bInLock, &pListener->context.mutex);
+            LWIO_UNLOCK_MUTEX(bInLock, &pListener->context.mutex);
         }
 
         SrvFakeClientConnection();
@@ -196,7 +196,7 @@ SrvListenerMain(
     PSRV_HOST_INFO pHostinfo = NULL;
     int on = 1;
 
-    SMB_LOG_DEBUG("Srv listener starting");
+    LWIO_LOG_DEBUG("Srv listener starting");
 
     sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd < 0)
@@ -268,10 +268,10 @@ SrvListenerMain(
 
         if (getpeername(connFd, (struct sockaddr*)&cliaddr, &clilen) < 0)
         {
-            SMB_LOG_WARNING("Failed to find the remote socket address for [fd:%d][code:%d]", connFd, errno);
+            LWIO_LOG_WARNING("Failed to find the remote socket address for [fd:%d][code:%d]", connFd, errno);
         }
 
-        SMB_LOG_INFO("Handling client from [%s]",
+        LWIO_LOG_INFO("Handling client from [%s]",
                      SMB_SAFE_LOG_STRING(inet_ntop(
                                              AF_INET,
                                              &cliaddr.sin_addr,
@@ -285,7 +285,7 @@ SrvListenerMain(
                                     &pHostinfo);
             if (ntStatus1)
             {
-                SMB_LOG_ERROR("Failed to acquire current host information [code:%d]", ntStatus1);
+                LWIO_LOG_ERROR("Failed to acquire current host information [code:%d]", ntStatus1);
                 close(connFd);
                 connFd = -1;
 
@@ -303,7 +303,7 @@ SrvListenerMain(
                             &pContext->hGssContext);
             if (ntStatus2)
             {
-                SMB_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus2);
+                LWIO_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus2);
 
 
                 close(connFd);
@@ -364,7 +364,7 @@ cleanup:
         SrvConnectionRelease(pConnection);
     }
 
-    SMB_LOG_DEBUG("Srv listener stopping");
+    LWIO_LOG_DEBUG("Srv listener stopping");
 
     return NULL;
 
@@ -407,7 +407,7 @@ SrvFindLeastBusyReader(
 
         if (!SrvSocketReaderIsActive(pReader))
         {
-            SMB_LOG_DEBUG("Reader [id:%u] is in-active", pReader->readerId);
+            LWIO_LOG_DEBUG("Reader [id:%u] is in-active", pReader->readerId);
 
             continue;
         }
@@ -475,7 +475,7 @@ cleanup:
         close(sockFd);
     }
 
-    SMB_SAFE_FREE_STRING(pszLocalIPAddress);
+    LWIO_SAFE_FREE_STRING(pszLocalIPAddress);
 
     return ntStatus;
 
@@ -519,7 +519,7 @@ cleanup:
 
 error:
 
-    SMB_SAFE_FREE_STRING(pszIpAddress);
+    LWIO_SAFE_FREE_STRING(pszIpAddress);
 
     *ppszIpAddress = NULL;
 
