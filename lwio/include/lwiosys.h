@@ -109,6 +109,7 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <locale.h>
 
 #include <semaphore.h>
 
