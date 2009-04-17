@@ -164,7 +164,7 @@ cpp_quote("#endif")
     NTSTATUS __LsaLookupNames3(
         [in] POLICY_HANDLE hPolicy,
         [in,range(0,1000)] uint32 num_names,
-        [in,size_is(num_names)] UnicodeString *names,
+        [in,size_is(num_names)] UnicodeStringEx *names,
         [out] RefDomainList **domains,
         [in,out] TranslatedSidArray3 *sids,
         [in] uint16 level,
