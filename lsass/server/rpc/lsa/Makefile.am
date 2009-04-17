@@ -15,6 +15,7 @@ liblsa_srv_la_SOURCES = \
     lsa_lookupnames.c \
     lsa_lookupsids.c \
     lsa_lookupnames2.c \
+    lsa_lookupnames3.c \
     lsa_queryinfopolicy.c \
     lsa_queryinfopolicy2.c \
     lsa_contexthandle.c
