@@ -121,7 +121,7 @@ LsaSrvLookupNames3(
     uint32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,
-    TranslatedSidArray2 *sids,
+    TranslatedSidArray3 *sids,
     uint16 level,
     uint32 *count,
     uint32 unknown1,
@@ -157,6 +157,19 @@ LsaSrvGetLocalSamrDomain(
     PPOLICY_CONTEXT pPolCtx,
     BOOLEAN bBuiltin,
     PSAMR_DOMAIN pSamrDomain
+    );
+
+
+NTSTATUS
+LsaSrvLookupDomainsByAccountName(
+    PPOLICY_CONTEXT pPolCtx,
+    UnicodeStringEx *pNames,
+    DWORD dwNumNames,
+    handle_t hSamrBinding,
+    PolicyHandle *phConn,
+    PACCOUNT_NAMES *ppDomainAccounts,
+    PACCOUNT_NAMES *ppLocalAccounts,
+    PACCOUNT_NAMES *ppBuiltinAccounts
     );
 
 
