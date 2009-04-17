@@ -1920,6 +1920,7 @@ LocalDirAddUser_0(
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszGecos = NULL;
     PWSTR pwszShell = NULL;
+    PSTR  pszShell  = NULL;
     PWSTR pwszHomedir = NULL;
     PWSTR pwszPassword = NULL;
 
@@ -1975,9 +1976,19 @@ LocalDirAddUser_0(
                     pUserInfo->pszShell,
                     &pwszShell);
         BAIL_ON_LSA_ERROR(dwError);
-
-        attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
     }
+    else
+    {
+        dwError = LocalCfgGetDefaultShell(&pszShell);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                    pUserInfo->pszShell,
+                    &pwszShell);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
@@ -2019,6 +2030,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
     LSA_SAFE_FREE_MEMORY(pwszGecos);
     LSA_SAFE_FREE_MEMORY(pwszShell);
+    LSA_SAFE_FREE_STRING(pszShell);
     LSA_SAFE_FREE_MEMORY(pwszHomedir);
     LSA_SAFE_FREE_MEMORY(pwszPassword);
 

@@ -92,6 +92,11 @@ LocalCfgGetMaxGroupNestingLevel(
     PDWORD pdwNestingLevel
     );
 
+DWORD
+LocalCfgGetDefaultShell(
+    PSTR* ppszLoginShell
+    );
+
 VOID
 LocalCfgFree(
     PLOCAL_CONFIG pConfig

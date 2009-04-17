@@ -80,6 +80,7 @@ typedef struct __LOCAL_CONFIG
 {
     BOOLEAN   bEnableEventLog;
     DWORD     dwMaxGroupNestingLevel;
+    PSTR      pszLoginShell;
 
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 

@@ -76,6 +76,14 @@ LocalCfgEnableEventLog(
     );
 
 static
+DWORD
+LocalCfgSetDefaultLoginShell(
+    PLOCAL_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
 BOOLEAN
 LocalCfgGetBooleanValue(
     PCSTR pszValue
@@ -96,7 +104,8 @@ typedef struct __LOCAL_CFG_HANDLER
 
 static LOCAL_CFG_HANDLER gLocalCfgHandlers[] =
 {
-    {"enable-eventlog",              &LocalCfgEnableEventLog}
+    {"enable-eventlog",              &LocalCfgEnableEventLog},
+    {"login-shell-template",         &LocalCfgSetDefaultLoginShell}
 };
 
 DWORD
@@ -104,12 +113,22 @@ LocalCfgInitialize(
     PLOCAL_CONFIG pConfig
     )
 {
+    DWORD dwError = 0;
+    PCSTR pszDefaultLoginShell = LOCAL_CFG_DEFAULT_LOGIN_SHELL;
+
     memset(pConfig, 0, sizeof(LOCAL_CONFIG));
 
     pConfig->bEnableEventLog = FALSE;
     pConfig->dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
 
-    return 0;
+    dwError = LsaAllocateString(
+                    pszDefaultLoginShell,
+                    &pConfig->pszLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
 }
 
 DWORD
@@ -258,6 +277,39 @@ LocalCfgGetMaxGroupNestingLevel(
     return dwError;
 }
 
+DWORD
+LocalCfgGetDefaultShell(
+    PSTR* ppszLoginShell
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszLoginShell = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwError = LsaAllocateString(
+                    gLPGlobals.cfg.pszLoginShell,
+                    &pszLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszLoginShell = pszLoginShell;
+
+cleanup:
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    return dwError;
+
+error:
+
+    *ppszLoginShell = NULL;
+
+    LSA_SAFE_FREE_STRING(pszLoginShell);
+
+    goto cleanup;
+}
+
 VOID
 LocalCfgFree(
     PLOCAL_CONFIG pConfig
@@ -272,7 +324,7 @@ LocalCfgFreeContents(
     PLOCAL_CONFIG pConfig
     )
 {
-    // Nothing to do yet.
+    LSA_SAFE_FREE_STRING(pConfig->pszLoginShell);
 }
 
 static
@@ -360,9 +412,48 @@ LocalCfgEnableEventLog(
     PCSTR          pszValue
     )
 {
-    pConfig->bEnableEventLog = LocalCfgGetBooleanValue(pszValue);
+    pConfig->bEnableEventLog =  LocalCfgGetBooleanValue(pszValue);
 
     return 0;
+}
+
+static
+DWORD
+LocalCfgSetDefaultLoginShell(
+    PLOCAL_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszLoginShell = NULL;
+
+    BAIL_ON_INVALID_STRING(pszValue);
+
+    if (access(pszValue, X_OK) != 0)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(
+                    pszValue,
+                    &pszLoginShell);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LSA_SAFE_FREE_STRING(pConfig->pszLoginShell);
+
+    pConfig->pszLoginShell = pszLoginShell;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszLoginShell);
+
+    goto cleanup;
 }
 
 static
