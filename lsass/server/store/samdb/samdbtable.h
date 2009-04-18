@@ -60,41 +60,51 @@
 #define SAM_DB_OBJECTS_TABLE "samdbobjects"
 #define SAM_DB_MEMBERS_TABLE "samdbmembers"
 
-#define SAM_DB_COL_RECORD_ID            "ObjectRecordId"
-#define SAM_DB_COL_GROUP_RECORD_ID      "GroupRecordId"
-#define SAM_DB_COL_MEMBER_RECORD_ID     "MemberRecordId"
-#define SAM_DB_COL_OBJECT_SID           "ObjectSID"
-#define SAM_DB_COL_DISTINGUISHED_NAME   "DistinguishedName"
-#define SAM_DB_COL_PARENT_DN            "ParentDN"
-#define SAM_DB_COL_OBJECT_CLASS         "ObjectClass"
-#define SAM_DB_COL_DOMAIN               "Domain"
-#define SAM_DB_COL_NETBIOS_NAME         "NetBIOSName"
-#define SAM_DB_COL_COMMON_NAME          "CommonName"
-#define SAM_DB_COL_SAM_ACCOUNT_NAME     "SamAccountName"
-#define SAM_DB_COL_USER_PRINCIPAL_NAME  "UserPrincipalName"
-#define SAM_DB_COL_DESCRIPTION          "Description"
-#define SAM_DB_COL_COMMENT              "Comment"
-#define SAM_DB_COL_UID                  "UID"
-#define SAM_DB_COL_PASSWORD             "Password"
-#define SAM_DB_COL_ACCOUNT_FLAGS        "AccountFlags"
-#define SAM_DB_COL_GECOS                "Gecos"
-#define SAM_DB_COL_HOME_DIR             "Homedir"
-#define SAM_DB_COL_SHELL                "LoginShell"
-#define SAM_DB_COL_PASSWORD_LAST_SET    "PasswordLastSet"
-#define SAM_DB_COL_FULL_NAME            "FullName"
-#define SAM_DB_COL_ACCOUNT_EXPIRY       "AccountExpiry"
-#define SAM_DB_COL_LM_HASH              "LMHash"
-#define SAM_DB_COL_NT_HASH              "NTHash"
-#define SAM_DB_COL_PRIMARY_GROUP        "PrimaryGroup"
-#define SAM_DB_COL_GID                  "GID"
-#define SAM_DB_COL_MAX_PWD_AGE          "MaxPwdAge"
-#define SAM_DB_COL_PWD_PROMPT_TIME      "PwdPromptTime"
-#define SAM_DB_COL_LAST_LOGON           "LastLogon"
-#define SAM_DB_COL_LAST_LOGOFF          "LastLogoff"
-#define SAM_DB_COL_LOCKOUT_TIME         "LockoutTime"
-#define SAM_DB_COL_LOGON_COUNT          "LogonCount"
-#define SAM_DB_COL_BAD_PASSWORD_COUNT   "BadPwdCount"
-#define SAM_DB_COL_CREATED_TIME         "CreatedTime"
+#define SAM_DB_COL_RECORD_ID             "ObjectRecordId"
+#define SAM_DB_COL_GROUP_RECORD_ID       "GroupRecordId"
+#define SAM_DB_COL_MEMBER_RECORD_ID      "MemberRecordId"
+#define SAM_DB_COL_OBJECT_SID            "ObjectSID"
+#define SAM_DB_COL_DISTINGUISHED_NAME    "DistinguishedName"
+#define SAM_DB_COL_PARENT_DN             "ParentDN"
+#define SAM_DB_COL_OBJECT_CLASS          "ObjectClass"
+#define SAM_DB_COL_DOMAIN                "Domain"
+#define SAM_DB_COL_NETBIOS_NAME          "NetBIOSName"
+#define SAM_DB_COL_COMMON_NAME           "CommonName"
+#define SAM_DB_COL_SAM_ACCOUNT_NAME      "SamAccountName"
+#define SAM_DB_COL_USER_PRINCIPAL_NAME   "UserPrincipalName"
+#define SAM_DB_COL_DESCRIPTION           "Description"
+#define SAM_DB_COL_COMMENT               "Comment"
+#define SAM_DB_COL_UID                   "UID"
+#define SAM_DB_COL_PASSWORD              "Password"
+#define SAM_DB_COL_ACCOUNT_FLAGS         "AccountFlags"
+#define SAM_DB_COL_GECOS                 "Gecos"
+#define SAM_DB_COL_HOME_DIR              "Homedir"
+#define SAM_DB_COL_HOME_DRIVE            "Homedrive"
+#define SAM_DB_COL_LOGON_SCRIPT          "LogonScript"
+#define SAM_DB_COL_PROFILE_PATH          "ProfilePath"
+#define SAM_DB_COL_WORKSTATIONS          "Workstations"
+#define SAM_DB_COL_SHELL                 "LoginShell"
+#define SAM_DB_COL_PASSWORD_LAST_SET     "PasswordLastSet"
+#define SAM_DB_COL_ALLOW_PASSWORD_CHANGE "AllowPasswordChange"
+#define SAM_DB_COL_FORCE_PASSWORD_CHANGE "ForcePasswordChange"
+#define SAM_DB_COL_FULL_NAME             "FullName"
+#define SAM_DB_COL_PARAMETERS            "Parameters"
+#define SAM_DB_COL_ACCOUNT_EXPIRY        "AccountExpiry"
+#define SAM_DB_COL_LM_HASH               "LMHash"
+#define SAM_DB_COL_NT_HASH               "NTHash"
+#define SAM_DB_COL_PRIMARY_GROUP         "PrimaryGroup"
+#define SAM_DB_COL_GID                   "GID"
+#define SAM_DB_COL_COUNTRY_CODE          "CountryCode"
+#define SAM_DB_COL_CODE_PAGE             "CodePage"
+#define SAM_DB_COL_MAX_PWD_AGE           "MaxPwdAge"
+#define SAM_DB_COL_PWD_PROMPT_TIME       "PwdPromptTime"
+#define SAM_DB_COL_LAST_LOGON            "LastLogon"
+#define SAM_DB_COL_LAST_LOGOFF           "LastLogoff"
+#define SAM_DB_COL_LOCKOUT_TIME          "LockoutTime"
+#define SAM_DB_COL_LOGON_COUNT           "LogonCount"
+#define SAM_DB_COL_BAD_PASSWORD_COUNT    "BadPwdCount"
+#define SAM_DB_COL_LOGON_HOURS           "LogonHours"
+#define SAM_DB_COL_CREATED_TIME          "CreatedTime"
 
 #define SAM_DB_QUERY_CREATE_TABLES  \
     "CREATE TABLE " SAM_DB_CONFIG_TABLE " (\n"                                 \
@@ -105,37 +115,47 @@
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_OBJECTS_TABLE " (\n"                                \
                  SAM_DB_COL_RECORD_ID " INTEGER PRIMARY KEY AUTOINCREMENT,\n"  \
-                 SAM_DB_COL_OBJECT_SID           " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_DISTINGUISHED_NAME   " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_PARENT_DN            " TEXT,\n"                    \
-                 SAM_DB_COL_OBJECT_CLASS         " INTEGER,\n"                 \
-                 SAM_DB_COL_DOMAIN               " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_NETBIOS_NAME         " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_COMMON_NAME          " TEXT,\n"                    \
-                 SAM_DB_COL_SAM_ACCOUNT_NAME     " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_USER_PRINCIPAL_NAME  " TEXT COLLATE NOCASE,\n"     \
-                 SAM_DB_COL_DESCRIPTION          " TEXT,\n"                    \
-                 SAM_DB_COL_COMMENT              " TEXT,\n"                    \
-                 SAM_DB_COL_UID                  " INTEGER,\n"                 \
-                 SAM_DB_COL_PASSWORD             " TEXT,\n"                    \
-                 SAM_DB_COL_ACCOUNT_FLAGS        " INTEGER,\n"                 \
-                 SAM_DB_COL_GECOS                " TEXT,\n"                    \
-                 SAM_DB_COL_HOME_DIR             " TEXT,\n"                    \
-                 SAM_DB_COL_SHELL                " TEXT,\n"                    \
-                 SAM_DB_COL_PASSWORD_LAST_SET    " INTEGER,\n"                 \
-                 SAM_DB_COL_FULL_NAME            " TEXT,\n"                    \
-                 SAM_DB_COL_ACCOUNT_EXPIRY       " INTEGER,\n"                 \
-                 SAM_DB_COL_LM_HASH              " BLOB,\n"                    \
-                 SAM_DB_COL_NT_HASH              " BLOB,\n"                    \
-                 SAM_DB_COL_PRIMARY_GROUP        " INTEGER,\n"                 \
-                 SAM_DB_COL_GID                  " INTEGER,\n"                 \
-                 SAM_DB_COL_MAX_PWD_AGE          " INTEGER,\n"                 \
-                 SAM_DB_COL_PWD_PROMPT_TIME      " INTEGER,\n"                 \
-                 SAM_DB_COL_LAST_LOGON           " INTEGER,\n"                 \
-                 SAM_DB_COL_LAST_LOGOFF          " INTEGER,\n"                 \
-                 SAM_DB_COL_LOCKOUT_TIME         " INTEGER,\n"                 \
-                 SAM_DB_COL_LOGON_COUNT          " INTEGER,\n"                 \
-                 SAM_DB_COL_BAD_PASSWORD_COUNT   " INTEGER,\n"                 \
+                 SAM_DB_COL_OBJECT_SID            " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_DISTINGUISHED_NAME    " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_PARENT_DN             " TEXT,\n"                   \
+                 SAM_DB_COL_OBJECT_CLASS          " INTEGER,\n"                \
+                 SAM_DB_COL_DOMAIN                " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_NETBIOS_NAME          " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_COMMON_NAME           " TEXT,\n"                   \
+                 SAM_DB_COL_SAM_ACCOUNT_NAME      " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_USER_PRINCIPAL_NAME   " TEXT COLLATE NOCASE,\n"    \
+                 SAM_DB_COL_DESCRIPTION           " TEXT,\n"                   \
+                 SAM_DB_COL_COMMENT               " TEXT,\n"                   \
+                 SAM_DB_COL_UID                   " INTEGER,\n"                \
+                 SAM_DB_COL_PASSWORD              " TEXT,\n"                   \
+                 SAM_DB_COL_ACCOUNT_FLAGS         " INTEGER,\n"                \
+                 SAM_DB_COL_GECOS                 " TEXT,\n"                   \
+                 SAM_DB_COL_HOME_DIR              " TEXT,\n"                   \
+                 SAM_DB_COL_HOME_DRIVE            " TEXT,\n"                   \
+                 SAM_DB_COL_LOGON_SCRIPT          " TEXT,\n"                   \
+                 SAM_DB_COL_PROFILE_PATH          " TEXT,\n"                   \
+                 SAM_DB_COL_WORKSTATIONS          " TEXT,\n"                   \
+                 SAM_DB_COL_PARAMETERS            " TEXT,\n"                   \
+                 SAM_DB_COL_SHELL                 " TEXT,\n"                   \
+                 SAM_DB_COL_PASSWORD_LAST_SET     " INTEGER,\n"                \
+                 SAM_DB_COL_ALLOW_PASSWORD_CHANGE " INTEGER,\n"                \
+                 SAM_DB_COL_FORCE_PASSWORD_CHANGE " INTEGER,\n"                \
+                 SAM_DB_COL_FULL_NAME             " TEXT,\n"                   \
+                 SAM_DB_COL_ACCOUNT_EXPIRY        " INTEGER,\n"                \
+                 SAM_DB_COL_LM_HASH               " BLOB,\n"                   \
+                 SAM_DB_COL_NT_HASH               " BLOB,\n"                   \
+                 SAM_DB_COL_PRIMARY_GROUP         " INTEGER,\n"                \
+                 SAM_DB_COL_GID                   " INTEGER,\n"                \
+                 SAM_DB_COL_COUNTRY_CODE          " INTEGER,\n"                \
+                 SAM_DB_COL_CODE_PAGE             " INTEGER,\n"                \
+                 SAM_DB_COL_MAX_PWD_AGE           " INTEGER,\n"                \
+                 SAM_DB_COL_PWD_PROMPT_TIME       " INTEGER,\n"                \
+                 SAM_DB_COL_LAST_LOGON            " INTEGER,\n"                \
+                 SAM_DB_COL_LAST_LOGOFF           " INTEGER,\n"                \
+                 SAM_DB_COL_LOCKOUT_TIME          " INTEGER,\n"                \
+                 SAM_DB_COL_LOGON_COUNT           " INTEGER,\n"                \
+                 SAM_DB_COL_BAD_PASSWORD_COUNT    " INTEGER,\n"                \
+                 SAM_DB_COL_LOGON_HOURS           " INTEGER,\n"                \
                  SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
      "UNIQUE(" SAM_DB_COL_OBJECT_SID ", " SAM_DB_COL_DISTINGUISHED_NAME "),\n" \
      "UNIQUE(" SAM_DB_COL_DISTINGUISHED_NAME ", " SAM_DB_COL_PARENT_DN "),\n"  \
@@ -223,10 +243,24 @@ typedef enum
     {'G','e','c','o','s',0}
 #define SAM_DB_DIR_ATTR_HOME_DIR \
     {'H','o','m','e','d','i','r',0}
+#define SAM_DB_DIR_ATTR_HOME_DRIVE \
+    {'H','o','m','e','d','r','i','v','e',0}
+#define SAM_DB_DIR_ATTR_LOGON_SCRIPT \
+    {'L','o','g','o','n','S','c','r','i','p','t',0}
+#define SAM_DB_DIR_ATTR_PROFILE_PATH \
+    {'P','r','o','f','i','l','e','P','a','t','h',0}
+#define SAM_DB_DIR_ATTR_WORKSTATIONS \
+    {'W','o','r','k','s','t','a','t','i','o','n','s',0}
+#define SAM_DB_DIR_ATTR_PARAMETERS \
+    {'P','a','r','a','m','e','t','e','r','s',0}
 #define SAM_DB_DIR_ATTR_SHELL \
     {'L','o','g','i','n','S','h','e','l','l',0}
 #define SAM_DB_DIR_ATTR_PASSWORD_LAST_SET \
     {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
+#define SAM_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE \
+ {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+#define SAM_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE \
+ {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define SAM_DB_DIR_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY \
@@ -239,6 +273,10 @@ typedef enum
     {'P','r','i','m','a','r','y','G','r','o','u','p',0}
 #define SAM_DB_DIR_ATTR_GID \
     {'G','I','D',0}
+#define SAM_DB_DIR_ATTR_COUNTRY_CODE \
+    {'C','o','u','n','t','r','y','C','o','d','e',0}
+#define SAM_DB_DIR_ATTR_CODE_PAGE \
+    {'C','o','d','e','P','a','g','e',0}
 #define SAM_DB_DIR_ATTR_MAX_PWD_AGE \
     {'M','a','x','P','w','d','A','g','e',0}
 #define SAM_DB_DIR_ATTR_PWD_PROMPT_TIME \
@@ -253,10 +291,12 @@ typedef enum
     {'L','o','g','o','n','C','o','u','n','t',0}
 #define SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT \
     {'B','a','d','P','w','d','C','o','u','n','t',0}
-#define SAM_DB_DIR_ATTR_MEMBERS \
-    {'M','e','m','b','e','r','s',0}
+#define SAM_DB_DIR_ATTR_LOGON_HOURS \
+    {'L','o','g','o','n','H','o','u','r','s',0}
 #define SAM_DB_DIR_ATTR_CREATED_TIME \
     {'C','r','e','a','t','e','d','T','i','m','e',0}
+#define SAM_DB_DIR_ATTR_MEMBERS \
+    {'M','e','m','b','e','r','s',0}
 
 typedef DWORD SAM_DB_ATTR_FLAGS;
 
@@ -424,6 +464,46 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
+        SAM_DB_DIR_ATTR_HOME_DRIVE,           \
+        SAM_DB_COL_HOME_DRIVE,                \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOGON_SCRIPT,         \
+        SAM_DB_COL_HOME_DRIVE,                \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_PROFILE_PATH,         \
+        SAM_DB_COL_PROFILE_PATH,              \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_WORKSTATIONS,         \
+        SAM_DB_COL_WORKSTATIONS,              \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_PARAMETERS,           \
+        SAM_DB_COL_PARAMETERS,                \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
         SAM_DB_DIR_ATTR_SHELL,                \
         SAM_DB_COL_SHELL,                     \
         SAMDB_ATTR_TYPE_TEXT,                 \
@@ -434,6 +514,22 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_PASSWORD_LAST_SET,    \
         SAM_DB_COL_PASSWORD_LAST_SET,         \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE,\
+        SAM_DB_COL_ALLOW_PASSWORD_CHANGE,     \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE,\
+        SAM_DB_COL_FORCE_PASSWORD_CHANGE,     \
         SAMDB_ATTR_TYPE_INT64,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -482,6 +578,22 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_GID,                  \
         SAM_DB_COL_GID,                       \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_COUNTRY_CODE,         \
+        SAM_DB_COL_COUNTRY_CODE,              \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_CODE_PAGE,            \
+        SAM_DB_COL_CODE_PAGE,                 \
         SAMDB_ATTR_TYPE_INT32,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -538,6 +650,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT,   \
         SAM_DB_COL_BAD_PASSWORD_COUNT,        \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOGON_HOURS,          \
+        SAM_DB_COL_LOGON_HOURS,               \
         SAMDB_ATTR_TYPE_INT32,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -695,6 +815,42 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_BAD_PASSWORD_COUNT,                      \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_HOME_DRIVE,                              \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOGON_SCRIPT,                            \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_PROFILE_PATH,                            \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_WORKSTATIONS,                            \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_PARAMETERS,                              \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE,                   \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_COUNTRY_CODE,                            \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_CODE_PAGE,                               \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOGON_HOURS,                             \
         SAM_DB_ATTR_FLAGS_NONE                                   \
     }
 
