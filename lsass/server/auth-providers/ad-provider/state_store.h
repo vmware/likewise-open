@@ -86,6 +86,12 @@ ADState_StoreDomainTrustList(
     IN DWORD dwDomainInfoCount
     );
 
+DWORD
+ADState_AddDomainTrust(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
 VOID
 ADState_FreeEnumDomainInfoList(
     // Contains type PLSA_DM_ENUM_DOMAIN_INFO

@@ -1036,7 +1036,7 @@ UnprovisionedModeMakeLocalSID(
     {
         if (dwID >= 1000)
         {
-            dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+            dwError = LSA_ERROR_NO_SUCH_OBJECT;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else  //dwID < 1000.  Try again using domain for builtin SIDs
@@ -1068,7 +1068,7 @@ UnprovisionedModeMakeLocalSID(
 
             if (dwHashedLocalRID != dwID)
             {
-                dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+                dwError = LSA_ERROR_NO_SUCH_OBJECT;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }

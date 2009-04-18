@@ -107,6 +107,95 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_OnlineInitializeDomainTrustsInfo(
+    IN PSTR pszPrimaryDomainName
+    )
+{
+    DWORD dwError = 0;
+    PDLINKEDLIST pDomains = NULL;
+    // Do not free pDomain
+    PLSA_DM_ENUM_DOMAIN_INFO pDomain = NULL;
+    const DLINKEDLIST* pPos = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
+    DWORD dwDomainInfoCount = 0;
+    PSTR pszDomainSid = NULL;
+    PSTR pszSid = NULL;
+
+    dwError = ADState_GetDomainTrustList(
+                gpLsaAdProviderState->hStateConnection,
+                &pDomains);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pPos = pDomains;
+    while (pPos != NULL)
+    {
+        pDomain = (PLSA_DM_ENUM_DOMAIN_INFO)pPos->pItem;
+
+        if (!pDomain || !IsSetFlag(pDomain->Flags, LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD))
+        {
+            pPos = pPos->pNext;
+            continue;
+        }
+
+        dwError = LsaDmWrapNetLookupObjectSidByName(
+                     pszPrimaryDomainName,
+                     pDomain->pszNetbiosDomainName,
+                     &pszSid,
+                     NULL);
+        if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+        {
+            pPos = pPos->pNext;
+            dwError = 0;
+            continue;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmAddTrustedDomain(
+            pDomain->pszDnsDomainName,
+            pDomain->pszNetbiosDomainName,
+            pDomain->pSid,
+            pDomain->pGuid,
+            pDomain->pszTrusteeDnsDomainName,
+            pDomain->dwTrustFlags,
+            pDomain->dwTrustType,
+            pDomain->dwTrustAttributes,
+            pDomain->dwTrustDirection,
+            pDomain->dwTrustMode,
+            TRUE,
+            pDomain->pszForestName,
+            NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pPos = pPos->pNext;
+    }
+
+    dwError = LsaDmEnumDomainInfo(
+                NULL,
+                NULL,
+                &ppDomainInfo,
+                &dwDomainInfoCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_StoreDomainTrustList(
+                gpLsaAdProviderState->hStateConnection,
+                ppDomainInfo,
+                dwDomainInfoCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LSA_SAFE_FREE_STRING(pszSid);
+    ADState_FreeEnumDomainInfoList(pDomains);
+    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 AD_OnlineInitializeOperatingMode(
     OUT PAD_PROVIDER_DATA* ppProviderData,
@@ -119,8 +208,6 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszCellDN = NULL;
     PSTR  pszRootDN = NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
-    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
-    DWORD dwDomainInfoCount = 0;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PSTR pszNetbiosDomainName = NULL;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
@@ -213,17 +300,8 @@ AD_OnlineInitializeOperatingMode(
                 pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmEnumDomainInfo(
-                NULL,
-                NULL,
-                &ppDomainInfo,
-                &dwDomainInfoCount);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_StoreDomainTrustList(
-                gpLsaAdProviderState->hStateConnection,
-                ppDomainInfo,
-                dwDomainInfoCount);
+    dwError = AD_OnlineInitializeDomainTrustsInfo(
+                pProviderData->szDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppProviderData = pProviderData;
@@ -234,7 +312,6 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszComputerDN);
     LSA_SAFE_FREE_STRING(pszCellDN);
     LsaDmLdapClose(pConn);
-    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
     return dwError;
 
@@ -3258,7 +3335,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3319,7 +3396,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3365,7 +3442,7 @@ AD_FindObjectBySid(
 
     if (ppResultArray && !ppResultArray[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

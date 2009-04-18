@@ -1317,7 +1317,7 @@ LsaAdBatchFindSingleObject(
 
     if (dwCount < 1 || !ppObjects[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwCount > 1)
