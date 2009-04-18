@@ -337,7 +337,6 @@ default_register_handle_remote(
     void** ptr)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    DefaultPrivate* priv = lwmsg_session_manager_get_private(manager);
     HandleEntry* handle = NULL;
 
     BAIL_ON_ERROR(status = default_add_handle(
@@ -345,7 +344,7 @@ default_register_handle_remote(
                       type,
                       LWMSG_HANDLE_REMOTE,
                       NULL,
-                      priv->next_hid++,
+                      hid,
                       cleanup,
                       &handle));
 
