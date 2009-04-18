@@ -97,6 +97,7 @@
 #define SAM_DB_COL_COUNTRY_CODE          "CountryCode"
 #define SAM_DB_COL_CODE_PAGE             "CodePage"
 #define SAM_DB_COL_MAX_PWD_AGE           "MaxPwdAge"
+#define SAM_DB_COL_MIN_PWD_AGE           "MinPwdAge"
 #define SAM_DB_COL_PWD_PROMPT_TIME       "PwdPromptTime"
 #define SAM_DB_COL_LAST_LOGON            "LastLogon"
 #define SAM_DB_COL_LAST_LOGOFF           "LastLogoff"
@@ -104,6 +105,16 @@
 #define SAM_DB_COL_LOGON_COUNT           "LogonCount"
 #define SAM_DB_COL_BAD_PASSWORD_COUNT    "BadPwdCount"
 #define SAM_DB_COL_LOGON_HOURS           "LogonHours"
+#define SAM_DB_COL_ROLE                  "Role"
+#define SAM_DB_COL_MIN_PWD_LENGTH        "MinPwdLength"
+#define SAM_DB_COL_PWD_HISTORY_LENGTH    "PwdHistoryLength"
+#define SAM_DB_COL_PWD_PROPERTIES        "PwdProperties"
+#define SAM_DB_COL_FORCE_LOGOFF_TIME     "ForceLogoffTime"
+#define SAM_DB_COL_PRIMARY               "Primary"
+#define SAM_DB_COL_SEQUENCE_NUMBER       "SequenceNumber"
+#define SAM_DB_COL_LOCKOUT_DURATION      "LockoutDuration"
+#define SAM_DB_COL_LOCKOUT_WINDOW        "LockoutWindow"
+#define SAM_DB_COL_LOCKOUT_THRESHOLD     "LockoutThreshold"
 #define SAM_DB_COL_CREATED_TIME          "CreatedTime"
 
 #define SAM_DB_QUERY_CREATE_TABLES  \
@@ -149,6 +160,7 @@
                  SAM_DB_COL_COUNTRY_CODE          " INTEGER,\n"                \
                  SAM_DB_COL_CODE_PAGE             " INTEGER,\n"                \
                  SAM_DB_COL_MAX_PWD_AGE           " INTEGER,\n"                \
+                 SAM_DB_COL_MIN_PWD_AGE           " INTEGER,\n"                \
                  SAM_DB_COL_PWD_PROMPT_TIME       " INTEGER,\n"                \
                  SAM_DB_COL_LAST_LOGON            " INTEGER,\n"                \
                  SAM_DB_COL_LAST_LOGOFF           " INTEGER,\n"                \
@@ -156,6 +168,16 @@
                  SAM_DB_COL_LOGON_COUNT           " INTEGER,\n"                \
                  SAM_DB_COL_BAD_PASSWORD_COUNT    " INTEGER,\n"                \
                  SAM_DB_COL_LOGON_HOURS           " INTEGER,\n"                \
+                 SAM_DB_COL_ROLE                  " INTEGER,\n"                \
+                 SAM_DB_COL_MIN_PWD_LENGTH        " INTEGER,\n"                \
+                 SAM_DB_COL_PWD_HISTORY_LENGTH    " INTEGER,\n"                \
+                 SAM_DB_COL_PWD_PROPERTIES        " INTEGER,\n"                \
+                 SAM_DB_COL_FORCE_LOGOFF_TIME     " INTEGER,\n"                \
+                 SAM_DB_COL_PRIMARY               " TEXT,\n"                   \
+                 SAM_DB_COL_SEQUENCE_NUMBER       " INTEGER,\n"                \
+                 SAM_DB_COL_LOCKOUT_DURATION      " INTEGER,\n"                \
+                 SAM_DB_COL_LOCKOUT_WINDOW        " INTEGER,\n"                \
+                 SAM_DB_COL_LOCKOUT_THRESHOLD     " INTEGER,\n"                \
                  SAM_DB_COL_CREATED_TIME " DATE DEFAULT (DATETIME('now')),\n"  \
      "UNIQUE(" SAM_DB_COL_OBJECT_SID ", " SAM_DB_COL_DISTINGUISHED_NAME "),\n" \
      "UNIQUE(" SAM_DB_COL_DISTINGUISHED_NAME ", " SAM_DB_COL_PARENT_DN "),\n"  \
@@ -279,6 +301,8 @@ typedef enum
     {'C','o','d','e','P','a','g','e',0}
 #define SAM_DB_DIR_ATTR_MAX_PWD_AGE \
     {'M','a','x','P','w','d','A','g','e',0}
+#define SAM_DB_DIR_ATTR_MIN_PWD_AGE \
+    {'M','i','n','P','w','d','A','g','e',0}
 #define SAM_DB_DIR_ATTR_PWD_PROMPT_TIME \
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
 #define SAM_DB_DIR_ATTR_LAST_LOGON \
@@ -293,6 +317,26 @@ typedef enum
     {'B','a','d','P','w','d','C','o','u','n','t',0}
 #define SAM_DB_DIR_ATTR_LOGON_HOURS \
     {'L','o','g','o','n','H','o','u','r','s',0}
+#define SAM_DB_DIR_ATTR_ROLE \
+    {'R','o','l','e',0}
+#define SAM_DB_DIR_ATTR_MIN_PWD_LENGTH \
+    {'M','i','n','P','w','d','L','e','n','g','t','h',0}
+#define SAM_DB_DIR_ATTR_PWD_HISTORY_LENGTH \
+    {'P','w','d','H','i','s','t','o','r','y','L','e','n','g','t','h',0}
+#define SAM_DB_DIR_ATTR_PWD_PROPERTIES \
+    {'P','w','d','P','r','o','p','e','r','t','i','e','s',0}
+#define SAM_DB_DIR_ATTR_FORCE_LOGOFF_TIME \
+    {'F','o','r','c','e','L','o','g','o','f','f','T','i','m','e',0}
+#define SAM_DB_DIR_ATTR_PRIMARY \
+    {'P','r','i','m','a','r','y',0}
+#define SAM_DB_DIR_ATTR_SEQUENCE_NUMBER \
+    {'S','e','q','u','e','n','c','e','N','u','m','b','e','r',0}
+#define SAM_DB_DIR_ATTR_LOCKOUT_DURATION \
+    {'L','o','c','k','o','u','t','D','u','r','a','t','i','o','n',0}
+#define SAM_DB_DIR_ATTR_LOCKOUT_WINDOW \
+    {'L','o','c','k','o','u','t','W','i','n','d','o','w',0}
+#define SAM_DB_DIR_ATTR_LOCKOUT_THRESHOLD \
+    {'L','o','c','k','o','u','t','T','h','r','e','s','h','o','l','d',0}
 #define SAM_DB_DIR_ATTR_CREATED_TIME \
     {'C','r','e','a','t','e','d','T','i','m','e',0}
 #define SAM_DB_DIR_ATTR_MEMBERS \
@@ -608,6 +652,14 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
+        SAM_DB_DIR_ATTR_MIN_PWD_AGE,          \
+        SAM_DB_COL_MIN_PWD_AGE,               \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
         SAM_DB_DIR_ATTR_PWD_PROMPT_TIME,      \
         SAM_DB_COL_PWD_PROMPT_TIME,           \
         SAMDB_ATTR_TYPE_INT64,                \
@@ -659,6 +711,86 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_DIR_ATTR_LOGON_HOURS,          \
         SAM_DB_COL_LOGON_HOURS,               \
         SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_ROLE,                 \
+        SAM_DB_COL_ROLE,                      \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_MIN_PWD_LENGTH,       \
+        SAM_DB_COL_MIN_PWD_LENGTH,            \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_PWD_HISTORY_LENGTH,   \
+        SAM_DB_COL_PWD_HISTORY_LENGTH,        \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_PWD_PROPERTIES,       \
+        SAM_DB_COL_PWD_PROPERTIES,            \
+        SAMDB_ATTR_TYPE_INT32,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_FORCE_LOGOFF_TIME,    \
+        SAM_DB_COL_FORCE_LOGOFF_TIME,         \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_PRIMARY,              \
+        SAM_DB_COL_PRIMARY,                   \
+        SAMDB_ATTR_TYPE_TEXT,                 \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_SEQUENCE_NUMBER,      \
+        SAM_DB_COL_SEQUENCE_NUMBER,           \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOCKOUT_DURATION,     \
+        SAM_DB_COL_LOCKOUT_DURATION,          \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOCKOUT_WINDOW,       \
+        SAM_DB_COL_LOCKOUT_WINDOW,            \
+        SAMDB_ATTR_TYPE_INT64,                \
+        SAM_DB_IS_NOT_A_ROW_ID,               \
+        SAM_DB_IS_NOT_MULTI_VALUED,           \
+        SAM_DB_IS_QUERYABLE                   \
+    },                                        \
+    {                                         \
+        SAM_DB_DIR_ATTR_LOCKOUT_THRESHOLD,    \
+        SAM_DB_COL_LOCKOUT_THRESHOLD,         \
+        SAMDB_ATTR_TYPE_INT64,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
         SAM_DB_IS_QUERYABLE                   \
@@ -923,8 +1055,56 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
+        SAM_DB_DIR_ATTR_MIN_PWD_AGE,                             \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
         SAM_DB_DIR_ATTR_PWD_PROMPT_TIME,                         \
         SAM_DB_ATTR_FLAGS_MANDATORY                              \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_ROLE,                                    \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_MIN_PWD_LENGTH,                          \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_PWD_HISTORY_LENGTH,                      \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_PWD_PROPERTIES,                          \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_FORCE_LOGOFF_TIME,                       \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_PRIMARY,                                 \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_SEQUENCE_NUMBER,                         \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_SEQUENCE_NUMBER,                         \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOCKOUT_DURATION,                        \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOCKOUT_WINDOW,                          \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_LOCKOUT_THRESHOLD,                       \
+        SAM_DB_ATTR_FLAGS_NONE                                   \
     }
 
 #endif /* __SAM_DB_TABLE_H__ */
