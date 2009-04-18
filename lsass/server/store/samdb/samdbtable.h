@@ -110,7 +110,7 @@
 #define SAM_DB_COL_PWD_HISTORY_LENGTH    "PwdHistoryLength"
 #define SAM_DB_COL_PWD_PROPERTIES        "PwdProperties"
 #define SAM_DB_COL_FORCE_LOGOFF_TIME     "ForceLogoffTime"
-#define SAM_DB_COL_PRIMARY               "Primary"
+#define SAM_DB_COL_PRIMARY_DOMAIN        "PrimaryDomain"
 #define SAM_DB_COL_SEQUENCE_NUMBER       "SequenceNumber"
 #define SAM_DB_COL_LOCKOUT_DURATION      "LockoutDuration"
 #define SAM_DB_COL_LOCKOUT_WINDOW        "LockoutWindow"
@@ -173,7 +173,7 @@
                  SAM_DB_COL_PWD_HISTORY_LENGTH    " INTEGER,\n"                \
                  SAM_DB_COL_PWD_PROPERTIES        " INTEGER,\n"                \
                  SAM_DB_COL_FORCE_LOGOFF_TIME     " INTEGER,\n"                \
-                 SAM_DB_COL_PRIMARY               " TEXT,\n"                   \
+                 SAM_DB_COL_PRIMARY_DOMAIN        " TEXT,\n"                   \
                  SAM_DB_COL_SEQUENCE_NUMBER       " INTEGER,\n"                \
                  SAM_DB_COL_LOCKOUT_DURATION      " INTEGER,\n"                \
                  SAM_DB_COL_LOCKOUT_WINDOW        " INTEGER,\n"                \
@@ -327,8 +327,8 @@ typedef enum
     {'P','w','d','P','r','o','p','e','r','t','i','e','s',0}
 #define SAM_DB_DIR_ATTR_FORCE_LOGOFF_TIME \
     {'F','o','r','c','e','L','o','g','o','f','f','T','i','m','e',0}
-#define SAM_DB_DIR_ATTR_PRIMARY \
-    {'P','r','i','m','a','r','y',0}
+#define SAM_DB_DIR_ATTR_PRIMARY_DOMAIN \
+    {'P','r','i','m','a','r','y','D','o','m','a','i','n',0}
 #define SAM_DB_DIR_ATTR_SEQUENCE_NUMBER \
     {'S','e','q','u','e','n','c','e','N','u','m','b','e','r',0}
 #define SAM_DB_DIR_ATTR_LOCKOUT_DURATION \
@@ -756,8 +756,8 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
-        SAM_DB_DIR_ATTR_PRIMARY,              \
-        SAM_DB_COL_PRIMARY,                   \
+        SAM_DB_DIR_ATTR_PRIMARY_DOMAIN,       \
+        SAM_DB_COL_PRIMARY_DOMAIN,            \
         SAMDB_ATTR_TYPE_TEXT,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
@@ -1083,7 +1083,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
-        SAM_DB_DIR_ATTR_PRIMARY,                                 \
+        SAM_DB_DIR_ATTR_PRIMARY_DOMAIN,                          \
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \

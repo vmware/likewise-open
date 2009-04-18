@@ -4,11 +4,11 @@
 #define SAM_DB_DIR CACHEDIR   "/db"
 #define SAM_DB     SAM_DB_DIR "/sam.db"
 
-#define SAMDB_LOG_ERROR(pszFormat, ...)
-#define SAMDB_LOG_WARNING(pszFormat, ...)
-#define SAMDB_LOG_INFO(pszFormat, ...)
-#define SAMDB_LOG_VERBOSE(pszFormat, ...)
-#define SAMDB_LOG_DEBUG(pszFormat, ...)
+#define SAMDB_LOG_ERROR(pszFormat, ...) LSA_LOG_ERROR(pszFormat, ## __VA_ARGS__)
+#define SAMDB_LOG_WARNING(pszFormat, ...) LSA_LOG_WARNING(pszFormat, ## __VA_ARGS__)
+#define SAMDB_LOG_INFO(pszFormat, ...) LSA_LOG_INFO(pszFormat, ## __VA_ARGS__)
+#define SAMDB_LOG_VERBOSE(pszFormat, ...) LSA_LOG_VERBOSE(pszFormat, ## __VA_ARGS__)
+#define SAMDB_LOG_DEBUG(pszFormat, ...) LSA_LOG_DEBUG(pszFormat, ## __VA_ARGS__)
 
 #define BAIL_ON_SAMDB_ERROR(dwError) \
     if (dwError) goto error;
