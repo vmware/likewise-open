@@ -322,6 +322,9 @@ GetObjectType(
         case SID_TYPE_WKN_GRP:
             ObjectType = AccountType_Group;
             break;
+        case SID_TYPE_DOMAIN:
+            ObjectType = AccountType_Domain;
+            break;
 
         default:
             ObjectType = AccountType_NotFound;
@@ -357,7 +360,7 @@ AD_NetLookupObjectSidByName(
     // Double check here again
     if (!ppTranslatedSids || !ppTranslatedSids[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -381,7 +384,7 @@ error:
     LSA_SAFE_FREE_STRING(pszObjectSid);
     *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
-    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+    dwError = LSA_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }
@@ -663,7 +666,7 @@ AD_NetLookupObjectNameBySid(
     // Double check here again
     if (!ppTranslatedNames || !ppTranslatedNames[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -690,7 +693,7 @@ error:
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
 
-    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+    dwError = LSA_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }

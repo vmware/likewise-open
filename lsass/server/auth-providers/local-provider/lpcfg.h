@@ -97,6 +97,31 @@ LocalCfgGetDefaultShell(
     PSTR* ppszLoginShell
     );
 
+DWORD
+LocalCfgGetHomedirPrefix(
+    PSTR* ppszHomedirPrefix
+    );
+
+DWORD
+LocalCfgGetHomedirTemplate(
+    PSTR* ppszHomedirTemplate
+    );
+
+DWORD
+LocalCfgGetHomedirUmask(
+    PDWORD pdwUmask
+    );
+
+DWORD
+LocalCfgMustCreateHomedir(
+    PBOOLEAN pbCreateHomedir
+    );
+
+DWORD
+LocalCfgGetSkeletonDirs(
+    PSTR* ppszSkelDirs
+    );
+
 VOID
 LocalCfgFree(
     PLOCAL_CONFIG pConfig

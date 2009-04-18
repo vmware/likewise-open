@@ -81,6 +81,11 @@ typedef struct __LOCAL_CONFIG
     BOOLEAN   bEnableEventLog;
     DWORD     dwMaxGroupNestingLevel;
     PSTR      pszLoginShell;
+    PSTR      pszHomedirPrefix;
+    PSTR      pszHomedirTemplate;
+    BOOLEAN   bCreateHomedir;
+    DWORD     dwHomedirUMask;
+    PSTR      pszSkelDirs;
 
 } LOCAL_CONFIG, *PLOCAL_CONFIG;
 

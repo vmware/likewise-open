@@ -276,6 +276,40 @@ error:
 
 
 NTSTATUS
+LsaSrvDuplicateWC16String(
+    PWSTR *ppwszOut,
+    PWSTR pwszIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszStr = NULL;
+    DWORD dwLen = 0;
+
+    dwLen = wc16slen(pwszIn);
+    status = LsaSrvAllocateMemory((void**)&pwszStr,
+                                  (dwLen + 1) * sizeof(*pwszStr),
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    wc16sncpy(pwszStr, pwszIn, dwLen);
+
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return status;
+
+error:
+    if (pwszStr) {
+        LsaSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
 LsaSrvGetFromUnicodeString(
     PWSTR *ppwszOut,
     UnicodeString *pIn,
@@ -407,6 +441,81 @@ error:
 
     pOut->size = 0;
     pOut->len  = 0;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvDuplicateUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+
+    dwLen  = pIn->len;
+    dwSize = pIn->size;
+
+    status = LsaSrvAllocateMemory((void**)&(pOut->string),
+                                  dwSize,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    memcpy(pOut->string, pIn->string, dwLen);
+    pOut->size = dwSize;
+    pOut->len  = dwLen;
+
+cleanup:
+    return status;
+
+error:
+    if (pOut->string) {
+        LsaSrvFreeMemory(pOut->string);
+    }
+
+    pOut->size = 0;
+    pOut->len  = 0;
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvSidAppendRid(
+    PSID *ppOutSid,
+    PSID pInSid,
+    DWORD dwRid,
+    void *pParent
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwSidLen = 0;
+    PSID pSid = NULL;
+
+    dwSidLen = RtlLengthRequiredSid(pInSid->SubAuthorityCount + 1);
+    status = LsaSrvAllocateMemory((void**)&pSid, dwSidLen,
+                                  pParent);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = RtlCopySid(dwSidLen, pSid, pInSid);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = RtlAppendRidSid(dwSidLen, pSid, dwRid);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppOutSid = pSid;
+
+cleanup:
+    return status;
+
+error:
+    if (pSid) {
+        LsaSrvFreeMemory(pSid);
+    }
+
+    *ppOutSid = NULL;
     goto cleanup;
 }
 

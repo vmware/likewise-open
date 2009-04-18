@@ -119,14 +119,14 @@ ADState_OpenDb(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwiproviderdata.DirectoryMode, "
-            "lwiproviderdata.ADConfigurationMode, "
-            "lwiproviderdata.ADMaxPwdAge, "
-            "lwiproviderdata.Domain, "
-            "lwiproviderdata.ShortDomain, "
-            "lwiproviderdata.ComputerDN, "
-            "lwiproviderdata.CellDN "
-            "from lwiproviderdata ",
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".DirectoryMode, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ADConfigurationMode, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ADMaxPwdAge, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".Domain, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ShortDomain, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ComputerDN, "
+            AD_STATE_TABLE_NAME_PROVIDER_DATA ".CellDN "
+            "from " AD_STATE_TABLE_NAME_PROVIDER_DATA " ",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetProviderData,
             NULL);
@@ -135,20 +135,20 @@ ADState_OpenDb(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwidomaintrusts.RowIndex, "
-            "lwidomaintrusts.DnsDomainName, "
-            "lwidomaintrusts.NetbiosDomainName, "
-            "lwidomaintrusts.Sid, "
-            "lwidomaintrusts.Guid, "
-            "lwidomaintrusts.TrusteeDnsDomainName, "
-            "lwidomaintrusts.TrustFlags, "
-            "lwidomaintrusts.TrustType, "
-            "lwidomaintrusts.TrustAttributes, "
-            "lwidomaintrusts.TrustDirection, "
-            "lwidomaintrusts.TrustMode, "
-            "lwidomaintrusts.ForestName, "
-            "lwidomaintrusts.Flags "
-            "from lwidomaintrusts ORDER BY RowIndex ASC",
+            AD_STATE_TABLE_NAME_TRUSTS ".RowIndex, "
+            AD_STATE_TABLE_NAME_TRUSTS ".DnsDomainName, "
+            AD_STATE_TABLE_NAME_TRUSTS ".NetbiosDomainName, "
+            AD_STATE_TABLE_NAME_TRUSTS ".Sid, "
+            AD_STATE_TABLE_NAME_TRUSTS ".Guid, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrusteeDnsDomainName, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrustFlags, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrustType, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrustAttributes, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrustDirection, "
+            AD_STATE_TABLE_NAME_TRUSTS ".TrustMode, "
+            AD_STATE_TABLE_NAME_TRUSTS ".ForestName, "
+            AD_STATE_TABLE_NAME_TRUSTS ".Flags "
+            "from " AD_STATE_TABLE_NAME_TRUSTS " ORDER BY RowIndex ASC",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetDomainTrustList,
             NULL);
@@ -157,11 +157,11 @@ ADState_OpenDb(
     dwError = sqlite3_prepare_v2(
             pConn->pDb,
             "select "
-            "lwilinkedcells.RowIndex, "
-            "lwilinkedcells.CellDN, "
-            "lwilinkedcells.Domain, "
-            "lwilinkedcells.IsForestCell "
-            "from lwilinkedcells ORDER BY RowIndex ASC",
+            AD_STATE_TABLE_NAME_LINKED_CELLS ".RowIndex, "
+            AD_STATE_TABLE_NAME_LINKED_CELLS ".CellDN, "
+            AD_STATE_TABLE_NAME_LINKED_CELLS ".Domain, "
+            AD_STATE_TABLE_NAME_LINKED_CELLS ".IsForestCell "
+            "from " AD_STATE_TABLE_NAME_LINKED_CELLS " ORDER BY RowIndex ASC",
             -1, //search for null termination in szQuery to get length
             &pConn->pstGetCellList,
             NULL);
@@ -432,7 +432,7 @@ ADState_StoreProviderData(
 
     pszSqlCommand = sqlite3_mprintf(
         "begin;"
-            "replace into lwiproviderdata ("
+            "replace into " AD_STATE_TABLE_NAME_PROVIDER_DATA " ("
                 "DirectoryMode, "
                 "ADConfigurationMode, "
                 "ADMaxPwdAge, "
@@ -578,6 +578,150 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+ADState_BuildInsertDomainTrust(
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomain,
+    IN OUT PSTR* ppszSqlCommand
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszSid = NULL;
+    char szGuid[UUID_STR_SIZE];
+    PSTR pszOldExpression = NULL;
+    PSTR pszSqlCommand = NULL;
+
+    BAIL_ON_INVALID_POINTER(ppszSqlCommand);
+    BAIL_ON_INVALID_STRING(*ppszSqlCommand);
+
+    if (pDomain->pSid != NULL)
+    {
+        dwError = LsaAllocateCStringFromSid(
+                &pszSid,
+                pDomain->pSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Writes into a 37-byte caller allocated string
+    uuid_unparse(*pDomain->pGuid, szGuid);
+
+    pszOldExpression = *ppszSqlCommand;
+    pszSqlCommand = sqlite3_mprintf(
+        "%s"
+        "insert into " AD_STATE_TABLE_NAME_TRUSTS " ("
+            "DnsDomainName, "
+            "NetbiosDomainName, "
+            "Sid, "
+            "Guid, "
+            "TrusteeDnsDomainName, "
+            "TrustFlags, "
+            "TrustType, "
+            "TrustAttributes, "
+            "TrustDirection, "
+            "TrustMode, "
+            "ForestName, "
+            "Flags "
+        ") values ("
+            "%Q, "
+            "%Q, "
+            "%Q, "
+            "%Q, "
+            "%Q, "
+            "%d, "
+            "%d, "
+            "%d, "
+            "%d, "
+            "%d, "
+            "%Q, "
+            "%d "
+        ");\n",
+        pszOldExpression,
+        pDomain->pszDnsDomainName,
+        pDomain->pszNetbiosDomainName,
+        pszSid,
+        szGuid,
+        pDomain->pszTrusteeDnsDomainName,
+        pDomain->dwTrustFlags,
+        pDomain->dwTrustType,
+        pDomain->dwTrustAttributes,
+        pDomain->dwTrustDirection,
+        pDomain->dwTrustMode,
+        pDomain->pszForestName,
+        pDomain->Flags);
+
+    if (pszSqlCommand == NULL)
+    {
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszSid);
+    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
+
+    *ppszSqlCommand = pszSqlCommand;
+
+    return dwError;
+
+error:
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+
+    goto cleanup;
+}
+
+DWORD
+ADState_AddDomainTrust(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PSTR pszOldExpression = NULL;
+    PSTR pszSqlCommand = NULL;
+    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
+
+    pszSqlCommand = sqlite3_mprintf(
+        "begin;\n");
+    if (pszSqlCommand == NULL)
+    {
+        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
+        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    }
+
+    dwError = ADState_BuildInsertDomainTrust(
+                      pDomainInfo,
+                      &pszSqlCommand);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
+    pszOldExpression = pszSqlCommand;
+    pszSqlCommand = sqlite3_mprintf(
+            "%s"
+        "end;",
+        pszOldExpression
+        );
+    if (pszSqlCommand == NULL)
+    {
+        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
+        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+    }
+
+    dwError = LsaSqliteExecWithRetry(
+        pConn->pDb,
+        &pConn->lock,
+        pszSqlCommand);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
+    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 DWORD
 ADState_StoreDomainTrustList(
     IN ADSTATE_CONNECTION_HANDLE hDb,
@@ -588,15 +732,12 @@ ADState_StoreDomainTrustList(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
     DWORD dwIndex = 0;
-    const LSA_DM_ENUM_DOMAIN_INFO* pDomain = NULL;
-    char szGuid[UUID_STR_SIZE];
-    PSTR pszSid = NULL;
+    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
 
     pszSqlCommand = sqlite3_mprintf(
         "begin;\n"
-            "delete from lwidomaintrusts;\n");
+            "delete from " AD_STATE_TABLE_NAME_TRUSTS ";\n");
     if (pszSqlCommand == NULL)
     {
         dwError = (DWORD)sqlite3_errcode(pConn->pDb);
@@ -605,75 +746,10 @@ ADState_StoreDomainTrustList(
 
     for (dwIndex = 0; dwIndex < dwDomainInfoCount; dwIndex++)
     {
-        pDomain = ppDomainInfo[dwIndex];
-
-        LSA_SAFE_FREE_STRING(pszSid);
-
-        if (pDomain->pSid != NULL)
-        {
-            dwError = LsaAllocateCStringFromSid(
-                    &pszSid,
-                    pDomain->pSid);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        // Writes into a 37-byte caller allocated string
-        uuid_unparse(*pDomain->pGuid, szGuid);
-
-        SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-        pszOldExpression = pszSqlCommand;
-        pszSqlCommand = sqlite3_mprintf(
-            "%s"
-            "replace into lwidomaintrusts ("
-                "RowIndex, "
-                "DnsDomainName, "
-                "NetbiosDomainName, "
-                "Sid, "
-                "Guid, "
-                "TrusteeDnsDomainName, "
-                "TrustFlags, "
-                "TrustType, "
-                "TrustAttributes, "
-                "TrustDirection, "
-                "TrustMode, "
-                "ForestName, "
-                "Flags "
-            ") values ("
-                "%lu, "
-                "%Q, "
-                "%Q, "
-                "%Q, "
-                "%Q, "
-                "%Q, "
-                "%d, "
-                "%d, "
-                "%d, "
-                "%d, "
-                "%d, "
-                "%Q, "
-                "%d "
-            ");\n",
-            pszOldExpression,
-            dwIndex,
-            pDomain->pszDnsDomainName,
-            pDomain->pszNetbiosDomainName,
-            pszSid,
-            szGuid,
-            pDomain->pszTrusteeDnsDomainName,
-            pDomain->dwTrustFlags,
-            pDomain->dwTrustType,
-            pDomain->dwTrustAttributes,
-            pDomain->dwTrustDirection,
-            pDomain->dwTrustMode,
-            pDomain->pszForestName,
-            pDomain->pszClientSiteName,
-            pDomain->Flags);
-
-        if (pszSqlCommand == NULL)
-        {
-            dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-        }
+        dwError = ADState_BuildInsertDomainTrust(
+                          ppDomainInfo[dwIndex],
+                          &pszSqlCommand);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     SQLITE3_SAFE_FREE_STRING(pszOldExpression);
@@ -696,8 +772,6 @@ ADState_StoreDomainTrustList(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszSid);
     SQLITE3_SAFE_FREE_STRING(pszOldExpression);
     SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
     return dwError;
@@ -814,7 +888,7 @@ ADState_GetCacheCellListCommand(
     const AD_LINKED_CELL_INFO* pCell = NULL;
 
     pszSqlCommand = sqlite3_mprintf(
-        "delete from lwilinkedcells;\n");
+        "delete from " AD_STATE_TABLE_NAME_LINKED_CELLS " ;\n");
     if (pszSqlCommand == NULL)
     {
         dwError = (DWORD)sqlite3_errcode(pConn->pDb);
@@ -829,7 +903,7 @@ ADState_GetCacheCellListCommand(
         pszOldExpression = pszSqlCommand;
         pszSqlCommand = sqlite3_mprintf(
             "%s"
-            "replace into lwilinkedcells ("
+            "replace into " AD_STATE_TABLE_NAME_LINKED_CELLS " ("
                 "RowIndex, "
                 "CellDN, "
                 "Domain, "

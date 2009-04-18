@@ -49,523 +49,66 @@
 
 NTSTATUS
 LsaSrvLookupNames2(
-    handle_t b,
+    handle_t hBinding,
     POLICY_HANDLE hPolicy,
     uint32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,
-    TranslatedSidArray2 *sids,
+    TranslatedSidArray2 *pSids,
     uint16 level,
     uint32 *count,
     uint32 unknown1,
     uint32 unknown2
     )
 {
-    const DWORD dwSamrConnAccess = SAMR_ACCESS_CONNECT_TO_SERVER;
-    const DWORD dwSamrDomainAccess = DOMAIN_ACCESS_LOOKUP_INFO_1 |
-                                     DOMAIN_ACCESS_LOOKUP_ALIAS;
-    const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    RPCSTATUS rpcstatus = 0;
-    PPOLICY_CONTEXT pPolCtx = NULL;
-    HANDLE hDirectory = NULL;
-    PSTR pszSamrLpcSocketPath = NULL;
-    handle_t hSamrBinding = NULL;
-    handle_t hLsaBinding = NULL;
-    PIO_ACCESS_TOKEN pAccessToken = NULL;
-    PolicyHandle hConn;
-    PolicyHandle hDomain;
-    PolicyHandle hDcPolicy;
-    PSID pDomainSid = NULL;
-    PSAMR_DOMAIN pSamrDomain = NULL;
-    SAMR_DOMAIN SamrDomain;
-    CHAR szHostname[64];
-    PSTR pszDomainName = NULL;
-    PWSTR pwszSystemName = NULL;
-    PWSTR pwszName = NULL;
-    PWSTR pwszDomainName = NULL;
-    PWSTR pwszAcctName = NULL;
-    PWSTR *ppwszLocalNames = NULL;
-    DWORD dwLocalNamesNum = 0;
-    PWSTR *ppwszBuiltinNames = NULL;
-    DWORD dwBuiltinNamesNum = 0;
-    PWSTR *ppwszDomainNames = NULL;
-    DWORD dwDomainNamesNum = 0;
-    PSTR pszDomainFqdn = NULL;
-    PSTR pszDcName = NULL;
-    PWSTR pwszDcName = NULL;
-    RefDomainList *pRemoteDomains = NULL;
-    TranslatedSid2 *pRemoteSids = NULL;
-    DWORD dwRemoteSidsCount = 0;
-    DWORD *dwRids = NULL;
-    DWORD *dwTypes = NULL;
-    DWORD dwCount = 0;
+    TranslatedSidArray2 Sids2;
+    TranslatedSidArray3 Sids3;
     DWORD i = 0;
-    DWORD dwDomIndex = 0;
-    TranslatedSidArray2 *pSidArray = NULL;
-    RefDomainList *pDomains = NULL;
 
-    memset(&SamrDomain, 0, sizeof(SamrDomain));
-    memset(szHostname, 0, sizeof(szHostname));
+    memset(&Sids2, 0, sizeof(Sids2));
+    memset(&Sids3, 0, sizeof(Sids3));
 
-    pPolCtx = (PPOLICY_CONTEXT)hPolicy;
+    status = LsaSrvLookupNames3(hBinding,
+                                hPolicy,
+                                num_names,
+                                names,
+                                domains,
+                                &Sids3,
+                                level,
+                                count,
+                                unknown1,
+                                unknown2);
 
-    if (pPolCtx == NULL || pPolCtx->Type != LsaContextPolicy) {
-        status = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(status);
+    Sids2.count = Sids3.count;
+    status = LsaSrvAllocateMemory((void**)&Sids2.sids,
+                                  sizeof(*Sids2.sids) * Sids2.count,
+                                  hPolicy);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    for (i = 0; i < Sids2.count; i++) {
+        TranslatedSid2 *pOut = &(Sids2.sids[i]);
+        TranslatedSid3 *pIn = &(Sids3.sids[i]);
+
+        pOut->type     = pIn->type;
+        pOut->index    = pIn->index;
+        pOut->unknown1 = pIn->unknown1;
+        pOut->rid      = pIn->sid->SubAuthority[pIn->sid->SubAuthorityCount - 1];
     }
 
-    hDirectory = pPolCtx->hDirectory;
-
-    status = LsaSrvAllocateMemory((void**)&pSidArray,
-                                  sizeof(*pSidArray),
-                                  pPolCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory((void**)&(pSidArray->sids),
-                                  sizeof(*pSidArray->sids) * num_names,
-                                  pPolCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory((void**)&pSamrDomain,
-                                  sizeof(*pSamrDomain) * num_names,
-                                  pPolCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    pPolCtx->dwSamrDomainsNum = num_names;
-    pPolCtx->pSamrDomain      = pSamrDomain;
-
-    status = LsaSrvAllocateMemory((void**)&ppwszLocalNames,
-                                  sizeof(*ppwszLocalNames) * num_names,
-                                  pPolCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = LsaSrvAllocateMemory((void**)&ppwszBuiltinNames,
-                                  sizeof(*ppwszBuiltinNames) * num_names,
-                                  pPolCtx);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    dwError = gethostname(szHostname, sizeof(szHostname));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvConfigGetSamrLpcSocketPath(&pszSamrLpcSocketPath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    rpcstatus = InitSamrBindingFull(&hSamrBinding,
-                                    "ncalrpc",
-                                    szHostname,
-                                    pszSamrLpcSocketPath,
-                                    NULL,
-                                    NULL,
-                                    NULL);
-    if (rpcstatus) {
-        dwError = LSA_ERROR_RPC_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaMbsToWc16s((PSTR)szHostname, &pwszSystemName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    status = SamrConnect2(hSamrBinding,
-                          pwszSystemName,
-                          dwSamrConnAccess,
-                          &hConn);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num_names; i++) {
-        UnicodeStringEx *name = &(names[0]);
-
-        pwszName = GetFromUnicodeStringEx(name);
-        if (!pwszName) {
-            status = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        status = LsaSrvParseAccountName(pwszName,
-                                        &pwszDomainName,
-                                        &pwszAcctName);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-
-        memset(&SamrDomain, 0, sizeof(SamrDomain));
-
-        status = LsaSrvGetSamrDomain(pPolCtx,
-                                     pwszDomainName,
-                                     &SamrDomain);
-        if (status == STATUS_NO_SUCH_DOMAIN) {
-
-            status = SamrLookupDomain(hSamrBinding,
-                                      &hConn,
-                                      pwszDomainName,
-                                      &pDomainSid);
-            if (status == STATUS_NO_SUCH_DOMAIN) {
-
-                SamrDomain.pwszName = pwszDomainName;
-                SamrDomain.pSid     = NULL;
-                SamrDomain.bLocal   = FALSE;
-
-                status = LsaSrvSetSamrDomain(pPolCtx,
-                                             &SamrDomain);
-                BAIL_ON_NTSTATUS_ERROR(status);
-
-            } else if (status != STATUS_SUCCESS) {
-                BAIL_ON_NTSTATUS_ERROR(status);
-            }
-
-            status = SamrOpenDomain(hSamrBinding,
-                                    &hConn,
-                                    dwSamrDomainAccess,
-                                    pDomainSid,
-                                    &hDomain);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            SamrDomain.pwszName = pwszDomainName;
-            SamrDomain.pSid     = pDomainSid;
-            SamrDomain.bLocal   = TRUE;
-            SamrDomain.hDomain  = hDomain;
-
-            status = LsaSrvSetSamrDomain(pPolCtx,
-                                         &SamrDomain);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-
-        } else if (status != STATUS_SUCCESS) {
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-
-        if (SamrDomain.bLocal) {
-            dwError = LsaWc16sToMbs(SamrDomain.pwszName, &pszDomainName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (!strcasecmp(pszDomainName, "BUILTIN")) {
-                ppwszBuiltinNames[dwBuiltinNamesNum] = wc16sdup(pwszAcctName);
-                BAIL_ON_NO_MEMORY(ppwszBuiltinNames[dwBuiltinNamesNum]);
-
-                status = LsaSrvAddDepMemory(ppwszBuiltinNames[dwBuiltinNamesNum],
-                                            ppwszBuiltinNames);
-                BAIL_ON_NTSTATUS_ERROR(status);
-
-                dwBuiltinNamesNum++;
-
-            } else {
-                ppwszLocalNames[dwLocalNamesNum] = wc16sdup(pwszAcctName);
-                BAIL_ON_NO_MEMORY(ppwszLocalNames[dwLocalNamesNum]);
-
-                status = LsaSrvAddDepMemory(ppwszLocalNames[dwLocalNamesNum],
-                                            ppwszLocalNames);
-                BAIL_ON_NTSTATUS_ERROR(status);
-
-                dwLocalNamesNum++;
-            }
-
-        } else {
-            ppwszDomainNames[dwDomainNamesNum] = wc16sdup(pwszName);
-            BAIL_ON_NO_MEMORY(ppwszDomainNames[dwDomainNamesNum]);
-
-            status = LsaSrvAddDepMemory(ppwszDomainNames[dwDomainNamesNum],
-                                        ppwszDomainNames);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            dwDomainNamesNum++;
-        }
-
-
-        if (pwszName) {
-            LSA_SAFE_FREE_MEMORY(pwszName);
-            pwszName = NULL;
-        }
-
-        if (pwszDomainName) {
-            LsaSrvFreeMemory(pwszDomainName);
-            pwszDomainName = NULL;
-        }
-
-        if (pwszAcctName) {
-            LsaSrvFreeMemory(pwszAcctName);
-            pwszAcctName = NULL;
-        }
-
-        if (dwRids) {
-            SamrFreeMemory(dwRids);
-            dwRids = NULL;
-        }
-
-        if (dwTypes) {
-            SamrFreeMemory(dwTypes);
-            dwRids = NULL;
-        }
-
-        if (pszDomainName) {
-            LSA_SAFE_FREE_STRING(pszDomainName);
-            pszDomainName = NULL;
-        }
-    }
-
-    if (dwDomainNamesNum) {
-        dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LWNetGetDomainController(pszDomainFqdn,
-                                           &pszDcName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        status = LwIoGetThreadAccessToken(&pAccessToken);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        rpcstatus = InitLsaBindingDefault(&hLsaBinding,
-                                          pszDcName,
-                                          pAccessToken);
-        if (rpcstatus) {
-            dwError = LSA_ERROR_RPC_ERROR;
-            BAIL_ON_LSA_ERROR(dwError)
-        }
-
-        dwError = LsaMbsToWc16s(pszDcName, &pwszDcName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        status = LsaOpenPolicy2(hLsaBinding,
-                                pwszDcName,
-                                NULL,
-                                dwPolicyAccessMask,
-                                &hDcPolicy);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaLookupNames2(hLsaBinding,
-                                 &hDcPolicy,
-                                 dwDomainNamesNum,
-                                 ppwszDomainNames,
-                                 &pRemoteDomains,
-                                 &pRemoteSids,
-                                 level,
-                                 &dwRemoteSidsCount);
-
-        if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
-            status != STATUS_NONE_MAPPED) {
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        for (i = 0; i < pRemoteDomains->count; i++) {
-            LsaDomainInfo *pDomInfo = &(pRemoteDomains->domains[i]);
-            LsaDomainInfo *pInfo = &(pDomains->domains[i]);
-
-            status = CopyUnicodeStringEx(&pInfo->name, &pDomInfo->name);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            status = LsaSrvAddDepMemory(pInfo->name.string,
-                                        pDomains->domains);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            status = RtlDuplicateSid(&pInfo->sid, pDomInfo->sid);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            status = LsaSrvAddDepMemory(pInfo->sid,
-                                        pDomains->domains);
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        for (i = 0; i < dwRemoteSidsCount ; i++) {
-            TranslatedSid2 *pRemoteSid = &(pRemoteSids[i]);
-            TranslatedSid2 *pSid = &(pSidArray->sids[i]);
-
-            pSid->type     = pRemoteSid->type;
-            pSid->rid      = pRemoteSid->rid;
-            pSid->index    = pRemoteSid->index;
-            pSid->unknown1 = pRemoteSid->unknown1;
-        }
-
-        pSidArray->count += dwRemoteSidsCount;
-
-        if (pRemoteDomains) {
-            LsaFreeMemory(pRemoteDomains);
-        }
-
-        if (pRemoteSids) {
-            LsaFreeMemory(pRemoteSids);
-        }
-
-        status = LsaClose(hLsaBinding, &hDcPolicy);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        FreeLsaBinding(&hLsaBinding);
-    }
-
-    if (dwLocalNamesNum) {
-        dwDomIndex = pDomains->count;
-        LsaDomainInfo *pLocalDomainInfo = &(pDomains->domains[dwDomIndex]);
-
-        status = LsaSrvGetLocalSamrDomain(pPolCtx,
-                                          FALSE,    /* !BUILTIN */
-                                          &SamrDomain);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = InitUnicodeStringEx(&pLocalDomainInfo->name,
-                                     SamrDomain.pwszName);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaSrvAddDepMemory(pLocalDomainInfo->name.string,
-                                    pDomains->domains);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = RtlDuplicateSid(&pLocalDomainInfo->sid, SamrDomain.pSid);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaSrvAddDepMemory(pLocalDomainInfo->sid,
-                                    pDomains->domains);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-
-        status = SamrLookupNames(hSamrBinding,
-                                 &SamrDomain.hDomain,
-                                 dwLocalNamesNum,
-                                 ppwszLocalNames,
-                                 &dwRids,
-                                 &dwTypes,
-                                 &dwCount);
-        if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
-            status != STATUS_NONE_MAPPED) {
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        for (i = 0; i < dwCount; i++) {
-            TranslatedSid2 *pSid = &(pSidArray->sids[i + pSidArray->count]);
-
-            pSid->type     = dwTypes[i];
-            pSid->rid      = dwRids[i];
-            pSid->index    = dwDomIndex;
-            pSid->unknown1 = 0;
-        }
-
-        pDomains->count  = (++dwDomIndex);
-        pSidArray->count += dwCount;
-    }
-
-    if (dwBuiltinNamesNum) {
-        dwDomIndex = pDomains->count;
-        LsaDomainInfo *pBuiltinDomainInfo = &(pDomains->domains[dwDomIndex]);
-
-        status = LsaSrvGetLocalSamrDomain(pPolCtx,
-                                          TRUE,      /* BUILTIN */
-                                          &SamrDomain);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = InitUnicodeStringEx(&pBuiltinDomainInfo->name,
-                                     SamrDomain.pwszName);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaSrvAddDepMemory(pBuiltinDomainInfo->name.string,
-                                    pDomains->domains);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = RtlDuplicateSid(&pBuiltinDomainInfo->sid, SamrDomain.pSid);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaSrvAddDepMemory(pBuiltinDomainInfo->sid,
-                                    pDomains->domains);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        dwRids  = NULL;
-        dwTypes = NULL;
-        dwCount = 0;
-
-        status = SamrLookupNames(hSamrBinding,
-                                 &SamrDomain.hDomain,
-                                 dwBuiltinNamesNum,
-                                 ppwszBuiltinNames,
-                                 &dwRids,
-                                 &dwTypes,
-                                 &dwCount);
-        if (status != STATUS_SUCCESS ||
-            status != STATUS_SOME_UNMAPPED ||
-            status != STATUS_NONE_MAPPED) {
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        for (i = 0; i < dwCount; i++) {
-            TranslatedSid2 *pSid = &(pSidArray->sids[i + pSidArray->count]);
-
-            pSid->type     = dwTypes[i];
-            pSid->rid      = dwRids[i];
-            pSid->index    = dwDomIndex;
-            pSid->unknown1 = 0;
-        }
-
-        pDomains->count = (++dwDomIndex);
-        pSidArray->count += dwCount;
-    }
-
-    status = SamrClose(hSamrBinding, &hConn);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *domains    = pDomains;
-    sids->count = pSidArray->count;
-    sids->sids  = pSidArray->sids;
-    *count      = pSidArray->count;
+    pSids->count = Sids2.count;
+    pSids->sids  = Sids2.sids;
 
 cleanup:
-    if (hSamrBinding) {
-        FreeSamrBinding(&hSamrBinding);
-    }
-
-    if (pwszSystemName) {
-        LSA_SAFE_FREE_MEMORY(pwszSystemName);
-    }
-
-    if (pwszName) {
-        LSA_SAFE_FREE_MEMORY(pwszName);
-    }
-
-    if (pwszDomainName) {
-        LsaSrvFreeMemory(pwszDomainName);
-    }
-
-    if (pwszAcctName) {
-        LsaSrvFreeMemory(pwszAcctName);
-    }
-
-    if (pszDomainFqdn) {
-        LWNetFreeString(pszDomainFqdn);
-    }
-
-    if (pszDcName) {
-        LWNetFreeString(pszDcName);
-    }
-
-    if (dwRids) {
-        SamrFreeMemory(dwRids);
-    }
-
-    if (dwTypes) {
-        SamrFreeMemory(dwTypes);
-    }
-
-    if (pSidArray) {
-        LsaSrvFreeMemory(pSidArray);
-    }
-
-    if (pszSamrLpcSocketPath) {
-        LSA_SAFE_FREE_STRING(pszSamrLpcSocketPath);
-    }
-
     return status;
 
 error:
-    if (pDomains) {
-        LsaSrvFreeMemory(pDomains);
+    if (Sids2.sids) {
+        LsaSrvFreeMemory(Sids2.sids);
     }
 
-    if (pSidArray->sids) {
-        LsaSrvFreeMemory(pSidArray->sids);
-    }
-
-    *domains    = NULL;
-    sids->count = 0;
-    sids->sids  = NULL;
-    *count      = 0;
+    pSids->count = 0;
+    pSids->sids  = NULL;
     goto cleanup;
 }
 

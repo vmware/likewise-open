@@ -51,6 +51,11 @@
 #define LOCAL_CFG_TAG_AUTH_PROVIDER  "auth provider"
 
 #define LOCAL_CFG_DEFAULT_LOGIN_SHELL             "/bin/sh"
+#define LOCAL_CFG_DEFAULT_HOMEDIR_PREFIX          "/home"
+#define LOCAL_CFG_DEFAULT_HOMEDIR_TEMPLATE        "%H/%U"
+#define LOCAL_CFG_DEFAULT_SKELETON_DIRS           "/etc/skel"
+#define LOCAL_CFG_DEFAULT_CREATE_HOMEDIR          TRUE
+#define LOCAL_CFG_DEFAULT_HOMEDIR_UMASK           022
 #define LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT (5)
 
 #define LOCAL_LOCK_MUTEX(bInLock, pMutex)  \

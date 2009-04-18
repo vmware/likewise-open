@@ -3216,7 +3216,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3277,7 +3277,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3323,7 +3323,7 @@ AD_FindObjectBySid(
 
     if (ppResultArray && !ppResultArray[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

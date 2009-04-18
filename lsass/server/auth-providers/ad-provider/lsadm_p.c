@@ -1317,6 +1317,7 @@ LsaDmpAddTrustedDomain(
     IN DWORD dwTrustAttributes,
     IN LSA_TRUST_DIRECTION dwTrustDirection,
     IN LSA_TRUST_MODE dwTrustMode,
+    IN BOOLEAN bIsTransitiveOnewayChild,
     IN OPTIONAL PCSTR pDnsForestName,
     IN OPTIONAL PLWNET_DC_INFO pDcInfo
     )
@@ -1413,6 +1414,11 @@ LsaDmpAddTrustedDomain(
     pDomain->dwTrustAttributes = dwTrustAttributes;
     pDomain->dwTrustDirection = dwTrustDirection;
     pDomain->dwTrustMode = dwTrustMode;
+
+    if (bIsTransitiveOnewayChild)
+    {
+        SetFlag(pDomain->Flags, LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD);
+    }
 
     if (IsSetFlag(pDomain->dwTrustFlags, NETR_TRUST_FLAG_PRIMARY))
     {

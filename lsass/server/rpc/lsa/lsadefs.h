@@ -16,6 +16,15 @@ typedef void* POLICY_HANDLE;
 #define LSA_RPC_DIR                            CACHEDIR "/rpc"
 #define LSA_DEFAULT_LPC_SOCKET_PATH            LSA_RPC_DIR "/lsass"
 
+#define LSA_BUILTIN_DOMAIN_NAME \
+    {'B','U','I','L','T','I','N',0}
+
+
+typedef struct account_names {
+    PWSTR *ppwszNames;
+    DWORD dwCount;
+} ACCOUNT_NAMES, *PACCOUNT_NAMES;
+
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
     do {                                                 \

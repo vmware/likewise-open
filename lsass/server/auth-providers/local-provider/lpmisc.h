@@ -61,5 +61,12 @@ LocalGetNTTime(
     time_t timeVal
     );
 
+DWORD
+LocalBuildHomeDirPathFromTemplate(
+    PCSTR pszNetBIOSDomainName,
+    PCSTR pszSamAccountName,
+    PSTR* ppszHomedir
+    );
+
 #endif /* __LP_MISC_H__ */
 

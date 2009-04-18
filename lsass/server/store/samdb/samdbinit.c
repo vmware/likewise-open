@@ -231,10 +231,13 @@ SamDbCreateTables(
 {
     DWORD dwError = 0;
     PSTR pszError = NULL;
+    PCSTR pszQuery = SAM_DB_QUERY_CREATE_TABLES;
+
+    SAMDB_LOG_DEBUG("Query used to create tables [%s]", pszQuery);
 
     dwError = sqlite3_exec(
                     pDbContext->pDbHandle,
-                    SAM_DB_QUERY_CREATE_TABLES,
+                    pszQuery,
                     NULL,
                     NULL,
                     &pszError);
@@ -248,6 +251,7 @@ error:
 
     if (pszError)
     {
+        SAMDB_LOG_ERROR("Failed to create tables. [%s]", pszError);
         sqlite3_free(pszError);
     }
 

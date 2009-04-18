@@ -314,7 +314,7 @@ ADUnprovPlugin_QueryByAlias(
                     gpADProviderData->szDomain,
                     ppszSid,
                     pdwId);
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError ||
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
         LSA_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         dwError = 0;
@@ -336,7 +336,7 @@ ADUnprovPlugin_QueryByAlias(
                         ppszDomainNames[i],
                         ppszSid,
                         pdwId);
-        if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError ||
+        if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
             LSA_ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
@@ -385,7 +385,7 @@ ADUnprovPlugin_QueryById(
                     gpADProviderData->szDomain,
                     ppszSid,
                     ppszAlias);
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError ||
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
         LSA_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         dwError = 0;
@@ -407,7 +407,7 @@ ADUnprovPlugin_QueryById(
                         ppszDomainNames[i],
                         ppszSid,
                         ppszAlias);
-        if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError ||
+        if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
             LSA_ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;

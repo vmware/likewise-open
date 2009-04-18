@@ -738,7 +738,7 @@ SamDbAddToGroup(
     if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
         (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -846,7 +846,7 @@ SamDbRemoveFromGroup(
     if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
         (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

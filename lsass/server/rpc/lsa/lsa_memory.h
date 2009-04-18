@@ -106,6 +106,22 @@ LsaSrvDuplicateSid(
 
 
 NTSTATUS
+LsaSrvDuplicateWC16String(
+    PWSTR *ppwszOut,
+    PWSTR pwszIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvDuplicateWC16String(
+    PWSTR *ppwszOut,
+    PWSTR pwszIn,
+    void *pParent
+    );
+
+
+NTSTATUS
 LsaSrvGetFromUnicodeString(
     PWSTR *ppwszOut,
     UnicodeString *pIn,
@@ -133,6 +149,23 @@ NTSTATUS
 LsaSrvInitUnicodeStringEx(
     UnicodeStringEx *pOut,
     PCWSTR pwszIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvDuplicateUnicodeStringEx(
+    UnicodeStringEx *pOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+LsaSrvSidAppendRid(
+    PSID *ppOutSid,
+    PSID pInSid,
+    DWORD dwRid,
     void *pParent
     );
 

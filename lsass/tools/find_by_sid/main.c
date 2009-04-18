@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Tool to lookup objects in AD by SID
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -130,10 +130,10 @@ main(
 
     dwError = ParseArgs(argc, argv, &pszSID, &dwInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaGetNamesBySidList(
                     hLsaConnection,
                     stSids,
@@ -145,39 +145,39 @@ main(
     dwError = LsaSetDomainSeparator(
                 chDomainSeparator);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch (pSidInfoList[0].accountType)
     {
         case AccountType_Group:
-            
+
             dwError = LookupGroupByName(
                             hLsaConnection,
                             pSidInfoList[0].pszDomainName,
                             pSidInfoList[0].pszSamAccountName,
                             dwInfoLevel);
-            
+
             break;
-            
+
         case AccountType_User:
-            
+
             dwError = LookupUserByName(
                             hLsaConnection,
                             pSidInfoList[0].pszDomainName,
                             pSidInfoList[0].pszSamAccountName,
                             dwInfoLevel);
-            
+
             break;
-            
+
         case AccountType_NotFound:
-            
-            dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
-            
+
+            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INTERNAL;
-            
+
             break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -188,7 +188,7 @@ cleanup:
     {
         LsaFreeSIDInfoList(pSidInfoList, stSids);
     }
-    
+
     if (hLsaConnection != (HANDLE)NULL) {
         LsaCloseServer(hLsaConnection);
     }
@@ -200,32 +200,32 @@ cleanup:
 error:
 
     dwError = MapErrorCode(dwError);
-    
+
     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-    
+
     if (dwErrorBufferSize > 0)
     {
         DWORD dwError2 = 0;
         PSTR   pszErrorBuffer = NULL;
-        
+
         dwError2 = LsaAllocateMemory(
                     dwErrorBufferSize,
                     (PVOID*)&pszErrorBuffer);
-        
+
         if (!dwError2)
         {
             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-            
+
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to locate SID.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszErrorBuffer);
     }
-    
+
     if (bPrintOrigError)
     {
         fprintf(stderr, "Failed to locate SID. Error code [%d]\n", dwError);
@@ -246,7 +246,7 @@ ParseArgs(
             PARSE_MODE_OPEN = 0,
             PARSE_MODE_LEVEL
         } ParseMode;
-        
+
     DWORD dwError = 0;
     int iArg = 1;
     PSTR pszArg = NULL;
@@ -260,11 +260,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -280,15 +280,15 @@ ParseArgs(
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
-                
+
             case PARSE_MODE_LEVEL:
-                
+
                 dwInfoLevel = atoi(pszArg);
                 parseMode = PARSE_MODE_OPEN;
-                
+
                 break;
         }
-        
+
     } while (iArg < argc);
 
     if (IsNullOrEmptyString(pszSID)) {
@@ -301,7 +301,7 @@ ParseArgs(
     *pdwInfoLevel = dwInfoLevel;
 
 cleanup:
-    
+
     return dwError;
 
 error:
@@ -341,50 +341,50 @@ LookupUserByName(
                     LsaGetDomainSeparator(),
                     pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaFindUserByName(
                     hLsaConnection,
                     pszUsername,
                     dwInfoLevel,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
-                    
+
     switch(dwInfoLevel)
     {
         case 0:
-            
+
             PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo);
             break;
-            
+
         case 1:
-            
+
             PrintUserInfo_1((PLSA_USER_INFO_1)pUserInfo);
             break;
-            
+
         case 2:
-            
+
             PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo);
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_USER_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
     }
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszUsername);
-    
+
     if (pUserInfo)
     {
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -492,7 +492,7 @@ LookupGroupByName(
     DWORD dwError = 0;
     PSTR  pszGroupname = NULL;
     PVOID pGroupInfo = NULL;
-    
+
     dwError = LsaAllocateStringPrintf(
                     &pszGroupname,
                     "%s%c%s",
@@ -500,7 +500,7 @@ LookupGroupByName(
                     LsaGetDomainSeparator(),
                     pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaFindGroupByName(
                     hLsaConnection,
                     pszGroupname,
@@ -508,38 +508,38 @@ LookupGroupByName(
                     dwInfoLevel,
                     &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     switch(dwInfoLevel)
     {
         case 0:
-            
+
             PrintGroupInfo_0((PLSA_GROUP_INFO_0)pGroupInfo);
             break;
-            
+
         case 1:
-            
+
             PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo);
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_GROUP_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
     }
-    
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszGroupname);
-    
+
     if (pGroupInfo)
     {
         LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
     }
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -574,11 +574,11 @@ PrintGroupInfo_1(
     fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
     fprintf(stdout, "SID:     %s\n",
                         IsNullOrEmptyString(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
-    
+
     fprintf(stdout, "Members:\n");
 
     ppszMembers = pGroupInfo->ppszMembers;
-    
+
     if (ppszMembers){
     while (!IsNullOrEmptyString(*ppszMembers)) {
           if (iMember) {
@@ -599,21 +599,21 @@ MapErrorCode(
     )
 {
     DWORD dwError2 = dwError;
-    
+
     switch (dwError)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
         case ETIMEDOUT:
-            
+
             dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
-            
+
             break;
-            
+
         default:
-            
+
             break;
     }
-    
+
     return dwError2;
 }

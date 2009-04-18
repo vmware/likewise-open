@@ -736,7 +736,7 @@ NTSTATUS __LsaLookupNames3(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
     /* [in] */ uint32 num_names,
-    /* [in] */ UnicodeString *names,
+    /* [in] */ UnicodeStringEx *names,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedSidArray3 *sids,
     /* [in] */ uint16 level,
@@ -745,7 +745,18 @@ NTSTATUS __LsaLookupNames3(
     /* [in] */ uint32 unknown2
 )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = LsaSrvLookupNames3(IDL_handle,
+                                hPolicy,
+                                num_names,
+                                names,
+                                domains,
+                                sids,
+                                level,
+                                count,
+                                unknown1,
+                                unknown2);
     return status;
 }
 

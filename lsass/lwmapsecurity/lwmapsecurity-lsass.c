@@ -76,7 +76,7 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
 #define IS_NOT_FOUND_ERROR(lsaError) ( \
     (LSA_ERROR_NO_SUCH_USER == (lsaError)) || \
     (LSA_ERROR_NO_SUCH_GROUP == (lsaError)) || \
-    (LSA_ERROR_NO_SUCH_USER_OR_GROUP == (lsaError)) || \
+    (LSA_ERROR_NO_SUCH_OBJECT == (lsaError)) || \
     0 )
 
 static
@@ -188,7 +188,7 @@ LsaMapSecurityResolveObjectInfo(
     }
     else
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
     }
 
     if (IS_NOT_FOUND_ERROR(dwError))

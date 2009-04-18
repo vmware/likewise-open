@@ -1922,6 +1922,7 @@ LocalDirAddUser_0(
     PWSTR pwszShell = NULL;
     PSTR  pszShell  = NULL;
     PWSTR pwszHomedir = NULL;
+    PSTR  pszHomedir = NULL;
     PWSTR pwszPassword = NULL;
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
@@ -1966,9 +1967,22 @@ LocalDirAddUser_0(
                     pUserInfo->pszHomedir,
                     &pwszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
-
-        attrValues[LOCAL_DAU0_IDX_HOMEDIR].data.pwszStringValue = pwszHomedir;
     }
+    else
+    {
+        dwError = LocalBuildHomeDirPathFromTemplate(
+                        pUserInfo->pszName,
+                        pLoginInfo->pszDomainNetBiosName,
+                        &pszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszHomedir,
+                        &pwszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    attrValues[LOCAL_DAU0_IDX_HOMEDIR].data.pwszStringValue = pwszHomedir;
 
     if (!IsNullOrEmptyString(pUserInfo->pszShell))
     {
@@ -2032,6 +2046,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszShell);
     LSA_SAFE_FREE_STRING(pszShell);
     LSA_SAFE_FREE_MEMORY(pwszHomedir);
+    LSA_SAFE_FREE_STRING(pszHomedir);
     LSA_SAFE_FREE_MEMORY(pwszPassword);
 
     return dwError;
@@ -2301,7 +2316,7 @@ LocalCreateHomeDirectory(
 {
     DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
-    mode_t  umask = 022;
+    mode_t  umask = LOCAL_CFG_DEFAULT_HOMEDIR_UMASK;
     mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BOOLEAN bRemoveDir = FALSE;
 
@@ -2320,26 +2335,29 @@ LocalCreateHomeDirectory(
 
     if (!bExists)
     {
-       dwError = LsaCreateDirectory(
+        dwError = LocalCfgGetHomedirUmask(&umask);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaCreateDirectory(
                     pUserInfo->pszHomedir,
                     perms & (~umask));
-       BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-       bRemoveDir = TRUE;
+        bRemoveDir = TRUE;
 
-       dwError = LsaChangeOwner(
+        dwError = LsaChangeOwner(
                     pUserInfo->pszHomedir,
                     pUserInfo->uid,
                     pUserInfo->gid);
-       BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-       bRemoveDir = FALSE;
+        bRemoveDir = FALSE;
 
-       dwError = LocalProvisionHomeDir(
+        dwError = LocalProvisionHomeDir(
                        pUserInfo->uid,
                        pUserInfo->gid,
                        pUserInfo->pszHomedir);
-       BAIL_ON_LSA_ERROR(dwError);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -2362,25 +2380,64 @@ LocalProvisionHomeDir(
     PCSTR pszHomedirPath
     )
 {
-    DWORD   dwError = 0;
+    DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
+    PSTR pszSkelPaths = NULL;
+    PSTR pszSkelPath = NULL;
+    PSTR pszIter = NULL;
+    size_t stLen = 0;
 
-    dwError = LsaCheckDirectoryExists(
-                    "/etc/skel",
-                    &bExists);
+    dwError = LocalCfgGetSkeletonDirs(&pszSkelPaths);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (bExists)
+    if (IsNullOrEmptyString(pszSkelPaths))
     {
-        dwError = LsaCopyDirectory(
-                    "/etc/skel",
-                    ownerUid,
-                    ownerGid,
-                    pszHomedirPath);
+        goto cleanup;
+    }
+
+    pszIter = pszSkelPaths;
+    while ((stLen = strcspn(pszIter, ",")) != 0)
+    {
+        dwError = LsaStrndup(
+                      pszIter,
+                      stLen,
+                      &pszSkelPath);
         BAIL_ON_LSA_ERROR(dwError);
+
+        LsaStripWhitespace(pszSkelPath, TRUE, TRUE);
+
+        if (IsNullOrEmptyString(pszSkelPath))
+        {
+            LSA_SAFE_FREE_STRING(pszSkelPath);
+            continue;
+        }
+
+        dwError = LsaCheckDirectoryExists(
+                        pszSkelPath,
+                        &bExists);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (bExists)
+        {
+            dwError = LsaCopyDirectory(
+                        pszSkelPath,
+                        ownerUid,
+                        ownerGid,
+                        pszHomedirPath);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        LSA_SAFE_FREE_STRING(pszSkelPath);
+
+        pszIter += stLen;
+        stLen = strspn(pszIter, ",");
+        pszIter += stLen;
     }
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszSkelPath);
+    LSA_SAFE_FREE_STRING(pszSkelPaths);
 
     return dwError;
 

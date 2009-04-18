@@ -50,6 +50,10 @@
 
 #include "adprovider.h"
 
+typedef struct _LSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT {
+    IN PCSTR pszDnsDomainName;
+} LSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT, *PLSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT;
+
 static
 BOOLEAN
 LsaDmWrappFilterExtraForestDomainsCallback(
@@ -154,6 +158,63 @@ LsaDmWrapEnumInMyForestTrustDomains(
                                 NULL,
                                 pppszDomainNames,
                                 pdwCount);
+}
+
+static
+BOOLEAN
+LsaDmWrappFilterFindDomainCallback(
+    IN OPTIONAL PVOID pContext,
+    IN PLSA_DM_CONST_ENUM_DOMAIN_INFO pDomainInfo
+    )
+{
+    BOOLEAN bWantThis = FALSE;
+    PLSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT pCtx = (PLSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT) pContext;
+
+    // Find a domain info given a specified domain name
+    if (!strcasecmp(pDomainInfo->pszDnsDomainName, pCtx->pszDnsDomainName))
+    {
+        bWantThis = TRUE;
+    }
+
+    return bWantThis;
+}
+
+DWORD
+LsaDmWrapGetDomainEnumInfo(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo
+    )
+{
+    DWORD dwError = 0;
+    LSA_DM_WRAP_ENUM_ONE_DOMAIN_INFO_CALLBACK_CONTEXT context = { 0 };
+    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfoList = NULL;
+
+    context.pszDnsDomainName = pszDnsDomainName;
+
+    dwError = LsaDmEnumDomainInfo(LsaDmWrappFilterFindDomainCallback,
+                               &context,
+                               &ppDomainInfoList,
+                               NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // In case of NOT found, the above function bails out
+    // Double check here again
+    if (!ppDomainInfoList || !ppDomainInfoList[0])
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppDomainInfo = ppDomainInfoList[0];
+    ppDomainInfoList[0] = NULL;
+
+cleanup:
+    LsaDmFreeEnumDomainInfoArray(ppDomainInfoList);
+
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -631,6 +692,10 @@ LsaDmWrapDsGetDcName(
     if (ppszDomainForestDnsName)
     {
         *ppszDomainForestDnsName = context.pszDomainForestDnsName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(context.pszDomainForestDnsName);
     }
 
     return dwError;
