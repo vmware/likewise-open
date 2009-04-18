@@ -615,11 +615,6 @@ cleanup:
 
     if (pPacket)
     {
-        if (pPacket->pRawBuffer)
-        {
-            SMBSocketBufferFree(pSocket, pPacket->pRawBuffer, pPacket->bufferLen);
-        }
-
         SMBSocketPacketFree(pSocket, pPacket);
     }
 
@@ -1249,10 +1244,13 @@ SMBSocketPacketFree(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMBSocketBufferFree(
-                pSocket,
-                pPacket->pRawBuffer,
-                pPacket->bufferLen);
+    if (pPacket->pRawBuffer)
+    {
+        SMBSocketBufferFree(
+            pSocket,
+            pPacket->pRawBuffer,
+            pPacket->bufferLen);
+    }
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 

@@ -64,6 +64,8 @@ typedef struct _LWNET_IPC_DCNAME_REQ
     PCSTR   pszDomainFQDN;
     PCSTR   pszSiteName;
     DWORD   dwFlags;
+    DWORD   dwBlackListCount;
+    PSTR*   ppszAddressBlackList;
 } LWNET_IPC_DCNAME_REQ, *PLWNET_IPC_DCNAME_REQ;
 
 typedef struct _LWNET_IPC_DCTIME_REQ

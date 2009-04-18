@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -228,7 +228,7 @@ NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
         status = NetrAddDepMemory((void*)ptr->domain_name.string, (void*)dep);
         goto_if_ntstatus_not_success(status, error);
     }
-    
+
     status = InitUnicodeString(&ptr->account_name, account);
     goto_if_ntstatus_not_success(status, error);
 
@@ -265,7 +265,7 @@ error:
 }
 
 /*
- * Compatibility wrapper 
+ * Compatibility wrapper
  */
 NTSTATUS NetrAllocateLogonInfo(
     NetrLogonInfo **out, uint16 level,
@@ -326,7 +326,7 @@ NTSTATUS NetrAllocateLogonInfoHash(
         memcpy((void*)pass->ntpassword.data, (void*)nt_hash,
                sizeof(pass->ntpassword.data));
         break;
-        
+
     default:
         status = STATUS_INVALID_LEVEL;
         goto error;
@@ -400,15 +400,15 @@ NTSTATUS NetrAllocateLogonInfoNet(
 
         /* Allocate challenge structures */
         if (lm_resp)
-        {            
+        {
             status = NetrAllocateMemory((void**)&net->lm.data, 24, (void*)net);
             goto_if_ntstatus_not_success(status, error);
 
             net->lm.length = 24;
             net->lm.size   = 24;
-            memcpy(net->lm.data, lm_resp, net->lm.size);    
+            memcpy(net->lm.data, lm_resp, net->lm.size);
         }
-        
+
         /* Always have NT Response */
 
         status = NetrAllocateMemory((void**)&net->nt.data, 24, (void*)net);
@@ -416,9 +416,9 @@ NTSTATUS NetrAllocateLogonInfoNet(
 
         net->nt.length = 24;
         net->nt.size   = 24;
-        memcpy(net->nt.data, nt_resp, net->nt.size);    
+        memcpy(net->nt.data, nt_resp, net->nt.size);
 
-        break;        
+        break;
 
     default:
         status = STATUS_INVALID_LEVEL;
@@ -554,11 +554,11 @@ static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
 
     if (in->domain_sid) {
         SidCopyAlloc(&ptr->domain_sid, in->domain_sid);
-        goto_if_no_memory_ntstatus(ptr->domain_sid, error); 
+        goto_if_no_memory_ntstatus(ptr->domain_sid, error);
 
         status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
         goto_if_ntstatus_not_success(status, error);
-       
+
     } else {
         ptr->domain_sid = NULL;
     }
@@ -745,6 +745,243 @@ error:
     goto cleanup;
 }
 
+
+static
+NTSTATUS
+NetrCopyDomainTrustInfo(
+    NetrDomainTrustInfo *out,
+    NetrDomainTrustInfo *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+    goto_if_invalid_param_ntstatus(in, cleanup);
+
+    status = CopyUnicodeString(&out->domain_name, &in->domain_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->domain_name.string) {
+        status = NetrAddDepMemory((void*)out->domain_name.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeString(&out->full_domain_name,
+                               &in->full_domain_name);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->full_domain_name.string) {
+        status = NetrAddDepMemory((void*)out->full_domain_name.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    status = CopyUnicodeString(&out->forest, &in->forest);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (out->forest.string) {
+        status = NetrAddDepMemory((void*)out->forest.string,
+                                  (void*)dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    memcpy(&out->guid, &in->guid, sizeof(out->guid));
+
+    if (in->sid) {
+        SidCopyAlloc(&out->sid, in->sid);
+        goto_if_no_memory_ntstatus(out->sid, error);
+
+        status = NetrAddDepMemory((void*)out->sid, dep);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+cleanup:
+    return status;
+
+error:
+    memset(out, 0, sizeof(*out));
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrAllocateDomainInfo1(
+    NetrDomainInfo1 **out,
+    NetrDomainInfo1 *in,
+    void *dep
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrDomainInfo1 *ptr = NULL;
+    int i = 0;
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo1), dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    status = NetrCopyDomainTrustInfo(&ptr->domain_info, &in->domain_info,
+                                     dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    ptr->num_trusts = in->num_trusts;
+
+    status = NetrAllocateMemory((void**)&ptr->trusts,
+                                sizeof(NetrDomainTrustInfo) * ptr->num_trusts,
+                                dep);
+    goto_if_ntstatus_not_success(status, error);
+
+    for (i = 0; i < ptr->num_trusts; i++) {
+        status = NetrCopyDomainTrustInfo(&ptr->trusts[i], &in->trusts[i],
+                                         ptr->trusts);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory(ptr);
+    }
+
+    goto error;
+}
+
+
+NTSTATUS
+NetrAllocateDomainInfo(
+    NetrDomainInfo **out,
+    NetrDomainInfo *in,
+    uint32 level
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    NetrDomainInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    switch (level) {
+    case 1:
+        status = NetrAllocateDomainInfo1(&ptr->info1, in->info1, (void*)ptr);
+        break;
+
+    case 2:
+        status = NetrAllocateDomainInfo1(&ptr->info2, in->info2, (void*)ptr);
+        break;
+
+    default:
+        status = STATUS_INVALID_LEVEL;
+    }
+    goto_if_ntstatus_not_success(status, error);
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+NetrAllocateDcNameInfo(
+    DsrDcNameInfo **out,
+    DsrDcNameInfo *in
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DsrDcNameInfo *ptr = NULL;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    status = NetrAllocateMemory((void**)&ptr, sizeof(DsrDcNameInfo), NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in == NULL) goto cleanup;
+
+    if (in->dc_name) {
+        ptr->dc_name = wc16sdup(in->dc_name);
+        goto_if_no_memory_ntstatus(ptr->dc_name, error);
+
+        status = NetrAddDepMemory(ptr->dc_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->dc_address) {
+        ptr->dc_address = wc16sdup(in->dc_address);
+        goto_if_no_memory_ntstatus(ptr->dc_address, error);
+
+        status = NetrAddDepMemory(ptr->dc_address, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    ptr->address_type = in->address_type;
+
+    ptr->flags = in->flags;
+
+    memcpy(&ptr->domain_guid, &in->domain_guid, sizeof(ptr->domain_guid));
+
+    if (in->domain_name) {
+        ptr->domain_name = wc16sdup(in->domain_name);
+        goto_if_no_memory_ntstatus(ptr->domain_name, error);
+
+        status = NetrAddDepMemory(ptr->domain_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->forest_name) {
+        ptr->forest_name = wc16sdup(in->forest_name);
+        goto_if_no_memory_ntstatus(ptr->forest_name, error);
+
+        status = NetrAddDepMemory(ptr->forest_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->dc_site_name) {
+        ptr->dc_site_name = wc16sdup(in->dc_site_name);
+        goto_if_no_memory_ntstatus(ptr->dc_site_name, error);
+
+        status = NetrAddDepMemory(ptr->dc_site_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    if (in->cli_site_name) {
+        ptr->cli_site_name = wc16sdup(in->cli_site_name);
+        goto_if_no_memory_ntstatus(ptr->cli_site_name, error);
+
+        status = NetrAddDepMemory(ptr->cli_site_name, ptr);
+        goto_if_ntstatus_not_success(status, error);
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        NetrFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+    goto cleanup;
+}
 
 
 /*

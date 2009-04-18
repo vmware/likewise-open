@@ -408,11 +408,6 @@ AD_GetCachedPasswordHash(
     );
 
 DWORD
-AD_CanonicalizeDomainsInCrackedNameInfo(
-    IN OUT PLSA_LOGIN_NAME_INFO pNameInfo
-    );
-
-DWORD
 AD_UpdateUserObjectFlags(
     IN OUT PLSA_SECURITY_OBJECT pUser
     );

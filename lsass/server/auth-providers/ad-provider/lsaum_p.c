@@ -834,7 +834,7 @@ LsaUmpEncryptString(
 
     memset(&iv ,0 ,sizeof(iv));
 
-    // add 1 for NULL and 8 for some random data, 
+    // add 1 for NULL and 8 for some random data,
     // then round up to nearest multiple of 9
     dwStringLen = strlen(pszString);
     dwEncryptLen = dwStringLen + 9;
@@ -870,7 +870,7 @@ LsaUmpEncryptString(
         &pKSchedules->kSchedule[1],
         &pKSchedules->kSchedule[2],
         &iv,
-        DES_ENCRYPT); 
+        DES_ENCRYPT);
 
     *ppEncString = pEncString;
     *pdwStringLen = dwEncryptLen;
@@ -930,7 +930,7 @@ LsaUmpDecryptString(
         &pKSchedules->kSchedule[1],
         &pKSchedules->kSchedule[2],
         &iv,
-        DES_DECRYPT); 
+        DES_DECRYPT);
 
     // remove the random prefix
     dwError = LsaAllocateString(
@@ -1509,10 +1509,11 @@ LsaUmpRefreshUserCreds(
     {
         BOOLEAN bIsGeneratedUpn = FALSE;
 
-        dwError = LsaDmWrapGetDomainName(
-                      pUserInfo->pszNetbiosDomainName,
-                      &pszUserDnsDomainName,
-                      NULL);
+        dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+                         pUserInfo->pszObjectSid,
+                         &pszUserDnsDomainName,
+                         NULL,
+                         NULL);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = ADGetLDAPUPNString(

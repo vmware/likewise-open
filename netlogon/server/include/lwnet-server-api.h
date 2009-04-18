@@ -79,6 +79,8 @@ LWNetSrvGetDCName(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
+    IN DWORD dwBlackListCount,
+    IN PSTR* ppszAddressBlackList,
     OUT PLWNET_DC_INFO* ppDcInfo
     );
 

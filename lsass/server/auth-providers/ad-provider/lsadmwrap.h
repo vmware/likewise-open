@@ -136,6 +136,15 @@ LsaDmWrapDsEnumerateDomainTrusts(
     );
 
 DWORD
+LsaDmWrapDsGetDcName(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszFindDomainName,
+    IN BOOLEAN bReturnDnsName,
+    OUT PSTR* ppszDomainDnsOrFlatName,
+    OUT OPTIONAL PSTR* ppszDomainForestDnsName
+    );
+
+DWORD
 LsaDmWrapAuthenticateUserEx(
     IN PCSTR pszDnsDomainName,
     IN PLSA_AUTH_USER_PARAMS pUserParams,

@@ -90,16 +90,26 @@ interface netlogon
 		[in,out,ref] uint32 *negotiate_flags
 		);
 
-	NTSTATUS netr_Function10();
-	NTSTATUS netr_Function11();
-	NTSTATUS netr_Function12();
-	NTSTATUS netr_Function13();
-	NTSTATUS netr_Function14();
-	NTSTATUS netr_Function15();
-	NTSTATUS netr_Function16();
-	NTSTATUS netr_Function17();
-	NTSTATUS netr_Function18();
-	NTSTATUS netr_Function19();
+    NTSTATUS netr_Function10();
+    NTSTATUS netr_Function11();
+    NTSTATUS netr_Function12();
+    NTSTATUS netr_Function13();
+
+    /* function 0x14 */
+    NTSTATUS _DsrGetDcName(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *domain_name,
+        [in,unique] Guid *domain_guid,
+        [in,unique] Guid *site_guid,
+        [in] uint32 get_dc_flags,
+        [out,ref] DsrDcNameInfo **info
+        );
+
+    NTSTATUS netr_Function15();
+    NTSTATUS netr_Function16();
+    NTSTATUS netr_Function17();
+    NTSTATUS netr_Function18();
+    NTSTATUS netr_Function19();
 
 	/* function 0x1a */
 	NTSTATUS _NetrServerAuthenticate3(

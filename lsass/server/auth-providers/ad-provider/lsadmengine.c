@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -210,14 +210,14 @@ LsaDmEnginepDiscoverTrustsForDomain(
         NetrDomainTrust* pCurrentTrust = &pTrusts[dwTrustIndex];
         PCSTR pszCurrentTrustForestRootName = NULL;
         LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
-        LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;        
+        LSA_TRUST_MODE dwTrustMode = LSA_TRUST_MODE_UNKNOWN;
 
         // Ignore DOWNLEVEL trusts.
         // These are trusts with domains that are earlier than WIN2K
         if (pCurrentTrust->trust_type == NETR_TRUST_TYPE_DOWNLEVEL)
         {
             LSA_SAFE_FREE_STRING(pszNetbiosName);
-            
+
             if (pCurrentTrust->netbios_name)
             {
                 dwError = LsaWc16sToMbs(
@@ -225,17 +225,17 @@ LsaDmEnginepDiscoverTrustsForDomain(
                                 &pszNetbiosName);
                 BAIL_ON_LSA_ERROR(dwError);
             }
-            
+
             LSA_LOG_WARNING("Ignoring down level trust to domain '%s'",
                             LSA_SAFE_LOG_STRING(pszNetbiosName));
-            
+
             continue;
         }
 
         // if we do not want forest root links, we are enumerating a
         // forest transitive trust, in which case we just want in-forest
         // trusts.
-        if (!ppTrustedForestRootList && 
+        if (!ppTrustedForestRootList &&
             !(pCurrentTrust->trust_flags & NETR_TRUST_FLAG_IN_FOREST))
         {
             continue;
@@ -261,17 +261,17 @@ LsaDmEnginepDiscoverTrustsForDomain(
         }
 
         LSA_SAFE_FREE_MEMORY(pszDnsDomainName);
-        
+
         if (pCurrentTrust->dns_name)
         {
             dwError = LsaWc16sToMbs(pCurrentTrust->dns_name, &pszDnsDomainName);
             BAIL_ON_LSA_ERROR(dwError);
         }
-        
+
         if (IsNullOrEmptyString(pszDnsDomainName))
         {
             LSA_SAFE_FREE_STRING(pszNetbiosName);
-            
+
             if (pCurrentTrust->netbios_name)
             {
                 dwError = LsaWc16sToMbs(
@@ -279,13 +279,13 @@ LsaDmEnginepDiscoverTrustsForDomain(
                                 &pszNetbiosName);
                 BAIL_ON_LSA_ERROR(dwError);
             }
-            
+
             LSA_LOG_WARNING("Skipping trust with an invalid DNS domain name (Netbios name is '%s')",
                             LSA_SAFE_LOG_STRING(pszNetbiosName));
-            
+
             continue;
         }
-        
+
         // skip back-link.
         if (pszParentTrusteeDomainName &&
             !strcasecmp(pszDnsDomainName, pszParentTrusteeDomainName))
@@ -300,7 +300,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
             if (ppTrustedForestRootList)
             {
                 dwTrustMode = LSA_TRUST_MODE_MY_FOREST;
-               
+
             }
             else
             {
@@ -322,11 +322,11 @@ LsaDmEnginepDiscoverTrustsForDomain(
             pszCurrentTrustForestRootName = NULL;
             dwTrustMode = LSA_TRUST_MODE_EXTERNAL;
         }
-        
+
         //Determine trust direction
         if (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_IN_FOREST)
-        {           
-            dwTrustDirection = LSA_TRUST_DIRECTION_TWO_WAY;            
+        {
+            dwTrustDirection = LSA_TRUST_DIRECTION_TWO_WAY;
         }
         else if ((pCurrentTrust->trust_flags & NETR_TRUST_FLAG_OUTBOUND) &&
                 (pCurrentTrust->trust_flags & NETR_TRUST_FLAG_INBOUND))
@@ -345,7 +345,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
         }
         else
         {
-           dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN; 
+           dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
            LSA_LOG_WARNING("Trust direction cannot be determined.");
         }
 
@@ -381,7 +381,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
             dwTrustedForestRootListCount++;
         }
     }
-    
+
     if (!dwTrustedForestRootListCount)
     {
         // Return NULL rather than an empty list
@@ -405,7 +405,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
     LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
     goto cleanup;
@@ -483,7 +483,7 @@ cleanup:
     LSA_SAFE_FREE_STRING_ARRAY(pTrustedForestRootList);
 
     return dwError;
-    
+
 error:
     goto cleanup;
 }
@@ -517,8 +517,315 @@ cleanup:
     LWNET_SAFE_FREE_DC_INFO(pDcInfo);
 
     return dwError;
-    
+
 error:
     goto cleanup;
 }
 
+DWORD
+LsaDmEngineGetDomainInfoWithNT4Name(
+    IN PCSTR pszDomainName,
+    IN PCSTR pszObjectName,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetBiosDomainName
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszNetBiosName = NULL;
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszNetbiosDomainName = NULL;
+    PSTR pszSid = NULL;
+    PLSA_SECURITY_IDENTIFIER pObjectSID = NULL;
+    PLSA_SECURITY_IDENTIFIER pDomainSID = NULL;
+    PSTR pszDomainSID = NULL;
+    PSTR pszDomainDnsNameFromDsGetDcName = NULL;
+    PSTR pszDomainForestNameFromDsGetDcName = NULL;
+    NetrDomainTrust TrustInfo = {0};
+
+    dwError = LsaDmWrapGetDomainName(pszDomainName,
+                                     &pszDnsDomainName,
+                                     &pszNetbiosDomainName);
+    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    {
+        dwError = LsaDmWrapNetLookupObjectSidByName(
+                     gpADProviderData->szDomain,
+                     pszObjectName,
+                     &pszSid,
+                     NULL);
+        if (!dwError && !IsNullOrEmptyString(pszSid))
+        {
+            //Add this newly discovered domain to trusted domain list
+            dwError = LsaDmWrapDsGetDcName(
+                                    gpADProviderData->szDomain,
+                                    pszDomainName,
+                                    TRUE,
+                                    &pszDomainDnsNameFromDsGetDcName,
+                                    &pszDomainForestNameFromDsGetDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszDomainDnsNameFromDsGetDcName,
+                                    &TrustInfo.dns_name);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaDmWrapDsGetDcName(
+                                    gpADProviderData->szDomain,
+                                    pszDomainName,
+                                    FALSE,
+                                    &pszNetBiosName,
+                                    NULL);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszNetBiosName,
+                                    &TrustInfo.netbios_name);
+             BAIL_ON_LSA_ERROR(dwError);
+
+            // Obtain domain's pSID
+            dwError = LsaAllocSecurityIdentifierFromString(
+                              pszSid,
+                              &pObjectSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaGetDomainSecurityIdentifier(
+                              pObjectSID,
+                              &pDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaGetSecurityIdentifierString(
+                              pDomainSID,
+                              &pszDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = ParseSidString(
+                              &TrustInfo.sid,
+                              pszDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaDmEnginepAddTrust(
+                            gpADProviderData->szDomain,
+                            &TrustInfo,
+                            LSA_TRUST_DIRECTION_ONE_WAY,
+                            LSA_TRUST_MODE_OTHER_FOREST,
+                            pszDomainForestNameFromDsGetDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+            LSA_SAFE_FREE_STRING(pszDnsDomainName);
+            LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+
+            dwError = LsaDmWrapGetDomainName(pszDomainName,
+                                             &pszDnsDomainName,
+                                             &pszNetbiosDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszSid);
+    LSA_SAFE_FREE_STRING(pszDomainSID);
+    LSA_SAFE_FREE_STRING(pszDomainDnsNameFromDsGetDcName);
+    LSA_SAFE_FREE_STRING(pszDomainForestNameFromDsGetDcName);
+    if (pObjectSID)
+    {
+        LsaFreeSecurityIdentifier(pObjectSID);
+    }
+    if (pDomainSID)
+    {
+        LsaFreeSecurityIdentifier(pDomainSID);
+    }
+    NetrFreeMemory(&TrustInfo);
+
+    if (ppszDnsDomainName)
+    {
+        *ppszDnsDomainName = pszDnsDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
+    if (ppszNetBiosDomainName)
+    {
+        *ppszNetBiosDomainName = pszNetbiosDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    }
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+
+    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LsaDmEngineGetDomainInfoWithObjectSid(
+    IN PCSTR pszObjectSid,
+    OUT OPTIONAL PSTR* ppszDnsDomainName,
+    OUT OPTIONAL PSTR* ppszNetBiosDomainName,
+    OUT OPTIONAL PSTR* ppszDomainSid
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszNetbiosDomainName = NULL;
+    PSTR pszDomainSid = NULL;
+    PSTR pszName = NULL;
+    PLSA_SECURITY_IDENTIFIER pObjectSID = NULL;
+    PLSA_SECURITY_IDENTIFIER pDomainSID = NULL;
+    PSTR pszDomainSID = NULL;
+    NetrDomainTrust TrustInfo = {0};
+    PSTR pszDomainDnsNameFromDsGetDcName = NULL;
+    PSTR pszDomainForestNameFromDsGetDcName = NULL;
+
+    dwError = LsaDmWrapGetDomainNameAndSidByObjectSid(
+                    pszObjectSid,
+                    &pszDnsDomainName,
+                    &pszNetbiosDomainName,
+                    &pszDomainSid);
+
+    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    {
+        dwError = LsaDmWrapNetLookupNameByObjectSid(
+                     gpADProviderData->szDomain,
+                     pszObjectSid,
+                     &pszName,
+                     NULL);
+        if (!dwError && !IsNullOrEmptyString(pszName))
+        {
+            //Add this newly discovered domain to trusted domain list
+
+            //Call DsGetDcName to have detail domain information
+
+            dwError = LsaAdBatchGetDomainFromNT4Name(&pszNetbiosDomainName,
+                                                     pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszNetbiosDomainName,
+                                    &TrustInfo.netbios_name);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaDmWrapDsGetDcName(
+                                    gpADProviderData->szDomain,
+                                    pszNetbiosDomainName,
+                                    TRUE,
+                                    &pszDomainDnsNameFromDsGetDcName,
+                                    &pszDomainForestNameFromDsGetDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszDomainDnsNameFromDsGetDcName,
+                                    &TrustInfo.dns_name);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            // Obtain domain's pSID
+            dwError = LsaAllocSecurityIdentifierFromString(
+                              pszObjectSid,
+                              &pObjectSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaGetDomainSecurityIdentifier(
+                              pObjectSID,
+                              &pDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaGetSecurityIdentifierString(
+                              pDomainSID,
+                              &pszDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = ParseSidString(
+                              &TrustInfo.sid,
+                              pszDomainSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaDmEnginepAddTrust(
+                            gpADProviderData->szDomain,
+                            &TrustInfo,
+                            LSA_TRUST_DIRECTION_ONE_WAY,
+                            LSA_TRUST_MODE_OTHER_FOREST,
+                            pszDomainForestNameFromDsGetDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LSA_SAFE_FREE_STRING(pszDnsDomainName);
+            LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+            LSA_SAFE_FREE_STRING(pszDomainSid);
+
+
+            dwError = LsaDmWrapGetDomainNameAndSidByObjectSid(
+                            pszObjectSid,
+                            &pszDnsDomainName,
+                            &pszNetbiosDomainName,
+                            &pszDomainSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszName);
+    LSA_SAFE_FREE_STRING(pszDomainSID);
+    LSA_SAFE_FREE_STRING(pszDomainDnsNameFromDsGetDcName);
+    LSA_SAFE_FREE_STRING(pszDomainForestNameFromDsGetDcName);
+    if (pObjectSID)
+    {
+        LsaFreeSecurityIdentifier(pObjectSID);
+    }
+    if (pDomainSID)
+    {
+        LsaFreeSecurityIdentifier(pDomainSID);
+    }
+    NetrFreeMemory(&TrustInfo);
+
+    if (ppszDnsDomainName)
+    {
+        *ppszDnsDomainName = pszDnsDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
+    if (ppszNetBiosDomainName)
+    {
+        *ppszNetBiosDomainName = pszNetbiosDomainName;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    }
+    if (ppszDomainSid)
+    {
+        *ppszDomainSid = pszDomainSid;
+    }
+    else
+    {
+        LSA_SAFE_FREE_STRING(pszDomainSid);
+    }
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    LSA_SAFE_FREE_STRING(pszDomainSid);
+
+    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+    }
+
+    goto cleanup;
+}

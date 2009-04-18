@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD info cache Db Provider User/Group Database Create String
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -49,7 +49,7 @@
 
 #define LSA_DB_TABLE_NAME_CACHE_TAGS       "lwicachetags"
 #define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects2"
-#define LSA_DB_TABLE_NAME_USERS            "lwiusers2"
+#define LSA_DB_TABLE_NAME_USERS            "lwiusers3"
 #define LSA_DB_TABLE_NAME_VERIFIERS        "lwipasswordverifiers"
 #define LSA_DB_TABLE_NAME_GROUPS           "lwigroups2"
 #define LSA_DB_TABLE_NAME_MEMBERSHIP       "lwigroupmembership2"
@@ -88,6 +88,9 @@
     "    );\n" \
     _LSA_DB_SQL_CREATE_INDEX(LSA_DB_TABLE_NAME_OBJECTS, "CacheId") \
     "\n" \
+    _LSA_DB_SQL_DROP_INDEX("lwiusers2", "UPN") \
+    _LSA_DB_SQL_DROP_TABLE("lwiusers2") \
+    "\n" \
     _LSA_DB_SQL_CREATE_TABLE(LSA_DB_TABLE_NAME_USERS) "(\n" \
     "    ObjectSid text PRIMARY KEY,\n" \
     "    Uid integer,\n" \
@@ -100,6 +103,7 @@
     "    Homedir text,\n" \
     "    PwdLastSet integer,\n" \
     "    GeneratedUPN integer,\n" \
+    "    InOneWayTrustedDomain integer,\n" \
     "    AccountExpires integer,\n" \
     "    PasswordExpired integer,\n" \
     "    PasswordNeverExpires integer,\n" \

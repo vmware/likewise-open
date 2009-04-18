@@ -117,6 +117,13 @@ NetrAllocateValidationInfo(
     );
 
 
+NTSTATUS
+NetrAllocateDcNameInfo(
+    DsrDcNameInfo **out,
+    DsrDcNameInfo *in
+    );
+
+
 #endif /* _NETR_MEMORY_H_ */
 
 

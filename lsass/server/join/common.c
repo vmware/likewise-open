@@ -48,22 +48,18 @@
 #include "includes.h"
 
 DWORD
-LsaSetSMBAccessToken(
+LsaSetSMBAccessTokenWithFlags(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
     )
 {
     DWORD dwError = 0;
-    krb5_error_code ret = 0;
-    PCSTR pszNewCachePath = NULL;
-    krb5_context ctx = 0;
-    krb5_ccache cc = 0;
-    HANDLE hAccessToken = 0;
+    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
 
-    BAIL_ON_INVALID_POINTER(pFreeInfo);
+    BAIL_ON_INVALID_POINTER(ppFreeInfo);
     BAIL_ON_INVALID_STRING(pszDomain);
     BAIL_ON_INVALID_STRING(pszUsername);
 
@@ -73,109 +69,20 @@ LsaSetSMBAccessToken(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    ret = krb5_init_context(&ctx);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    /* Generates a new filed based credentials cache in /tmp. The file will
-     * be owned by root and only accessible by root.
-     */
-    ret = krb5_cc_new_unique(
-            ctx, 
-            "FILE",
-            "hint",
-            &cc);
-    BAIL_ON_KRB_ERROR(ctx, ret);
-
-    pszNewCachePath = krb5_cc_get_name(ctx, cc);
-    
-    dwError = LsaKrb5SetDefaultCachePath(
-              pszNewCachePath,
-              NULL);
+    dwError = LsaSetSMBAccessToken(
+                    pszDomain,
+                    pszUsername,
+                    pszPassword,
+                    TRUE,
+                    &pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaKrb5GetTgt(
-		pszUsername,
-		pszPassword,
-		pszNewCachePath,
-                NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-    
-    dwError = SMBCreateKrb5AccessTokenA(
-        pszUsername,
-        pszNewCachePath,
-        &hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
-        
-    dwError = SMBSetThreadToken(hAccessToken);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pFreeInfo->ctx = ctx;
-    pFreeInfo->cc = cc;
-    pFreeInfo->hAccessToken = hAccessToken;
 
 cleanup:
+    *ppFreeInfo = pFreeInfo;
 
     return dwError;
 
 error:
-
-    if (hAccessToken != NULL)
-    {
-        SMBCloseHandle(NULL, hAccessToken);
-    }
-
-    if (ctx != NULL)
-    {
-        if (cc != NULL)
-        {
-            krb5_cc_destroy(ctx, cc);
-        }
-        krb5_free_context(ctx);
-    }
-
-    memset(pFreeInfo, 0, sizeof(*pFreeInfo));
+    LsaFreeSMBAccessToken(&pFreeInfo);
     goto cleanup;
-}
-
-void
-LsaFreeSMBAccessTokenContents(
-    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
-    )
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    HANDLE hThreadToken = NULL;
-    BOOL bClearThreadToken = FALSE;
-
-    if (pFreeInfo->hAccessToken != NULL)
-    {
-        dwError = SMBGetThreadToken(&hThreadToken);
-
-        if (dwError == LSA_ERROR_SUCCESS)
-        {
-            SMBCompareHandles(
-                hThreadToken,
-                &pFreeInfo->hAccessToken,
-                &bClearThreadToken);
-
-            SMBCloseHandle(NULL, hThreadToken);
-        }
-
-        if (bClearThreadToken)
-        {
-            SMBSetThreadToken(NULL);
-        }
-
-        SMBCloseHandle(NULL, pFreeInfo->hAccessToken);
-    }
-
-    if (pFreeInfo->ctx != NULL)
-    {
-        if (pFreeInfo->cc != NULL)
-        {
-            krb5_cc_destroy(pFreeInfo->ctx, pFreeInfo->cc);
-        }
-        krb5_free_context(pFreeInfo->ctx);
-    }
-
-    memset(pFreeInfo, 0, sizeof(*pFreeInfo));
 }

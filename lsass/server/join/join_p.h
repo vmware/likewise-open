@@ -62,25 +62,13 @@ typedef struct __LSA_MACHINE_ACCT_INFO
 
 } LSA_MACHINE_ACCT_INFO, *PLSA_MACHINE_ACCT_INFO;
 
-typedef struct __LSA_ACCESS_TOKEN_FREE_INFO
-{
-    krb5_context ctx;
-    krb5_ccache cc;
-    HANDLE hAccessToken;
-} LSA_ACCESS_TOKEN_FREE_INFO, *PLSA_ACCESS_TOKEN_FREE_INFO;
-
 DWORD
-LsaSetSMBAccessToken(
+LsaSetSMBAccessTokenWithFlags(
     IN PCSTR pszDomain,
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
-    );
-
-void
-LsaFreeSMBAccessTokenContents(
-    IN OUT PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
     );
 
 DWORD
