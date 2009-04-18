@@ -951,7 +951,11 @@ LsaAdBatchBuildQueryForReal(
     }
     else
     {
+#if 0
         pszPrefix = "(&(|(objectClass=user)(objectClass=group))(!(objectClass=computer))";
+#else
+        pszPrefix = "(&(|(objectClass=user)(objectClass=group))";
+#endif
     }
 
     context.QueryType = QueryType;
