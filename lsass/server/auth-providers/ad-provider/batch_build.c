@@ -951,7 +951,16 @@ LsaAdBatchBuildQueryForReal(
     }
     else
     {
+#if 0
         pszPrefix = "(&(|(objectClass=user)(objectClass=group))(!(objectClass=computer))";
+#else
+	/* Enable machine accounts in the unprovisioned provider.
+	   This is needed for the srv driver in lwio.  Clients frequently
+	   connect using their machine account credentials for dfs referrals,
+	   querying server capabilities, etc....  -- gcarter@likewise.com */
+
+        pszPrefix = "(&(|(objectClass=user)(objectClass=group))";
+#endif
     }
 
     context.QueryType = QueryType;
