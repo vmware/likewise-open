@@ -979,7 +979,7 @@ static long ProcessDirNodeAuth(sDoDirNodeAuth* pDoDirNodeAuth)
             break;
 
         case LSA_ERROR_QUERY_CREATION_FAILED:
-        case LSA_ERROR_NO_SUCH_USER_OR_GROUP:
+        case LSA_ERROR_NO_SUCH_OBJECT:
         case LSA_ERROR_DUPLICATE_USER_OR_GROUP:
         case LSA_ERROR_INVALID_KRB5_CACHE_TYPE:
         case LSA_ERROR_NOT_JOINED_TO_AD:
