@@ -302,7 +302,9 @@ void DoJoin(int argc, char **argv, int columns, LWException **exc)
         else if(!strcmp(argv[0], "--preview"))
             preview = TRUE;
         else if(!strcmp(argv[0], "--ignore-firewall-ntp"))
-            options.ignoreFirewallNtp = TRUE;
+        {
+            printf("Warning: --ignore-firewall-ntp is deprecated. This behavior is now default.\n");
+        }
         else if(!strcmp(argv[0], "--ignore-pam"))
             options.ignorePam = TRUE;
         else if(!strcmp(argv[0], "--notimesync"))

@@ -76,7 +76,6 @@ struct _JoinProcessOptions
     BOOLEAN joiningDomain;
     BOOLEAN showTraces;
     BOOLEAN disableTimeSync;
-    BOOLEAN ignoreFirewallNtp;
     BOOLEAN ignorePam;
     WarningFunction warningCallback;
     /* Contains modules that are enabled and disabled by the user, but does
