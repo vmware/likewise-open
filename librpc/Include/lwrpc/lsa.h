@@ -39,7 +39,6 @@
 
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/lsadefs.h>
-#include <lwrpc/lsabinding.h>
 
 
 NTSTATUS
@@ -62,6 +61,19 @@ LsaLookupNames(
     TranslatedSid **sids,
     uint16          level,
     uint32         *count
+    );
+
+
+NTSTATUS
+LsaLookupNames3(
+    handle_t b,
+    PolicyHandle *handle,
+    uint32 num_names,
+    wchar16_t *names[],
+    RefDomainList **domains,
+    TranslatedSid3** sids,
+    uint16 level,
+    uint32 *count
     );
 
 
