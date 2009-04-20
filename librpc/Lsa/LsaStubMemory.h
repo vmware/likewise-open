@@ -49,6 +49,11 @@ LsaCleanStubTranslatedSidArray2(
     );
 
 void
+LsaCleanStubTranslatedSidArray3(
+    TranslatedSidArray3 *r
+    );
+
+void
 LsaCleanStubTranslatedNameArray(
     TranslatedNameArray *r
     );

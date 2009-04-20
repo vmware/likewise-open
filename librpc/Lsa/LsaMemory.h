@@ -73,6 +73,12 @@ LsaAllocateTranslatedSids2(
     TranslatedSidArray2 *in
     );
 
+NTSTATUS
+LsaAllocateTranslatedSids3(
+    TranslatedSid3 **out,
+    TranslatedSidArray3 *in
+    );
+
 void
 LsaFreeTranslatedSid(
     TranslatedSid *ptr
