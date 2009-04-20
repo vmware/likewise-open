@@ -670,6 +670,7 @@ SamDbAddBuiltinAccounts(
     struct builtin_account {
         PCSTR               pszName;
         PCSTR               pszSID;
+        DWORD               dwGID;
         PCSTR               pszDescription;
         PCSTR               pszDomainName;
         SAMDB_ACB           flags;
@@ -678,6 +679,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Administrators",
             .pszSID         = "S-1-5-32-544",
+            .dwGID          = 544,
             .pszDescription = "Administrators have complete and unrestricted "
                               "access to the computer/domain",
             .pszDomainName  = "BUILTIN",
@@ -687,6 +689,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Users",
             .pszSID         = "S-1-5-32-545",
+            .dwGID          = 545,
             .pszDescription = "Users are prevented from making accidental "
                               "or intentional system-wide changes. Thus, "
                               "users can run certified applications, but not "
@@ -698,6 +701,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Guests",
             .pszSID         = "S-1-5-32-546",
+            .dwGID          = 546,
             .pszDescription = "Guests have the same access as members of the "
                               "Users group by default, except for the Guest "
                               "account which is further restricted",
@@ -708,13 +712,14 @@ SamDbAddBuiltinAccounts(
     };
 
     DWORD dwError = 0;
-    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameObjectClass[]    = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[]      = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameGID[]            = SAM_DB_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    wchar16_t wszAttrNameDomainName[] = SAM_DB_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
-    wchar16_t wszAttrAccountFlags[] = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    wchar16_t wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameDomainName[]     = SAM_DB_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameDescription[]    = SAM_DB_DIR_ATTR_DESCRIPTION;
+    wchar16_t wszAttrAccountFlags[]       = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
     PCSTR     pszName = NULL;
     PCSTR     pszSID = NULL;
     PCSTR     pszDescription = NULL;
@@ -727,13 +732,15 @@ SamDbAddBuiltinAccounts(
     PWSTR     pwszSID = NULL;
     PWSTR     pwszDescription = NULL;
     PWSTR     pwszDomainName = NULL;
+    DWORD     dwGID = 0;
     ATTRIBUTE_VALUE avGroupName = {0};
     ATTRIBUTE_VALUE avSID = {0};
+    ATTRIBUTE_VALUE avGID = {0};
     ATTRIBUTE_VALUE avObjectClass = {0};
     ATTRIBUTE_VALUE avDomainName = {0};
     ATTRIBUTE_VALUE avDescription = {0};
     ATTRIBUTE_VALUE avAccountFlags = {0};
-    DIRECTORY_MOD mods[8];
+    DIRECTORY_MOD mods[9];
     ULONG     iMod = 0;
     DWORD     i = 0;
 
@@ -741,6 +748,7 @@ SamDbAddBuiltinAccounts(
 
         pszName        = BuiltinAccounts[i].pszName;
         pszSID         = BuiltinAccounts[i].pszSID;
+        dwGID          = BuiltinAccounts[i].dwGID;
         pszDescription = BuiltinAccounts[i].pszDescription;
         pszDomainName  = BuiltinAccounts[i].pszDomainName;
         AccountFlags   = BuiltinAccounts[i].flags;
@@ -787,6 +795,13 @@ SamDbAddBuiltinAccounts(
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
         avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avGID.data.ulValue = dwGID;
+        mods[iMod].pAttrValues = &avGID;
 
         mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
