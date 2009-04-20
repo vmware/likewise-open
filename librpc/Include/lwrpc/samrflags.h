@@ -73,12 +73,6 @@
 #define ALIAS_ACCESS_SET_INFO                  0x00000010
 
 
-/* client version for SamrConnect[45] */
-#define SAMR_CONNECT_PRE_WIN2K                 (1)
-#define SAMR_CONNECT_WIN2K                     (2)
-#define SAMR_CONNECT_POST_WIN2K                (3)
-
-
 #endif /* _SAMRFLAGS_H_ */
 
 
