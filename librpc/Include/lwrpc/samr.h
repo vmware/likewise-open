@@ -43,6 +43,7 @@
 #include <lwrpc/samrbinding.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samrflags.h>
+#include <lwrpc/samrconn.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/domaininfo.h>
@@ -71,6 +72,18 @@ SamrConnect4(
     const wchar16_t *sysname,
     uint32 client_version,
     uint32 access_mask,
+    PolicyHandle *conn_handle
+    );
+
+NTSTATUS
+SamrConnect5(
+    handle_t bind,
+    const wchar16_t *sysname,
+    uint32 access_mask,
+    uint32 level_in,
+    SamrConnectInfo *info_in,
+    uint32 *level_out,
+    SamrConnectInfo *info_out,
     PolicyHandle *conn_handle
     );
 
