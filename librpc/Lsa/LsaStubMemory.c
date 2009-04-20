@@ -42,7 +42,9 @@ LsaCleanStubTranslatedSidArray(
     TranslatedSidArray *r
     )
 {
-    SAFE_FREE(r->sids);
+    uint32 st = 0;
+
+    rpc_sm_client_free(r->sids, &st);
 }
 
 
@@ -51,7 +53,25 @@ LsaCleanStubTranslatedSidArray2(
     TranslatedSidArray2 *r
     )
 {
-    SAFE_FREE(r->sids);
+    uint32 st = 0;
+
+    rpc_sm_client_free(r->sids, &st);
+}
+
+
+void
+LsaCleanStubTranslatedSidArray3(
+    TranslatedSidArray3 *r
+    )
+{
+    uint32 st = 0;
+    int i = 0;
+
+    for (i = 0; i < r->count; i++) {
+        rpc_sm_client_free(r->sids[i].sid, &st);
+    }
+
+    rpc_sm_client_free(r->sids, &st);
 }
 
 
@@ -60,15 +80,16 @@ LsaCleanStubTranslatedNameArray(
     TranslatedNameArray *r
     )
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
         TranslatedName *ptr = &(r->names[i]);
 
-        FreeUnicodeString(&ptr->name);
+        rpc_sm_client_free(ptr->name.string, &st);
     }
 
-    free(r->names);
+    rpc_sm_client_free(r->names, &st);
 }
 
 
@@ -77,16 +98,19 @@ LsaCleanStubRefDomainList(
     RefDomainList *r
     )
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
         LsaDomainInfo *ptr = &(r->domains[i]);
 
-        FreeUnicodeStringEx(&ptr->name);
-        if (ptr->sid) MsRpcFreeSid(ptr->sid);
+        rpc_sm_client_free(ptr->name.string, &st);
+        if (ptr->sid) {
+            rpc_sm_client_free(ptr->sid, &st);
+        }
     }
 
-    free(r->domains);
+    rpc_sm_client_free(r->domains, &st);
 }
 
 
@@ -95,8 +119,10 @@ LsaFreeStubRefDomainList(
     RefDomainList *ptr
     )
 {
+    uint32 st = 0;
+
     LsaCleanStubRefDomainList(ptr);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
@@ -106,31 +132,33 @@ LsaCleanStubPolicyInformation(
     uint32 level
     )
 {
+    uint32 st = 0;
+
     switch (level) {
     case LSA_POLICY_INFO_AUDIT_EVENTS:
-        SAFE_FREE(r->audit_events.settings);
+        rpc_sm_client_free(r->audit_events.settings, &st);
         break;
 
     case LSA_POLICY_INFO_DOMAIN:
     case LSA_POLICY_INFO_ACCOUNT_DOMAIN:
-        SAFE_FREE(r->domain.name.string);
-        SAFE_FREE(r->domain.sid);
+        rpc_sm_client_free(r->domain.name.string, &st);
+        rpc_sm_client_free(r->domain.sid, &st);
         break;
 
     case LSA_POLICY_INFO_PD:
-        SAFE_FREE(r->pd.name.string);
+        rpc_sm_client_free(r->pd.name.string, &st);
         break;
 
     case LSA_POLICY_INFO_REPLICA:
-        SAFE_FREE(r->replica.source.string);
-        SAFE_FREE(r->replica.account.string);
+        rpc_sm_client_free(r->replica.source.string, &st);
+        rpc_sm_client_free(r->replica.account.string, &st);
         break;
 
     case LSA_POLICY_INFO_DNS:
-        SAFE_FREE(r->dns.name.string);
-        SAFE_FREE(r->dns.dns_domain.string);
-        SAFE_FREE(r->dns.dns_forest.string);
-        SAFE_FREE(r->dns.sid);
+        rpc_sm_client_free(r->dns.name.string, &st);
+        rpc_sm_client_free(r->dns.dns_domain.string, &st);
+        rpc_sm_client_free(r->dns.dns_forest.string, &st);
+        rpc_sm_client_free(r->dns.sid, &st);
         break;
 
     case LSA_POLICY_INFO_AUDIT_LOG:
@@ -150,8 +178,10 @@ LsaFreeStubPolicyInformation(
     LsaPolicyInformation *ptr,
     uint32 level)
 {
+    uint32 st = 0;
+
     LsaCleanStubPolicyInformation(ptr, level);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
