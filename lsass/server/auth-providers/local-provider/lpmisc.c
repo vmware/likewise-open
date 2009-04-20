@@ -49,6 +49,62 @@
 
 #include "includes.h"
 
+DWORD
+LocalCrackDomainQualifiedName(
+    PCSTR pszId,
+    PLSA_LOGIN_NAME_INFO* ppNameInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_LOGIN_NAME_INFO pNameInfo = NULL;
+
+    dwError = LsaCrackDomainQualifiedName(
+                    pszId,
+                    gLPGlobals.pszNetBIOSName,
+                    &pNameInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // TODO: Handle aliases
+    //       Handle AD Domains
+    if (!strcasecmp(pNameInfo->pszDomainNetBiosName,
+                    gLPGlobals.pszBuiltinDomain))
+    {
+        LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
+
+        dwError = LsaAllocateString(
+                        gLPGlobals.pszBuiltinDomain,
+                        &pNameInfo->pszFullDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (!strcasecmp(pNameInfo->pszDomainNetBiosName,
+                         gLPGlobals.pszNetBIOSName))
+    {
+        LSA_SAFE_FREE_STRING(pNameInfo->pszFullDomainName);
+
+        dwError = LsaAllocateString(
+                        gLPGlobals.pszLocalDomain,
+                        &pNameInfo->pszFullDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+
+    *ppNameInfo = pNameInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppNameInfo = NULL;
+
+    if (pNameInfo)
+    {
+        LsaFreeNameInfo(pNameInfo);
+    }
+
+    goto cleanup;
+}
 
 DWORD
 LocalBuildDN(

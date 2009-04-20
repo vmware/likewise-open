@@ -142,6 +142,8 @@
     {'M','a','x','P','w','d','A','g','e',0}
 #define LOCAL_DIR_ATTR_PWD_PROMPT_TIME \
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
+#define LOCAL_DIR_ATTR_PRIMARY_GROUP \
+    {'P','r','i','m','a','r','y','G','r','o','u','p',0}
 
 
 #define LOCAL_DIR_CN_PREFIX \

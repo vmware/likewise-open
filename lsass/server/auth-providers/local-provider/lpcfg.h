@@ -109,7 +109,7 @@ LocalCfgGetHomedirTemplate(
 
 DWORD
 LocalCfgGetHomedirUmask(
-    PDWORD pdwUmask
+    mode_t* pUmask
     );
 
 DWORD

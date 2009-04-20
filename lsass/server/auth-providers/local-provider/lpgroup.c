@@ -1727,9 +1727,8 @@ LocalDirAddGroup_0(
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pGroupInfo->pszName,
-                    NULL,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1844,9 +1843,8 @@ LocalDirAddGroup_1(
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pGroupInfo->pszName,
-                    NULL,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1955,9 +1953,8 @@ LocalAddMembersToGroup(
             pLoginInfo = NULL;
         }
 
-        dwError = LsaCrackDomainQualifiedName(
+        dwError = LocalCrackDomainQualifiedName(
                       pszMemberId,
-                      gLPGlobals.pszLocalDomain,
                       &pLoginInfo);
         BAIL_ON_LSA_ERROR(dwError);
 

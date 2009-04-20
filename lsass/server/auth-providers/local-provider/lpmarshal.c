@@ -66,7 +66,7 @@ LocalMarshalEntryToUserInfo_0(
 {
     DWORD dwError = 0;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -197,16 +197,16 @@ LocalMarshalEntryToUserInfo_1(
     )
 {
     DWORD dwError = 0;
-    wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]  = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]     = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]     = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]        = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
+    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
+    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
+    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     PLSA_USER_INFO_1 pUserInfo = NULL;
     PWSTR  pwszUserDN = NULL;
     DWORD dwInfoLevel = 1;
@@ -357,7 +357,7 @@ LocalMarshalEntryToUserInfo_2(
 {
     DWORD dwError = 0;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;

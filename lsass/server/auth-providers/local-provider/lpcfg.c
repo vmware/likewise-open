@@ -444,14 +444,14 @@ error:
 
 DWORD
 LocalCfgGetHomedirUmask(
-    PDWORD pdwUmask
+    mode_t* pUmask
     )
 {
     BOOLEAN bInLock = FALSE;
 
     LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
-    *pdwUmask = gLPGlobals.cfg.dwHomedirUMask;
+    *pUmask = gLPGlobals.cfg.dwHomedirUMask;
 
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 

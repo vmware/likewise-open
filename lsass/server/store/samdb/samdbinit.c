@@ -670,6 +670,7 @@ SamDbAddBuiltinAccounts(
     struct builtin_account {
         PCSTR               pszName;
         PCSTR               pszSID;
+        DWORD               dwGID;
         PCSTR               pszDescription;
         PCSTR               pszDomainName;
         SAMDB_ACB           flags;
@@ -678,6 +679,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Administrators",
             .pszSID         = "S-1-5-32-544",
+            .dwGID          = 544,
             .pszDescription = "Administrators have complete and unrestricted "
                               "access to the computer/domain",
             .pszDomainName  = "BUILTIN",
@@ -687,6 +689,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Users",
             .pszSID         = "S-1-5-32-545",
+            .dwGID          = 545,
             .pszDescription = "Users are prevented from making accidental "
                               "or intentional system-wide changes. Thus, "
                               "users can run certified applications, but not "
@@ -698,6 +701,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Guests",
             .pszSID         = "S-1-5-32-546",
+            .dwGID          = 546,
             .pszDescription = "Guests have the same access as members of the "
                               "Users group by default, except for the Guest "
                               "account which is further restricted",
@@ -708,13 +712,14 @@ SamDbAddBuiltinAccounts(
     };
 
     DWORD dwError = 0;
-    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameObjectClass[]    = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[]      = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameGID[]            = SAM_DB_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    wchar16_t wszAttrNameDomainName[] = SAM_DB_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
-    wchar16_t wszAttrAccountFlags[] = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    wchar16_t wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameDomainName[]     = SAM_DB_DIR_ATTR_DOMAIN;
+    wchar16_t wszAttrNameDescription[]    = SAM_DB_DIR_ATTR_DESCRIPTION;
+    wchar16_t wszAttrAccountFlags[]       = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
     PCSTR     pszName = NULL;
     PCSTR     pszSID = NULL;
     PCSTR     pszDescription = NULL;
@@ -727,13 +732,15 @@ SamDbAddBuiltinAccounts(
     PWSTR     pwszSID = NULL;
     PWSTR     pwszDescription = NULL;
     PWSTR     pwszDomainName = NULL;
+    DWORD     dwGID = 0;
     ATTRIBUTE_VALUE avGroupName = {0};
     ATTRIBUTE_VALUE avSID = {0};
+    ATTRIBUTE_VALUE avGID = {0};
     ATTRIBUTE_VALUE avObjectClass = {0};
     ATTRIBUTE_VALUE avDomainName = {0};
     ATTRIBUTE_VALUE avDescription = {0};
     ATTRIBUTE_VALUE avAccountFlags = {0};
-    DIRECTORY_MOD mods[8];
+    DIRECTORY_MOD mods[9];
     ULONG     iMod = 0;
     DWORD     i = 0;
 
@@ -741,6 +748,7 @@ SamDbAddBuiltinAccounts(
 
         pszName        = BuiltinAccounts[i].pszName;
         pszSID         = BuiltinAccounts[i].pszSID;
+        dwGID          = BuiltinAccounts[i].dwGID;
         pszDescription = BuiltinAccounts[i].pszDescription;
         pszDomainName  = BuiltinAccounts[i].pszDomainName;
         AccountFlags   = BuiltinAccounts[i].flags;
@@ -787,6 +795,13 @@ SamDbAddBuiltinAccounts(
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
         avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avGID.data.ulValue = dwGID;
+        mods[iMod].pAttrValues = &avGID;
 
         mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
@@ -873,24 +888,36 @@ SamDbAddLocalAccounts(
 {
     struct local_account {
         PCSTR               pszName;
+        DWORD               dwUid;
+        DWORD               dwGid;
         DWORD               dwRid;
         PCSTR               pszDescription;
+        PCSTR               pszShell;
+        PCSTR               pszHomedir;
         SAMDB_ACB           flags;
         SAMDB_OBJECT_CLASS  objectClass;
     } LocalAccounts[] = {
         {
             .pszName        = "Administrator",
+            .dwUid          = DOMAIN_USER_RID_ADMIN,
+            .dwGid          = DOMAIN_ALIAS_RID_ADMINS,
             .dwRid          = DOMAIN_USER_RID_ADMIN,
             .pszDescription = "Built-in account for administering the "
                               "computer/domain",
+            .pszShell       = SAM_DB_DEFAULT_ADMINISTRATOR_SHELL,
+            .pszHomedir     = SAM_DB_DEFAULT_ADMINISTRATOR_HOMEDIR,
             .flags          = SAMDB_ACB_NORMAL,
             .objectClass    = SAMDB_OBJECT_CLASS_USER
         },
         {
             .pszName        = "Guest",
+            .dwUid          = DOMAIN_USER_RID_GUEST,
+            .dwGid          = DOMAIN_ALIAS_RID_GUESTS,
             .dwRid          = DOMAIN_USER_RID_GUEST,
             .pszDescription = "Built-in account for guest access to the "
                               "computer/domain",
+            .pszShell       = SAM_DB_DEFAULT_GUEST_SHELL,
+            .pszHomedir     = SAM_DB_DEFAULT_GUEST_HOMEDIR,
             .flags          = SAMDB_ACB_NORMAL | SAMDB_ACB_DISABLED,
             .objectClass    = SAMDB_OBJECT_CLASS_USER
         }
@@ -898,15 +925,23 @@ SamDbAddLocalAccounts(
 
     DWORD dwError = 0;
     NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t wszAttrNameObjectClass[] = SAM_DB_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameObjectClass[]    = SAM_DB_DIR_ATTR_OBJECT_CLASS;
+    wchar16_t wszAttrNameObjectSID[]      = SAM_DB_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameUID[]            = SAM_DB_DIR_ATTR_UID;
     wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameCommonName[] = SAM_DB_DIR_ATTR_COMMON_NAME;
-    wchar16_t wszAttrNameDescription[] = SAM_DB_DIR_ATTR_DESCRIPTION;
-    wchar16_t wszAttrAccountFlags[] = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    wchar16_t wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
+    wchar16_t wszAttrNameDescription[]    = SAM_DB_DIR_ATTR_DESCRIPTION;
+    wchar16_t wszAttrNameShell[]          = SAM_DB_DIR_ATTR_SHELL;
+    wchar16_t wszAttrNameHomedir[]        = SAM_DB_DIR_ATTR_HOME_DIR;
+    wchar16_t wszAttrAccountFlags[]       = SAM_DB_DIR_ATTR_ACCOUNT_FLAGS;
+    wchar16_t wszAttrNamePrimaryGroup[]   = SAM_DB_DIR_ATTR_PRIMARY_GROUP;
     PCSTR     pszName = NULL;
+    DWORD     dwUID = 0;
+    DWORD     dwGID = 0;
     DWORD     dwRid = 0;
     PCSTR     pszDescription = NULL;
+    PCSTR     pszShell = NULL;
+    PCSTR     pszHomedir = NULL;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
     SAMDB_ACB AccountFlags = 0;
     PSTR      pszObjectDN = NULL;
@@ -916,22 +951,32 @@ SamDbAddLocalAccounts(
     PWSTR     pwszObjectDN = NULL;
     PWSTR     pwszSID = NULL;
     PWSTR     pwszDescription = NULL;
+    PWSTR     pwszShell = NULL;
+    PWSTR     pwszHomedir = NULL;
     ATTRIBUTE_VALUE avUserName = {0};
     ATTRIBUTE_VALUE avSID = {0};
+    ATTRIBUTE_VALUE avUID = {0};
+    ATTRIBUTE_VALUE avGID = {0};
     ATTRIBUTE_VALUE avObjectClass = {0};
     ATTRIBUTE_VALUE avDescription = {0};
     ATTRIBUTE_VALUE avAccountFlags = {0};
-    DIRECTORY_MOD mods[7];
+    ATTRIBUTE_VALUE avShell = {0};
+    ATTRIBUTE_VALUE avHomedir = {0};
+    DIRECTORY_MOD mods[11];
     ULONG     iMod = 0;
     DWORD     i = 0;
 
     for (i = 0; i < sizeof(LocalAccounts)/sizeof(LocalAccounts[0]); i++) {
 
         pszName        = LocalAccounts[i].pszName;
+        dwUID          = LocalAccounts[i].dwUid;
+        dwGID          = LocalAccounts[i].dwGid;
         dwRid          = LocalAccounts[i].dwRid;
         pszDescription = LocalAccounts[i].pszDescription;
         AccountFlags   = LocalAccounts[i].flags;
         objectClass    = LocalAccounts[i].objectClass;
+        pszShell       = LocalAccounts[i].pszShell;
+        pszHomedir     = LocalAccounts[i].pszHomedir;
 
         iMod    = 0;
         memset(mods, 0, sizeof(mods));
@@ -975,6 +1020,16 @@ SamDbAddLocalAccounts(
                         &pwszDescription);
         BAIL_ON_SAMDB_ERROR(dwError);
 
+        dwError = LsaMbsToWc16s(
+                        pszShell,
+                        &pwszShell);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(
+                        pszHomedir,
+                        &pwszHomedir);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
         status = RtlAllocateWC16StringFromSid(
                         &pwszSID,
                         pUserSid);
@@ -989,6 +1044,20 @@ SamDbAddLocalAccounts(
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
         avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameUID[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avUID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avUID.data.ulValue = dwUID;
+        mods[iMod].pAttrValues = &avUID;
+
+        mods[++iMod].pwszAttrName = &wszAttrNamePrimaryGroup[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avGID.data.ulValue = dwGID;
+        mods[iMod].pAttrValues = &avGID;
 
         mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
@@ -1023,6 +1092,20 @@ SamDbAddLocalAccounts(
         avDescription.data.pwszStringValue = pwszDescription;
         mods[iMod].pAttrValues = &avDescription;
 
+        mods[++iMod].pwszAttrName = &wszAttrNameShell[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avShell.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avShell.data.pwszStringValue = pwszShell;
+        mods[iMod].pAttrValues = &avShell;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameHomedir[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avHomedir.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+        avHomedir.data.pwszStringValue = pwszHomedir;
+        mods[iMod].pAttrValues = &avHomedir;
+
         mods[++iMod].pwszAttrName = NULL;
         mods[iMod].pAttrValues = NULL;
 
@@ -1036,6 +1119,8 @@ SamDbAddLocalAccounts(
         DIRECTORY_FREE_MEMORY_AND_RESET(pwszObjectDN);
         DIRECTORY_FREE_MEMORY_AND_RESET(pwszSamAccountName);
         DIRECTORY_FREE_MEMORY_AND_RESET(pwszDescription);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszShell);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pwszHomedir);
 
         if (pwszSID) {
             RTL_FREE(&pwszSID);
@@ -1050,6 +1135,9 @@ cleanup:
     DIRECTORY_FREE_STRING(pszObjectDN);
     DIRECTORY_FREE_MEMORY(pwszObjectDN);
     DIRECTORY_FREE_MEMORY(pwszSamAccountName);
+    DIRECTORY_FREE_MEMORY(pwszDescription);
+    DIRECTORY_FREE_MEMORY(pwszShell);
+    DIRECTORY_FREE_MEMORY(pwszHomedir);
 
     if (pwszSID) {
         RTL_FREE(&pwszSID);

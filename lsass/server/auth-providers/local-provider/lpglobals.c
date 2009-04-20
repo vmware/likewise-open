@@ -89,6 +89,10 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     .pfnCloseHandle            = &LocalCloseHandle
 };
 
-LOCAL_PROVIDER_GLOBALS gLPGlobals = { PTHREAD_MUTEX_INITIALIZER };
+LOCAL_PROVIDER_GLOBALS gLPGlobals =
+    {
+        PTHREAD_MUTEX_INITIALIZER,
+        "BUILTIN"
+    };
 
 

@@ -1471,7 +1471,7 @@ SamDbFindDomainSID(
     PSTR  pszDomainSID = NULL;
     PSTR  pszDomainName = NULL;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_DOMAIN;
-    PCSTR pszQueryClause = " WHERE " SAM_DB_COL_DOMAIN       " = \"%s\"" \
+    PCSTR pszQueryClause = SAM_DB_COL_DOMAIN       " = \"%s\"" \
                            "   AND " SAM_DB_COL_OBJECT_CLASS " = %d;";
 
     dwError = LsaWc16sToMbs(
