@@ -30,6 +30,8 @@
 
 #include "includes.h"
 
+#if 0
+
 static LWMsgProtocol* pProtocol = NULL;
 static LWMsgContext* pContext = NULL;
 
@@ -123,3 +125,5 @@ MU_TEST(marshal, NT_IPC_MESSAGE_TYPE_CREATE_FILE)
     MU_ASSERT_EQUAL_DWORD(request.CreateDisposition, pCopy->CreateDisposition);
     MU_ASSERT_EQUAL_DWORD(request.CreateOptions, pCopy->CreateOptions);
 }
+
+#endif
