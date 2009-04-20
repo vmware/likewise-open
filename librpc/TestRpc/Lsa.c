@@ -50,6 +50,14 @@
 #include "Util.h"
 
 
+BOOL
+CallLsaOpenPolicy(
+    handle_t hBinding,
+    PWSTR pwszSysName,
+    PolicyHandle *phPolicy
+    );
+
+
 handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
 {
     RPCSTATUS status = RPC_S_OK;
@@ -82,6 +90,10 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
         }
 
         return NULL;
+    }
+
+    if (access_token) {
+        LwIoDeleteAccessToken(access_token);
     }
 
     SAFE_FREE(hostname);
@@ -173,9 +185,6 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
     
-    status = GetSamDomainName(&domname, hostname);
-
-
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
                             &lsa_policy);
     if (status != 0) rpc_fail(status);
@@ -412,6 +421,176 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
             sid_array.sids[i].sid = usr_sid;
 
             RtlAllocateWC16StringFromSid(&sidstr, usr_sid);
+            DUMP_WSTR(" ", sidstr);
+
+            RTL_FREE(&sidstr);
+        }
+    }
+
+    if (domains) {
+        LsaRpcFreeMemory((void*)domains);
+        domains = NULL;
+    }
+
+    level = 6;
+
+    INPUT_ARG_PTR(lsa_b);
+    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_PTR(&sid_array);
+    INPUT_ARG_PTR(domains);
+    INPUT_ARG_PTR(trans_names);
+    INPUT_ARG_UINT(level);
+
+    CALL_MSRPC(status = LsaLookupSids(lsa_b, &lsa_policy, &sid_array,
+                                      &domains, &trans_names, level,
+                                      &names_count));
+
+    OUTPUT_ARG_UINT(names_count);
+
+    if (domains) {
+        LsaRpcFreeMemory((void*)domains);
+        domains = NULL;
+    }
+
+    status = LsaClose(lsa_b, &lsa_policy);
+
+    FreeLsaBinding(&lsa_b);
+
+    RELEASE_SESSION_CREDS;
+
+    for (i = 0; i < sid_array.num_sids; i++) {
+        SAFE_FREE(sid_array.sids[i].sid);
+    }
+
+done:
+    if (trans_names) {
+        LsaRpcFreeMemory((void*)trans_names);
+    }
+
+    LsaRpcDestroyMemory();
+
+    SAFE_FREE(sid_array.sids);
+
+    if (names) {
+        i = 0;
+        while (names[i]) {
+            SAFE_FREE(names[i]);
+            i++;
+        }
+        SAFE_FREE(names);
+    }
+
+    if (usernames) {
+        i = 0;
+        while (usernames[i]) {
+            SAFE_FREE(usernames[i]);
+            i++;
+        }
+        SAFE_FREE(usernames);
+    }
+
+    SAFE_FREE(domname);
+
+    return ret;
+}
+
+
+int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
+                        const wchar16_t *user, const wchar16_t *pass,
+                        struct parameter *options, int optcount)
+{
+    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const char *def_username = "[BUILTIN\\Users:BUILTIN\\Administrators]";
+    const uint32 def_revlookup = 0;
+
+    int ret = true;
+    NTSTATUS status = STATUS_SUCCESS;
+    enum param_err perr = perr_success;
+    handle_t lsa_b = NULL;
+    wchar16_t *domname = NULL;
+    wchar16_t **names = NULL;
+    uint32 num_names = 0;
+    wchar16_t **usernames = NULL;
+    int usernames_count = 0;
+    uint32 revlookup;
+    PolicyHandle lsa_policy = {0};
+    RefDomainList *domains = NULL;
+    TranslatedSid3 *sids = NULL;
+    SidArray sid_array = {0};
+    TranslatedName *trans_names = NULL;
+    uint32 level, names_count, sids_count;
+    int i = 0;
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
+
+    perr = fetch_value(options, optcount, "usernames", pt_w16string_list,
+                       &usernames, &def_username);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "revlookup", pt_uint32, &revlookup,
+                       &def_revlookup);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    lsa_b = CreateLsaBinding(&lsa_b, hostname);
+    if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
+
+    status = GetSamDomainName(&domname, hostname);
+    if (status != 0) rpc_fail(status);
+
+    status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
+                            &lsa_policy);
+    if (status != 0) rpc_fail(status);
+
+    while (usernames[usernames_count++]);
+    names = (wchar16_t**) malloc(sizeof(wchar16_t*) * usernames_count);
+    test_fail_if_no_memory(names);
+
+    memset(names, 0, sizeof(wchar16_t*) * usernames_count);
+    num_names = usernames_count - 1;
+
+    for (i = 0; i < (int)num_names; i++) {
+        names[i] = (wchar16_t*) wc16sdup(usernames[i]);
+        test_fail_if_no_memory(names[i]);
+    }
+
+    /* Lookup name to sid */
+    level = 1;
+
+    INPUT_ARG_PTR(lsa_b);
+    INPUT_ARG_PTR(&lsa_policy);
+    INPUT_ARG_UINT(num_names);
+
+    for (i = 0; i < num_names; i++) {
+        INPUT_ARG_WSTR(names[i]);
+    }
+
+    INPUT_ARG_PTR(domains);
+    INPUT_ARG_PTR(sids);
+    INPUT_ARG_UINT(level);
+
+    CALL_MSRPC(status = LsaLookupNames3(lsa_b, &lsa_policy, num_names, names,
+                                        &domains, &sids, level, &sids_count));
+
+    OUTPUT_ARG_UINT(sids_count);
+
+    if (!revlookup) goto done;
+
+    /* Reverse lookup sid to name */
+    sid_array.num_sids = sids_count;
+    sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
+
+    for (i = 0; i < sid_array.num_sids; i++) {
+        uint32 sid_index;
+        wchar16_t *sidstr = NULL;
+
+        sid_index = sids[i].index;
+
+        if (sid_index < domains->count) {
+            sid_array.sids[i].sid = sids[i].sid;
+
+            RtlAllocateWC16StringFromSid(&sidstr, sids[i].sid);
             DUMP_WSTR(" ", sidstr);
 
             RTL_FREE(&sidstr);
@@ -800,17 +979,121 @@ done:
 }
 
 
+BOOL
+CallLsaOpenPolicy(
+    handle_t hBinding,
+    PWSTR pwszSysName,
+    PolicyHandle *phPolicy
+    )
+{
+    BOOL ret = TRUE;
+    NTSTATUS status = STATUS_SUCCESS;
+    uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+                           LSA_ACCESS_ENABLE_LSA |
+                           LSA_ACCESS_ADMIN_AUDIT_LOG_ATTRS |
+                           LSA_ACCESS_CHANGE_SYS_AUDIT_REQS |
+                           LSA_ACCESS_SET_DEFAULT_QUOTA |
+                           LSA_ACCESS_CREATE_PRIVILEGE |
+                           LSA_ACCESS_CREATE_SECRET_OBJECT |
+                           LSA_ACCESS_CREATE_SPECIAL_ACCOUNTS |
+                           LSA_ACCESS_CHANGE_DOMTRUST_RELATION |
+                           LSA_ACCESS_GET_SENSITIVE_POLICY_INFO |
+                           LSA_ACCESS_VIEW_SYS_AUDIT_REQS |
+                           LSA_ACCESS_VIEW_POLICY_INFO;
+    PolicyHandle hPolicy;
+    LsaPolicyInformation *pPolicyInfo = NULL;
+    uint32 i = 0;
+
+    DISPLAY_COMMENT(("Testing LsaOpenPolicy\n"));
+
+    status = LsaOpenPolicy2(hBinding, pwszSysName, NULL,
+                            access_rights, &hPolicy);
+    if (status) {
+        DISPLAY_ERROR(("LsaOpenPolicy error %s\n", NtStatusToName(status)));
+        ret = FALSE;
+    } else {
+        for (i = 1; i <= 12; i++) {
+            status = LsaQueryInfoPolicy(hBinding, &hPolicy, i, &pPolicyInfo);
+            if (status) {
+                DISPLAY_ERROR(("LsaQueryInfoPolicy error %s\n",
+                               NtStatusToName(status)));
+                ret = FALSE;
+            }
+        }
+    }
+
+
+    DISPLAY_COMMENT(("Testing LsaOpenPolicy2\n"));
+
+    status = LsaOpenPolicy2(hBinding, pwszSysName, NULL,
+                            access_rights, &hPolicy);
+    if (status) {
+        DISPLAY_ERROR(("LsaOpenPolicy2 error %s\n", NtStatusToName(status)));
+        ret = FALSE;
+    } else {
+        for (i = 1; i <= 12; i++) {
+            status = LsaQueryInfoPolicy2(hBinding, &hPolicy, i, &pPolicyInfo);
+            if (status) {
+                DISPLAY_ERROR(("LsaQueryInfoPolicy2 error %s\n",
+                               NtStatusToName(status)));
+                ret = FALSE;
+            }
+        }
+    }
+
+    *phPolicy = hPolicy;
+    return ret;
+}
+
+
+int
+TestLsaInfoPolicy(struct test *t, const wchar16_t *hostname,
+                      const wchar16_t *user, const wchar16_t *pass,
+                      struct parameter *options, int optcount)
+{
+    PCSTR pszDefSysName = "";
+
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    handle_t hBinding = NULL;
+    PolicyHandle hPolicy;
+    PWSTR pwszSysName = NULL;
+
+    perr = fetch_value(options, optcount, "systemname", pt_w16string,
+                       &pwszSysName, &pszDefSysName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
+
+    CreateLsaBinding(&hBinding, hostname);
+
+    ret &= CallLsaOpenPolicy(hBinding, pwszSysName, &hPolicy);
+
+    FreeLsaBinding(&hBinding);
+    RELEASE_SESSION_CREDS;
+
+done:
+    return (int)ret;
+}
+
+
 void SetupLsaTests(struct test *t)
 {
-    LsaRpcInitMemory();
+    NTSTATUS status = STATUS_SUCCESS;
 
+    status = LsaRpcInitMemory();
+    if (status) return;
 
     AddTest(t, "LSA-OPEN-POLICY", TestLsaOpenPolicy);
     AddTest(t, "LSA-LOOKUP-NAMES", TestLsaLookupNames);
     AddTest(t, "LSA-LOOKUP-NAMES2", TestLsaLookupNames2);
+    AddTest(t, "LSA-LOOKUP-NAMES3", TestLsaLookupNames3);
     AddTest(t, "LSA-LOOKUP-SIDS", TestLsaLookupSids);
     AddTest(t, "LSA-QUERY-INFO-POL", TestLsaQueryInfoPolicy);
     AddTest(t, "LSA-QUERY-INFO-POL2", TestLsaQueryInfoPolicy2);
+    AddTest(t, "LSA-INFO-POLICY", TestLsaInfoPolicy);
 }
 
 
