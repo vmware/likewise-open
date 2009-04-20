@@ -481,7 +481,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
         SAMDB_ATTR_TYPE_TEXT,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
-        SAM_DB_IS_NOT_QUERYABLE               \
+        SAM_DB_IS_QUERYABLE                   \
     },                                        \
     {                                         \
         SAM_DB_DIR_ATTR_ACCOUNT_FLAGS,        \
@@ -898,11 +898,11 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_HOME_DIR,                                \
-        SAM_DB_ATTR_FLAGS_NONE                                   \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_SHELL,                                   \
-        SAM_DB_ATTR_FLAGS_NONE                                   \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_PASSWORD_LAST_SET,                       \

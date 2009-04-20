@@ -4,6 +4,12 @@
 #define SAM_DB_DIR CACHEDIR   "/db"
 #define SAM_DB     SAM_DB_DIR "/sam.db"
 
+#define SAM_DB_DEFAULT_ADMINISTRATOR_SHELL   "/bin/sh"
+#define SAM_DB_DEFAULT_ADMINISTRATOR_HOMEDIR "/"
+
+#define SAM_DB_DEFAULT_GUEST_SHELL           "/bin/sh"
+#define SAM_DB_DEFAULT_GUEST_HOMEDIR         "/tmp"
+
 #define SAMDB_LOG_ERROR(pszFormat, ...) LSA_LOG_ERROR(pszFormat, ## __VA_ARGS__)
 #define SAMDB_LOG_WARNING(pszFormat, ...) LSA_LOG_WARNING(pszFormat, ## __VA_ARGS__)
 #define SAMDB_LOG_INFO(pszFormat, ...) LSA_LOG_INFO(pszFormat, ## __VA_ARGS__)

@@ -168,7 +168,7 @@ LocalDirFindUserByName_0(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -297,7 +297,7 @@ LocalDirFindUserByName_1(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]  = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]     = LOCAL_DIR_ATTR_GECOS;
@@ -430,7 +430,7 @@ LocalDirFindUserByName_2(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
@@ -633,7 +633,7 @@ LocalDirFindUserById_0(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -759,7 +759,7 @@ LocalDirFindUserById_1(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -899,7 +899,7 @@ LocalDirFindUserById_2(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
@@ -1187,7 +1187,7 @@ LocalDirBeginEnumUsers_0(
     DWORD dwInfoLevel = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -1274,7 +1274,7 @@ LocalDirBeginEnumUsers_1(
     DWORD dwInfoLevel = 1;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
@@ -1363,7 +1363,7 @@ LocalDirBeginEnumUsers_2(
     DWORD dwInfoLevel = 2;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
+    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
     wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
@@ -1867,7 +1867,7 @@ LocalDirAddUser_0(
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrGID[]            = LOCAL_DIR_ATTR_GID;
+    WCHAR wszAttrGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrGecos[]          = LOCAL_DIR_ATTR_GECOS;
     WCHAR wszAttrShell[]          = LOCAL_DIR_ATTR_SHELL;
