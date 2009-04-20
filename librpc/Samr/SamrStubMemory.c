@@ -33,85 +33,101 @@
 
 void SamrCleanStubRidNameArray(RidNameArray *r)
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
         RidName *rn = &(r->entries[i]);
-        FreeUnicodeString(&rn->name);
+        rpc_sm_client_free(rn->name.string, &st);
     }
 
-    free(r->entries);
+    rpc_sm_client_free(r->entries, &st);
 }
 
 
 void SamrFreeStubRidNameArray(RidNameArray *ptr)
 {
+    uint32 st = 0;
+
     SamrCleanStubRidNameArray(ptr);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
 void SamrCleanStubIds(Ids *r)
 {
-    SAFE_FREE(r->ids);
+    uint32 st = 0;
+
+    if (r->count) {
+        rpc_sm_client_free(r->ids, &st);
+    }
 }
 
 
 void SamrCleanStubUnicodeStringArray(UnicodeStringArray *r)
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
         UnicodeString *s = &(r->names[i]);
-        FreeUnicodeString(s);
+        rpc_sm_client_free(s->string, &st);
     }
 
-    free(r->names);
+    rpc_sm_client_free(r->names, &st);
 }
 
 
 void SamrCleanStubEntryArray(EntryArray *r)
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
         Entry *e = &(r->entries[i]);
-        FreeUnicodeString(&e->name);
+        rpc_sm_client_free(e->name.string, &st);
     }
 
-    free(r->entries);
+    rpc_sm_client_free(r->entries, &st);
 }
 
 
 void SamrFreeStubEntryArray(EntryArray *ptr)
 {
+    uint32 st = 0;
+
     SamrCleanStubEntryArray(ptr);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
 void SamrFreeStubDomSid(PSID ptr)
 {
-    SAFE_FREE(ptr);
+    uint32 st = 0;
+
+    rpc_sm_client_free(ptr, &st);
 }
 
 
 void SamrCleanStubSidArray(SidArray *r)
 {
+    uint32 st = 0;
     int i = 0;
 
     for (i = 0; i < r->num_sids; i++) {
         PSID s = r->sids[i].sid;
-        SAFE_FREE(s);
+        rpc_sm_client_free(s, &st);
     }
 
-    free(r->sids);
+    rpc_sm_client_free(r->sids, &st);
 }
 
 
 void SamrCleanStubRidWithAttributeArray(RidWithAttributeArray *r)
 {
-    free(r->rids);
+    uint32 st = 0;
+
+    rpc_sm_client_free(r->rids, &st);
 }
 
 
@@ -124,18 +140,20 @@ void SamrFreeStubRidWithAttributeArray(RidWithAttributeArray *ptr)
 
 void SamrCleanStubAliasInfo(AliasInfo *r, uint16 level)
 {
+    uint32 st = 0;
+
     switch (level) {
     case ALIAS_INFO_ALL:
-        FreeUnicodeString(&r->all.name);
-        FreeUnicodeString(&r->all.description);
+        rpc_sm_client_free(r->all.name.string, &st);
+        rpc_sm_client_free(r->all.description.string, &st);
         break;
 
     case ALIAS_INFO_NAME:
-        FreeUnicodeString(&r->name);
+        rpc_sm_client_free(r->name.string, &st);
         break;
 
     case ALIAS_INFO_DESCRIPTION:
-        FreeUnicodeString(&r->description);
+        rpc_sm_client_free(r->description.string, &st);
         break;
     }
 }
@@ -143,30 +161,34 @@ void SamrCleanStubAliasInfo(AliasInfo *r, uint16 level)
 
 void SamrFreeStubAliasInfo(AliasInfo *ptr, uint16 level)
 {
+    uint32 st = 0;
+
     SamrCleanStubAliasInfo(ptr, level);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
 void SamrCleanStubDomainInfo(DomainInfo *r, uint16 level)
 {
+    uint32 st = 0;
+
     switch (level) {
     case 2:
-        FreeUnicodeString(&r->info2.comment);
-        FreeUnicodeString(&r->info2.domain_name);
-        FreeUnicodeString(&r->info2.primary);
+        rpc_sm_client_free(r->info2.comment.string, &st);
+        rpc_sm_client_free(r->info2.domain_name.string, &st);
+        rpc_sm_client_free(r->info2.primary.string, &st);
         break;
 
     case 4:
-        FreeUnicodeString(&r->info4.comment);
+        rpc_sm_client_free(r->info4.comment.string, &st);
         break;
 
     case 5:
-        FreeUnicodeString(&r->info5.domain_name);
+        rpc_sm_client_free(r->info5.domain_name.string, &st);
         break;
 
     case 6:
-        FreeUnicodeString(&r->info6.primary);
+        rpc_sm_client_free(r->info6.primary.string, &st);
         break;
 
     case 11:
@@ -177,148 +199,154 @@ void SamrCleanStubDomainInfo(DomainInfo *r, uint16 level)
 
 void SamrFreeStubDomainInfo(DomainInfo *ptr, uint16 level)
 {
+    uint32 st = 0;
+
     SamrCleanStubDomainInfo(ptr, level);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
 void SamrCleanStubUserInfo(UserInfo *r, uint16 level)
 {
+    uint32 st = 0;
+
     switch (level) {
     case 1:
-        FreeUnicodeString(&r->info1.account_name);
-        FreeUnicodeString(&r->info1.full_name);
-        FreeUnicodeString(&r->info1.description);
-        FreeUnicodeString(&r->info1.comment);
+        rpc_sm_client_free(r->info1.account_name.string, &st);
+        rpc_sm_client_free(r->info1.full_name.string, &st);
+        rpc_sm_client_free(r->info1.description.string, &st);
+        rpc_sm_client_free(r->info1.comment.string, &st);
         break;
 
     case 2:
-        FreeUnicodeString(&r->info2.comment);
-        FreeUnicodeString(&r->info2.unknown1);
+        rpc_sm_client_free(r->info2.comment.string, &st);
+        rpc_sm_client_free(r->info2.unknown1.string, &st);
         break;
 
     case 3:
-        FreeUnicodeString(&r->info3.account_name);
-        FreeUnicodeString(&r->info3.full_name);
-        FreeUnicodeString(&r->info3.home_directory);
-        FreeUnicodeString(&r->info3.home_drive);
-        FreeUnicodeString(&r->info3.logon_script);
-        FreeUnicodeString(&r->info3.profile_path);
-        FreeUnicodeString(&r->info3.workstations);
-        SAFE_FREE(r->info3.logon_hours.units);
+        rpc_sm_client_free(r->info3.account_name.string, &st);
+        rpc_sm_client_free(r->info3.full_name.string, &st);
+        rpc_sm_client_free(r->info3.home_directory.string, &st);
+        rpc_sm_client_free(r->info3.home_drive.string, &st);
+        rpc_sm_client_free(r->info3.logon_script.string, &st);
+        rpc_sm_client_free(r->info3.profile_path.string, &st);
+        rpc_sm_client_free(r->info3.workstations.string, &st);
+        rpc_sm_client_free(r->info3.logon_hours.units, &st);
         break;
 
     case 4:
-        SAFE_FREE(r->info4.logon_hours.units);
+        rpc_sm_client_free(r->info4.logon_hours.units, &st);
         break;
 
     case 5:
-        FreeUnicodeString(&r->info5.account_name);
-        FreeUnicodeString(&r->info5.full_name);
-        FreeUnicodeString(&r->info5.home_directory);
-        FreeUnicodeString(&r->info5.home_drive);
-        FreeUnicodeString(&r->info5.logon_script);
-        FreeUnicodeString(&r->info5.profile_path);
-        FreeUnicodeString(&r->info5.description);
-        FreeUnicodeString(&r->info5.workstations);
-        SAFE_FREE(r->info5.logon_hours.units);
+        rpc_sm_client_free(r->info5.account_name.string, &st);
+        rpc_sm_client_free(r->info5.full_name.string, &st);
+        rpc_sm_client_free(r->info5.home_directory.string, &st);
+        rpc_sm_client_free(r->info5.home_drive.string, &st);
+        rpc_sm_client_free(r->info5.logon_script.string, &st);
+        rpc_sm_client_free(r->info5.profile_path.string, &st);
+        rpc_sm_client_free(r->info5.description.string, &st);
+        rpc_sm_client_free(r->info5.workstations.string, &st);
+        rpc_sm_client_free(r->info5.logon_hours.units, &st);
         break;
 
     case 6:
-        FreeUnicodeString(&r->info6.account_name);
-        FreeUnicodeString(&r->info6.full_name);
+        rpc_sm_client_free(r->info6.account_name.string, &st);
+        rpc_sm_client_free(r->info6.full_name.string, &st);
         break;
 
     case 7:
-        FreeUnicodeString(&r->info7.account_name);
+        rpc_sm_client_free(r->info7.account_name.string, &st);
         break;
 
     case 8:
-        FreeUnicodeString(&r->info8.full_name);
+        rpc_sm_client_free(r->info8.full_name.string, &st);
         break;
 
     case 10:
-        FreeUnicodeString(&r->info10.home_directory);
-        FreeUnicodeString(&r->info10.home_drive);
+        rpc_sm_client_free(r->info10.home_directory.string, &st);
+        rpc_sm_client_free(r->info10.home_drive.string, &st);
         break;
 
     case 11:
-        FreeUnicodeString(&r->info11.logon_script);
+        rpc_sm_client_free(r->info11.logon_script.string, &st);
         break;
 
     case 12:
-        FreeUnicodeString(&r->info12.profile_path);
+        rpc_sm_client_free(r->info12.profile_path.string, &st);
         break;
 
     case 13:
-        FreeUnicodeString(&r->info13.description);
+        rpc_sm_client_free(r->info13.description.string, &st);
         break;
 
     case 14:
-        FreeUnicodeString(&r->info14.workstations);
+        rpc_sm_client_free(r->info14.workstations.string, &st);
         break;
 
     case 20:
-        FreeUnicodeString(&r->info20.parameters);
+        rpc_sm_client_free(r->info20.parameters.string, &st);
         break;
 
     case 21:
-        FreeUnicodeString(&r->info21.account_name);
-        FreeUnicodeString(&r->info21.full_name);
-        FreeUnicodeString(&r->info21.home_directory);
-        FreeUnicodeString(&r->info21.home_drive);
-        FreeUnicodeString(&r->info21.logon_script);
-        FreeUnicodeString(&r->info21.profile_path);
-        FreeUnicodeString(&r->info21.description);
-        FreeUnicodeString(&r->info21.workstations);
-        FreeUnicodeString(&r->info21.comment);
-        FreeUnicodeString(&r->info21.parameters);
-        FreeUnicodeString(&r->info21.unknown1);
-        FreeUnicodeString(&r->info21.unknown2);
-        FreeUnicodeString(&r->info21.unknown3);
-        if (&r->info21.buf_count) SAFE_FREE(r->info21.buffer);
-        SAFE_FREE(r->info21.logon_hours.units);
+        rpc_sm_client_free(r->info21.account_name.string, &st);
+        rpc_sm_client_free(r->info21.full_name.string, &st);
+        rpc_sm_client_free(r->info21.home_directory.string, &st);
+        rpc_sm_client_free(r->info21.home_drive.string, &st);
+        rpc_sm_client_free(r->info21.logon_script.string, &st);
+        rpc_sm_client_free(r->info21.profile_path.string, &st);
+        rpc_sm_client_free(r->info21.description.string, &st);
+        rpc_sm_client_free(r->info21.workstations.string, &st);
+        rpc_sm_client_free(r->info21.comment.string, &st);
+        rpc_sm_client_free(r->info21.parameters.string, &st);
+        rpc_sm_client_free(r->info21.unknown1.string, &st);
+        rpc_sm_client_free(r->info21.unknown2.string, &st);
+        rpc_sm_client_free(r->info21.unknown3.string, &st);
+        if (&r->info21.buf_count) {
+            rpc_sm_client_free(r->info21.buffer, &st);
+        }
+        rpc_sm_client_free(r->info21.logon_hours.units, &st);
         break;
 
     case 23:
-        FreeUnicodeString(&r->info23.info.account_name);
-        FreeUnicodeString(&r->info23.info.full_name);
-        FreeUnicodeString(&r->info23.info.home_directory);
-        FreeUnicodeString(&r->info23.info.home_drive);
-        FreeUnicodeString(&r->info23.info.logon_script);
-        FreeUnicodeString(&r->info23.info.profile_path);
-        FreeUnicodeString(&r->info23.info.description);
-        FreeUnicodeString(&r->info23.info.workstations);
-        FreeUnicodeString(&r->info23.info.comment);
-        FreeUnicodeString(&r->info23.info.parameters);
-        FreeUnicodeString(&r->info23.info.unknown1);
-        FreeUnicodeString(&r->info23.info.unknown2);
-        FreeUnicodeString(&r->info23.info.unknown3);
+        rpc_sm_client_free(r->info23.info.account_name.string, &st);
+        rpc_sm_client_free(r->info23.info.full_name.string, &st);
+        rpc_sm_client_free(r->info23.info.home_directory.string, &st);
+        rpc_sm_client_free(r->info23.info.home_drive.string, &st);
+        rpc_sm_client_free(r->info23.info.logon_script.string, &st);
+        rpc_sm_client_free(r->info23.info.profile_path.string, &st);
+        rpc_sm_client_free(r->info23.info.description.string, &st);
+        rpc_sm_client_free(r->info23.info.workstations.string, &st);
+        rpc_sm_client_free(r->info23.info.comment.string, &st);
+        rpc_sm_client_free(r->info23.info.parameters.string, &st);
+        rpc_sm_client_free(r->info23.info.unknown1.string, &st);
+        rpc_sm_client_free(r->info23.info.unknown2.string, &st);
+        rpc_sm_client_free(r->info23.info.unknown3.string, &st);
         if (&r->info23.info.buf_count) {
-            SAFE_FREE(r->info23.info.buffer);
+            rpc_sm_client_free(r->info23.info.buffer, &st);
         }
-        SAFE_FREE(r->info23.info.logon_hours.units);
+        rpc_sm_client_free(r->info23.info.logon_hours.units, &st);
 
         break;
 
     case 25:
-        FreeUnicodeString(&r->info25.info.account_name);
-        FreeUnicodeString(&r->info25.info.full_name);
-        FreeUnicodeString(&r->info25.info.home_directory);
-        FreeUnicodeString(&r->info25.info.home_drive);
-        FreeUnicodeString(&r->info25.info.logon_script);
-        FreeUnicodeString(&r->info25.info.profile_path);
-        FreeUnicodeString(&r->info25.info.description);
-        FreeUnicodeString(&r->info25.info.workstations);
-        FreeUnicodeString(&r->info25.info.comment);
-        FreeUnicodeString(&r->info25.info.parameters);
-        FreeUnicodeString(&r->info25.info.unknown1);
-        FreeUnicodeString(&r->info25.info.unknown2);
-        FreeUnicodeString(&r->info25.info.unknown3);
+        rpc_sm_client_free(r->info25.info.account_name.string, &st);
+        rpc_sm_client_free(r->info25.info.full_name.string, &st);
+        rpc_sm_client_free(r->info25.info.home_directory.string, &st);
+        rpc_sm_client_free(r->info25.info.home_drive.string, &st);
+        rpc_sm_client_free(r->info25.info.logon_script.string, &st);
+        rpc_sm_client_free(r->info25.info.profile_path.string, &st);
+        rpc_sm_client_free(r->info25.info.description.string, &st);
+        rpc_sm_client_free(r->info25.info.workstations.string, &st);
+        rpc_sm_client_free(r->info25.info.comment.string, &st);
+        rpc_sm_client_free(r->info25.info.parameters.string, &st);
+        rpc_sm_client_free(r->info25.info.unknown1.string, &st);
+        rpc_sm_client_free(r->info25.info.unknown2.string, &st);
+        rpc_sm_client_free(r->info25.info.unknown3.string, &st);
         if (&r->info25.info.buf_count) {
-            SAFE_FREE(r->info25.info.buffer);
+            rpc_sm_client_free(r->info25.info.buffer, &st);
         }
-        SAFE_FREE(r->info25.info.logon_hours.units);
+        rpc_sm_client_free(r->info25.info.logon_hours.units, &st);
 
         break;
     }
@@ -327,8 +355,10 @@ void SamrCleanStubUserInfo(UserInfo *r, uint16 level)
 
 void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level)
 {
+    uint32 st = 0;
+
     SamrCleanStubUserInfo(ptr, level);
-    free(ptr);
+    rpc_sm_client_free(ptr, &st);
 }
 
 
@@ -338,14 +368,15 @@ SamrCleanStubDisplayInfoFull(
     SamrDisplayInfoFull *ptr
     )
 {
+    uint32 st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
         SamrDisplayEntryFull *e = &(ptr->entries[i]);
 
-        FreeUnicodeString(&e->account_name);
-        FreeUnicodeString(&e->description);
-        FreeUnicodeString(&e->full_name);
+        rpc_sm_client_free(e->account_name.string, &st);
+        rpc_sm_client_free(e->description.string, &st);
+        rpc_sm_client_free(e->full_name.string, &st);
     }
 }
 
@@ -356,13 +387,14 @@ SamrCleanStubDisplayInfoGeneral(
     SamrDisplayInfoGeneral *ptr
     )
 {
+    uint32 st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
         SamrDisplayEntryGeneral *e = &(ptr->entries[i]);
 
-        FreeUnicodeString(&e->account_name);
-        FreeUnicodeString(&e->description);
+        rpc_sm_client_free(e->account_name.string, &st);
+        rpc_sm_client_free(e->description.string, &st);
     }
 }
 
@@ -373,13 +405,14 @@ SamrCleanStubDisplayInfoGeneralGroups(
     SamrDisplayInfoGeneralGroups *ptr
     )
 {
+    uint32 st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
         SamrDisplayEntryGeneralGroup *e = &(ptr->entries[i]);
 
-        FreeUnicodeString(&e->account_name);
-        FreeUnicodeString(&e->description);
+        rpc_sm_client_free(e->account_name.string, &st);
+        rpc_sm_client_free(e->description.string, &st);
     }
 }
 
@@ -390,13 +423,14 @@ SamrCleanStubDisplayInfoAscii(
     SamrDisplayInfoAscii *ptr
     )
 {
+    uint32 st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
         SamrDisplayEntryAscii *e = &(ptr->entries[i]);
 
         if (e->account_name.Buffer) {
-            SamrFreeMemory(e->account_name.Buffer);
+            rpc_sm_client_free(e->account_name.Buffer, &st);
         }
     }
 }
