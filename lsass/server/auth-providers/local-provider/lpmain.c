@@ -204,7 +204,8 @@ LocalServicesDomain(
 
     if (!IsNullOrEmptyString(pszDomain) &&
         (!strcasecmp(pszDomain, gLPGlobals.pszNetBIOSName) ||
-         !strcasecmp(pszDomain, gLPGlobals.pszLocalDomain)))
+         !strcasecmp(pszDomain, gLPGlobals.pszLocalDomain) ||
+         !strcasecmp(pszDomain, gLPGlobals.pszBuiltinDomain)))
     {
         bResult = TRUE;
     }
@@ -454,9 +455,8 @@ LocalFindUserByNameEx(
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pszLoginId,
-                    gLPGlobals.pszLocalDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -726,6 +726,7 @@ LocalFindGroupByNameEx(
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
     PWSTR pwszGroupDN = NULL;
+    PCSTR pszDomainName = NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
@@ -733,17 +734,10 @@ LocalFindGroupByNameEx(
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pszGroupName,
-                    gLPGlobals.pszLocalDomain,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
-
-    if (!LocalServicesDomain(pLoginInfo->pszFullDomainName))
-    {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     if (!strcasecmp(pLoginInfo->pszName, "root"))
     {
@@ -751,9 +745,24 @@ LocalFindGroupByNameEx(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
+    {
+        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pLoginInfo->pszFullDomainName)
+    {
+        pszDomainName = pLoginInfo->pszFullDomainName;
+    }
+    else
+    {
+        pszDomainName = gLPGlobals.pszLocalDomain;
+    }
+
     dwError = LocalDirFindGroupByName(
                     hProvider,
-                    pLoginInfo->pszFullDomainName,
+                    pszDomainName,
                     pLoginInfo->pszName,
                     dwInfoLevel,
                     (ppwszGroupDN ? &pwszGroupDN : NULL),
@@ -1161,9 +1170,8 @@ LocalOpenSession(
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pszLoginId,
-                    NULL,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 

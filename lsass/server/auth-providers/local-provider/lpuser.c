@@ -1927,9 +1927,8 @@ LocalDirAddUser_0(
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
-    dwError = LsaCrackDomainQualifiedName(
+    dwError = LocalCrackDomainQualifiedName(
                     pUserInfo->pszName,
-                    NULL,
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
