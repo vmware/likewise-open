@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -137,7 +137,7 @@ error:
 }
 
 DWORD
-LsaMoveFile(    
+LsaMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     )
@@ -185,16 +185,16 @@ LsaChangeOwner(
 {
     DWORD dwError = 0;
     struct stat statbuf = {0};
-    
+
     if (lstat(pszPath, &statbuf) < 0) {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     while (1) {
 
         if (S_ISLNK(statbuf.st_mode)) {
-            
+
             if (lchown(pszPath, uid, gid) < 0) {
                 if (errno == EINTR) {
                     continue;
@@ -204,9 +204,9 @@ LsaChangeOwner(
             } else {
                 break;
             }
-            
+
         } else {
-            
+
             if (chown(pszPath, uid, gid) < 0) {
                 if (errno == EINTR) {
                     continue;
@@ -470,7 +470,7 @@ error:
 
 DWORD
 LsaCreateDirectory(
-    PSTR pszPath,
+    PCSTR pszPath,
     mode_t dwFileMode
     )
 {
@@ -602,7 +602,7 @@ LsaGetOwnerAndPermissions(
     *mode = statbuf.st_mode;
 
 error:
- 
+
     return dwError;
 }
 
@@ -788,22 +788,22 @@ LsaGetSymlinkTarget(
 
        break;
     }
-    
+
     dwError = LsaAllocateString(
                     szBuf,
                     &pszTargetPath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     *ppszTargetPath = pszTargetPath;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszTargetPath = NULL;
-    
+
     LSA_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
@@ -833,12 +833,12 @@ LsaCopyDirectory(
     CHAR  szSrcPath[PATH_MAX+1];
     CHAR  szDstPath[PATH_MAX+1];
     PSTR  pszTargetPath = NULL;
-    
+
     if (NULL == (pDir = opendir(pszSourceDirPath))) {
        dwError = errno;
        BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     while (NULL != (pDirEntry = readdir(pDir)))
     {
         if (!strcmp(pDirEntry->d_name, ".") ||
@@ -847,61 +847,61 @@ LsaCopyDirectory(
             continue;
 
         memset(&statbuf, 0, sizeof(statbuf));
-        
+
         sprintf(szSrcPath, "%s/%s", pszSourceDirPath, pDirEntry->d_name);
-        
+
         if (lstat(szSrcPath, &statbuf) < 0) {
             dwError = errno;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         sprintf(szDstPath, "%s/%s", pszDestDirPath, pDirEntry->d_name);
-        
+
         if (S_ISDIR(statbuf.st_mode)) {
-            
+
             dwError = LsaCreateDirectory(
                             szDstPath,
                             statbuf.st_mode);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaCopyDirectory(
                             szSrcPath,
                             ownerUid,
                             ownerGid,
                             szDstPath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         } else if (S_ISREG(statbuf.st_mode)) {
-            
+
             dwError = LsaCopyFileWithOriginalPerms(
                             szSrcPath,
                             szDstPath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
         } else if (S_ISLNK(statbuf.st_mode)) {
-            
+
             dwError = LsaGetSymlinkTarget(
                             szSrcPath,
                             &pszTargetPath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaCreateSymlink(
                             pszTargetPath,
                             szDstPath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             dwError = LsaChangeOwner(
                             szDstPath,
                             ownerUid,
@@ -909,17 +909,17 @@ LsaCopyDirectory(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (pDir) {
         closedir(pDir);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -981,10 +981,10 @@ LsaGetMatchingFilePathsInFolder(
     while ((pDirEntry = readdir(pDir)) != NULL) {
 
         int copied = snprintf(
-                            szBuf, 
-                            sizeof(szBuf), 
-                            "%s/%s", 
-                            pszDirPath, 
+                            szBuf,
+                            sizeof(szBuf),
+                            "%s/%s",
+                            pszDirPath,
                             pDirEntry->d_name);
         if (copied >= sizeof(szBuf))
         {
@@ -1046,7 +1046,7 @@ LsaGetMatchingFilePathsInFolder(
 
     *pppszHostFilePaths = ppszHostFilePaths;
     *pdwNPaths = dwNPaths;
-    
+
 cleanup:
 
     if (pPathNode) {

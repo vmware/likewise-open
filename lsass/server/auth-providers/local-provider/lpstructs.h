@@ -107,7 +107,6 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
 
 typedef struct _LOCAL_PROVIDER_GROUP_MEMBER
 {
-    PSTR pszDomain;
     PSTR pszNetbiosDomain;
     PSTR pszSamAccountName;
     PSTR pszSID;

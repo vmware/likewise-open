@@ -987,7 +987,7 @@ LsaCheckDirectoryExists(
 
 DWORD
 LsaCreateDirectory(
-    PSTR pszPath,
+    PCSTR pszPath,
     mode_t dwFileMode
     );
 

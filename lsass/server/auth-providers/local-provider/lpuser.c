@@ -176,6 +176,7 @@ LocalDirFindUserByName_0(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -187,6 +188,7 @@ LocalDirFindUserByName_0(
         &wszAttrNameHomedir[0],
         &wszAttrNameObjectSID[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -305,7 +307,8 @@ LocalDirFindUserByName_1(
     wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameDN[]        = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -318,6 +321,7 @@ LocalDirFindUserByName_1(
         &wszAttrNameUPN[0],
         &wszAttrNameObjectSID[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -444,6 +448,7 @@ LocalDirFindUserByName_2(
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -461,6 +466,7 @@ LocalDirFindUserByName_2(
         &wszAttrNameAccountExpiry[0],
         &wszAttrNamePasswdLastSet[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -641,6 +647,7 @@ LocalDirFindUserById_0(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -652,6 +659,7 @@ LocalDirFindUserById_0(
         &wszAttrNameHomedir[0],
         &wszAttrNameObjectSID[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -769,6 +777,7 @@ LocalDirFindUserById_1(
     wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -782,6 +791,7 @@ LocalDirFindUserById_1(
         &wszAttrNameDomain[0],
         &wszAttrNameObjectSID[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -914,6 +924,7 @@ LocalDirFindUserById_2(
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -932,6 +943,7 @@ LocalDirFindUserById_2(
         &wszAttrNamePasswdLastSet[0],
         &wszAttrNameDomain[0],
         &wszAttrNameDN[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -1194,6 +1206,7 @@ LocalDirBeginEnumUsers_0(
     wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -1204,6 +1217,7 @@ LocalDirBeginEnumUsers_0(
         &wszAttrNameShell[0],
         &wszAttrNameHomedir[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PCSTR pszFilterTemplate =
@@ -1282,6 +1296,7 @@ LocalDirBeginEnumUsers_1(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -1293,6 +1308,7 @@ LocalDirBeginEnumUsers_1(
         &wszAttrNameHomedir[0],
         &wszAttrNameUPN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PCSTR pszFilterTemplate =
@@ -1376,6 +1392,7 @@ LocalDirBeginEnumUsers_2(
     wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameUID[0],
@@ -1392,6 +1409,7 @@ LocalDirBeginEnumUsers_2(
         &wszAttrNameUserInfoFlags[0],
         &wszAttrNameAccountExpiry[0],
         &wszAttrNamePasswdLastSet[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PCSTR pszFilterTemplate =
@@ -1825,7 +1843,9 @@ LocalDirAddUser_0(
         LOCAL_DAU0_IDX_SHELL,
         LOCAL_DAU0_IDX_HOMEDIR,
         LOCAL_DAU0_IDX_OBJECTSID,
-        LOCAL_DAU0_IDX_OBJECTCLASS
+        LOCAL_DAU0_IDX_OBJECTCLASS,
+        LOCAL_DAU0_IDX_DOMAIN,
+        LOCAL_DAU0_IDX_NETBIOS_DOMAIN
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1864,6 +1884,14 @@ LocalDirAddUser_0(
             {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                     .data.ulValue = LOCAL_OBJECT_CLASS_USER
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_DOMAIN */
+                    .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    .data.pwszStringValue = NULL
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
+                    .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    .data.pwszStringValue = NULL
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1872,6 +1900,8 @@ LocalDirAddUser_0(
     WCHAR wszAttrGecos[]          = LOCAL_DIR_ATTR_GECOS;
     WCHAR wszAttrShell[]          = LOCAL_DIR_ATTR_SHELL;
     WCHAR wszAttrHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
+    WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DIRECTORY_MOD mods[] =
     {
             {
@@ -1912,6 +1942,18 @@ LocalDirAddUser_0(
             },
             {
                     DIR_MOD_FLAGS_ADD,
+                    &wszAttrDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameNetBIOSDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
                     NULL,
                     1,
                     NULL
@@ -1924,6 +1966,8 @@ LocalDirAddUser_0(
     PWSTR pwszHomedir = NULL;
     PSTR  pszHomedir = NULL;
     PWSTR pwszPassword = NULL;
+    PWSTR pwszDomain        = NULL;
+    PWSTR pwszNetBIOSDomain = NULL;
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
@@ -1937,6 +1981,20 @@ LocalDirAddUser_0(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszFullDomainName,
+                    &pwszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAU0_IDX_DOMAIN].data.pwszStringValue = pwszDomain;
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszDomainNetBiosName,
+                    &pwszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
 
     dwError = LsaMbsToWc16s(
                     pUserInfo->pszName,
@@ -2047,6 +2105,8 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszHomedir);
     LSA_SAFE_FREE_STRING(pszHomedir);
     LSA_SAFE_FREE_MEMORY(pwszPassword);
+    LSA_SAFE_FREE_MEMORY(pwszDomain);
+    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
 
     return dwError;
 

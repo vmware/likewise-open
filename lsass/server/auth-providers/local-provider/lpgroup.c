@@ -161,12 +161,14 @@ LocalDirFindGroupByName_0(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -281,12 +283,14 @@ LocalDirFindGroupByName_1(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -448,12 +452,14 @@ LocalDirFindGroupById_0(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -538,7 +544,7 @@ error:
     {
         *ppwszGroupDN = NULL;
     }
-    *ppGroupInfo = pGroupInfo;
+    *ppGroupInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszGroupDN);
 
@@ -564,12 +570,14 @@ LocalDirFindGroupById_1(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
@@ -642,6 +650,7 @@ LocalDirFindGroupById_1(
         *ppwszGroupDN = pwszGroupDN;
         pwszGroupDN = NULL;
     }
+
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
@@ -664,7 +673,7 @@ error:
     {
         *ppwszGroupDN = NULL;
     }
-    *ppGroupInfo = pGroupInfo;
+    *ppGroupInfo = NULL;
 
     if (pGroupInfo)
     {
@@ -731,12 +740,14 @@ LocalDirGetGroupsForUser_0(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR     pwszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PDIRECTORY_ENTRY   pDirectoryEntries = NULL;
@@ -814,12 +825,14 @@ LocalDirGetGroupsForUser_1(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR     pwszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PDIRECTORY_ENTRY   pDirectoryEntries = NULL;
@@ -944,11 +957,13 @@ LocalDirBeginEnumGroups_0(
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PCSTR pszFilterTemplate =
@@ -1022,12 +1037,14 @@ LocalDirBeginEnumGroups_1(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR wszAttrs[] =
     {
         &wszAttrNameGID[0],
         &wszAttrNameSamAccountName[0],
         &wszAttrNameDN[0],
         &wszAttrNameObjectSID[0],
+        &wszAttrNameNetBIOSDomain[0],
         NULL
     };
     PCSTR pszFilterTemplate =
@@ -1485,7 +1502,6 @@ LocalDirGetGroupMembersInternal(
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     wchar16_t wszAttrNameNetbiosName[]    = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PWSTR     pwszAttrs[] =
     {
@@ -1493,7 +1509,6 @@ LocalDirGetGroupMembersInternal(
             &wszAttrNameObjectSID[0],
             &wszAttrNameDN[0],
             &wszAttrNameSamAccountName[0],
-            &wszAttrNameDomain[0],
             &wszAttrNameNetbiosName[0],
             NULL
     };
@@ -1571,12 +1586,6 @@ LocalDirGetGroupMembersInternal(
 
                     pGroupMember->pszSID = pszSID;
                     pszSID = NULL;
-
-                    dwError = LocalMarshalAttrToANSIString(
-                                    pEntry,
-                                    &wszAttrNameDomain[0],
-                                    &pGroupMember->pszDomain);
-                    BAIL_ON_LSA_ERROR(dwError);
 
                     dwError = LocalMarshalAttrToANSIString(
                                     pEntry,
@@ -1686,7 +1695,9 @@ LocalDirAddGroup_0(
     enum AttrValueIndex
     {
         LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
-        LOCAL_DAG0_IDX_OBJECTCLASS
+        LOCAL_DAG0_IDX_OBJECTCLASS,
+        LOCAL_DAG0_IDX_DOMAIN,
+        LOCAL_DAG0_IDX_NETBIOS_DOMAIN
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1697,11 +1708,21 @@ LocalDirAddGroup_0(
         {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
                 .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                 .data.ulValue = LOCAL_OBJECT_CLASS_GROUP
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_DOMAIN */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
         }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszCNPrefix[]           = LOCAL_DIR_CN_PREFIX;
+    WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DIRECTORY_MOD mods[] =
     {
             {
@@ -1718,12 +1739,26 @@ LocalDirAddGroup_0(
             },
             {
                     DIR_MOD_FLAGS_ADD,
+                    &wszAttrDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameNetBIOSDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
                     NULL,
                     1,
                     NULL
             }
     };
     PWSTR pwszSamAccountName = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszNetBIOSDomain = NULL;
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
@@ -1737,6 +1772,20 @@ LocalDirAddGroup_0(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszFullDomainName,
+                    &pwszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAG0_IDX_DOMAIN].data.pwszStringValue = pwszDomain;
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszDomainNetBiosName,
+                    &pwszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
 
     dwError = LsaMbsToWc16s(
                     pGroupInfo->pszName,
@@ -1780,6 +1829,8 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pwszGroupDN);
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
+    LSA_SAFE_FREE_MEMORY(pwszDomain);
+    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
 
     return dwError;
 
@@ -1802,7 +1853,9 @@ LocalDirAddGroup_1(
     enum AttrValueIndex
     {
         LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
-        LOCAL_DAG0_IDX_OBJECTCLASS
+        LOCAL_DAG0_IDX_OBJECTCLASS,
+        LOCAL_DAG0_IDX_DOMAIN,
+        LOCAL_DAG0_IDX_NETBIOS_DOMAIN
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1813,11 +1866,21 @@ LocalDirAddGroup_1(
         {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
                 .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                 .data.ulValue = LOCAL_OBJECT_CLASS_GROUP
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_DOMAIN */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
         }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszCNPrefix[]           = LOCAL_DIR_CN_PREFIX;
+    WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DIRECTORY_MOD mods[] =
     {
             {
@@ -1834,12 +1897,26 @@ LocalDirAddGroup_1(
             },
             {
                     DIR_MOD_FLAGS_ADD,
+                    &wszAttrDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameNetBIOSDomain[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
                     NULL,
                     1,
                     NULL
             }
     };
     PWSTR pwszSamAccountName = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszNetBIOSDomain = NULL;
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
@@ -1853,6 +1930,20 @@ LocalDirAddGroup_1(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszFullDomainName,
+                    &pwszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAG0_IDX_DOMAIN].data.pwszStringValue = pwszDomain;
+
+    dwError = LsaMbsToWc16s(
+                    pLoginInfo->pszDomainNetBiosName,
+                    &pwszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
 
     dwError = LsaMbsToWc16s(
                     pGroupInfo->pszName,
@@ -1905,6 +1996,8 @@ cleanup:
 
     LSA_SAFE_FREE_MEMORY(pwszGroupDN);
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
+    LSA_SAFE_FREE_MEMORY(pwszDomain);
+    LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
 
     return dwError;
 
@@ -2053,7 +2146,6 @@ LocalDirFreeGroupMember(
     PLOCAL_PROVIDER_GROUP_MEMBER pMember
     )
 {
-    LSA_SAFE_FREE_STRING(pMember->pszDomain);
     LSA_SAFE_FREE_STRING(pMember->pszNetbiosDomain);
     LSA_SAFE_FREE_STRING(pMember->pszSamAccountName);
     LSA_SAFE_FREE_STRING(pMember->pszSID);

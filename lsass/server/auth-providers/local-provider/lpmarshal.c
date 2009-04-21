@@ -74,8 +74,11 @@ LocalMarshalEntryToUserInfo_0(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
+    PSTR  pszNetBIOSDomain = NULL;
+    PSTR  pszName = NULL;
     DWORD dwInfoLevel = 0;
     DWORD dwUid = 0;
     DWORD dwGid = 0;
@@ -104,13 +107,7 @@ LocalMarshalEntryToUserInfo_0(
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
+                    &pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
@@ -151,6 +148,19 @@ LocalMarshalEntryToUserInfo_0(
                     &pUserInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameNetBIOSDomain[0],
+                    &pszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pUserInfo->pszName,
+                    "%s\\%s",
+                    pszNetBIOSDomain,
+                    pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (ppwszUserDN)
     {
         dwError = LocalMarshalAttrToUnicodeString(
@@ -167,6 +177,9 @@ LocalMarshalEntryToUserInfo_0(
     *ppUserInfo = pUserInfo;
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LSA_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -207,8 +220,11 @@ LocalMarshalEntryToUserInfo_1(
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PLSA_USER_INFO_1 pUserInfo = NULL;
     PWSTR  pwszUserDN = NULL;
+    PSTR   pszNetBIOSDomain = NULL;
+    PSTR   pszName = NULL;
     DWORD dwInfoLevel = 1;
     DWORD dwUid = 0;
     DWORD dwGid = 0;
@@ -237,13 +253,7 @@ LocalMarshalEntryToUserInfo_1(
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
+                    &pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
@@ -294,6 +304,19 @@ LocalMarshalEntryToUserInfo_1(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameNetBIOSDomain[0],
+                    &pszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pUserInfo->pszName,
+                    "%s\\%s",
+                    pszNetBIOSDomain,
+                    pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (ppwszUserDN)
     {
         dwError = LocalMarshalAttrToUnicodeString(
@@ -326,6 +349,9 @@ LocalMarshalEntryToUserInfo_1(
     *ppUserInfo = pUserInfo;
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LSA_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -371,8 +397,11 @@ LocalMarshalEntryToUserInfo_2(
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
+    PSTR  pszName = NULL;
+    PSTR  pszNetBIOSDomain = NULL;
     DWORD  dwInfoLevel = 2;
     DWORD  dwUserInfoFlags = 0;
     LONG64 llAccountExpiry = 0;
@@ -404,13 +433,7 @@ LocalMarshalEntryToUserInfo_2(
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameSamAccountName[0],
-                    &pUserInfo->pszName);
+                    &pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
@@ -459,6 +482,19 @@ LocalMarshalEntryToUserInfo_2(
     {
         dwError = 0;
     }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameNetBIOSDomain[0],
+                    &pszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pUserInfo->pszName,
+                    "%s\\%s",
+                    pszNetBIOSDomain,
+                    pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToInteger(
@@ -532,6 +568,9 @@ LocalMarshalEntryToUserInfo_2(
     *ppUserInfo = pUserInfo;
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LSA_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -674,7 +713,10 @@ LocalMarshalEntryToGroupInfo_0(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DWORD dwInfoLevel = 0;
+    PSTR  pszNetBIOSDomain = NULL;
+    PSTR  pszName = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     PWSTR pwszGroupDN = NULL;
     DWORD dwGid = 0;
@@ -695,13 +737,26 @@ LocalMarshalEntryToGroupInfo_0(
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
-                    &pGroupInfo->pszName);
+                    &pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameObjectSID[0],
                     &pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameNetBIOSDomain[0],
+                    &pszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pGroupInfo->pszName,
+                    "%s\\%s",
+                    pszNetBIOSDomain,
+                    pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppwszGroupDN)
@@ -720,6 +775,9 @@ LocalMarshalEntryToGroupInfo_0(
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LSA_SAFE_FREE_STRING(pszName);
 
     return dwError;
 
@@ -753,7 +811,10 @@ LocalMarshalEntryToGroupInfo_1(
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DWORD dwInfoLevel = 1;
+    PSTR  pszName = NULL;
+    PSTR  pszNetBIOSDomain = NULL;
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
     PWSTR pwszGroupDN = NULL;
     DWORD dwGid = 0;
@@ -774,13 +835,26 @@ LocalMarshalEntryToGroupInfo_1(
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
-                    &pGroupInfo->pszName);
+                    &pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
                     &wszAttrNameObjectSID[0],
                     &pGroupInfo->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameNetBIOSDomain[0],
+                    &pszNetBIOSDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pGroupInfo->pszName,
+                    "%s\\%s",
+                    pszNetBIOSDomain,
+                    pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppwszGroupDN)
@@ -799,6 +873,9 @@ LocalMarshalEntryToGroupInfo_1(
     *ppGroupInfo = pGroupInfo;
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszNetBIOSDomain);
+    LSA_SAFE_FREE_STRING(pszName);
 
     return dwError;
 

@@ -850,6 +850,10 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
          SAM_DB_ATTR_FLAGS_DERIVATIVE)                            \
     },                                                            \
     {                                                             \
+        SAM_DB_DIR_ATTR_NETBIOS_NAME,                             \
+        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY  \
+    },                                                            \
+    {                                                             \
         SAM_DB_DIR_ATTR_CREATED_TIME,                             \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
          SAM_DB_ATTR_FLAGS_READONLY  |                            \
@@ -989,12 +993,6 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
 #define SAMDB_CONTAINER_ATTRIBUTE_MAP                            \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
-        SAM_DB_DIR_ATTR_DOMAIN,                                  \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY |                            \
-         SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)            \
-    },                                                           \
-    {                                                            \
         SAM_DB_DIR_ATTR_COMMON_NAME,                             \
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
     },                                                           \
@@ -1034,10 +1032,6 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
 
 #define SAMDB_DOMAIN_ATTRIBUTE_MAP                               \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
-    {                                                            \
-        SAM_DB_DIR_ATTR_NETBIOS_NAME,                            \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
-    },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_COMMON_NAME,                             \
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
