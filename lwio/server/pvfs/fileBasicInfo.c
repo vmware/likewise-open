@@ -215,11 +215,9 @@ PvfsSetFileBasicInfo(
     ntError = PvfsValidatePath(pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Take the max of Change and Write time.  Drop Creation time. */
+    /* We cant's set the Change Time so ignore it */
 
-    WriteTime = (pFileInfo->LastWriteTime > pFileInfo->ChangeTime) ?
-                 pFileInfo->LastWriteTime :
-                 pFileInfo->ChangeTime;
+    WriteTime  = pFileInfo->LastWriteTime;
     AccessTime = pFileInfo->LastAccessTime;
 
     /* Ignore 0xffffffff */
