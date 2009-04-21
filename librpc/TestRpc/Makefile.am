@@ -28,6 +28,7 @@ testrpc_CFLAGS = -g $(INCLUDES) -D_GNU_SOURCE -DLIBRPC_BUILD $(AM_CFLAGS)
 testrpc_LDFLAGS = $(PSTORE_LDFLAGS) $(KEYTAB_LDFLAGS) -rpath ${libdir}
 testrpc_LDADD = \
 	$(libsamr_builddir)/libsamr.la \
+	$(libsamr_builddir)/libsamr_cs.la \
 	$(liblsa_builddir)/liblsa.la \
 	$(libnetlogon_builddir)/libnetlogon.la \
 	$(liballoc_builddir)/liballoc.la \
