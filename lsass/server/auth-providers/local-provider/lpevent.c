@@ -145,6 +145,14 @@ LocalEventLogConfigReload(
     LONG64  llMaxPwdAge = 0;
     LONG64  llPasswdChangeWarningTime = 0;
     BOOLEAN bEventlogEnabled = FALSE;
+    PCSTR   pszFormat =
+        "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n"
+        "     Authentication provider:       %s\r\n\r\n"
+        "     Current settings are...\r\n"
+        "     Enable event log:              %s\r\n"
+        "     Password change interval:      %ld\r\n"
+        "     Password change warning time : %ld";
+    PCSTR   pszEventLogEnabled = NULL;
 
     dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
@@ -155,18 +163,15 @@ LocalEventLogConfigReload(
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pszEventLogEnabled = bEventlogEnabled ? "true" : "false";
+
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
-                 "Likewise authentication service provider configuration settings have been reloaded.\r\n\r\n" \
-                 "     Authentication provider:       %s\r\n\r\n" \
-                 "     Current settings are...\r\n" \
-                 "     Password change interval:      %dr\n" \
-                 "     Password change warning time : %d\r\n" \
-                 "     Enable event log:              %s",
-                 LSA_SAFE_LOG_STRING(gpszLocalProviderName),
-                 llMaxPwdAge/10000000LL,
-                 llPasswdChangeWarningTime/10000000LL,
-                 bEventlogEnabled ? "true" : "false");
+                 pszFormat,
+                 gpszLocalProviderName,
+                 pszEventLogEnabled,
+                 (LONG64)(llMaxPwdAge/10000000LL),
+                 (LONG64)(llPasswdChangeWarningTime/10000000LL));
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaSrvLogServiceSuccessEvent(
