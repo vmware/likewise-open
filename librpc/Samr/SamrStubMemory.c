@@ -33,7 +33,7 @@
 
 void SamrCleanStubRidNameArray(RidNameArray *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -47,7 +47,7 @@ void SamrCleanStubRidNameArray(RidNameArray *r)
 
 void SamrFreeStubRidNameArray(RidNameArray *ptr)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     SamrCleanStubRidNameArray(ptr);
     rpc_sm_client_free(ptr, &st);
@@ -56,7 +56,7 @@ void SamrFreeStubRidNameArray(RidNameArray *ptr)
 
 void SamrCleanStubIds(Ids *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     if (r->count) {
         rpc_sm_client_free(r->ids, &st);
@@ -66,7 +66,7 @@ void SamrCleanStubIds(Ids *r)
 
 void SamrCleanStubUnicodeStringArray(UnicodeStringArray *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -80,7 +80,7 @@ void SamrCleanStubUnicodeStringArray(UnicodeStringArray *r)
 
 void SamrCleanStubEntryArray(EntryArray *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -94,7 +94,7 @@ void SamrCleanStubEntryArray(EntryArray *r)
 
 void SamrFreeStubEntryArray(EntryArray *ptr)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     SamrCleanStubEntryArray(ptr);
     rpc_sm_client_free(ptr, &st);
@@ -103,7 +103,7 @@ void SamrFreeStubEntryArray(EntryArray *ptr)
 
 void SamrFreeStubDomSid(PSID ptr)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     rpc_sm_client_free(ptr, &st);
 }
@@ -111,7 +111,7 @@ void SamrFreeStubDomSid(PSID ptr)
 
 void SamrCleanStubSidArray(SidArray *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->num_sids; i++) {
@@ -125,7 +125,7 @@ void SamrCleanStubSidArray(SidArray *r)
 
 void SamrCleanStubRidWithAttributeArray(RidWithAttributeArray *r)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     rpc_sm_client_free(r->rids, &st);
 }
@@ -140,7 +140,7 @@ void SamrFreeStubRidWithAttributeArray(RidWithAttributeArray *ptr)
 
 void SamrCleanStubAliasInfo(AliasInfo *r, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     switch (level) {
     case ALIAS_INFO_ALL:
@@ -161,7 +161,7 @@ void SamrCleanStubAliasInfo(AliasInfo *r, uint16 level)
 
 void SamrFreeStubAliasInfo(AliasInfo *ptr, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     SamrCleanStubAliasInfo(ptr, level);
     rpc_sm_client_free(ptr, &st);
@@ -170,7 +170,7 @@ void SamrFreeStubAliasInfo(AliasInfo *ptr, uint16 level)
 
 void SamrCleanStubDomainInfo(DomainInfo *r, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     switch (level) {
     case 2:
@@ -199,7 +199,7 @@ void SamrCleanStubDomainInfo(DomainInfo *r, uint16 level)
 
 void SamrFreeStubDomainInfo(DomainInfo *ptr, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     SamrCleanStubDomainInfo(ptr, level);
     rpc_sm_client_free(ptr, &st);
@@ -208,7 +208,7 @@ void SamrFreeStubDomainInfo(DomainInfo *ptr, uint16 level)
 
 void SamrCleanStubUserInfo(UserInfo *r, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     switch (level) {
     case 1:
@@ -355,7 +355,7 @@ void SamrCleanStubUserInfo(UserInfo *r, uint16 level)
 
 void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     SamrCleanStubUserInfo(ptr, level);
     rpc_sm_client_free(ptr, &st);
@@ -368,7 +368,7 @@ SamrCleanStubDisplayInfoFull(
     SamrDisplayInfoFull *ptr
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
@@ -387,7 +387,7 @@ SamrCleanStubDisplayInfoGeneral(
     SamrDisplayInfoGeneral *ptr
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
@@ -405,7 +405,7 @@ SamrCleanStubDisplayInfoGeneralGroups(
     SamrDisplayInfoGeneralGroups *ptr
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {
@@ -423,7 +423,7 @@ SamrCleanStubDisplayInfoAscii(
     SamrDisplayInfoAscii *ptr
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     uint32 i = 0;
 
     for (i = 0; i < ptr->count; i++) {

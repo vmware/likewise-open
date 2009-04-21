@@ -42,7 +42,7 @@ LsaCleanStubTranslatedSidArray(
     TranslatedSidArray *r
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     rpc_sm_client_free(r->sids, &st);
 }
@@ -53,7 +53,7 @@ LsaCleanStubTranslatedSidArray2(
     TranslatedSidArray2 *r
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     rpc_sm_client_free(r->sids, &st);
 }
@@ -64,7 +64,7 @@ LsaCleanStubTranslatedSidArray3(
     TranslatedSidArray3 *r
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -80,7 +80,7 @@ LsaCleanStubTranslatedNameArray(
     TranslatedNameArray *r
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -98,7 +98,7 @@ LsaCleanStubRefDomainList(
     RefDomainList *r
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
     int i = 0;
 
     for (i = 0; i < r->count; i++) {
@@ -119,7 +119,7 @@ LsaFreeStubRefDomainList(
     RefDomainList *ptr
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     LsaCleanStubRefDomainList(ptr);
     rpc_sm_client_free(ptr, &st);
@@ -132,7 +132,7 @@ LsaCleanStubPolicyInformation(
     uint32 level
     )
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     switch (level) {
     case LSA_POLICY_INFO_AUDIT_EVENTS:
@@ -178,7 +178,7 @@ LsaFreeStubPolicyInformation(
     LsaPolicyInformation *ptr,
     uint32 level)
 {
-    uint32 st = 0;
+    RPCSTATUS st = 0;
 
     LsaCleanStubPolicyInformation(ptr, level);
     rpc_sm_client_free(ptr, &st);
