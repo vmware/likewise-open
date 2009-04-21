@@ -198,6 +198,60 @@ error:
 
 
 NTSTATUS
+LsaAllocateTranslatedSids3(
+    TranslatedSid3 **out,
+    TranslatedSidArray3 *in
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    TranslatedSid3 *ptr = NULL;
+    int i = 0;
+    int count = 0;
+
+    goto_if_invalid_param_ntstatus(out, cleanup);
+
+    count = (in == NULL) ? 1 : in->count;
+
+    status = LsaRpcAllocateMemory((void**)&ptr,
+                                  sizeof(TranslatedSid2) * count,
+                                  NULL);
+    goto_if_ntstatus_not_success(status, error);
+
+    if (in != NULL) {
+        for (i = 0; i < count; i++) {
+            ptr[i].type     = in->sids[i].type;
+            ptr[i].index    = in->sids[i].index;
+            ptr[i].unknown1 = in->sids[i].unknown1;
+
+            if (in->sids[i].sid) {
+                status = MsRpcDuplicateSid(&(ptr[i].sid), in->sids[i].sid);
+                goto_if_ntstatus_not_success(status, error);
+
+            } else {
+                ptr[i].sid = NULL;
+            }
+
+            status = LsaRpcAddDepMemory(ptr[i].sid, ptr);
+            goto_if_ntstatus_not_success(status, error);
+        }
+    }
+
+    *out = ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        LsaRpcFreeMemory((void*)ptr);
+    }
+
+    *out = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
 LsaAllocateRefDomainList(
     RefDomainList **out,
     RefDomainList *in

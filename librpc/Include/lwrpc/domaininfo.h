@@ -78,7 +78,7 @@ typedef struct domain_info_6 {
 #define SAMR_ROLE_DOMAIN_PDC      3
 
 typedef struct domain_info_7 {
-    uint16 role;
+    uint32 role;
 } DomainInfo7;
 
 typedef struct domain_info_8 {

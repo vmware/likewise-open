@@ -35,6 +35,7 @@ libsamr_la_SOURCES = \
     SamrOpenAlias.c \
     SamrConnect3.c \
     SamrConnect4.c \
+    SamrConnect5.c \
     SamrCreateUser2.c \
     SamrGetUserPwInfo.c \
     SamrChangePasswordUser2.c \
@@ -65,6 +66,6 @@ CLEANFILES = samr_h.h samr_cstub.c samr_sstub.c
 
 BUILT_SOURCES = samr_cstub.c samr_h.h
 
-samr_h.h samr_cstub.c: $(idl_srcdir)/samr.idl
+samr_h.h samr_cstub.c: $(idl_srcdir)/samr.idl samr.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \
 		$(LIBRPC_INCLUDES) $<

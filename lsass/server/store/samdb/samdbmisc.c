@@ -319,6 +319,8 @@ SamDbGetObjectCount(
         dwNumObjects = sqlite3_column_int(
                             pSqlStatement,
                             0);
+
+        dwError = LSA_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -385,7 +387,7 @@ SamDbGetObjectRecordInfo_inlock(
     PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_RECORD_ID "," \
                                        SAM_DB_COL_OBJECT_CLASS  \
                              "  FROM " SAM_DB_OBJECTS_TABLE     \
-                             "   AND " SAM_DB_COL_DISTINGUISHED_NAME " = ?2";
+                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1";
 
     BAIL_ON_INVALID_POINTER(pszObjectDN);
 
@@ -399,7 +401,7 @@ SamDbGetObjectRecordInfo_inlock(
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
-                    2,
+                    1,
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
@@ -420,6 +422,8 @@ SamDbGetObjectRecordInfo_inlock(
         objectClass = sqlite3_column_int(
                                 pSqlStatement,
                                 1);
+
+        dwError = LSA_ERROR_SUCCESS;
     }
     else if (dwError == SQLITE_DONE)
     {

@@ -13,6 +13,7 @@ liblsa_la_SOURCES = \
     LsaClose.c \
     LsaLookupNames.c \
     LsaLookupNames2.c \
+    LsaLookupNames3.c \
     LsaLookupSids.c \
     LsaQueryInfoPolicy.c \
     LsaQueryInfoPolicy2.c
@@ -41,6 +42,6 @@ CLEANFILES = lsa_h.h lsa_cstub.c lsa_sstub.c
 
 BUILT_SOURCES = lsa_cstub.c lsa_h.h
 
-lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl
+lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl lsa.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
 		$(LIBRPC_INCLUDES) $<

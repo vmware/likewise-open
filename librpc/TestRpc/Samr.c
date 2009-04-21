@@ -148,6 +148,10 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
         return NULL;
     }
 
+    if (access_token) {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     SAFE_FREE(hostname);
     return *binding;
 }
@@ -563,8 +567,15 @@ CallSamrConnect(
     uint32 access_mask = SAMR_ACCESS_OPEN_DOMAIN |
                          SAMR_ACCESS_ENUM_DOMAINS |
                          SAMR_ACCESS_CONNECT_TO_SERVER;
+    uint32 level_in = 0;
+    uint32 level_out = 0;
+    SamrConnectInfo info_in;
+    SamrConnectInfo info_out;
     PolicyHandle hConn;
     PolicyHandle h;
+
+    memset(&info_in, 0, sizeof(info_in));
+    memset(&info_out, 0, sizeof(info_out));
 
     DISPLAY_COMMENT(("Testing SamrConnect2\n"));
 
@@ -597,6 +608,25 @@ CallSamrConnect(
     status = SamrConnect4(hBinding, system_name, 0, access_mask, &h);
     if (status) {
         DISPLAY_ERROR(("SamrConnect4 error %s\n", NtStatusToName(status)));
+        ret = FALSE;
+    } else {
+        if (connected) {
+            CallSamrClose(hBinding, &hConn);
+        }
+
+        connected = TRUE;
+        hConn     = h;
+    }
+
+    DISPLAY_COMMENT(("Testing SamrConnect5\n"));
+
+    level_in = 1;
+    info_in.info1.client_version = SAMR_CONNECT_POST_WIN2K;
+
+    status = SamrConnect5(hBinding, system_name, access_mask, level_in, &info_in,
+                          &level_out, &info_out, &h);
+    if (status) {
+        DISPLAY_ERROR(("SamrConnect5 error %s\n", NtStatusToName(status)));
         ret = FALSE;
     } else {
         if (connected) {
@@ -849,6 +879,42 @@ CallSamrOpenDomains(
 
 
 int
+TestSamrConnect(struct test *t, const wchar16_t *hostname,
+                const wchar16_t *user, const wchar16_t *pass,
+                struct parameter *options, int optcount)
+{
+    PCSTR pszDefSysName = "";
+
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    handle_t hBinding = NULL;
+    PolicyHandle hConn;
+    PWSTR pwszSysName = NULL;
+
+    perr = fetch_value(options, optcount, "systemname", pt_w16string,
+                       &pwszSysName, &pszDefSysName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
+
+    CreateSamrBinding(&hBinding, hostname);
+
+    ret &= CallSamrConnect(hBinding,
+                           pwszSysName,
+                           &hConn);
+
+    ret &= CallSamrClose(hBinding,
+                         &hConn);
+
+done:
+    return (int)ret;
+}
+
+
+
+int
 TestSamrDomains(struct test *t, const wchar16_t *hostname,
                 const wchar16_t *user, const wchar16_t *pass,
                 struct parameter *options, int optcount)
@@ -1069,6 +1135,8 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
 
 done:
     SAFE_FREE(username);
+    SAFE_FREE(domainname);
+
     SamrDestroyMemory();
 
     return (status == STATUS_SUCCESS);
@@ -3168,7 +3236,10 @@ done:
 
 void SetupSamrTests(struct test *t)
 {
-    SamrInitMemory();
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrInitMemory();
+    if (status) return;
 
     AddTest(t, "SAMR-QUERY-USER", TestSamrQueryUser);
     AddTest(t, "SAMR-QUERY-ALIAS", TestSamrQueryAlias);
@@ -3187,6 +3258,7 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-GET-USER-GROUPS", TestSamrGetUserGroups);
     AddTest(t, "SAMR-GET-USER-ALIASES", TestSamrGetUserAliases);
     AddTest(t, "SAMR-QUERY-DISPLAY-INFO", TestSamrQueryDisplayInfo);
+    AddTest(t, "SAMR-CONNECT", TestSamrConnect);
     AddTest(t, "SAMR-DOMAINS", TestSamrDomains);
     AddTest(t, "SAMR-DOMAINS-QUERY", TestSamrDomainsQuery);
 }

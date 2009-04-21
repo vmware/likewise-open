@@ -97,7 +97,7 @@ SamDbGetGroupMembers(
             "  FROM " SAM_DB_OBJECTS_TABLE " sdo" \
             " WHERE sdo." SAM_DB_COL_RECORD_ID \
             "    IN (SELECT " SAM_DB_COL_MEMBER_RECORD_ID \
-            "          FROM " SAM_DB_MEMBERS_TABLE "sdm" \
+            "          FROM " SAM_DB_MEMBERS_TABLE " sdm" \
             "         WHERE sdm." SAM_DB_COL_GROUP_RECORD_ID " = ?1);";
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;
@@ -192,7 +192,7 @@ SamDbGetUserMemberships(
             "  FROM " SAM_DB_OBJECTS_TABLE " sdo" \
             " WHERE sdo." SAM_DB_COL_RECORD_ID \
             "    IN (SELECT " SAM_DB_COL_GROUP_RECORD_ID \
-            "          FROM " SAM_DB_MEMBERS_TABLE "sdm" \
+            "          FROM " SAM_DB_MEMBERS_TABLE " sdm" \
             "         WHERE sdm." SAM_DB_COL_MEMBER_RECORD_ID " = ?1);";
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     PSAM_DB_COLUMN_VALUE pColumnValueList = NULL;

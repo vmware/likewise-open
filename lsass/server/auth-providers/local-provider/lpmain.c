@@ -1402,6 +1402,8 @@ LocalRefreshConfiguration(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
     LocalEventLogConfigReload();
 
 cleanup:

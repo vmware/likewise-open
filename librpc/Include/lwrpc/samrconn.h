@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,59 +28,30 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Lsa rpc stub memory cleanup routines (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _LSA_STUB_MEMORY_H_
-#define _LSA_STUB_MEMORY_H_
+#ifndef _SAMRCONN_H_
+#define _SAMRCONN_H_
 
 
-void
-LsaCleanStubTranslatedSidArray(
-    TranslatedSidArray *r
-    );
+/* client version for SamrConnect[45] */
+#define SAMR_CONNECT_PRE_WIN2K                 (1)
+#define SAMR_CONNECT_WIN2K                     (2)
+#define SAMR_CONNECT_POST_WIN2K                (3)
 
-void
-LsaCleanStubTranslatedSidArray2(
-    TranslatedSidArray2 *r
-    );
 
-void
-LsaCleanStubTranslatedSidArray3(
-    TranslatedSidArray3 *r
-    );
+typedef struct samr_connect_info1 {
+    uint32 client_version;
+    uint32 unknown1;
+} SamrConnectInfo1, SAMR_CONNECT_INFO_1, *PSAMR_CONNECT_INFO_1;
 
-void
-LsaCleanStubTranslatedNameArray(
-    TranslatedNameArray *r
-    );
 
-void
-LsaCleanStubRefDomainList(
-    RefDomainList *r
-    );
+#ifndef _DCE_IDL_
+typedef union samr_connect_info {
+    SamrConnectInfo1  info1;
+} SamrConnectInfo, SAMR_CONNECT_INFO, *PSAMR_CONNECT_INFO;
+#endif
 
-void
-LsaFreeStubRefDomainList(
-    RefDomainList *ptr
-    );
 
-void
-LsaCleanStubPolicyInformation(
-    LsaPolicyInformation *r,
-    uint32 level
-    );
-
-void
-LsaFreeStubPolicyInformation(
-    LsaPolicyInformation *ptr,
-    uint32 level
-    );
-
-#endif /* _LSA_STUB_MEMORY_H_ */
+#endif /* _SAMRCONN_H_ */
 
 
 /*

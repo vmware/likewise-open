@@ -56,6 +56,7 @@ InitSamrBindingDefault(
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
     *binding = b;
+
 cleanup:
     return rpcstatus;
 
@@ -88,7 +89,6 @@ InitSamrBindingFull(
     rpc_transport_info_handle_t info;
 
     goto_if_invalid_param_rpcstatus(binding, cleanup);
-    goto_if_invalid_param_rpcstatus(hostname, cleanup);
     goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
 
     ps = (unsigned char*) strdup(prot_seq);
@@ -109,8 +109,10 @@ InitSamrBindingFull(
         goto_if_no_memory_rpcstatus(opts, error);
     }
 
-    addr = (unsigned char*) strdup(hostname);
-    goto_if_no_memory_rpcstatus(addr, error);
+    if (hostname != NULL) {
+        addr = (unsigned char*) strdup(hostname);
+        goto_if_no_memory_rpcstatus(addr, error);
+    }
 
     rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
                                &rpcstatus);
