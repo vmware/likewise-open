@@ -10,7 +10,7 @@ Release: 	1
 License: 	Various (LGPL & BSD)
 URL: 		http://www.likewise.com/
 Group: 		Development/Libraries
-# BuildRoot: 	%{buildRootDir}/%{name}-%{version}
+BuildRoot: 	/var/tmp/%{name}-%{version}
 
 
 %description

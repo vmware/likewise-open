@@ -9,7 +9,7 @@ Release: 	1
 License: 	Various (BSD & LGPLv2.1)
 URL: 		http://www.likewisesoftware.com/
 Group: 		Development/Libraries
-# BuildRoot: 	%{buildRootDir}/%{name}-%{version}
+BuildRoot: 	/var/tmp/%{name}-%{version}
 
 Prereq: grep, sh-utils
 

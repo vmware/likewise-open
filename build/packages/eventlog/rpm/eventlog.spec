@@ -9,7 +9,7 @@ Release: 	1
 License: 	LGPLv2.1+/GPLv2+
 Group: 		Development/Libraries
 URL: 		http://www.likewise.com/
-#BuildRoot: 	%{buildRootDir}/%{name}-%{version}
+BuildRoot: 	/var/tmp/%{name}-%{version}
 
 Requires: likewise-open-rpc, likewise-open-libs
 

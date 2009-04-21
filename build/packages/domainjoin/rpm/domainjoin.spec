@@ -7,7 +7,7 @@ Release: 	1
 License:	GPLv2+/LGPLv2.1+
 Group: 		System Environment/Daemons
 URL: 		http://www.likewise.com/
-#BuildRoot:      %{buildRootDir}/%{name}-%{version}
+BuildRoot:      /var/tmp/%{name}-%{version}
 
 AutoReq: no
 
