@@ -65,6 +65,7 @@ SamDbSchemaAddValidateDirMods(
 {
     DWORD dwError = 0;
     DWORD iAttrMap = 0;
+    PSTR  pszAttrName = NULL;
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pMapInfo = NULL;
 
     dwError = SamDbFindObjectClassMapInfo(
@@ -107,6 +108,21 @@ SamDbSchemaAddValidateDirMods(
                 {
                     if (!pAttrMap->bIsMultiValued && pMod)
                     {
+                        DWORD dwError2 = 0;
+
+                        LSA_SAFE_FREE_STRING(pszAttrName);
+
+                        dwError2 = LsaWc16sToMbs(
+                                        &pAttrMapInfo->wszAttributeName[0],
+                                        &pszAttrName);
+                        if (dwError2 == LSA_ERROR_SUCCESS)
+                        {
+                            SAMDB_LOG_ERROR(
+                                    "Found multi-valued attribute [%s]."
+                                    "Expected single value",
+                                    pszAttrName);
+                        }
+
                         dwError = LSA_ERROR_INVALID_PARAMETER;
                         BAIL_ON_SAMDB_ERROR(dwError);
                     }
@@ -125,6 +141,20 @@ SamDbSchemaAddValidateDirMods(
                 !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) &&
                 !(pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
             {
+                DWORD dwError2 = 0;
+
+                LSA_SAFE_FREE_STRING(pszAttrName);
+
+                dwError2 = LsaWc16sToMbs(
+                                &pAttrMapInfo->wszAttributeName[0],
+                                &pszAttrName);
+                if (dwError2 == LSA_ERROR_SUCCESS)
+                {
+                    SAMDB_LOG_ERROR(
+                            "Mandatory attribute [%s] was not specified.",
+                            pszAttrName);
+                }
+
                 dwError = LSA_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
@@ -139,6 +169,23 @@ SamDbSchemaAddValidateDirMods(
                         pAttrValue->Type,
                         pAttrMap->attributeType))
                 {
+                    DWORD dwError2 = 0;
+
+                    LSA_SAFE_FREE_STRING(pszAttrName);
+
+                    dwError2 = LsaWc16sToMbs(
+                                    &pAttrMapInfo->wszAttributeName[0],
+                                    &pszAttrName);
+                    if (dwError2 == LSA_ERROR_SUCCESS)
+                    {
+                        SAMDB_LOG_ERROR(
+                                "Mismatched type specified for attribute [%s]."
+                                "Expected [%d] Found [%d]",
+                                pszAttrName,
+                                pAttrValue->Type,
+                                pAttrMap->attributeType);
+                    }
+
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
@@ -148,6 +195,21 @@ SamDbSchemaAddValidateDirMods(
                     ((pAttrValue->Type == DIRECTORY_ATTR_TYPE_ANSI_STRING) &&
                      !pAttrValue->data.pszStringValue))
                 {
+                    DWORD dwError2 = 0;
+
+                    LSA_SAFE_FREE_STRING(pszAttrName);
+
+                    dwError2 = LsaWc16sToMbs(
+                                    &pAttrMapInfo->wszAttributeName[0],
+                                    &pszAttrName);
+                    if (dwError2 == LSA_ERROR_SUCCESS)
+                    {
+                        SAMDB_LOG_ERROR(
+                                "An invalid string value was specified for"
+                                " attribute [%s].",
+                                pszAttrName);
+                    }
+
                     dwError = LSA_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
@@ -156,6 +218,8 @@ SamDbSchemaAddValidateDirMods(
     }
 
 cleanup:
+
+    LSA_SAFE_FREE_STRING(pszAttrName);
 
     return dwError;
 
