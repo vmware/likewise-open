@@ -663,7 +663,7 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
                                     (void*)ptr);
         goto_if_ntstatus_not_success(status, error);
 
-        for (i = 0; ptr->sidcount; i++) {
+        for (i = 0; i<ptr->sidcount; i++) {
             NetrSidAttr *ptr_sa = &(ptr->sids[i]);
             NetrSidAttr *in_sa = &(in->sids[i]);
 

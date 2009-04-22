@@ -548,7 +548,8 @@ LsaDmEngineGetDomainInfoWithNT4Name(
         !strcasecmp(pszDomainName, "BUILTIN") ||
         !strcasecmp(pszDomainName, "NT AUTHORITY"))
     {
-        goto cleanup;
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaDmWrapGetDomainName(pszDomainName,
@@ -695,7 +696,8 @@ LsaDmEngineGetDomainInfoWithObjectSid(
     if (IsNullOrEmptyString(pszObjectSid) ||
         strncasecmp(pszObjectSid, OBJECTSID_PREFIX, sizeof(OBJECTSID_PREFIX)-1))
     {
-        goto cleanup;
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaDmWrapGetDomainNameAndSidByObjectSid(
