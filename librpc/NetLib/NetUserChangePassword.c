@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -107,6 +107,11 @@ cleanup:
     SAFE_FREE(domainname);
     SAFE_FREE(username);
 
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
@@ -115,10 +120,6 @@ cleanup:
     return err;
 
 error:
-    if (access_token)
-    {
-        LwIoDeleteAccessToken(access_token);
-    }
 
     goto cleanup;
 }
