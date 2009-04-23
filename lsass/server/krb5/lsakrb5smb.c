@@ -46,7 +46,6 @@
  */
 
 #include "lsakrb.h"
-#include <lwio/lwio.h>
 
 typedef struct _LSA_ACCESS_TOKEN_FREE_INFO
 {
@@ -61,7 +60,8 @@ LsaSetSMBAccessToken(
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN BOOLEAN bSetDefaultCachePath,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
     )
 {
     DWORD dwError = 0;
@@ -69,7 +69,8 @@ LsaSetSMBAccessToken(
     PCSTR pszNewCachePath = NULL;
     krb5_context ctx = 0;
     krb5_ccache cc = 0;
-    LW_PIO_ACCESS_TOKEN hAccessToken = 0;
+    LW_PIO_ACCESS_TOKEN pNewAccessToken = NULL;
+    LW_PIO_ACCESS_TOKEN pOldAccessToken = NULL;
     PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
 
     BAIL_ON_INVALID_POINTER(ppFreeInfo);
@@ -109,34 +110,45 @@ LsaSetSMBAccessToken(
     dwError = LwIoCreateKrb5AccessTokenA(
         pszUsername,
         pszNewCachePath,
-        &hAccessToken);
+        &pNewAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoGetThreadAccessToken(&pFreeInfo->hAccessToken);
+    dwError = LwIoGetThreadAccessToken(&pOldAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwIoSetThreadAccessToken(hAccessToken);
+    dwError = LwIoSetThreadAccessToken(pNewAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     pFreeInfo->ctx = ctx;
     pFreeInfo->cc = cc;
-    pFreeInfo->hAccessToken = hAccessToken;
+    pFreeInfo->hAccessToken = pNewAccessToken;
+    pNewAccessToken = NULL;
 
 cleanup:
     *ppFreeInfo = pFreeInfo;
+    if (ppOldToken)
+    {
+        *ppOldToken = pOldAccessToken;
+    }
+    else
+    {
+        if (pOldAccessToken != NULL)
+        {
+            LwIoDeleteAccessToken(pOldAccessToken);
+        }
+    }
+
+    if (pNewAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pNewAccessToken);
+    }
 
     return dwError;
 
 error:
-
-    if (hAccessToken != NULL)
-    {
-        LwIoDeleteAccessToken(hAccessToken);
-    }
-
     if (ctx != NULL)
     {
         if (cc != NULL)
@@ -150,6 +162,12 @@ error:
     {
         LsaFreeMemory(pFreeInfo);
         pFreeInfo = NULL;
+    }
+
+    if (pOldAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pOldAccessToken);
+        pOldAccessToken = NULL;
     }
 
     goto cleanup;
