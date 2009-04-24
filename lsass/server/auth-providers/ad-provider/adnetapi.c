@@ -1284,7 +1284,7 @@ LsaFreeTranslatedNameList(
     LsaFreeMemory(pNameList);
 }
 
-static INT64
+INT64
 WinTimeToInt64(
     WinNtTime WinTime
     )

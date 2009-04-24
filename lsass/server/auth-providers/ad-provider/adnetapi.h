@@ -175,6 +175,10 @@ AD_NetlogonAuthenticationUserEx(
     OUT PBOOLEAN pbIsNetworkError
     );
 
+INT64
+WinTimeToInt64(
+    WinNtTime WinTime
+    );
 
 #endif /* __ADNETAPI_H__ */
 

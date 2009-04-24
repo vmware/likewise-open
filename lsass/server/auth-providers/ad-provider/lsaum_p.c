@@ -1463,7 +1463,7 @@ LsaUmpRefreshUserCreds(
     )
 {
     DWORD                       dwError = 0;
-    PLSA_SECURITY_OBJECT         pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT        pUserInfo = NULL;
     PSTR                        pszHostname = NULL;
     PSTR                        pszUsername = NULL;
     PSTR                        pszServicePassword = NULL;
@@ -1585,6 +1585,13 @@ LsaUmpRefreshUserCreds(
                       pUserInfo,
                       pPac);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_CacheUserRealInfoFromPac(
+                      pUserInfo,
+                      pPac);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
 
 cleanup:
