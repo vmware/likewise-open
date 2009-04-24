@@ -50,6 +50,22 @@ LWIFreeEventRecord(
     LWIFreeEventRecordList(1, pEventRecord);
 }
 
+static
+VOID
+LWIFreeEventRecordContents(
+    PEVENT_LOG_RECORD pEventRecord
+)
+{
+    EVT_SAFE_FREE_STRING(pEventRecord->pszEventTableCategoryId);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszEventType);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszEventSource);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszEventCategory);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszUser);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszComputer);
+    EVT_SAFE_FREE_STRING(pEventRecord->pszDescription);
+    EVT_SAFE_FREE_MEMORY(pEventRecord->pszData);
+}
+
 VOID
 LWIFreeEventRecordList(
     DWORD dwRecords,
@@ -60,14 +76,7 @@ LWIFreeEventRecordList(
 
     for (dwIndex = 0; dwIndex < dwRecords; dwIndex++)
     {
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventTableCategoryId);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventType);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventSource);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszEventCategory);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszUser);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszComputer);
-        EVT_SAFE_FREE_STRING(pEventRecordList[dwIndex].pszDescription);
-        EVT_SAFE_FREE_MEMORY(pEventRecordList[dwIndex].pszData);
+        LWIFreeEventRecordContents(&pEventRecordList[dwIndex]);
     }
 
     EVTFreeMemory(pEventRecordList);
@@ -82,13 +91,7 @@ LWIFreeEventLogHandle(
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszEventType);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszEventSource);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszEventCategory);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszUser);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszComputer);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszDescription);
-    EVT_SAFE_FREE_MEMORY(pEventRecord->pszData);
+    LWIFreeEventRecordContents(pEventRecord);
     EVT_SAFE_FREE_MEMORY(pEventLogHandle);
 }
 
