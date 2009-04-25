@@ -89,6 +89,8 @@ main(
     {
         case LW_DOMAIN_TASK_TYPE_JOIN:
 
+            // TODO: Canonicalize the OU
+
             dwError = LwDomainJoin(
                             domainInfoRequest.args.joinArgs.pszDomainName,
                             domainInfoRequest.args.joinArgs.pszOU,

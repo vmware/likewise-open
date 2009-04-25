@@ -45,6 +45,28 @@
 
 #include "includes.h"
 
+extern
+DWORD
+LsaNetJoinDomain(
+    PCSTR pszHostname,
+    PCSTR pszDomain,
+    PCSTR pszOU,
+    PCSTR pszUsername,
+    PCSTR pszPassword,
+    PCSTR pszOSName,
+    PCSTR pszOSVersion,
+    PCSTR pszOSServicePack,
+    DWORD dwFlags
+    );
+
+static
+DWORD
+LwGetDistroInfo(
+    PSTR* ppszOSName,
+    PSTR* ppszOSVersion,
+    PSTR* ppszOSServicePack
+    );
+
 DWORD
 LwDomainJoin(
     PCSTR pszDomain,
@@ -54,7 +76,92 @@ LwDomainJoin(
     )
 {
     DWORD dwError = 0;
+    PSTR  pszHostname = NULL;
+    PSTR  pszOSName = NULL;
+    PSTR  pszOSVersion = NULL;
+    PSTR  pszOSServicePack = NULL;
+    DWORD dwFlags = 1; // LSA_NET_JOIN_DOMAIN_NOTIMESYNC
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwGetDistroInfo(
+                    &pszOSName,
+                    &pszOSVersion,
+                    &pszOSServicePack);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaNetJoinDomain(
+                    pszHostname,
+                    pszDomain,
+                    pszOU,
+                    pszUsername,
+                    pszPassword,
+                    pszOSName,
+                    pszOSVersion,
+                    pszOSServicePack,
+                    dwFlags);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszHostname);
+    LSA_SAFE_FREE_STRING(pszOSName);
+    LSA_SAFE_FREE_STRING(pszOSVersion);
+    LSA_SAFE_FREE_STRING(pszOSServicePack);
 
     return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LwGetDistroInfo(
+    PSTR* ppszOSName,
+    PSTR* ppszOSVersion,
+    PSTR* ppszOSServicePack
+    )
+{
+    DWORD dwError = 0;
+    PSTR  pszOSName = NULL;
+    PSTR  pszOSVersion = NULL;
+    PSTR  pszOSServicePack = NULL;
+
+    // TODO:
+
+    dwError = LsaAllocateString(
+                    "to-do",
+                    &pszOSName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    "to-do",
+                    &pszOSVersion);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    "to-do",
+                    &pszOSServicePack);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszOSName = pszOSName;
+    *ppszOSVersion = pszOSVersion;
+    *ppszOSServicePack = pszOSServicePack;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    LSA_SAFE_FREE_STRING(pszOSName);
+    LSA_SAFE_FREE_STRING(pszOSVersion);
+    LSA_SAFE_FREE_STRING(pszOSServicePack);
+
+    goto cleanup;
+
 }
 
