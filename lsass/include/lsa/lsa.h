@@ -929,7 +929,7 @@ typedef struct __LSA_AUTH_USER_INFO
 	PSTR pszHomeDirectory;
 	PSTR pszHomeDrive;
 
-        LSA_SID DomainSid;
+    LSA_SID DomainSid;
 	DWORD dwUserRid;
 	DWORD dwPrimaryGroupRid;
 

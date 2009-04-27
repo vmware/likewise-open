@@ -219,6 +219,7 @@ error:
 DWORD
 AD_NetUserChangePassword(
     PCSTR pszDomainName,
+    BOOLEAN bIsInOneWayTrustedDomain,
     PCSTR pszLoginId,
     PCSTR pszUserPrincipalName,
     PCSTR pszOldPassword,
@@ -231,17 +232,29 @@ AD_NetUserChangePassword(
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
     PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    LW_PIO_ACCESS_TOKEN pOldAccessToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszDomainName);
     BAIL_ON_INVALID_STRING(pszLoginId);
 
-    dwError = LsaSetSMBAccessToken(
-                    pszDomainName,
-                    pszUserPrincipalName,
-                    pszOldPassword,
-                    FALSE,
-                    &pFreeInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (bIsInOneWayTrustedDomain)
+    {
+        dwError = LsaSetSMBAccessToken(
+                        pszDomainName,
+                        pszUserPrincipalName,
+                        pszOldPassword,
+                        FALSE,
+                        &pFreeInfo,
+                        &pOldAccessToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = AD_SetSystemAccess(&pOldAccessToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    bChangedToken = TRUE;
 
     dwError = LsaMbsToWc16s(
                     pszDomainName,
@@ -285,6 +298,14 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszOldPassword);
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
     LsaFreeSMBAccessToken(&pFreeInfo);
+    if (bChangedToken)
+    {
+        LwIoSetThreadAccessToken(pOldAccessToken);
+    }
+    if (pOldAccessToken != NULL)
+    {
+        LwIoDeleteAccessToken(pOldAccessToken);
+    }
 
     return AD_MapNetApiError(dwError);
 
@@ -1263,7 +1284,7 @@ LsaFreeTranslatedNameList(
     LsaFreeMemory(pNameList);
 }
 
-static INT64
+INT64
 WinTimeToInt64(
     WinNtTime WinTime
     )

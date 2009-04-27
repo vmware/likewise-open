@@ -1112,6 +1112,69 @@ error:
     goto cleanup;
 }
 
+static
+void
+AD_MarshalUserAccountFlags(
+    DWORD dwAcctFlags,
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    )
+{
+    pObjectUserInfo->bPasswordNeverExpires = IsSetFlag(dwAcctFlags, LSA_ACB_PWNOEXP);
+    if (pObjectUserInfo->bPasswordNeverExpires)
+    {
+        pObjectUserInfo->bPasswordExpired = FALSE;
+    }
+    else
+    {
+        pObjectUserInfo->bPasswordExpired = IsSetFlag(dwAcctFlags, LSA_ACB_PW_EXPIRED);
+    }
+    pObjectUserInfo->bAccountDisabled = IsSetFlag(dwAcctFlags, LSA_ACB_DISABLED);
+    //pObjectUserInfo->bAccountLocked = IsSetFlag(dwAcctFlags, LSA_ACB_AUTOLOCK);
+}
+
+DWORD
+AD_CacheUserRealInfoFromPac(
+    IN OUT PLSA_SECURITY_OBJECT pUserInfo,
+    IN PAC_LOGON_INFO* pPac
+    )
+{
+    DWORD dwError = 0;
+
+    LSA_LOG_VERBOSE(
+            "Updating user for uid %lu information from from one-way trusted domain with PAC information",
+             (unsigned long)pUserInfo->userInfo.uid);
+
+    pUserInfo->userInfo.qwPwdLastSet =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.last_password_change);
+    pUserInfo->userInfo.qwAccountExpires =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.acct_expiry);
+
+    AD_MarshalUserAccountFlags(
+               pPac->info3.base.acct_flags,
+               &pUserInfo->userInfo);
+
+    dwError = LsaAdBatchMarshalUserInfoAccountExpires(
+               pUserInfo->userInfo.qwAccountExpires,
+               &pUserInfo->userInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError =  LsaAdBatchMarshalUserInfoPasswordLastSet(
+               pUserInfo->userInfo.qwPwdLastSet,
+               &pUserInfo->userInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->userInfo.bIsAccountInfoKnown = TRUE;
+
+    dwError = LsaDbStoreObjectEntry(
+               gpLsaAdProviderState->hCacheConnection,
+               pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
 DWORD
 AD_GetCachedPasswordHash(
     IN PCSTR pszSamAccount,
@@ -1420,6 +1483,13 @@ AD_OnlineAuthenticateUser(
                         pUserInfo,
                         pPac);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_CacheUserRealInfoFromPac(
+                        pUserInfo,
+                        pPac);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
 
     dwError = AD_OnlineCachePasswordVerifier(
@@ -2550,6 +2620,7 @@ AD_OnlineChangePassword(
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
     BOOLEAN bFoundDomain = FALSE;
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2563,7 +2634,6 @@ AD_OnlineChangePassword(
                     &bFoundDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName))
     if (!bFoundDomain)
     {
         dwError = LSA_ERROR_NOT_HANDLED;
@@ -2623,7 +2693,16 @@ AD_OnlineChangePassword(
                                        &pszDomainController);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = AD_DetermineTrustModeandDomainName(
+                                       pszFullDomainName,
+                                       &dwTrustDirection,
+                                       NULL,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = AD_NetUserChangePassword(pszDomainController,
+                                       LSA_TRUST_DIRECTION_ONE_WAY == dwTrustDirection,
                                        pCachedUser->pszSamAccountName,
                                        pCachedUser->userInfo.pszUPN,
                                        pszOldPassword,
@@ -3959,25 +4038,25 @@ AD_UpdateUserObjectFlags(
     ADConvertTimeUnix2Nt(current_tv.tv_sec,
                          &u64current_NTtime);
 
-    if (pUser->userInfo.qwAccountExpires != 0LL &&
-            pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
-            u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+    if (pUser->userInfo.bIsAccountInfoKnown)
     {
-        pUser->userInfo.bAccountExpired = TRUE;
-    }
+        if (pUser->userInfo.qwAccountExpires != 0LL &&
+                pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
+                u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+        {
+            pUser->userInfo.bAccountExpired = TRUE;
+        }
 
-    if (!pUser->userInfo.bIsInOneWayTrustedDomain)
-    {
         qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-    }
 
-    if (!pUser->userInfo.bPasswordNeverExpires &&
-        gpADProviderData->adMaxPwdAge != 0 &&
-        qwNanosecsToPasswordExpiry < 0)
-    {
-        //password is expired already
-        pUser->userInfo.bPasswordExpired = TRUE;
+        if (!pUser->userInfo.bPasswordNeverExpires &&
+               gpADProviderData->adMaxPwdAge != 0 &&
+               qwNanosecsToPasswordExpiry < 0)
+        {
+            //password is expired already
+            pUser->userInfo.bPasswordExpired = TRUE;
+        }
     }
 
 cleanup:

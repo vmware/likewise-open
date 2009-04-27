@@ -145,6 +145,11 @@
 #define LOCAL_DIR_ATTR_PRIMARY_GROUP \
     {'P','r','i','m','a','r','y','G','r','o','u','p',0}
 
+#define LOCAL_DIR_CN_PREFIX_ANSI  "CN="
+#define LOCAL_DIR_OU_PREFIX_ANSI  "OU="
+#define LOCAL_DIR_DC_PREFIX_ANSI  "DC="
+#define LOCAL_DIR_DELIMITER_COMMA ","
+#define LOCAL_DIR_DELIMITER_DOT   "."
 
 #define LOCAL_DIR_CN_PREFIX \
     {'C','N','=',0}

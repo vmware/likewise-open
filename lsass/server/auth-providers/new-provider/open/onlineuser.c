@@ -2425,6 +2425,8 @@ AD_OnlineChangePassword(
     PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
+    BOOLEAN pCachedUser = FALSE;
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2490,8 +2492,18 @@ AD_OnlineChangePassword(
                                        &pszDomainController);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = AD_DetermineTrustModeandDomainName(
+                                       pszFullDomainName,
+                                       &dwTrustDirection,
+                                       NULL,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = AD_NetUserChangePassword(pszDomainController,
+                                       LSA_TRUST_DIRECTION_ONE_WAY == dwTrustDirection,
                                        pCachedUser->pszSamAccountName,
+                                       pCachedUser->userInfo.pszUPN,
                                        pszOldPassword,
                                        pszPassword);
     BAIL_ON_LSA_ERROR(dwError);

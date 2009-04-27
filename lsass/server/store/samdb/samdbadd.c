@@ -1197,10 +1197,13 @@ SamDbAddConvertUnicodeAttrValues(
         {
             case DIRECTORY_ATTR_TYPE_ANSI_STRING:
 
-                dwError = DirectoryAllocateString(
-                                pSrcValue->data.pszStringValue,
-                                &pTgtValue->data.pszStringValue);
-                BAIL_ON_SAMDB_ERROR(dwError);
+                if (pSrcValue->data.pszStringValue)
+                {
+                    dwError = DirectoryAllocateString(
+                                    pSrcValue->data.pszStringValue,
+                                    &pTgtValue->data.pszStringValue);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
 
@@ -1208,10 +1211,13 @@ SamDbAddConvertUnicodeAttrValues(
 
             case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
 
-                dwError = LsaWc16sToMbs(
-                                pSrcValue->data.pwszStringValue,
-                                &pTgtValue->data.pszStringValue);
-                BAIL_ON_SAMDB_ERROR(dwError);
+                if (pSrcValue->data.pwszStringValue)
+                {
+                    dwError = LsaWc16sToMbs(
+                                    pSrcValue->data.pwszStringValue,
+                                    &pTgtValue->data.pszStringValue);
+                    BAIL_ON_SAMDB_ERROR(dwError);
+                }
 
                 pTgtValue->Type = DIRECTORY_ATTR_TYPE_ANSI_STRING;
 

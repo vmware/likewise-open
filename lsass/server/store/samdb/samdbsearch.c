@@ -131,6 +131,8 @@ cleanup:
         SamDbFreeColumnValueList(pColumnValueList);
     }
 
+    LSA_SAFE_FREE_STRING(pszQuery);
+
     return(dwError);
 
 error:

@@ -1221,7 +1221,7 @@ LocalDirBeginEnumUsers_0(
         NULL
     };
     PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
@@ -1237,6 +1237,7 @@ LocalDirBeginEnumUsers_0(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
+                    gLPGlobals.pszBuiltinDomain,
                     LOCAL_OBJECT_CLASS_USER);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1312,7 +1313,7 @@ LocalDirBeginEnumUsers_1(
         NULL
     };
     PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
@@ -1328,6 +1329,7 @@ LocalDirBeginEnumUsers_1(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
+                    gLPGlobals.pszBuiltinDomain,
                     LOCAL_OBJECT_CLASS_USER);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1413,7 +1415,7 @@ LocalDirBeginEnumUsers_2(
         NULL
     };
     PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
@@ -1429,6 +1431,7 @@ LocalDirBeginEnumUsers_2(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
+                    gLPGlobals.pszBuiltinDomain,
                     LOCAL_OBJECT_CLASS_USER);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1838,6 +1841,7 @@ LocalDirAddUser_0(
         LOCAL_DAU0_IDX_UID = 0,
         LOCAL_DAU0_IDX_GID,
         LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME,
+        LOCAL_DAU0_IDX_COMMON_NAME,
         LOCAL_DAU0_IDX_PASSWORD,
         LOCAL_DAU0_IDX_GECOS,
         LOCAL_DAU0_IDX_SHELL,
@@ -1858,6 +1862,10 @@ LocalDirAddUser_0(
                     .data.ulValue = pUserInfo->gid
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_SAM_ACCOUNT_NAME */
+                    .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    .data.pwszStringValue = NULL
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_COMMON_NAME */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
@@ -1897,6 +1905,7 @@ LocalDirAddUser_0(
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrCommonName[]     = LOCAL_DIR_ATTR_COMMON_NAME;
     WCHAR wszAttrGecos[]          = LOCAL_DIR_ATTR_GECOS;
     WCHAR wszAttrShell[]          = LOCAL_DIR_ATTR_SHELL;
     WCHAR wszAttrHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -1915,6 +1924,12 @@ LocalDirAddUser_0(
                     &wszAttrSamAccountName[0],
                     1,
                     &attrValues[LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrCommonName[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_COMMON_NAME]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -2002,6 +2017,8 @@ LocalDirAddUser_0(
     BAIL_ON_LSA_ERROR(dwError);
 
     attrValues[LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
+
+    attrValues[LOCAL_DAU0_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
 
     dwError = LocalBuildDN(
                     pLoginInfo,

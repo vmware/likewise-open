@@ -1223,8 +1223,8 @@ LsaDbUnpackUserInfo(
     dwError = LsaSqliteReadBoolean(
         pstQuery,
         piColumnPos,
-        "InOneWayTrustedDomain",
-        &pResult->userInfo.bIsInOneWayTrustedDomain);
+        "IsAccountInfoKnown",
+        &pResult->userInfo.bIsAccountInfoKnown);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaSqliteReadBoolean(
@@ -1595,7 +1595,7 @@ LsaDbStoreObjectEntries(
                             "PwdLastSet,"
                             "AccountExpires,"
                             "GeneratedUPN,"
-                            "InOneWayTrustedDomain,"
+                            "IsAccountInfoKnown,"
                             "PasswordExpired,"
                             "PasswordNeverExpires,"
                             "PromptPasswordChange,"
@@ -1616,7 +1616,7 @@ LsaDbStoreObjectEntries(
                             "%llu," //pwdlastset
                             "%llu," //account expires
                             "%d," //generatedUPN
-                            "%d," //InOneWayTrustedDomain
+                            "%d," //IsAccountInfoKnown
                             "%d," //passwordExpired
                             "%d," //passwordNeverExpires
                             "%d," //promptPasswordChange
@@ -1639,7 +1639,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->userInfo.qwPwdLastSet,
                         ppObjects[sIndex]->userInfo.qwAccountExpires,
                         ppObjects[sIndex]->userInfo.bIsGeneratedUPN,
-                        ppObjects[sIndex]->userInfo.bIsInOneWayTrustedDomain,
+                        ppObjects[sIndex]->userInfo.bIsAccountInfoKnown,
                         ppObjects[sIndex]->userInfo.bPasswordExpired,
                         ppObjects[sIndex]->userInfo.bPasswordNeverExpires,
                         ppObjects[sIndex]->userInfo.bPromptPasswordChange,
@@ -2930,7 +2930,7 @@ LsaDbGetObjectFieldList(
         LSA_DB_TABLE_NAME_USERS ".PwdLastSet, "
         LSA_DB_TABLE_NAME_USERS ".AccountExpires, "
         LSA_DB_TABLE_NAME_USERS ".GeneratedUPN, "
-        LSA_DB_TABLE_NAME_USERS ".InOneWayTrustedDomain, "
+        LSA_DB_TABLE_NAME_USERS ".IsAccountInfoKnown, "
         LSA_DB_TABLE_NAME_USERS ".PasswordExpired, "
         LSA_DB_TABLE_NAME_USERS ".PasswordNeverExpires, "
         LSA_DB_TABLE_NAME_USERS ".PromptPasswordChange, "

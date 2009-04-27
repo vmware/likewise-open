@@ -967,7 +967,7 @@ LocalDirBeginEnumGroups_0(
         NULL
     };
     PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
@@ -983,6 +983,7 @@ LocalDirBeginEnumGroups_0(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
+                    gLPGlobals.pszBuiltinDomain,
                     LOCAL_OBJECT_CLASS_GROUP);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1048,7 +1049,7 @@ LocalDirBeginEnumGroups_1(
         NULL
     };
     PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
+                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
                     " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR pszFilter = NULL;
     PWSTR pwszFilter = NULL;
@@ -1064,6 +1065,7 @@ LocalDirBeginEnumGroups_1(
                     &pszFilter,
                     pszFilterTemplate,
                     gLPGlobals.pszLocalDomain,
+                    gLPGlobals.pszBuiltinDomain,
                     LOCAL_OBJECT_CLASS_GROUP);
     BAIL_ON_LSA_ERROR(dwError);
 

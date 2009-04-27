@@ -33,58 +33,50 @@
  *
  * Module Name:
  *
- *        common.c
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Join to Active Directory
+ *        Tool to Manage AD Join/Leave/Query
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "includes.h"
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-DWORD
-LsaSetSMBAccessTokenWithFlags(
-    IN PCSTR pszDomain,
-    IN PCSTR pszUsername,
-    IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
-    )
+typedef enum
 {
-    DWORD dwError = 0;
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    LW_DOMAIN_TASK_TYPE_UNKNOWN = 0,
+    LW_DOMAIN_TASK_TYPE_JOIN,
+    LW_DOMAIN_TASK_TYPE_LEAVE,
+    LW_DOMAIN_TASK_TYPE_QUERY
+} LW_DOMAIN_TASK_TYPE;
 
-    BAIL_ON_INVALID_POINTER(ppFreeInfo);
-    BAIL_ON_INVALID_STRING(pszDomain);
-    BAIL_ON_INVALID_STRING(pszUsername);
+typedef struct _LW_DOMAIN_ARGS
+{
+    LW_DOMAIN_TASK_TYPE taskType;
 
-    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) && geteuid() == 0)
+    union
     {
-        dwError = LsaSyncTimeToDC(pszDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+        struct
+        {
+            PSTR pszUsername;
+            PSTR pszPassword;
+            PSTR pszDomainName;
+            PSTR pszOU;
+        } joinArgs;
 
-    dwError = LsaSetSMBAccessToken(
-                    pszDomain,
-                    pszUsername,
-                    pszPassword,
-                    TRUE,
-                    &pFreeInfo,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
+        struct
+        {
+            PSTR pszUsername;
+            PSTR pszPassword;
+        } leaveArgs;
 
-cleanup:
-    *ppFreeInfo = pFreeInfo;
+    } args;
 
-    return dwError;
+} LW_DOMAIN_INFO_REQUEST, *PLW_DOMAIN_INFO_REQUEST;
 
-error:
-    LsaFreeSMBAccessToken(&pFreeInfo);
-    goto cleanup;
-}
+#endif /* __STRUCTS_H__ */
 

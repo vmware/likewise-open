@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Kerberos 5 API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -51,6 +51,7 @@
 
 #include <uuid/uuid.h>
 #include <lwrpc/krb5pac.h>
+#include <lwio/lwio.h>
 
 typedef enum
 {
@@ -189,7 +190,8 @@ LsaSetSMBAccessToken(
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN BOOLEAN bSetDefaultCachePath,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL LW_PIO_ACCESS_TOKEN* ppOldToken
     );
 
 void

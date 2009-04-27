@@ -33,58 +33,24 @@
  *
  * Module Name:
  *
- *        common.c
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Join to Active Directory
+ *        Tool to Manage AD Join/Leave/Query
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "includes.h"
-
-DWORD
-LsaSetSMBAccessTokenWithFlags(
-    IN PCSTR pszDomain,
-    IN PCSTR pszUsername,
-    IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
-
-    BAIL_ON_INVALID_POINTER(ppFreeInfo);
-    BAIL_ON_INVALID_STRING(pszDomain);
-    BAIL_ON_INVALID_STRING(pszUsername);
-
-    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) && geteuid() == 0)
-    {
-        dwError = LsaSyncTimeToDC(pszDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSetSMBAccessToken(
-                    pszDomain,
-                    pszUsername,
-                    pszPassword,
-                    TRUE,
-                    &pFreeInfo,
-                    NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    *ppFreeInfo = pFreeInfo;
-
-    return dwError;
-
-error:
-    LsaFreeSMBAccessToken(&pFreeInfo);
-    goto cleanup;
-}
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lsautils.h"
+#include "structs.h"
+#include "misc.h"
+#include "query.h"
+#include "leave.h"
+#include "join.h"
 

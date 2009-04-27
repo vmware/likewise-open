@@ -33,58 +33,62 @@
  *
  * Module Name:
  *
- *        common.c
+ *        main.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Join to Active Directory
+ *        Tool to Manage AD Join/Leave/Query
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
 #include "includes.h"
 
 DWORD
-LsaSetSMBAccessTokenWithFlags(
-    IN PCSTR pszDomain,
-    IN PCSTR pszUsername,
-    IN PCSTR pszPassword,
-    IN DWORD dwFlags,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+LsaGetDnsDomainName(
+    PSTR* ppszDnsDomainName
+    );
+
+DWORD
+LsaGetComputerDN(
+    PSTR* ppszComputerDN
+    );
+
+DWORD
+LwDomainQuery(
+    PSTR* ppszComputerName,
+    PSTR* ppszDnsDomainName,
+    PSTR* ppszComputerDN
     )
 {
     DWORD dwError = 0;
-    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    PSTR pszComputerName = NULL;
+    PSTR pszDnsDomainName = NULL;
+    PSTR pszComputerDN = NULL;
 
-    BAIL_ON_INVALID_POINTER(ppFreeInfo);
-    BAIL_ON_INVALID_STRING(pszDomain);
-    BAIL_ON_INVALID_STRING(pszUsername);
-
-    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) && geteuid() == 0)
-    {
-        dwError = LsaSyncTimeToDC(pszDomain);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSetSMBAccessToken(
-                    pszDomain,
-                    pszUsername,
-                    pszPassword,
-                    TRUE,
-                    &pFreeInfo,
-                    NULL);
+    dwError = LsaDnsGetHostInfo(&pszComputerName);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaGetDnsDomainName(&pszDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetComputerDN(&pszComputerDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppszComputerName = pszComputerName;
+    *ppszDnsDomainName = pszDnsDomainName;
+    *ppszComputerDN = pszComputerDN;
+
 cleanup:
-    *ppFreeInfo = pFreeInfo;
 
     return dwError;
 
 error:
-    LsaFreeSMBAccessToken(&pFreeInfo);
+
+    LSA_SAFE_FREE_STRING(pszComputerName);
+    LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    LSA_SAFE_FREE_STRING(pszComputerDN);
+
     goto cleanup;
 }
-

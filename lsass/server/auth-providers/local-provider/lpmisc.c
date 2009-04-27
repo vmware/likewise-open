@@ -112,33 +112,104 @@ LocalBuildDN(
     PWSTR*               ppwszDN
     )
 {
-    DWORD dwError = 0;
-    WCHAR wszCNPrefix[] = LOCAL_DIR_CN_PREFIX;
-    PWSTR pwszName = NULL;
-    PWSTR pwszDN = NULL;
+    DWORD  dwError = 0;
+    CHAR   szCNPrefix[] = LOCAL_DIR_CN_PREFIX_ANSI;
+    DWORD  dwLenCNPrefix = sizeof(LOCAL_DIR_CN_PREFIX_ANSI) - 1;
+    CHAR   szDCPrefix[] = LOCAL_DIR_DC_PREFIX_ANSI;
+    DWORD  dwLenDCPrefix = sizeof(LOCAL_DIR_DC_PREFIX_ANSI) - 1;
+    CHAR   szDelimiter[] = LOCAL_DIR_DELIMITER_COMMA;
+    DWORD  dwLenDelimiter = sizeof(LOCAL_DIR_DELIMITER_COMMA) - 1;
+    DWORD  dwLenName = 0;
+    PSTR   pszDN = NULL;
+    PSTR   pszDNCursor = NULL;
+    PWSTR  pwszDN = NULL;
+    size_t sLenRequired = 0;
 
-    dwError = LsaMbsToWc16s(
-                    pLoginInfo->pszName,
-                    &pwszName);
-    BAIL_ON_LSA_ERROR(dwError);
+    BAIL_ON_INVALID_POINTER(pLoginInfo);
+    BAIL_ON_INVALID_STRING(pLoginInfo->pszName);
+
+    // Build something like CN=sam,DC=xyz,DC=corp,DC=com
+    sLenRequired += dwLenCNPrefix;
+
+    dwLenName = strlen (pLoginInfo->pszName);
+    sLenRequired += dwLenName;
+
+    if (!IsNullOrEmptyString(pLoginInfo->pszFullDomainName))
+    {
+        PCSTR pszCursor = pLoginInfo->pszFullDomainName;
+        size_t sLenAvailable = strlen(pLoginInfo->pszFullDomainName);
+        size_t sLen2 = 0;
+
+        do
+        {
+            sLen2 = strcspn(pszCursor, LOCAL_DIR_DELIMITER_DOT);
+
+            sLenRequired += dwLenDelimiter;
+            sLenRequired += dwLenDCPrefix;
+
+            sLenRequired += sLen2;
+
+            pszCursor += sLen2;
+            sLenAvailable -= sLen2;
+
+            sLen2 = strspn(pszCursor, LOCAL_DIR_DELIMITER_DOT);
+            pszCursor += sLen2;
+            sLenAvailable -= sLen2;
+
+        } while (sLenAvailable > 0);
+    }
+
+    sLenRequired++;
 
     dwError = LsaAllocateMemory(
-                    sizeof(wszCNPrefix) + strlen(pLoginInfo->pszName) * sizeof(WCHAR),
-                    (PVOID*)&pwszDN);
+                    sLenRequired,
+                    (PVOID*)&pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // Build CN=<sam account name>
-    memcpy((PBYTE)pwszDN, (PBYTE)&wszCNPrefix[0], sizeof(wszCNPrefix) - sizeof(WCHAR));
+    pszDNCursor = pszDN;
+    memcpy(pszDNCursor, &szCNPrefix[0], dwLenCNPrefix);
+    pszDNCursor += dwLenCNPrefix;
 
-    memcpy((PBYTE)(pwszDN + sizeof(wszCNPrefix) - sizeof(WCHAR)),
-           (PBYTE)pwszName,
-           strlen(pLoginInfo->pszName) * sizeof(WCHAR));
+    memcpy(pszDNCursor, pLoginInfo->pszName, dwLenName);
+    pszDNCursor += dwLenName;
+
+    if (!IsNullOrEmptyString(pLoginInfo->pszFullDomainName))
+    {
+        PCSTR pszCursor = pLoginInfo->pszFullDomainName;
+        size_t sLenAvailable = strlen(pLoginInfo->pszFullDomainName);
+        size_t sLen2 = 0;
+
+        do
+        {
+            sLen2 = strcspn(pszCursor, LOCAL_DIR_DELIMITER_DOT);
+
+            *pszDNCursor++ = szDelimiter[0];
+
+            memcpy(pszDNCursor, &szDCPrefix[0], dwLenDCPrefix);
+            pszDNCursor += dwLenDCPrefix;
+
+            memcpy(pszDNCursor, pszCursor, sLen2);
+            pszDNCursor += sLen2;
+
+            sLenAvailable -= sLen2;
+
+            sLen2 = strspn(pszCursor, LOCAL_DIR_DELIMITER_DOT);
+            pszCursor += sLen2;
+            sLenAvailable -= sLen2;
+
+        } while (sLenAvailable > 0);
+    }
+
+    dwError = LsaMbsToWc16s(
+                    pszDN,
+                    &pwszDN);
+    BAIL_ON_LSA_ERROR(dwError);
 
     *ppwszDN = pwszDN;
 
 cleanup:
 
-    LSA_SAFE_FREE_MEMORY(pwszName);
+    LSA_SAFE_FREE_MEMORY(pszDN);
 
     return dwError;
 

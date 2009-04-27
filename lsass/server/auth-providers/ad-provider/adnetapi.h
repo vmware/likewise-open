@@ -82,6 +82,7 @@ AD_NetShutdownMemory(
 DWORD
 AD_NetUserChangePassword(
     PCSTR pszDomainName,
+    BOOLEAN bIsInOneWayTrustedDomain,
     PCSTR pszLoginId,
     PCSTR pszUserPrincipalName,
     PCSTR pszOldPassword,
@@ -174,6 +175,10 @@ AD_NetlogonAuthenticationUserEx(
     OUT PBOOLEAN pbIsNetworkError
     );
 
+INT64
+WinTimeToInt64(
+    WinNtTime WinTime
+    );
 
 #endif /* __ADNETAPI_H__ */
 
