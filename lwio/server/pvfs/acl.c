@@ -116,7 +116,10 @@ PvfsGetSecurityDescriptorFile(
                                                          pFullSecDesc,
                                                          &FullSecDescLen);
         }
+#else
+        ntError = STATUS_NOT_SUPPORTED;
 #endif
+
         /* Fallback to generating a default secdesc */
 
         if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
@@ -185,7 +188,10 @@ PvfsGetSecurityDescriptorFilename(
                                                              pFullSecDesc,
                                                              &FullSecDescLen);
         }
+#else
+        ntError = STATUS_NOT_SUPPORTED;
 #endif
+
         /* Fallback to generating a default secdesc */
 
         if (!NT_SUCCESS(ntError) && (ntError != STATUS_BUFFER_TOO_SMALL))
