@@ -465,11 +465,11 @@ CellModeSchemaEnumNSSArtefacts(
 
         dwNumNSSArtefactsWanted -= dwNumNSSArtefactsFound;
 
-        dwError = LsaCoalesceNSSArtefactInfoList(
-                        &ppNSSArtefactInfoList,
-                        &dwNumNSSArtefactsFound,
+        dwError = LsaAppendAndFreePtrs(
+                        &dwTotalNumNSSArtefactsFound,
                         &ppNSSArtefactInfoList_accumulate,
-                        &dwTotalNumNSSArtefactsFound);
+                        &dwNumNSSArtefactsFound,
+                        &ppNSSArtefactInfoList);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pMessagePseudo) {
