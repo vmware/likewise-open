@@ -930,6 +930,18 @@ LsaCheckSockExists(
     );
 
 DWORD
+LsaCheckLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbFileExists
+    );
+
+DWORD
+LsaCheckFileOrLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbExists
+    );
+
+DWORD
 LsaMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath

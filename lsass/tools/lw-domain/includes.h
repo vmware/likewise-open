@@ -45,12 +45,16 @@
 
 #include "config.h"
 #include "lsasystem.h"
+
 #include "lsadef.h"
 #include "lsa/lsa.h"
 #include "lsautils.h"
+
+#include "defs.h"
 #include "structs.h"
 #include "misc.h"
 #include "query.h"
 #include "leave.h"
 #include "join.h"
+#include "distroinfo.h"
 

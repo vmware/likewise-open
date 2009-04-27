@@ -33,78 +33,45 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        distroinfo.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Tool to Manage AD Join/Leave/Query
+ *        Information about distro
  *
  */
+#ifndef __DISTRO_INFO_H__
+#define __DISTRO_INFO_H__
 
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+DWORD
+LwGetLikewiseVersion(
+    PSTR* ppszVersion,
+    PSTR* ppszBuild,
+    PSTR* ppszRevision
+    );
 
-typedef enum
-{
-    LW_DOMAIN_TASK_TYPE_UNKNOWN = 0,
-    LW_DOMAIN_TASK_TYPE_JOIN,
-    LW_DOMAIN_TASK_TYPE_LEAVE,
-    LW_DOMAIN_TASK_TYPE_QUERY
-} LW_DOMAIN_TASK_TYPE;
+DWORD
+LwDomainGetDistroInfo(
+    PCSTR                   pszTestPrefix,
+    PLW_DOMAIN_DISTRO_INFO* ppDistroInfo
+    );
 
-typedef struct _LW_DOMAIN_ARGS
-{
-    LW_DOMAIN_TASK_TYPE taskType;
+DWORD
+LwDomainGetOSString(
+    LwDomainOSType osType,
+    PSTR* ppszOSString
+    );
 
-    union
-    {
-        struct
-        {
-            PSTR pszUsername;
-            PSTR pszPassword;
-            PSTR pszDomainName;
-            PSTR pszOU;
-        } joinArgs;
+VOID
+LwFreeDistroInfo(
+    PLW_DOMAIN_DISTRO_INFO pDistroInfo
+    );
 
-        struct
-        {
-            PSTR pszUsername;
-            PSTR pszPassword;
-        } leaveArgs;
+VOID
+LwFreeDistroInfoContents(
+    PLW_DOMAIN_DISTRO_INFO pDistroInfo
+    );
 
-    } args;
-
-} LW_DOMAIN_INFO_REQUEST, *PLW_DOMAIN_INFO_REQUEST;
-
-typedef struct _LW_DOMAIN_DISTRO_INFO
-{
-    LwDomainOSType     osType;
-    LwDomainDistroType distroType;
-    LwDomainArchType   archType;
-    PSTR               pszVersion;
-
-} LW_DOMAIN_DISTRO_INFO, *PLW_DOMAIN_DISTRO_INFO;
-
-typedef struct _LW_DOMAIN_ARCH_LOOKUP
-{
-    LwDomainArchType archType;
-    PSTR             pszName;
-
-} LW_DOMAIN_ARCH_LOOKUP, *PLW_DOMAIN_ARCH_LOOKUP;
-
-typedef struct _LW_DOMAIN_DISTRO_LOOKUP
-{
-    LwDomainDistroType distroType;
-    PSTR               pszName;
-} LW_DOMAIN_DISTRO_LOOKUP, *PLW_DOMAIN_DISTRO_LOOKUP;
-
-typedef struct _LW_DOMAIN_OS_LOOKUP
-{
-    LwDomainOSType osType;
-    PSTR           pszName;
-} LW_DOMAIN_OS_LOOKUP, *PLW_DOMAIN_OS_LOOKUP;
-
-#endif /* __STRUCTS_H__ */
-
+#endif /* __DISTRO_INFO_H__ */
