@@ -137,6 +137,100 @@ error:
 }
 
 DWORD
+LsaCheckLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbLinkExists
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bExists = FALSE;
+
+    struct stat statbuf;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1)
+    {
+        if (stat(pszPath, &statbuf) < 0)
+        {
+           if (errno == EINTR)
+           {
+              continue;
+           }
+           else if (errno == ENOENT || errno == ENOTDIR)
+           {
+             *pbLinkExists = 0;
+             break;
+           }
+
+           dwError = errno;
+           BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+           if (((statbuf.st_mode & S_IFMT) == S_IFLNK))
+           {
+               bExists = TRUE;
+           }
+          break;
+        }
+    }
+
+error:
+
+    *pbLinkExists = bExists;
+
+    return dwError;
+}
+
+DWORD
+LsaCheckFileOrLinkExists(
+    PSTR pszPath,
+    PBOOLEAN pbExists
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bExists = FALSE;
+
+    struct stat statbuf;
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1)
+    {
+        if (stat(pszPath, &statbuf) < 0)
+        {
+           if (errno == EINTR)
+           {
+              continue;
+           }
+           else if (errno == ENOENT || errno == ENOTDIR)
+           {
+             break;
+           }
+
+           dwError = errno;
+           BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+          if (((statbuf.st_mode & S_IFMT) == S_IFLNK) ||
+              ((statbuf.st_mode & S_IFMT) == S_IFREG))
+          {
+              bExists = TRUE;
+          }
+          break;
+        }
+    }
+
+error:
+
+    *pbExists = bExists;
+
+    return dwError;
+}
+
+DWORD
 LsaMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath

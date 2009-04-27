@@ -126,25 +126,39 @@ LwGetDistroInfo(
     )
 {
     DWORD dwError = 0;
+    PLW_DOMAIN_DISTRO_INFO pDistroInfo = NULL;
     PSTR  pszOSName = NULL;
     PSTR  pszOSVersion = NULL;
     PSTR  pszOSServicePack = NULL;
+    PSTR  pszLikewiseVersion = NULL;
+    PSTR  pszLikewiseBuild = NULL;
+    PSTR  pszLikewiseRevision = NULL;
 
-    // TODO:
+    dwError = LwDomainGetDistroInfo(NULL, &pDistroInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
-                    "to-do",
+    dwError = LwDomainGetOSString(
+                    pDistroInfo->osType,
                     &pszOSName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(
-                    "to-do",
+                    pDistroInfo->pszVersion,
                     &pszOSVersion);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(
-                    "to-do",
-                    &pszOSServicePack);
+    dwError = LwGetLikewiseVersion(
+                    &pszLikewiseVersion,
+                    &pszLikewiseBuild,
+                    &pszLikewiseRevision);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateStringPrintf(
+                    &pszOSServicePack,
+                    "Likewise Identity %s.%s.%s",
+                    LSA_SAFE_LOG_STRING(pszLikewiseVersion),
+                    LSA_SAFE_LOG_STRING(pszLikewiseBuild),
+                    LSA_SAFE_LOG_STRING(pszLikewiseRevision));
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszOSName = pszOSName;
@@ -152,6 +166,15 @@ LwGetDistroInfo(
     *ppszOSServicePack = pszOSServicePack;
 
 cleanup:
+
+    if (pDistroInfo)
+    {
+        LwFreeDistroInfo(pDistroInfo);
+    }
+
+    LSA_SAFE_FREE_STRING(pszLikewiseVersion);
+    LSA_SAFE_FREE_STRING(pszLikewiseBuild);
+    LSA_SAFE_FREE_STRING(pszLikewiseRevision);
 
     return dwError;
 

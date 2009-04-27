@@ -651,7 +651,14 @@ AC_SUBST(PROC_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h proc/readproc.h procfs.h sys/procfs.h kvm.h time.h sys/time.h sys/varargs.h nss.h nss_common.h nsswitch.h synch.h pthread.h wc16str.h wc16printf.h sys/param.h sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h])
+AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h])
+AC_CHECK_HEADERS([stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h])
+AC_CHECK_HEADERS([syslog.h unistd.h sys/types.h iconv.h sys/stat.h sys/pstat.h])
+AC_CHECK_HEADERS([proc/readproc.h procfs.h sys/procfs.h kvm.h sys/utsname.h])
+AC_CHECK_HEADERS([time.h sys/time.h sys/varargs.h sys/systeminfo.h])
+AC_CHECK_HEADERS([nss.h nss_common.h nsswitch.h])
+AC_CHECK_HEADERS([synch.h pthread.h wc16str.h wc16printf.h sys/param.h])
+AC_CHECK_HEADERS([sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h])
 
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
@@ -694,7 +701,12 @@ AC_FUNC_VPRINTF
 AC_FUNC_STRERROR_R
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"
-AC_CHECK_FUNCS([atexit localtime_r memset select socket strchr strerror strerror_r vsyslog rpl_realloc rpl_malloc clock_gettime clock_settime settimeofday gettimeofday timegm getgrouplist strtoll __strtoll strtoull __strtoull strtol strtoul])
+AC_CHECK_FUNCS([atexit localtime_r memset select socket])
+AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
+AC_CHECK_FUNCS([strchr strerror strerror_r])
+AC_CHECK_FUNCS([vsyslog rpl_realloc rpl_malloc])
+AC_CHECK_FUNCS([clock_gettime clock_settime settimeofday gettimeofday timegm])
+AC_CHECK_FUNCS([getgrouplist sysinfo])
 LDFLAGS="$old_LDFLAGS"
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 AC_CHECK_TYPES([wchar16_t], [], [], [AC_INCLUDES_DEFAULT

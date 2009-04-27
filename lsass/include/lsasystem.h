@@ -29,7 +29,7 @@
  */
 
 
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -97,7 +97,7 @@
      used if available.
    */
   #include <pthread.h>
-  #include <errno.h>	
+  #include <errno.h>
   #include <netdb.h>
   #include <ctype.h>
   #include <wctype.h>
@@ -105,7 +105,11 @@
   #include <syslog.h>
   #include <signal.h>
   #include <limits.h>
+
+#ifdef HAVE_UNISTD_H
   #include <unistd.h>
+#endif
+
   #include <sys/stat.h>
   #include <dirent.h>
   #include <pwd.h>
@@ -117,6 +121,14 @@
   #include <arpa/nameser.h>
   #include <netinet/in.h>
   #include <resolv.h>
+
+#ifdef HAVE_SYS_SYSTEMINFO_H
+#include <sys/systeminfo.h>
+#endif
+
+#ifdef HAVE_SYS_UTSNAME_H
+#include <sys/utsname.h>
+#endif
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
