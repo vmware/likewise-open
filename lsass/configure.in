@@ -904,7 +904,6 @@ AC_CONFIG_FILES([Makefile
                  tools/refresh_configuration/Makefile
                  tools/trace_info/Makefile
                  tools/ad_cache/Makefile
-                 tools/lw-domain/Makefile
 		 etc/Makefile
 		 etc/lsassd.conf
                  include/Makefile

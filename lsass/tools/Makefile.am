@@ -24,6 +24,5 @@ SUBDIRS = \
         get_status \
         refresh_configuration \
         trace_info \
-        ad_cache \
-        lw-domain
+        ad_cache
 
