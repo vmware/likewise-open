@@ -427,7 +427,7 @@ shared_register_handle_remote(
                       type,
                       LWMSG_HANDLE_REMOTE,
                       NULL,
-                      session->next_hid++,
+                      hid,
                       cleanup,
                       &handle));
 
