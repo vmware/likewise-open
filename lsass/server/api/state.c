@@ -237,12 +237,19 @@ error:
     if (pProviderState) {
         LsaSrvFreeProviderStateList(pProviderState);
     }
-    if (pProviderStateList) {
-        LsaSrvFreeProviderStateList(pProviderStateList);
+    if (pProviderStateList)
+    {
+        pEnumState->pProviderStateList = pProviderStateList;
+        pProviderStateList = NULL;
+        LsaSrvEndEnumUsers(hServer, pEnumState);
+        pEnumState = NULL;
     }
-
-    if (pEnumState) {
-        LsaSrvFreeEnumState(pEnumState);
+    else
+    {
+        if (pEnumState)
+        {
+            LsaSrvFreeEnumState(pEnumState);
+        }
     }
 
     goto cleanup;
@@ -339,12 +346,19 @@ error:
     if (pProviderState) {
         LsaSrvFreeProviderStateList(pProviderState);
     }
-    if (pProviderStateList) {
-        LsaSrvFreeProviderStateList(pProviderStateList);
+    if (pProviderStateList)
+    {
+        pEnumState->pProviderStateList = pProviderStateList;
+        pProviderStateList = NULL;
+        LsaSrvEndEnumGroups(hServer, pEnumState);
+        pEnumState = NULL;
     }
-
-    if (pEnumState) {
-        LsaSrvFreeEnumState(pEnumState);
+    else
+    {
+        if (pEnumState)
+        {
+            LsaSrvFreeEnumState(pEnumState);
+        }
     }
 
     goto cleanup;
@@ -445,12 +459,19 @@ error:
     if (pProviderState) {
         LsaSrvFreeProviderStateList(pProviderState);
     }
-    if (pProviderStateList) {
-        LsaSrvFreeProviderStateList(pProviderStateList);
+    if (pProviderStateList)
+    {
+        pEnumState->pProviderStateList = pProviderStateList;
+        pProviderStateList = NULL;
+        LsaSrvEndEnumNSSArtefacts(hServer, pEnumState);
+        pEnumState = NULL;
     }
-
-    if (pEnumState) {
-        LsaSrvFreeEnumState(pEnumState);
+    else
+    {
+        if (pEnumState)
+        {
+            LsaSrvFreeEnumState(pEnumState);
+        }
     }
 
     goto cleanup;
