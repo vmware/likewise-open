@@ -70,6 +70,12 @@ LsaDmWrapEnumInMyForestTrustDomains(
     );
 
 DWORD
+LsaDmWrapGetDomainEnumInfo(
+    IN PCSTR pszDnsDomainName,
+    OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo
+    );
+
+DWORD
 LsaDmWrapGetDomainName(
     IN PCSTR pszDomainName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,

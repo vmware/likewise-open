@@ -75,7 +75,7 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     uint64_t qwAccountExpires;
 
     BOOLEAN bIsGeneratedUPN;
-    BOOLEAN bIsInOneWayTrustedDomain;
+    BOOLEAN bIsAccountInfoKnown;
     // Calculated from userAccountControl, accountExpires, and pwdLastSet
     // attributes from AD.
     BOOLEAN bPasswordExpired;

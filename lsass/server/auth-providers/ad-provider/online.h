@@ -363,6 +363,12 @@ AD_CacheGroupMembershipFromPac(
     IN PAC_LOGON_INFO* pPac
     );
 
+DWORD
+AD_CacheUserRealInfoFromPac(
+    IN OUT PLSA_SECURITY_OBJECT pUserInfo,
+    IN PAC_LOGON_INFO* pPac
+    );
+
 void
 AD_FilterNullEntries(
     IN OUT PLSA_SECURITY_OBJECT* ppEntries,

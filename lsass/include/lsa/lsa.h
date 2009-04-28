@@ -328,7 +328,7 @@ typedef int             BOOLEAN, *PBOOLEAN;
 #define LSA_ERROR_INVALID_ACCOUNT                           0x8043 // 32835
 #define LSA_ERROR_INVALID_PASSWORD                          0x8044 // 32836
 #define LSA_ERROR_QUERY_CREATION_FAILED                     0x8045 // 32837
-#define LSA_ERROR_NO_SUCH_USER_OR_GROUP                     0x8046 // 32838
+#define LSA_ERROR_NO_SUCH_OBJECT                            0x8046 // 32838
 #define LSA_ERROR_DUPLICATE_USER_OR_GROUP                   0x8047 // 32839
 #define LSA_ERROR_INVALID_KRB5_CACHE_TYPE                   0x8048 // 32840
 #define LSA_ERROR_NOT_JOINED_TO_AD                          0x8049 // 32841
@@ -451,6 +451,7 @@ typedef DWORD LSA_DM_DOMAIN_FLAGS, *PLSA_DM_DOMAIN_FLAGS;
 #define LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD 0x00000008
 #define LSA_DM_DOMAIN_FLAG_FOREST_ROOT           0x00000010
 #define LSA_DM_DOMAIN_FLAG_GC_OFFLINE            0x00000020
+
 
 #define LSA_DM_DOMAIN_FLAGS_VALID_MASK \
     ( \
@@ -825,20 +826,12 @@ typedef struct _SEC_BUFFER_S {
     BYTE buffer[S_BUFLEN];
 } SEC_BUFFER_S, *PSEC_BUFFER_S;
 
-#if 0
-typedef enum
-{
-    AccountType_NotFound = 0,
-    AccountType_Group = 1,
-    AccountType_User = 2,
-} ADAccountType;
-#endif
-
 typedef UINT8 ADAccountType;
 
 #define AccountType_NotFound 0
 #define AccountType_Group 1
 #define AccountType_User 2
+#define AccountType_Domain 3
 
 typedef struct __LSA_SID_INFO
 {
@@ -1099,7 +1092,7 @@ typedef struct __LSA_AUTH_USER_INFO
 	PSTR pszHomeDirectory;
 	PSTR pszHomeDrive;
 
-        LSA_SID DomainSid;
+    LSA_SID DomainSid;
 	DWORD dwUserRid;
 	DWORD dwPrimaryGroupRid;
 

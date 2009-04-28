@@ -192,8 +192,8 @@ const char* gLsaErrorMessages[] =
     "The password is invalid",
     // LSA_ERROR_QUERY_CREATION_FAILED                           : 32837
     "Failed to create query to examine cache",
-    // LSA_ERROR_NO_SUCH_USER_OR_GROUP                           : 32838
-    "No such user or group",
+    // LSA_ERROR_NO_SUCH_OBJECT                                  : 32838
+    "No such user, group or domain object",
     // LSA_ERROR_DUPLICATE_USER_OR_GROUP                         : 32839
     "A duplicate user or group was found",
     // LSA_ERROR_INVALID_KRB5_CACHE_TYPE                         : 32840

@@ -48,6 +48,7 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 #include "adprovider.h"
+#include "batch_common.h"
 
 
 BOOLEAN
@@ -109,7 +110,7 @@ AD_OfflineAuthenticateUser(
     dwError = LsaUmAddUser(
                   pUserInfo->userInfo.uid,
                   pszPassword,
-                  0); 
+                  0);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -526,6 +527,7 @@ AD_OfflineInitializeOperatingMode(
             pDomain->dwTrustAttributes,
             pDomain->dwTrustDirection,
             pDomain->dwTrustMode,
+            IsSetFlag(pDomain->Flags, LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD) ? TRUE : FALSE,
             pDomain->pszForestName,
             NULL
             );

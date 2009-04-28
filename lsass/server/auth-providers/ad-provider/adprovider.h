@@ -86,6 +86,7 @@
 #include "adldap_p.h"
 #include "batch.h"
 #include "unprov.h"
+#include "batch_marshal.h"
 #include "ad_marshal_group.h"
 #include "ad_marshal_nss_artefact.h"
 #include "ad_marshal_nss_artefact_p.h"

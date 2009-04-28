@@ -1909,7 +1909,7 @@ AD_GroupObjectToGroupInfo(
                 NULL,
                 &sMembers,
                 &ppMembers);
-            if (dwError == LSA_ERROR_NO_SUCH_USER_OR_GROUP)
+            if (dwError == LSA_ERROR_NO_SUCH_OBJECT)
             {
                 dwError = 0;
             }
