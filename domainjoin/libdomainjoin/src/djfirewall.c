@@ -293,14 +293,12 @@ cleanup:
 typedef struct
 {
     int timeout;
-    BOOLEAN ignoreNtp;
 } DCPortCheckOptions;
 
 static void InitializeDCPortCheckOptions(DCPortCheckOptions *checkOptions, const JoinProcessOptions *joinOptions, int timeout)
 {
     memset(checkOptions, 0, sizeof(*checkOptions));
     checkOptions->timeout = timeout;
-    checkOptions->ignoreNtp = joinOptions->ignoreFirewallNtp;
 }
 
 typedef struct
@@ -344,18 +342,6 @@ static void CheckDCPorts(DCPortCheck *check, DCPortCheckOptions *options, LWExce
     memset(check->ports, 0, sizeof(check->ports));
 
     i = 0;
-    if (!options->ignoreNtp)
-    {
-        check->ports[i].to.sin_port = htons(123);
-        check->ports[i].sendData = ntpRequest;
-        check->ports[i].sendDataLen = sizeof(ntpRequest);
-        /* Note that we use the timeout seconds to determine an approximate retry
-         * interval as the UDP port check will send one packet per 1-1.5
-         * seconds */
-        check->ports[i].retryCount = options->timeout;
-        check->ports[i].udp = TRUE;
-        i++;
-    }
 
     /* Initialize TCP ports */
     check->ports[i++].to.sin_port = htons(88);
@@ -407,40 +393,35 @@ static xmlNodePtr GetNewXmlNode(xmlDocPtr destDoc)
 "    </rule>\n"
 "    <rule id='0004'>\n"
 "      <direction>outbound</direction>\n"
-"      <protocol>udp</protocol>\n"
-"      <port type='dst'>123</port>\n"
-"    </rule>\n"
-"    <rule id='0005'>\n"
-"      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
 "      <port type='dst'>139</port>\n"
 "    </rule>\n"
-"    <rule id='0006'>\n"
+"    <rule id='0005'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>udp</protocol>\n"
+"      <port type='dst'>389</port>\n"
+"    </rule>\n"
+"    <rule id='0006'>\n"
+"      <direction>outbound</direction>\n"
+"      <protocol>tcp</protocol>\n"
 "      <port type='dst'>389</port>\n"
 "    </rule>\n"
 "    <rule id='0007'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
-"      <port type='dst'>389</port>\n"
-"    </rule>\n"
-"    <rule id='0008'>\n"
-"      <direction>outbound</direction>\n"
-"      <protocol>tcp</protocol>\n"
 "      <port type='dst'>445</port>\n"
 "    </rule>\n"
-"    <rule id='0009'>\n"
+"    <rule id='0008'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>udp</protocol>\n"
 "      <port type='dst'>464</port>\n"
 "    </rule>\n"
-"    <rule id='0010'>\n"
+"    <rule id='0009'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
 "      <port type='dst'>464</port>\n"
 "    </rule>\n"
-"    <rule id='0011'>\n"
+"    <rule id='0010'>\n"
 "      <direction>outbound</direction>\n"
 "      <protocol>tcp</protocol>\n"
 "      <port type='dst'>3268</port>\n"
@@ -844,7 +825,6 @@ static PSTR GetFirewallDescription(const JoinProcessOptions *options, LWExceptio
                 "The domain controller could not be reached. The following ports must be opened to the domain controller:\n"
                 "\t53  UDP/TCP\n"
                 "\t88  UDP/TCP\n"
-                "\t123 UDP\n"
                 "\t389 UDP/TCP\n"
                 "\t445 TCP\n"
                 "\t464 UDP/TCP\n"
