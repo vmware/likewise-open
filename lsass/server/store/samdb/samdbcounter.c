@@ -90,6 +90,12 @@ SamDbInitConfig(
                     SAM_DB_MIN_RID,
                     SAM_DB_SCHEMA_VERSION);
 
+    if (pszQuery == NULL)
+    {
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
     dwError = sqlite3_exec(
                     pDirContext->pDbContext->pDbHandle,
                     pszQuery,

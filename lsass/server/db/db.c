@@ -1463,8 +1463,8 @@ LsaDbStoreObjectEntries(
 
             if (pszNewStatement == NULL)
             {
-                dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-                BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+                dwError = LSA_ERROR_OUT_OF_MEMORY;
+                BAIL_ON_LSA_ERROR(dwError);
             }
 
             dwError = LsaAppendStringBuffer(
@@ -1557,8 +1557,8 @@ LsaDbStoreObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+            dwError = LSA_ERROR_OUT_OF_MEMORY;
+            BAIL_ON_LSA_ERROR(dwError);
         }
 
         dwError = LsaAppendStringBuffer(
@@ -1678,8 +1678,8 @@ LsaDbStoreObjectEntries(
 
             if (pszNewStatement == NULL)
             {
-                dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-                BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+                dwError = LSA_ERROR_OUT_OF_MEMORY;
+                BAIL_ON_LSA_ERROR(dwError);
             }
 
             dwError = LsaAppendStringBuffer(
@@ -3280,8 +3280,8 @@ LsaDbStorePasswordVerifier(
 
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaSqliteExecWithRetry(
