@@ -371,6 +371,12 @@ SrvShareDbAdd_inlock(
                                pszSid,
                                pszService);
 
+    if (pszQuery == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = sqlite3_exec(pDbHandle,
                            pszQuery,
                            NULL,
@@ -728,6 +734,12 @@ SrvShareDbEnum_inlock(
                     ulLimit,
                     ulOffset);
 
+    if (pszQuery == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = sqlite3_get_table(
                     pDbHandle,
                     pszQuery,
@@ -823,6 +835,12 @@ SrvShareDbFindByName(
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_LOOKUP_SHARE_BY_NAME, pszShareName);
+
+    if (pszQuery == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = sqlite3_get_table(pDbHandle,
                                 pszQuery,
@@ -1050,6 +1068,12 @@ SrvShareDbDelete(
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_DELETE_SHARE,
                     pszShareName);
+
+    if (pszQuery == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = sqlite3_exec(pDbHandle,
                            pszQuery,
