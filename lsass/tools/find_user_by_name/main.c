@@ -68,17 +68,20 @@ ShowUsage();
 
 VOID
 PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo
+    PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bAllowedLogon
     );
 
 VOID
 PrintUserInfo_1(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_USER_INFO_1 pUserInfo,
+    BOOLEAN bAllowedLogon
     );
 
 VOID
 PrintUserInfo_2(
-    PLSA_USER_INFO_2 pUserInfo
+    PLSA_USER_INFO_2 pUserInfo,
+    BOOLEAN bAllowedLogon
     );
 
 DWORD
@@ -104,6 +107,7 @@ main(
     PVOID pUserInfo = NULL;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
+    BOOLEAN bAllowedLogon = TRUE;
 
     dwError = ParseArgs(argc, argv, &pszLoginId, &dwInfoLevel);
     BAIL_ON_LSA_ERROR(dwError);
@@ -117,17 +121,29 @@ main(
                     dwInfoLevel,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCheckUserInList(
+                      hLsaConnection,
+                      ((PLSA_USER_INFO_0)pUserInfo)->pszName,
+                      NULL);
+    if (dwError)
+    {
+        bAllowedLogon = FALSE;
+    }
     
     switch(dwInfoLevel)
     {
         case 0:
-            PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo);
+            PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo,
+                            bAllowedLogon);
             break;
         case 1:
-            PrintUserInfo_1((PLSA_USER_INFO_1)pUserInfo);
+            PrintUserInfo_1((PLSA_USER_INFO_1)pUserInfo,
+                            bAllowedLogon);
             break;
         case 2:
-            PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo);
+            PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo,
+                            bAllowedLogon);
             break;
         default:
             
@@ -291,55 +307,61 @@ ShowUsage()
 
 VOID
 PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo
+    PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bAllowedLogon
     )
 {
     fprintf(stdout, "User info (Level-0):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
+    fprintf(stdout, "Name:              %s\n",
             IsNullOrEmptyString(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "SID:      %s\n",
+    fprintf(stdout, "SID:               %s\n",
             IsNullOrEmptyString(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
-    fprintf(stdout, "Uid:      %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:    %s\n",
+    fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
+    fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
+    fprintf(stdout, "Gecos:             %s\n",
             IsNullOrEmptyString(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:    %s\n",
+    fprintf(stdout, "Shell:             %s\n",
             IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir: %s\n",
+    fprintf(stdout, "Home dir:          %s\n",
             IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
+    fprintf(stdout, "Logon restriction: %s\n",
+            bAllowedLogon ? "NO" : "YES");
 }
 
 VOID
 PrintUserInfo_1(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_USER_INFO_1 pUserInfo,
+    BOOLEAN bAllowedLogon
     )
 {
     fprintf(stdout, "User info (Level-1):\n");
     fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:          %s\n",
+    fprintf(stdout, "Name:              %s\n",
                 IsNullOrEmptyString(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "SID:           %s\n",
+    fprintf(stdout, "SID:               %s\n",
             IsNullOrEmptyString(pUserInfo->pszSid) ? "<null>" : pUserInfo->pszSid);
-    fprintf(stdout, "UPN:           %s\n",
+    fprintf(stdout, "UPN:               %s\n",
                     IsNullOrEmptyString(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
-    fprintf(stdout, "Generated UPN: %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
-    fprintf(stdout, "Uid:           %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:           %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:         %s\n",
+    fprintf(stdout, "Generated UPN:     %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
+    fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
+    fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
+    fprintf(stdout, "Gecos:             %s\n",
                 IsNullOrEmptyString(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:         %s\n",
+    fprintf(stdout, "Shell:             %s\n",
                 IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:      %s\n",
+    fprintf(stdout, "Home dir:          %s\n",
                 IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "LMHash length: %d\n", pUserInfo->dwLMHashLen);
-    fprintf(stdout, "NTHash length: %d\n", pUserInfo->dwNTHashLen);
-    fprintf(stdout, "Local User:    %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
+    fprintf(stdout, "LMHash length:     %d\n", pUserInfo->dwLMHashLen);
+    fprintf(stdout, "NTHash length:     %d\n", pUserInfo->dwNTHashLen);
+    fprintf(stdout, "Local User:        %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
+    fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
 }
 
 VOID
 PrintUserInfo_2(
-    PLSA_USER_INFO_2 pUserInfo
+    PLSA_USER_INFO_2 pUserInfo,
+    BOOLEAN bAllowedLogon
     )
 {
     fprintf(stdout, "User info (Level-2):\n");
@@ -378,6 +400,8 @@ PrintUserInfo_2(
             pUserInfo->bUserCanChangePassword ? "YES" : "NO");
     fprintf(stdout, "Days till password expires: %d\n",
             pUserInfo->dwDaysToPasswordExpiry);
+    fprintf(stdout, "Logon restriction:          %s\n",
+            bAllowedLogon ? "NO" : "YES");
 }
 
 DWORD
