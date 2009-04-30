@@ -104,6 +104,7 @@ FreePasswordInfoStruct(
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszDomainName);
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszDnsDomainName);
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszHostname);
+	LWPS_SAFE_FREE_MEMORY(pInfo->pwszHostDnsDomain);
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszSID);
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszMachineAccount);
 	LWPS_SAFE_FREE_MEMORY(pInfo->pwszMachinePassword);
