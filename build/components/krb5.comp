@@ -28,13 +28,8 @@ function component_configure
 {
     _setup_build_env
 
-    top=`pwd`
-
-    for configurein in `find . -name configure.in` ; do
-    	pushd `dirname $configurein`
-    	autoconf -I "$top"
-    	popd
-    done
+    run_autogen ${COMP_SOURCES}/src
+    exit_on_error $?
 
     ./configure \
         CC="${CC}" \
@@ -78,10 +73,13 @@ function component_install
     local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
 
     [ "$INSTALL_ROOT" != "/" ] && rm -rf $INSTALL_ROOT
-    mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${INSTALL_PREFIX_ROOT}/{share,bin,sbin,include,$_lib}
+    mkdir -p ${INSTALL_ROOT}/${SYSCONFDIR}
     mkdir -p ${STAGE_INSTALL_DIR}
 
     ${MAKE} DESTDIR=${INSTALL_ROOT} install
+
+    /bin/mv ${INSTALL_PREFIX_DIR}/sbin/ktutil ${INSTALL_PREFIX_DIR}/bin/
 
     /bin/rm -rf ${INSTALL_PREFIX_DIR}/{sbin,share,var}
 
@@ -90,7 +88,7 @@ function component_install
     done
 
     cp -pf ${BUILD_ROOT}/config/krb5.conf.default \
-	${INSTALL_ROOT}/etc/krb5.conf    
+	${INSTALL_ROOT}/etc/krb5.conf.default
 
     mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/{bin,include,${_lib}}
     mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
@@ -99,16 +97,11 @@ function component_install
         cp ${INSTALL_PREFIX_DIR}/bin/${file} ${STAGING_PREFIX_DIR}/bin/.
     done
 
-    for file in ktutil; do
-        cp ${INSTALL_PREFIX_DIR}/sbin/${file} ${STAGING_PREFIX_DIR}/bin/.
-    done
-
     rsync -a --exclude=kerberosIV ${INSTALL_PREFIX_DIR}/include/ ${STAGING_PREFIX_DIR}/include/.
 
     # Do we want to also exclude some others (libdes425, libgssrpc)?
     rsync -a --exclude=krb5 --exclude=bin --exclude="libkadm5*" --exclude="libkdb5*" \
 	${INSTALL_PREFIX_DIR}/${_lib}/ ${STAGING_PREFIX_DIR}/${_lib}/.
-
 
     # Fix up libtool/dylib files
     libtool_rewrite_staging
