@@ -45,7 +45,9 @@ main(
     DWORD dwError = 0;
     HANDLE hDNSServer = (HANDLE)NULL;
     PSTR   pszDomain = NULL;
+    PSTR   pszDnsDomain = NULL;
     PSTR   pszZone = NULL;
+    PSTR   pszMachAcctName = NULL;
     PSTR   pszHostname = NULL;
     PSTR   pszHostnameFQDN = NULL;
     LWDNSLogLevel logLevel = LWDNS_LOG_LEVEL_ERROR;
@@ -61,6 +63,8 @@ main(
     PSTR         pszIPAddress = NULL;
     PSOCKADDR_IN pAddrArray = NULL;
     DWORD        dwNumAddrs = 0;
+    PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
+    HANDLE hPasswordStore = (HANDLE)NULL;
 
     if (geteuid() != 0)
     {
@@ -87,36 +91,70 @@ main(
         DNSSetLogParameters(logLevel, pfnLogger);
     }
 
-    dwError = LWNetGetCurrentDomain(&pszDomain);
+    dwError = GetHostname(&pszHostname);
     BAIL_ON_LWDNS_ERROR(dwError);
-    
+
+    dwError = LwpsOpenPasswordStore(
+                  LWPS_PASSWORD_STORE_SQLDB,
+                  &hPasswordStore);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = LwpsGetPasswordByHostName(
+                  hPasswordStore,
+                  pszHostname,
+                  &pMachineAcctInfo);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pszMachAcctName = awc16stombs(pMachineAcctInfo->pwszMachineAccount);
+    if ( !pszMachAcctName )
+    {
+        dwError = LWDNS_ERROR_STRING_CONV_FAILED;
+    }
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pszDomain = awc16stombs(pMachineAcctInfo->pwszDnsDomainName);
+    if ( !pszDomain )
+    {
+        dwError = LWDNS_ERROR_STRING_CONV_FAILED;
+    }
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pszDnsDomain = awc16stombs(pMachineAcctInfo->pwszHostDnsDomain);
+    if ( !pszDnsDomain )
+    {
+        dwError = LWDNS_ERROR_STRING_CONV_FAILED;
+    }
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    DNSStrToUpper(pszDnsDomain);
+
     dwError = DNSGetNameServers(
-                    pszDomain,
+                    pszDnsDomain,
                     &pszZone,
                     &pNameServerInfos,
                     &dwNumNSInfos);
     BAIL_ON_LWDNS_ERROR(dwError);
-    
+
     if (!dwNumNSInfos)
     {
         dwError = LWDNS_ERROR_NO_NAMESERVER;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
-    
+
     if (!IsNullOrEmptyString(pszIPAddress))
     {
         PSOCKADDR_IN pSockAddr = NULL;
-        
+
         dwError = DNSAllocateMemory(
                         sizeof(SOCKADDR_IN),
                         (PVOID*)&pAddrArray);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         dwNumAddrs = 1;
 
         pSockAddr = &pAddrArray[0];
         pSockAddr->sin_family = AF_INET;
-        
+
         if (!inet_aton(pszIPAddress, &pSockAddr->sin_addr))
         {
             dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
@@ -126,70 +164,67 @@ main(
     else
     {
         DWORD iAddr = 0;
-        
+
         dwError = DNSGetNetworkInterfaces(
                         &pInterfaceInfos,
                         &dwNumItfInfos);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         if (!dwNumItfInfos)
         {
             dwError = LWDNS_ERROR_NO_INTERFACES;
             BAIL_ON_LWDNS_ERROR(dwError);
         }
-        
+
         dwError = DNSAllocateMemory(
                         sizeof(SOCKADDR_IN) * dwNumItfInfos,
                         (PVOID*)&pAddrArray);
         BAIL_ON_LWDNS_ERROR(dwError);
-        
+
         dwNumAddrs = dwNumItfInfos;
-        
+
         for (; iAddr < dwNumAddrs; iAddr++)
         {
             PSOCKADDR_IN pSockAddr = NULL;
             PLW_INTERFACE_INFO pInterfaceInfo = NULL;
-            
+
             pSockAddr = &pAddrArray[iAddr];
             pInterfaceInfo = &pInterfaceInfos[iAddr];
-            
+
             pSockAddr->sin_family = pInterfaceInfo->ipAddr.sa_family;
-            
+
             pSockAddr->sin_addr = ((PSOCKADDR_IN)&pInterfaceInfo->ipAddr)->sin_addr;
         }
     }
 
-    dwError = GetHostname(&pszHostname);
-    BAIL_ON_LWDNS_ERROR(dwError);
-
-    dwError = DNSKrb5Init(pszHostname, pszDomain);
+    dwError = DNSKrb5Init(pszMachAcctName, pszDomain);
     BAIL_ON_LWDNS_ERROR(dwError);
 
     dwError = DNSAllocateMemory(
-                    strlen(pszHostname) + strlen(pszDomain) + 2,
+                    strlen(pszHostname) + strlen(pszDnsDomain) + 2,
                     (PVOID*)&pszHostnameFQDN);
     BAIL_ON_LWDNS_ERROR(dwError);
 
     DNSStrToLower(pszHostname);
-    DNSStrToLower(pszDomain);
+    DNSStrToLower(pszDnsDomain);
 
-    sprintf(pszHostnameFQDN, "%s.%s", pszHostname, pszDomain);
+    sprintf(pszHostnameFQDN, "%s.%s", pszHostname, pszDnsDomain);
 
     for (; !bDNSUpdated && (iNS < dwNumNSInfos); iNS++)
     {
         PSTR   pszNameServer = NULL;
         PLW_NS_INFO pNSInfo = NULL;
-        
+
         pNSInfo = &pNameServerInfos[iNS];
         pszNameServer = pNSInfo->pszNSHostName;
-        
+
         if (hDNSServer != (HANDLE)NULL)
         {
             DNSClose(hDNSServer);
         }
-        
+
         LWDNS_LOG_INFO("Attempting to update name server [%s]", pszNameServer);
-        
+
         dwError = DNSOpen(
                         pszNameServer,
                         DNS_TCP,
@@ -201,10 +236,10 @@ main(
                     pszNameServer,
                     dwError);
             dwError = 0;
-            
+
             continue;
         }
-    
+
         dwError = DNSUpdateSecure(
                         hDNSServer,
                         pszNameServer,
@@ -222,7 +257,7 @@ main(
             
             continue;
         }
-        
+
         bDNSUpdated = TRUE;
     }
 
@@ -244,30 +279,39 @@ cleanup:
     LWDNS_SAFE_FREE_STRING(pszHostnameFQDN);
     LWDNS_SAFE_FREE_STRING(pszIPAddress);
     LWDNS_SAFE_FREE_STRING(pszZone);
-    
+    LWDNS_SAFE_FREE_STRING(pszMachAcctName);
+    LWDNS_SAFE_FREE_STRING(pszDomain);
+    LWDNS_SAFE_FREE_STRING(pszDnsDomain);
+
     if (pNameServerInfos)
     {
         DNSFreeNameServerInfoArray(
                 pNameServerInfos,
                 dwNumNSInfos);
     }
-    
+
     if (pInterfaceInfos)
     {
         DNSFreeNetworkInterfaces(
                 pInterfaceInfos,
                 dwNumItfInfos);
     }
-    
+
     if (pAddrArray)
     {
         DNSFreeMemory(pAddrArray);
     }
 
-    if (pszDomain)
+    if (pMachineAcctInfo)
     {
-        LWNetFreeString(pszDomain);
+        LwpsFreePasswordInfo(hPasswordStore, pMachineAcctInfo);
     }
+
+    if (hPasswordStore)
+    {
+       LwpsClosePasswordStore(hPasswordStore);
+    }
+
 
     DNSShutdown();
 

@@ -180,6 +180,7 @@ main(
     printf("DomainName               = %s\n", pAcct->pszDomainName);
     printf("Domain DNS Name          = %s\n", pAcct->pszDomainDnsName);
     printf("HostName                 = %s\n", pAcct->pszHostName);
+    printf("HostName DNS Domain      = %s\n", pAcct->pszHostDnsDomain);
     printf("Machine Account Name     = %s\n", pAcct->pszMachineAccountName);
     printf("Machine Account Password = %s\n", pAcct->pszMachineAccountPassword);
     printf("\n");

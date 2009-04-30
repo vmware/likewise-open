@@ -133,6 +133,10 @@
   #include <resolv.h>
 #endif
 
+#if HAVE_WC16STR_H
+#include <wc16str.h>
+#endif
+
   #include <uuid/uuid.h>
   #include <krb5.h>
   #include <gssapi/gssapi.h>

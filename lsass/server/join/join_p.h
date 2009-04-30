@@ -76,6 +76,7 @@ LsaSetSMBAccessTokenWithFlags(
 DWORD
 LsaNetJoinDomain(
     PCSTR pszHostname,
+    PCSTR pszHostDnsDomain,
     PCSTR pszDomain,
     PCSTR pszOU,
     PCSTR pszUsername,

@@ -77,6 +77,7 @@ WINERR
 SaveMachinePassword(
     const wchar16_t *machine,
     const wchar16_t *machacct_name,
+    const wchar16_t *mach_dns_domain,
     const wchar16_t *domain_name,
     const wchar16_t *dns_domain_name,
     const wchar16_t *dc_name,
@@ -89,6 +90,7 @@ SaveMachinePassword(
     uint32 ktstatus = 0;
     wchar16_t *account = NULL;
     wchar16_t *dom_name = NULL;
+    wchar16_t *ad_dns_dom_name_lc = NULL;
     wchar16_t *dns_dom_name_uc = NULL;
     wchar16_t *dns_dom_name_lc = NULL;
     wchar16_t *sid = NULL;
@@ -115,12 +117,17 @@ SaveMachinePassword(
     dom_name = wc16sdup(domain_name);
     goto_if_no_memory_winerr(dom_name, done);
 
-    dns_dom_name_uc = wc16sdup(dns_domain_name);
+    ad_dns_dom_name_lc = wc16sdup(dns_domain_name);
+    goto_if_no_memory_winerr(ad_dns_dom_name_lc, done);
+
+    wc16slower(ad_dns_dom_name_lc);
+
+    dns_dom_name_uc = wc16sdup(mach_dns_domain);
     goto_if_no_memory_winerr(dns_dom_name_uc, done);
 
     wc16supper(dns_dom_name_uc);
 
-    dns_dom_name_lc = wc16sdup(dns_domain_name);
+    dns_dom_name_lc = wc16sdup(mach_dns_domain);
     goto_if_no_memory_winerr(dns_dom_name_lc, done);
 
     wc16slower(dns_dom_name_lc);
@@ -146,9 +153,10 @@ SaveMachinePassword(
      */
 
     pi.pwszDomainName      = dom_name;
-    pi.pwszDnsDomainName   = dns_dom_name_lc;
+    pi.pwszDnsDomainName   = ad_dns_dom_name_lc;
     pi.pwszSID             = sid;
     pi.pwszHostname        = hostname_uc;
+    pi.pwszHostDnsDomain   = dns_dom_name_lc;
     pi.pwszMachineAccount  = account;
     pi.pwszMachinePassword = pass;
     pi.last_change_time    = time(NULL);
@@ -193,7 +201,7 @@ SaveMachinePassword(
         goto done;
     }
 
-    ktstatus = KtGetSaltingPrincipalW(machine, account, dns_domain_name, NULL,
+    ktstatus = KtGetSaltingPrincipalW(machine, account, mach_dns_domain, NULL,
                                       dc_name, base_dn, &salt);
     if (ktstatus != 0) {
         err = NtStatusToWin32Error(STATUS_UNSUCCESSFUL);
@@ -377,6 +385,7 @@ done:
     if (salt) KtFreeMemory(salt);
 
     SAFE_FREE(dom_name);
+    SAFE_FREE(ad_dns_dom_name_lc);
     SAFE_FREE(dns_dom_name_lc);
     SAFE_FREE(dns_dom_name_uc);
     SAFE_FREE(sid);

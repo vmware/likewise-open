@@ -6,11 +6,17 @@ lw_update_dns_SOURCES = \
     main.c
     
 lw_update_dns_CPPFLAGS = \
-    @NETLOGON_INCLUDES@
+    @LIBUNISTR_INCLUDES@  \
+    @NETLOGON_INCLUDES@  \
+    @PSTORE_INCLUDES@
 
 lw_update_dns_LDADD = \
     @top_builddir@/lwdns/liblwdns.la \
-    @NETLOGON_LIBS@
+    @LIBUNISTR_LIBS@   \
+    @NETLOGON_LIBS@   \
+    @PSTORE_LIBS@
     
 lw_update_dns_LDFLAGS = \
-	@NETLOGON_LDFLAGS@
+	@LIBUNISTR_LDFLAGS@ \
+	@NETLOGON_LDFLAGS@ \
+	@PSTORE_LDFLAGS@

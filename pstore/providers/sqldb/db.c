@@ -85,6 +85,7 @@ SqlDBFreeMachineAcctInfo(
     LWPS_SAFE_FREE_STRING(pAcct->pszDomainName);
     LWPS_SAFE_FREE_STRING(pAcct->pszDomainDnsName);
     LWPS_SAFE_FREE_STRING(pAcct->pszHostName);
+    LWPS_SAFE_FREE_STRING(pAcct->pszHostDnsDomain);
     LWPS_SAFE_FREE_STRING(pAcct->pszMachineAccountName);
     LWPS_SAFE_FREE_STRING(pAcct->pszMachineAccountPassword);
     
@@ -260,6 +261,7 @@ SqlDBSetPwdEntry(
                     pAcct->pszDomainName,
                     pAcct->pszDomainDnsName,
                     pAcct->pszHostName,
+                    pAcct->pszHostDnsDomain,
                     pAcct->pszMachineAccountName,
                     pAcct->pszMachineAccountPassword,
                     (DWORD) time(NULL),
@@ -318,7 +320,7 @@ SqlDBGetPwdEntry(
     PSTR     pszValue = NULL;
     PMACHINE_ACCT_INFO pAcct = NULL;
     BOOLEAN bInLock = FALSE;
-    DWORD   dwExpectedNumCols = 9;
+    DWORD   dwExpectedNumCols = 10;
     PSTR    pszEndPtr = NULL;
     
     ENTER_MACHINEPWD_DB_RW_READER_LOCK(bInLock);
@@ -390,6 +392,22 @@ SqlDBGetPwdEntry(
         BAIL_ON_LWPS_ERROR(dwError);
     }
     
+    pszValue = ppszDbResult[i++];
+    if (!IsNullOrEmptyString(pszValue))
+    {
+        dwError = LwpsAllocateString(
+                    pszValue,
+                    &pAcct->pszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+    else if (!IsNullOrEmptyString(pAcct->pszDomainDnsName))
+    {
+        dwError = LwpsAllocateString(
+                    pAcct->pszDomainDnsName,
+                    &pAcct->pszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
     pszValue = ppszDbResult[i++];
     if (!IsNullOrEmptyString(pszValue))
     {
@@ -747,7 +765,7 @@ SqlDBGetPwdEntries(
                     {
                         dwError = LwpsAllocateString(
                                     ppszDbResult[iVal],
-                                    &pAcct->pszMachineAccountName);
+                                    &pAcct->pszHostDnsDomain);
                         BAIL_ON_LWPS_ERROR(dwError);
                     }
                     break;
@@ -758,13 +776,24 @@ SqlDBGetPwdEntries(
                     {
                         dwError = LwpsAllocateString(
                                     ppszDbResult[iVal],
-                                    &pAcct->pszMachineAccountPassword);
+                                    &pAcct->pszMachineAccountName);
                         BAIL_ON_LWPS_ERROR(dwError);
                     }
                     break;
                     
                 case 6:
                     
+                    if (!IsNullOrEmptyString(ppszDbResult[iVal]))
+                    {
+                        dwError = LwpsAllocateString(
+                                    ppszDbResult[iVal],
+                                    &pAcct->pszMachineAccountPassword);
+                        BAIL_ON_LWPS_ERROR(dwError);
+                    }
+                    break;
+
+                case 7:
+
                     pAcct->tPwdCreationTimestamp = 
                                 (time_t) strtoll(ppszDbResult[iVal],
                                                  &pszEndPtr,
@@ -779,7 +808,7 @@ SqlDBGetPwdEntries(
 
                     break;
                 
-                case 7:
+                case 8:
                     
                     pAcct->tPwdClientModifyTimestamp = 
                                 (time_t) strtoll(ppszDbResult[iVal],
@@ -794,7 +823,7 @@ SqlDBGetPwdEntries(
                     }
                     break;
                     
-                case 8:
+                case 9:
                     
                     pAcct->dwSchannelType = (UINT32)atol(ppszDbResult[iVal]);
                     break;

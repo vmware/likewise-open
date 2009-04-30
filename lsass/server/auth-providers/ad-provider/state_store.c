@@ -463,8 +463,8 @@ ADState_StoreProviderData(
 
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaSqliteExecWithRetry(
@@ -684,8 +684,8 @@ ADState_AddDomainTrust(
         "begin;\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = ADState_BuildInsertDomainTrust(
@@ -702,8 +702,8 @@ ADState_AddDomainTrust(
         );
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaSqliteExecWithRetry(
@@ -740,8 +740,8 @@ ADState_StoreDomainTrustList(
             "delete from " AD_STATE_TABLE_NAME_TRUSTS ";\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     for (dwIndex = 0; dwIndex < dwDomainInfoCount; dwIndex++)
@@ -761,8 +761,8 @@ ADState_StoreDomainTrustList(
         );
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaSqliteExecWithRetry(
@@ -882,7 +882,6 @@ ADState_GetCacheCellListCommand(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
     const DLINKEDLIST* pPos = pCellList;
     size_t sIndex = 0;
     const AD_LINKED_CELL_INFO* pCell = NULL;
@@ -891,8 +890,8 @@ ADState_GetCacheCellListCommand(
         "delete from " AD_STATE_TABLE_NAME_LINKED_CELLS " ;\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-        BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     while (pPos != NULL)
@@ -923,8 +922,8 @@ ADState_GetCacheCellListCommand(
 
         if (pszSqlCommand == NULL)
         {
-            dwError = (DWORD)sqlite3_errcode(pConn->pDb);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+            dwError = LSA_ERROR_OUT_OF_MEMORY;
+            BAIL_ON_LSA_ERROR(dwError);
         }
 
         pPos = pPos->pNext;

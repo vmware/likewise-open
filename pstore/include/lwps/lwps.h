@@ -90,6 +90,7 @@ typedef struct __LWPS_PASSWORD_INFO
     wchar16_t* pwszDnsDomainName;
     wchar16_t* pwszSID;
     wchar16_t* pwszHostname;
+    wchar16_t* pwszHostDnsDomain;
     wchar16_t* pwszMachineAccount;
     wchar16_t* pwszMachinePassword;
     time_t     last_change_time;

@@ -53,11 +53,12 @@ typedef enum {
     DomainName,               //1
     DomainDnsName,            //2
     HostName,                 //3
-    MachineAccountName,       //4
-    MachineAccountPassword,   //5
-    PwdCreationTimestamp,     //6
-    PwdClientModifyTimestamp, //7
-    SchannelType              //8
+    HostDnsDomain,            //4
+    MachineAccountName,       //5
+    MachineAccountPassword,   //6
+    PwdCreationTimestamp,     //7
+    PwdClientModifyTimestamp, //8
+    SchannelType              //9
 } MachinePwdTableIndex;
 
 
@@ -70,7 +71,8 @@ typedef enum {
                               MachineAccountPassword   varchar(256), \
                               PwdCreationTimestamp     INTEGER,      \
                               PwdClientModifyTimestamp INTEGER,      \
-                              SchannelType             INTEGER       \
+                              SchannelType             INTEGER,      \
+                              HostDnsDomain            varchar(256)  \
                              )"
 
 
@@ -80,6 +82,7 @@ typedef enum {
                    DomainName,                                   \
                    DomainDnsName,                                \
                    HostName,                                     \
+                   HostDnsDomain,                                \
                    MachineAccountName,                           \
                    MachineAccountPassword,                       \
                    PwdCreationTimestamp,                         \
@@ -90,6 +93,7 @@ typedef enum {
                    upper(%Q),                                    \
                    upper(%Q),                                    \
                    upper(%Q),                                    \
+                   %Q,                                           \
                    upper(%Q),                                    \
                    %Q,                                           \
                    %u,                                           \
@@ -102,6 +106,7 @@ typedef enum {
             upper(DomainName),                                   \
             upper(DomainDnsName),                                \
             upper(HostName),                                     \
+            HostDnsDomain,                                       \
             upper(MachineAccountName),                           \
             MachineAccountPassword,                              \
             PwdCreationTimestamp,                                \
@@ -115,6 +120,7 @@ typedef enum {
             upper(DomainName),                                   \
             upper(DomainDnsName),                                \
             upper(HostName),                                     \
+            HostDnsDomain,                                       \
             upper(MachineAccountName),                           \
             MachineAccountPassword,                              \
             PwdCreationTimestamp,                                \
@@ -128,6 +134,7 @@ typedef enum {
             DomainName,                                          \
             DomainDnsName,                                       \
             HostName,                                            \
+            HostDnsDomain,                                       \
             MachineAccountName,                                  \
             MachineAccountPassword,                              \
             PwdCreationTimestamp,                                \

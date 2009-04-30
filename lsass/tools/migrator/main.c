@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Driver for program to migrate locally defined users and groups
  *
  * Authors:
@@ -91,21 +91,21 @@ LsaSrvPopulateGroups(
     PSTR pszPassword = NULL;
     gid_t gid = 0;
     BOOLEAN bReleaseLock = FALSE;
-    
+
     if ((fp = fopen("/etc/group", "r")) == NULL) {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_RW_WRITER_LOCK;
 
     bReleaseLock = TRUE;
-        
+
     while (1) {
         char* pszSavePtr = NULL;
         DWORD iToken = 0;
         BOOLEAN bKeepParsing = TRUE;
-        
+
         if (fgets(szLine, MAXLINELEN, fp) == NULL) {
             if (feof(fp)) {
                 break;
@@ -114,15 +114,15 @@ LsaSrvPopulateGroups(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-        
+
         LsaStripWhitespace(szLine, TRUE, TRUE);
-        
+
         if (IsComment(szLine))
             continue;
 
         dwError = LsaAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         iToken = 0;
         gid = 0;
         pszToken = strtok_r(pszBuf, ":", &pszSavePtr);
@@ -158,28 +158,28 @@ LsaSrvPopulateGroups(
                            pszPassword,
                            gid);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         LSA_SAFE_FREE_STRING(pszBuf);
         LSA_SAFE_FREE_STRING(pszGroupname);
         LSA_SAFE_FREE_STRING(pszPassword);
     }
-    
+
 cleanup:
 
     if (fp) {
         fclose(fp);
     }
-    
+
     if (bReleaseLock) {
        LEAVE_RW_WRITER_LOCK;
     }
-    
+
     LSA_SAFE_FREE_STRING(pszBuf);
     LSA_SAFE_FREE_STRING(pszGroupname);
     LSA_SAFE_FREE_STRING(pszPassword);
-    
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -205,21 +205,21 @@ LsaSrvPopulateUsers(
     PSTR pszShell = NULL;
 
     BOOLEAN bReleaseLock = FALSE;
-    
+
     if ((fp = fopen("/etc/passwd", "r")) == NULL) {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_RW_WRITER_LOCK;
 
     bReleaseLock = TRUE;
-        
+
     while (1) {
         char* pszSavePtr = NULL;
         DWORD iToken = 0;
         BOOLEAN bKeepParsing = TRUE;
-        
+
         if (fgets(szLine, MAXLINELEN, fp) == NULL) {
             if (feof(fp)) {
                 break;
@@ -228,15 +228,15 @@ LsaSrvPopulateUsers(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-        
+
         LsaStripWhitespace(szLine, TRUE, TRUE);
-        
+
         if (IsComment(szLine))
             continue;
 
         dwError = LsaAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         iToken = 0;
         uid = 0;
         gid = 0;
@@ -307,7 +307,7 @@ LsaSrvPopulateUsers(
                         pszHomedir
                         );
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         LSA_SAFE_FREE_STRING(pszBuf);
         LSA_SAFE_FREE_STRING(pszUsername);
         LSA_SAFE_FREE_STRING(pszPassword);
@@ -315,26 +315,26 @@ LsaSrvPopulateUsers(
         LSA_SAFE_FREE_STRING(pszHomedir);
         LSA_SAFE_FREE_STRING(pszShell);
     }
-    
+
 cleanup:
 
     if (fp) {
         fclose(fp);
     }
-    
+
     if (bReleaseLock) {
        LEAVE_RW_WRITER_LOCK;
     }
-    
+
     LSA_SAFE_FREE_STRING(pszBuf);
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszGecos);
     LSA_SAFE_FREE_STRING(pszHomedir);
     LSA_SAFE_FREE_STRING(pszShell);
-    
+
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -358,21 +358,21 @@ LsaSrvPopulateGroupMembers(
     PSTR pszError = NULL;
     PSTR pszQuery = NULL;
     BOOLEAN bReleaseLock = FALSE;
-    
+
     if ((fp = fopen("/etc/group", "r")) == NULL) {
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     ENTER_RW_WRITER_LOCK;
 
     bReleaseLock = TRUE;
-        
+
     while (1) {
         char* pszSavePtr = NULL;
         DWORD iToken = 0;
         BOOLEAN bKeepParsing = TRUE;
-        
+
         if (fgets(szLine, MAXLINELEN, fp) == NULL) {
             if (feof(fp)) {
                 break;
@@ -381,15 +381,15 @@ LsaSrvPopulateGroupMembers(
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
-        
+
         LsaStripWhitespace(szLine, TRUE, TRUE);
-        
+
         if (IsComment(szLine))
             continue;
 
         dwError = LsaAllocateString(szLine, &pszBuf);
         BAIL_ON_LSA_ERROR(dwError);
-        
+
         iToken = 0;
         gid = 0;
         pszToken = strtok_r(pszBuf, ":", &pszSavePtr);
@@ -428,20 +428,20 @@ LsaSrvPopulateGroupMembers(
         }
 
         LsaStripWhitespace(pszGroupMembers, TRUE, TRUE);
-        
+
         if (!IsNullOrEmptyString(pszGroupMembers)) {
             uid_t candidateUid = 0;
             BOOLEAN bExists = FALSE;
-            
+
             pszToken = strtok_r(pszGroupMembers, ",", &pszSavePtr);
             while (pszToken) {
-                
+
                 dwError = LsaProviderLocal_GetUid_Unsafe(
                                 pDbHandle,
                                 pszToken,
                                 &candidateUid);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 bExists = FALSE;
                 dwError = LsaProviderLocal_CheckGroupMembershipRecord_Unsafe(
                                 pDbHandle,
@@ -449,13 +449,19 @@ LsaSrvPopulateGroupMembers(
                                 gid,
                                 &bExists);
                 BAIL_ON_LSA_ERROR(dwError);
-                
+
                 if (!bExists) {
-                    
+
                     pszQuery = sqlite3_mprintf(DB_QUERY_INSERT_GROUP_MEMBERSHIP,
                                                gid,
                                                candidateUid
                                                );
+
+                    if (pszQuery == NULL)
+                    {
+                        dwError = LSA_ERROR_OUT_OF_MEMORY;
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
 
                     dwError = sqlite3_exec(pDbHandle,
                                            pszQuery,
@@ -463,7 +469,7 @@ LsaSrvPopulateGroupMembers(
                                            NULL,
                                            &pszError);
                     BAIL_ON_LSA_ERROR(dwError);
-                    
+
                     if (pszQuery) {
                        sqlite3_free(pszQuery);
                        pszQuery = NULL;
@@ -472,19 +478,19 @@ LsaSrvPopulateGroupMembers(
                 pszToken = strtok_r(NULL, ",", &pszSavePtr);
             }
         }
-        
+
         LSA_SAFE_FREE_STRING(pszBuf);
         LSA_SAFE_FREE_STRING(pszGroupname);
         LSA_SAFE_FREE_STRING(pszPassword);
         LSA_SAFE_FREE_STRING(pszGroupMembers);
     }
-    
+
 cleanup:
 
     if (fp) {
         fclose(fp);
     }
-    
+
     if (bReleaseLock) {
        LEAVE_RW_WRITER_LOCK;
     }
@@ -492,14 +498,14 @@ cleanup:
     if (pszQuery) {
        sqlite3_free(pszQuery);
     }
-    
+
     LSA_SAFE_FREE_STRING(pszBuf);
     LSA_SAFE_FREE_STRING(pszGroupname);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszGroupMembers);
-    
+
     return dwError;
-    
+
 error:
 
     if (pszError) {
@@ -516,18 +522,18 @@ LsaSrvPopulateDB(
     )
 {
     DWORD dwError = 0;
-    
+
     dwError = LsaSrvPopulateGroups(pDbHandle);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvPopulateUsers(pDbHandle);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaSrvPopulateGroupMembers(pDbHandle);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 error:
-    
+
     return dwError;
 }
 
