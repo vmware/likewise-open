@@ -49,6 +49,7 @@
 
 typedef DWORD (*PFN_LSA_NET_JOIN_DOMAIN)(
                 PCSTR pszHostname,
+                PCSTR pszHostDnsDomain,
                 PCSTR pszDomain,
                 PCSTR pszOU,
                 PCSTR pszUsername,

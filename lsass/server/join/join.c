@@ -54,6 +54,7 @@
 DWORD
 LsaNetJoinDomain(
     PCSTR pszHostname,
+    PCSTR pszHostDnsDomain,
     PCSTR pszDomain,
     PCSTR pszOU,
     PCSTR pszUsername,
@@ -67,6 +68,7 @@ LsaNetJoinDomain(
     DWORD dwError = 0;
     PSTR  pszOU_DN = NULL;
     PWSTR pwszHostname = NULL;
+    PWSTR pwszHostDnsDomain = NULL;
     PWSTR pwszDomain = NULL;
     PWSTR pwszOU = NULL;
     PWSTR pwszOSName = NULL;
@@ -98,6 +100,14 @@ LsaNetJoinDomain(
                     pszHostname,
                     &pwszHostname);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (!IsNullOrEmptyString(pszHostDnsDomain))
+    {
+        dwError = LsaMbsToWc16s(
+                        pszHostDnsDomain,
+                        &pwszHostDnsDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
     
     dwError = LsaMbsToWc16s(
                     pszDomain,
@@ -142,6 +152,7 @@ LsaNetJoinDomain(
     dwError = Win32ErrorToErrno(
         NetJoinDomainLocal(
             pwszHostname,
+            pwszHostDnsDomain,
             pwszDomain,
             pwszOU,
             NULL,
@@ -158,6 +169,7 @@ cleanup:
 
     LSA_SAFE_FREE_STRING(pszOU_DN);
     LSA_SAFE_FREE_MEMORY(pwszHostname);
+    LSA_SAFE_FREE_MEMORY(pwszHostDnsDomain);
     LSA_SAFE_FREE_MEMORY(pwszDomain);
     LSA_SAFE_FREE_MEMORY(pwszOU);
     LSA_SAFE_FREE_MEMORY(pwszOSName);

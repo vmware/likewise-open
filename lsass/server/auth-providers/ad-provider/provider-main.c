@@ -165,6 +165,7 @@ LsaInitializeProvider(
     PSTR  pszUsername = NULL;
     PSTR  pszPassword = NULL;
     PSTR  pszDomainDnsName = NULL;
+    PSTR  pszHostDnsDomain = NULL;
     PSTR pszKrb5CcPath = NULL;
     BOOLEAN bIsDomainOffline = FALSE;
     LSA_AD_CONFIG config = {0};
@@ -217,7 +218,8 @@ LsaInitializeProvider(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
-                    &pszDomainDnsName);
+                    &pszDomainDnsName,
+                    &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Initialize domain manager before doing any network stuff.
@@ -307,6 +309,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
     LSA_SAFE_FREE_STRING(pszKrb5CcPath);
 
     return dwError;
@@ -531,7 +534,7 @@ AD_AuthenticateUserEx(
     PSTR pszNT4Name = NULL;
 
     /* The NTLM pass-through authentication gives us the NT4
-       style name.  We need the DNS domain for for the LsaDmConnectDomain() */
+       style name.  We need the DNS domain for the LsaDmConnectDomain() */
 
     dwError = LsaAllocateStringPrintf(
                     &pszNT4Name,
@@ -3614,6 +3617,7 @@ AD_MachineCredentialsCacheInitialize(
     PSTR pszUsername = NULL;
     PSTR pszPassword = NULL;
     PSTR pszDomainDnsName = NULL;
+    PSTR pszHostDnsDomain = NULL;
     DWORD dwGoodUntilTime = 0;
 
     // Check before doing any work.
@@ -3632,7 +3636,8 @@ AD_MachineCredentialsCacheInitialize(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
-                    &pszDomainDnsName);
+                    &pszDomainDnsName,
+                    &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (LsaDmIsDomainOffline(pszDomainDnsName))
@@ -3657,7 +3662,7 @@ AD_MachineCredentialsCacheInitialize(
                     pszUsername,
                     pszPassword,
                     pszDomainDnsName,
-                    pszDomainDnsName,
+                    pszHostDnsDomain,
                     &dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -3675,6 +3680,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_CLEAR_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
 

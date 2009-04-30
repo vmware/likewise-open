@@ -66,6 +66,7 @@ AD_GetSystemAccessToken(
     PSTR pszUsername = NULL;
     PSTR pszPassword = NULL;
     PSTR pszDomainDnsName = NULL;
+    PSTR pszHostDnsDomain = NULL;
     PSTR pszHostname = NULL;
     PSTR pszMachPrincipal = NULL;
     PSTR pszKrb5CcPath = NULL;
@@ -79,7 +80,8 @@ AD_GetSystemAccessToken(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
-                    &pszDomainDnsName);
+                    &pszDomainDnsName,
+                    &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(
@@ -106,6 +108,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
     LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszMachPrincipal);
     LSA_SAFE_FREE_STRING(pszKrb5CcPath);

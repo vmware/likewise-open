@@ -179,7 +179,8 @@ LsaKrb5GetMachineCreds(
     PCSTR pszHostname,
     PSTR* ppszUsername,
     PSTR* ppszPassword,
-    PSTR* ppszDomainDnsName
+    PSTR* ppszDomainDnsName,
+    PSTR* ppszHostDnsDomain
     );
 
 typedef struct _LSA_ACCESS_TOKEN_FREE_INFO *PLSA_ACCESS_TOKEN_FREE_INFO;
