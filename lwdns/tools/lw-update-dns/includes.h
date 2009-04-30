@@ -6,6 +6,7 @@
 #include "dnsdefines.h"
 
 #include <lwnet.h>
+#include <lwps/lwps.h>
 
 #include "lwkrb5.h"
 #include "externs.h"

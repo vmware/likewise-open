@@ -3,7 +3,7 @@
 
 DWORD
 DNSKrb5Init(
-    PCSTR pszHostname,
+    PCSTR pszAccountName,
     PCSTR pszDomain
     );
 

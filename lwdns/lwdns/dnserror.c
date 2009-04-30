@@ -84,7 +84,9 @@ const char* gDNSErrorMessages[] =
      // LWDNS_ERROR_NO_INTERFACES       : 57369
      "No suitable network interfaces could be found, whose address can be configured in DNS",
      // LWDNS_ERROR_INVALID_IP_ADDRESS  : 57370
-     "An invalid IP Address was specified"
+     "An invalid IP Address was specified",
+     // LWDNS_ERROR_STRING_CONV_FAILED  : 57371
+     "Failed to convert string format (wide/ansi)"
 };
 
 
