@@ -1032,7 +1032,7 @@ LocalDirBeginEnumGroups_1(
     )
 {
     DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
+    DWORD dwInfoLevel = 1;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
@@ -1257,7 +1257,7 @@ LocalDirEnumGroups_1(
 
     LOCAL_LOCK_MUTEX(bInLock, &pEnumState->mutex);
 
-    if (pEnumState->dwInfoLevel != 0)
+    if (pEnumState->dwInfoLevel != 1)
     {
         dwError = LSA_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
