@@ -48,6 +48,7 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 #include "adprovider.h"
+#include "batch_common.h"
 
 DWORD
 AD_OnlineFindCellDN(
@@ -107,6 +108,95 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_OnlineInitializeDomainTrustsInfo(
+    IN PSTR pszPrimaryDomainName
+    )
+{
+    DWORD dwError = 0;
+    PDLINKEDLIST pDomains = NULL;
+    // Do not free pDomain
+    PLSA_DM_ENUM_DOMAIN_INFO pDomain = NULL;
+    const DLINKEDLIST* pPos = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
+    DWORD dwDomainInfoCount = 0;
+    PSTR pszDomainSid = NULL;
+    PSTR pszSid = NULL;
+
+    dwError = ADState_GetDomainTrustList(
+                gpLsaAdProviderState->hStateConnection,
+                &pDomains);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pPos = pDomains;
+    while (pPos != NULL)
+    {
+        pDomain = (PLSA_DM_ENUM_DOMAIN_INFO)pPos->pItem;
+
+        if (!pDomain || !IsSetFlag(pDomain->Flags, LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD))
+        {
+            pPos = pPos->pNext;
+            continue;
+        }
+
+        dwError = LsaDmWrapNetLookupObjectSidByName(
+                     pszPrimaryDomainName,
+                     pDomain->pszNetbiosDomainName,
+                     &pszSid,
+                     NULL);
+        if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+        {
+            pPos = pPos->pNext;
+            dwError = 0;
+            continue;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaDmAddTrustedDomain(
+            pDomain->pszDnsDomainName,
+            pDomain->pszNetbiosDomainName,
+            pDomain->pSid,
+            pDomain->pGuid,
+            pDomain->pszTrusteeDnsDomainName,
+            pDomain->dwTrustFlags,
+            pDomain->dwTrustType,
+            pDomain->dwTrustAttributes,
+            pDomain->dwTrustDirection,
+            pDomain->dwTrustMode,
+            TRUE,
+            pDomain->pszForestName,
+            NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pPos = pPos->pNext;
+    }
+
+    dwError = LsaDmEnumDomainInfo(
+                NULL,
+                NULL,
+                &ppDomainInfo,
+                &dwDomainInfoCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_StoreDomainTrustList(
+                gpLsaAdProviderState->hStateConnection,
+                ppDomainInfo,
+                dwDomainInfoCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LSA_SAFE_FREE_STRING(pszSid);
+    ADState_FreeEnumDomainInfoList(pDomains);
+    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 DWORD
 AD_OnlineInitializeOperatingMode(
     OUT PAD_PROVIDER_DATA* ppProviderData,
@@ -119,8 +209,6 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszCellDN = NULL;
     PSTR  pszRootDN = NULL;
     ADConfigurationMode adConfMode = NonSchemaMode;
-    PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo = NULL;
-    DWORD dwDomainInfoCount = 0;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PSTR pszNetbiosDomainName = NULL;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
@@ -213,17 +301,8 @@ AD_OnlineInitializeOperatingMode(
                 pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDmEnumDomainInfo(
-                NULL,
-                NULL,
-                &ppDomainInfo,
-                &dwDomainInfoCount);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_StoreDomainTrustList(
-                gpLsaAdProviderState->hStateConnection,
-                ppDomainInfo,
-                dwDomainInfoCount);
+    dwError = AD_OnlineInitializeDomainTrustsInfo(
+                pProviderData->szDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppProviderData = pProviderData;
@@ -234,7 +313,6 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszComputerDN);
     LSA_SAFE_FREE_STRING(pszCellDN);
     LsaDmLdapClose(pConn);
-    LsaDmFreeEnumDomainInfoArray(ppDomainInfo);
 
     return dwError;
 
@@ -1038,6 +1116,69 @@ error:
     goto cleanup;
 }
 
+static
+void
+AD_MarshalUserAccountFlags(
+    DWORD dwAcctFlags,
+    IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo
+    )
+{
+    pObjectUserInfo->bPasswordNeverExpires = IsSetFlag(dwAcctFlags, LSA_ACB_PWNOEXP);
+    if (pObjectUserInfo->bPasswordNeverExpires)
+    {
+        pObjectUserInfo->bPasswordExpired = FALSE;
+    }
+    else
+    {
+        pObjectUserInfo->bPasswordExpired = IsSetFlag(dwAcctFlags, LSA_ACB_PW_EXPIRED);
+    }
+    pObjectUserInfo->bAccountDisabled = IsSetFlag(dwAcctFlags, LSA_ACB_DISABLED);
+    //pObjectUserInfo->bAccountLocked = IsSetFlag(dwAcctFlags, LSA_ACB_AUTOLOCK);
+}
+
+DWORD
+AD_CacheUserRealInfoFromPac(
+    IN OUT PLSA_SECURITY_OBJECT pUserInfo,
+    IN PAC_LOGON_INFO* pPac
+    )
+{
+    DWORD dwError = 0;
+
+    LSA_LOG_VERBOSE(
+            "Updating user for uid %lu information from from one-way trusted domain with PAC information",
+             (unsigned long)pUserInfo->userInfo.uid);
+
+    pUserInfo->userInfo.qwPwdLastSet =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.last_password_change);
+    pUserInfo->userInfo.qwAccountExpires =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.acct_expiry);
+
+    AD_MarshalUserAccountFlags(
+               pPac->info3.base.acct_flags,
+               &pUserInfo->userInfo);
+
+    dwError = LsaAdBatchMarshalUserInfoAccountExpires(
+               pUserInfo->userInfo.qwAccountExpires,
+               &pUserInfo->userInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError =  LsaAdBatchMarshalUserInfoPasswordLastSet(
+               pUserInfo->userInfo.qwPwdLastSet,
+               &pUserInfo->userInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserInfo->userInfo.bIsAccountInfoKnown = TRUE;
+
+    dwError = LsaDbStoreObjectEntry(
+               gpLsaAdProviderState->hCacheConnection,
+               pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
 DWORD
 AD_GetCachedPasswordHash(
     IN PCSTR pszSamAccount,
@@ -1346,6 +1487,13 @@ AD_OnlineAuthenticateUser(
                         pUserInfo,
                         pPac);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_CacheUserRealInfoFromPac(
+                        pUserInfo,
+                        pPac);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
     }
 
     dwError = AD_OnlineCachePasswordVerifier(
@@ -2476,6 +2624,7 @@ AD_OnlineChangePassword(
     PSTR pszDomainController = NULL;
     PSTR pszFullDomainName = NULL;
     BOOLEAN bFoundDomain = FALSE;
+    LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2489,7 +2638,6 @@ AD_OnlineChangePassword(
                     &bFoundDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName))
     if (!bFoundDomain)
     {
         dwError = LSA_ERROR_NOT_HANDLED;
@@ -2549,7 +2697,16 @@ AD_OnlineChangePassword(
                                        &pszDomainController);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = AD_DetermineTrustModeandDomainName(
+                                       pszFullDomainName,
+                                       &dwTrustDirection,
+                                       NULL,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = AD_NetUserChangePassword(pszDomainController,
+                                       LSA_TRUST_DIRECTION_ONE_WAY == dwTrustDirection,
                                        pCachedUser->pszSamAccountName,
                                        pCachedUser->userInfo.pszUPN,
                                        pszOldPassword,
@@ -3276,7 +3433,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3337,7 +3494,7 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_USER_OR_GROUP == dwError)
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
     {
         dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
     }
@@ -3383,7 +3540,7 @@ AD_FindObjectBySid(
 
     if (ppResultArray && !ppResultArray[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3900,25 +4057,25 @@ AD_UpdateUserObjectFlags(
     ADConvertTimeUnix2Nt(current_tv.tv_sec,
                          &u64current_NTtime);
 
-    if (pUser->userInfo.qwAccountExpires != 0LL &&
-            pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
-            u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+    if (pUser->userInfo.bIsAccountInfoKnown)
     {
-        pUser->userInfo.bAccountExpired = TRUE;
-    }
+        if (pUser->userInfo.qwAccountExpires != 0LL &&
+                pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
+                u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+        {
+            pUser->userInfo.bAccountExpired = TRUE;
+        }
 
-    if (!pUser->userInfo.bIsInOneWayTrustedDomain)
-    {
         qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-    }
 
-    if (!pUser->userInfo.bPasswordNeverExpires &&
-        gpADProviderData->adMaxPwdAge != 0 &&
-        qwNanosecsToPasswordExpiry < 0)
-    {
-        //password is expired already
-        pUser->userInfo.bPasswordExpired = TRUE;
+        if (!pUser->userInfo.bPasswordNeverExpires &&
+               gpADProviderData->adMaxPwdAge != 0 &&
+               qwNanosecsToPasswordExpiry < 0)
+        {
+            //password is expired already
+            pUser->userInfo.bPasswordExpired = TRUE;
+        }
     }
 
 cleanup:

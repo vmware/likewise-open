@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,12 +38,12 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Caching for AD Provider Database Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
- * 
+ *
  */
 #ifndef __STATE_STORE_H__
 #define __STATE_STORE_H__
@@ -84,6 +84,12 @@ ADState_StoreDomainTrustList(
     IN ADSTATE_CONNECTION_HANDLE hDb,
     IN PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
     IN DWORD dwDomainInfoCount
+    );
+
+DWORD
+ADState_AddDomainTrust(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     );
 
 VOID

@@ -61,7 +61,8 @@ LsaSetSMBAccessToken(
     IN PCSTR pszUsername,
     IN PCSTR pszPassword,
     IN BOOLEAN bSetDefaultCachePath,
-    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo,
+    OUT OPTIONAL PHANDLE phOldToken
     )
 {
     DWORD dwError = 0;
@@ -69,7 +70,8 @@ LsaSetSMBAccessToken(
     PCSTR pszNewCachePath = NULL;
     krb5_context ctx = 0;
     krb5_ccache cc = 0;
-    HANDLE hAccessToken = 0;
+    HANDLE hNewAccessToken = 0;
+    HANDLE hOldAccessToken = 0;
     PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
 
     BAIL_ON_INVALID_POINTER(ppFreeInfo);
@@ -109,34 +111,45 @@ LsaSetSMBAccessToken(
     dwError = SMBCreateKrb5AccessTokenA(
         pszUsername,
         pszNewCachePath,
-        &hAccessToken);
+        &hNewAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateMemory(sizeof(*pFreeInfo), (PVOID*)&pFreeInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBGetThreadToken(&pFreeInfo->hAccessToken);
+    dwError = SMBGetThreadToken(&hOldAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = SMBSetThreadToken(hAccessToken);
+    dwError = SMBSetThreadToken(hNewAccessToken);
     BAIL_ON_LSA_ERROR(dwError);
 
     pFreeInfo->ctx = ctx;
     pFreeInfo->cc = cc;
-    pFreeInfo->hAccessToken = hAccessToken;
+    pFreeInfo->hAccessToken = hNewAccessToken;
+    hNewAccessToken = 0;
 
 cleanup:
     *ppFreeInfo = pFreeInfo;
+    if (phOldToken)
+    {
+        *phOldToken = hOldAccessToken;
+    }
+    else
+    {
+        if (hOldAccessToken != NULL)
+        {
+            SMBCloseHandle(NULL, hOldAccessToken);
+        }
+    }
+
+    if (hNewAccessToken != NULL)
+    {
+        SMBCloseHandle(NULL, hNewAccessToken);
+    }
 
     return dwError;
 
 error:
-
-    if (hAccessToken != NULL)
-    {
-        SMBCloseHandle(NULL, hAccessToken);
-    }
-
     if (ctx != NULL)
     {
         if (cc != NULL)
@@ -150,6 +163,12 @@ error:
     {
         LsaFreeMemory(pFreeInfo);
         pFreeInfo = NULL;
+    }
+
+    if (hOldAccessToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldAccessToken);
+        hOldAccessToken = 0;
     }
 
     goto cleanup;

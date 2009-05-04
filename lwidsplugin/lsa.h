@@ -97,7 +97,7 @@
 #define LSA_ERROR_INVALID_ACCOUNT                           0x8043 // 32835
 #define LSA_ERROR_INVALID_PASSWORD                          0x8044 // 32836
 #define LSA_ERROR_QUERY_CREATION_FAILED                     0x8045 // 32837
-#define LSA_ERROR_NO_SUCH_USER_OR_GROUP                     0x8046 // 32838
+#define LSA_ERROR_NO_SUCH_OBJECT                            0x8046 // 32838
 #define LSA_ERROR_DUPLICATE_USER_OR_GROUP                   0x8047 // 32839
 #define LSA_ERROR_INVALID_KRB5_CACHE_TYPE                   0x8048 // 32840
 #define LSA_ERROR_NOT_JOINED_TO_AD                          0x8049 // 32841
@@ -154,7 +154,31 @@
 #define LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND              0x807C // 32892
 #define LSA_ERORR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES       0x807D // 32893
 #define LSA_ERROR_PASSWORD_RESTRICTION                      0x807E // 32894
-#define LSA_ERROR_SENTINEL                                  0x807F // 32895
+#define LSA_ERROR_OBJECT_NOT_ENABLED                        0x807F // 32895
+#define LSA_ERROR_NO_MORE_NSS_ARTEFACTS                     0x8080 // 32896
+#define LSA_ERROR_INVALID_NSS_MAP_NAME                      0x8081 // 32897
+#define LSA_ERROR_INVALID_NSS_KEY_NAME                      0x8082 // 32898
+#define LSA_ERROR_NO_SUCH_NSS_KEY                           0x8083 // 32899
+#define LSA_ERROR_NO_SUCH_NSS_MAP                           0x8084 // 32900
+#define LSA_ERROR_RPC_ERROR                                 0x8085 // 32901
+#define LSA_ERROR_LDAP_SERVER_UNAVAILABLE                   0x8086 // 32902
+#define LSA_ERROR_CREATE_KEY_FAILED                         0x8087 // 32903
+#define LSA_ERROR_CANNOT_DETECT_USER_PROCESSES              0x8088 // 32904
+#define LSA_ERROR_TRACE_NOT_INITIALIZED                     0x8089 // 32905
+#define LSA_ERROR_NO_SUCH_TRACE_FLAG                        0x808A // 32906
+#define LSA_ERROR_DCERPC_ERROR                              0x808B // 32907
+#define LSA_ERROR_INVALID_RPC_SERVER                        0x808C // 32908
+#define LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR             0x808D // 32909
+#define LSA_ERROR_RPC_SERVER_RUNTIME_ERROR                  0x808E // 32910
+#define LSA_ERROR_DOMAIN_IN_USE                             0x808F // 32911
+#define LSA_ERROR_SAM_DATABASE_ERROR                        0x8090 // 32912
+#define LSA_ERROR_SAM_INIT_ERROR                            0x8091 // 32913
+#define LSA_ERROR_OBJECT_IN_USE                             0x8092 // 32914
+#define LSA_ERROR_NO_SUCH_ATTRIBUTE                         0x8093 // 32915
+#define LSA_ERROR_GET_DC_NAME_FAILED                        0x8094 // 32916
+#define LSA_ERROR_INVALID_ATTRIBUTE_VALUE                   0x8095 // 32917
+#define LSA_ERROR_NO_ATTRIBUTE_VALUE                        0x8096 // 32918
+#define LSA_ERROR_SENTINEL                                  0x8097 // 32919
 
 #define LSA_ERROR_MASK(_e_)                                 (_e_ & 0x8000)
 

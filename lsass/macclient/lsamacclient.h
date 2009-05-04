@@ -210,6 +210,7 @@ typedef UINT8 ADAccountType;
 #define AccountType_NotFound 0
 #define AccountType_Group 1
 #define AccountType_User 2
+#define AccountType_Domain 3
 
 typedef struct __LSA_USER_INFO_0
 {

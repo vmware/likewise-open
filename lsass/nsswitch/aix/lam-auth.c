@@ -289,6 +289,10 @@ cleanup:
         case LSA_ERROR_PASSWORD_EXPIRED:
             iError = 1;
             break;
+        case LSA_ERROR_NO_SUCH_USER:
+            iError = -1;
+            errno = ENOENT;
+            break;
         default:
             // password is expired and cannot login
             LsaNssMapErrorCode(dwError, &errno);

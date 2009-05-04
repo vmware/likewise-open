@@ -220,6 +220,7 @@ error:
 DWORD
 AD_NetUserChangePassword(
     PCSTR pszDomainName,
+    BOOLEAN bIsInOneWayTrustedDomain,
     PCSTR pszLoginId,
     PCSTR pszUserPrincipalName,
     PCSTR pszOldPassword,
@@ -232,17 +233,29 @@ AD_NetUserChangePassword(
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
     PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
+    HANDLE hOldAccessToken = NULL;
+    BOOLEAN bChangedToken = FALSE;
 
     BAIL_ON_INVALID_STRING(pszDomainName);
     BAIL_ON_INVALID_STRING(pszLoginId);
 
-    dwError = LsaSetSMBAccessToken(
-                    pszDomainName,
-                    pszUserPrincipalName,
-                    pszOldPassword,
-                    FALSE,
-                    &pFreeInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (bIsInOneWayTrustedDomain)
+    {
+        dwError = LsaSetSMBAccessToken(
+                        pszDomainName,
+                        pszUserPrincipalName,
+                        pszOldPassword,
+                        FALSE,
+                        &pFreeInfo,
+                        &hOldAccessToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = AD_SetSystemAccess(&hOldAccessToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    bChangedToken = TRUE;
 
     dwError = LsaMbsToWc16s(
                     pszDomainName,
@@ -286,6 +299,14 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszOldPassword);
     LSA_SAFE_FREE_MEMORY(pwszNewPassword);
     LsaFreeSMBAccessToken(&pFreeInfo);
+    if (bChangedToken)
+    {
+        SMBSetThreadToken(hOldAccessToken);
+    }
+    if (hOldAccessToken != NULL)
+    {
+        SMBCloseHandle(NULL, hOldAccessToken);
+    }
 
     return AD_MapNetApiError(dwError);
 
@@ -323,6 +344,9 @@ GetObjectType(
         case SID_TYPE_WKN_GRP:
             ObjectType = AccountType_Group;
             break;
+        case SID_TYPE_DOMAIN:
+            ObjectType = AccountType_Domain;
+            break;
 
         default:
             ObjectType = AccountType_NotFound;
@@ -358,7 +382,7 @@ AD_NetLookupObjectSidByName(
     // Double check here again
     if (!ppTranslatedSids || !ppTranslatedSids[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -382,7 +406,7 @@ error:
     LSA_SAFE_FREE_STRING(pszObjectSid);
     *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
-    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+    dwError = LSA_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }
@@ -677,7 +701,7 @@ AD_NetLookupObjectNameBySid(
     // Double check here again
     if (!ppTranslatedNames || !ppTranslatedNames[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -704,7 +728,7 @@ error:
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
 
-    dwError = LSA_ERROR_NO_SUCH_USER_OR_GROUP;
+    dwError = LSA_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }
@@ -1286,7 +1310,7 @@ LsaFreeTranslatedNameList(
     LsaFreeMemory(pNameList);
 }
 
-static INT64
+INT64
 WinTimeToInt64(
     WinNtTime WinTime
     )
@@ -1695,7 +1719,7 @@ AD_ClearSchannelState(
         memset(&gSchannelCreds, 0, sizeof(gSchannelCreds));
         gpSchannelCreds = NULL;
 
-        memset(&gSchannelRes, 0, sizeof(gSchannelRes)); 
+        memset(&gSchannelRes, 0, sizeof(gSchannelRes));
         gpSchannelRes = NULL;
     }
 

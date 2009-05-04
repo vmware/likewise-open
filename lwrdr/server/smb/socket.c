@@ -613,12 +613,12 @@ SMBSocketReaderMain(
 
 cleanup:
 
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
     if (pPacket)
     {
         SMBSocketPacketFree(pSocket, pPacket);
     }
-
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return NULL;
 
@@ -1057,6 +1057,7 @@ retry_wait:
     BAIL_ON_SMB_ERROR(dwError);
 
 cleanup:
+
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     *ppPacket = pPacket;
@@ -1064,6 +1065,9 @@ cleanup:
     return dwError;
 
 error:
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
     if (pPacket)
     {
         SMBSocketPacketFree(pSocket, pPacket);

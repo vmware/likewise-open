@@ -114,7 +114,7 @@ error:
     goto cleanup;
 }
 
-// This function fillls in all of the booleans in pObjectUserInfo except for
+// This function fills in all of the booleans in pObjectUserInfo except for
 // bPromptPasswordChange and bAccountExpired
 static
 VOID
@@ -137,7 +137,6 @@ LsaAdBatchMarshalUserInfoAccountControl(
     pObjectUserInfo->bAccountLocked = IsSetFlag(AccountControl, LSA_AD_UF_LOCKOUT);
 }
 
-static
 DWORD
 LsaAdBatchMarshalUserInfoAccountExpires(
     IN UINT64 AccountExpires,
@@ -177,8 +176,6 @@ error:
     goto cleanup;
 }
 
-
-static
 DWORD
 LsaAdBatchMarshalUserInfoPasswordLastSet(
     IN UINT64 PasswordLastSet,
@@ -502,8 +499,6 @@ LsaAdBatchMarshal(
 
     pObject->enabled = !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
 
-    pObject->userInfo.bIsInOneWayTrustedDomain = IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ONE_WAY);
-
     // Transfer the data
     LSA_XFER_STRING(pItem->pszSid, pObject->pszObjectSid);
     LSA_XFER_STRING(pItem->pszSamAccountName, pObject->pszSamAccountName);
@@ -526,6 +521,9 @@ LsaAdBatchMarshal(
                             pObject->pszSamAccountName,
                             pObject->pszObjectSid);
             BAIL_ON_LSA_ERROR(dwError);
+
+            pObject->userInfo.bIsAccountInfoKnown =
+                IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ACCOUNT_INFO_KNOWN);
             break;
 
         case LSA_AD_BATCH_OBJECT_TYPE_GROUP:

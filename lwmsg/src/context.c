@@ -49,7 +49,7 @@ lwmsg_context_default_alloc (
     void** out,
     void* data)
 {
-    void* object = malloc(size);
+    void* object = malloc(size == 0 ? 1 : size);
 
     if (!object)
     {

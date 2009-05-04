@@ -74,7 +74,8 @@ LsaSetSMBAccessTokenWithFlags(
                     pszUsername,
                     pszPassword,
                     TRUE,
-                    &pFreeInfo);
+                    &pFreeInfo,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

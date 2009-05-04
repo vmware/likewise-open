@@ -93,7 +93,6 @@ LsaAdBatchGatherRpcObject(
     DWORD dwError = 0;
 
     SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL);
-    SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ONE_WAY);
 
     dwError = LsaAdBatchGatherObjectType(pItem, ObjectType);
     BAIL_ON_LSA_ERROR(dwError);
@@ -634,6 +633,8 @@ LsaAdBatchGatherRealUser(
                     AD_LDAP_PWD_LASTSET_TAG,
                     &pItem->UserInfo.PasswordLastSet);
     BAIL_ON_LSA_ERROR(dwError);
+
+    SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ACCOUNT_INFO_KNOWN);
 
 cleanup:
     return dwError;

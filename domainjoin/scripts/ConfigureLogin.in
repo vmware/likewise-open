@@ -231,6 +231,47 @@ GracefulSSHDRestart()
     return 0
 }
 
+ForceNetworkManagerRunning()
+{
+    type nm-tool >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+	echo "Could not find nm-tool"
+	return 1
+    fi
+
+# Wait up to 5 seconds for network manager to start responding to nm-tool
+# own its own
+    for count in `seq 5`; do
+	nm-tool >/dev/null 2>&1
+	if [ $? -eq 0 ]; then
+	    return 0
+	fi
+	echo "Waiting for NetworkManager to respond to nm-tool..."
+	sleep 1
+    done
+
+    echo "NetworkManager is no longer working. Restarting it"
+
+    pid=`dbus-send --print-reply --system --dest=org.freedesktop.DBus / org.freedesktop.DBus.GetConnectionUnixProcessID string:org.freedesktop.NetworkManager 2>/dev/null | sed -n "s/^ *uint32 *\\(.*\\)$/\\1/p"`
+
+    if [ -n "$pid" ]; then
+	echo "NetworkManager is running in zombie mode as pid $pid. Shutting it down"
+	kill $pid
+	for count in `seq 5`; do
+	    ps -p $pid >/dev/null 2>&1
+	    if [ $? -ne 0 ]; then
+		break
+	    fi
+	    echo "Waiting for it to exit..."
+	    sleep 1
+	done
+    fi
+
+    /etc/init.d/NetworkManager start
+
+    return 0
+}
+
 WaitForNetworkManager()
 {
     type nm-tool >/dev/null 2>&1
@@ -248,7 +289,6 @@ WaitForNetworkManager()
 	    return 1
 	fi
 	status=`echo "$output" | grep "State: connected"`
-        echo "status=$status"
 	if [ "$status" = "State: connected" ]; then
 	    break;
 	fi
@@ -262,11 +302,42 @@ WaitForNetworkManager()
     return 0
 }
 
+GetCkUidSessionList()
+{
+    ck-list-sessions | sed -n 's/.*uid *= *'\''\(.*\)'\''/\1/p' | uniq
+}
+
+RestoreCkUidSessionList()
+{
+    restoreList="$1"
+    currentList=`GetCkUidSessionList`
+    anywarnings=0
+    for uid in $restoreList; do
+	if echo "$currentList" | grep "^${uid}\$" >/dev/null; then
+            # This session was not destroyed
+	    continue
+	fi
+	echo >&2
+	echo "Warning: the console kit session for uid $uid was destroyed when dbus was restarted. This will prevent the user from using nm-applet (the network icon in the notification tray) and nm-tool.
+
+The user's Console Kit session should be restored by logging off and back on, or running this command with the user's account (the parenthesis must be included in the command):
+ ( ck-launch-session dbus-monitor --system "sender=none.none" >/dev/null & )
+
+You may need to also restart nm-applet as that user:
+nm-applet" >&2
+	anywarnings=1
+    done
+    return $anywarnings
+}
+
 GracefulDbusRestart()
 {
     distroType=`GetDistroType`
     if [ -x /etc/init.d/dbus ]; then
         # Ubuntu, SuSE
+        nm-tool >/dev/null 2>&1
+	beforeNmtoolRc=$?
+	uidlist=`GetCkUidSessionList`
         if [ "$distroType" = "SuSE" -o "$distroType" = "OpenSuSE" -o "$distroType" = "SLES" -o "$distroType" = "SLED" ]; then
             if IsUserLoggedInX; then
                 if [ "$1" = "1" ]; then
@@ -299,7 +370,11 @@ GracefulDbusRestart()
             /etc/init.d/dbus restart
             result=$?
         fi
+	if [ $beforeNmtoolRc -eq 0 ]; then
+	    ForceNetworkManagerRunning
+	fi
 	WaitForNetworkManager
+	RestoreCkUidSessionList "$uidlist" || return 1
         return $result
     elif [ -x /etc/init.d/messagebus ]; then
         # Fedora is the only known system that has /etc/init.d/messagebus
@@ -501,7 +576,7 @@ NsswitchRestart()
     fi
     
     if not GracefulDbusRestart 1; then
-        echo "Could not restart system message bus (dbus)" >&2
+        echo "Error occurred while restarting system message bus (dbus)" >&2
         nsswitch_rc=1
     fi
 
