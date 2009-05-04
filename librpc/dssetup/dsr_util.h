@@ -105,7 +105,7 @@
     } while (0);
 
 
-#endif /* _LSA_UTIL_H_ */
+#endif /* _DSR_UTIL_H_ */
 
 
 /*

@@ -46,6 +46,22 @@
 
 #include "includes.h"
 
+#define SET_LOOKUP_STATUS(lookup, status)                \
+    switch ((lookup)) {                                  \
+    case STATUS_SUCCESS:                                 \
+        (lookup) = (status);                             \
+        break;                                           \
+    case STATUS_NONE_MAPPED:                             \
+        if ((status) == STATUS_SUCCESS ||                \
+            (status) == STATUS_SOME_UNMAPPED)            \
+        {                                                \
+            (lookup) = STATUS_SOME_UNMAPPED;             \
+        }                                                \
+    case STATUS_SOME_UNMAPPED:                           \
+        (lookup) = STATUS_SOME_UNMAPPED;                 \
+    }
+
+
 
 NTSTATUS
 LsaSrvLookupNames3(
@@ -65,6 +81,7 @@ LsaSrvLookupNames3(
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
     NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS lookup_status = STATUS_SUCCESS;
     DWORD dwError = 0;
     RPCSTATUS rpcstatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
@@ -188,7 +205,7 @@ LsaSrvLookupNames3(
                                           pAccessToken);
         if (rpcstatus) {
             dwError = LSA_ERROR_RPC_ERROR;
-            BAIL_ON_LSA_ERROR(dwError)
+            BAIL_ON_LSA_ERROR(dwError);
         }
 
         dwError = LsaMbsToWc16s(pszDcName, &pwszDcName);
@@ -216,9 +233,15 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
+        lookup_status = status;
+
         for (i = 0; i < pRemoteDomains->count; i++) {
-            LsaDomainInfo *pDomInfo = &(pRemoteDomains->domains[i]);
-            LsaDomainInfo *pInfo = &(pDomains->domains[i]);
+            LsaDomainInfo *pDomInfo = NULL;
+            LsaDomainInfo *pInfo = NULL;
+
+            dwDomIndex = pDomains->count;
+            pDomInfo   = &(pRemoteDomains->domains[dwDomIndex]);
+            pInfo      = &(pDomains->domains[dwDomIndex]);
 
             status = LsaSrvDuplicateUnicodeStringEx(&pInfo->name,
                                                     &pDomInfo->name,
@@ -228,6 +251,8 @@ LsaSrvLookupNames3(
             status = LsaSrvDuplicateSid(&pInfo->sid, pDomInfo->sid,
                                         pDomains);
             BAIL_ON_NTSTATUS_ERROR(status);
+
+            pDomains->count  = (++dwDomIndex);
         }
 
         for (i = 0; i < dwRemoteSidsCount ; i++) {
@@ -262,8 +287,10 @@ LsaSrvLookupNames3(
     }
 
     if (pLocalAccounts->dwCount) {
-        dwDomIndex = pDomains->count;
-        LsaDomainInfo *pLocalDomainInfo = &(pDomains->domains[dwDomIndex]);
+        LsaDomainInfo *pLocalDomainInfo = NULL;
+
+        dwDomIndex       = pDomains->count;
+        pLocalDomainInfo = &(pDomains->domains[dwDomIndex]);
 
         status = LsaSrvGetLocalSamrDomain(pPolCtx,
                                           FALSE,    /* !BUILTIN */
@@ -293,6 +320,8 @@ LsaSrvLookupNames3(
             BAIL_ON_NTSTATUS_ERROR(status);
         }
 
+        SET_LOOKUP_STATUS(lookup_status, status);
+
         for (i = 0; i < dwCount; i++) {
             TranslatedSid3 *pSid = &(pSidArray->sids[i + pSidArray->count]);
             PSID pDomainSid = SamrDomain.pSid;
@@ -313,8 +342,10 @@ LsaSrvLookupNames3(
     }
 
     if (pBuiltinAccounts->dwCount) {
-        dwDomIndex = pDomains->count;
-        LsaDomainInfo *pBuiltinDomainInfo = &(pDomains->domains[dwDomIndex]);
+        LsaDomainInfo *pBuiltinDomainInfo = NULL;
+
+        dwDomIndex         = pDomains->count;
+        pBuiltinDomainInfo = &(pDomains->domains[dwDomIndex]);
 
         status = LsaSrvGetLocalSamrDomain(pPolCtx,
                                           TRUE,      /* BUILTIN */
@@ -347,6 +378,8 @@ LsaSrvLookupNames3(
             status != STATUS_NONE_MAPPED) {
             BAIL_ON_NTSTATUS_ERROR(status);
         }
+
+        SET_LOOKUP_STATUS(lookup_status, status);
 
         for (i = 0; i < dwCount; i++) {
             TranslatedSid3 *pSid = &(pSidArray->sids[i + pSidArray->count]);
@@ -409,6 +442,10 @@ cleanup:
 
     if (pszSamrLpcSocketPath) {
         LSA_SAFE_FREE_STRING(pszSamrLpcSocketPath);
+    }
+
+    if (status == STATUS_SUCCESS) {
+        status = lookup_status;
     }
 
     return status;
@@ -552,10 +589,12 @@ LsaSrvSetSamrDomain(
                                        pPolCtx->pSamrDomain);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = LsaSrvDuplicateSid(&pDomain->pSid,
-                                pSamrDomain->pSid,
-                                pPolCtx->pSamrDomain);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (pSamrDomain->pSid) {
+        status = LsaSrvDuplicateSid(&pDomain->pSid,
+                                    pSamrDomain->pSid,
+                                    pPolCtx->pSamrDomain);
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
 
     pDomain->bLocal  = pSamrDomain->bLocal;
     pDomain->hDomain = pSamrDomain->hDomain;
@@ -697,7 +736,7 @@ LsaSrvLookupDomainsByAccountName(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < dwNumNames; i++) {
-        UnicodeStringEx *name = &(pNames[0]);
+        UnicodeStringEx *name = &(pNames[i]);
 
         status = LsaSrvGetFromUnicodeStringEx(&pwszName, name,
                                               pPolCtx);
@@ -754,26 +793,26 @@ LsaSrvLookupDomainsByAccountName(
                                              &SamrDomain);
                 BAIL_ON_NTSTATUS_ERROR(status);
 
-            } else if (status != STATUS_SUCCESS) {
+            } else if (status == STATUS_SUCCESS) {
+                status = SamrOpenDomain(hSamrBinding,
+                                        phConn,
+                                        dwSamrDomainAccess,
+                                        pDomainSid,
+                                        &hDomain);
+                BAIL_ON_NTSTATUS_ERROR(status);
+
+                SamrDomain.pwszName = pwszDomainName;
+                SamrDomain.pSid     = pDomainSid;
+                SamrDomain.bLocal   = TRUE;
+                SamrDomain.hDomain  = hDomain;
+
+                status = LsaSrvSetSamrDomain(pPolCtx,
+                                             &SamrDomain);
+                BAIL_ON_NTSTATUS_ERROR(status);
+
+            } else {
                 BAIL_ON_NTSTATUS_ERROR(status);
             }
-
-            status = SamrOpenDomain(hSamrBinding,
-                                    phConn,
-                                    dwSamrDomainAccess,
-                                    pDomainSid,
-                                    &hDomain);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            SamrDomain.pwszName = pwszDomainName;
-            SamrDomain.pSid     = pDomainSid;
-            SamrDomain.bLocal   = TRUE;
-            SamrDomain.hDomain  = hDomain;
-
-            status = LsaSrvSetSamrDomain(pPolCtx,
-                                         &SamrDomain);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
 
         } else if (status != STATUS_SUCCESS) {
             BAIL_ON_NTSTATUS_ERROR(status);

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,41 +28,40 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _NETLOGON_BINDING_H_
-#define _NETLOGON_BINDING_H_
+/*
+ * Abstract: Dsr interface (rpc server library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
+#include "includes.h"
 
-#define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\netlogon"
+/* Library initialisation guard */
+pthread_mutex_t gDsrSrvDataMutex;
 
-
-RPCSTATUS
-InitNetlogonBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
-    );
+void *pDsrSrvMemRoot = NULL;
+int bDsrSrvInitialised = 0;
 
 
-RPCSTATUS InitNetlogonBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
-    );
+PCSTR gpszRpcSrvName = "dssetup";
+LSA_RPCSRV_FUNCTION_TABLE gDsrRpcFuncTable = {
+    &DsrRpcStartServer,
+    &DsrRpcStopServer
+};
+
+rpc_binding_vector_p_t gpDsrSrvBinding = NULL;
 
 
-RPCSTATUS
-FreeNetlogonBinding(
-    handle_t *binding
-    );
+PSTR gpszConfigFilePath = NULL;
+DSSETUP_SRV_CONFIG gDsrSrvConfig;
 
 
-#endif /* _NETLOGON_BINDING_H_ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

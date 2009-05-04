@@ -1488,7 +1488,10 @@ done:
 
 void SetupNetApiTests(struct test *t)
 {
-    NetInitMemory();
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = NetInitMemory();
+    if (status) return;
 
     AddTest(t, "NETAPI-USER-ADD", TestNetUserAdd);
     AddTest(t, "NETAPI-USER-DEL", TestNetUserDel);

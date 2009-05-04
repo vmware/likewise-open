@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,41 +28,16 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _NETLOGON_BINDING_H_
-#define _NETLOGON_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\netlogon"
+#ifndef _DSRSRV_H_
+#define _DSRSRV_H_
 
 
-RPCSTATUS
-InitNetlogonBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
+DWORD
+DsrSrvRoleGetPrimaryDomainInformation(
+    handle_t hBinding,
+    UINT16 uiLevel,
+    PDS_ROLE_INFO *ppInfo
     );
 
 
-RPCSTATUS InitNetlogonBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
-    );
-
-
-RPCSTATUS
-FreeNetlogonBinding(
-    handle_t *binding
-    );
-
-
-#endif /* _NETLOGON_BINDING_H_ */
+#endif /* _DSRSRV_H_ */

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,41 +28,52 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _NETLOGON_BINDING_H_
-#define _NETLOGON_BINDING_H_
+/*
+ * Abstract: DsSetup interface (rpc server library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
+#include <config.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <strings.h>
+#include <pthread.h>
+
+#include <dce/rpc.h>
+#include <dce/dcethread.h>
+#include <wc16str.h>
+#include <lw/base.h>
+#include <lwrpc/allocate.h>
+#include <lwrpc/errconv.h>
+#include <lwrpc/lsa.h>
+#include <lwrpc/dssetup.h>
 #include <lwio/lwio.h>
-#include <lwrpc/types.h>
+#include <lwnet.h>
+#include <lwps/lwps.h>
 
-#define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\netlogon"
+#include <lsa/lsa.h>
+#include <lsaunistr.h>
+#include <lsarpcsrv.h>
+#include <rpcctl-register.h>
+#include <directory.h>
 
+#include "dssetup_cfg.h"
+#include "dssetup_srv.h"
+#include "dsrdefs.h"
+#include "dsr_memory.h"
+#include "dssetup.h"
+#include "dssetup_h.h"
 
-RPCSTATUS
-InitNetlogonBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
-    );
-
-
-RPCSTATUS InitNetlogonBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
-    );
+#include "externs.h"
 
 
-RPCSTATUS
-FreeNetlogonBinding(
-    handle_t *binding
-    );
-
-
-#endif /* _NETLOGON_BINDING_H_ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

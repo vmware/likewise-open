@@ -855,6 +855,34 @@ NTSTATUS __SamrConnect4(
 }
 
 
+NTSTATUS __SamrConnect5(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ uint32 size,
+    /* [in] */ wchar16_t *system_name,
+    /* [in] */ uint32 access_mask,
+    /* [in] */ uint32 level_in,
+    /* [in] */ SamrConnectInfo *info_in,
+    /* [out] */ uint32 *level_out,
+    /* [out] */ SamrConnectInfo *info_out,
+    /* [out] */ CONNECT_HANDLE *hConn
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvConnect5(IDL_handle,
+                             size,
+                             system_name,
+                             access_mask,
+                             level_in,
+                             info_in,
+                             level_out,
+                             info_out,
+                             hConn);
+    return status;
+}
+
+
+
 /*
 local variables:
 mode: c

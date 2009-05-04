@@ -100,7 +100,7 @@ CallDsrRoleGetPrimaryDomainInformation(struct test *t,
 				       struct parameter *options,
 				       int optcount)
 {
-    const int def_uiLevel = 0;
+    const int def_uiLevel = DS_ROLE_BASIC_INFORMATION;
 
     int ret = true;
     WINERR err = ERROR_SUCCESS;
@@ -123,7 +123,7 @@ CallDsrRoleGetPrimaryDomainInformation(struct test *t,
     INPUT_ARG_UINT(uiLevel);
 
     CALL_NETAPI(err = DsrRoleGetPrimaryDomainInformation(hBinding, uiLevel,
-							 &pInfo));
+                                                         &pInfo));
     if (err != 0) netapi_fail(err);
 
     OUTPUT_ARG_PTR(hBinding);

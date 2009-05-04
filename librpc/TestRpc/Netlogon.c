@@ -778,7 +778,10 @@ done:
 
 void SetupNetlogonTests(struct test *t)
 {
-    NetrInitMemory();
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = NetrInitMemory();
+    if (status) return;
 
     AddTest(t, "NETR-CREDS-TEST", TestNetlogonCredentials);
     AddTest(t, "NETR-ENUM-TRUSTED-DOM" , TestNetlogonEnumTrustedDomains);

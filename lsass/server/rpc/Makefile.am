@@ -1,5 +1,6 @@
 SUBDIRS=   \
     rpcctl \
     samr   \
-    lsa
+    lsa    \
+    dssetup
 

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,41 +28,66 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _NETLOGON_BINDING_H_
-#define _NETLOGON_BINDING_H_
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        dsr_memory.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        DsSetup memory allocation manager
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\netlogon"
+#ifndef _DSRSRV_MEMORY_H_
+#define _DSRSRV_MEMORY_H_
 
 
-RPCSTATUS
-InitNetlogonBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
+NTSTATUS
+DsrSrvInitMemory(
+    void
     );
 
 
-RPCSTATUS InitNetlogonBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
+NTSTATUS
+DsrSrvDestroyMemory(
+    void
     );
 
 
-RPCSTATUS
-FreeNetlogonBinding(
-    handle_t *binding
+NTSTATUS
+DsrSrvAllocateMemory(
+    void **ppOut,
+    DWORD dwSize,
+    void *pDep
     );
 
 
-#endif /* _NETLOGON_BINDING_H_ */
+void
+DsrSrvFreeMemory(
+    void *pPtr
+    );
+
+
+NTSTATUS
+DsrSrvDuplicateSid(
+    PSID *ppSidOut,
+    PSID pSidIn,
+    void *pParent
+    );
+
+
+NTSTATUS
+DsrSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn,
+    void *pParent
+    );
+
+
+#endif /* _DSRSRV_MEMORY_H_ */
