@@ -285,6 +285,20 @@ SamrSrvConnect4(
     );
 
 
+NTSTATUS
+SamrSrvConnect5(
+    handle_t hBinding,
+    uint32 size,
+    wchar16_t *system_name,
+    uint32 access_mask,
+    uint32 level_in,
+    SamrConnectInfo *info_in,
+    uint32 *level_out,
+    SamrConnectInfo *info_out,
+    CONNECT_HANDLE *hConn
+    );
+
+
 #endif /* _SAMR_H_ */
 
 
