@@ -17,6 +17,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/userinfo.h>
 #include <lwrpc/displayinfo.h>
+#include <lwrpc/samrconn.h>
 #include "samrdefs.h"
 
     /* DomainInfo union returned from SamrQueryDomainInfo */
@@ -76,6 +77,11 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
         [case(4)] SamrDisplayInfoAscii info4;
         [case(5)] SamrDisplayInfoAscii info5;
     } SamrDisplayInfo;
+
+    /* SamrConnectInfo used in SamrConnect5 */
+    typedef [switch_type(uint32)] union samr_connect_info {
+        [case(1)] SamrConnectInfo1 info1;
+    } SamrConnectInfo;
 
 cpp_quote("#endif")
 
@@ -365,6 +371,20 @@ cpp_quote("#endif")
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] uint32 client_access,
         [in] uint32 access_mask,
+        [out] CONNECT_HANDLE *hConn
+        );
+
+    NTSTATUS samr_Function3f();
+
+    /* function 0x40 */
+    NTSTATUS __SamrConnect5(
+        [in] uint32 size,
+        [in,string,size_is(size)] wchar16_t *system_name,
+        [in] uint32 access_mask,
+        [in] uint32 level_in,
+        [in,ref,switch_is(level_in)] SamrConnectInfo *info_in,
+        [out,ref] uint32 *level_out,
+        [out,ref,switch_is(*level_out)] SamrConnectInfo *info_out,
         [out] CONNECT_HANDLE *hConn
         );
 }
