@@ -55,6 +55,7 @@
 #include <lwrpc/userinfo.h>
 #include <lwrpc/aliasinfo.h>
 #include <lwrpc/displayinfo.h>
+#include <lwrpc/samrconn.h>
 
 #include <lsa/lsa.h>
 #include <lsautils.h>
