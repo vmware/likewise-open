@@ -35,7 +35,7 @@
 #include <lwrpc/types.h>
 
 #define NETLOGON_DEFAULT_PROT_SEQ   "ncacn_np"
-#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
+#define NETLOGON_DEFAULT_ENDPOINT   "\\PIPE\\netlogon"
 
 
 RPCSTATUS

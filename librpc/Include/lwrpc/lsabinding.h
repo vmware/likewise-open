@@ -41,7 +41,7 @@
 #include <lwio/lwio.h>
 
 #define LSA_DEFAULT_PROT_SEQ   "ncacn_np"
-#define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
+#define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsarpc"
 
 
 RPCSTATUS

@@ -51,7 +51,7 @@
 #include <lwio/lwio.h>
 
 #define DSR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define DSR_DEFAULT_ENDPOINT   "\\PIPE\\lsass"
+#define DSR_DEFAULT_ENDPOINT   "\\PIPE\\lsarpc"
 
 
 RPCSTATUS
