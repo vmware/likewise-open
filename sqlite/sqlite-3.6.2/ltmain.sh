@@ -2192,7 +2192,8 @@ func_mode_install ()
 	    libfile="$libdir/"`$ECHO "X$lib" | $Xsed -e 's%^.*/%%g'` ### testsuite: skip nested quoting test
 	    if test -n "$libdir" && test ! -f "$libfile"; then
 	      func_warning "\`$lib' has not been installed in \`$libdir'"
-	      finalize=no
+	      # Hack to make DESTDIR installing work HP-UX PA-RISC
+	      #finalize=no
 	    fi
 	  done
 
@@ -5249,6 +5250,14 @@ func_mode_link ()
 	      add="$libdir/$linklib"
 	    elif test "$hardcode_minus_L" = yes; then
 	      add_dir="-L$libdir"
+	      # Try looking first in the location we're being installed to.
+	      if test -n "$inst_prefix_dir"; then
+		  case $libdir in
+		      [\\/]*)
+			  add_dir="$add_dir -L$inst_prefix_dir$libdir"
+			  ;;
+		  esac
+	      fi
 	      add="-l$name"
 	    elif test "$hardcode_shlibpath_var" = yes; then
 	      case :$finalize_shlibpath: in
