@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,57 +28,57 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _USERINFO_H_
-#define _USERINFO_H_
+#ifndef _SAMR_USERINFO_H_
+#define _SAMR_USERINFO_H_
 
 #include <lwrpc/types.h>
 
 typedef struct user_info1 {
-	UnicodeString account_name;
-	UnicodeString full_name;
-	uint32 primary_gid;
-	UnicodeString description;
-	UnicodeString comment;
+    UnicodeString account_name;
+    UnicodeString full_name;
+    uint32 primary_gid;
+    UnicodeString description;
+    UnicodeString comment;
 } UserInfo1;
 
 typedef struct user_info2 {
-	UnicodeString comment;
-	UnicodeString unknown1;
-	uint16 country_code;
+    UnicodeString comment;
+    UnicodeString unknown1;
+    uint16 country_code;
 	uint16 code_page;
 } UserInfo2;
 
 typedef struct logon_hours {
-	uint16 units_per_week;
+    uint16 units_per_week;
 #ifdef _DCE_IDL_
-	[size_is(1260), length_is(units_per_week/8)]
+    [size_is(1260), length_is(units_per_week/8)]
 #endif
-	uint8 *units;
+    uint8 *units;
 } LogonHours;
 
 typedef struct user_info3 {
-	UnicodeString account_name;
-	UnicodeString full_name;
-	uint32 rid;
-	uint32 primary_gid;
-	UnicodeString home_directory;
-	UnicodeString home_drive;
-	UnicodeString logon_script;
-	UnicodeString profile_path;
-	UnicodeString workstations;
-	NtTime last_logon;
-	NtTime last_logoff;
-	NtTime last_password_change;
-	NtTime allow_password_change;
-	NtTime force_password_change;
-	LogonHours logon_hours;
-	uint16 bad_password_count;
-	uint16 logon_count;
-	uint32 account_flags;
+    UnicodeString account_name;
+    UnicodeString full_name;
+    uint32 rid;
+    uint32 primary_gid;
+    UnicodeString home_directory;
+    UnicodeString home_drive;
+    UnicodeString logon_script;
+    UnicodeString profile_path;
+    UnicodeString workstations;
+    NtTime last_logon;
+    NtTime last_logoff;
+    NtTime last_password_change;
+    NtTime allow_password_change;
+    NtTime force_password_change;
+    LogonHours logon_hours;
+    uint16 bad_password_count;
+    uint16 logon_count;
+    uint32 account_flags;
 } UserInfo3;
 
 typedef struct user_info4 {
-	LogonHours logon_hours;
+    LogonHours logon_hours;
 } UserInfo4;
 
 typedef struct user_info5 {
@@ -312,4 +312,14 @@ typedef union user_info {
 } UserInfo;
 #endif
 
-#endif /* _USERINFO_H_ */
+#endif /* _SAMR_USERINFO_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
