@@ -48,8 +48,6 @@ extern LSA_RPCSRV_FUNCTION_TABLE gSamrRpcFuncTable;
 
 extern rpc_binding_vector_p_t gpSamrSrvBinding;
 
-extern SAMR_RPC_WORKER gWorker;
-
 extern PSTR gpszConfigFilePath;
 extern SAMR_SRV_CONFIG gSamrSrvConfig;
 
