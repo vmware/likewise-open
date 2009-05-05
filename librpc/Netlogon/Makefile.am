@@ -46,7 +46,7 @@ libnetlogon_la_LIBADD = \
 
 CLEANFILES = netlogon_h.h netlogon_cstub.c netlogon_sstub.c
 
-BUILT_SOURCES = netlogon_cstub.c netlogon_h.h
+BUILT_SOURCES = netlogon_h.h
 
 netlogon_cstub.c netlogon_h.h: $(idl_srcdir)/netlogon.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header netlogon_h.h -I$(idl_srcdir) \

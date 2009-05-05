@@ -40,7 +40,7 @@ liblsa_la_LIBADD= \
 
 CLEANFILES = lsa_h.h lsa_cstub.c lsa_sstub.c
 
-BUILT_SOURCES = lsa_cstub.c lsa_h.h
+BUILT_SOURCES = lsa_h.h
 
 lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl lsa.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \

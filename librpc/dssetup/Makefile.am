@@ -33,7 +33,7 @@ libdssetup_la_LIBADD= \
 
 CLEANFILES = dssetup_h.h dssetup_cstub.c dssetup_sstub.c
 
-BUILT_SOURCES = dssetup_cstub.c dssetup_h.h
+BUILT_SOURCES = dssetup_h.h
 
 dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(idl_srcdir) \
