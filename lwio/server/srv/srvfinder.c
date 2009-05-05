@@ -742,13 +742,13 @@ SrvFinderGetDirInfoSearchResults(
         pFileDirInfoCursor = (PFILE_DIRECTORY_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileDirInfoCursor || !pFileDirInfoCursor->NextEntryOffset)
         {
-            IO_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
-            ioFileSpec.Type = IO_FILE_SPEC_TYPE_UNKNOWN;
+            ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
             // ioFileSpec.Options = IO_NAME_OPTION_CASE_SENSITIVE;
             RtlUnicodeStringInit(
-                &ioFileSpec.FileName,
+                &ioFileSpec.Pattern,
                 pSearchSpace->pwszSearchPattern);
 
             pSearchSpace->pFileInfoCursor = NULL;
@@ -1113,13 +1113,13 @@ SrvFinderGetNamesInfoSearchResults(
         pFileInfoCursor = (PFILE_NAMES_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
-            ioFileSpec.Type = IO_FILE_SPEC_TYPE_UNKNOWN;
+            ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
             // ioFileSpec.Options = IO_NAME_OPTION_CASE_SENSITIVE;
             RtlUnicodeStringInit(
-                &ioFileSpec.FileName,
+                &ioFileSpec.Pattern,
                 pSearchSpace->pwszSearchPattern);
 
             pSearchSpace->pFileInfoCursor = NULL;
@@ -1465,13 +1465,13 @@ SrvFinderGetBothDirInfoSearchResults(
         pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
-            ioFileSpec.Type = IO_FILE_SPEC_TYPE_UNKNOWN;
+            ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
             // ioFileSpec.Options = IO_NAME_OPTION_CASE_SENSITIVE;
             RtlUnicodeStringInit(
-                &ioFileSpec.FileName,
+                &ioFileSpec.Pattern,
                 pSearchSpace->pwszSearchPattern);
 
             pSearchSpace->pFileInfoCursor = NULL;

@@ -198,8 +198,8 @@ CreateServerConnection(
     NTSTATUS ntStatus = 0;
     PSTR smbpath = NULL;
     //PIO_ACCESS_TOKEN acctoken = NULL;
-    IO_FILE_NAME filename;
-    IO_STATUS_BLOCK io_status;
+    IO_FILE_NAME filename = { 0 };
+    IO_STATUS_BLOCK io_status = { 0 };
     ULONG NamedPipeType = 0;
     ULONG ReadMode = 0;
     ULONG CompletionMode = 0;
@@ -207,7 +207,7 @@ CreateServerConnection(
     ULONG InboundQuota = 0;
     ULONG OutboundQuota = 0;
     LONG64 DefaultTimeOut = 0;
-    IO_FILE_HANDLE FileHandle = 0;
+    IO_FILE_HANDLE FileHandle = NULL;
 
     if (!pipename || !*pipename)
     {
@@ -220,9 +220,6 @@ CreateServerConnection(
                     "\\npvfs\\%s",
                     (char*) pipename);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    filename.RootFileHandle = NULL;
-    filename.IoNameOptions = 0;
 
     ntStatus = LwRtlWC16StringAllocateFromCString(
                         &filename.FileName,
