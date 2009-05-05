@@ -50,6 +50,13 @@
 #define RDONLY_FILE  "FILE"
 #define RDWR_FILE  "WRFILE"
 
+static
+VOID
+KtKrb5FreeKeytabEntries(
+    krb5_context ctx,
+    krb5_keytab_entry *pEntries,
+    INT count
+    );
 
 static
 DWORD
@@ -117,6 +124,7 @@ error:
         ctx = NULL;
     }
 
+    KT_SAFE_FREE_STRING(pszDefName);
     KT_SAFE_FREE_STRING(pszKtName);
 
     return dwError;
@@ -153,8 +161,11 @@ KtKrb5SearchKeys(
             krb5_principal_compare(ctx, entry.principal, server)) {
 
             dwError = KtReallocMemory((PVOID)entries, (PVOID*)&entries,
-                                       (++num) * sizeof(krb5_keytab_entry));
+                                       (num + 1) * sizeof(krb5_keytab_entry));
             BAIL_ON_KT_ERROR(dwError);
+
+            memset(&entries[num], 0, sizeof(krb5_keytab_entry));
+            num++;
 
             entries[num - 1].magic     = entry.magic;
             entries[num - 1].timestamp = entry.timestamp;
@@ -181,11 +192,22 @@ KtKrb5SearchKeys(
     BAIL_ON_KRB5_ERROR(ctx, ret);
 
 cleanup:
+    if ( server)
+    {
+        krb5_free_principal(ctx, server);
+    }
+
     *ppEntries = entries;
     *pCount    = num;
+
     return dwError;
 
 error:
+    if (entries)
+    {
+        KtKrb5FreeKeytabEntries(ctx, entries, num);
+    }
+
     entries = NULL;
     num     = 0;
 
@@ -309,9 +331,17 @@ keyadd:
 
         ret = krb5_kt_add_entry(ctx, kt, &entry);
         BAIL_ON_KRB5_ERROR(ctx, ret);
+
+        krb5_free_keyblock_contents(ctx, &key);
+        memset(&key, 0, sizeof(key));
     }
 
 cleanup:
+    if ( ctx && entries )
+    {
+        KtKrb5FreeKeytabEntries(ctx, entries, count);
+    }
+
     if (pszBaseDn)
     {
         KtFreeMemory(pszBaseDn);
@@ -336,6 +366,11 @@ cleanup:
             krb5_kt_close(ctx, kt);
         }
 
+        if (key.length)
+        {
+            krb5_free_keyblock_contents(ctx, &key);
+        }
+
         krb5_free_context(ctx);
     }
 
@@ -344,6 +379,27 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+
+static
+VOID
+KtKrb5FreeKeytabEntries(
+    krb5_context ctx,
+    krb5_keytab_entry *pEntries,
+    INT count
+    )
+{
+    int num = 0;
+
+    for (num = 0; num < count ; num++)
+    {
+        krb5_free_keytab_entry_contents(ctx, &pEntries[num]);
+    }
+
+    KT_SAFE_FREE_MEMORY(pEntries);
+
+    return;
 }
 
 

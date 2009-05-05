@@ -149,6 +149,11 @@ cleanup:
         ldap_value_free(val);
     }
 
+    if (ptr != NULL)
+    {
+        ber_free( ptr, 0 );
+    }
+
     KT_SAFE_FREE_STRING(attrs[0]);
 
     return dwError;
@@ -206,7 +211,10 @@ cleanup:
     return dwError;
 
 error:
+    KT_SAFE_FREE_STRING(pszBaseDnVal);
+
     *pszBaseDn = NULL;
+
     goto cleanup;
 }
 
@@ -261,6 +269,7 @@ KtLdapGetKeyVersion(
 
 cleanup:
     KT_SAFE_FREE_STRING(pszAcctName);
+    KT_SAFE_FREE_STRING(pszFilter);
     KT_SAFE_FREE_STRING(pszKvnoVal);
 
     return dwError;
@@ -313,6 +322,8 @@ cleanup:
     return dwError;
 
 error:
+    KT_SAFE_FREE_STRING(pszUpnVal);
+
     *pszSalt = NULL;
     goto cleanup;
 }
