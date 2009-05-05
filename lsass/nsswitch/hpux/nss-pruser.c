@@ -86,6 +86,9 @@ LsaNssHpuxPasswdToPrpasswd(
 
     out->ufld.fd_pw_audid = in->pw_uid + 100;
     out->uflg.fg_pw_audid = 1;
+
+    out->ufld.fd_pw_audflg = 1;
+    out->uflg.fg_pw_audflg = 1;
 }
 
 static
@@ -195,7 +198,7 @@ LsaNssHpuxPrpasswdGetpwnam(
     if (ret == NSS_STATUS_SUCCESS)
     {
         LsaNssHpuxPasswdToPrpasswd(&resultUser, pComsecParams->prpw);
-        pXbyYArgs->returnval = pXbyYArgs->buf.result;
+        pXbyYArgs->returnval = pComsecParams->prpw;
     }
 
     return ret;
@@ -228,7 +231,7 @@ LsaNssHpuxPrpasswdGetpwuid(
     if (ret == NSS_STATUS_SUCCESS)
     {
         LsaNssHpuxPasswdToPrpasswd(&resultUser, pComsecParams->prpw);
-        pXbyYArgs->returnval = pXbyYArgs->buf.result;
+        pXbyYArgs->returnval = pComsecParams->prpw;
     }
 
     return ret;
