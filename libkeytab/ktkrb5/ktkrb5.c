@@ -554,6 +554,10 @@ KtGetSaltingPrincipal(
     *pszSalt = pszSaltOut;
 
 cleanup:
+    if (ctx) {
+        krb5_free_context(ctx);
+    }
+
     KT_SAFE_FREE_STRING(pszRealm);
     KT_SAFE_FREE_STRING(pszMachine);
 
