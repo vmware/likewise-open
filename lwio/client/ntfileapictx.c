@@ -731,7 +731,7 @@ LwNtCtxQueryDirectoryFile(
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass,
     IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     IN BOOLEAN RestartScan
     )
 {
@@ -861,6 +861,7 @@ LwNtCtxUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 NTSTATUS
 LwNtCtxRemoveDirectoryFile(
     IN PIO_CONTEXT pConnection,
@@ -894,6 +895,7 @@ LwNtCtxRenameFile(
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
     );
+#endif
 
 //
 // Advanced Operations

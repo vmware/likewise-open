@@ -86,7 +86,7 @@ SrvSvcNetShareGetInfo(
     BOOLEAN bRet = FALSE;
     DWORD  dwReturnCode = 0;
     DWORD  dwParmError = 0;
-    IO_FILE_HANDLE FileHandle = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE FileHandle = NULL;
     IO_STATUS_BLOCK IoStatusBlock = {0};
     PIO_FILE_NAME FileName = NULL;
     ACCESS_MASK DesiredAccess = 0;
@@ -135,9 +135,6 @@ SrvSvcNetShareGetInfo(
                     "\\srv"
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    filename.RootFileHandle = NULL;
-    filename.IoNameOptions = 0;
 
     ntStatus = LwRtlWC16StringAllocateFromCString(
                         &filename.FileName,
@@ -260,6 +257,9 @@ cleanup:
     if (pGetParamsOut) {
         SrvSvcFreeMemory(pGetParamsOut);
     }
+
+    RTL_FREE(&smbpath);
+    RTL_FREE(&filename.FileName);
 
     switch (ntStatus) {
     case STATUS_SUCCESS:

@@ -477,7 +477,7 @@ NtQueryDirectoryFile(
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass,
     IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     IN BOOLEAN RestartScan
     )
 {
@@ -582,6 +582,7 @@ NtUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 NTSTATUS
 NtRemoveDirectoryFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -611,6 +612,7 @@ NtRenameFile(
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
     );
+#endif
 
 //
 // Advanced Operations

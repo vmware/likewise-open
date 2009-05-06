@@ -89,7 +89,7 @@ CopyFileToPvfs(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     IO_FILE_NAME DstFilename = {0};
     PSTR pszSrcPath = NULL;
@@ -108,8 +108,6 @@ CopyFileToPvfs(
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
 
-    DstFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    DstFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&DstFilename.FileName, pszDstPath);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -195,7 +193,7 @@ CopyFileFromPvfs(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     IO_FILE_NAME SrcFilename = {0};
     PSTR pszSrcPath = NULL;
@@ -214,8 +212,6 @@ CopyFileFromPvfs(
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
 
-    SrcFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    SrcFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&SrcFilename.FileName, pszSrcPath);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -306,11 +302,9 @@ StatRemoteFile(
     FILE_STANDARD_INFORMATION FileStdInfo = {0};
     FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
     IO_FILE_NAME Filename = {0};
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
 
-    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Filename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
                                                pszFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -438,15 +432,13 @@ ListDirectory(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IO_FILE_NAME Dirname = {0};
-    IO_FILE_HANDLE hDir = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hDir = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
     PVOID pBuffer =  NULL;
     DWORD dwBufLen = 0;
-    IO_FILE_SPEC FileSpec;
+    IO_MATCH_FILE_SPEC FileSpec = { 0 };
 
-    Dirname.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Dirname.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Dirname.FileName,
                                                pszDirectory);
     BAIL_ON_NT_STATUS(ntError);
@@ -476,7 +468,7 @@ ListDirectory(
     BAIL_ON_NT_STATUS(ntError);
 
     if (pszPattern) {
-        ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.FileName, pszPattern);
+        ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.Pattern, pszPattern);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -559,7 +551,7 @@ SetEndOfFile(
     FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
     FILE_END_OF_FILE_INFORMATION FileEndOfFileInfo = {0};
     IO_FILE_NAME Filename = {0};
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     LONG64 EndOfFile = 0;
     PSTR pszFilename = NULL;
@@ -575,8 +567,6 @@ SetEndOfFile(
     pszFilename = argv[0];
     EndOfFile   = strtol(argv[1], &p, 10);
 
-    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Filename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
                                                pszFilename);
     BAIL_ON_NT_STATUS(ntError);

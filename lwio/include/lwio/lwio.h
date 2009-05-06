@@ -35,14 +35,14 @@
  *
  * Module Name:
  *
- *        lsmb.h
+ *        lwio.h
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (LWIO)
+ *        Likewise I/O Subsystem (LWIO)
  *
  *        Public API
-
+ *
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  */
 #ifndef __LWIO_H__

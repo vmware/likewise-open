@@ -227,9 +227,9 @@ CreatePipeClient(
     NTSTATUS ntStatus = 0;
     PSTR smbpath = NULL;
     //PIO_ACCESS_TOKEN acctoken = NULL;
-    IO_FILE_NAME filename;
-    IO_STATUS_BLOCK io_status;
-    IO_FILE_HANDLE FileHandle = 0;
+    IO_FILE_NAME filename = { 0 };
+    IO_STATUS_BLOCK io_status = { 0 };
+    IO_FILE_HANDLE FileHandle = NULL;
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,

@@ -1722,7 +1722,6 @@ LocalDirAddGroup_0(
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    WCHAR wszCNPrefix[]           = LOCAL_DIR_CN_PREFIX;
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DIRECTORY_MOD mods[] =
@@ -1796,16 +1795,10 @@ LocalDirAddGroup_0(
 
     attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
 
-    dwError = LsaAllocateMemory(
-                    sizeof(wszCNPrefix) + strlen(pGroupInfo->pszName) * sizeof(WCHAR),
-                    (PVOID*)&pwszGroupDN);
+    dwError = LocalBuildDN(
+                    pLoginInfo,
+                    &pwszGroupDN);
     BAIL_ON_LSA_ERROR(dwError);
-
-    // Build CN=<sam account name>
-    memcpy((PBYTE)pwszGroupDN, (PBYTE)&wszCNPrefix[0], sizeof(wszCNPrefix) - sizeof(WCHAR));
-    memcpy((PBYTE)(pwszGroupDN) + sizeof(wszCNPrefix) - sizeof(WCHAR),
-           (PBYTE)pwszSamAccountName,
-           wc16slen(pwszSamAccountName) * sizeof(WCHAR));
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
@@ -1855,6 +1848,7 @@ LocalDirAddGroup_1(
     enum AttrValueIndex
     {
         LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
+        LOCAL_DAG0_IDX_COMMON_NAME,
         LOCAL_DAG0_IDX_OBJECTCLASS,
         LOCAL_DAG0_IDX_DOMAIN,
         LOCAL_DAG0_IDX_NETBIOS_DOMAIN
@@ -1862,6 +1856,10 @@ LocalDirAddGroup_1(
     ATTRIBUTE_VALUE attrValues[] =
     {
         {       /* LOCAL_DIR_ADD_USER_0_IDX_SAM_ACCOUNT_NAME */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_COMMON_NAME */
                 .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                 .data.pwszStringValue = NULL
         },
@@ -1880,7 +1878,7 @@ LocalDirAddGroup_1(
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    WCHAR wszCNPrefix[]           = LOCAL_DIR_CN_PREFIX;
+    WCHAR wszAttrCommonName[]     = LOCAL_DIR_ATTR_COMMON_NAME;
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     DIRECTORY_MOD mods[] =
@@ -1896,6 +1894,12 @@ LocalDirAddGroup_1(
                     &wszAttrSamAccountName[0],
                     1,
                     &attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrCommonName[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_COMMON_NAME]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -1953,17 +1957,12 @@ LocalDirAddGroup_1(
     BAIL_ON_LSA_ERROR(dwError);
 
     attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
+    attrValues[LOCAL_DAG0_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
 
-    dwError = LsaAllocateMemory(
-                    sizeof(wszCNPrefix) + strlen(pGroupInfo->pszName) * sizeof(WCHAR),
-                    (PVOID*)&pwszGroupDN);
+    dwError = LocalBuildDN(
+                    pLoginInfo,
+                    &pwszGroupDN);
     BAIL_ON_LSA_ERROR(dwError);
-
-    // Build CN=<sam account name>
-    memcpy((PBYTE)pwszGroupDN, (PBYTE)&wszCNPrefix[0], sizeof(wszCNPrefix) - sizeof(WCHAR));
-    memcpy((PBYTE)(pwszGroupDN) + sizeof(wszCNPrefix) - sizeof(WCHAR),
-           (PBYTE)pwszSamAccountName,
-           wc16slen(pwszSamAccountName) * sizeof(WCHAR));
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,

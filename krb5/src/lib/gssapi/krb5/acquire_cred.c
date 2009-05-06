@@ -312,11 +312,17 @@ acquire_init_cred(context, minor_status, desired_name, output_princ, cred)
    /* turn off OPENCLOSE mode while extensive frobbing is going on */
 
    flags = 0;		/* turns off OPENCLOSE mode */
+   /* Clearing KRB5_TC_OPENCLOSE causes krb5_cc_store_cred to fail, and
+      read operations still succeed if the flag is set. So the flag
+      was cleared in original source code as an optimization.
+    */
+#if 0
    if ((code = krb5_cc_set_flags(context, ccache, flags))) {
       (void)krb5_cc_close(context, ccache);
       *minor_status = code;
       return(GSS_S_CRED_UNAVAIL);
    }
+#endif
 
    /* get out the principal name and see if it matches */
 

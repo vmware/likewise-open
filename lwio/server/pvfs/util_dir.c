@@ -131,7 +131,7 @@ error:
 static NTSTATUS
 AllocateCStringFileSpec(
     PSTR *ppszPattern,
-    PIO_FILE_SPEC pFileSpec
+    PIO_MATCH_FILE_SPEC pFileSpec
     )
 {
     NTSTATUS ntError = STATUS_INSUFFICIENT_RESOURCES;
@@ -145,13 +145,9 @@ AllocateCStringFileSpec(
         goto cleanup;
     }
 
-    /* Probably need a betterway to converting to a C String from a
-       UNICODE String */
-
-    ntError = RtlCStringAllocateFromWC16String(ppszPattern,
-                                               pFileSpec->FileName.Buffer);
+    ntError = RtlCStringAllocateFromUnicodeString(ppszPattern,
+                                                  &pFileSpec->Pattern);
     BAIL_ON_NT_STATUS(ntError);
-
 
 cleanup:
     return ntError;

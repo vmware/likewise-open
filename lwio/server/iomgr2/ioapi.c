@@ -534,7 +534,7 @@ IoQueryDirectoryFile(
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass,
     IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     IN BOOLEAN RestartScan
     )
 {
@@ -543,15 +543,15 @@ IoQueryDirectoryFile(
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     IRP_TYPE irpType = IRP_TYPE_QUERY_DIRECTORY;
-    PIO_FILE_SPEC fileSpec = NULL;
+    PIO_MATCH_FILE_SPEC fileSpec = NULL;
 
     if (FileSpec)
     {
-        status = IO_ALLOCATE(&fileSpec, IO_FILE_SPEC, sizeof(*fileSpec));
+        status = IO_ALLOCATE(&fileSpec, IO_MATCH_FILE_SPEC, sizeof(*fileSpec));
         ioStatusBlock.Status = status;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-        status = LwRtlUnicodeStringDuplicate(&fileSpec->FileName, &FileSpec->FileName);
+        status = LwRtlUnicodeStringDuplicate(&fileSpec->Pattern, &FileSpec->Pattern);
         ioStatusBlock.Status = status;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -584,7 +584,7 @@ cleanup:
     }
     if (fileSpec)
     {
-        LwRtlUnicodeStringFree(&fileSpec->FileName);
+        LwRtlUnicodeStringFree(&fileSpec->Pattern);
         IO_FREE(&fileSpec);
     }
     IopIrpFree(&pIrp);
@@ -735,6 +735,7 @@ cleanup:
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 NTSTATUS
 IoRemoveDirectoryFile(
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -780,6 +781,7 @@ IoRenameFile(
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
+#endif
 
 NTSTATUS
 IoQueryQuotaInformationFile(

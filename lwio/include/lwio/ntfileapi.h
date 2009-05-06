@@ -216,7 +216,7 @@ LwNtCtxQueryDirectoryFile(
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass,
     IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     IN BOOLEAN RestartScan
     );
 
@@ -272,6 +272,7 @@ LwNtCtxUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 NTSTATUS
 LwNtCtxRemoveDirectoryFile(
     IN PIO_CONTEXT pConnection,
@@ -305,6 +306,7 @@ LwNtCtxRenameFile(
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
     );
+#endif
 
 //
 // Advanced Operations
@@ -498,7 +500,7 @@ LwNtQueryDirectoryFile(
     LW_IN LW_ULONG Length,
     LW_IN FILE_INFORMATION_CLASS FileInformationClass,
     LW_IN LW_BOOLEAN ReturnSingleEntry,
-    LW_IN LW_OPTIONAL PIO_FILE_SPEC FileSpec,
+    LW_IN LW_OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     LW_IN LW_BOOLEAN RestartScan
     );
 
@@ -550,6 +552,7 @@ LwNtUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 LW_NTSTATUS
 LwNtRemoveDirectoryFile(
     LW_IN LW_OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
@@ -579,6 +582,7 @@ LwNtRenameFile(
     LW_IN PIO_FILE_NAME FromName,
     LW_IN PIO_FILE_NAME ToName
     );
+#endif
 
 //
 // Advanced Operations
