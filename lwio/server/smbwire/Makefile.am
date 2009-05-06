@@ -7,6 +7,7 @@ liblwiosmbwire_la_SOURCES = \
     wire_datetime.c      \
     wire_delete.c        \
     wire_directory.c     \
+    wire_check_dir.c     \
     wire_echo.c          \
     wire_error.c         \
     wire_find_close2.c   \

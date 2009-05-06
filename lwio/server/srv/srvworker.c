@@ -455,6 +455,14 @@ SrvWorkerExecute(
 
             break;
 
+        case COM_CHECK_DIRECTORY:
+
+            ntStatus = SrvProcessCheckDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
 #if 0
 
         case SMB_NT_CANCEL:
@@ -516,14 +524,6 @@ SrvWorkerExecute(
         case SMB_COPY:
 
             ntStatus = SmbProcessCopy(
-                            pSmbRequest,
-                            pSmbResponse);
-
-            break;
-
-        case SMB_CHECK_DIRECTORY:
-
-            ntStatus = SmbProcessCheckDirectory(
                             pSmbRequest,
                             pSmbResponse);
 

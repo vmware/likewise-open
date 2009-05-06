@@ -1319,6 +1319,23 @@ typedef struct _SMB_CREATE_DIRECTORY_RESPONSE_HEADER {
 } __attribute__((__packed__)) SMB_CREATE_DIRECTORY_RESPONSE_HEADER,
                              *PSMB_CREATE_DIRECTORY_RESPONSE_HEADER;
 
+typedef struct _SMB_CHECK_DIRECTORY_REQUEST_HEADER {
+
+    USHORT usByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszDirectoryPath */
+
+} __attribute__((__packed__)) SMB_CHECK_DIRECTORY_REQUEST_HEADER,
+                             *PSMB_CHECK_DIRECTORY_REQUEST_HEADER;
+
+typedef struct _SMB_CHECK_DIRECTORY_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_CHECK_DIRECTORY_RESPONSE_HEADER,
+                             *PSMB_CHECK_DIRECTORY_RESPONSE_HEADER;
+
 
 typedef struct _FLUSH_REQUEST_HEADER
 {
@@ -1894,6 +1911,24 @@ WireMarshallCreateDirectoryResponse(
     ULONG   ulBytesAvailable,
     ULONG   ulOffset,
     PSMB_CREATE_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
+WireUnmarshallCheckDirectoryRequest(
+    const PBYTE                       pParams,
+    ULONG                             ulBytesAvailable,
+    ULONG                             ulOffset,
+    PSMB_CHECK_DIRECTORY_REQUEST_HEADER*  ppRequestHeader,
+    PWSTR*                            ppwszDirectoryPath
+    );
+
+NTSTATUS
+WireMarshallCheckDirectoryResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_CHECK_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
     PUSHORT pusPackageBytesUsed
     );
 
