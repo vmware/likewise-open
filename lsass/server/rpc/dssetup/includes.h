@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <strings.h>
+#include <unistd.h>
 #include <pthread.h>
 
 #include <dce/rpc.h>
