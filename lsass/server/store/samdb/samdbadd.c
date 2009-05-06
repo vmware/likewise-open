@@ -296,7 +296,7 @@ SamDbInsertObjectToDatabase(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
@@ -1358,7 +1358,7 @@ SamDbAddBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -1382,7 +1382,7 @@ SamDbAddBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -1403,7 +1403,7 @@ SamDbAddBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -1434,7 +1434,7 @@ SamDbAddBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }

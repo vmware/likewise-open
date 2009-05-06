@@ -73,6 +73,10 @@ cleanup:
 
 error:
 
+    SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s",
+                dwError,
+                LSA_SAFE_LOG_STRING(pszError));
+
     if (pszError)
     {
         sqlite3_free(pszError);
@@ -104,8 +108,13 @@ cleanup:
 
 error:
 
+    SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s",
+                    dwError,
+                    LSA_SAFE_LOG_STRING(pszError));
+
     if (pszError)
     {
+
         sqlite3_free(pszError);
     }
 
@@ -134,6 +143,10 @@ cleanup:
     return dwError;
 
 error:
+
+    SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s",
+                dwError,
+                LSA_SAFE_LOG_STRING(pszError));
 
     if (pszError)
     {

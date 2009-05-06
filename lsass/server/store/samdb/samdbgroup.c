@@ -437,13 +437,13 @@ SamDbGroupSearchExecute(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     1,
                     llObjectRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     while ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
     {
@@ -649,7 +649,7 @@ SamDbGroupSearchExecute(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *ppDirectoryEntries = pDirectoryEntries;
     *pdwNumEntries = dwNumEntries;
@@ -748,26 +748,26 @@ SamDbAddToGroup(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     1,
                     llGroupRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     2,
                     llMemberRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 
@@ -856,26 +856,26 @@ SamDbRemoveFromGroup(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     1,
                     llGroupRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     2,
                     llMemberRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 

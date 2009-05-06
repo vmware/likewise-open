@@ -11,6 +11,7 @@ SamDbBuildDirectoryContext(
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
+    PCSTR pszDbPath = SAM_DB;
 
     dwError = DirectoryAllocateMemory(
                     sizeof(SAM_DIRECTORY_CONTEXT),
@@ -35,7 +36,7 @@ SamDbBuildDirectoryContext(
     pDirContext->pAttrLookup = pAttrLookup;
 
     dwError = sqlite3_open(
-                    SAM_DB,
+                    pszDbPath,
                     &pDirContext->pDbContext->pDbHandle);
     BAIL_ON_SAMDB_ERROR(dwError);
 

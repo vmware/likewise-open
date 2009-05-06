@@ -135,7 +135,7 @@ SamDbUpdateObjectInDatabase(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
@@ -151,7 +151,7 @@ SamDbUpdateObjectInDatabase(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 
@@ -508,7 +508,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -532,7 +532,7 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -553,7 +553,7 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -584,7 +584,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -602,7 +602,7 @@ SamDbUpdateBindValues(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 

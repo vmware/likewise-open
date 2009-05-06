@@ -300,13 +300,13 @@ SamDbGetObjectCount(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     1,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
     {
@@ -322,7 +322,7 @@ SamDbGetObjectCount(
 
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *pdwNumObjects = dwNumObjects;
 
@@ -397,7 +397,7 @@ SamDbGetObjectRecordInfo_inlock(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -405,7 +405,7 @@ SamDbGetObjectRecordInfo_inlock(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
     {
@@ -429,7 +429,7 @@ SamDbGetObjectRecordInfo_inlock(
     {
         dwError = LSA_ERROR_NO_SUCH_OBJECT;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *pllObjectRecordId = llObjectRecordId;
     *pObjectClass = objectClass;
