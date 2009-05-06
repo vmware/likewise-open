@@ -19,6 +19,21 @@
 #define BAIL_ON_SAMDB_ERROR(dwError) \
     if (dwError) goto error;
 
+#define BAIL_ON_SAMDB_SQLITE_ERROR(dwError, pszError)   \
+    if (dwError) {                                      \
+        SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s", \
+                        dwError,                        \
+                        LSA_SAFE_LOG_STRING(pszError)); \
+        dwError = LSA_ERROR_SAM_DATABASE_ERROR;         \
+        goto error;                                     \
+    }
+
+#define BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDb) \
+    BAIL_ON_SAMDB_SQLITE_ERROR(dwError, sqlite3_errmsg(pDb))
+
+#define BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pStatement) \
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, sqlite3_db_handle(pStatement))
+
 #define SAMDB_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \
        int thr_err = pthread_mutex_lock(mutex); \
