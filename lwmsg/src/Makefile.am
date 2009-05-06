@@ -35,7 +35,11 @@ liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@
 liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \
+	dispatch.c \
 	server.c \
+	server-task.c \
+	server-io.c \
+	server-dispatch.c \
 	client.c \
 	session-shared.c
 

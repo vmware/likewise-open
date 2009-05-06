@@ -53,15 +53,16 @@ lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** session,
-    size_t* assoc_count
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* construct_data,
+    LWMsgSession** session
     );
 
 LWMsgStatus 
 lwmsg_session_manager_leave_session (
     LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    size_t* assoc_count
+    LWMsgSession* session
     );
 
 LWMsgStatus
@@ -134,14 +135,6 @@ lwmsg_session_manager_handle_id_to_pointer (
     void** ptr
     );
 
-LWMsgStatus
-lwmsg_session_manager_set_session_data (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* data,
-    LWMsgSessionDataCleanupFunction cleanup
-    );
-
 void*
 lwmsg_session_manager_get_session_data (
     LWMsgSessionManager* manager,
@@ -158,12 +151,5 @@ LWMsgStatus
 lwmsg_default_session_manager_new(
     LWMsgSessionManager** out_manager
     );
-
-#ifndef LWMSG_NO_THREADS
-LWMsgStatus
-lwmsg_shared_session_manager_new(
-    LWMsgSessionManager** out_manager
-    );
-#endif
 
 #endif

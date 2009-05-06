@@ -69,6 +69,8 @@ lwmsg_test_assoc_thread(
 
     MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
 
+    MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
+
     info->func(info->assoc);
 
     return NULL;
