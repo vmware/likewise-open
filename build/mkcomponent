@@ -87,6 +87,10 @@ function main
 
     cd ${COMP_SOURCES}
 
+    if [ -n "${ENABLE_CLEAN}" ]; then
+	git clean -dxf .
+    fi
+
     echo "Building ${_COMP_NAME} component..."
     time_command "${_COMP_NAME}" build_component
     exit_on_error $?

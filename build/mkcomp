@@ -40,6 +40,10 @@ function main
 		export ENABLE_DEBUG="1"
 		shift
 		;;
+	    --noincremental)
+		export ENABLE_CLEAN="1"
+		shift
+		;;
 	    *)
 		parseOptionsDone="1"
 		;;
@@ -51,6 +55,7 @@ function main
     if [ -z "${_COMP_NAME}" ]; then
 	warn "Usage: $0 [options] <comp_name | all>"
 	warn "    --debug           Enable debug symbols"
+	warn "    --noincremental   Perform a clean build"
 	warn ""
 	print_comp_list
 	exit 1
