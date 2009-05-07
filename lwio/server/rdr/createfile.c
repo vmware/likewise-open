@@ -201,6 +201,7 @@ ParseSharePath(
     PSTR  pszFilename = NULL;
     size_t sLen = 0;
     size_t i = 0;
+    struct in_addr ipAddr = { 0 };
 
     ntStatus = SMBWc16sToMbs(
                     pwszPath,
@@ -218,7 +219,7 @@ ParseSharePath(
         pszIndex += 1;
     }
 
-    if (IsNullOrEmptyString(pszIndex) || !isalpha((int)*pszIndex))
+    if (IsNullOrEmptyString(pszIndex))
     {
         ntStatus = LWIO_ERROR_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -237,6 +238,13 @@ ParseSharePath(
                     sLen,
                     &pszServer);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    // Don't allow IP address as a server name
+    if (inet_aton(pszServer, &ipAddr))
+    {
+        ntStatus = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     pszIndex += sLen;
 
