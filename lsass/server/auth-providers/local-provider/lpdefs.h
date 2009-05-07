@@ -88,7 +88,7 @@
 #define LOCAL_DB_DIR_ATTR_PASSWORD             "Password"
 #define LOCAL_DB_DIR_ATTR_LM_HASH              "LMHash"
 #define LOCAL_DB_DIR_ATTR_NT_HASH              "NTHash"
-#define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS      "UserInfoFlags"
+#define LOCAL_DB_DIR_ATTR_ACCOUNT_FLAGS        "AccountFlags"
 #define LOCAL_DB_DIR_ATTR_PASSWORD_LAST_SET    "PasswordLastSet"
 #define LOCAL_DB_DIR_ATTR_FULL_NAME            "FullName"
 #define LOCAL_DB_DIR_ATTR_ACCOUNT_EXPIRY       "AccountExpiry"
@@ -124,8 +124,8 @@
     {'L','M','H','a','s','h',0}
 #define LOCAL_DIR_ATTR_NT_HASH \
     {'N','T','H','a','s','h',0}
-#define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
-    {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
+#define LOCAL_DIR_ATTR_ACCOUNT_FLAGS \
+    {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define LOCAL_DIR_ATTR_PASSWORD_LAST_SET \
     {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
 #define LOCAL_DIR_ATTR_FULL_NAME \
