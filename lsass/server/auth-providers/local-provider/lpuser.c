@@ -1848,7 +1848,8 @@ LocalDirAddUser_0(
         LOCAL_DAU0_IDX_OBJECTSID,
         LOCAL_DAU0_IDX_DOMAIN,
         LOCAL_DAU0_IDX_NETBIOS_DOMAIN,
-        LOCAL_DAU0_IDX_UID
+        LOCAL_DAU0_IDX_UID,
+        LOCAL_DAU0_IDX_SENTINEL
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1907,75 +1908,78 @@ LocalDirAddUser_0(
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     WCHAR wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    DIRECTORY_MOD mods[] =
+    DIRECTORY_MOD modGID =
     {
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrGID[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_GID]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrObjectClass[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_OBJECTCLASS]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrSamAccountName[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrCommonName[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_COMMON_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrGecos[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_GECOS]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrShell[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_SHELL]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrHomedir[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_HOMEDIR]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameNetBIOSDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameUID[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_UID]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    NULL,
-                    1,
-                    NULL
-            }
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrGID[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_GID]
     };
+    DIRECTORY_MOD modObjectClass =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrObjectClass[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_OBJECTCLASS]
+    };
+    DIRECTORY_MOD modSamAccountName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrSamAccountName[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME]
+    };
+    DIRECTORY_MOD modCommonName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrCommonName[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_COMMON_NAME]
+    };
+    DIRECTORY_MOD modGecos =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrGecos[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_GECOS]
+    };
+    DIRECTORY_MOD modShell =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrShell[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_SHELL]
+    };
+    DIRECTORY_MOD modHomedir =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrHomedir[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_HOMEDIR]
+    };
+    DIRECTORY_MOD modDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrDomain[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_DOMAIN]
+    };
+    DIRECTORY_MOD modNetBIOSDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameNetBIOSDomain[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN]
+    };
+    DIRECTORY_MOD modUID =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameUID[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_UID]
+    };
+    DIRECTORY_MOD mods[LOCAL_DAU0_IDX_SENTINEL + 1];
+    DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszGecos = NULL;
     PWSTR pwszShell = NULL;
@@ -1989,6 +1993,8 @@ LocalDirAddUser_0(
     DWORD dwGroupInfoLevel = 0;
     PWSTR pwszGroupDN = NULL;
     BOOLEAN bUserAdded = FALSE;
+
+    memset(&mods[0], 0, sizeof(mods));
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
@@ -2092,11 +2098,19 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
-    if (!pUserInfo->uid)
+    mods[iMod++] = modObjectClass;
+    if (pUserInfo->uid)
     {
-        mods[LOCAL_DAU0_IDX_UID].pAttrValues = NULL;
-        mods[LOCAL_DAU0_IDX_UID].pwszAttrName = NULL;
+        mods[iMod++] = modUID;
     }
+    mods[iMod++] = modGID;
+    mods[iMod++] = modSamAccountName;
+    mods[iMod++] = modCommonName;
+    mods[iMod++] = modGecos;
+    mods[iMod++] = modShell;
+    mods[iMod++] = modHomedir;
+    mods[iMod++] = modDomain;
+    mods[iMod++] = modNetBIOSDomain;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
