@@ -1168,6 +1168,7 @@ LocalOpenSession(
     DWORD dwUserInfoLevel = 0;
     BOOLEAN bCreateHomedir = FALSE;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+    PWSTR pwszUserDN = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
     dwError = LocalCrackDomainQualifiedName(
@@ -1175,10 +1176,11 @@ LocalOpenSession(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByName(
+    dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
                     dwUserInfoLevel,
+                    &pwszUserDN,
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1199,6 +1201,11 @@ LocalOpenSession(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = LocalUpdateUserLoginTime(
+                    hProvider,
+                    pwszUserDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
 
     if (pUserInfo) {
@@ -1209,6 +1216,8 @@ cleanup:
     {
         LsaFreeNameInfo(pLoginInfo);
     }
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -1226,12 +1235,19 @@ LocalCloseSession(
     DWORD dwError = 0;
     DWORD dwUserInfoLevel = 0;
     PVOID pUserInfo = NULL;
+    PWSTR pwszUserDN = NULL;
 
-    dwError = LocalFindUserByName(
+    dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
                     dwUserInfoLevel,
+                    &pwszUserDN,
                     (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalUpdateUserLogoffTime(
+                    hProvider,
+                    pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -1239,6 +1255,8 @@ cleanup:
     if (pUserInfo) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
     }
+
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 

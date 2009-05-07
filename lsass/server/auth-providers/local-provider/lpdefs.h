@@ -144,6 +144,10 @@
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
 #define LOCAL_DIR_ATTR_PRIMARY_GROUP \
     {'P','r','i','m','a','r','y','G','r','o','u','p',0}
+#define LOCAL_DIR_ATTR_LAST_LOGON \
+    {'L','a','s','t','L','o','g','o','n',0}
+#define LOCAL_DIR_ATTR_LAST_LOGOFF \
+    {'L','a','s','t','L','o','g','o','f','f',0}
 
 #define LOCAL_DIR_CN_PREFIX_ANSI  "CN="
 #define LOCAL_DIR_OU_PREFIX_ANSI  "OU="

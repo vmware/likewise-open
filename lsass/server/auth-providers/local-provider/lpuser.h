@@ -204,4 +204,16 @@ LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
     );
 
+DWORD
+LocalUpdateUserLoginTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    );
+
+DWORD
+LocalUpdateUserLogoffTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    );
+
 #endif /* __LP_USER_H__ */

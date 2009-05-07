@@ -2607,4 +2607,98 @@ error:
     return dwError;
 }
 
+DWORD
+LocalUpdateUserLoginTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    ATTRIBUTE_VALUE attrValue =
+    {
+        .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+        .data.llValue = 0
+    };
+    WCHAR wszAttrNameLastLogonTime[] = LOCAL_DIR_ATTR_LAST_LOGON;
+    DIRECTORY_MOD mods[] =
+    {
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            &wszAttrNameLastLogonTime[0],
+            1,
+            &attrValue
+        },
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            NULL,
+            0,
+            NULL
+        }
+    };
+
+    attrValue.data.llValue = LocalGetNTTime(time(NULL));
+
+    dwError = DirectoryModifyObject(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalUpdateUserLogoffTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    ATTRIBUTE_VALUE attrValue =
+    {
+        .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+        .data.llValue = 0
+    };
+    WCHAR wszAttrNameLastLogoffTime[] = LOCAL_DIR_ATTR_LAST_LOGOFF;
+    DIRECTORY_MOD mods[] =
+    {
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            &wszAttrNameLastLogoffTime[0],
+            1,
+            &attrValue
+        },
+        {
+            DIR_MOD_FLAGS_ADD,
+            NULL,
+            0,
+            NULL
+        }
+    };
+
+    attrValue.data.llValue = LocalGetNTTime(time(NULL));
+
+    dwError = DirectoryModifyObject(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
