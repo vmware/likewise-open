@@ -61,27 +61,6 @@ typedef void* ACCOUNT_HANDLE;
     {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define DS_ATTR_CREATED_TIME \
     {'C','r','e','a','t','e','d','T','i','m','e',0}
-#define DS_ATTR_MIN_PWD_LENGTH \
-    {'M','i','n','P','w','d','L','e','n','g','t','h',0}
-#define DS_ATTR_PWD_HISTORY_LENGTH \
-    {'P','w','d','H','i','s','t','o','r','y','L','e','n','g','t','h',0}
-#define DS_ATTR_PWD_PROPERTIES \
-    {'P','w','d','P','r','o','p','e','r','t','i','e','s',0}
-#define DS_ATTR_MAX_PWD_AGE \
-    {'M','a','x','P','w','d','A','g','e',0}
-#define DS_ATTR_MIN_PWD_AGE \
-    {'M','i','n','P','w','d','A','g','e',0}
-#define DS_ATTR_FORCE_LOGOFF_TIME \
-    {'F','o','r','c','e','L','o','g','o','f','f','T','i','m','e',0}
-#define DS_ATTR_LOCKOUT_DURATION \
-    {'L','o','c','k','o','u','t','D','u','r','a','t','i','o','n',0}
-#define DS_ATTR_LOCKOUT_WINDOW \
-    {'L','o','c','k','o','u','t','W','i','n','d','o','w',0}
-#define DS_ATTR_LOCKOUT_THRESHOLD \
-    {'L','o','c','k','o','u','t','T','h','r','e','s','h','o','l','d',0}
-#define DS_ATTR_ROLE \
-    {'R','o','l','e',0}
-
 
 
 #define DS_OBJECT_CLASS_DOMAIN           (1)
@@ -110,16 +89,6 @@ typedef void* ACCOUNT_HANDLE;
         if ((ptr) == NULL) {                             \
             status = STATUS_NO_MEMORY;                   \
             LSA_LOG_ERROR("Error: out of memory");       \
-            goto error;                                  \
-        }                                                \
-    } while (0)
-
-
-#define BAIL_ON_INVALID_PARAMETER(cond)                  \
-    do {                                                 \
-        if (!(cond)) {                                   \
-            status = STATUS_INVALID_PARAMETER;           \
-            LSA_LOG_ERROR("Error: invalid parameter");   \
             goto error;                                  \
         }                                                \
     } while (0)
