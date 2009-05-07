@@ -171,39 +171,21 @@ SamrSrvQueryDomainInfo(
     WCHAR wszAttrDomain[] = DS_ATTR_DOMAIN;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     WCHAR wszAttrCreatedTime[] = DS_ATTR_CREATED_TIME;
-    WCHAR wszAttrMinPasswordLen[] = DS_ATTR_MIN_PWD_LENGTH;
-    WCHAR wszAttrPasswordHistoryLen[] = DS_ATTR_PWD_HISTORY_LENGTH;
-    WCHAR wszAttrPasswordProperties[] = DS_ATTR_PWD_PROPERTIES;
-    WCHAR wszAttrMaxPasswordAge[] = DS_ATTR_MAX_PWD_AGE;
-    WCHAR wszAttrMinPasswordAge[] = DS_ATTR_MIN_PWD_AGE;
-    WCHAR wszAttrForceLogoffTime[] = DS_ATTR_FORCE_LOGOFF_TIME;
-    WCHAR wszAttrRole[] = DS_ATTR_ROLE;
-    WCHAR wszAttrLockoutDuration[] = DS_ATTR_LOCKOUT_DURATION;
-    WCHAR wszAttrLockoutWindow[] = DS_ATTR_LOCKOUT_WINDOW;
-    WCHAR wszAttrLockoutThreshold[] = DS_ATTR_LOCKOUT_THRESHOLD;
 
     PWSTR wszAttributeLevel1[] = {
         wszAttrDn,
-        wszAttrMinPasswordLen,
-        wszAttrPasswordHistoryLen,
-        wszAttrPasswordProperties,
-        wszAttrMaxPasswordAge,
-        wszAttrMinPasswordAge,
         NULL
     };
 
     PWSTR wszAttributeLevel2[] = {
         wszAttrDn,
-        wszAttrForceLogoffTime,
         wszAttrDomain,
         wszAttrComment,
-        wszAttrRole,
         NULL
     };
 
     PWSTR wszAttributeLevel3[] = {
         wszAttrDn,
-        wszAttrForceLogoffTime,
         NULL
     };
 
@@ -226,7 +208,6 @@ SamrSrvQueryDomainInfo(
 
     PWSTR wszAttributeLevel7[] = {
         wszAttrDn,
-        wszAttrRole,
         NULL
     };
 
@@ -248,21 +229,13 @@ SamrSrvQueryDomainInfo(
 
     PWSTR wszAttributeLevel11[] = {
         wszAttrDn,
-        wszAttrForceLogoffTime,
         wszAttrDomain,
         wszAttrComment,
-        wszAttrRole,
-        wszAttrLockoutDuration,
-        wszAttrLockoutWindow,
-        wszAttrLockoutThreshold,
         NULL
     };
 
     PWSTR wszAttributeLevel12[] = {
         wszAttrDn,
-        wszAttrLockoutDuration,
-        wszAttrLockoutWindow,
-        wszAttrLockoutThreshold,
         NULL
     };
 
@@ -462,62 +435,17 @@ SamrSrvFillDomainInfo1(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    WCHAR wszAttrMinPasswordLen[] = DS_ATTR_MIN_PWD_LENGTH;
-    WCHAR wszAttrPasswordHistoryLen[] = DS_ATTR_PWD_HISTORY_LENGTH;
-    WCHAR wszAttrPasswordProperties[] = DS_ATTR_PWD_PROPERTIES;
-    WCHAR wszAttrMaxPasswordAge[] = DS_ATTR_MAX_PWD_AGE;
-    WCHAR wszAttrMinPasswordAge[] = DS_ATTR_MIN_PWD_AGE;
     DomainInfo1 *pInfo1 = NULL;
-    ULONG ulMinPassLength = 0;
-    ULONG ulPassHistoryLength = 0;
-    ULONG ulPassProperties = 0;
-    LONG64 llMaxPassAge = 0;
-    LONG64 llMinPassAge = 0;
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrMinPasswordLen,
-                                               DIRECTORY_ATTR_TYPE_INTEGER,
-                                               &ulMinPassLength);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrPasswordHistoryLen,
-                                               DIRECTORY_ATTR_TYPE_INTEGER,
-                                               &ulPassHistoryLength);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrPasswordProperties,
-                                               DIRECTORY_ATTR_TYPE_INTEGER,
-                                               &ulPassProperties);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrMaxPasswordAge,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llMaxPassAge);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrMinPasswordAge,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llMinPassAge);
-    BAIL_ON_LSA_ERROR(dwError);
 
     pInfo1 = &pInfo->info1;
 
-    pInfo1->min_pass_length     = (USHORT)ulMinPassLength;
-    pInfo1->pass_history_length = (USHORT)ulPassHistoryLength;
-    pInfo1->pass_properties     = ulPassProperties;
-    pInfo1->max_pass_age        = llMaxPassAge;
-    pInfo1->min_pass_age        = llMinPassAge;
+    pInfo1->min_pass_length = 0;
+    pInfo1->pass_history_length = 5;
+    pInfo1->pass_properties = 0;
+    pInfo1->max_pass_age    = 0;
+    pInfo1->min_pass_age    = 0;
 
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 
@@ -533,12 +461,8 @@ SamrSrvFillDomainInfo2(
     DWORD dwError = 0;
     WCHAR wszAttrComment[] = DS_ATTR_COMMENT;
     WCHAR wszAttrDomainName[] = DS_ATTR_DOMAIN;
-    WCHAR wszAttrForceLogoffTime[] = DS_ATTR_FORCE_LOGOFF_TIME;
-    WCHAR wszAttrRole[] = DS_ATTR_ROLE;
     PWSTR pwszComment = NULL;
     PWSTR pwszDomainName = NULL;
-    LONG64 llForceLogoffTime = 0;
-    ULONG ulRole = 0;
     DomainInfo2 *pInfo2 = NULL;
 
     dwError = DirectoryGetEntryAttrValueByName(pEntry,
@@ -553,22 +477,10 @@ SamrSrvFillDomainInfo2(
                                                &pwszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrForceLogoffTime,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llForceLogoffTime);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrRole,
-                                               DIRECTORY_ATTR_TYPE_INTEGER,
-                                               &ulRole);
-    BAIL_ON_LSA_ERROR(dwError);
-
     pInfo2 = &pInfo->info2;
 
     /* force_logoff_time */
-    pInfo2->force_logoff_time = llForceLogoffTime;
+    pInfo2->force_logoff_time = 0;
 
     /* comment */
     status = SamrSrvInitUnicodeString(&pInfo2->comment,
@@ -589,9 +501,8 @@ SamrSrvFillDomainInfo2(
 
     /* sequence_num */
     /* unknown1 */
-
     /* role */
-    pInfo2->role = ulRole;
+    pInfo2->role = SAMR_ROLE_DOMAIN_MEMBER;
 
     /* unknown2 */
     /* num_users */
@@ -615,25 +526,12 @@ SamrSrvFillDomainInfo3(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    WCHAR wszAttrForceLogoffTime[] = DS_ATTR_FORCE_LOGOFF_TIME;
     DomainInfo3 *pInfo3 = NULL;
-    LONG64 llForceLogoffTime = 0;
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrForceLogoffTime,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llForceLogoffTime);
-    BAIL_ON_LSA_ERROR(dwError);
 
     pInfo3 = &pInfo->info3;
-    pInfo3->force_logoff_time = llForceLogoffTime;
+    pInfo3->force_logoff_time = 0;
 
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 
@@ -742,25 +640,12 @@ SamrSrvFillDomainInfo7(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    WCHAR wszAttrRole[] = DS_ATTR_ROLE;
     DomainInfo7 *pInfo7 = NULL;
-    ULONG ulRole = 0;
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrRole,
-                                               DIRECTORY_ATTR_TYPE_INTEGER,
-                                               &ulRole);
-    BAIL_ON_LSA_ERROR(dwError);
 
     pInfo7 = &pInfo->info7;
-    pInfo7->role = ulRole;
+    pInfo7->role = SAMR_ROLE_DOMAIN_MEMBER;
 
-cleanup:
     return status;
-
-error:
-    goto cleanup;
 }
 
 
@@ -822,14 +707,7 @@ SamrSrvFillDomainInfo11(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    WCHAR wszAttrLockoutDuration[] = DS_ATTR_LOCKOUT_DURATION;
-    WCHAR wszAttrLockoutWindow[] = DS_ATTR_LOCKOUT_WINDOW;
-    WCHAR wszAttrLockoutThreshold[] = DS_ATTR_LOCKOUT_THRESHOLD;
     DomainInfo11 *pInfo11 = NULL;
-    LONG64 llLockoutDuration = 0;
-    LONG64 llLockoutWindow = 0;
-    LONG64 llLockoutThreshold = 0;
 
     pInfo11 = &pInfo->info11;
 
@@ -837,28 +715,6 @@ SamrSrvFillDomainInfo11(
                                    pEntry,
                                    (DomainInfo*)pInfo11);
     BAIL_ON_NTSTATUS_ERROR(status);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutDuration,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutDuration);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutWindow,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutWindow);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutThreshold,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutThreshold);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pInfo11->lockout_duration  = llLockoutDuration;
-    pInfo11->lockout_window    = llLockoutWindow;
-    pInfo11->lockout_threshold = llLockoutThreshold;
 
 cleanup:
     return status;
@@ -877,45 +733,7 @@ SamrSrvFillDomainInfo12(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    WCHAR wszAttrLockoutDuration[] = DS_ATTR_LOCKOUT_DURATION;
-    WCHAR wszAttrLockoutWindow[] = DS_ATTR_LOCKOUT_WINDOW;
-    WCHAR wszAttrLockoutThreshold[] = DS_ATTR_LOCKOUT_THRESHOLD;
-    DomainInfo12 *pInfo12 = NULL;
-    LONG64 llLockoutDuration = 0;
-    LONG64 llLockoutWindow = 0;
-    LONG64 llLockoutThreshold = 0;
-
-    pInfo12 = &pInfo->info12;
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutDuration,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutDuration);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutWindow,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutWindow);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectoryGetEntryAttrValueByName(pEntry,
-                                               wszAttrLockoutThreshold,
-                                               DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-                                               &llLockoutThreshold);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pInfo12->lockout_duration  = llLockoutDuration;
-    pInfo12->lockout_window    = llLockoutWindow;
-    pInfo12->lockout_threshold = llLockoutThreshold;
-
-cleanup:
     return status;
-
-error:
-    goto cleanup;
-
 }
 
 

@@ -108,7 +108,7 @@ SamrSrvQueryDisplayInfo(
     /* [out] */ SamrDisplayInfo *info
     )
 {
-    const wchar_t wszFilterFmt[] = L"%ws=%d AND %ws>%d";
+    const wchar_t wszFilterFmt[] = L"%ws=%d AND %ws>=%d";
 
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
     WCHAR wszAttrRecordId[] = DS_ATTR_RECORD_ID;
@@ -482,7 +482,7 @@ SamrSrvFillDisplayInfoFull(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvInitUnicodeString(&pDisplayEntry->description,
-                                      pwszDescription,
+                                      NULL,
                                       pInfo1->entries);
     BAIL_ON_NTSTATUS_ERROR(status);
 
