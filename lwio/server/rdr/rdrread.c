@@ -1,4 +1,4 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
+/* Editor Settings: expandtabs and use 3 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
 
@@ -48,6 +48,11 @@
  */
 
 #include "rdr.h"
+
+/* Offset from the beginning off the SMB header to
+   the data in the Read&X response */
+
+#define READ_DATA_OFFSET     60
 
 static
 NTSTATUS
@@ -109,7 +114,9 @@ RdrCommonRead(
         llByteOffset = pFile->llOffset;
     }
 
-    ulReadMax = pFile->pTree->pSession->pSocket->maxBufferSize - 60;
+    /* Resp can only contain "MaxTransmitBufferSize - (SMB_HEADER + READX_HEADER)" */
+
+    ulReadMax = pFile->pTree->pSession->pSocket->maxBufferSize - READ_DATA_OFFSET;
 
     while (ulLength)
     {
