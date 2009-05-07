@@ -1699,7 +1699,8 @@ LocalDirAddGroup_0(
         LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
         LOCAL_DAG0_IDX_OBJECTCLASS,
         LOCAL_DAG0_IDX_DOMAIN,
-        LOCAL_DAG0_IDX_NETBIOS_DOMAIN
+        LOCAL_DAG0_IDX_NETBIOS_DOMAIN,
+        LOCAL_DAG0_IDX_GID
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1718,12 +1719,17 @@ LocalDirAddGroup_0(
         {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
                 .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                 .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_GID */
+                .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                .data.ulValue = pGroupInfo->gid
         }
     };
-    WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
-    WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrObjectClass[]        = LOCAL_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrSamAccountName[]     = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrDomain[]             = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
     DIRECTORY_MOD mods[] =
     {
             {
@@ -1749,6 +1755,12 @@ LocalDirAddGroup_0(
                     &wszAttrNameNetBIOSDomain[0],
                     1,
                     &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameGID[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_GID]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -1794,6 +1806,12 @@ LocalDirAddGroup_0(
     BAIL_ON_LSA_ERROR(dwError);
 
     attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
+
+    if (!pGroupInfo->gid)
+    {
+        mods[LOCAL_DAG0_IDX_GID].pwszAttrName = NULL;
+        mods[LOCAL_DAG0_IDX_GID].pAttrValues = NULL;
+    }
 
     dwError = LocalBuildDN(
                     pLoginInfo,
@@ -1851,7 +1869,8 @@ LocalDirAddGroup_1(
         LOCAL_DAG0_IDX_COMMON_NAME,
         LOCAL_DAG0_IDX_OBJECTCLASS,
         LOCAL_DAG0_IDX_DOMAIN,
-        LOCAL_DAG0_IDX_NETBIOS_DOMAIN
+        LOCAL_DAG0_IDX_NETBIOS_DOMAIN,
+        LOCAL_DAG0_IDX_GID
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1874,6 +1893,10 @@ LocalDirAddGroup_1(
         {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
                 .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                 .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_GID */
+                .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                .data.ulValue = pGroupInfo->gid
         }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1881,6 +1904,7 @@ LocalDirAddGroup_1(
     WCHAR wszAttrCommonName[]     = LOCAL_DIR_ATTR_COMMON_NAME;
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
     DIRECTORY_MOD mods[] =
     {
             {
@@ -1912,6 +1936,12 @@ LocalDirAddGroup_1(
                     &wszAttrNameNetBIOSDomain[0],
                     1,
                     &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameGID[0],
+                    1,
+                    &attrValues[LOCAL_DAG0_IDX_GID]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -1958,6 +1988,12 @@ LocalDirAddGroup_1(
 
     attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
     attrValues[LOCAL_DAG0_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
+
+    if (!pGroupInfo->gid)
+    {
+        mods[LOCAL_DAG0_IDX_GID].pwszAttrName = NULL;
+        mods[LOCAL_DAG0_IDX_GID].pAttrValues = NULL;
+    }
 
     dwError = LocalBuildDN(
                     pLoginInfo,

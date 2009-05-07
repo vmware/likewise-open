@@ -1838,38 +1838,33 @@ LocalDirAddUser_0(
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PWSTR pwszUserDN = NULL;
     enum AttrValueIndex {
-        LOCAL_DAU0_IDX_UID = 0,
-        LOCAL_DAU0_IDX_GID,
+        LOCAL_DAU0_IDX_GID = 0,
+        LOCAL_DAU0_IDX_OBJECTCLASS,
         LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME,
         LOCAL_DAU0_IDX_COMMON_NAME,
-        LOCAL_DAU0_IDX_PASSWORD,
         LOCAL_DAU0_IDX_GECOS,
         LOCAL_DAU0_IDX_SHELL,
         LOCAL_DAU0_IDX_HOMEDIR,
         LOCAL_DAU0_IDX_OBJECTSID,
-        LOCAL_DAU0_IDX_OBJECTCLASS,
         LOCAL_DAU0_IDX_DOMAIN,
-        LOCAL_DAU0_IDX_NETBIOS_DOMAIN
+        LOCAL_DAU0_IDX_NETBIOS_DOMAIN,
+        LOCAL_DAU0_IDX_UID
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
-                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
-                    .data.ulValue = pUserInfo->uid
-            },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_GID */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                     .data.ulValue = pUserInfo->gid
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = LOCAL_OBJECT_CLASS_USER
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_SAM_ACCOUNT_NAME */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_COMMON_NAME */
-                    .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                    .data.pwszStringValue = NULL
-            },
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_PASSWORD */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
@@ -1889,10 +1884,6 @@ LocalDirAddUser_0(
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
-                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
-                    .data.ulValue = LOCAL_OBJECT_CLASS_USER
-            },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_DOMAIN */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
@@ -1900,6 +1891,10 @@ LocalDirAddUser_0(
             {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = pUserInfo->uid
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1911,8 +1906,15 @@ LocalDirAddUser_0(
     WCHAR wszAttrHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
     DIRECTORY_MOD mods[] =
     {
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrGID[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_GID]
+            },
             {
                     DIR_MOD_FLAGS_ADD,
                     &wszAttrObjectClass[0],
@@ -1930,12 +1932,6 @@ LocalDirAddUser_0(
                     &wszAttrCommonName[0],
                     1,
                     &attrValues[LOCAL_DAU0_IDX_COMMON_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrGID[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_GID]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -1966,6 +1962,12 @@ LocalDirAddUser_0(
                     &wszAttrNameNetBIOSDomain[0],
                     1,
                     &attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameUID[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_UID]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -2077,6 +2079,12 @@ LocalDirAddUser_0(
     }
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
+
+    if (!pUserInfo->uid)
+    {
+        mods[LOCAL_DAU0_IDX_UID].pAttrValues = NULL;
+        mods[LOCAL_DAU0_IDX_UID].pwszAttrName = NULL;
+    }
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
