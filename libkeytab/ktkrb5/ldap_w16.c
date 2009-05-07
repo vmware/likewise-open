@@ -69,6 +69,7 @@ KtLdapGetBaseDnW(
     }
 
 cleanup:
+    KT_SAFE_FREE_STRING(pszBaseDn);
     KT_SAFE_FREE_STRING(pszDcName);
 
     return dwError;
