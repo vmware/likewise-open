@@ -1985,6 +1985,10 @@ LocalDirAddUser_0(
     PWSTR pwszPassword = NULL;
     PWSTR pwszDomain        = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    DWORD dwGroupInfoLevel = 0;
+    PWSTR pwszGroupDN = NULL;
+    BOOLEAN bUserAdded = FALSE;
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
@@ -1998,6 +2002,14 @@ LocalDirAddUser_0(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = LocalDirFindGroupById(
+                    hProvider,
+                    pUserInfo->gid,
+                    dwGroupInfoLevel,
+                    &pwszGroupDN,
+                    (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
                     pLoginInfo->pszFullDomainName,
@@ -2092,6 +2104,14 @@ LocalDirAddUser_0(
                     mods);
     BAIL_ON_LSA_ERROR(dwError);
 
+    bUserAdded = TRUE;
+
+    dwError = DirectoryAddToGroup(
+                    pContext->hDirectory,
+                    pwszGroupDN,
+                    pwszUserDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (!IsNullOrEmptyString(pUserInfo->pszPasswd))
     {
         dwError = LsaMbsToWc16s(
@@ -2122,7 +2142,13 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
     LSA_SAFE_FREE_MEMORY(pwszGecos);
     LSA_SAFE_FREE_MEMORY(pwszShell);
@@ -2136,6 +2162,19 @@ cleanup:
     return dwError;
 
 error:
+
+    if (bUserAdded)
+    {
+        DWORD dwError2 = 0;
+
+        dwError2 = DirectoryDeleteObject(
+                        pContext->hDirectory,
+                        pwszUserDN);
+        if (dwError2)
+        {
+            LSA_LOG_ERROR("Failed to remove user [code: %d]", dwError2);
+        }
+    }
 
     goto cleanup;
 }

@@ -387,7 +387,7 @@ error:
     {
         *ppwszGroupDN = NULL;
     }
-    *ppGroupInfo = pGroupInfo;
+    *ppGroupInfo = NULL;
 
     if (pGroupInfo)
     {
@@ -1569,7 +1569,7 @@ LocalDirGetGroupMembersInternal(
 
                 LSA_SAFE_FREE_STRING(pszSID);
 
-                dwError = LocalMarshalAttrToANSIString(
+                dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                 pEntry,
                                 &wszAttrNameObjectSID[0],
                                 &pszSID);
@@ -1589,13 +1589,13 @@ LocalDirGetGroupMembersInternal(
                     pGroupMember->pszSID = pszSID;
                     pszSID = NULL;
 
-                    dwError = LocalMarshalAttrToANSIString(
+                    dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                     pEntry,
                                     &wszAttrNameNetbiosName[0],
                                     &pGroupMember->pszNetbiosDomain);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                    dwError = LocalMarshalAttrToANSIString(
+                    dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                     pEntry,
                                     &wszAttrNameSamAccountName[0],
                                     &pGroupMember->pszSamAccountName);
