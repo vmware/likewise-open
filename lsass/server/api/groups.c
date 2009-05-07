@@ -231,7 +231,9 @@ LsaSrvGetGroupsForUser(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pProvider->pFnTable->pfnGetGroupsForUser == NULL)
+        {
             dwError = LSA_ERROR_NOT_HANDLED;
+        }
         else
         {
             dwError = pProvider->pFnTable->pfnGetGroupsForUser(
@@ -242,14 +244,19 @@ LsaSrvGetGroupsForUser(
                                                 pdwGroupsFound,
                                                 pppGroupInfoList);
         }
-        if (!dwError && *pppGroupInfoList != NULL) {
+
+        if (!dwError && *pppGroupInfoList != NULL)
+        {
             break;
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
 
             dwError = 0;
         }
-
         BAIL_ON_LSA_ERROR(dwError);
+
         LsaSrvCloseProvider(pProvider, hProvider);
         hProvider = (HANDLE)NULL;
     }
