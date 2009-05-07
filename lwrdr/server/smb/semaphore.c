@@ -46,10 +46,6 @@
 
 #include "includes.h"
 
-// Need to check the OS after including config.h, which is
-// included by includes.h.
-
-#if defined(__LWI_DARWIN__)
 DWORD
 SMBSemaphoreInit(
     OUT PLSMB_SEMAPHORE pSemaphore,
@@ -96,11 +92,18 @@ SMBSemaphoreWait(
 
     SMB_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
 
-    while (pSemaphore->Count <= 0)
+    while (pSemaphore->Count <= 0 && pSemaphore->Error == 0)
     {
         dwError = pthread_cond_wait(&pSemaphore->Condition, &pSemaphore->Mutex);
         BAIL_ON_SMB_ERROR(dwError);
     }
+
+    if (pSemaphore->Error)
+    {
+        dwError = pSemaphore->Error;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
+
     pSemaphore->Count--;
 
 error:
@@ -129,6 +132,27 @@ SMBSemaphorePost(
     return dwError;
 }
 
+DWORD
+SMBSemaphoreInvalidate(
+    IN PLSMB_SEMAPHORE pSemaphore,
+    IN DWORD Error
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+
+    SMB_LOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+
+    pSemaphore->Error = Error;
+    dwError = pthread_cond_broadcast(&pSemaphore->Condition);
+    assert(!dwError);
+    dwError = 0;
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSemaphore->Mutex);
+
+    return dwError;
+}
+
 VOID
 SMBSemaphoreDestroy(
     IN OUT PLSMB_SEMAPHORE pSemaphore
@@ -147,4 +171,3 @@ SMBSemaphoreDestroy(
     }
     pSemaphore->Count = 0;
 }
-#endif /* __LWI_DARWIN__ */
