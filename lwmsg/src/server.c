@@ -536,6 +536,13 @@ lwmsg_server_listen_thread(
             {
                 lwmsg_time_now(&now);
                 lwmsg_time_difference(&now, &next, &timeout);
+
+                if (timeout.seconds < 0 || timeout.microseconds < 0)
+                {
+                    /* Normalize negative wakeup time (next has already passed)
+                       to 0, turning the select into a poll */
+                    timeout.seconds = timeout.microseconds = 0;
+                }
                 timeval.tv_sec = timeout.seconds;
                 timeval.tv_usec = timeout.microseconds;
             }
@@ -616,11 +623,13 @@ lwmsg_server_listen_thread(
 
 done:
 
-error:
-
     SERVER_UNLOCK(server, locked);
 
     return NULL;
+
+error:
+
+    goto done;
 }
 
 static
