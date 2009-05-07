@@ -744,7 +744,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -886,7 +886,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -1038,7 +1038,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
