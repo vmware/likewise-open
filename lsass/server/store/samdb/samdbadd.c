@@ -393,7 +393,11 @@ SamDbBuildAddObjectQuery(
     //
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
-        if (pIter->pAttrMap->bIsRowId) continue;
+        if (pIter->pAttrMap->bIsRowId ||
+            pIter->pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)
+        {
+            continue;
+        }
 
         if (dwColNamesLen)
         {
@@ -407,16 +411,9 @@ SamDbBuildAddObjectQuery(
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR) - 1;
         }
 
-        if (pIter->pAttrMap->bIsRowId)
-        {
-            dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
-        }
-        else
-        {
-            sprintf(szBuf, "\?%d", ++iCol);
+        sprintf(szBuf, "\?%d", ++iCol);
 
-            dwColValuesLen += strlen(szBuf);
-        }
+        dwColValuesLen += strlen(szBuf);
     }
 
     dwQueryLen = sizeof(SAMDB_ADD_OBJECT_QUERY_PREFIX) - 1;
@@ -449,7 +446,11 @@ SamDbBuildAddObjectQuery(
 
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
-        if (pIter->pAttrMap->bIsRowId) continue;
+        if (pIter->pAttrMap->bIsRowId ||
+            pIter->pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)
+        {
+            continue;
+        }
 
         if (dwColNamesLen)
         {
@@ -478,25 +479,13 @@ SamDbBuildAddObjectQuery(
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR)  - 1;
         }
 
-        if (pIter->pAttrMap->bIsRowId)
-        {
-            pszCursor = SAMDB_ADD_OBJECT_QUERY_ROWID;
-            while (pszCursor && *pszCursor)
-            {
-                *pszQueryValuesCursor++ = *pszCursor++;
-            }
-            dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
-        }
-        else
-        {
-            sprintf(szBuf, "\?%d", ++iCol);
+        sprintf(szBuf, "\?%d", ++iCol);
 
-            pszCursor = &szBuf[0];
-            while (pszCursor && *pszCursor)
-            {
-                *pszQueryValuesCursor++ = *pszCursor++;
-                dwColValuesLen++;
-            }
+        pszCursor = &szBuf[0];
+        while (pszCursor && *pszCursor)
+        {
+            *pszQueryValuesCursor++ = *pszCursor++;
+            dwColValuesLen++;
         }
     }
 
