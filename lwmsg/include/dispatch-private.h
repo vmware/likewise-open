@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,92 +26,72 @@
 /*
  * Module Name:
  *
- *        time.h
+ *        server.h
  *
  * Abstract:
  *
- *        Time API (public header)
+ *        Call dispatch API (private header)
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_TIME_H__
-#define __LWMSG_TIME_H__
+#ifndef __LWMSG_DISPATCH_PRIVATE_H__
+#define __LWMSG_DISPATCH_PRIVATE_H__
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <lwmsg/status.h>
-#include <lwmsg/common.h>
+#include <lwmsg/dispatch.h>
+#include <pthread.h>
 
-typedef struct LWMsgTime
+typedef void
+(*LWMsgDispatchCompleteFunction) (
+    LWMsgDispatchHandle* handle,
+    LWMsgStatus status,
+    void* data
+    );
+
+typedef enum LWMsgDispatchState
 {
-    ssize_t seconds;
-    ssize_t microseconds;
-} LWMsgTime;
+    LWMSG_DISPATCH_STATE_PENDING,
+    LWMSG_DISPATCH_STATE_INTERRUPTED,
+    LWMSG_DISPATCH_STATE_FINISHED
+} LWMsgDispatchState;
 
-typedef struct LWMsgClock
+struct LWMsgDispatchHandle
 {
-    LWMsgTime last_time;
-    LWMsgTime adjust;
-} LWMsgClock;
-
-typedef enum LWMsgTimeComparison
-{
-    LWMSG_TIME_EQUAL = 0,
-    LWMSG_TIME_GREATER = 1,
-    LWMSG_TIME_LESSER = -1
-} LWMsgTimeComparison;
+    LWMsgDispatchState volatile state;
+    LWMsgStatus volatile status;
+    LWMsgDispatchCompleteFunction complete;
+    void *complete_data;
+    LWMsgDispatchInterruptFunction interrupt;
+    void *interrupt_data;
+    pthread_mutex_t lock;
+};
 
 LWMsgStatus
-lwmsg_time_now(
-    LWMsgTime* out
+lwmsg_dispatch_init(
+    LWMsgDispatchHandle* handle
     );
 
 void
-lwmsg_time_difference(
-    LWMsgTime* from,
-    LWMsgTime* to,
-    LWMsgTime* out
-    );
-
-void
-lwmsg_time_sum(
-    LWMsgTime* base,
-    LWMsgTime* offset,
-    LWMsgTime* out
-    );
-
-LWMsgTimeComparison
-lwmsg_time_compare(
-    LWMsgTime* a,
-    LWMsgTime* b
-    );
-
-void
-lwmsg_time_normalize(
-    LWMsgTime* time
-    );
-
-LWMsgBool
-lwmsg_time_is_positive(
-    LWMsgTime* time
-    );
-
-void
-lwmsg_clock_init(
-    LWMsgClock* clock
+lwmsg_dispatch_destroy(
+    LWMsgDispatchHandle* handle
     );
 
 LWMsgStatus
-lwmsg_clock_get_wall_time(
-    LWMsgClock* clock,
-    LWMsgTime* time
+lwmsg_dispatch_get_result(
+    LWMsgDispatchHandle* handle
     );
 
-LWMsgStatus
-lwmsg_clock_get_monotonic_time(
-    LWMsgClock* clock,
-    LWMsgTime* time
+void
+lwmsg_dispatch_begin(
+    LWMsgDispatchHandle* handle,
+    LWMsgDispatchCompleteFunction complete,
+    void* complete_data
     );
+
+void
+lwmsg_dispatch_interrupt(
+    LWMsgDispatchHandle* handle
+    );
+
 
 #endif

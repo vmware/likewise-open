@@ -513,7 +513,7 @@ SamDbSearchMarshallResultsAttributesValues(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     while ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
     {
@@ -719,7 +719,7 @@ SamDbSearchMarshallResultsAttributesValues(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *ppDirectoryEntries = pDirectoryEntries;
     *pdwNumEntries = dwNumEntries;

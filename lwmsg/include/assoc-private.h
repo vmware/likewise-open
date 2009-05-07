@@ -49,6 +49,9 @@ struct LWMsgAssoc
     LWMsgProtocol* prot;
     LWMsgSessionManager* manager;
     LWMsgAssocAction action_vector[LWMSG_STATUS_COUNT];
+    LWMsgSessionConstructor construct;
+    LWMsgSessionDestructor destruct;
+    void* construct_data;
 
     unsigned manager_is_private:1;
 

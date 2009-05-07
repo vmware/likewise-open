@@ -61,14 +61,18 @@ SamDbDeleteObject(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(
+                    dwError,
+                    pDirectoryContext->pDbContext->pDelObjectStmt);
 
     dwError = sqlite3_step(pDirectoryContext->pDbContext->pDelObjectStmt);
     if (dwError == SQLITE_DONE)
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(
+                    dwError,
+                    pDirectoryContext->pDbContext->pDelObjectStmt);
 
 cleanup:
 
@@ -109,7 +113,9 @@ SamDbInitDelObjectStatement(
                     -1,
                     &pDelObjectStmt,
                     NULL);
-        BAIL_ON_SAMDB_ERROR(dwError);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
+                        dwError,
+                        pDirectoryContext->pDbContext->pDbHandle);
 
         pDirectoryContext->pDbContext->pDelObjectStmt = pDelObjectStmt;
     }

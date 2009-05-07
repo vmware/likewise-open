@@ -444,7 +444,7 @@ LocalDirFindUserByName_2(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
@@ -744,7 +744,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -886,7 +886,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -919,7 +919,7 @@ LocalDirFindUserById_2(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
@@ -1038,7 +1038,7 @@ error:
     {
         *ppwszUserDN = NULL;
     }
-    *ppUserInfo = pUserInfo;
+    *ppUserInfo = NULL;
 
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -1059,7 +1059,7 @@ LocalDirGetUserInfoFlags(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     PWSTR pwszAttrs[] =
     {
             &wszAttrNameUserInfoFlags[0],
@@ -1391,7 +1391,7 @@ LocalDirBeginEnumUsers_2(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
@@ -1838,38 +1838,33 @@ LocalDirAddUser_0(
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PWSTR pwszUserDN = NULL;
     enum AttrValueIndex {
-        LOCAL_DAU0_IDX_UID = 0,
-        LOCAL_DAU0_IDX_GID,
+        LOCAL_DAU0_IDX_GID = 0,
+        LOCAL_DAU0_IDX_OBJECTCLASS,
         LOCAL_DAU0_IDX_SAM_ACCOUNT_NAME,
         LOCAL_DAU0_IDX_COMMON_NAME,
-        LOCAL_DAU0_IDX_PASSWORD,
         LOCAL_DAU0_IDX_GECOS,
         LOCAL_DAU0_IDX_SHELL,
         LOCAL_DAU0_IDX_HOMEDIR,
         LOCAL_DAU0_IDX_OBJECTSID,
-        LOCAL_DAU0_IDX_OBJECTCLASS,
         LOCAL_DAU0_IDX_DOMAIN,
-        LOCAL_DAU0_IDX_NETBIOS_DOMAIN
+        LOCAL_DAU0_IDX_NETBIOS_DOMAIN,
+        LOCAL_DAU0_IDX_UID
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
-                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
-                    .data.ulValue = pUserInfo->uid
-            },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_GID */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                     .data.ulValue = pUserInfo->gid
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = LOCAL_OBJECT_CLASS_USER
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_SAM_ACCOUNT_NAME */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_COMMON_NAME */
-                    .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                    .data.pwszStringValue = NULL
-            },
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_PASSWORD */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
@@ -1889,10 +1884,6 @@ LocalDirAddUser_0(
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
             },
-            {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
-                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
-                    .data.ulValue = LOCAL_OBJECT_CLASS_USER
-            },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_DOMAIN */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
@@ -1900,6 +1891,10 @@ LocalDirAddUser_0(
             {       /* LOCAL_DIR_ADD_USER_0_IDX_NETBIOS_DOMAIN */
                     .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                     .data.pwszStringValue = NULL
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = pUserInfo->uid
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1911,8 +1906,15 @@ LocalDirAddUser_0(
     WCHAR wszAttrHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
     DIRECTORY_MOD mods[] =
     {
+            {
+                    DIR_MOD_FLAGS_ADD,
+                    &wszAttrGID[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_GID]
+            },
             {
                     DIR_MOD_FLAGS_ADD,
                     &wszAttrObjectClass[0],
@@ -1930,12 +1932,6 @@ LocalDirAddUser_0(
                     &wszAttrCommonName[0],
                     1,
                     &attrValues[LOCAL_DAU0_IDX_COMMON_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrGID[0],
-                    1,
-                    &attrValues[LOCAL_DAU0_IDX_GID]
             },
             {
                     DIR_MOD_FLAGS_ADD,
@@ -1969,6 +1965,12 @@ LocalDirAddUser_0(
             },
             {
                     DIR_MOD_FLAGS_ADD,
+                    &wszAttrNameUID[0],
+                    1,
+                    &attrValues[LOCAL_DAU0_IDX_UID]
+            },
+            {
+                    DIR_MOD_FLAGS_ADD,
                     NULL,
                     1,
                     NULL
@@ -1983,6 +1985,10 @@ LocalDirAddUser_0(
     PWSTR pwszPassword = NULL;
     PWSTR pwszDomain        = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    DWORD dwGroupInfoLevel = 0;
+    PWSTR pwszGroupDN = NULL;
+    BOOLEAN bUserAdded = FALSE;
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
@@ -1996,6 +2002,14 @@ LocalDirAddUser_0(
         dwError = LSA_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = LocalDirFindGroupById(
+                    hProvider,
+                    pUserInfo->gid,
+                    dwGroupInfoLevel,
+                    &pwszGroupDN,
+                    (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
                     pLoginInfo->pszFullDomainName,
@@ -2078,10 +2092,24 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
+    if (!pUserInfo->uid)
+    {
+        mods[LOCAL_DAU0_IDX_UID].pAttrValues = NULL;
+        mods[LOCAL_DAU0_IDX_UID].pwszAttrName = NULL;
+    }
+
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
                     pwszUserDN,
                     mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    bUserAdded = TRUE;
+
+    dwError = DirectoryAddToGroup(
+                    pContext->hDirectory,
+                    pwszGroupDN,
+                    pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pUserInfo->pszPasswd))
@@ -2114,7 +2142,13 @@ cleanup:
         LsaFreeNameInfo(pLoginInfo);
     }
 
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
     LSA_SAFE_FREE_MEMORY(pwszUserDN);
+    LSA_SAFE_FREE_MEMORY(pwszGroupDN);
     LSA_SAFE_FREE_MEMORY(pwszSamAccountName);
     LSA_SAFE_FREE_MEMORY(pwszGecos);
     LSA_SAFE_FREE_MEMORY(pwszShell);
@@ -2128,6 +2162,19 @@ cleanup:
     return dwError;
 
 error:
+
+    if (bUserAdded)
+    {
+        DWORD dwError2 = 0;
+
+        dwError2 = DirectoryDeleteObject(
+                        pContext->hDirectory,
+                        pwszUserDN);
+        if (dwError2)
+        {
+            LSA_LOG_ERROR("Failed to remove user [code: %d]", dwError2);
+        }
+    }
 
     goto cleanup;
 }
@@ -2187,7 +2234,7 @@ LocalDirModifyUser(
                     NULL
             }
         };
-    wchar16_t wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     ATTRIBUTE_VALUE avUserInfoFlags = {0};
     ATTRIBUTE_VALUE avAccountExpiry = {0};
@@ -2558,6 +2605,100 @@ LocalCheckAccountFlags(
 error:
 
     return dwError;
+}
+
+DWORD
+LocalUpdateUserLoginTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    ATTRIBUTE_VALUE attrValue =
+    {
+        .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+        .data.llValue = 0
+    };
+    WCHAR wszAttrNameLastLogonTime[] = LOCAL_DIR_ATTR_LAST_LOGON;
+    DIRECTORY_MOD mods[] =
+    {
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            &wszAttrNameLastLogonTime[0],
+            1,
+            &attrValue
+        },
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            NULL,
+            0,
+            NULL
+        }
+    };
+
+    attrValue.data.llValue = LocalGetNTTime(time(NULL));
+
+    dwError = DirectoryModifyObject(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalUpdateUserLogoffTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    ATTRIBUTE_VALUE attrValue =
+    {
+        .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+        .data.llValue = 0
+    };
+    WCHAR wszAttrNameLastLogoffTime[] = LOCAL_DIR_ATTR_LAST_LOGOFF;
+    DIRECTORY_MOD mods[] =
+    {
+        {
+            DIR_MOD_FLAGS_REPLACE,
+            &wszAttrNameLastLogoffTime[0],
+            1,
+            &attrValue
+        },
+        {
+            DIR_MOD_FLAGS_ADD,
+            NULL,
+            0,
+            NULL
+        }
+    };
+
+    attrValue.data.llValue = LocalGetNTTime(time(NULL));
+
+    dwError = DirectoryModifyObject(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 

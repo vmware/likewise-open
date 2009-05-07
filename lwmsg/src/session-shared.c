@@ -65,8 +65,8 @@ typedef struct LWMsgSession
     unsigned long volatile next_hid;
     /* User data pointer */
     void* data;
-    /* Data pointer cleanup function */
-    LWMsgSessionDataCleanupFunction cleanup;
+    /* Destruct function */
+    LWMsgSessionDestructor destruct;
 } SessionEntry;
 
 typedef struct HandleEntry
@@ -238,14 +238,14 @@ shared_free_session(
         shared_free_handle(handle);
     }
 
+    if (session->destruct && session->data)
+    {
+        session->destruct(session->sec_token, session->data);
+    }
+
     if (session->sec_token)
     {
         lwmsg_security_token_delete(session->sec_token);
-    }
-
-    if (session->cleanup)
-    {
-        session->cleanup(session->data);
     }
 
     pthread_mutex_destroy(&session->lock);
@@ -296,8 +296,10 @@ shared_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** out_session,
-    size_t* assoc_count
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* construct_data,
+    LWMsgSession** out_session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -312,6 +314,7 @@ shared_enter_session(
     {
         if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, rtoken))
         {
+            session = NULL;
             BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
         }
 
@@ -338,36 +341,48 @@ shared_enter_session(
         }
 
         session->refs = 1;
-        session->next = priv->sessions;
+        session->destruct = destruct;
+
+        if (construct)
+        {
+            BAIL_ON_ERROR(status = construct(
+                              session->sec_token,
+                              construct_data,
+                              &session->data));
+        }
 
         if (priv->sessions)
         {
             priv->sessions->prev = session;
         }
-
+        session->next = priv->sessions;
         priv->sessions = session;
+
     }
 
     *out_session = session;
 
-    if (assoc_count)
-    {
-        *assoc_count = session->refs;
-    }
-
-error:
+done:
 
     shared_unlock(priv);
 
     return status;
+
+error:
+
+    if (session)
+    {
+        shared_free_session(session);
+    }
+
+    goto done;
 }
 
 static
 LWMsgStatus
 shared_leave_session(
     LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    size_t* assoc_count
+    LWMsgSession* session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -376,11 +391,6 @@ shared_leave_session(
     shared_lock(priv);
 
     session->refs--;
-
-    if (assoc_count)
-    {
-        *assoc_count = session->refs;
-    }
 
     if (session->refs == 0)
     {
@@ -713,31 +723,6 @@ error:
     goto done;
 }
 
-
-static
-LWMsgStatus
-shared_set_session_data (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* data,
-    LWMsgSessionDataCleanupFunction cleanup
-    )
-{
-    session_lock(session);
-
-    if (session->cleanup)
-    {
-        session->cleanup(session->data);
-    }
-
-    session->data = data;
-    session->cleanup = cleanup;
-
-    session_unlock(session);
-
-    return LWMSG_STATUS_SUCCESS;
-}
-
 static
 void*
 shared_get_session_data (
@@ -810,7 +795,6 @@ static LWMsgSessionManagerClass shared_class =
     .unregister_handle = shared_unregister_handle,
     .handle_pointer_to_id = shared_handle_pointer_to_id,
     .handle_id_to_pointer = shared_handle_id_to_pointer,
-    .set_session_data = shared_set_session_data,
     .get_session_data = shared_get_session_data,
     .get_session_id = shared_get_session_id,
     .get_session_assoc_count = shared_get_session_assoc_count,

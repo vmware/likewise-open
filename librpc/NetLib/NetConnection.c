@@ -222,32 +222,6 @@ error:
 }
 
 
-static
-void
-GetSessionKey(handle_t binding, unsigned char** sess_key,
-              unsigned16* sess_key_len, unsigned32* st)
-{
-    rpc_transport_info_handle_t info = NULL;
-
-    rpc_binding_inq_transport_info(binding, &info, st);
-    if (*st)
-    {
-        goto error;
-    }
-
-    rpc_smb_transport_info_inq_session_key(info, sess_key,
-                                           sess_key_len);
-
-cleanup:
-    return;
-
-error:
-    *sess_key     = NULL;
-    *sess_key_len = 0;
-    goto cleanup;
-}
-
-
 NTSTATUS
 NetConnectSamr(
     NetConn **conn,
@@ -293,6 +267,7 @@ NetConnectSamr(
     wchar16_t **dom_names = NULL;
     wchar16_t *dom_name = NULL;
     wchar16_t localhost_addr[10];
+    rpc_transport_info_handle_t trans_info = NULL;
     unsigned char *sess_key = NULL;
     unsigned16 sess_key_len = 0;
 
@@ -355,15 +330,18 @@ NetConnectSamr(
         sess_key     = NULL;
         sess_key_len = 0;
 
-        GetSessionKey(samr_b, &sess_key, &sess_key_len, &rpcstatus);
+        rpc_binding_inq_transport_info(samr_b, &trans_info, &rpcstatus);
+        if (rpcstatus)
+        {
+            goto_if_ntstatus_not_success(STATUS_CONNECTION_INVALID, error);
+        }
 
-        if (rpcstatus == 0)
+        rpc_smb_transport_info_inq_session_key(trans_info, &sess_key,
+                                               &sess_key_len);
+        if (sess_key_len > 0)
         {
             memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
             cn->sess_key_len = (uint32)sess_key_len;
-
-        } else {
-            goto_if_ntstatus_not_success(STATUS_UNSUCCESSFUL, error);
         }
 
     } else {
@@ -500,10 +478,6 @@ domain_name_found:
     *conn = cn;
 
 cleanup:
-    if (sess_key) {
-        rpc_string_free(&sess_key, &rpcstatus);
-    }
-
     if (btin_dom_sid) {
         RTL_FREE(&btin_dom_sid);
     }

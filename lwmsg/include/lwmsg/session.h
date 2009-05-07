@@ -50,9 +50,17 @@ typedef struct LWMsgSessionID
 
 typedef struct LWMsgSession LWMsgSession;
 
+typedef LWMsgStatus
+(*LWMsgSessionConstructor) (
+    LWMsgSecurityToken* token,
+    void* data,
+    void** session_data
+    );
+
 typedef void
-(*LWMsgSessionDataCleanupFunction) (
-    void* data
+(*LWMsgSessionDestructor) (
+    LWMsgSecurityToken* token,
+    void* session_data
     );
 
 /**
@@ -94,15 +102,16 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager,
         const LWMsgSessionID* rsmid,
         LWMsgSecurityToken* rtoken,
-        LWMsgSession** session,
-        size_t* assoc_count
+        LWMsgSessionConstructor construct,
+        LWMsgSessionDestructor destruct,
+        void* construct_data,
+        LWMsgSession** session
         );
 
     LWMsgStatus 
     (*leave_session) (
         LWMsgSessionManager* manager,
-        LWMsgSession* session,
-        size_t* assoc_count
+        LWMsgSession* session
         );
 
     LWMsgStatus
@@ -175,14 +184,6 @@ typedef struct LWMsgSessionManagerClass
         void** out_ptr
         );
 
-    LWMsgStatus
-    (*set_session_data) (
-        LWMsgSessionManager* manager,
-        LWMsgSession* session,
-        void* data,
-        LWMsgSessionDataCleanupFunction cleanup
-        );
-
     void*
     (*get_session_data) (
         LWMsgSessionManager* manager,
@@ -246,5 +247,12 @@ lwmsg_session_manager_get_session_handle_count(
     LWMsgSessionManager* manager,
     LWMsgSession* session
     );
+
+#ifndef LWMSG_NO_THREADS
+LWMsgStatus
+lwmsg_shared_session_manager_new(
+    LWMsgSessionManager** out_manager
+    );
+#endif
 
 #endif

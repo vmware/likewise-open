@@ -29,23 +29,40 @@
  */
 
 
-NTSTATUS
-SmbProcessCheckDirectory(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        checkdir.h
+ *
+ * Abstract:
+ *
+ *        Likewise SMB Server
+ *
+ *        SMBCheckDirectory
+ *
+ * Authors: Gerald Carter <gcarter@likewise.com>
+ */
+
+
+#ifndef __SRV_CHECK_DIR_H__
+#define __SRV_CHECK_DIR_H__
 
 NTSTATUS
-SrvCheckDirectory(
-    HANDLE hTreeObject
+SrvProcessCheckDirectory(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET*      ppSmbResponse
     );
 
-NTSTATUS
-UnmarshallCheckDirectoryRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
+#endif /* __SRV_CHECK_DIR_H__ */
 
-NTSTATUS
-MarshallCheckDirectoryResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
-    );
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

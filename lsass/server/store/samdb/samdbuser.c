@@ -133,7 +133,7 @@ SamDbSetPassword_inlock(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     memset(&lmHash[0], 0, sizeof(lmHash));
     memset(&ntHash[0], 0, sizeof(ntHash));
@@ -158,7 +158,7 @@ SamDbSetPassword_inlock(
                     &lmHash[0],
                     sizeof(lmHash),
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_blob(
                     pSqlStatement,
@@ -166,13 +166,13 @@ SamDbSetPassword_inlock(
                     &ntHash[0],
                     sizeof(ntHash),
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     3,
                     llCurTime);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -180,20 +180,20 @@ SamDbSetPassword_inlock(
                     pszUserDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     5,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (!sqlite3_changes(pDirectoryContext->pDbContext->pDbHandle))
     {
@@ -342,7 +342,7 @@ SamDbVerifyPassword_inlock(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -350,13 +350,13 @@ SamDbVerifyPassword_inlock(
                     pszUserDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     2,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_DONE)
     {
@@ -405,7 +405,10 @@ SamDbVerifyPassword_inlock(
                 memcpy(&ntHash[0], pData, dwNumBytes);
             }
         }
+
+        dwError = LSA_ERROR_SUCCESS;
     }
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (memcmp(&lmHash[0], &lmHashDbValue[0], sizeof(lmHash)) ||
         memcmp(&ntHash[0], &ntHashDbValue[0], sizeof(ntHash)))

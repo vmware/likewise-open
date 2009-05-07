@@ -393,7 +393,7 @@ LocalMarshalEntryToUserInfo_2(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
@@ -520,6 +520,10 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameNTHash[0],
                         &pUserInfo->pNTHash,
                         &pUserInfo->dwNTHashLen);
+    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToOctetStream(
@@ -527,6 +531,10 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameLMHash[0],
                         &pUserInfo->pLMHash,
                         &pUserInfo->dwLMHashLen);
+    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppwszUserDN)

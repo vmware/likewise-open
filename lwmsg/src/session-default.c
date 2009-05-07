@@ -59,8 +59,8 @@ typedef struct LWMsgSession
     struct LWMsgSession* next, *prev;
     /* User data pointer */
     void* data;
-    /* Data pointer cleanup function */
-    LWMsgSessionDataCleanupFunction cleanup;
+    /* Destruct function */
+    LWMsgSessionDestructor destruct;
 } SessionEntry;
 
 typedef struct HandleEntry
@@ -193,14 +193,14 @@ default_free_session(
         default_free_handle(handle);
     }
 
+    if (session->destruct && session->data)
+    {
+        session->destruct(session->sec_token, session->data);
+    }
+
     if (session->sec_token)
     {
         lwmsg_security_token_delete(session->sec_token);
-    }
-
-    if (session->cleanup)
-    {
-        session->cleanup(session->data);
     }
 
     free(session);
@@ -240,8 +240,10 @@ default_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSession** out_session,
-    size_t* assoc_count
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* construct_data,
+    LWMsgSession** out_session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -252,6 +254,7 @@ default_enter_session(
     {
         if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, rtoken))
         {
+            session = NULL;
             BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
         }
 
@@ -273,34 +276,46 @@ default_enter_session(
         }
 
         session->refs = 1;
-        session->next = priv->sessions;
+        session->destruct = destruct;
+
+        if (construct)
+        {
+            BAIL_ON_ERROR(status = construct(
+                              session->sec_token,
+                              construct_data,
+                              &session->data));
+        }
 
         if (priv->sessions)
         {
             priv->sessions->prev = session;
         }
 
+        session->next = priv->sessions;
         priv->sessions = session;
     }
 
     *out_session = session;
 
-    if (assoc_count)
-    {
-        *assoc_count = session->refs;
-    }
+done:
+
+    return status;
 
 error:
 
-    return status;
+    if (session)
+    {
+        default_free_session(session);
+    }
+
+    goto done;
 }
 
 static
-LWMsgStatus 
+LWMsgStatus
 default_leave_session(
     LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    size_t* assoc_count
+    LWMsgSession* session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -308,16 +323,21 @@ default_leave_session(
 
     session->refs--;
 
-    if (assoc_count)
-    {
-        *assoc_count = session->refs;
-    }
-
     if (session->refs == 0)
     {
         if (priv->sessions == session)
         {
             priv->sessions = priv->sessions->next;
+        }
+
+        if (session->next)
+        {
+            session->next->prev = session->prev;
+        }
+
+        if (session->prev)
+        {
+            session->prev->next = session->next;
         }
 
         default_free_session(session);
@@ -626,26 +646,6 @@ error:
 }
 
 static
-LWMsgStatus
-default_set_session_data (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* data,
-    LWMsgSessionDataCleanupFunction cleanup
-    )
-{
-    if (session->cleanup)
-    {
-        session->cleanup(session->data);
-    }
-
-    session->data = data;
-    session->cleanup = cleanup;
-
-    return LWMSG_STATUS_SUCCESS;
-}
-
-static
 void*
 default_get_session_data (
     LWMsgSessionManager* manager,
@@ -699,7 +699,6 @@ static LWMsgSessionManagerClass default_class =
     .unregister_handle = default_unregister_handle,
     .handle_pointer_to_id = default_handle_pointer_to_id,
     .handle_id_to_pointer = default_handle_id_to_pointer,
-    .set_session_data = default_set_session_data,
     .get_session_data = default_get_session_data,
     .get_session_id = default_get_session_id,
     .get_session_assoc_count = default_get_session_assoc_count,
