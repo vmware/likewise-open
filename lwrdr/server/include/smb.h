@@ -772,15 +772,12 @@ typedef enum
     SMB_SECURITY_MODE_USER
 } SMB_SECURITY_MODE;
 
-#if defined(__LWI_DARWIN__)
 typedef struct {
     pthread_mutex_t Mutex;
     pthread_cond_t Condition;
     DWORD Count;
+    DWORD Error;
 } LSMB_SEMAPHORE, *PLSMB_SEMAPHORE;
-#else
-typedef sem_t LSMB_SEMAPHORE, *PLSMB_SEMAPHORE;
-#endif
 
 typedef struct
 {
@@ -1438,7 +1435,6 @@ SMBPacketAppendString(
     IN const char* pszString
     );
 
-#if defined(__LWI_DARWIN__)
 DWORD
 SMBSemaphoreInit(
     OUT PLSMB_SEMAPHORE pSemaphore,
@@ -1455,24 +1451,15 @@ SMBSemaphorePost(
     IN PLSMB_SEMAPHORE pSemaphore
     );
 
+DWORD
+SMBSemaphoreInvalidate(
+    IN PLSMB_SEMAPHORE pSemaphore,
+    IN DWORD Error
+    );
+
 VOID
 SMBSemaphoreDestroy(
     IN OUT PLSMB_SEMAPHORE pSemaphore
     );
-#else  /* __LWI_DARWIN__ */
-#define _SMB_SEMAPHORE_SYSCALL(x) (((x) < 0) ? errno : 0)
-
-#define SMBSemaphoreInit(pSemaphore, Count) _SMB_SEMAPHORE_SYSCALL(sem_init(pSemaphore, 0, Count))
-#define SMBSemaphoreWait(pSemaphore) _SMB_SEMAPHORE_SYSCALL(sem_wait(pSemaphore))
-#define SMBSemaphorePost(pSemaphore) _SMB_SEMAPHORE_SYSCALL(sem_post(pSemaphore))
-#define SMBSemaphoreDestroy(pSemaphore) \
-    do { \
-        int localError = _SMB_SEMAPHORE_SYSCALL(sem_destroy(pSemaphore)); \
-        if (localError) \
-        { \
-            SMB_LOG_ERROR("Failed to destroy semaphore [code: %d]", localError); \
-        } \
-    } while (0)
-#endif /* __LWI_DARWIN__ */
 
 #endif /* __SMBWIRE_H__ */

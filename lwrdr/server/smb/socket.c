@@ -569,7 +569,11 @@ SMBSocketReaderMain(
 
         FD_SET(pSocket->fd, &fdset);
 
-        ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
+        do
+        {
+            ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, NULL);
+        } while (ret == -1 && errno == EAGAIN);
+
         if (ret == -1)
         {
             dwError = errno;
@@ -625,6 +629,11 @@ cleanup:
 error:
 
     SMB_LOG_ERROR("Error when handling SMB socket[code:%d]", dwError);
+
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+
+    SMBSocketInvalidate(pSocket, ERROR_SMB, dwError);
+    SMBSemaphoreInvalidate(&pSocket->semMpx, dwError);
 
     goto cleanup;
 }
