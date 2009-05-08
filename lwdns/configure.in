@@ -36,6 +36,33 @@ AC_SUBST(KRB5_INCLUDES)
 AC_SUBST(KRB5_LDFLAGS)
 AC_SUBST(KRB5_LIBS)
 
+# libunistr
+
+AC_ARG_WITH([libunistr],
+        [AC_HELP_STRING([--with-libunistr=<dir>], [use libunistr located in prefix <dir>])],
+        [
+                LIBUNISTR_INCLUDES="-I$withval/include"
+                LIBUNISTR_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([libunistr-includes],
+        [AC_HELP_STRING([--with-libunistr-includes=<dir>], [use libunistr includes located in <dir>])],
+        [
+                LIBUNISTR_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([libunistr-libs],
+        [AC_HELP_STRING([--with-libunistr-libs=<dir>], [use libunistr libs located in <dir>])],
+        [
+                LIBUNISTR_LDFLAGS="-L$withval"
+        ])
+
+LIBUNISTR_LIBS="-lunistr"
+
+AC_SUBST(LIBUNISTR_INCLUDES)
+AC_SUBST(LIBUNISTR_LDFLAGS)
+AC_SUBST(LIBUNISTR_LIBS)
+
 # netlogon
 
 AC_ARG_WITH([netlogon],
@@ -62,6 +89,33 @@ NETLOGON_LIBS="-llwnetclientapi"
 AC_SUBST(NETLOGON_INCLUDES)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
+
+# pstore
+
+AC_ARG_WITH([pstore],
+        [AC_HELP_STRING([--with-pstore=<dir>], [use pstore located in prefix <dir>])],
+        [
+                PSTORE_INCLUDES="-I$withval/include"
+                PSTORE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([pstore-includes],
+        [AC_HELP_STRING([--with-pstore-includes=<dir>], [use pstore includes located in <dir>])],
+        [
+                PSTORE_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([pstore-libs],
+        [AC_HELP_STRING([--with-pstore-libs=<dir>], [use pstore libs located in <dir>])],
+        [
+                PSTORE_LDFLAGS="-L$withval"
+        ])
+
+PSTORE_LIBS="-llwpsapi"
+
+AC_SUBST(PSTORE_INCLUDES)
+AC_SUBST(PSTORE_LDFLAGS)
+AC_SUBST(PSTORE_LIBS)
 
 # debugging
 
@@ -186,6 +240,7 @@ AC_CHECK_LIB([nsl], [gethostname], [NSL_LIBS="-lnsl"])
 AC_CHECK_LIB([socket], [bind], [SOCKET_LIBS="-lsocket"])
 AC_CHECK_LIB([resolv], [res_query], [RESOLV_LIBS="-lresolv"])
 AC_CHECK_LIB([resolv], [__res_query], [RESOLV_LIBS="-lresolv"])
+AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 
 AC_SUBST(NSL_LIBS)
 AC_SUBST(DL_LIBS)
