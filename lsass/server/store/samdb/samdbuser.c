@@ -106,8 +106,8 @@ SamDbSetPassword_inlock(
     LONG64 llCurTime = 0;
     PCSTR pszQueryTemplate = "UPDATE " SAM_DB_OBJECTS_TABLE \
                              "   SET " SAM_DB_COL_LM_HASH " = ?1," \
-                             "   SET " SAM_DB_COL_NT_HASH " = ?2," \
-                             "   SET " SAM_DB_COL_PASSWORD_LAST_SET " = ?3"  \
+                                       SAM_DB_COL_NT_HASH " = ?2," \
+                                       SAM_DB_COL_PASSWORD_LAST_SET " = ?3"  \
                              " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?4" \
                              "   AND " SAM_DB_COL_OBJECT_CLASS " = ?5";
     sqlite3_stmt* pSqlStatement = NULL;
@@ -386,7 +386,7 @@ SamDbVerifyPassword_inlock(
             {
                 PCVOID pData = sqlite3_column_blob(pSqlStatement, 0);
 
-                memcpy(&lmHash[0], pData, dwNumBytes);
+                memcpy(&lmHashDbValue[0], pData, dwNumBytes);
             }
         }
 
@@ -402,7 +402,7 @@ SamDbVerifyPassword_inlock(
             {
                 PCVOID pData = sqlite3_column_blob(pSqlStatement, 1);
 
-                memcpy(&ntHash[0], pData, dwNumBytes);
+                memcpy(&ntHashDbValue[0], pData, dwNumBytes);
             }
         }
 
