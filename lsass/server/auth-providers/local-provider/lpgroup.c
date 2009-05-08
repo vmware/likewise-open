@@ -1697,14 +1697,20 @@ LocalDirAddGroup_0(
     enum AttrValueIndex
     {
         LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
+        LOCAL_DAG0_IDX_COMMON_NAME,
         LOCAL_DAG0_IDX_OBJECTCLASS,
         LOCAL_DAG0_IDX_DOMAIN,
         LOCAL_DAG0_IDX_NETBIOS_DOMAIN,
-        LOCAL_DAG0_IDX_GID
+        LOCAL_DAG0_IDX_GID,
+        LOCAL_DAG0_IDX_SENTINEL
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
         {       /* LOCAL_DIR_ADD_USER_0_IDX_SAM_ACCOUNT_NAME */
+                .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                .data.pwszStringValue = NULL
+        },
+        {       /* LOCAL_DIR_ADD_USER_0_IDX_COMMON_NAME */
                 .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                 .data.pwszStringValue = NULL
         },
@@ -1727,51 +1733,59 @@ LocalDirAddGroup_0(
     };
     WCHAR wszAttrObjectClass[]        = LOCAL_DIR_ATTR_OBJECT_CLASS;
     WCHAR wszAttrSamAccountName[]     = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrCommonName[]         = LOCAL_DIR_ATTR_COMMON_NAME;
     WCHAR wszAttrDomain[]             = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     WCHAR wszAttrNameGID[]            = LOCAL_DIR_ATTR_GID;
-    DIRECTORY_MOD mods[] =
+    DIRECTORY_MOD modObjectClass =
     {
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrObjectClass[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_OBJECTCLASS]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrSamAccountName[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameNetBIOSDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameGID[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_GID]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    NULL,
-                    1,
-                    NULL
-            }
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrObjectClass[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_OBJECTCLASS]
     };
+    DIRECTORY_MOD modSamAccountName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrSamAccountName[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME]
+    };
+    DIRECTORY_MOD modCommonName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrCommonName[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_COMMON_NAME]
+    };
+    DIRECTORY_MOD modDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrDomain[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_DOMAIN]
+    };
+    DIRECTORY_MOD modNetBIOSDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameNetBIOSDomain[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
+    };
+    DIRECTORY_MOD modGID =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameGID[0],
+        1,
+        &attrValues[LOCAL_DAG0_IDX_GID]
+    };
+    DIRECTORY_MOD mods[LOCAL_DAG0_IDX_SENTINEL + 1];
+    DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszDomain = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
+
+    memset(&mods[0], 0, sizeof(mods));
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
@@ -1806,17 +1820,22 @@ LocalDirAddGroup_0(
     BAIL_ON_LSA_ERROR(dwError);
 
     attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
-
-    if (!pGroupInfo->gid)
-    {
-        mods[LOCAL_DAG0_IDX_GID].pwszAttrName = NULL;
-        mods[LOCAL_DAG0_IDX_GID].pAttrValues = NULL;
-    }
+    attrValues[LOCAL_DAG0_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
 
     dwError = LocalBuildDN(
                     pLoginInfo,
                     &pwszGroupDN);
     BAIL_ON_LSA_ERROR(dwError);
+
+    mods[iMod++] = modObjectClass;
+    if (pGroupInfo->gid)
+    {
+        mods[iMod++] = modGID;
+    }
+    mods[iMod++] = modSamAccountName;
+    mods[iMod++] = modCommonName;
+    mods[iMod++] = modDomain;
+    mods[iMod++] = modNetBIOSDomain;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
@@ -1865,12 +1884,13 @@ LocalDirAddGroup_1(
     PWSTR pwszGroupDN = NULL;
     enum AttrValueIndex
     {
-        LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME = 0,
-        LOCAL_DAG0_IDX_COMMON_NAME,
-        LOCAL_DAG0_IDX_OBJECTCLASS,
-        LOCAL_DAG0_IDX_DOMAIN,
-        LOCAL_DAG0_IDX_NETBIOS_DOMAIN,
-        LOCAL_DAG0_IDX_GID
+        LOCAL_DAG1_IDX_SAM_ACCOUNT_NAME = 0,
+        LOCAL_DAG1_IDX_COMMON_NAME,
+        LOCAL_DAG1_IDX_OBJECTCLASS,
+        LOCAL_DAG1_IDX_DOMAIN,
+        LOCAL_DAG1_IDX_NETBIOS_DOMAIN,
+        LOCAL_DAG1_IDX_GID,
+        LOCAL_DAG1_IDX_SENTINEL
     };
     ATTRIBUTE_VALUE attrValues[] =
     {
@@ -1905,54 +1925,55 @@ LocalDirAddGroup_1(
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     WCHAR wszAttrNameGID[] = LOCAL_DIR_ATTR_GID;
-    DIRECTORY_MOD mods[] =
+    DIRECTORY_MOD modObjectClass =
     {
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrObjectClass[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_OBJECTCLASS]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrSamAccountName[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrCommonName[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_COMMON_NAME]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameNetBIOSDomain[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    &wszAttrNameGID[0],
-                    1,
-                    &attrValues[LOCAL_DAG0_IDX_GID]
-            },
-            {
-                    DIR_MOD_FLAGS_ADD,
-                    NULL,
-                    1,
-                    NULL
-            }
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrObjectClass[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_OBJECTCLASS]
     };
+    DIRECTORY_MOD modSamAccountName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrSamAccountName[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_SAM_ACCOUNT_NAME]
+    };
+    DIRECTORY_MOD modCommonName =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrCommonName[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_COMMON_NAME]
+    };
+    DIRECTORY_MOD modDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrDomain[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_DOMAIN]
+    };
+    DIRECTORY_MOD modNetBIOSDomain =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameNetBIOSDomain[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_NETBIOS_DOMAIN]
+    };
+    DIRECTORY_MOD modGID =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameGID[0],
+        1,
+        &attrValues[LOCAL_DAG1_IDX_GID]
+    };
+    DIRECTORY_MOD mods[LOCAL_DAG1_IDX_SENTINEL + 1];
+    DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszDomain = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
+
+    memset(&mods[0], 0, sizeof(mods));
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
@@ -1972,33 +1993,37 @@ LocalDirAddGroup_1(
                     &pwszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    attrValues[LOCAL_DAG0_IDX_DOMAIN].data.pwszStringValue = pwszDomain;
+    attrValues[LOCAL_DAG1_IDX_DOMAIN].data.pwszStringValue = pwszDomain;
 
     dwError = LsaMbsToWc16s(
                     pLoginInfo->pszDomainNetBiosName,
                     &pwszNetBIOSDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    attrValues[LOCAL_DAG0_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
+    attrValues[LOCAL_DAG1_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
 
     dwError = LsaMbsToWc16s(
                     pGroupInfo->pszName,
                     &pwszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    attrValues[LOCAL_DAG0_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
-    attrValues[LOCAL_DAG0_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
-
-    if (!pGroupInfo->gid)
-    {
-        mods[LOCAL_DAG0_IDX_GID].pwszAttrName = NULL;
-        mods[LOCAL_DAG0_IDX_GID].pAttrValues = NULL;
-    }
+    attrValues[LOCAL_DAG1_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue = pwszSamAccountName;
+    attrValues[LOCAL_DAG1_IDX_COMMON_NAME].data.pwszStringValue = pwszSamAccountName;
 
     dwError = LocalBuildDN(
                     pLoginInfo,
                     &pwszGroupDN);
     BAIL_ON_LSA_ERROR(dwError);
+
+    mods[iMod++] = modObjectClass;
+    if (pGroupInfo->gid)
+    {
+        mods[iMod++] = modGID;
+    }
+    mods[iMod++] = modSamAccountName;
+    mods[iMod++] = modCommonName;
+    mods[iMod++] = modDomain;
+    mods[iMod++] = modNetBIOSDomain;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,

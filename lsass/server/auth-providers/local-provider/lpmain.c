@@ -1285,9 +1285,47 @@ LocalGetNamesBySidList(
     PSTR*           ppszSidList,
     PSTR**          pppszDomainNames,
     PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes)
+    ADAccountType** ppTypes
+    )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+    PSTR* ppszDomainNames = NULL;
+    PSTR* ppszSamAccounts = NULL;
+    ADAccountType* pTypes = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetNamesBySidList(
+                        hProvider,
+                        sCount,
+                        ppszSidList,
+                        &ppszDomainNames,
+                        &ppszSamAccounts,
+                        &pTypes);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pppszDomainNames = ppszDomainNames;
+    *pppszSamAccounts = ppszSamAccounts;
+    *ppTypes = pTypes;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pppszDomainNames = NULL;
+    *pppszSamAccounts = NULL;
+    *ppTypes = NULL;
+
+    LsaFreeStringArray(ppszDomainNames, sCount);
+    LsaFreeStringArray(ppszSamAccounts, sCount);
+    LSA_SAFE_FREE_MEMORY(pTypes);
+
+    goto cleanup;
 }
 
 DWORD
