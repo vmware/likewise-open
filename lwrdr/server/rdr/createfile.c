@@ -192,7 +192,9 @@ ParseSharePath(
     PSTR  pszShare  = NULL;
     PSTR  pszFilename = NULL;
     size_t sLen = 0;
+    struct in_addr ipAddr;
 
+    memset(&ipAddr, 0, sizeof(ipAddr));
     dwError = SMBWc16sToMbs(
                     pwszPath,
                     &pszPath);
@@ -209,7 +211,7 @@ ParseSharePath(
         pszIndex += 2;
     }
 
-    if (IsNullOrEmptyString(pszIndex) || !isalpha((int)*pszIndex))
+    if (IsNullOrEmptyString(pszIndex))
     {
         dwError = SMB_ERROR_INVALID_PARAMETER;
         BAIL_ON_SMB_ERROR(dwError);
@@ -228,6 +230,13 @@ ParseSharePath(
                     sLen,
                     &pszServer);
     BAIL_ON_SMB_ERROR(dwError);
+
+    // Don't allow IP address as a server name
+    if (inet_aton(pszServer, &ipAddr))
+    {
+        dwError = SMB_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SMB_ERROR(dwError);
+    }
 
     pszIndex += sLen;
 
