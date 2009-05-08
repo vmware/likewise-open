@@ -70,6 +70,8 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
     uid_t uid;
     gid_t gid;
 
+    BOOLEAN bIsAdministrator;
+
     LOCAL_ACCESS_FLAG accessFlags;
 
     HANDLE hDirectory;

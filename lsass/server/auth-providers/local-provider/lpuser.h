@@ -216,4 +216,11 @@ LocalUpdateUserLogoffTime(
     PWSTR  pwszUserDN
     );
 
+DWORD
+LocalDirCheckIfAdministrator(
+    HANDLE   hProvider,
+    uid_t    uid,
+    PBOOLEAN pbIsAdmin
+    );
+
 #endif /* __LP_USER_H__ */

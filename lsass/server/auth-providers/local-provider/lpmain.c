@@ -159,6 +159,12 @@ LocalOpenHandle(
     dwError = DirectoryOpen(&pContext->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalDirCheckIfAdministrator(
+                    (HANDLE)pContext,
+                    uid,
+                    &pContext->bIsAdministrator);
+    BAIL_ON_LSA_ERROR(dwError);
+
     *phProvider = (HANDLE)pContext;
 
 cleanup:

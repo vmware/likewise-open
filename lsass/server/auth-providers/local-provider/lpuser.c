@@ -99,6 +99,13 @@ LocalDirEnumUsers_2(
     PVOID**                    pppUserInfoList
     );
 
+static
+DWORD
+LocalDirGetBuiltinAdministratorsGID(
+    HANDLE hProvider,
+    gid_t* pGID
+    );
+
 DWORD
 LocalDirFindUserByName(
     HANDLE hProvider,
@@ -2715,4 +2722,126 @@ error:
     goto cleanup;
 }
 
+DWORD
+LocalDirCheckIfAdministrator(
+    HANDLE   hProvider,
+    uid_t    uid,
+    PBOOLEAN pbIsAdmin
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwGroupInfoLevel = 0;
+    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
+    DWORD dwNumGroups = 0;
+    BOOLEAN bIsAdmin = FALSE;
 
+    if (uid == 0)
+    {
+        bIsAdmin = TRUE;
+    }
+    else
+    {
+        dwError = LocalGetGroupsForUser(
+                        hProvider,
+                        uid,
+                        0,
+                        dwGroupInfoLevel,
+                        &dwNumGroups,
+                        (PVOID**)&ppGroupInfoList);
+        if (dwError == LSA_ERROR_NO_SUCH_USER)
+        {
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (dwNumGroups)
+        {
+            DWORD iGroup = 0;
+            gid_t gid_BuiltinAdmin = 0;
+
+            dwError = LocalDirGetBuiltinAdministratorsGID(
+                            hProvider,
+                            &gid_BuiltinAdmin);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            for (; iGroup < dwNumGroups; iGroup++)
+            {
+                PLSA_GROUP_INFO_0 pGroupInfo = ppGroupInfoList[iGroup];
+
+                if (pGroupInfo->gid == gid_BuiltinAdmin)
+                {
+                    bIsAdmin = TRUE;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    *pbIsAdmin = bIsAdmin;
+
+cleanup:
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroups);
+    }
+
+    return dwError;
+
+error:
+
+    *pbIsAdmin = FALSE;
+
+    goto cleanup;
+}
+
+static
+DWORD
+LocalDirGetBuiltinAdministratorsGID(
+    HANDLE hProvider,
+    gid_t* pGID
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    DWORD  dwInfoLevel = 0;
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    static gid_t gid_BuiltinAdmin = 0;
+
+    pthread_mutex_lock(&mutex);
+
+    if (!gid_BuiltinAdmin)
+    {
+        dwError = LocalDirFindGroupByName(
+                        hProvider,
+                        "BUILTIN",
+                        "Administrators",
+                        dwInfoLevel,
+                        NULL,
+                        (PVOID*)&pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        gid_BuiltinAdmin = pGroupInfo->gid;
+    }
+
+    *pGID = gid_BuiltinAdmin;
+
+cleanup:
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+        pGroupInfo = NULL;
+    }
+
+    pthread_mutex_unlock(&mutex);
+
+    return dwError;
+
+error:
+
+    *pGID = 0;
+
+    goto cleanup;
+}
