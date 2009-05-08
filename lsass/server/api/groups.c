@@ -512,11 +512,11 @@ LsaSrvEnumGroups(
            }
         }
 
-        dwError = LsaCoalesceGroupInfoList(
-                        &ppGroupInfoList,
-                        &dwNumGroupsFound,
+        dwError = LsaAppendAndFreePtrs(
+                        &dwTotalNumGroupsFound,
                         &ppGroupInfoList_accumulate,
-                        &dwTotalNumGroupsFound);
+                        &dwNumGroupsFound,
+                        &ppGroupInfoList);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

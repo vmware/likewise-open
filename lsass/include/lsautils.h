@@ -1052,14 +1052,6 @@ LsaGetLibDirPath(
     );
 
 DWORD
-LsaCoalesceGroupInfoList(
-    PVOID** pppGroupInfoList,
-    PDWORD  pdwNumGroupsFound,
-    PVOID** pppGroupInfoList_accumulate,
-    PDWORD  pdwTotalNumGroupsFound
-    );
-
-DWORD
 LsaValidateGroupInfoLevel(
     DWORD dwGroupInfoLevel
     );
@@ -1076,14 +1068,6 @@ LsaValidateGroupInfo(
     );
 
 DWORD
-LsaCoalesceNSSArtefactInfoList(
-    PVOID** pppNSSArtefactInfoList,
-    PDWORD  pdwNumNSSArtefactsFound,
-    PVOID** pppNSSArtefactInfoList_accumulate,
-    PDWORD  pdwTotalNumNSSArtefactsFound
-    );
-
-DWORD
 LsaValidateUserInfo(
     PVOID pUserInfo,
     DWORD dwUserInfoLevel
@@ -1092,14 +1076,6 @@ LsaValidateUserInfo(
 DWORD
 LsaValidateUserInfoLevel(
     DWORD dwUserInfoLevel
-    );
-
-DWORD
-LsaCoalesceUserInfoList(
-    PVOID** pppUserInfoList,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList_accumulate,
-    PDWORD  pdwTotalNumUsersFound
     );
 
 DWORD

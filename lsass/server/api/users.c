@@ -546,11 +546,11 @@ LsaSrvEnumUsers(
             }
         }
 
-        dwError = LsaCoalesceUserInfoList(
-                        &ppUserInfoList,
-                        &dwNumUsersFound,
+        dwError = LsaAppendAndFreePtrs(
+                        &dwTotalNumUsersFound,
                         &ppUserInfoList_accumulate,
-                        &dwTotalNumUsersFound);
+                        &dwNumUsersFound,
+                        &ppUserInfoList);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
