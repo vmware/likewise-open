@@ -67,6 +67,7 @@ NetJoinDomain(
 NET_API_STATUS
 NetJoinDomainLocal(
     const wchar16_t *machine,
+    const wchar16_t *machine_dns_domain,
     const wchar16_t *domain,
     const wchar16_t *account_ou,
     const wchar16_t *account,

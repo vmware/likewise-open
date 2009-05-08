@@ -218,6 +218,7 @@ static
 NET_API_STATUS
 NetJoinDomainLocalInternal(
     const wchar16_t *machine,
+    const wchar16_t *machine_dns_domain,
     const wchar16_t *domain,
     const wchar16_t *account_ou,
     const wchar16_t *account,
@@ -331,7 +332,7 @@ NetJoinDomainLocalInternal(
     err = NetGetAccountName(
         machname,
         domain_controller_name,
-        dns_domain_name,
+        machine_dns_domain ? machine_dns_domain : dns_domain_name,
         &machacct_name);
     goto_if_winerr_not_success(err, disconn_lsa);
 
@@ -414,6 +415,7 @@ NetJoinDomainLocalInternal(
     err = SaveMachinePassword(
               machname,
               account_name,
+              machine_dns_domain ? machine_dns_domain : dns_domain_name,
               conn->samr.dom_name,
               dns_domain_name,
               domain_controller_name,
@@ -449,8 +451,11 @@ NetJoinDomainLocalInternal(
             wc16slower(machname_lc);
 
             dns_attr_name   = ambstowc16s("dNSHostName");
-            dns_attr_val[0] = LdapAttrValDnsHostName(machname_lc,
-                                                     dns_domain_name);
+            dns_attr_val[0] = LdapAttrValDnsHostName(
+                                  machname_lc,
+                                  machine_dns_domain ?
+                                  machine_dns_domain :
+                                  dns_domain_name);
             dns_attr_val[1] = NULL;
             dnshostname = dns_attr_val[0];
 
@@ -592,7 +597,8 @@ done:
 
     if (err && !is_retry)
     {
-        err = NetJoinDomainLocalInternal(machine, domain, account_ou,
+        err = NetJoinDomainLocalInternal(machine, machine_dns_domain,
+                                         domain, account_ou,
                                          account, password, options,
                                          osname, osver, ospack, TRUE);
     }
@@ -601,6 +607,7 @@ done:
 }
 
 NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
+                                  const wchar16_t *machine_dns_domain,
                                   const wchar16_t *domain,
                                   const wchar16_t *account_ou,
                                   const wchar16_t *account,
@@ -610,7 +617,8 @@ NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
                                   const wchar16_t *osver,
                                   const wchar16_t *ospack)
 {
-    return NetJoinDomainLocalInternal(machine, domain, account_ou,
+    return NetJoinDomainLocalInternal(machine, machine_dns_domain,
+                                      domain, account_ou,
                                       account, password, options,
                                       osname, osver, ospack, FALSE);
 }
@@ -666,7 +674,7 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
         osSvcPack = ambstowc16s(" ");
     }
 
-    status = NetJoinDomainLocal(host, domain, account_ou, account,
+    status = NetJoinDomainLocal(host, NULL, domain, account_ou, account,
                                 password, options, osName, osVersion,
                                 osSvcPack);
 
