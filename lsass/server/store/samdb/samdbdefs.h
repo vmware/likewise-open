@@ -4,6 +4,8 @@
 #define SAM_DB_DIR CACHEDIR   "/db"
 #define SAM_DB     SAM_DB_DIR "/sam.db"
 
+#define SAM_DB_CONTEXT_POOL_MAX_ENTRIES 10
+
 #define SAM_DB_DEFAULT_ADMINISTRATOR_SHELL   "/bin/sh"
 #define SAM_DB_DEFAULT_ADMINISTRATOR_HOMEDIR "/"
 

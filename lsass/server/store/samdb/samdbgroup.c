@@ -116,7 +116,7 @@ SamDbGetGroupMembers(
                     &pszGroupDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -158,7 +158,7 @@ cleanup:
         SamDbFreeColumnValueList(pColumnValueList);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     LSA_SAFE_FREE_STRING(pszGroupDN);
     LSA_SAFE_FREE_STRING(pszSqlQuery);
@@ -211,7 +211,7 @@ SamDbGetUserMemberships(
                     &pszUserDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -253,7 +253,7 @@ cleanup:
         SamDbFreeColumnValueList(pColumnValueList);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     LSA_SAFE_FREE_STRING(pszUserDN);
     LSA_SAFE_FREE_STRING(pszSqlQuery);
@@ -468,7 +468,7 @@ SamDbGroupSearchExecute(
 
             dwEntriesAvailable = dwNewEntryCount - dwTotalEntries;
 
-            memset(pDirectoryEntries+(dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
+            memset((PBYTE)pDirectoryEntries + (dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
                    0,
                    dwEntriesAvailable * sizeof(DIRECTORY_ENTRY));
 
@@ -713,7 +713,7 @@ SamDbAddToGroup(
     //
     // TODO: Check for nested groups
     //
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -776,7 +776,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     DIRECTORY_FREE_STRING(pszGroupDN);
     DIRECTORY_FREE_STRING(pszMemberDN);
@@ -821,7 +821,7 @@ SamDbRemoveFromGroup(
                     &pszMemberDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -884,7 +884,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     DIRECTORY_FREE_STRING(pszGroupDN);
     DIRECTORY_FREE_STRING(pszMemberDN);

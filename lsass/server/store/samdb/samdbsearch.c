@@ -63,7 +63,7 @@ SamDbSearchObject(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hDirectory;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbSearchObject_inlock(
                     hDirectory,
@@ -75,7 +75,7 @@ SamDbSearchObject(
                     ppDirectoryEntries,
                     pdwNumEntries);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 }
@@ -538,7 +538,7 @@ SamDbSearchMarshallResultsAttributesValues(
 
             dwEntriesAvailable = dwNewEntryCount - dwTotalEntries;
 
-            memset(pDirectoryEntries+(dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
+            memset((PBYTE)pDirectoryEntries+(dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
                    0,
                    dwEntriesAvailable * sizeof(DIRECTORY_ENTRY));
 

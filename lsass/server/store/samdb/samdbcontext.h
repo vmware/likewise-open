@@ -3,7 +3,6 @@
 
 DWORD
 SamDbBuildDirectoryContext(
-    PSAM_DB_INSTANCE_LOCK               pDbInstanceLock,
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps,
     DWORD                               dwNumObjectClassAttrMaps,
     PSAM_DB_ATTR_LOOKUP                 pAttrLookup,
@@ -13,6 +12,11 @@ SamDbBuildDirectoryContext(
 VOID
 SamDbFreeDirectoryContext(
     PSAM_DIRECTORY_CONTEXT pDirContext
+    );
+
+VOID
+SamDbFreeDbContext(
+    PSAM_DB_CONTEXT pDbContext
     );
 
 #endif /* __SAMDB_CONTEXT_H__ */

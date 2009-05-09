@@ -138,7 +138,7 @@ SamDbUpdateObjectInDatabase(
                     &pColumnValueList);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -180,7 +180,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDN)
     {

@@ -290,7 +290,7 @@ SamDbGetObjectCount(
     BOOLEAN bInLock = FALSE;
     DWORD   dwNumObjects = 0;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     if (!pDirectoryContext->pDbContext->pQueryObjectCountStmt)
     {
@@ -341,7 +341,7 @@ cleanup:
         sqlite3_reset(pDirectoryContext->pDbContext->pQueryObjectCountStmt);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 
@@ -363,7 +363,7 @@ SamDbGetObjectRecordInfo(
     LONG64  llObjectRecordId = 0;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -372,7 +372,7 @@ SamDbGetObjectRecordInfo(
                     &objectClass);
 
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     *pllObjectRecordId = llObjectRecordId;
     *pObjectClass = objectClass;

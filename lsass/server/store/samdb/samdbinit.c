@@ -109,14 +109,16 @@ DirectoryInitializeProvider(
                 gSamGlobals.dwNumMaps);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = SamDbBuildDbInstanceLock(&gSamGlobals.pDbInstanceLock);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
     dwError = SamDbInit();
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppszProviderName = gSamGlobals.pszProviderName;
     *ppFnTable = &gSamGlobals.providerFunctionTable;
+
+    gSamGlobals.dwNumMaxDbContexts = SAM_DB_CONTEXT_POOL_MAX_ENTRIES;
+
+    pthread_rwlock_init(&gSamGlobals.rwLock, NULL);
+    gSamGlobals.pRwLock = &gSamGlobals.rwLock;
 
 cleanup:
 
@@ -138,12 +140,28 @@ DirectoryShutdownProvider(
 {
     DWORD dwError = 0;
 
+    pthread_mutex_lock(&gSamGlobals.mutex);
+
     SamDbAttributeLookupFreeContents(&gSamGlobals.attrLookup);
 
-    if (gSamGlobals.pDbInstanceLock)
+    while (gSamGlobals.pDbContextList)
     {
-        SamDbReleaseDbInstanceLock(gSamGlobals.pDbInstanceLock);
-        gSamGlobals.pDbInstanceLock = NULL;
+        PSAM_DB_CONTEXT pDbContext = gSamGlobals.pDbContextList;
+
+        gSamGlobals.pDbContextList = gSamGlobals.pDbContextList->pNext;
+
+        SamDbFreeDbContext(pDbContext);
+    }
+
+    // Set this so that any further pending contexts will get freed upon release
+    gSamGlobals.dwNumDbContexts = gSamGlobals.dwNumMaxDbContexts;
+
+    pthread_mutex_unlock(&gSamGlobals.mutex);
+
+    if (gSamGlobals.pRwLock)
+    {
+        pthread_rwlock_destroy(&gSamGlobals.rwLock);
+        gSamGlobals.pRwLock = NULL;
     }
 
     return dwError;

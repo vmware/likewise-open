@@ -52,7 +52,6 @@
 #include "samdb.h"
 #include "samdbdn.h"
 #include "samdbmisc.h"
-#include "samdblock.h"
 #include "samdbcontext.h"
 #include "samdbcounter.h"
 #include "samdbtrans.h"

@@ -12,7 +12,6 @@ libsamdb_la_SOURCES =     \
         samdbglobals.c    \
         samdbgroup.c      \
         samdbinit.c       \
-        samdblock.c       \
         samdbmisc.c       \
         samdbmodify.c     \
         samdbopen.c       \

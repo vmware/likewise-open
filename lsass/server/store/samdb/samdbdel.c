@@ -31,7 +31,7 @@ SamDbDeleteObject(
                     &pszObjectDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetNumberOfDependents_inlock(
                     pDirectoryContext,
@@ -88,7 +88,7 @@ cleanup:
         sqlite3_reset(pDirectoryContext->pDbContext->pDelObjectStmt);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     DIRECTORY_FREE_STRING(pszObjectDN);
 

@@ -79,14 +79,14 @@ SamDbSetPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbSetPassword_inlock(
                     hBindHandle,
                     pwszUserDN,
                     pwszPassword);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 }
@@ -232,7 +232,7 @@ SamDbChangePassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbVerifyPassword_inlock(
                     hBindHandle,
@@ -248,7 +248,7 @@ SamDbChangePassword(
 
 cleanup:
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 
@@ -270,14 +270,14 @@ SamDbVerifyPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbVerifyPassword_inlock(
                     hBindHandle,
                     pwszUserDN,
                     pwszPassword);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 }
