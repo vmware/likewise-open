@@ -72,8 +72,6 @@ typedef struct __LOCAL_PROVIDER_CONTEXT
 
     BOOLEAN bIsAdministrator;
 
-    LOCAL_ACCESS_FLAG accessFlags;
-
     HANDLE hDirectory;
 
 } LOCAL_PROVIDER_CONTEXT, *PLOCAL_PROVIDER_CONTEXT;

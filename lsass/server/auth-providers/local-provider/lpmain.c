@@ -135,25 +135,11 @@ LocalOpenHandle(
 
     dwError = LsaAllocateMemory(
                     sizeof(LOCAL_PROVIDER_CONTEXT),
-                    (PVOID*)&pContext
-                    );
+                    (PVOID*)&pContext);
     BAIL_ON_LSA_ERROR(dwError);
 
     pContext->uid = uid;
     pContext->gid = gid;
-
-    // TODO: Extend access checks to groups also
-    if (!pContext->uid)
-    {
-        pContext->accessFlags = (LOCAL_ACCESS_FLAG_ALLOW_ADD |
-                                 LOCAL_ACCESS_FLAG_ALLOW_MODIFY |
-                                 LOCAL_ACCESS_FLAG_ALLOW_DELETE |
-                                 LOCAL_ACCESS_FLAG_ALLOW_QUERY);
-    }
-    else
-    {
-        pContext->accessFlags = LOCAL_ACCESS_FLAG_ALLOW_QUERY;
-    }
 
     dwError = DirectoryOpen(&pContext->hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
@@ -232,6 +218,9 @@ LocalAuthenticateUser(
     PWSTR pwszUserDN = NULL;
     PWSTR pwszPassword = NULL;
 
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
@@ -295,6 +284,9 @@ LocalAuthenticateUserEx(
     PLSA_USER_INFO_2 pUserInfo2 = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
+
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
 
     /* Assume the local domain (localhost) if we don't have one */
 
@@ -377,6 +369,9 @@ LocalValidateUser(
     DWORD dwError = 0;
     DWORD dwUserInfoLevel = 2;
     PLSA_USER_INFO_2 pUserInfo = NULL;
+
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalFindUserByName(
                     hProvider,
@@ -939,7 +934,7 @@ LocalChangePassword(
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    dwError = LocalCheckForModifyAccess(hProvider);
+    dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalFindUserByNameEx(
@@ -950,21 +945,20 @@ LocalChangePassword(
                     (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pszPassword)
-    {
-        dwError = LsaMbsToWc16s(
-                        pszPassword,
-                        &pwszNewPassword);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    dwError = LocalCheckForPasswordChangeAccess(
+                    hProvider,
+                    pUserInfo->uid);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (pszOldPassword)
-    {
-        dwError = LsaMbsToWc16s(
-                        pszOldPassword,
+    dwError = LsaMbsToWc16s(
+                        (pszPassword ? pszPassword : ""),
+                        &pwszNewPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                        (pszOldPassword ? pszOldPassword : ""),
                         &pwszOldPassword);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirChangePassword(
                     hProvider,
@@ -1176,6 +1170,9 @@ LocalOpenSession(
     PWSTR pwszUserDN = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LocalCrackDomainQualifiedName(
                     pszLoginId,
                     &pLoginInfo);
@@ -1242,6 +1239,9 @@ LocalCloseSession(
     PVOID pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
 
+    dwError = LocalCheckForQueryAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LocalFindUserByNameEx(
                     hProvider,
                     pszLoginId,
@@ -1268,19 +1268,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-DWORD
-LsaShutdownProvider(
-    PSTR pszProviderName,
-    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
-    )
-{
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
-    LSA_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
-
-    return 0;
 }
 
 DWORD
@@ -1509,6 +1496,19 @@ LocalIoControl(
     )
 {
     return LSA_ERROR_NOT_HANDLED;
+}
+
+DWORD
+LsaShutdownProvider(
+    PSTR pszProviderName,
+    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+    )
+{
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszLocalDomain);
+    LSA_SAFE_FREE_STRING(gLPGlobals.pszNetBIOSName);
+
+    return 0;
 }
 
 

@@ -2465,11 +2465,21 @@ LocalDirChangePassword(
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
 
-    dwError = DirectoryChangePassword(
-                    pContext->hDirectory,
-                    pwszUserDN,
-                    pwszOldPassword,
-                    pwszNewPassword);
+    if (pContext->bIsAdministrator)
+    {
+        dwError = DirectorySetPassword(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        pwszNewPassword);
+    }
+    else
+    {
+        dwError = DirectoryChangePassword(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        pwszOldPassword,
+                        pwszNewPassword);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 error:

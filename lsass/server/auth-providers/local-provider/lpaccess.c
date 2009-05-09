@@ -59,7 +59,7 @@ LocalCheckForAddAccess(
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_ADD))
+    if (!pContext->bIsAdministrator)
     {
         dwError = EACCES;
     }
@@ -79,7 +79,7 @@ LocalCheckForModifyAccess(
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_MODIFY))
+    if (!pContext->bIsAdministrator)
     {
         dwError = EACCES;
     }
@@ -100,9 +100,7 @@ LocalCheckForPasswordChangeAccess(
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    // TODO: Check if the user is allowed to change the password
-
-    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_MODIFY))
+    if (!pContext->bIsAdministrator && (pContext->uid != targetUid))
     {
         dwError = EACCES;
     }
@@ -117,19 +115,7 @@ LocalCheckForQueryAccess(
     HANDLE hProvider
     )
 {
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_QUERY))
-    {
-        dwError = EACCES;
-    }
-
-error:
-
-    return dwError;
+    return LSA_ERROR_SUCCESS;
 }
 
 DWORD
@@ -142,7 +128,7 @@ LocalCheckForDeleteAccess(
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    if (!(pContext->accessFlags & LOCAL_ACCESS_FLAG_ALLOW_DELETE))
+    if (!pContext->bIsAdministrator)
     {
         dwError = EACCES;
     }
