@@ -91,6 +91,18 @@ SamDbFreeDirectoryContext(
             pDirContext->pDbContext->pDelObjectStmt = NULL;
         }
 
+        if (pDirContext->pDbContext->pQueryObjectCountStmt)
+        {
+            sqlite3_finalize(pDirContext->pDbContext->pQueryObjectCountStmt);
+            pDirContext->pDbContext->pQueryObjectCountStmt = NULL;
+        }
+
+        if (pDirContext->pDbContext->pQueryObjectRecordInfoStmt)
+        {
+            sqlite3_finalize(pDirContext->pDbContext->pQueryObjectRecordInfoStmt);
+            pDirContext->pDbContext->pQueryObjectRecordInfoStmt = NULL;
+        }
+
         if (pDirContext->pDbContext->pDbHandle)
         {
             sqlite3_close(pDirContext->pDbContext->pDbHandle);

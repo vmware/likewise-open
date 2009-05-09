@@ -1,11 +1,5 @@
 #include "includes.h"
 
-static
-DWORD
-SamDbInitDelObjectStatement(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext
-    );
-
 DWORD
 SamDbDeleteObject(
     HANDLE hDirectory,
@@ -51,9 +45,22 @@ SamDbDeleteObject(
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwError = SamDbInitDelObjectStatement(
-                    pDirectoryContext);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!pDirectoryContext->pDbContext->pDelObjectStmt)
+    {
+        PCSTR pszDelQueryTemplate =
+            "DELETE FROM " SAM_DB_OBJECTS_TABLE \
+            " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1;";
+
+        dwError = sqlite3_prepare_v2(
+                    pDirectoryContext->pDbContext->pDbHandle,
+                    pszDelQueryTemplate,
+                    -1,
+                    &pDirectoryContext->pDbContext->pDelObjectStmt,
+                    NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
+                        dwError,
+                        pDirectoryContext->pDbContext->pDbHandle);
+    }
 
     dwError = sqlite3_bind_text(
                     pDirectoryContext->pDbContext->pDelObjectStmt,
@@ -76,6 +83,11 @@ SamDbDeleteObject(
 
 cleanup:
 
+    if (pDirectoryContext->pDbContext->pDelObjectStmt)
+    {
+        sqlite3_reset(pDirectoryContext->pDbContext->pDelObjectStmt);
+    }
+
     SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
 
     DIRECTORY_FREE_STRING(pszObjectDN);
@@ -88,50 +100,6 @@ cleanup:
     return dwError;
 
 error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-SamDbInitDelObjectStatement(
-    PSAM_DIRECTORY_CONTEXT pDirectoryContext
-    )
-{
-    DWORD dwError = 0;
-    sqlite3_stmt* pDelObjectStmt = NULL;
-
-    if (!pDirectoryContext->pDbContext->pDelObjectStmt)
-    {
-        PCSTR pszDelQueryTemplate =
-            "DELETE FROM " SAM_DB_OBJECTS_TABLE \
-            " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1;";
-
-        dwError = sqlite3_prepare_v2(
-                    pDirectoryContext->pDbContext->pDbHandle,
-                    pszDelQueryTemplate,
-                    -1,
-                    &pDelObjectStmt,
-                    NULL);
-        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
-                        dwError,
-                        pDirectoryContext->pDbContext->pDbHandle);
-
-        pDirectoryContext->pDbContext->pDelObjectStmt = pDelObjectStmt;
-    }
-
-    sqlite3_reset(pDirectoryContext->pDbContext->pDelObjectStmt);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pDelObjectStmt)
-    {
-        sqlite3_finalize(pDelObjectStmt);
-    }
 
     goto cleanup;
 }

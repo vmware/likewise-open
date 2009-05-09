@@ -25,6 +25,8 @@ typedef struct _SAM_DB_CONTEXT
     sqlite3* pDbHandle;
 
     sqlite3_stmt* pDelObjectStmt;
+    sqlite3_stmt* pQueryObjectCountStmt;
+    sqlite3_stmt* pQueryObjectRecordInfoStmt;
 
 } SAM_DB_CONTEXT, *PSAM_DB_CONTEXT;
 
