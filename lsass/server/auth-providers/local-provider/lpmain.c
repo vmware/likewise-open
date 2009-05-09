@@ -54,16 +54,16 @@ LsaInitializeProvider(
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
 {
     DWORD dwError = 0;
+    LOCAL_CONFIG config;
     BOOLEAN bEventLogEnabled = FALSE;
-    DWORD dwMaxGroupNestingLevel = LOCAL_CFG_MAX_GROUP_NESTING_LEVEL_DEFAULT;
-    LOCAL_CONFIG config =
-    {
-        bEventLogEnabled,
-        dwMaxGroupNestingLevel
-    };
     PWSTR   pwszUserDN = NULL;
     PWSTR   pwszCredentials = NULL;
     ULONG   ulMethod = 0;
+
+    memset(&config, 0, sizeof(config));
+
+    dwError = LocalCfgInitialize(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalGetDomainInfo(
                     pwszUserDN,
@@ -75,24 +75,23 @@ LsaInitializeProvider(
                     &gLPGlobals.llPwdChangeTime);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pszConfigFilePath)) {
-
+    if (!IsNullOrEmptyString(pszConfigFilePath))
+    {
         dwError = LocalCfgParseFile(
                         pszConfigFilePath,
                         &config);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LocalCfgTransferContents(
-                        &config,
-                        &gLPGlobals.cfg);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaAllocateString(
                         pszConfigFilePath,
                         &gLPGlobals.pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
-
     }
+
+    dwError = LocalCfgTransferContents(
+                    &config,
+                    &gLPGlobals.cfg);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgIsEventlogEnabled(&bEventLogEnabled);
     BAIL_ON_LSA_ERROR(dwError);

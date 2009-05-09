@@ -1856,6 +1856,7 @@ LocalDirAddUser_0(
         LOCAL_DAU0_IDX_DOMAIN,
         LOCAL_DAU0_IDX_NETBIOS_DOMAIN,
         LOCAL_DAU0_IDX_UID,
+        LOCAL_DAU0_IDX_ACCOUNT_FLAGS,
         LOCAL_DAU0_IDX_SENTINEL
     };
     ATTRIBUTE_VALUE attrValues[] =
@@ -1903,6 +1904,10 @@ LocalDirAddUser_0(
             {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                     .data.ulValue = pUserInfo->uid
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_ACCOUNT_FLAGS */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = 0
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1915,6 +1920,7 @@ LocalDirAddUser_0(
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     WCHAR wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    WCHAR wszAttrNameAccountFlags[]   = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     DIRECTORY_MOD modGID =
     {
         DIR_MOD_FLAGS_ADD,
@@ -1985,6 +1991,13 @@ LocalDirAddUser_0(
         1,
         &attrValues[LOCAL_DAU0_IDX_UID]
     };
+    DIRECTORY_MOD modAcctFlags =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameAccountFlags[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS]
+    };
     DIRECTORY_MOD mods[LOCAL_DAU0_IDX_SENTINEL + 1];
     DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
@@ -1993,6 +2006,7 @@ LocalDirAddUser_0(
     PSTR  pszShell  = NULL;
     PWSTR pwszHomedir = NULL;
     PSTR  pszHomedir = NULL;
+    PCSTR pszPassword = "";
     PWSTR pwszPassword = NULL;
     PWSTR pwszDomain        = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
@@ -2105,6 +2119,13 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
+    attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = 0;
+
+    if (IsNullOrEmptyString(pUserInfo->pszPasswd))
+    {
+        attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue |= LOCAL_ACB_DISABLED;
+    }
+
     mods[iMod++] = modObjectClass;
     if (pUserInfo->uid)
     {
@@ -2118,6 +2139,7 @@ LocalDirAddUser_0(
     mods[iMod++] = modHomedir;
     mods[iMod++] = modDomain;
     mods[iMod++] = modNetBIOSDomain;
+    mods[iMod++] = modAcctFlags;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
@@ -2133,19 +2155,21 @@ LocalDirAddUser_0(
                     pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pUserInfo->pszPasswd))
+    if (pUserInfo->pszPasswd)
     {
-        dwError = LsaMbsToWc16s(
-                        pUserInfo->pszPasswd,
-                        &pwszPassword);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = DirectorySetPassword(
-                        pContext->hDirectory,
-                        pwszUserDN,
-                        pwszPassword);
-        BAIL_ON_LSA_ERROR(dwError);
+        pszPassword = pUserInfo->pszPasswd;
     }
+
+    dwError = LsaMbsToWc16s(
+                    pszPassword,
+                    &pwszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySetPassword(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2266,9 +2290,6 @@ LocalDirModifyUser(
     PWSTR             pwszGroupDN_add   = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
 
-    dwError = LocalCheckForModifyAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LocalDirFindUserById(
                     hProvider,
                     pUserModInfo->uid,
@@ -2343,11 +2364,14 @@ LocalDirModifyUser(
         dwNumMods++;
     }
 
-    dwError = DirectoryModifyObject(
-                    pContext->hDirectory,
-                    pwszUserDN,
-                    mods);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwNumMods)
+    {
+        dwError = DirectoryModifyObject(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (pUserModInfo->actions.bRemoveFromGroups)
     {
