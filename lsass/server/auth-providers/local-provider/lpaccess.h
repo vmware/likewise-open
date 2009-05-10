@@ -75,4 +75,10 @@ LocalCheckForDeleteAccess(
     HANDLE hProvider
     );
 
+DWORD
+LocalCheckIsAdministrator(
+    HANDLE   hProvider,
+    PBOOLEAN pbIsAdmin
+    );
+
 #endif /* __LP_ACCESS_H__ */

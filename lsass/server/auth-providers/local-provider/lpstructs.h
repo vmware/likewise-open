@@ -65,12 +65,22 @@ typedef struct __LOCAL_PROVIDER_ENUM_STATE
 
 } LOCAL_PROVIDER_ENUM_STATE, *PLOCAL_PROVIDER_ENUM_STATE;
 
+typedef enum
+{
+    LOCAL_ADMIN_STATE_NOT_DETERMINED = 0,
+    LOCAL_ADMIN_STATE_IS_ADMIN,
+    LOCAL_ADMIN_STATE_IS_NOT_ADMIN
+} LOCAL_ADMIN_STATE;
+
 typedef struct __LOCAL_PROVIDER_CONTEXT
 {
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
     uid_t uid;
     gid_t gid;
 
-    BOOLEAN bIsAdministrator;
+    LOCAL_ADMIN_STATE localAdminState;
 
     HANDLE hDirectory;
 

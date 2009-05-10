@@ -138,16 +138,14 @@ LocalOpenHandle(
                     (PVOID*)&pContext);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pthread_mutex_init(&pContext->mutex, NULL);
+    pContext->pMutex = &pContext->mutex;
+
     pContext->uid = uid;
     pContext->gid = gid;
+    pContext->localAdminState = LOCAL_ADMIN_STATE_NOT_DETERMINED;
 
     dwError = DirectoryOpen(&pContext->hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirCheckIfAdministrator(
-                    (HANDLE)pContext,
-                    uid,
-                    &pContext->bIsAdministrator);
     BAIL_ON_LSA_ERROR(dwError);
 
     *phProvider = (HANDLE)pContext;
@@ -183,6 +181,11 @@ LocalCloseHandle(
     if (pContext)
     {
         LsaFreeMemory(pContext);
+    }
+
+    if (pContext->pMutex)
+    {
+        pthread_mutex_destroy(&pContext->mutex);
     }
 }
 

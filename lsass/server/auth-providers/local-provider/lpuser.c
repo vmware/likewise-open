@@ -2464,8 +2464,14 @@ LocalDirChangePassword(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    if (pContext->bIsAdministrator)
+    dwError = LocalCheckIsAdministrator(
+                    hProvider,
+                    &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bIsAdmin)
     {
         dwError = DirectorySetPassword(
                         pContext->hDirectory,

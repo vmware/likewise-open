@@ -55,11 +55,12 @@ LocalCheckForAddAccess(
     )
 {
     DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    BAIL_ON_INVALID_HANDLE(hProvider);
+    dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pContext->bIsAdministrator)
+    if (!bIsAdmin)
     {
         dwError = EACCES;
     }
@@ -75,11 +76,12 @@ LocalCheckForModifyAccess(
     )
 {
     DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    BAIL_ON_INVALID_HANDLE(hProvider);
+    dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pContext->bIsAdministrator)
+    if (!bIsAdmin)
     {
         dwError = EACCES;
     }
@@ -97,10 +99,12 @@ LocalCheckForPasswordChangeAccess(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    BAIL_ON_INVALID_HANDLE(hProvider);
+    dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pContext->bIsAdministrator && (pContext->uid != targetUid))
+    if (!bIsAdmin && (pContext->uid != targetUid))
     {
         dwError = EACCES;
     }
@@ -124,11 +128,12 @@ LocalCheckForDeleteAccess(
     )
 {
     DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    BAIL_ON_INVALID_HANDLE(hProvider);
+    dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pContext->bIsAdministrator)
+    if (!bIsAdmin)
     {
         dwError = EACCES;
     }
@@ -136,4 +141,66 @@ LocalCheckForDeleteAccess(
 error:
 
     return dwError;
+}
+
+DWORD
+LocalCheckIsAdministrator(
+    HANDLE   hProvider,
+    PBOOLEAN pbIsAdmin
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    pthread_mutex_lock(&pContext->mutex);
+    bInLock = TRUE;
+
+    switch (pContext->localAdminState)
+    {
+        case LOCAL_ADMIN_STATE_NOT_DETERMINED:
+
+            dwError = LocalDirCheckIfAdministrator(
+                                hProvider,
+                                pContext->uid,
+                                &bIsAdmin);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pContext->localAdminState = (bIsAdmin ? LOCAL_ADMIN_STATE_IS_ADMIN :
+                                                LOCAL_ADMIN_STATE_IS_NOT_ADMIN);
+
+            break;
+
+        case LOCAL_ADMIN_STATE_IS_ADMIN:
+
+            bIsAdmin = TRUE;
+
+            break;
+
+        case LOCAL_ADMIN_STATE_IS_NOT_ADMIN:
+
+            bIsAdmin = FALSE;
+
+            break;
+    }
+
+    *pbIsAdmin = bIsAdmin;
+
+cleanup:
+
+    if (bInLock)
+    {
+        pthread_mutex_unlock(&pContext->mutex);
+    }
+
+    return dwError;
+
+error:
+
+    *pbIsAdmin = FALSE;
+
+    goto cleanup;
 }
