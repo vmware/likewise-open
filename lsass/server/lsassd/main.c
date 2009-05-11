@@ -276,7 +276,7 @@ LsaSrvVerifyNetLogonStatus(
     PSTR pszDomain = NULL;
 
     dwError = LWNetGetCurrentDomain(&pszDomain);
-    LSA_LOG_INFO("LsaSrvVerifyNetLogonStatus call to LWNet API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyNetLogonStatus call to LWNet API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -311,13 +311,13 @@ LsaSrvVerifyLwIoStatus(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
-    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = SMBGetLogInfo(
                   (HANDLE) pContext,
                   &pLogInfo);
-    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

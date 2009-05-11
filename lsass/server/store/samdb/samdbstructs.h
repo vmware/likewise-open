@@ -9,22 +9,15 @@ typedef struct _SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO
 
 } SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO, *PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO;
 
-typedef struct _SAM_DB_INSTANCE_LOCK
-{
-    LONG refCount;
-
-    pthread_rwlock_t  rwLock;
-    pthread_rwlock_t* pRwLock;
-
-} SAM_DB_INSTANCE_LOCK, *PSAM_DB_INSTANCE_LOCK;
-
 typedef struct _SAM_DB_CONTEXT
 {
-    PSAM_DB_INSTANCE_LOCK pDbLock;
-
     sqlite3* pDbHandle;
 
     sqlite3_stmt* pDelObjectStmt;
+    sqlite3_stmt* pQueryObjectCountStmt;
+    sqlite3_stmt* pQueryObjectRecordInfoStmt;
+
+    struct _SAM_DB_CONTEXT* pNext;
 
 } SAM_DB_CONTEXT, *PSAM_DB_CONTEXT;
 
@@ -36,9 +29,6 @@ typedef struct _SAM_DB_ATTR_LOOKUP
 
 typedef struct _SAM_DIRECTORY_CONTEXT
 {
-    pthread_rwlock_t  rwLock;
-    pthread_rwlock_t* pRwLock;
-
     PWSTR    pwszDistinguishedName;
     PWSTR    pwszCredential;
     ULONG    ulMethod;
@@ -66,7 +56,12 @@ typedef struct _SAM_GLOBALS
 
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerFunctionTable;
 
-    PSAM_DB_INSTANCE_LOCK pDbInstanceLock;
+    pthread_rwlock_t  rwLock;
+    pthread_rwlock_t* pRwLock;
+
+    PSAM_DB_CONTEXT pDbContextList;
+    DWORD           dwNumDbContexts;
+    DWORD           dwNumMaxDbContexts;
 
 } SAM_GLOBALS, *PSAM_GLOBALS;
 

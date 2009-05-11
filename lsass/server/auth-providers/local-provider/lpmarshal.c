@@ -331,11 +331,11 @@ LocalMarshalEntryToUserInfo_1(
         dwError = LsaAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
-                        pUserInfo->pszName,
+                        pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pUserInfo->pszName) + 1);
+        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
@@ -537,6 +537,16 @@ LocalMarshalEntryToUserInfo_2(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pUserInfo->pNTHash)
+    {
+        memset(pUserInfo->pNTHash, 0, pUserInfo->dwNTHashLen);
+    }
+
+    if (pUserInfo->pLMHash)
+    {
+        memset(pUserInfo->pLMHash, 0, pUserInfo->dwLMHashLen);
+    }
+
     if (ppwszUserDN)
     {
         dwError = LocalMarshalAttrToUnicodeString(
@@ -551,11 +561,11 @@ LocalMarshalEntryToUserInfo_2(
         dwError = LsaAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
-                        pUserInfo->pszName,
+                        pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pUserInfo->pszName) + 1);
+        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }

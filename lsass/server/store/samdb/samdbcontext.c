@@ -1,8 +1,19 @@
 #include "includes.h"
 
+static
+DWORD
+SamDbAcquireDbContext(
+    PSAM_DB_CONTEXT* ppDbContext
+    );
+
+static
+VOID
+SamDbReleaseDbContext(
+    PSAM_DB_CONTEXT pDbContext
+    );
+
 DWORD
 SamDbBuildDirectoryContext(
-    PSAM_DB_INSTANCE_LOCK               pDbInstanceLock,
     PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO pObjectClassAttrMaps,
     DWORD                               dwNumObjectClassAttrMaps,
     PSAM_DB_ATTR_LOOKUP                 pAttrLookup,
@@ -11,34 +22,18 @@ SamDbBuildDirectoryContext(
 {
     DWORD dwError = 0;
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
-    PCSTR pszDbPath = SAM_DB;
 
     dwError = DirectoryAllocateMemory(
                     sizeof(SAM_DIRECTORY_CONTEXT),
                     (PVOID*)&pDirContext);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    pthread_rwlock_init(&pDirContext->rwLock, NULL);
-    pDirContext->pRwLock = &pDirContext->rwLock;
-
-    dwError = DirectoryAllocateMemory(
-                    sizeof(SAM_DB_CONTEXT),
-                    (PVOID*)&pDirContext->pDbContext);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = SamDbAcquireDbInstanceLock(
-                    pDbInstanceLock,
-                    &pDirContext->pDbContext->pDbLock);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
     pDirContext->pObjectClassAttrMaps = pObjectClassAttrMaps;
     pDirContext->dwNumObjectClassAttrMaps = dwNumObjectClassAttrMaps;
     pDirContext->pAttrLookup = pAttrLookup;
 
-    dwError = sqlite3_open(
-                    pszDbPath,
-                    &pDirContext->pDbContext->pDbHandle);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    dwError = SamDbAcquireDbContext(&pDirContext->pDbContext);
+    BAIL_ON_LSA_ERROR(dwError);
 
     *ppDirContext = pDirContext;
 
@@ -58,16 +53,69 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+SamDbAcquireDbContext(
+    PSAM_DB_CONTEXT* ppDbContext
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PCSTR pszDbPath = SAM_DB;
+    PSAM_DB_CONTEXT pDbContext = NULL;
+
+    SAMDB_LOCK_MUTEX(bInLock, &gSamGlobals.mutex);
+
+    if (gSamGlobals.dwNumDbContexts)
+    {
+        pDbContext = gSamGlobals.pDbContextList;
+
+        gSamGlobals.pDbContextList = gSamGlobals.pDbContextList->pNext;
+        gSamGlobals.dwNumDbContexts--;
+
+        pDbContext->pNext = NULL;
+    }
+
+    SAMDB_UNLOCK_MUTEX(bInLock, &gSamGlobals.mutex);
+
+    if (!pDbContext)
+    {
+        dwError = DirectoryAllocateMemory(
+                        sizeof(SAM_DB_CONTEXT),
+                        (PVOID*)&pDbContext);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        dwError = sqlite3_open(
+                        pszDbPath,
+                        &pDbContext->pDbHandle);
+        BAIL_ON_SAMDB_ERROR(dwError);
+    }
+
+    *ppDbContext = pDbContext;
+
+cleanup:
+
+    SAMDB_UNLOCK_MUTEX(bInLock, &gSamGlobals.mutex);
+
+    return dwError;
+
+error:
+
+    *ppDbContext = pDbContext;
+
+    if (pDbContext)
+    {
+        SamDbFreeDbContext(pDbContext);
+    }
+
+    goto cleanup;
+}
+
 VOID
 SamDbFreeDirectoryContext(
     PSAM_DIRECTORY_CONTEXT pDirContext
     )
 {
-    if (pDirContext->pRwLock)
-    {
-        pthread_rwlock_destroy(&pDirContext->rwLock);
-    }
-
     if (pDirContext->pwszCredential)
     {
         DirectoryFreeMemory(pDirContext->pwszCredential);
@@ -80,24 +128,61 @@ SamDbFreeDirectoryContext(
 
     if (pDirContext->pDbContext)
     {
-        if (pDirContext->pDbContext->pDbLock)
-        {
-            SamDbReleaseDbInstanceLock(pDirContext->pDbContext->pDbLock);
-        }
-
-        if (pDirContext->pDbContext->pDelObjectStmt)
-        {
-            sqlite3_finalize(pDirContext->pDbContext->pDelObjectStmt);
-            pDirContext->pDbContext->pDelObjectStmt = NULL;
-        }
-
-        if (pDirContext->pDbContext->pDbHandle)
-        {
-            sqlite3_close(pDirContext->pDbContext->pDbHandle);
-        }
-
-        DirectoryFreeMemory(pDirContext->pDbContext);
+        SamDbReleaseDbContext(pDirContext->pDbContext);
     }
 
     DirectoryFreeMemory(pDirContext);
+}
+
+static
+VOID
+SamDbReleaseDbContext(
+    PSAM_DB_CONTEXT pDbContext
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    SAMDB_LOCK_MUTEX(bInLock, &gSamGlobals.mutex);
+
+    if (gSamGlobals.dwNumDbContexts < gSamGlobals.dwNumMaxDbContexts)
+    {
+        pDbContext->pNext = gSamGlobals.pDbContextList;
+        gSamGlobals.pDbContextList = pDbContext;
+
+        gSamGlobals.dwNumDbContexts++;
+    }
+    else
+    {
+        SamDbFreeDbContext(pDbContext);
+    }
+
+    SAMDB_UNLOCK_MUTEX(bInLock, &gSamGlobals.mutex);
+}
+
+VOID
+SamDbFreeDbContext(
+    PSAM_DB_CONTEXT pDbContext
+    )
+{
+    if (pDbContext->pDelObjectStmt)
+    {
+        sqlite3_finalize(pDbContext->pDelObjectStmt);
+    }
+
+    if (pDbContext->pQueryObjectCountStmt)
+    {
+        sqlite3_finalize(pDbContext->pQueryObjectCountStmt);
+    }
+
+    if (pDbContext->pQueryObjectRecordInfoStmt)
+    {
+        sqlite3_finalize(pDbContext->pQueryObjectRecordInfoStmt);
+    }
+
+    if (pDbContext->pDbHandle)
+    {
+        sqlite3_close(pDbContext->pDbHandle);
+    }
+
+    DirectoryFreeMemory(pDbContext);
 }

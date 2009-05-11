@@ -99,6 +99,13 @@ LocalDirEnumUsers_2(
     PVOID**                    pppUserInfoList
     );
 
+static
+DWORD
+LocalDirGetBuiltinAdministratorsGID(
+    HANDLE hProvider,
+    gid_t* pGID
+    );
+
 DWORD
 LocalDirFindUserByName(
     HANDLE hProvider,
@@ -1849,6 +1856,7 @@ LocalDirAddUser_0(
         LOCAL_DAU0_IDX_DOMAIN,
         LOCAL_DAU0_IDX_NETBIOS_DOMAIN,
         LOCAL_DAU0_IDX_UID,
+        LOCAL_DAU0_IDX_ACCOUNT_FLAGS,
         LOCAL_DAU0_IDX_SENTINEL
     };
     ATTRIBUTE_VALUE attrValues[] =
@@ -1896,6 +1904,10 @@ LocalDirAddUser_0(
             {       /* LOCAL_DIR_ADD_USER_0_IDX_UID */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
                     .data.ulValue = pUserInfo->uid
+            },
+            {       /* LOCAL_DIR_ADD_USER_0_IDX_ACCOUNT_FLAGS */
+                    .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+                    .data.ulValue = 0
             }
     };
     WCHAR wszAttrObjectClass[]    = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -1908,6 +1920,7 @@ LocalDirAddUser_0(
     WCHAR wszAttrDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     WCHAR wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
+    WCHAR wszAttrNameAccountFlags[]   = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     DIRECTORY_MOD modGID =
     {
         DIR_MOD_FLAGS_ADD,
@@ -1978,6 +1991,13 @@ LocalDirAddUser_0(
         1,
         &attrValues[LOCAL_DAU0_IDX_UID]
     };
+    DIRECTORY_MOD modAcctFlags =
+    {
+        DIR_MOD_FLAGS_ADD,
+        &wszAttrNameAccountFlags[0],
+        1,
+        &attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS]
+    };
     DIRECTORY_MOD mods[LOCAL_DAU0_IDX_SENTINEL + 1];
     DWORD iMod = 0;
     PWSTR pwszSamAccountName = NULL;
@@ -1986,6 +2006,7 @@ LocalDirAddUser_0(
     PSTR  pszShell  = NULL;
     PWSTR pwszHomedir = NULL;
     PSTR  pszHomedir = NULL;
+    PCSTR pszPassword = "";
     PWSTR pwszPassword = NULL;
     PWSTR pwszDomain        = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
@@ -2098,6 +2119,13 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
+    attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = 0;
+
+    if (IsNullOrEmptyString(pUserInfo->pszPasswd))
+    {
+        attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue |= LOCAL_ACB_DISABLED;
+    }
+
     mods[iMod++] = modObjectClass;
     if (pUserInfo->uid)
     {
@@ -2111,6 +2139,7 @@ LocalDirAddUser_0(
     mods[iMod++] = modHomedir;
     mods[iMod++] = modDomain;
     mods[iMod++] = modNetBIOSDomain;
+    mods[iMod++] = modAcctFlags;
 
     dwError = DirectoryAddObject(
                     pContext->hDirectory,
@@ -2126,19 +2155,21 @@ LocalDirAddUser_0(
                     pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!IsNullOrEmptyString(pUserInfo->pszPasswd))
+    if (pUserInfo->pszPasswd)
     {
-        dwError = LsaMbsToWc16s(
-                        pUserInfo->pszPasswd,
-                        &pwszPassword);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = DirectorySetPassword(
-                        pContext->hDirectory,
-                        pwszUserDN,
-                        pwszPassword);
-        BAIL_ON_LSA_ERROR(dwError);
+        pszPassword = pUserInfo->pszPasswd;
     }
+
+    dwError = LsaMbsToWc16s(
+                    pszPassword,
+                    &pwszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySetPassword(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgIsEventlogEnabled(&bEventlogEnabled);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2259,9 +2290,6 @@ LocalDirModifyUser(
     PWSTR             pwszGroupDN_add   = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
 
-    dwError = LocalCheckForModifyAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LocalDirFindUserById(
                     hProvider,
                     pUserModInfo->uid,
@@ -2336,11 +2364,14 @@ LocalDirModifyUser(
         dwNumMods++;
     }
 
-    dwError = DirectoryModifyObject(
-                    pContext->hDirectory,
-                    pwszUserDN,
-                    mods);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwNumMods)
+    {
+        dwError = DirectoryModifyObject(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (pUserModInfo->actions.bRemoveFromGroups)
     {
@@ -2433,12 +2464,28 @@ LocalDirChangePassword(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    BOOLEAN bIsAdmin = FALSE;
 
-    dwError = DirectoryChangePassword(
-                    pContext->hDirectory,
-                    pwszUserDN,
-                    pwszOldPassword,
-                    pwszNewPassword);
+    dwError = LocalCheckIsAdministrator(
+                    hProvider,
+                    &bIsAdmin);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bIsAdmin)
+    {
+        dwError = DirectorySetPassword(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        pwszNewPassword);
+    }
+    else
+    {
+        dwError = DirectoryChangePassword(
+                        pContext->hDirectory,
+                        pwszUserDN,
+                        pwszOldPassword,
+                        pwszNewPassword);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -2715,4 +2762,126 @@ error:
     goto cleanup;
 }
 
+DWORD
+LocalDirCheckIfAdministrator(
+    HANDLE   hProvider,
+    uid_t    uid,
+    PBOOLEAN pbIsAdmin
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwGroupInfoLevel = 0;
+    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
+    DWORD dwNumGroups = 0;
+    BOOLEAN bIsAdmin = FALSE;
 
+    if (uid == 0)
+    {
+        bIsAdmin = TRUE;
+    }
+    else
+    {
+        dwError = LocalGetGroupsForUser(
+                        hProvider,
+                        uid,
+                        0,
+                        dwGroupInfoLevel,
+                        &dwNumGroups,
+                        (PVOID**)&ppGroupInfoList);
+        if (dwError == LSA_ERROR_NO_SUCH_USER)
+        {
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (dwNumGroups)
+        {
+            DWORD iGroup = 0;
+            gid_t gid_BuiltinAdmin = 0;
+
+            dwError = LocalDirGetBuiltinAdministratorsGID(
+                            hProvider,
+                            &gid_BuiltinAdmin);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            for (; iGroup < dwNumGroups; iGroup++)
+            {
+                PLSA_GROUP_INFO_0 pGroupInfo = ppGroupInfoList[iGroup];
+
+                if (pGroupInfo->gid == gid_BuiltinAdmin)
+                {
+                    bIsAdmin = TRUE;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    *pbIsAdmin = bIsAdmin;
+
+cleanup:
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroups);
+    }
+
+    return dwError;
+
+error:
+
+    *pbIsAdmin = FALSE;
+
+    goto cleanup;
+}
+
+static
+DWORD
+LocalDirGetBuiltinAdministratorsGID(
+    HANDLE hProvider,
+    gid_t* pGID
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    DWORD  dwInfoLevel = 0;
+    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    static gid_t gid_BuiltinAdmin = 0;
+
+    pthread_mutex_lock(&mutex);
+
+    if (!gid_BuiltinAdmin)
+    {
+        dwError = LocalDirFindGroupByName(
+                        hProvider,
+                        "BUILTIN",
+                        "Administrators",
+                        dwInfoLevel,
+                        NULL,
+                        (PVOID*)&pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        gid_BuiltinAdmin = pGroupInfo->gid;
+    }
+
+    *pGID = gid_BuiltinAdmin;
+
+cleanup:
+
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
+        pGroupInfo = NULL;
+    }
+
+    pthread_mutex_unlock(&mutex);
+
+    return dwError;
+
+error:
+
+    *pGID = 0;
+
+    goto cleanup;
+}

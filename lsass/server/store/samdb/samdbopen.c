@@ -9,7 +9,6 @@ SamDbOpen(
     PSAM_DIRECTORY_CONTEXT pDirContext = NULL;
 
     dwError = SamDbBuildDirectoryContext(
-                    gSamGlobals.pDbInstanceLock,
                     gSamGlobals.pObjectClassAttrMaps,
                     gSamGlobals.dwNumObjectClassAttrMaps,
                     &gSamGlobals.attrLookup,

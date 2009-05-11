@@ -46,11 +46,20 @@ SamDbModifyObject(
     )
 {
     DWORD dwError = 0;
+    LONG64 llObjectRecordId = 0;
+    PSTR   pszObjectDN = NULL;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    dwError = SamDbGetObjectClass(
-                    modifications,
+    dwError = LsaWc16sToMbs(
+                    pwszObjectDN,
+                    &pszObjectDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SamDbGetObjectRecordInfo(
+                    pDirectoryContext,
+                    pszObjectDN,
+                    &llObjectRecordId,
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -68,6 +77,8 @@ SamDbModifyObject(
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
+
+    DIRECTORY_FREE_STRING(pszObjectDN);
 
    return dwError;
 
@@ -127,7 +138,7 @@ SamDbUpdateObjectInDatabase(
                     &pColumnValueList);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -169,7 +180,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDN)
     {
@@ -224,7 +235,7 @@ SamDbUpdateBuildObjectQuery(
     // We are building a query which will look like
     // UPDATE samdbobjects
     //    SET col1 = ?1,
-    //    SET col2 = ?2
+    //        col2 = ?2
     //  WHERE DistinguishedName = ?3;
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
@@ -232,8 +243,10 @@ SamDbUpdateBuildObjectQuery(
         {
             dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR) - 1;
         }
-
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET) - 1;
+        else
+        {
+            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET) - 1;
+        }
 
         dwColNamesLen += strlen(&pIter->pAttrMap->szDbColumnName[0]);
 
@@ -246,7 +259,7 @@ SamDbUpdateBuildObjectQuery(
 
     dwQueryLen = sizeof(SAMDB_UPDATE_OBJECT_QUERY_PREFIX) - 1;
     dwQueryLen += dwColNamesLen;
-    dwQueryLen = sizeof(SAMDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
+    dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
 
     dwQueryLen += sizeof(SAM_DB_COL_DISTINGUISHED_NAME) - 1;
     dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
@@ -281,13 +294,15 @@ SamDbUpdateBuildObjectQuery(
             }
             dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR)  - 1;
         }
-
-        pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SET;
-        while (pszCursor && *pszCursor)
+        else
         {
-            *pszQueryCursor++ = *pszCursor++;
+            pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SET;
+            while (pszCursor && *pszCursor)
+            {
+                *pszQueryCursor++ = *pszCursor++;
+            }
+            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET)  - 1;
         }
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET)  - 1;
 
         pszCursor = &pIter->pAttrMap->szDbColumnName[0];
         while (pszCursor && *pszCursor)
