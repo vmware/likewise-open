@@ -201,8 +201,9 @@ ParseSharePath(
     PSTR  pszFilename = NULL;
     size_t sLen = 0;
     size_t i = 0;
-    struct in_addr ipAddr = { 0 };
+    struct in_addr ipAddr;
 
+    memset(&ipAddr, 0, sizeof(ipAddr));
     ntStatus = SMBWc16sToMbs(
                     pwszPath,
                     &pszPath);
