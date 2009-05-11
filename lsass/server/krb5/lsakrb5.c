@@ -1481,13 +1481,15 @@ LsaKrb5GetMachineCreds(
     PCSTR pszHostname,
     PSTR* ppszUsername,
     PSTR* ppszPassword,
-    PSTR* ppszDomainDnsName
+    PSTR* ppszDomainDnsName,
+    PSTR* ppszHostDnsDomain
     )
 {
     DWORD dwError = 0;
     PSTR  pszUsername = NULL;
     PSTR  pszPassword = NULL;
     PSTR  pszDomainDnsName = NULL;
+    PSTR  pszHostDnsDomain = NULL;
     PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
     HANDLE hPasswordStore = (HANDLE)NULL;
 
@@ -1522,6 +1524,11 @@ LsaKrb5GetMachineCreds(
                     &pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
     
+    dwError = LsaWc16sToMbs(
+                    pMachineAcctInfo->pwszHostDnsDomain,
+                    &pszHostDnsDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (IsNullOrEmptyString(pszUsername)) {
         dwError = LSA_ERROR_INVALID_ACCOUNT;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1540,6 +1547,7 @@ LsaKrb5GetMachineCreds(
     *ppszUsername = pszUsername;
     *ppszPassword = pszPassword;
     *ppszDomainDnsName = pszDomainDnsName;
+    *ppszHostDnsDomain = pszHostDnsDomain;
     
 cleanup:
 
@@ -1562,6 +1570,7 @@ error:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
 
     goto cleanup;
 }
@@ -1576,6 +1585,7 @@ LsaKrb5RefreshMachineTGT(
     PSTR  pszUsername = NULL;
     PSTR  pszPassword = NULL;
     PSTR  pszDomainDnsName = NULL;
+    PSTR  pszHostDnsDomain = NULL;
     PSTR pszHostname = NULL;
 
     LSA_LOG_VERBOSE("Refreshing machine TGT");
@@ -1589,7 +1599,8 @@ LsaKrb5RefreshMachineTGT(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
-                    &pszDomainDnsName);
+                    &pszDomainDnsName,
+                    &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 	
     dwError = LsaSetupMachineSession(
@@ -1597,7 +1608,7 @@ LsaKrb5RefreshMachineTGT(
                     pszUsername,
                     pszPassword,
                     pszDomainDnsName,
-                    pszDomainDnsName,
+                    pszHostDnsDomain,
                     &dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -1612,6 +1623,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
 	

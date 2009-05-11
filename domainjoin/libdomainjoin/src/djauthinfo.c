@@ -1651,6 +1651,10 @@ void DJCreateComputerAccount(
     PSTR osName = NULL;
     PSTR tempDir = NULL;
     PSTR origEnv = NULL;
+    PSTR shortHostname = NULL;
+    PSTR hostFqdn = NULL;
+    // Do not free dnsDomain
+    PSTR dnsDomain = NULL;
     CHAR krb5ConfEnv[256];
     DWORD dwFlags = 0;
     DWORD err = 0;
@@ -1705,8 +1709,16 @@ void DJCreateComputerAccount(
             dwFlags |= LSA_NET_JOIN_DOMAIN_NOTIMESYNC;
         }
 
+        LW_CLEANUP_CTERR(exc, DJGetFQDN(&shortHostname, &hostFqdn));
+
+        if (strlen(hostFqdn) > (strlen(shortHostname) + 1))
+        {
+            dnsDomain = hostFqdn + strlen(shortHostname) + 1;
+        }
+
         err = lsaFunctions->pfnNetJoinDomain(
                   options->computerName,
+                  dnsDomain,
                   options->domainName,
                   options->ouName,
                   options->username,
@@ -1762,6 +1774,8 @@ cleanup:
     CT_SAFE_FREE_STRING(likewiseBuild);
     CT_SAFE_FREE_STRING(likewiseRevision);
     CT_SAFE_FREE_STRING(likewiseOSServicePack);
+    CT_SAFE_FREE_STRING(shortHostname);
+    CT_SAFE_FREE_STRING(hostFqdn);
 
     DJFreeDistroInfo(&distro);
 }

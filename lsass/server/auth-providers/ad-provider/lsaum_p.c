@@ -726,6 +726,7 @@ LsaUmpCreateKeys(
     PSTR       pszUsername = NULL;
     PSTR       pszServicePassword = NULL;
     PSTR       pszDomainDnsName = NULL;
+    PSTR       pszHostDnsDomain = NULL;
     DWORD      dwTime = 0;
     pid_t      Pid = 0;
 
@@ -745,7 +746,8 @@ LsaUmpCreateKeys(
                       pszHostname,
                       &pszUsername,
                       &pszServicePassword,
-                      &pszDomainDnsName);
+                      &pszDomainDnsName,
+                      &pszHostDnsDomain);
         BAIL_ON_LSA_ERROR(dwError);
 
         RAND_seed(
@@ -805,6 +807,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
 
 
     return dwError;
@@ -1446,19 +1449,20 @@ LsaUmpRefreshUserCreds(
     PLSA_UM_USER_REFRESH_ITEM pUserItem
     )
 {
-    DWORD                       dwError = 0;
-    PLSA_SECURITY_OBJECT        pUserInfo = NULL;
-    PSTR                        pszHostname = NULL;
-    PSTR                        pszUsername = NULL;
-    PSTR                        pszServicePassword = NULL;
-    PSTR                        pszDomainDnsName = NULL;
-    PSTR                        pszServicePrincipal = NULL;
-    LSA_TRUST_DIRECTION         dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
-    PAC_LOGON_INFO *            pPac = NULL;
-    PSTR                        pszUserDnsDomainName = NULL;
-    PSTR                        pszFreeUpn = NULL;
-    PSTR                        pszUpn = NULL;
-    PSTR                        pszPassword = NULL;
+    DWORD                dwError = 0;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+    PSTR                 pszHostname = NULL;
+    PSTR                 pszUsername = NULL;
+    PSTR                 pszServicePassword = NULL;
+    PSTR                 pszDomainDnsName = NULL;
+    PSTR                 pszHostDnsDomain = NULL;
+    PSTR                 pszServicePrincipal = NULL;
+    LSA_TRUST_DIRECTION  dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+    PAC_LOGON_INFO *     pPac = NULL;
+    PSTR                 pszUserDnsDomainName = NULL;
+    PSTR                 pszFreeUpn = NULL;
+    PSTR                 pszUpn = NULL;
+    PSTR                 pszPassword = NULL;
 
     if ( pUserItem->dwFailedCount > 5 )
     {
@@ -1490,7 +1494,8 @@ LsaUmpRefreshUserCreds(
                   pszHostname,
                   &pszUsername,
                   &pszServicePassword,
-                  &pszDomainDnsName);
+                  &pszDomainDnsName,
+                  &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     //Leave the realm empty so that kerberos referrals are turned on.
@@ -1498,7 +1503,7 @@ LsaUmpRefreshUserCreds(
                   &pszServicePrincipal,
                   "host/%s.%s@",
                   pszHostname,
-                  pszDomainDnsName);
+                  pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserInfo->userInfo.bIsGeneratedUPN)
@@ -1582,6 +1587,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
     LSA_SAFE_FREE_STRING(pszServicePrincipal);
     LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
     LSA_SAFE_FREE_STRING(pszFreeUpn);

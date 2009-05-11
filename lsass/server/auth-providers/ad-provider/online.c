@@ -1373,6 +1373,7 @@ AD_OnlineAuthenticateUser(
     PSTR pszUsername = NULL;
     PSTR pszServicePassword = NULL;
     PSTR pszDomainDnsName = NULL;
+    PSTR pszHostDnsDomain = NULL;
     PSTR pszServicePrincipal = NULL;
     DWORD dwGoodUntilTime = 0;
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
@@ -1427,7 +1428,8 @@ AD_OnlineAuthenticateUser(
                     pszHostname,
                     &pszUsername,
                     &pszServicePassword,
-                    &pszDomainDnsName);
+                    &pszDomainDnsName,
+                    &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     //Leave the realm empty so that kerberos referrals are turned on.
@@ -1435,7 +1437,7 @@ AD_OnlineAuthenticateUser(
                         &pszServicePrincipal,
                         "host/%s.%s@",
                         pszHostname,
-                        pszDomainDnsName);
+                        pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserInfo->userInfo.bIsGeneratedUPN)
@@ -1524,6 +1526,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszServicePassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
+    LSA_SAFE_FREE_STRING(pszHostDnsDomain);
     LSA_SAFE_FREE_STRING(pszServicePrincipal);
     LSA_SAFE_FREE_STRING(pszUserDnsDomainName);
     LSA_SAFE_FREE_STRING(pszFreeUpn);

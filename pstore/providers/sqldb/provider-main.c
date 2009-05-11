@@ -203,6 +203,14 @@ SqlDB_ReadPasswordByHostName(
                   &pInfo->pwszHostname);
     BAIL_ON_LWPS_ERROR(dwError);
 
+    if (pAcctInfo->pszHostDnsDomain)
+    {
+        dwError = LwpsMbsToWc16s(
+                      pAcctInfo->pszHostDnsDomain,
+                      &pInfo->pwszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
     dwError = LwpsMbsToWc16s(
                   pAcctInfo->pszMachineAccountName,
                   &pInfo->pwszMachineAccount);
@@ -304,6 +312,14 @@ SqlDB_ReadPasswordByDomainName(
                   pAcctInfo->pszHostName,
                   &pInfo->pwszHostname);
     BAIL_ON_LWPS_ERROR(dwError);
+
+    if (pAcctInfo->pszHostDnsDomain)
+    {
+        dwError = LwpsMbsToWc16s(
+                      pAcctInfo->pszHostDnsDomain,
+                      &pInfo->pwszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
 
     dwError = LwpsMbsToWc16s(
                   pAcctInfo->pszMachineAccountName,
@@ -497,6 +513,14 @@ SqlDB_WritePassword(
                   &pAcctInfo->pszHostName);
     BAIL_ON_LWPS_ERROR(dwError);
 
+    if (pInfo->pwszHostDnsDomain)
+    {
+        dwError = LwpsWc16sToMbs(
+                      pInfo->pwszHostDnsDomain,
+                      &pAcctInfo->pszHostDnsDomain);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
     dwError = LwpsWc16sToMbs(
                   pInfo->pwszMachineAccount,
                   &pAcctInfo->pszMachineAccountName);
@@ -666,6 +690,7 @@ SqlDB_FreePassword(
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszDnsDomainName);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszSID);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszHostname);
+    LWPS_SAFE_FREE_MEMORY(pInfo->pwszHostDnsDomain);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszMachineAccount);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszMachinePassword);
     LwpsFreeMemory(pInfo);

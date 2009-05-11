@@ -24,7 +24,7 @@ DNSKrb5DestroyCache(
 
 DWORD
 DNSKrb5Init(
-    PCSTR pszHostname,
+    PCSTR pszAccountName,
     PCSTR pszDomain
     )
 {
@@ -35,18 +35,17 @@ DNSKrb5Init(
     {
         DWORD i = 0;
         DWORD j = 0;
-        DWORD dwLength = strlen(pszHostname) + strlen(pszDomain) + 3;
+        DWORD dwLength = strlen(pszAccountName) + strlen(pszDomain) + 2;
 
         dwError = DNSAllocateMemory(
                         dwLength,
                         (PVOID*)&pszUsername);
         BAIL_ON_LWDNS_ERROR(dwError);
 
-        for (i = 0; i < strlen(pszHostname); i++)
+        for (i = 0; i < strlen(pszAccountName); i++)
         {
-            pszUsername[i] = toupper(pszHostname[i]);
+            pszUsername[i] = toupper(pszAccountName[i]);
         }
-        pszUsername[i++] = '$';
         pszUsername[i++] = '@';
         for (; j  < strlen(pszDomain); j++)
         {

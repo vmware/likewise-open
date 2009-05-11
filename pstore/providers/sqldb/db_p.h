@@ -53,6 +53,7 @@ typedef struct _MACHINE_ACCT_INFO {
     PSTR   pszDomainName;
     PSTR   pszDomainDnsName;
     PSTR   pszHostName;
+    PSTR   pszHostDnsDomain;
     PSTR   pszMachineAccountName;
     PSTR   pszMachineAccountPassword;
     time_t tPwdCreationTimestamp;
