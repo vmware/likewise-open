@@ -783,6 +783,7 @@ cleanup:
 
 struct _DaemonList daemonList[] = {    
     { "lsassd", {"likewise-open", NULL}, TRUE, 93, 10 },
+    { "reapsysld", {NULL}, FALSE, 25, 75 },
     { "gpagentd", {NULL}, FALSE, 94, 9 },
     { "lwmgmtd", {NULL}, FALSE, 95, 8 },
     { NULL, {NULL}, FALSE, 0, 0 },
