@@ -786,6 +786,7 @@ struct _DaemonList daemonList[] = {
     { "reapsysld", {NULL}, FALSE, 25, 75 },
     { "gpagentd", {NULL}, FALSE, 94, 9 },
     { "lwmgmtd", {NULL}, FALSE, 95, 8 },
+    { "eventfwdd", {NULL}, FALSE, 96, 7 },
     { NULL, {NULL}, FALSE, 0, 0 },
 };
 
