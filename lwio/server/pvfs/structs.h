@@ -205,6 +205,12 @@ typedef struct _PVFS_CCB
 
 typedef struct _PVFS_IRP_CONTEXT
 {
+    pthread_mutex_t Mutex;
+    pthread_cond_t  Event;    /* synchronize point for worker threads */
+
+    BOOL bFinished;
+    NTSTATUS ntError;
+
     PIRP pIrp;
 
 } PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;

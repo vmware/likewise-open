@@ -28,34 +28,52 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        globals.c
+ *        thread_oplock.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver globals
+ *        Oplock break handler thread
  *
- * Authors:  Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
-PSTR gpszPVFSProviderName = "Posix Virtual File System";
+/* Forward declarations */
 
-GENERIC_MAPPING gPvfsFileGenericMapping = {
-    FILE_GENERIC_READ,
-    FILE_GENERIC_WRITE,
-    FILE_GENERIC_EXECUTE,
-    FILE_ALL_ACCESS
-};
 
-PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
+
+/* Code */
+
+/************************************************************
+  **********************************************************/
+
+NTSTATUS
+PvfsInitOplockThreads(
+    VOID
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 
 /*

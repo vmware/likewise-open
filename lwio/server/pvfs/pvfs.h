@@ -69,6 +69,7 @@
 #include "lwioutils.h"
 
 #include "structs.h"
+#include "threads.h"
 #include "externs.h"
 #include "macros.h"
 #include "fileinfo_p.h"
@@ -97,6 +98,11 @@
 #ifdef HAVE_ATTR_XATTR_H
 #  include <attr/xattr.h>
 #endif
+
+/* Driver defines */
+
+#define PVFS_NUMBER_WORKER_THREADS      2
+
 
 /* Top level APi functions */
 

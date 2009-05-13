@@ -33,29 +33,81 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        threads.h
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Driver globals
+ *        Thread pool header file
  *
- * Authors:  Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include "pvfs.h"
+#ifndef __PVFS_THREADS_H__
+#define __PVFS_THREADS_H__
 
-PSTR gpszPVFSProviderName = "Posix Virtual File System";
+/* Worker thread types */
 
-GENERIC_MAPPING gPvfsFileGenericMapping = {
-    FILE_GENERIC_READ,
-    FILE_GENERIC_WRITE,
-    FILE_GENERIC_EXECUTE,
-    FILE_ALL_ACCESS
-};
+typedef struct _PVFS_WORKER_THREAD {
 
-PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
+    pthread_t   hThread;
+
+} PVFS_WORKER, *PPVFS_WORKER;
+
+typedef struct _PVFS_WORKER_POOL {
+
+    DWORD PoolSize;
+    PPVFS_WORKER Workers;
+
+} PVFS_WORKER_POOL, *PPVSF_WORKER_POOL;
+
+/* Work Queue data type */
+
+typedef struct _PVFS_WORK_QUEUE {
+
+    pthread_mutex_t Mutex;
+    pthread_cond_t  ItemsAvailable;
+    pthread_cond_t  SpaceAvailable;
+
+    PLWRTL_QUEUE pQueue;
+
+} PVFS_WORK_QUEUE, *PPVFS_WORK_QUEUE;
+
+
+/* Functions */
+
+NTSTATUS
+PvfsInitWorkerThreads(
+    VOID
+    );
+
+NTSTATUS
+PvfsInitOplockThreads(
+    VOID
+    );
+
+NTSTATUS
+PvfsInitWorkQueue(
+    PPVFS_WORK_QUEUE *ppWorkQueue,
+    INT32 iSize,
+    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData
+    );
+
+NTSTATUS
+PvfsAddWorkItem(
+    PPVFS_WORK_QUEUE pWorkQueue,
+    PVOID pItem
+    );
+
+NTSTATUS
+PvfsNextWorkItem(
+    PPVFS_WORK_QUEUE pWorkQueue,
+    PVOID *ppItem
+    );
+
+
+#endif    /* __PVFS_THREADS_H__ */
 
 
 /*
