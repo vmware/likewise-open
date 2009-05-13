@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
  *
@@ -7,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -20,35 +24,86 @@
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
- *        base.h
+ *        rtlqueue.c
  *
  * Abstract:
  *
- *        Base include header
+ *        Base FIFO Queue data structure
  *
- * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#ifndef __LWBASE_H__
-#define __LWBASE_H__
+
+#ifndef __LW_QUEUE_H__
+#define __LW_QUEUE_H__
 
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <lw/atomic.h>
 #include <lw/ntstatus.h>
-#include <lw/errno.h>
-#include <lw/rtlmemory.h>
-#include <lw/rtlstring.h>
-#include <lw/rbtree.h>
-#include <lw/rtlqueue.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
 
-#endif
+typedef struct _LWRTL_QUEUE *PLWRTL_QUEUE;
+
+typedef VOID  (*PLWRTL_QUEUE_FREE_DATA_FN)(PVOID *ppData);
+
+NTSTATUS
+LwRtlQueueInit(
+    PLWRTL_QUEUE *ppNewQueue,
+    DWORD dwMaxSize,
+    PLWRTL_QUEUE_FREE_DATA_FN pfnFreeData
+    );
+
+NTSTATUS
+LwRtlQueueSetMaxSize(
+    PLWRTL_QUEUE pQueue,
+    DWORD dwNewLength
+    );
+
+BOOL
+LwRtlQueueIsEmpty(
+    PLWRTL_QUEUE pQueue
+    );
+
+BOOL
+LwRtlQueueIsFull(
+    PLWRTL_QUEUE pQueue
+    );
+
+NTSTATUS
+LwRtlQueueAddItem(
+    PLWRTL_QUEUE pQueue,
+    PVOID pItem
+    );
+
+
+NTSTATUS
+LwRtlQueueRemoveItem(
+    PLWRTL_QUEUE pQueue,
+    PVOID *ppItem
+    );
+
+VOID
+LwRtlQueueDestroy(
+    PLWRTL_QUEUE *ppQueue
+    );
+
+
+#endif    /* __LW_QUEUE_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
