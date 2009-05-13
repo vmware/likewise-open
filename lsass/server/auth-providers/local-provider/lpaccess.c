@@ -99,14 +99,18 @@ LocalCheckForPasswordChangeAccess(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    BOOLEAN bIsAdmin = FALSE;
 
-    dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bIsAdmin && (pContext->uid != targetUid))
+    if (pContext->uid != targetUid)
     {
-        dwError = EACCES;
+        BOOLEAN bIsAdmin = FALSE;
+
+        dwError = LocalCheckIsAdministrator(hProvider, &bIsAdmin);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!bIsAdmin)
+        {
+            dwError = EACCES;
+        }
     }
 
 error:

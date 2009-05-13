@@ -378,6 +378,8 @@ LsaModifyUser_RemoveFromGroups(
                    pszGroupList,
                    &pUserModInfo->pszRemoveFromGroups);
        BAIL_ON_LSA_ERROR(dwError);
+
+       pUserModInfo->actions.bRemoveFromGroups = TRUE;
     }
 
 cleanup:

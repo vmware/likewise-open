@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -90,6 +90,12 @@ LocalDirGetGroupMembersInternal(
     DWORD                   dwGroupNestingLevel,
     DWORD                   dwMaxGroupNestingLevel,
     PLSA_HASH_TABLE         pMemberships
+    );
+
+static
+DWORD
+LocalDirValidateGID(
+    gid_t gid
     );
 
 static
@@ -1789,6 +1795,11 @@ LocalDirAddGroup_0(
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
+    if (pGroupInfo->gid) {
+        dwError = LocalDirValidateGID(pGroupInfo->gid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LocalCrackDomainQualifiedName(
                     pGroupInfo->pszName,
                     &pLoginInfo);
@@ -1977,6 +1988,11 @@ LocalDirAddGroup_1(
 
     BAIL_ON_INVALID_STRING(pGroupInfo->pszName);
 
+    if (pGroupInfo->gid) {
+        dwError = LocalDirValidateGID(pGroupInfo->gid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LocalCrackDomainQualifiedName(
                     pGroupInfo->pszName,
                     &pLoginInfo);
@@ -2067,6 +2083,28 @@ error:
 
     goto cleanup;
 }
+
+static
+DWORD
+LocalDirValidateGID(
+    gid_t gid
+    )
+{
+    DWORD dwError = 0;
+
+    /* Check whether group gid is within permitted range */
+    if (gid < LOWEST_GID) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 static
 DWORD
@@ -2216,3 +2254,11 @@ LocalDirFreeGroupMember(
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

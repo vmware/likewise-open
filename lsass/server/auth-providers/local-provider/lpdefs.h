@@ -184,5 +184,9 @@ typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 #define LOCAL_ACB_PW_EXPIRED               (0x00020000)
 #define LOCAL_ACB_NO_AUTH_DATA_REQD        (0x00080000)
 
+#define LOWEST_UID   (1000)
+#define LOWEST_GID   (1000)
+
+
 #endif /* __LPDEFS_H__ */
 

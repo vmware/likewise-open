@@ -50,14 +50,18 @@ libpvfs_sys_la_SOURCES = \
     fileRenameInfo.c \
     fileFsAttribInfo.c \
     fileFsVolInfo.c \
-    fileFsSizeInfo.c
+    fileFsSizeInfo.c \
+    thread_worker.c \
+    thread_oplock.c \
+    work_queue.c
 
 
 libpvfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -D_FILE_OFFSET_BITS=64
+    -D_FILE_OFFSET_BITS=64 \
+    -DLW_ENABLE_THREADS=1
 
 libpvfs_sys_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la \

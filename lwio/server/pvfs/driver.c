@@ -43,8 +43,7 @@
  *
  *        Driver Entry Function
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -62,8 +61,16 @@ PvfsDriverDispatch(
     IN PIRP pIrp
     );
 
+static NTSTATUS
+PvfsDriverInitialize(
+    VOID
+    );
+
 
 /* Code */
+
+/************************************************************
+  **********************************************************/
 
 NTSTATUS
 DriverEntry(
@@ -92,7 +99,7 @@ DriverEntry(
                              NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsInitializeFCBTable();
+    ntError = PvfsDriverInitialize();
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -103,7 +110,9 @@ error:
 }
 
 
-/* Driver Exit Function */
+/************************************************************
+ Driver Exit Function
+ ***********************************************************/
 
 static VOID
 PvfsDriverShutdown(
@@ -115,7 +124,9 @@ PvfsDriverShutdown(
     IO_LOG_ENTER_LEAVE("");
 }
 
-/* Driver Dispatch Routine */
+/************************************************************
+ Driver Dispatch Routine
+ ***********************************************************/
 
 static NTSTATUS
 PvfsDriverDispatch(
@@ -125,79 +136,56 @@ PvfsDriverDispatch(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    BOOL bInLock = FALSE;
 
     ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
     BAIL_ON_NT_STATUS(ntError);
 
-    switch (pIrpCtx->pIrp->Type)
-    {
-    case IRP_TYPE_CREATE:
-        ntError = PvfsCreate(DeviceHandle, pIrpCtx);
-        break;
+    LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
-    case IRP_TYPE_CLOSE:
-        ntError = PvfsClose(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_READ:
-        ntError = PvfsRead(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_DEVICE_IO_CONTROL:
-        ntError = STATUS_NOT_IMPLEMENTED;
-        break;
-
-    case IRP_TYPE_FS_CONTROL:
-        ntError = PvfsFsCtrl(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = PvfsFlushBuffers(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_QUERY, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_SET, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsQueryDirInformation(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_SET, DeviceHandle, pIrpCtx);
-        break;
-
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
-    }
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
     BAIL_ON_NT_STATUS(ntError);
 
+    while(!pIrpCtx->bFinished) {
+        pthread_cond_wait(&pIrpCtx->Event, &pIrpCtx->Mutex);
+    }
+    ntError = pIrpCtx->ntError;
+
 cleanup:
-    PvfsFreeIrpContext(&pIrpCtx);
+    LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
     pIrp->IoStatusBlock.Status = ntError;
 
+    PvfsFreeIrpContext(&pIrpCtx);
+
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/************************************************************
+ ***********************************************************/
+
+static NTSTATUS
+PvfsDriverInitialize(
+    VOID
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ntError = PvfsInitializeFCBTable();
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsInitWorkerThreads();
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsInitOplockThreads();
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
     return ntError;
 
 error:

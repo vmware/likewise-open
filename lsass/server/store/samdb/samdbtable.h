@@ -280,9 +280,9 @@ typedef enum
 #define SAM_DB_DIR_ATTR_PASSWORD_LAST_SET \
     {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
 #define SAM_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE \
- {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+    {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define SAM_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE \
- {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+    {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define SAM_DB_DIR_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY \

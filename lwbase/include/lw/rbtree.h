@@ -63,8 +63,8 @@ typedef enum
 } LWRTL_TREE_TRAVERSAL_TYPE;
 
 typedef int   (*PFN_LWRTL_RB_TREE_COMPARE)( PVOID pKey1, PVOID pKey2);
-typedef VOID  (*PFN_LWRTL_RB_TREE_FREE_DATA)(PVOID pData);
 typedef VOID  (*PFN_LWRTL_RB_TREE_FREE_KEY)(PVOID pKey);
+typedef VOID  (*PFN_LWRTL_RB_TREE_FREE_DATA)(PVOID pData);
 
 typedef DWORD (*PFN_LWRTL_RB_TREE_VISIT)(
                     PVOID pKey,
@@ -83,6 +83,8 @@ LwRtlRBTreeCreate(
     PLWRTL_RB_TREE* ppRBTree
     );
 
+// Returns STATUS_NOT_FOUND and sets *ppItem to NULL if the key is not in the
+// tree.
 NTSTATUS
 LwRtlRBTreeFind(
     PLWRTL_RB_TREE pRBTree,
