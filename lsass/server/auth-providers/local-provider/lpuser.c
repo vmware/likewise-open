@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -97,6 +97,12 @@ LocalDirEnumUsers_2(
     DWORD                      dwNumMaxUsers,
     PDWORD                     pdwNumUsersFound,
     PVOID**                    pppUserInfoList
+    );
+
+static
+DWORD
+LocalDirValidateUID(
+    uid_t uid
     );
 
 static
@@ -2019,6 +2025,11 @@ LocalDirAddUser_0(
 
     BAIL_ON_INVALID_STRING(pUserInfo->pszName);
 
+    if (pUserInfo->uid) {
+        dwError = LocalDirValidateUID(pUserInfo->uid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LocalCrackDomainQualifiedName(
                     pUserInfo->pszName,
                     &pLoginInfo);
@@ -2241,6 +2252,34 @@ LocalDirAddUser_2(
 {
     return LSA_ERROR_NOT_SUPPORTED;
 }
+
+static
+DWORD
+LocalDirValidateUID(
+    uid_t uid
+    )
+{
+    DWORD dwError = 0;
+
+    /* Check whether account uid is within permitted range */
+    if (uid < LOWEST_UID) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Check whether account with such uid already exists */
+    if (getpwuid(uid)) {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 DWORD
 LocalDirModifyUser(
@@ -2885,3 +2924,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
