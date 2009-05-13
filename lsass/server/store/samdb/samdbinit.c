@@ -1,7 +1,6 @@
 #include "includes.h"
 
 #define SAMDB_BUILTIN_TAG    "BUILTIN"
-#define SAMDB_BUILTIN_GID    32
 #define SAMDB_BUILTIN_SID    "S-1-5-32"
 
 static
@@ -68,6 +67,7 @@ DWORD
 SamDbAddLocalAccounts(
     HANDLE    hDirectory,
     PCSTR     pszDomainDN,
+    PCSTR     pszNetBIOSName,
     PSID      pMachineSid
     );
 
@@ -332,6 +332,7 @@ SamDbAddDefaultEntries(
     dwError = SamDbAddLocalAccounts(
                     hDirectory,
                     pszDomainDN,
+                    szNetBIOSName,
                     pMachineSid);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -948,6 +949,7 @@ DWORD
 SamDbAddLocalAccounts(
     HANDLE    hDirectory,
     PCSTR     pszDomainDN,
+    PCSTR     pszNetBIOSName,
     PSID      pMachineSid
     )
 {
@@ -959,8 +961,6 @@ SamDbAddLocalAccounts(
         PCSTR               pszDescription;
         PCSTR               pszShell;
         PCSTR               pszHomedir;
-        PCSTR               pszDomain;
-        PCSTR               pszNetBIOSDomain;
         SAMDB_ACB           flags;
         SAMDB_OBJECT_CLASS  objectClass;
     } LocalAccounts[] = {
@@ -973,8 +973,6 @@ SamDbAddLocalAccounts(
                                 "computer/domain",
             .pszShell         = SAM_DB_DEFAULT_ADMINISTRATOR_SHELL,
             .pszHomedir       = SAM_DB_DEFAULT_ADMINISTRATOR_HOMEDIR,
-            .pszDomain        = "BUILTIN",
-            .pszNetBIOSDomain = "BUILTIN",
             .flags            = SAMDB_ACB_NORMAL,
             .objectClass      = SAMDB_OBJECT_CLASS_USER
         },
@@ -987,8 +985,6 @@ SamDbAddLocalAccounts(
                                 "computer/domain",
             .pszShell         = SAM_DB_DEFAULT_GUEST_SHELL,
             .pszHomedir       = SAM_DB_DEFAULT_GUEST_HOMEDIR,
-            .pszDomain        = "BUILTIN",
-            .pszNetBIOSDomain = "BUILTIN",
             .flags            = SAMDB_ACB_NORMAL | SAMDB_ACB_DISABLED,
             .objectClass      = SAMDB_OBJECT_CLASS_USER
         }
@@ -1056,8 +1052,8 @@ SamDbAddLocalAccounts(
         objectClass      = LocalAccounts[i].objectClass;
         pszShell         = LocalAccounts[i].pszShell;
         pszHomedir       = LocalAccounts[i].pszHomedir;
-        pszDomain        = LocalAccounts[i].pszDomain;
-        pszNetBIOSDomain = LocalAccounts[i].pszNetBIOSDomain;
+        pszDomain        = pszNetBIOSName;
+        pszNetBIOSDomain = pszNetBIOSName;
 
         iMod    = 0;
         memset(mods, 0, sizeof(mods));
