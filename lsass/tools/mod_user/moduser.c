@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -288,6 +288,9 @@ ParseArgs(
                  dwError = LsaAllocateString(pArg, &pTask->pszData);
                  BAIL_ON_LSA_ERROR(dwError);
 
+                 dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                 BAIL_ON_LSA_ERROR(dwError);
+
                  parseMode = PARSE_MODE_OPEN;
 
                  break;
@@ -488,8 +491,8 @@ ShowUsage(
     fprintf(stdout, "{ --change-password-at-next-logon }\n");
     fprintf(stdout, "{ --password-never-expires }\n");
     fprintf(stdout, "{ --password-must-expire }\n");
-    fprintf(stdout, "{ --add-to-group nt4-style-group-name }\n");
-    fprintf(stdout, "{ --remove-from-group nt4-style-group-name }\n");
+    fprintf(stdout, "{ --add-to-groups nt4-style-group-name }\n");
+    fprintf(stdout, "{ --remove-from-groups nt4-style-group-name }\n");
 
     fprintf(stdout, "\nNotes:\n");
     fprintf(stdout, "a) Set the expiry-date to 0 for an account that must never expire.\n");
@@ -695,3 +698,13 @@ MapErrorCode(
 
     return dwError2;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
