@@ -2267,12 +2267,6 @@ LocalDirValidateUID(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    /* Check whether account with such uid already exists */
-    if (getpwuid(uid)) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
 cleanup:
     return dwError;
 

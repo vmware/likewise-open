@@ -2098,13 +2098,6 @@ LocalDirValidateGID(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    /* Check whether group with such gid already exists
-       in local system */
-    if (getgrgid(gid)) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
 cleanup:
     return dwError;
 
