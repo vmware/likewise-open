@@ -234,7 +234,7 @@ SrvInitialize(
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
-    ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareDBContext);
+    ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
@@ -297,7 +297,7 @@ SrvInitialize(
 
     ntStatus = SrvListenerInit(
                     gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareDBContext,
+                    &gSMBSrvGlobals.shareList,
                     gSMBSrvGlobals.pReaderArray,
                     gSMBSrvGlobals.ulNumReaders,
                     &gSMBSrvGlobals.listener);
@@ -382,7 +382,7 @@ SrvShutdown(
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
-        SrvShareFreeContextContents(&gSMBSrvGlobals.shareDBContext);
+        SrvShareFreeContextContents(&gSMBSrvGlobals.shareList);
 
         if (gSMBSrvGlobals.hPacketAllocator)
         {

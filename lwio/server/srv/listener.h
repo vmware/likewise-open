@@ -52,7 +52,7 @@
 NTSTATUS
 SrvListenerInit(
     HANDLE                    hPacketAllocator,
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PLWIO_SRV_SOCKET_READER    pReaderArray,
     ULONG                     ulNumReaders,
     PLWIO_SRV_LISTENER         pListener

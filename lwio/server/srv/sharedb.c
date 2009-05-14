@@ -52,7 +52,7 @@
 static
 NTSTATUS
 SrvShareDbCreate(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_LIST pShareList
     );
 
 static
@@ -83,15 +83,15 @@ SrvShareDbWriteToShareInfo(
 
 NTSTATUS
 SrvShareDbInit(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
     NTSTATUS ntStatus = 0;
 
-    pthread_rwlock_init(&pShareDBContext->mutex, NULL);
-    pShareDBContext->pMutex = &pShareDBContext->mutex;
+    pthread_rwlock_init(&pShareList->mutex, NULL);
+    pShareList->pMutex = &pShareList->mutex;
 
-    ntStatus = SrvShareDbCreate(pShareDBContext);
+    ntStatus = SrvShareDbCreate(pShareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -106,7 +106,7 @@ error:
 static
 NTSTATUS
 SrvShareDbCreate(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
     NTSTATUS ntStatus = 0;
@@ -144,7 +144,7 @@ SrvShareDbCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDbOpen(
-                    pShareDBContext,
+                    pShareList,
                     &hDb);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -174,7 +174,7 @@ SrvShareDbCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDbAdd(
-                    pShareDBContext,
+                    pShareList,
                     hDb,
                     "IPC$",
                     &szPipeSystemRoot[0],
@@ -184,7 +184,7 @@ SrvShareDbCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareDbAdd(
-                    pShareDBContext,
+                    pShareList,
                     hDb,
                     "C$",
                     pszFileSystemRoot,
@@ -197,7 +197,7 @@ cleanup:
 
     if (hDb != (HANDLE)NULL)
     {
-       SrvShareDbClose(pShareDBContext, hDb);
+       SrvShareDbClose(pShareList, hDb);
     }
 
     if (pszError)
@@ -227,7 +227,7 @@ error:
 //
 NTSTATUS
 SrvShareDbOpen(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PHANDLE phDb
     )
 {
@@ -259,7 +259,7 @@ error:
 
 NTSTATUS
 SrvShareDbAdd(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -271,10 +271,10 @@ SrvShareDbAdd(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
     ntStatus = SrvShareDbAdd_inlock(
-                    pShareDBContext,
+                    pShareList,
                     hDb,
                     pszShareName,
                     pszPath,
@@ -285,7 +285,7 @@ SrvShareDbAdd(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 
@@ -296,7 +296,7 @@ error:
 
 NTSTATUS
 SrvShareDbAdd_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -375,7 +375,7 @@ error:
 
 NTSTATUS
 SrvShareMapFromWindowsPath(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     )
@@ -489,7 +489,7 @@ error:
 
 NTSTATUS
 SrvShareMapToWindowsPath(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     )
@@ -643,7 +643,7 @@ error:
 
 NTSTATUS
 SrvShareDbEnum(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -654,10 +654,10 @@ SrvShareDbEnum(
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     ntStatus = SrvShareDbEnum_inlock(
-                      pShareDBContext,
+                      pShareList,
                       hDb,
                       ulOffset,
                       ulLimit,
@@ -665,7 +665,7 @@ SrvShareDbEnum(
                       pulNumSharesFound
 		      );
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 }
@@ -673,7 +673,7 @@ SrvShareDbEnum(
 
 NTSTATUS
 SrvShareDbEnum_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -771,7 +771,7 @@ error:
 
 NTSTATUS
 SrvShareDbFindByName(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE          hDb,
     PCSTR           pszShareName,
     PSHARE_DB_INFO* ppShareInfo
@@ -795,7 +795,7 @@ SrvShareDbFindByName(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     pszQuery = sqlite3_mprintf(DB_QUERY_LOOKUP_SHARE_BY_NAME, pszShareName);
 
@@ -853,7 +853,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     if (ppShareInfoList)
     {
@@ -1009,7 +1009,7 @@ error:
 
 NTSTATUS
 SrvShareDbDelete(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE hDb,
     PCSTR  pszShareName
     )
@@ -1026,7 +1026,7 @@ SrvShareDbDelete(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    //    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareDBContext->mutex);
+    //    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
     pszQuery = sqlite3_mprintf(
                     DB_QUERY_DELETE_SHARE,
@@ -1057,7 +1057,7 @@ cleanup:
         sqlite3_free(pszError);
     }
 
-    //    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    //    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 
@@ -1073,7 +1073,7 @@ error:
 
 NTSTATUS
 SrvShareDbGetCount(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE  hDb,
     PULONG  pulNumShares
     )
@@ -1086,7 +1086,7 @@ SrvShareDbGetCount(
     sqlite3* pDbHandle = (sqlite3*)hDb;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareDBContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     ntStatus = sqlite3_get_table(pDbHandle,
                                 DB_QUERY_COUNT_EXISTING_SHARES,
@@ -1115,7 +1115,7 @@ cleanup:
        sqlite3_free(pszError);
     }
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareDBContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 
@@ -1196,7 +1196,7 @@ SrvShareDbFreeInfo(
 
 VOID
 SrvShareDbClose(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     HANDLE hDb
     )
 {
@@ -1205,12 +1205,12 @@ SrvShareDbClose(
 
 VOID
 SrvShareDbShutdown(
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
-    if (pShareDBContext->pMutex)
+    if (pShareList->pMutex)
     {
-        pthread_rwlock_destroy(&pShareDBContext->mutex);
-        pShareDBContext->pMutex = NULL;
+        pthread_rwlock_destroy(&pShareList->mutex);
+        pShareList->pMutex = NULL;
     }
 }

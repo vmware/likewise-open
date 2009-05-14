@@ -34,7 +34,7 @@
 
 NTSTATUS
 SrvShareInitContextContents(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     );
 
 
@@ -52,13 +52,13 @@ SrvShareGetServiceId(
 
 VOID
 SrvShareFreeContextContents(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     );
 
 
 NTSTATUS
 SrvFindShareByName(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pszShareName,
     PSHARE_DB_INFO *ppShareInfo
     );
@@ -66,7 +66,7 @@ SrvFindShareByName(
 
 NTSTATUS
 SrvShareAddShare(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR  pwszShareName,
     PWSTR  pwszPath,
     PWSTR  pwszComment,
@@ -76,14 +76,14 @@ SrvShareAddShare(
 
 NTSTATUS
 SrvShareDeleteShare(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName
     );
 
 
 NTSTATUS
 SrvShareSetInfo(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO pShareInfo
     );
@@ -91,7 +91,7 @@ SrvShareSetInfo(
 
 NTSTATUS
 SrvShareGetInfo(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     );
@@ -99,7 +99,7 @@ SrvShareGetInfo(
 
 NTSTATUS
 SrvShareEnumShares(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     DWORD dwLevel,
     PSHARE_DB_INFO** pppShareInfo,
     PDWORD pdwNumEntries

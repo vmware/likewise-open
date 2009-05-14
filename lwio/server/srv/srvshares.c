@@ -60,7 +60,7 @@ SrvDevCtlAddShare(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_LIST pShareList = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
@@ -129,16 +129,16 @@ SrvDevCtlAddShare(
 
     }
 
-    pDbContext = &gSMBSrvGlobals.shareDBContext;
+    pShareList = &gSMBSrvGlobals.shareList;
 
     ntStatus = SrvShareMapFromWindowsPath(
-                    pDbContext,
+                    pShareList,
                     pwszPath,
                     &pwszPathLocal);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareAddShare(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         pwszPathLocal,
                         pwszComment,
@@ -169,7 +169,7 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_LIST pShareList = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -180,11 +180,11 @@ SrvDevCtlDeleteShare(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDbContext    = &gSMBSrvGlobals.shareDBContext;
+    pShareList    = &gSMBSrvGlobals.shareList;
     pwszShareName = pDeleteShareInfoParams->netname;
 
     ntStatus = SrvShareDeleteShare(
-                        pDbContext,
+                        pShareList,
                         pwszShareName
                         );
 
@@ -212,7 +212,7 @@ SrvDevCtlEnumShares(
     ULONG i = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_LIST pShareList = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO* ppShares = NULL;
@@ -231,11 +231,11 @@ SrvDevCtlEnumShares(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDbContext = &gSMBSrvGlobals.shareDBContext;
+    pShareList = &gSMBSrvGlobals.shareList;
     ulLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareEnumShares(
-                        pDbContext,
+                        pShareList,
                         ulLevel,
                         &ppShares,
                         &ulNumEntries);
@@ -303,7 +303,7 @@ SrvDevCtlEnumShares(
                 p2[i].shi2_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
-                                pDbContext,
+                                pShareList,
                                 pShareInfo->pwszPath,
                                 &p2[i].shi2_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -357,7 +357,7 @@ SrvDevCtlEnumShares(
                 p502[i].shi502_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
-                                pDbContext,
+                                pShareList,
                                 pShareInfo->pwszPath,
                                 &p502[i].shi502_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -485,7 +485,7 @@ SrvDevCtlGetShareInfo(
     ULONG ulLevel = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_LIST pShareList = NULL;
     PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
@@ -505,12 +505,12 @@ SrvDevCtlGetShareInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDbContext    = &gSMBSrvGlobals.shareDBContext;
+    pShareList    = &gSMBSrvGlobals.shareList;
     pwszShareName = pGetShareInfoParamsIn->pwszNetname;
     ulLevel       = pGetShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareGetInfo(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -563,7 +563,7 @@ SrvDevCtlGetShareInfo(
             p2->shi2_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
-                            pDbContext,
+                            pShareList,
                             pShareInfo->pwszPath,
                             &p2->shi2_path);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -607,7 +607,7 @@ SrvDevCtlGetShareInfo(
             p502->shi502_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
-                            pDbContext,
+                            pShareList,
                             pShareInfo->pwszPath,
                             &p502->shi502_path);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -713,7 +713,7 @@ SrvDevCtlSetShareInfo(
 {
     NTSTATUS ntStatus = 0;
     ULONG ulLevel = 0;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_LIST pShareList = NULL;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
     PWSTR pwszShareName = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;
@@ -730,12 +730,12 @@ SrvDevCtlSetShareInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pDbContext    = &gSMBSrvGlobals.shareDBContext;
+    pShareList    = &gSMBSrvGlobals.shareList;
     pwszShareName = pSetShareInfoParamsIn->pwszNetname;
     ulLevel       = pSetShareInfoParamsIn->dwInfoLevel;
 
     ntStatus = SrvShareGetInfo(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         &pShareInfo
                         );
@@ -789,7 +789,7 @@ SrvDevCtlSetShareInfo(
     }
 
     ntStatus = SrvShareSetInfo(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         pShareInfo
                         );
