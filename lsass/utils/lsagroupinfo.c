@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -95,6 +95,104 @@ LsaFreeGroupInfo(
             LSA_LOG_ERROR("Unsupported Group Info Level [%d]", dwLevel);
         }
     }
+}
+
+DWORD
+LsaBuildGroupModInfo(
+    gid_t gid,
+    PLSA_GROUP_MOD_INFO* ppGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_MOD_INFO pGroupModInfo = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(LSA_GROUP_MOD_INFO),
+                    (PVOID*)&pGroupModInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupModInfo->gid = gid;
+
+    *ppGroupModInfo = pGroupModInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pGroupModInfo) {
+        LsaFreeGroupModInfo(pGroupModInfo);
+    }
+
+    *ppGroupModInfo = NULL;
+    goto cleanup;
+}
+
+DWORD
+LsaModifyGroup_AddToGroups(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PCSTR pszGroupList
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pGroupModInfo);
+
+    LSA_SAFE_FREE_STRING(pGroupModInfo->pszAddToGroups);
+
+    if (!IsNullOrEmptyString(pszGroupList))
+    {
+        dwError = LsaAllocateString(
+                    pszGroupList,
+                    &pGroupModInfo->pszAddToGroups);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pGroupModInfo->actions.bAddToGroups = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaModifyGroup_RemoveFromGroups(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PCSTR pszGroupList
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_POINTER(pGroupModInfo);
+
+    LSA_SAFE_FREE_STRING(pGroupModInfo->pszRemoveFromGroups);
+
+    if (!IsNullOrEmptyString(pszGroupList))
+    {
+       dwError = LsaAllocateString(
+                   pszGroupList,
+                   &pGroupModInfo->pszRemoveFromGroups);
+       BAIL_ON_LSA_ERROR(dwError);
+
+       pGroupModInfo->actions.bRemoveFromGroups = TRUE;
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+void
+LsaFreeGroupModInfo(
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    LSA_SAFE_FREE_STRING(pGroupModInfo->pszAddToGroups);
+    LSA_SAFE_FREE_STRING(pGroupModInfo->pszRemoveFromGroups);
+    LsaFreeMemory(pGroupModInfo);
 }
 
 void
@@ -240,3 +338,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
