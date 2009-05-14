@@ -74,6 +74,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     .pfnModifyUser             = &LocalModifyUser,
     .pfnDeleteUser             = &LocalDeleteUser,
     .pfnAddGroup               = &LocalAddGroup,
+    .pfnModifyGroup            = &LocalModifyGroup,
     .pfnDeleteGroup            = &LocalDeleteGroup,
     .pfnOpenSession            = &LocalOpenSession,
     .pfnCloseSession           = &LocalCloseSession,
