@@ -225,6 +225,12 @@ LsaTransactGetNamesBySidList(
     );
 
 DWORD
+LsaTransactModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LsaTransactProviderIoControl(
     IN HANDLE  hServer,
     IN PCSTR   pszProvider,

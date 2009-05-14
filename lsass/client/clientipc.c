@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -1556,6 +1556,54 @@ error:
 }
 
 DWORD
+LsaTransactModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    request.tag    = LSA_Q_MODIFY_GROUP;
+    request.object = pGroupModInfo;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag) {
+    case LSA_R_MODIFY_GROUP_SUCCESS:
+        break;
+
+    case LSA_R_MODIFY_GROUP_FAILURE:
+        pError = (PLSA_IPC_ERROR)response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object) {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LsaTransactProviderIoControl(
     IN HANDLE  hServer,
     IN PCSTR   pszProvider,
@@ -1631,3 +1679,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
