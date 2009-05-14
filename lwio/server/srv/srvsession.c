@@ -3,7 +3,7 @@
 static
 NTSTATUS
 SrvSessionAcquireTreeId_inlock(
-   PSMB_SRV_SESSION pSession,
+   PLWIO_SRV_SESSION pSession,
    PUSHORT          pTid
    );
 
@@ -23,24 +23,24 @@ SrvSessionTreeRelease(
 static
 VOID
 SrvSessionFree(
-    PSMB_SRV_SESSION pSession
+    PLWIO_SRV_SESSION pSession
     );
 
 NTSTATUS
 SrvSessionCreate(
     USHORT            uid,
-    PSMB_SRV_SESSION* ppSession
+    PLWIO_SRV_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
 
     LWIO_LOG_DEBUG("Creating session [uid:%u]", uid);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pSession,
-                    SMB_SRV_SESSION,
-                    sizeof(SMB_SRV_SESSION));
+                    LWIO_SRV_SESSION,
+                    sizeof(LWIO_SRV_SESSION));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->refcount = 1;
@@ -83,14 +83,14 @@ error:
 
 NTSTATUS
 SrvSessionFindTree(
-    PSMB_SRV_SESSION pSession,
+    PLWIO_SRV_SESSION pSession,
     USHORT           tid,
-    PSMB_SRV_TREE*   ppTree
+    PLWIO_SRV_TREE*   ppTree
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PSMB_SRV_TREE pTree = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
@@ -119,7 +119,7 @@ error:
 
 NTSTATUS
 SrvSessionRemoveTree(
-    PSMB_SRV_SESSION pSession,
+    PLWIO_SRV_SESSION pSession,
     USHORT           tid
     )
 {
@@ -146,13 +146,13 @@ error:
 
 NTSTATUS
 SrvSessionCreateTree(
-    PSMB_SRV_SESSION pSession,
+    PLWIO_SRV_SESSION pSession,
     PSHARE_DB_INFO   pShareInfo,
-    PSMB_SRV_TREE*   ppTree
+    PLWIO_SRV_TREE*   ppTree
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_TREE pTree = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
     BOOLEAN bInLock = FALSE;
     USHORT  tid = 0;
 
@@ -199,7 +199,7 @@ error:
 
 NTSTATUS
 SrvSessionGetNamedPipeClientPrincipal(
-    IN     PSMB_SRV_SESSION pSession,
+    IN     PLWIO_SRV_SESSION pSession,
     IN OUT PIO_ECP_LIST     pEcpList
     )
 {
@@ -225,7 +225,7 @@ error:
 
 VOID
 SrvSessionRelease(
-    PSMB_SRV_SESSION pSession
+    PLWIO_SRV_SESSION pSession
     )
 {
     LWIO_LOG_DEBUG("Releasing session [uid:%u]", pSession->uid);
@@ -239,7 +239,7 @@ SrvSessionRelease(
 static
 NTSTATUS
 SrvSessionAcquireTreeId_inlock(
-   PSMB_SRV_SESSION pSession,
+   PLWIO_SRV_SESSION pSession,
    PUSHORT          pTid
    )
 {
@@ -249,7 +249,7 @@ SrvSessionAcquireTreeId_inlock(
 
     do
     {
-        PSMB_SRV_TREE pTree = NULL;
+        PLWIO_SRV_TREE pTree = NULL;
 
         /* 0 is never a valid tid */
 
@@ -332,13 +332,13 @@ SrvSessionTreeRelease(
     PVOID pTree
     )
 {
-    SrvTreeRelease((PSMB_SRV_TREE)pTree);
+    SrvTreeRelease((PLWIO_SRV_TREE)pTree);
 }
 
 static
 VOID
 SrvSessionFree(
-    PSMB_SRV_SESSION pSession
+    PLWIO_SRV_SESSION pSession
     )
 {
     LWIO_LOG_DEBUG("Freeing session [object:0x%x][uid:%u]",

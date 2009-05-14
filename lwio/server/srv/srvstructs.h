@@ -49,14 +49,14 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _SMB_SRV_CONFIG
+typedef struct _LWIO_SRV_CONFIG
 {
     ULONG ulNumReaders;
     ULONG ulNumWorkers;
     ULONG ulMaxNumWorkItemsInQueue;
     ULONG ulMaxNumPackets;
 
-} SMB_SRV_CONFIG, *PSMB_SRV_CONFIG;
+} LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
 
 typedef struct _SRV_HOST_INFO
 {
@@ -108,7 +108,7 @@ typedef struct _SRV_SHARE_ENTRY
 } SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
 
 
-typedef struct _SMB_SRV_SHARE_DB_CONTEXT
+typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
 {
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
@@ -119,7 +119,7 @@ typedef struct _SMB_SRV_SHARE_DB_CONTEXT
     PWSTR             pwszFileSystemRoot;
     PWSTR             pwszPipeSystemRoot;
 
-} SMB_SRV_SHARE_DB_CONTEXT, *PSMB_SRV_SHARE_DB_CONTEXT;
+} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
 
 
 typedef ULONG CCB_TYPE;
@@ -173,7 +173,7 @@ typedef struct _SMB_PROD_CONS_QUEUE
 
 } SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
-typedef struct _SMB_SRV_SOCKET
+typedef struct _LWIO_SRV_SOCKET
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -182,7 +182,7 @@ typedef struct _SMB_SRV_SOCKET
 
     struct sockaddr_in cliaddr;
 
-} SMB_SRV_SOCKET, *PSMB_SRV_SOCKET;
+} LWIO_SRV_SOCKET, *PLWIO_SRV_SOCKET;
 
 typedef struct _SRV_PROPERTIES
 {
@@ -224,7 +224,7 @@ typedef struct _SRV_ID_ALLOCATOR
 
 } SRV_ID_ALLOCATOR, *PSRV_ID_ALLOCATOR;
 
-typedef struct _SMB_SRV_FILE
+typedef struct _LWIO_SRV_FILE
 {
     pthread_rwlock_t        mutex;
     pthread_rwlock_t*       pMutex;
@@ -243,9 +243,9 @@ typedef struct _SMB_SRV_FILE
     FILE_CREATE_DISPOSITION createDisposition;
     FILE_CREATE_OPTIONS     createOptions;
 
-} SMB_SRV_FILE, *PSMB_SRV_FILE;
+} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
-typedef struct _SMB_SRV_TREE
+typedef struct _LWIO_SRV_TREE
 {
     LONG                   refcount;
 
@@ -260,9 +260,9 @@ typedef struct _SMB_SRV_TREE
 
     USHORT            nextAvailableFid;
 
-} SMB_SRV_TREE, *PSMB_SRV_TREE;
+} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
 
-typedef struct _SMB_SRV_SESSION
+typedef struct _LWIO_SRV_SESSION
 {
     LONG              refcount;
 
@@ -281,18 +281,18 @@ typedef struct _SMB_SRV_SESSION
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
-} SMB_SRV_SESSION, *PSMB_SRV_SESSION;
+} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
 
-typedef struct _SMB_SRV_CONNECTION
+typedef struct _LWIO_SRV_CONNECTION
 {
     LONG                refCount;
 
     pthread_rwlock_t     mutex;
     pthread_rwlock_t*    pMutex;
 
-    SMB_SRV_CONN_STATE  state;
+    LWIO_SRV_CONN_STATE  state;
 
-    PSMB_SRV_SOCKET     pSocket;
+    PLWIO_SRV_SOCKET     pSocket;
 
     SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
@@ -316,7 +316,7 @@ typedef struct _SMB_SRV_CONNECTION
     ULONG               ulSessionKeyLength;
 
     PSRV_HOST_INFO      pHostinfo;
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext;
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext;
 
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
@@ -325,11 +325,11 @@ typedef struct _SMB_SRV_CONNECTION
 
     USHORT              nextAvailableUid;
 
-} SMB_SRV_CONNECTION, *PSMB_SRV_CONNECTION;
+} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
 typedef struct _LWIO_SRV_CONTEXT
 {
-    PSMB_SRV_CONNECTION pConnection;
+    PLWIO_SRV_CONNECTION pConnection;
 
     PSMB_PACKET         pRequest;
 
@@ -337,7 +337,7 @@ typedef struct _LWIO_SRV_CONTEXT
 
 } LWIO_SRV_CONTEXT, *PLWIO_SRV_CONTEXT;
 
-typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
+typedef struct _LWIO_SRV_SOCKET_READER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -355,20 +355,20 @@ typedef struct _SMB_SRV_SOCKET_READER_CONTEXT
     // pipe used to interrupt the reader
     int fd[2];
 
-} SMB_SRV_SOCKET_READER_CONTEXT, *PSMB_SRV_SOCKET_READER_CONTEXT;
+} LWIO_SRV_SOCKET_READER_CONTEXT, *PLWIO_SRV_SOCKET_READER_CONTEXT;
 
-typedef struct _SMB_SRV_SOCKET_READER
+typedef struct _LWIO_SRV_SOCKET_READER
 {
     pthread_t  reader;
     pthread_t* pReader;
 
     ULONG      readerId;
 
-    SMB_SRV_SOCKET_READER_CONTEXT context;
+    LWIO_SRV_SOCKET_READER_CONTEXT context;
 
-} SMB_SRV_SOCKET_READER, *PSMB_SRV_SOCKET_READER;
+} LWIO_SRV_SOCKET_READER, *PLWIO_SRV_SOCKET_READER;
 
-typedef struct _SMB_SRV_WORKER_CONTEXT
+typedef struct _LWIO_SRV_WORKER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -381,20 +381,20 @@ typedef struct _SMB_SRV_WORKER_CONTEXT
     // not owned
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 
-} SMB_SRV_WORKER_CONTEXT, *PSMB_SRV_WORKER_CONTEXT;
+} LWIO_SRV_WORKER_CONTEXT, *PLWIO_SRV_WORKER_CONTEXT;
 
-typedef struct _SMB_SRV_WORKER
+typedef struct _LWIO_SRV_WORKER
 {
     pthread_t  worker;
     pthread_t* pWorker;
 
     ULONG      workerId;
 
-    SMB_SRV_WORKER_CONTEXT context;
+    LWIO_SRV_WORKER_CONTEXT context;
 
-} SMB_SRV_WORKER, *PSMB_SRV_WORKER;
+} LWIO_SRV_WORKER, *PLWIO_SRV_WORKER;
 
-typedef struct _SMB_SRV_LISTENER_CONTEXT
+typedef struct _LWIO_SRV_LISTENER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -407,46 +407,46 @@ typedef struct _SMB_SRV_LISTENER_CONTEXT
     // Not owned
     HANDLE                    hPacketAllocator;
     HANDLE                    hGssContext;
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext;
-    PSMB_SRV_SOCKET_READER    pReaderArray;
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext;
+    PLWIO_SRV_SOCKET_READER    pReaderArray;
     ULONG                     ulNumReaders;
 
-} SMB_SRV_LISTENER_CONTEXT, *PSMB_SRV_LISTENER_CONTEXT;
+} LWIO_SRV_LISTENER_CONTEXT, *PLWIO_SRV_LISTENER_CONTEXT;
 
-typedef struct _SMB_SRV_LISTENER
+typedef struct _LWIO_SRV_LISTENER
 {
     pthread_t  listener;
     pthread_t* pListener;
 
-    SMB_SRV_LISTENER_CONTEXT context;
+    LWIO_SRV_LISTENER_CONTEXT context;
 
-} SMB_SRV_LISTENER, *PSMB_SRV_LISTENER;
+} LWIO_SRV_LISTENER, *PLWIO_SRV_LISTENER;
 
 
-typedef struct _SMB_SRV_RUNTIME_GLOBALS
+typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 {
     pthread_mutex_t          mutex;
     pthread_mutex_t*         pMutex;
 
-    SMB_SRV_CONFIG           config;
+    LWIO_SRV_CONFIG           config;
 
-    SMB_SRV_SHARE_DB_CONTEXT shareDBContext;
+    LWIO_SRV_SHARE_DB_CONTEXT shareDBContext;
 
     SMB_PROD_CONS_QUEUE      workQueue;
 
-    PSMB_SRV_SOCKET_READER   pReaderArray;
+    PLWIO_SRV_SOCKET_READER   pReaderArray;
     ULONG                    ulNumReaders;
 
-    PSMB_SRV_WORKER          pWorkerArray;
+    PLWIO_SRV_WORKER          pWorkerArray;
     ULONG                    ulNumWorkers;
 
-    SMB_SRV_LISTENER         listener;
+    LWIO_SRV_LISTENER         listener;
 
     PLWIO_PACKET_ALLOCATOR   hPacketAllocator;
 
     PSRV_CCB                 pCCBList;
 
-} SMB_SRV_RUNTIME_GLOBALS, *PSMB_SRV_RUNTIME_GLOBALS;
+} LWIO_SRV_RUNTIME_GLOBALS, *PLWIO_SRV_RUNTIME_GLOBALS;
 
 
 #endif /* __STRUCTS_H__ */

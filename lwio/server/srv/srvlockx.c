@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvExecuteLargeFileLocks(
-    PSMB_SRV_FILE                    pFile,
+    PLWIO_SRV_FILE                    pFile,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge
@@ -42,7 +42,7 @@ SrvExecuteLargeFileLocks(
 static
 NTSTATUS
 SrvExecuteLocks(
-    PSMB_SRV_FILE                    pFile,
+    PLWIO_SRV_FILE                    pFile,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE              pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange
@@ -51,7 +51,7 @@ SrvExecuteLocks(
 static
 NTSTATUS
 SrvUnlockFile(
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PLOCKING_ANDX_RANGE pLockInfo,
     ULONG               ulKey
     );
@@ -59,7 +59,7 @@ SrvUnlockFile(
 static
 NTSTATUS
 SrvUnlockLargeFile(
-    PSMB_SRV_FILE                  pFile,
+    PLWIO_SRV_FILE                  pFile,
     PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo,
     ULONG                          ulKey
     );
@@ -67,7 +67,7 @@ SrvUnlockLargeFile(
 static
 NTSTATUS
 SrvBuildLockingAndXResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     );
@@ -79,11 +79,11 @@ SrvProcessLockAndX(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader = NULL;  // Do not free
     PLOCKING_ANDX_RANGE              pUnlockRange = NULL;    // Do not free
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge = NULL; // Do not free
@@ -184,7 +184,7 @@ error:
 static
 NTSTATUS
 SrvExecuteLargeFileLocks(
-    PSMB_SRV_FILE                    pFile,
+    PLWIO_SRV_FILE                    pFile,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
     PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge
@@ -283,7 +283,7 @@ error:
 static
 NTSTATUS
 SrvExecuteLocks(
-    PSMB_SRV_FILE                    pFile,
+    PLWIO_SRV_FILE                    pFile,
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
     PLOCKING_ANDX_RANGE              pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange
@@ -376,7 +376,7 @@ error:
 static
 NTSTATUS
 SrvUnlockFile(
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PLOCKING_ANDX_RANGE pLockInfo,
     ULONG               ulKey
     )
@@ -398,7 +398,7 @@ SrvUnlockFile(
 static
 NTSTATUS
 SrvUnlockLargeFile(
-    PSMB_SRV_FILE                  pFile,
+    PLWIO_SRV_FILE                  pFile,
     PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo,
     ULONG                          ulKey
     )
@@ -426,7 +426,7 @@ SrvUnlockLargeFile(
 static
 NTSTATUS
 SrvBuildLockingAndXResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     )

@@ -47,7 +47,7 @@ SrvUnmarshallFindFirst2Params(
 static
 NTSTATUS
 SrvBuildFindFirst2Response(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
@@ -61,7 +61,7 @@ SrvBuildFindFirst2Response(
 
 NTSTATUS
 SrvProcessTrans2FindFirst2(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -249,7 +249,7 @@ error:
 static
 NTSTATUS
 SrvBuildFindFirst2Response(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usSearchAttrs,
     USHORT              usSearchCount,
@@ -262,8 +262,8 @@ SrvBuildFindFirst2Response(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
     SMB_FIND_FIRST2_RESPONSE_PARAMETERS responseParams = {0};
     BOOLEAN   bReturnSingleEntry = FALSE;
     BOOLEAN   bRestartScan = FALSE;

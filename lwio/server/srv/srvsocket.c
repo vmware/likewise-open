@@ -4,11 +4,11 @@ NTSTATUS
 SrvSocketCreate(
     int fd,
     struct sockaddr_in* pClientAddr,
-    PSMB_SRV_SOCKET* ppSocket
+    PLWIO_SRV_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SOCKET pSocket = NULL;
+    PLWIO_SRV_SOCKET pSocket = NULL;
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
@@ -18,8 +18,8 @@ SrvSocketCreate(
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pSocket,
-                    SMB_SRV_SOCKET,
-                    sizeof(SMB_SRV_SOCKET));
+                    LWIO_SRV_SOCKET,
+                    sizeof(LWIO_SRV_SOCKET));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pthread_mutex_init(&pSocket->mutex, NULL);
@@ -43,7 +43,7 @@ error:
 
 VOID
 SrvSocketFree(
-    PSMB_SRV_SOCKET pSocket
+    PLWIO_SRV_SOCKET pSocket
     )
 {
     if (pSocket->fd >= 0)

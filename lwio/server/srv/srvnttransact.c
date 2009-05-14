@@ -49,9 +49,9 @@ typedef struct
 static
 NTSTATUS
 SrvQuerySecurityDescriptor(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     ULONG               ulMaxDataCount,
@@ -61,9 +61,9 @@ SrvQuerySecurityDescriptor(
 static
 NTSTATUS
 SrvSetSecurityDescriptor(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -74,9 +74,9 @@ SrvSetSecurityDescriptor(
 static
 NTSTATUS
 SrvProcessIOCTL(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -87,7 +87,7 @@ SrvProcessIOCTL(
 static
 NTSTATUS
 SrvExecuteFsctl(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     ULONG         ulDataLen,
     ULONG         ulFunctionCode,
@@ -98,7 +98,7 @@ SrvExecuteFsctl(
 static
 NTSTATUS
 SrvExecuteIoctl(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     ULONG         ulDataLen,
     ULONG         ulControlCode,
@@ -113,16 +113,16 @@ SrvProcessNtTransact(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PNT_TRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PUSHORT pusBytecount = NULL; // Do not free
     PUSHORT pSetup = NULL; // Do not free
     PBYTE   pParameters = NULL; // Do not free
     PBYTE   pData = NULL; // Do not free
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
-    PSMB_SRV_FILE    pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_FILE    pFile = NULL;
     ULONG       ulOffset = 0;
     PSMB_PACKET pSmbResponse = NULL;
 
@@ -245,9 +245,9 @@ error:
 static
 NTSTATUS
 SrvQuerySecurityDescriptor(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     ULONG               ulMaxDataCount,
@@ -255,7 +255,7 @@ SrvQuerySecurityDescriptor(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     PUSHORT       pSetup = NULL;
     UCHAR         ucSetupCount = 0;
     PBYTE         pSecurityDescriptor = NULL;
@@ -412,9 +412,9 @@ error:
 static
 NTSTATUS
 SrvSetSecurityDescriptor(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -423,7 +423,7 @@ SrvSetSecurityDescriptor(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     PUSHORT pSetup = NULL;
     UCHAR   ucSetupCount = 0;
     ULONG   ulDataOffset = 0;
@@ -532,9 +532,9 @@ error:
 static
 NTSTATUS
 SrvProcessIOCTL(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -543,7 +543,7 @@ SrvProcessIOCTL(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     UCHAR   ucSetupCount = 1;
     ULONG   ulDataOffset = 0;
     ULONG   ulParameterOffset = 0;
@@ -678,7 +678,7 @@ error:
 static
 NTSTATUS
 SrvExecuteFsctl(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     ULONG         ulDataLen,
     ULONG         ulFunctionCode,
@@ -769,7 +769,7 @@ error:
 static
 NTSTATUS
 SrvExecuteIoctl(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     ULONG         ulDataLen,
     ULONG         ulControlCode,

@@ -33,8 +33,8 @@
 static
 NTSTATUS
 SrvExecuteRename(
-    PSMB_SRV_SESSION pSession,
-    PSMB_SRV_TREE pTree,
+    PLWIO_SRV_SESSION pSession,
+    PLWIO_SRV_TREE pTree,
     USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
     PWSTR         pwszNewName
@@ -43,7 +43,7 @@ SrvExecuteRename(
 static
 NTSTATUS
 SrvBuildRenameResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     );
@@ -55,10 +55,10 @@ SrvProcessRename(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
     PSMB_RENAME_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR       pwszOldName = NULL; // Do not free
     PWSTR       pwszNewName = NULL; // Do not free
@@ -125,8 +125,8 @@ error:
 static
 NTSTATUS
 SrvExecuteRename(
-    PSMB_SRV_SESSION pSession,
-    PSMB_SRV_TREE pTree,
+    PLWIO_SRV_SESSION pSession,
+    PLWIO_SRV_TREE pTree,
     USHORT        usSearchAttributes,
     PWSTR         pwszOldName,
     PWSTR         pwszNewName
@@ -266,7 +266,7 @@ error:
 static
 NTSTATUS
 SrvBuildRenameResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     )

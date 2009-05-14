@@ -4,17 +4,17 @@
 NTSTATUS
 SrvWorkerInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
-    PSMB_SRV_WORKER      pWorker
+    PLWIO_SRV_WORKER      pWorker
     );
 
 VOID
 SrvWorkerIndicateStop(
-    PSMB_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker
     );
 
 VOID
 SrvWorkerFreeContents(
-    PSMB_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker
     );
 
 #endif /* __WORKER_H__ */

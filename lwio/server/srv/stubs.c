@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbSendReply(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     NTSTATUS ntStatus = 0;

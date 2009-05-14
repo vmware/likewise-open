@@ -31,7 +31,7 @@
 #include "includes.h"
 
 typedef NTSTATUS (*PFN_SRV_BUILD_NEGOTIATE_RESPONSE)(
-                        PSMB_SRV_CONNECTION pConnection,
+                        PLWIO_SRV_CONNECTION pConnection,
 			PSMB_PACKET         pSmbRequest,
                         uint16_t            idxDialect,
                         PSMB_PACKET         pPacket
@@ -46,7 +46,7 @@ typedef struct _SRV_NEGOTIATE_RESPONSE_HANDLER
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     uint16_t            idxDialect,
     PSMB_PACKET         pPacket
@@ -55,7 +55,7 @@ SrvBuildNegotiateResponseByDialect_NTLM_0_12(
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_Invalid(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     uint16_t            idxDialect,
     PSMB_PACKET         pPacket
@@ -71,7 +71,7 @@ static SRV_NEGOTIATE_RESPONSE_HANDLER gNegotiateResponseHandlers[] =
 static
 NTSTATUS
 SrvMarshallNegotiateResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSTR*               ppDialectArray,
     ULONG               ulNumDialects,
@@ -88,7 +88,7 @@ SrvChooseDialect(
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     uint16_t            idxDialect,
     PCSTR               pszDialect,
@@ -105,7 +105,7 @@ SrvProcessNegotiate(
     PSMB_PACKET pSmbResponse = NULL;
     PSTR  pszDialectArray[128];
     ULONG ulNumDialects = 128;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
     ULONG ulOffset = 0;
 
@@ -126,7 +126,7 @@ SrvProcessNegotiate(
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_NEGOTIATE);
+    SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_NEGOTIATE);
 
     *ppSmbResponse = pSmbResponse;
 
@@ -151,7 +151,7 @@ error:
 static
 NTSTATUS
 SrvMarshallNegotiateResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSTR*               ppDialectArray,
     ULONG               ulNumDialects,
@@ -231,7 +231,7 @@ SrvChooseDialect(
 static
 NTSTATUS
 SrvBuildNegotiateResponseForDialect(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     uint16_t            idxDialect,
     PCSTR               pszDialect,
@@ -277,7 +277,7 @@ error:
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET pSmbRequest,
     uint16_t    idxDialect,
     PSMB_PACKET pPacket
@@ -410,7 +410,7 @@ error:
 static
 NTSTATUS
 SrvBuildNegotiateResponseByDialect_Invalid(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET pSmbRequest,
     uint16_t    idxDialect,
     PSMB_PACKET pPacket

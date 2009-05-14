@@ -42,7 +42,7 @@ SrvUnmarshallSetFileInfoParams(
 static
 NTSTATUS
 SrvBuildSetFileInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usFid,
     SMB_INFO_LEVEL      smbInfoLevel,
@@ -54,9 +54,9 @@ SrvBuildSetFileInfoResponse(
 static
 NTSTATUS
 SrvBuildSetFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -65,9 +65,9 @@ SrvBuildSetFileBasicInfoResponse(
 static
 NTSTATUS
 SrvBuildSetFileDispositionInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -76,9 +76,9 @@ SrvBuildSetFileDispositionInfoResponse(
 static
 NTSTATUS
 SrvBuildSetFileAllocationInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -87,9 +87,9 @@ SrvBuildSetFileAllocationInfoResponse(
 static
 NTSTATUS
 SrvBuildSetEndOfFileResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -97,7 +97,7 @@ SrvBuildSetEndOfFileResponse(
 
 NTSTATUS
 SrvProcessTrans2SetFileInformation(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -203,7 +203,7 @@ error:
 static
 NTSTATUS
 SrvBuildSetFileInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usFid,
     SMB_INFO_LEVEL      smbInfoLevel,
@@ -213,9 +213,9 @@ SrvBuildSetFileInfoResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
-    PSMB_SRV_FILE    pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_FILE    pFile = NULL;
     PSMB_PACKET      pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -342,9 +342,9 @@ error:
 static
 NTSTATUS
 SrvBuildSetFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -449,9 +449,9 @@ error:
 static
 NTSTATUS
 SrvBuildSetFileDispositionInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -556,9 +556,9 @@ error:
 static
 NTSTATUS
 SrvBuildSetFileAllocationInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse
@@ -663,9 +663,9 @@ error:
 static
 NTSTATUS
 SrvBuildSetEndOfFileResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_FILE       pFile,
     PBYTE               pData,
     USHORT              usDataLen,
     PSMB_PACKET*        ppSmbResponse

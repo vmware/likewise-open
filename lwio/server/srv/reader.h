@@ -4,28 +4,28 @@
 NTSTATUS
 SrvSocketReaderInit(
     PSMB_PROD_CONS_QUEUE   pWorkQueue,
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     );
 
 ULONG
 SrvSocketReaderGetCount(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     );
 
 BOOLEAN
 SrvSocketReaderIsActive(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     );
 
 NTSTATUS
 SrvSocketReaderEnqueueConnection(
-    PSMB_SRV_SOCKET_READER pReader,
-    PSMB_SRV_CONNECTION    pConnection
+    PLWIO_SRV_SOCKET_READER pReader,
+    PLWIO_SRV_CONNECTION    pConnection
     );
 
 NTSTATUS
 SrvSocketReaderFreeContents(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     );
 
 #endif /* __READER_H__ */

@@ -7,7 +7,7 @@ SrvProcessTransaction2(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PTRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PUSHORT pBytecount = NULL; // Do not free

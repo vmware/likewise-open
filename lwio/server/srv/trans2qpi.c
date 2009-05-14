@@ -42,7 +42,7 @@ SrvUnmarshallQueryPathInfoParams(
 static
 NTSTATUS
 SrvBuildQueryPathInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     SMB_INFO_LEVEL      smbInfoLevel,
     PWSTR               pwszFilename,
@@ -51,7 +51,7 @@ SrvBuildQueryPathInfoResponse(
 
 NTSTATUS
 SrvProcessTrans2QueryPathInformation(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -163,7 +163,7 @@ error:
 static
 NTSTATUS
 SrvBuildQueryPathInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     SMB_INFO_LEVEL      smbInfoLevel,
     PWSTR               pwszFilename,
@@ -171,8 +171,8 @@ SrvBuildQueryPathInfoResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
     PSMB_PACKET      pSmbResponse = NULL;
     PWSTR            pwszFilepath = NULL;
     IO_FILE_HANDLE   hFile = NULL;

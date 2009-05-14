@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvBuildFlushResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     );
@@ -45,11 +45,11 @@ SrvProcessFlush(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     PFLUSH_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     ULONG ulOffset = 0;
     IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -130,7 +130,7 @@ error:
 static
 NTSTATUS
 SrvBuildFlushResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET*        ppSmbResponse
     )

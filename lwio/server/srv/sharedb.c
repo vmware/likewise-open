@@ -52,7 +52,7 @@
 static
 NTSTATUS
 SrvShareDbCreate(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
 static
@@ -83,7 +83,7 @@ SrvShareDbWriteToShareInfo(
 
 NTSTATUS
 SrvShareDbInit(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -121,7 +121,7 @@ error:
 static
 NTSTATUS
 SrvShareDbCreate(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -262,7 +262,7 @@ error:
 //
 NTSTATUS
 SrvShareDbOpen(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PHANDLE phDb
     )
 {
@@ -294,7 +294,7 @@ error:
 
 NTSTATUS
 SrvShareDbAdd(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -331,7 +331,7 @@ error:
 
 NTSTATUS
 SrvShareDbAdd_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -410,7 +410,7 @@ error:
 
 NTSTATUS
 SrvShareMapFromWindowsPath(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     )
@@ -527,7 +527,7 @@ error:
 
 NTSTATUS
 SrvShareMapToWindowsPath(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     )
@@ -680,7 +680,7 @@ error:
 
 NTSTATUS
 SrvShareDbEnum(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -710,7 +710,7 @@ SrvShareDbEnum(
 
 NTSTATUS
 SrvShareDbEnum_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -808,7 +808,7 @@ error:
 
 NTSTATUS
 SrvShareDbFindByName(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE          hDb,
     PCSTR           pszShareName,
     PSHARE_DB_INFO* ppShareInfo
@@ -1046,7 +1046,7 @@ error:
 
 NTSTATUS
 SrvShareDbDelete(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName
     )
@@ -1110,7 +1110,7 @@ error:
 
 NTSTATUS
 SrvShareDbGetCount(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE  hDb,
     PULONG  pulNumShares
     )
@@ -1233,7 +1233,7 @@ SrvShareDbFreeInfo(
 
 VOID
 SrvShareDbClose(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb
     )
 {
@@ -1242,7 +1242,7 @@ SrvShareDbClose(
 
 VOID
 SrvShareDbShutdown(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     )
 {
     if (pShareDBContext->pMutex)

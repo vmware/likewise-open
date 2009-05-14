@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvUnmarshallSessionSetupRequest(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PBYTE*              ppSecurityBlob,
     PULONG              pulSecurityBlobLength
@@ -42,7 +42,7 @@ SrvUnmarshallSessionSetupRequest(
 static
 NTSTATUS
 SrvMarshallSessionSetupResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usMid,
     PBYTE               pSecurityBlob,
@@ -60,9 +60,9 @@ SrvProcessSessionSetup(
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
     ULONG       ulSecurityBlobLength = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
     UNICODE_STRING uniUsername = {0};
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
@@ -124,7 +124,7 @@ SrvProcessSessionSetup(
 
         pSmbResponse->pSMBHeader->uid = pSession->uid;
 
-        SrvConnectionSetState(pConnection, SMB_SRV_CONN_STATE_READY);
+        SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
 
     *ppSmbResponse = pSmbResponse;
@@ -156,7 +156,7 @@ error:
 static
 NTSTATUS
 SrvUnmarshallSessionSetupRequest(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PBYTE*              ppSecurityBlob,
     PULONG              pulSecurityBlobLength
@@ -248,7 +248,7 @@ error:
 static
 NTSTATUS
 SrvMarshallSessionSetupResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usMid,
     PBYTE               pSecurityBlob,

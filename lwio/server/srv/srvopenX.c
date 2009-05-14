@@ -33,11 +33,11 @@
 static
 NTSTATUS
 SrvBuildOpenResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PIO_STATUS_BLOCK    pIoStatusBlock,
-    PSMB_SRV_TREE       pTree,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_TREE       pTree,
+    PLWIO_SRV_FILE       pFile,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -48,11 +48,11 @@ SrvProcessOpenAndX(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION     pSession = NULL;
-    PSMB_SRV_TREE        pTree = NULL;
-    PSMB_SRV_FILE        pFile = NULL;
+    PLWIO_SRV_SESSION     pSession = NULL;
+    PLWIO_SRV_TREE        pTree = NULL;
+    PLWIO_SRV_FILE        pFile = NULL;
     BOOLEAN              bRemoveFileFromTree = FALSE;
     POPEN_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR                pwszFilename = NULL; // Do not free
@@ -304,11 +304,11 @@ error:
 static
 NTSTATUS
 SrvBuildOpenResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PIO_STATUS_BLOCK    pIoStatusBlock,
-    PSMB_SRV_TREE       pTree,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_TREE       pTree,
+    PLWIO_SRV_FILE       pFile,
     PSMB_PACKET*        ppSmbResponse
     )
 {

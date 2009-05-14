@@ -13,12 +13,12 @@ SrvFileCreate(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PSMB_SRV_FILE*          ppFile
+    PLWIO_SRV_FILE*          ppFile
     );
 
 VOID
 SrvFileRelease(
-    PSMB_SRV_FILE pFile
+    PLWIO_SRV_FILE pFile
     );
 
 #endif /* __SRV_FILE_H__ */

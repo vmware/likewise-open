@@ -44,10 +44,10 @@ SrvProcessTreeDisconnectAndX(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -93,7 +93,7 @@ SrvBuildTreeDisconnectResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL;

@@ -47,7 +47,7 @@ SrvUnmarshallFindNext2Params(
 static
 NTSTATUS
 SrvBuildFindNext2Response(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usSearchId,
     USHORT              usSearchCount,
@@ -61,7 +61,7 @@ SrvBuildFindNext2Response(
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -241,7 +241,7 @@ error:
 static
 NTSTATUS
 SrvBuildFindNext2Response(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usSearchId,
     USHORT              usSearchCount,
@@ -254,7 +254,7 @@ SrvBuildFindNext2Response(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
     HANDLE           hSearchSpace = NULL;
     BOOLEAN          bEndOfSearch = FALSE;
     BOOLEAN          bReturnSingleEntry = FALSE;

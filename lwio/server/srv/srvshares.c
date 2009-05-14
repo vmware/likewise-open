@@ -60,7 +60,7 @@ SrvDevCtlAddShare(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
@@ -169,7 +169,7 @@ SrvDevCtlDeleteShare(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -212,7 +212,7 @@ SrvDevCtlEnumShares(
     ULONG i = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO* ppShares = NULL;
@@ -485,7 +485,7 @@ SrvDevCtlGetShareInfo(
     ULONG ulLevel = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
@@ -713,7 +713,7 @@ SrvDevCtlSetShareInfo(
 {
     NTSTATUS ntStatus = 0;
     ULONG ulLevel = 0;
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext = NULL;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
     PWSTR pwszShareName = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;

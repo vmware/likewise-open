@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessLogoffAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;
@@ -51,7 +51,7 @@ error:
 
 NTSTATUS
 MarshallLogoffAndXResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

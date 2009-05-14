@@ -32,7 +32,7 @@
 
 NTSTATUS
 SmbProcessEchoAndX(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     )
 {
     NTSTATUS ntStatus = 0;

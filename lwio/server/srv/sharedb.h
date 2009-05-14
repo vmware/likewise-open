@@ -51,18 +51,18 @@
 
 NTSTATUS
 SrvShareDbInit(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
 NTSTATUS
 SrvShareDbOpen(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PHANDLE phDb
     );
 
 NTSTATUS
 SrvShareDbFindByName(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PSHARE_DB_INFO* ppShareInfo
@@ -70,7 +70,7 @@ SrvShareDbFindByName(
 
 NTSTATUS
 SrvShareDbAdd(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -81,7 +81,7 @@ SrvShareDbAdd(
 
 NTSTATUS
 SrvShareDbAdd_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName,
     PCSTR  pszPath,
@@ -92,21 +92,21 @@ SrvShareDbAdd_inlock(
 
 NTSTATUS
 SrvShareMapFromWindowsPath(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     );
 
 NTSTATUS
 SrvShareMapToWindowsPath(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     PWSTR  pwszInputPath,
     PWSTR* ppwszPath
     );
 
 NTSTATUS
 SrvShareDbEnum(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -116,7 +116,7 @@ SrvShareDbEnum(
 
 NTSTATUS
 SrvShareDbEnum_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE           hDb,
     ULONG            ulOffset,
     ULONG            ulLimit,
@@ -126,14 +126,14 @@ SrvShareDbEnum_inlock(
 
 NTSTATUS
 SrvShareDbDelete(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PCSTR  pszShareName
     );
 
 NTSTATUS
 SrvShareDbGetCount(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb,
     PULONG pulNumShares
     );
@@ -151,13 +151,13 @@ SrvShareDbReleaseInfo(
 
 VOID
 SrvShareDbClose(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext,
     HANDLE hDb
     );
 
 VOID
 SrvShareDbShutdown(
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDBContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDBContext
     );
 
 #endif /* __LSASSDB_H__ */

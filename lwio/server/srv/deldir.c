@@ -37,14 +37,14 @@ SrvProcessDeleteDirectory(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PDELETE_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PDELETE_DIRECTORY_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     PWSTR       pwszPathFragment = NULL; // Do not free
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
     PWSTR       pwszDirectoryPath = NULL;
     BOOLEAN     bInLock = FALSE;
     IO_FILE_HANDLE  hFile = NULL;

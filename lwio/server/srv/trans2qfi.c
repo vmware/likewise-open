@@ -50,7 +50,7 @@ SrvUnmarshallQueryFileInfoParams(
 static
 NTSTATUS
 SrvBuildQueryFileInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usFid,
     SMB_INFO_LEVEL      smbInfoLevel,
@@ -68,7 +68,7 @@ SrvMarshallFileStreamInfo(
 
 NTSTATUS
 SrvProcessTrans2QueryFileInformation(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -172,7 +172,7 @@ error:
 static
 NTSTATUS
 SrvBuildQueryFileInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     USHORT              usFid,
     SMB_INFO_LEVEL      smbInfoLevel,
@@ -180,9 +180,9 @@ SrvBuildQueryFileInfoResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
-    PSMB_SRV_FILE    pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_FILE    pFile = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(
@@ -358,7 +358,7 @@ error:
 
 NTSTATUS
 SrvBuildQueryFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -461,7 +461,7 @@ error:
 
 NTSTATUS
 SrvBuildQueryFileStandardInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -564,7 +564,7 @@ error:
 
 NTSTATUS
 SrvBuildQueryFileEAInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -660,7 +660,7 @@ error:
 
 NTSTATUS
 SrvBuildQueryFileStreamInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse

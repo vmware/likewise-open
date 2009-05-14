@@ -3,7 +3,7 @@
 static
 NTSTATUS
 SrvTreeAcquireFileId_inlock(
-   PSMB_SRV_TREE pTree,
+   PLWIO_SRV_TREE pTree,
    PUSHORT       pFid
    );
 
@@ -23,22 +23,22 @@ SrvTreeFileRelease(
 static
 VOID
 SrvTreeFree(
-    PSMB_SRV_TREE pTree
+    PLWIO_SRV_TREE pTree
     );
 
 NTSTATUS
 SrvTreeCreate(
     USHORT            tid,
     PSHARE_DB_INFO    pShareInfo,
-    PSMB_SRV_TREE*    ppTree
+    PLWIO_SRV_TREE*    ppTree
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_TREE pTree = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
 
     LWIO_LOG_DEBUG("Creating Tree [tid: %u]", tid);
 
-    ntStatus = LW_RTL_ALLOCATE(&pTree, SMB_SRV_TREE, sizeof(SMB_SRV_TREE));
+    ntStatus = LW_RTL_ALLOCATE(&pTree, LWIO_SRV_TREE, sizeof(LWIO_SRV_TREE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
@@ -82,13 +82,13 @@ error:
 
 NTSTATUS
 SrvTreeFindFile(
-    PSMB_SRV_TREE  pTree,
+    PLWIO_SRV_TREE  pTree,
     USHORT         fid,
-    PSMB_SRV_FILE* ppFile
+    PLWIO_SRV_FILE* ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
@@ -118,7 +118,7 @@ error:
 
 NTSTATUS
 SrvTreeCreateFile(
-    PSMB_SRV_TREE           pTree,
+    PLWIO_SRV_TREE           pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -128,12 +128,12 @@ SrvTreeCreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PSMB_SRV_FILE*          ppFile
+    PLWIO_SRV_FILE*          ppFile
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     USHORT  fid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
@@ -187,7 +187,7 @@ error:
 
 NTSTATUS
 SrvTreeRemoveFile(
-    PSMB_SRV_TREE pTree,
+    PLWIO_SRV_TREE pTree,
     USHORT        fid
     )
 {
@@ -214,7 +214,7 @@ error:
 
 BOOLEAN
 SrvTreeIsNamedPipe(
-    PSMB_SRV_TREE pTree
+    PLWIO_SRV_TREE pTree
     )
 {
     BOOLEAN bResult = FALSE;
@@ -231,7 +231,7 @@ SrvTreeIsNamedPipe(
 
 VOID
 SrvTreeRelease(
-    PSMB_SRV_TREE pTree
+    PLWIO_SRV_TREE pTree
     )
 {
     LWIO_LOG_DEBUG("Releasing tree [tid:%u]", pTree->tid);
@@ -245,7 +245,7 @@ SrvTreeRelease(
 static
 NTSTATUS
 SrvTreeAcquireFileId_inlock(
-   PSMB_SRV_TREE pTree,
+   PLWIO_SRV_TREE pTree,
    PUSHORT       pFid
    )
 {
@@ -255,7 +255,7 @@ SrvTreeAcquireFileId_inlock(
 
     do
     {
-        PSMB_SRV_FILE pFile = NULL;
+        PLWIO_SRV_FILE pFile = NULL;
 
         /* 0 is never a valid fid */
 
@@ -335,13 +335,13 @@ SrvTreeFileRelease(
     PVOID pFile
     )
 {
-    SrvFileRelease((PSMB_SRV_FILE)pFile);
+    SrvFileRelease((PLWIO_SRV_FILE)pFile);
 }
 
 static
 VOID
 SrvTreeFree(
-    PSMB_SRV_TREE pTree
+    PLWIO_SRV_TREE pTree
     )
 {
     LWIO_LOG_DEBUG("Freeing tree [object:0x%x][tid:%u]",
