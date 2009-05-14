@@ -47,6 +47,7 @@
 #include <lw/rtlmemory.h>
 #include <lw/rtlgoto.h>
 #include <wc16str.h>
+#include <wc16printf.h>
 
 size_t
 LwRtlWC16StringNumChars(
@@ -182,4 +183,43 @@ LwRtlWC16StringIsEqual(
 
 cleanup:
     return bIsEqual;
+}
+
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfWV(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN va_list Args
+    )
+{
+    NTSTATUS status = 0;
+    PWSTR pszNewString = NULL;
+
+    pszNewString = asw16printfwv(pszFormat, Args);
+
+    if (pszNewString == NULL)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    *ppszString = pszNewString;
+
+    return status;
+}
+
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfW(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN ...
+    )
+{
+    NTSTATUS status = 0;
+    va_list args;
+
+    va_start(args, pszFormat);
+    status = LwRtlWC16StringAllocatePrintfWV(ppszString, pszFormat, args);
+    va_end(args);
+
+    return status;
 }
