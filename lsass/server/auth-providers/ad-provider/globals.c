@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -106,6 +106,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_ModifyUser,
             &AD_DeleteUser,
             &AD_AddGroup,
+            &AD_ModifyGroup,
             &AD_DeleteGroup,
             &AD_OpenSession,
             &AD_CloseSession,
@@ -125,3 +126,12 @@ PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 // please put all new globals in the following structure:
 PLSA_AD_PROVIDER_STATE gpLsaAdProviderState = NULL;
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
