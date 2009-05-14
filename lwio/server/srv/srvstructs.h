@@ -161,7 +161,7 @@ typedef struct _SMB_PROD_CONS_QUEUE
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
-    SMB_QUEUE       queue;
+    LWIO_QUEUE       queue;
 
     ULONG           ulNumMaxItems;
     ULONG           ulNumItems;
