@@ -75,6 +75,12 @@ LsaAddGroup(
     );
 
 DWORD
+LsaModifyGroup(
+    HANDLE hLsaConnection,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LsaDeleteGroupById(
     HANDLE hLsaConnection,
     gid_t  gid
