@@ -5,12 +5,12 @@ NTSTATUS
 SrvSocketCreate(
     int fd,
     struct sockaddr_in* pClientAddr,
-    PSMB_SRV_SOCKET* ppSocket
+    PLWIO_SRV_SOCKET* ppSocket
     );
 
 VOID
 SrvSocketFree(
-    PSMB_SRV_SOCKET pSocket
+    PLWIO_SRV_SOCKET pSocket
     );
 
 #endif /* __SRVSOCK_H__ */

@@ -60,9 +60,9 @@ SrvGetShareNameCheckFQDN(
 static
 NTSTATUS
 SrvBuildTreeConnectResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PSMB_PACKET*        ppSmbResponse
     );
 
@@ -101,11 +101,11 @@ SrvProcessTreeConnectAndX(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
     BOOLEAN       bRemoveTreeFromSession = FALSE;
     PSHARE_DB_INFO pShareInfo = NULL;
     ULONG ulOffset = 0;
@@ -500,9 +500,9 @@ error:
 static
 NTSTATUS
 SrvBuildTreeConnectResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
+    PLWIO_SRV_TREE       pTree,
     PSMB_PACKET*        ppSmbResponse
     )
 {

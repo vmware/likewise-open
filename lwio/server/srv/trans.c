@@ -44,7 +44,7 @@ typedef struct _SMB_GET_NAMED_PIPE_INFO_DATA
 static
 NTSTATUS
 SrvProcessSetNamedPipeHandleState(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -58,7 +58,7 @@ SrvProcessSetNamedPipeHandleState(
 static
 NTSTATUS
 SrvProcessGetNamedPipeHandleState(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -72,7 +72,7 @@ SrvProcessGetNamedPipeHandleState(
 static
 NTSTATUS
 SrvProcessGetNamedPipeInfo(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -86,7 +86,7 @@ SrvProcessGetNamedPipeInfo(
 static
 NTSTATUS
 SrvProcessTransactNamedPipe(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -118,7 +118,7 @@ SrvProcessTransaction(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PTRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PUSHORT pBytecount = NULL; // Do not free
@@ -272,7 +272,7 @@ error:
 static
 NTSTATUS
 SrvProcessSetNamedPipeHandleState(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -285,9 +285,9 @@ SrvProcessSetNamedPipeHandleState(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     FILE_PIPE_INFORMATION pipeInfo = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
     USHORT usDataOffset = 0;
@@ -417,7 +417,7 @@ error:
 static
 NTSTATUS
 SrvProcessGetNamedPipeHandleState(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -430,9 +430,9 @@ SrvProcessGetNamedPipeHandleState(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     FILE_PIPE_INFORMATION pipeInfo = {0};
     FILE_PIPE_LOCAL_INFORMATION pipeLocalInfo = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -577,7 +577,7 @@ error:
 static
 NTSTATUS
 SrvProcessGetNamedPipeInfo(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -590,9 +590,9 @@ SrvProcessGetNamedPipeInfo(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     FILE_PIPE_LOCAL_INFORMATION pipeLocalInfo = {0};
     IO_STATUS_BLOCK ioStatusBlock = {0};
     PWSTR  pwszFilePath = NULL;
@@ -778,7 +778,7 @@ error:
 static
 NTSTATUS
 SrvProcessTransactNamedPipe(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -791,9 +791,9 @@ SrvProcessTransactNamedPipe(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     IO_STATUS_BLOCK ioStatusBlock = {0};
     USHORT usNumPackageBytesUsed = 0;
     PBYTE  pResponseData = NULL;

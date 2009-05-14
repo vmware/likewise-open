@@ -31,16 +31,16 @@
 
 NTSTATUS
 SmbProcessSeek(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 UnmarshallSeekRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallSeekResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 

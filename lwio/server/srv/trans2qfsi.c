@@ -58,7 +58,7 @@ typedef struct _SMB_FS_VOLUME_INFO_HEADER
 static
 NTSTATUS
 SrvBuildFSAllocationInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -68,7 +68,7 @@ SrvBuildFSAllocationInfoResponse(
 static
 NTSTATUS
 SrvBuildFSInfoVolumeResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -78,7 +78,7 @@ SrvBuildFSInfoVolumeResponse(
 static
 NTSTATUS
 SrvBuildFSVolumeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -109,7 +109,7 @@ SrvMarshallFSVolumeInfo(
 static
 NTSTATUS
 SrvBuildFSSizeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -119,7 +119,7 @@ SrvBuildFSSizeInfoResponse(
 static
 NTSTATUS
 SrvBuildFSDeviceInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -129,7 +129,7 @@ SrvBuildFSDeviceInfoResponse(
 static
 NTSTATUS
 SrvBuildFSAttributeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -149,7 +149,7 @@ SrvMarshallFSAttributeInfo(
 static
 NTSTATUS
 SrvBuildFSCifsUnixInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -159,7 +159,7 @@ SrvBuildFSCifsUnixInfoResponse(
 static
 NTSTATUS
 SrvBuildMacFSInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -168,7 +168,7 @@ SrvBuildMacFSInfoResponse(
 
 NTSTATUS
 SrvProcessTrans2QueryFilesystemInformation(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -180,8 +180,8 @@ SrvProcessTrans2QueryFilesystemInformation(
 {
     NTSTATUS ntStatus = 0;
     USHORT   usInfoLevel = 0;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE  pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE  pTree = NULL;
     PSMB_PACKET    pSmbResponse = NULL;
     IO_FILE_HANDLE hFile = NULL;
     IO_FILE_NAME   fileName = {0};
@@ -377,7 +377,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSAllocationInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -482,7 +482,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSInfoVolumeResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -642,7 +642,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSVolumeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -935,7 +935,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSSizeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -1032,7 +1032,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSDeviceInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -1045,7 +1045,7 @@ SrvBuildFSDeviceInfoResponse(
 static
 NTSTATUS
 SrvBuildFSAttributeInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -1262,7 +1262,7 @@ error:
 static
 NTSTATUS
 SrvBuildFSCifsUnixInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,
@@ -1275,7 +1275,7 @@ SrvBuildFSCifsUnixInfoResponse(
 static
 NTSTATUS
 SrvBuildMacFSInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     USHORT              usMaxDataCount,

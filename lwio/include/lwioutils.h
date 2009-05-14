@@ -457,24 +457,24 @@ typedef struct __SMB_STACK
 
 } SMB_STACK, *PSMB_STACK;
 
-typedef VOID (*PFNSMB_QUEUE_FUNC)(PVOID pData, PVOID pUserData);
+typedef VOID (*PFNLWIO_QUEUE_FUNC)(PVOID pData, PVOID pUserData);
 
-typedef DWORD (*PFNSMB_FOREACH_QUEUE_ITEM)(PVOID pItem, PVOID pUserData);
+typedef DWORD (*PFNLWIO_FOREACH_QUEUE_ITEM)(PVOID pItem, PVOID pUserData);
 
-typedef struct __SMB_QUEUE_ITEM
+typedef struct __LWIO_QUEUE_ITEM
 {
     PVOID pItem;
 
-    struct __SMB_QUEUE_ITEM * pNext;
-} SMB_QUEUE_ITEM, *PSMB_QUEUE_ITEM;
+    struct __LWIO_QUEUE_ITEM * pNext;
+} LWIO_QUEUE_ITEM, *PLWIO_QUEUE_ITEM;
 
-typedef struct __SMB_QUEUE
+typedef struct __LWIO_QUEUE
 {
 
-    PSMB_QUEUE_ITEM pHead;
-    PSMB_QUEUE_ITEM pTail;
+    PLWIO_QUEUE_ITEM pHead;
+    PLWIO_QUEUE_ITEM pTail;
 
-} SMB_QUEUE, *PSMB_QUEUE;
+} LWIO_QUEUE, *PLWIO_QUEUE;
 
 typedef DWORD SMBHANDLE, *PSMBHANDLE;
 
@@ -817,36 +817,36 @@ SMBStackFree(
     );
 
 DWORD
-SMBQueueCreate(
-    PSMB_QUEUE* ppQueue
+LWIOQueueCreate(
+    PLWIO_QUEUE* ppQueue
     );
 
 DWORD
 SMBEnqueue(
-    PSMB_QUEUE pQueue,
+    PLWIO_QUEUE pQueue,
     PVOID      pItem
     );
 
 PVOID
 SMBDequeue(
-    PSMB_QUEUE pQueue
+    PLWIO_QUEUE pQueue
     );
 
 BOOLEAN
-SMBQueueIsEmpty(
-    PSMB_QUEUE pQueue
+LWIOQueueIsEmpty(
+    PLWIO_QUEUE pQueue
     );
 
 DWORD
-SMBQueueForeach(
-    PSMB_QUEUE pQueue,
-    PFNSMB_FOREACH_QUEUE_ITEM pfnAction,
+LWIOQueueForeach(
+    PLWIO_QUEUE pQueue,
+    PFNLWIO_FOREACH_QUEUE_ITEM pfnAction,
     PVOID pUserData
     );
 
 VOID
-SMBQueueFree(
-    PSMB_QUEUE pQueue
+LWIOQueueFree(
+    PLWIO_QUEUE pQueue
     );
 
 DWORD

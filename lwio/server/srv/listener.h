@@ -52,15 +52,15 @@
 NTSTATUS
 SrvListenerInit(
     HANDLE                    hPacketAllocator,
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
-    PSMB_SRV_SOCKET_READER    pReaderArray,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SOCKET_READER    pReaderArray,
     ULONG                     ulNumReaders,
-    PSMB_SRV_LISTENER         pListener
+    PLWIO_SRV_LISTENER         pListener
     );
 
 NTSTATUS
 SrvListenerShutdown(
-    PSMB_SRV_LISTENER pListener
+    PLWIO_SRV_LISTENER pListener
     );
 
 #endif

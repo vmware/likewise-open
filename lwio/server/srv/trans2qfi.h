@@ -32,7 +32,7 @@
 
 NTSTATUS
 SrvProcessTrans2QueryFileInformation(
-    PSMB_SRV_CONNECTION         pConnection,
+    PLWIO_SRV_CONNECTION         pConnection,
     PSMB_PACKET                 pSmbRequest,
     PTRANSACTION_REQUEST_HEADER pRequestHeader,
     PUSHORT                     pSetup,
@@ -44,7 +44,7 @@ SrvProcessTrans2QueryFileInformation(
 
 NTSTATUS
 SrvBuildQueryFileBasicInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -52,7 +52,7 @@ SrvBuildQueryFileBasicInfoResponse(
 
 NTSTATUS
 SrvBuildQueryFileStandardInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -60,7 +60,7 @@ SrvBuildQueryFileStandardInfoResponse(
 
 NTSTATUS
 SrvBuildQueryFileEAInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse
@@ -68,7 +68,7 @@ SrvBuildQueryFileEAInfoResponse(
 
 NTSTATUS
 SrvBuildQueryFileStreamInfoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     IO_FILE_HANDLE      hFile,
     PSMB_PACKET*        ppSmbResponse

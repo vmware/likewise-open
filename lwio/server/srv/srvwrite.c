@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvExecuteWrite(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     PULONG        pulDataOffset,
     USHORT        usDataLength,
@@ -43,10 +43,10 @@ SrvExecuteWrite(
 static
 NTSTATUS
 SrvBuildWriteResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_TREE       pTree,
+    PLWIO_SRV_FILE       pFile,
     USHORT              usBytesWritten,
     PSMB_PACKET*        ppSmbResponse
     );
@@ -58,10 +58,10 @@ SrvProcessWrite(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE pTree = NULL;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
     ULONG ulOffset = 0;
     ULONG ulDataOffset = 0;
     PWRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
@@ -153,7 +153,7 @@ error:
 static
 NTSTATUS
 SrvExecuteWrite(
-    PSMB_SRV_FILE pFile,
+    PLWIO_SRV_FILE pFile,
     PBYTE         pData,
     PULONG        pulDataOffset,
     USHORT        usDataLength,
@@ -214,10 +214,10 @@ error:
 static
 NTSTATUS
 SrvBuildWriteResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PSMB_SRV_TREE       pTree,
-    PSMB_SRV_FILE       pFile,
+    PLWIO_SRV_TREE       pTree,
+    PLWIO_SRV_FILE       pFile,
     USHORT              usBytesWritten,
     PSMB_PACKET*        ppSmbResponse
     )

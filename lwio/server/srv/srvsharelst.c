@@ -51,7 +51,7 @@
 static
 NTSTATUS
 SrvAddShareInfoToList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PSHARE_DB_INFO    pShareInfo,
     PSRV_SHARE_ENTRY *ppShareEntry
     );
@@ -60,7 +60,7 @@ SrvAddShareInfoToList_inlock(
 static
 void
 SrvAddShareToList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PSRV_SHARE_ENTRY pShareEntry
     );
 
@@ -68,7 +68,7 @@ SrvAddShareToList_inlock(
 static
 NTSTATUS
 SrvRemoveShareFromList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pszShareName
     );
 
@@ -83,14 +83,14 @@ SrvShareFreeEntry_inlock(
 static
 void
 SrvShareFreeList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
     );
 
 
 static
 NTSTATUS
 SrvFindShareByName_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     );
@@ -98,7 +98,7 @@ SrvFindShareByName_inlock(
 
 NTSTATUS
 SrvShareInitContextContents(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -306,7 +306,7 @@ error:
 
 VOID
 SrvShareFreeContextContents(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -327,7 +327,7 @@ SrvShareFreeContextContents(
 static
 NTSTATUS
 SrvAddShareInfoToList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PSHARE_DB_INFO    pShareInfo,
     PSRV_SHARE_ENTRY *ppShareEntry
     )
@@ -364,7 +364,7 @@ error:
 static
 void
 SrvAddShareToList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PSRV_SHARE_ENTRY pShareEntry
     )
 {
@@ -376,7 +376,7 @@ SrvAddShareToList_inlock(
 static
 NTSTATUS
 SrvRemoveShareFromList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName
     )
 {
@@ -428,7 +428,7 @@ SrvShareFreeEntry_inlock(
 static
 void
 SrvShareFreeList_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
     )
 {
     PSRV_SHARE_ENTRY pShareEntry = pDbContext->pShareEntry;
@@ -446,7 +446,7 @@ SrvShareFreeList_inlock(
 
 NTSTATUS
 SrvFindShareByName(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -471,7 +471,7 @@ SrvFindShareByName(
 static
 NTSTATUS
 SrvFindShareByName_inlock(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -505,7 +505,7 @@ cleanup:
 
 NTSTATUS
 SrvShareAddShare(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR  pwszShareName,
     PWSTR  pwszSharePath,
     PWSTR  pwszShareComment,
@@ -666,7 +666,7 @@ error:
 
 NTSTATUS
 SrvShareDeleteShare(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName
     )
 {
@@ -729,7 +729,7 @@ error:
 
 NTSTATUS
 SrvShareSetInfo(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
     PSHARE_DB_INFO pShareInfo
     )
@@ -797,7 +797,7 @@ error:
 
 NTSTATUS
 SrvShareGetInfo(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -830,7 +830,7 @@ error:
 
 NTSTATUS
 SrvShareEnumShares(
-    PSMB_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
     ULONG dwLevel,
     PSHARE_DB_INFO** pppShareInfo,
     PULONG pdwNumEntries

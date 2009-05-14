@@ -255,15 +255,15 @@ SrvInitialize(
 
     ntStatus = LW_RTL_ALLOCATE(
                     &gSMBSrvGlobals.pReaderArray,
-                    SMB_SRV_SOCKET_READER,
-                    gSMBSrvGlobals.config.ulNumReaders * sizeof(SMB_SRV_SOCKET_READER));
+                    LWIO_SRV_SOCKET_READER,
+                    gSMBSrvGlobals.config.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER));
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.ulNumReaders = gSMBSrvGlobals.config.ulNumReaders;
 
     for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
     {
-        PSMB_SRV_SOCKET_READER pReader = NULL;
+        PLWIO_SRV_SOCKET_READER pReader = NULL;
 
         pReader = &gSMBSrvGlobals.pReaderArray[iReader];
 
@@ -277,15 +277,15 @@ SrvInitialize(
 
     ntStatus = LW_RTL_ALLOCATE(
                     &gSMBSrvGlobals.pWorkerArray,
-                    SMB_SRV_WORKER,
-                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(SMB_SRV_WORKER));
+                    LWIO_SRV_WORKER,
+                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER));
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.ulNumWorkers = gSMBSrvGlobals.config.ulNumWorkers;
 
     for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
     {
-        PSMB_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+        PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
         pWorker->workerId = iWorker + 1;
 
@@ -351,7 +351,7 @@ SrvShutdown(
 
                 for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
                 {
-                    PSMB_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+                    PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
                     SrvWorkerIndicateStop(pWorker);
                 }
@@ -373,7 +373,7 @@ SrvShutdown(
 
                 for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
                 {
-                    PSMB_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+                    PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
                     SrvWorkerFreeContents(pWorker);
                 }

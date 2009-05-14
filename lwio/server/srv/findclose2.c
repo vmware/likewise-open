@@ -37,9 +37,9 @@ SrvProcessFindClose2(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET      pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
     PSMB_PACKET      pSmbResponse = NULL;
     USHORT           usSearchId;
     USHORT           usResponseBytesUsed = 0;

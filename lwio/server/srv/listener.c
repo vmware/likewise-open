@@ -57,13 +57,13 @@ SrvListenerMain(
 static
 BOOLEAN
 SrvListenerMustStop(
-    PSMB_SRV_LISTENER_CONTEXT pContext
+    PLWIO_SRV_LISTENER_CONTEXT pContext
     );
 
 static
-PSMB_SRV_SOCKET_READER
+PLWIO_SRV_SOCKET_READER
 SrvFindLeastBusyReader(
-    PSMB_SRV_SOCKET_READER pReaderArray,
+    PLWIO_SRV_SOCKET_READER pReaderArray,
     ULONG           ulNumReaders
     );
 
@@ -82,10 +82,10 @@ SMBSrvGetLocalIPAddress(
 NTSTATUS
 SrvListenerInit(
     HANDLE                    hPacketAllocator,
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
-    PSMB_SRV_SOCKET_READER    pReaderArray,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SOCKET_READER    pReaderArray,
     ULONG                     ulNumReaders,
-    PSMB_SRV_LISTENER         pListener
+    PLWIO_SRV_LISTENER         pListener
     )
 {
     NTSTATUS ntStatus = 0;
@@ -138,7 +138,7 @@ error:
 
 NTSTATUS
 SrvListenerShutdown(
-    PSMB_SRV_LISTENER pListener
+    PLWIO_SRV_LISTENER pListener
     )
 {
     NTSTATUS ntStatus = 0;
@@ -189,10 +189,10 @@ SrvListenerMain(
     int sockFd = -1;
     int connFd = -1;
     struct sockaddr_in servaddr;
-    PSMB_SRV_SOCKET pSocket = NULL;
-    PSMB_SRV_LISTENER_CONTEXT pContext = (PSMB_SRV_LISTENER_CONTEXT)pData;
-    PSMB_SRV_SOCKET_READER pReader = NULL;
-    PSMB_SRV_CONNECTION pConnection = NULL;
+    PLWIO_SRV_SOCKET pSocket = NULL;
+    PLWIO_SRV_LISTENER_CONTEXT pContext = (PLWIO_SRV_LISTENER_CONTEXT)pData;
+    PLWIO_SRV_SOCKET_READER pReader = NULL;
+    PLWIO_SRV_CONNECTION pConnection = NULL;
     PSRV_HOST_INFO pHostinfo = NULL;
     int on = 1;
 
@@ -376,7 +376,7 @@ error:
 static
 BOOLEAN
 SrvListenerMustStop(
-    PSMB_SRV_LISTENER_CONTEXT pContext
+    PLWIO_SRV_LISTENER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
@@ -391,19 +391,19 @@ SrvListenerMustStop(
 }
 
 static
-PSMB_SRV_SOCKET_READER
+PLWIO_SRV_SOCKET_READER
 SrvFindLeastBusyReader(
-    PSMB_SRV_SOCKET_READER pReaderArray,
+    PLWIO_SRV_SOCKET_READER pReaderArray,
     ULONG                  ulNumReaders
     )
 {
-    PSMB_SRV_SOCKET_READER pReaderMin = NULL;
+    PLWIO_SRV_SOCKET_READER pReaderMin = NULL;
     ULONG                  ulNumSocketsMin = 0;
     ULONG                  iReader = 0;
 
     for (; iReader < ulNumReaders; iReader++)
     {
-        PSMB_SRV_SOCKET_READER pReader = &pReaderArray[iReader];
+        PLWIO_SRV_SOCKET_READER pReader = &pReaderArray[iReader];
 
         if (!SrvSocketReaderIsActive(pReader))
         {

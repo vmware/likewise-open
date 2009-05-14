@@ -3,7 +3,7 @@
 static
 VOID
 SrvFileFree(
-    PSMB_SRV_FILE pFile
+    PLWIO_SRV_FILE pFile
     );
 
 NTSTATUS
@@ -18,18 +18,18 @@ SrvFileCreate(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PSMB_SRV_FILE*          ppFile
+    PLWIO_SRV_FILE*          ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_FILE pFile = NULL;
+    PLWIO_SRV_FILE pFile = NULL;
 
     LWIO_LOG_DEBUG("Creating file [fid:%u]", fid);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pFile,
-                    SMB_SRV_FILE,
-                    sizeof(SMB_SRV_FILE));
+                    LWIO_SRV_FILE,
+                    sizeof(LWIO_SRV_FILE));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->refcount = 1;
@@ -78,7 +78,7 @@ error:
 
 VOID
 SrvFileRelease(
-    PSMB_SRV_FILE pFile
+    PLWIO_SRV_FILE pFile
     )
 {
     LWIO_LOG_DEBUG("Releasing file [fid:%u]", pFile->fid);
@@ -92,7 +92,7 @@ SrvFileRelease(
 static
 VOID
 SrvFileFree(
-    PSMB_SRV_FILE pFile
+    PLWIO_SRV_FILE pFile
     )
 {
     LWIO_LOG_DEBUG("Freeing file [object:0x%x][fid:%u]",

@@ -44,7 +44,7 @@ SrvProcessLogoffAndX(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
 
@@ -86,7 +86,7 @@ SrvBuildLogoffResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PLOGOFF_RESPONSE_HEADER pResponseHeader = NULL;

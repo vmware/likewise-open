@@ -11,7 +11,7 @@
 static
 NTSTATUS
 SrvConnectionAcquireSessionId_inlock(
-   PSMB_SRV_CONNECTION pConnection,
+   PLWIO_SRV_CONNECTION pConnection,
    PUSHORT             pUid
    );
 
@@ -24,7 +24,7 @@ SrvConnectionFreeContentsClientProperties(
 static
 NTSTATUS
 SrvConnectionReadMessage(
-    PSMB_SRV_SOCKET pSocket,
+    PLWIO_SRV_SOCKET pSocket,
     size_t          sBytesToRead,
     size_t          sOffset,
     PSMB_PACKET     pPacket,
@@ -46,24 +46,24 @@ SrvConnectionSessionRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    PSMB_SRV_SOCKET           pSocket,
+    PLWIO_SRV_SOCKET           pSocket,
     HANDLE                    hPacketAllocator,
     HANDLE                    hGssContext,
-    PSMB_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
     PSRV_PROPERTIES           pServerProperties,
     PSRV_HOST_INFO            pHostinfo,
-    PSMB_SRV_CONNECTION*      ppConnection
+    PLWIO_SRV_CONNECTION*      ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = NULL;
+    PLWIO_SRV_CONNECTION pConnection = NULL;
 
     LWIO_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pConnection,
-                    SMB_SRV_CONNECTION,
-                    sizeof(SMB_SRV_CONNECTION));
+                    LWIO_SRV_CONNECTION,
+                    sizeof(LWIO_SRV_CONNECTION));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
@@ -96,7 +96,7 @@ SrvConnectionCreate(
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->pShareDbContext = pShareDbContext;
-    pConnection->state = SMB_SRV_CONN_STATE_INITIAL;
+    pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
@@ -122,7 +122,7 @@ error:
 
 int
 SrvConnectionGetFd(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     int fd = -1;
@@ -146,7 +146,7 @@ SrvConnectionGetFd(
 
 NTSTATUS
 SrvConnectionGetNextSequence(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PULONG              pulRequestSequence
     )
@@ -188,7 +188,7 @@ SrvConnectionGetNextSequence(
 
 BOOLEAN
 SrvConnectionIsInvalid(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     BOOLEAN bInvalid = FALSE;
@@ -196,7 +196,7 @@ SrvConnectionIsInvalid(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    bInvalid = pConnection->state == SMB_SRV_CONN_STATE_INVALID;
+    bInvalid = pConnection->state == LWIO_SRV_CONN_STATE_INVALID;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -205,7 +205,7 @@ SrvConnectionIsInvalid(
 
 VOID
 SrvConnectionSetInvalid(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -214,17 +214,17 @@ SrvConnectionSetInvalid(
 
     LWIO_LOG_DEBUG("Setting connection [fd:%d] to invalid", pConnection->pSocket->fd);
 
-    pConnection->state = SMB_SRV_CONN_STATE_INVALID;
+    pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
-SMB_SRV_CONN_STATE
+LWIO_SRV_CONN_STATE
 SrvConnectionGetState(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
-    SMB_SRV_CONN_STATE connState = SMB_SRV_CONN_STATE_INITIAL;
+    LWIO_SRV_CONN_STATE connState = LWIO_SRV_CONN_STATE_INITIAL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
@@ -238,8 +238,8 @@ SrvConnectionGetState(
 
 VOID
 SrvConnectionSetState(
-    PSMB_SRV_CONNECTION pConnection,
-    SMB_SRV_CONN_STATE  connState
+    PLWIO_SRV_CONNECTION pConnection,
+    LWIO_SRV_CONN_STATE  connState
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -253,7 +253,7 @@ SrvConnectionSetState(
 
 NTSTATUS
 SrvConnectionReadPacket(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET*        ppPacket
     )
 {
@@ -386,7 +386,7 @@ error:
 
 NTSTATUS
 SrvConnectionWriteMessage(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     ULONG               ulSequence,
     PSMB_PACKET         pPacket
     )
@@ -458,13 +458,13 @@ error:
 
 NTSTATUS
 SrvConnectionFindSession(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     USHORT uid,
-    PSMB_SRV_SESSION* ppSession
+    PLWIO_SRV_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
@@ -494,7 +494,7 @@ error:
 
 NTSTATUS
 SrvConnectionRemoveSession(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     USHORT              uid
     )
 {
@@ -521,12 +521,12 @@ error:
 
 NTSTATUS
 SrvConnectionCreateSession(
-    PSMB_SRV_CONNECTION pConnection,
-    PSMB_SRV_SESSION* ppSession
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
     USHORT  uid = 0;
 
@@ -572,7 +572,7 @@ error:
 
 NTSTATUS
 SrvConnectionGetNamedPipeSessionKey(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     )
 {
@@ -601,7 +601,7 @@ error:
 
 NTSTATUS
 SrvConnectionGetNamedPipeClientAddress(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     )
 {
@@ -627,7 +627,7 @@ error:
 
 VOID
 SrvConnectionRelease(
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     LWIO_LOG_DEBUG("Releasing connection [fd:%d]", pConnection->pSocket->fd);
@@ -687,7 +687,7 @@ SrvConnectionRelease(
 static
 NTSTATUS
 SrvConnectionAcquireSessionId_inlock(
-   PSMB_SRV_CONNECTION pConnection,
+   PLWIO_SRV_CONNECTION pConnection,
    PUSHORT             pUid
    )
 {
@@ -697,7 +697,7 @@ SrvConnectionAcquireSessionId_inlock(
 
     do
     {
-        PSMB_SRV_SESSION pSession = NULL;
+        PLWIO_SRV_SESSION pSession = NULL;
 
 	/* 0 is never a valid session vuid */
 
@@ -770,7 +770,7 @@ SrvConnectionFreeContentsClientProperties(
 static
 NTSTATUS
 SrvConnectionReadMessage(
-    PSMB_SRV_SOCKET pSocket,
+    PLWIO_SRV_SOCKET pSocket,
     size_t          sBytesToRead,
     size_t          sOffset,
     PSMB_PACKET     pPacket,
@@ -845,5 +845,5 @@ SrvConnectionSessionRelease(
     PVOID pSession
     )
 {
-    SrvSessionRelease((PSMB_SRV_SESSION)pSession);
+    SrvSessionRelease((PLWIO_SRV_SESSION)pSession);
 }

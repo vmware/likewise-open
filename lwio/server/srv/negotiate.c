@@ -33,13 +33,13 @@
 static
 NTSTATUS
 MarshallNegotiateResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET*        ppSmbResponse
     );
 
 NTSTATUS
 SrvSmbProcessNegotiate(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest
     )
 {
@@ -86,7 +86,7 @@ error:
 static
 NTSTATUS
 MarshallNegotiateResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET*        ppSmbResponse
     )
 {

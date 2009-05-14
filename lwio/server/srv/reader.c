@@ -10,7 +10,7 @@ typedef struct _SMB_SOCKET_READER_WORK_SET
 static
 VOID
 SrvSocketReaderSetActiveState(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     BOOLEAN bState
     );
 
@@ -23,7 +23,7 @@ SrvSocketReaderMain(
 static
 NTSTATUS
 SrvSocketReaderFillFdSet(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
 
@@ -40,34 +40,34 @@ SrvSocketReaderFillFdSetInOrder(
 static
 NTSTATUS
 SrvSocketReaderProcessConnections(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
 
 static
 NTSTATUS
 SrvSocketReaderReadMessage(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_CONNECTION pConnection
     );
 
 static
 VOID
 SrvSocketReaderPurgeConnections(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
 
 static
 NTSTATUS
 SrvSocketReaderInterrupt(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     );
 
 static
 BOOLEAN
 SrvSocketReaderMustStop(
-    PSMB_SRV_SOCKET_READER_CONTEXT pContext
+    PLWIO_SRV_SOCKET_READER_CONTEXT pContext
     );
 
 static
@@ -86,7 +86,7 @@ SrvSocketReaderReleaseConnection(
 NTSTATUS
 SrvSocketReaderInit(
     PSMB_PROD_CONS_QUEUE   pWorkQueue,
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     )
 {
     NTSTATUS ntStatus = 0;
@@ -133,7 +133,7 @@ error:
 
 ULONG
 SrvSocketReaderGetCount(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     )
 {
     ULONG ulSockets = 0;
@@ -149,7 +149,7 @@ SrvSocketReaderGetCount(
 
 BOOLEAN
 SrvSocketReaderIsActive(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     )
 {
     BOOLEAN bActive = FALSE;
@@ -166,7 +166,7 @@ SrvSocketReaderIsActive(
 static
 VOID
 SrvSocketReaderSetActiveState(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     BOOLEAN bState
     )
 {
@@ -179,8 +179,8 @@ SrvSocketReaderSetActiveState(
 
 NTSTATUS
 SrvSocketReaderEnqueueConnection(
-    PSMB_SRV_SOCKET_READER pReader,
-    PSMB_SRV_CONNECTION    pConnection
+    PLWIO_SRV_SOCKET_READER pReader,
+    PLWIO_SRV_CONNECTION    pConnection
     )
 {
     NTSTATUS ntStatus = 0;
@@ -219,7 +219,7 @@ SrvSocketReaderMain(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_SOCKET_READER_CONTEXT pContext = (PSMB_SRV_SOCKET_READER_CONTEXT)pData;
+    PLWIO_SRV_SOCKET_READER_CONTEXT pContext = (PLWIO_SRV_SOCKET_READER_CONTEXT)pData;
     SMB_SOCKET_READER_WORK_SET workSet;
 
     LWIO_LOG_DEBUG("Srv reader [id:%u] running", pContext->readerId);
@@ -299,7 +299,7 @@ error:
 
 NTSTATUS
 SrvSocketReaderFreeContents(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     )
 {
     NTSTATUS ntStatus = 0;
@@ -353,7 +353,7 @@ error:
 static
 NTSTATUS
 SrvSocketReaderFillFdSet(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     )
 {
@@ -401,7 +401,7 @@ SrvSocketReaderFillFdSetInOrder(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pConnection;
+    PLWIO_SRV_CONNECTION pSrvConnection = (PLWIO_SRV_CONNECTION)pConnection;
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset = (PSMB_SOCKET_READER_WORK_SET)pUserData;
 
     if (!SrvConnectionIsInvalid(pSrvConnection))
@@ -435,7 +435,7 @@ error:
 static
 NTSTATUS
 SrvSocketReaderProcessConnections(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     )
 {
@@ -457,7 +457,7 @@ SrvSocketReaderProcessConnections(
          pIter;
          pIter = pIter->pNext)
     {
-        PSMB_SRV_CONNECTION pConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
+        PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pIter->pItem;
 
         if (!SrvConnectionIsInvalid(pConnection))
         {
@@ -512,8 +512,8 @@ error:
 static
 NTSTATUS
 SrvSocketReaderReadMessage(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
-    PSMB_SRV_CONNECTION pConnection
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_CONNECTION pConnection
     )
 {
     NTSTATUS ntStatus = 0;
@@ -561,7 +561,7 @@ error:
 static
 VOID
 SrvSocketReaderPurgeConnections(
-    PSMB_SRV_SOCKET_READER_CONTEXT pReaderContext,
+    PLWIO_SRV_SOCKET_READER_CONTEXT pReaderContext,
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     )
 {
@@ -569,7 +569,7 @@ SrvSocketReaderPurgeConnections(
 
     for (; pIter; pIter = pIter->pNext)
     {
-        PSMB_SRV_CONNECTION pSrvConnection = (PSMB_SRV_CONNECTION)pIter->pItem;
+        PLWIO_SRV_CONNECTION pSrvConnection = (PLWIO_SRV_CONNECTION)pIter->pItem;
 
         if (SrvConnectionIsInvalid(pSrvConnection))
         {
@@ -595,7 +595,7 @@ SrvSocketReaderPurgeConnections(
 static
 NTSTATUS
 SrvSocketReaderInterrupt(
-    PSMB_SRV_SOCKET_READER pReader
+    PLWIO_SRV_SOCKET_READER pReader
     )
 {
     NTSTATUS ntStatus = 0;
@@ -611,7 +611,7 @@ SrvSocketReaderInterrupt(
 static
 BOOLEAN
 SrvSocketReaderMustStop(
-    PSMB_SRV_SOCKET_READER_CONTEXT pContext
+    PLWIO_SRV_SOCKET_READER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
@@ -658,5 +658,5 @@ SrvSocketReaderReleaseConnection(
     PVOID pConnection
     )
 {
-    SrvConnectionRelease((PSMB_SRV_CONNECTION)pConnection);
+    SrvConnectionRelease((PLWIO_SRV_CONNECTION)pConnection);
 }

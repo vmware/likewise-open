@@ -39,13 +39,13 @@ SrvWorkerMain(
 static
 BOOLEAN
 SrvWorkerMustStop(
-    PSMB_SRV_WORKER_CONTEXT pContext
+    PLWIO_SRV_WORKER_CONTEXT pContext
     );
 
 static
 NTSTATUS
 SrvWorkerStop(
-    PSMB_SRV_WORKER_CONTEXT pContext
+    PLWIO_SRV_WORKER_CONTEXT pContext
     );
 
 static
@@ -65,7 +65,7 @@ SrvWorkerBuildErrorResponse(
 NTSTATUS
 SrvWorkerInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
-    PSMB_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker
     )
 {
     NTSTATUS ntStatus = 0;
@@ -100,7 +100,7 @@ SrvWorkerMain(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_WORKER_CONTEXT pContext = (PSMB_SRV_WORKER_CONTEXT)pData;
+    PLWIO_SRV_WORKER_CONTEXT pContext = (PLWIO_SRV_WORKER_CONTEXT)pData;
     PLWIO_SRV_CONTEXT pIOContext = NULL;
     struct timespec ts = {0, 0};
 
@@ -160,7 +160,7 @@ error:
 
 VOID
 SrvWorkerIndicateStop(
-    PSMB_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker
     )
 {
     if (pWorker->pWorker)
@@ -171,7 +171,7 @@ SrvWorkerIndicateStop(
 
 VOID
 SrvWorkerFreeContents(
-    PSMB_SRV_WORKER pWorker
+    PLWIO_SRV_WORKER pWorker
     )
 {
     if (pWorker->pWorker)
@@ -194,7 +194,7 @@ SrvWorkerFreeContents(
 static
 BOOLEAN
 SrvWorkerMustStop(
-    PSMB_SRV_WORKER_CONTEXT pContext
+    PLWIO_SRV_WORKER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
@@ -211,7 +211,7 @@ SrvWorkerMustStop(
 static
 NTSTATUS
 SrvWorkerStop(
-    PSMB_SRV_WORKER_CONTEXT pContext
+    PLWIO_SRV_WORKER_CONTEXT pContext
     )
 {
     pthread_mutex_lock(&pContext->mutex);
@@ -231,13 +231,13 @@ SrvWorkerExecute(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
 
     switch (pContext->pRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
-            if (SrvConnectionGetState(pConnection) != SMB_SRV_CONN_STATE_INITIAL)
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
             {
                 ntStatus = STATUS_INVALID_SERVER_STATE;
             }
@@ -247,10 +247,10 @@ SrvWorkerExecute(
         case COM_SESSION_SETUP_ANDX:
 
             {
-                SMB_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+                LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
 
-                if ((connState != SMB_SRV_CONN_STATE_NEGOTIATE) &&
-                    (connState != SMB_SRV_CONN_STATE_READY))
+                if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
+                    (connState != LWIO_SRV_CONN_STATE_READY))
                 {
                     ntStatus = STATUS_INVALID_SERVER_STATE;
                 }
@@ -260,7 +260,7 @@ SrvWorkerExecute(
 
         default:
 
-            if (SrvConnectionGetState(pConnection) != SMB_SRV_CONN_STATE_READY)
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
             {
                 ntStatus = STATUS_INVALID_SERVER_STATE;
             }
@@ -577,7 +577,7 @@ SrvWorkerBuildErrorResponse(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PERROR_RESPONSE_HEADER pResponseHeader = NULL; // Do not free

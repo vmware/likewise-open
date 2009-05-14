@@ -54,10 +54,10 @@ SrvProcessCheckDirectory(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
     PSMB_CHECK_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR       pwszPathFragment = NULL; // Do not free
     ULONG       ulOffset = 0;

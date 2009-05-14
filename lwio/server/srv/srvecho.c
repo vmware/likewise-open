@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvMarshallEchoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbResponse,
     PSMB_PACKET         pSmbRequest,
     USHORT              usUid,
@@ -54,7 +54,7 @@ SrvProcessEchoAndX(
     PSMB_PACKET pSmbResponse = NULL;
     PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
     PBYTE       pEchoBlob = NULL; // Do Not Free
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET         pSmbRequest = pContext->pRequest;
     USHORT  usNumEchoesToSend = 0;
     ULONG   ulOffset = 0;
@@ -139,7 +139,7 @@ error:
 static
 NTSTATUS
 SrvMarshallEchoResponse(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PSMB_PACKET         pSmbResponse,
     USHORT              usUid,

@@ -31,7 +31,7 @@
 
 NTSTATUS
 SmbProcessCreateTemporaryFile(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
@@ -41,11 +41,11 @@ SrvCreateTemporaryFile(
 
 NTSTATUS
 UnmarshallCreateTemporaryFileRequest(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
 MarshallCreateTemporaryFileResponse(
-    PSMB_SRV_CONNECTION pSmbRequest
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 

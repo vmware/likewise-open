@@ -51,7 +51,7 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern SMB_SRV_RUNTIME_GLOBALS gSMBSrvGlobals;
+extern LWIO_SRV_RUNTIME_GLOBALS gSMBSrvGlobals;
 
 
 #endif /* __EXTERNS_H__ */

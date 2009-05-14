@@ -3,7 +3,7 @@
 
 NTSTATUS
 SrvContextCreate(
-    PSMB_SRV_CONNECTION pConnection,
+    PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pRequest,
     PLWIO_SRV_CONTEXT*  ppContext
     );

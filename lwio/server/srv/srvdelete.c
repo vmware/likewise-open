@@ -33,7 +33,7 @@
 static
 NTSTATUS
 SrvDeleteFiles(
-    PSMB_SRV_SESSION pSession,
+    PLWIO_SRV_SESSION pSession,
     USHORT           usSearchAttributes,
     PWSTR            pwszFilesystemPath,
     PWSTR            pwszFilePattern,
@@ -47,10 +47,10 @@ SrvProcessDelete(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pRequest;
-    PSMB_SRV_SESSION pSession = NULL;
-    PSMB_SRV_TREE    pTree = NULL;
+    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_SRV_TREE    pTree = NULL;
     PSMB_DELETE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PWSTR       pwszSearchPattern = NULL; // Do not free
     ULONG       ulOffset = 0;
@@ -190,7 +190,7 @@ error:
 static
 NTSTATUS
 SrvDeleteFiles(
-    PSMB_SRV_SESSION pSession,
+    PLWIO_SRV_SESSION pSession,
     USHORT           usSearchAttributes,
     PWSTR            pwszFilesystemPath,
     PWSTR            pwszSearchPattern,
