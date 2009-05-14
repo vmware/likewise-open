@@ -115,10 +115,6 @@ typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
 
     PSRV_SHARE_ENTRY  pShareEntry;
 
-    PWSTR             pwszFileSystemPrefix;
-    PWSTR             pwszFileSystemRoot;
-    PWSTR             pwszPipeSystemRoot;
-
 } LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
 
 
