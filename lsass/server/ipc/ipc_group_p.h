@@ -104,6 +104,14 @@ LsaSrvIpcAddGroup(
     );
 
 LWMsgStatus
+LsaSrvIpcModifyGroup(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
 LsaSrvIpcDeleteGroup(
     LWMsgAssoc* assoc,
     const LWMsgMessage* pRequest,

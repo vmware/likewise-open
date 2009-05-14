@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -102,6 +102,45 @@ LsaSrvIpcAddGroup(
         BAIL_ON_LSA_ERROR(dwError);
 
         pResponse->tag = LSA_R_ADD_GROUP_FAILURE;;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+LsaSrvIpcModifyGroup(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvModifyGroup(
+                    (HANDLE)Handle,
+                    (PLSA_GROUP_MOD_INFO)pRequest->object);
+    if (!dwError)
+    {
+        pResponse->tag    = LSA_R_MODIFY_GROUP_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag    = LSA_R_MODIFY_GROUP_FAILURE;
         pResponse->object = pError;
     }
 
@@ -588,3 +627,13 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
