@@ -6,6 +6,7 @@ SUBDIRS = \
         mod_user  \
         del_user  \
         add_group \
+        mod_group \
         del_group \
         enum_groups \
         lw-ypcat  \

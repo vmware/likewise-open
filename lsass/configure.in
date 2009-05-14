@@ -886,6 +886,7 @@ AC_CONFIG_FILES([Makefile
 		 tools/mod_user/Makefile
                  tools/del_user/Makefile
                  tools/add_group/Makefile
+                 tools/mod_group/Makefile
                  tools/del_group/Makefile
                  tools/enum_groups/Makefile
                  tools/lw-ypcat/Makefile
