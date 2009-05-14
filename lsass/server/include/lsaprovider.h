@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -191,6 +191,11 @@ typedef DWORD (*PFNADDGROUP) (
                         PVOID  pGroupInfo
                         );
 
+typedef DWORD (*PFNMODIFYGROUP) (
+                        HANDLE hProvider,
+                        PLSA_GROUP_MOD_INFO pGroupModInfo
+                        );
+
 typedef DWORD (*PFNDELETEGROUP) (
                         HANDLE hProvider,
                         gid_t  gid
@@ -292,6 +297,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNMODIFYUSER                  pfnModifyUser;
     PFNDELETEUSER                  pfnDeleteUser;
     PFNADDGROUP                    pfnAddGroup;
+    PFNMODIFYGROUP                 pfnModifyGroup;
     PFNDELETEGROUP                 pfnDeleteGroup;
     PFNOPENSESSION                 pfnOpenSession;
     PFNCLOSESESSION                pfnCloseSession;
@@ -323,3 +329,12 @@ typedef DWORD (*PFNSHUTDOWNPROVIDER)(
 
 #endif /* __LSAPROVIDER_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

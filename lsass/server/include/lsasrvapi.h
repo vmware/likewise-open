@@ -166,6 +166,12 @@ LsaSrvAddGroup(
     );
 
 DWORD
+LsaSrvModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LsaSrvDeleteGroup(
     HANDLE hServer,
     gid_t  gid
