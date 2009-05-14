@@ -1303,7 +1303,6 @@ typedef struct _SMB_DELETE_RESPONSE_HEADER {
 
 typedef struct _SMB_CREATE_DIRECTORY_REQUEST_HEADER
 {
-    USHORT usSearchAttributes;
     USHORT ByteCount;
 
     /* UCHAR ucBufferFormat; */
