@@ -70,6 +70,8 @@ SrvShareAddShare(
     PWSTR  pwszShareName,
     PWSTR  pwszPath,
     PWSTR  pwszComment,
+    PBYTE  pSecDesc,
+    ULONG  ulSecDescLen,
     ULONG  ulShareType
     );
 

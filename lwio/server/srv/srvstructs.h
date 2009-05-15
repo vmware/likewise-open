@@ -80,6 +80,20 @@ typedef enum
     SHARE_SERVICE_UNKNOWN
 } SHARE_SERVICE;
 
+typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
+{
+	sqlite3*      pDbHandle;
+
+	sqlite3_stmt* pInsertStmt;
+	sqlite3_stmt* pEnumStmt;
+	sqlite3_stmt* pDeleteStmt;
+	sqlite3_stmt* pCountStmt;
+	sqlite3_stmt* pFindStmt;
+
+	struct _LWIO_SRV_SHARE_DB_CONTEXT *pNext;
+
+} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
+
 typedef struct _SHARE_DB_INFO
 {
     LONG refcount;
@@ -90,7 +104,8 @@ typedef struct _SHARE_DB_INFO
     PWSTR pwszName;
     PWSTR pwszPath;
     PWSTR pwszComment;
-    PWSTR pwszSID;
+    PBYTE pSecDesc;
+    ULONG ulSecDescLen;
 
     SHARE_SERVICE service;
 
@@ -425,6 +440,12 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
     pthread_mutex_t*         pMutex;
 
     LWIO_SRV_CONFIG          config;
+
+    pthread_rwlock_t           dbMutex;
+    pthread_rwlock_t*          pDbMutex;
+    ULONG                      ulMaxNumDbContexts;
+    ULONG                      ulNumDbContexts;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContextList;
 
     LWIO_SRV_SHARE_LIST      shareList;
 

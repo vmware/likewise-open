@@ -132,7 +132,6 @@ SrvDevCtlAddShare(
     pShareList = &gSMBSrvGlobals.shareList;
 
     ntStatus = SrvShareMapFromWindowsPath(
-                    pShareList,
                     pwszPath,
                     &pwszPathLocal);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -142,6 +141,8 @@ SrvDevCtlAddShare(
                         pwszShareName,
                         pwszPathLocal,
                         pwszComment,
+                        NULL,
+                        0,
                         ulShareType
                         );
 
@@ -303,7 +304,6 @@ SrvDevCtlEnumShares(
                 p2[i].shi2_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
-                                pShareList,
                                 pShareInfo->pwszPath,
                                 &p2[i].shi2_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -357,7 +357,6 @@ SrvDevCtlEnumShares(
                 p502[i].shi502_current_uses        = 0;
 
                 ntStatus = SrvShareMapToWindowsPath(
-                                pShareList,
                                 pShareInfo->pwszPath,
                                 &p502[i].shi502_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -563,7 +562,6 @@ SrvDevCtlGetShareInfo(
             p2->shi2_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
-                            pShareList,
                             pShareInfo->pwszPath,
                             &p2->shi2_path);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -607,7 +605,6 @@ SrvDevCtlGetShareInfo(
             p502->shi502_current_uses        = 0;
 
             ntStatus = SrvShareMapToWindowsPath(
-                            pShareList,
                             pShareInfo->pwszPath,
                             &p502->shi502_path);
             BAIL_ON_NT_STATUS(ntStatus);

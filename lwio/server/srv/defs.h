@@ -50,6 +50,10 @@
 #define SMB_SERVER_PORT      445
 #define SMB_LISTEN_Q         5
 
+#ifndef CACHEDIR
+#define CACHEDIR "/var/lib/likewise"
+#endif
+
 #define LWIO_SRV_DB_DIR CACHEDIR            "/db"
 #define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR   "/lwio-shares.db"
 
@@ -69,6 +73,7 @@
 #define LWIO_SRV_DEFAULT_NUM_WORKERS          4
 #define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
 #define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
+#define LWIO_SRV_MAX_NUM_DB_CONTEXTS          1
 
 #define LWIO_SRV_SHARE_STRING_ID_ANY     "????"
 #define LWIO_SRV_SHARE_STRING_ID_IPC     "IPC"
@@ -91,6 +96,23 @@ typedef USHORT SMB_SEARCH_FLAG;
 #define SMB_FIND_RETURN_RESUME_KEYS  0x4
 #define SMB_FIND_CONTINUE_SEARCH     0x8
 #define SMB_FIND_WITH_BACKUP_INTENT  0x10
+
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR(ntStatus, pszError)\
+    if (ntStatus) {                                     \
+        LWIO_LOG_DEBUG("Sqlite3 Error (code: %d): %s",  \
+                       ntStatus,                        \
+                       (pszError ? pszError : ""));     \
+        ntStatus = STATUS_INTERNAL_DB_ERROR;            \
+        goto error;                                     \
+    }
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(dwError, pDb) \
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR(dwError, sqlite3_errmsg(pDb))
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(dwError, pStatement) \
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(dwError, sqlite3_db_handle(pStatement))
+
 
 #endif /* __DEFS_H__ */
 

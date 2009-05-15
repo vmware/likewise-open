@@ -234,6 +234,10 @@ SrvInitialize(
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
+    gSMBSrvGlobals.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
+    // gSMBSrvGlobals.ulNumDbContexts = 0;
+    // gSMBSrvGlobals.pDbContextList = NULL;
+
     ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
