@@ -1106,6 +1106,11 @@ SrvShareDbWriteToShareInfo(
 
                 case 4: /* service */
 
+			if (ulNumBytes)
+			{
+				pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
+			}
+
                     ntStatus = SrvShareGetServiceId(
                                     (PCSTR)pszStringVal,
                                     &pShareInfo->service);
@@ -1355,15 +1360,11 @@ SrvShareDbShutdown(
     VOID
     )
 {
-	BOOLEAN bInLock = FALSE;
-
-    if (gSMBSrvGlobals.pDbMutex)
+	if (gSMBSrvGlobals.pDbMutex)
     {
         pthread_rwlock_destroy(&gSMBSrvGlobals.dbMutex);
         gSMBSrvGlobals.pDbMutex = NULL;
     }
-
-    LWIO_LOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 
     while (gSMBSrvGlobals.pDbContextList)
     {
@@ -1374,6 +1375,4 @@ SrvShareDbShutdown(
     }
 
     gSMBSrvGlobals.ulNumDbContexts = gSMBSrvGlobals.ulMaxNumDbContexts;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gSMBSrvGlobals.mutex);
 }
