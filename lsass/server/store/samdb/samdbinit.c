@@ -729,7 +729,7 @@ SamDbAddBuiltinAccounts(
             .pszDomainName  = "BUILTIN",
             .pszNetBIOSDomain = "BUILTIN",
             .flags          = 0,
-            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+            .objectClass    = SAMDB_OBJECT_CLASS_LOCAL_GROUP
         },
         {
             .pszName        = "Users",
@@ -742,7 +742,7 @@ SamDbAddBuiltinAccounts(
             .pszDomainName  = "BUILTIN",
             .pszNetBIOSDomain = "BUILTIN",
             .flags          = 0,
-            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+            .objectClass    = SAMDB_OBJECT_CLASS_LOCAL_GROUP
         },
         {
             .pszName        = "Guests",
@@ -754,7 +754,7 @@ SamDbAddBuiltinAccounts(
             .pszDomainName  = "BUILTIN",
             .pszNetBIOSDomain = "BUILTIN",
             .flags          = 0,
-            .objectClass    = SAMDB_OBJECT_CLASS_GROUP
+            .objectClass    = SAMDB_OBJECT_CLASS_LOCAL_GROUP
         },
     };
 

@@ -46,7 +46,7 @@ SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO gObjectClassMaps[] =
         sizeof(gObjectClassContainerAttrMaps)/sizeof(gObjectClassContainerAttrMaps[0])
     },
     {
-        SAMDB_OBJECT_CLASS_GROUP,
+        SAMDB_OBJECT_CLASS_LOCAL_GROUP,
         &gObjectClassGroupAttrMaps[0],
         sizeof(gObjectClassGroupAttrMaps)/sizeof(gObjectClassGroupAttrMaps[0])
     },

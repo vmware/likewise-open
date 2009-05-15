@@ -144,7 +144,7 @@ SamDbGetObjectClass(
                 case SAMDB_OBJECT_CLASS_DOMAIN:
                 case SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN:
                 case SAMDB_OBJECT_CLASS_CONTAINER:
-                case SAMDB_OBJECT_CLASS_GROUP:
+                case SAMDB_OBJECT_CLASS_LOCAL_GROUP:
                 case SAMDB_OBJECT_CLASS_USER:
 
                     objectClass = pAttrValue->data.ulValue;
