@@ -206,12 +206,12 @@
 
 typedef enum
 {
-    SAMDB_OBJECT_CLASS_UNKNOWN        = 0,
-    SAMDB_OBJECT_CLASS_DOMAIN         = 1,
-    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN = 2,
-    SAMDB_OBJECT_CLASS_CONTAINER      = 3,
-    SAMDB_OBJECT_CLASS_LOCAL_GROUP    = 4,
-    SAMDB_OBJECT_CLASS_USER           = 5,
+    SAMDB_OBJECT_CLASS_UNKNOWN         = 0,
+    SAMDB_OBJECT_CLASS_DOMAIN          = 1,
+    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,
+    SAMDB_OBJECT_CLASS_CONTAINER       = 3,
+    SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
+    SAMDB_OBJECT_CLASS_USER            = 5,
     SAMDB_OBJECT_CLASS_SENTINEL
 
 } SAMDB_OBJECT_CLASS;
@@ -1001,7 +1001,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
     }
 
-#define SAMDB_GROUP_ATTRIBUTE_MAP                                \
+#define SAMDB_LOCAL_GROUP_ATTRIBUTE_MAP                          \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
