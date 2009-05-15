@@ -246,6 +246,12 @@ LocalAddGroup(
     );
 
 DWORD
+LocalModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LocalDeleteGroup(
     HANDLE hProvider,
     gid_t  gid

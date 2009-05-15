@@ -70,6 +70,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH(LSA_Q_GSS_MAKE_AUTH_MSG, LsaSrvIpcBuildAuthMessage),
     LWMSG_DISPATCH(LSA_Q_GSS_CHECK_AUTH_MSG, LsaSrvIpcCheckAuthMessage),
     LWMSG_DISPATCH(LSA_Q_ADD_GROUP, LsaSrvIpcAddGroup),
+    LWMSG_DISPATCH(LSA_Q_MODIFY_GROUP, LsaSrvIpcModifyGroup),
     LWMSG_DISPATCH(LSA_Q_DELETE_GROUP, LsaSrvIpcDeleteGroup),
     LWMSG_DISPATCH(LSA_Q_ADD_USER, LsaSrvIpcAddUser),
     LWMSG_DISPATCH(LSA_Q_DELETE_USER, LsaSrvIpcDeleteUser),

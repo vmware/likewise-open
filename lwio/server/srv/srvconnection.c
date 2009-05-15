@@ -49,7 +49,7 @@ SrvConnectionCreate(
     PLWIO_SRV_SOCKET           pSocket,
     HANDLE                    hPacketAllocator,
     HANDLE                    hGssContext,
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PSRV_PROPERTIES           pServerProperties,
     PSRV_HOST_INFO            pHostinfo,
     PLWIO_SRV_CONNECTION*      ppConnection
@@ -95,7 +95,7 @@ SrvConnectionCreate(
 
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
-    pConnection->pShareDbContext = pShareDbContext;
+    pConnection->pShareList = pShareList;
     pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
 

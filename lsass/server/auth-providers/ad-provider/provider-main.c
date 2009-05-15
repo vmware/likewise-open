@@ -2255,6 +2255,15 @@ AD_AddGroup(
 }
 
 DWORD
+AD_ModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
+DWORD
 AD_DeleteGroup(
     HANDLE hProvider,
     gid_t  gid
@@ -4191,3 +4200,12 @@ error:
     return dwError;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

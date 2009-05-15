@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -263,19 +263,32 @@ static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_USER_MOD_INFO),
     LWMSG_MEMBER_UINT32(LSA_USER_MOD_INFO, uid),
     LWMSG_MEMBER_STRUCT_BEGIN(LSA_USER_MOD_INFO, actions),
-    LWMSG_MEMBER_INT8(struct _actions, bEnableUser),
-    LWMSG_MEMBER_INT8(struct _actions, bDisableUser),
-    LWMSG_MEMBER_INT8(struct _actions, bUnlockUser),
-    LWMSG_MEMBER_INT8(struct _actions, bSetChangePasswordOnNextLogon),
-    LWMSG_MEMBER_INT8(struct _actions, bSetPasswordNeverExpires),
-    LWMSG_MEMBER_INT8(struct _actions, bSetPasswordMustExpire),
-    LWMSG_MEMBER_INT8(struct _actions, bAddToGroups),
-    LWMSG_MEMBER_INT8(struct _actions, bRemoveFromGroups),
-    LWMSG_MEMBER_INT8(struct _actions, bSetAccountExpiryDate),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bEnableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bDisableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bUnlockUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetChangePasswordOnNextLogon),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordNeverExpires),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordMustExpire),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bAddToGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bRemoveFromGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetAccountExpiryDate),
     LWMSG_STRUCT_END,
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszAddToGroups),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszRemoveFromGroups),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszExpiryDate),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszAddToGroups),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszRemoveFromGroups),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCGroupModInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_MOD_INFO),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, gid),
+    LWMSG_MEMBER_STRUCT_BEGIN(LSA_GROUP_MOD_INFO, actions),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bAddToGroups),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bRemoveFromGroups),
+    LWMSG_STRUCT_END,
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszAddToGroups),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszRemoveFromGroups),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -685,6 +698,14 @@ static LWMsgTypeSpec gLsaIPCModUserInfoReqSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCModGroupInfoReqSpec[] =
+{
+    LWMSG_POINTER_BEGIN,
+    LWMSG_TYPESPEC(gLsaIPCGroupModInfoSpec),
+    LWMSG_POINTER_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCFindNamesBySidListReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ),
@@ -1043,6 +1064,9 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_ADD_GROUP, gLsaIPCAddGroupInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_FAILURE, gLsaIPCErrorSpec),
+    LWMSG_MESSAGE(LSA_Q_MODIFY_GROUP, gLsaIPCModGroupInfoReqSpec),
+    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_SUCCESS, NULL),
+    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_DELETE_GROUP, gLsaIPCDelObjectInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_FAILURE, gLsaIPCErrorSpec),
@@ -1176,3 +1200,13 @@ LsaMapLwmsgStatus(
         return EPIPE;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

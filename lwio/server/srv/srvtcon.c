@@ -162,7 +162,7 @@ SrvProcessTreeConnectAndX(
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
     ntStatus = SrvFindShareByName(
-                    pConnection->pShareDbContext,
+                    pConnection->pShareList,
                     pwszSharename,
                     &pShareInfo);
     if (ntStatus == STATUS_NOT_FOUND) {

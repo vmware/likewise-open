@@ -572,7 +572,7 @@ typedef struct __LSA_USER_MOD_INFO
 {
     uid_t uid;
 
-    struct _actions{
+    struct _usermod_actions {
         BOOLEAN bEnableUser;
         BOOLEAN bDisableUser;
         BOOLEAN bUnlockUser;
@@ -623,6 +623,20 @@ typedef struct __LSA_GROUP_INFO_LIST
         PLSA_GROUP_INFO_1* ppInfoList1;
     }ppGroupInfoList;
 } LSA_GROUP_INFO_LIST, *PLSA_GROUP_INFO_LIST;
+
+typedef struct __LSA_GROUP_MOD_INFO
+{
+    gid_t gid;
+
+    struct _groupmod_actions {
+        BOOLEAN bAddToGroups;
+        BOOLEAN bRemoveFromGroups;
+    } actions;
+
+    PSTR pszAddToGroups;
+    PSTR pszRemoveFromGroups;
+
+} LSA_GROUP_MOD_INFO, *PLSA_GROUP_MOD_INFO;
 
 typedef struct __LSA_ENUM_OBJECTS_INFO
 {
@@ -1026,6 +1040,12 @@ LsaAddGroup(
     HANDLE hLsaConnection,
     PVOID  pGroupInfo,
     DWORD  dwGroupInfoLevel
+    );
+
+DWORD
+LsaModifyGroup(
+    HANDLE hLsaConnection,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
 /**

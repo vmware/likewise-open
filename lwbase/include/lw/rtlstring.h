@@ -147,6 +147,20 @@ LwRtlWC16StringIsEqual(
     LW_IN LW_BOOLEAN bIsCaseSensitive
     );
 
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfWV(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN va_list Args
+    );
+
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfW(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN ...
+    );
+
 // UNICODE_STRING strings
 
 // TODO: Deprecate in favor of Ex version

@@ -77,6 +77,21 @@ StoreLock(
     BOOLEAN bExclusive
     );
 
+static VOID
+InitLockEntry(
+    PPVFS_LOCK_ENTRY pEntry,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    );
+
+static BOOLEAN
+LockEntryEqual(
+    PPVFS_LOCK_ENTRY pEntry1,
+    PPVFS_LOCK_ENTRY pEntry2
+    );
+
 /* Code */
 
 /**************************************************************
@@ -98,6 +113,8 @@ PvfsLockFile(
     BOOLEAN bExclusive = FALSE;
     BOOLEAN bFcbReadLocked = FALSE;
     BOOLEAN bBrlWriteLocked = FALSE;
+    BOOLEAN bLastFailedLock = FALSE;
+    PVFS_LOCK_ENTRY RangeLock = {0};
 
     if (Flags & PVFS_LOCK_EXCLUSIVE) {
         bExclusive = TRUE;
@@ -105,13 +122,11 @@ PvfsLockFile(
 
     /* Read lock so no one can add a CCB to the list */
 
-    ENTER_READER_RW_LOCK(&pFcb->rwLock);
-    bFcbReadLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
 
     /* Store the pending lock */
 
-    ENTER_WRITER_RW_LOCK(&pFcb->rwBrlLock);
-    bBrlWriteLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLocked, &pFcb->rwBrlLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
@@ -134,17 +149,24 @@ PvfsLockFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (bBrlWriteLocked) {
-        LEAVE_WRITER_RW_LOCK(&pFcb->rwBrlLock);
-    }
-
-    if (bFcbReadLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
-    }
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
 
     return ntError;
 
 error:
+    InitLockEntry(&RangeLock, pKey, Offset, Length, Flags);
+
+    /* Windows 2003 & XP return LOCK_NOT_GRANTED on the first
+       failure, and FILE_LOCK_CONFLICT on subsequent errors */
+
+    LWIO_LOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
+    if (!LockEntryEqual(&pFcb->LastFailedLock, &RangeLock)) {
+        ntError = STATUS_LOCK_NOT_GRANTED;
+        InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
+    }
+    LWIO_UNLOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
+
     goto cleanup;
 }
 
@@ -334,7 +356,7 @@ CanLock(
             (Offset <= (pEntry->Offset + pEntry->Length)))
         {
             /* Owning CCB can overlap shared locks only */
-            if (bExclusive || !bAllowOverlaps) {
+            if (!bExclusive || !bAllowOverlaps) {
                 ntError = STATUS_FILE_LOCK_CONFLICT;
                 BAIL_ON_NT_STATUS(ntError);
             }
@@ -345,7 +367,6 @@ CanLock(
 
 cleanup:
     return ntError;
-
 error:
     goto cleanup;
 }
@@ -439,6 +460,63 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/**************************************************************
+ *************************************************************/
+
+static VOID
+InitLockEntry(
+    PPVFS_LOCK_ENTRY pEntry,
+    PULONG pKey,
+    LONG64 Offset,
+    LONG64 Length,
+    PVFS_LOCK_FLAGS Flags
+    )
+{
+    /* Should never happen, but don't crash if it does */
+
+    if (pEntry == NULL) {
+        return;
+    }
+
+    pEntry->bExclusive = (Flags & PVFS_LOCK_EXCLUSIVE) ? TRUE : FALSE;
+    pEntry->Key = pKey != NULL ? *pKey : 0;
+    pEntry->Offset = Offset;
+    pEntry->Length = Length;
+
+    return;
+}
+
+
+/**************************************************************
+ *************************************************************/
+
+static BOOLEAN
+LockEntryEqual(
+    PPVFS_LOCK_ENTRY pEntry1,
+    PPVFS_LOCK_ENTRY pEntry2
+    )
+{
+    if (pEntry1 == pEntry2) {
+        return TRUE;
+    }
+
+    if ((pEntry1 == NULL) || (pEntry2 == NULL)) {
+        return FALSE;
+    }
+
+    if ((pEntry1->bExclusive == pEntry2->bExclusive) &&
+        (pEntry1->Key == pEntry2->Key) &&
+        (pEntry1->Offset == pEntry2->Offset) &&
+        (pEntry1->Length == pEntry2->Length))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 
 /*
 local variables:

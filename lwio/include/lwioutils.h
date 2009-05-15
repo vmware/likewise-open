@@ -1067,7 +1067,7 @@ SMBCheckDirectoryExists(
 
 DWORD
 SMBCreateDirectory(
-    PSTR pszPath,
+    PCSTR pszPath,
     mode_t dwFileMode
     );
 

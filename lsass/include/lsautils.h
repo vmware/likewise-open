@@ -1187,6 +1187,29 @@ LsaFreeUserModInfo(
     );
 
 DWORD
+LsaBuildGroupModInfo(
+    gid_t gid,
+    PLSA_GROUP_MOD_INFO *ppGroupModInfo
+    );
+
+DWORD
+LsaModifyGroup_AddToGroups(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PCSTR pszGroupList
+    );
+
+DWORD
+LsaModifyGroup_RemoveFromGroups(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PCSTR pszGroupList
+    );
+
+void
+LsaFreeGroupModInfo(
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LsaParseConfigFile(
     PCSTR                     pszFilePath,
     DWORD                     dwOptions,

@@ -49,55 +49,27 @@
 #ifndef __DBQUERY_H__
 #define __DBQUERY_H__
 
-#define DB_QUERY_CREATE_SHARES_TABLE                    \
-    "create table shares (name    text primary key,     \
-                          path    text,                 \
-                          comment text  collate nocase, \
-                          sid     text nocase,          \
-                          service text,                 \
-                          unique (name, path),          \
-                          check(service == \"A:\" or service == \"LPT1:\" or service == \"IPC\" or service == \"COMM\" ) \
-                          )"
+#define LWIO_SRV_SHARES_DB_TABLE_NAME  "shares"
+#define LWIO_SRV_SHARES_DB_COL_NAME    "name"
+#define LWIO_SRV_SHARES_DB_COL_PATH    "path"
+#define LWIO_SRV_SHARES_DB_COL_COMMENT "comment"
+#define LWIO_SRV_SHARES_DB_COL_SECDESC "secdesc"
+#define LWIO_SRV_SHARES_DB_COL_SERVICE "service"
 
-#define DB_QUERY_LOOKUP_SHARE_BY_NAME  \
-    "select name,      \
-            path,      \
-            comment,   \
-            sid,       \
-            service    \
-      from  shares     \
-      where upper(name) = upper(%Q)"
-
-#define DB_QUERY_COUNT_EXISTING_SHARES \
-    "select count(*) from shares"
-
-#define DB_QUERY_FIND_SHARES_LIMIT \
-    "select     name,       \
-                path,       \
-                comment,    \
-                sid,        \
-                service     \
-       from     shares      \
-       order by name       \
-       limit %d offset %d"
-
-#define DB_QUERY_INSERT_SHARE  \
-    "insert into shares \
-     (name,      \
-      path,      \
-      comment,   \
-      sid,       \
-      service    \
-     )           \
-     values( %Q, \
-             %Q, \
-             %Q, \
-             %Q, \
-             %Q  \
-           )"
-
-#define DB_QUERY_DELETE_SHARE \
-    "delete from shares where upper(name) = upper(%Q)"
+#define DB_QUERY_CREATE_SHARES_TABLE                                           \
+    "create table " LWIO_SRV_SHARES_DB_TABLE_NAME                              \
+                  "(" LWIO_SRV_SHARES_DB_COL_NAME    " text primary key,"      \
+                      LWIO_SRV_SHARES_DB_COL_PATH    " text,"                  \
+                      LWIO_SRV_SHARES_DB_COL_COMMENT " text  collate nocase,"  \
+                      LWIO_SRV_SHARES_DB_COL_SECDESC " blob,"                  \
+                      LWIO_SRV_SHARES_DB_COL_SERVICE " text,"                  \
+                    " UNIQUE (" LWIO_SRV_SHARES_DB_COL_NAME ","                \
+				    LWIO_SRV_SHARES_DB_COL_PATH "),"               \
+                    " CHECK(" LWIO_SRV_SHARES_DB_COL_SERVICE "== \"A:\" or "   \
+				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"LPT1:\" or "\
+				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"IPC\" or "  \
+				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"COMM\" )"   \
+                    ")"
 
 #endif /* __DBQUERY_H__ */
 

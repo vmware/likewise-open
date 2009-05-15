@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,91 +33,97 @@
  *
  * Module Name:
  *
- *        ipc_group_p.h
+ *        modgroup.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Inter-process communication (Server) API for Groups
+ *        Driver for program to modify an existing group
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors:
+ *          Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
-#ifndef __IPC_GROUP_H__
-#define __IPC_GROUP_H__
 
-LWMsgStatus
-LsaSrvIpcBeginEnumGroups(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+#ifndef __MODGROUP_H__
+#define __MODGROUP_H__
+
+typedef enum
+{
+    GroupModTask_AddToGroups,
+    GroupModTask_RemoveFromGroups
+} GroupModificationTaskType;
+
+typedef struct __GROUP_MOD_TASK
+{
+    GroupModificationTaskType taskType;
+    PSTR pszData;
+} GROUP_MOD_TASK, *PGROUP_MOD_TASK;
+
+DWORD
+LsaModGroupMain(
+    int argc,
+    char* argv[]
     );
 
-LWMsgStatus
-LsaSrvIpcEnumGroups(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+DWORD
+ParseArgs(
+    int argc,
+    char* argv[],
+    PSTR* ppszLoginId,
+    PDLINKEDLIST* ppTaskList
     );
 
-LWMsgStatus
-LsaSrvIpcEndEnumGroups(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+BOOLEAN
+ValidateArgs(
+    PCSTR        pszLoginId,
+    PDLINKEDLIST pTaskList
     );
 
-LWMsgStatus
-LsaSrvIpcFindGroupById(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+VOID
+FreeTasksInList(
+    PVOID pListMember,
+    PVOID pGroupData
     );
 
-LWMsgStatus
-LsaSrvIpcGetGroupsForUser(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+VOID
+FreeTask(
+    PGROUP_MOD_TASK pTask
     );
 
-LWMsgStatus
-LsaSrvIpcFindGroupByName(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+PSTR
+GetProgramName(
+    PSTR pszFullProgramPath
     );
 
-LWMsgStatus
-LsaSrvIpcAddGroup(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+VOID
+ShowUsage(
+    PCSTR pszProgramName
     );
 
-LWMsgStatus
-LsaSrvIpcModifyGroup(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+DWORD
+ModifyGroup(
+    PSTR pszLoginId,
+    PDLINKEDLIST pTaskList
     );
 
-LWMsgStatus
-LsaSrvIpcDeleteGroup(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+DWORD
+BuildGroupModInfo(
+    gid_t        gid,
+    PDLINKEDLIST pTaskList,
+    PLSA_GROUP_MOD_INFO* ppGroupModInfo
     );
 
-#endif /* __IPC_GROUP_H__ */
+#endif /* __MODGROUP_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

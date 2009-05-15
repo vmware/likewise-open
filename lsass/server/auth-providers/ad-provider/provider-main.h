@@ -314,6 +314,12 @@ AD_AddGroup(
     );
 
 DWORD
+AD_ModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 AD_DeleteGroup(
     HANDLE hProvider,
     gid_t  gid

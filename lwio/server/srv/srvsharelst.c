@@ -51,7 +51,7 @@
 static
 NTSTATUS
 SrvAddShareInfoToList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PSHARE_DB_INFO    pShareInfo,
     PSRV_SHARE_ENTRY *ppShareEntry
     );
@@ -60,7 +60,7 @@ SrvAddShareInfoToList_inlock(
 static
 void
 SrvAddShareToList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PSRV_SHARE_ENTRY pShareEntry
     );
 
@@ -68,7 +68,7 @@ SrvAddShareToList_inlock(
 static
 NTSTATUS
 SrvRemoveShareFromList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pszShareName
     );
 
@@ -83,14 +83,14 @@ SrvShareFreeEntry_inlock(
 static
 void
 SrvShareFreeList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     );
 
 
 static
 NTSTATUS
 SrvFindShareByName_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     );
@@ -98,7 +98,7 @@ SrvFindShareByName_inlock(
 
 NTSTATUS
 SrvShareInitContextContents(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
     NTSTATUS ntStatus = 0;
@@ -107,19 +107,16 @@ SrvShareInitContextContents(
     ULONG          ulOffset = 0;
     ULONG          ulLimit  = 256;
     ULONG          ulNumSharesFound = 0;
-    HANDLE         hDb = (HANDLE)NULL;
 
-    ntStatus = SrvShareDbInit(pDbContext);
+    pthread_rwlock_init(&pShareList->mutex, NULL);
+    pShareList->pMutex = &pShareList->mutex;
+
+    ntStatus = SrvShareDbInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    pDbContext->pShareEntry = NULL;
-
-    ntStatus = SrvShareDbOpen(
-                    pDbContext,
-                    &hDb);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pShareList->pShareEntry = NULL;
 
     do
     {
@@ -133,8 +130,6 @@ SrvShareInitContextContents(
         }
 
         ntStatus = SrvShareDbEnum_inlock(
-                        pDbContext,
-                        hDb,
                         ulOffset,
                         ulLimit,
                         &ppShareInfoList,
@@ -150,7 +145,7 @@ SrvShareInitContextContents(
             PSHARE_DB_INFO pShareInfo = *(ppShareInfoList + iShare);
             PSRV_SHARE_ENTRY pShareEntry = NULL;
 
-            ntStatus = SrvAddShareInfoToList_inlock(pDbContext,
+            ntStatus = SrvAddShareInfoToList_inlock(pShareList,
                                                     pShareInfo,
                                                     &pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -161,22 +156,19 @@ SrvShareInitContextContents(
     } while (ulNumSharesFound == ulLimit);
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     if (ppShareInfoList)
     {
         SrvShareDbFreeInfoList(ppShareInfoList, ulNumSharesFound);
     }
 
-    if (hDb != (HANDLE)NULL)
-    {
-        SrvShareDbClose(pDbContext, hDb);
-    }
-
     return ntStatus;
 
 error:
-    SrvShareFreeList_inlock(pDbContext);
+
+    SrvShareFreeList_inlock(pShareList);
 
     goto cleanup;
 }
@@ -306,28 +298,28 @@ error:
 
 VOID
 SrvShareFreeContextContents(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
-    BOOLEAN bInLock = FALSE;
+    if (pShareList->pShareEntry)
+	{
+		SrvShareFreeList_inlock(pShareList);
+	}
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
-
-    if (pDbContext->pShareEntry)
+    if (pShareList->pMutex)
     {
-        SrvShareFreeList_inlock(pDbContext);
+	pthread_rwlock_destroy(&pShareList->mutex);
+	pShareList->pMutex = NULL;
     }
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
-
-    SrvShareDbShutdown(pDbContext);
+    SrvShareDbShutdown();
 }
 
 
 static
 NTSTATUS
 SrvAddShareInfoToList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PSHARE_DB_INFO    pShareInfo,
     PSRV_SHARE_ENTRY *ppShareEntry
     )
@@ -343,20 +335,23 @@ SrvAddShareInfoToList_inlock(
 
     pShareEntry->pInfo = pShareInfo;
 
-    SrvAddShareToList_inlock(pDbContext, pShareEntry);
+    SrvAddShareToList_inlock(pShareList, pShareEntry);
 
     InterlockedIncrement(&pShareInfo->refcount);
     *ppShareEntry = pShareEntry;
 
 cleanup:
+
     return ntStatus;
 
 error:
+
     if (pShareEntry) {
         SrvShareFreeEntry_inlock(pShareEntry);
     }
 
     *ppShareEntry = NULL;
+
     goto cleanup;
 }
 
@@ -364,19 +359,19 @@ error:
 static
 void
 SrvAddShareToList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PSRV_SHARE_ENTRY pShareEntry
     )
 {
-    pShareEntry->pNext = pDbContext->pShareEntry;
-    pDbContext->pShareEntry = pShareEntry;
+    pShareEntry->pNext = pShareList->pShareEntry;
+    pShareList->pShareEntry = pShareEntry;
 }
 
 
 static
 NTSTATUS
 SrvRemoveShareFromList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName
     )
 {
@@ -384,7 +379,7 @@ SrvRemoveShareFromList_inlock(
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSRV_SHARE_ENTRY pPrevShareEntry = NULL;
 
-    pShareEntry = pDbContext->pShareEntry;
+    pShareEntry = pShareList->pShareEntry;
 
     while (pShareEntry) {
         if (SMBWc16sCaseCmp(pwszShareName,
@@ -394,7 +389,7 @@ SrvRemoveShareFromList_inlock(
                 pPrevShareEntry->pNext = pShareEntry->pNext;
 
             } else {
-                pDbContext->pShareEntry = pShareEntry->pNext;
+                pShareList->pShareEntry = pShareEntry->pNext;
             }
             goto cleanup;
         }
@@ -428,25 +423,25 @@ SrvShareFreeEntry_inlock(
 static
 void
 SrvShareFreeList_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext
+    PLWIO_SRV_SHARE_LIST pShareList
     )
 {
-    PSRV_SHARE_ENTRY pShareEntry = pDbContext->pShareEntry;
+    PSRV_SHARE_ENTRY pShareEntry = pShareList->pShareEntry;
 
     while (pShareEntry) {
-        pDbContext->pShareEntry = pShareEntry->pNext;
+        pShareList->pShareEntry = pShareEntry->pNext;
         if (pShareEntry) {
             SrvShareFreeEntry_inlock(pShareEntry);
         }
 
-        pShareEntry = pDbContext->pShareEntry;
+        pShareEntry = pShareList->pShareEntry;
     }
 }
 
 
 NTSTATUS
 SrvFindShareByName(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -454,15 +449,15 @@ SrvFindShareByName(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         ppShareInfo
                         );
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 }
@@ -471,7 +466,7 @@ SrvFindShareByName(
 static
 NTSTATUS
 SrvFindShareByName_inlock(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -480,7 +475,7 @@ SrvFindShareByName_inlock(
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;
 
-    pShareEntry = pDbContext->pShareEntry;
+    pShareEntry = pShareList->pShareEntry;
 
     while (pShareEntry) {
         if (SMBWc16sCaseCmp(pwszShareName,
@@ -505,17 +500,18 @@ cleanup:
 
 NTSTATUS
 SrvShareAddShare(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR  pwszShareName,
     PWSTR  pwszSharePath,
     PWSTR  pwszShareComment,
+    PBYTE  pSecDesc,
+    ULONG  ulSecDescLen,
     ULONG  ulShareType
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulError = 0;
     BOOLEAN bInLock = FALSE;
-    HANDLE hDb = (HANDLE)NULL;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;
     PSTR pszShareName = NULL;
@@ -559,10 +555,10 @@ SrvShareAddShare(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         &pShareInfo
                         );
@@ -605,7 +601,23 @@ SrvShareAddShare(
         pShareInfo->pwszComment = NULL;
     }
 
-    pShareInfo->pwszSID     = NULL;
+    if (ulSecDescLen)
+    {
+	ntStatus = LW_RTL_ALLOCATE(
+						&pShareInfo->pSecDesc,
+						BYTE,
+						ulSecDescLen);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	memcpy(pShareInfo->pSecDesc, pSecDesc, ulSecDescLen);
+
+	pShareInfo->ulSecDescLen = ulSecDescLen;
+    }
+    else
+    {
+		pShareInfo->pSecDesc     = NULL;
+		pShareInfo->ulSecDescLen = 0;
+    }
     pShareInfo->service     = ulShareType;
 
     pShareInfo->refcount = 1;
@@ -617,32 +629,21 @@ SrvShareAddShare(
     pShareEntry->pInfo = pShareInfo;
     InterlockedIncrement(&pShareInfo->refcount);
 
-    SrvAddShareToList_inlock(pDbContext, pShareEntry);
-
-    ntStatus = SrvShareDbOpen(
-                    pDbContext,
-                    &hDb);
-    BAIL_ON_NT_STATUS(ntStatus);
+    SrvAddShareToList_inlock(pShareList, pShareEntry);
 
     ntStatus = SrvShareDbAdd_inlock(
-                        pDbContext,
-                        hDb,
                         pszShareName,
                         pszSharePath,
                         pszShareComment,
-                        NULL,
+                        pSecDesc,
+                        ulSecDescLen,
                         LWIO_SRV_SHARE_STRING_ID_DISK
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    if (hDb != (HANDLE)NULL)
-    {
-       SrvShareDbClose(pDbContext, hDb);
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     if (pShareInfo) {
         SrvShareDbReleaseInfo(pShareInfo);
@@ -655,7 +656,7 @@ error:
        it to the database */
     if (pShareEntry) {
         SrvRemoveShareFromList_inlock(
-                   pDbContext,
+                   pShareList,
                    pShareEntry->pInfo->pwszName
                    );
     }
@@ -666,14 +667,13 @@ error:
 
 NTSTATUS
 SrvShareDeleteShare(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulError = 0;
     BOOLEAN bInLock = FALSE;
-    HANDLE hDb = (HANDLE)NULL;
     PSTR pszShareName = NULL;
 
     if (pwszShareName) {
@@ -692,33 +692,20 @@ SrvShareDeleteShare(
 
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    ntStatus = SrvShareDbOpen(
-                    pDbContext,
-                    &hDb);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvShareDbDelete(
-                        pDbContext,
-                        hDb,
-                        pszShareName
-                        );
+    ntStatus = SrvShareDbDelete(pszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvRemoveShareFromList_inlock(
-                        pDbContext,
+                        pShareList,
                         pwszShareName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (hDb != (HANDLE)NULL)
-    {
-       SrvShareDbClose(pDbContext, hDb);
-    }
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 
@@ -729,7 +716,7 @@ error:
 
 NTSTATUS
 SrvShareSetInfo(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO pShareInfo
     )
@@ -775,7 +762,6 @@ SrvShareSetInfo(
     }
 
     ntStatus =  SrvShareDbInsert(
-                    hDb,
                     pszShareName,
                     pszPathName,
                     pszComment,
@@ -797,7 +783,7 @@ error:
 
 NTSTATUS
 SrvShareGetInfo(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PWSTR pwszShareName,
     PSHARE_DB_INFO *ppShareInfo
     )
@@ -806,10 +792,10 @@ SrvShareGetInfo(
     BOOLEAN bInLock = FALSE;
     PSHARE_DB_INFO pShareInfo = NULL;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     ntStatus = SrvFindShareByName_inlock(
-                        pDbContext,
+                        pShareList,
                         pwszShareName,
                         &pShareInfo
                         );
@@ -819,7 +805,7 @@ SrvShareGetInfo(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 
@@ -830,7 +816,7 @@ error:
 
 NTSTATUS
 SrvShareEnumShares(
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     ULONG dwLevel,
     PSHARE_DB_INFO** pppShareInfo,
     PULONG pdwNumEntries
@@ -843,10 +829,10 @@ SrvShareEnumShares(
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSHARE_DB_INFO* ppShares = NULL;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pDbContext->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
     /* Count the number of share entries */
-    pShareEntry = pDbContext->pShareEntry;
+    pShareEntry = pShareList->pShareEntry;
     while (pShareEntry) {
         pShareEntry = pShareEntry->pNext;
         dwCount++;
@@ -862,7 +848,7 @@ SrvShareEnumShares(
                         dwCount * sizeof(PSHARE_DB_INFO));
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pShareEntry = pDbContext->pShareEntry;
+        pShareEntry = pShareList->pShareEntry;
         for (; i < dwCount; i++)
         {
             InterlockedIncrement(&pShareEntry->pInfo->refcount);
@@ -878,7 +864,7 @@ SrvShareEnumShares(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pDbContext->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     return ntStatus;
 

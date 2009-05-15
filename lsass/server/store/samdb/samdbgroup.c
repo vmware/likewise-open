@@ -79,7 +79,7 @@ SamDbGetGroupCount(
 {
     return SamDbGetObjectCount(
                 hBindHandle,
-                SAMDB_OBJECT_CLASS_GROUP,
+                SAMDB_OBJECT_CLASS_LOCAL_GROUP,
                 pdwNumGroups);
 }
 
@@ -125,7 +125,7 @@ SamDbGetGroupMembers(
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (objectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (objectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -722,7 +722,7 @@ SamDbAddToGroup(
                     &groupObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (groupObjectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -735,7 +735,7 @@ SamDbAddToGroup(
                     &memberObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
+    if ((memberObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP) &&
         (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
     {
         dwError = LSA_ERROR_NO_SUCH_OBJECT;
@@ -830,7 +830,7 @@ SamDbRemoveFromGroup(
                     &groupObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (groupObjectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -843,7 +843,7 @@ SamDbRemoveFromGroup(
                     &memberObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
+    if ((memberObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP) &&
         (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
     {
         dwError = LSA_ERROR_NO_SUCH_OBJECT;

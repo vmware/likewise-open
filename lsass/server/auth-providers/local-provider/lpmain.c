@@ -1115,6 +1115,27 @@ error:
 }
 
 DWORD
+LocalModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LocalCheckForModifyAccess(hProvider);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirModifyGroup(
+                    hProvider,
+                    pGroupModInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+DWORD
 LocalDeleteGroup(
     HANDLE hProvider,
     gid_t  gid

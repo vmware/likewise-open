@@ -82,7 +82,7 @@ SMBSrvGetLocalIPAddress(
 NTSTATUS
 SrvListenerInit(
     HANDLE                    hPacketAllocator,
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext,
+    PLWIO_SRV_SHARE_LIST pShareList,
     PLWIO_SRV_SOCKET_READER    pReaderArray,
     ULONG                     ulNumReaders,
     PLWIO_SRV_LISTENER         pListener
@@ -120,7 +120,7 @@ SrvListenerInit(
     pListener->context.serverProperties.Capabilities |= CAP_LARGE_WRITEX;
     pListener->context.serverProperties.Capabilities |= CAP_EXTENDED_SECURITY;
 
-    pListener->context.pShareDbContext = pShareDbContext;
+    pListener->context.pShareList = pShareList;
 
     ntStatus = pthread_create(
                     &pListener->listener,
@@ -325,7 +325,7 @@ SrvListenerMain(
                         pSocket,
                         pContext->hPacketAllocator,
                         pContext->hGssContext,
-                        pContext->pShareDbContext,
+                        pContext->pShareList,
                         &pContext->serverProperties,
                         pHostinfo,
                         &pConnection);

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -61,6 +61,19 @@ LsaAddGroup(
             pGroupInfo,
             dwGroupInfoLevel);
 }
+
+LSASS_API
+DWORD
+LsaModifyGroup(
+    HANDLE hLsaConnection,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    return LsaTransactModifyGroup(
+            hLsaConnection,
+            pGroupModInfo);
+}
+
 
 LSASS_API
 DWORD
@@ -408,3 +421,13 @@ LsaFreeEnumObjectsInfo(
     LSA_SAFE_FREE_STRING(pInfo->pszGUID);
     LsaFreeMemory(pInfo);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

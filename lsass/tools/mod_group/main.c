@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,87 +28,35 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SRV_SHARELST_H__
-#define __SRV_SHARELST_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        main.c
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Driver for program to modify an existing group
+ *
+ * Authors:
+ *          Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ */
 
+#include "includes.h"
 
-NTSTATUS
-SrvShareInitContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
-
-
-NTSTATUS
-SrvShareGetServiceStringId(
-    SHARE_SERVICE  service,
-    PSTR*          ppszService
-    );
-
-NTSTATUS
-SrvShareGetServiceId(
-    PCSTR          pszService,
-    SHARE_SERVICE* pService
-    );
-
-VOID
-SrvShareFreeContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
-
-
-NTSTATUS
-SrvFindShareByName(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pszShareName,
-    PSHARE_DB_INFO *ppShareInfo
-    );
-
-
-NTSTATUS
-SrvShareAddShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR  pwszShareName,
-    PWSTR  pwszPath,
-    PWSTR  pwszComment,
-    PBYTE  pSecDesc,
-    ULONG  ulSecDescLen,
-    ULONG  ulShareType
-    );
-
-
-NTSTATUS
-SrvShareDeleteShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName
-    );
-
-
-NTSTATUS
-SrvShareSetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO pShareInfo
-    );
-
-
-NTSTATUS
-SrvShareGetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO *ppShareInfo
-    );
-
-
-NTSTATUS
-SrvShareEnumShares(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    DWORD dwLevel,
-    PSHARE_DB_INFO** pppShareInfo,
-    PDWORD pdwNumEntries
-    );
-
-
-#endif /* __SRV_SHARELST_H__ */
+int
+main(
+    int argc,
+    char* argv[]
+    )
+{
+    return LsaModGroupMain(argc, argv);
+}
 
 
 /*

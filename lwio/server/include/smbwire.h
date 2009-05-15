@@ -115,6 +115,29 @@ typedef enum
     COM_WRITE_BULK_DATA         = 0xDA
 } COMMAND;
 
+typedef enum
+{
+	COM2_NEGOTIATE       = 0x00,
+	COM2_SESSION_SETUP   = 0x01,
+	COM2_LOGOFF          = 0x02,
+	COM2_TREE_CONNECT    = 0x03,
+	COM2_TREE_DISCONNECT = 0x04,
+	COM2_CREATE          = 0x05,
+	COM2_CLOSE           = 0x06,
+	COM2_FLUSH           = 0x07,
+	COM2_READ            = 0x08,
+	COM2_WRITE           = 0x09,
+	COM2_LOCK            = 0x0A,
+	COM2_IOCTL           = 0x0B,
+	COM2_CANCEL          = 0x0C,
+	COM2_ECHO            = 0x0D,
+	COM2_FIND            = 0x0E,
+	COM2_NOTIFY          = 0x0F,
+	COM2_GETINFO         = 0x10,
+	COM2_SETINFO         = 0x11,
+	COM2_BREAK           = 0x12
+} SMB2_COMMAND;
+
 typedef USHORT SMB_SUB_COMMAND, *PSMB_SUB_COMMAND;
 
 #define SMB_SUB_COMMAND_TRANS_SET_NAMED_PIPE_HANDLE_STATE   0x01
@@ -317,7 +340,7 @@ typedef UCHAR SMB_BUFFER_FORMAT;
 
 typedef struct
 {
-    uchar8_t        smb[4];     /* Contains 0xFF, 'SMB' */
+    uchar8_t        smb[4];     /* Contains {0xFF,0xFE} , 'SMB' */
     uint8_t         command;    /* Command code */
     uint32_t        error;      /* Error code */
     uint8_t         flags;      /* Flags */
@@ -1303,7 +1326,6 @@ typedef struct _SMB_DELETE_RESPONSE_HEADER {
 
 typedef struct _SMB_CREATE_DIRECTORY_REQUEST_HEADER
 {
-    USHORT usSearchAttributes;
     USHORT ByteCount;
 
     /* UCHAR ucBufferFormat; */

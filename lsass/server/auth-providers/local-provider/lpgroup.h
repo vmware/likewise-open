@@ -178,6 +178,12 @@ LocalDirAddGroup_1(
     );
 
 DWORD
+LocalDirModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+DWORD
 LocalDirDeleteGroup(
     HANDLE hProvider,
     PWSTR  pwszGroupDN
@@ -196,3 +202,12 @@ LocalDirFreeGroupMember(
 
 #endif /* __LP_GROUP_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

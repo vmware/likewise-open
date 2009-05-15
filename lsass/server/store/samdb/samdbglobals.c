@@ -20,8 +20,8 @@ SAMDB_ATTRIBUTE_MAP_INFO gObjectClassContainerAttrMaps[] =
     { SAMDB_CONTAINER_ATTRIBUTE_MAP };
 
 static
-SAMDB_ATTRIBUTE_MAP_INFO gObjectClassGroupAttrMaps[] =
-    { SAMDB_GROUP_ATTRIBUTE_MAP };
+SAMDB_ATTRIBUTE_MAP_INFO gObjectClassLocalGroupAttrMaps[] =
+    { SAMDB_LOCAL_GROUP_ATTRIBUTE_MAP };
 
 static
 SAMDB_ATTRIBUTE_MAP_INFO gObjectClassUserAttrMaps[] =
@@ -46,9 +46,9 @@ SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO gObjectClassMaps[] =
         sizeof(gObjectClassContainerAttrMaps)/sizeof(gObjectClassContainerAttrMaps[0])
     },
     {
-        SAMDB_OBJECT_CLASS_GROUP,
-        &gObjectClassGroupAttrMaps[0],
-        sizeof(gObjectClassGroupAttrMaps)/sizeof(gObjectClassGroupAttrMaps[0])
+        SAMDB_OBJECT_CLASS_LOCAL_GROUP,
+        &gObjectClassLocalGroupAttrMaps[0],
+        sizeof(gObjectClassLocalGroupAttrMaps)/sizeof(gObjectClassLocalGroupAttrMaps[0])
     },
     {
         SAMDB_OBJECT_CLASS_USER,

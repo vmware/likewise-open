@@ -2105,6 +2105,36 @@ error:
     goto cleanup;
 }
 
+DWORD
+LocalDirModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwMemberGroupInfoLevel = 0;
+    PWSTR pwszGroupDN = NULL;
+    PLSA_GROUP_INFO_0 pMemberGroupInfo = NULL;
+
+    dwError = LocalDirFindGroupById(
+                    hProvider,
+                    pGroupModInfo->gid,
+                    dwMemberGroupInfoLevel,
+                    &pwszGroupDN,
+                    (PVOID*)&pMemberGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (pMemberGroupInfo)
+    {
+        LsaFreeGroupInfo(dwMemberGroupInfoLevel, pMemberGroupInfo);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 static
 DWORD

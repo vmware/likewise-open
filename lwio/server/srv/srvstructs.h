@@ -80,6 +80,20 @@ typedef enum
     SHARE_SERVICE_UNKNOWN
 } SHARE_SERVICE;
 
+typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
+{
+	sqlite3*      pDbHandle;
+
+	sqlite3_stmt* pInsertStmt;
+	sqlite3_stmt* pEnumStmt;
+	sqlite3_stmt* pDeleteStmt;
+	sqlite3_stmt* pCountStmt;
+	sqlite3_stmt* pFindStmt;
+
+	struct _LWIO_SRV_SHARE_DB_CONTEXT *pNext;
+
+} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
+
 typedef struct _SHARE_DB_INFO
 {
     LONG refcount;
@@ -90,7 +104,8 @@ typedef struct _SHARE_DB_INFO
     PWSTR pwszName;
     PWSTR pwszPath;
     PWSTR pwszComment;
-    PWSTR pwszSID;
+    PBYTE pSecDesc;
+    ULONG ulSecDescLen;
 
     SHARE_SERVICE service;
 
@@ -108,14 +123,14 @@ typedef struct _SRV_SHARE_ENTRY
 } SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
 
 
-typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
+typedef struct _LWIO_SRV_SHARE_LIST
 {
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
 
     PSRV_SHARE_ENTRY  pShareEntry;
 
-} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
+} LWIO_SRV_SHARE_LIST, *PLWIO_SRV_SHARE_LIST;
 
 
 typedef ULONG CCB_TYPE;
@@ -311,8 +326,8 @@ typedef struct _LWIO_SRV_CONNECTION
     PBYTE               pSessionKey;
     ULONG               ulSessionKeyLength;
 
-    PSRV_HOST_INFO      pHostinfo;
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext;
+    PSRV_HOST_INFO       pHostinfo;
+    PLWIO_SRV_SHARE_LIST pShareList;
 
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;
@@ -403,8 +418,8 @@ typedef struct _LWIO_SRV_LISTENER_CONTEXT
     // Not owned
     HANDLE                    hPacketAllocator;
     HANDLE                    hGssContext;
-    PLWIO_SRV_SHARE_DB_CONTEXT pShareDbContext;
-    PLWIO_SRV_SOCKET_READER    pReaderArray;
+    PLWIO_SRV_SHARE_LIST      pShareList;
+    PLWIO_SRV_SOCKET_READER   pReaderArray;
     ULONG                     ulNumReaders;
 
 } LWIO_SRV_LISTENER_CONTEXT, *PLWIO_SRV_LISTENER_CONTEXT;
@@ -424,19 +439,25 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
     pthread_mutex_t          mutex;
     pthread_mutex_t*         pMutex;
 
-    LWIO_SRV_CONFIG           config;
+    LWIO_SRV_CONFIG          config;
 
-    LWIO_SRV_SHARE_DB_CONTEXT shareDBContext;
+    pthread_rwlock_t           dbMutex;
+    pthread_rwlock_t*          pDbMutex;
+    ULONG                      ulMaxNumDbContexts;
+    ULONG                      ulNumDbContexts;
+    PLWIO_SRV_SHARE_DB_CONTEXT pDbContextList;
+
+    LWIO_SRV_SHARE_LIST      shareList;
 
     SMB_PROD_CONS_QUEUE      workQueue;
 
-    PLWIO_SRV_SOCKET_READER   pReaderArray;
+    PLWIO_SRV_SOCKET_READER  pReaderArray;
     ULONG                    ulNumReaders;
 
-    PLWIO_SRV_WORKER          pWorkerArray;
+    PLWIO_SRV_WORKER         pWorkerArray;
     ULONG                    ulNumWorkers;
 
-    LWIO_SRV_LISTENER         listener;
+    LWIO_SRV_LISTENER        listener;
 
     PLWIO_PACKET_ALLOCATOR   hPacketAllocator;
 
