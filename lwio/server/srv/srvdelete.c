@@ -314,12 +314,12 @@ SrvDeleteFiles(
 
             fileName.FileName = pwszFilePath;
 
-	    CreateOptions = FILE_DELETE_ON_CLOSE;
-	    if (pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-		    CreateOptions |= FILE_DIRECTORY_FILE;
-	    } else {
-		    CreateOptions |= FILE_NON_DIRECTORY_FILE;
-	    }
+            if (pResult->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                ntStatus = STATUS_FILE_IS_A_DIRECTORY;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+		    CreateOptions |=  FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
 
             ntStatus = IoCreateFile(
                             &hFile,
@@ -387,8 +387,32 @@ cleanup:
 
 error:
 
-    ntStatus = STATUS_CANNOT_DELETE;
+    /* Have to do some error mapping here to match WinXP */
+
+    switch (ntStatus) {
+    case STATUS_FILE_IS_A_DIRECTORY:
+        break;
+
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+    case STATUS_NO_SUCH_FILE:
+        ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
+        break;
+
+    default:
+        ntStatus = STATUS_CANNOT_DELETE;
+        break;
+    }
 
     goto cleanup;
 }
 
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
