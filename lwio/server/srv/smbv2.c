@@ -28,12 +28,16 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
+#include "includes.h"
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
+SMBSrvProcessRequest_V2(
     PLWIO_SRV_CONTEXT pContext
-    );
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
-#endif /* __SMBV1_H__ */
+
+
+
