@@ -44,18 +44,10 @@
  */
 
 OM_uint32
-ntlm_gss_compare_name(
-     OM_uint32 *minor_status,
-     gss_name_t name1,
-     gss_name_t name2,
-     int *name_equal
-	)
-{
-}
-
-OM_uint32 ntlm_gss_canonicalize_name(
-				     const gss_name_t input_name,
-				     const gss_OID mech_type,
-				     gss_name_t *output_name)
+ntlm_gss_canonicalize_name(
+    const gss_name_t input_name,
+    const gss_OID mech_type,
+    gss_name_t *output_name
+    )
 {
 }
