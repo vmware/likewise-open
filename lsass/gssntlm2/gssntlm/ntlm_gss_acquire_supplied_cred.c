@@ -28,26 +28,51 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        gssnames.c
- *
- * Abstract:
- *
- *        gss name management functions
- *
- * Author: Todd Stecher (2007)
- *
- */
+#include "client.h"
 
 OM_uint32
-ntlm_gss_canonicalize_name(
-    const gss_name_t input_name,
-    const gss_OID mech_type,
-    gss_name_t *output_name
-    )
+ntlm_gss_acquire_supplied_cred(
+    OM_uint32 *minorStatus,
+    gss_name_t desiredName,
+    gss_buffer_t credBuffer,
+    OM_uint32 reqTime,
+    gss_OID_set desiredMechs,
+    gss_cred_usage_t credUsage,
+    gss_cred_id_t *credHandle,
+    gss_OID_set *actualMechs,
+    OM_uint32 *retTime
+)
 {
+
+    DWORD dwError;
+    DWORD majorStatus = GSS_S_COMPLETE;
+    SEC_BUFFER suppliedCreds;
+    uid_t uid = geteuid();
+
+    if (credBuffer)
+        MAKE_SECBUFFER(&suppliedCreds, credBuffer);
+    else
+        ZERO_STRUCT(suppliedCreds);
+
+    /* @todo - OID support */
+
+    dwError = NTLMGssAcquireSuppliedCred(
+                    minorStatus,
+                    &suppliedCreds,
+                    uid,
+                    (DWORD) reqTime,
+                    (DWORD) credUsage,
+                    (PVOID*) credHandle,
+                    (DWORD*) retTime
+                    );
+
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    if (dwError)
+        majorStatus = NTLMTranslateMajorStatus(dwError);
+
+    return majorStatus;
 }
+

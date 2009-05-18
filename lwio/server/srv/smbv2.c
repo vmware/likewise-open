@@ -28,44 +28,16 @@
  * license@likewisesoftware.com
  */
 
-
-
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        driver.c
- *
- * Abstract:
- *
- *        Likewise Posix File System Driver (PVFS)
- *
- *        Driver Entry Function
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
-
-#include "pvfs.h"
+#include "includes.h"
 
 NTSTATUS
-PvfsSetInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT  pIrpContext
+SMBSrvProcessRequest_V2(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
     return STATUS_NOT_IMPLEMENTED;
 }
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
 
 

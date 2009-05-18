@@ -28,26 +28,43 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        gssnames.c
- *
- * Abstract:
- *
- *        gss name management functions
- *
- * Author: Todd Stecher (2007)
- *
- */
+#include "client.h"
 
+/* V2 interface */
 OM_uint32
-ntlm_gss_canonicalize_name(
-    const gss_name_t input_name,
-    const gss_OID mech_type,
-    gss_name_t *output_name
+ntlm_gss_get_mic(
+    OM_uint32 *minorStatus,
+    gss_ctx_id_t contextHandle,
+    gss_qop_t qop,
+    gss_buffer_t messageBuffer,
+    gss_buffer_t messageToken
     )
 {
+
+    DWORD dwError;
+    PNTLM_CONTEXT gssContext = NULL;
+
+    if (qop != GSS_C_QOP_DEFAULT)
+        return GSS_S_BAD_QOP;
+
+    gssContext = NTLMLocateContext((PNTLM_CONTEXT)contextHandle, NULL, 0);
+    if (!gssContext)
+        BAIL_WITH_LSA_ERROR(LSA_ERROR_INVALID_CONTEXT);
+
+    dwError = gssContext->signRoutine(
+                            gssContext,
+                            0,
+                            messageBuffer,
+                            messageToken
+                            );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+error:
+
+    NTLMDereferenceContext(gssContext);
+
+    (*minorStatus) = dwError;
+    return NTLMTranslateMajorStatus(dwError);
 }
+

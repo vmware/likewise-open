@@ -185,7 +185,9 @@
             " OR " SAM_DB_COL_OBJECT_CLASS " == 2 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 3 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 4 \n"                          \
-            " OR " SAM_DB_COL_OBJECT_CLASS " == 5)\n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 5 \n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 6 \n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 7)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
                  SAM_DB_COL_GROUP_RECORD_ID       " INTEGER,\n"                \
@@ -1032,7 +1034,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_NONE                                   \
     }
 
-#define SAMDB_OBJECT_CLASS_DOMGROUP_MEMBER                       \
+#define SAMDB_DOMGROUP_MEMBER_ATTRIBUTE_MAP                      \
     {                                                            \
         SAM_DB_DIR_ATTR_RECORD_ID,                               \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
@@ -1071,7 +1073,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
          SAM_DB_ATTR_FLAGS_READONLY)                             \
     }
 
-#define SAMDB_OBJECT_CLASS_DOMUSER_MEMBER                        \
+#define SAMDB_DOMUSER_MEMBER_ATTRIBUTE_MAP                       \
     {                                                            \
         SAM_DB_DIR_ATTR_RECORD_ID,                               \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                           \

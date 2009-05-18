@@ -157,12 +157,16 @@ cleanup:
 error:
     InitLockEntry(&RangeLock, pKey, Offset, Length, Flags);
 
-    /* Windows 2003 & XP return LOCK_NOT_GRANTED on the first
-       failure, and FILE_LOCK_CONFLICT on subsequent errors */
+    /* Windows 2003 & XP return FILE_LOCK_CONFLICT for all
+       lock failures following the first.  The state machine
+       resets every time a new lock range is requested.
+       Pass all errors other than LOCK_NOT_GRANTED on through. */
 
     LWIO_LOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
-    if (!LockEntryEqual(&pFcb->LastFailedLock, &RangeLock)) {
-        ntError = STATUS_LOCK_NOT_GRANTED;
+    if ((ntError == STATUS_LOCK_NOT_GRANTED) &&
+        LockEntryEqual(&pFcb->LastFailedLock, &RangeLock))
+    {
+        ntError = STATUS_FILE_LOCK_CONFLICT;
         InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
     }
     LWIO_UNLOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
@@ -339,9 +343,9 @@ CanLock(
         /* No overlaps ever allowed for exclusive locks */
 
         if ((Offset >= pEntry->Offset) &&
-            (Offset <= (pEntry->Offset + pEntry->Length)))
+            (Offset < (pEntry->Offset + pEntry->Length)))
         {
-            ntError = STATUS_FILE_LOCK_CONFLICT;
+            ntError = STATUS_LOCK_NOT_GRANTED;
             BAIL_ON_NT_STATUS(ntError);
         }
     }
@@ -353,11 +357,11 @@ CanLock(
         pEntry = &pSharedLocks->pLocks[i];
 
         if ((Offset >= pEntry->Offset) &&
-            (Offset <= (pEntry->Offset + pEntry->Length)))
+            (Offset < (pEntry->Offset + pEntry->Length)))
         {
             /* Owning CCB can overlap shared locks only */
             if (!bExclusive || !bAllowOverlaps) {
-                ntError = STATUS_FILE_LOCK_CONFLICT;
+                ntError = STATUS_LOCK_NOT_GRANTED;
                 BAIL_ON_NT_STATUS(ntError);
             }
         }

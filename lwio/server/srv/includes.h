@@ -117,6 +117,8 @@
 #include "close.h"
 #include "srvtdiscon.h"
 #include "srvlogoff.h"
+#include "smbv1.h"
+#include "smbv2.h"
 
 #include "checkdir.h"
 #include "creatdir.h"

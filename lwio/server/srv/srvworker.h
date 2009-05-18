@@ -17,4 +17,11 @@ SrvWorkerFreeContents(
     PLWIO_SRV_WORKER pWorker
     );
 
+NTSTATUS
+SrvWorkerBuildErrorResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    NTSTATUS          errorStatus,
+    PSMB_PACKET*      ppSmbResponse
+    );
+
 #endif /* __WORKER_H__ */

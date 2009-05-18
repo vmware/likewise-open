@@ -28,12 +28,12 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
+#ifndef __SMBV2_H__
+#define __SMBV2_H__
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
+SMBSrvProcessRequest_V2(
     PLWIO_SRV_CONTEXT pContext
     );
 
-#endif /* __SMBV1_H__ */
+#endif /* __SMBV2_H__ */

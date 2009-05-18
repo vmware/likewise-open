@@ -28,34 +28,40 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        gssnames.c
- *
- * Abstract:
- *
- *        gss name management functions
- *
- * Author: Todd Stecher (2007)
- *
- */
+#include "client.h"
 
 OM_uint32
-ntlm_gss_compare_name(
-     OM_uint32 *minor_status,
-     gss_name_t name1,
-     gss_name_t name2,
-     int *name_equal
-	)
+ntlm_gss_marshal_supplied_cred(
+    OM_uint32 *minorStatus,
+    char *username,
+    char *domain,
+    char *password,
+    gss_buffer_t marshalledCred
+)
 {
+    DWORD dwError;
+    SEC_BUFFER credBlob;
+
+    ZERO_STRUCT(credBlob);
+
+    dwError = NTLMBuildSupplementalCredentials(
+                    username,
+                    domain,
+                    password,
+                    &credBlob
+                    );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    MAKE_GSS_BUFFER(marshalledCred, &credBlob);
+    credBlob.buffer = NULL;
+
+error:
+
+    NTLM_SAFE_FREE(credBlob.buffer);
+
+    (*minorStatus) = dwError;
+    return NTLMTranslateMajorStatus(dwError);
 }
 
-OM_uint32 ntlm_gss_canonicalize_name(
-				     const gss_name_t input_name,
-				     const gss_OID mech_type,
-				     gss_name_t *output_name)
-{
-}
+

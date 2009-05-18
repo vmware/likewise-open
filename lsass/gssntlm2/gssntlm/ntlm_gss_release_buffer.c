@@ -28,26 +28,21 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        gssnames.c
- *
- * Abstract:
- *
- *        gss name management functions
- *
- * Author: Todd Stecher (2007)
- *
- */
+#include "client.h"
 
 OM_uint32
-ntlm_gss_canonicalize_name(
-    const gss_name_t input_name,
-    const gss_OID mech_type,
-    gss_name_t *output_name
-    )
+ntlm_gss_release_buffer(
+    OM_uint32 *minorStatus,
+    gss_buffer_t buffer
+)
 {
+    if (buffer->value)
+        NTLM_SAFE_FREE(buffer->value);
+
+    buffer->value = NULL;
+    buffer->length = 0;
+
+    *minorStatus = GSS_S_COMPLETE;
+    return GSS_S_COMPLETE;
 }
+
