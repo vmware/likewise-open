@@ -343,7 +343,7 @@ CanLock(
         /* No overlaps ever allowed for exclusive locks */
 
         if ((Offset >= pEntry->Offset) &&
-            (Offset <= (pEntry->Offset + pEntry->Length)))
+            (Offset < (pEntry->Offset + pEntry->Length)))
         {
             ntError = STATUS_LOCK_NOT_GRANTED;
             BAIL_ON_NT_STATUS(ntError);
@@ -357,7 +357,7 @@ CanLock(
         pEntry = &pSharedLocks->pLocks[i];
 
         if ((Offset >= pEntry->Offset) &&
-            (Offset <= (pEntry->Offset + pEntry->Length)))
+            (Offset < (pEntry->Offset + pEntry->Length)))
         {
             /* Owning CCB can overlap shared locks only */
             if (!bExclusive || !bAllowOverlaps) {
