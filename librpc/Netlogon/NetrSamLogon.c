@@ -152,7 +152,9 @@ NTSTATUS NetrSamLogonNetwork(
     const wchar16_t *username,
     uint8 *challenge,
     uint8 *lm_resp,
+    uint32_t lm_resp_len,
     uint8 *nt_resp,
+    uint32 nt_resp_len,
     uint16 logon_level,
     uint16 validation_level,
     NetrValidationInfo **out_info,
@@ -209,7 +211,9 @@ NTSTATUS NetrSamLogonNetwork(
     status = NetrAllocateLogonInfoNet(&logon_info, logon_level,
                                       domain, computer,
                                       username,
-                                      challenge, lm_resp, nt_resp);
+                                      challenge,
+                                      lm_resp, lm_resp_len,
+                                      nt_resp, nt_resp_len);
     goto_if_ntstatus_not_success(status, error);
 
     DCERPC_CALL(status, _NetrLogonSamLogon(b, srv, comp, auth, ret_auth,
