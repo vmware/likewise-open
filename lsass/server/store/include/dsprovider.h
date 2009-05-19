@@ -59,9 +59,9 @@ typedef DWORD (*PFNDIRECTORYGETMEMBERS)(
                     );
 
 typedef DWORD (*PFNDIRECTORYMANAGEMEMBER)(
-                    HANDLE hDirectory,
-                    PWSTR  pwszGroupDN,
-                    PWSTR  pwszMemberDN
+                    HANDLE           hDirectory,
+                    PWSTR            pwszGroupDN,
+                    PDIRECTORY_ENTRY pDirectoryEntries
                     );
 
 typedef DWORD (*PFNDIRECTORYSEARCH)(
