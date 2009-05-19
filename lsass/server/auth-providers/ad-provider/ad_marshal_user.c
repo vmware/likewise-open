@@ -148,6 +148,11 @@ ADMarshalFromUserCache(
     if (pUserInfo1 != NULL)
     {
         dwError = LsaStrDupOrNull(
+                      pUser->pszDN,
+                      &pUserInfo1->pszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaStrDupOrNull(
                       pUser->userInfo.pszUPN,
                       &pUserInfo1->pszUPN);
         BAIL_ON_LSA_ERROR(dwError);

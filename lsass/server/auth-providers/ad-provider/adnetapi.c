@@ -582,16 +582,26 @@ AD_NetLookupObjectSidsByNames(
 
         LSA_SAFE_FREE_MEMORY(pObject_sid);
 
-        dwError = LsaAllocateSidAppendRid(
-                        &pObject_sid,
-                        pDomains->domains[dwDomainSid_index].sid,
-                        pSids[i].rid);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (AccountType_Domain == ObjectType)
+        {
+            dwError = LsaAllocateCStringFromSid(
+                            &ppTranslatedSids[i]->pszNT4NameOrSid,
+                            pDomains->domains[dwDomainSid_index].sid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LsaAllocateSidAppendRid(
+                            &pObject_sid,
+                            pDomains->domains[dwDomainSid_index].sid,
+                            pSids[i].rid);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAllocateCStringFromSid(
-                        &ppTranslatedSids[i]->pszNT4NameOrSid,
-                        pObject_sid);
-        BAIL_ON_LSA_ERROR(dwError);
+            dwError = LsaAllocateCStringFromSid(
+                            &ppTranslatedSids[i]->pszNT4NameOrSid,
+                            pObject_sid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
     *pppTranslatedSids = ppTranslatedSids;
@@ -890,20 +900,22 @@ AD_NetLookupObjectNamesBySids(
     for (i = 0; i < dwSidsCount; i++)
     {
         ADAccountType ObjectType = AccountType_NotFound;
+        PCSTR pszDomainName = NULL;
+
+        // Check for invalid domain indexing
+        if (name_array[i].sid_index >= pDomains->count)
+        {
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         ObjectType = GetObjectType(name_array[i].type);
-
         if (ObjectType == AccountType_NotFound)
         {
             continue;
         }
 
-        dwError = LsaAllocateMemory(
-                            sizeof(*ppTranslatedNames[i]),
-                            (PVOID*)&ppTranslatedNames[i]);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppTranslatedNames[i]->ObjectType = ObjectType;
+        pszDomainName = ppszDomainNames[name_array[i].sid_index];
 
         if (name_array[i].name.len > 0)
         {
@@ -914,18 +926,38 @@ AD_NetLookupObjectNamesBySids(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (IsNullOrEmptyString(ppszDomainNames[name_array[i].sid_index]) ||
-            IsNullOrEmptyString(pszUsername))
+        if (IsNullOrEmptyString(pszDomainName) ||
+            ((ObjectType != AccountType_Domain) && IsNullOrEmptyString(pszUsername)) ||
+            ((ObjectType == AccountType_Domain) && !IsNullOrEmptyString(pszUsername)))
         {
             dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = ADGetDomainQualifiedString(
-                    ppszDomainNames[name_array[i].sid_index],
-                    pszUsername,
-                    &ppTranslatedNames[i]->pszNT4NameOrSid);
+        dwError = LsaAllocateMemory(
+                        sizeof(*ppTranslatedNames[i]),
+                        (PVOID*)&ppTranslatedNames[i]);
         BAIL_ON_LSA_ERROR(dwError);
+
+        ppTranslatedNames[i]->ObjectType = ObjectType;
+
+        if (ObjectType != AccountType_Domain)
+        {
+            dwError = ADGetDomainQualifiedString(
+                            pszDomainName,
+                            pszUsername,
+                            &ppTranslatedNames[i]->pszNT4NameOrSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LsaAllocateString(
+                            pszDomainName,
+                            &ppTranslatedNames[i]->pszNT4NameOrSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LsaStrToUpper(ppTranslatedNames[i]->pszNT4NameOrSid);
+        }
 
         LSA_SAFE_FREE_STRING(pszUsername);
     }
@@ -1499,7 +1531,9 @@ AD_NetlogonAuthenticationUserEx(
     DWORD dwDCNameLen = 0;
     PBYTE pChal = NULL;
     PBYTE pLMResp = NULL;
+    DWORD LMRespLen = 0;
     PBYTE pNTResp = NULL;
+    DWORD NTRespLen = 0;
     LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
@@ -1599,11 +1633,15 @@ AD_NetlogonAuthenticationUserEx(
     if (pUserParams->pass.chap.pChallenge)
         pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
 
-    if (pUserParams->pass.chap.pLM_resp)
+    if (pUserParams->pass.chap.pLM_resp) {
         pLMResp = LsaDataBlobBuffer(pUserParams->pass.chap.pLM_resp);
+        LMRespLen = LsaDataBlobLength(pUserParams->pass.chap.pLM_resp);
+    }
 
-    if (pUserParams->pass.chap.pNT_resp)
+    if (pUserParams->pass.chap.pNT_resp) {
         pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+        NTRespLen = LsaDataBlobLength(pUserParams->pass.chap.pNT_resp);
+    }
 
     nt_status = NetrSamLogonNetwork(ghSchannelBinding,
                                     &gSchannelCreds,
@@ -1612,8 +1650,8 @@ AD_NetlogonAuthenticationUserEx(
                                     pMachAcctInfo->pwszHostname,
                                     pwszUsername,
                                     pChal,
-                                    pLMResp,
-                                    pNTResp,
+                                    pLMResp, LMRespLen,
+                                    pNTResp, NTRespLen,
                                     2,                /* Network login */
                                     3,                /* Return NetSamInfo3 */
                                     &pValidationInfo,

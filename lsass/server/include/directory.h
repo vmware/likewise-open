@@ -208,14 +208,14 @@ DWORD
 DirectoryAddToGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD
 DirectoryRemoveFromGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD

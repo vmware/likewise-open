@@ -529,7 +529,7 @@ LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
     OUT PSTR* ppszSid,
-    OUT OPTIONAL PBOOLEAN pbIsUser
+    OUT OPTIONAL ADAccountType* pAccountType
     )
 {
     DWORD dwError = 0;
@@ -546,9 +546,9 @@ LsaDmWrapNetLookupObjectSidByName(
 
     *ppszSid = context.pszSid;
 
-    if (pbIsUser)
+    if (pAccountType)
     {
-        *pbIsUser = (context.ObjectType == AccountType_User);
+        *pAccountType = context.ObjectType;
     }
 
     return dwError;
@@ -559,7 +559,7 @@ LsaDmWrapNetLookupNameByObjectSid(
     IN  PCSTR pszDnsDomainName,
     IN  PCSTR pszSid,
     OUT PSTR* ppszName,
-    OUT OPTIONAL PBOOLEAN pbIsUser
+    OUT OPTIONAL ADAccountType* pAccountType
     )
 {
     DWORD dwError = 0;
@@ -576,9 +576,9 @@ LsaDmWrapNetLookupNameByObjectSid(
 
     *ppszName = context.pszNT4Name;
 
-    if (pbIsUser)
+    if (pAccountType)
     {
-        *pbIsUser = (context.ObjectType == AccountType_User);
+        *pAccountType = context.ObjectType;
     }
 
     return dwError;

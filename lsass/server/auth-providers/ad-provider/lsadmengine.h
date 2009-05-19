@@ -57,18 +57,17 @@ LsaDmEngineDiscoverTrusts(
     );
 
 DWORD
-LsaDmEngineGetDomainInfoWithNT4Name(
+LsaDmEngineGetDomainNameWithDiscovery(
     IN PCSTR pszDomainName,
-    IN PCSTR pszObjectName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
-    OUT OPTIONAL PSTR* ppszNetBiosDomainName
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName
     );
 
 DWORD
-LsaDmEngineGetDomainInfoWithObjectSid(
+LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     IN PCSTR pszObjectSid,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
-    OUT OPTIONAL PSTR* ppszNetBiosDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
     OUT OPTIONAL PSTR* ppszDomainSid
     );
 

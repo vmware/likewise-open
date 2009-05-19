@@ -381,7 +381,9 @@ NTSTATUS NetrAllocateLogonInfoNet(
     const wchar16_t *account,
     const uint8_t *challenge,
     const uint8_t *lm_resp,
-    const uint8_t *nt_resp
+    uint32 lm_resp_len,
+    const uint8_t *nt_resp,
+    uint32 nt_resp_len
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -414,23 +416,25 @@ NTSTATUS NetrAllocateLogonInfoNet(
         memcpy(net->challenge, challenge, sizeof(net->challenge));
 
         /* Allocate challenge structures */
-        if (lm_resp)
+        if ((lm_resp != NULL) && (lm_resp_len != 0))
         {
-            status = NetrAllocateMemory((void**)&net->lm.data, 24, (void*)net);
+            status = NetrAllocateMemory((void**)&net->lm.data,
+                                        lm_resp_len,
+                                        (void*)net);
             goto_if_ntstatus_not_success(status, error);
 
-            net->lm.length = 24;
-            net->lm.size   = 24;
+            net->lm.length = lm_resp_len;
+            net->lm.size   = lm_resp_len;
             memcpy(net->lm.data, lm_resp, net->lm.size);
         }
 
         /* Always have NT Response */
 
-        status = NetrAllocateMemory((void**)&net->nt.data, 24, (void*)net);
+        status = NetrAllocateMemory((void**)&net->nt.data, nt_resp_len, (void*)net);
         goto_if_ntstatus_not_success(status, error);
 
-        net->nt.length = 24;
-        net->nt.size   = 24;
+        net->nt.length = nt_resp_len;
+        net->nt.size   = nt_resp_len;
         memcpy(net->nt.data, nt_resp, net->nt.size);
 
         break;

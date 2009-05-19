@@ -52,14 +52,14 @@
 
 typedef enum
 {
-    GroupModTask_AddToGroups,
-    GroupModTask_RemoveFromGroups
+    GroupModTask_AddMembers,
+    GroupModTask_RemoveMembers
 } GroupModificationTaskType;
 
 typedef struct __GROUP_MOD_TASK
 {
     GroupModificationTaskType taskType;
-    PSTR pszData;
+    PVOID pszData;
 } GROUP_MOD_TASK, *PGROUP_MOD_TASK;
 
 DWORD
@@ -106,6 +106,12 @@ ShowUsage(
 DWORD
 ModifyGroup(
     PSTR pszLoginId,
+    PDLINKEDLIST pTaskList
+    );
+
+DWORD
+ResolveNames(
+    HANDLE hLsaConnection,
     PDLINKEDLIST pTaskList
     );
 

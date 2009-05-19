@@ -149,7 +149,9 @@ ParseArgs(
     PSTR pArg = NULL;
     PDLINKEDLIST pTaskList = NULL;
     PGROUP_MOD_TASK pTask = NULL;
-    PSTR    pszLoginId = NULL;
+    PSTR pszLoginId = NULL;
+    PSTR pszAddMembers = NULL;
+    PSTR pszRemoveMembers = NULL;
 
     do {
         pArg = argv[iArg++];
@@ -166,11 +168,11 @@ ParseArgs(
                   ShowUsage(GetProgramName(argv[0]));
                   exit(0);
                 }
-                else if (!strcmp(pArg, "--add-to-groups"))
+                else if (!strcmp(pArg, "--add-members"))
                 {
                     parseMode = PARSE_MODE_ADD_TO_GROUPS;
                 }
-                else if (!strcmp(pArg, "--remove-from-groups"))
+                else if (!strcmp(pArg, "--remove-members"))
                 {
                     parseMode = PARSE_MODE_REMOVE_FROM_GROUPS;
                 }
@@ -188,10 +190,12 @@ ParseArgs(
                  dwError = LsaAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
                  BAIL_ON_LSA_ERROR(dwError);
 
-                 pTask->taskType = GroupModTask_RemoveFromGroups;
+                 pTask->taskType = GroupModTask_RemoveMembers;
 
-                 dwError = LsaAllocateString(pArg, &pTask->pszData);
+                 dwError = LsaAllocateString(pArg, &pszRemoveMembers);
                  BAIL_ON_LSA_ERROR(dwError);
+
+                 pTask->pszData = pszRemoveMembers;
 
                  dwError = LsaDLinkedListAppend(&pTaskList, pTask);
                  BAIL_ON_LSA_ERROR(dwError);
@@ -206,10 +210,12 @@ ParseArgs(
                   dwError = LsaAllocateMemory(sizeof(GROUP_MOD_TASK), (PVOID*)&pTask);
                   BAIL_ON_LSA_ERROR(dwError);
 
-                  pTask->taskType = GroupModTask_AddToGroups;
+                  pTask->taskType = GroupModTask_AddMembers;
 
-                  dwError = LsaAllocateString(pArg, &pTask->pszData);
+                  dwError = LsaAllocateString(pArg, &pszAddMembers);
                   BAIL_ON_LSA_ERROR(dwError);
+
+                  pTask->pszData = pszAddMembers;
 
                   dwError = LsaDLinkedListAppend(&pTaskList, pTask);
                   BAIL_ON_LSA_ERROR(dwError);
@@ -317,7 +323,11 @@ FreeTask(
     PGROUP_MOD_TASK pTask
     )
 {
-    LSA_SAFE_FREE_STRING(pTask->pszData);
+    PSTR *ppMember = pTask->pszData;
+
+    LSA_SAFE_FREE_STRING(ppMember[0]);
+    LSA_SAFE_FREE_STRING(ppMember[1]);
+    LSA_SAFE_FREE_MEMORY(ppMember);
     LsaFreeMemory(pTask);
 }
 
@@ -353,8 +363,8 @@ ShowUsage(
 
     fprintf(stdout, "\nModification options:\n");
     fprintf(stdout, "{ --help }\n");
-    fprintf(stdout, "{ --add-to-groups nt4-style-group-name }\n");
-    fprintf(stdout, "{ --remove-from-groups nt4-style-group-name }\n");
+    fprintf(stdout, "{ --add-members nt4-style-name }\n");
+    fprintf(stdout, "{ --remove-members nt4-style-name }\n");
 }
 
 DWORD
@@ -394,6 +404,11 @@ ModifyGroup(
        pGroupInfo = NULL;
     }
 
+    dwError = ResolveNames(
+                    hLsaConnection,
+                    pTaskList);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = BuildGroupModInfo(
                     gid,
                     pTaskList,
@@ -414,17 +429,108 @@ cleanup:
     }
 
     if (pGroupInfo) {
-       LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
     if (hLsaConnection != (HANDLE)NULL) {
-       LsaCloseServer(hLsaConnection);
+        LsaCloseServer(hLsaConnection);
     }
 
     return dwError;
 
 error:
 
+    goto cleanup;
+}
+
+DWORD
+ResolveNames(
+    HANDLE hLsaConnection,
+    PDLINKEDLIST pTaskList
+    )
+{
+    DWORD dwError = 0;
+    PDLINKEDLIST pListMember = pTaskList;
+    DWORD dwGroupInfoLevel = 1;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
+    DWORD dwUserInfoLevel = 1;
+    PLSA_USER_INFO_1 pUserInfo = NULL;
+    PSTR pszName = NULL;
+    PSTR pszDN = NULL;
+    PSTR pszSID = NULL;
+    PSTR *ppszMember = NULL;
+
+    for (; pListMember; pListMember = pListMember->pNext)
+    {
+        PGROUP_MOD_TASK pTask = (PGROUP_MOD_TASK)pListMember->pItem;
+        if (pTask->taskType == GroupModTask_AddMembers ||
+            pTask->taskType == GroupModTask_RemoveMembers)
+        {
+            pszName = (PSTR)pTask->pszData;
+
+            dwError = LsaFindGroupByName(hLsaConnection,
+                                         pszName,
+                                         LSA_FIND_FLAGS_NSS,
+                                         dwGroupInfoLevel,
+                                         (PVOID*)&pGroupInfo);
+            if (dwError == 0) {
+                dwError = LsaAllocateString(pGroupInfo->pszSid, &pszSID);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaAllocateString(pGroupInfo->pszDN, &pszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+
+            } else if (dwError == LSA_ERROR_NO_SUCH_GROUP) {
+                dwError = LsaFindUserByName(hLsaConnection,
+                                            pszName,
+                                            dwUserInfoLevel,
+                                            (PVOID*)&pUserInfo);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaAllocateString(pUserInfo->pszSid, &pszSID);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaAllocateString(pUserInfo->pszDN, &pszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+
+            } else {
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            LSA_SAFE_FREE_STRING(pszName);
+
+            dwError = LsaAllocateMemory(sizeof(PSTR[2]), (PVOID*)&ppszMember);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            ppszMember[0] = pszDN;
+            ppszMember[1] = pszSID;
+
+            pTask->pszData = ppszMember;
+
+            if (pGroupInfo) {
+                LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+                pGroupInfo = NULL;
+            }
+
+            if (pUserInfo) {
+                LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+                pUserInfo = NULL;
+            }
+        }
+    }
+
+cleanup:
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
+    if (pUserInfo) {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    return dwError;
+
+error:
     goto cleanup;
 }
 
@@ -447,18 +553,16 @@ BuildGroupModInfo(
         PGROUP_MOD_TASK pTask = (PGROUP_MOD_TASK)pListMember->pItem;
         switch(pTask->taskType)
         {
-            case GroupModTask_AddToGroups:
+            case GroupModTask_AddMembers:
             {
-                 dwError = LsaModifyGroup_AddToGroups(pGroupModInfo, pTask->pszData);
+                 dwError = LsaModifyGroup_AddMembers(pGroupModInfo, pTask->pszData);
                  BAIL_ON_LSA_ERROR(dwError);
-
                  break;
             }
-            case GroupModTask_RemoveFromGroups:
+            case GroupModTask_RemoveMembers:
             {
-                 dwError = LsaModifyGroup_RemoveFromGroups(pGroupModInfo, pTask->pszData);
+                 dwError = LsaModifyGroup_RemoveMembers(pGroupModInfo, pTask->pszData);
                  BAIL_ON_LSA_ERROR(dwError);
-
                  break;
             }
         }

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -244,7 +244,9 @@
 #define LSA_ERROR_GET_DC_NAME_FAILED                        0x8094 // 32916
 #define LSA_ERROR_INVALID_ATTRIBUTE_VALUE                   0x8095 // 32917
 #define LSA_ERROR_NO_ATTRIBUTE_VALUE                        0x8096 // 32918
-#define LSA_ERROR_SENTINEL                                  0x8098 // 32919
+#define LSA_ERROR_MEMBER_IN_LOCAL_GROUP                     0x8098 // 32919
+#define LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP                 0x8099 // 32920
+#define LSA_ERROR_SENTINEL                                  0x809A // 32921
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
@@ -486,6 +488,8 @@ typedef struct __LSA_USER_INFO_1
         LSA_USER_INFO_0 info0;
     };
 #endif
+    /** @brief User object DN */
+    PSTR  pszDN;
     /** @brief User's Kerberos UPN */
     PSTR  pszUPN;
     /** @brief Whether the UPN is explicit or implicit */
@@ -526,6 +530,7 @@ typedef struct __LSA_USER_INFO_2
             PSTR  pszShell;
             PSTR  pszHomedir;
             PSTR  pszSid;
+            PSTR  pszDN;
             PSTR  pszUPN;
             DWORD bIsGeneratedUPN;
             DWORD bIsLocalUser;
@@ -609,6 +614,7 @@ typedef struct __LSA_GROUP_INFO_1
         };
         LSA_GROUP_INFO_0 info0;
     };
+    PSTR  pszDN;
     PSTR  pszPasswd;
     PSTR* ppszMembers;
 } LSA_GROUP_INFO_1, *PLSA_GROUP_INFO_1;
@@ -624,17 +630,26 @@ typedef struct __LSA_GROUP_INFO_LIST
     }ppGroupInfoList;
 } LSA_GROUP_INFO_LIST, *PLSA_GROUP_INFO_LIST;
 
+typedef struct __LSA_GROUP_MEMBER_INFO
+{
+    PSTR pszDN;
+    PSTR pszSid;
+} LSA_GROUP_MEMBER_INFO, *PLSA_GROUP_MEMBER_INFO;
+
 typedef struct __LSA_GROUP_MOD_INFO
 {
     gid_t gid;
 
     struct _groupmod_actions {
-        BOOLEAN bAddToGroups;
-        BOOLEAN bRemoveFromGroups;
+        BOOLEAN bAddMembers;
+        BOOLEAN bRemoveMembers;
     } actions;
 
-    PSTR pszAddToGroups;
-    PSTR pszRemoveFromGroups;
+    DWORD dwAddMembersNum;
+    PLSA_GROUP_MEMBER_INFO pAddMembers;
+
+    DWORD dwRemoveMembersNum;
+    PLSA_GROUP_MEMBER_INFO pRemoveMembers;
 
 } LSA_GROUP_MOD_INFO, *PLSA_GROUP_MOD_INFO;
 
@@ -1727,6 +1742,7 @@ LsaSrvFreeIpcMetriPack(
     );
 
 #endif /* __LSA_H__ */
+
 
 /*
 local variables:

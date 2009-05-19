@@ -28,6 +28,10 @@ SAMDB_ATTRIBUTE_MAP_INFO gObjectClassUserAttrMaps[] =
     { SAMDB_USER_ATTRIBUTE_MAP };
 
 static
+SAMDB_ATTRIBUTE_MAP_INFO gObjectClassLocalGroupMemberAttrMaps[] =
+    { SAMDB_LOCALGRP_MEMBER_ATTRIBUTE_MAP };
+
+static
 SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO gObjectClassMaps[] =
 {
     {
@@ -54,6 +58,11 @@ SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO gObjectClassMaps[] =
         SAMDB_OBJECT_CLASS_USER,
         &gObjectClassUserAttrMaps[0],
         sizeof(gObjectClassUserAttrMaps)/sizeof(gObjectClassUserAttrMaps[0])
+    },
+    {
+        SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER,
+        &gObjectClassLocalGroupMemberAttrMaps[0],
+        sizeof(gObjectClassLocalGroupMemberAttrMaps)/sizeof(gObjectClassLocalGroupMemberAttrMaps[0])
     }
 };
 
@@ -71,3 +80,13 @@ SAM_GLOBALS gSamGlobals =
         &gAttrMaps[0],
         sizeof(gAttrMaps)/sizeof(gAttrMaps[0])
     };
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

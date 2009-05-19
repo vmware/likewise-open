@@ -1193,15 +1193,15 @@ LsaBuildGroupModInfo(
     );
 
 DWORD
-LsaModifyGroup_AddToGroups(
+LsaModifyGroup_AddMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
-    PCSTR pszGroupList
+    PVOID pData
     );
 
 DWORD
-LsaModifyGroup_RemoveFromGroups(
+LsaModifyGroup_RemoveMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
-    PCSTR pszGroupList
+    PVOID pData
     );
 
 void

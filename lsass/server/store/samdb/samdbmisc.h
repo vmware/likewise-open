@@ -118,6 +118,22 @@ SamDbGetObjectRecordInfo_inlock(
     SAMDB_OBJECT_CLASS*    pObjectClass
     );
 
+DWORD
+SamDbGetObjectRecordInfoBySID(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
+DWORD
+SamDbGetObjectRecordInfoBySID_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
 LONG64
 SamDbGetNTTime(
     time_t timeVal
