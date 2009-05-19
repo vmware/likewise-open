@@ -74,6 +74,7 @@ static LWMsgTypeSpec gLsaGroupInfo1Spec[] =
     LWMSG_MEMBER_UINT32(LSA_GROUP_INFO_1, gid),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszName),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszSid),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszDN),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszPasswd),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_INFO_1, ppszMembers),
     LWMSG_PSTR,
@@ -138,6 +139,7 @@ static LWMsgTypeSpec gLsaUserInfo1Spec[] =
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszShell),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszHomedir),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszSid),
+    LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszDN),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszUPN),
     LWMSG_MEMBER_UINT32(LSA_USER_INFO_1, bIsGeneratedUPN),
     LWMSG_MEMBER_UINT32(LSA_USER_INFO_1, bIsLocalUser),
@@ -273,8 +275,18 @@ static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
     LWMSG_MEMBER_INT8(struct _usermod_actions, bRemoveFromGroups),
     LWMSG_MEMBER_INT8(struct _usermod_actions, bSetAccountExpiryDate),
     LWMSG_STRUCT_END,
-    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszAddToGroups),
-    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszRemoveFromGroups),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszAddToGroups),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszRemoveFromGroups),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
+static LWMsgTypeSpec gLsaIPCGroupMemberInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_MEMBER_INFO),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBER_INFO, pszDN),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBER_INFO, pszSid),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -284,12 +296,20 @@ static LWMsgTypeSpec gLsaIPCGroupModInfoSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_GROUP_MOD_INFO),
     LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, gid),
     LWMSG_MEMBER_STRUCT_BEGIN(LSA_GROUP_MOD_INFO, actions),
-    LWMSG_MEMBER_INT8(struct _groupmod_actions, bAddToGroups),
-    LWMSG_MEMBER_INT8(struct _groupmod_actions, bRemoveFromGroups),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bAddMembers),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bRemoveMembers),
     LWMSG_STRUCT_END,
-    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszAddToGroups),
-    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO, pszRemoveFromGroups),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwAddMembersNum),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pAddMembers),
+    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwAddMembersNum),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pRemoveMembers),
+    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
     LWMSG_TYPE_END
 };
 
