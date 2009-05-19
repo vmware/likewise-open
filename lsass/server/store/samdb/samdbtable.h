@@ -186,8 +186,7 @@
             " OR " SAM_DB_COL_OBJECT_CLASS " == 3 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 4 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 5 \n"                          \
-            " OR " SAM_DB_COL_OBJECT_CLASS " == 6 \n"                          \
-            " OR " SAM_DB_COL_OBJECT_CLASS " == 7)\n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 6)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
                  SAM_DB_COL_GROUP_RECORD_ID       " INTEGER,\n"                \
@@ -214,8 +213,7 @@ typedef enum
     SAMDB_OBJECT_CLASS_CONTAINER       = 3,
     SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
     SAMDB_OBJECT_CLASS_USER            = 5,
-    SAMDB_OBJECT_CLASS_DOMGROUP_MEMBER = 6,
-    SAMDB_OBJECT_CLASS_DOMUSER_MEMBER  = 7,
+    SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER = 6,
     SAMDB_OBJECT_CLASS_SENTINEL
 
 } SAMDB_OBJECT_CLASS;
@@ -1034,12 +1032,17 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_NONE                                   \
     }
 
-#define SAMDB_DOMGROUP_MEMBER_ATTRIBUTE_MAP                      \
+#define SAMDB_LOCALGRP_MEMBER_ATTRIBUTE_MAP                      \
     {                                                            \
         SAM_DB_DIR_ATTR_RECORD_ID,                               \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
          SAM_DB_ATTR_FLAGS_READONLY  |                           \
          SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)                      \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_DISTINGUISHED_NAME,                      \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY)                             \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_OBJECT_SID,                              \
@@ -1053,13 +1056,11 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_DOMAIN,                                  \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_NETBIOS_NAME,                            \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_CREATED_TIME,                            \
@@ -1069,47 +1070,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
-    }
-
-#define SAMDB_DOMUSER_MEMBER_ATTRIBUTE_MAP                       \
-    {                                                            \
-        SAM_DB_DIR_ATTR_RECORD_ID,                               \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY  |                           \
-         SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)                      \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_OBJECT_SID,                              \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_OBJECT_CLASS,                            \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_DOMAIN,                                  \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_NETBIOS_NAME,                            \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_CREATED_TIME,                            \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY  |                           \
-         SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)                      \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
-        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
-         SAM_DB_ATTR_FLAGS_READONLY)                             \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
     }
 
 #define SAMDB_DOMAIN_ATTRIBUTE_MAP                               \
