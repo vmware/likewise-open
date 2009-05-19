@@ -76,16 +76,16 @@ SamDbGetUserMemberships(
 
 DWORD
 SamDbAddToGroup(
-    HANDLE hBindHandle,
-    PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD
 SamDbRemoveFromGroup(
-    HANDLE hBindHandle,
-    PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 #endif /* __SAM_DB_GROUP_H__ */
