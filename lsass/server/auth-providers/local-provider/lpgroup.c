@@ -43,8 +43,9 @@
  *
  *        User/Group Database Interface
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 #include "includes.h"
 
@@ -2112,22 +2113,286 @@ LocalDirModifyGroup(
     )
 {
     DWORD dwError = 0;
-    DWORD dwMemberGroupInfoLevel = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    DWORD dwGroupInfoLevel = 0;
     PWSTR pwszGroupDN = NULL;
-    PLSA_GROUP_INFO_0 pMemberGroupInfo = NULL;
+    DWORD i = 0;
+    PSTR pszSID = NULL;
+    PSTR pszDN = NULL;
+    PWSTR pwszSID = NULL;
+    PWSTR pwszDN = NULL;
+    DWORD dwObjectClass = LOCAL_OBJECT_CLASS_GROUP_MEMBER;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+    PWSTR pwszBase = NULL;
+    ULONG ulScope = 0;
+    wchar_t wszFilterFmt[] = L"%ws=%d AND %ws=\'%ws\'";
+    PWSTR pwszFilter = NULL;
+    DWORD dwFilterLen = 0;
+    WCHAR wszAttrObjectClass[] = LOCAL_DIR_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrDistinguishedName[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectSid[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    WCHAR wszAttrSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
+    PWSTR wszAttributes[] = {
+        wszAttrObjectClass,
+        wszAttrObjectSid,
+        wszAttrDistinguishedName,
+        wszAttrSamAccountName,
+        NULL
+    };
+
+    PDIRECTORY_ENTRY pMember = NULL;
+    DWORD dwNumEntries = 0;
+
+    enum AttrValueIndex
+    {
+        GRP_MEMBER_IDX_OBJECTCLASS,
+        GRP_MEMBER_IDX_DN,
+        GRP_MEMBER_IDX_SID
+    };
+
+    ATTRIBUTE_VALUE attrValues[] = {
+        {
+            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+            .data.ulValue = LOCAL_OBJECT_CLASS_GROUP_MEMBER
+        },
+        {
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        },
+        {
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        }
+    };
+
+    DIRECTORY_MOD modObjectClass = {
+        DIR_MOD_FLAGS_ADD,
+        wszAttrObjectClass,
+        1,
+        &attrValues[GRP_MEMBER_IDX_OBJECTCLASS]
+    };
+
+    DIRECTORY_MOD modDistinguishedName = {
+        DIR_MOD_FLAGS_ADD,
+        wszAttrDistinguishedName,
+        1,
+        &attrValues[GRP_MEMBER_IDX_DN]
+    };
+
+    DIRECTORY_MOD modObjectSID = {
+        DIR_MOD_FLAGS_ADD,
+        wszAttrObjectSid,
+        1,
+        &attrValues[GRP_MEMBER_IDX_SID]
+    };
+
+    DIRECTORY_MOD MemberMods[] = {
+        modObjectClass,
+        modDistinguishedName,
+        modObjectSID,
+        { 0, NULL, 0, NULL }
+    };
 
     dwError = LocalDirFindGroupById(
                     hProvider,
                     pGroupModInfo->gid,
-                    dwMemberGroupInfoLevel,
+                    dwGroupInfoLevel,
                     &pwszGroupDN,
-                    (PVOID*)&pMemberGroupInfo);
+                    (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-cleanup:
-    if (pMemberGroupInfo)
+    if (pGroupModInfo->actions.bAddMembers)
     {
-        LsaFreeGroupInfo(dwMemberGroupInfoLevel, pMemberGroupInfo);
+        for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++)
+        {
+            pszSID = pGroupModInfo->pAddMembers[i].pszSid;
+            pszDN  = pGroupModInfo->pAddMembers[i].pszDN;
+
+            dwError = LsaMbsToWc16s(pszSID, &pwszSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszDN, &pwszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwFilterLen = (sizeof(wszAttrObjectClass) - 2) +
+                           10 +
+                          (sizeof(wszAttrObjectSid) - 2) +
+                          (strlen(pszSID) * sizeof(WCHAR)) +
+                          sizeof(wszFilterFmt);
+
+            dwError = LsaAllocateMemory(
+                        dwFilterLen,
+                        (PVOID*)&pwszFilter);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
+                        wszAttrObjectClass, dwObjectClass,
+                        wszAttrObjectSid, pwszSID);
+
+            dwError = DirectorySearch(
+                        pContext->hDirectory,
+                        pwszBase,
+                        ulScope,
+                        pwszFilter,
+                        wszAttributes,
+                        0,
+                        &pMember,
+                        &dwNumEntries);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (dwNumEntries == 0) {
+                MemberMods[GRP_MEMBER_IDX_DN].pAttrValues[0].data.pwszStringValue = pwszDN;
+                MemberMods[GRP_MEMBER_IDX_SID].pAttrValues[0].data.pwszStringValue = pwszSID;
+
+                dwError = DirectoryAddObject(
+                            pContext->hDirectory,
+                            pwszDN,
+                            MemberMods);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = DirectorySearch(
+                            pContext->hDirectory,
+                            pwszBase,
+                            ulScope,
+                            pwszFilter,
+                            wszAttributes,
+                            0,
+                            &pMember,
+                            &dwNumEntries);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = DirectoryAddToGroup(
+                        pContext->hDirectory,
+                        pwszGroupDN,
+                        pMember);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pwszDN)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszDN);
+                pwszDN = NULL;
+            }
+
+            if (pwszSID)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszSID);
+                pwszDN = NULL;
+            }
+
+            if (pwszFilter)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszFilter);
+                pwszFilter = NULL;
+            }
+
+            if (pMember)
+            {
+                DirectoryFreeEntries(pMember, dwNumEntries);
+                pMember = NULL;
+            }
+        }
+
+    } else if (pGroupModInfo->actions.bRemoveMembers)
+    {
+        for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++)
+        {
+            pszSID = pGroupModInfo->pRemoveMembers[i].pszSid;
+            pszDN  = pGroupModInfo->pRemoveMembers[i].pszDN;
+
+            dwError = LsaMbsToWc16s(pszSID, &pwszSID);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaMbsToWc16s(pszDN, &pwszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
+                           10 +
+                          (sizeof(wszAttrObjectSid) - 1) +
+                          (strlen(pszSID) * sizeof(WCHAR)) +
+                          sizeof(wszFilterFmt);
+
+            dwError = LsaAllocateMemory(
+                        dwFilterLen,
+                        (PVOID*)&pwszFilter);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
+                        wszAttrObjectClass, dwObjectClass,
+                        wszAttrObjectSid, pwszSID);
+
+            dwError = DirectorySearch(
+                        pContext->hDirectory,
+                        pwszBase,
+                        ulScope,
+                        pwszFilter,
+                        wszAttributes,
+                        0,
+                        &pMember,
+                        &dwNumEntries);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (dwNumEntries == 0) {
+                dwError = LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            dwError = DirectoryRemoveFromGroup(
+                        pContext->hDirectory,
+                        pwszGroupDN,
+                        pMember);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pwszDN)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszDN);
+                pwszDN = NULL;
+            }
+
+            if (pwszSID)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszSID);
+                pwszDN = NULL;
+            }
+
+            if (pwszFilter)
+            {
+                LSA_SAFE_FREE_MEMORY(pwszFilter);
+                pwszFilter = NULL;
+            }
+
+            if (pMember)
+            {
+                DirectoryFreeEntries(pMember, dwNumEntries);
+                pMember = NULL;
+            }
+        }
+    }
+
+cleanup:
+    if (pGroupInfo)
+    {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+    }
+
+    if (pwszFilter)
+    {
+        LSA_SAFE_FREE_MEMORY(pwszFilter);
+    }
+
+    if (pwszDN)
+    {
+        LSA_SAFE_FREE_MEMORY(pwszDN);
+    }
+
+    if (pwszSID)
+    {
+        LSA_SAFE_FREE_MEMORY(pwszSID);
+    }
+
+    if (pMember)
+    {
+        DirectoryFreeEntries(pMember, dwNumEntries);
     }
 
     return dwError;
@@ -2199,11 +2464,13 @@ LocalAddMembersToGroup(
         }
         else
         {
+#if 0
             dwError = DirectoryAddToGroup(
                             pContext->hDirectory,
                             pwszGroupDN,
                             pwszObjectDN);
             BAIL_ON_LSA_ERROR(dwError);
+#endif
         }
 
         dwMember++;
