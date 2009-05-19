@@ -526,27 +526,130 @@ error:
     goto cleanup;
 }
 
+static
+BOOLEAN
+LsaDmEnginepIsSpecialDomainName(
+    IN PCSTR pszDomainName
+    )
+{
+    return (!strcasecmp(pszDomainName, "BUILTIN") ||
+            !strcasecmp(pszDomainName, "NT AUTHORITY"));
+}
+
+// Prefix for standard (not system, built-in, etc) accounts.
+#define NT_NON_UNIQUE_SID_PREFIX "S-1-5-21-"
+
+static
+BOOLEAN
+LsaDmEnginepIsSpecialSidPrefix(
+    IN PCSTR pszObjectSid
+    )
+{
+    // The NT non-unique SID prefix (S-1-5-21) is the prefix used
+    // for standard accounts.
+    return !strncasecmp(pszObjectSid, NT_NON_UNIQUE_SID_PREFIX, sizeof(NT_NON_UNIQUE_SID_PREFIX)-1) ? FALSE : TRUE;
+}
+
+static
 DWORD
-LsaDmEngineGetDomainInfoWithNT4Name(
+LsaDmEnginepGetDomainSidFromObjectSidString(
+    OUT PSID* ppDomainSid,
+    IN PCSTR pszObjectSid
+    )
+{
+    DWORD dwError = 0;
+    PSID pSid = NULL;
+
+    dwError = LsaAllocateSidFromCString(&pSid, pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pSid->SubAuthorityCount < 1)
+    {
+        dwError = LSA_ERROR_INVALID_SID;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pSid->SubAuthorityCount--;
+
+cleanup:
+    *ppDomainSid = pSid;
+
+    return dwError;
+
+error:
+    LSA_SAFE_FREE_MEMORY(pSid);
+    goto cleanup;
+}
+
+static
+DWORD
+LsaDmEnginepAddOneWayOtherForestDomain(
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR pszNetbiosDomainName,
+    IN PCSTR pszDomainSid,
+    IN PCSTR pszDnsForestName
+    )
+{
+    DWORD dwError = 0;
+    uuid_t guid = { 0 };
+    PSID pSid = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo = NULL;
+
+    dwError = LsaAllocateSidFromCString(&pSid, pszDomainSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmAddTrustedDomain(
+                     pszDnsDomainName,
+                     pszNetbiosDomainName,
+                     pSid,
+                     &guid,
+                     gpADProviderData->szDomain,
+                     0,
+                     0,
+                     0,
+                     LSA_TRUST_DIRECTION_ONE_WAY,
+                     LSA_TRUST_MODE_OTHER_FOREST,
+                     TRUE,
+                     pszDnsForestName,
+                     NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmWrapGetDomainEnumInfo(
+                    pszDnsDomainName,
+                    &pDomainInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_AddDomainTrust(
+                    gpLsaAdProviderState->hStateConnection,
+                    pDomainInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pSid);
+    LsaDmFreeEnumDomainInfo(pDomainInfo);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaDmEngineGetDomainNameWithDiscovery(
     IN PCSTR pszDomainName,
-    IN PCSTR pszObjectName,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
-    OUT OPTIONAL PSTR* ppszNetBiosDomainName
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName
     )
 {
     DWORD dwError = 0;
     PSTR pszDnsDomainName = NULL;
     PSTR pszNetbiosDomainName = NULL;
-    PSTR pszObjectSid = NULL;
-    PSID pSid = NULL;
-    uuid_t guid = {0};
-    PSTR pszDomainDnsNameFromDsGetDcName = NULL;
-    PSTR pszDomainForestNameFromDsGetDcName = NULL;
-    PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo = NULL;
+    PSTR pszDomainSid = NULL;
+    PSTR pszDnsForestName = NULL;
+    ADAccountType accountType = AccountType_NotFound;
 
     if (IsNullOrEmptyString(pszDomainName) ||
-        !strcasecmp(pszDomainName, "BUILTIN") ||
-        !strcasecmp(pszDomainName, "NT AUTHORITY"))
+        LsaDmEnginepIsSpecialDomainName(pszDomainName))
     {
         dwError = LSA_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
@@ -555,107 +658,82 @@ LsaDmEngineGetDomainInfoWithNT4Name(
     dwError = LsaDmWrapGetDomainName(pszDomainName,
                                      &pszDnsDomainName,
                                      &pszNetbiosDomainName);
-    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LSA_ERROR_NO_SUCH_DOMAIN != dwError)
     {
-        dwError = LsaDmWrapNetLookupObjectSidByName(
-                     gpADProviderData->szDomain,
-                     pszObjectName,
-                     &pszObjectSid,
-                     NULL);
-        if (!dwError && !IsNullOrEmptyString(pszObjectSid))
-        {
-            //Add this newly discovered domain to trusted domain list
-            dwError = LsaDmWrapDsGetDcName(
-                                    gpADProviderData->szDomain,
-                                    pszDomainName,
-                                    TRUE,
-                                    &pszDomainDnsNameFromDsGetDcName,
-                                    &pszDomainForestNameFromDsGetDcName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaDmWrapDsGetDcName(
-                                    gpADProviderData->szDomain,
-                                    pszDomainName,
-                                    FALSE,
-                                    &pszNetbiosDomainName,
-                                    NULL);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            // Obtain domain's pSID
-            dwError = LsaAllocateSidFromCString(&pSid, pszObjectSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (pSid->SubAuthorityCount < 1)
-            {
-                dwError = LSA_ERROR_INVALID_SID;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            pSid->SubAuthorityCount--;
-
-            dwError = LsaDmAddTrustedDomain(
-                              pszDomainDnsNameFromDsGetDcName,
-                              pszNetbiosDomainName,
-                              pSid,
-                              &guid,
-                              gpADProviderData->szDomain,
-                              0,
-                              0,
-                              0,
-                              LSA_TRUST_DIRECTION_ONE_WAY,
-                              LSA_TRUST_MODE_OTHER_FOREST,
-                              TRUE,
-                              pszDomainForestNameFromDsGetDcName,
-                              NULL);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaDmWrapGetDomainEnumInfo(
-                            pszDomainDnsNameFromDsGetDcName,
-                            &pDomainInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = ADState_AddDomainTrust(
-                           gpLsaAdProviderState->hStateConnection,
-                           pDomainInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            LSA_SAFE_FREE_STRING(pszDnsDomainName);
-            LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-
-            dwError = LsaDmWrapGetDomainName(pszDomainName,
-                                             &pszDnsDomainName,
-                                             &pszNetbiosDomainName);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        else
-        {
-            dwError = LSA_ERROR_NO_SUCH_DOMAIN;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        BAIL_ON_LSA_ERROR(dwError);
+        // On success, we are done.
+        goto cleanup;
     }
 
+    dwError = LsaDmWrapNetLookupObjectSidByName(
+                 gpADProviderData->szDomain,
+                 pszDomainName,
+                 &pszDomainSid,
+                 &accountType);
+    if (dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (IsNullOrEmptyString(pszDomainSid))
+    {
+        LSA_LOG_ERROR("Missing SID for name '%s'", pszDomainName);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (AccountType_Domain != accountType)
+    {
+        LSA_LOG_ERROR("Non-domain account type %d for name '%s'",
+                accountType, pszDomainName);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Need to add newly discovered domain to trusted domain list.
+
+    dwError = LsaDmWrapDsGetDcName(
+                    gpADProviderData->szDomain,
+                    pszDomainName,
+                    TRUE,
+                    &pszDnsDomainName,
+                    &pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmWrapDsGetDcName(
+                    gpADProviderData->szDomain,
+                    pszDomainName,
+                    FALSE,
+                    &pszNetbiosDomainName,
+                    NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmEnginepAddOneWayOtherForestDomain(
+                    pszDnsDomainName,
+                    pszNetbiosDomainName,
+                    pszDomainSid,
+                    pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
-    LSA_SAFE_FREE_STRING(pszObjectSid);
-    LSA_SAFE_FREE_STRING(pszDomainDnsNameFromDsGetDcName);
-    LSA_SAFE_FREE_STRING(pszDomainForestNameFromDsGetDcName);
-    LSA_SAFE_FREE_MEMORY(pSid);
-    LsaDmFreeEnumDomainInfo(pDomainInfo);
+    if (!ppszDnsDomainName)
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
+    if (!ppszNetbiosDomainName)
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    }
+    LSA_SAFE_FREE_STRING(pszDomainSid);
+    LSA_SAFE_FREE_STRING(pszDnsForestName);
 
     if (ppszDnsDomainName)
     {
         *ppszDnsDomainName = pszDnsDomainName;
     }
-    else
+
+    if (ppszNetbiosDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszDnsDomainName);
-    }
-    if (ppszNetBiosDomainName)
-    {
-        *ppszNetBiosDomainName = pszNetbiosDomainName;
-    }
-    else
-    {
-        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+        *ppszNetbiosDomainName = pszNetbiosDomainName;
     }
 
     return dwError;
@@ -664,21 +742,14 @@ error:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
 
-    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
-    {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
-    }
-
     goto cleanup;
 }
 
-#define OBJECTSID_PREFIX "S-1-5-21-"
-
 DWORD
-LsaDmEngineGetDomainInfoWithObjectSid(
+LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     IN PCSTR pszObjectSid,
     OUT OPTIONAL PSTR* ppszDnsDomainName,
-    OUT OPTIONAL PSTR* ppszNetBiosDomainName,
+    OUT OPTIONAL PSTR* ppszNetbiosDomainName,
     OUT OPTIONAL PSTR* ppszDomainSid
     )
 {
@@ -686,15 +757,12 @@ LsaDmEngineGetDomainInfoWithObjectSid(
     PSTR pszDnsDomainName = NULL;
     PSTR pszNetbiosDomainName = NULL;
     PSTR pszDomainSid = NULL;
-    PSTR pszName = NULL;
-    PSID pSid = NULL;
-    uuid_t guid = {0};
-    PSTR pszDomainDnsNameFromDsGetDcName = NULL;
-    PSTR pszDomainForestNameFromDsGetDcName = NULL;
-    PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo = NULL;
+    PSTR pszDnsForestName = NULL;
+    ADAccountType accountType = AccountType_NotFound;
+    PSID pDomainSid = NULL;
 
     if (IsNullOrEmptyString(pszObjectSid) ||
-        strncasecmp(pszObjectSid, OBJECTSID_PREFIX, sizeof(OBJECTSID_PREFIX)-1))
+        LsaDmEnginepIsSpecialSidPrefix(pszObjectSid))
     {
         dwError = LSA_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
@@ -705,116 +773,110 @@ LsaDmEngineGetDomainInfoWithObjectSid(
                     &pszDnsDomainName,
                     &pszNetbiosDomainName,
                     &pszDomainSid);
-
-    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LSA_ERROR_NO_SUCH_DOMAIN != dwError)
     {
-        dwError = LsaDmWrapNetLookupNameByObjectSid(
-                     gpADProviderData->szDomain,
-                     pszObjectSid,
-                     &pszName,
-                     NULL);
-        if (!dwError && !IsNullOrEmptyString(pszName))
-        {
-            //Add this newly discovered domain to trusted domain list
-            //Call DsGetDcName to have detail domain information
-            dwError = LsaAdBatchGetDomainFromNT4Name(&pszNetbiosDomainName,
-                                                     pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaDmWrapDsGetDcName(
-                                    gpADProviderData->szDomain,
-                                    pszNetbiosDomainName,
-                                    TRUE,
-                                    &pszDomainDnsNameFromDsGetDcName,
-                                    &pszDomainForestNameFromDsGetDcName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            // Obtain domain's pSID
-            dwError = LsaAllocateSidFromCString(&pSid, pszObjectSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (pSid->SubAuthorityCount < 1)
-            {
-                dwError = LSA_ERROR_INVALID_SID;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            pSid->SubAuthorityCount--;
-
-            dwError = LsaDmAddTrustedDomain(
-                              pszDomainDnsNameFromDsGetDcName,
-                              pszNetbiosDomainName,
-                              pSid,
-                              &guid,
-                              gpADProviderData->szDomain,
-                              0,
-                              0,
-                              0,
-                              LSA_TRUST_DIRECTION_ONE_WAY,
-                              LSA_TRUST_MODE_OTHER_FOREST,
-                              TRUE,
-                              pszDomainForestNameFromDsGetDcName,
-                              NULL);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaDmWrapGetDomainEnumInfo(
-                            pszDomainDnsNameFromDsGetDcName,
-                            &pDomainInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = ADState_AddDomainTrust(
-                           gpLsaAdProviderState->hStateConnection,
-                           pDomainInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            LSA_SAFE_FREE_STRING(pszDnsDomainName);
-            LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-            LSA_SAFE_FREE_STRING(pszDomainSid);
-
-            dwError = LsaDmWrapGetDomainNameAndSidByObjectSid(
-                            pszObjectSid,
-                            &pszDnsDomainName,
-                            &pszNetbiosDomainName,
-                            &pszDomainSid);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        else
-        {
-            dwError = LSA_ERROR_NO_SUCH_DOMAIN;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        BAIL_ON_LSA_ERROR(dwError);
+        // On success, we are done.
+        goto cleanup;
     }
 
+    dwError = LsaDmEnginepGetDomainSidFromObjectSidString(
+                    &pDomainSid,
+                    pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Check SID history domain SID cache to avoid always hitting the
+    // network before deciding to ignore SID history SIDs.
+
+    if (LsaDmIsUnknownDomainSid(pDomainSid))
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateCStringFromSid(&pszDomainSid, pDomainSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Note that domain objects cannot have SID history as the AD schema
+    // does not allow for it.
+
+    dwError = LsaDmWrapNetLookupNameByObjectSid(
+                    gpADProviderData->szDomain,
+                    pszDomainSid,
+                    &pszNetbiosDomainName,
+                    &accountType);
+    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+    {
+        // This domain SID is not resolvable, so cache it.
+        dwError = LsaDmCacheUnknownDomainSid(pDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (dwError)
+    {
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (IsNullOrEmptyString(pszNetbiosDomainName))
+    {
+        LSA_LOG_ERROR("Missing name for SID '%s'", pszDomainSid);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (AccountType_Domain != accountType)
+    {
+        LSA_LOG_ERROR("Non-domain account type %d for SID '%s'",
+                accountType, pszDomainSid);
+        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaDmWrapDsGetDcName(
+                    gpADProviderData->szDomain,
+                    pszNetbiosDomainName,
+                    TRUE,
+                    &pszDnsDomainName,
+                    &pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaDmEnginepAddOneWayOtherForestDomain(
+                    pszDnsDomainName,
+                    pszNetbiosDomainName,
+                    pszDomainSid,
+                    pszDnsForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
-    LSA_SAFE_FREE_STRING(pszName);
-    LSA_SAFE_FREE_MEMORY(pSid);
-    LSA_SAFE_FREE_STRING(pszDomainDnsNameFromDsGetDcName);
-    LSA_SAFE_FREE_STRING(pszDomainForestNameFromDsGetDcName);
-    LsaDmFreeEnumDomainInfo(pDomainInfo);
+    if (!ppszDnsDomainName)
+    {
+        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+    }
+    if (!ppszNetbiosDomainName)
+    {
+        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
+    }
+    if (!ppszDomainSid)
+    {
+        LSA_SAFE_FREE_STRING(pszDomainSid);
+    }
+    LSA_SAFE_FREE_STRING(pszDnsForestName);
+    LSA_SAFE_FREE_MEMORY(pDomainSid);
 
     if (ppszDnsDomainName)
     {
         *ppszDnsDomainName = pszDnsDomainName;
     }
-    else
+
+    if (ppszNetbiosDomainName)
     {
-        LSA_SAFE_FREE_STRING(pszDnsDomainName);
+        *ppszNetbiosDomainName = pszNetbiosDomainName;
     }
-    if (ppszNetBiosDomainName)
-    {
-        *ppszNetBiosDomainName = pszNetbiosDomainName;
-    }
-    else
-    {
-        LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
-    }
+
     if (ppszDomainSid)
     {
         *ppszDomainSid = pszDomainSid;
-    }
-    else
-    {
-        LSA_SAFE_FREE_STRING(pszDomainSid);
     }
 
     return dwError;
@@ -823,11 +885,6 @@ error:
     LSA_SAFE_FREE_STRING(pszDnsDomainName);
     LSA_SAFE_FREE_STRING(pszNetbiosDomainName);
     LSA_SAFE_FREE_STRING(pszDomainSid);
-
-    if (LSA_ERROR_GET_DC_NAME_FAILED == dwError)
-    {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
-    }
 
     goto cleanup;
 }

@@ -155,6 +155,18 @@
     #
     nss-enumeration-enabled = @ENABLE_NSS_ENUM_DEFAULT@
 
+    # How often the domain manager should check whether a domain is back
+    # online (in seconds).
+    #
+    # Default: 5m
+    # domain-manager-check-domain-online-interval = 5m
+
+    # How long an unknown domain is cached as unknown in the domain manager
+    # (in seconds).
+    #
+    # Default: 1h
+    # domain-manager-unknown-domain-cache-timeout = 1h
+
 [auth provider:lsa-local-provider]
 
     path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@

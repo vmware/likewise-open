@@ -142,7 +142,8 @@ typedef DWORD (*PFLSA_DM_CONNECT_CALLBACK)(
 DWORD
 LsaDmInitialize(
     IN BOOLEAN bIsOfflineBehaviorEnabled,
-    IN DWORD dwCheckOnlineSeconds
+    IN DWORD dwCheckOnlineSeconds,
+    IN DWORD dwUnknownCacheTimeoutSeconds
     );
 ///<
 /// Initialize state for domain manager.
@@ -153,6 +154,9 @@ LsaDmInitialize(
 ///
 /// @param[in] dwCheckOnlineSeconds - How often to check whether an offline
 ///     domain is back online. A setting of zero disables these checks.
+///
+/// @param[in] dwUnknownCacheTimeoutSeconds - Number of seconds to keep
+///     entries in the unknown domain cache.
 ///
 /// @return LSA status code.
 ///  @arg LSA_ERROR_SUCCESS on success
@@ -174,14 +178,16 @@ LsaDmCleanup(
 
 DWORD
 LsaDmQueryState(
+    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags
+    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
     );
 
 DWORD
 LsaDmSetState(
+    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled
+    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
     );
 
 VOID
@@ -529,6 +535,16 @@ DWORD
 LsaDmGetForestName(
     IN PCSTR pszDomainName,
     OUT PSTR* ppszDnsForestName
+    );
+
+BOOLEAN
+LsaDmIsUnknownDomainSid(
+    IN PSID pDomainSid
+    );
+
+DWORD
+LsaDmCacheUnknownDomainSid(
+    IN PSID pDomainSid
     );
 
 /// @} lsa_om

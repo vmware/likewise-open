@@ -371,7 +371,7 @@ LsaAdBatchCreateDomainEntry(
             break;
 
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
-            dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+            dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                             pszMatchTerm,
                             &pszDnsDomainName,
                             &pszNetbiosDomainName,
@@ -385,9 +385,8 @@ LsaAdBatchCreateDomainEntry(
                                                      pszMatchTerm);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaDmEngineGetDomainInfoWithNT4Name(
+            dwError = LsaDmEngineGetDomainNameWithDiscovery(
                            pszDomainName,
-                           pszMatchTerm,
                            &pszDnsDomainName,
                            &pszNetbiosDomainName);
             BAIL_ON_LSA_ERROR(dwError);
