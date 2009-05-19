@@ -74,6 +74,7 @@
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
 #define LOCAL_OBJECT_CLASS_GROUP           4
 #define LOCAL_OBJECT_CLASS_USER            5
+#define LOCAL_OBJECT_CLASS_GROUP_MEMBER    6
 
 #define LOCAL_DB_DIR_ATTR_OBJECT_CLASS         "ObjectClass"
 #define LOCAL_DB_DIR_ATTR_OBJECT_SID           "ObjectSID"
