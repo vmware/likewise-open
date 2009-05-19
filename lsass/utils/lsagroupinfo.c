@@ -128,25 +128,45 @@ error:
 }
 
 DWORD
-LsaModifyGroup_AddToGroups(
+LsaModifyGroup_AddMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
-    PCSTR pszGroupList
+    PVOID pData
     )
 {
     DWORD dwError = 0;
+    PCSTR pszDN = NULL;
+    PCSTR pszSID = NULL;
+    PCSTR *ppszMember = NULL;
+    DWORD iMember = 0;
 
     BAIL_ON_INVALID_POINTER(pGroupModInfo);
 
-    LSA_SAFE_FREE_STRING(pGroupModInfo->pszAddToGroups);
+    ppszMember = (PCSTR*)pData;
+    pGroupModInfo->dwAddMembersNum++;
 
-    if (!IsNullOrEmptyString(pszGroupList))
+    dwError = LsaReallocMemory(pGroupModInfo->pAddMembers,
+                               (PVOID*)&pGroupModInfo->pAddMembers,
+                               sizeof(pGroupModInfo->pAddMembers[0]) *
+                               pGroupModInfo->dwAddMembersNum);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppszMember)
     {
+        pszDN   = ppszMember[0];
+        pszSID  = ppszMember[1];
+        iMember = pGroupModInfo->dwAddMembersNum - 1;
+
         dwError = LsaAllocateString(
-                    pszGroupList,
-                    &pGroupModInfo->pszAddToGroups);
+                    pszDN,
+                    &pGroupModInfo->pAddMembers[iMember].pszDN);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGroupModInfo->actions.bAddToGroups = TRUE;
+        dwError = LsaAllocateString(
+                    pszSID,
+                    &pGroupModInfo->pAddMembers[iMember].pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pGroupModInfo->actions.bAddMembers = TRUE;
     }
 
 cleanup:
@@ -157,25 +177,46 @@ error:
 }
 
 DWORD
-LsaModifyGroup_RemoveFromGroups(
+LsaModifyGroup_RemoveMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
-    PCSTR pszGroupList
+    PVOID pData
     )
 {
     DWORD dwError = 0;
+    PCSTR pszDN = NULL;
+    PCSTR pszSID = NULL;
+    PCSTR *ppszMember = NULL;
+    DWORD iMember = 0;
 
     BAIL_ON_INVALID_POINTER(pGroupModInfo);
 
-    LSA_SAFE_FREE_STRING(pGroupModInfo->pszRemoveFromGroups);
+    ppszMember = (PCSTR*)pData;
+    pGroupModInfo->dwRemoveMembersNum++;
 
-    if (!IsNullOrEmptyString(pszGroupList))
+    dwError = LsaReallocMemory(pGroupModInfo->pRemoveMembers,
+                               (PVOID*)&pGroupModInfo->pRemoveMembers,
+                               sizeof(pGroupModInfo->pRemoveMembers[0]) *
+                               pGroupModInfo->dwRemoveMembersNum);
+    BAIL_ON_LSA_ERROR(dwError);
+
+
+    if (ppszMember)
     {
-       dwError = LsaAllocateString(
-                   pszGroupList,
-                   &pGroupModInfo->pszRemoveFromGroups);
-       BAIL_ON_LSA_ERROR(dwError);
+        pszDN   = ppszMember[0];
+        pszSID  = ppszMember[1];
+        iMember = pGroupModInfo->dwRemoveMembersNum - 1;
 
-       pGroupModInfo->actions.bRemoveFromGroups = TRUE;
+        dwError = LsaAllocateString(
+                    pszDN,
+                    &pGroupModInfo->pRemoveMembers[iMember].pszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaAllocateString(
+                    pszSID,
+                    &pGroupModInfo->pRemoveMembers[iMember].pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pGroupModInfo->actions.bRemoveMembers = TRUE;
     }
 
 cleanup:
@@ -190,8 +231,20 @@ LsaFreeGroupModInfo(
     PLSA_GROUP_MOD_INFO pGroupModInfo
     )
 {
-    LSA_SAFE_FREE_STRING(pGroupModInfo->pszAddToGroups);
-    LSA_SAFE_FREE_STRING(pGroupModInfo->pszRemoveFromGroups);
+    DWORD i = 0;
+
+    for (i = 0; i < pGroupModInfo->dwAddMembersNum; i++) {
+        LSA_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszDN);
+        LSA_SAFE_FREE_STRING(pGroupModInfo->pAddMembers[i].pszSid);
+    }
+    LSA_SAFE_FREE_MEMORY(pGroupModInfo->pAddMembers);
+
+    for (i = 0; i < pGroupModInfo->dwRemoveMembersNum; i++) {
+        LSA_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszDN);
+        LSA_SAFE_FREE_STRING(pGroupModInfo->pRemoveMembers[i].pszSid);
+    }
+    LSA_SAFE_FREE_MEMORY(pGroupModInfo->pRemoveMembers);
+
     LsaFreeMemory(pGroupModInfo);
 }
 
