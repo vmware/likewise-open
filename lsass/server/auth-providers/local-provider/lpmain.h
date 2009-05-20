@@ -220,6 +220,13 @@ LocalChangePassword(
     );
 
 DWORD
+LocalSetPassword(
+    HANDLE hProvider,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    );
+
+DWORD
 LocalAddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
@@ -347,3 +354,13 @@ LocalIoControl(
     );
 
 #endif /* __PROVIDER_MAIN_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -188,6 +188,13 @@ LocalDirChangePassword(
     );
 
 DWORD
+LocalDirSetPassword(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszNewPassword
+    );
+
+DWORD
 LocalCreateHomeDirectory(
     PLSA_USER_INFO_0 pUserInfo
     );

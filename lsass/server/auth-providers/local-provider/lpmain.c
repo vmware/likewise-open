@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -985,6 +985,55 @@ cleanup:
 
 error:
 
+    goto cleanup;
+}
+
+DWORD
+LocalSetPassword(
+    HANDLE hProvider,
+    PCSTR pszLoginId,
+    PCSTR pszPassword
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwInfoLevel = 0;
+    PWSTR pwszUserDN = NULL;
+    PLSA_USER_INFO_0 pUserInfo = NULL;
+    PWSTR pwszNewPassword = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalFindUserByNameEx(
+                    hProvider,
+                    pszLoginId,
+                    dwInfoLevel,
+                    &pwszUserDN,
+                    (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                        (pszPassword ? pszPassword : ""),
+                        &pwszNewPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirSetPassword(
+                    hProvider,
+                    pwszUserDN,
+                    pwszNewPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszNewPassword);
+    LSA_SAFE_FREE_MEMORY(pwszUserDN);
+
+    return dwError;
+
+error:
     goto cleanup;
 }
 

@@ -70,6 +70,7 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     .pfnAuthenticateUserEx     = &LocalAuthenticateUserEx,
     .pfnValidateUser           = &LocalValidateUser,
     .pfnChangePassword         = &LocalChangePassword,
+    .pfnSetPassword            = &LocalSetPassword,
     .pfnAddUser                = &LocalAddUser,
     .pfnModifyUser             = &LocalModifyUser,
     .pfnDeleteUser             = &LocalDeleteUser,
