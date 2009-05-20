@@ -79,6 +79,14 @@ LsaSrvIpcChangePassword(
     void* data
     );
 
+LWMsgStatus
+LsaSrvIpcSetPassword(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
 DWORD
 LsaSrvIpcAuthenticateUserEx(
     LWMsgAssoc* assoc,

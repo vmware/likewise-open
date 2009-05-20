@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -525,6 +525,63 @@ error:
     LSA_LOG_VERBOSE("Failed to change password of user [%s] [code %d]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId, dwError);
     goto cleanup;
 }
+
+DWORD
+LsaSrvSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_AUTHENTICATION};
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LSA_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnSetPassword(
+                                        hProvider,
+                                        pszLoginId,
+                                        pszPassword);
+        if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+            (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+            continue;
+        }
+    }
+
+cleanup:
+    if (hProvider != (HANDLE)NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return dwError;
+
+error:
+    LSA_LOG_VERBOSE("Failed to set password of user [%s] [code %d]",
+                    IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId,
+                    dwError);
+    goto cleanup;
+}
+
 
 /*
 local variables:
