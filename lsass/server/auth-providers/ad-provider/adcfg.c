@@ -249,6 +249,22 @@ AD_SetConfig_NssEnumerationEnabled(
     PCSTR          pszValue
     );
 
+static
+DWORD
+AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
+    IN PLSA_AD_CONFIG pConfig,
+    IN PCSTR pszName,
+    IN PCSTR pszValue
+    );
+
+static
+DWORD
+AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds(
+    IN PLSA_AD_CONFIG pConfig,
+    IN PCSTR pszName,
+    IN PCSTR pszValue
+    );
+
 static AD_CONFIG_HANDLER gADConfigHandlers[] =
 {
     {"enable-eventlog",               &AD_SetConfig_EnableEventLog},
@@ -275,6 +291,8 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"nss-group-members-query-cache-only",   &AD_SetConfig_NssGroupMembersCacheOnlyEnabled},
     {"nss-user-membership-query-cache-only", &AD_SetConfig_NssUserMembershipCacheOnlyEnabled},
     {"nss-enumeration-enabled",              &AD_SetConfig_NssEnumerationEnabled},
+    {"domain-manager-check-domain-online-interval", &AD_SetConfig_DomainManagerCheckDomainOnlineSeconds},
+    {"domain-manager-unknown-domain-cache-timeout", &AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds},
 };
 
 DWORD
@@ -327,6 +345,9 @@ AD_InitializeConfig(
     pConfig->bNssGroupMembersCacheOnlyEnabled = TRUE;
     pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
     pConfig->bNssEnumerationEnabled = FALSE;
+
+    pConfig->DomainManager.dwCheckDomainOnlineSeconds = 5 * LSA_SECONDS_IN_MINUTE;
+    pConfig->DomainManager.dwUnknownDomainCacheTimeoutSeconds = 1 * LSA_SECONDS_IN_HOUR;
 
     dwError = LsaAllocateString(
                     AD_DEFAULT_SHELL,
@@ -1224,6 +1245,58 @@ AD_SetConfig_NssEnumerationEnabled(
     pConfig->bNssEnumerationEnabled = AD_GetBooleanConfigValue(pszValue);
 
     return 0;
+}
+
+static
+DWORD
+AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
+    IN PLSA_AD_CONFIG pConfig,
+    IN PCSTR pszName,
+    IN PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+    DWORD result = 0;
+
+    if (!IsNullOrEmptyString(pszValue))
+    {
+        dwError = LsaParseDateString(pszValue, &result);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pConfig->DomainManager.dwCheckDomainOnlineSeconds = result;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds(
+    IN PLSA_AD_CONFIG pConfig,
+    IN PCSTR pszName,
+    IN PCSTR pszValue
+    )
+{
+    DWORD dwError = 0;
+    DWORD result = 0;
+
+    if (!IsNullOrEmptyString(pszValue))
+    {
+        dwError = LsaParseDateString(pszValue, &result);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pConfig->DomainManager.dwUnknownDomainCacheTimeoutSeconds = result;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 BOOLEAN
@@ -2125,3 +2198,32 @@ AD_GetNssEnumerationEnabled(
     return result;
 }
 
+DWORD
+AD_GetDomainManagerCheckDomainOnlineSeconds(
+    VOID
+    )
+{
+    DWORD result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    result = gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds;
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
+
+DWORD
+AD_GetDomainManagerUnknownDomainCacheTimeoutSeconds(
+    VOID
+    )
+{
+    DWORD result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+    result = gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds;
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}

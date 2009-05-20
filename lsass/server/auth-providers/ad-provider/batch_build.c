@@ -49,6 +49,14 @@
 #include "adprovider.h"
 #include "batch_build.h"
 
+/* The SMB server (in lwiod) requires that machine accounts can be
+   granted a valid token.  Clients frequently connect using their
+   machine account credentials for dfs referrals, querying server
+   capabilities, etc...  The default behavior for authentication clients
+   is to filter Computer objects.  -- gcarter@likewiseopen.org */
+
+#define DISABLE_UNPROVISIONED_MACHINE_ACCOUNTS       1
+
 typedef DWORD (*LSA_AD_BATCH_BUILDER_GET_ATTR_VALUE_CALLBACK)(
     IN PVOID pCallbackContext,
     IN PVOID pItem,
@@ -951,14 +959,9 @@ LsaAdBatchBuildQueryForReal(
     }
     else
     {
-#if 0
+#ifdef DISABLE_UNPROVISIONED_MACHINE_ACCOUNTS
         pszPrefix = "(&(|(objectClass=user)(objectClass=group))(!(objectClass=computer))";
 #else
-	/* Enable machine accounts in the unprovisioned provider.
-	   This is needed for the srv driver in lwio.  Clients frequently
-	   connect using their machine account credentials for dfs referrals,
-	   querying server capabilities, etc....  -- gcarter@likewise.com */
-
         pszPrefix = "(&(|(objectClass=user)(objectClass=group))";
 #endif
     }
