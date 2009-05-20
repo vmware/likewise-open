@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -109,6 +109,9 @@ typedef enum __LSA_IPC_TAG
     LSA_Q_CHANGE_PASSWORD,
     LSA_R_CHANGE_PASSWORD_SUCCESS,
     LSA_R_CHANGE_PASSWORD_FAILURE,
+    LSA_Q_SET_PASSWORD,
+    LSA_R_SET_PASSWORD_SUCCESS,
+    LSA_R_SET_PASSWORD_FAILURE,
     LSA_Q_OPEN_SESSION,
     LSA_R_OPEN_SESSION_SUCCESS,
     LSA_R_OPEN_SESSION_FAILURE,
@@ -220,6 +223,12 @@ typedef struct __LSA_IPC_CHANGE_PASSWORD_REQ
     PCSTR pszNewPassword;
     PCSTR pszOldPassword;
 } LSA_IPC_CHANGE_PASSWORD_REQ, *PLSA_IPC_CHANGE_PASSWORD_REQ;
+
+typedef struct __LSA_IPC_SET_PASSWORD_REQ
+{
+    PCSTR pszLoginName;
+    PCSTR pszNewPassword;
+} LSA_IPC_SET_PASSWORD_REQ, *PLSA_IPC_SET_PASSWORD_REQ;
 
 typedef struct __LSA_IPC_NAMES_BY_SIDS_REQ
 {
@@ -335,3 +344,13 @@ LsaMapLwmsgStatus(
     );
 
 #endif /*__LSAIPC_H__*/
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
