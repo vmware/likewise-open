@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
  *
@@ -7,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -20,34 +24,35 @@
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
-#include <config.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        compat.h
+ *
+ * Abstract:
+ *
+ *        Base win32 and unix compatibility header
+ *
+ *        This private header renames renames unix functions to their win32
+ *        equivalent.
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
-#include <lw/base.h>
+#ifndef __COMPAT_H__
+#define __COMPAT_H__
 
-#ifdef HAVE_PTHREAD_H
-#include <pthread.h>
-#endif
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifdef _WIN32
 
-#include <string.h>
-#include <assert.h>
+#define strncasecmp	strnicmp
+#define va_copy(dest, src)  memcpy(&dest, &src, sizeof(va_list))
 
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
+#endif /* _WIN32 */
 
-#ifdef HAVE_SYS_VARARGS_H
-#include <sys/varargs.h>
-#endif
-
-#include <wc16str.h>
-#ifdef HAVE_UUID_UUID_H
-#include <uuid/uuid.h>
-#endif
-
-#include "compat.h"
+#endif /* __COMPAT_H__ */
