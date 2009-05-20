@@ -112,6 +112,10 @@ typedef struct _LSA_AD_CONFIG {
     BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;
     BOOLEAN             bNssEnumerationEnabled;
+    struct {
+        DWORD           dwCheckDomainOnlineSeconds;
+        DWORD           dwUnknownDomainCacheTimeoutSeconds;
+    } DomainManager;
 } LSA_AD_CONFIG, *PLSA_AD_CONFIG;
 
 struct _ADSTATE_CONNECTION;

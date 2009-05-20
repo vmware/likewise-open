@@ -1310,8 +1310,7 @@ error:
 
 static
 DWORD
-AD_ServicesDomainUser(
-    IN PCSTR pszLoginId,
+AD_ServicesDomainWithDiscovery(
     IN PCSTR pszNetBiosName,
     OUT PBOOLEAN pbFoundDomain
     )
@@ -1323,9 +1322,8 @@ AD_ServicesDomainUser(
 
     if (!bFoundDomain)
     {
-        dwError = LsaDmEngineGetDomainInfoWithNT4Name(
+        dwError = LsaDmEngineGetDomainNameWithDiscovery(
                      pszNetBiosName,
-                     pszLoginId,
                      NULL,
                      NULL);
         if (!dwError)
@@ -1342,7 +1340,7 @@ AD_ServicesDomainUser(
 
     if (!bFoundDomain)
     {
-        LSA_LOG_INFO("%s was passed unknown domain '%s'", __FUNCTION__, pszNetBiosName);
+        LSA_LOG_INFO("Unknown domain '%s'", pszNetBiosName);
     }
 
 cleanup:
@@ -1384,8 +1382,7 @@ AD_OnlineAuthenticateUser(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_ServicesDomainUser(
-                    pszLoginId,
+    dwError = AD_ServicesDomainWithDiscovery(
                     pLoginInfo->pszDomainNetBiosName,
                     &bFoundDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1446,7 +1443,7 @@ AD_OnlineAuthenticateUser(
 
         LSA_LOG_DEBUG("Using generated UPN instead of '%s'", pUserInfo->userInfo.pszUPN);
 
-        dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+        dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                        pUserInfo->pszObjectSid,
                        &pszUserDnsDomainName,
                        NULL,
@@ -2631,8 +2628,7 @@ AD_OnlineChangePassword(
                     &pLoginInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_ServicesDomainUser(
-                    pszLoginId,
+    dwError = AD_ServicesDomainWithDiscovery(
                     pLoginInfo->pszDomainNetBiosName,
                     &bFoundDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -2685,7 +2681,7 @@ AD_OnlineChangePassword(
     }
 
     // Make sure that we are affinitized.
-    dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+    dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                        pCachedUser->pszObjectSid,
                        &pszFullDomainName,
                        NULL,
