@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,26 +28,57 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
 
 NTSTATUS
-SmbProcessSessionSetup(
-    PLWIO_SRV_CONNECTION pSmbRequest
-    )
-{
-    NTSTATUS ntStatus = 0;
+SrvDeviceCreate(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP      pIrp
+    );
 
-#if 0
-    ntStatus = MarshallSessionResponse(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
-#endif
+NTSTATUS
+SrvDeviceClose(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
 
+NTSTATUS
+SrvDeviceRead(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
 
-    ntStatus = SmbSendReply(pSmbRequest);
-    BAIL_ON_NT_STATUS(ntStatus);
+NTSTATUS
+SrvDeviceWrite(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
 
-error:
+NTSTATUS
+SrvDeviceControlIO(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
 
-    return (ntStatus);
-}
+NTSTATUS
+SrvDeviceControlFS(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
 
+NTSTATUS
+SrvDeviceFlush(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceQueryInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
+
+NTSTATUS
+SrvDeviceSetInfo(
+    IO_DEVICE_HANDLE hDevice,
+    PIRP pIrp
+    );
