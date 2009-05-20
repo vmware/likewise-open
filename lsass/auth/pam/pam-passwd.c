@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -250,7 +250,7 @@ LsaPamMustCheckCurrentPassword(
     {
         // Local root user does not have to
         // provider a user's old password.
-        bCheckOldPassword = (geteuid() != 0);
+        bCheckOldPassword = (getuid() != 0);
     }
     else
     {
@@ -340,12 +340,23 @@ LsaPamUpdatePassword(
                    &pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaChangePassword(
-                   hLsaConnection,
-                   pszLoginId,
-                   pszPassword,
-                   pszOldPassword);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (bCheckOldPassword)
+    {
+        dwError = LsaChangePassword(
+                       hLsaConnection,
+                       pszLoginId,
+                       pszPassword,
+                       pszOldPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaSetPassword(
+                       hLsaConnection,
+                       pszLoginId,
+                       pszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
 
@@ -519,7 +530,7 @@ LsaPamGetOldPassword(
             (PAM_GET_ITEM_TYPE)&pszItem);
 #endif
         if (dwError == PAM_BAD_ITEM ||
-                IsNullOrEmptyString(pszItem))
+            pszItem == NULL)
         {
             if (pPamOptions->bUseFirstPass)
             {
