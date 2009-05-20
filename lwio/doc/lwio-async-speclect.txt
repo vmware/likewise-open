@@ -1,0 +1,146 @@
+LWIO Asynchronouse I/O Speclet
+------------------------------
+
+1. Introduction
+---------------
+
+This speclet describes how asynchronous I/O works in LWIO.
+
+1.1 Goals
+---------
+
+- Asynchronous I/O model with cancellation, including:
+  + ioapi.h support for asynchronous I/O.
+    - IoXxxFile() APIs.
+    - Cancellation.
+  + Driver support for processing IRPs asynchronously.
+  + Driver support for cancelling IRPs.
+
+1.2 Non-Goals
+-------------
+
+- NtXxxFile()/NtCtxXxxFile (ntfileapi.h) support for asynchronous I/O.
+
+2. Async IO Model
+-----------------
+
+2.1 IoXxxFile() APIs
+--------------------
+
+IoXxxFile() APIs have an optional parameter:
+
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+
+Currently, this parameter is unused and must always be NULL.  The async I/O
+support will use this parameter to control whether the IoXxxFile() API should
+behave asychronously.
+
+Here is how the ACB (asynchronous control block) works:
+
+typedef struct _IO_ASYNC_CONTROL_BLOCK {
+    IN PIO_ASYNC_CALLBACK Callback;
+    IN OPTIONAL PVOID CallbackContext;
+    OUT PIO_ASYNC_CONTEXT AsyncContext;
+} IO_ASYNC_CONROL_BLOCK, *PIO_ASYNC_CONTROL_BLOCK;
+
+On input, the ACB must contain a callback function.  On output, the ACB will
+return an AsyncContext that can be used to cancel the I/O.  It is up to the
+caller to dereference the returned context when the caller is done with it by
+calling IoDereferenceAsyncContext().
+
+The async callback is defined as:
+
+typedef VOID (*PIO_ASYNC_CALLBACK)(
+    IN PVOID CallbackContext,
+    IN PIO_ASYNC_CONTEXT AsyncContext,
+    IN PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+The callback does not have to worry about the AsyncContext passed in here.
+(Note, however, that the caller can use this value to call
+IoDereferenceAsyncContext() if they never dereferenced the context returned in
+the original async I/O call.)
+
+<ISSUE>
+ISSUE: Do we want to pass in AsyncContext here?  It is just being passed in as
+a convenience to the caller in case they do not want to have a CallbackContext
+but still want to track additional context w/the operation.
+</ISSUE>
+
+The IoStatusBlock will contain the result of the operation.
+
+2.2 Cancellation API
+--------------------
+
+To cancel an async I/O, the caller calls IoCancelAsyncContext().  Note that
+the caller must still dereference the context.
+
+2.3 Driver Support
+-------------------
+
+To support asynchronous I/O, drivers must be able to behave asychronously with
+respect to the I/O operation.  If a driver behaves synchronously, the I/O will
+be synchronous even if the caller (via IoXxxFile() call) asked for it to be
+asynchronous.
+
+There is no way for a driver to tell whether the caller asked for synchronous
+or asynchronous behavior.
+
+When a driver processes an IRP asychronously, it must return STATUS_PENDING to
+tell the IO manager to take its hands off the IRP until the driver completes
+the IRP.
+
+When the IO manager gets STATUS_PENDING from the driver, it will do one of two
+things depending on whether the caller of the IoXxxFile() API asked for
+synchronous or asynchronous behavior.  In the synchronous case, the IO manager
+just waits for the driver to complete the I/O before returning the final
+result to the caller.  In the asynchronous case, the IO manager just returns
+STATUS_PENDING to the caller (along with an AsyncContext).
+
+2.3.1 IoIrpXxx() APIs
+---------------------
+
+To support asynchronous processing of IRPs, the IO manager provies the
+following IoIrpXxx() APIs (via iodriver.h).
+
+typedef NTSTATUS (*PIO_IRP_CALLBACK)(
+    IN PVOID CallbackContext,
+    IN PIRP Irp
+    );
+
+NTSTATUS
+IoIrpSetCancelCallback(
+    IN PIRP Irp,
+    IN PIO_IRP_CALLBACK Callback,
+    IN OPTIONAL PVOID CallbackContext
+    )
+
+VOID
+IoIrpComplete(
+    IN PIRP Irp
+    );
+
+2.3.2 Cancellation
+------------------
+
+For an I/O to be cancellable, the driver must call IoIrpSetCancelCallback().
+Ideally, the driver should do this before returning STATUS_PENDING to the
+driver.  Note that a driver can set a cancel callback even when an opration is
+synchronous.
+
+Before a driver completes an IRP (synchronously or asynchronously), the driver
+must clear any cancellation callback that it set on the IRP.  This is done by
+setting a NULL cancellation callback.
+
+2.3.3 Completion
+----------------
+
+If an IRP is handled asynchronously, the IRP is completed by calling
+IoIrpComplete().  Before calling this function, however, the driver must make
+sure to clear any cancellation callback (see above) and it must set the
+IoStatusBlock in the IRP with the proper Status and Information.
+
+3. IO Manager Implementation
+----------------------------
+
+[CURRENTLY WORKING ON THIS]
