@@ -1605,6 +1605,13 @@ LsaChangePassword(
     );
 
 DWORD
+LsaSetPassword(
+    HANDLE hLsaConnection,
+    PCSTR  pszLoginName,
+    PCSTR  pszNewPassword
+    );
+
+DWORD
 LsaOpenSession(
     HANDLE hLsaConnection,
     PCSTR  pszLoginId

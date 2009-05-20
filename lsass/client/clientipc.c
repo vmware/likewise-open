@@ -1442,6 +1442,61 @@ error:
 }
 
 DWORD
+LsaTransactSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszNewPassword
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    LSA_IPC_SET_PASSWORD_REQ setPasswordReq;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    setPasswordReq.pszLoginName   = pszLoginName;
+    setPasswordReq.pszNewPassword = pszNewPassword;
+
+    request.tag    = LSA_Q_SET_PASSWORD;
+    request.object = &setPasswordReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_SET_PASSWORD_SUCCESS:
+            break;
+
+        case LSA_R_SET_PASSWORD_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LsaTransactModifyUser(
     HANDLE hServer,
     PLSA_USER_MOD_INFO pUserModInfo
