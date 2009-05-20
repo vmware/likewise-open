@@ -185,7 +185,7 @@ typedef struct _LSA_DM_STATE {
     /// Number of seconds between checking for domains returning online
     DWORD dwCheckOnlineSeconds;
     /// Number of seconds to keep entries in the unknown domain cache
-    DWORD dwUnknownCacheTimeoutSeconds;
+    DWORD dwUnknownDomainCacheTimeoutSeconds;
     /// @}
 } LSA_DM_STATE, *PLSA_DM_STATE;
 
@@ -551,7 +551,7 @@ LsaDmpStateCreate(
     OUT PLSA_DM_STATE_HANDLE pHandle,
     IN BOOLEAN bIsOfflineBehaviorEnabled,
     IN DWORD dwCheckOnlineSeconds,
-    IN DWORD dwUnknownCacheTimeoutSeconds
+    IN DWORD dwUnknownDomainCacheTimeoutSeconds
     )
 ///<
 /// Create an empty state object for the offline manager.
@@ -565,7 +565,7 @@ LsaDmpStateCreate(
 /// @param[in] dwCheckOnlineSeconds - How often to check whether an offline
 ///     domain is back online. A setting of zero disables these checks.
 ///
-/// @param[in] dwUnknownCacheTimeoutSeconds - Number of seconds to keep
+/// @param[in] dwUnknownDomainCacheTimeoutSeconds - Number of seconds to keep
 ///     entries in the unknown domain cache.
 ///
 /// @return LSA status code.
@@ -588,7 +588,7 @@ LsaDmpStateCreate(
     }
 
     pState->dwCheckOnlineSeconds = dwCheckOnlineSeconds;
-    pState->dwUnknownCacheTimeoutSeconds = dwUnknownCacheTimeoutSeconds;
+    pState->dwUnknownDomainCacheTimeoutSeconds = dwUnknownDomainCacheTimeoutSeconds;
 
     dwError = LsaDmpCreateMutex(&pState->pMutex, PTHREAD_MUTEX_RECURSIVE);
     BAIL_ON_LSA_ERROR(dwError);
@@ -644,7 +644,7 @@ LsaDmpQueryState(
     IN LSA_DM_STATE_HANDLE Handle,
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    OUT OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
     LsaDmpAcquireMutex(Handle->pMutex);
@@ -656,9 +656,9 @@ LsaDmpQueryState(
     {
         *pdwCheckOnlineSeconds = Handle->dwCheckOnlineSeconds;
     }
-    if (pdwUnknownCacheTimeoutSeconds)
+    if (pdwUnknownDomainCacheTimeoutSeconds)
     {
-        *pdwUnknownCacheTimeoutSeconds = Handle->dwUnknownCacheTimeoutSeconds;
+        *pdwUnknownDomainCacheTimeoutSeconds = Handle->dwUnknownDomainCacheTimeoutSeconds;
     }
     LsaDmpReleaseMutex(Handle->pMutex);
 
@@ -670,7 +670,7 @@ LsaDmpSetState(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
     BOOLEAN bIsModified = FALSE;
@@ -703,11 +703,11 @@ LsaDmpSetState(
         }
     }
 
-    if (pdwUnknownCacheTimeoutSeconds)
+    if (pdwUnknownDomainCacheTimeoutSeconds)
     {
-        if (Handle->dwUnknownCacheTimeoutSeconds != *pdwUnknownCacheTimeoutSeconds)
+        if (Handle->dwUnknownDomainCacheTimeoutSeconds != *pdwUnknownDomainCacheTimeoutSeconds)
         {
-            Handle->dwUnknownCacheTimeoutSeconds = *pdwUnknownCacheTimeoutSeconds;
+            Handle->dwUnknownDomainCacheTimeoutSeconds = *pdwUnknownDomainCacheTimeoutSeconds;
             // Do not set bIsModified because we do not need to signal.
         }
     }
@@ -3056,6 +3056,10 @@ LsaDmpFindUnknownDomainSidEntry(
     PLSA_LIST_LINKS pNextLinks = NULL;
     time_t now = time(NULL);
 
+    // NOTE: The caller must acquire the lock on the state Handle.
+    // This is so that the caller can modify the entry and/or cache
+    // after doing this lookup.
+
     for (pLinks = Handle->UnknownDomainSidList.Next;
          pLinks != &Handle->UnknownDomainSidList;
          pLinks = pNextLinks)
@@ -3073,7 +3077,7 @@ LsaDmpFindUnknownDomainSidEntry(
         }
 
         // Opportunistically remove expired entries.
-        if (now >= (pEntry->Time + Handle->dwUnknownCacheTimeoutSeconds))
+        if (now >= (pEntry->Time + Handle->dwUnknownDomainCacheTimeoutSeconds))
         {
             LsaListRemove(&pEntry->Links);
             LsaFreeMemory(pEntry->pSid);
