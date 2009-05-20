@@ -4,5 +4,4 @@ SUBDIRS = \
     npvfs   \
     pvfs    \
     rdr     \
-    srv     \
     lwiod
