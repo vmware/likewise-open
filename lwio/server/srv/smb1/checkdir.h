@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,15 +28,41 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        checkdir.h
+ *
+ * Abstract:
+ *
+ *        Likewise SMB Server
+ *
+ *        SMBCheckDirectory
+ *
+ * Authors: Gerald Carter <gcarter@likewise.com>
+ */
+
+
+#ifndef __SRV_CHECK_DIR_H__
+#define __SRV_CHECK_DIR_H__
 
 NTSTATUS
-SrvProcessCreateTemporaryFile(
-    PLWIO_SRV_CONTEXT pContext
-    )
-{
-    NTSTATUS ntStatus = 0;
+SrvProcessCheckDirectory(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET*      ppSmbResponse
+    );
 
-    return ntStatus;
-}
+#endif /* __SRV_CHECK_DIR_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
