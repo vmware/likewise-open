@@ -169,6 +169,12 @@ typedef DWORD (*PFNCHANGEPASSWORD) (
                         PCSTR  pszOldPassword
                         );
 
+typedef DWORD (*PFNSETPASSWORD) (
+                        HANDLE hProvider,
+                        PCSTR  pszLoginId,
+                        PCSTR  pszPassword
+                        );
+
 typedef DWORD (*PFNADDUSER) (
                         HANDLE hProvider,
                         DWORD  dwUserInfoLevel,
@@ -293,6 +299,7 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNENUMGROUPS                  pfnEnumGroups;
     PFNEND_ENUM_GROUPS             pfnEndEnumGroups;
     PFNCHANGEPASSWORD              pfnChangePassword;
+    PFNSETPASSWORD                 pfnSetPassword;
     PFNADDUSER                     pfnAddUser;
     PFNMODIFYUSER                  pfnModifyUser;
     PFNDELETEUSER                  pfnDeleteUser;
