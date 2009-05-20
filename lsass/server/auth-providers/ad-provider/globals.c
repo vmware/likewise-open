@@ -102,6 +102,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_EnumGroups,
             &AD_EndEnumGroups,
             &AD_ChangePassword,
+            &AD_SetPassword,
             &AD_AddUser,
             &AD_ModifyUser,
             &AD_DeleteUser,

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -148,6 +148,20 @@ LsaChangePassword(
 
 LSASS_API
 DWORD
+LsaSetPassword(
+   HANDLE hLsaConnection,
+   PCSTR  pszLoginName,
+   PCSTR  pszNewPassword
+   )
+{
+    return LsaTransactSetPassword(
+            hLsaConnection,
+            pszLoginName,
+            pszNewPassword);
+}
+
+LSASS_API
+DWORD
 LsaAuthenticateUserEx(
 	IN HANDLE hLsaConnection,
 	IN LSA_AUTH_USER_PARAMS* pParams,
@@ -159,3 +173,13 @@ LsaAuthenticateUserEx(
             pParams,
             ppUserInfo);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

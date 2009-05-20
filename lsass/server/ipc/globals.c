@@ -63,6 +63,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH(LSA_Q_AUTH_USER_EX, LsaSrvIpcAuthenticateUserEx),
     LWMSG_DISPATCH(LSA_Q_VALIDATE_USER, LsaSrvIpcValidateUser),
     LWMSG_DISPATCH(LSA_Q_CHANGE_PASSWORD, LsaSrvIpcChangePassword),
+    LWMSG_DISPATCH(LSA_Q_SET_PASSWORD, LsaSrvIpcSetPassword),
     LWMSG_DISPATCH(LSA_Q_OPEN_SESSION, LsaSrvIpcOpenSession),
     LWMSG_DISPATCH(LSA_Q_CLOSE_SESSION, LsaSrvIpcCloseSession),
     LWMSG_DISPATCH(LSA_Q_MODIFY_USER, LsaSrvIpcModifyUser),

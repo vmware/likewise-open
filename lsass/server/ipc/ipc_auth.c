@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -215,6 +215,47 @@ error:
     goto cleanup;
 }
 
+LWMsgStatus
+LsaSrvIpcSetPassword(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_SET_PASSWORD_REQ pReq = pRequest->object;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvSetPassword(
+                        (HANDLE)Handle,
+                        pReq->pszLoginName,
+                        pReq->pszNewPassword);
+    if (!dwError)
+    {
+        pResponse->tag    = LSA_R_SET_PASSWORD_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag    = LSA_R_SET_PASSWORD_FAILURE;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    return MAP_LSA_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
 /*********************************************************
  */
 
@@ -298,3 +339,11 @@ error:
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -143,7 +143,7 @@ DWORD
 LsaDmInitialize(
     IN BOOLEAN bIsOfflineBehaviorEnabled,
     IN DWORD dwCheckOnlineSeconds,
-    IN DWORD dwUnknownCacheTimeoutSeconds
+    IN DWORD dwUnknownDomainCacheTimeoutSeconds
     );
 ///<
 /// Initialize state for domain manager.
@@ -155,7 +155,7 @@ LsaDmInitialize(
 /// @param[in] dwCheckOnlineSeconds - How often to check whether an offline
 ///     domain is back online. A setting of zero disables these checks.
 ///
-/// @param[in] dwUnknownCacheTimeoutSeconds - Number of seconds to keep
+/// @param[in] dwUnknownDomainCacheTimeoutSeconds - Number of seconds to keep
 ///     entries in the unknown domain cache.
 ///
 /// @return LSA status code.
@@ -180,14 +180,14 @@ DWORD
 LsaDmQueryState(
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    OUT OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     );
 
 DWORD
 LsaDmSetState(
     IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     );
 
 VOID

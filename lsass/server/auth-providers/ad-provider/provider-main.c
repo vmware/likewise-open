@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -2208,6 +2208,17 @@ AD_ChangePassword(
             pszOldPassword);
     }
 }
+
+DWORD
+AD_SetPassword(
+    HANDLE hProvider,
+    PCSTR pszLoginId,
+    PCSTR pszPassword
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
 
 DWORD
 AD_AddUser(

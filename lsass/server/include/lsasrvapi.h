@@ -123,6 +123,13 @@ LsaSrvChangePassword(
     );
 
 DWORD
+LsaSrvSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    );
+
+DWORD
 LsaSrvFindGroupByName(
     IN HANDLE hServer,
     IN PCSTR pszGroup,

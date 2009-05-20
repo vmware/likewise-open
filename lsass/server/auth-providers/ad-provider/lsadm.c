@@ -64,7 +64,7 @@ DWORD
 LsaDmInitialize(
     IN BOOLEAN bIsOfflineBehaviorEnabled,
     IN DWORD dwCheckOnlineSeconds,
-    IN DWORD dwUnknownCacheTimeoutSeconds
+    IN DWORD dwUnknownDomainCacheTimeoutSeconds
     )
 {
     DWORD dwError = 0;
@@ -73,7 +73,7 @@ LsaDmInitialize(
     dwError = LsaDmpStateCreate(&pState,
                                 bIsOfflineBehaviorEnabled,
                                 dwCheckOnlineSeconds,
-                                dwUnknownCacheTimeoutSeconds);
+                                dwUnknownDomainCacheTimeoutSeconds);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (gLsaDmState)
@@ -113,28 +113,28 @@ DWORD
 LsaDmQueryState(
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    OUT OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
     return LsaDmpQueryState(
                 gLsaDmState,
                 pStateFlags,
                 pdwCheckOnlineSeconds,
-                pdwUnknownCacheTimeoutSeconds);
+                pdwUnknownDomainCacheTimeoutSeconds);
 }
 
 DWORD
 LsaDmSetState(
     IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
     return LsaDmpSetState(
                 gLsaDmState,
                 pbIsOfflineBehaviorEnabled,
                 pdwCheckOnlineSeconds,
-                pdwUnknownCacheTimeoutSeconds);
+                pdwUnknownDomainCacheTimeoutSeconds);
 }
 
 VOID

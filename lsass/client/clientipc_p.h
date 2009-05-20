@@ -210,6 +210,13 @@ LsaTransactChangePassword(
     );
 
 DWORD
+LsaTransactSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszNewPassword
+    );
+
+DWORD
 LsaTransactModifyUser(
     HANDLE hServer,
     PLSA_USER_MOD_INFO pUserModInfo

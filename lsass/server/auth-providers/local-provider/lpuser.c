@@ -2572,6 +2572,28 @@ LocalDirChangePassword(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+
+    dwError = DirectoryChangePassword(
+                    pContext->hDirectory,
+                    pwszUserDN,
+                    pwszOldPassword,
+                    pwszNewPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+LocalDirSetPassword(
+    HANDLE hProvider,
+    PWSTR pwszUserDN,
+    PWSTR pwszNewPassword
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     BOOLEAN bIsAdmin = FALSE;
 
     dwError = LocalCheckIsAdministrator(
@@ -2585,20 +2607,19 @@ LocalDirChangePassword(
                         pContext->hDirectory,
                         pwszUserDN,
                         pwszNewPassword);
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
-        dwError = DirectoryChangePassword(
-                        pContext->hDirectory,
-                        pwszUserDN,
-                        pwszOldPassword,
-                        pwszNewPassword);
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
     }
-    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
 
 error:
-
-    return dwError;
+    goto cleanup;
 }
 
 DWORD
