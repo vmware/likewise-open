@@ -835,6 +835,9 @@ AC_CONFIG_FILES([Makefile
                  provider/ad-provider/Makefile
                  provider/ad-provider/ipc/Makefile
                  provider/ad-provider/client/Makefile
+                 provider/local-provider/Makefile
+                 provider/local-provider/ipc/Makefile
+                 provider/local-provider/client/Makefile
                  macclient/Makefile
 		 nsswitch/Makefile
 		 nsswitch/common/Makefile
