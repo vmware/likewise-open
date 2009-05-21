@@ -28,22 +28,24 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
 
-DWORD
-SMBSrvInitialize_V1(
-    PCSTR pszConfigFilePath
+NTSTATUS
+SmbProcessCreateTemporaryFile(
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
-    PLWIO_SRV_CONTEXT pContext
+SrvCreateTemporaryFile(
+    HANDLE hTreeObject
     );
 
-DWORD
-SMBSrvShutdown_V1(
-    VOID
+NTSTATUS
+UnmarshallCreateTemporaryFileRequest(
+    PLWIO_SRV_CONNECTION pSmbRequest
     );
 
-#endif /* __SMBV1_H__ */
+NTSTATUS
+MarshallCreateTemporaryFileResponse(
+    PLWIO_SRV_CONNECTION pSmbRequest
+    );
+

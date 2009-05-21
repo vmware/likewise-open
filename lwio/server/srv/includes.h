@@ -117,8 +117,6 @@
 #include "close.h"
 #include "srvtdiscon.h"
 #include "srvlogoff.h"
-#include "smbv1.h"
-#include "smbv2.h"
 
 #include "checkdir.h"
 #include "creatdir.h"
@@ -128,6 +126,7 @@
 #include "findnext2.h"
 #include "findclose2.h"
 #include "rename.h"
+#include "seek.h"
 #include "device.h"
 
 #include "prodcons.h"

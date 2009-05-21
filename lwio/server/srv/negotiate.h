@@ -28,22 +28,11 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
-
-DWORD
-SMBSrvInitialize_V1(
-    PCSTR pszConfigFilePath
-    );
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
-    PLWIO_SRV_CONTEXT pContext
+SrvSmbProcessNegotiate(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET         pSmbRequest
     );
 
-DWORD
-SMBSrvShutdown_V1(
-    VOID
-    );
 
-#endif /* __SMBV1_H__ */

@@ -31,13 +31,12 @@
 #include "includes.h"
 
 NTSTATUS
-SMBSrvProcessRequest_V2(
+SrvProcessSeek(
     PLWIO_SRV_CONTEXT pContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+
+    return ntStatus;
 }
-
-
-
 

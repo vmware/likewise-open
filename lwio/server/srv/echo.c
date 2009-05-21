@@ -28,22 +28,24 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
-
-DWORD
-SMBSrvInitialize_V1(
-    PCSTR pszConfigFilePath
-    );
+#include "includes.h"
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
-    PLWIO_SRV_CONTEXT pContext
-    );
+SmbProcessEchoAndX(
+    PLWIO_SRV_CONNECTION pSmbRequest
+    )
+{
+    NTSTATUS ntStatus = 0;
 
-DWORD
-SMBSrvShutdown_V1(
-    VOID
-    );
+    ntStatus = MarshallReadAndXResponse(pSmbRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#endif /* __SMBV1_H__ */
+
+    ntStatus = SmbSendReply(pSmbRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    return (ntStatus);
+}
+

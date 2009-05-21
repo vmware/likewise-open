@@ -17,9 +17,8 @@ libsrv_sys_la_SOURCES = \
     prodcons.c        \
     reader.c          \
     rename.c          \
+    seek.c            \
     sharedb.c         \
-    smbv1.c           \
-    smbv2.c           \
     srvccb.c          \
     srvconnection.c   \
     srvcontext.c      \

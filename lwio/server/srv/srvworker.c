@@ -54,6 +54,14 @@ SrvWorkerExecute(
     PLWIO_SRV_CONTEXT pContext
     );
 
+static
+NTSTATUS
+SrvWorkerBuildErrorResponse(
+    PLWIO_SRV_CONTEXT pContext,
+    NTSTATUS          errorStatus,
+    PSMB_PACKET*      ppSmbResponse
+    );
+
 NTSTATUS
 SrvWorkerInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
@@ -222,31 +230,345 @@ SrvWorkerExecute(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
 
-    switch (pContext->pRequest->pSMBHeader->smb[0])
+    switch (pContext->pRequest->pSMBHeader->command)
     {
-        case 0xFF:
+        case COM_NEGOTIATE:
 
-            ntStatus = SMBSrvProcessRequest_V1(pContext);
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
 
             break;
 
-        case 0xFE:
+        case COM_SESSION_SETUP_ANDX:
 
-            ntStatus = SMBSrvProcessRequest_V2(pContext);
+            {
+                LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+
+                if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
+                    (connState != LWIO_SRV_CONN_STATE_READY))
+                {
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+                }
+            }
 
             break;
 
         default:
 
-            ntStatus = LW_STATUS_INVALID_NETWORK_RESPONSE;
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pContext->pRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
+
+                ntStatus = SrvProcessNegotiate(
+                                pContext,
+                                &pSmbResponse);
+
+                break;
+
+        case COM_SESSION_SETUP_ANDX:
+
+            ntStatus = SrvProcessSessionSetup(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_TREE_CONNECT_ANDX:
+
+            ntStatus = SrvProcessTreeConnectAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_OPEN_ANDX:
+
+            ntStatus = SrvProcessOpenAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_NT_CREATE_ANDX:
+
+            ntStatus = SrvProcessNTCreateAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_LOCKING_ANDX:
+
+            ntStatus = SrvProcessLockAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_READ:
+
+            ntStatus = SrvProcessRead(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_READ_ANDX:
+
+            ntStatus = SrvProcessReadAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_WRITE:
+
+            ntStatus = SrvProcessWrite(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_WRITE_ANDX:
+
+            ntStatus = SrvProcessWriteAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_TRANSACTION:
+
+            ntStatus = SrvProcessTransaction(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_TRANSACTION2:
+
+            ntStatus = SrvProcessTransaction2(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_FIND_CLOSE2:
+
+            ntStatus = SrvProcessFindClose2(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_CLOSE:
+
+            ntStatus = SrvProcessCloseAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_CREATE_DIRECTORY:
+
+            ntStatus = SrvProcessCreateDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_DELETE_DIRECTORY:
+
+            ntStatus = SrvProcessDeleteDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_DELETE:
+
+            ntStatus = SrvProcessDelete(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_RENAME:
+
+            ntStatus = SrvProcessRename(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_NT_TRANSACT:
+
+            ntStatus = SrvProcessNtTransact(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_TREE_DISCONNECT:
+
+            ntStatus = SrvProcessTreeDisconnectAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_ECHO:
+
+            ntStatus = SrvProcessEchoAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_FLUSH:
+
+            ntStatus = SrvProcessFlush(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_LOGOFF_ANDX:
+
+            ntStatus = SrvProcessLogoffAndX(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+        case COM_CHECK_DIRECTORY:
+
+            ntStatus = SrvProcessCheckDirectory(
+                            pContext,
+                            &pSmbResponse);
+
+            break;
+
+#if 0
+
+        case SMB_NT_CANCEL:
+
+            ntStatus = SmbNTCancel(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_NT_TRANSACT_CREATE:
+
+            ntStatus = SmbNTTransactCreate(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_CREATE_TEMPORARY:
+
+            ntStatus = SmbCreateTemporary(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_SEEK:
+
+            ntStatus = SmbProcessSeek(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_CLOSE_AND_TREE_DISCONNECT:
+
+            ntStatus = SmbProcessCloseAndTreeDisconnect(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_NT_RENAME:
+
+            ntStatus = SmbProcessNTRename(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_MOVE:
+
+            ntStatus = SmbProcessCopy(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+
+        case SMB_COPY:
+
+            ntStatus = SmbProcessCopy(
+                            pSmbRequest,
+                            pSmbResponse);
+
+            break;
+#endif
+
+        default:
+
+            ntStatus = STATUS_NOT_IMPLEMENTED;
 
             break;
     }
 
+    if (ntStatus)
+    {
+        ntStatus = SrvWorkerBuildErrorResponse(
+                        pContext,
+                        ntStatus,
+                        &pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnectionWriteMessage(
+                    pContext->pConnection,
+                    pContext->ulRequestSequence+1,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pContext->pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
+
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
+static
 NTSTATUS
 SrvWorkerBuildErrorResponse(
     PLWIO_SRV_CONTEXT pContext,

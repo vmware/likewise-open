@@ -28,22 +28,43 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SMBV1_H__
-#define __SMBV1_H__
-
-DWORD
-SMBSrvInitialize_V1(
-    PCSTR pszConfigFilePath
-    );
+#include "includes.h"
 
 NTSTATUS
-SMBSrvProcessRequest_V1(
-    PLWIO_SRV_CONTEXT pContext
-    );
+SmbProcessTreeConnectAndX(
+    PLWIO_SRV_CONNECTION pSmbRequest
+    )
+{
+    NTSTATUS ntStatus = 0;
 
-DWORD
-SMBSrvShutdown_V1(
-    VOID
-    );
+#if 0
+    pSession = GetSessionObject(pSmbRequest);
 
-#endif /* __SMBV1_H__ */
+    ntStatus = MarshallTconAndXResponse(pSmbRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtVfsOpenTree(
+                    pszShareName,
+                    &hTreeObject
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = TreeConnCreateObject(
+                        pszShareName,
+                        hTreeObject,
+                        &pTreeConnection
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pTreeConnection->pSessionObject = pSessionObject;
+
+
+    ntStatus = SmbSendReply(pSmbRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+#endif
+
+    return (ntStatus);
+}
+
