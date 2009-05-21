@@ -60,7 +60,7 @@ LsaLocalGetGroupMembership(
     LWMsgContext *context = NULL;
     LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ Request;
     PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP pReply = NULL;
-    DWORD dwReqBufferSize = 0;
+    size_t reqBufferSize = 0;
     PVOID pReqBuffer = NULL;
     DWORD dwRepBufferSize = 0;
     PVOID pRepBuffer = NULL;
@@ -76,14 +76,14 @@ LsaLocalGetGroupMembership(
                               LsaLocalIPCGetGroupMembershipReqSpec(),
                               &Request,
                               &pReqBuffer,
-                              &dwReqBufferSize));
+                              &reqBufferSize));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProviderIoControl(
                   hLsaConnection,
                   LSA_LOCAL_TAG_PROVIDER,
                   LSA_LOCAL_IO_GETGROUPMEMBERSHIP,
-                  dwReqBufferSize,
+                  reqBufferSize,
                   pReqBuffer,
                   &dwRepBufferSize,
                   &pRepBuffer);
