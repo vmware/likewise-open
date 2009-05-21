@@ -29,22 +29,36 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        structs.h
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO)
  *
- *        Utility Functions
+ *	      Module:     srv
+ *        Sub-module: Share Repository
  *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Structures
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-#include <utils/memory.h>
-#include <utils/prodcons.h>
+typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
+{
+	sqlite3*      pDbHandle;
 
-#endif /* __SRV_UTILS_H__ */
+	sqlite3_stmt* pInsertStmt;
+	sqlite3_stmt* pEnumStmt;
+	sqlite3_stmt* pDeleteStmt;
+	sqlite3_stmt* pCountStmt;
+	sqlite3_stmt* pFindStmt;
+
+	struct _LWIO_SRV_SHARE_DB_CONTEXT *pNext;
+
+} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
+
+#endif /* __STRUCTS_H__ */

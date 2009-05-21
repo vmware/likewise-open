@@ -29,22 +29,21 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        defs.h
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO)
  *
- *        Utility Functions
+ *	      Module:     srv
+ *        Sub-module: Share Repository
  *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Definitions
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
-
-#include <utils/memory.h>
-#include <utils/prodcons.h>
-
-#endif /* __SRV_UTILS_H__ */
+#endif /* __DEFS_H__ */

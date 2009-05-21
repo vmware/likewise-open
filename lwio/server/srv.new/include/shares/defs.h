@@ -29,22 +29,32 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        shares/defs.h
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utility Functions
+ *        Share API
+ *
+ *        definitions
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __SRV_SHARES_DEFS_H__
+#define __SRV_SHARES_DEFS_H__
 
-#include <utils/memory.h>
-#include <utils/prodcons.h>
+typedef enum
+{
+    SHARE_SERVICE_DISK_SHARE = 0,
+    SHARE_SERVICE_PRINTER,
+    SHARE_SERVICE_COMM_DEVICE,
+    SHARE_SERVICE_NAMED_PIPE,
+    SHARE_SERVICE_ANY,
+    SHARE_SERVICE_UNKNOWN
 
-#endif /* __SRV_UTILS_H__ */
+} SHARE_SERVICE;
+
+#endif /* __SRV_SHARES_DEFS_H__ */

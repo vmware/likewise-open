@@ -29,22 +29,57 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        shares/structs.h
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utility Functions
+ *        Share API
+ *
+ *        structures
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __SRV_SHARES_STRUCTS_H__
+#define __SRV_SHARES_STRUCTS_H__
 
-#include <utils/memory.h>
-#include <utils/prodcons.h>
+typedef struct _SRV_SHARE_INFO
+{
+    LONG refcount;
 
-#endif /* __SRV_UTILS_H__ */
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PWSTR pwszName;
+    PWSTR pwszPath;
+    PWSTR pwszComment;
+    PBYTE pSecDesc;
+    ULONG ulSecDescLen;
+
+    SHARE_SERVICE service;
+
+    BOOLEAN bMarkedForDeletion;
+
+} SRV_SHARE_INFO, *PSRV_SHARE_INFO;
+
+typedef struct _SRV_SHARE_ENTRY
+{
+    PSRV_SHARE_INFO pInfo;
+
+    struct _SRV_SHARE_ENTRY  *pNext;
+
+} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
+
+typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
+{
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSRV_SHARE_ENTRY  pShareEntry;
+
+} LWIO_SRV_SHARE_LIST, *PLWIO_SRV_SHARE_ENTRY_LIST;
+
+#endif /* __SRV_SHARES_STRUCTS_H__ */

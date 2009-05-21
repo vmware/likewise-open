@@ -29,22 +29,32 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        shareapi.h
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utility Functions
+ *        Share API
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __SHAREAPI_H__
+#define __SHAREAPI_H__
 
-#include <utils/memory.h>
-#include <utils/prodcons.h>
+#include <shares/defs.h>
+#include <shares/structs.h>
 
-#endif /* __SRV_UTILS_H__ */
+NTSTATUS
+SrvShareInit(
+	VOID
+	);
+
+VOID
+SrvShareShutdown(
+    VOID
+    );
+
+#endif /* __SHAREAPI_H__ */
