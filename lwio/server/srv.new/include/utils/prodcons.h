@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        memory.c
+ *        prodcons.h
  *
  * Abstract:
  *
@@ -37,48 +37,55 @@
  *
  *        Utilities
  *
- *        Memory management
+ *        Producer Consumer Queue
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-
-#include "includes.h"
-
-NTSTATUS
-SrvAllocateMemory(
-    IN  size_t size,
-    OUT PVOID* ppMemory
-    )
-{
-    return RTL_ALLOCATE(ppMemory, VOID, size);
-}
+#ifndef __PRODCONS_H__
+#define __PRODCONS_H__
 
 NTSTATUS
-SrvReallocMemory(
-    IN  PVOID  pMemory,
-    IN  size_t size,
-    OUT PVOID* ppNewMemory
-    )
-{
-    PVOID pNewMemory = LwRtlMemoryRealloc(pMemory, size);
+SrvProdConsInit(
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
+    PSMB_PROD_CONS_QUEUE*         ppQueue
+    );
 
-    if (!pNewMemory)
-    {
-        *ppNewMemory = NULL;
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-    else
-    {
-        *ppNewMemory = pNewMemory;
-        return STATUS_SUCCESS;
-    }
-}
+NTSTATUS
+SrvProdConsInitContents(
+    PSMB_PROD_CONS_QUEUE          pQueue,
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
+    );
+
+NTSTATUS
+SrvProdConsEnqueue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID                pItem
+    );
+
+NTSTATUS
+SrvProdConsDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID*               ppItem
+    );
+
+NTSTATUS
+SrvProdConsTimedDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    struct timespec*     pTimespec,
+    PVOID*               ppItem
+    );
 
 VOID
-SrvFreeMemory(
-    IN PVOID pMemory
-    )
-{
-    LwRtlMemoryFree(pMemory);
-}
+SrvProdConsFree(
+    PSMB_PROD_CONS_QUEUE pQueue
+    );
+
+VOID
+SrvProdConsFreeContents(
+    PSMB_PROD_CONS_QUEUE pQueue
+    );
+
+#endif /* __PRODCONS_H__ */

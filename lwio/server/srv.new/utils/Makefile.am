@@ -1,7 +1,8 @@
 noinst_LTLIBRARIES = libsrvutils.la
 
 libsrvutils_la_SOURCES = \
-    memory.c
+    memory.c             \
+    prodcons.c
 
 libsrvutils_la_CPPFLAGS =  \
     -DLW_ENABLE_THREADS=1  \

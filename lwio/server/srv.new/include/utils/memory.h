@@ -29,56 +29,37 @@
  *
  * Module Name:
  *
- *        memory.c
+ *        memory.h
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utilities
+ *        Memory Functions
  *
- *        Memory management
- *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#include "includes.h"
+#ifndef __SRV_UTILS_MEMORY_H__
+#define __SRV_UTILS_MEMORY_H__
 
 NTSTATUS
 SrvAllocateMemory(
     IN  size_t size,
     OUT PVOID* ppMemory
-    )
-{
-    return RTL_ALLOCATE(ppMemory, VOID, size);
-}
+    );
 
 NTSTATUS
 SrvReallocMemory(
     IN  PVOID  pMemory,
     IN  size_t size,
     OUT PVOID* ppNewMemory
-    )
-{
-    PVOID pNewMemory = LwRtlMemoryRealloc(pMemory, size);
-
-    if (!pNewMemory)
-    {
-        *ppNewMemory = NULL;
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-    else
-    {
-        *ppNewMemory = pNewMemory;
-        return STATUS_SUCCESS;
-    }
-}
+    );
 
 VOID
 SrvFreeMemory(
     IN PVOID pMemory
-    )
-{
-    LwRtlMemoryFree(pMemory);
-}
+    );
+
+#endif /* __SRV_UTILS_MEMORY_H__ */
