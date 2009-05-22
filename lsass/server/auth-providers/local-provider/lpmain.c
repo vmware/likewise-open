@@ -1568,8 +1568,138 @@ LocalIoControl(
     OUT PVOID* ppOutputBuffer
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+
+    switch (dwIoControlCode)
+    {
+    case LSA_LOCAL_IO_GETGROUPMEMBERSHIP:
+        dwError = LocalGetGroupMembership(
+                        hProvider,
+                        peerUID,
+                        peerGID,
+                        dwInputBufferSize,
+                        pInputBuffer,
+                        pdwOutputBufferSize,
+                        ppOutputBuffer);
+        break;
+
+    default:
+        dwError = LSA_ERROR_NOT_HANDLED;
+        break;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    *pdwOutputBufferSize = 0;
+    *ppOutputBuffer      = NULL;
+
+    goto cleanup;
 }
+
+DWORD
+LocalGetGroupMembership(
+    HANDLE hProvider,
+    uid_t  peerUID,
+    gid_t  peerGID,
+    DWORD  dwInputBufferSize,
+    PVOID  pInputBuffer,
+    PDWORD pdwOutputBufferSize,
+    PVOID *ppOutputBuffer
+    )
+{
+    DWORD dwError = 0;
+    LWMsgContext *context = NULL;
+    PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ pRequest = NULL;
+    LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP Reply;
+    PWSTR pwszDN = NULL;
+    DWORD dwGroupsCount = 0;
+    PVOID* ppGroupInfoList = NULL;
+    DWORD dwRepBufferSize = 0;
+    PVOID pRepBuffer = NULL;
+    DWORD iGroup = 0;
+
+    memset(&Reply, 0, sizeof(Reply));
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
+                              context,
+                              LsaLocalIPCGetGroupMembershipReqSpec(),
+                              pInputBuffer,
+                              dwInputBufferSize,
+                              (PVOID*)&pRequest));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pRequest->pszDN,
+                    &pwszDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalDirGetGroupsForUser(
+                    hProvider,
+                    pwszDN,
+                    pRequest->dwGroupInfoLevel,
+                    &dwGroupsCount,
+                    &ppGroupInfoList);
+    if (dwError == 0) {
+        Reply.dwNumGroups = dwGroupsCount;
+        Reply.pGroups     = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
+
+    } else if (dwError == LSA_ERROR_NO_SUCH_USER) {
+        Reply.dwNumGroups = 0;
+        Reply.pGroups     = NULL;
+
+    } else {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
+                              context,
+                              LsaLocalIPCGetGroupMembershipRepSpec(),
+                              &Reply,
+                              &pRepBuffer,
+                              &dwRepBufferSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *pdwOutputBufferSize = dwRepBufferSize;
+    *ppOutputBuffer      = pRepBuffer;
+
+cleanup:
+    LSA_SAFE_FREE_MEMORY(pwszDN);
+
+    if (ppGroupInfoList) {
+        for (iGroup = 0; iGroup < dwGroupsCount; iGroup++) {
+            LsaFreeGroupInfo(
+                        pRequest->dwGroupInfoLevel,
+                        ppGroupInfoList[iGroup]);
+        }
+
+        LsaFreeMemory(ppGroupInfoList);
+    }
+
+    if (pRequest) {
+        lwmsg_context_free_graph(
+                        context,
+                        LsaLocalIPCGetGroupMembershipReqSpec(),
+                        pRequest);
+    }
+
+    if (context) {
+        lwmsg_context_delete(context);
+    }
+
+    return dwError;
+
+error:
+    *pdwOutputBufferSize = 0;
+    *ppOutputBuffer      = NULL;
+    goto cleanup;
+}
+
 
 DWORD
 LsaShutdownProvider(
