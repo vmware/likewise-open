@@ -220,7 +220,8 @@ SamDbGetUserMemberships(
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (objectClass != SAMDB_OBJECT_CLASS_USER)
+    if (objectClass != SAMDB_OBJECT_CLASS_USER &&
+        objectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER)
     {
         dwError = LSA_ERROR_NO_SUCH_USER;
         BAIL_ON_SAMDB_ERROR(dwError);
