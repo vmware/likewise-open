@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = librdr.sys.la
 
-librdr_sys_la_SOURCES = \
+librdr_sys_la_SOURCES =   \
     callnp.c              \
     client_session.c      \
     client_socket.c       \
@@ -27,7 +27,23 @@ librdr_sys_la_SOURCES = \
     smb_write.c           \
     transactnp.c          \
     waitnp.c              \
-    writefile.c
+    writefile.c           \
+    close.c               \
+    echo.c                \
+    negotiate.c           \
+    open.c                \
+    packet.c              \
+    read.c                \
+    response.c            \
+    semaphore.c           \
+    session.c             \
+    session_setup.c       \
+    socket.c              \
+    transaction.c         \
+    tree.c                \
+    tree_connect.c        \
+    write.c
+
 
 librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@  	   \
@@ -35,14 +51,15 @@ librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include
 
 librdr_sys_la_LIBADD = \
-    @top_builddir@/server/smb/libsmb.la \
     @top_builddir@/smbkrb5/libsmbkrb5.la \
     @top_builddir@/utils/libsmbutils.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
-    @SOCKET_LIBS@
+    @SOCKET_LIBS@ \
+    @CRYPTO_LIBS@ \
+    @SEM_LIBS@
 
 librdr_sys_la_LDFLAGS = \
-    -module -avoid-version -export-dynamic
+    -module -avoid-version
 
 

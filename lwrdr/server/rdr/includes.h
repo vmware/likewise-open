@@ -83,5 +83,7 @@
 #include "client_session.h"
 #include "client_tree.h"
 
+#include "tree_connect.h"
+
 #include "externs.h"
 
