@@ -56,7 +56,6 @@
 
 NTSTATUS
 PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

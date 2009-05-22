@@ -187,75 +187,29 @@ error:
 
 static NTSTATUS
 DispatchIrp(
-PPVFS_IRP_CONTEXT pIrpCtx
+    PPVFS_IRP_CONTEXT pIrpCtx
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IO_DEVICE_HANDLE DeviceHandle = (IO_DEVICE_HANDLE)NULL;
 
     switch (pIrpCtx->pIrp->Type)
     {
-    case IRP_TYPE_CREATE:
-        ntError = PvfsCreate(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_CLOSE:
-        ntError = PvfsClose(DeviceHandle, pIrpCtx);
-        break;
-
     case IRP_TYPE_READ:
-        ntError = PvfsRead(DeviceHandle, pIrpCtx);
+        ntError = PvfsRead(pIrpCtx);
         break;
 
     case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_DEVICE_IO_CONTROL:
-        ntError = STATUS_NOT_IMPLEMENTED;
-        break;
-
-    case IRP_TYPE_FS_CONTROL:
-        ntError = PvfsFsCtrl(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = PvfsFlushBuffers(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_QUERY, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_SET, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsQueryDirInformation(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsQueryVolumeInformation(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, DeviceHandle, pIrpCtx);
-        break;
-
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_SET, DeviceHandle, pIrpCtx);
+        ntError = PvfsWrite(pIrpCtx);
         break;
 
     default:
-        ntError = STATUS_INVALID_PARAMETER;
+        /* Programmer error -- gave us an async op that was
+           not supported */
+        ntError = STATUS_IO_DEVICE_ERROR;
         break;
     }
     BAIL_ON_NT_STATUS(ntError);
+
 
 cleanup:
     return ntError;

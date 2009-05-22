@@ -28,30 +28,26 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        driver.c
+ *        deviceio.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Device I/O Function
+ *        Device I/O Control handler
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
 NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE DriverHandle,
+PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

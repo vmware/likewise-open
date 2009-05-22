@@ -129,17 +129,14 @@ PvfsDriverShutdown(
  ***********************************************************/
 
 static NTSTATUS
-PvfsDriverDispatch(
-    IN IO_DEVICE_HANDLE DeviceHandle,
-    IN PIRP pIrp
+PvfsPendIrp(
+    PPVFS_IRP_CONTEXT pIrpCtx
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     BOOL bInLock = FALSE;
 
-    ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
-    BAIL_ON_NT_STATUS(ntError);
+    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
 
     LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
@@ -154,6 +151,87 @@ PvfsDriverDispatch(
 cleanup:
     LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+static NTSTATUS
+PvfsDriverDispatch(
+    IN IO_DEVICE_HANDLE DeviceHandle,
+    IN PIRP pIrp
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+
+    ntError = PvfsAllocateIrpContext(&pIrpCtx, pIrp);
+    BAIL_ON_NT_STATUS(ntError);
+
+    switch (pIrpCtx->pIrp->Type)
+    {
+    case IRP_TYPE_READ:
+    case IRP_TYPE_WRITE:
+        ntError = PvfsPendIrp(pIrpCtx);
+        break;
+
+    case IRP_TYPE_CREATE:
+        ntError = PvfsCreate(pIrpCtx);
+        break;
+
+    case IRP_TYPE_CLOSE:
+        ntError = PvfsClose(pIrpCtx);
+        break;
+
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntError = PvfsDeviceIoControl(pIrpCtx);
+        break;
+
+    case IRP_TYPE_FS_CONTROL:
+        ntError = PvfsFsIoControl(pIrpCtx);
+        break;
+
+    case IRP_TYPE_FLUSH_BUFFERS:
+        ntError = PvfsFlushBuffers(pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntError = PvfsQuerySetInformation(PVFS_QUERY, pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_INFORMATION:
+        ntError = PvfsQuerySetInformation(PVFS_SET, pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntError = PvfsQueryDirInformation(pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntError = PvfsQueryVolumeInformation(pIrpCtx);
+        break;
+
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsLockControl(pIrpCtx);
+        break;
+
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, pIrpCtx);
+        break;
+
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsQuerySetSecurityFile(PVFS_SET, pIrpCtx);
+        break;
+
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+
+cleanup:
     pIrp->IoStatusBlock.Status = ntError;
 
     PvfsFreeIrpContext(&pIrpCtx);
@@ -180,9 +258,6 @@ PvfsDriverInitialize(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsInitWorkerThreads();
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsInitOplockThreads();
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:

@@ -63,7 +63,6 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
 
 NTSTATUS
 PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

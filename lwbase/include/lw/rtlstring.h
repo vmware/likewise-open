@@ -102,7 +102,7 @@ LwRtlCStringAllocatePrintf(
     LW_IN ...
     );
 
-NTSTATUS
+LW_NTSTATUS
 LwRtlCStringAllocatePrintfV(
     OUT PSTR* ppszString,
     IN PCSTR pszFormat,
@@ -275,8 +275,8 @@ LwRtlAnsiStringIsPrefix(
 LW_NTSTATUS
 LwRtlAnsiStringParseULONG(
     OUT PULONG pResult,
-    IN PANSI_STRING pString,
-    OUT PANSI_STRING pRemainingString
+    IN LW_PANSI_STRING pString,
+    OUT LW_PANSI_STRING pRemainingString
     );
 
 #ifndef LW_STRICT_NAMESPACE

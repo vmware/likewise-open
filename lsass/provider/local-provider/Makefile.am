@@ -1,0 +1,3 @@
+SUBDIRS = \
+         ipc    \
+         client

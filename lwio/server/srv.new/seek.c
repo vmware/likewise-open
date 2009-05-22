@@ -28,59 +28,15 @@
  * license@likewisesoftware.com
  */
 
-
-
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        thread_oplock.c
- *
- * Abstract:
- *
- *        Likewise Posix File System Driver (PVFS)
- *
- *        Oplock break handler thread
- *
- * Authors: Gerald Carter <gcarter@likewise.com>
- */
-
-#include "pvfs.h"
-
-/* Forward declarations */
-
-
-
-/* Code */
-
-/************************************************************
-  **********************************************************/
+#include "includes.h"
 
 NTSTATUS
-PvfsInitOplockThreads(
-    VOID
+SrvProcessSeek(
+    PLWIO_SRV_CONTEXT pContext
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
+    NTSTATUS ntStatus = 0;
 
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
+    return ntStatus;
 }
 
-
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

@@ -1,7 +1,3 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -28,16 +24,14 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#ifndef __SRV_TCON_H__
+#define __SRV_TCON_H__
 
 NTSTATUS
-SMBSrvProcessRequest_V2(
-    PLWIO_SRV_CONTEXT pContext
-    )
-{
-    return STATUS_NOT_IMPLEMENTED;
-}
+SrvProcessTreeConnectAndX(
+    PLWIO_SRV_CONTEXT pContext,
+    PSMB_PACKET*      ppSmbResponse
+    );
 
-
-
+#endif /* __SRV_TCON_H__ */
 
