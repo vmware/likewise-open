@@ -1617,7 +1617,7 @@ LocalGetGroupMembership(
     PWSTR pwszDN = NULL;
     DWORD dwGroupsCount = 0;
     PVOID* ppGroupInfoList = NULL;
-    DWORD dwRepBufferSize = 0;
+    size_t repBufferSize = 0;
     PVOID pRepBuffer = NULL;
     DWORD iGroup = 0;
 
@@ -1662,10 +1662,10 @@ LocalGetGroupMembership(
                               LsaLocalIPCGetGroupMembershipRepSpec(),
                               &Reply,
                               &pRepBuffer,
-                              &dwRepBufferSize));
+                              &repBufferSize));
     BAIL_ON_LSA_ERROR(dwError);
 
-    *pdwOutputBufferSize = dwRepBufferSize;
+    *pdwOutputBufferSize = (DWORD) repBufferSize;
     *ppOutputBuffer      = pRepBuffer;
 
 cleanup:
