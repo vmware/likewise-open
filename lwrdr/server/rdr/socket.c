@@ -709,13 +709,6 @@ SMBSocketFindAndSignalResponse(
 
 cleanup:
 
-    if (pResponse)
-    {
-        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
-
-        SMBResponseUnlock(pResponse);
-    }
-
     if (pTree)
     {
         SMBTreeRelease(pTree);
@@ -724,6 +717,13 @@ cleanup:
     if (pSession)
     {
         SMBSessionRelease(pSession);
+    }
+
+    if (pResponse)
+    {
+        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
+
+        SMBResponseUnlock(pResponse);
     }
 
     return dwError;
