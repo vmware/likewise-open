@@ -252,6 +252,8 @@ SMBSessionRelease(
 
         SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
+        Logoff(pSession);
+
         SMBSocketRelease(pSession->pSocket);
 
         SMBSessionFree(pSession);

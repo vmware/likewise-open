@@ -304,16 +304,37 @@ SMBTreeRelease(
 
     pTree->refCount--;
 
-    if (!pTree->refCount)
+    if (!pTree->refCount && !pTree->bShutdown)
     {
+        /* The TreeDisconnect() call can cause the tree
+           to gain another reference, so mark that we have
+           already started shutting down so we don't attempt
+           to do so again when the count returns to 0 */
+        pTree->bShutdown = TRUE;
+
         if (pTree->reverseRef)
         {
             SMBHashRemoveKey(pTree->pSession->pTreeHashByPath,
                              &pTree->pszPath);
+        }
 
+        /* If the tree is still valid, we need to send
+           a tree disconnect request before continuing.  This
+           must be done *before* removing the tree from the TID hash */
+        if (pTree->state == SMB_RESOURCE_STATE_VALID)
+        {
+            /* We need to call TreeDisconnect() outside of the lock */
+            SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+
+            TreeDisconnect(pTree);
+
+            SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+        }
+
+        if (pTree->reverseRef)
+        {
             SMBHashRemoveKey(pTree->pSession->pTreeHashByTID,
                              &pTree->tid);
-
             pTree->reverseRef = FALSE;
         }
 
@@ -322,8 +343,6 @@ SMBTreeRelease(
         SMBSessionRelease(pTree->pSession);
 
         SMBTreeFree(pTree);
-
-        bInLock = FALSE;
     }
 
     SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);

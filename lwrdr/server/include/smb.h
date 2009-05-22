@@ -898,6 +898,7 @@ typedef struct
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
     BOOLEAN reverseRef;
+    BOOLEAN bShutdown;          /* Whether we are already shutting down tree */
 
     time_t  lastActiveTime;     /* Checked by the reaper thread; set when
                                    hash goes empty */
