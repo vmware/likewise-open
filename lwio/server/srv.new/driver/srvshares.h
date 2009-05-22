@@ -28,87 +28,85 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SRV_SHARELST_H__
-#define __SRV_SHARELST_H__
 
 
-NTSTATUS
-SrvShareInitContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvshares.h
+ *
+ * Abstract:
+ *
+ *       Likewise File System Driver (Srv)
+ *
+ *       DeviceIo Dispatch Routine
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef __SRV_SHARES_H__
+#define __SRV_SHARES_H__
 
 
 NTSTATUS
 SrvShareGetServiceStringId(
-    SHARE_SERVICE  service,
-    PSTR*          ppszService
+    IN  SHARE_SERVICE  service,
+    OUT PSTR*          ppszService
     );
 
 NTSTATUS
 SrvShareGetServiceId(
-    PCSTR          pszService,
-    SHARE_SERVICE* pService
+    IN  PCSTR          pszService,
+    OUT SHARE_SERVICE* pService
     );
-
-VOID
-SrvShareFreeContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
-
 
 NTSTATUS
-SrvFindShareByName(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pszShareName,
-    PSHARE_DB_INFO *ppShareInfo
+SrvShareDevCtlAdd(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
-
 
 NTSTATUS
-SrvShareAddShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR  pwszShareName,
-    PWSTR  pwszPath,
-    PWSTR  pwszComment,
-    PBYTE  pSecDesc,
-    ULONG  ulSecDescLen,
-    ULONG  ulShareType
+SrvShareDevCtlDelete(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
-
 
 NTSTATUS
-SrvShareDeleteShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName
+SrvShareDevCtlEnum(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
     );
-
 
 NTSTATUS
-SrvShareSetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO pShareInfo
+SrvShareDevCtlGetInfo(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
     );
-
 
 NTSTATUS
-SrvShareGetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO *ppShareInfo
+SrvShareDevCtlSetInfo(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
 
-
-NTSTATUS
-SrvShareEnumShares(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    DWORD dwLevel,
-    PSHARE_DB_INFO** pppShareInfo,
-    PDWORD pdwNumEntries
-    );
-
-
-#endif /* __SRV_SHARELST_H__ */
+#endif /* __SRV_SHARES_H__ */
 
 
 /*

@@ -45,6 +45,7 @@
 #define __SRV_UTILS_H__
 
 #include <utils/memory.h>
+#include <utils/path.h>
 #include <utils/prodcons.h>
 
 #endif /* __SRV_UTILS_H__ */

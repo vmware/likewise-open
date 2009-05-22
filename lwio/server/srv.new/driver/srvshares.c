@@ -50,17 +50,16 @@
 
 #include "includes.h"
 
-
 NTSTATUS
-SrvDevCtlAddShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareDevCtlAdd(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
@@ -162,15 +161,15 @@ error:
 
 
 NTSTATUS
-SrvDevCtlDeleteShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareDevCtlDelete(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -199,12 +198,12 @@ error:
 
 
 NTSTATUS
-SrvDevCtlEnumShares(
-    PBYTE pInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE pOutBuffer,
-    ULONG ulOutBufferSize,
-    PULONG pulBytesTransferred
+SrvShareDevCtlEnum(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
@@ -213,7 +212,7 @@ SrvDevCtlEnumShares(
     ULONG i = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
     PSHARE_DB_INFO* ppShares = NULL;
@@ -472,19 +471,19 @@ error:
 
 
 NTSTATUS
-SrvDevCtlGetShareInfo(
-    PBYTE pInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE pOutBuffer,
-    ULONG ulOutBufferSize,
-    PULONG pulBytesTransferred
+SrvShareDevCtlGetInfo(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulLevel = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
@@ -701,16 +700,16 @@ error:
 
 
 NTSTATUS
-SrvDevCtlSetShareInfo(
-    PBYTE pInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE pOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareDevCtlSetInfo(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulLevel = 0;
-    PLWIO_SRV_SHARE_LIST pShareList = NULL;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
     PWSTR pwszShareName = NULL;
     PSHARE_DB_INFO pShareInfo = NULL;

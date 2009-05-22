@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,13 +24,33 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        utils/path.h
+ *
+ * Abstract:
+ *
+ *        Likewise Input Output (LWIO) - SRV
+ *
+ *        Utilities
+ *
+ *        Path
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
+ */
+
+#ifndef __SRV_UTILS_PATH_H__
+#define __SRV_UTILS_PATH_H__
 
 NTSTATUS
-SmbProcessLogoffAndX(
-    PLWIO_SRV_CONNECTION pSmbRequest
+SrvBuildFilePath(
+    PWSTR  pwszPrefix,
+    PWSTR  pwszSuffix,
+    PWSTR* ppwszFilename
     );
 
-NTSTATUS
-MarshallLogoffAndXResponse(
-    PLWIO_SRV_CONNECTION pSmbRequest
-    );
+#endif /* __SRV_UTILS_PATH_H__ */

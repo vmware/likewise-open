@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        memory.h
+ *        utils/memory.h
  *
  * Abstract:
  *

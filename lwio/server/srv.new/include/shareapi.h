@@ -52,6 +52,62 @@ SrvShareInit(
 	VOID
 	);
 
+NTSTATUS
+SrvShareInitList(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
+NTSTATUS
+SrvShareFindByName(
+    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN  PWSTR                      pszShareName,
+    OUT PSHARE_DB_INFO*            ppShareInfo
+    );
+
+NTSTATUS
+SrvShareAdd(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName,
+    IN     PWSTR                      pwszPath,
+    IN     PWSTR                      pwszComment,
+    IN     PBYTE                      pSecDesc,
+    IN     ULONG                      ulSecDescLen,
+    IN     ULONG                      ulShareType
+    );
+
+NTSTATUS
+SrvShareDeleteShare(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName
+    );
+
+NTSTATUS
+SrvShareSetInfo(
+	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName,
+    IN     PSHARE_DB_INFO             pShareInfo
+    );
+
+NTSTATUS
+SrvShareGetInfo(
+	IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN  PWSTR                      pwszShareName,
+    OUT PSHARE_DB_INFO*            ppShareInfo
+    );
+
+NTSTATUS
+SrvShareEnumShares(
+	IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN  ULONG                      ulLevel,
+    OUT PSHARE_DB_INFO**           pppShareInfo,
+    OUT PDWORD                     pdwNumEntries
+    );
+
+VOID
+SrvShareFreeListContents(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
 VOID
 SrvShareShutdown(
     VOID

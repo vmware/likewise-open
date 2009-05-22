@@ -1,5 +1,9 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright Likewise Software    2004-2009
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,26 +28,44 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        defs.h
+ *        includes.h
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO)
+ *        Likewise IO (LWIO) - SRV
  *
- *	      Module:     srv
- *        Sub-module: Share Repository
- *
- *        Definitions
+ *        Utilities
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
 
-#endif /* __DEFS_H__ */
+#include <config.h>
+#include <lwiosys.h>
+
+#include <lwio/lwio.h>
+
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
+#include <lwnet.h>
+
+#include <lw/ntstatus.h>
+
+#include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
+
+#include <iodriver.h>
+#include <ioapi.h>
+
+#include "defs.h"
+#include "structs.h"
+#include "srvshares.h"
+
+#include "externs.h"
