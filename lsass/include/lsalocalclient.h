@@ -53,9 +53,10 @@ DWORD
 LsaLocalGetGroupMembership(
     HANDLE hLsaConnection,
     PSTR   pszSID,
+    PSTR   pszDN,
     DWORD  dwGroupInfoLevel,
     PDWORD pdwGroupsCount,
-    PVOID  *ppGroupInfoList
+    PVOID  *ppGroupInfo
     );
 
 
