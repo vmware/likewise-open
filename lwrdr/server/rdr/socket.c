@@ -292,7 +292,7 @@ SMBSocketCreate(
     pthread_mutex_init(&pSocket->writeMutex, NULL);
     bDestroyWriteMutex = TRUE;
 
-    pSocket->fd = 0;
+    pSocket->fd = -1;
 
     /* Hostname is trusted */
     dwError = SMBStrndup(
@@ -531,8 +531,6 @@ SMBSocketReaderMain(
     PSMB_SOCKET pSocket = (PSMB_SOCKET) pData;
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
-
-    pthread_detach(pthread_self());
 
     SMB_LOG_INFO("Spawning socket reader thread for [%s]",
                  SMB_SAFE_LOG_STRING((char *) pSocket->pszHostname));
