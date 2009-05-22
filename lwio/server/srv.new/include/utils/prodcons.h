@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        prodcons.h
+ *        utils/prodcons.h
  *
  * Abstract:
  *

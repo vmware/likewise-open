@@ -53,45 +53,57 @@
 
 
 NTSTATUS
-SrvDevCtlAddShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareGetServiceStringId(
+    IN  SHARE_SERVICE  service,
+    OUT PSTR*          ppszService
     );
 
 NTSTATUS
-SrvDevCtlDeleteShare(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareGetServiceId(
+    IN  PCSTR          pszService,
+    OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
-SrvDevCtlEnumShares(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize,
-    PULONG pulBytesTransferred
+SrvShareDevCtlAdd(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
 
 NTSTATUS
-SrvDevCtlGetShareInfo(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize,
-    PULONG pulBytesTransferred
+SrvShareDevCtlDelete(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
 
 NTSTATUS
-SrvDevCtlSetShareInfo(
-    PBYTE lpInBuffer,
-    ULONG ulInBufferSize,
-    PBYTE lpOutBuffer,
-    ULONG ulOutBufferSize
+SrvShareDevCtlEnum(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+NTSTATUS
+SrvShareDevCtlGetInfo(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+NTSTATUS
+SrvShareDevCtlSetInfo(
+    IN     PBYTE lpInBuffer,
+    IN     ULONG ulInBufferSize,
+    IN OUT PBYTE lpOutBuffer,
+    IN     ULONG ulOutBufferSize
     );
 
 #endif /* __SRV_SHARES_H__ */

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,94 +28,44 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __SRV_SHARELST_H__
-#define __SRV_SHARELST_H__
-
-
-NTSTATUS
-SrvShareInitContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
-
-
-NTSTATUS
-SrvShareGetServiceStringId(
-    SHARE_SERVICE  service,
-    PSTR*          ppszService
-    );
-
-NTSTATUS
-SrvShareGetServiceId(
-    PCSTR          pszService,
-    SHARE_SERVICE* pService
-    );
-
-VOID
-SrvShareFreeContextContents(
-    PLWIO_SRV_SHARE_LIST pShareList
-    );
-
-
-NTSTATUS
-SrvFindShareByName(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pszShareName,
-    PSHARE_DB_INFO *ppShareInfo
-    );
-
-
-NTSTATUS
-SrvShareAddShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR  pwszShareName,
-    PWSTR  pwszPath,
-    PWSTR  pwszComment,
-    PBYTE  pSecDesc,
-    ULONG  ulSecDescLen,
-    ULONG  ulShareType
-    );
-
-
-NTSTATUS
-SrvShareDeleteShare(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName
-    );
-
-
-NTSTATUS
-SrvShareSetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO pShareInfo
-    );
-
-
-NTSTATUS
-SrvShareGetInfo(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    PWSTR pwszShareName,
-    PSHARE_DB_INFO *ppShareInfo
-    );
-
-
-NTSTATUS
-SrvShareEnumShares(
-    PLWIO_SRV_SHARE_LIST pShareList,
-    DWORD dwLevel,
-    PSHARE_DB_INFO** pppShareInfo,
-    PDWORD pdwNumEntries
-    );
-
-
-#endif /* __SRV_SHARELST_H__ */
 
 
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        includes.h
+ *
+ * Abstract:
+ *
+ *        Likewise IO (LWIO) - SRV
+ *
+ *        Utilities
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ */
+
+#include <config.h>
+#include <lwiosys.h>
+
+#include <lwio/lwio.h>
+
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
+#include <lwnet.h>
+
+#include <lw/ntstatus.h>
+
+#include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
+
+#include <iodriver.h>
+#include <ioapi.h>
+
+#include "defs.h"
+#include "structs.h"
+#include "srvshares.h"
+
+#include "externs.h"
