@@ -353,6 +353,17 @@ LocalIoControl(
     OUT PVOID* ppOutputBuffer
     );
 
+DWORD
+LocalGetGroupMembership(
+    HANDLE hProvider,
+    uid_t  peerUID,
+    gid_t  peerGID,
+    DWORD  dwInputBufferSize,
+    PVOID  pInputBuffer,
+    PDWORD pdwOutputBufferSize,
+    PVOID *ppOutputBuffer
+    );
+
 #endif /* __PROVIDER_MAIN_H__ */
 
 
