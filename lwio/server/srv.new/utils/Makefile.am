@@ -2,6 +2,7 @@ noinst_LTLIBRARIES = libsrvutils.la
 
 libsrvutils_la_SOURCES = \
     memory.c             \
+    path.c               \
     prodcons.c
 
 libsrvutils_la_CPPFLAGS =  \
