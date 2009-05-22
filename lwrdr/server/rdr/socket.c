@@ -552,6 +552,7 @@ SMBSocketReaderMain(
         int ret = 0;
         fd_set fdset;
 
+        FD_ZERO(&fdset);
         FD_SET(pSocket->fd, &fdset);
 
         do
