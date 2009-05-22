@@ -86,7 +86,7 @@ Logoff(
 
     packet.pData = packet.pParams;
     packet.bufferUsed += sizeof(uint16_t); /* ByteCount */
-    *((uint16_t *) packet.pData) = 0;
+    memset(packet.pData, 0, sizeof(uint16_t *));
 
     // no byte order conversions necessary (due to zeros)
 
