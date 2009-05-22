@@ -28,35 +28,59 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        driver.c
+ *       fsctl.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Device I/O Function
+ *        File System I/O Control handler
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
 NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-	return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    ULONG FsCtlCode = pIrpContext->pIrp->Args.IoFsControl.ControlCode;
+
+    switch(FsCtlCode)
+    {
+#if 0
+    case LWIO_FSCTL_:
+        break;
+#endif
+    default:
+        ntError = STATUS_NOT_SUPPORTED;
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

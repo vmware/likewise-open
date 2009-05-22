@@ -52,7 +52,6 @@ libpvfs_sys_la_SOURCES = \
     fileFsVolInfo.c \
     fileFsSizeInfo.c \
     thread_worker.c \
-    thread_oplock.c \
     work_queue.c
 
 

@@ -41,8 +41,7 @@
  *
  *        Service Entry API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #ifndef __PVFS_H__
@@ -108,75 +107,63 @@
 
 NTSTATUS
 PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQuerySetInformation(
     PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQueryDirInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsLockControl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
 PvfsFlushBuffers(
-    IO_DEVICE_HANDLE DeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQuerySetSecurityFile(
     PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT pIrpContext
     );
 

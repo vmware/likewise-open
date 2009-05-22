@@ -50,7 +50,6 @@
 
 NTSTATUS
 PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

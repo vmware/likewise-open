@@ -62,7 +62,6 @@ PerformDeleteOnClose(
 
 NTSTATUS
 PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
