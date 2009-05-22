@@ -68,7 +68,8 @@ DWORD
 LsaDmpStateCreate(
     OUT PLSA_DM_STATE_HANDLE pHandle,
     IN BOOLEAN bIsOfflineBehaviorEnabled,
-    IN DWORD dwCheckOnlineSeconds
+    IN DWORD dwCheckOnlineSeconds,
+    IN DWORD dwUnknownCacheTimeoutSeconds
     );
 
 VOID
@@ -79,15 +80,17 @@ LsaDmpStateDestroy(
 DWORD
 LsaDmpQueryState(
     IN LSA_DM_STATE_HANDLE Handle,
+    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags
+    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
     );
 
 DWORD
 LsaDmpSetState(
     IN LSA_DM_STATE_HANDLE Handle,
+    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled
+    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
     );
 
 VOID
@@ -267,6 +270,18 @@ LsaDmpLdapOpen(
     IN PCSTR pszDnsDomainName,
     IN BOOLEAN bUseGc,
     OUT PLSA_DM_LDAP_CONNECTION* ppConn
+    );
+
+BOOLEAN
+LsaDmpIsUnknownDomainSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pDomainSid
+    );
+
+DWORD
+LsaDmpCacheUnknownDomainSid(
+    IN LSA_DM_STATE_HANDLE Handle,
+    IN PSID pDomainSid
     );
 
 VOID

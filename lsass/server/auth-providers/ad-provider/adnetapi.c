@@ -437,8 +437,7 @@ AD_NetLookupObjectSidsByNames(
     RefDomainList* pDomains = NULL;
     TranslatedSid2* pSids = NULL;
     PLSA_TRANSLATED_NAME_OR_SID* ppTranslatedSids = NULL;
-    DomSid* pObject_sid = NULL;
-    PWSTR pwcObjectSid = NULL;
+    PSID pObject_sid = NULL;
     BOOLEAN bIsNetworkError = FALSE;
     DWORD i = 0;
     HANDLE hOldToken = NULL;
@@ -555,9 +554,6 @@ AD_NetLookupObjectSidsByNames(
     {
         ADAccountType ObjectType = AccountType_NotFound;
         DWORD dwDomainSid_index = 0;
-        // Do not free pDom_sid, reference to pDomains
-        DomSid* pDom_sid = NULL;
-
 
         ObjectType = GetObjectType(pSids[i].type);
         if (ObjectType == AccountType_NotFound)
@@ -580,30 +576,28 @@ AD_NetLookupObjectSidsByNames(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        pDom_sid = pDomains->domains[dwDomainSid_index].sid;
+        LSA_SAFE_FREE_MEMORY(pObject_sid);
 
-        if (pObject_sid)
+        if (AccountType_Domain == ObjectType)
         {
-              SidFree(pObject_sid);
-              pObject_sid = NULL;
+            dwError = LsaAllocateCStringFromSid(
+                            &ppTranslatedSids[i]->pszNT4NameOrSid,
+                            pDomains->domains[dwDomainSid_index].sid);
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        SidAllocateResizedCopy(&pObject_sid,
-                               pDom_sid->subauth_count + 1,
-                               pDom_sid);
-        pObject_sid->subauth[pObject_sid->subauth_count - 1] = pSids[i].rid;
-
-        if (pwcObjectSid)
+        else
         {
-            SidFreeString(pwcObjectSid);
-            pwcObjectSid = NULL;
-        }
-        dwError = SidToString(pObject_sid,
-                              &pwcObjectSid);
-        BAIL_ON_LSA_ERROR(dwError);
+            dwError = LsaAllocateSidAppendRid(
+                            &pObject_sid,
+                            pDomains->domains[dwDomainSid_index].sid,
+                            pSids[i].rid);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaWc16sToMbs(pwcObjectSid,
-                                &ppTranslatedSids[i]->pszNT4NameOrSid);
-        BAIL_ON_LSA_ERROR(dwError);
+            dwError = LsaAllocateCStringFromSid(
+                            &ppTranslatedSids[i]->pszNT4NameOrSid,
+                            pObject_sid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
     *pppTranslatedSids = ppTranslatedSids;
@@ -635,14 +629,7 @@ cleanup:
     {
         LsaRpcFreeMemory(pSids);
     }
-    if (pObject_sid)
-    {
-          SidFree(pObject_sid);
-    }
-    if (pwcObjectSid)
-    {
-        SidFreeString(pwcObjectSid);
-    }
+    LSA_SAFE_FREE_MEMORY(pObject_sid);
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
     {
@@ -801,14 +788,10 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < sid_array.num_sids; i++)
     {
-        status = ParseSidString(
+        dwError = LsaAllocateSidFromCString(
                         &pObjectSID,
                         ppszObjectSids[i]);
-        if (status != 0)
-        {
-            dwError = LSA_ERROR_RPC_PARSE_SID_STRING;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
+        BAIL_ON_LSA_ERROR(dwError);
 
         sid_array.sids[i].sid = pObjectSID;
         pObjectSID = NULL;
@@ -902,20 +885,22 @@ AD_NetLookupObjectNamesBySids(
     for (i = 0; i < dwSidsCount; i++)
     {
         ADAccountType ObjectType = AccountType_NotFound;
+        PCSTR pszDomainName = NULL;
+
+        // Check for invalid domain indexing
+        if (name_array[i].sid_index >= pDomains->count)
+        {
+            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         ObjectType = GetObjectType(name_array[i].type);
-
         if (ObjectType == AccountType_NotFound)
         {
             continue;
         }
 
-        dwError = LsaAllocateMemory(
-                            sizeof(*ppTranslatedNames[i]),
-                            (PVOID*)&ppTranslatedNames[i]);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppTranslatedNames[i]->ObjectType = ObjectType;
+        pszDomainName = ppszDomainNames[name_array[i].sid_index];
 
         if (name_array[i].name.len > 0)
         {
@@ -926,18 +911,38 @@ AD_NetLookupObjectNamesBySids(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (IsNullOrEmptyString(ppszDomainNames[name_array[i].sid_index]) ||
-            IsNullOrEmptyString(pszUsername))
+        if (IsNullOrEmptyString(pszDomainName) ||
+            ((ObjectType != AccountType_Domain) && IsNullOrEmptyString(pszUsername)) ||
+            ((ObjectType == AccountType_Domain) && !IsNullOrEmptyString(pszUsername)))
         {
             dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = ADGetDomainQualifiedString(
-                    ppszDomainNames[name_array[i].sid_index],
-                    pszUsername,
-                    &ppTranslatedNames[i]->pszNT4NameOrSid);
+        dwError = LsaAllocateMemory(
+                        sizeof(*ppTranslatedNames[i]),
+                        (PVOID*)&ppTranslatedNames[i]);
         BAIL_ON_LSA_ERROR(dwError);
+
+        ppTranslatedNames[i]->ObjectType = ObjectType;
+
+        if (ObjectType != AccountType_Domain)
+        {
+            dwError = ADGetDomainQualifiedString(
+                            pszDomainName,
+                            pszUsername,
+                            &ppTranslatedNames[i]->pszNT4NameOrSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LsaAllocateString(
+                            pszDomainName,
+                            &ppTranslatedNames[i]->pszNT4NameOrSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LsaStrToUpper(ppTranslatedNames[i]->pszNT4NameOrSid);
+        }
 
         LSA_SAFE_FREE_STRING(pszUsername);
     }
@@ -980,9 +985,7 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(sid_array.sids);
     }
 
-    if (pObjectSID){
-        SidFree(pObjectSID);
-    }
+    LSA_SAFE_FREE_MEMORY(pObjectSID);
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
@@ -1123,36 +1126,7 @@ AD_SidToString(
     PSTR* ppszSid
     )
 {
-    DWORD dwError = 0;
-    PSTR  pszSid = NULL;
-    wchar16_t* pwszSid = NULL;
-
-    dwError = SidToString(pSid, &pwszSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaWc16sToMbs(
-                  pwszSid,
-                  &pszSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszSid = pszSid;
-
-cleanup:
-
-    if (pwszSid)
-    {
-        SidFreeString(pwszSid);
-    }
-
-    return dwError;
-
-error:
-
-    *ppszSid = NULL;
-
-    LSA_SAFE_FREE_STRING(pszSid);
-
-    goto cleanup;
+    return LsaAllocateCStringFromSid(ppszSid, pSid);
 }
 
 DWORD

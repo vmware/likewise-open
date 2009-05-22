@@ -136,9 +136,9 @@ ADUnprovPlugin_QueryByAliasWithDomainName(
     DWORD dwError = 0;
     PSTR pszSid = NULL;
     DWORD dwId = 0;
-    BOOLEAN bIsFoundObjectUser = !bIsUser;
     PSTR pszNT4Name = NULL;
     PSTR pszNetBiosName = NULL;
+    ADAccountType accountType = AccountType_NotFound;
 
     dwError = LsaDmWrapGetDomainName(
                  pszDnsDomainName,
@@ -157,10 +157,11 @@ ADUnprovPlugin_QueryByAliasWithDomainName(
                     gpADProviderData->szDomain,
                     pszNT4Name,
                     &pszSid,
-                    &bIsFoundObjectUser);
+                    &accountType);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (bIsUser != bIsFoundObjectUser)
+    if ((bIsUser && (AccountType_User != accountType)) ||
+        (!bIsUser && (AccountType_Group != accountType)))
     {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
@@ -228,7 +229,7 @@ ADUnprovPlugin_QueryByReal(
 #ifdef ENABLE_ALIAS_TO_BE_SAMACCOUNT_NAME
     PLSA_LOGIN_NAME_INFO pNameInfo = NULL;
     PSTR pszName = NULL;
-    BOOLEAN bFoundIsUser = !bIsUser;
+    ADAccountType accountType = AccountType_NotFound;
 #endif
 
     // lsass unprovisioned mode converts a group/user objectSid to uid/gid with the same algorithm
@@ -244,10 +245,11 @@ ADUnprovPlugin_QueryByReal(
                     gpADProviderData->szDomain,
                     pszSid,
                     &pszName,
-                    &bFoundIsUser);
+                    &accountType);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (bFoundIsUser != bIsUser)
+        if ((bIsUser && (AccountType_User != accountType)) ||
+            (!bIsUser && (AccountType_Group != accountType)))
         {
             dwError = LSA_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);

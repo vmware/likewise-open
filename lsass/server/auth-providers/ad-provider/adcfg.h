@@ -279,5 +279,15 @@ AD_GetNssEnumerationEnabled(
     VOID
     );
 
+DWORD
+AD_GetDomainManagerCheckDomainOnlineSeconds(
+    VOID
+    );
+
+DWORD
+AD_GetDomainManagerUnknownDomainCacheTimeoutSeconds(
+    VOID
+    );
+
 #endif /* __AD_CFG_H__ */
 
