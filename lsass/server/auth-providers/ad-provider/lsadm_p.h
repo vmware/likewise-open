@@ -82,7 +82,7 @@ LsaDmpQueryState(
     IN LSA_DM_STATE_HANDLE Handle,
     OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    OUT OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     );
 
 DWORD
@@ -90,7 +90,7 @@ LsaDmpSetState(
     IN LSA_DM_STATE_HANDLE Handle,
     IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PDWORD pdwUnknownCacheTimeoutSeconds
+    IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     );
 
 VOID
