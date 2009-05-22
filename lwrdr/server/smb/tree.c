@@ -113,7 +113,7 @@ SMBTreeCreate(
 
     bDestroyCondition = TRUE;
 
-    pTree->refCount = 2; /* One for reaper */
+    pTree->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
@@ -198,8 +198,6 @@ SMBTreeHashResponse(
     return *((uint16_t *) vp);
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-   reaper. */
 VOID
 SMBTreeAddReference(
     PSMB_TREE pTree
@@ -207,11 +205,11 @@ SMBTreeAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 
     pTree->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
 DWORD
@@ -266,16 +264,25 @@ SMBTreeInvalidate(
 {
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bInSessionLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
 
-    /* mark permanent error, continue */
     pTree->error.type = errorType;
     pTree->error.smb = errorValue;
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
     pTree->state = SMB_RESOURCE_STATE_INVALID;
-    pTree->refCount--;
+
+    if (pTree->reverseRef)
+    {
+        SMB_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+        SMBHashRemoveKey(pTree->pSession->pTreeHashByPath,
+                         &pTree->pszPath);
+
+        SMBHashRemoveKey(pTree->pSession->pTreeHashByTID,
+                         &pTree->tid);
+        pTree->reverseRef = FALSE;
+        SMB_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+    }
 
     pthread_cond_broadcast(&pTree->event);
 
@@ -284,15 +291,6 @@ SMBTreeInvalidate(
     return dwError;
 }
 
-/** @todo: keep unused trees around for a little while when daemonized.
-  * To avoid writing frequently to shared cache lines, perhaps set a bit
-  * when the hash transitions to non-empty, then periodically sweep for
-  * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-  * down the parent.
-  */
-/* This function does not decrement the reference count of the parent
-   socket on destruction.  The reaper thread manages that with proper forward
-   locking. */
 VOID
 SMBTreeRelease(
     SMB_TREE *pTree
@@ -300,24 +298,37 @@ SMBTreeRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+
+    assert(pTree->refCount > 0);
 
     pTree->refCount--;
 
-    assert(pTree->refCount >= 0);
-
     if (!pTree->refCount)
     {
+        if (pTree->reverseRef)
+        {
+            SMBHashRemoveKey(pTree->pSession->pTreeHashByPath,
+                             &pTree->pszPath);
+
+            SMBHashRemoveKey(pTree->pSession->pTreeHashByTID,
+                             &pTree->tid);
+
+            pTree->reverseRef = FALSE;
+        }
+
+        SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
+
+        SMBSessionRelease(pTree->pSession);
+
         SMBTreeFree(pTree);
 
         bInLock = FALSE;
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pTree->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
 static
 VOID
 SMBTreeFree(

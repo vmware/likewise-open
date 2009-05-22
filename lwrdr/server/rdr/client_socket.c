@@ -31,36 +31,8 @@
 #include "includes.h"
 
 static
-int
-SMBSrvClientHashSockaddrCompare(
-    PCVOID vp1,
-    PCVOID vp2
-    );
-
-static
-size_t
-SMBSrvClientHashAddrinfo(
-    PCVOID vp
-    );
-
-static
-DWORD
-_FindSocketByName(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
-    );
-
-static
-DWORD
-_AddSocketByName(
-    PSMB_SOCKET pSocket,
-    uchar8_t   *pszHostname
-    );
-
-static
 DWORD
 _FindOrCreateSocket(
-    struct addrinfo *addresses,
     uchar8_t        *pszHostname,
     PSMB_SOCKET*    ppSocket
     );
@@ -73,7 +45,6 @@ RdrSocketInit(
     DWORD dwError = 0;
 
     assert(!gpSocketHashByName);
-    assert(!gpSocketHashByAddress);
 
     /* @todo: support case and normalization insensitive string comparisons */
     /* Once we have libidn we'll also need the ability do Unicode case and
@@ -92,14 +63,6 @@ RdrSocketInit(
                     &gpSocketHashByName);
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = SMBHashCreate(
-                    19,
-                    &SMBSrvClientHashSockaddrCompare,
-                    &SMBSrvClientHashAddrinfo,
-                    NULL,
-                    &gpSocketHashByAddress);
-    BAIL_ON_SMB_ERROR(dwError);
-
 error:
 
     return dwError;
@@ -116,56 +79,13 @@ SMBSrvClientSocketCreate(
 {
     DWORD dwError = 0;
     PSMB_SOCKET pSocket = NULL;
-    struct addrinfo *addresses = NULL;
 
-    /* Check for the name in the name hash; if it's not there, resolve it */
-    dwError = _FindSocketByName(pszHostname, &pSocket);
-    if (dwError == ENOENT)
-    {
-        dwError = 0;
-    }
+    dwError = _FindOrCreateSocket(pszHostname, &pSocket);
     BAIL_ON_SMB_ERROR(dwError);
-
-    if (!pSocket)
-    {
-        struct addrinfo hints;
-        int s;
-
-        memset(&hints, 0, sizeof(struct addrinfo));
-        hints.ai_family = PF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-
-        /* @todo: make port configurable */
-        s = getaddrinfo((char *) pszHostname, "445", &hints, &addresses);
-        if (s != 0) {
-            dwError = s;
-        }
-        BAIL_ON_SMB_ERROR(dwError);
-
-        /* Check for the resolved IPs in the IP hash; if none are found,
-           connect */
-        dwError = _FindOrCreateSocket(addresses, pszHostname, &pSocket);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        /* Whether we found an existing entry or not, add to the name hash */
-        dwError = _AddSocketByName(pSocket, pszHostname);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        dwError = Negotiate(pSocket);
-        BAIL_ON_SMB_ERROR(dwError);
-
-        /* Set state and awake any waiting threads */
-        SMBSocketSetState(pSocket, SMB_RESOURCE_STATE_VALID);
-    }
 
     *ppSocket = pSocket;
 
 cleanup:
-
-    if (addresses)
-    {
-        freeaddrinfo(addresses);
-    }
 
     return dwError;
 
@@ -221,283 +141,104 @@ error:
     return dwError;
 }
 
-
-/* Do not mix address types */
-static
-int
-SMBSrvClientHashSockaddrCompare(
-    PCVOID vp1,
-    PCVOID vp2
-    )
-{
-    struct sockaddr *pSa1 = (struct sockaddr *) vp1;
-    struct sockaddr *pSa2 = (struct sockaddr *) vp2;
-
-    return memcmp(&pSa1->sa_data, &pSa2->sa_data, sizeof(pSa1->sa_data));
-}
-
-/* @todo: hash on address family, too */
-static
-size_t
-SMBSrvClientHashAddrinfo(
-    PCVOID vp
-    )
-{
-    struct sockaddr *pSa = (struct sockaddr *) vp;
-    size_t addressLen = sizeof(pSa->sa_data);
-    char *pData = pSa->sa_data;
-
-    size_t result = 0;
-    size_t chunkSize = sizeof(size_t);
-    size_t rem = addressLen % chunkSize;
-    size_t i = 0, j = 0;
-
-    for (i = 0; i < addressLen / chunkSize; i++)
-    {
-        // Make sure to not do unaligned memory access.
-        size_t chunk = 0;
-        memcpy(&chunk, &pData[i*chunkSize], chunkSize);
-        result ^= chunk;
-    }
-
-    for (j = 0; j < rem; j++)
-    {
-        ((uint8_t*) &result)[j] ^= pData[i*chunkSize + j];
-    }
-
-    return result;
-}
-
-/* returns a socket with a reference */
-static
-DWORD
-_FindSocketByName(
-    uchar8_t    *pszHostname,
-    PSMB_SOCKET* ppSocket
-    )
-{
-    DWORD dwError = 0;
-    PSMB_SOCKET pSocket = NULL;
-    BOOLEAN bInLock = FALSE;
-
-    /* This path exists only to avoid DNS lookups in the fast path.  If the
-       socket is in any state but connected, we return NULL to force the
-       lookup.  Site affinity is handled by the client. */
-
-    /* @todo: add expiration to the name hash */
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &gSocketHashLock);
-
-    dwError = SMBHashGetValue(
-                    gpSocketHashByName,
-                    pszHostname,
-                    (PVOID *) &pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
-
-    SMBSocketAddReference(pSocket);
-
-    *ppSocket = pSocket;
-
-cleanup:
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-_AddSocketByName(
-    PSMB_SOCKET pSocket,
-    uchar8_t   *pszHostname
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSocketHashLock);
-
-    /* We replace any existing entry on the grounds that new socket has been
-       created from fresher DNS information */
-    dwError = SMBHashSetValue(
-                    gpSocketHashByName,
-                    pSocket->pszHostname,
-                    pSocket);
-    BAIL_ON_SMB_ERROR(dwError);
-
-cleanup:
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
 static
 DWORD
 _FindOrCreateSocket(
-    struct addrinfo *addresses,
     uchar8_t        *pszHostname,
     PSMB_SOCKET*    ppSocket
     )
 {
     DWORD dwError = 0;
-
-    /* In order to prevent returning an error to the client when we don't have
-       to, we recheck the hash for a fresh, working connection in the address
-       list every time we wake up from a failed sleep.  If the negative cache
-       time is too small, then the reaper combined with other threads may
-       livelock a thread attempting to finish running through the list of
-       candidate addresses.  For this reason don't restart if the negative
-       cache time is zero.
-     */
-
+    struct addrinfo *addresses = NULL;
     PSMB_SOCKET pSocket = NULL;
-    struct addrinfo *ai = NULL;
-    BOOLEAN bFirstPass = true;
-    BOOLEAN bFoundValid = false;
     BOOLEAN bInLock = FALSE;
-    BOOLEAN bSocketInLock = FALSE;
+    BOOLEAN bInSocketLock = FALSE;
 
-restart:
+    SMB_LOCK_MUTEX(bInLock, &gSocketLock);
 
-    if (bFirstPass)
+    dwError = SMBHashGetValue(
+        gpSocketHashByName,
+        pszHostname,
+        (PVOID *) &pSocket);
+
+    if (!dwError)
     {
-        SMB_LOCK_RWMUTEX_SHARED(bInLock, &gSocketHashLock);
+        pSocket->refCount++;
+
+        SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
+        SMB_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+
+        while (pSocket->state != SMB_RESOURCE_STATE_VALID)
+        {
+            if (pSocket->state == SMB_RESOURCE_STATE_INVALID)
+            {
+                dwError = pSocket->error.smb;
+                BAIL_ON_SMB_ERROR(dwError);
+            }
+
+            pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+        }
+
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
     }
     else
     {
-        SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSocketHashLock);
+        struct addrinfo hints;
+
+        memset(&hints, 0, sizeof(struct addrinfo));
+        hints.ai_family = PF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+
+        dwError = getaddrinfo((char *) pszHostname, "445", &hints, &addresses);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        dwError = SMBSocketCreate(
+            addresses,
+            pszHostname,
+            &pSocket,
+            gSignMessagesIfSupported);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        dwError = SMBHashSetValue(
+            gpSocketHashByName,
+            pSocket->pszHostname,
+            pSocket);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        pSocket->reverseRef = TRUE;
+
+        SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
+
+        dwError = SMBSocketConnect(pSocket, addresses);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        dwError = Negotiate(pSocket);
+        BAIL_ON_SMB_ERROR(dwError);
+
+        /* Awake any waiting threads */
+        SMBSocketSetState(pSocket, SMB_RESOURCE_STATE_VALID);
     }
 
-    for (ai = addresses; ai != NULL && !bFoundValid; ai = ai->ai_next)
-    {
-        dwError = SMBHashGetValue(
-                        gpSocketHashByAddress,
-                        (PCVOID *) ai,
-                        (PVOID *) &pSocket);
-        if (!dwError)
-        {
-            SMB_LOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-            switch (pSocket->state)
-            {
-                case SMB_RESOURCE_STATE_VALID:
-
-                    pSocket->refCount++;
-                    bFoundValid = true;
-                    goto found;
-
-                    break;
-
-                case SMB_RESOURCE_STATE_INITIALIZING:
-
-                    if (bFirstPass)
-                        break;
-
-                    pSocket->refCount++;
-
-                    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
-
-                    pthread_cond_wait(
-                            &pSocket->event,
-                            &pSocket->mutex);
-
-                    pSocket->refCount--; /* @todo: free on zero */
-
-                    SMB_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-                    bFirstPass = true;
-
-                    goto restart;
-
-                case SMB_RESOURCE_STATE_INVALID:
-
-                    /* No need to check error codes; only permanent errors
-                       (negative cache entries) will remain in the hash. */
-                    SMB_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-                    continue;
-
-                default:
-
-                    /* Invalid state */
-                    assert(false);
-            }
-
-            SMB_UNLOCK_MUTEX(bSocketInLock, &pSocket->mutex);
-
-        }
-        else if (dwError != ENOENT)
-        {
-            BAIL_ON_SMB_ERROR(dwError);
-        }
-        dwError = 0;
-
-        /* Not found; create in second pass */
-        if (!bFirstPass)
-        {
-            dwError = SMBSocketCreate(ai, pszHostname, &pSocket, gSignMessagesIfSupported);
-            BAIL_ON_SMB_ERROR(dwError);
-
-            /* add to hash */
-            dwError = SMBHashSetValue(
-                            gpSocketHashByAddress,
-                            &pSocket->address,
-                            pSocket);
-            BAIL_ON_SMB_ERROR(dwError);
-
-            /* Don't hold locks across a network operation */
-            SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
-
-            /* Attempt to connect */
-            /* @todo: most likely a socket error is a resource issue;
-               therefore, the address in question should not be added to
-               the negative connection cache */
-            /* Retry any transient errors? */
-            dwError = SMBSocketConnect(pSocket, ai);
-            if (dwError == ETIMEDOUT)
-            {
-                /* On timeout, rescan to find new sockets.  The error state
-                   set by the failed connect ensures forward progress. */
-                /* @todo: wake waiters */
-                bFirstPass = true;
-                goto restart;
-            }
-            else if (dwError)
-            {
-                continue;
-            }
-
-            bFoundValid = true;
-            goto found;
-        }
-    }
-
-    SMB_UNLOCK_RWMUTEX(bInLock, &gSocketHashLock);
-
-    if (!bFoundValid && bFirstPass)
-    {
-        bFirstPass = false;
-        goto restart;
-    }
-
-found:
-
-    *ppSocket = (bFoundValid ? pSocket : NULL);
-    dwError = (bFoundValid ? 0 : ENOENT);
+    *ppSocket = pSocket;
 
 cleanup:
+
+    if (addresses)
+    {
+        freeaddrinfo(addresses);
+    }
 
     return dwError;
 
 error:
+
+    SMB_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
+
+    if (pSocket)
+    {
+        SMBSocketRelease(pSocket);
+    }
 
     *ppSocket = NULL;
 
@@ -513,18 +254,19 @@ SMBSrvClientSocketAddSessionByPrincipal(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* @todo: check for race */
     dwError = SMBHashSetValue(
                     pSocket->pSessionHashByPrincipal,
                     pSession->pszPrincipal,
                     pSession);
     BAIL_ON_SMB_ERROR(dwError);
 
+    pSession->reverseRef = TRUE;
+
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -542,7 +284,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     dwError = SMBHashRemoveKey(
                     pSocket->pSessionHashByPrincipal,
@@ -551,7 +293,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -569,19 +311,19 @@ SMBSrvClientSocketAddSessionByUID(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* No need to check for a race here; the principal hash is always checked
-       first */
     dwError = SMBHashSetValue(
                     pSocket->pSessionHashByUID,
                     &pSession->uid,
                     pSession);
     BAIL_ON_SMB_ERROR(dwError);
 
+    pSession->reverseRef = TRUE;
+
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -599,7 +341,7 @@ SMBSrvClientSocketRemoveSessionByUID(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     dwError = SMBHashRemoveKey(
                     pSocket->pSessionHashByUID,
@@ -611,7 +353,7 @@ SMBSrvClientSocketRemoveSessionByUID(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -625,14 +367,9 @@ RdrSocketShutdown(
     VOID
     )
 {
-    /* @todo: assert empty */
     assert(gpSocketHashByName);
-    /* @todo: assert empty */
-    assert(gpSocketHashByAddress);
 
     SMBHashSafeFree(&gpSocketHashByName);
-
-    SMBHashSafeFree(&gpSocketHashByAddress);
 
     return 0;
 }

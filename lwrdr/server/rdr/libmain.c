@@ -60,12 +60,9 @@ VFSInitializeProvider(
 {
     DWORD dwError = 0;
 
-    pthread_rwlock_init(&gSocketHashLock, NULL);
+    pthread_mutex_init(&gSocketLock, NULL);
 
     dwError = RdrSocketInit();
-    BAIL_ON_SMB_ERROR(dwError);
-
-    dwError = RdrReaperStart();
     BAIL_ON_SMB_ERROR(dwError);
 
     *ppszProviderName = gpszRdrProviderName;
@@ -378,10 +375,7 @@ VFSShutdownProvider(
     dwError = RdrSocketShutdown();
     BAIL_ON_SMB_ERROR(dwError);
 
-    dwError = RdrReaperStop();
-    BAIL_ON_SMB_ERROR(dwError);
-
-    pthread_rwlock_destroy(&gSocketHashLock);
+    pthread_mutex_destroy(&gSocketLock);
 
 error:
 

@@ -65,16 +65,4 @@ NTVFS_DRIVER gRdrProviderTable =
         &RdrTrans2GetDFSReferral
 };
 
-/* Socket hash by name */
-PSMB_HASH_TABLE   gpSocketHashByName = NULL;
-
-/* Socket hash by address */
-PSMB_HASH_TABLE   gpSocketHashByAddress = NULL;
-
-/* Protects both hashes */
-pthread_rwlock_t  gSocketHashLock;
-
-/* Stack of reapers */
-PSMB_STACK  gpReaperStack = NULL;
-
 BOOLEAN     gSignMessagesIfSupported = TRUE;

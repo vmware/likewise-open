@@ -100,12 +100,9 @@ SMBSessionCreate(
 
     bDestroyCondition = TRUE;
 
-    dwError = pthread_rwlock_init(&pSession->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
-
     bDestroyHashLock = TRUE;
 
-    pSession->refCount = 2; /* One for reaper */
+    pSession->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
@@ -159,11 +156,6 @@ error:
         if (bDestroyCondition)
         {
             pthread_cond_destroy(&pSession->event);
-        }
-
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSession->hashLock);
         }
 
         if (bDestroyMutex)
@@ -220,8 +212,6 @@ SMBSessionHashTreeByTID(
     return *((uint16_t *) vp);
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-   reaper. */
 VOID
 SMBSessionAddReference(
     PSMB_SESSION pSession
@@ -229,22 +219,13 @@ SMBSessionAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 
     pSession->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 }
 
-/** @todo: keep unused trees around for a little while when daemonized.
-  * To avoid writing frequently to shared cache lines, perhaps set a bit
-  * when the hash transitions to non-empty, then periodically sweep for
-  * empty hashes.  If a hash is empty after x number of timed sweeps, tear
-  * down the parent.
-  */
-/* This function does not decrement the reference count of the parent
-   socket on destruction.  The reaper thread manages that with proper forward
-   locking. */
 VOID
 SMBSessionRelease(
     PSMB_SESSION pSession
@@ -252,23 +233,33 @@ SMBSessionRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_LOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+
+    assert(pSession->refCount > 0);
 
     pSession->refCount--;
-    assert(pSession->refCount >= 0);
 
     if (!pSession->refCount)
     {
-        SMBSessionFree(pSession);
+        if (pSession->reverseRef)
+        {
+            SMBHashRemoveKey(pSession->pSocket->pSessionHashByPrincipal,
+                             pSession->pszPrincipal);
 
-        bInLock = FALSE;
+            SMBHashRemoveKey(pSession->pSocket->pSessionHashByUID,
+                             &pSession->uid);
+        }
+
+        SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
+
+        SMBSocketRelease(pSession->pSocket);
+
+        SMBSessionFree(pSession);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
 }
 
-/* This function does not remove a socket from it's parent hash; it merely
-   frees the memory if the refcount is zero. */
 static
 VOID
 SMBSessionFree(
@@ -279,7 +270,6 @@ SMBSessionFree(
 
     pthread_cond_destroy(&pSession->event);
 
-    /* @todo: assert that the session hashes are empty */
     SMBHashSafeFree(&pSession->pTreeHashByPath);
     SMBHashSafeFree(&pSession->pTreeHashByTID);
 
@@ -289,11 +279,9 @@ SMBSessionFree(
 
     pthread_mutex_destroy(&pSession->treeMutex);
     pthread_mutex_destroy(&pSession->mutex);
-    pthread_rwlock_destroy(&pSession->hashLock);
 
     SMB_SAFE_FREE_MEMORY(pSession->pSessionKey);
 
-    /* @todo: use allocator */
     SMBFreeMemory(pSession);
 }
 
@@ -305,16 +293,25 @@ SMBSessionInvalidate(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bInSocketLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
-    /* mark permanent error, continue */
-    /* @todo: convert socket errors into NT errors */
     pSession->error.type = errorType;
-    pSession->error.smb  = networkError;
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
+    pSession->error.smb = networkError;
     pSession->state = SMB_RESOURCE_STATE_INVALID;
+
+    if (pSession->reverseRef)
+    {
+        SMB_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+        SMBHashRemoveKey(pSession->pSocket->pSessionHashByPrincipal,
+                         pSession->pszPrincipal);
+
+        SMBHashRemoveKey(pSession->pSocket->pSessionHashByUID,
+                         &pSession->uid);
+        pSession->reverseRef = FALSE;
+        SMB_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+    }
 
     pthread_cond_broadcast(&pSession->event);
 
@@ -351,7 +348,7 @@ SMBSessionFindTreeByPath(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     dwError = SMBHashGetValue(
                 pSession->pTreeHashByPath,
@@ -359,13 +356,13 @@ SMBSessionFindTreeByPath(
                 (PVOID *) &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMBTreeAddReference(pTree);
+    pTree->refCount++;
 
     *ppTree = pTree;
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 
@@ -387,7 +384,7 @@ SMBSessionFindTreeById(
     BOOLEAN bInLock = FALSE;
     PSMB_TREE pTree = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     dwError = SMBHashGetValue(
                     pSession->pTreeHashByTID,
@@ -395,13 +392,13 @@ SMBSessionFindTreeById(
                     (PVOID *) &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMBTreeAddReference(pTree);
+    pTree->refCount++;
 
     *ppTree = pTree;
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 

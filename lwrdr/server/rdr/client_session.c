@@ -56,6 +56,8 @@ SMBSrvClientSessionCreate(
 
     pSession->pSocket = pSocket;
 
+    SMBSocketAddReference(pSocket);
+
     SMB_SAFE_FREE_MEMORY(pSession->pszPrincipal);
 
     /* Principal is trusted */
@@ -180,19 +182,19 @@ SMBSrvClientSessionAddTreeById(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
-    /* No need to check for a race here; the path hash is always checked
-       first */
     dwError = SMBHashSetValue(
                     pSession->pTreeHashByTID,
                     &pTree->tid,
                     pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
+    pTree->reverseRef = TRUE;
+
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 
@@ -210,7 +212,7 @@ SMBSrvClientSessionRemoveTreeById(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     dwError = SMBHashRemoveKey(
                     pSession->pTreeHashByTID,
@@ -221,7 +223,7 @@ SMBSrvClientSessionRemoveTreeById(
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 
@@ -239,18 +241,19 @@ SMBSrvClientSessionAddTreeByPath(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
-    /* @todo: check for race */
     dwError = SMBHashSetValue(
                     pSession->pTreeHashByPath,
                     pTree->pszPath,
                     pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
+    pTree->reverseRef = TRUE;
+
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 
@@ -268,14 +271,14 @@ SMBSrvClientSessionRemoveTreeByPath(
     DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     dwError = SMBHashRemoveKey(pSession->pTreeHashByPath, pTree->pszPath);
     BAIL_ON_SMB_ERROR(dwError);
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSession->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSession->mutex);
 
     return dwError;
 
