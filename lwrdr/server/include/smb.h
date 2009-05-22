@@ -725,6 +725,14 @@ typedef struct
     uint16_t byteCount;         /* Count of data bytes = 0 */
 }  __attribute__((__packed__))  WRITE_RESPONSE_HEADER;
 
+typedef struct
+{
+    uint16_t fid;
+    uint32_t lastWriteTime;
+    uint16_t byteCount;
+
+} __attribute__((__packed__)) CLOSE_REQUEST_HEADER;
+
 typedef enum
 {
     ERROR_SMB,
