@@ -46,6 +46,12 @@
 #ifndef __SRV_SHARES_DEFS_H__
 #define __SRV_SHARES_DEFS_H__
 
+#define LWIO_SRV_SHARE_STRING_ID_ANY     "????"
+#define LWIO_SRV_SHARE_STRING_ID_IPC     "IPC"
+#define LWIO_SRV_SHARE_STRING_ID_COMM    "COMM"
+#define LWIO_SRV_SHARE_STRING_ID_PRINTER "LPT1:"
+#define LWIO_SRV_SHARE_STRING_ID_DISK    "A:"
+
 typedef enum
 {
     SHARE_SERVICE_DISK_SHARE = 0,
