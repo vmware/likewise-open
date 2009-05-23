@@ -1,7 +1,3 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
  * Copyright Likewise Software    2004-2008
  * All rights reserved.
@@ -33,93 +29,64 @@
  *
  * Module Name:
  *
- *        sharedb.h
+ *        globals.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository based on sqlite
+ *        Share Repository based on Sqlite
  *
- *        Share Management
+ *        Library Main
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+#include "includes.h"
 
 NTSTATUS
-SrvShareDbInit(
-    VOID
-    );
+LwShareRepositoryInit(
+	OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    )
+{
+	NTSTATUS status = STATUS_SUCCESS;
+
+	pthread_rwmutex_init(&gShareRepository_lwshare.dbMutex, NULL);
+	gShareRepository_lwshare.pDbMutex = &gShareRepository_lwshare.dbMutex;
+
+	gShareRepository_lwshare.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
+	gShareRepository_lwshare.ulNumDbContexts = 0;
+	gShareRepository_lwshare.pDbContextList = NULL;
+
+	status = SrvShareDbInit();
+	BAIL_ON_NT_STATUS(status);
+
+	*ppFnTable = &gShareRepository_lwshare.fnTable;
+
+cleanup:
+
+	return status;
+
+error:
+
+	*ppFnTable = NULL;
+
+	goto cleanup;
+}
 
 NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
+LwShareRepositoryShutdown(
+	IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+	)
+{
+	NTSTATUS status = STATUS_SUCCESS;
 
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
+	status = SrvShareDbShutdown();
+	BAIL_ON_NT_STATUS(ntStatus);
 
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
+error:
 
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
-    );
-
-#endif /* __SRV_SHAREDB_H__ */
+	return status;
+}
 

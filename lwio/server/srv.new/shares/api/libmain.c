@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,93 +33,54 @@
  *
  * Module Name:
  *
- *        sharedb.h
+ *        mapping.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Share Repository based on sqlite
+ *        Share Repository API
  *
- *        Share Management
+ *        Library Main
  *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
-
 NTSTATUS
-SrvShareDbInit(
+SrvShareInit(
     VOID
-    );
+    )
+{
+	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+
+#if defined(SRV_SHAREAPI_USE_LWSHARE)
+
+	status = LwShareRepositoryInit(&gSrvShareApi.pFnTable);
+
+#endif
+
+	return status;
+}
 
 NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
-
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
-
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
-
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
+SrvShareShutdown(
     VOID
-    );
+    )
+{
+	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
-#endif /* __SRV_SHAREDB_H__ */
+#if defined(SRV_SHAREAPI_USE_LWSHARE)
+
+	status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
+
+#endif
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	gSrvShareApi.pFnTable = NULL;
+
+error:
+
+	return status;
+}
 

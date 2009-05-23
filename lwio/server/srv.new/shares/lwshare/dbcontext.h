@@ -41,85 +41,23 @@
  *
  *        Share Repository based on sqlite
  *
- *        Share Management
+ *        Database Context
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+#ifndef __SRV_SHARE_DB_CONTEXT_H__
+#define __SRV_SHARE_DB_CONTEXT_H__
 
 NTSTATUS
-SrvShareDbInit(
-    VOID
-    );
-
-NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
-
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
-
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
-
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
+SrvShareDbAcquireContext(
+	PSRV_SHARE_DB_CONTEXT* ppDbContext
     );
 
 VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
+SrvShareDbReleaseContext(
+	PSRV_SHARE_DB_CONTEXT pDbContext
     );
 
-#endif /* __SRV_SHAREDB_H__ */
-
+#endif /* __SRV_SHARE_DB_CONTEXT_H__ */

@@ -1,7 +1,3 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
  * Copyright Likewise Software    2004-2008
  * All rights reserved.
@@ -33,93 +29,31 @@
  *
  * Module Name:
  *
- *        sharedb.h
+ *        lwshare.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Share Repository based on sqlite
+ *        Share Repository based on Sqlite
  *
- *        Share Management
+ *        Public header
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+#ifndef __LWSHARE_H__
+#define __LWSHARE_H__
 
 NTSTATUS
-SrvShareDbInit(
-    VOID
+LwShareRepositoryInit(
+	OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     );
 
 NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
-
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
+LwShareRepositoryShutdown(
+	IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
 	);
 
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
-
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
-    );
-
-#endif /* __SRV_SHAREDB_H__ */
-
+#endif /* __LWSHARE_H__ */

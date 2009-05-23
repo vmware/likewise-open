@@ -33,93 +33,23 @@
  *
  * Module Name:
  *
- *        sharedb.h
+ *        externs.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise I/O (LWIO) - SRV
  *
  *        Share Repository based on sqlite
  *
- *        Share Management
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
+#ifndef __LWSHARE_EXTERNS_H__
+#define __LWSHARE_EXTERNS_H__
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+extern SRV_SHARE_DB_GLOBALS gShareRepository_lwshare;
 
-NTSTATUS
-SrvShareDbInit(
-    VOID
-    );
-
-NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
-
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
-
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
-
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
-    );
-
-#endif /* __SRV_SHAREDB_H__ */
+#endif /* __LWSHARE_EXTERNS_H__ */
 

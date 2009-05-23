@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,98 +28,40 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        sharedb.h
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Share Repository based on sqlite
+ *        Utilities
  *
- *        Share Management
- *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
- *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+#include <config.h>
+#include <lwiosys.h>
 
-NTSTATUS
-SrvShareDbInit(
-    VOID
-    );
+#include <lwio/lwio.h>
 
-NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
 
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
+#include <lw/ntstatus.h>
 
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
+#include <sharerepository.h>
 
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
+#include "defs.h"
+#include "structs.h"
+#include "sharedb.h"
+#include "dbcontext.h"
 
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
-    );
-
-#endif /* __SRV_SHAREDB_H__ */
-
+#include "externs.h"

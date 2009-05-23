@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,98 +28,36 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        sharedb.h
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Share Repository based on sqlite
+ *        Share Repository API
  *
- *        Share Management
+ *        structures
  *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SRV_SHAREDB_H__
-#define __SRV_SHAREDB_H__
+#ifndef __SRV_SHAREAPI_STRUCTS_H__
+#define __SRV_SHAREAPI_STRUCTS_H__
 
-NTSTATUS
-SrvShareDbInit(
-    VOID
-    );
+typedef struct _SRV_SHAREAPI_GLOBALS
+{
 
-NTSTATUS
-SrvShareDbOpen(
-    OUT PHANDLE phRepository
-    );
+	PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable;
 
-NTSTATUS
-SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
-	);
+} SRV_SHAREAPI_GLOBALS, *PSRV_SHAREAPI_GLOBALS;
 
-NTSTATUS
-SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
-
-NTSTATUS
-SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
-
-NTSTATUS
-SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
-	);
-
-NTSTATUS
-SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
-
-NTSTATUS
-SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
-
-NTSTATUS
-SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
-    IN OUT PULONG  pulNumShares
-    );
-
-VOID
-SrvShareDbClose(
-	IN HANDLE hRepository
-	);
-
-VOID
-SrvShareDbShutdown(
-    VOID
-    );
-
-#endif /* __SRV_SHAREDB_H__ */
+#endif /* __SRV_SHAREAPI_STRUCTS_H__ */
 

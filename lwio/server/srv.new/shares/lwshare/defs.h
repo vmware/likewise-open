@@ -33,21 +33,45 @@
  *
  * Module Name:
  *
- *        dbquery.h
+ *        defs.h
  *
  * Abstract:
  *
- *        Likewise Server Message Block (LSMB)
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Server sub-system
+ *        Share Repository based on sqlite
  *
- *        Server share database query templates
+ *        Definitions
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __DBQUERY_H__
-#define __DBQUERY_H__
+#ifndef __LWSHARE_DEFS_H__
+#define __LWSHARE_DEFS_H__
+
+#ifndef CACHEDIR
+#define CACHEDIR "/var/lib/likewise"
+#endif
+
+#define LWIO_SRV_DB_DIR   CACHEDIR        "/db"
+#define LWIO_SRV_SHARE_DB LWIO_SRV_DB_DIR "/lwio-shares.db"
+
+#define LWIO_SRV_MAX_NUM_DB_CONTEXTS      1
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR(ntStatus, pszError)\
+    if (ntStatus) {                                     \
+        LWIO_LOG_DEBUG("Sqlite3 Error (code: %d): %s",  \
+                       ntStatus,                        \
+                       (pszError ? pszError : ""));     \
+        ntStatus = STATUS_INTERNAL_DB_ERROR;            \
+        goto error;                                     \
+    }
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(dwError, pDb) \
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR(dwError, sqlite3_errmsg(pDb))
+
+#define BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(dwError, pStatement) \
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(dwError, sqlite3_db_handle(pStatement))
 
 #define LWIO_SRV_SHARES_DB_TABLE_NAME  "shares"
 #define LWIO_SRV_SHARES_DB_COL_NAME    "name"
@@ -71,5 +95,5 @@
 				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"COMM\" )"   \
                     ")"
 
-#endif /* __DBQUERY_H__ */
+#endif /* __LWSHARE_DEFS_H__ */
 

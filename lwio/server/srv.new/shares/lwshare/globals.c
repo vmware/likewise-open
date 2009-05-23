@@ -37,49 +37,29 @@
  *
  *        Share Repository based on Sqlite
  *
- *        Structures
+ *        Global Variables
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#include "includes.h"
 
-typedef struct _SRV_SHARE_DB_CONTEXT
+SRV_SHARE_DB_GLOBALS gShareRepository_lwshare =
 {
-	sqlite3*      pDbHandle;
+    .mutex   = PTHREAD_MUTEX_INITIALIZER,
 
-	sqlite3_stmt* pInsertStmt;
-	sqlite3_stmt* pEnumStmt;
-	sqlite3_stmt* pDeleteStmt;
-	sqlite3_stmt* pCountStmt;
-	sqlite3_stmt* pFindStmt;
+	.fnTable =
+		{
+			.pfnShareRepositoryOpen       = &SrvShareDbOpen,
+			.pfnShareRepositoryFindByName = &SrvShareDbFindByName,
+			.pfnShareRepositoryAdd        = &SrvShareDbAdd,
+			.pfnShareRepositoryBeginEnum  = &SrvShareDbBeginEnum,
+			.pfnShareRepositoryEnum       = &SrvShareDbEnum,
+			.pfnShareRepositoryEndEnum    = &SrvShareDbEndEnum,
+			.pfnShareRepositoryDelete     = &SrvShareDbDelete,
+			.pfnShareRepositoryClose      = &SrvShareDbClose
+		}
+};
 
-	struct _SRV_SHARE_DB_CONTEXT *pNext;
 
-} SRV_SHARE_DB_CONTEXT, *PSRV_SHARE_DB_CONTEXT;
-
-typedef struct _SRV_SHARE_DB_ENUM_CONTEXT
-{
-
-	ULONG ulOffset;
-	ULONG ulLimit;
-
-} SRV_SHARE_DB_ENUM_CONTEXT, *PSRV_SHARE_DB_ENUM_CONTEXT;
-
-typedef struct _SRV_SHARE_DB_GLOBALS
-{
-	pthread_mutex_t      mutex;
-
-	SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
-
-	pthread_rwlock_t      dbMutex;
-	pthread_rwlock_t*     pDbMutex;
-	ULONG                 ulMaxNumDbContexts;
-	ULONG                 ulNumDbContexts;
-	PSRV_SHARE_DB_CONTEXT pDbContextList;
-
-} SRV_SHARE_DB_GLOBALS, *PSRV_SHARE_DB_GLOBALS;
-
-#endif /* __STRUCTS_H__ */
