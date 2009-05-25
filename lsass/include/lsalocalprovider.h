@@ -61,7 +61,11 @@ typedef struct __LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ {
 
 typedef struct __LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP {
     DWORD dwNumGroups;
-    PLSA_GROUP_INFO_1 *pGroups;
+    DWORD dwGroupInfoLevel;
+    union _member_info_list {
+        PLSA_GROUP_INFO_0 *ppInfo0;
+        PLSA_GROUP_INFO_1 *ppInfo1;
+    } Groups;
 } LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP, *PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP;
 
 
