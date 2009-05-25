@@ -1619,7 +1619,6 @@ LocalGetGroupMembership(
     PVOID* ppGroupInfoList = NULL;
     size_t repBufferSize = 0;
     PVOID pRepBuffer = NULL;
-    DWORD iGroup = 0;
 
     memset(&Reply, 0, sizeof(Reply));
 
@@ -1646,12 +1645,14 @@ LocalGetGroupMembership(
                     &dwGroupsCount,
                     &ppGroupInfoList);
     if (dwError == 0) {
-        Reply.dwNumGroups = dwGroupsCount;
-        Reply.pGroups     = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
+        Reply.dwNumGroups      = dwGroupsCount;
+        Reply.dwGroupInfoLevel = pRequest->dwGroupInfoLevel;
+        Reply.Groups.ppInfo0   = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
 
     } else if (dwError == LSA_ERROR_NO_SUCH_USER) {
-        Reply.dwNumGroups = 0;
-        Reply.pGroups     = NULL;
+        Reply.dwNumGroups      = 0;
+        Reply.dwGroupInfoLevel = pRequest->dwGroupInfoLevel;
+        Reply.Groups.ppInfo0   = NULL;
 
     } else {
         BAIL_ON_LSA_ERROR(dwError);
@@ -1672,13 +1673,10 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszDN);
 
     if (ppGroupInfoList) {
-        for (iGroup = 0; iGroup < dwGroupsCount; iGroup++) {
-            LsaFreeGroupInfo(
-                        pRequest->dwGroupInfoLevel,
-                        ppGroupInfoList[iGroup]);
-        }
-
-        LsaFreeMemory(ppGroupInfoList);
+        LsaFreeGroupInfoList(
+                    pRequest->dwGroupInfoLevel,
+                    ppGroupInfoList,
+                    dwGroupsCount);
     }
 
     if (pRequest) {
