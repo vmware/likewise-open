@@ -58,7 +58,7 @@ static LWMsgTypeSpec gLsaIPCErrorSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaGroupInfo0Spec[] =
+LWMsgTypeSpec gLsaGroupInfo0Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_INFO_0),
     LWMSG_MEMBER_UINT32(LSA_GROUP_INFO_0, gid),
