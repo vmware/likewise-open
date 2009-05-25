@@ -54,7 +54,7 @@ LsaLocalGetGroupMembership(
     PSTR   pszDN,
     DWORD  dwGroupInfoLevel,
     PDWORD pdwGroupsCount,
-    PVOID  *ppGroupInfo
+    PVOID  **pppGroupInfoList
     )
 {
     DWORD dwError = 0;
@@ -65,7 +65,7 @@ LsaLocalGetGroupMembership(
     PVOID pReqBuffer = NULL;
     DWORD dwRepBufferSize = 0;
     PVOID pRepBuffer = NULL;
-    PLSA_GROUP_INFO_1 *pGroupInfo = NULL;
+    PVOID *ppGroupInfo = NULL;
     DWORD dwNumGroups = 0;
     DWORD i = 0;
 
@@ -105,38 +105,22 @@ LsaLocalGetGroupMembership(
     dwNumGroups = pReply->dwNumGroups;
 
     if (dwNumGroups) {
-        dwError = LsaAllocateMemory(sizeof(pGroupInfo[0]) * dwNumGroups,
-                                    (PVOID*)&pGroupInfo);
+        dwError = LsaAllocateMemory(sizeof(ppGroupInfo[0]) * dwNumGroups,
+                                    (PVOID*)&ppGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
         for (i = 0; i < dwNumGroups; i++) {
-            PLSA_GROUP_INFO_1 pInfo = NULL;
-            PLSA_GROUP_INFO_1 pSrcInfo = pReply->pGroups[i];
+            PVOID pInfo = NULL;
 
-            dwError = LsaAllocateMemory(sizeof(*pInfo),
-                                        (PVOID*)(&pInfo));
-            BAIL_ON_LSA_ERROR(dwError);
-
-            pInfo->gid = pSrcInfo->gid;
-
-            dwError = LsaAllocateString(pSrcInfo->pszName,
-                                        &pInfo->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaAllocateString(pSrcInfo->pszSid,
-                                        &pInfo->pszSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = LsaAllocateString(pSrcInfo->pszDN,
-                                        &pInfo->pszDN);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            pGroupInfo[i] = pInfo;
+            dwError = LsaAllocateGroupInfo(&pInfo,
+                                           pReply->dwGroupInfoLevel,
+                                           (PVOID)pReply->Groups.ppInfo0[i]);
+            ppGroupInfo[i] = pInfo;
         }
     }
 
-    *pdwGroupsCount = dwNumGroups;
-    *ppGroupInfo    = pGroupInfo;
+    *pdwGroupsCount   = dwNumGroups;
+    *pppGroupInfoList = ppGroupInfo;
 
 cleanup:
     if (pReply) {
@@ -161,16 +145,14 @@ cleanup:
     return dwError;
 
 error:
-    if (pGroupInfo) {
-        for (i = 0; i < dwNumGroups; i++) {
-            LsaFreeGroupInfo(1, pGroupInfo[i]);
-        }
-
-        LsaFreeMemory(pGroupInfo);
+    if (ppGroupInfo) {
+        LsaFreeGroupInfoList(pReply->dwGroupInfoLevel,
+                             ppGroupInfo,
+                             pReply->dwNumGroups);
     }
 
-    *pdwGroupsCount = 0;
-    *ppGroupInfo    = NULL;
+    *pdwGroupsCount   = 0;
+    *pppGroupInfoList = NULL;
 
     goto cleanup;
 }
