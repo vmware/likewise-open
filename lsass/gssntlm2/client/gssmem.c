@@ -105,39 +105,3 @@ NTLMConvertSecBufferToGSS(
 
     return true;
 }
-
-
-
-
-
-
-
-
-
-
-OM_uint32
-ntlm_gss_indicate_mechs(
-     OM_uint32 *minor_status,
-     gss_OID_set *mech_set
-	)
-{
-}
-
-
-OM_uint32
-ntlm_gss_display_status(
-     OM_uint32 *minor_status,
-     OM_uint32 status_value,
-     int status_type,
-     gss_OID mech_type,
-     OM_uint32 *message_context,
-     gss_buffer_t status_string
-	)
-{
-}
-
-
-OM_uint32
-gss_release_buffer(
-    OM_uint32 *minorStatus,
-
