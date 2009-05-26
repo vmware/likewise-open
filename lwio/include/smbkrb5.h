@@ -80,4 +80,15 @@ SMBKrb5Shutdown(
     VOID
     );
 
+NTSTATUS
+SMBCredTokenToKrb5CredCache(
+    PIO_ACCESS_TOKEN pCredToken,
+    PSTR* ppszCachePath
+    );
+
+DWORD
+SMBKrb5DestroyCache(
+    PCSTR pszCachePath
+    );
+
 #endif /* __SMBKRB5_H__ */

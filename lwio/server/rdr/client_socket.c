@@ -191,11 +191,10 @@ SMBSrvClientSocketAddSessionByPrincipal(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* @todo: check for race */
     ntStatus = SMBHashSetValue(
-                    pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal,
-                    pSession);
+        pSocket->pSessionHashByPrincipal,
+        &pSession->key,
+        pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -222,7 +221,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
 
     ntStatus = SMBHashRemoveKey(
                     pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal);
+                    &pSession->key);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

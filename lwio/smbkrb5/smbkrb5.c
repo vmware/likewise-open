@@ -41,12 +41,6 @@ SMBKrb5GetTGTFromKeytab(
 
 static
 DWORD
-SMBKrb5DestroyCache(
-    PCSTR pszCachePath
-    );
-
-static
-DWORD
 SMBGetServerCanonicalName(
     PCSTR pszServerName,
     PSTR* ppszNormal
@@ -278,7 +272,6 @@ error:
     goto cleanup;
 }
 
-static
 DWORD
 SMBKrb5DestroyCache(
     PCSTR pszCachePath
@@ -689,6 +682,140 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SMBCredTokenToKrb5CredCache(
+    PIO_ACCESS_TOKEN pCredToken,
+    PSTR* ppszCachePath
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    krb5_context pContext = NULL;
+    krb5_error_code krb5Error = 0;
+    krb5_ccache pCache = NULL;
+    PSTR pszClientPrincipalName = NULL;
+    PSTR pszServerPrincipalName = NULL;
+    PSTR pszCachePath = NULL;
+    krb5_creds creds;
+
+    memset(&creds, 0, sizeof(creds));
+
+     /* Set up an in-memory cache to receive the credentials */
+    Status = SMBAllocateStringPrintf(
+        &pszCachePath,
+        "MEMORY:%lu",
+        (unsigned long) (size_t) pCredToken);
+    BAIL_ON_NT_STATUS(Status);
+
+    krb5Error = krb5_init_context(&pContext);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    krb5Error = krb5_cc_resolve(pContext, pszCachePath, &pCache);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    /* Convert cred token back into krb5 structure */
+
+    /* Convert client and server principal names */
+    Status = LwRtlCStringAllocateFromWC16String(
+        &pszClientPrincipalName,
+        pCredToken->payload.krb5Tgt.pwszClientPrincipal);
+    BAIL_ON_NT_STATUS(Status);
+
+    krb5Error = krb5_parse_name(pContext, pszClientPrincipalName, &creds.client);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    Status = LwRtlCStringAllocateFromWC16String(
+        &pszServerPrincipalName,
+        pCredToken->payload.krb5Tgt.pwszServerPrincipal);
+    BAIL_ON_NT_STATUS(Status);
+
+    krb5Error = krb5_parse_name(pContext, pszServerPrincipalName, &creds.server);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    /* Convert times */
+    creds.times.authtime = pCredToken->payload.krb5Tgt.authTime;
+    creds.times.starttime = pCredToken->payload.krb5Tgt.startTime;
+    creds.times.endtime = pCredToken->payload.krb5Tgt.endTime;
+    creds.times.renew_till = pCredToken->payload.krb5Tgt.renewTillTime;
+
+    /* Convert encryption key */
+    creds.keyblock.enctype = pCredToken->payload.krb5Tgt.keyType;
+    creds.keyblock.length = (unsigned int) pCredToken->payload.krb5Tgt.ulKeySize;
+    creds.keyblock.contents = pCredToken->payload.krb5Tgt.pKeyData;
+
+    /* Convert tgt */
+    creds.ticket_flags = pCredToken->payload.krb5Tgt.tgtFlags;
+    creds.ticket.length = pCredToken->payload.krb5Tgt.ulTgtSize;
+    creds.ticket.data = (char*) pCredToken->payload.krb5Tgt.pTgtData;
+
+    /* Initialize the credential cache with the client principal name */
+    krb5Error = krb5_cc_initialize(pContext, pCache, creds.client);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    /* Store the converted credentials in the cache */
+    krb5Error = krb5_cc_store_cred(pContext, pCache, &creds);
+    if (krb5Error)
+    {
+        Status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    *ppszCachePath = pszCachePath;
+
+cleanup:
+
+    LWIO_SAFE_FREE_MEMORY(pszClientPrincipalName);
+    LWIO_SAFE_FREE_MEMORY(pszServerPrincipalName);
+
+    if (creds.client)
+    {
+        krb5_free_principal(pContext, creds.client);
+    }
+
+    if (creds.server)
+    {
+        krb5_free_principal(pContext, creds.server);
+    }
+
+    if (pCache)
+    {
+        krb5_cc_close(pContext, pCache);
+    }
+
+    if (pContext)
+    {
+        krb5_free_context(pContext);
+    }
+
+    return Status;
+
+error:
+
+    *ppszCachePath = NULL;
+
+    LWIO_SAFE_FREE_MEMORY(pszCachePath);
+
+    goto cleanup;
+}
 
 static
 void

@@ -213,7 +213,7 @@ SMBSessionRelease(
         {
             SMBHashRemoveKey(
                 pSession->pSocket->pSessionHashByPrincipal,
-                pSession->pszPrincipal);
+                &pSession->key);
             SMBHashRemoveKey(
                 pSession->pSocket->pSessionHashByUID,
                 &pSession->uid);
@@ -251,7 +251,7 @@ SMBSessionFree(
     pthread_mutex_destroy(&pSession->mutex);
 
     LWIO_SAFE_FREE_MEMORY(pSession->pSessionKey);
-    LWIO_SAFE_FREE_MEMORY(pSession->pszPrincipal);
+    LWIO_SAFE_FREE_MEMORY(pSession->key.pszPrincipal);
 
     if (pSession->pSocket)
     {

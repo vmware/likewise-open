@@ -138,13 +138,13 @@ RdrCommonCreate(
     PIO_FILE_NAME pFileName;
     ACCESS_MASK DesiredAccess;
     LONG64 AllocationSize;
-    //FILE_ATTRIBUTES FileAttributes;
     FILE_SHARE_FLAGS ShareAccess;
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS CreateOptions;
     FILE_ATTRIBUTES FileAttributes;
     HANDLE hFile = NULL;
     PIO_ACCESS_TOKEN pSecurityToken = IoSecurityGetCredentials(pIrp->Args.Create.SecurityContext);
+    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo = IoSecurityGetProcessInfo(pIrp->Args.Create.SecurityContext);
 
     FileHandle = pIrp->FileHandle;
     DesiredAccess = pIrp->Args.Create.DesiredAccess;
@@ -157,6 +157,7 @@ RdrCommonCreate(
 
     ntStatus = RdrCreateFileEx(
         pSecurityToken,
+        pProcessInfo,
         pFileName->FileName,
         DesiredAccess,
         AllocationSize,

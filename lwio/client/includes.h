@@ -65,6 +65,7 @@
 #include "ntipcmsg.h"
 #include "goto.h"
 #include "ntlogmacros.h"
+#include "smbkrb5.h"
 
 #include "structs.h"
 
