@@ -25,6 +25,7 @@ liblsass_auth_provider_local_la_LIBADD = \
     @top_builddir@/logging_r/liblsalog_r.la \
     @top_builddir@/server/srvutils/liblsasrvutils.la \
     @top_builddir@/lsaunistr/liblsaunistr.la \
+    @top_builddir@/provider/local-provider/ipc/liblsalocalipc.la \
     @NETAPI_LIBS@
 
 liblsass_auth_provider_local_la_LDFLAGS = \

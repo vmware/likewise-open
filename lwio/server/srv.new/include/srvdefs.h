@@ -33,53 +33,38 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        srvdefs.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Listener Definitions
+ *        Definitions
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
+#ifndef __SRV_DEFS_H__
+#define __SRV_DEFS_H__
 
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
 
-typedef enum
-{
-    LWIO_SRV_CONN_STATE_INITIAL = 0,
-    LWIO_SRV_CONN_STATE_NEGOTIATE,
-    LWIO_SRV_CONN_STATE_READY,
-    LWIO_SRV_CONN_STATE_INVALID
-} LWIO_SRV_CONN_STATE;
+#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwtest"
+#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 't', 'e', 's', 't', 0 }
 
-typedef USHORT SMB_SEARCH_FLAG;
+#define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
+#define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
 
-#define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
-#define SMB_FIND_CLOSE_IF_EOS        0x2
-#define SMB_FIND_RETURN_RESUME_KEYS  0x4
-#define SMB_FIND_CONTINUE_SEARCH     0x8
-#define SMB_FIND_WITH_BACKUP_INTENT  0x10
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npvfs"
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'v', 'f', 's', 0 }
+
+#define SRV_SAFE_FREE_MEMORY(pMemory) \
+	if (pMemory) { SrvFreeMemory(pMemory); }
+
+#define SRV_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
+	if (pMemory) { SrvFreeMemory(pMemory); (pMemory) = NULL; }
 
 
-#endif /* __DEFS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __SRV_DEFS_H__ */

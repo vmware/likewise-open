@@ -858,6 +858,12 @@ LocalMarshalEntryToGroupInfo_1(
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                     pEntry,
+		    &wszAttrNameDN[0],
+		    &pGroupInfo->pszDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
                     &wszAttrNameObjectSID[0],
                     &pGroupInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);

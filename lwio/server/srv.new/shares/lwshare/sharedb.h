@@ -37,17 +37,18 @@
  *
  * Abstract:
  *
- *        Likewise IO (Srv) (LWIO-SRV)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Local Authentication Provider
+ *        Share Repository based on sqlite
  *
- *        Share Database Interface
+ *        Share Management
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __SRVDB_H__
-#define __SRVDB_H__
+
+#ifndef __SRV_SHAREDB_H__
+#define __SRV_SHAREDB_H__
 
 NTSTATUS
 SrvShareDbInit(
@@ -55,84 +56,70 @@ SrvShareDbInit(
     );
 
 NTSTATUS
-SrvShareDbFindByName(
-    PCSTR  pszShareName,
-    PSHARE_DB_INFO* ppShareInfo
+SrvShareDbOpen(
+    OUT PHANDLE phRepository
     );
+
+NTSTATUS
+SrvShareDbFindByName(
+	IN  HANDLE       hRepository,
+	IN  PWSTR        pwszShareName,
+	OUT PSHARE_INFO* ppShareInfo
+	);
 
 NTSTATUS
 SrvShareDbAdd(
-    PCSTR pszShareName,
-    PCSTR pszPath,
-    PCSTR pszComment,
-    PBYTE pSecDesc,
-    ULONG ulSecDescLen,
-    PCSTR pszService
-    );
+	IN  HANDLE hRepository,
+	IN  PWSTR  pwszShareName,
+	IN  PWSTR  pwszPath,
+	IN  PWSTR  pwszComment,
+	IN  PBYTE  pSecDesc,
+	IN  ULONG  ulSecDescLen,
+	IN  PWSTR  pwszService
+	);
 
 NTSTATUS
-SrvShareDbAdd_inlock(
-	PCSTR pszShareName,
-	PCSTR pszPath,
-	PCSTR pszComment,
-	PBYTE pSecDesc,
-	ULONG ulSecDescLen,
-	PCSTR pszService
-    );
-
-NTSTATUS
-SrvShareMapFromWindowsPath(
-    PWSTR  pwszInputPath,
-    PWSTR* ppwszPath
-    );
-
-NTSTATUS
-SrvShareMapToWindowsPath(
-    PWSTR  pwszInputPath,
-    PWSTR* ppwszPath
-    );
+SrvShareDbBeginEnum(
+	IN  HANDLE  hRepository,
+	IN  ULONG   ulLimit,
+	OUT PHANDLE phResume
+	);
 
 NTSTATUS
 SrvShareDbEnum(
-    ULONG            ulOffset,
-    ULONG            ulLimit,
-    PSHARE_DB_INFO** pppShareInfoArray,
-    PULONG           pulNumSharesFound
-    );
+	IN     HANDLE           hRepository,
+	IN     HANDLE           hResume,
+	OUT    PSHARE_DB_INFO** pppShareInfoList,
+	IN OUT PULONG           pulNumSharesFound
+	);
 
 NTSTATUS
-SrvShareDbEnum_inlock(
-    ULONG            ulOffset,
-    ULONG            ulLimit,
-    PSHARE_DB_INFO** pppShareInfoArray,
-    PULONG           pulNumSharesFound
-    );
+SrvShareDbEndEnum(
+	IN HANDLE           hRepository,
+	IN HANDLE           hResume
+	);
 
 NTSTATUS
 SrvShareDbDelete(
-    PCSTR  pszShareName
-    );
+	IN HANDLE hRepository,
+	IN PWSTR  pwszShareName
+	);
 
 NTSTATUS
 SrvShareDbGetCount(
-    PULONG pulNumShares
+	IN     HANDLE  hRepository,
+    IN OUT PULONG  pulNumShares
     );
 
 VOID
-SrvShareDbFreeInfoList(
-    PSHARE_DB_INFO* ppShareInfoList,
-    ULONG           ulNumShares
-    );
-
-VOID
-SrvShareDbReleaseInfo(
-    PSHARE_DB_INFO pShareInfo
-    );
+SrvShareDbClose(
+	IN HANDLE hRepository
+	);
 
 VOID
 SrvShareDbShutdown(
     VOID
     );
 
-#endif /* __LSASSDB_H__ */
+#endif /* __SRV_SHAREDB_H__ */
 

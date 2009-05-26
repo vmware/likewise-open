@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,58 +28,40 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        defs.h
+ *        includes.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Listener Definitions
+ *        Utilities
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
+#include <config.h>
+#include <lwiosys.h>
 
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
+#include <lwio/lwio.h>
 
-typedef enum
-{
-    LWIO_SRV_CONN_STATE_INITIAL = 0,
-    LWIO_SRV_CONN_STATE_NEGOTIATE,
-    LWIO_SRV_CONN_STATE_READY,
-    LWIO_SRV_CONN_STATE_INVALID
-} LWIO_SRV_CONN_STATE;
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
 
-typedef USHORT SMB_SEARCH_FLAG;
+#include <lw/ntstatus.h>
 
-#define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
-#define SMB_FIND_CLOSE_IF_EOS        0x2
-#define SMB_FIND_RETURN_RESUME_KEYS  0x4
-#define SMB_FIND_CONTINUE_SEARCH     0x8
-#define SMB_FIND_WITH_BACKUP_INTENT  0x10
+#include <sharerepository.h>
 
+#include "defs.h"
+#include "structs.h"
+#include "sharedb.h"
+#include "dbcontext.h"
 
-#endif /* __DEFS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#include "externs.h"

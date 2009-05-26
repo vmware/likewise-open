@@ -33,53 +33,54 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        mapping.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Listener Definitions
+ *        Share Repository API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Library Main
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
-
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
-
-typedef enum
+NTSTATUS
+SrvShareInit(
+    VOID
+    )
 {
-    LWIO_SRV_CONN_STATE_INITIAL = 0,
-    LWIO_SRV_CONN_STATE_NEGOTIATE,
-    LWIO_SRV_CONN_STATE_READY,
-    LWIO_SRV_CONN_STATE_INVALID
-} LWIO_SRV_CONN_STATE;
+	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
-typedef USHORT SMB_SEARCH_FLAG;
+#if defined(SRV_SHAREAPI_USE_LWSHARE)
 
-#define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
-#define SMB_FIND_CLOSE_IF_EOS        0x2
-#define SMB_FIND_RETURN_RESUME_KEYS  0x4
-#define SMB_FIND_CONTINUE_SEARCH     0x8
-#define SMB_FIND_WITH_BACKUP_INTENT  0x10
+	status = LwShareRepositoryInit(&gSrvShareApi.pFnTable);
 
+#endif
 
-#endif /* __DEFS_H__ */
+	return status;
+}
 
+NTSTATUS
+SrvShareShutdown(
+    VOID
+    )
+{
+	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#if defined(SRV_SHAREAPI_USE_LWSHARE)
+
+	status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
+
+#endif
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	gSrvShareApi.pFnTable = NULL;
+
+error:
+
+	return status;
+}
+

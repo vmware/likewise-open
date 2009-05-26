@@ -50,10 +50,11 @@ LSASS_API
 DWORD
 LsaLocalGetGroupMembership(
     HANDLE hLsaConnection,
-    PSTR  pszSID,
+    PSTR   pszSID,
+    PSTR   pszDN,
     DWORD  dwGroupInfoLevel,
     PDWORD pdwGroupsCount,
-    PVOID  *ppGroupInfoList
+    PVOID  **pppGroupInfoList
     )
 {
     DWORD dwError = 0;
@@ -64,8 +65,12 @@ LsaLocalGetGroupMembership(
     PVOID pReqBuffer = NULL;
     DWORD dwRepBufferSize = 0;
     PVOID pRepBuffer = NULL;
+    PVOID *ppGroupInfo = NULL;
+    DWORD dwNumGroups = 0;
+    DWORD i = 0;
 
     Request.pszSID           = pszSID;
+    Request.pszDN            = pszDN;
     Request.dwGroupInfoLevel = dwGroupInfoLevel;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
@@ -97,8 +102,25 @@ LsaLocalGetGroupMembership(
                               (PVOID*)&pReply));
     BAIL_ON_LSA_ERROR(dwError);
 
-    *pdwGroupsCount  = pReply->pGroups->dwNumGroups;
-    *ppGroupInfoList = pReply->pGroups;
+    dwNumGroups = pReply->dwNumGroups;
+
+    if (dwNumGroups) {
+        dwError = LsaAllocateMemory(sizeof(ppGroupInfo[0]) * dwNumGroups,
+                                    (PVOID*)&ppGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i = 0; i < dwNumGroups; i++) {
+            PVOID pInfo = NULL;
+
+            dwError = LsaAllocateGroupInfo(&pInfo,
+                                           pReply->dwGroupInfoLevel,
+                                           (PVOID)pReply->Groups.ppInfo0[i]);
+            ppGroupInfo[i] = pInfo;
+        }
+    }
+
+    *pdwGroupsCount   = dwNumGroups;
+    *pppGroupInfoList = ppGroupInfo;
 
 cleanup:
     if (pReply) {
@@ -123,8 +145,14 @@ cleanup:
     return dwError;
 
 error:
+    if (ppGroupInfo) {
+        LsaFreeGroupInfoList(pReply->dwGroupInfoLevel,
+                             ppGroupInfo,
+                             pReply->dwNumGroups);
+    }
+
     *pdwGroupsCount   = 0;
-    *ppGroupInfoList = NULL;
+    *pppGroupInfoList = NULL;
 
     goto cleanup;
 }

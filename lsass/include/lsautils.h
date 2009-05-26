@@ -1122,6 +1122,13 @@ LsaFreeNameInfo(
     );
 
 DWORD
+LsaAllocateGroupInfo(
+    PVOID *ppDstGroupInfo,
+    DWORD dwLevel,
+    PVOID pSrcGroupInfo
+    );
+
+DWORD
 LsaBuildUserModInfo(
     uid_t uid,
     PLSA_USER_MOD_INFO* ppUserModInfo

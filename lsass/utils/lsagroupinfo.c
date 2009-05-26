@@ -49,6 +49,22 @@
 #include "includes.h"
 
 static
+DWORD
+LsaAllocateGroupInfo_0(
+    PLSA_GROUP_INFO_0 *ppDstGroupInfo,
+    DWORD dwLevel,
+    PLSA_GROUP_INFO_0 pSrcGroupInfo
+    );
+
+static
+DWORD
+LsaAllocateGroupInfo_1(
+    PLSA_GROUP_INFO_1 *ppDstGroupInfo,
+    DWORD dwLevel,
+    PLSA_GROUP_INFO_1 pSrcGroupInfo
+    );
+
+static
 void
 LsaFreeGroupInfo_0(
     PLSA_GROUP_INFO_0 pGroupInfo
@@ -95,6 +111,151 @@ LsaFreeGroupInfo(
             LSA_LOG_ERROR("Unsupported Group Info Level [%d]", dwLevel);
         }
     }
+}
+
+DWORD
+LsaAllocateGroupInfo(
+    PVOID *ppDstGroupInfo,
+    DWORD dwLevel,
+    PVOID pSrcGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PVOID pGroupInfo = NULL;
+
+    switch (dwLevel)
+    {
+    case 0:
+        dwError = LsaAllocateGroupInfo_0((PLSA_GROUP_INFO_0*)&pGroupInfo,
+                                         dwLevel,
+                                         (PLSA_GROUP_INFO_0)pSrcGroupInfo);
+        break;
+
+    case 1:
+        dwError = LsaAllocateGroupInfo_1((PLSA_GROUP_INFO_1*)&pGroupInfo,
+                                         dwLevel,
+                                         (PLSA_GROUP_INFO_1)pSrcGroupInfo);
+        break;
+
+    default:
+        dwError = LSA_ERROR_INVALID_GROUP_INFO_LEVEL;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppDstGroupInfo = pGroupInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(dwLevel, pGroupInfo);
+    }
+
+    *ppDstGroupInfo = NULL;
+    goto cleanup;
+}
+
+static
+DWORD
+LsaAllocateGroupInfo_0(
+    PLSA_GROUP_INFO_0 *ppDstGroupInfo,
+    DWORD dwLevel,
+    PLSA_GROUP_INFO_0 pSrcGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pGroupInfo),
+                                (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pSrcGroupInfo) {
+        pGroupInfo->gid = pSrcGroupInfo->gid;
+
+        if (pSrcGroupInfo->pszName) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszName,
+                                        &pGroupInfo->pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pSrcGroupInfo->pszSid) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszSid,
+                                        &pGroupInfo->pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *ppDstGroupInfo = pGroupInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(dwLevel, pGroupInfo);
+    }
+
+    *ppDstGroupInfo = NULL;
+    goto cleanup;
+}
+
+static
+DWORD
+LsaAllocateGroupInfo_1(
+    PLSA_GROUP_INFO_1 *ppDstGroupInfo,
+    DWORD dwLevel,
+    PLSA_GROUP_INFO_1 pSrcGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_INFO_1 pGroupInfo = NULL;
+
+    dwError = LsaAllocateMemory(sizeof(*pGroupInfo),
+                                (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pSrcGroupInfo) {
+        pGroupInfo->gid = pSrcGroupInfo->gid;
+
+        if (pSrcGroupInfo->pszName) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszName,
+                                        &pGroupInfo->pszName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pSrcGroupInfo->pszSid) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszSid,
+                                        &pGroupInfo->pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pSrcGroupInfo->pszDN) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszDN,
+                                        &pGroupInfo->pszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pSrcGroupInfo->pszPasswd) {
+            dwError = LsaAllocateString(pSrcGroupInfo->pszPasswd,
+                                        &pGroupInfo->pszPasswd);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *ppDstGroupInfo = pGroupInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(dwLevel, pGroupInfo);
+    }
+
+    *ppDstGroupInfo = NULL;
+    goto cleanup;
 }
 
 DWORD

@@ -55,11 +55,17 @@
 
 typedef struct __LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ {
     PSTR pszSID;
+    PSTR pszDN;
     DWORD dwGroupInfoLevel;
 } LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ, *PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ;
 
 typedef struct __LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP {
-    PLSA_GROUP_INFO_LIST pGroups;
+    DWORD dwNumGroups;
+    DWORD dwGroupInfoLevel;
+    union _member_info_list {
+        PLSA_GROUP_INFO_0 *ppInfo0;
+        PLSA_GROUP_INFO_1 *ppInfo1;
+    } Groups;
 } LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP, *PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP;
 
 

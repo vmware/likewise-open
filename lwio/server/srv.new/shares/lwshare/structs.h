@@ -1,5 +1,5 @@
 /*
- * Copyright Likewise Software    2004-2009
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,25 +29,24 @@
  *
  * Module Name:
  *
- *        structs.h
+ *        globals.c
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO)
+ *        Likewise I/O (LWIO) - SRV
  *
- *	      Module:     srv
- *        Sub-module: Share Repository
+ *        Share Repository based on Sqlite
  *
  *        Structures
  *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
+typedef struct _SRV_SHARE_DB_CONTEXT
 {
 	sqlite3*      pDbHandle;
 
@@ -57,8 +56,30 @@ typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
 	sqlite3_stmt* pCountStmt;
 	sqlite3_stmt* pFindStmt;
 
-	struct _LWIO_SRV_SHARE_DB_CONTEXT *pNext;
+	struct _SRV_SHARE_DB_CONTEXT *pNext;
 
-} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
+} SRV_SHARE_DB_CONTEXT, *PSRV_SHARE_DB_CONTEXT;
+
+typedef struct _SRV_SHARE_DB_ENUM_CONTEXT
+{
+
+	ULONG ulOffset;
+	ULONG ulLimit;
+
+} SRV_SHARE_DB_ENUM_CONTEXT, *PSRV_SHARE_DB_ENUM_CONTEXT;
+
+typedef struct _SRV_SHARE_DB_GLOBALS
+{
+	pthread_mutex_t      mutex;
+
+	SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
+
+	pthread_rwlock_t      dbMutex;
+	pthread_rwlock_t*     pDbMutex;
+	ULONG                 ulMaxNumDbContexts;
+	ULONG                 ulNumDbContexts;
+	PSRV_SHARE_DB_CONTEXT pDbContextList;
+
+} SRV_SHARE_DB_GLOBALS, *PSRV_SHARE_DB_GLOBALS;
 
 #endif /* __STRUCTS_H__ */

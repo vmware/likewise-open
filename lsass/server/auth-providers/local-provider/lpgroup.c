@@ -1573,6 +1573,7 @@ LocalDirGetGroupMembersInternal(
                 break;
 
             case LOCAL_OBJECT_CLASS_USER:
+            case LOCAL_OBJECT_CLASS_GROUP_MEMBER:
 
                 LSA_SAFE_FREE_STRING(pszSID);
 
@@ -1596,17 +1597,26 @@ LocalDirGetGroupMembersInternal(
                     pGroupMember->pszSID = pszSID;
                     pszSID = NULL;
 
+                    /* netbios and sam account names may not be set if
+                       member is a domain group or user */
+
                     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                     pEntry,
                                     &wszAttrNameNetbiosName[0],
                                     &pGroupMember->pszNetbiosDomain);
-                    BAIL_ON_LSA_ERROR(dwError);
+                    if (dwError != 0&&
+                        dwError != LSA_ERROR_NO_ATTRIBUTE_VALUE) {
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
 
                     dwError = LocalMarshalAttrToANSIFromUnicodeString(
                                     pEntry,
                                     &wszAttrNameSamAccountName[0],
                                     &pGroupMember->pszSamAccountName);
-                    BAIL_ON_LSA_ERROR(dwError);
+                    if (dwError != 0&&
+                        dwError != LSA_ERROR_NO_ATTRIBUTE_VALUE) {
+                        BAIL_ON_LSA_ERROR(dwError);
+                    }
 
                     dwError = LsaHashSetValue(
                                     pMemberships,

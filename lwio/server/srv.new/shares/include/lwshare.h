@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,53 +29,31 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        lwshare.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise I/O (LWIO) - SRV
  *
- *        Listener Definitions
+ *        Share Repository based on Sqlite
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Public header
+ *
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __DEFS_H__
-#define __DEFS_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
+#ifndef __LWSHARE_H__
+#define __LWSHARE_H__
 
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
-#define LWIO_SRV_DEFAULT_NUM_WORKERS          4
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
+NTSTATUS
+LwShareRepositoryInit(
+	OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    );
 
-typedef enum
-{
-    LWIO_SRV_CONN_STATE_INITIAL = 0,
-    LWIO_SRV_CONN_STATE_NEGOTIATE,
-    LWIO_SRV_CONN_STATE_READY,
-    LWIO_SRV_CONN_STATE_INVALID
-} LWIO_SRV_CONN_STATE;
+NTSTATUS
+LwShareRepositoryShutdown(
+	IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+	);
 
-typedef USHORT SMB_SEARCH_FLAG;
-
-#define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
-#define SMB_FIND_CLOSE_IF_EOS        0x2
-#define SMB_FIND_RETURN_RESUME_KEYS  0x4
-#define SMB_FIND_CONTINUE_SEARCH     0x8
-#define SMB_FIND_WITH_BACKUP_INTENT  0x10
-
-
-#endif /* __DEFS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __LWSHARE_H__ */

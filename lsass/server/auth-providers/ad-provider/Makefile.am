@@ -52,6 +52,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/server/sqlite/liblsasqlite.la \
 	@top_builddir@/ipc/liblsaipc.la \
 	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \
+	@top_builddir@/provider/local-provider/client/liblsalocalclient.la \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \

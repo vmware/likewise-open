@@ -53,6 +53,30 @@ SrvShareInit(
 	);
 
 NTSTATUS
+SrvShareMapServiceStringToId(
+    IN  SHARE_SERVICE  service,
+    OUT PSTR*          ppszService
+    );
+
+NTSTATUS
+SrvShareMapIdToServiceString(
+    IN     PCSTR          pszService,
+    IN OUT SHARE_SERVICE* pService
+    );
+
+NTSTATUS
+SrvShareMapFromWindowsPath(
+    IN  PWSTR  pwszInputPath,
+    OUT PWSTR* ppwszPath
+    );
+
+NTSTATUS
+SrvShareMapToWindowsPath(
+    IN  PWSTR  pwszInputPath,
+    OUT PWSTR* ppwszPath
+    );
+
+NTSTATUS
 SrvShareInitList(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
@@ -60,8 +84,8 @@ SrvShareInitList(
 NTSTATUS
 SrvShareFindByName(
     IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN  PWSTR                      pszShareName,
-    OUT PSHARE_DB_INFO*            ppShareInfo
+    IN  PWSTR                      pwszShareName,
+    OUT PSHARE_INFO*               ppShareInfo
     );
 
 NTSTATUS
@@ -76,36 +100,31 @@ SrvShareAdd(
     );
 
 NTSTATUS
-SrvShareDeleteShare(
+SrvShareDelete(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     );
 
 NTSTATUS
-SrvShareSetInfo(
-	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PWSTR                      pwszShareName,
-    IN     PSHARE_DB_INFO             pShareInfo
-    );
-
-NTSTATUS
-SrvShareGetInfo(
-	IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN  PWSTR                      pwszShareName,
-    OUT PSHARE_DB_INFO*            ppShareInfo
-    );
-
-NTSTATUS
-SrvShareEnumShares(
-	IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN  ULONG                      ulLevel,
-    OUT PSHARE_DB_INFO**           pppShareInfo,
-    OUT PDWORD                     pdwNumEntries
+SrvShareEnum(
+	IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    OUT    PSHARE_INFO**              pppShareInfo,
+    IN OUT PULONG                     pulNumEntries
     );
 
 VOID
 SrvShareFreeListContents(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
+VOID
+SrvShareFreeEntry(
+    IN PSRV_SHARE_ENTRY pShareEntry
+    );
+
+VOID
+SrvShareReleaseInfo(
+    IN PSRV_SHARE_INFO pShareInfo
     );
 
 VOID
