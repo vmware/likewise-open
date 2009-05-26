@@ -485,6 +485,8 @@ SrvShutdown(
 
         SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
 
+        SrvShareShutdown();
+
         if (gSMBSrvGlobals.hPacketAllocator)
         {
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
