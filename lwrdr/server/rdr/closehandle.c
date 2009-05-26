@@ -48,6 +48,12 @@
  */
 #include "includes.h"
 
+static
+DWORD
+RdrTransactCloseFile(
+    PSMB_TREE pTree,
+    uint16_t usFid
+    );
 
 DWORD
 RdrCloseFileEx(
@@ -56,6 +62,15 @@ RdrCloseFileEx(
 {
     DWORD dwError = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
+
+    if (pFile->fid != 0)
+    {
+        /* Ignore error sending close message and proceed to tear down
+           local resources */
+        RdrTransactCloseFile(
+            pFile->pTree,
+            pFile->fid);
+    }
 
     if (pFile->pTree)
     {
@@ -73,4 +88,108 @@ RdrCloseFileEx(
     SMBFreeMemory(pFile);
 
     return dwError;
+}
+
+static
+DWORD
+RdrTransactCloseFile(
+    PSMB_TREE pTree,
+    uint16_t usFid
+    )
+{
+    DWORD dwError = STATUS_SUCCESS;
+    SMB_PACKET packet = {0};
+    CLOSE_REQUEST_HEADER *pHeader = NULL;
+    SMB_RESPONSE *pResponse = NULL;
+    PSMB_PACKET pResponsePacket = NULL;
+    USHORT usMid = 0;
+
+
+    dwError = SMBSocketBufferAllocate(
+        pTree->pSession->pSocket,
+        1024*64,
+        &packet.pRawBuffer,
+        &packet.bufferLen);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBTreeAcquireMid(
+        pTree,
+        &usMid);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBPacketMarshallHeader(
+        packet.pRawBuffer,
+        packet.bufferLen,
+        COM_CLOSE,
+        0,
+        0,
+        pTree->tid,
+        0,
+        pTree->pSession->uid,
+        usMid,
+        TRUE,
+        &packet);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    packet.pData = packet.pParams + sizeof(CLOSE_REQUEST_HEADER);
+
+    packet.bufferUsed += sizeof(CLOSE_REQUEST_HEADER);
+
+    packet.pSMBHeader->wordCount = 3;
+
+    pHeader = (CLOSE_REQUEST_HEADER*) packet.pParams;
+
+    pHeader->fid = SMB_HTOL16(usFid);
+    pHeader->lastWriteTime = SMB_HTOL64(0);
+    pHeader->byteCount = SMB_HTOL16(0);
+
+    dwError = SMBPacketMarshallFooter(&packet);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBResponseCreate(usMid, &pResponse);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBSrvClientTreeAddResponse(pTree, pResponse);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBPacketSend(pTree->pSession->pSocket, &packet);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = SMBTreeReceiveResponse(
+        pTree,
+        packet.haveSignature,
+        packet.sequence + 1,
+        pResponse,
+        &pResponsePacket);
+    BAIL_ON_SMB_ERROR(dwError);
+
+    dwError = pResponsePacket->pSMBHeader->error;
+    BAIL_ON_SMB_ERROR(dwError);
+
+cleanup:
+
+    if (pResponsePacket)
+    {
+        SMBSocketPacketFree(
+            pTree->pSession->pSocket,
+            pResponsePacket);
+    }
+
+    if (packet.bufferLen)
+    {
+        SMBSocketBufferFree(pTree->pSession->pSocket,
+                            packet.pRawBuffer,
+                            packet.bufferLen);
+    }
+
+    if (pResponse)
+    {
+        SMBResponseFree(pResponse);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }

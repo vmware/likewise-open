@@ -103,5 +103,6 @@
 #include "provider-main.h"
 #include "offline-helper.h"
 #include "lsasqlite.h"
+#include "sid.h"
 
 #include "externs.h"

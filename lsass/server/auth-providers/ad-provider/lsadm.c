@@ -65,7 +65,8 @@ static LSA_DM_STATE_HANDLE gLsaDmState;
 DWORD
 LsaDmInitialize(
     IN BOOLEAN bIsOfflineBehaviorEnabled,
-    IN DWORD dwCheckOnlineSeconds
+    IN DWORD dwCheckOnlineSeconds,
+    IN DWORD dwUnknownDomainCacheTimeoutSeconds
     )
 {
     DWORD dwError = 0;
@@ -73,7 +74,8 @@ LsaDmInitialize(
 
     dwError = LsaDmpStateCreate(&pState,
                                 bIsOfflineBehaviorEnabled,
-                                dwCheckOnlineSeconds);
+                                dwCheckOnlineSeconds,
+                                dwUnknownDomainCacheTimeoutSeconds);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (gLsaDmState)
@@ -111,20 +113,30 @@ LsaDmCleanup(
 
 DWORD
 LsaDmQueryState(
+    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags,
     OUT OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    OUT OPTIONAL PLSA_DM_STATE_FLAGS pStateFlags
+    OUT OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
-    return LsaDmpQueryState(gLsaDmState, pdwCheckOnlineSeconds, pStateFlags);
+    return LsaDmpQueryState(
+                gLsaDmState,
+                pStateFlags,
+                pdwCheckOnlineSeconds,
+                pdwUnknownDomainCacheTimeoutSeconds);
 }
 
 DWORD
 LsaDmSetState(
+    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled,
     IN OPTIONAL PDWORD pdwCheckOnlineSeconds,
-    IN OPTIONAL PBOOLEAN pbIsOfflineBehaviorEnabled
+    IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
-    return LsaDmpSetState(gLsaDmState, pdwCheckOnlineSeconds, pbIsOfflineBehaviorEnabled);
+    return LsaDmpSetState(
+                gLsaDmState,
+                pbIsOfflineBehaviorEnabled,
+                pdwCheckOnlineSeconds,
+                pdwUnknownDomainCacheTimeoutSeconds);
 }
 
 VOID
@@ -922,3 +934,18 @@ LsaDmGetForestName(
                                 NULL);
 }
 
+BOOLEAN
+LsaDmIsUnknownDomainSid(
+    IN PSID pDomainSid
+    )
+{
+    return LsaDmpIsUnknownDomainSid(gLsaDmState, pDomainSid);
+}
+
+DWORD
+LsaDmCacheUnknownDomainSid(
+    IN PSID pDomainSid
+    )
+{
+    return LsaDmpCacheUnknownDomainSid(gLsaDmState, pDomainSid);
+}

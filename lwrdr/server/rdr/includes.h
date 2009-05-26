@@ -82,7 +82,8 @@
 #include "client_socket.h"
 #include "client_session.h"
 #include "client_tree.h"
-#include "client_reaper.h"
+
+#include "tree_connect.h"
 
 #include "externs.h"
 

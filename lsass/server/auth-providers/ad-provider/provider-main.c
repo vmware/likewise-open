@@ -217,7 +217,10 @@ LsaInitializeProvider(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Initialize domain manager before doing any network stuff.
-    dwError = LsaDmInitialize(TRUE, 5 * 60);
+    dwError = LsaDmInitialize(
+                    TRUE,
+                    AD_GetDomainManagerCheckDomainOnlineSeconds(),
+                    AD_GetDomainManagerUnknownDomainCacheTimeoutSeconds());
     BAIL_ON_LSA_ERROR(dwError);
 
     // Start media sense after starting up domain manager.
@@ -516,21 +519,12 @@ AD_AuthenticateUserEx(
     DWORD dwError = LSA_ERROR_INTERNAL;
     PSTR pszDnsDomain = NULL;
     PSTR pszNetbiosDomain = NULL;
-    PSTR pszNT4Name = NULL;
 
     /* The NTLM pass-through authentication gives us the NT4
        style name.  We need the DNS domain for the LsaDmConnectDomain() */
 
-    dwError = LsaAllocateStringPrintf(
-                    &pszNT4Name,
-                    "%s\\%s",
+    dwError = LsaDmEngineGetDomainNameWithDiscovery(
                     pUserParams->pszDomain,
-                    pUserParams->pszAccountName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaDmEngineGetDomainInfoWithNT4Name(
-                    pUserParams->pszDomain,
-                    pszNT4Name,
                     &pszDnsDomain,
                     &pszNetbiosDomain);
     BAIL_ON_LSA_ERROR(dwError);
@@ -543,7 +537,6 @@ AD_AuthenticateUserEx(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_STRING(pszNT4Name);
     LSA_SAFE_FREE_MEMORY(pszDnsDomain);
     LSA_SAFE_FREE_MEMORY(pszNetbiosDomain);
 
@@ -1896,7 +1889,7 @@ AD_GroupObjectToGroupInfo(
             break;
         case 1:
             // need to expand membership
-            dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+            dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                          pGroupObject->pszObjectSid,
                          &pszFullDomainName,
                          NULL,
@@ -2643,7 +2636,7 @@ AD_GetStatus(
         pProviderStatus->status = LSA_AUTH_PROVIDER_STATUS_ONLINE;
     }
 
-    dwError = LsaDmQueryState(&pProviderStatus->dwNetworkCheckInterval, NULL);
+    dwError = LsaDmQueryState(NULL, &pProviderStatus->dwNetworkCheckInterval, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppProviderStatus = pProviderStatus;
@@ -2988,6 +2981,12 @@ AD_RefreshConfiguration(
         BAIL_ON_LSA_ERROR(dwError);
 
         AD_FreeAllowedSIDs_InLock();
+
+        dwError = LsaDmSetState(
+                        NULL,
+                        &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
+                        &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:

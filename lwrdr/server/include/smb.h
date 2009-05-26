@@ -725,6 +725,14 @@ typedef struct
     uint16_t byteCount;         /* Count of data bytes = 0 */
 }  __attribute__((__packed__))  WRITE_RESPONSE_HEADER;
 
+typedef struct
+{
+    uint16_t fid;
+    uint32_t lastWriteTime;
+    uint16_t byteCount;
+
+} __attribute__((__packed__)) CLOSE_REQUEST_HEADER;
+
 typedef enum
 {
     ERROR_SMB,
@@ -787,6 +795,7 @@ typedef struct
     SMB_ERROR_BUNDLE error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
+    BOOLEAN reverseRef;
 
     time_t  lastActiveTime;     /* Checked by the reaper thread and message
                                    handler threads; set when new data is
@@ -811,7 +820,6 @@ typedef struct
     PSMB_STACK pFreePacketStack;
     uint32_t freePacketCount;
 
-    pthread_rwlock_t hashLock;  /* Locks the session hashes */
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
 
@@ -848,6 +856,7 @@ typedef struct
     SMB_ERROR_BUNDLE error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
+    BOOLEAN reverseRef;
 
     time_t  lastActiveTime;     /* Checked by the reaper thread; set when
                                    hash goes empty */
@@ -856,7 +865,6 @@ typedef struct
     uint16_t uid;
     uchar8_t *pszPrincipal;     /* Client principal name, for hashing */
 
-    pthread_rwlock_t hashLock;  /* Locks the hashes */
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
     SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
 
@@ -889,6 +897,8 @@ typedef struct
     SMB_ERROR_BUNDLE error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t refCount;           /* Count of state-change waiters and users */
+    BOOLEAN reverseRef;
+    BOOLEAN bShutdown;          /* Whether we are already shutting down tree */
 
     time_t  lastActiveTime;     /* Checked by the reaper thread; set when
                                    hash goes empty */
@@ -1461,5 +1471,8 @@ VOID
 SMBSemaphoreDestroy(
     IN OUT PLSMB_SEMAPHORE pSemaphore
     );
+
+extern pthread_mutex_t gSocketLock;
+extern SMB_HASH_TABLE *gpSocketHashByName;
 
 #endif /* __SMBWIRE_H__ */

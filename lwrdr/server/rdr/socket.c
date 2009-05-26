@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -50,6 +50,9 @@
  */
 
 #include "includes.h"
+
+pthread_mutex_t gSocketLock;
+PSMB_HASH_TABLE gpSocketHashByName = NULL;
 
 static
 int
@@ -136,7 +139,7 @@ SMBSrvSocketCreate(
 
     bDestroySessionCondition = TRUE;
 
-    pSocket->refCount = 1;  /* One for reaper */
+    pSocket->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
@@ -161,9 +164,6 @@ SMBSrvSocketCreate(
     pSocket->freeBufferLen = 0;
     pSocket->pFreePacketStack = NULL;
     pSocket->freePacketCount = 0;
-
-    dwError = pthread_rwlock_init(&pSocket->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
 
     bDestroyHashLock = TRUE;
 
@@ -217,11 +217,6 @@ error:
         if (bDestroySessionCondition)
         {
             pthread_cond_destroy(&pSocket->sessionEvent);
-        }
-
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSocket->hashLock);
         }
 
         if (bDestroyWriteMutex)
@@ -288,7 +283,7 @@ SMBSocketCreate(
 
     bDestroySessionCondition = TRUE;
 
-    pSocket->refCount = 2;  /* One for reaper */
+    pSocket->refCount = 1;
 
     /* @todo: find a portable time call which is immune to host date and time
        changes, such as made by ntpd */
@@ -297,7 +292,7 @@ SMBSocketCreate(
     pthread_mutex_init(&pSocket->writeMutex, NULL);
     bDestroyWriteMutex = TRUE;
 
-    pSocket->fd = 0;
+    pSocket->fd = -1;
 
     /* Hostname is trusted */
     dwError = SMBStrndup(
@@ -320,9 +315,6 @@ SMBSocketCreate(
     pSocket->freeBufferLen = 0;
     pSocket->pFreePacketStack = NULL;
     pSocket->freePacketCount = 0;
-
-    dwError = pthread_rwlock_init(&pSocket->hashLock, NULL);
-    BAIL_ON_SMB_ERROR(dwError);
 
     bDestroyHashLock = TRUE;
 
@@ -378,11 +370,6 @@ error:
         if (bDestroySessionCondition)
         {
             pthread_cond_destroy(&pSocket->sessionEvent);
-        }
-
-        if (bDestroyHashLock)
-        {
-            pthread_rwlock_destroy(&pSocket->hashLock);
         }
 
         if (bDestroyWriteMutex)
@@ -491,11 +478,11 @@ SMBSocketIsSignatureRequired(
     BOOLEAN bInLock = FALSE;
 
     SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
-        
+
     bIsRequired = (pSocket->pSessionKey && pSocket->bSignedMessagesRequired);
 
     SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-    
+
     return bIsRequired;
 }
 
@@ -545,8 +532,6 @@ SMBSocketReaderMain(
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
 
-    pthread_detach(pthread_self());
-
     SMB_LOG_INFO("Spawning socket reader thread for [%s]",
                  SMB_SAFE_LOG_STRING((char *) pSocket->pszHostname));
 
@@ -567,6 +552,7 @@ SMBSocketReaderMain(
         int ret = 0;
         fd_set fdset;
 
+        FD_ZERO(&fdset);
         FD_SET(pSocket->fd, &fdset);
 
         do
@@ -723,13 +709,6 @@ SMBSocketFindAndSignalResponse(
 
 cleanup:
 
-    if (pResponse)
-    {
-        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
-
-        SMBResponseUnlock(pResponse);
-    }
-
     if (pTree)
     {
         SMBTreeRelease(pTree);
@@ -738,6 +717,13 @@ cleanup:
     if (pSession)
     {
         SMBSessionRelease(pSession);
+    }
+
+    if (pResponse)
+    {
+        SMB_LOG_DEBUG("Unlocking response [mid: %d] in Tree [0x%x]", pResponse->mid, pTree);
+
+        SMBResponseUnlock(pResponse);
     }
 
     return dwError;
@@ -761,7 +747,7 @@ SMBSocketFindSessionByUID(
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     dwError = SMBHashGetValue(
                     pSocket->pSessionHashByUID,
@@ -769,13 +755,13 @@ SMBSocketFindSessionByUID(
                     (PVOID *) &pSession);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMBSessionAddReference(pSession);
+    pSession->refCount++;
 
     *ppSession = pSession;
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -786,8 +772,6 @@ error:
     goto cleanup;
 }
 
-/* This must be called with the parent hash lock held to avoid a race with the
-reaper. */
 VOID
 SMBSocketAddReference(
     PSMB_SOCKET pSocket
@@ -795,15 +779,13 @@ SMBSocketAddReference(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_LOCK_MUTEX(bInLock, &gSocketLock);
 
     pSocket->refCount++;
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
 }
 
-/* @todo: catch signals? */
-/* @todo: set socket option NODELAY for better performance */
 DWORD
 SMBSocketConnect(
     PSMB_SOCKET pSocket,
@@ -969,12 +951,20 @@ SMBSocketInvalidate_InLock(
     uint32_t networkError
     )
 {
+    BOOLEAN bInGlobalLock = FALSE;
+
     pSocket->state = SMB_RESOURCE_STATE_INVALID;
-    /* mark permanent error, continue */
-    /* Permanent error?  Or temporary? */
-    /* If temporary, retry? */
     pSocket->error.type = errorType;
     pSocket->error.smb = networkError;
+
+    if (pSocket->reverseRef)
+    {
+        SMB_LOCK_MUTEX(bInGlobalLock, &gSocketLock);
+        SMBHashRemoveKey(gpSocketHashByName,
+                         pSocket->pszHostname);
+        pSocket->reverseRef = FALSE;
+        SMB_UNLOCK_MUTEX(bInGlobalLock, &gSocketLock);
+    }
 
     pthread_cond_broadcast(&pSocket->event);
 
@@ -1097,7 +1087,7 @@ SMBSocketFindSessionByPrincipal(
     BOOLEAN bInLock = FALSE;
     PSMB_SESSION pSession = NULL;
 
-    SMB_LOCK_RWMUTEX_SHARED(bInLock, &pSocket->hashLock);
+    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     dwError = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
@@ -1105,13 +1095,13 @@ SMBSocketFindSessionByPrincipal(
                     (PVOID *) &pSession);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMBSessionAddReference(pSession);
+    pSession->refCount++;
 
     *ppSession = pSession;
 
 cleanup:
 
-    SMB_UNLOCK_RWMUTEX(bInLock, &pSocket->hashLock);
+    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return dwError;
 
@@ -1299,19 +1289,27 @@ SMBSocketRelease(
 {
     BOOLEAN bInLock = FALSE;
 
-    SMB_LOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_LOCK_MUTEX(bInLock, &gSocketLock);
+
+    assert(pSocket->refCount > 0);
 
     pSocket->refCount--;
-    assert(pSocket->refCount >= 0);
 
     if (!pSocket->refCount)
     {
-        SMBSocketFree(pSocket);
+        if (pSocket->reverseRef)
+        {
+            SMBHashRemoveKey(gpSocketHashByName,
+                             pSocket->pszHostname);
+            pSocket->reverseRef = FALSE;
+        }
 
-        bInLock = FALSE;
+        SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
+
+        SMBSocketFree(pSocket);
     }
 
-    SMB_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    SMB_UNLOCK_MUTEX(bInLock, &gSocketLock);
 }
 
 /* This function does not remove a socket from it's parent hash; it merely
@@ -1340,8 +1338,6 @@ SMBSocketFree(
     }
 
     pthread_cond_destroy(&pSocket->event);
-
-    pthread_rwlock_destroy(&pSocket->hashLock);
 
     SMB_SAFE_FREE_MEMORY(pSocket->pszHostname);
     SMB_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);

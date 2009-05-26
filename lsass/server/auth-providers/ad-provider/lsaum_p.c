@@ -1514,7 +1514,7 @@ LsaUmpRefreshUserCreds(
     {
         BOOLEAN bIsGeneratedUpn = FALSE;
 
-        dwError = LsaDmEngineGetDomainInfoWithObjectSid(
+        dwError = LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                          pUserInfo->pszObjectSid,
                          &pszUserDnsDomainName,
                          NULL,

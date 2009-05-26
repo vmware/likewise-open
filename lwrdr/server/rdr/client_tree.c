@@ -68,30 +68,23 @@ SMBSrvClientTreeOpen(
                     &pTree);
     BAIL_ON_SMB_ERROR(dwError);
 
-    SMBTreeAddReference(pTree);
-
     *ppTree = pTree;
 
 cleanup:
 
-    return dwError;
-
-error:
-
-    if (pTree)
-    {
-        SMBTreeRelease(pTree);
-    }
-
     if (pSession)
     {
-        SMBSrvClientSessionRelease(pSession);
+        SMBSessionRelease(pSession);
     }
 
     if (pSocket)
     {
         SMBSocketRelease(pSocket);
     }
+
+    return dwError;
+
+error:
 
     goto cleanup;
 }
@@ -122,6 +115,8 @@ SMBSrvClientTreeCreate(
     BAIL_ON_SMB_ERROR(dwError);
 
     pTree->pSession = pSession;
+
+    SMBSessionAddReference(pSession);
 
     SMB_SAFE_FREE_MEMORY(pTree->pszPath);
 
@@ -192,8 +187,6 @@ SMBSrvClientTreeAddResponse(
 
     SMB_LOCK_MUTEX(bInLock, &pTree->mutex);
 
-    /* @todo: if we allocate the MID outside of this function, we need to
-       check for a conflict here */
     dwError = SMBHashSetValue(
                     pTree->pResponseHash,
                     &pResponse->mid,

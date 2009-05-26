@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -28,13 +28,15 @@
  * license@likewisesoftware.com
  */
 
+#include "includes.h"
 
-DWORD
-RdrReaperStart(
-    VOID
-    );
-
-DWORD
-RdrReaperStop(
-    VOID
-    );
+uint32_t
+MarshallReadRequestData(
+    uint8_t         *pBuffer,
+    uint32_t         bufferLen,
+    uint8_t          messageAlignment,
+    uint32_t        *pBufferUsed
+    )
+{
+    return 0;
+}
