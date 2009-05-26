@@ -29,26 +29,36 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        string.c
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utility Functions
+ *        Utilities
  *
- * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Strings
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#include "includes.h"
 
-#include <utils/defs.h>
-#include <utils/structs.h>
-#include <utils/memory.h>
-#include <utils/string.h>
-#include <utils/path.h>
-#include <utils/prodcons.h>
+NTSTATUS
+SrvMbsToWc16s(
+    IN  PCSTR  pszString,
+    OUT PWSTR* ppwszString
+    )
+{
+	return LwRtlWC16StringAllocateFromCString(ppwszString, pszString);
+}
 
-#endif /* __SRV_UTILS_H__ */
+NTSTATUS
+SrvWc16sToMbs(
+	IN  PCWSTR pwszString,
+	OUT PSTR*  ppszString
+	)
+{
+	return LwRtlCStringAllocateFromWC16String(ppszString, pwszString);
+}

@@ -62,21 +62,21 @@ SrvShareDbOpen(
 
 NTSTATUS
 SrvShareDbFindByName(
-	IN  HANDLE       hRepository,
-	IN  PWSTR        pwszShareName,
-	OUT PSHARE_INFO* ppShareInfo
+	IN  HANDLE           hRepository,
+	IN  PWSTR            pwszShareName,
+	OUT PSRV_SHARE_INFO* ppShareInfo
 	);
 
 NTSTATUS
 SrvShareDbAdd(
-	IN  HANDLE hRepository,
-	IN  PWSTR  pwszShareName,
-	IN  PWSTR  pwszPath,
-	IN  PWSTR  pwszComment,
-	IN  PBYTE  pSecDesc,
-	IN  ULONG  ulSecDescLen,
-	IN  PWSTR  pwszService
-	);
+	IN HANDLE hRepository,
+    IN PWSTR  pwszShareName,
+    IN PWSTR  pwszPath,
+    IN PWSTR  pwszComment,
+    IN PBYTE  pSecDesc,
+    IN ULONG  ulSecDescLen,
+    IN PWSTR  pwszService
+    );
 
 NTSTATUS
 SrvShareDbBeginEnum(
@@ -87,10 +87,10 @@ SrvShareDbBeginEnum(
 
 NTSTATUS
 SrvShareDbEnum(
-	IN     HANDLE           hRepository,
-	IN     HANDLE           hResume,
-	OUT    PSHARE_DB_INFO** pppShareInfoList,
-	IN OUT PULONG           pulNumSharesFound
+	IN     HANDLE            hRepository,
+	IN     HANDLE            hResume,
+	OUT    PSRV_SHARE_INFO** pppShareInfoList,
+	IN OUT PULONG            pulNumSharesFound
 	);
 
 NTSTATUS

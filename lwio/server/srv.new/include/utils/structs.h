@@ -29,26 +29,42 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        srv/utils/structs.h
  *
  * Abstract:
  *
  *        Likewise Input Output (LWIO) - SRV
  *
- *        Utility Functions
+ *        Utilities
+ *
+ *        structures
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __SRV_UTILS_STRUCTS_H__
+#define __SRV_UTILS_STRUCTS_H__
 
-#include <utils/defs.h>
-#include <utils/structs.h>
-#include <utils/memory.h>
-#include <utils/string.h>
-#include <utils/path.h>
-#include <utils/prodcons.h>
 
-#endif /* __SRV_UTILS_H__ */
+typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
+
+typedef struct _SMB_PROD_CONS_QUEUE
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    LWIO_QUEUE       queue;
+
+    ULONG           ulNumMaxItems;
+    ULONG           ulNumItems;
+
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem;
+
+    pthread_cond_t  event;
+    pthread_cond_t* pEvent;
+
+} SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
+
+
+#endif /* __SRV_UTILS_STRUCTS_H__ */

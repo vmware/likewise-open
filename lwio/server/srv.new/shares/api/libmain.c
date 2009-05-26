@@ -47,6 +47,8 @@
  *
  */
 
+#include "includes.h"
+
 NTSTATUS
 SrvShareInit(
     VOID
@@ -58,6 +60,46 @@ SrvShareInit(
 
 	status = LwShareRepositoryInit(&gSrvShareApi.pFnTable);
 
+#endif
+
+#if 0
+    PSTR pszFileSystemRoot = NULL;
+    CHAR szTmpFileSystemRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
+    CHAR szPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_A;
+
+    ntStatus = SMBAllocateStringPrintf(
+                    &pszFileSystemRoot,
+                    "%s%s%s",
+                    &szTmpFileSystemRoot[0],
+                    (((szTmpFileSystemRoot[strlen(&szTmpFileSystemRoot[0])-1] == '/') ||
+                      (szTmpFileSystemRoot[strlen(&szTmpFileSystemRoot[0])-1] == '\\')) ? "" : "\\"),
+                    LWIO_SRV_DEFAULT_SHARE_PATH_A);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+	// TODO: Add shares if they don't exist
+    ntStatus = SrvShareDbAdd(
+                    "IPC$",
+                    &szPipeSystemRoot[0],
+                    "Remote IPC",
+                    NULL,
+                    0,
+                    "IPC");
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareDbAdd(
+                    "C$",
+                    pszFileSystemRoot,
+                    "Default Share",
+                    NULL,
+                    0,
+                    "A:");
+    BAIL_ON_NT_STATUS(ntStatus);
+
+
+    if (pszFileSystemRoot)
+    {
+        LwRtlMemoryFree(pszFileSystemRoot);
+    }
 #endif
 
 	return status;
@@ -75,7 +117,7 @@ SrvShareShutdown(
 	status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
 
 #endif
-	BAIL_ON_NT_STATUS(ntStatus);
+	BAIL_ON_NT_STATUS(status);
 
 	gSrvShareApi.pFnTable = NULL;
 

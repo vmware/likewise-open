@@ -70,68 +70,6 @@ typedef struct _SRV_HOST_INFO
 
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
-typedef enum
-{
-    SHARE_SERVICE_DISK_SHARE = 0,
-    SHARE_SERVICE_PRINTER,
-    SHARE_SERVICE_COMM_DEVICE,
-    SHARE_SERVICE_NAMED_PIPE,
-    SHARE_SERVICE_ANY,
-    SHARE_SERVICE_UNKNOWN
-} SHARE_SERVICE;
-
-typedef struct _LWIO_SRV_SHARE_DB_CONTEXT
-{
-	sqlite3*      pDbHandle;
-
-	sqlite3_stmt* pInsertStmt;
-	sqlite3_stmt* pEnumStmt;
-	sqlite3_stmt* pDeleteStmt;
-	sqlite3_stmt* pCountStmt;
-	sqlite3_stmt* pFindStmt;
-
-	struct _LWIO_SRV_SHARE_DB_CONTEXT *pNext;
-
-} LWIO_SRV_SHARE_DB_CONTEXT, *PLWIO_SRV_SHARE_DB_CONTEXT;
-
-typedef struct _SHARE_DB_INFO
-{
-    LONG refcount;
-
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
-
-    PWSTR pwszName;
-    PWSTR pwszPath;
-    PWSTR pwszComment;
-    PBYTE pSecDesc;
-    ULONG ulSecDescLen;
-
-    SHARE_SERVICE service;
-
-    BOOLEAN bMarkedForDeletion;
-
-} SHARE_DB_INFO, *PSHARE_DB_INFO;
-
-
-typedef struct _SRV_SHARE_ENTRY
-{
-    PSHARE_DB_INFO pInfo;
-
-    struct _SRV_SHARE_ENTRY  *pNext;
-
-} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
-
-
-typedef struct _LWIO_SRV_SHARE_LIST
-{
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
-
-    PSRV_SHARE_ENTRY  pShareEntry;
-
-} LWIO_SRV_SHARE_LIST, *PLWIO_SRV_SHARE_LIST;
-
 
 typedef ULONG CCB_TYPE;
 
@@ -163,26 +101,6 @@ typedef struct _SRV_IRP_CONTEXT
     UNICODE_STRING   absolutePathName;
 
 } SRV_IRP_CONTEXT, *PSRV_IRP_CONTEXT;
-
-
-typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
-
-typedef struct _SMB_PROD_CONS_QUEUE
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    LWIO_QUEUE       queue;
-
-    ULONG           ulNumMaxItems;
-    ULONG           ulNumItems;
-
-    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem;
-
-    pthread_cond_t  event;
-    pthread_cond_t* pEvent;
-
-} SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
 typedef struct _LWIO_SRV_SOCKET
 {
@@ -223,17 +141,6 @@ typedef struct _SRV_CLIENT_PROPERITES
     PWSTR  pwszNativeDomain;
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
-
-typedef struct _SRV_ID_ALLOCATOR
-{
-    LONG             refcount;
-
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    PSMB_BIT_VECTOR  map;
-
-} SRV_ID_ALLOCATOR, *PSRV_ID_ALLOCATOR;
 
 typedef struct _LWIO_SRV_FILE
 {

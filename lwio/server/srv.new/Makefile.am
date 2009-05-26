@@ -1,0 +1,5 @@
+
+SUBDIRS = \
+    utils     \
+    shares
+
