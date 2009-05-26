@@ -62,3 +62,25 @@ SrvWc16sToMbs(
 {
 	return LwRtlCStringAllocateFromWC16String(ppszString, pwszString);
 }
+
+NTSTATUS
+SrvAllocateStringPrintf(
+    PSTR* ppszOutputString,
+    PCSTR pszFormat,
+    ...
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    va_list args;
+
+    va_start(args, pszFormat);
+
+    ntStatus = RtlCStringAllocatePrintfV(
+                      ppszOutputString,
+                      pszFormat,
+                      args);
+
+    va_end(args);
+
+    return ntStatus;
+}

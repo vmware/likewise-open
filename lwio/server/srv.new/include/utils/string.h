@@ -58,4 +58,11 @@ SrvWc16sToMbs(
 	OUT PSTR*  ppszString
 	);
 
+NTSTATUS
+SrvAllocateStringPrintf(
+    PSTR* ppszOutputString,
+    PCSTR pszFormat,
+    ...
+    );
+
 #endif /* __SRV_UTILS_STRING_H__ */

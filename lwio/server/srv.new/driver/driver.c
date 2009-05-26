@@ -70,6 +70,12 @@ SrvInitialize(
 
 static
 NTSTATUS
+SrvShareBootstrap(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
+static
+NTSTATUS
 SrvShutdown(
     VOID
     );
@@ -82,6 +88,8 @@ DriverEntry(
 {
     NTSTATUS ntStatus = 0;
     IO_DEVICE_HANDLE hDevice = NULL;
+    PCSTR    pszName = "srv";
+    PVOID    pDeviceContext = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != ulInterfaceVersion)
     {
@@ -99,11 +107,9 @@ DriverEntry(
     ntStatus = IoDeviceCreate(
                     &hDevice,
                     hDriver,
-                    "srv",
-                    NULL
-                    );
+                    pszName,
+                    pDeviceContext);
     BAIL_ON_NT_STATUS(ntStatus);
-
 
     ntStatus = SrvInitialize();
 
@@ -234,11 +240,13 @@ SrvInitialize(
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
-    gSMBSrvGlobals.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
-    // gSMBSrvGlobals.ulNumDbContexts = 0;
-    // gSMBSrvGlobals.pDbContextList = NULL;
+    ntStatus = SrvShareInit();
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareInitContextContents(&gSMBSrvGlobals.shareList);
+    ntStatus = SrvShareInitList(&gSMBSrvGlobals.shareList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareBootstrap(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
@@ -310,6 +318,95 @@ SrvInitialize(
 error:
 
     return ntStatus;
+}
+
+static
+NTSTATUS
+SrvShareBootstrap(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    )
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	wchar16_t wszPipeRootName[] = {'I','P','C','$',0};
+	wchar16_t wszFileRootName[] = {'C','$',0};
+    PSTR  pszFileSystemRoot = NULL;
+    PWSTR pwszFileSystemRoot = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
+
+    ntStatus = SrvShareFindByName(
+					pShareList,
+					&wszPipeRootName[0],
+					&pShareInfo);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+	wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
+	wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_IPC_W;
+	wchar16_t wszDesc[] = {'R','e','m','o','t','e',' ','I','P','C',0};
+
+	ntStatus = SrvShareAdd(
+							pShareList,
+	                    &wszPipeRootName[0],
+	                    &wszPipeSystemRoot[0],
+	                    &wszDesc[0],
+	                    NULL,
+	                    0,
+	                    &wszServiceType[0]);
+    }
+    else
+    {
+	SrvShareReleaseInfo(pShareInfo);
+	pShareInfo = NULL;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareFindByName(
+						pShareList,
+						&wszFileRootName[0],
+						&pShareInfo);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+	wchar16_t wszDesc[] =
+						{'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
+	wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+	CHAR szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
+	CHAR szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
+
+	ntStatus = SrvAllocateStringPrintf(
+	                    &pszFileSystemRoot,
+	                    "%s%s%s",
+	                    &szTmpFSRoot[0],
+	                    (((szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '/') ||
+	                      (szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '\\')) ? "" : "\\"),
+	                    &szDefaultSharePath[0]);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = SrvMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+		ntStatus = SrvShareAdd(
+						pShareList,
+						&wszFileRootName[0],
+						pwszFileSystemRoot,
+						&wszDesc[0],
+						NULL,
+						0,
+						&wszServiceType[0]);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SRV_SAFE_FREE_MEMORY(pszFileSystemRoot);
+    SRV_SAFE_FREE_MEMORY(pwszFileSystemRoot);
+
+	return ntStatus;
+
+error:
+
+	LWIO_LOG_ERROR("Failed to bootstrap default shares. [error code: %d]",
+			       ntStatus);
+
+	goto cleanup;
 }
 
 static
@@ -386,7 +483,7 @@ SrvShutdown(
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
-        SrvShareFreeContextContents(&gSMBSrvGlobals.shareList);
+        SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
 
         if (gSMBSrvGlobals.hPacketAllocator)
         {
