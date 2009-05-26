@@ -666,7 +666,7 @@ SrvShareDbWriteToShareInfo(
 			{
 						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SMBMbsToWc16s(
+						ntStatus = SrvMbsToWc16s(
 										   (PCSTR)pszStringVal,
 										   &pShareInfo->pwszName);
 						BAIL_ON_NT_STATUS(ntStatus);
@@ -680,7 +680,7 @@ SrvShareDbWriteToShareInfo(
 			{
 						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SMBMbsToWc16s(
+						ntStatus = SrvMbsToWc16s(
 										   (PCSTR)pszStringVal,
 										   &pShareInfo->pwszPath);
 						BAIL_ON_NT_STATUS(ntStatus);
@@ -694,14 +694,14 @@ SrvShareDbWriteToShareInfo(
 			{
 						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SMBMbsToWc16s(
+						ntStatus = SrvMbsToWc16s(
 										   (PCSTR)pszStringVal,
 										   &pShareInfo->pwszComment);
                     }
                     else
                     {
                        /* Deal with empty comments */
-                       ntStatus = SMBMbsToWc16s(
+                       ntStatus = SrvMbsToWc16s(
                                        "",
                                        &pShareInfo->pwszComment);
                     }
@@ -796,7 +796,7 @@ SrvShareDbDelete(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBWc16sToMbs(pwszShareName, &pszShareName);
+    ntStatus = SrvWc16sToMbs(pwszShareName, &pszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gShareRepository_lwshare.dbMutex);
