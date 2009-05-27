@@ -1,10 +1,11 @@
-LWIO Asynchronouse I/O Speclet
-------------------------------
+LWIO Asynchronouse I/O And Rundown Speclet
+------------------------------------------
 
 1. Introduction
 ---------------
 
-This speclet describes how asynchronous I/O works in LWIO.
+This speclet describes how asynchronous I/O support is being added to LWIO.
+It also addresses improvements in how handle rundown happens in LWIO.
 
 1.1 Goals
 ---------
@@ -15,6 +16,7 @@ This speclet describes how asynchronous I/O works in LWIO.
     - Cancellation.
   + Driver support for processing IRPs asynchronously.
   + Driver support for cancelling IRPs.
+- Ensure that handle rundown works in desired scenarios.
 
 1.2 Non-Goals
 -------------
@@ -75,6 +77,10 @@ The IoStatusBlock will contain the result of the operation.
 To cancel an async I/O, the caller calls IoCancelAsyncContext().  Note that
 the caller must still dereference the context.
 
+Once an async I/O is cancelled, the operation will complete with either
+STATUS_CANCELLED or the normal result of the I/O.  That means that the
+async callback will be called with the appropriate result.
+
 2.3 Driver Support
 -------------------
 
@@ -113,7 +119,7 @@ IoIrpSetCancelCallback(
     IN PIRP Irp,
     IN PIO_IRP_CALLBACK Callback,
     IN OPTIONAL PVOID CallbackContext
-    )
+    );
 
 VOID
 IoIrpComplete(
@@ -140,7 +146,281 @@ IoIrpComplete().  Before calling this function, however, the driver must make
 sure to clear any cancellation callback (see above) and it must set the
 IoStatusBlock in the IRP with the proper Status and Information.
 
-3. IO Manager Implementation
-----------------------------
+3. Rundown
+----------
+
+[NOTE: THIS SECTION WILL CHANGE SHORTLY BASED ON ADDITIONAL DISCUSSIONS.]
+
+There are two basic rundown scenarios to consider here.  One is the lwiod
+shutdown case and the other is an RPC named pipe (NP) server scenario.  The
+former can be handled with the standard lwmsg and iomgr asynchronous support.
+The latter, however, needs additional support.
+
+There are three basic rundown scenarios to consider here:
+
+1) lwiod shutdown
+2) RPC named pipe (NP) server shutdown
+3) SRV operation vs. close race
+
+The first can be handled with the standard lwmsg and iomgr asynchronous
+support.  The other two, however, need additional support.
+
+
+3.1 lwiod Shutdown Scenario
+---------------------------
+
+With the lwmsg async support, all lwmsg-based i/o would be async on the
+server-side.  If the IPC connection goes away, lwmsg can cancel all
+asynchronous operations and cleanup its file object handles.  Thus, if lwiod
+shuts down lwmsg before shutting down the iomgr, the iomgr does not need any
+additional rundown support aside from asynchronous i/o cancellation support.
+
+In other words, because of lwmsg, iomgr does not need additional rundown
+support for rundown.  Rather, lwiod just need to use lwmsg in the following
+manner:
+
+  - all lwmsg-based i/o would be async on server-side.
+
+  - lwmsg server will do async cancel and then close.
+
+  - would need to ensure that lwiod shutdown first shuts down lwmsg before
+    shutting down iomgr.
+
+
+3.2 RPC NP Server Shutdown Scenario
+-----------------------------------
+
+The important rundown scenario for us is RPC NP server shutdown:
+
+   a) thread 1 - "accept" thread (waiting for client connection)
+      - NtFsControlFile(h)
+
+   b) thread 2 - shutdown server
+      - NtCloseFile(h)
+      - wait for "accept" thread to complete
+
+This scenario is not handled by lwmsg handle rundown.
+
+The current lwmsg server-side usage (IopIpcCloseFile()) handles NtCloseFile()
+by simply unregistering the file object handle from lwmsg (using
+lwmsg_assoc_unregister_handle()).  This does not issue an IoCloseFile().  The
+IoCloseFile() is only issues when IopIpcCleanupFileHandle() is called by lwmsg
+when the last handle reference goes away.  The last reference only goes away
+when all operations for the handle dispatched by lwmsg have been finished.
+
+<ISSUE>
+ADD INFO TO SPEC: Why does lwmsg_assoc_unregister_handle() not cancel
+all operations using the handle?  Is it because lwmsg does not track that
+explicitly?
+</ISSUE>
+
+Additional support is needed in iomgr to handle this scenario.
+
+
+3.3 SRV Operation vs. Close Race Scenario
+-----------------------------------------
+
+There is a scenario in SRV where a client sends an operation on a FID and a
+close on a FID over the wire thus creating a race between the two operations.
+(This is not a chaining case, but rather two "independent" oprations.)  While
+this sequence would be invalid from a correctness point of view, the server
+needs to behave sensisbly and not crash.
+
+If SRV were to just call IoCloseFile() and IoReadFile() in separate threads, a
+race coould happen where the IoCloseFile() would clean up the file object and
+cause the IoReadFile() to be called with invalid memory.
+
+
+3.4 Rundown Solution
+--------------------
+
+The solution to the unhandled rundown scenarios above is to separate the
+notion of "closing the file" from the lifetime of the file object.  This can
+be achieved with the notion of "shutdown" vs. "close" (as per BSD socket
+notions).  We can define a "shutdown" that does the equivalent of "closing the
+file" without de-allocating the handle/file object.  The "close" then becomes
+a "shutdown" + file object cleanup.
+
+In places where XxxCloseFile() would be called, we can now call
+XxxShutdownFile() instead.  This would set the file to a "closed" state,
+cancel any outstanding I/O, and prevent any new I/O from being issued.  When
+the caller determines that it no longer needs the file handle (i.e., all I/O
+is complete or even the last reference to state embedding the file handle is
+gone), the caller can call XxxCloseFile() to free up the file object state.
+
+This is the breakdown of how the relevant APIs would work:
+
+IoShutdownFile() [TODO]
+- if !FILE_OBJECT_FLAG_CLOSED
+  + set FILE_OBJECT_FLAG_CLOSED
+  + issue cancellation for all outstanding I/O
+  + MAY wait for outstanding I/O to complete (not required)
+
+IoCloseFile()
+- call IoShutdownFile() [TODO]
+- wait for outstanding I/O to complete [TODO]
+- send IRP_TYPE_CLOSE to driver
+
+NtCtxShutdownFile() [TODO]
+- send SHUTDOWN_FILE message to lwiod
+
+NtCtxCloseFile()
+- send CLOSE_FILE message
+- remove from handle table
+  + call lwmsg_assoc_unregister_handle() (via NtIpcUnregisterFileHandle()).
+
+IopIpcShutdownFile() [TODO]
+- call IoShutdownFile()
+
+IopIpcCloseFile()
+- call IoShutdownFile() [TODO]
+- remove from handle table
+  + call lwmsg_assoc_unregister_handle() (via NtIpcUnregisterFileHandle()).
+
+IopIpcCleanupFileHandle()
+- NOTE: called on last deref from lwmsg
+- call IoCloseFile()
+
+Note that IoCloseFile() and IoShutdownFile() could block if there are
+in-flight ops.  So IoCloseFile() and IoShutdownFile() need to support ACB to
+signal completion but not to cancel.
+
+
+3.4.1 Rundown Solution Template
+-------------------------------
+
+This is a general algorithm/template for rundown protection.  It need to be
+modified depending on how state is managed.  Note that LAST below could be 1
+or 0 depending on how how the context is managed and whether a reference count
+or in-flight operation count is used.
+
+   a) thread 1 - doing some operation
+      - InterlockedIncrement(&context->RefCount) // (potentially from table lookup)
+
+      - Lock(context->Mutex)
+      - isClosed = context->IsClosed
+      - Unlock(context->Mutex)
+      - if (!isClosed)
+        + XxxOperationFile(context->FileHandle)
+        + Lock(context->Mutex)
+        + isClosed = context->IsClosed
+        + Unlock(context->Mutex)
+
+      - count = InterlockedDecrement(&context->RefCount)
+      - if (isCosed && (count == LAST))
+        + Signal(context->RundownCondition)
+
+
+   b) thread 2 - rundown/"close"
+      - InterlockedIncrement(&context->RefCount) // (potentially from table lookup)
+
+      - Lock(context->Mutex)
+      - context->IsClosed = true
+      - (remove context from appropriate table(s))
+      - Unlock(context->Mutex)
+      - XxxShutdownFile(context->FileHandle, WAIT)
+      - Lock(context->mutex)
+      - count = InterlockedGet(&context->RefCount)
+      - if (count > 1)
+        + Wait(context->RundownCondition, context->Mutex)
+      - Unlock(context->Mutex)
+      - XxxCloseFile(context->FileHandle)
+      - context->FileHandle = NULL
+
+      - InterlockedDecrement(&context->RefCount)
+
+3.4.2 RPC NP Server Shutdown Scenario Solution
+----------------------------------------------
+
+   a) thread 1 - "accept" thread (waiting for client connection)
+      - NtFsControlFile(h)
+
+   b) thread 2 - shutdown server
+      - NtShutdownFile(h)
+      - wait for "accept" thread to complete (join)
+      - NtCloseFile(h)
+
+3.4.3 SRV Close Race Solution
+-----------------------------
+
+The implementation is like the template section above (3.4.1).
+
+
+4. Async I/O IO Manager Implementation
+--------------------------------------
 
 [CURRENTLY WORKING ON THIS]
+
+In the IO manager, we need to add the following:
+
+- From IoXxxFile() API perspective, PIO_ASYNC_CONTEXT is just an opaque
+  pointer.  Internally, it will point to either an IRP or a field inside an
+  IRP.
+
+- Need reference counting for IRP.
+
+- Need IRP_FLAGS to track state of IRP:
+  + IRP_FLAG_COMPLETE
+  + IRP_FLAG_CANCELLED
+
+- Need cancellation callback information in IRP.
+
+- Need completion callback information in IRP.
+
+- Need to track "close" state in file object
+  + FILE_OBJECT_FLAG_CLOSED
+
+4.1 Locking
+-----------
+
+Need locks to protect:
+
+- Device object's file object list
+- File object's IRP list and flags
+- IRP's cancellation information (flag and callback).
+
+Functions affected by locks:
+- IopFileObjectAllocate()/IopFileObjectFree().
+- ...
+
+
+<ISSUE>
+Current assumptions:
+- drivers only loaded synchronously on startup
+- devices only created synchronously on startup
+
+Implications:
+- no locks needed to protect driver and device lists
+</ISSUE>
+
+4.2 IoShutdownFile()/IoCloseFile() Details
+------------------------------------------
+
+NTSTATUS
+IoShutdownFile(
+    IN OUT IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN BOOLEAN WaitForInFlightOperation
+    );
+
+IoShutdownFile() needs to support async:
+
+- if (!FILE_OBJECT_FLAG_CLOSED)
+  + set FILE_OBJECT_FLAG_CLOSED
+  + issue cancellation for all outstanding IRPs
+
+- if WaitForInFlightOperations
+  + if in-flight ops, return STATUS_PENDING (or block if sync)
+  + wait until in-flight ops is 0
+
+[NOTE: common completion processing woould check for FILE_OBJECT_FLAG_CLOSED
+and resume any waiting file shutdown operation.]
+
+NTSTATUS
+IoCloseFile(
+    IN OUT IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock
+    );
+
+- IoShutdownFile(..., TRUE)
+- send IRP_TYPE_CLOSE to driver
