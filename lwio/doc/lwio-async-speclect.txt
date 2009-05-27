@@ -31,7 +31,7 @@ It also addresses improvements in how handle rundown happens in LWIO.
 
 IoXxxFile() APIs have an optional parameter:
 
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
 
 Currently, this parameter is unused and must always be NULL.  The async I/O
 support will use this parameter to control whether the IoXxxFile() API should
@@ -49,6 +49,11 @@ On input, the ACB must contain a callback function.  On output, the ACB will
 return an AsyncContext that can be used to cancel the I/O.  It is up to the
 caller to dereference the returned context when the caller is done with it by
 calling IoDereferenceAsyncContext().
+
+VOID
+IoDereferenceAsyncContext(
+    IN OUT PIO_ASYNC_CONTEXT* AsyncContext
+    );
 
 The async callback is defined as:
 
@@ -77,9 +82,26 @@ The IoStatusBlock will contain the result of the operation.
 To cancel an async I/O, the caller calls IoCancelAsyncContext().  Note that
 the caller must still dereference the context.
 
+BOOLEAN
+IoCancelAsyncContext(
+    IN PIO_ASYNC_CONTEXT AsyncContext
+    );
+
+IoCancelAsyncContext() will set the cancel bit on the call and call the
+cancellation routine on the operation (if any).  If the operation is in a
+cancellable state (i.e., a cancel routine is set), IoCancelAsyncContext()
+returns TRUE.  If the operation is not cancellable (i.e., a cancel routine is
+not currently set), IoCancelAsyncContext() returns FALSE.
+
+<ISSUE>
+Should IoCancelAsyncContext() return a BOOLEAN or just be VOID?  Is there any
+reason why we would actually care?
+</ISSUE>
+
 Once an async I/O is cancelled, the operation will complete with either
 STATUS_CANCELLED or the normal result of the I/O.  That means that the
 async callback will be called with the appropriate result.
+
 
 2.3 Driver Support
 -------------------
@@ -136,7 +158,7 @@ synchronous.
 
 Before a driver completes an IRP (synchronously or asynchronously), the driver
 must clear any cancellation callback that it set on the IRP.  This is done by
-setting a NULL cancellation callback.
+setting a NULL cancellation callback using IoIrpSetCancelCallback().
 
 2.3.3 Completion
 ----------------
@@ -148,8 +170,6 @@ IoStatusBlock in the IRP with the proper Status and Information.
 
 3. Rundown
 ----------
-
-[NOTE: THIS SECTION WILL CHANGE SHORTLY BASED ON ADDITIONAL DISCUSSIONS.]
 
 There are two basic rundown scenarios to consider here.  One is the lwiod
 shutdown case and the other is an RPC named pipe (NP) server scenario.  The
@@ -361,7 +381,7 @@ In the IO manager, we need to add the following:
 
 - Need IRP_FLAGS to track state of IRP:
   + IRP_FLAG_COMPLETE
-  + IRP_FLAG_CANCELLED
+  + IRP_FLAG_CANCEL
 
 - Need cancellation callback information in IRP.
 
@@ -381,8 +401,9 @@ Need locks to protect:
 
 Functions affected by locks:
 - IopFileObjectAllocate()/IopFileObjectFree().
-- ...
+- IoIrpSetCancelCallback()/IoCancelAsyncContext()/IoIrpComplete().
 
+[TODO: Specify lock locations]
 
 <ISSUE>
 Current assumptions:
@@ -424,3 +445,67 @@ IoCloseFile(
 
 - IoShutdownFile(..., TRUE)
 - send IRP_TYPE_CLOSE to driver
+
+4.3 Cancellation Details
+------------------------
+
+IoIrpSetCancelCallback()
+- acquire LOCK
+- set cancel callback
+- release LOCK
+
+IoCancelAsyncContext()
+- acquire LOCK
+- if IRP_FLAG_CANCEL and IRP_FLAG_COMPLETE not set
+  + set IPR_FLAG_CANCEL
+  + call cancel callback, if any
+- release LOCK
+
+[NOTE: CANCEL CALLBACK MUST BE QUICK.]
+
+4.4 Completion Details
+----------------------
+
+The details may change, but the basic idea is:
+
+struct _IO_IRP_COMPLETION_CONTEXT {
+    union {
+        struct {
+            IN OPTIONAL PIO_ASYNC_CALLBACK Callback;
+            IN OPTIONAL PVOID CallbackContext;
+        } Async;
+        struct {
+            OUT OPTIONAL PIO_STATUS_BLOCK IoStatusBlock;
+            IN OPTIONAL <POINTER TO CONDITION VARIABLE> Condition;
+        } Sync;
+    };
+    BOOLEAN IsAsync;
+} IO_IRP_COMPLETION_CONTEXT, *PIO_IRP_COMPLETION_CONTEXT;
+
+IoXxxFile()
+- if AsyncControlBlock
+  + context->IsAsync = TRUE
+  + context->Async.Callback = AsyncControlBlock->Callback;
+  + context->Async.CallbackContext = AsyncControlBlock->CallbackContext;
+- else
+  + context->IsAsync = FALSE
+  + context->Sync.IoStatusBlock = IoStatusBlock argument
+  + context->Sync.Condition = pointer to stack condition variable
+- create IRP
+  + Irp.CompletionContext = context
+- dispatch IRP
+- if sync
+  + if STATUS_PENDING
+    - wait on context->Sync.Condition
+  + *IoStatusBlock = Irp.IoStatusBlock
+  + deref IRP
+
+IoIrpComplete()
+- acquire LOCK
+- set IRP_FLAG_COMPLETE
+- release LOCK
+- if Irp->IsAsync
+  + call Irp->CompletionContext->Callback
+  + deref Irp
+- else
+  + signal Irp->Condition
