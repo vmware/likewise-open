@@ -18,20 +18,19 @@ NtlmSrvIpcAcceptSecurityContext(
 
     dwError = NtlmServerAcceptSecurityContext(
                         (HANDLE)Handle,
-                        pReq->pszLoginName,
-                        pReq->pszPassword);
-                        pReq->pszPrincipal,
-                        pReq->pszPackage,
-                        pReq->fCredentialUse,
-                        pReq->pvLogonId,
-                        pReq->pGetKeyFn,
-                        pReq->pvGetKeyArgument,
                         pReq->phCredential,
-                        pReq->ptsExpiry
+                        pReq->phContext,
+                        pReq->pInput,
+                        pReq->fContextReq,
+                        pReq->TargetDataRep,
+                        pReq->phNewContext,
+                        pReq->pOutput,
+                        pReq->pfContextAttr,
+                        pReq->ptsTimeStamp
                         );
     if (!dwError)
     {
-        pResponse->tag = NTLM_R_ACQUIRE_CREDENTIALS_HANDLE_SUCCESS;
+        pResponse->tag = NTLM_R_ACCEPT_SECURITY_CONTEXT_SUCCESS;
         pResponse->object = NULL;
     }
     else
@@ -39,7 +38,7 @@ NtlmSrvIpcAcceptSecurityContext(
         dwError = NtlmSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_NTLM_ERROR(dwError);
 
-        pResponse->tag = NTLM_R_ACQUIRE_CREDENTIALS_HANDLE_SUCCESS;
+        pResponse->tag = NTLM_R_ACCEPT_SECURITY_CONTEXT_FAILURE;
         pResponse->object = pError;
     }
 
@@ -112,25 +111,19 @@ NtlmSrvIpcDecryptMessage(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_DECRYPT_MESSAGE_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerDecryptMessage(
                         (HANDLE)Handle,
-                        pReq->pszLoginName,
-                        pReq->pszPassword);
-                        pReq->pszPrincipal,
-                        pReq->pszPackage,
-                        pReq->fCredentialUse,
-                        pReq->pvLogonId,
-                        pReq->pGetKeyFn,
-                        pReq->pvGetKeyArgument,
-                        pReq->phCredential,
-                        pReq->ptsExpiry
+                        pReq->phContext,
+                        pReq->pMessage,
+                        pReq->MessageSeqNo,
+                        pReq->pfQoP
                         );
     if (!dwError)
     {
@@ -163,25 +156,15 @@ NtlmSrvIpcEncryptMessage(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_ENCRYPT_MESSAGE_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerEncryptMessage(
                         (HANDLE)Handle,
-                        pReq->pszLoginName,
-                        pReq->pszPassword);
-                        pReq->pszPrincipal,
-                        pReq->pszPackage,
-                        pReq->fCredentialUse,
-                        pReq->pvLogonId,
-                        pReq->pGetKeyFn,
-                        pReq->pvGetKeyArgument,
-                        pReq->phCredential,
-                        pReq->ptsExpiry
                         );
     if (!dwError)
     {
@@ -214,14 +197,14 @@ NtlmSrvIpcExportSecurityContext(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_EXPORT_SECURITY_CONTEXT_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerExportSecurityContext(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -263,14 +246,14 @@ NtlmSrvIpcFreeCredentials(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_FREE_CREDENTIALS_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerFreeCredentials(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -314,14 +297,14 @@ NtlmSrvIpcImportSecurityContext(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_IMPORT_SECURITY_CONTEXT_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerImportSecurityContext(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -363,14 +346,14 @@ NtlmSrvIpcInitializeSecurityContext(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_INITIALIZE_SECURITY_CONTEXT_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerInitializeSecurityContext(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -415,14 +398,14 @@ NtlmSrvIpcMakeSignature(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_MAKE_SIGNATURE_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerMakeSignature(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -464,14 +447,14 @@ NtlmSrvIpcQueryCredentialsAttributes(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_QUERY_CREDENTIALS_ATTRIBUTES_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerQueryCredentialsAttributes(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -515,14 +498,14 @@ NtlmSrvIpcQueryContextAttributes(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_QUERY_CONTEXT_ATTRIBUTES_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerQueryContextAttributes(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
@@ -564,14 +547,14 @@ NtlmSrvIpcVerifySignature(
     )
 {
     DWORD dwError = 0;
-    PNTLM_IPC_ACQUIRE_CREDENTIALS_HANDLE_REQ pReq = pRequest->object;
+    PNTLM_IPC_VERIFY_SIGNATURE_REQ pReq = pRequest->object;
     PNTLM_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerAcquireCredentialsHandle(
+    dwError = NtlmServerVerifySignature(
                         (HANDLE)Handle,
                         pReq->pszLoginName,
                         pReq->pszPassword);
