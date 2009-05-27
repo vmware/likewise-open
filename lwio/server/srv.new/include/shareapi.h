@@ -53,13 +53,19 @@ SrvShareInit(
 	);
 
 NTSTATUS
-SrvShareMapServiceStringToId(
+SrvShareMapIdToServiceStringW(
+    IN  SHARE_SERVICE  service,
+    OUT PWSTR*         ppwszService
+    );
+
+NTSTATUS
+SrvShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     );
 
 NTSTATUS
-SrvShareMapIdToServiceString(
+SrvShareMapServiceStringToId(
     IN     PCSTR          pszService,
     IN OUT SHARE_SERVICE* pService
     );
@@ -85,7 +91,7 @@ NTSTATUS
 SrvShareFindByName(
     IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     IN  PWSTR                      pwszShareName,
-    OUT PSHARE_INFO*               ppShareInfo
+    OUT PSRV_SHARE_INFO*           ppShareInfo
     );
 
 NTSTATUS
@@ -96,8 +102,15 @@ SrvShareAdd(
     IN     PWSTR                      pwszComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     ULONG                      ulShareType
+    IN     PWSTR                      pwszShareType
     );
+
+NTSTATUS
+SrvShareUpdate(
+	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+	IN     PWSTR                      pwszShareName,
+	IN     PSRV_SHARE_INFO            pShareInfo
+	);
 
 NTSTATUS
 SrvShareDelete(
@@ -108,7 +121,7 @@ SrvShareDelete(
 NTSTATUS
 SrvShareEnum(
 	IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    OUT    PSHARE_INFO**              pppShareInfo,
+    OUT    PSRV_SHARE_INFO**          pppShareInfo,
     IN OUT PULONG                     pulNumEntries
     );
 
@@ -123,11 +136,17 @@ SrvShareFreeEntry(
     );
 
 VOID
+SrvShareFreeInfoList(
+    PSRV_SHARE_INFO* ppInfoList,
+    ULONG            ulNumInfos
+    );
+
+VOID
 SrvShareReleaseInfo(
     IN PSRV_SHARE_INFO pShareInfo
     );
 
-VOID
+NTSTATUS
 SrvShareShutdown(
     VOID
     );

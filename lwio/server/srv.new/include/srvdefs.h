@@ -48,18 +48,6 @@
 #ifndef __SRV_DEFS_H__
 #define __SRV_DEFS_H__
 
-#define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
-#define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
-
-#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwtest"
-#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 't', 'e', 's', 't', 0 }
-
-#define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
-#define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
-
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npvfs"
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'v', 'f', 's', 0 }
-
 #define SRV_SAFE_FREE_MEMORY(pMemory) \
 	if (pMemory) { SrvFreeMemory(pMemory); }
 

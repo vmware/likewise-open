@@ -49,6 +49,8 @@
 #include <config.h>
 #include <lwiosys.h>
 
+#include <uuid/uuid.h>
+
 #include <lwio/lwio.h>
 
 #include <lwiodef.h>
@@ -64,8 +66,16 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
+#include <srvdefs.h>
+#include <srvutils.h>
+#include <shareapi.h>
+
 #include "defs.h"
 #include "structs.h"
 #include "srvshares.h"
+#include "ccb.h"
+#include "deviceio.h"
+#include "devicecreate.h"
+#include "device.h"
 
 #include "externs.h"

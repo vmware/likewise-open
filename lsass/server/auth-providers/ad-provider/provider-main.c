@@ -558,6 +558,13 @@ cleanup:
     return dwError;
 
 error:
+    /* If the domain is unknown, allow the next provider
+       a chance to answer */
+
+    if (dwError == LSA_ERROR_NO_SUCH_DOMAIN) {
+        dwError = LSA_ERROR_NOT_HANDLED;
+    }
+
     goto cleanup;
 }
 

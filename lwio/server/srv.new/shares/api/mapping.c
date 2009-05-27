@@ -59,7 +59,38 @@ SrvShareMapSpecificToWindowsPath(
     );
 
 NTSTATUS
-SrvShareMapIdToServiceString(
+SrvShareMapIdToServiceStringW(
+    IN  SHARE_SERVICE  service,
+    OUT PWSTR*         ppwszService
+    )
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	PWSTR pwszShareType = NULL;
+	PSTR  pszShareType = NULL;
+
+	ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	*ppwszService = pwszShareType;
+
+cleanup:
+
+	SRV_SAFE_FREE_MEMORY(pszShareType);
+
+	return ntStatus;
+
+error:
+
+	*ppwszService = NULL;
+
+	goto cleanup;
+}
+
+NTSTATUS
+SrvShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     )
@@ -72,31 +103,31 @@ SrvShareMapIdToServiceString(
     {
         case SHARE_SERVICE_DISK_SHARE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_DISK;
+            pszId = LWIO_SRV_SHARE_STRING_ID_DISK_A;
 
             break;
 
         case SHARE_SERVICE_PRINTER:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_PRINTER;
+            pszId = LWIO_SRV_SHARE_STRING_ID_PRINTER_A;
 
             break;
 
         case SHARE_SERVICE_COMM_DEVICE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_COMM;
+            pszId = LWIO_SRV_SHARE_STRING_ID_COMM_A;
 
             break;
 
         case SHARE_SERVICE_NAMED_PIPE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_IPC;
+            pszId = LWIO_SRV_SHARE_STRING_ID_IPC_A;
 
             break;
 
         case SHARE_SERVICE_ANY:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_ANY;
+            pszId = LWIO_SRV_SHARE_STRING_ID_ANY_A;
 
             break;
 
@@ -139,23 +170,23 @@ SrvShareMapServiceStringToId(
     {
         ntStatus = STATUS_NOT_FOUND;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_IPC))
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_IPC_A))
     {
         service = SHARE_SERVICE_NAMED_PIPE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_DISK))
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_DISK_A))
     {
         service = SHARE_SERVICE_DISK_SHARE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_COMM))
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_COMM_A))
     {
         service = SHARE_SERVICE_COMM_DEVICE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_PRINTER))
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_PRINTER_A))
     {
         service = SHARE_SERVICE_PRINTER;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_ANY))
+    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_ANY_A))
     {
         service = SHARE_SERVICE_ANY;
     }

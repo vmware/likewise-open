@@ -77,7 +77,7 @@ error:
 
 DWORD
 SamDbComputeNTHash(
-    PCSTR pszPassword,
+    PCWSTR pwszPassword,
     PBYTE pHash,
     DWORD dwHashByteLen
     )
@@ -92,9 +92,11 @@ SamDbComputeNTHash(
 
     memset(pHash, 0, dwHashByteLen);
 
-    if (pszPassword)
+    if (pwszPassword)
     {
-        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
+        MD4((PBYTE)pwszPassword,
+            wc16slen(pwszPassword)*sizeof(WCHAR),
+            pHash);
     }
 
 cleanup:

@@ -49,6 +49,8 @@
 #include <config.h>
 #include <lwiosys.h>
 
+#include <sqlite3.h>
+
 #include <lwio/lwio.h>
 
 #include <lwiodef.h>
@@ -57,6 +59,10 @@
 
 #include <lw/ntstatus.h>
 
+#include <srvdefs.h>
+
+#include <srvutils.h>
+#include <shareapi.h>
 #include <sharerepository.h>
 
 #include "defs.h"

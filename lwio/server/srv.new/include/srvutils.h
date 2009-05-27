@@ -44,7 +44,10 @@
 #ifndef __SRV_UTILS_H__
 #define __SRV_UTILS_H__
 
+#include <utils/defs.h>
+#include <utils/structs.h>
 #include <utils/memory.h>
+#include <utils/string.h>
 #include <utils/path.h>
 #include <utils/prodcons.h>
 

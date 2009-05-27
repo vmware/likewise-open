@@ -11,8 +11,8 @@ libshareapi_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv/include \
-    -I@top_srcdir@/server/srv/shares/include
+    -I@top_srcdir@/server/srv.new/include \
+    -I@top_srcdir@/server/srv.new/shares/include
 
 libshareapi_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la

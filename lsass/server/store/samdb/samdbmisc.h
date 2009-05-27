@@ -59,7 +59,7 @@ SamDbComputeLMHash(
 
 DWORD
 SamDbComputeNTHash(
-    PCSTR pszPassword,
+    PCWSTR pwszPassword,
     PBYTE pHash,
     DWORD dwHashByteLen
     );

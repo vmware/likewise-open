@@ -46,11 +46,32 @@
 #ifndef __SRV_SHARES_DEFS_H__
 #define __SRV_SHARES_DEFS_H__
 
-#define LWIO_SRV_SHARE_STRING_ID_ANY     "????"
-#define LWIO_SRV_SHARE_STRING_ID_IPC     "IPC"
-#define LWIO_SRV_SHARE_STRING_ID_COMM    "COMM"
-#define LWIO_SRV_SHARE_STRING_ID_PRINTER "LPT1:"
-#define LWIO_SRV_SHARE_STRING_ID_DISK    "A:"
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
+
+#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwtest"
+#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 't', 'e', 's', 't', 0 }
+
+#define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
+#define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
+
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npvfs"
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'v', 'f', 's', 0 }
+
+#define LWIO_SRV_SHARE_STRING_ID_ANY_A "????"
+#define LWIO_SRV_SHARE_STRING_ID_ANY_W {'?','?','?','?',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_IPC_A "IPC"
+#define LWIO_SRV_SHARE_STRING_ID_IPC_W {'I','P','C',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_COMM_A "COMM"
+#define LWIO_SRV_SHARE_STRING_ID_COMM_W {'C','O','M','M',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_PRINTER_A "LPT1:"
+#define LWIO_SRV_SHARE_STRING_ID_PRINTER_W {'L','P','T','1',':',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_DISK_A "A:"
+#define LWIO_SRV_SHARE_STRING_ID_DISK_W {'A',':',0}
 
 typedef enum
 {

@@ -257,8 +257,12 @@ LwNtCtxCreateFile(
     PVOID pReply = NULL;
     IO_FILE_HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_ACCESS_TOKEN pResolvedSecurityToken = NULL;
 
-    request.pSecurityToken = (PIO_ACCESS_TOKEN) pSecurityToken;
+    status = LwIoResolveAccessToken(pSecurityToken, &pResolvedSecurityToken);
+    BAIL_ON_NT_STATUS(status);
+
+    request.pSecurityToken = pResolvedSecurityToken;
     request.FileName = *FileName;
     request.DesiredAccess = DesiredAccess;
     request.AllocationSize = AllocationSize;
@@ -318,6 +322,12 @@ LwNtCtxCreateFile(
     pResponse->FileHandle = NULL;
 
 cleanup:
+
+    if (pResolvedSecurityToken)
+    {
+        LwIoDeleteAccessToken(pResolvedSecurityToken);
+    }
+
     if (status)
     {
         // TODO !!!! -- ASK BRIAN ABOUT FileHandle and failures...
@@ -332,7 +342,12 @@ cleanup:
     *IoStatusBlock = ioStatusBlock;
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
+
     return status;
+
+error:
+
+    goto cleanup;
 }
 
 NTSTATUS

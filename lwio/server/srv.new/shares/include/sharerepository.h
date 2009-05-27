@@ -53,19 +53,19 @@ typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_OPEN)(
 						);
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_FIND_BY_NAME)(
-						IN  HANDLE       hRepository,
-						IN  PWSTR        pwszShareName,
-						OUT PSHARE_INFO* ppShareInfo
+						IN  HANDLE           hRepository,
+						IN  PWSTR            pwszShareName,
+						OUT PSRV_SHARE_INFO* ppShareInfo
 						);
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_ADD)(
-						IN  HANDLE hRepository,
-						IN  PWSTR  pwszShareName,
-						IN  PWSTR  pwszPath,
-						IN  PWSTR  pwszComment,
-						IN  PBYTE  pSecDesc,
-						IN  ULONG  ulSecDescLen,
-						IN  PWSTR  pwszService
+						IN  HANDLE        hRepository,
+						IN  PWSTR         pwszShareName,
+						IN  PWSTR         pwszPath,
+						IN  PWSTR         pwszComment,
+						IN  PBYTE         pSecDesc,
+						IN  ULONG         ulSecDescLen,
+						IN  PWSTR         pwszService
 						);
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM)(
@@ -75,10 +75,10 @@ typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM)(
 						);
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_ENUM)(
-						IN     HANDLE           hRepository,
-						IN     HANDLE           hResume,
-						OUT    PSHARE_DB_INFO** pppShareInfoList,
-						IN OUT PULONG           pulNumSharesFound
+						IN     HANDLE            hRepository,
+						IN     HANDLE            hResume,
+						OUT    PSRV_SHARE_INFO** pppShareInfoList,
+						IN OUT PULONG            pulNumSharesFound
 						);
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_END_ENUM)(

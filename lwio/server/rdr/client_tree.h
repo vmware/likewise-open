@@ -34,6 +34,7 @@ SMBSrvClientTreeOpen(
     PCSTR pszHostname,
     PCSTR pszPrincipal,
     PCSTR pszSharename,
+    uid_t uid,
     PSMB_TREE* ppTree
     );
 

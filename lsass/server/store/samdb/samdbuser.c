@@ -145,7 +145,7 @@ SamDbSetPassword_inlock(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbComputeNTHash(
-                pszPassword,
+                pwszPassword,
                 &ntHash[0],
                 sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -331,7 +331,7 @@ SamDbVerifyPassword_inlock(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbComputeNTHash(
-                pszPassword,
+                pwszPassword,
                 &ntHash[0],
                 sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);

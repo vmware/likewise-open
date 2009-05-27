@@ -47,6 +47,8 @@
  *
  */
 
+#include "includes.h"
+
 NTSTATUS
 SrvShareInit(
     VOID
@@ -75,7 +77,7 @@ SrvShareShutdown(
 	status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
 
 #endif
-	BAIL_ON_NT_STATUS(ntStatus);
+	BAIL_ON_NT_STATUS(status);
 
 	gSrvShareApi.pFnTable = NULL;
 

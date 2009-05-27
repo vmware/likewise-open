@@ -50,23 +50,16 @@
 static
 NTSTATUS
 SrvShareFindByName_inlock(
-    IN  PLWIO_SRV_SHARE_LIST pShareList,
-    IN  PWSTR                pwszShareName,
-    OUT PSRV_SHARE_INFO*     ppShareInfo
+    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN  PWSTR                      pwszShareName,
+    OUT PSRV_SHARE_INFO*           ppShareInfo
     );
 
 static
 NTSTATUS
 SrvShareRemoveFromList_inlock(
-    IN OUT PLWIO_SRV_SHARE_LIST pShareList,
-    IN     PWSTR                pwszShareName
-    );
-
-static
-VOID
-SrvShareFreeInfoList(
-    PSRV_SHARE_INFO* ppInfoList,
-    ULONG            ulNumInfos
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName
     );
 
 static
@@ -85,7 +78,6 @@ SrvShareInitList(
     HANDLE   hResume = NULL;
     PSRV_SHARE_INFO* ppShareInfoList = NULL;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
-    ULONG            ulOffset = 0;
     ULONG            ulLimit  = 256;
     ULONG            ulNumSharesFound = 0;
 
@@ -163,7 +155,7 @@ cleanup:
 
 error:
 
-    SrvShareFreeList(pShareList);
+	SrvShareFreeListContents(pShareList);
 
     goto cleanup;
 }
@@ -180,7 +172,7 @@ SrvShareFindByName(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
-    ntStatus = SrvFindShareByName_inlock(
+    ntStatus = SrvShareFindByName_inlock(
                         pShareList,
                         pwszShareName,
                         ppShareInfo);
@@ -193,9 +185,9 @@ SrvShareFindByName(
 static
 NTSTATUS
 SrvShareFindByName_inlock(
-    IN  PLWIO_SRV_SHARE_LIST pShareList,
-    IN  PWSTR                pwszShareName,
-    OUT PSRV_SHARE_INFO*     ppShareInfo
+    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN  PWSTR                      pwszShareName,
+    OUT PSRV_SHARE_INFO*           ppShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -245,14 +237,14 @@ SrvShareAdd(
     IN     PWSTR                      pwszShareComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     ULONG                      ulShareType
+    IN     PWSTR                      pwszShareType
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG ulError = 0;
     BOOLEAN bInLock = FALSE;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
-    PSHARE_DB_INFO pShareInfo = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
+    wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
     HANDLE hRepository = NULL;
 
     if (IsNullOrEmptyString(pwszShareName))
@@ -267,7 +259,7 @@ SrvShareAdd(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    ntStatus = SrvFindShareByName_inlock(
+    ntStatus = SrvShareFindByName_inlock(
                         pShareList,
                         pwszShareName,
                         &pShareInfo);
@@ -325,7 +317,7 @@ SrvShareAdd(
 		pShareInfo->pSecDesc     = NULL;
 		pShareInfo->ulSecDescLen = 0;
     }
-    pShareInfo->service     = ulShareType;
+    // pShareInfo->service     = ulShareType;
 
     pShareInfo->bMarkedForDeletion = FALSE;
 
@@ -348,7 +340,7 @@ SrvShareAdd(
 											pShareInfo->pwszComment,
 											pShareInfo->pSecDesc,
 											pShareInfo->ulSecDescLen,
-											LWIO_SRV_SHARE_STRING_ID_DISK);
+											&wszServiceType[0]);
 	BAIL_ON_NT_STATUS(ntStatus);
 
 	pShareEntry->pNext = pShareList->pShareEntry;
@@ -381,13 +373,78 @@ error:
 }
 
 NTSTATUS
+SrvShareUpdate(
+	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+	IN     PWSTR                      pwszShareName,
+	IN     PSRV_SHARE_INFO            pShareInfo
+	)
+{
+    NTSTATUS ntStatus = 0;
+
+#if 0
+
+    ntStatus = ValidateShareInfo(
+                    dwLevel,
+                    pShareInfo
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ENTER_WRITER_LOCK();
+
+    ntStatus = SrvFindShareByName(
+                    pszShareName,
+                    &pShareEntry
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (dwLevel) {
+
+        case 0:
+            break;
+
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 501:
+            break;
+
+        case 502:
+            break;
+
+        case 503:
+            break;
+
+    }
+
+    ntStatus =  SrvShareDbInsert(
+                    pszShareName,
+                    pszPathName,
+                    pszComment,
+                    dwFlags,
+                    pSecurityDescriptor,
+                    dwSDSize
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    LEAVE_WRITER_LOCK();
+
+#endif
+
+    return(ntStatus);
+}
+
+NTSTATUS
 SrvShareDelete(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG    ulError = 0;
     BOOLEAN  bInLock = FALSE;
     HANDLE   hRepository = NULL;
 
@@ -437,11 +494,10 @@ error:
 static
 NTSTATUS
 SrvShareRemoveFromList_inlock(
-    IN OUT PLWIO_SRV_SHARE_LIST pShareList,
-    IN     PWSTR                pwszShareName
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSRV_SHARE_ENTRY pPrevShareEntry = NULL;
     ULONG ulRemoved = 0;
@@ -478,9 +534,9 @@ SrvShareRemoveFromList_inlock(
 
 NTSTATUS
 SrvShareEnumShares(
-    IN      PLWIO_SRV_SHARE_LIST pShareList,
-    OUT     PSHARE_DB_INFO**     pppShareInfo,
-    IN  OUT PULONG               pulNumEntries
+    IN      PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    OUT     PSRV_SHARE_INFO**          pppShareInfo,
+    IN  OUT PULONG                     pulNumEntries
     )
 {
     NTSTATUS ntStatus = 0;
@@ -548,7 +604,8 @@ SrvShareFreeListContents(
 {
     if (pShareList->pShareEntry)
 	{
-		SrvShareFreeList(pShareList);
+		SrvShareFreeEntry(pShareList->pShareEntry);
+		pShareList->pShareEntry = NULL;
 	}
 
     if (pShareList->pMutex)
@@ -578,7 +635,6 @@ SrvShareFreeEntry(
 	}
 }
 
-static
 VOID
 SrvShareFreeInfoList(
     PSRV_SHARE_INFO* ppInfoList,

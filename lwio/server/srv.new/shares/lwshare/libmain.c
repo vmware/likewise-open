@@ -52,7 +52,7 @@ LwShareRepositoryInit(
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
-	pthread_rwmutex_init(&gShareRepository_lwshare.dbMutex, NULL);
+	pthread_rwlock_init(&gShareRepository_lwshare.dbMutex, NULL);
 	gShareRepository_lwshare.pDbMutex = &gShareRepository_lwshare.dbMutex;
 
 	gShareRepository_lwshare.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
@@ -80,13 +80,8 @@ LwShareRepositoryShutdown(
 	IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
 	)
 {
-	NTSTATUS status = STATUS_SUCCESS;
+	SrvShareDbShutdown();
 
-	status = SrvShareDbShutdown();
-	BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-
-	return status;
+	return STATUS_SUCCESS;
 }
 
