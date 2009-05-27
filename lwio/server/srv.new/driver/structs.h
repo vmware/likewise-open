@@ -58,18 +58,6 @@ typedef struct _LWIO_SRV_CONFIG
 
 } LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
 
-typedef struct _SRV_HOST_INFO
-{
-    LONG  refcount;
-
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
-
-    PSTR  pszHostname;
-    PSTR  pszDomain;
-
-} SRV_HOST_INFO, *PSRV_HOST_INFO;
-
 typedef struct _SRV_CCB
 {
     LONG                    refCount;

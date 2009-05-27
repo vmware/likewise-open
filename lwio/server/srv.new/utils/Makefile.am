@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrvutils.la
 
 libsrvutils_la_SOURCES = \
+    hostinfo.c           \
     memory.c             \
     path.c               \
     prodcons.c           \
