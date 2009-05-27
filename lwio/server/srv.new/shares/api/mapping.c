@@ -59,7 +59,38 @@ SrvShareMapSpecificToWindowsPath(
     );
 
 NTSTATUS
-SrvShareMapIdToServiceString(
+SrvShareMapIdToServiceStringW(
+    IN  SHARE_SERVICE  service,
+    OUT PWSTR*         ppwszService
+    )
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	PWSTR pwszShareType = NULL;
+	PSTR  pszShareType = NULL;
+
+	ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
+	BAIL_ON_NT_STATUS(ntStatus);
+
+	*ppwszService = pwszShareType;
+
+cleanup:
+
+	SRV_SAFE_FREE_MEMORY(pszShareType);
+
+	return ntStatus;
+
+error:
+
+	*ppwszService = NULL;
+
+	goto cleanup;
+}
+
+NTSTATUS
+SrvShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     )

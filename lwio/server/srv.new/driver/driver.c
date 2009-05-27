@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        createnp.c
+ *        driver.c
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (SMB)
+ *        Likewise I/O (LWIO) - SRV
  *
- *        CreateNamedPipe API
+ *        Driver
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -232,8 +232,10 @@ SrvInitialize(
     )
 {
     NTSTATUS ntStatus = 0;
+#if 0
     INT      iReader = 0;
     INT      iWorker = 0;
+#endif
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
@@ -249,6 +251,7 @@ SrvInitialize(
     ntStatus = SrvShareBootstrap(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
+#if 0
     gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
     gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
     gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
@@ -314,6 +317,7 @@ SrvInitialize(
                     gSMBSrvGlobals.ulNumReaders,
                     &gSMBSrvGlobals.listener);
     BAIL_ON_NT_STATUS(ntStatus);
+#endif
 
 error:
 
@@ -416,12 +420,15 @@ SrvShutdown(
     )
 {
     NTSTATUS ntStatus = 0;
+#if 0
     PLWIO_SRV_CONTEXT pContext = NULL;
+#endif
 
     if (gSMBSrvGlobals.pMutex)
     {
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
+#if 0
         ntStatus = SrvListenerShutdown(
                         &gSMBSrvGlobals.listener);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -482,16 +489,19 @@ SrvShutdown(
         }
 
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+#endif
 
         SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
 
         SrvShareShutdown();
 
+#if 0
         if (gSMBSrvGlobals.hPacketAllocator)
         {
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
+#endif
 
         while (gSMBSrvGlobals.pCCBList)
         {
@@ -503,7 +513,7 @@ SrvShutdown(
         }
     }
 
-cleanup:
+// cleanup:
 
     if (gSMBSrvGlobals.pMutex)
     {
@@ -511,16 +521,20 @@ cleanup:
         gSMBSrvGlobals.pMutex = NULL;
     }
 
+#if 0
     if (pContext)
     {
         SrvContextFree(pContext);
     }
+#endif
 
     return ntStatus;
 
+#if 0
 error:
 
     goto cleanup;
+#endif
 }
 
 

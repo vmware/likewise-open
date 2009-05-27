@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,54 +28,91 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        srv/protocols/structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Utilities
+ *        Transport
+ *
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __SRV_TRANSPORT_STRUCTS_H__
+#define __SRV_TRANSPORT_STRUCTS_H__
 
-#include <uuid/uuid.h>
+typedef struct _LWIO_SRV_SOCKET
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
-#include <lwio/lwio.h>
+    int fd;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+    struct sockaddr_in cliaddr;
 
-#include <lw/ntstatus.h>
+} LWIO_SRV_SOCKET, *PLWIO_SRV_SOCKET;
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+typedef struct _LWIO_SRV_CONNECTION
+{
+    LONG                refCount;
 
-#include <iodriver.h>
-#include <ioapi.h>
+    pthread_rwlock_t     mutex;
+    pthread_rwlock_t*    pMutex;
 
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
+    LWIO_SRV_CONN_STATE  state;
 
-#include "defs.h"
-#include "structs.h"
-#include "srvshares.h"
-#include "ccb.h"
-#include "deviceio.h"
-#include "devicecreate.h"
-#include "device.h"
+    PLWIO_SRV_SOCKET     pSocket;
 
-#include "externs.h"
+    SRV_PROPERTIES        serverProperties;
+    SRV_CLIENT_PROPERTIES clientProperties;
+
+    ULONG               ulSequence;
+
+    // Invariant
+    // Not owned
+    HANDLE              hPacketAllocator;
+
+    struct
+    {
+        BOOLEAN         bReadHeader;
+        size_t          sNumBytesToRead;
+        size_t          sOffset;
+        PSMB_PACKET     pRequestPacket;
+
+    } readerState;
+
+    PBYTE               pSessionKey;
+    ULONG               ulSessionKeyLength;
+
+    PSRV_HOST_INFO       pHostinfo;
+    PLWIO_SRV_SHARE_LIST pShareList;
+
+    HANDLE              hGssContext;
+    HANDLE              hGssNegotiate;
+
+    PLWRTL_RB_TREE      pSessionCollection;
+
+    USHORT              nextAvailableUid;
+
+} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
+
+typedef struct _LWIO_SRV_CONTEXT
+{
+    PLWIO_SRV_CONNECTION pConnection;
+
+    PSMB_PACKET         pRequest;
+
+    ULONG               ulRequestSequence;
+
+} LWIO_SRV_CONTEXT, *PLWIO_SRV_CONTEXT;
+
+#endif /* __SRV_TRANSPORT_STRUCTS_H__ */

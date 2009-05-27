@@ -105,7 +105,7 @@ SrvDeviceIoCommon(
 
       case SRV_DEVCTL_ADD_SHARE:
 
-          ntStatus = SrvDevCtlAddShare(
+          ntStatus = SrvShareDevCtlAdd(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -115,7 +115,7 @@ SrvDeviceIoCommon(
 
       case SRV_DEVCTL_DELETE_SHARE:
 
-          ntStatus = SrvDevCtlDeleteShare(
+          ntStatus = SrvShareDevCtlDelete(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -125,7 +125,7 @@ SrvDeviceIoCommon(
 
       case SRV_DEVCTL_ENUM_SHARE:
 
-          ntStatus = SrvDevCtlEnumShares(
+          ntStatus = SrvShareDevCtlEnum(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -136,7 +136,7 @@ SrvDeviceIoCommon(
 
       case SRV_DEVCTL_SET_SHARE_INFO:
 
-          ntStatus = SrvDevCtlSetShareInfo(
+          ntStatus = SrvShareDevCtlSetInfo(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -146,7 +146,7 @@ SrvDeviceIoCommon(
 
       case SRV_DEVCTL_GET_SHARE_INFO:
 
-          ntStatus = SrvDevCtlGetShareInfo(
+          ntStatus = SrvShareDevCtlGetInfo(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,

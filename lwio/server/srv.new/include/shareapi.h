@@ -53,7 +53,13 @@ SrvShareInit(
 	);
 
 NTSTATUS
-SrvShareMapIdToServiceString(
+SrvShareMapIdToServiceStringW(
+    IN  SHARE_SERVICE  service,
+    OUT PWSTR*         ppwszService
+    );
+
+NTSTATUS
+SrvShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     );
@@ -96,8 +102,15 @@ SrvShareAdd(
     IN     PWSTR                      pwszComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     ULONG                      ulShareType
+    IN     PWSTR                      pwszShareType
     );
+
+NTSTATUS
+SrvShareUpdate(
+	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+	IN     PWSTR                      pwszShareName,
+	IN     PSRV_SHARE_INFO            pShareInfo
+	);
 
 NTSTATUS
 SrvShareDelete(

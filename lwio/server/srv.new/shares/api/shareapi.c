@@ -237,7 +237,7 @@ SrvShareAdd(
     IN     PWSTR                      pwszShareComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     ULONG                      ulShareType
+    IN     PWSTR                      pwszShareType
     )
 {
     NTSTATUS ntStatus = 0;
@@ -317,7 +317,7 @@ SrvShareAdd(
 		pShareInfo->pSecDesc     = NULL;
 		pShareInfo->ulSecDescLen = 0;
     }
-    pShareInfo->service     = ulShareType;
+    // pShareInfo->service     = ulShareType;
 
     pShareInfo->bMarkedForDeletion = FALSE;
 
@@ -370,6 +370,72 @@ error:
 	}
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvShareUpdate(
+	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+	IN     PWSTR                      pwszShareName,
+	IN     PSRV_SHARE_INFO            pShareInfo
+	)
+{
+    NTSTATUS ntStatus = 0;
+
+#if 0
+
+    ntStatus = ValidateShareInfo(
+                    dwLevel,
+                    pShareInfo
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ENTER_WRITER_LOCK();
+
+    ntStatus = SrvFindShareByName(
+                    pszShareName,
+                    &pShareEntry
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (dwLevel) {
+
+        case 0:
+            break;
+
+        case 1:
+            break;
+
+        case 2:
+            break;
+
+        case 501:
+            break;
+
+        case 502:
+            break;
+
+        case 503:
+            break;
+
+    }
+
+    ntStatus =  SrvShareDbInsert(
+                    pszShareName,
+                    pszPathName,
+                    pszComment,
+                    dwFlags,
+                    pSecurityDescriptor,
+                    dwSDSize
+                    );
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    LEAVE_WRITER_LOCK();
+
+#endif
+
+    return(ntStatus);
 }
 
 NTSTATUS

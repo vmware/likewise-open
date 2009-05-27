@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        srvstructs.h
+ *        structs.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Server structures
+ *        Structures
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -70,11 +70,6 @@ typedef struct _SRV_HOST_INFO
 
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
-
-typedef ULONG CCB_TYPE;
-
-#define SRV_CCB_DEVICE 1
-
 typedef struct _SRV_CCB
 {
     LONG                    refCount;
@@ -102,29 +97,18 @@ typedef struct _SRV_IRP_CONTEXT
 
 } SRV_IRP_CONTEXT, *PSRV_IRP_CONTEXT;
 
-typedef struct _LWIO_SRV_SOCKET
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    int fd;
-
-    struct sockaddr_in cliaddr;
-
-} LWIO_SRV_SOCKET, *PLWIO_SRV_SOCKET;
-
 typedef struct _SRV_PROPERTIES
 {
-    SMB_SECURITY_MODE preferredSecurityMode;
-    BOOLEAN           bEncryptPasswords;
-    BOOLEAN           bEnableSecuritySignatures;
-    BOOLEAN           bRequireSecuritySignatures;
-    USHORT            MaxMpxCount;
-    USHORT            MaxNumberVCs;
-    ULONG             MaxBufferSize;
-    ULONG             MaxRawSize;
-    ULONG             Capabilities;
-    uuid_t            GUID;
+    USHORT  preferredSecurityMode;
+    BOOLEAN bEncryptPasswords;
+    BOOLEAN bEnableSecuritySignatures;
+    BOOLEAN bRequireSecuritySignatures;
+    USHORT  MaxMpxCount;
+    USHORT  MaxNumberVCs;
+    ULONG   MaxBufferSize;
+    ULONG   MaxRawSize;
+    ULONG   Capabilities;
+    uuid_t  GUID;
 
 } SRV_PROPERTIES, *PSRV_PROPERTIES;
 
@@ -141,150 +125,6 @@ typedef struct _SRV_CLIENT_PROPERITES
     PWSTR  pwszNativeDomain;
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
-
-typedef struct _LWIO_SRV_FILE
-{
-    pthread_rwlock_t        mutex;
-    pthread_rwlock_t*       pMutex;
-
-    LONG                    refcount;
-
-    USHORT                  fid;
-
-    IO_FILE_HANDLE          hFile;
-    PIO_FILE_NAME           pFilename; // physical path on server
-    PWSTR                   pwszFilename; // requested path
-    ACCESS_MASK             desiredAccess;
-    LONG64                  allocationSize;
-    FILE_ATTRIBUTES         fileAttributes;
-    FILE_SHARE_FLAGS        shareAccess;
-    FILE_CREATE_DISPOSITION createDisposition;
-    FILE_CREATE_OPTIONS     createOptions;
-
-} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
-
-typedef struct _LWIO_SRV_TREE
-{
-    LONG                   refcount;
-
-    pthread_rwlock_t  mutex;
-    pthread_rwlock_t* pMutex;
-
-    USHORT            tid;
-
-    PSHARE_DB_INFO    pShareInfo;
-
-    PLWRTL_RB_TREE    pFileCollection;
-
-    USHORT            nextAvailableFid;
-
-} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
-
-typedef struct _LWIO_SRV_SESSION
-{
-    LONG              refcount;
-
-    pthread_rwlock_t   mutex;
-    pthread_rwlock_t*  pMutex;
-
-    USHORT            uid;
-
-    PLWRTL_RB_TREE    pTreeCollection;
-
-    HANDLE            hFinderRepository;
-
-    USHORT            nextAvailableTid;
-
-    PSTR              pszClientPrincipalName;
-
-    PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
-
-} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
-
-typedef struct _LWIO_SRV_CONNECTION
-{
-    LONG                refCount;
-
-    pthread_rwlock_t     mutex;
-    pthread_rwlock_t*    pMutex;
-
-    LWIO_SRV_CONN_STATE  state;
-
-    PLWIO_SRV_SOCKET     pSocket;
-
-    SRV_PROPERTIES        serverProperties;
-    SRV_CLIENT_PROPERTIES clientProperties;
-
-    ULONG               ulSequence;
-
-    // Invariant
-    // Not owned
-    HANDLE              hPacketAllocator;
-
-    struct
-    {
-        BOOLEAN         bReadHeader;
-        size_t          sNumBytesToRead;
-        size_t          sOffset;
-        PSMB_PACKET     pRequestPacket;
-
-    } readerState;
-
-    PBYTE               pSessionKey;
-    ULONG               ulSessionKeyLength;
-
-    PSRV_HOST_INFO       pHostinfo;
-    PLWIO_SRV_SHARE_LIST pShareList;
-
-    HANDLE              hGssContext;
-    HANDLE              hGssNegotiate;
-
-    PLWRTL_RB_TREE      pSessionCollection;
-
-    USHORT              nextAvailableUid;
-
-} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
-
-typedef struct _LWIO_SRV_CONTEXT
-{
-    PLWIO_SRV_CONNECTION pConnection;
-
-    PSMB_PACKET         pRequest;
-
-    ULONG               ulRequestSequence;
-
-} LWIO_SRV_CONTEXT, *PLWIO_SRV_CONTEXT;
-
-typedef struct _LWIO_SRV_SOCKET_READER_CONTEXT
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    ULONG          readerId;
-
-    BOOLEAN        bStop;
-    BOOLEAN        bActive;
-
-    PLWRTL_RB_TREE pConnections;
-    ULONG          ulNumSockets;
-
-    PSMB_PROD_CONS_QUEUE pWorkQueue;
-
-    // pipe used to interrupt the reader
-    int fd[2];
-
-} LWIO_SRV_SOCKET_READER_CONTEXT, *PLWIO_SRV_SOCKET_READER_CONTEXT;
-
-typedef struct _LWIO_SRV_SOCKET_READER
-{
-    pthread_t  reader;
-    pthread_t* pReader;
-
-    ULONG      readerId;
-
-    LWIO_SRV_SOCKET_READER_CONTEXT context;
-
-} LWIO_SRV_SOCKET_READER, *PLWIO_SRV_SOCKET_READER;
 
 typedef struct _LWIO_SRV_WORKER_CONTEXT
 {
@@ -312,35 +152,6 @@ typedef struct _LWIO_SRV_WORKER
 
 } LWIO_SRV_WORKER, *PLWIO_SRV_WORKER;
 
-typedef struct _LWIO_SRV_LISTENER_CONTEXT
-{
-    pthread_mutex_t  mutex;
-    pthread_mutex_t* pMutex;
-
-    BOOLEAN bStop;
-
-    SRV_PROPERTIES serverProperties;
-
-    // Invariant
-    // Not owned
-    HANDLE                    hPacketAllocator;
-    HANDLE                    hGssContext;
-    PLWIO_SRV_SHARE_LIST      pShareList;
-    PLWIO_SRV_SOCKET_READER   pReaderArray;
-    ULONG                     ulNumReaders;
-
-} LWIO_SRV_LISTENER_CONTEXT, *PLWIO_SRV_LISTENER_CONTEXT;
-
-typedef struct _LWIO_SRV_LISTENER
-{
-    pthread_t  listener;
-    pthread_t* pListener;
-
-    LWIO_SRV_LISTENER_CONTEXT context;
-
-} LWIO_SRV_LISTENER, *PLWIO_SRV_LISTENER;
-
-
 typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 {
     pthread_mutex_t          mutex;
@@ -348,14 +159,9 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     LWIO_SRV_CONFIG          config;
 
-    pthread_rwlock_t           dbMutex;
-    pthread_rwlock_t*          pDbMutex;
-    ULONG                      ulMaxNumDbContexts;
-    ULONG                      ulNumDbContexts;
-    PLWIO_SRV_SHARE_DB_CONTEXT pDbContextList;
+    LWIO_SRV_SHARE_ENTRY_LIST shareList;
 
-    LWIO_SRV_SHARE_LIST      shareList;
-
+#if 0
     SMB_PROD_CONS_QUEUE      workQueue;
 
     PLWIO_SRV_SOCKET_READER  pReaderArray;
@@ -367,6 +173,7 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
     LWIO_SRV_LISTENER        listener;
 
     PLWIO_PACKET_ALLOCATOR   hPacketAllocator;
+#endif
 
     PSRV_CCB                 pCCBList;
 
@@ -374,13 +181,3 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
 
 #endif /* __STRUCTS_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

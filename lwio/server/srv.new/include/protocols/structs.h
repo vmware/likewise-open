@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,54 +28,85 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        srv/protocols/structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Utilities
+ *        Protocols
+ *
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __SRV_PROTOCOLS_STRUCTS_H__
+#define __SRV_PROTOCOLS_STRUCTS_H__
 
-#include <uuid/uuid.h>
+typedef struct _LWIO_SRV_FILE
+{
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
 
-#include <lwio/lwio.h>
+    LONG                    refcount;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+    USHORT                  fid;
 
-#include <lw/ntstatus.h>
+    IO_FILE_HANDLE          hFile;
+    PIO_FILE_NAME           pFilename; // physical path on server
+    PWSTR                   pwszFilename; // requested path
+    ACCESS_MASK             desiredAccess;
+    LONG64                  allocationSize;
+    FILE_ATTRIBUTES         fileAttributes;
+    FILE_SHARE_FLAGS        shareAccess;
+    FILE_CREATE_DISPOSITION createDisposition;
+    FILE_CREATE_OPTIONS     createOptions;
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
-#include <iodriver.h>
-#include <ioapi.h>
+typedef struct _LWIO_SRV_TREE
+{
+    LONG                   refcount;
 
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
 
-#include "defs.h"
-#include "structs.h"
-#include "srvshares.h"
-#include "ccb.h"
-#include "deviceio.h"
-#include "devicecreate.h"
-#include "device.h"
+    USHORT            tid;
 
-#include "externs.h"
+    PSHARE_DB_INFO    pShareInfo;
+
+    PLWRTL_RB_TREE    pFileCollection;
+
+    USHORT            nextAvailableFid;
+
+} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
+
+typedef struct _LWIO_SRV_SESSION
+{
+    LONG              refcount;
+
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
+
+    USHORT            uid;
+
+    PLWRTL_RB_TREE    pTreeCollection;
+
+    HANDLE            hFinderRepository;
+
+    USHORT            nextAvailableTid;
+
+    PSTR              pszClientPrincipalName;
+
+    PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
+
+} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
+
+#endif /* __SRV_PROTOCOLS_STRUCTS_H__ */

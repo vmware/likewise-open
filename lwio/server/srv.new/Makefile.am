@@ -1,5 +1,6 @@
 
 SUBDIRS = \
     utils     \
-    shares
+    shares    \
+    driver
 

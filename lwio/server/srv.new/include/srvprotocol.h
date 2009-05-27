@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,37 +28,29 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        driver.c
+ *        srv/protocol.h
  *
  * Abstract:
  *
- *        Likewise SMB Server Driver (SMB)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Device I/O Function
+ *        Protocols
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Definitions
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include "pvfs.h"
+#ifndef __SRV_PROTOCOL_H__
+#define __SRV_PROTOCOL_H__
 
-NTSTATUS
-SrvFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
+#include <protocols/defs.h>
+#include <protocols/structs.h>
 
-    return ntStatus;
-}
-
-
-
+#endif /* __SRV_PROTOCOL_H__ */

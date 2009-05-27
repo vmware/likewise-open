@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,54 +28,27 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        srvtransport.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Utilities
+ *        Transport
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __SRV_TRANSPORT_H__
+#define __SRV_TRANSPORT_H__
 
-#include <uuid/uuid.h>
+#include <transport/defs.h>
+#include <transport/structs.h>
 
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "srvshares.h"
-#include "ccb.h"
-#include "deviceio.h"
-#include "devicecreate.h"
-#include "device.h"
-
-#include "externs.h"
+#endif /* __SRV_TRANSPORT_H__ */

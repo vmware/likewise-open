@@ -71,6 +71,7 @@ SrvShareDevCtlAdd(
     PWSTR pwszComment = NULL;
     PWSTR pwszPath = NULL;
     PWSTR pwszPathLocal = NULL;
+    PWSTR pwszShareType = NULL;
 
     ntStatus = LwShareInfoUnmarshalAddParameters(
                         lpInBuffer,
@@ -135,15 +136,19 @@ SrvShareDevCtlAdd(
                     &pwszPathLocal);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareAddShare(
+    ntStatus = SrvShareMapIdToServiceStringW(
+					ulShareType,
+					&pwszShareType);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareAdd(
                         pShareList,
                         pwszShareName,
                         pwszPathLocal,
                         pwszComment,
                         NULL,
                         0,
-                        ulShareType
-                        );
+                        pwszShareType);
 
 error:
 
@@ -154,6 +159,11 @@ error:
     if (pwszPathLocal)
     {
         LwRtlMemoryFree(pwszPathLocal);
+    }
+
+    if (pwszShareType)
+    {
+	SrvFreeMemory(pwszShareType);
     }
 
     return ntStatus;
@@ -183,12 +193,10 @@ SrvShareDevCtlDelete(
     pShareList    = &gSMBSrvGlobals.shareList;
     pwszShareName = pDeleteShareInfoParams->netname;
 
-    ntStatus = SrvShareDeleteShare(
-                        pShareList,
-                        pwszShareName
-                        );
+    ntStatus = SrvShareDelete(pShareList, pwszShareName);
 
 error:
+
     if (pDeleteShareInfoParams) {
         LwRtlMemoryFree(pDeleteShareInfoParams);
     }
@@ -215,7 +223,7 @@ SrvShareDevCtlEnum(
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
-    PSHARE_DB_INFO* ppShares = NULL;
+    PSRV_SHARE_INFO* ppShares = NULL;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -225,7 +233,7 @@ SrvShareDevCtlEnum(
     memset(&EnumShareInfoParamsOut, 0, sizeof(EnumShareInfoParamsOut));
 
     ntStatus = LwShareInfoUnmarshalEnumParameters(
-                        pInBuffer,
+                        lpInBuffer,
                         ulInBufferSize,
                         &pEnumShareInfoParamsIn
                         );
@@ -234,9 +242,8 @@ SrvShareDevCtlEnum(
     pShareList = &gSMBSrvGlobals.shareList;
     ulLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
-    ntStatus = SrvShareEnumShares(
+    ntStatus = SrvShareEnum(
                         pShareList,
-                        ulLevel,
                         &ppShares,
                         &ulNumEntries);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -253,7 +260,7 @@ SrvShareDevCtlEnum(
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSHARE_DB_INFO pShareInfo = ppShares[i];
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p0[i].shi0_netname             = pShareInfo->pwszName;
             }
@@ -272,7 +279,7 @@ SrvShareDevCtlEnum(
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSHARE_DB_INFO pShareInfo = ppShares[i];
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p1[i].shi1_netname             = pShareInfo->pwszName;
                 p1[i].shi1_type                = pShareInfo->service;
@@ -293,7 +300,7 @@ SrvShareDevCtlEnum(
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSHARE_DB_INFO pShareInfo = ppShares[i];
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p2[i].shi2_netname             = pShareInfo->pwszName;
                 p2[i].shi2_type                = pShareInfo->service;
@@ -324,7 +331,7 @@ SrvShareDevCtlEnum(
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSHARE_DB_INFO pShareInfo = ppShares[i];
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p501[i].shi501_netname         = pShareInfo->pwszName;
                 p501[i].shi501_type            = pShareInfo->service;
@@ -346,7 +353,7 @@ SrvShareDevCtlEnum(
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSHARE_DB_INFO pShareInfo = ppShares[i];
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
                 p502[i].shi502_netname             = pShareInfo->pwszName;
                 p502[i].shi502_type                = pShareInfo->service;
@@ -388,7 +395,7 @@ SrvShareDevCtlEnum(
 
     if (ulBufferSize <= ulOutBufferSize)
     {
-        memcpy((void*)pOutBuffer, (void*)pBuffer, ulBufferSize);
+        memcpy((void*)lpOutBuffer, (void*)pBuffer, ulBufferSize);
     }
     else
     {
@@ -404,11 +411,11 @@ cleanup:
     {
         for (i = 0; i < ulNumEntries; i++)
         {
-            PSHARE_DB_INFO pShareInfo = ppShares[i];
+            PSRV_SHARE_INFO pShareInfo = ppShares[i];
 
             if (pShareInfo)
             {
-                SrvShareDbReleaseInfo(pShareInfo);
+                SrvShareReleaseInfo(pShareInfo);
             }
         }
 
@@ -463,7 +470,7 @@ cleanup:
 
 error:
 
-    memset((void*)pOutBuffer, 0, ulOutBufferSize);
+    memset((void*)lpOutBuffer, 0, ulOutBufferSize);
     *pulBytesTransferred = 0;
 
     goto cleanup;
@@ -487,7 +494,7 @@ SrvShareDevCtlGetInfo(
     PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
-    PSHARE_DB_INFO pShareInfo = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -497,7 +504,7 @@ SrvShareDevCtlGetInfo(
     memset(&GetShareInfoParamsOut, 0, sizeof(GetShareInfoParamsOut));
 
     ntStatus = LwShareInfoUnmarshalGetParameters(
-                        pInBuffer,
+                        lpInBuffer,
                         ulInBufferSize,
                         &pGetShareInfoParamsIn
                         );
@@ -507,7 +514,7 @@ SrvShareDevCtlGetInfo(
     pwszShareName = pGetShareInfoParamsIn->pwszNetname;
     ulLevel       = pGetShareInfoParamsIn->dwInfoLevel;
 
-    ntStatus = SrvShareGetInfo(
+    ntStatus = SrvShareFindByName(
                         pShareList,
                         pwszShareName,
                         &pShareInfo);
@@ -634,7 +641,7 @@ SrvShareDevCtlGetInfo(
 
     if (ulBufferSize <= ulOutBufferSize)
     {
-        memcpy((void*)pOutBuffer, (void*)pBuffer, ulBufferSize);
+        memcpy((void*)lpOutBuffer, (void*)pBuffer, ulBufferSize);
     }
     else
     {
@@ -647,7 +654,7 @@ SrvShareDevCtlGetInfo(
 cleanup:
 
     if (pShareInfo) {
-        SrvShareDbReleaseInfo(pShareInfo);
+        SrvShareReleaseInfo(pShareInfo);
     }
 
     if (pGetShareInfoParamsIn) {
@@ -692,7 +699,7 @@ cleanup:
 
 error:
 
-    memset((void*)pOutBuffer, 0, ulOutBufferSize);
+    memset((void*)lpOutBuffer, 0, ulOutBufferSize);
     *pulBytesTransferred = 0;
 
     goto cleanup;
@@ -712,7 +719,7 @@ SrvShareDevCtlSetInfo(
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
     PWSTR pwszShareName = NULL;
-    PSHARE_DB_INFO pShareInfo = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -720,7 +727,7 @@ SrvShareDevCtlSetInfo(
     PSHARE_INFO_502 p502 = NULL;
 
     ntStatus = LwShareInfoUnmarshalSetParameters(
-                        pInBuffer,
+                        lpInBuffer,
                         ulInBufferSize,
                         &pSetShareInfoParamsIn
                         );
@@ -730,7 +737,7 @@ SrvShareDevCtlSetInfo(
     pwszShareName = pSetShareInfoParamsIn->pwszNetname;
     ulLevel       = pSetShareInfoParamsIn->dwInfoLevel;
 
-    ntStatus = SrvShareGetInfo(
+    ntStatus = SrvShareFindByName(
                         pShareList,
                         pwszShareName,
                         &pShareInfo
@@ -784,7 +791,7 @@ SrvShareDevCtlSetInfo(
         break;
     }
 
-    ntStatus = SrvShareSetInfo(
+    ntStatus = SrvShareUpdate(
                         pShareList,
                         pwszShareName,
                         pShareInfo
@@ -797,7 +804,7 @@ error:
     }
 
     if (pShareInfo) {
-        SrvShareDbReleaseInfo(pShareInfo);
+        SrvShareReleaseInfo(pShareInfo);
     }
 
     return ntStatus;
