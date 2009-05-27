@@ -537,16 +537,6 @@ LocalMarshalEntryToUserInfo_2(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pUserInfo->pNTHash)
-    {
-        memset(pUserInfo->pNTHash, 0, pUserInfo->dwNTHashLen);
-    }
-
-    if (pUserInfo->pLMHash)
-    {
-        memset(pUserInfo->pLMHash, 0, pUserInfo->dwLMHashLen);
-    }
-
     if (ppwszUserDN)
     {
         dwError = LocalMarshalAttrToUnicodeString(
