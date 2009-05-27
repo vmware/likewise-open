@@ -1,35 +1,19 @@
 
 DWORD
-NtlmClientInitializeSecurityContext(
-    PCredHandle phCredential,
+NtlmClientEncryptMessage(
     PCtxtHandle phContext,
-    SEC_CHAR * pszTargetName,
-    ULONG fContextReq,
-    ULONG Reserverd1.
-    ULONG TargetDataRep,
-    PSecBufferDesc pInput,
-    ULONG Reserved2,
-    PCtxtHandle phNewContext,
-    PSecBufferDesc pOutput,
-    PULONG pfContextAttr,
-    PTimeStamp ptsExpiry
+    ULONG fQoP,
+    PSecBufferDesc pMessage,
+    ULONG MessageSeqNo
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactInitializeSecurityContext(
+    dwError = NtlmTransactEncryptMessage(
                     hServer,
-                    phCredential,
                     phContext,
-                    pszTargetName,
-                    fContextReq,
-                    Reserved1,
-                    TargetDataRep,
-                    pInput,
-                    Reserved2,
-                    phNewContext,
-                    pOutput,
-                    pfContextAttr,
-                    ptsExpiry
+                    fQoP,
+                    pMessage,
+                    MessageSeqNo
                     );
     return(dwError);
 }
