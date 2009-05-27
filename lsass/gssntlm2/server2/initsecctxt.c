@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientInitializeSecurityContext(
+NtlmServerInitializeSecurityContext(
     PCredHandle phCredential,
     PCtxtHandle phContext,
     SEC_CHAR * pszTargetName,
@@ -16,20 +16,6 @@ NtlmClientInitializeSecurityContext(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactInitializeSecurityContext(
-                    hServer,
-                    phCredential,
-                    phContext,
-                    pszTargetName,
-                    fContextReq,
-                    Reserved1,
-                    TargetDataRep,
-                    pInput,
-                    Reserved2,
-                    phNewContext,
-                    pOutput,
-                    pfContextAttr,
-                    ptsExpiry
-                    );
+
     return(dwError);
 }

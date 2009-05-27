@@ -1,20 +1,21 @@
 
+
+
 DWORD
-NtlmClientAcceptSecurityContext(
+NtlmServerAcceptSecurityContext(
+    PCredHandle phCredential,
+    PCtxtHandle phContext,
+    PSecBufferDesc pInput,
+    ULONG fContextReq,
+    ULONG TargetDataRep,
+    PCtxtHandle phNewContext,
+    PSecBufferDesc pOutput,
+    PULONG pfContextAttr,
+    PTimeStamp ptsTimeStamp
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactAcceptSecurityContext(
-                    hServer,
-                    phCredential,
-                    phContext,
-                    pInput,
-                    fContextReq,
-                    TargetDataRep,
-                    phNewContext,
-                    pOutput,
-                    pfContextAttr,
-                    ptsTimeStamp
-                    );
+
+
     return(dwError);
 }

@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientExportSecurityContext(
+NtlmServerExportSecurityContext(
     PCtxtHandle phContext,
     ULONG fFlags,
     PSecBuffer pPackedContext,
@@ -8,12 +8,6 @@ NtlmClientExportSecurityContext(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactExportSecurityContext(
-                    hServer,
-                    phContext,
-                    fFlags,
-                    pPackedContext,
-                    pToken
-                    );
+
     return(dwError);
 }

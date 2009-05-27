@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientAcquireCredentialsHandle(
+NtlmServerAcquireCredentialsHandle(
     SEC_CHAR *pszPrincipal,
     SEC_CHAR *pszPackage,
     ULONG fCredentialUse,
@@ -13,17 +13,6 @@ NtlmClientAcquireCredentialsHandle(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactAcquireCredentialsHandle(
-                    hServer,
-                    pszPrincipal,
-                    pszPackage,
-                    fCredentialUse,
-                    pvLogonID,
-                    pAuthData,
-                    pGetKeyFn,
-                    pvGetKeyArgument,
-                    phCredential,
-                    ptsExpiry
-                    );
+
     return(dwError);
 }

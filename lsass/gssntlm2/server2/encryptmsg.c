@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientEncryptMessage(
+NtlmServerEncryptMessage(
     PCtxtHandle phContext,
     ULONG fQoP,
     PSecBufferDesc pMessage,
@@ -8,12 +8,6 @@ NtlmClientEncryptMessage(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactEncryptMessage(
-                    hServer,
-                    phContext,
-                    fQoP,
-                    pMessage,
-                    MessageSeqNo
-                    );
+
     return(dwError);
 }

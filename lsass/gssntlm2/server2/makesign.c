@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientMakeSignature(
+NtlmServerMakeSignature(
     PCtxtHandle phContext,
     ULONG fQoP,
     PSecBufferDesc pMessage,
@@ -8,12 +8,6 @@ NtlmClientMakeSignature(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactMakeSignature(
-                    hServer,
-                    phContext,
-                    fQoP,
-                    pMessage,
-                    MessageSeqNo
-                    );
+
     return(dwError);
 }

@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientQueryCredentialsAttributes(
+NtlmServerQueryCredentialsAttributes(
     PCredHandle phCredential,
     ULONG ulAttribute,
     PVOID pBuffer
