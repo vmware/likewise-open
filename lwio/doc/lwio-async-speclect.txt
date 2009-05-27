@@ -501,8 +501,8 @@ IoXxxFile()
     - reference IRP
     - set AsyncControlBlock->AsynContext = irp
   + else
-    - NOTE: **** FOR NOW, SYNC COMPLETION MEANS NO CALL TO IoIrpComplete() ***
-    - call AsyncControlBlock->Callback(AsyncControlBlock->CallbackContext, NULL, &irp->IoStatusBlock)
+    - NOTE: *** FOR NOW, SYNC COMPLETION MEANS NO CALL TO IoIrpComplete() ***
+    - NOTE: *** Callback not called since returning complete to caller ***
     - set AsyncControlBlock->AsyncContext = NULL
     - deref IRP
 
