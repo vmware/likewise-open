@@ -69,6 +69,7 @@ LsaFreeUserInfoContents_1(
     )
 {
     LsaFreeUserInfoContents_0(&pUserInfo->info0);
+    LSA_SAFE_FREE_STRING(pUserInfo->pszDN);
     LSA_SAFE_FREE_STRING(pUserInfo->pszUPN);
     LSA_SAFE_FREE_MEMORY(pUserInfo->pLMHash);
     LSA_SAFE_FREE_MEMORY(pUserInfo->pNTHash);
