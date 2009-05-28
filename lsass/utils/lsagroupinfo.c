@@ -84,6 +84,7 @@ LsaFreeGroupInfo_1(
     LSA_SAFE_FREE_STRING(pGroupInfo->pszName);
     LSA_SAFE_FREE_STRING(pGroupInfo->pszPasswd);
     LSA_SAFE_FREE_STRING(pGroupInfo->pszSid);
+    LSA_SAFE_FREE_STRING(pGroupInfo->pszDN);
     LSA_SAFE_FREE_STRING_ARRAY(pGroupInfo->ppszMembers);
     LsaFreeMemory(pGroupInfo);
 }

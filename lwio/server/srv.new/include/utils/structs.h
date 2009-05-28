@@ -67,4 +67,16 @@ typedef struct _SMB_PROD_CONS_QUEUE
 } SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
 
+typedef struct _SRV_HOST_INFO
+{
+    LONG  refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSTR  pszHostname;
+    PSTR  pszDomain;
+
+} SRV_HOST_INFO, *PSRV_HOST_INFO;
+
 #endif /* __SRV_UTILS_STRUCTS_H__ */

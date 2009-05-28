@@ -136,7 +136,7 @@ typedef NTSTATUS (*PIO_IRP_CALLBACK)(
     IN PIRP Irp
     );
 
-NTSTATUS
+VOID
 IoIrpSetCancelCallback(
     IN PIRP Irp,
     IN PIO_IRP_CALLBACK Callback,
@@ -475,7 +475,6 @@ struct _IO_IRP_COMPLETION_CONTEXT {
             IN OPTIONAL PVOID CallbackContext;
         } Async;
         struct {
-            OUT OPTIONAL PIO_STATUS_BLOCK IoStatusBlock;
             IN OPTIONAL <POINTER TO CONDITION VARIABLE> Condition;
         } Sync;
     };
@@ -483,29 +482,37 @@ struct _IO_IRP_COMPLETION_CONTEXT {
 } IO_IRP_COMPLETION_CONTEXT, *PIO_IRP_COMPLETION_CONTEXT;
 
 IoXxxFile()
+- irp = IopIrpCreate()
 - if AsyncControlBlock
-  + context->IsAsync = TRUE
-  + context->Async.Callback = AsyncControlBlock->Callback;
-  + context->Async.CallbackContext = AsyncControlBlock->CallbackContext;
+  + irp->IsAsync = TRUE
+  + irp->Async.Callback = AsyncControlBlock->Callback;
+  + irp->Async.CallbackContext = AsyncControlBlock->CallbackContext;
 - else
-  + context->IsAsync = FALSE
-  + context->Sync.IoStatusBlock = IoStatusBlock argument
-  + context->Sync.Condition = pointer to stack condition variable
-- create IRP
-  + Irp.CompletionContext = context
-- dispatch IRP
+  + irp->IsAsync = FALSE
+  + irp->Sync.Condition = pointer to stack condition variable
+- IopDeviceCallDriver(..., irp)
 - if sync
   + if STATUS_PENDING
     - wait on context->Sync.Condition
   + *IoStatusBlock = Irp.IoStatusBlock
   + deref IRP
+- if async
+  + if STATUS_PENDING
+    - reference IRP
+    - set AsyncControlBlock->AsynContext = irp
+  + else
+    - NOTE: *** FOR NOW, SYNC COMPLETION MEANS NO CALL TO IoIrpComplete() ***
+    - NOTE: *** Callback not called since returning complete to caller ***
+    - set AsyncControlBlock->AsyncContext = NULL
+    - deref IRP
+
 
 IoIrpComplete()
 - acquire LOCK
 - set IRP_FLAG_COMPLETE
 - release LOCK
 - if Irp->IsAsync
-  + call Irp->CompletionContext->Callback
+  + call Irp->Async.Callback(Irp->Async.CallbackContext, Irp, &Irp->IoStatusBlock)
   + deref Irp
 - else
-  + signal Irp->Condition
+  + signal Irp->Sync.Condition

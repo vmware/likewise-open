@@ -87,7 +87,7 @@ lib_LTLIBRARIES += libauth_gss_negotiate.la
 
 libauth_gss_negotiate_la_SOURCES = gssauth.c gssauthcn.c
 libauth_gss_negotiate_la_CFLAGS = @GSSAPI_INCLUDES@
-libauth_gss_negotiate_la_LDFLAGS = @GSSAPI_LDFLAGS@
+libauth_gss_negotiate_la_LDFLAGS = @GSSAPI_LDFLAGS@ $(MODULELDFLAGS)
 libauth_gss_negotiate_la_LIBADD = @GSSAPI_LIBS@ ../dcelib/libdcerpc.la
 endif
 

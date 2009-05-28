@@ -1,17 +1,15 @@
 
 DWORD
-NtlmClientEncryptMessage(
+NtlmClientVerifySignature(
     PCtxtHandle phContext,
-    ULONG fQoP,
     PSecBufferDesc pMessage,
     ULONG MessageSeqNo
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactEncryptMessage(
+    dwError = NtlmTransactVerifySignature(
                     hServer,
                     phContext,
-                    fQoP,
                     pMessage,
                     MessageSeqNo
                     );

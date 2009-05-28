@@ -3,33 +3,17 @@ DWORD
 NtlmClientExportSecurityContext(
     PCtxtHandle phContext,
     ULONG fFlags,
-    SEC_CHAR * pszTargetName,
-    ULONG fContextReq,
-    ULONG Reserverd1.
-    ULONG TargetDataRep,
-    PSecBufferDesc pInput,
-    ULONG Reserved2,
-    PCtxtHandle phNewContext,
-    PSecBufferDesc pOutput,
-    PULONG pfContextAttr,
-    PTimeStamp ptsExpiry
+    PSecBuffer pPackedContext,
+    HANDLE *pToken
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactInitializeSecurityContext(
+    dwError = NtlmTransactExportSecurityContext(
                     hServer,
-                    phCredential,
                     phContext,
-                    pszTargetName,
-                    fContextReq,
-                    Reserved1,
-                    TargetDataRep,
-                    pInput,
-                    Reserved2,
-                    phNewContext,
-                    pOutput,
-                    pfContextAttr,
-                    ptsExpiry
+                    fFlags,
+                    pPackedContext,
+                    pToken
                     );
     return(dwError);
 }

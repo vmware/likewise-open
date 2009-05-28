@@ -2383,7 +2383,10 @@ LocalDirModifyUser(
         }
     };
 
-    DIRECTORY_ENTRY UserEntry = { 1, UserAttr };
+    DIRECTORY_ENTRY UserEntry[] = {
+        { 1, UserAttr },
+        { 0, NULL }
+    };
 
     wchar16_t wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
@@ -2495,7 +2498,7 @@ LocalDirModifyUser(
         dwError = DirectoryRemoveFromGroup(
                         pContext->hDirectory,
                         pwszGroupDN_remove,
-                        &UserEntry);
+                        UserEntry);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2513,7 +2516,7 @@ LocalDirModifyUser(
         dwError = DirectoryAddToGroup(
                         pContext->hDirectory,
                         pwszGroupDN_add,
-                        &UserEntry);
+                        UserEntry);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

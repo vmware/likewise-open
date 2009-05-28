@@ -2131,11 +2131,12 @@ LocalDirModifyGroup(
     PSTR pszDN = NULL;
     PWSTR pwszSID = NULL;
     PWSTR pwszDN = NULL;
-    DWORD dwObjectClass = LOCAL_OBJECT_CLASS_GROUP_MEMBER;
+    DWORD dwObjectClassGroupMember = LOCAL_OBJECT_CLASS_GROUP_MEMBER;
+    DWORD dwObjectClassLocalUser = LOCAL_OBJECT_CLASS_USER;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     PWSTR pwszBase = NULL;
     ULONG ulScope = 0;
-    wchar_t wszFilterFmt[] = L"%ws=%d AND %ws=\'%ws\'";
+    wchar_t wszFilterFmt[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\'";
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
     WCHAR wszAttrObjectClass[] = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -2226,6 +2227,8 @@ LocalDirModifyGroup(
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 2) +
                            10 +
+                          (sizeof(wszAttrObjectClass) - 2) +
+                           10 +
                           (sizeof(wszAttrObjectSid) - 2) +
                           (strlen(pszSID) * sizeof(WCHAR)) +
                           sizeof(wszFilterFmt);
@@ -2236,7 +2239,8 @@ LocalDirModifyGroup(
             BAIL_ON_LSA_ERROR(dwError);
 
             sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                        wszAttrObjectClass, dwObjectClass,
+                        wszAttrObjectClass, dwObjectClassGroupMember,
+                        wszAttrObjectClass, dwObjectClassLocalUser,
                         wszAttrObjectSid, pwszSID);
 
             dwError = DirectorySearch(
@@ -2318,6 +2322,8 @@ LocalDirModifyGroup(
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
                            10 +
+                          (sizeof(wszAttrObjectClass) - 2) +
+                           10 +
                           (sizeof(wszAttrObjectSid) - 1) +
                           (strlen(pszSID) * sizeof(WCHAR)) +
                           sizeof(wszFilterFmt);
@@ -2328,7 +2334,8 @@ LocalDirModifyGroup(
             BAIL_ON_LSA_ERROR(dwError);
 
             sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                        wszAttrObjectClass, dwObjectClass,
+                        wszAttrObjectClass, dwObjectClassGroupMember,
+                        wszAttrObjectClass, dwObjectClassLocalUser,
                         wszAttrObjectSid, pwszSID);
 
             dwError = DirectorySearch(

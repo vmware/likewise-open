@@ -200,7 +200,8 @@ static
 LWMsgBool
 lwmsg_server_task_subject_to_timeout(
     LWMsgServer* server,
-    ServerTask* task
+    ServerTask* task,
+    LWMsgBool shutdown
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -209,8 +210,15 @@ lwmsg_server_task_subject_to_timeout(
     size_t handle_count = 0;
     size_t num_clients = 0;
 
-    if (task->type == SERVER_TASK_FINISH_RECV)
+    if (!shutdown && task->type == SERVER_TASK_FINISH_RECV)
     {
+        /* Clients that are sitting idle without sending a message
+           are not subject to timeout if:
+
+           - The server is not shutting down, and
+              * The client has an open handle, or
+              * There are still available client slots
+         */
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(task->assoc, &manager));
         BAIL_ON_ERROR(status = task->assoc->aclass->get_session(task->assoc, &session));
 
@@ -831,6 +839,7 @@ LWMsgStatus
 lwmsg_server_task_perform_finish(
     LWMsgServer* server,
     ServerTask** task,
+    LWMsgBool shutdown,
     LWMsgTime* now,
     LWMsgTime* next_deadline
     )
@@ -879,7 +888,7 @@ lwmsg_server_task_perform_finish(
     }
 
     if (*task && (*task)->blocked &&
-        lwmsg_server_task_subject_to_timeout(server, *task))
+        lwmsg_server_task_subject_to_timeout(server, *task, shutdown))
     {
         /* Perform timeout logic on tasks that are still blocked */
         if (lwmsg_server_task_is_past_due(*task, now))
@@ -1038,6 +1047,7 @@ lwmsg_server_task_perform(
         BAIL_ON_ERROR(status = lwmsg_server_task_perform_finish(
                           server,
                           task,
+                          shutdown,
                           now,
                           next_deadline));
         /* Finishing async dispatches has separate logic */

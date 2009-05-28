@@ -1,15 +1,15 @@
 
 DWORD
-NtlmClientQuerySecurityContextAttributes(
-    PCtxtHandle phContext,
+NtlmServerQueryCredentialsAttributes(
+    PCredHandle phCredential,
     ULONG ulAttribute,
     PVOID pBuffer
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactQuerySecurityContextAttributes(
+    dwError = NtlmTransactQueryCredentialsAttributes(
                     hServer,
-                    phContext,
+                    phCredential,
                     ulAttribute,
                     pBuffer
                     );

@@ -1,6 +1,6 @@
 
 DWORD
-NtlmClientImportSecurityContext(
+NtlmServerImportSecurityContext(
     PSECURITY_STRING *pszPackage,
     PSecBuffer pPackedContext,
     HANDLE pToken,

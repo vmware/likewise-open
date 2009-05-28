@@ -50,5 +50,6 @@
 #include <utils/string.h>
 #include <utils/path.h>
 #include <utils/prodcons.h>
+#include <utils/hostinfo.h>
 
 #endif /* __SRV_UTILS_H__ */
