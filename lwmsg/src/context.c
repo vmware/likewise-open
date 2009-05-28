@@ -249,6 +249,42 @@ lwmsg_context_get_memdata(LWMsgContext* context)
     }
 }
 
+void
+lwmsg_context_set_log_function(
+    LWMsgContext* context,
+    LWMsgLogFunction logfn,
+    void* data
+    )
+{
+    context->logfn = logfn;
+    context->logfndata = data;
+}
+
+static
+void
+lwmsg_context_get_log_function(
+    LWMsgContext* context,
+    LWMsgLogFunction* logfn,
+    void** logfndata
+    )
+{
+    if (context->logfn)
+    {
+        *logfn = context->logfn;
+        *logfndata = context->logfndata;
+    }
+    else if (context->parent)
+    {
+        lwmsg_context_get_log_function(context->parent, logfn, logfndata);
+    }
+    else
+    {
+        *logfn = NULL;
+        *logfndata = NULL;
+    }
+}
+
+
 typedef struct freeinfo
 {
     LWMsgContext* context;
@@ -366,4 +402,55 @@ lwmsg_context_get_data(
 error:
 
     return status;
+}
+
+void
+lwmsg_context_log(
+    LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        logfn(level, message, filename, line, logfndata);
+    }
+}
+
+void
+lwmsg_context_log_printf(
+    LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* filename,
+    unsigned int line,
+    const char* format,
+    ...
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+    char* message = NULL;
+    va_list ap;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        va_start(ap, format);
+        message = lwmsg_formatv(format, ap);
+        va_end(ap);
+
+        if (message)
+        {
+            logfn(level, message, filename, line, logfndata);
+            free(message);
+        }
+    }
 }

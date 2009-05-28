@@ -275,6 +275,7 @@ MU_TEST(client_server, parallel)
     Data data;
     pthread_t threads[NUM_THREADS];
     int i;
+    LWMsgContext* context = NULL;
     LWMsgProtocol* protocol = NULL;
     LWMsgClient* client = NULL;
     LWMsgServer* server = NULL;
@@ -284,7 +285,10 @@ MU_TEST(client_server, parallel)
     LWMsgMessage reply_msg;
     LWMsgTime timeout = {1, 0};
 
-    MU_TRY(lwmsg_protocol_new(NULL, &protocol));
+    MU_TRY(lwmsg_context_new(&context));
+    lwmsg_context_set_log_function(context, lwmsg_test_log_function, NULL);
+
+    MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
 
     MU_TRY(lwmsg_server_new(protocol, &server));

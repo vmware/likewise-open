@@ -96,4 +96,13 @@ lwmsg_test_assoc_pair(
     void (*func2) (LWMsgAssoc* assoc)
     );
 
+void
+lwmsg_test_log_function(
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line,
+    void* data
+    );
+
 #endif

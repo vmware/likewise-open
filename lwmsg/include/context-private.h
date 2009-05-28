@@ -51,28 +51,43 @@ struct LWMsgContext
     void* memdata;
     LWMsgContextDataFunction datafn;
     void* datafndata;
+    LWMsgLogFunction logfn;
+    void* logfndata;
     LWMsgErrorContext error;
     
     struct LWMsgContext* parent;
 };
 
 void
-lwmsg_context_setup(LWMsgContext* context, LWMsgContext* parent);
+lwmsg_context_setup(
+    LWMsgContext* context,
+    LWMsgContext* parent
+    );
 
 void
-lwmsg_context_cleanup(LWMsgContext* context);
+lwmsg_context_cleanup(
+    LWMsgContext* context
+    );
 
 LWMsgAllocFunction
-lwmsg_context_get_alloc(LWMsgContext* context);
+lwmsg_context_get_alloc(
+    LWMsgContext* context
+    );
 
 LWMsgFreeFunction
-lwmsg_context_get_free(LWMsgContext* context);
+lwmsg_context_get_free(
+    LWMsgContext* context
+    );
 
 LWMsgReallocFunction
-lwmsg_context_get_realloc(LWMsgContext* context);
+lwmsg_context_get_realloc(
+    LWMsgContext* context
+    );
 
 void*
-lwmsg_context_get_memdata(LWMsgContext* context);
+lwmsg_context_get_memdata(
+    LWMsgContext* context
+    );
 
 LWMsgStatus
 lwmsg_context_get_data(
@@ -86,5 +101,34 @@ lwmsg_context_free_graph_internal(
     LWMsgContext* context,
     LWMsgTypeIter* iter,
     unsigned char* object);
+
+void
+lwmsg_context_log(
+    LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line
+    );
+
+void
+lwmsg_context_log_printf(
+    LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* filename,
+    unsigned int line,
+    const char* format,
+    ...
+    );
+
+#define LWMSG_LOG(context, level, ...) \
+    (lwmsg_context_log_printf((context), (level), __FILE__, __LINE__, __VA_ARGS__))
+
+#define LWMSG_LOG_ERROR(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_ERROR, __VA_ARGS__)
+#define LWMSG_LOG_WARNING(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_WARNING, __VA_ARGS__)
+#define LWMSG_LOG_INFO(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_INFO, __VA_ARGS__)
+#define LWMSG_LOG_VERBOSE(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_VERBOSE, __VA_ARGS__)
+#define LWMSG_LOG_DEBUG(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_DEBUG, __VA_ARGS__)
+#define LWMSG_LOG_TRACE(context, ...) LWMSG_LOG(context, LWMSG_LOGLEVEL_TRACE, __VA_ARGS__)
 
 #endif
