@@ -37,6 +37,7 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %defattr(-,root,root)
 
 %{_sysconfdir}/likewise/krb5.conf
+%{_sysconfdir}/krb5.conf.default
 
 %{PrefixDir}/%{_lib}/*
 %if !%{Compat32}
