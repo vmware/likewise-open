@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -317,11 +317,15 @@ LocalMarshalEntryToUserInfo_1(
                     pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameDN[0],
+                    &pUserInfo->pszDN);
+    BAIL_ON_LSA_ERROR(dwError);
     if (ppwszUserDN)
     {
-        dwError = LocalMarshalAttrToUnicodeString(
-                        pEntry,
-                        &wszAttrNameDN[0],
+        dwError = LsaMbsToWc16s(
+                        pUserInfo->pszDN,
                         &pwszUserDN);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1419,3 +1423,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
