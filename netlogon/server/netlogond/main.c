@@ -67,15 +67,15 @@ main(
 
     LWNET_LOG_VERBOSE("Logging started");
 
-    if (atexit(LWNetSrvExitHandler) < 0)
-    {
-       dwError = errno;
-       BAIL_ON_LWNET_ERROR(dwError);
-    }
-
     if (LWNetSrvShouldStartAsDaemon())
     {
        dwError = LWNetSrvStartAsDaemon();
+       BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    if (atexit(LWNetSrvExitHandler) < 0)
+    {
+       dwError = errno;
        BAIL_ON_LWNET_ERROR(dwError);
     }
 
@@ -237,7 +237,7 @@ LWNetSrvParseArgs(
             }
             // ISSUE-2008/07/03-dalmeida -- not safe
             pArg = argv[++iArg];
-            strcpy(pLWNetServerInfo->szLogFilePath, pArg + 1);
+            strcpy(pLWNetServerInfo->szLogFilePath, pArg);
         }
         else if (strcmp(pArg, "--loglevel") == 0)
         {
@@ -690,7 +690,8 @@ LWNetSrvInitLogging(
 
     LWNET_LOCK_SERVERINFO(bInLock);
 
-    if (gpServerInfo->dwStartAsDaemon) {
+    if (gpServerInfo->dwStartAsDaemon && gpServerInfo->szLogFilePath[0] == '\0')
+    {
       
       dwError = lwnet_init_logging_to_syslog(gpServerInfo->dwLogLevel,
                                            gpServerInfo->bEnableDebugLogs,
