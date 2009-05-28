@@ -154,6 +154,7 @@ EOF
     env PATH=${pathOverride} \
 	rpmbuild "${RPM_DEFINE_TOPDIR}" \
 	'--define=PrefixDir /opt/likewise' \
+	'--define=__strip strip' \
 	-bb ${PKG_PACKAGE_DIR}/SPECS/${PKG_NAME}.spec
 
     exit_on_error $?
