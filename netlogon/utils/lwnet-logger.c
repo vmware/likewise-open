@@ -185,7 +185,7 @@ lwnet_init_logging_to_file(
     
        gLwnetLogInfo.logfile.logHandle = NULL;
        if (gLwnetLogInfo.logfile.szLogPath[0] != '\0') {
-          gLwnetLogInfo.logfile.logHandle = freopen(gLwnetLogInfo.logfile.szLogPath, "w", stdout);
+          gLwnetLogInfo.logfile.logHandle = fopen(gLwnetLogInfo.logfile.szLogPath, "w");
           if (gLwnetLogInfo.logfile.logHandle == NULL) {
              dwError = errno;
              fprintf(stderr, "Failed to redirect logging. %s", strerror(errno));
@@ -255,8 +255,30 @@ lwnet_close_log(
     LWNET_UNLOCK_LOGGER;
 }
 
-void
+static PSTR logLevel2EntryType(
+    DWORD dwLogLevel
+    )
+{
+    switch (dwLogLevel)
+    {
+        case LOG_LEVEL_ALWAYS:
+            return INFO_TAG;
+        case LOG_LEVEL_ERROR:
+            return(ERROR_TAG);
+        case LOG_LEVEL_WARNING:
+            return(WARN_TAG);
+        case LOG_LEVEL_INFO:
+            return(INFO_TAG);
+        case LOG_LEVEL_VERBOSE:
+            return(VERBOSE_TAG);
+        default:
+            return(DEBUG_TAG);
+    }
+}
+
+static void
 lwnet_log_to_file_mt_unsafe(
+    LOGINFO *pgLwnetLogInfo,
     DWORD dwLogLevel,
     PSTR pszFormat,
     va_list msgList
@@ -266,52 +288,20 @@ lwnet_log_to_file_mt_unsafe(
     time_t currentTime;
     struct tm tmp;
     char timeBuf[1024];
-    FILE* pTarget = NULL;
+    FILE* pTarget = pgLwnetLogInfo->logfile.logHandle;
 
     switch (dwLogLevel)
     {
-        case LOG_LEVEL_ALWAYS:
-        {
-            pszEntryType = INFO_TAG;
-            pTarget = stdout;
-            break;
-        }
         case LOG_LEVEL_ERROR:
-        {
-            pszEntryType = ERROR_TAG;
-            pTarget = stderr;
-            break;
-        }
-
         case LOG_LEVEL_WARNING:
-        {
-            pszEntryType = WARN_TAG;
-            pTarget = stderr;
+            pTarget = pTarget ? pTarget : stderr;
             break;
-        }
-
-        case LOG_LEVEL_INFO:
-        {
-            pszEntryType = INFO_TAG;
-            pTarget = stdout;
-            break;
-        }
-
-        case LOG_LEVEL_VERBOSE:
-        {
-            pszEntryType = VERBOSE_TAG;
-            pTarget = stdout;
-            break;
-        }
-
         default:
-        {
-            pszEntryType = DEBUG_TAG;
-            pTarget = stdout;
+            pTarget = pTarget ? pTarget : stdout;
             break;
-        }
     }
 
+    pszEntryType = logLevel2EntryType(dwLogLevel);
     currentTime = time(NULL);
     localtime_r(&currentTime, &tmp);
 
@@ -396,7 +386,7 @@ lwnet_log_message(
         }
         case LOG_TO_FILE:
         {
-            lwnet_log_to_file_mt_unsafe(dwLogLevel, pszFormat, argp);
+            lwnet_log_to_file_mt_unsafe(&gLwnetLogInfo, dwLogLevel, pszFormat, argp);
             break;
         }
     }
