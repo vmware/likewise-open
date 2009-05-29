@@ -319,6 +319,12 @@ AuthenticateNTLMv2(
                             &pwszDestination);
     BAIL_ON_LSA_ERROR(dwError);
 
+    /* Emperical testing from WinXP sp3 shows that only
+       the username need be upper cased */
+
+    dwError = LsaWc16ToUpper(pwszAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwAcctNameSize = RtlWC16StringNumChars(pwszAccountName) * sizeof(WCHAR);
     dwDestNameSize = RtlWC16StringNumChars(pwszDestination) * sizeof(WCHAR);
 
