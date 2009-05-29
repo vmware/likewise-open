@@ -81,7 +81,9 @@
 #include <lwrpc/LMcrypt.h>
 #include <lwrpc/samr.h>
 
+#include <openssl/evp.h>
 #include <openssl/md4.h>
+#include <openssl/hmac.h>
 
 /*
 local variables:

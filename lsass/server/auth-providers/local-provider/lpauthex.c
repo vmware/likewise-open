@@ -64,28 +64,17 @@ SidSplitString(
 
 static DWORD
 AuthenticateNTLMv1(
-    PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_USER_INFO_2 pUserInfo2
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    IN PLSA_USER_INFO_2 pUserInfo2,
+    OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     );
 
 static DWORD
 AuthenticateNTLMv2(
-    PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_USER_INFO_2 pUserInfo2
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    IN PLSA_USER_INFO_2 pUserInfo2,
+    OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     );
-
-static DWORD
-CalcNTLMv1SessionKey(
-    OUT PLSA_DATA_BLOB pBlob,
-    IN PBYTE NTLMHash
-    );
-
-static DWORD
-CalcNTLMv2SessionKey(
-    OUT PLSA_DATA_BLOB pBlob,
-    IN PBYTE NTLMHash
-    );
-
 
 /* Code */
 
@@ -106,6 +95,7 @@ LocalAuthenticateUserExInternal(
     PLSA_USER_INFO_2 pUserInfo2 = NULL;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     BOOLEAN bUsingNTLMv2 = FALSE;
+    PLSA_DATA_BLOB pSessionKey = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
 
@@ -149,14 +139,18 @@ LocalAuthenticateUserExInternal(
     {
         bUsingNTLMv2 = FALSE;
 
-        dwError = AuthenticateNTLMv1(pUserParams, pUserInfo2);
+        dwError = AuthenticateNTLMv1(pUserParams,
+                                     pUserInfo2,
+                                     &pSessionKey);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
         bUsingNTLMv2 = TRUE;
 
-        dwError = AuthenticateNTLMv2(pUserParams, pUserInfo2);
+        dwError = AuthenticateNTLMv2(pUserParams,
+                                     pUserInfo2,
+                                     &pSessionKey);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -169,20 +163,8 @@ LocalAuthenticateUserExInternal(
     dwError = FillAuthUserInfo(hProvider, pUserInfo, pUserInfo2, pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Session Key */
-
-    dwError = LsaDataBlobAllocate(&pUserInfo->pSessionKey, 16);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (bUsingNTLMv2)
-    {
-        dwError = CalcNTLMv2SessionKey(pUserInfo->pSessionKey,
-                                       pUserInfo2->info1.pNTHash);
-    } else {
-        dwError = CalcNTLMv1SessionKey(pUserInfo->pSessionKey,
-                                       pUserInfo2->info1.pNTHash);
-    }
-    BAIL_ON_LSA_ERROR(dwError);
+    pUserInfo->pSessionKey = pSessionKey;
+    pSessionKey = NULL;
 
     *ppUserInfo = pUserInfo;
     pUserInfo = NULL;
@@ -191,8 +173,11 @@ cleanup:
 
     LsaFreeAuthUserInfo(&pUserInfo);
 
-    if (pUserInfo2)
-    {
+    if (pSessionKey) {
+        LsaDataBlobFree(&pSessionKey);
+    }
+
+    if (pUserInfo2) {
         LsaFreeUserInfo(dwUserInfoLevel, pUserInfo2);
     }
 
@@ -210,8 +195,9 @@ error:
 
 static DWORD
 AuthenticateNTLMv1(
-    PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_USER_INFO_2 pUserInfo2
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    IN PLSA_USER_INFO_2 pUserInfo2,
+    OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -219,6 +205,10 @@ AuthenticateNTLMv1(
     BYTE     NTResponse[24] = { 0 };
     PBYTE    pChal = NULL;
     PBYTE    pNTresp = NULL;
+    PBYTE    pSessKeyBuf = NULL;
+    PLSA_DATA_BLOB pSessKeyBlob = NULL;
+
+    /* Authenticate */
 
     pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
     BAIL_ON_INVALID_POINTER(pChal);
@@ -242,10 +232,28 @@ AuthenticateNTLMv1(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    /* Calculate the session Key */
+
+    dwError = LsaDataBlobAllocate(&pSessKeyBlob, 16);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pSessKeyBuf = LsaDataBlobBuffer(pSessKeyBlob);
+
+    MD4(pUserInfo2->info1.pNTHash, 16, pSessKeyBuf);
+
+    *ppSessionKeyBlob = pSessKeyBlob;
+    pSessKeyBlob = NULL;
+
+    /* Done */
+
     dwError = LSA_ERROR_SUCCESS;
 
 cleanup:
 
+    if (pSessKeyBlob) {
+        LsaDataBlobFree(&pSessKeyBlob);
+    }
+
     return dwError;
 
 error:
@@ -257,18 +265,131 @@ error:
 
 /********************************************************
  *******************************************************/
+
 static DWORD
 AuthenticateNTLMv2(
-    PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_USER_INFO_2 pUserInfo2
+    IN PLSA_AUTH_USER_PARAMS pUserParams,
+    IN PLSA_USER_INFO_2 pUserInfo2,
+    OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     )
 {
-    DWORD    dwError = LSA_ERROR_PASSWORD_MISMATCH;
+    DWORD dwError = LSA_ERROR_PASSWORD_MISMATCH;
+    PWSTR pwszAccountName = NULL;
+    PWSTR pwszDestination = NULL;
+    BYTE pNTLMv2Hash[16];
+    DWORD dwNTLMv2HashLen = 16;
+    PBYTE pBuffer = NULL;
+    DWORD dwBufferLen = 0;
+    DWORD dwAcctNameSize = 0;
+    DWORD dwDestNameSize = 0;
+    PBYTE pClientNonce = NULL;
+    DWORD dwClientNonceLen = 0;
+    PBYTE pChal = NULL;
+    PBYTE pNTresp = NULL;
+    DWORD dwNTrespLen = 0;
+    PBYTE pData = NULL;
+    BYTE pNTLMv2Resp[EVP_MAX_MD_SIZE];
+    DWORD dwNTLMv2RespLen = 0;
+    PLSA_DATA_BLOB pSessKeyBlob = NULL;
+    PBYTE pSessKeyBuf = NULL;
+    DWORD dwSessKeyLen = 0;
 
+    /* Sanity Check */
+
+    BAIL_ON_INVALID_POINTER(pUserParams->pass.chap.pNT_resp);
+    BAIL_ON_INVALID_POINTER(pUserParams->pass.chap.pChallenge);
+
+    pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
+    pNTresp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+
+    BAIL_ON_INVALID_POINTER(pChal);
+    BAIL_ON_INVALID_POINTER(pNTresp);
+
+    dwNTrespLen = LsaDataBlobLength(pUserParams->pass.chap.pNT_resp);
+
+    memset(pNTLMv2Hash, 0, 16);
+
+    /* First calculate the NTLMv2 Hash */
+
+    dwError = LsaMbsToWc16s(pUserParams->pszAccountName,
+                            &pwszAccountName);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(pUserParams->pszDomain,
+                            &pwszDestination);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwAcctNameSize = RtlWC16StringNumChars(pwszAccountName) * sizeof(WCHAR);
+    dwDestNameSize = RtlWC16StringNumChars(pwszDestination) * sizeof(WCHAR);
+
+    dwBufferLen = dwAcctNameSize + dwDestNameSize;
+    dwError = LsaAllocateMemory(dwBufferLen, (PVOID*)&pBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pBuffer, pwszAccountName, dwAcctNameSize);
+    memcpy(pBuffer+dwAcctNameSize, pwszDestination, dwDestNameSize);
+
+    HMAC(EVP_md5(),
+         pUserInfo2->info1.pNTHash, 16,
+         pBuffer, dwBufferLen,
+         pNTLMv2Hash, &dwNTLMv2HashLen);
+
+    /* grab the client nonce (starts at offset 16 following
+       the HMAC) */
+
+    pClientNonce = pNTresp + 16;
+    dwClientNonceLen = dwNTrespLen - 16;
+
+    /* generate the Response for comparing the MAC */
+
+    dwError = LsaAllocateMemory(dwClientNonceLen + 8,
+                                (PVOID*)&pData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pData, pChal, 8);
+    memcpy(pData+8, pClientNonce, dwClientNonceLen);
+
+    HMAC(EVP_md5(),
+         pNTLMv2Hash, 16,
+         pData, dwClientNonceLen + 8,
+         pNTLMv2Resp, &dwNTLMv2RespLen);
+
+    if (memcmp(pNTLMv2Resp, pNTresp, 16) != 0) {
+        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Calculate the session Key */
+
+    dwError = LsaDataBlobAllocate(&pSessKeyBlob, 16);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pSessKeyBuf = LsaDataBlobBuffer(pSessKeyBlob);
+
+    HMAC(EVP_md5(),
+         pNTLMv2Hash, 16,
+         pNTresp, 16,
+         pSessKeyBuf, &dwSessKeyLen);
+
+    *ppSessionKeyBlob = pSessKeyBlob;
+    pSessKeyBlob = NULL;
+
+    /* Done */
+
+    dwError = LSA_ERROR_SUCCESS;
+
 
 cleanup:
 
+    LSA_SAFE_FREE_MEMORY(pBuffer);
+    LSA_SAFE_FREE_MEMORY(pData);
+    LSA_SAFE_FREE_MEMORY(pwszAccountName);
+    LSA_SAFE_FREE_MEMORY(pwszDestination);
+
+    if (pSessKeyBlob) {
+        LsaDataBlobFree(&pSessKeyBlob);
+    }
+
     return dwError;
 
 error:
@@ -276,36 +397,6 @@ error:
     goto cleanup;
 }
 
-
-/********************************************************
- *******************************************************/
-
-static DWORD
-CalcNTLMv1SessionKey(
-    OUT PLSA_DATA_BLOB pBlob,
-    IN PBYTE NTLMHash
-    )
-{
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    PBYTE pBuffer = LsaDataBlobBuffer(pBlob);
-
-    MD4(NTLMHash, 16, pBuffer);
-
-    return dwError;
-}
-
-
-/********************************************************
- *******************************************************/
-
-static DWORD
-CalcNTLMv2SessionKey(
-    OUT PLSA_DATA_BLOB pBlob,
-    IN PBYTE NTLMHash
-    )
-{
-    return LSA_ERROR_NOT_IMPLEMENTED;
-}
 
 /********************************************************
  *******************************************************/
