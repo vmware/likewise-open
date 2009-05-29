@@ -50,6 +50,7 @@
 
 static DWORD
 FillAuthUserInfo(
+    HANDLE hProvider,
     PLSA_AUTH_USER_INFO pAuthInfo,
     PLSA_USER_INFO_2 pLsaUserInfo2,
     PCSTR pszMachineName
@@ -165,7 +166,7 @@ LocalAuthenticateUserExInternal(
                                 (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = FillAuthUserInfo(pUserInfo, pUserInfo2, pszDomain);
+    dwError = FillAuthUserInfo(hProvider, pUserInfo, pUserInfo2, pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Session Key */
@@ -360,12 +361,42 @@ error:
 
 static DWORD
 FillAuthUserInfo(
+    HANDLE hProvider,
     OUT PLSA_AUTH_USER_INFO pAuthInfo,
     IN PLSA_USER_INFO_2 pLsaUserInfo2,
     IN PCSTR pszMachineName
     )
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
+    PLSA_GROUP_INFO_0 *ppGroupList0 = NULL;
+    PLSA_GROUP_INFO_0 pPrimaryGroup0 = NULL;
+    PVOID *ppListBuffer = NULL;
+    PVOID pGroupBuffer = NULL;
+    DWORD dwNumGroups = 0;
+    int i = 0;
+
+    /* Find the user's groups */
+
+    dwError = LocalGetGroupsForUser(hProvider,
+                                    pLsaUserInfo2->info1.uid,
+                                    0,   /* Flags */
+                                    0,   /* Level */
+                                    &dwNumGroups,
+                                    &ppListBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+    ppGroupList0 = (PLSA_GROUP_INFO_0 *)ppListBuffer;
+    ppListBuffer = NULL;
+
+    /* Primary Group */
+
+    dwError = LocalFindGroupById(hProvider,
+                                 pLsaUserInfo2->info1.gid,
+                                 0,
+                                 0,
+                                 &pGroupBuffer);
+    BAIL_ON_LSA_ERROR(dwError);
+    pPrimaryGroup0 = (PLSA_GROUP_INFO_0)pGroupBuffer;
+    pGroupBuffer = NULL;
 
     /* leave user flags empty for now.  But fill in account flags */
 
@@ -402,14 +433,48 @@ FillAuthUserInfo(
                              &pAuthInfo->dwUserRid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pAuthInfo->dwPrimaryGroupRid = 544;
+    /* This really needs a check to ensure that the
+       primaryGroup SID is in the machine's domain */
+
+    dwError = SidSplitString(pPrimaryGroup0->pszSid,
+                             &pAuthInfo->dwPrimaryGroupRid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Since all the groups we get back have full SIDs,
+       place them in the SidAttributeList rather that
+       filtering the ones in the host's own SAM domain
+       to the RidAttributeList */
+
     pAuthInfo->dwNumRids = 0;
-    pAuthInfo->dwNumSids = 0;
+    pAuthInfo->dwNumSids = dwNumGroups;
 
-    /* NTLM Session key */
+    dwError = LsaAllocateMemory(sizeof(LSA_SID_ATTRIB)*dwNumGroups,
+                                (PVOID*)&pAuthInfo->pSidAttribList);
+    BAIL_ON_LSA_ERROR(dwError);
 
+    for (i=0; i<pAuthInfo->dwNumSids; i++)
+    {
+        dwError = LsaStrDupOrNull(ppGroupList0[i]->pszSid,
+                                  &pAuthInfo->pSidAttribList[i].pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pAuthInfo->pSidAttribList[i].dwAttrib =
+            LSA_SID_ATTR_GROUP_MANDATORY |
+            LSA_SID_ATTR_GROUP_ENABLED_BY_DEFAULT |
+            LSA_SID_ATTR_GROUP_ENABLED;
+    }
+
+    dwError = LSA_ERROR_SUCCESS;
 
 cleanup:
+
+    if (ppGroupList0) {
+        LsaFreeGroupInfoList(0, (PVOID*)ppGroupList0, dwNumGroups);
+    }
+
+    if (pPrimaryGroup0) {
+        LsaFreeGroupInfo(0, pPrimaryGroup0);
+    }
 
     return dwError;
 
