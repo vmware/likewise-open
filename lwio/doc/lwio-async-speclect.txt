@@ -143,9 +143,10 @@ IoIrpSetCancelCallback(
     IN OPTIONAL PVOID CallbackContext
     );
 
+// Cannot touch IRP after this:
 VOID
 IoIrpComplete(
-    IN PIRP Irp
+    IN OUT PIRP Irp
     );
 
 2.3.2 Cancellation
@@ -487,6 +488,7 @@ IoXxxFile()
   + irp->IsAsync = TRUE
   + irp->Async.Callback = AsyncControlBlock->Callback;
   + irp->Async.CallbackContext = AsyncControlBlock->CallbackContext;
+  + Reference(irp)
 - else
   + irp->IsAsync = FALSE
   + irp->Sync.Condition = pointer to stack condition variable
@@ -495,17 +497,16 @@ IoXxxFile()
   + if STATUS_PENDING
     - wait on context->Sync.Condition
   + *IoStatusBlock = Irp.IoStatusBlock
-  + deref IRP
+  + Dereference(irp)
 - if async
   + if STATUS_PENDING
-    - reference IRP
     - set AsyncControlBlock->AsynContext = irp
   + else
     - NOTE: *** FOR NOW, SYNC COMPLETION MEANS NO CALL TO IoIrpComplete() ***
     - NOTE: *** Callback not called since returning complete to caller ***
+    - *IoStatusBlock = Irp.IoStatusBlock
     - set AsyncControlBlock->AsyncContext = NULL
-    - deref IRP
-
+    - Dereference(irp)
 
 IoIrpComplete()
 - acquire LOCK
@@ -513,6 +514,55 @@ IoIrpComplete()
 - release LOCK
 - if Irp->IsAsync
   + call Irp->Async.Callback(Irp->Async.CallbackContext, Irp, &Irp->IoStatusBlock)
-  + deref Irp
+  + Dereferece(Irp)
 - else
   + signal Irp->Sync.Condition
+
+
+====================
+
+IRP NOTES wrt async calls into IoXxxFile() APIs:
+
+All arguments are copied, except:
+
+IoCreateFile():
+- SecurityContext - ref-counted
+- EA - TBD
+- SD - TBD
+- QOS - TBD
+- ECP - caller must not free until complete
+
+IoCloseFile():
+- N/A
+
+Io{Read,Write}File():
+- Buffer - caller must not free until complete
+
+Io{DeviceIo,Fs}ControlFile():
+- InputBuffer - caller must not free until complete
+- OutputBuffer - caller must not free until complete
+
+IoFlushBuffersFile():
+- N/A
+
+Io{Query,Set}InformationFile Params:
+- FileInformation - caller must not free until complete
+
+IoQueryDirectoryFile():
+- FileInformation - caller must not free until complete
+
+Io{Query,Set}VolumeInformationFile():
+- FsInformation - caller must not free until complete
+
+Io{Lock,Unlock}File():
+- N/A
+
+Io{Query,Set}QuotaInformationFile():
+- TBD
+
+Io{Query,Set}SecurityFile():
+- SecurityDescriptor  - caller must not free until complete
+
+NOTE: In general, IoXxxFile() should not copy buffer.  In SRV case, this will
+      cause us to be faster.  In lwmsg case, lwmsg will already preserve the
+      buffers for the duration of the call.
