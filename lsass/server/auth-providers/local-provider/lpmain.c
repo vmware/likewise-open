@@ -43,6 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
 
 #include "includes.h"
@@ -269,6 +270,16 @@ error:
 }
 
 
+/********************************************************
+ *******************************************************/
+
+static DWORD
+LsaFillAuthUserInfo(
+    PLSA_AUTH_USER_INFO pAuthInfo,
+    PLSA_USER_INFO_2 pLsaUserInfo2,
+    PCSTR pszMachineName
+    );
+
 DWORD
 LocalAuthenticateUserEx(
     HANDLE                hProvider,
@@ -285,6 +296,7 @@ LocalAuthenticateUserEx(
     DWORD    dwUserInfoLevel = 2;
     PSTR     pszAccountName = NULL;
     PLSA_USER_INFO_2 pUserInfo2 = NULL;
+    PLSA_AUTH_USER_INFO pUserInfo = NULL;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
 
@@ -293,10 +305,11 @@ LocalAuthenticateUserEx(
 
     /* Assume the local domain (localhost) if we don't have one */
 
-    if (pUserParams->pszDomain)
+    if (pUserParams->pszDomain) {
         pszDomain = pUserParams->pszDomain;
-    else
+    } else {
         pszDomain = gLPGlobals.pszLocalDomain;
+    }
 
     /* Allow the next provider to continue if we don't handle this domain */
 
@@ -306,11 +319,10 @@ LocalAuthenticateUserEx(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateStringPrintf(
-                     &pszAccountName,
-                     "%s\\%s",
-                     pszDomain,
-                     pUserParams->pszAccountName);
+    dwError = LsaAllocateStringPrintf(&pszAccountName,
+                                      "%s\\%s",
+                                      pszDomain,
+                                      pUserParams->pszAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalFindUserByName(hProvider,
@@ -346,7 +358,22 @@ LocalAuthenticateUserEx(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    /* Fill in the LSA_AUTH_USER_INF0 data now */
+
+    dwError = LsaAllocateMemory(sizeof(LSA_AUTH_USER_INFO),
+                                (PVOID*)&pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaFillAuthUserInfo(pUserInfo, pUserInfo2, pszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppUserInfo = pUserInfo;
+    pUserInfo = NULL;
+
+
 cleanup:
+
+    LsaFreeAuthUserInfo(&pUserInfo);
 
     if (pUserInfo2)
     {
@@ -361,6 +388,136 @@ error:
 
     goto cleanup;
 }
+
+
+static DWORD
+LsaSidSplitString(
+    IN OUT PSTR pszSidString,
+    OUT PDWORD pdwRid
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    PSTR p = NULL;
+    PSTR q = NULL;
+    DWORD dwRid = 0;
+
+    BAIL_ON_INVALID_POINTER(pszSidString);
+
+    p = strrchr(pszSidString, '-');
+    if (p == NULL) {
+        dwError = LSA_ERROR_INVALID_SID;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Get the RID */
+
+    p++;
+    dwRid = strtol(p, &q, 10);
+    if ((dwRid == 0) || (*q != '\0')) {
+        dwError = LSA_ERROR_INVALID_SID;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* Split the string now that we know the RID is valid */
+
+    *pdwRid = dwRid;
+
+    p--;
+    *p = '\0';
+
+    dwError = LSA_ERROR_SUCCESS;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static DWORD
+LsaCalculateSessionKey(
+    OUT PLSA_DATA_BLOB pBlob,
+    IN PBYTE NTLMHash
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PBYTE pBuffer = LsaDataBlobBuffer(pBlob);
+
+    MD4(NTLMHash, 16, pBuffer);
+
+    return dwError;
+}
+
+static DWORD
+LsaFillAuthUserInfo(
+    OUT PLSA_AUTH_USER_INFO pAuthInfo,
+    IN PLSA_USER_INFO_2 pLsaUserInfo2,
+    IN PCSTR pszMachineName
+    )
+{
+    DWORD dwError = LSA_ERROR_INTERNAL;
+
+    /* leave user flags empty for now.  But fill in account flags */
+
+    pAuthInfo->dwAcctFlags = ACB_NORMAL;
+    if (pLsaUserInfo2->bAccountDisabled) {
+        pAuthInfo->dwAcctFlags |= ACB_DISABLED;
+    }
+    if (pLsaUserInfo2->bAccountExpired) {
+        pAuthInfo->dwAcctFlags |= ACB_PW_EXPIRED;
+    }
+    if (pLsaUserInfo2->bPasswordNeverExpires) {
+        pAuthInfo->dwAcctFlags |= ACB_PWNOEXP;
+    }
+
+    /* Copy strings */
+
+    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszName,
+                              &pAuthInfo->pszAccount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszGecos,
+                              &pAuthInfo->pszFullName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(pszMachineName,
+                              &pAuthInfo->pszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(pLsaUserInfo2->info1.pszSid,
+                              &pAuthInfo->pszDomainSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSidSplitString(pAuthInfo->pszDomainSid,
+                                &pAuthInfo->dwUserRid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pAuthInfo->dwPrimaryGroupRid = 544;
+    pAuthInfo->dwNumRids = 0;
+    pAuthInfo->dwNumSids = 0;
+
+    /* NTLM Session key */
+
+    dwError = LsaDataBlobAllocate(&pAuthInfo->pSessionKey, 16);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaCalculateSessionKey(pAuthInfo->pSessionKey,
+                                     pLsaUserInfo2->info1.pNTHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+/********************************************************
+ *******************************************************/
 
 DWORD
 LocalValidateUser(

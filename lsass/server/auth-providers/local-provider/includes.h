@@ -43,6 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
 
 #include "config.h"
@@ -77,7 +78,9 @@
 #include "externs.h"
 
 #include <lwrpc/LMcrypt.h>
+#include <lwrpc/samr.h>
 
+#include <openssl/md4.h>
 
 /*
 local variables:

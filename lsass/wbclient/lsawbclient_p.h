@@ -112,8 +112,29 @@
 
 /* local private functions */
 
-DWORD  map_wbc_to_lsa_error(wbcErr);
-wbcErr map_error_to_wbc_status(DWORD);
+DWORD
+map_wbc_to_lsa_error(
+    wbcErr
+    );
+
+wbcErr
+map_error_to_wbc_status(
+    DWORD
+    );
+
+wbcErr
+wbcSidAppendRid(
+    struct wbcDomainSid *sid,
+    DWORD rid
+    );
+
+wbcErr
+wbcSidCopy(
+    struct wbcDomainSid *dst,
+    struct wbcDomainSid *src
+    );
+
+
 
 /* memory management */
 

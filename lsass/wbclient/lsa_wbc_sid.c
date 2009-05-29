@@ -49,9 +49,15 @@
 
 #define MAX_SID_STRING_LEN 1024
 
-static DWORD _sidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
+wbcErr
+wbcSidCopy(
+    struct wbcDomainSid *dst,
+    struct wbcDomainSid *src
+    )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbcStatus = WBC_ERR_UNKNOWN_FAILURE;
+
 
     BAIL_ON_NULL_PTR_PARAM(dst, dwErr);
     BAIL_ON_NULL_PTR_PARAM(src, dwErr);
@@ -61,12 +67,19 @@ static DWORD _sidCopy(struct wbcDomainSid *dst, struct wbcDomainSid *src)
     dwErr = LSA_ERROR_SUCCESS;
 
 done:
-    return dwErr;
+    wbcStatus = map_error_to_wbc_status(dwErr);
+
+    return wbcStatus;
 }
 
-static DWORD _sidAppendRid(struct wbcDomainSid *sid, DWORD rid)
+wbcErr
+wbcSidAppendRid(
+    struct wbcDomainSid *sid,
+    DWORD rid
+    )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
+    wbcErr wbcStatus = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
 
@@ -83,11 +96,15 @@ static DWORD _sidAppendRid(struct wbcDomainSid *sid, DWORD rid)
     dwErr = LSA_ERROR_SUCCESS;
 
 done:
+    wbcStatus = map_error_to_wbc_status(dwErr);
+
     return dwErr;
 }
 
-wbcErr wbcSidToString(const struct wbcDomainSid *sid,
-              char **sid_string)
+wbcErr wbcSidToString(
+    const struct wbcDomainSid *sid,
+    char **sid_string
+    )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     CHAR pszSidStr[MAX_SID_STRING_LEN] = "";
@@ -128,8 +145,11 @@ done:
 }
 
 
-wbcErr wbcStringToSid(const char *sid_string,
-              struct wbcDomainSid *sid)
+wbcErr
+wbcStringToSid(
+    const char *sid_string,
+    struct wbcDomainSid *sid
+    )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     DWORD dwErr = LSA_ERROR_INTERNAL;
@@ -210,10 +230,13 @@ done:
     return wbc_status;
 }
 
-wbcErr wbcLookupName(const char *dom_name,
-             const char *name,
-              struct wbcDomainSid *sid,
-             enum wbcSidType *name_type)
+wbcErr
+wbcLookupName(
+    const char *dom_name,
+    const char *name,
+    struct wbcDomainSid *sid,
+    enum wbcSidType *name_type
+    )
 {
     LSA_USER_INFO_0 *pUserInfo = NULL;
     LSA_GROUP_INFO_1 *pGroupInfo = NULL;
@@ -286,7 +309,10 @@ done:
     return wbc_status;
 }
 
-static enum wbcSidType map_lsa_sid_type_to_wbc(ADAccountType type)
+static enum wbcSidType
+map_lsa_sid_type_to_wbc(
+    ADAccountType type
+    )
 {
     if (type == AccountType_User)
         return WBC_SID_NAME_USER;
@@ -297,10 +323,12 @@ static enum wbcSidType map_lsa_sid_type_to_wbc(ADAccountType type)
     return WBC_SID_NAME_UNKNOWN;
 }
 
-wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
-            char **domain,
-            char **name,
-            enum wbcSidType *name_type)
+wbcErr wbcLookupSid(
+    const struct wbcDomainSid *sid,
+    char **domain,
+    char **name,
+    enum wbcSidType *name_type
+    )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     HANDLE hLsa = (HANDLE)NULL;
@@ -385,12 +413,14 @@ done:
     return wbc_status;
 }
 
-wbcErr wbcLookupRids(struct wbcDomainSid *dom_sid,
-             int num_rids,
-             uint32_t *rids,
-             const char **domain_name,
-             const char ***names,
-             enum wbcSidType **types)
+wbcErr wbcLookupRids(
+    struct wbcDomainSid *dom_sid,
+    int num_rids,
+    uint32_t *rids,
+    const char **domain_name,
+    const char ***names,
+    enum wbcSidType **types
+    )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     DWORD dwErr = LSA_ERROR_INTERNAL;
@@ -416,10 +446,10 @@ wbcErr wbcLookupRids(struct wbcDomainSid *dom_sid,
     }
 
     for (i=0; i<num_rids; i++) {
-        dwErr = _sidCopy(&sid, dom_sid);
+        dwErr = wbcSidCopy(&sid, dom_sid);
         BAIL_ON_LSA_ERR(dwErr);
 
-        dwErr = _sidAppendRid(&sid, rids[i]);
+        dwErr = wbcSidAppendRid(&sid, rids[i]);
         BAIL_ON_LSA_ERR(dwErr);
 
         wbc_status = wbcLookupSid(&sid,

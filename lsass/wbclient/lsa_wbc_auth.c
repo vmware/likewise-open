@@ -222,52 +222,7 @@ done:
 }
 
 /******************************************************************
- */
-
-static DWORD
-CopyLsaSidToWbcSid(
-    struct wbcDomainSid *pWbcSid,
-    PLSA_SID pLsaSid
-    )
-{
-    DWORD dwErr = LSA_ERROR_INTERNAL;
-
-    BAIL_ON_NULL_PTR_PARAM(pWbcSid, dwErr);
-
-    pWbcSid->sid_rev_num = pLsaSid->Revision;
-    pWbcSid->num_auths = pLsaSid->NumSubAuths;
-    memcpy(pWbcSid->id_auth, pLsaSid->AuthId, sizeof(pWbcSid->id_auth));
-    memcpy(pWbcSid->sub_auths, pLsaSid->SubAuths, sizeof(uint32_t)*(pWbcSid->num_auths));
-
-    dwErr = LSA_ERROR_SUCCESS;
-
-done:
-    return dwErr;
-}
-
-static DWORD
-wbcSidAppendRid(
-    struct wbcDomainSid *pWbcSid,
-    uint32_t rid
-    )
-{
-    DWORD dwErr = LSA_ERROR_INTERNAL;
-
-    BAIL_ON_NULL_PTR_PARAM(pWbcSid, dwErr);
-
-    if (pWbcSid->num_auths  >= WBC_MAXSUBAUTHS) {
-        dwErr = LSA_ERROR_INVALID_SID;
-        BAIL_ON_LSA_ERR(dwErr);
-    }
-
-    pWbcSid->sub_auths[pWbcSid->num_auths] = rid;
-    pWbcSid->num_auths++;
-
-    dwErr = LSA_ERROR_SUCCESS;
-
-done:
-    return dwErr;
-}
+ *****************************************************************/
 
 static DWORD
 CopyLsaUserInfoToWbcInfo(
@@ -278,9 +233,12 @@ CopyLsaUserInfoToWbcInfo(
     DWORD dwErr = LSA_ERROR_INTERNAL;
     int i = 0;
     DWORD dwSidCount = 0;
+    struct wbcDomainSid DomainSid = {0};
 
     BAIL_ON_NULL_PTR_PARAM(pWbcUserInfo, dwErr);
     BAIL_ON_NULL_PTR_PARAM(pLsaUserInfo, dwErr);
+
+    memset(pWbcUserInfo, 0, sizeof(struct wbcAuthUserInfo));
 
     pWbcUserInfo->user_flags = pLsaUserInfo->dwUserFlags;
 
@@ -310,12 +268,18 @@ CopyLsaUserInfoToWbcInfo(
     }
 
     pWbcUserInfo->acct_flags = pLsaUserInfo->dwAcctFlags;
-    memcpy(pWbcUserInfo->user_session_key,
-           LsaDataBlobBuffer(pLsaUserInfo->pSessionKey),
-           sizeof(pWbcUserInfo->user_session_key));
-    memcpy(pWbcUserInfo->lm_session_key,
-           LsaDataBlobBuffer(pLsaUserInfo->pLmSessionKey),
-           sizeof(pWbcUserInfo->lm_session_key));
+
+    if (pLsaUserInfo->pSessionKey) {
+        memcpy(pWbcUserInfo->user_session_key,
+               LsaDataBlobBuffer(pLsaUserInfo->pSessionKey),
+               sizeof(pWbcUserInfo->user_session_key));
+    }
+
+    if (pLsaUserInfo->pLmSessionKey) {
+        memcpy(pWbcUserInfo->lm_session_key,
+               LsaDataBlobBuffer(pLsaUserInfo->pLmSessionKey),
+               sizeof(pWbcUserInfo->lm_session_key));
+    }
 
     pWbcUserInfo->logon_count        = pLsaUserInfo->LogonCount;
     pWbcUserInfo->bad_password_count = pLsaUserInfo->BadPasswordCount;
@@ -361,17 +325,29 @@ CopyLsaUserInfoToWbcInfo(
                           NULL);
     BAIL_ON_NULL_PTR(pWbcUserInfo->sids, dwErr);
 
-    /* User SID must be first */
-    dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[dwSidCount].sid), &pLsaUserInfo->DomainSid);
+
+    dwErr = wbcStringToSid(pLsaUserInfo->pszDomainSid, &DomainSid);
     BAIL_ON_LSA_ERR(dwErr);
-    dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[dwSidCount].sid), pLsaUserInfo->dwUserRid);
+
+    /* User SID must be first */
+
+    dwErr = wbcSidCopy(&(pWbcUserInfo->sids[dwSidCount].sid),
+                       &DomainSid);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[dwSidCount].sid),
+                            pLsaUserInfo->dwUserRid);
     BAIL_ON_LSA_ERR(dwErr);
     dwSidCount++;
 
     /* Primary group SID is second */
-    dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[dwSidCount].sid), &pLsaUserInfo->DomainSid);
+
+    dwErr = wbcSidCopy(&(pWbcUserInfo->sids[dwSidCount].sid),
+                       &DomainSid);
     BAIL_ON_LSA_ERR(dwErr);
-    dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[dwSidCount].sid), pLsaUserInfo->dwPrimaryGroupRid);
+
+    dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[dwSidCount].sid),
+                            pLsaUserInfo->dwPrimaryGroupRid);
     BAIL_ON_LSA_ERR(dwErr);
     dwSidCount++;
 
@@ -381,12 +357,12 @@ CopyLsaUserInfoToWbcInfo(
          (i<pLsaUserInfo->dwNumRids) && (dwSidCount<pWbcUserInfo->num_sids);
          i++, dwSidCount++)
     {
-        dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[dwSidCount].sid),
-                       &pLsaUserInfo->DomainSid);
+        dwErr = wbcSidCopy(&(pWbcUserInfo->sids[dwSidCount].sid),
+                           &DomainSid);
         BAIL_ON_LSA_ERR(dwErr);
 
         dwErr = wbcSidAppendRid(&(pWbcUserInfo->sids[dwSidCount].sid),
-                    pLsaUserInfo->pRidAttribList[i].Rid);
+                                pLsaUserInfo->pRidAttribList[i].Rid);
         BAIL_ON_LSA_ERR(dwErr);
 
         pWbcUserInfo->sids[dwSidCount].attributes = pLsaUserInfo->pRidAttribList[i].dwAttrib;
@@ -399,14 +375,13 @@ CopyLsaUserInfoToWbcInfo(
          (i<pLsaUserInfo->dwNumSids) && (dwSidCount<pWbcUserInfo->num_sids);
          i++, dwSidCount++)
     {
-        dwErr = CopyLsaSidToWbcSid(&(pWbcUserInfo->sids[dwSidCount].sid),
-                       &pLsaUserInfo->pSidAttribList[i].Sid);
+        dwErr = wbcStringToSid(pLsaUserInfo->pSidAttribList[i].pszSid,
+                               &(pWbcUserInfo->sids[dwSidCount].sid));
         BAIL_ON_LSA_ERR(dwErr);
 
         pWbcUserInfo->sids[dwSidCount].attributes = pLsaUserInfo->pSidAttribList[i].dwAttrib;
         BAIL_ON_LSA_ERR(dwErr);
     }
-
 
     dwErr = LSA_ERROR_SUCCESS;
 

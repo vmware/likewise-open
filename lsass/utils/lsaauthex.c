@@ -65,8 +65,13 @@ LsaFreeAuthUserInfo(
     LSA_SAFE_FREE_MEMORY(p->pszDomain);
     LSA_SAFE_FREE_MEMORY(p->pszDnsDomain);
 
-    LsaDataBlobFree(&p->pSessionKey);
-    LsaDataBlobFree(&p->pLmSessionKey);
+    if (p->pSessionKey) {
+        LsaDataBlobFree(&p->pSessionKey);
+    }
+
+    if (p->pLmSessionKey) {
+        LsaDataBlobFree(&p->pLmSessionKey);
+    }
 
     LSA_SAFE_FREE_MEMORY(p->pszLogonServer);
     LSA_SAFE_FREE_MEMORY(p->pszLogonScript);

@@ -897,18 +897,9 @@ typedef struct __LSA_AUTH_USER_PARAMS
 
 #define LSA_MAX_SID_SUB_AUTHORITIES  15
 
-typedef struct __LSA_SID
-{
-	UINT8 Revision;
-	UINT8 NumSubAuths;
-	UINT8 AuthId[6];
-	UINT32 SubAuths[LSA_MAX_SID_SUB_AUTHORITIES];
-
-} LSA_SID, *PLSA_SID;
-
 typedef struct __LSA_SID_ATTRIB
 {
-	LSA_SID  Sid;
+	PSTR     pszSid;
 	DWORD    dwAttrib;
 
 } LSA_SID_ATTRIB, *PLSA_SID_ATTRIB;
@@ -958,7 +949,7 @@ typedef struct __LSA_AUTH_USER_INFO
 	PSTR pszHomeDirectory;
 	PSTR pszHomeDrive;
 
-    LSA_SID DomainSid;
+    PSTR pszDomainSid;
 	DWORD dwUserRid;
 	DWORD dwPrimaryGroupRid;
 
