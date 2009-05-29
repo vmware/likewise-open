@@ -72,12 +72,12 @@
 // STATUS_PENDING.
 //
 
-typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
+typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 // Determine whether this is a failure code.  Only warning and
 // error codes are considered failure.
 #define LW_NT_SUCCESS(status) \
-    (((LONG)(status)) >= 0)
+    (((LW_LONG)(status)) >= 0)
 
 // Determines whether NTSTATUS is 0 or !NT_SUCCESS(status).
 // This helps check for non-zero success code from APIs.
