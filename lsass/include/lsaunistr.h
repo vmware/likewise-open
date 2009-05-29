@@ -158,6 +158,12 @@ LsaSW16printf(
     PCSTR   pszFormat,
     ...);
 
+DWORD
+LsaWc16ToUpper(
+    IN OUT PWSTR pwszString
+    );
+
+
 #endif
 #endif /* __LSAUNISTR_H__ */
 
