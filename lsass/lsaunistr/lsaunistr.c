@@ -459,4 +459,29 @@ error:
     LSA_SAFE_FREE_MEMORY(pwszConverted);
     return dwError;
 }
+
+DWORD
+LsaWc16ToUpper(
+    IN OUT PWSTR pwszString
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    wc16supper(pwszString);
+
+    return dwError;
+}
+
+
+
 #endif
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
