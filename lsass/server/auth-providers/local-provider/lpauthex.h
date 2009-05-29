@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,55 +33,31 @@
  *
  * Module Name:
  *
- *        localprovider.h
+ *        lpauthex.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider (Private include)
+ *        AuthenticateUserEx routines
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
 
-#include <eventlog.h>
+#ifndef __LPAUTHEX_H__
+#define __LPAUTHEX_H__
 
-#include "lsautils.h"
-#include "lsasrvutils.h"
-#include "lsaunistr.h"
+DWORD
+LocalAuthenticateUserExInternal(
+    HANDLE                hProvider,
+    PLSA_AUTH_USER_PARAMS pUserParams,
+    PLSA_AUTH_USER_INFO*  ppUserInfo
+    );
 
-#include "lsaprovider.h"
-#include "lsalocalprovider.h"
-#include "directory.h"
+#endif     /* __LPAUTHEX_H__ */
 
-#include "lpdefs.h"
-#include "lpstructs.h"
-#include "lpenumstate.h"
-#include "lpcfg.h"
-#include "lpmain.h"
-#include "lpauthex.h"
-#include "lpuser.h"
-#include "lpgroup.h"
-#include "lpevent.h"
-#include "lpdomain.h"
-#include "lpaccess.h"
-#include "lpmisc.h"
-#include "lpmarshal.h"
-#include "lpobject.h"
 
-#include "externs.h"
-
-#include <lwrpc/LMcrypt.h>
-#include <lwrpc/samr.h>
-
-#include <openssl/md4.h>
 
 /*
 local variables:
