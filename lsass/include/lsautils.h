@@ -91,6 +91,17 @@
 		goto error;						\
 	}
 
+#ifndef BAIL_ON_NT_STATUS
+#define BAIL_ON_NT_STATUS(err) \
+    do { \
+        if ((err) != STATUS_SUCCESS) { \
+            LSA_LOG_DEBUG("Error at %s:%d [code: %d]", \
+                            __FILE__, __LINE__, dwError); \
+		    goto error; \
+	    } \
+    } while (0);
+#endif
+
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
        LSA_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \

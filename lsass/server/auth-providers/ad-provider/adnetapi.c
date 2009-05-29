@@ -1334,32 +1334,6 @@ WinTimeToInt64(
 }
 
 static DWORD
-LsaCopyDomainSid(
-    PLSA_SID pLsaSid,
-    PSID pNetrSid
-    )
-{
-    DWORD dwError = LSA_ERROR_INTERNAL;
-
-    BAIL_ON_INVALID_POINTER(pLsaSid);
-    BAIL_ON_INVALID_POINTER(pNetrSid);
-
-    pLsaSid->Revision     = pNetrSid->Revision;
-    pLsaSid->NumSubAuths  = pNetrSid->SubAuthorityCount;
-
-    memcpy(pLsaSid->AuthId, &pNetrSid->IdentifierAuthority, sizeof(pLsaSid->AuthId));
-    memcpy(pLsaSid->SubAuths, pNetrSid->SubAuthority, sizeof(UINT32)*pLsaSid->NumSubAuths);
-
-    dwError = LSA_ERROR_SUCCESS;
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-static DWORD
 LsaCopyNetrUserInfo3(
     OUT PLSA_AUTH_USER_INFO pUserInfo,
     IN NetrValidationInfo *pNetrUserInfo3
@@ -1367,6 +1341,7 @@ LsaCopyNetrUserInfo3(
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
     NetrSamBaseInfo *pBase = NULL;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
     BAIL_ON_INVALID_POINTER(pUserInfo);
     BAIL_ON_INVALID_POINTER(pNetrUserInfo3);
@@ -1448,8 +1423,8 @@ LsaCopyNetrUserInfo3(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCopyDomainSid(&pUserInfo->DomainSid, pBase->domain_sid);
-    BAIL_ON_LSA_ERROR(dwError);
+    ntError = RtlAllocateCStringFromSid(&pUserInfo->pszDomainSid, pBase->domain_sid);
+    BAIL_ON_NT_STATUS(dwError);
 
     pUserInfo->dwUserRid         = pBase->rid;
     pUserInfo->dwPrimaryGroupRid = pBase->primary_gid;
@@ -1486,9 +1461,9 @@ LsaCopyNetrUserInfo3(
 
             pSidAttrib->dwAttrib = pNetrUserInfo3->sam3->sids[i].attribute;
 
-            dwError = LsaCopyDomainSid(&pSidAttrib->Sid,
-                                       pNetrUserInfo3->sam3->sids[i].sid);
-            BAIL_ON_LSA_ERROR(dwError);
+            ntError = RtlAllocateCStringFromSid(&pSidAttrib->pszSid,
+                                                pNetrUserInfo3->sam3->sids[i].sid);
+            BAIL_ON_NT_STATUS(dwError);
         }
     }
 

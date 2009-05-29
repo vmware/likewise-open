@@ -631,6 +631,8 @@ lwmsg_server_startup(
     ServerIoThread* io_thread = NULL;
     ServerDispatchThread* dispatch_thread = NULL;
 
+    LWMSG_LOG_INFO(&server->context, "Starting server");
+
     /* Allocate and spin up IO threads */
     BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(
                       server->max_io,
@@ -665,11 +667,16 @@ lwmsg_server_startup(
         lwmsg_server_queue_io_task(server, task);
     }
 
+    LWMSG_LOG_INFO(&server->context, "Server started");
+
 done:
 
     return status;
 
 error:
+
+    LWMSG_LOG_ERROR(&server->context, "Error starting server: %s",
+                    lwmsg_context_get_error_message(&server->context, status));
 
     if (server->io.threads)
     {
@@ -772,6 +779,8 @@ lwmsg_server_shutdown(
     ServerTask* task = NULL;
     size_t i = 0;
 
+    LWMSG_LOG_INFO(&server->context, "Shutting down server");
+
     /* Notify IO threads */
     for (i = 0; i < server->max_io; i++)
     {
@@ -833,6 +842,8 @@ lwmsg_server_shutdown(
 
     free(server->dispatch.threads);
     server->dispatch.threads = NULL;
+
+    LWMSG_LOG_INFO(&server->context, "Server shut down");
 
     return status;
 }

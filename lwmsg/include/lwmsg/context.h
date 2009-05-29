@@ -48,6 +48,16 @@
  * @brief Low-level marshalling context API
  */
 
+typedef enum LWMsgLogLevel
+{
+    LWMSG_LOGLEVEL_ERROR,
+    LWMSG_LOGLEVEL_WARNING,
+    LWMSG_LOGLEVEL_INFO,
+    LWMSG_LOGLEVEL_VERBOSE,
+    LWMSG_LOGLEVEL_DEBUG,
+    LWMSG_LOGLEVEL_TRACE
+} LWMsgLogLevel;
+
 /**
  * @ingroup marshal
  * @brief A marshaller context
@@ -127,7 +137,17 @@ typedef LWMsgStatus
 (*LWMsgContextDataFunction) (
     const char* key,
     void** out_value,
-    void* data);
+    void* data
+    );
+
+typedef void
+(*LWMsgLogFunction) (
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line,
+    void* data
+    );
 
 /**
  * @ingroup marshal
@@ -187,6 +207,13 @@ void
 lwmsg_context_set_data_function(
     LWMsgContext* context,
     LWMsgContextDataFunction fn,
+    void* data
+    );
+
+void
+lwmsg_context_set_log_function(
+    LWMsgContext* context,
+    LWMsgLogFunction logfn,
     void* data
     );
 

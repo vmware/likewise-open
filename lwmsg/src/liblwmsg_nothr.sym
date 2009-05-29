@@ -38,8 +38,11 @@ lwmsg_context_new
 lwmsg_context_delete
 lwmsg_context_set_memory_functions
 lwmsg_context_set_data_function
+lwmsg_context_set_log_function
 lwmsg_context_get_error_message
 lwmsg_context_free_graph
+lwmsg_context_log
+lwmsg_context_log_printf
 lwmsg_marshal
 lwmsg_marshal_simple
 lwmsg_marshal_alloc
