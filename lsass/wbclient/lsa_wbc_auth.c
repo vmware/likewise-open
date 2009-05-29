@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        lsa_wbc.c
+ *        lsa_wbc_auth.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Gerald Carter <gcarter@likewisesoftware.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  *
  */
 
@@ -49,8 +49,10 @@
 #include "lsaclient.h"
 #include "lsadatablob.h"
 
-wbcErr wbcAuthenticateUser(const char *username,
-               const char *password)
+wbcErr wbcAuthenticateUser(
+    const char *username,
+    const char *password
+    )
 {
     HANDLE hLsa = (HANDLE)NULL;
     DWORD dwErr = LSA_ERROR_INTERNAL;
@@ -84,8 +86,10 @@ done:
  */
 
 static DWORD
-CopyPlaintextParams(PLSA_AUTH_USER_PARAMS pLsaParams,
-            const struct wbcAuthUserParams *params)
+CopyPlaintextParams(
+    PLSA_AUTH_USER_PARAMS pLsaParams,
+    const struct wbcAuthUserParams *params
+    )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
     PSTR pszPass = NULL;
@@ -103,8 +107,10 @@ done:
  */
 
 static DWORD
-CopyChapParams(PLSA_AUTH_USER_PARAMS pLsaParams,
-           const struct wbcAuthUserParams *params)
+CopyChapParams(
+    PLSA_AUTH_USER_PARAMS pLsaParams,
+    const struct wbcAuthUserParams *params
+    )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -151,8 +157,10 @@ done:
 /******************************************************************
  */
 
-static DWORD InitLsaAuthParams(PLSA_AUTH_USER_PARAMS pLsaParams,
-                   const struct wbcAuthUserParams *params)
+static DWORD InitLsaAuthParams(
+    PLSA_AUTH_USER_PARAMS pLsaParams,
+    const struct wbcAuthUserParams *params
+    )
 {
     DWORD dwErr = LSA_ERROR_INTERNAL;
 
@@ -189,7 +197,8 @@ static DWORD InitLsaAuthParams(PLSA_AUTH_USER_PARAMS pLsaParams,
     }
 
     if (params->workstation_name) {
-        dwErr = LsaAllocateString(params->workstation_name, &pLsaParams->pszWorkstation);
+        dwErr = LsaAllocateString(params->workstation_name,
+                                  &pLsaParams->pszWorkstation);
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -537,9 +546,12 @@ done:
 }
 
 
-wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
-                 struct wbcAuthUserInfo **info,
-                 struct wbcAuthErrorInfo **error)
+wbcErr
+wbcAuthenticateUserEx(
+    const struct wbcAuthUserParams *params,
+    struct wbcAuthUserInfo **info,
+    struct wbcAuthErrorInfo **error
+    )
 {
     HANDLE hLsa = (HANDLE)NULL;
     DWORD dwErr = LSA_ERROR_INTERNAL;
