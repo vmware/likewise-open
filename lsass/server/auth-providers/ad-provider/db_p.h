@@ -104,54 +104,54 @@ typedef struct _LSA_DB_STORE_USER_MEMBERSHIP_CONTEXT
     IN PLSA_DB_CONNECTION pConn;
 } LSA_DB_STORE_USER_MEMBERSHIP_CONTEXT, *PLSA_DB_STORE_USER_MEMBERSHIP_CONTEXT;
 
-static
+
 DWORD
 LsaDbUnpackCacheInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT_VERSION_INFO pResult);
 
-static
+
 DWORD
 LsaDbUnpackObjectInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult);
 
-static
+
 DWORD
 LsaDbUnpackUserInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult);
 
-static
+
 DWORD
 LsaDbUnpackGroupInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult);
 
-static
+
 DWORD
 LsaDbQueryObject(
     IN sqlite3_stmt* pstQuery,
     OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
-static
+
 PCSTR
 LsaDbGetObjectFieldList(
     VOID
     );
 
-static
+
 DWORD
 LsaDbFreePreparedStatements(
     IN OUT PLSA_DB_CONNECTION pConn
     );
 
-static
+
 DWORD
 LsaDbCreateCacheTag(
     IN PLSA_DB_CONNECTION pConn,
@@ -159,7 +159,7 @@ LsaDbCreateCacheTag(
     OUT int64_t *pqwCacheId
     );
 
-static
+
 DWORD
 LsaDbUpdateMembership(
     IN sqlite3_stmt* pstQuery,
@@ -168,7 +168,7 @@ LsaDbUpdateMembership(
     IN PCSTR pszChildSid
     );
 
-static
+
 DWORD
 LsaDbAddMembership(
     IN PLSA_DB_CONNECTION pConn,
@@ -182,7 +182,7 @@ LsaDbAddMembership(
     IN BOOLEAN bIsDomainPrimaryGroup
     );
 
-static
+
 DWORD
 LsaDbStoreGroupMembershipCallback(
     IN sqlite3 *pDb,
@@ -190,7 +190,7 @@ LsaDbStoreGroupMembershipCallback(
     OUT PSTR* ppszError
     );
 
-static
+
 DWORD
 LsaDbStoreUserMembershipCallback(
     IN sqlite3 *pDb,

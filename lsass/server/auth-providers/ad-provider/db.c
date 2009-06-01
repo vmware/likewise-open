@@ -42,9 +42,9 @@
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  *
  */
-#include "includes.h"
+#include "adprovider.h"
 
-static
+
 DWORD
 LsaDbSetup(
     IN sqlite3* pSqlHandle
@@ -513,7 +513,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbFreePreparedStatements(
     IN OUT PLSA_DB_CONNECTION pConn
@@ -1032,7 +1032,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbUnpackCacheInfo(
     sqlite3_stmt *pstQuery,
@@ -1059,7 +1059,7 @@ error:
     return dwError;
 }
 
-static
+
 DWORD
 LsaDbUnpackObjectInfo(
     sqlite3_stmt *pstQuery,
@@ -1123,7 +1123,7 @@ error:
     return dwError;
 }
 
-static
+
 DWORD
 LsaDbUnpackUserInfo(
     sqlite3_stmt *pstQuery,
@@ -1280,7 +1280,7 @@ error:
     return dwError;
 }
 
-static
+
 DWORD
 LsaDbUnpackGroupInfo(
     sqlite3_stmt *pstQuery,
@@ -1321,7 +1321,7 @@ error:
     return dwError;
 }
 
-static
+
 DWORD
 LsaDbUnpackGroupMembershipInfo(
     IN sqlite3_stmt* pstQuery,
@@ -1749,7 +1749,7 @@ LsaDbSafeFreeObject(
     }
 }
 
-static
+
 DWORD
 LsaDbCreateCacheTag(
     IN PLSA_DB_CONNECTION pConn,
@@ -1828,7 +1828,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbUpdateMembership(
     IN sqlite3_stmt* pstQuery,
@@ -1869,7 +1869,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbAddMembership(
     IN PLSA_DB_CONNECTION pConn,
@@ -1929,7 +1929,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbStoreGroupMembershipCallback(
     IN sqlite3 *pDb,
@@ -2107,7 +2107,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbStoreUserMembershipCallback(
     IN sqlite3 *pDb,
@@ -2331,7 +2331,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbGetMemberships(
     IN LSA_DB_HANDLE hDb,
@@ -2784,7 +2784,7 @@ error:
     goto cleanup;
 }
 
-static
+
 DWORD
 LsaDbQueryObject(
     IN sqlite3_stmt* pstQuery,
@@ -2904,7 +2904,7 @@ error:
     goto cleanup;
 }
 
-static
+
 PCSTR
 LsaDbGetObjectFieldList(
     VOID
