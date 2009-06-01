@@ -214,6 +214,7 @@ LocalDirGetNamesBySidList(
             dwError = LSA_ERROR_SUCCESS;
 
             pTypes[iSid] = AccountType_NotFound;
+            continue;
         }
         BAIL_ON_LSA_ERROR(dwError);
 
