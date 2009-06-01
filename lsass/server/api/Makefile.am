@@ -8,6 +8,20 @@ liblsaserverapi_la_SOURCES = \
        event.c         \
        globals.c       \
        groups.c        \
+       ipc_artefact.c  \
+       ipc_auth.c      \
+       ipc_config.c    \
+       ipc_error.c     \
+       ipc_group.c     \
+       ipc_gss.c       \
+       ipc_log.c       \
+       ipc_metrics.c   \
+       ipc_provider.c  \
+       ipc_session.c   \
+       ipc_status.c    \
+       ipc_state.c     \
+       ipc_tracing.c   \
+       ipc_user.c      \
        loginfo.c       \
        metrics.c       \
        provider.c      \

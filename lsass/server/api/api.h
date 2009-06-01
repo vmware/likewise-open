@@ -49,7 +49,7 @@
 
 #include "lsasystem.h"
 #include <lsa/lsa.h>
-
+#include <lwmsg/lwmsg.h>
 #include <uuid/uuid.h>
 
 #include <eventlog.h>
@@ -81,6 +81,25 @@
 #include "ntlmgsssrv.h"
 #include "lsasrvapi.h"
 
+
+
+
+#include "lsaipc.h"
+
+#include "ipc_error_p.h"
+#include "ipc_auth_p.h"
+#include "ipc_group_p.h"
+#include "ipc_artefact_p.h"
+#include "ipc_gss_p.h"
+#include "ipc_session_p.h"
+#include "ipc_user_p.h"
+#include "ipc_log_p.h"
+#include "ipc_tracing_p.h"
+#include "ipc_metrics_p.h"
+#include "ipc_status_p.h"
+#include "ipc_config_p.h"
+#include "ipc_provider_p.h"
+#include "externs_p.h"
 
 /*
 local variables:

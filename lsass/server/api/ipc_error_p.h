@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        ipc_error.c
+ *        ipc_error_p.h
  *
  * Abstract:
  *
@@ -44,31 +44,15 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "api.h"
+#ifndef __IPC_ERROR_P_H__
+#define __IPC_ERROR_P_H__
 
 DWORD
 LsaSrvIpcCreateError(
     DWORD dwErrorCode,
     PCSTR pszErrorMessage,
     PLSA_IPC_ERROR* ppError
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
+    );
 
-    dwError = LsaAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
-    BAIL_ON_LSA_ERROR(dwError);
+#endif /* __IPC_ERROR_P_H__ */
 
-    if (pszErrorMessage)
-    {
-        dwError = LsaAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pError->dwError = dwErrorCode;
-
-    *ppError = pError;
-
-error:
-    return dwError;
-}

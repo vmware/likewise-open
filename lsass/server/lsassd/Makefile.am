@@ -11,7 +11,6 @@ lsassd_CPPFLAGS =                     \
 	-I@top_srcdir@/server/include
 
 lsassd_LDADD = \
-	@top_builddir@/server/ipc/liblsaserveripc.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/gssntlm/server/libntlmserver.la \
 	@top_builddir@/client/liblsaclient.la \

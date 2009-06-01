@@ -33,99 +33,91 @@
  *
  * Module Name:
  *
- *        ipc_log.c
+ *        ipc_user_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Inter-process communication (Server) API for Log Info
+ *        Inter-process communication (Server) API for Users
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "api.h"
+#ifndef __IPC_USER_H__
+#define __IPC_USER_H__
 
 LWMsgStatus
-LsaSrvIpcSetLogInfo(
+LsaSrvIpcAddUser(
     LWMsgAssoc* assoc,
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
     void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
+    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvSetLogInfo((HANDLE)Handle,
-                                (PLSA_LOG_INFO)pRequest->object);
-
-    if (!dwError)
-    {
-        pResponse->tag = LSA_R_SET_LOGINFO_SUCCESS;
-        pResponse->object = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_SET_LOGINFO_FAILURE;
-        pResponse->object = pError;
-    }
-
-cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
-LsaSrvIpcGetLogInfo(
+DWORD
+LsaSrvIpcModifyUser(
     LWMsgAssoc* assoc,
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
     void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_LOG_INFO pLogInfo = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
+    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
+LWMsgStatus
+LsaSrvIpcFindUserByName(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-    dwError = LsaSrvGetLogInfo((HANDLE)Handle,
-                               &pLogInfo);
+LWMsgStatus
+LsaSrvIpcFindUserById(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-    if (!dwError)
-    {
-        pResponse->tag = LSA_R_GET_LOGINFO_SUCCESS;
-        pResponse->object = pLogInfo;
-        pLogInfo = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
+LWMsgStatus
+LsaSrvIpcBeginEnumUsers(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-        pResponse->tag = LSA_R_GET_LOGINFO_FAILURE;
-        pResponse->object = pError;
-    }
+LWMsgStatus
+LsaSrvIpcEnumUsers(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-cleanup:
-    if (pLogInfo)
-    {
-        LsaFreeLogInfo(pLogInfo);
-    }
-    return MAP_LSA_ERROR_IPC(dwError);
+LWMsgStatus
+LsaSrvIpcEndEnumUsers(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
 
-error:
-    goto cleanup;
-}
+LWMsgStatus
+LsaSrvIpcDeleteUser(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+DWORD
+LsaSrvIpcGetNamesBySidList(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+#endif /* __IPC_USER_H__ */
+

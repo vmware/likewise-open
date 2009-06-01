@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        ipc_provider.c
+ *        ipc_provider_p.h
  *
  * Abstract:
  *
@@ -44,7 +44,8 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "api.h"
+#ifndef __IPC_PROVIDER_P_H__
+#define __IPC_PROVIDER_P_H__
 
 LWMsgStatus
 LsaSrvIpcProviderIoControl(
@@ -52,69 +53,7 @@ LsaSrvIpcProviderIoControl(
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
     void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    // Do not free pProviderIoControlReq
-    PLSA_IPC_PROVIDER_IO_CONTROL_REQ pProviderIoControlReq =
-        (PLSA_IPC_PROVIDER_IO_CONTROL_REQ)pRequest->object;
-    PVOID Handle = NULL;
-    DWORD dwOutputBufferSize = 0;
-    PVOID pOutputBuffer = NULL;
-    PLSA_DATA_BLOB pBlob = NULL;
+    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvProviderIoControl(
-                  (HANDLE)Handle,
-                  pProviderIoControlReq->pszProvider,
-                  pProviderIoControlReq->dwIoControlCode,
-                  pProviderIoControlReq->dwDataLen,
-                  pProviderIoControlReq->pData,
-                  &dwOutputBufferSize,
-                  &pOutputBuffer);
-
-    if (!dwError)
-    {
-        if ( dwOutputBufferSize )
-        {
-            pResponse->tag = LSA_R_PROVIDER_IO_CONTROL_SUCCESS_DATA;
-            dwError = LsaDataBlobStore(
-                          &pBlob,
-                          dwOutputBufferSize,
-                          pOutputBuffer);
-            BAIL_ON_LSA_ERROR(dwError);
-            pResponse->object = pBlob;
-        }
-        else
-        {
-            pResponse->tag = LSA_R_PROVIDER_IO_CONTROL_SUCCESS;
-            pResponse->object = NULL;
-        }
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_PROVIDER_IO_CONTROL_FAILURE;;
-        pResponse->object = pError;
-    }
-
-cleanup:
-    if ( pOutputBuffer )
-    {
-        LsaFreeMemory(pOutputBuffer);
-    }
-
-    return MAP_LSA_ERROR_IPC(dwError);
-
-error:
-
-    LsaDataBlobFree( &pBlob );
-
-    goto cleanup;
-}
+#endif /* __IPC_PROVIDER_P_H__ */
 

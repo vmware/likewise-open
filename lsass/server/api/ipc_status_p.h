@@ -33,99 +33,26 @@
  *
  * Module Name:
  *
- *        ipc_log.c
+ *        ipc_status_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Inter-process communication (Server) API for Log Info
+ *        Inter-process communication (Server) API for Status
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "api.h"
+#ifndef __IPC_STATUS_H__
+#define __IPC_STATUS_H__
 
 LWMsgStatus
-LsaSrvIpcSetLogInfo(
+LsaSrvIpcGetStatus(
     LWMsgAssoc* assoc,
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
     void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
+    );
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvSetLogInfo((HANDLE)Handle,
-                                (PLSA_LOG_INFO)pRequest->object);
-
-    if (!dwError)
-    {
-        pResponse->tag = LSA_R_SET_LOGINFO_SUCCESS;
-        pResponse->object = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_SET_LOGINFO_FAILURE;
-        pResponse->object = pError;
-    }
-
-cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-LWMsgStatus
-LsaSrvIpcGetLogInfo(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_LOG_INFO pLogInfo = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvGetLogInfo((HANDLE)Handle,
-                               &pLogInfo);
-
-    if (!dwError)
-    {
-        pResponse->tag = LSA_R_GET_LOGINFO_SUCCESS;
-        pResponse->object = pLogInfo;
-        pLogInfo = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResponse->tag = LSA_R_GET_LOGINFO_FAILURE;
-        pResponse->object = pError;
-    }
-
-cleanup:
-    if (pLogInfo)
-    {
-        LsaFreeLogInfo(pLogInfo);
-    }
-    return MAP_LSA_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
+#endif /* __IPC_STATUS_H__ */

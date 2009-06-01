@@ -44,7 +44,7 @@
  * Author: Todd Stecher (v-todds@likewise.com) 2008
  *
  */
-#include "ipc.h"
+#include "api.h"
 
 #define ZERO_STRUCT(_s_) memset((char*)&(_s_),0,sizeof(_s_))
 

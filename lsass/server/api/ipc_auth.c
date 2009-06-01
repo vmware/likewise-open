@@ -44,7 +44,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "ipc.h"
+#include "api.h"
 
 LWMsgStatus
 LsaSrvIpcAuthenticateUser(
