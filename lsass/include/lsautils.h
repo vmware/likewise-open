@@ -1227,6 +1227,31 @@ LsaFreeGroupModInfo(
     PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
+void
+LsaFreeIpcNameSidsList(
+    PLSA_FIND_NAMES_BY_SIDS pNameSidsList
+    );
+
+void
+LsaFreeIpcUserInfoList(
+    PLSA_USER_INFO_LIST pUserIpcInfoList
+    );
+
+VOID
+LsaSrvFreeIpcMetriPack(
+    PLSA_METRIC_PACK pMetricPack
+    );
+
+void
+LsaFreeIpcGroupInfoList(
+    PLSA_GROUP_INFO_LIST pGroupIpcInfoList
+    );
+
+void
+LsaFreeIpcNssArtefactInfoList(
+    PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
+    );
+
 DWORD
 LsaParseConfigFile(
     PCSTR                     pszFilePath,
