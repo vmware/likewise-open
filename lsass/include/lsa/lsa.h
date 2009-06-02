@@ -1319,10 +1319,6 @@ LsaFreeGroupInfo(
 
 /* FIXME: should these be public? */
 #ifndef DOXYGEN
-void
-LsaFreeIpcGroupInfoList(
-    PLSA_GROUP_INFO_LIST pGroupIpcInfoList
-    );
 
 VOID
 LsaFreeEnumObjectsInfo(
@@ -1336,11 +1332,6 @@ LsaFreeNSSArtefactInfoList(
     DWORD  dwNumNSSArtefacts
     );
 #endif
-
-void
-LsaFreeIpcNssArtefactInfoList(
-    PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
-    );
 
 VOID
 LsaFreeNSSArtefactInfo(
@@ -1359,13 +1350,6 @@ DWORD
 LsaModifyUser(
     HANDLE hLsaConnection,
     PLSA_USER_MOD_INFO pUserModInfo
-    );
-
-DWORD
-LsaChangeUser(
-    HANDLE hLsaConnection,
-    PVOID  pUserInfo,
-    DWORD  dwUserInfoLevel
     );
 
 DWORD
@@ -1437,11 +1421,6 @@ VOID
 LsaFreeSIDInfoList(
     PLSA_SID_INFO  ppSIDInfoList,
     size_t         stNumSID
-    );
-
-void
-LsaFreeIpcNameSidsList(
-    PLSA_FIND_NAMES_BY_SIDS pNameSidsList
     );
 
 VOID
@@ -1529,10 +1508,6 @@ LsaFreeUserInfoList(
     DWORD  dwNumUsers
     );
 
-void
-LsaFreeIpcUserInfoList(
-    PLSA_USER_INFO_LIST pUserIpcInfoList
-    );
 
 /**
  * @ingroup user
@@ -1733,11 +1708,6 @@ PBYTE
 LsaDataBlobBuffer(
 	PLSA_DATA_BLOB pBlob
 	);
-
-VOID
-LsaSrvFreeIpcMetriPack(
-    PLSA_METRIC_PACK pMetricPack
-    );
 
 #endif /* __LSA_H__ */
 
