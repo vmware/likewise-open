@@ -363,11 +363,9 @@ LsaSetupMachineSession(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszHostKeytabFile = NULL;
     PSTR pszKrb5CcPath = NULL;
-    PSTR pszHostname = NULL;
     PSTR pszDomname = NULL;
     PSTR pszRealmCpy = NULL;
     PSTR pszMachPrincipal = NULL;
-    PSTR pszHostPrincipal = NULL;
     DWORD dwGoodUntilTime = 0;
 
     dwError = LsaKrb5GetSystemKeytabPath(&pszHostKeytabFile);
@@ -384,27 +382,15 @@ LsaSetupMachineSession(
                                       pszSamAccountName, pszRealm);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateString(pszMachname, &pszHostname);
-    BAIL_ON_LSA_ERROR(dwError);
-    LsaStrToLower(pszHostname);
-
     dwError = LsaAllocateString(pszDomain, &pszDomname);
     BAIL_ON_LSA_ERROR(dwError);
     LsaStrToLower(pszDomname);
-
-    dwError = LsaAllocateStringPrintf(&pszHostPrincipal, "host/%s.%s@%s",
-                                      pszHostname, pszDomname, pszRealm);
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaKrb5GetTgt(
     		      pszMachPrincipal,
                   pszPassword,
                   pszKrb5CcPath,
                   &dwGoodUntilTime);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaKrb5GetTgs(pszMachPrincipal, pszHostPrincipal,
-                            pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pdwGoodUntilTime)
@@ -415,8 +401,6 @@ LsaSetupMachineSession(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszMachPrincipal);
-    LSA_SAFE_FREE_STRING(pszHostPrincipal);
-    LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszDomname);
     LSA_SAFE_FREE_STRING(pszRealmCpy);
     LSA_SAFE_FREE_STRING(pszKrb5CcPath);
