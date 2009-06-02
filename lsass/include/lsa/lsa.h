@@ -1362,13 +1362,6 @@ LsaModifyUser(
     );
 
 DWORD
-LsaChangeUser(
-    HANDLE hLsaConnection,
-    PVOID  pUserInfo,
-    DWORD  dwUserInfoLevel
-    );
-
-DWORD
 LsaDeleteUserById(
     HANDLE hLsaConnection,
     uid_t  uid
