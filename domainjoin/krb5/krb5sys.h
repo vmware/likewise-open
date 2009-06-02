@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,73 +33,33 @@
  *
  * Module Name:
  *
- *        api.h
+ *        krb5sys.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Kerberos 5 System Headers
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __LSA_KRB5_SYS_H__
+#define __LSA_KRB5_SYS_H__
 
-#include "config.h"
+#ifndef KRB5_PRIVATE
+#define KRB5_PRIVATE 1
+#ifndef KRB5_DEPRECATED
+#define KRB5_DEPRECATED 1
+#include <krb5.h>
+#endif
+#endif
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+#endif /* __LSA_KRB5_SYS_H__ */
 
-#include <eventlog.h>
-
-#include "lsadef.h"
-
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
-
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
-
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
-
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
-
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
 
 /*
 local variables:

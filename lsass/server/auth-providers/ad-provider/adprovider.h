@@ -54,6 +54,7 @@
 #include <openssl/rand.h>
 #include <openssl/des.h>
 #include <sqlite3.h>
+#include <uuid/uuid.h>
 #include <eventlog.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
@@ -106,3 +107,7 @@
 #include "lsasqlite.h"
 
 #include "externs.h"
+
+#include "dbcreate.h"
+#include "db_p.h"
+#include "lsasqlite.h"

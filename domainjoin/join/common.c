@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,58 @@
  *
  * Module Name:
  *
- *        api.h
+ *        common.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Join to Active Directory
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "config.h"
+#include "includes.h"
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+DWORD
+LsaSetSMBAccessTokenWithFlags(
+    IN PCSTR pszDomain,
+    IN PCSTR pszUsername,
+    IN PCSTR pszPassword,
+    IN DWORD dwFlags,
+    OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_ACCESS_TOKEN_FREE_INFO pFreeInfo = NULL;
 
-#include <eventlog.h>
+    BAIL_ON_INVALID_POINTER(ppFreeInfo);
+    BAIL_ON_INVALID_STRING(pszDomain);
+    BAIL_ON_INVALID_STRING(pszUsername);
 
-#include "lsadef.h"
+    if ( !(dwFlags & LSA_NET_JOIN_DOMAIN_NOTIMESYNC) && geteuid() == 0)
+    {
+        dwError = LsaSyncTimeToDC(pszDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+    dwError = LsaSetSMBAccessToken(
+                    pszDomain,
+                    pszUsername,
+                    pszPassword,
+                    TRUE,
+                    &pFreeInfo,
+                    NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+cleanup:
+    *ppFreeInfo = pFreeInfo;
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
+    return dwError;
 
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
+error:
+    LsaFreeSMBAccessToken(&pFreeInfo);
+    goto cleanup;
+}
 
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

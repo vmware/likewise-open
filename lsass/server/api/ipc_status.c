@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,61 @@
  *
  * Module Name:
  *
- *        api.h
+ *        ipc_status.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Inter-process communication (Server) API for Status
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "api.h"
 
-#include "config.h"
+LWMsgStatus
+LsaSrvIpcGetStatus(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSASTATUS pLsaStatus = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include <eventlog.h>
+    dwError = LsaSrvGetStatus(
+                    (HANDLE)Handle,
+                    &pLsaStatus);
 
-#include "lsadef.h"
+    if (!dwError)
+    {
+        pResponse->tag = LSA_R_GET_STATUS_SUCCESS;
+        pResponse->object = pLsaStatus;
+        pLsaStatus = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+        pResponse->tag = LSA_R_GET_STATUS_FAILURE;
+        pResponse->object = pError;
+    }
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+cleanup:
+    if(pLsaStatus)
+    {
+        LsaFreeStatus(pLsaStatus);
+    }
+    return MAP_LSA_ERROR_IPC(dwError);
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
-
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
-
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+error:
+    goto cleanup;
+}

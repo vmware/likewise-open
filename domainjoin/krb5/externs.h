@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,73 +33,31 @@
  *
  * Module Name:
  *
- *        api.h
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Kerberos 5 API External Variables
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-#include "config.h"
+typedef struct _LSA_KRB5_STATE {
+    pthread_mutex_t ExistingClientLock;
+    pthread_mutex_t UserCacheMutex;
+    LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback;
+    LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback;
+} LSA_KRB5_STATE, *PLSA_KRB5_STATE;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+extern LSA_KRB5_STATE gLsaKrb5State;
 
-#include <eventlog.h>
+#endif /* __EXTERNS_H__ */
 
-#include "lsadef.h"
-
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
-
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
-
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
-
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
-
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
 
 /*
 local variables:

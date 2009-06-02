@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,42 @@
  *
  * Module Name:
  *
- *        api.h
+ *        ipc_error.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Inter-process communication (Server) API for Errors
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "api.h"
 
-#include "config.h"
+DWORD
+LsaSrvIpcCreateError(
+    DWORD dwErrorCode,
+    PCSTR pszErrorMessage,
+    PLSA_IPC_ERROR* ppError
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+    dwError = LsaAllocateMemory(sizeof(*pError), (void**) (void*) &pError);
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include <eventlog.h>
+    if (pszErrorMessage)
+    {
+        dwError = LsaAllocateString(pszErrorMessage, (PSTR*) &pError->pszErrorMessage);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-#include "lsadef.h"
+    pError->dwError = dwErrorCode;
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+    *ppError = pError;
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
-
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
-
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
-
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+error:
+    return dwError;
+}

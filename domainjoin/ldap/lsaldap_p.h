@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,65 @@
  *
  * Module Name:
  *
- *        api.h
+ *        lsaldap_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        LDAP API (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
+ *          Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
+#ifndef __LSALDAP_P_H__
+#define __LSALDAP_P_H__
 
-#include "config.h"
+typedef struct _LSA_LDAP_DIRECTORY_CONTEXT {
+    LDAP *ld;
+} LSA_LDAP_DIRECTORY_CONTEXT, *PLSA_LDAP_DIRECTORY_CONTEXT;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+static
+DWORD
+LsaLdapOpenDirectoryWithReaffinity(
+    IN PCSTR pszDnsDomainOrForestName,
+    IN DWORD dwFlags,
+    IN BOOLEAN bNeedGc,
+    OUT PHANDLE phDirectory
+    );
 
-#include <eventlog.h>
+static
+DWORD
+LsaLdapBindDirectoryAnonymous(
+    HANDLE hDirectory
+    );
 
-#include "lsadef.h"
+static
+DWORD
+LsaLdapBindDirectory(
+    HANDLE hDirectory,
+    PCSTR pszServerName
+    );
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+static
+DWORD
+LsaLdapOpenDirectoryServerSingleAttempt(
+    IN PCSTR pszServerAddress,
+    IN PCSTR pszServerName,
+    IN DWORD dwTimeoutSec,
+    IN DWORD dwFlags,
+    OUT PAD_DIRECTORY_CONTEXT* ppDirectory
+    );
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+void display_status(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat);
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
+void display_status_1(char *m, OM_uint32 code, int type);
 
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
+#ifndef WIN32
+typedef gss_ctx_id_t CtxtHandle, *PCtxtHandle;
+#endif
 
-
-
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __LSALDAP_P_H__ */

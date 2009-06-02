@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -37,8 +37,8 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
  *        Kerberos 5 API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -59,7 +59,7 @@ LsaKrb5Init(
     )
 {
     DWORD dwError = 0;
-    
+
     dwError = pthread_mutex_init(&gLsaKrb5State.ExistingClientLock, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -72,7 +72,7 @@ LsaKrb5Init(
 cleanup:
 
     return dwError;
-    
+
 error:
 
     LSA_LOG_ERROR("Error: Failed to initialize Krb5. [Error code: %d]", dwError);
@@ -102,7 +102,7 @@ LsaKrb5GetDefaultRealm(
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszRealm = pszRealm;
-    
+
 cleanup:
 
     if (pszKrb5Realm){
@@ -116,7 +116,7 @@ cleanup:
 error:
 
     *ppszRealm = NULL;
-    
+
     LSA_SAFE_FREE_STRING(pszRealm);
 
     goto cleanup;
@@ -131,45 +131,45 @@ LsaKrb5GetSystemCachePath(
 {
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
-    
+
     switch (cacheType)
     {
         case KRB5_InMemory_Cache:
-            
+
             dwError = LsaAllocateString(
                         "MEMORY:krb5cc_lsass",
                         &pszCachePath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         case KRB5_File_Cache:
-            
+
             dwError = LsaAllocateString(
                         "FILE:/var/lib/likewise/krb5cc_lsass",
                         &pszCachePath);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
     }
-    
+
     *ppszCachePath = pszCachePath;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszCachePath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -183,47 +183,47 @@ LsaKrb5GetUserCachePath(
 {
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
-    
+
     switch (cacheType)
     {
         case KRB5_InMemory_Cache:
-            
+
             dwError = LsaAllocateStringPrintf(
                         &pszCachePath,
                         "MEMORY:krb5cc_%ld",
                         (long)uid);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         case KRB5_File_Cache:
-            
+
             dwError = LsaAllocateStringPrintf(
                         &pszCachePath,
                         "FILE:/tmp/krb5cc_%ld",
                         (long)uid);
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = LSA_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
-            
+
             break;
     }
-    
+
     *ppszCachePath = pszCachePath;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszCachePath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -245,7 +245,7 @@ LsaKrb5SetDefaultCachePath(
                             pszCachePath,
                             (ppszOrigCachePath) ? (const char**)&pszOrigCachePath : NULL);
     BAIL_ON_SEC_ERROR(dwMajorStatus);
-    
+
     if (ppszOrigCachePath) {
         if (!IsNullOrEmptyString(pszOrigCachePath)) {
             dwError = LsaAllocateString(pszOrigCachePath, ppszOrigCachePath);
@@ -254,11 +254,11 @@ LsaKrb5SetDefaultCachePath(
             *ppszOrigCachePath = NULL;
         }
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (ppszOrigCachePath) {
@@ -292,7 +292,7 @@ LsaKrb5GetSystemKeytabPath(
 
         ret = krb5_kt_default_name(ctx, pszPath, size);
     } while (ret == KRB5_CONFIG_NOTENUFSPACE);
-    
+
     BAIL_ON_KRB_ERROR(ctx, ret);
     *ppszKeytabPath = pszPath;
 
@@ -306,7 +306,7 @@ cleanup:
 error:
     LSA_SAFE_FREE_STRING(pszPath);
     *ppszKeytabPath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -346,7 +346,7 @@ LsaKrb5SetProcessDefaultCachePath(
 
 error:
     LSA_SAFE_FREE_STRING(pszEnvironmentEntry);
-    
+
     return dwError;
 }
 
@@ -363,9 +363,11 @@ LsaSetupMachineSession(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszHostKeytabFile = NULL;
     PSTR pszKrb5CcPath = NULL;
+    PSTR pszHostname = NULL;
     PSTR pszDomname = NULL;
     PSTR pszRealmCpy = NULL;
     PSTR pszMachPrincipal = NULL;
+    PSTR pszHostPrincipal = NULL;
     DWORD dwGoodUntilTime = 0;
 
     dwError = LsaKrb5GetSystemKeytabPath(&pszHostKeytabFile);
@@ -382,37 +384,51 @@ LsaSetupMachineSession(
                                       pszSamAccountName, pszRealm);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaAllocateString(pszMachname, &pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+    LsaStrToLower(pszHostname);
+
     dwError = LsaAllocateString(pszDomain, &pszDomname);
     BAIL_ON_LSA_ERROR(dwError);
     LsaStrToLower(pszDomname);
 
+    dwError = LsaAllocateStringPrintf(&pszHostPrincipal, "host/%s.%s@%s",
+                                      pszHostname, pszDomname, pszRealm);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaKrb5GetTgt(
-    		      pszMachPrincipal,
+		      pszMachPrincipal,
                   pszPassword,
                   pszKrb5CcPath,
                   &dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaKrb5GetTgs(pszMachPrincipal, pszHostPrincipal,
+                            pszKrb5CcPath);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = dwGoodUntilTime;
+	*pdwGoodUntilTime = dwGoodUntilTime;
     }
 
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszMachPrincipal);
+    LSA_SAFE_FREE_STRING(pszHostPrincipal);
+    LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszDomname);
     LSA_SAFE_FREE_STRING(pszRealmCpy);
     LSA_SAFE_FREE_STRING(pszKrb5CcPath);
     LSA_SAFE_FREE_STRING(pszHostKeytabFile);
-    
+
     return (dwError);
-    
+
 error:
 
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = 0;
+	*pdwGoodUntilTime = 0;
     }
 
 	goto cleanup;
@@ -612,10 +628,10 @@ LsaKrb5DecodePac(
 
     for (i = 0; i < pPacData->dwBufferCount; i++)
     {
-    	switch (pPacData->buffers[i].dwType)
-    	{
-    	    case PAC_TYPE_LOGON_INFO:
-    	        pchLogonInfoStart = (char *)pPacData + pPacData->buffers[i].qwOffset;
+	switch (pPacData->buffers[i].dwType)
+	{
+	    case PAC_TYPE_LOGON_INFO:
+	        pchLogonInfoStart = (char *)pPacData + pPacData->buffers[i].qwOffset;
                 sLogonInfoLen = pPacData->buffers[i].dwSize;
                 break;
             case PAC_TYPE_SRV_CHECKSUM:
@@ -637,12 +653,12 @@ LsaKrb5DecodePac(
                 break;
             case PAC_TYPE_KDC_CHECKSUM:
                 /* The checksum is calculated with the signatures zeroed out. */
-    		memset(pchPacCopy + pPacData->buffers[i].qwOffset +
-    	               (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
-    		       0,
-    		       pPacData->buffers[i].dwSize -
-    		           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
-    		break;
+		memset(pchPacCopy + pPacData->buffers[i].qwOffset +
+	               (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature,
+		       0,
+		       pPacData->buffers[i].dwSize -
+		           (size_t)&((PAC_SIGNATURE_DATA *)0)->pchSignature);
+		break;
             case PAC_TYPE_LOGON_NAME:
                 pLogonName = (PAC_LOGON_NAME *)((char *)pPacData +
                              pPacData->buffers[i].qwOffset);
@@ -673,7 +689,7 @@ LsaKrb5DecodePac(
                 break;
             default:
                 break;
-    	}
+	}
     }
 
     if (pServerSig == NULL)
@@ -734,20 +750,20 @@ LsaKrb5DecodePac(
     // Strip off the domain name
     if (strchr(pszClientPrincipal, '@') != NULL)
     {
-        strchr(pszClientPrincipal, '@')[0] = '\0'; 
+        strchr(pszClientPrincipal, '@')[0] = '\0';
     }
 
     dwError = LsaWc16snToMbs(
         pLogonName->pwszName,
         &pszLogonName,
         pLogonName->wAccountNameLen / 2);
-    BAIL_ON_LSA_ERROR(dwError);    
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (strcasecmp(pszClientPrincipal, pszLogonName))
     {
         // The pac belongs to a different user
         dwError = LSA_ERROR_INVALID_LOGIN_ID;
-        BAIL_ON_LSA_ERROR(dwError);    
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dceStatus = DecodePacLogonInfo(
@@ -800,9 +816,9 @@ LsaKrb5FindPac(
     int adType;
     ber_tag_t seqTag, context0Tag, context1Tag;
     PAC_LOGON_INFO *pLogonInfo = NULL;
-    
+
     ber = ber_alloc_t(0);
-    
+
     if (pTgsTicket && pTgsTicket->enc_part2)
     {
         ppCur = pTgsTicket->enc_part2->authorization_data;
@@ -929,7 +945,7 @@ LsaKrb5CopyFromUserCache(
                     KRB5_File_Cache,
                     &pszCachePath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     ret = krb5_cc_resolve(
             ctx,
             pszCachePath,
@@ -1097,7 +1113,7 @@ LsaKrb5MoveCCacheToUserPath(
                     KRB5_File_Cache,
                     &pszCachePath);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (strncasecmp(pszCachePath, "FILE:", sizeof("FILE:")-1)) {
         dwError = LSA_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1171,7 +1187,7 @@ LsaSetupUserLoginSession(
      * be owned by root and only accessible by root.
      */
     ret = krb5_cc_new_unique(
-            ctx, 
+            ctx,
             "FILE",
             "hint",
             &cc);
@@ -1190,7 +1206,7 @@ LsaSetupUserLoginSession(
 
     ret = krb5_cc_get_principal(ctx, cc, &credsRequest.client);
     BAIL_ON_KRB_ERROR(ctx, ret);
- 
+
     /* Get a TGS for our service using the tgt in the cache */
     ret = krb5_get_credentials(
             ctx,
@@ -1274,7 +1290,7 @@ LsaSetupUserLoginSession(
         ret = krb5_auth_con_free(ctx, authContext);
         BAIL_ON_KRB_ERROR(ctx, ret);
     }
-    
+
     ret = krb5_auth_con_init(ctx, &authContext);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
@@ -1367,34 +1383,34 @@ LsaSetupUserLoginSession(
     }
 
     *ppLogonInfo = pLogonInfo;
-    
+
 cleanup:
     LSA_SAFE_FREE_STRING(pszUnreachableRealm);
     if (ctx)
     {
         // This function skips fields which are NULL
         krb5_free_cred_contents(ctx, &credsRequest);
-    
+
         if (pTgsCreds != NULL)
         {
             krb5_free_creds(ctx, pTgsCreds);
         }
-        
+
         if (pTgsTicket != NULL)
         {
             krb5_free_ticket(ctx, pTgsTicket);
         }
-        
+
         if (pDecryptedTgs != NULL)
         {
             krb5_free_ticket(ctx, pDecryptedTgs);
         }
-        
+
         if (authContext != NULL)
         {
             krb5_auth_con_free(ctx, authContext);
         }
-        
+
         krb5_free_data_contents(ctx, &apReqPacket);
         krb5_free_data_contents(ctx, &salt);
         krb5_free_keyblock_contents(ctx, &serviceKey);
@@ -1412,7 +1428,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszTempCachePath);
 
     return dwError;
-    
+
 error:
     if ((LSA_ERROR_KRB5_CALL_FAILED == dwError) &&
         (KRB5_KDC_UNREACH == ret))
@@ -1429,7 +1445,7 @@ error:
         FreePacLogonInfo(pLogonInfo);
     }
     *ppLogonInfo = NULL;
-    
+
     goto cleanup;
 }
 
@@ -1448,11 +1464,11 @@ LsaKrb5Shutdown(
 
     dwError = pthread_mutex_destroy(&gLsaKrb5State.UserCacheMutex);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     LSA_LOG_ERROR("Error: Failed to shutdown Krb5. [Error code: %d]", dwError);
@@ -1481,7 +1497,7 @@ LsaKrb5GetMachineCreds(
                     LWPS_PASSWORD_STORE_SQLDB,
                     &hPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LwpsGetPasswordByHostName(
                     hPasswordStore,
                     pszHostname,
@@ -1507,7 +1523,7 @@ LsaKrb5GetMachineCreds(
                     pMachineAcctInfo->pwszDnsDomainName,
                     &pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaWc16sToMbs(
                     pMachineAcctInfo->pwszHostDnsDomain,
                     &pszHostDnsDomain);
@@ -1517,22 +1533,22 @@ LsaKrb5GetMachineCreds(
         dwError = LSA_ERROR_INVALID_ACCOUNT;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (IsNullOrEmptyString(pszPassword)) {
         dwError = LSA_ERROR_INVALID_PASSWORD;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     if (IsNullOrEmptyString(pszUsername)) {
         dwError = LSA_ERROR_INVALID_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
     *ppszUsername = pszUsername;
     *ppszPassword = pszPassword;
     *ppszDomainDnsName = pszDomainDnsName;
     *ppszHostDnsDomain = pszHostDnsDomain;
-    
+
 cleanup:
 
     if (pMachineAcctInfo) {
@@ -1544,13 +1560,13 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *ppszUsername = NULL;
     *ppszPassword = NULL;
     *ppszDomainDnsName = NULL;
-    
+
     LSA_SAFE_FREE_STRING(pszUsername);
     LSA_SAFE_FREE_STRING(pszPassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
@@ -1586,7 +1602,7 @@ LsaKrb5RefreshMachineTGT(
                     &pszDomainDnsName,
                     &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
-	
+
     dwError = LsaSetupMachineSession(
                     pszHostname,
                     pszUsername,
@@ -1595,12 +1611,12 @@ LsaKrb5RefreshMachineTGT(
                     pszHostDnsDomain,
                     &dwGoodUntilTime);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     if (pdwGoodUntilTime != NULL)
     {
         *pdwGoodUntilTime = dwGoodUntilTime;
     }
-	
+
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszHostname);
@@ -1610,7 +1626,7 @@ cleanup:
     LSA_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
-	
+
 error:
 
     if (pdwGoodUntilTime != NULL)

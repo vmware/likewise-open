@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,86 @@
  *
  * Module Name:
  *
- *        api.h
+ *        ipc_state.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Security and Authorization Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Server Connection State API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "api.h"
 
-#include "config.h"
+static
+DWORD
+LsaSrvIpcCheckPermissions(
+    LWMsgSecurityToken* token,
+    uid_t* puid,
+    gid_t* pgid
+    )
+{
+    DWORD dwError = 0;
+    uid_t euid;
+    gid_t egid;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+    if (strcmp(lwmsg_security_token_get_type(token), "local"))
+    {
+        LSA_LOG_WARNING("Unsupported authentication type");
+        dwError = LSA_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-#include <eventlog.h>
+    dwError = MAP_LWMSG_ERROR(lwmsg_local_token_get_eid(token, &euid, &egid));
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsadef.h"
+    LSA_LOG_VERBOSE("Permission granted for (uid = %i, gid = %i) to open LsaIpcServer",
+                    (int) euid,
+                    (int) egid);
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+    *puid = euid;
+    *pgid = egid;
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+error:
+    return dwError;
+}
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
+void
+LsaSrvIpcDestructSession(
+    LWMsgSecurityToken* pToken,
+    void* pSessionData
+    )
+{
+    LsaSrvCloseServer(pSessionData);
+}
 
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
+LWMsgStatus
+LsaSrvIpcConstructSession(
+    LWMsgSecurityToken* pToken,
+    void* pData,
+    void** ppSessionData
+    )
+{
+    DWORD dwError = 0;
+    HANDLE Handle = (HANDLE)NULL;
+    uid_t UID;
+    gid_t GID;
 
+    dwError = LsaSrvIpcCheckPermissions(pToken, &UID, &GID);
+    BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaSrvOpenServer(UID, GID, &Handle);
+    BAIL_ON_LSA_ERROR(dwError);
 
+    *ppSessionData = Handle;
 
-#include "lsaipc.h"
+cleanup:
 
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
+    return MAP_LSA_ERROR_IPC(dwError);
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+error:
+
+    goto cleanup;
+}

@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,84 +28,35 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        api.h
- *
- * Abstract:
- *
- *        Likewise Security and Authentication Subsystem (LSASS)
- *
- *        LSA Server API (Private Header)
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- */
+#ifndef __INCLUDES_H__
+#define __INCLUDES_H__
 
 #include "config.h"
-
 #include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
-
-#include <eventlog.h>
-
 #include "lsadef.h"
-
+#include "lsa/lsa.h"
+#include "eventlog.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
-#include "lsalog_r.h"
 
+#include "lsajoin.h"
 #include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+#include "lsakrb5.h"
+#include "lsaldap.h"
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
+#include <lwps/lwps.h>
+#include <lwnet.h>
+#include "lsakrb5_error.h"
 
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
+#include <lwrpc/LM.h>
+#include <lwrpc/lsa.h>
+#include <lwrpc/netlogon.h>
+#include <lwrpc/samr.h>
+#include <lwrpc/errconv.h>
 
+#include <lwio/lwio.h>
 
+#include "join_p.h"
+#include "externs.h"
 
-
-#include "lsaipc.h"
-
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __INCLUDES_H__ */

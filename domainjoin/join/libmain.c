@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -33,79 +33,69 @@
  *
  * Module Name:
  *
- *        api.h
+ *        libmain.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        LSA Server API (Private Header)
+ *        Main entry points in Join Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#include "includes.h"
 
-#include "config.h"
+DWORD
+LsaNetJoinInitialize(
+    PLSA_NET_JOIN_FUNCTION_TABLE* ppFuncTable
+    )
+{
+    DWORD dwError = 0;
 
-#include "lsasystem.h"
-#include <lsa/lsa.h>
-#include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+    dwError = LsaKrb5Init(NULL, NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include <eventlog.h>
+    dwError = LsaRpcInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsadef.h"
+    dwError = NetrInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsautils.h"
-#include "lsaunistr.h"
-#include "lsalog_r.h"
+    dwError = SamrInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "lsasrvutils.h"
-#include "lsaserver.h"
-#include "lsaprovider.h"
-#include "lsarpcsrv.h"
-#include "rpcctl.h"
+    dwError = NetInitMemory();
+    BAIL_ON_LSA_ERROR(dwError);
 
-#include "structs_p.h"
-#include "auth_p.h"
-#include "auth_provider_p.h"
-#include "rpc_server_p.h"
-#include "externs_p.h"
-#include "session_p.h"
-#include "state_p.h"
-#include "metrics_p.h"
-#include "status_p.h"
-#include "config_p.h"
-#include "event_p.h"
+    BAIL_ON_INVALID_POINTER(ppFuncTable);
 
-#include "ntlmgsssrv.h"
-#include "lsasrvapi.h"
+    *ppFuncTable = gpLsaNetJoinFuncTable;
 
+cleanup:
 
+    return dwError;
 
+error:
 
-#include "lsaipc.h"
+    *ppFuncTable = NULL;
 
-#include "ipc_error_p.h"
-#include "ipc_auth_p.h"
-#include "ipc_group_p.h"
-#include "ipc_artefact_p.h"
-#include "ipc_gss_p.h"
-#include "ipc_session_p.h"
-#include "ipc_user_p.h"
-#include "ipc_log_p.h"
-#include "ipc_tracing_p.h"
-#include "ipc_metrics_p.h"
-#include "ipc_status_p.h"
-#include "ipc_config_p.h"
-#include "ipc_provider_p.h"
-#include "externs_p.h"
+    goto cleanup;
+}
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+VOID
+LsaNetJoinShutdown(
+    PLSA_NET_JOIN_FUNCTION_TABLE pFuncTable
+    )
+{
+    LsaKrb5Shutdown();
+
+    NetrDestroyMemory();
+
+    SamrDestroyMemory();
+
+    LsaRpcDestroyMemory();
+
+    NetDestroyMemory();
+}
+

@@ -1468,7 +1468,7 @@ LsaUmpRefreshUserCreds(
     DWORD                dwError = 0;
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PSTR                 pszHostname = NULL;
-    PSTR                 pszUsername = NULL;
+    PSTR                 pszMachineAccountName = NULL;
     PSTR                 pszServicePassword = NULL;
     PSTR                 pszDomainDnsName = NULL;
     PSTR                 pszHostDnsDomain = NULL;
@@ -1508,18 +1508,19 @@ LsaUmpRefreshUserCreds(
 
     dwError = LsaKrb5GetMachineCreds(
                   pszHostname,
-                  &pszUsername,
+                  &pszMachineAccountName,
                   &pszServicePassword,
                   &pszDomainDnsName,
                   &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //Leave the realm empty so that kerberos referrals are turned on.
+    // Leave the realm empty so that kerberos referrals are turned on.
+    // Use the sAMAccountName$ which will always work (even if
+    // there is no SPN)
     dwError = LsaAllocateStringPrintf(
                   &pszServicePrincipal,
-                  "host/%s.%s@",
-                  pszHostname,
-                  pszHostDnsDomain);
+                  "%s@",
+                  pszMachineAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserInfo->userInfo.bIsGeneratedUPN)
@@ -1608,7 +1609,7 @@ cleanup:
 
     LsaDbSafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszUsername);
+    LSA_SAFE_FREE_STRING(pszMachineAccountName);
     LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
     LSA_SAFE_FREE_STRING(pszHostDnsDomain);
