@@ -1515,12 +1515,11 @@ LsaUmpRefreshUserCreds(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Leave the realm empty so that kerberos referrals are turned on.
-    // Use the sAMAccountName$ which will always work (even if
-    // there is no SPN)
     dwError = LsaAllocateStringPrintf(
                   &pszServicePrincipal,
-                  "%s@",
-                  pszMachineAccountName);
+                  "host/%s.%s@",
+                  pszHostname,
+                  pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserInfo->userInfo.bIsGeneratedUPN)
@@ -1567,6 +1566,30 @@ LsaUmpRefreshUserCreds(
                   pszServicePassword,
                   &pPac,
                   &pUserItem->dwTgtEndTime);
+    if (dwError == LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
+    {
+        LSA_SAFE_FREE_STRING(pszServicePrincipal);
+
+        // Perhaps the host has no SPN or UPN.  Try again
+        // Using the sAMAccountName
+        dwError = LsaAllocateStringPrintf(
+                      &pszServicePrincipal,
+                      "%s@%s",
+                      pszMachineAccountName,
+                      pszDomainDnsName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSetupUserLoginSession(
+                      pUserItem->uUid,
+                      pUserInfo->userInfo.gid,
+                      pszUpn,
+                      pszPassword,
+                      KRB5_File_Cache,
+                      pszServicePrincipal,
+                      pszServicePassword,
+                      &pPac,
+                      &pUserItem->dwTgtEndTime);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     // At this point the user's TGT has been refreshed.
@@ -1732,3 +1755,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

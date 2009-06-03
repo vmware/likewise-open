@@ -1199,6 +1199,15 @@ LsaSetupUserLoginSession(
             cc,
             &credsRequest,
             &pTgsCreds);
+
+    // Don't trust pTgsCreds on an unsuccessful return
+    // This may be non-zero due to the krb5 libs following referrals
+    // but has been freed in the krb5 libs themselves and any useful
+    // tickets have already been cached.
+    if (ret != 0) {
+        pTgsCreds = NULL;
+    }
+
     if (KRB5_KDC_UNREACH == ret)
     {
         // ISSUE-2008/09/22-dalmeida -- I think that we do not
@@ -1673,6 +1682,9 @@ LsaTranslateKrb5Error(
             break;
         case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
             dwError = LSA_ERROR_INVALID_ACCOUNT;
+            break;
+        case KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN:
+            dwError = LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN;
             break;
         default:
             dwError = LSA_ERROR_KRB5_CALL_FAILED;
