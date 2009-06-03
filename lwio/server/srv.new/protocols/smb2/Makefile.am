@@ -1,9 +1,9 @@
-lib_LTLIBRARIES = libsrv.proto.smb1.la
+lib_LTLIBRARIES = libsrv.proto.smb2.la
 
-libsrv_proto_smb1_la_SOURCES = \
+libsrv_proto_smb2_la_SOURCES = \
     libmain.c
 
-libsrv_proto_smb1_la_CPPFLAGS = \
+libsrv_proto_smb2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
@@ -11,7 +11,7 @@ libsrv_proto_smb1_la_CPPFLAGS = \
     -I@top_srcdir@/server/srv.new/include \
     -I@top_srcdir@/server/srv.new/protocols/include
 
-libsrv_proto_smb1_la_LIBADD = \
+libsrv_proto_smb2_la_LIBADD = \
     @top_builddir@/server/srv.new/shares/api/libshareapi.la \
     @top_builddir@/server/srv.new/utils/libsrvutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
