@@ -45,7 +45,7 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
 
-#include "includes.h"
+#include "api.h"
 
 DWORD
 LsaSrvFlushSystemCache(

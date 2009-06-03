@@ -50,7 +50,12 @@
 #include "lsasystem.h"
 #include <lsa/lsa.h>
 #include <lwmsg/lwmsg.h>
-#include <uuid/uuid.h>
+
+#include <dce/rpc.h>
+#include <dce/dcethread.h>
+#include <compat/rpcstatus.h>
+#include <lw/ntstatus.h>
+
 
 #include <eventlog.h>
 
@@ -101,6 +106,20 @@
 #include "ipc_provider_p.h"
 #include "externs_p.h"
 
+#include <lsarpcsrv.h>
+
+#include "rpcctl-register.h"
+#include "externs.h"
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 /*
 local variables:
 mode: c
