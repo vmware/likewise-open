@@ -402,6 +402,18 @@ AC_CHECK_FUNCS([stpncpy strnlen])
 AC_CHECK_FUNCS([atexit localtime_r memset strchr strerror strerror_r vsyslog])
 AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
 
+AC_CHECK_FUNC([epoll_ctl],[HAVE_EPOLL=true], [HAVE_EPOLL=false])
+AM_CONDITIONAL(HAVE_EPOLL, [$HAVE_EPOLL])
+
+AC_CHECK_FUNC([kqueue], [HAVE_KQUEUE=true], [HAVE_KQUEUE=false])
+AM_CONDITIONAL(HAVE_KQUEUE, [$HAVE_KQUEUE])
+
+AC_CHECK_FUNC([poll], [HAVE_POLL=true], [HAVE_POLL=false])
+AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
+
+AC_CHECK_FUNC([select], [HAVE_SELECT=true], [HAVE_SELECT=false])
+AM_CONDITIONAL(HAVE_SELECT, [$HAVE_SELECT])
+
 AC_CHECK_HEADERS([sys/vfs.h])
 AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
 
@@ -522,7 +534,21 @@ AC_CONFIG_FILES([Makefile
         server/rdr/Makefile
         server/smbwire/Makefile
         server/iomgr2/Makefile
-        server/srv/Makefile
+        server/srv.new/Makefile
+        server/srv.new/utils/Makefile
+        server/srv.new/shares/Makefile
+        server/srv.new/shares/lwshare/Makefile
+        server/srv.new/shares/api/Makefile
+        server/srv.new/protocols/Makefile
+        server/srv.new/protocols/api/Makefile
+        server/srv.new/protocols/smb1/Makefile
+        server/srv.new/protocols/smb2/Makefile
+        server/srv.new/transport/Makefile
+        server/srv.new/transport/api/Makefile
+        server/srv.new/transport/lwepoll/Makefile
+        server/srv.new/transport/lwpoll/Makefile
+        server/srv.new/transport/lwselect/Makefile
+        server/srv.new/driver/Makefile
         server/npvfs/Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile
