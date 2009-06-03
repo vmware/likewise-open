@@ -207,6 +207,10 @@ RdrInitialize(
 
     pthread_mutex_init(&gRdrRuntime.socketHashLock, NULL);
 
+    /* Pid used for SMB Header */
+
+    gRdrRuntime.SysPid = getpid();
+
     ntStatus = SMBPacketCreateAllocator(
                     10,
                     &gRdrRuntime.hPacketAllocator);

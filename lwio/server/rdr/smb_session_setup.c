@@ -115,7 +115,7 @@ SessionSetup(
                         0,
                         0,
                         0xFFFF,
-                        0,
+                        gRdrRuntime.SysPid,
                         0,
                         0,
                         TRUE,
