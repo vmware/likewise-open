@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblsasrvutils.la
 
 liblsasrvutils_la_SOURCES = \
-       event.c         \
+       lsaevent.c         \
        systemcache.c         \
        lsatime.c
 

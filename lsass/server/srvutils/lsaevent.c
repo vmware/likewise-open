@@ -225,13 +225,13 @@ LsaSrvLogServiceSuccessEvent(
 {
     DWORD dwError = 0;
     HANDLE hEventLog = (HANDLE)NULL;
-    
+
     dwError = LsaSrvOpenEventLog(
                   "System",
-                  &hEventLog);       
-    BAIL_ON_LSA_ERROR(dwError);    
-    
-    dwError = LsaSrvLogInformationEvent(            
+                  &hEventLog);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvLogInformationEvent(
                   hEventLog,
                   dwEventID,
                   NULL, // defaults to SYSTEM
@@ -257,20 +257,20 @@ error:
 VOID
 LsaSrvLogServiceWarningEvent(
     DWORD dwEventID,
-    PCSTR pszEventCategory, 
+    PCSTR pszEventCategory,
     PCSTR pszDescription,
     PCSTR pszData
     )
 {
     DWORD dwError = 0;
     HANDLE hEventLog = (HANDLE)NULL;
-    
+
     dwError = LsaSrvOpenEventLog(
                   "System",
-                  &hEventLog);       
-    BAIL_ON_LSA_ERROR(dwError);    
-    
-    dwError = LsaSrvLogWarningEvent(            
+                  &hEventLog);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvLogWarningEvent(
                   hEventLog,
                   dwEventID,
                   NULL, // defaults to SYSTEM
@@ -278,11 +278,11 @@ LsaSrvLogServiceWarningEvent(
                   pszDescription,
                   pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-    
+
     LsaSrvCloseEventLog(hEventLog);
-    
+
     return;
 
 error:
@@ -303,13 +303,13 @@ LsaSrvLogServiceFailureEvent(
 {
     DWORD dwError = 0;
     HANDLE hEventLog = (HANDLE)NULL;
-    
+
     dwError = LsaSrvOpenEventLog(
                   "System",
-                  &hEventLog);       
-    BAIL_ON_LSA_ERROR(dwError);    
-    
-    dwError = LsaSrvLogErrorEvent(            
+                  &hEventLog);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvLogErrorEvent(
                   hEventLog,
                   dwEventID,
                   NULL, // defaults to SYSTEM
@@ -317,11 +317,11 @@ LsaSrvLogServiceFailureEvent(
                   pszDescription,
                   pszData);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
-    
+
     LsaSrvCloseEventLog(hEventLog);
-    
+
     return;
 
 error:
