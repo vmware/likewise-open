@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -72,6 +72,7 @@ LocalGetDomainInfo(
     ULONG   ulMethod,
     PSTR*   ppszNetBIOSName,
     PSTR*   ppszDomainName,
+    PSID*   ppDomainSID,
     PLONG64 pllMaxPwdAge,
     PLONG64 pllPwdChangeTime
     )
@@ -87,12 +88,14 @@ LocalGetDomainInfo(
     PWSTR  pwszFilter = NULL;
     wchar16_t wszAttrNameDomain[]      = LOCAL_DIR_ATTR_DOMAIN;
     wchar16_t wszAttrNameNetBIOSName[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    wchar16_t wszAttrNameObjectSID[]   = LOCAL_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameMaxPwdAge[]   = LOCAL_DIR_ATTR_MAX_PWD_AGE;
     wchar16_t wszAttrNamePwdChangeTime[] = LOCAL_DIR_ATTR_PWD_PROMPT_TIME;
     PWSTR  wszAttrs[] =
     {
             &wszAttrNameDomain[0],
             &wszAttrNameNetBIOSName[0],
+	    &wszAttrNameObjectSID[0],
             &wszAttrNameMaxPwdAge[0],
             &wszAttrNamePwdChangeTime[0],
             NULL
@@ -105,6 +108,8 @@ LocalGetDomainInfo(
     ULONG            ulScope = 0;
     PSTR   pszDomainName  = NULL;
     PSTR   pszNetBIOSName = NULL;
+    PSTR   pszDomainSID   = NULL;
+    PSID   pDomainSID     = NULL;
     LONG64 llMaxPwdAge = 0;
     LONG64 llPwdChangeTime = 0;
 
@@ -201,14 +206,28 @@ LocalGetDomainInfo(
                             &llPwdChangeTime);
         }
         else
+        if (!wc16scasecmp(pAttr->pwszName, &wszAttrNameObjectSID[0]))
+        {
+            dwError = LocalGetSingleStringAttrValue(
+                            pAttr->pValues,
+                            pAttr->ulNumValues,
+                            &pszDomainSID);
+        }
+        else
         {
             dwError = LSA_ERROR_DATA_ERROR;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    dwError = RtlAllocateSidFromCString(
+                    &pDomainSID,
+                    pszDomainSID);
+    BAIL_ON_LSA_ERROR(dwError);
+
     *ppszDomainName = pszDomainName;
     *ppszNetBIOSName = pszNetBIOSName;
+    *ppDomainSID = pDomainSID;
     *pllMaxPwdAge = llMaxPwdAge;
     *pllPwdChangeTime = llPwdChangeTime;
 
@@ -226,6 +245,7 @@ cleanup:
 
     LSA_SAFE_FREE_STRING(pszFilter);
     LSA_SAFE_FREE_STRING(pszHostname);
+    LSA_SAFE_FREE_STRING(pszDomainSID);
     LSA_SAFE_FREE_STRING(pszFilter);
     LSA_SAFE_FREE_MEMORY(pwszFilter);
 
@@ -235,11 +255,13 @@ error:
 
     *ppszDomainName = NULL;
     *ppszNetBIOSName = NULL;
+    *ppDomainSID = NULL;
     *pllMaxPwdAge = 0;
     *pllPwdChangeTime = 0;
 
     LSA_SAFE_FREE_STRING(pszDomainName);
     LSA_SAFE_FREE_STRING(pszNetBIOSName);
+    RTL_FREE(&pDomainSID);
 
     goto cleanup;
 }
@@ -314,3 +336,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

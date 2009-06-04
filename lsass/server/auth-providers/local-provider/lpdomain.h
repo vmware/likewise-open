@@ -57,6 +57,7 @@ LocalGetDomainInfo(
     ULONG   ulMethod,
     PSTR*   ppszNetBIOSName,
     PSTR*   ppszLocalDomain,
+    PSID*   ppDomainSID,
     PLONG64 pllMaxPwdAge,
     PLONG64 pllPwdChangeTime
     );
