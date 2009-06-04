@@ -2433,8 +2433,7 @@ DJLogDomainLeaveFailedEvent(
                  "     Domain name (short):     %s\r\n" \
                  "     Computer name:           %s\r\n" \
                  "     Organizational unit:     %s\r\n" \
-                 "     User name:               %s\r\n" \
-                 "     Likewise version:        %s",
+                 "     User name:               %s",
                  exc && exc->shortMsg ? exc->shortMsg : "<not set>",
                  exc && exc->longMsg ? exc->longMsg : "<not set>",
                  exc && exc->code ? exc->code : 0,
