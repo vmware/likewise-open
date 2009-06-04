@@ -242,7 +242,7 @@ cleanup:
         }
     }
 
-    IoSecurityFreeSecurityContext(&securityContext);
+    IoSecurityDereferenceSecurityContext(&securityContext);
     IoRtlEcpListFree(&pEcpList);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);

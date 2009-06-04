@@ -566,3 +566,62 @@ Io{Query,Set}SecurityFile():
 NOTE: In general, IoXxxFile() should not copy buffer.  In SRV case, this will
       cause us to be faster.  In lwmsg case, lwmsg will already preserve the
       buffers for the duration of the call.
+
+===========================
+
+IopIrpCreate(FileObject) => irp
+- irp->RefCount = 1
+- irp->FileObject = FileObject
+- REF(FileObject)
+- return irp
+
+IoCreateFile()
+- irp = IopIrpCreate(file)
+
+
+IopIrpDispatch(Irp, AsyncControlBlock)
+- if AsyncControlBlock
+  + irp->IsAsync = TRUE
+  + irp->Async.Callback = AsyncControlBlock->Callback;
+  + irp->Async.CallbackContext = AsyncControlBlock->CallbackContext;
+  + REF(irp)
+- else
+  + irp->IsAsync = FALSE
+  + irp->Sync.Condition = pointer to stack condition variable
+- IopDeviceCallDriver(..., irp)
+- if sync
+  + if STATUS_PENDING
+    - wait on context->Sync.Condition
+  + *IoStatusBlock = Irp.IoStatusBlock
+  + Dereference(irp)
+- if async
+  + if STATUS_PENDING
+    - set AsyncControlBlock->AsynContext = irp
+  + else
+    - NOTE: *** FOR NOW, SYNC COMPLETION MEANS NO CALL TO IoIrpComplete() ***
+    - NOTE: *** Callback not called since returning complete to caller ***
+    - *IoStatusBlock = Irp.IoStatusBlock
+    - set AsyncControlBlock->AsyncContext = NULL
+    - Dereference(irp)
+
+
+IoCreateFile(AsyncControlBlock) => fileOject, ioSb, AsyncControlBlock->AsyncContext
+- irp = IopIrpCreate(fileObject)
+- fileObject = NULL
+- (set various irp parameters)
+- status = IopIrpDispatch(irp, AsyncControlBlock)
+- if !STATUS_PENDING
+  + ioSb = irp->IoSb
+  + fileObject = irp->FileObject
+- else do not touch ioSb or fileObject
+- return fileObjbect, ioSb, AsyncControlBlock.AsyncContext
+
+IoXxxFile(FileAsyncControlBlock)
+- irp = IopIrpCreate(fileObject)
+- fileObject = NULL
+- (set various irp parameters)
+- status = IopIrpDispatch(irp, AsyncControlBlock)
+- if !STATUS_PENDING
+  + ioSb = irp->IoSb
+  + fileObject = irp->FileObject
+- return fileOejbect, ioSb, status

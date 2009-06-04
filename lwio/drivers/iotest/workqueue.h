@@ -1,10 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +20,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,40 +28,62 @@
  *
  * Module Name:
  *
- *        iocontrol.c
+ *        workqueue.h
  *
  * Abstract:
  *
  *        IO Test Driver
  *
- * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
-#include "includes.h"
-#include "iotestctl.h"
+#ifndef __IOTEST_WORK_QUEUE_H__
+#define __IOTEST_WORK_QUEUE_H__
+
+struct _IOTEST_WORK_ITEM;
+typedef struct _IOTEST_WORK_ITEM *PIOTEST_WORK_ITEM;
+
+typedef VOID (*PIOTEST_WORK_CALLBACK)(
+    IN PIOTEST_WORK_ITEM pWorkItem,
+    IN PVOID pContext
+    );
+
+struct _IOTEST_WORK_QUEUE;
+typedef struct _IOTEST_WORK_QUEUE *PIOTEST_WORK_QUEUE;
 
 NTSTATUS
-ItDispatchDeviceIoControl(
-    IN PIRP pIrp
-    )
-{
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    int EE = 0;
+ItCreateWorkItem(
+    OUT PIOTEST_WORK_ITEM* ppWorkItem
+    );
 
-    switch (pIrp->Args.IoFsControl.ControlCode)
-    {
-        case IOTEST_IOCTL_TEST_SYNC_CREATE:
-            status = ItTestSyncCreate();
-            break;
-        case IOTEST_IOCTL_TEST_ASYNC_CREATE:
-            status = ItTestAsyncCreate(TRUE, FALSE);
-            break;
-        default:
-            status = STATUS_INVALID_PARAMETER;
-            GOTO_CLEANUP_EE(EE);
-    }
+VOID
+ItDestroyWorkItem(
+    IN OUT PIOTEST_WORK_ITEM* ppWorkItem
+    );
 
-cleanup:
-    pIrp->IoStatusBlock.Status = status;
-    return status;
-}
+NTSTATUS
+ItCreateWorkQueue(
+    OUT PIOTEST_WORK_QUEUE* ppWorkQueue
+    );
+
+VOID
+ItDestroyWorkQueue(
+    IN OUT PIOTEST_WORK_QUEUE* ppWorkQueue
+    );
+
+NTSTATUS
+ItAddWorkQueue(
+    IN PIOTEST_WORK_QUEUE pWorkQueue,
+    IN PIOTEST_WORK_ITEM pWorkItem,
+    IN PVOID pContext,
+    IN ULONG WaitSeconds,
+    IN PIOTEST_WORK_CALLBACK Callback
+    );
+
+BOOLEAN
+ItRemoveWorkQueue(
+    IN PIOTEST_WORK_QUEUE pWorkQueue,
+    IN PIOTEST_WORK_ITEM pWorkItem
+    );
+
+#endif /* __IOTEST_WORK_QUEUE_H__ */

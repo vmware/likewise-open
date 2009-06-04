@@ -58,12 +58,57 @@
 #include "ntlogmacros.h"
 #include "lwioutils.h"
 
+#include "workqueue.h"
+
 #define IOTEST_DEVICE_NAME "iotest"
 #define IOTEST_DEVICE_PATH "/" IOTEST_DEVICE_NAME
 
 #define IOTEST_INTERNAL_PATH_NAMED_PIPE "/pipe"
 #define IOTEST_INTERNAL_PATH_ALLOW "/allow"
+#define IOTEST_INTERNAL_PATH_ASYNC "/async"
+#define IOTEST_INTERNAL_PATH_TEST_SYNC "/test/sync"
+#define IOTEST_INTERNAL_PATH_TEST_ASYNC "/test/async"
+
 #define IOTEST_PATH_ALLOW IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ALLOW
+#define IOTEST_PATH_ASYNC IOTEST_DEVICE_PATH IOTEST_INTERNAL_PATH_ASYNC
+
+//
+// Driver State
+//
+
+typedef struct _IT_DRIVER_STATE {
+    PIOTEST_WORK_QUEUE pWorkQueue;
+} IT_DRIVER_STATE, *PIT_DRIVER_STATE;
+
+PIT_DRIVER_STATE
+ItGetDriverState(
+    IN PIRP pIrp
+    );
+
+//
+// IRP Context
+//
+
+typedef struct _IT_IRP_CONTEXT {
+    PIRP pIrp;
+    PIOTEST_WORK_ITEM pWorkItem;
+    BOOLEAN IsCancelled;
+} IT_IRP_CONTEXT, *PIT_IRP_CONTEXT;
+
+NTSTATUS
+ItCreateIrpContext(
+    OUT PIT_IRP_CONTEXT* ppIrpContext,
+    IN PIRP pIrp
+    );
+
+VOID
+ItDestroyIrpContext(
+    IN OUT PIT_IRP_CONTEXT* ppIrpContext
+    );
+
+//
+// Create Control Block (CCB)
+//
 
 typedef struct _IT_CCB {
     UNICODE_STRING Path;
@@ -86,6 +131,10 @@ ItpGetCcb(
     OUT PIT_CCB* ppCcb,
     IN PIRP pIrp
     );
+
+//
+// Dispatch Routines
+//
 
 NTSTATUS
 ItDispatchCreate(
@@ -135,6 +184,26 @@ ItDispatchSetInformation(
 NTSTATUS
 ItDispatchCreateNamedPipe(
     IN PIRP pIrp
+    );
+
+//
+// Tests
+//
+
+NTSTATUS
+ItTestStartup(
+    IN PCSTR pszPath
+    );
+
+NTSTATUS
+ItTestSyncCreate(
+    VOID
+    );
+
+NTSTATUS
+ItTestAsyncCreate(
+    IN BOOLEAN UseAsyncCall,
+    IN BOOLEAN DoCancel
     );
 
 #endif /* __INCLUDES_H__ */

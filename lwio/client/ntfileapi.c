@@ -72,7 +72,7 @@ NtpInitializeIoStatusBlock(
 NTSTATUS
 NtCreateNamedPipeFile(
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
@@ -135,7 +135,7 @@ cleanup:
 NTSTATUS
 NtCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
@@ -215,7 +215,7 @@ cleanup:
 NTSTATUS
 NtReadFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -251,7 +251,7 @@ cleanup:
 NTSTATUS
 NtWriteFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
@@ -287,7 +287,7 @@ cleanup:
 NTSTATUS 
 NtDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG IoControlCode,
     IN PVOID InputBuffer,
@@ -325,7 +325,7 @@ cleanup:
 NTSTATUS
 NtFsControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG FsControlCode,
     IN PVOID InputBuffer,
@@ -363,7 +363,7 @@ cleanup:
 NTSTATUS
 NtFlushBuffersFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
     )
 {
@@ -391,7 +391,7 @@ cleanup:
 NTSTATUS 
 NtQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -425,7 +425,7 @@ cleanup:
 NTSTATUS 
 NtSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FileInformation,
     IN ULONG Length,
@@ -460,18 +460,20 @@ cleanup:
 // Additional Operations
 //
 
+#if 0
 NTSTATUS
 NtQueryFullAttributesFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
+#endif
 
 NTSTATUS 
 NtQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -511,7 +513,7 @@ cleanup:
 NTSTATUS
 NtQueryVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FsInformation,
     IN ULONG Length,
@@ -547,7 +549,7 @@ cleanup:
 NTSTATUS
 NtSetVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FsInformation,
     IN ULONG Length,
@@ -557,7 +559,7 @@ NtSetVolumeInformationFile(
 NTSTATUS 
 NtLockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -569,7 +571,7 @@ NtLockFile(
 NTSTATUS 
 NtUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -585,14 +587,14 @@ NtUnlockFile(
 #if 0
 NTSTATUS
 NtRemoveDirectoryFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
 NtDeleteFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
@@ -600,14 +602,14 @@ NtDeleteFile(
 NTSTATUS
 NtLinkFile(
     IN PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME LinkName
     );
 
 NTSTATUS
 NtRenameFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
@@ -621,7 +623,7 @@ NtRenameFile(
 NTSTATUS
 NtQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -635,7 +637,7 @@ NtQueryQuotaInformationFile(
 NTSTATUS
 NtSetQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length
@@ -644,7 +646,7 @@ NtSetQuotaInformationFile(
 NTSTATUS
 NtQuerySecurityFile(
     IN IO_FILE_HANDLE  Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -678,7 +680,7 @@ cleanup:
 NTSTATUS
 NtSetSecurityFile(
     IN IO_FILE_HANDLE Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,

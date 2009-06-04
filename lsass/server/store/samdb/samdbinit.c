@@ -103,22 +103,22 @@ DirectoryInitializeProvider(
     gSamGlobals.pszProviderName = "Likewise SAM Local Database";
     gSamGlobals.providerFunctionTable = providerAPITable;
 
+    pthread_rwlock_init(&gSamGlobals.rwLock, NULL);
+    gSamGlobals.pRwLock = &gSamGlobals.rwLock;
+
     dwError = SamDbAttributeLookupInitContents(
                 &gSamGlobals.attrLookup,
                 gSamGlobals.pAttrMaps,
                 gSamGlobals.dwNumMaps);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    gSamGlobals.dwNumMaxDbContexts = SAM_DB_CONTEXT_POOL_MAX_ENTRIES;
+
     dwError = SamDbInit();
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppszProviderName = gSamGlobals.pszProviderName;
     *ppFnTable = &gSamGlobals.providerFunctionTable;
-
-    gSamGlobals.dwNumMaxDbContexts = SAM_DB_CONTEXT_POOL_MAX_ENTRIES;
-
-    pthread_rwlock_init(&gSamGlobals.rwLock, NULL);
-    gSamGlobals.pRwLock = &gSamGlobals.rwLock;
 
 cleanup:
 

@@ -47,6 +47,27 @@
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
 
+BOOLEAN
+IoCancelAsyncCancelContext(
+    IN PIO_ASYNC_CANCEL_CONTEXT AsyncCancelContext
+    )
+{
+    return IopIrpCancel(IopIrpGetIrpFromAsyncCancelContext(AsyncCancelContext));
+}
+
+VOID
+IoDereferenceAsyncCancelContext(
+    IN OUT PIO_ASYNC_CANCEL_CONTEXT* AsyncCancelContext
+    )
+{
+    if (*AsyncCancelContext)
+    {
+        PIRP irp = IopIrpGetIrpFromAsyncCancelContext(*AsyncCancelContext);
+        IopIrpDereference(&irp);
+        *AsyncCancelContext = NULL;
+    }
+}
+
 //
 // The operations below are in categories:
 //
@@ -63,7 +84,7 @@
 NTSTATUS
 IoCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
@@ -89,14 +110,20 @@ IoCreateFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     PIO_FILE_OBJECT pFileObject = NULL;
     IRP_TYPE irpType = IRP_TYPE_CREATE;
+    PIO_FILE_OBJECT pResultFileObject = NULL;
 
-    if (AsyncControlBlock ||
-        EaBuffer ||
+    if (!FileHandle || !IoStatusBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
+
+    if (EaBuffer ||
         SecurityDescriptor ||
         SecurityQualityOfService)
     {
         // Not yet implemented.
-        assert(FALSE);
+        LWIO_ASSERT_MSG(FALSE, "Parameter is not yet supported.");
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
@@ -141,8 +168,10 @@ IoCreateFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     pIrp->Args.Create.SecurityContext = SecurityContext;
+    IopSecurityReferenceSecurityContext(SecurityContext);
 
     pIrp->Args.Create.FileName = fileName;
+    // Handled by IopIrpFree():
     pIrp->Args.Create.FileName.FileName = pszFileName;
     pszFileName = NULL;
 
@@ -158,33 +187,37 @@ IoCreateFile(
     pIrp->Args.Create.SecurityQualityOfService = SecurityQualityOfService;
     pIrp->Args.Create.EcpList = EcpList;
 
-    status = IopDeviceCallDriver(pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    FileHandle);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        if (STATUS_SUCCESS == status)
+        {
+            pResultFileObject = pIrp->FileHandle;
+            IopFileObjectReference(pResultFileObject);
+        }
+    }
 
 cleanup:
     RtlWC16StringFree(&pszFileName);
-    if (pIrp)
-    {
-        pszFileName = (PWSTR) pIrp->Args.Create.FileName.FileName;
-        RtlWC16StringFree(&pszFileName);
-    }
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
+    IopFileObjectDereference(&pFileObject);
 
-    // TODO -- handle asych behavior.
-    if (status)
+    // Ensure that status is in status block even on early bail.
+    if (status && (STATUS_PENDING != status))
     {
-        // Note that the IRP must be freed before the File Object.
         ioStatusBlock.Status = status;
-        IopFileObjectFree(&pFileObject);
     }
 
-    *FileHandle = pFileObject;
+    *FileHandle = pResultFileObject;
     *IoStatusBlock = ioStatusBlock;
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    assert(NT_SUCCESS_OR_NOT(status));
+    LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
     return status;
 }
 
@@ -210,7 +243,7 @@ IoCloseFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
     if (!status)
     {
         IopFileObjectFree(&pFileObject);
@@ -224,7 +257,7 @@ static
 NTSTATUS
 IopReadWriteFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN BOOLEAN bIsWrite,
     IN OUT PVOID Buffer,
@@ -254,7 +287,7 @@ IopReadWriteFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -265,7 +298,7 @@ cleanup:
 NTSTATUS
 IoReadFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -287,7 +320,7 @@ IoReadFile(
 NTSTATUS
 IoWriteFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
@@ -310,7 +343,7 @@ static
 NTSTATUS
 IopControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN BOOLEAN bIsFsControl,
     IN ULONG ControlCode,
@@ -342,7 +375,7 @@ IopControlFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -353,7 +386,7 @@ cleanup:
 NTSTATUS
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG IoControlCode,
     IN PVOID InputBuffer,
@@ -377,7 +410,7 @@ IoDeviceIoControlFile(
 NTSTATUS
 IoFsControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG FsControlCode,
     IN PVOID InputBuffer,
@@ -401,7 +434,7 @@ IoFsControlFile(
 NTSTATUS
 IoFlushBuffersFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
     )
 {
@@ -420,7 +453,7 @@ IoFlushBuffersFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -432,7 +465,7 @@ static
 NTSTATUS
 IopQuerySetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN BOOLEAN bIsSet,
     IN OUT PVOID FileInformation,
@@ -460,7 +493,7 @@ IopQuerySetInformationFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -471,7 +504,7 @@ cleanup:
 NTSTATUS
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -491,7 +524,7 @@ IoQueryInformationFile(
 NTSTATUS
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FileInformation,
     IN ULONG Length,
@@ -513,9 +546,10 @@ IoSetInformationFile(
 // Additional Operations
 //
 
+#if 0
 NTSTATUS
 IoQueryFullAttributesFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
@@ -524,11 +558,12 @@ IoQueryFullAttributesFile(
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
     return status;
 }
+#endif
 
 NTSTATUS
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -587,7 +622,7 @@ cleanup:
         LwRtlUnicodeStringFree(&fileSpec->Pattern);
         IO_FREE(&fileSpec);
     }
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -598,7 +633,7 @@ cleanup:
 NTSTATUS
 IoQueryVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FsInformation,
     IN ULONG Length,
@@ -625,7 +660,7 @@ IoQueryVolumeInformationFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -636,7 +671,7 @@ cleanup:
 NTSTATUS
 IoSetVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FsInformation,
     IN ULONG Length,
@@ -650,7 +685,7 @@ IoSetVolumeInformationFile(
 NTSTATUS
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -682,7 +717,7 @@ IoLockFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -693,7 +728,7 @@ cleanup:
 NTSTATUS
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -721,7 +756,7 @@ IoUnlockFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -738,7 +773,7 @@ cleanup:
 #if 0
 NTSTATUS
 IoRemoveDirectoryFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     )
@@ -749,7 +784,7 @@ IoRemoveDirectoryFile(
 
 NTSTATUS
 IoDeleteFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     )
@@ -761,7 +796,7 @@ IoDeleteFile(
 NTSTATUS
 IoLinkFile(
     IN PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME LinkName
     )
@@ -772,7 +807,7 @@ IoLinkFile(
 
 NTSTATUS
 IoRenameFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
@@ -786,7 +821,7 @@ IoRenameFile(
 NTSTATUS
 IoQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -808,7 +843,7 @@ IoQueryQuotaInformationFile(
 NTSTATUS
 IoSetQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length
@@ -821,7 +856,7 @@ IoSetQuotaInformationFile(
 NTSTATUS
 IoQuerySecurityFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -848,7 +883,7 @@ IoQuerySecurityFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -859,7 +894,7 @@ cleanup:
 NTSTATUS
 IoSetSecurityFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -886,7 +921,7 @@ IoSetSecurityFile(
     assert(ioStatusBlock.Status == status);
 
 cleanup:
-    IopIrpFree(&pIrp);
+    IopIrpDereference(&pIrp);
 
     *IoStatusBlock = ioStatusBlock;
 

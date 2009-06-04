@@ -40,6 +40,11 @@
 #include "lwioutils.h"
 #include "ntlogmacros.h"
 
+#include "lwthreads.h"
+
+#define NT_PENDING_OR_SUCCESS_OR_NOT(status) \
+    (LW_NT_SUCCESS_OR_NOT(status) || (STATUS_PENDING == (status)))
+
 typedef struct _IOP_DRIVER_CONFIG {
     PSTR pszName;
     PSTR pszPath;
@@ -108,6 +113,8 @@ struct _IO_DEVICE_OBJECT {
     // For each list to which this object belongs.
     LW_LIST_LINKS DriverLinks;
     LW_LIST_LINKS RootLinks;
+
+    LW_RTL_MUTEX CancelMutex;
 };
 
 struct _IO_FILE_OBJECT {
@@ -244,11 +251,44 @@ IopIrpCreate(
     );
 
 VOID
-IopIrpFree(
-    IN OUT PIRP* ppIrp
+IopIrpReference(
+    IN PIRP Irp
+    );
+
+VOID
+IopIrpDereference(
+    IN OUT PIRP* Irp
+    );
+
+PIRP
+IopIrpGetIrpFromAsyncCancelContext(
+    IN PIO_ASYNC_CANCEL_CONTEXT Context
+    );
+
+BOOLEAN
+IopIrpCancel(
+    IN PIRP pIrp
+    );
+
+NTSTATUS
+IopIrpDispatch(
+    IN PIRP pIrp,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OPTIONAL PIO_STATUS_BLOCK pIoStatusBlock,
+    IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
     );
 
 // iofile.c
+
+VOID
+IopFileObjectReference(
+    IN PIO_FILE_OBJECT pFileObject
+    );
+
+VOID
+IopFileObjectDereference(
+    IN OUT PIO_FILE_OBJECT* ppFileObject
+    );
 
 NTSTATUS
 IopFileObjectAllocate(
@@ -259,4 +299,11 @@ IopFileObjectAllocate(
 VOID
 IopFileObjectFree(
     IN OUT PIO_FILE_OBJECT* ppFileObject
+    );
+
+// iosecurity.c
+
+VOID
+IopSecurityReferenceSecurityContext(
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
     );

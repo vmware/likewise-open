@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = liblwioutils.la
 
 liblwioutils_la_SOURCES = \
+    assert.c      \
     bitvector.c   \
     consolelog.c  \
     ecp.c         \
