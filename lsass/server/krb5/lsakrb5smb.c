@@ -67,7 +67,9 @@ LsaSetSMBAccessToken(
 {
     DWORD dwError = 0;
     krb5_error_code ret = 0;
-    PCSTR pszNewCachePath = NULL;
+    PSTR pszNewCachePath = NULL;
+    PCSTR  pszCacheName = NULL;
+    PCSTR  pszCacheType = NULL;
     krb5_context ctx = 0;
     krb5_ccache cc = 0;
     HANDLE hNewAccessToken = 0;
@@ -91,7 +93,10 @@ LsaSetSMBAccessToken(
             &cc);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
-    pszNewCachePath = krb5_cc_get_name(ctx, cc);
+    pszCacheType = krb5_cc_get_type(ctx, cc);
+    pszCacheName = krb5_cc_get_name(ctx, cc);
+    dwError = LsaAllocateStringPrintf(&pszNewCachePath, "%s:%s", pszCacheType, pszCacheName);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (bSetDefaultCachePath)
     {
@@ -146,6 +151,7 @@ cleanup:
     {
         SMBCloseHandle(NULL, hNewAccessToken);
     }
+    LSA_SAFE_FREE_STRING(pszNewCachePath);
 
     return dwError;
 
