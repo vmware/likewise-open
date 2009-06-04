@@ -560,8 +560,7 @@ SMBSocketReaderMain(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* When the ref. count drops to zero, pthread_cancel() breaks out of this
-       loop */
+    /* When the ref. count drops to zero, shutdown() breaks out of this loop */
     while (pSocket->state < RDR_SOCKET_STATE_TEARDOWN)
     {
         int ret = 0;
@@ -579,6 +578,13 @@ SMBSocketReaderMain(
             ntStatus = STATUS_ASSERTION_FAILURE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+        if (pSocket->bShutdown)
+        {
+            goto cleanup;
+        }
+        LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
         SMBSocketUpdateLastActiveTime(pSocket);
 
@@ -1196,10 +1202,18 @@ SMBSocketFree(
     PSMB_SOCKET pSocket
     )
 {
+    BOOLEAN bInLock = FALSE;
+
     assert(!pSocket->refCount);
 
-    /* FIXME: blargh */
-    pthread_cancel(pSocket->readerThread);
+    /* shutdown read side of socket to wake up thread to join */
+    if (pSocket->fd >= 0)
+    {
+        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+        pSocket->bShutdown = TRUE;
+        LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+        shutdown(pSocket->fd, SHUT_RD);
+    }
 
     pthread_join(pSocket->readerThread, NULL);
 
