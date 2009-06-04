@@ -22,12 +22,15 @@ liblsaserverapi_la_SOURCES = \
        ipc_state.c     \
        ipc_tracing.c   \
        ipc_user.c      \
+       lsaevent.c      \
+       lsatime.c       \
        loginfo.c       \
        metrics.c       \
        provider.c      \
        session.c       \
        state.c         \
        status.c        \
+       systemcache.c   \
        traceinfo.c     \
        users.c         \
        rpc_server.c    \
@@ -41,6 +44,8 @@ liblsaserverapi_la_CPPFLAGS =         \
 
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
+        @top_builddir@/gssntlm/server/libntlmserver.la \
 	@UUID_LIBS@ \
-	@PTHREAD_LIBS@
-
+	@PTHREAD_LIBS@\
+	@EVENTLOG_LIBS@ \
+	@RT_LIBS@

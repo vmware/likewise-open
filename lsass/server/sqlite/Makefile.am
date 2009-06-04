@@ -11,7 +11,7 @@ liblsasqlite_la_CPPFLAGS = \
 liblsasqlite_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/server/api/liblsaserverapi.la \
 	@SQLITE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@UUID_LIBS@
