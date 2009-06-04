@@ -18,6 +18,8 @@ libsrv_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/srv.new/include
 
 libsrv_sys_la_LIBADD = \
+    @top_builddir@/server/srv.new/protocols/api/libsrv.protocols.api.la \
+    @top_builddir@/server/srv.new/transport/api/libsrv.transport.api.la \
     @top_builddir@/server/srv.new/shares/api/libshareapi.la \
     @top_builddir@/server/srv.new/utils/libsrvutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \

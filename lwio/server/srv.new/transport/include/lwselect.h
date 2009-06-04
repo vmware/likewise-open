@@ -33,32 +33,30 @@
  *
  * Module Name:
  *
- *        srvtransport.h
+ *        lwselect.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport
+ *        Transport API
+ *
+ *        Implementation using select and related APIs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-
-#ifndef __SRV_TRANSPORT_H__
-#define __SRV_TRANSPORT_H__
-
-#include <transport/defs.h>
-#include <transport/structs.h>
+#ifndef __LWSELECT_H__
+#define __LWSELECT_H__
 
 NTSTATUS
-SrvTransportInit(
+SrvSelectTransportInit(
     VOID
     );
 
 NTSTATUS
-SrvTransportShutdown(
+SrvSelectTransportShutdown(
     VOID
     );
 
-#endif /* __SRV_TRANSPORT_H__ */
+#endif /* __LWSELECT_H__ */

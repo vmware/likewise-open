@@ -50,21 +50,21 @@
 #include "includes.h"
 
 NTSTATUS
-SrvTransportInit(
+SrvSelectTransportInit(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
     return status;
 }
 
 NTSTATUS
-SrvTransportShutdown(
+SrvSelectTransportShutdown(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
     return status;
 }

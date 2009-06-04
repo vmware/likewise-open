@@ -33,32 +33,30 @@
  *
  * Module Name:
  *
- *        srvtransport.h
+ *        lwepoll.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport
+ *        Transport API
+ *
+ *        Implementation using epoll and related APIs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-
-#ifndef __SRV_TRANSPORT_H__
-#define __SRV_TRANSPORT_H__
-
-#include <transport/defs.h>
-#include <transport/structs.h>
+#ifndef __LWEPOLL_H__
+#define __LWEPOLL_H__
 
 NTSTATUS
-SrvTransportInit(
+SrvEPollTransportInit(
     VOID
     );
 
 NTSTATUS
-SrvTransportShutdown(
+SrvEPollTransportShutdown(
     VOID
     );
 
-#endif /* __SRV_TRANSPORT_H__ */
+#endif /* __LWEPOLL_H__ */

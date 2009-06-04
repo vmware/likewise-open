@@ -10,10 +10,9 @@ SrvContextCreate(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONTEXT pContext = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pContext,
-                    LWIO_SRV_CONTEXT,
-                    sizeof(LWIO_SRV_CONTEXT));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(LWIO_SRV_CONTEXT),
+                    (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvConnectionGetNextSequence(
@@ -71,6 +70,6 @@ SrvContextFree(
         SrvConnectionRelease(pIOContext->pConnection);
     }
 
-    LwRtlMemoryFree(pIOContext);
+    SrvFreeMemory(pIOContext);
 }
 

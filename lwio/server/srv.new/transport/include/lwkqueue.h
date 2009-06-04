@@ -33,32 +33,30 @@
  *
  * Module Name:
  *
- *        srvtransport.h
+ *        lwkqueue.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport
+ *        Transport API
+ *
+ *        Implementation using kqueue and related APIs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-
-#ifndef __SRV_TRANSPORT_H__
-#define __SRV_TRANSPORT_H__
-
-#include <transport/defs.h>
-#include <transport/structs.h>
+#ifndef __LWKQUEUE_H__
+#define __LWKQUEUE_H__
 
 NTSTATUS
-SrvTransportInit(
+SrvKQueueTransportInit(
     VOID
     );
 
 NTSTATUS
-SrvTransportShutdown(
+SrvKQueueTransportShutdown(
     VOID
     );
 
-#endif /* __SRV_TRANSPORT_H__ */
+#endif /* __LWKQUEUE_H__ */

@@ -54,7 +54,25 @@ SrvTransportInit(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+
+#if defined(LW_USE_EPOLL)
+
+    status = SrvEPollTransportInit();
+
+#elif defined (LW_USE_KQUEUE)
+
+    status = SrvKQueueTransportInit();
+
+#elif defined (LW_USE_POLL)
+
+    status = SrvPollTransportInit();
+
+#elif defined (LW_USE_SELECT)
+
+    status = SrvSelectTransportInit();
+
+#endif
 
     return status;
 }
@@ -64,7 +82,25 @@ SrvTransportShutdown(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+
+#if defined(LW_USE_EPOLL)
+
+    status = SrvEPollTransportShutdown();
+
+#elif defined (LW_USE_KQUEUE)
+
+    status = SrvKQueueTransportShutdown();
+
+#elif defined (LW_USE_POLL)
+
+    status = SrvPollTransportShutdown();
+
+#elif defined (LW_USE_SELECT)
+
+    status = SrvSelectTransportShutdown();
+
+#endif
 
     return status;
 }

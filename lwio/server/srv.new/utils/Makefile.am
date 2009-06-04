@@ -14,9 +14,5 @@ libsrvutils_la_CPPFLAGS =  \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv.new/include
 
-libsrvutils_la_LIBADD = \
-    @top_builddir@/utils/liblwioutils.la \
-    @PTHREAD_LIBS@
-
 libsrvutils_la_LDFLAGS = -static
 
