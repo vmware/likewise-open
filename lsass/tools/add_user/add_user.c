@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -378,11 +378,13 @@ AddUser(
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = GetGroupId(
-                    hLsaConnection,
-                    pszGroup,
-                    &gid);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszGroup) {
+        dwError = GetGroupId(
+                        hLsaConnection,
+                        pszGroup,
+                        &gid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = BuildUserInfo(
                    IsNullOrEmptyString(pszUid) ? 0 : (uid_t)atoi(pszUid),
@@ -470,12 +472,6 @@ LsaAddUserMain(
 
     if (IsNullOrEmptyString(pszLoginId)) {
         fprintf(stderr, "Please specify a valid login id.\n");
-        dwError = EINVAL;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (IsNullOrEmptyString(pszGroup)) {
-        fprintf(stderr, "Please specify a valid primary group.\n");
         dwError = EINVAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -648,3 +644,11 @@ error:
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
