@@ -17,3 +17,5 @@ liblwshare_la_CPPFLAGS = \
 liblwshare_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la
 
+liblwshare_la_LDFLAGS = -static
+

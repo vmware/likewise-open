@@ -408,27 +408,27 @@ HAVE_KQUEUE=false
 HAVE_POLL=false
 HAVE_SELECT=false
 
-AC_CHECK_FUNC([epoll_ctl],
-              [HAVE_EPOLL=true;TRANSPORT_FOUND=true],
-              [HAVE_EPOLL=false])
+#AC_CHECK_FUNC([epoll_ctl],
+#              [HAVE_EPOLL=true;TRANSPORT_FOUND=true],
+#              [HAVE_EPOLL=false])
 AM_CONDITIONAL(HAVE_EPOLL, [$HAVE_EPOLL])
-
-if test x"$TRANSPORT_FOUND" = x"false"
-then
-AC_CHECK_FUNC([kqueue],
-              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true],
-              [HAVE_KQUEUE=false])
-fi
-
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([kqueue],
+#              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true],
+#              [HAVE_KQUEUE=false])
+#fi
+#
 AM_CONDITIONAL(HAVE_KQUEUE, [$HAVE_KQUEUE])
-
-if test x"$TRANSPORT_FOUND" = x"false"
-then
-AC_CHECK_FUNC([poll], [HAVE_POLL=true;TRANSPORT_FOUND=true], [HAVE_POLL=false])
-fi
-
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([poll], [HAVE_POLL=true;TRANSPORT_FOUND=true], [HAVE_POLL=false])
+#fi
+#
 AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
-
+#
 if test x"$TRANSPORT_FOUND" = x"false"
 then
 AC_CHECK_FUNC([select],

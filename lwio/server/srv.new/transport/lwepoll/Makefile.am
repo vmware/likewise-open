@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsrv.transport.epoll.la
+noinst_LTLIBRARIES = libsrv.transport.epoll.la
 
 libsrv_transport_epoll_la_SOURCES = \
     libmain.c
@@ -18,4 +18,6 @@ libsrv_transport_epoll_la_LIBADD = \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
+
+libsrv_transport_epoll_la_LDFLAGS = -static
 

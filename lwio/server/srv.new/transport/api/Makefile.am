@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsrv.transport.api.la
+noinst_LTLIBRARIES = libsrv.transport.api.la
 
 libsrv_transport_api_la_SOURCES = \
     libmain.c
@@ -19,3 +19,4 @@ libsrv_transport_api_la_LIBADD = \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 
+libsrv_transport_api_la_LDFLAGS = -static

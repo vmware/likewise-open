@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsrv.proto.api.la
+noinst_LTLIBRARIES = libsrv.proto.api.la
 
 libsrv_proto_api_la_SOURCES = \
     libmain.c
@@ -20,4 +20,6 @@ libsrv_proto_api_la_LIBADD = \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
+
+libsrv_proto_api_la_LDFLAGS = -static
 

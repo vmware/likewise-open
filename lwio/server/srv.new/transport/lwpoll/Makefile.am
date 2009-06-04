@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libsrv.transport.poll.la
+noinst_LTLIBRARIES = libsrv.transport.poll.la
 
 libsrv_transport_poll_la_SOURCES = \
     libmain.c
@@ -18,4 +18,6 @@ libsrv_transport_poll_la_LIBADD = \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
+
+libsrv_transport_poll_la_LDFLAGS = -static
 

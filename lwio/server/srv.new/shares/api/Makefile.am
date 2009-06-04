@@ -16,3 +16,6 @@ libshareapi_la_CPPFLAGS = \
 
 libshareapi_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la
+
+libshareapi_la_LDFLAGS = -static
+
