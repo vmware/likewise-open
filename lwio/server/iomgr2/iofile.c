@@ -30,6 +30,34 @@
 
 #include "iop.h"
 
+VOID
+IopFileObjectReference(
+    IN PIO_FILE_OBJECT pFileObject
+    )
+{
+    LONG count = InterlockedIncrement(&pFileObject->ReferenceCount);
+    LWIO_ASSERT(count > 1);
+}
+
+VOID
+IopFileObjectDereference(
+    IN OUT PIO_FILE_OBJECT* ppFileObject
+    )
+{
+    PIO_FILE_OBJECT pFileObject = *ppFileObject;
+
+    if (pFileObject)
+    {
+        LONG count = InterlockedDecrement(&pFileObject->ReferenceCount);
+        LWIO_ASSERT(count >= 0);
+        if (0 == count)
+        {
+            IopFileObjectFree(&pFileObject);
+        }
+        *ppFileObject = NULL;
+    }
+}
+
 NTSTATUS
 IopFileObjectAllocate(
     OUT PIO_FILE_OBJECT* ppFileObject,
@@ -53,7 +81,7 @@ IopFileObjectAllocate(
 cleanup:
     if (status)
     {
-        IopFileObjectFree(&pFileObject);
+        IopFileObjectDereference(&pFileObject);
     }
 
     *ppFileObject = pFileObject;
@@ -71,8 +99,7 @@ IopFileObjectFree(
 
     if (pFileObject)
     {
-        // TODO -- add proper drain support...
-        assert(LwListIsEmpty(&pFileObject->IrpList));
+        LWIO_ASSERT(LwListIsEmpty(&pFileObject->IrpList));
         LwListRemove(&pFileObject->DeviceLinks);
         IoMemoryFree(pFileObject);
         *ppFileObject = NULL;

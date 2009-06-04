@@ -260,6 +260,7 @@
 /*
  * Logging
  */
+
 #if defined(LW_ENABLE_THREADS)
 
 extern pthread_mutex_t gSMBLogLock;
@@ -267,32 +268,39 @@ extern pthread_mutex_t gSMBLogLock;
 #define LWIO_LOCK_LOGGER   pthread_mutex_lock(&gSMBLogLock)
 #define LWIO_UNLOCK_LOGGER pthread_mutex_unlock(&gSMBLogLock)
 
-#define _LWIO_LOG_WITH_THREAD(Level, Format, ...) \
-    _LWIO_LOG_MESSAGE(Level, \
-                     "0x%x:" Format, \
-                     (unsigned int)pthread_self(), \
-                     ## __VA_ARGS__)
+#define _LWIO_LOG_PREFIX_THREAD(Format) \
+    "0x%x:" Format, ((unsigned int)pthread_self())
 
 #else
 
 #define LWIO_LOCK_LOGGER
 #define LWIO_UNLOCK_LOGGER
 
-#define _LWIO_LOG_WITH_THREAD(Level, Format, ...) \
-    _LWIO_LOG_MESSAGE(Level, \
-                    "0x%x:" Format, \
-                    (unsigned int)pthread_self(), \
-                     ## __VA_ARGS__)
+#define _LWIO_LOG_PREFIX_THREAD(Format) \
+    Format
 
 #endif
 
+#define _LWIO_LOG_PREFIX_LOCATION(Format, Function, File, Line) \
+    _LWIO_LOG_PREFIX_THREAD("[%s() %s:%d] " Format), \
+    (Function), \
+    (File), \
+    (Line)
+
+#define _LWIO_LOG_WITH_THREAD(Level, Format, ...) \
+    _LWIO_LOG_MESSAGE(Level, \
+                      _LWIO_LOG_PREFIX_THREAD(Format), \
+                      ## __VA_ARGS__)
+
+#define _LWIO_LOG_WITH_LOCATION(Level, Format, Function, File, Line, ...) \
+    _LWIO_LOG_MESSAGE(Level, \
+                      _LWIO_LOG_PREFIX_LOCATION(Format, Function, File, Line), \
+                      ## __VA_ARGS__)
+
 #define _LWIO_LOG_WITH_DEBUG(Level, Format, ...) \
-    _LWIO_LOG_WITH_THREAD(Level, \
-                         "[%s() %s:%d] " Format, \
-                         __FUNCTION__, \
-                         __FILE__, \
-                         __LINE__, \
-                         ## __VA_ARGS__)
+    _LWIO_LOG_WITH_LOCATION(Level, Format, \
+                            __FUNCTION__, __FILE__, __LINE__, \
+                            ## __VA_ARGS__)
 
 extern HANDLE              ghSMBLog;
 extern SMBLogLevel         gSMBMaxLogLevel;
@@ -338,6 +346,38 @@ extern PFN_LWIO_LOG_MESSAGE gpfnSMBLogger;
 
 #define LWIO_LOG_DEBUG(szFmt, ...) \
     _LWIO_LOG_IF(LWIO_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
+
+VOID
+LwIoAssertionFailed(
+    IN PCSTR Expression,
+    IN OPTIONAL PCSTR Message,
+    IN PCSTR Function,
+    IN PCSTR File,
+    IN ULONG Line
+    );
+
+VOID
+LwIoAssertionFailedFormat(
+    IN PCSTR Expression,
+    IN PCSTR Format,
+    IN PCSTR Function,
+    IN PCSTR File,
+    IN ULONG Line,
+    ...
+    );
+
+#define LWIO_ASSERT_MSG(Expression, Message) \
+    ((Expression) ? \
+     TRUE : \
+     LwIoAssertionFailed(#Expression, Message, __FUNCTION__, __FILE__, __LINE__), FALSE)
+
+#define LWIO_ASSERT_FORMAT(Expression, Format, ...) \
+    ((Expression) ? \
+     TRUE : \
+     LwIoAssertionFailedFormat(#Expression, Format, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__), FALSE)
+
+#define LWIO_ASSERT(Expression) \
+    LWIO_ASSERT_MSG(Expression, NULL)
 
 //defined flags in dwOptions
 #define SMB_CFG_OPTION_STRIP_SECTION          0x00000001

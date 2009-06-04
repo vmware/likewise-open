@@ -49,62 +49,76 @@
 #include "ioapi.h"
 #include <lw/rtlstring.h>
 
-static
-NTSTATUS
-DoStartupTest(
-    PCSTR pszPath
+
+PIT_DRIVER_STATE
+ItGetDriverState(
+    IN PIRP pIrp
     )
 {
-    NTSTATUS status = 0;
-    int EE = 0;
-    IO_FILE_HANDLE fileHandle = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IO_FILE_NAME fileName = { 0 };
-    PWSTR filePath = NULL;
+    return (PIT_DRIVER_STATE) IoDriverGetContext(pIrp->DriverHandle);
+}
 
-    status = RtlWC16StringAllocateFromCString(&filePath, pszPath);
+static
+VOID
+ItpDestroyDriverState(
+    IN OUT PIT_DRIVER_STATE* ppState
+    )
+{
+    PIT_DRIVER_STATE pState = *ppState;
+
+    if (pState)
+    {
+        ItDestroyWorkQueue(&pState->pWorkQueue);
+        RTL_FREE(&pState);
+        *ppState = NULL;
+    }
+}
+
+static
+NTSTATUS
+ItpCreateDriverState(
+    OUT PIT_DRIVER_STATE* ppState
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int EE = 0;
+    PIT_DRIVER_STATE pState = NULL;
+
+    status = RTL_ALLOCATE(&pState, IT_DRIVER_STATE, sizeof(*pState));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    fileName.FileName = filePath;
-
-    status = IoCreateFile(&fileHandle,
-                          NULL,
-                          &ioStatusBlock,
-                          NULL,
-                          &fileName,
-                          NULL,
-                          NULL,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          NULL,
-                          0,
-                          NULL);
+    status = ItCreateWorkQueue(&pState->pWorkQueue);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    RtlWC16StringFree(&filePath);
-
-    if (fileHandle)
+    if (status)
     {
-        IoCloseFile(fileHandle);
+        ItpDestroyDriverState(&pState);
     }
+
+    *ppState = pState;
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }
 
+static
 VOID
 ItDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
-    IO_LOG_ENTER_LEAVE("");
+    PIT_DRIVER_STATE pState = NULL;
+
+    IO_LOG_ENTER("");
+
+    pState = (PIT_DRIVER_STATE) IoDriverGetContext(DriverHandle);
+    ItpDestroyDriverState(&pState);
+
+    IO_LOG_LEAVE("");
 }
 
+static
 NTSTATUS
 ItDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
@@ -178,15 +192,19 @@ DriverEntry(
     NTSTATUS status = 0;
     int EE = 0;
     IO_DEVICE_HANDLE deviceHandle = NULL;
+    PIT_DRIVER_STATE pState = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
     {
         status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+        GOTO_CLEANUP_EE(EE);
     }
 
+    status = ItpCreateDriverState(&pState);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
     status = IoDriverInitialize(DriverHandle,
-                                NULL,
+                                pState,
                                 ItDriverShutdown,
                                 ItDriverDispatch);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -197,10 +215,16 @@ DriverEntry(
                             NULL);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    assert(DoStartupTest(IOTEST_DEVICE_PATH) != STATUS_SUCCESS);
-    assert(DoStartupTest(IOTEST_PATH_ALLOW) == STATUS_SUCCESS);
+    LWIO_ASSERT(ItTestStartup(IOTEST_DEVICE_PATH) != STATUS_SUCCESS);
+    LWIO_ASSERT(ItTestStartup(IOTEST_PATH_ALLOW) == STATUS_SUCCESS);
 
 cleanup:
+    if (status)
+    {
+        // Shutdown is called only if initialization succeeds.
+        ItpDestroyDriverState(&pState);
+    }
+
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
 }

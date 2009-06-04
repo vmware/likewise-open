@@ -882,7 +882,7 @@ cleanup:
 
     if (pIoSecContext)
     {
-        IoSecurityFreeSecurityContext(&pIoSecContext);
+        IoSecurityDereferenceSecurityContext(&pIoSecContext);
     }
 
 

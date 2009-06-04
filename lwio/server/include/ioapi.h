@@ -47,8 +47,20 @@
 
 #include <lwio/io-types.h>
 
-// Need to add a way to cancel operation from outside IRP layer.
-// Probably requires something in IO_ASYNC_CONTROL_BLOCK.
+//
+// Asynchoronous I/O Support
+//
+
+// Always sets cancel bit.  Returns TRUE is cacellable, FALSE otherwise.
+BOOLEAN
+IoCancelAsyncCancelContext(
+    IN PIO_ASYNC_CANCEL_CONTEXT AsyncCancelContext
+    );
+
+VOID
+IoDereferenceAsyncCancelContext(
+    IN OUT PIO_ASYNC_CANCEL_CONTEXT* AsyncCancelContext
+    );
 
 //
 // The operations below are in categories:
@@ -66,7 +78,7 @@
 NTSTATUS
 IoCreateFile(
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
@@ -91,7 +103,7 @@ IoCloseFile(
 NTSTATUS
 IoReadFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
@@ -102,7 +114,7 @@ IoReadFile(
 NTSTATUS
 IoWriteFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
@@ -113,7 +125,7 @@ IoWriteFile(
 NTSTATUS 
 IoDeviceIoControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG IoControlCode,
     IN PVOID InputBuffer,
@@ -125,7 +137,7 @@ IoDeviceIoControlFile(
 NTSTATUS
 IoFsControlFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG FsControlCode,
     IN PVOID InputBuffer,
@@ -137,14 +149,14 @@ IoFsControlFile(
 NTSTATUS
 IoFlushBuffersFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
     );
 
 NTSTATUS 
 IoQueryInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -154,7 +166,7 @@ IoQueryInformationFile(
 NTSTATUS 
 IoSetInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FileInformation,
     IN ULONG Length,
@@ -165,18 +177,20 @@ IoSetInformationFile(
 // Additional Operations
 //
 
+#if 0
 NTSTATUS
 IoQueryFullAttributesFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
+#endif
 
 NTSTATUS 
 IoQueryDirectoryFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -189,7 +203,7 @@ IoQueryDirectoryFile(
 NTSTATUS
 IoQueryVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FsInformation,
     IN ULONG Length,
@@ -199,7 +213,7 @@ IoQueryVolumeInformationFile(
 NTSTATUS
 IoSetVolumeInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FsInformation,
     IN ULONG Length,
@@ -209,7 +223,7 @@ IoSetVolumeInformationFile(
 NTSTATUS 
 IoLockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -221,7 +235,7 @@ IoLockFile(
 NTSTATUS 
 IoUnlockFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
@@ -237,14 +251,14 @@ IoUnlockFile(
 #if 0
 NTSTATUS
 IoRemoveDirectoryFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
 
 NTSTATUS
 IoDeleteFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
     );
@@ -252,14 +266,14 @@ IoDeleteFile(
 NTSTATUS
 IoLinkFile(
     IN PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME LinkName
     );
 
 NTSTATUS
 IoRenameFile(
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
@@ -273,7 +287,7 @@ IoRenameFile(
 NTSTATUS
 IoQueryQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -287,7 +301,7 @@ IoQueryQuotaInformationFile(
 NTSTATUS
 IoSetQuotaInformationFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length
@@ -296,7 +310,7 @@ IoSetQuotaInformationFile(
 NTSTATUS
 IoQuerySecurityFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -306,7 +320,7 @@ IoQuerySecurityFile(
 NTSTATUS
 IoSetSecurityFile(
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
