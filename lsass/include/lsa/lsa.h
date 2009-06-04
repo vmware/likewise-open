@@ -247,7 +247,8 @@
 #define LSA_ERROR_MEMBER_IN_LOCAL_GROUP                     0x8098 // 32919
 #define LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP                 0x8099 // 32920
 #define LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN                  0x809A // 32921
-#define LSA_ERROR_SENTINEL                                  0x809B // 32922
+#define LSA_ERROR_INVALID_GROUP                             0x809B // 32922
+#define LSA_ERROR_SENTINEL                                  0x809C // 32923
 
 /* range 0x8600 - 0x8650 are reserved for GSS specific errors */
 
