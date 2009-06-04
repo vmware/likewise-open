@@ -52,13 +52,24 @@
 #define __SAM_DB_TABLE_H__
 
 #define SAM_DB_SCHEMA_VERSION 1
-#define SAM_DB_MIN_UID        1000
-#define SAM_DB_MIN_GID        1000
-#define SAM_DB_MIN_RID        1000
 
-#define SAM_DB_CONFIG_TABLE  "samdbconfig"
-#define SAM_DB_OBJECTS_TABLE "samdbobjects"
-#define SAM_DB_MEMBERS_TABLE "samdbmembers"
+#if !defined(SAM_DB_UID_RID_OFFSET)
+#define SAM_DB_UID_RID_OFFSET     (1000)
+#endif
+#if !defined(SAM_DB_GID_RID_OFFSET)
+#define SAM_DB_GID_RID_OFFSET     SAM_DB_UID_RID_OFFSET
+#endif
+
+#define SAM_DB_UID_FROM_RID(rid)  (SAM_DB_UID_RID_OFFSET + (rid))
+#define SAM_DB_GID_FROM_RID(rid)  (SAM_DB_GID_RID_OFFSET + (rid))
+
+#define SAM_DB_MIN_RID            (1000)
+#define SAM_DB_MIN_UID            SAM_DB_UID_FROM_RID(SAM_DB_MIN_RID)
+#define SAM_DB_MIN_GID            SAM_DB_GID_FROM_RID(SAM_DB_MIN_RID)
+
+#define SAM_DB_CONFIG_TABLE              "samdbconfig"
+#define SAM_DB_OBJECTS_TABLE             "samdbobjects"
+#define SAM_DB_MEMBERS_TABLE             "samdbmembers"
 
 #define SAM_DB_COL_RECORD_ID             "ObjectRecordId"
 #define SAM_DB_COL_GROUP_RECORD_ID       "GroupRecordId"
