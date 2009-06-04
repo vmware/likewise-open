@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -107,6 +107,7 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     PSTR            pszConfigFilePath;
     PSTR            pszLocalDomain;
     PSTR            pszNetBIOSName;
+    PSID            pLocalDomainSID;
 
     LONG64          llMaxPwdAge;
     LONG64          llPwdChangeTime;
@@ -125,3 +126,12 @@ typedef struct _LOCAL_PROVIDER_GROUP_MEMBER
 
 #endif /* __LPSTRUCTS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
