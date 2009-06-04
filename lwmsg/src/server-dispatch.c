@@ -111,6 +111,7 @@ lwmsg_server_dispatch_loop(
         switch (status)
         {
         case LWMSG_STATUS_SUCCESS:
+            lwmsg_assoc_free_message(task->assoc, &task->incoming_message);
             task->type = SERVER_TASK_BEGIN_SEND;
             break;
         default:

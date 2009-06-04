@@ -722,6 +722,7 @@ lwmsg_server_task_finish_async(
         case LWMSG_STATUS_SUCCESS:
             (*task)->blocked = LWMSG_FALSE;
             (*task)->type = SERVER_TASK_BEGIN_SEND;
+            lwmsg_assoc_free_message((*task)->assoc, &(*task)->incoming_message);
             break;
         default:
             BAIL_ON_ERROR(status = lwmsg_server_task_handle_assoc_error(server, task, status));
