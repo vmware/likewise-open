@@ -81,7 +81,7 @@ SMBOpenFileLog(
         goto error;
     }
     
-    pFileLog->fp = freopen(pFileLog->pszFilePath, "w", stdout);
+    pFileLog->fp = fopen(pFileLog->pszFilePath, "w");
     if (pFileLog->fp == NULL) {
         dwError = errno;
         goto error;
