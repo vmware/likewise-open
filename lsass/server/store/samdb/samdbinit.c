@@ -112,13 +112,13 @@ DirectoryInitializeProvider(
                 gSamGlobals.dwNumMaps);
     BAIL_ON_SAMDB_ERROR(dwError);
 
+    gSamGlobals.dwNumMaxDbContexts = SAM_DB_CONTEXT_POOL_MAX_ENTRIES;
+
     dwError = SamDbInit();
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppszProviderName = gSamGlobals.pszProviderName;
     *ppFnTable = &gSamGlobals.providerFunctionTable;
-
-    gSamGlobals.dwNumMaxDbContexts = SAM_DB_CONTEXT_POOL_MAX_ENTRIES;
 
 cleanup:
 
