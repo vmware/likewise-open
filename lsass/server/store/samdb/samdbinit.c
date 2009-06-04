@@ -966,8 +966,8 @@ SamDbAddLocalAccounts(
     } LocalAccounts[] = {
         {
             .pszName          = "Administrator",
-            .dwUid            = DOMAIN_USER_RID_ADMIN,
-            .dwGid            = DOMAIN_ALIAS_RID_ADMINS,
+            .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_ADMIN),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_ADMINS),
             .dwRid            = DOMAIN_USER_RID_ADMIN,
             .pszDescription   = "Built-in account for administering the "
                                 "computer/domain",
@@ -978,8 +978,8 @@ SamDbAddLocalAccounts(
         },
         {
             .pszName          = "Guest",
-            .dwUid            = DOMAIN_USER_RID_GUEST,
-            .dwGid            = DOMAIN_ALIAS_RID_GUESTS,
+            .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_GUEST),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_GUESTS),
             .dwRid            = DOMAIN_USER_RID_GUEST,
             .pszDescription   = "Built-in account for guest access to the "
                                 "computer/domain",
@@ -987,6 +987,17 @@ SamDbAddLocalAccounts(
             .pszHomedir       = SAM_DB_DEFAULT_GUEST_HOMEDIR,
             .flags            = SAMDB_ACB_NORMAL | SAMDB_ACB_DISABLED,
             .objectClass      = SAMDB_OBJECT_CLASS_USER
+        },
+        {
+            .pszName          = "Likewise Users",
+            .dwUid            = 0,
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS),
+            .dwRid            = DOMAIN_ALIAS_RID_LW_USERS,
+            .pszDescription   = "Built-in group of Likewise Users",
+            .pszShell         = NULL,
+            .pszHomedir       = NULL,
+            .flags            = 0,
+            .objectClass      = SAMDB_OBJECT_CLASS_LOCAL_GROUP
         }
     };
 
@@ -995,6 +1006,7 @@ SamDbAddLocalAccounts(
     wchar16_t wszAttrNameObjectClass[]    = SAM_DB_DIR_ATTR_OBJECT_CLASS;
     wchar16_t wszAttrNameObjectSID[]      = SAM_DB_DIR_ATTR_OBJECT_SID;
     wchar16_t wszAttrNameUID[]            = SAM_DB_DIR_ATTR_UID;
+    wchar16_t wszAttrNameGID[]            = SAM_DB_DIR_ATTR_GID;
     wchar16_t wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
     wchar16_t wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
     wchar16_t wszAttrNameDescription[]    = SAM_DB_DIR_ATTR_DESCRIPTION;
@@ -1016,8 +1028,8 @@ SamDbAddLocalAccounts(
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
     SAMDB_ACB AccountFlags = 0;
     PSTR      pszObjectDN = NULL;
-    PSID      pUserSid = NULL;
-    ULONG     ulUserSidLength = 0;
+    PSID      pAccountSid = NULL;
+    ULONG     ulAccountSidLength = 0;
     PWSTR     pwszSamAccountName = NULL;
     PWSTR     pwszObjectDN = NULL;
     PWSTR     pwszSID = NULL;
@@ -1058,18 +1070,18 @@ SamDbAddLocalAccounts(
         iMod    = 0;
         memset(mods, 0, sizeof(mods));
 
-        ulUserSidLength = RtlLengthRequiredSid(
+        ulAccountSidLength = RtlLengthRequiredSid(
                                   pMachineSid->SubAuthorityCount + 1);
-        dwError = LsaAllocateMemory(ulUserSidLength, (void**)&pUserSid);
+        dwError = LsaAllocateMemory(ulAccountSidLength, (void**)&pAccountSid);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        status = RtlCopySid(ulUserSidLength, pUserSid, pMachineSid);
+        status = RtlCopySid(ulAccountSidLength, pAccountSid, pMachineSid);
         if (status != 0) {
             dwError = LSA_ERROR_SAM_INIT_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
-        status = RtlAppendRidSid(ulUserSidLength, pUserSid, dwRid);
+        status = RtlAppendRidSid(ulAccountSidLength, pAccountSid, dwRid);
         if (status != 0) {
             dwError = LSA_ERROR_SAM_INIT_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
@@ -1087,24 +1099,17 @@ SamDbAddLocalAccounts(
                         &pwszObjectDN);
         BAIL_ON_SAMDB_ERROR(dwError);
 
+        status = RtlAllocateWC16StringFromSid(
+                        &pwszSID,
+                        pAccountSid);
+        if (status != 0) {
+            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
         dwError = LsaMbsToWc16s(
                         pszName,
                         &pwszSamAccountName);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszDescription,
-                        &pwszDescription);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszShell,
-                        &pwszShell);
-        BAIL_ON_SAMDB_ERROR(dwError);
-
-        dwError = LsaMbsToWc16s(
-                        pszHomedir,
-                        &pwszHomedir);
         BAIL_ON_SAMDB_ERROR(dwError);
 
         dwError = LsaMbsToWc16s(
@@ -1117,41 +1122,66 @@ SamDbAddLocalAccounts(
                         &pwszNetBIOSDomain);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        status = RtlAllocateWC16StringFromSid(
-                        &pwszSID,
-                        pUserSid);
-        if (status != 0) {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
+        dwError = LsaMbsToWc16s(
+                        pszDescription,
+                        &pwszDescription);
+        BAIL_ON_SAMDB_ERROR(dwError);
+
+        if (pszShell) {
+            dwError = LsaMbsToWc16s(
+                            pszShell,
+                            &pwszShell);
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
-        mods[iMod].pwszAttrName = &wszAttrNameObjectSID[0];
+        if (pszHomedir) {
+            dwError = LsaMbsToWc16s(
+                            pszHomedir,
+                            &pwszHomedir);
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+
+        mods[iMod].pwszAttrName = &wszAttrNameObjectClass[0];
+        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+        mods[iMod].ulNumValues = 1;
+        avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+        avObjectClass.data.ulValue = objectClass;
+        mods[iMod].pAttrValues = &avObjectClass;
+
+        mods[++iMod].pwszAttrName = &wszAttrNameObjectSID[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
         mods[iMod].ulNumValues = 1;
         avSID.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
         avSID.data.pwszStringValue = pwszSID;
         mods[iMod].pAttrValues = &avSID;
 
-        mods[++iMod].pwszAttrName = &wszAttrNameUID[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avUID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avUID.data.ulValue = dwUID;
-        mods[iMod].pAttrValues = &avUID;
+        if (dwUID) {
+            mods[++iMod].pwszAttrName = &wszAttrNameUID[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avUID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+            avUID.data.ulValue = dwUID;
+            mods[iMod].pAttrValues = &avUID;
+        }
 
-        mods[++iMod].pwszAttrName = &wszAttrNamePrimaryGroup[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avGID.data.ulValue = dwGID;
-        mods[iMod].pAttrValues = &avGID;
+        if (dwGID && objectClass == SAMDB_OBJECT_CLASS_USER) {
+            mods[++iMod].pwszAttrName = &wszAttrNamePrimaryGroup[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+            avGID.data.ulValue = dwGID;
+            mods[iMod].pAttrValues = &avGID;
 
-        mods[++iMod].pwszAttrName = &wszAttrNameObjectClass[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avObjectClass.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avObjectClass.data.ulValue = objectClass;
-        mods[iMod].pAttrValues = &avObjectClass;
+        } else if (dwGID && objectClass == SAMDB_OBJECT_CLASS_LOCAL_GROUP) {
+            mods[++iMod].pwszAttrName = &wszAttrNameGID[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avGID.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+            avGID.data.ulValue = dwGID;
+            mods[iMod].pAttrValues = &avGID;
+
+        }
 
         mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
@@ -1165,33 +1195,41 @@ SamDbAddLocalAccounts(
         mods[iMod].ulNumValues = 1;
         mods[iMod].pAttrValues = &avUserName;
 
-        mods[++iMod].pwszAttrName = &wszAttrAccountFlags[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avAccountFlags.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avAccountFlags.data.ulValue = AccountFlags;
-        mods[iMod].pAttrValues = &avAccountFlags;
+        if (AccountFlags) {
+            mods[++iMod].pwszAttrName = &wszAttrAccountFlags[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avAccountFlags.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+            avAccountFlags.data.ulValue = AccountFlags;
+            mods[iMod].pAttrValues = &avAccountFlags;
+        }
 
-        mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avDescription.data.pwszStringValue = pwszDescription;
-        mods[iMod].pAttrValues = &avDescription;
+        if (pwszDescription) {
+            mods[++iMod].pwszAttrName = &wszAttrNameDescription[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avDescription.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            avDescription.data.pwszStringValue = pwszDescription;
+            mods[iMod].pAttrValues = &avDescription;
+        }
 
-        mods[++iMod].pwszAttrName = &wszAttrNameShell[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avShell.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avShell.data.pwszStringValue = pwszShell;
-        mods[iMod].pAttrValues = &avShell;
+        if (pwszShell) {
+            mods[++iMod].pwszAttrName = &wszAttrNameShell[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avShell.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            avShell.data.pwszStringValue = pwszShell;
+            mods[iMod].pAttrValues = &avShell;
+        }
 
-        mods[++iMod].pwszAttrName = &wszAttrNameHomedir[0];
-        mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
-        mods[iMod].ulNumValues = 1;
-        avHomedir.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
-        avHomedir.data.pwszStringValue = pwszHomedir;
-        mods[iMod].pAttrValues = &avHomedir;
+        if (pwszHomedir) {
+            mods[++iMod].pwszAttrName = &wszAttrNameHomedir[0];
+            mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+            mods[iMod].ulNumValues = 1;
+            avHomedir.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+            avHomedir.data.pwszStringValue = pwszHomedir;
+            mods[iMod].pAttrValues = &avHomedir;
+        }
 
         mods[++iMod].pwszAttrName = &wszAttrNameDomain[0];
         mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
@@ -1230,7 +1268,7 @@ SamDbAddLocalAccounts(
             pwszSID = NULL;
         }
 
-        DIRECTORY_FREE_MEMORY_AND_RESET(pUserSid);
+        DIRECTORY_FREE_MEMORY_AND_RESET(pAccountSid);
     }
 
 cleanup:
@@ -1248,7 +1286,7 @@ cleanup:
         RTL_FREE(&pwszSID);
     }
 
-    LSA_SAFE_FREE_MEMORY(pUserSid);
+    LSA_SAFE_FREE_MEMORY(pAccountSid);
 
     return dwError;
 

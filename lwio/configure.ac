@@ -402,16 +402,40 @@ AC_CHECK_FUNCS([stpncpy strnlen])
 AC_CHECK_FUNCS([atexit localtime_r memset strchr strerror strerror_r vsyslog])
 AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
 
-AC_CHECK_FUNC([epoll_ctl],[HAVE_EPOLL=true], [HAVE_EPOLL=false])
+TRANSPORT_FOUND=false
+HAVE_EPOLL=false
+HAVE_KQUEUE=false
+HAVE_POLL=false
+HAVE_SELECT=false
+
+#AC_CHECK_FUNC([epoll_ctl],
+#              [HAVE_EPOLL=true;TRANSPORT_FOUND=true],
+#              [HAVE_EPOLL=false])
 AM_CONDITIONAL(HAVE_EPOLL, [$HAVE_EPOLL])
-
-AC_CHECK_FUNC([kqueue], [HAVE_KQUEUE=true], [HAVE_KQUEUE=false])
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([kqueue],
+#              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true],
+#              [HAVE_KQUEUE=false])
+#fi
+#
 AM_CONDITIONAL(HAVE_KQUEUE, [$HAVE_KQUEUE])
-
-AC_CHECK_FUNC([poll], [HAVE_POLL=true], [HAVE_POLL=false])
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([poll], [HAVE_POLL=true;TRANSPORT_FOUND=true], [HAVE_POLL=false])
+#fi
+#
 AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
+#
+if test x"$TRANSPORT_FOUND" = x"false"
+then
+AC_CHECK_FUNC([select],
+              [HAVE_SELECT=true;TRANSPORT_FOUND=true],
+              [HAVE_SELECT=false])
+fi
 
-AC_CHECK_FUNC([select], [HAVE_SELECT=true], [HAVE_SELECT=false])
 AM_CONDITIONAL(HAVE_SELECT, [$HAVE_SELECT])
 
 AC_CHECK_HEADERS([sys/vfs.h])

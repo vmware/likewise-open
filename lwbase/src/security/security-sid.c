@@ -136,8 +136,19 @@ RtlIsPrefixSid(
     IN PSID Sid
     )
 {
+    /*
+     * memory-compare only the part starting from IdentifierAuthority
+     * (basically, skip SubAuthorityCount which is different in both SIDs)
+     */
+    ULONG ulAuthSidLength = RtlLengthSid(Prefix) -
+                            (sizeof(Prefix->Revision) +
+                             sizeof(Prefix->SubAuthorityCount));
+
     return ((Prefix->SubAuthorityCount <= Sid->SubAuthorityCount) &&
-            RtlEqualMemory(Prefix, Sid, RtlLengthSid(Prefix)));
+            (Prefix->Revision == Sid->Revision) &&
+            RtlEqualMemory(&Prefix->IdentifierAuthority,
+                           &Sid->IdentifierAuthority,
+                           ulAuthSidLength));
 }
 
 NTSTATUS
@@ -960,3 +971,13 @@ cleanup:
 
     return status;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

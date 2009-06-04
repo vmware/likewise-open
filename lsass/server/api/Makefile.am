@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = liblsaserverapi.la
+lib_LTLIBRARIES = liblsaserverapi.la
 
 liblsaserverapi_la_SOURCES = \
        artefacts.c     \
@@ -30,18 +30,17 @@ liblsaserverapi_la_SOURCES = \
        status.c        \
        traceinfo.c     \
        users.c         \
-       rpc_server.c
+       rpc_server.c    \
+       svc_register.c  \
+       svc_unregister.c \
+       svc_listen.c
 
 liblsaserverapi_la_CPPFLAGS =         \
 	-DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include \
-        -I@top_srcdir@/server/rpc/rpcctl
+	-I@top_srcdir@/server/include
 
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/server/srvutils/liblsasrvutils.la \
-        @top_builddir@/server/rpc/rpcctl/librpcctl.la \
 	@UUID_LIBS@ \
 	@PTHREAD_LIBS@
 
-liblsaserverapi_la_LDFLAGS = -static

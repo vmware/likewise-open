@@ -82,7 +82,7 @@ TreeDisconnect(
                 0,
                 0,
                 pTree->tid,
-                0,
+                gRdrRuntime.SysPid,
                 pTree->pSession->uid,
                 wMid,
                 TRUE,

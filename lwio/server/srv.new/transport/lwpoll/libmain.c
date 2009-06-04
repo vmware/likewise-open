@@ -50,7 +50,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvTransportInit(
+SrvPollTransportInit(
     VOID
     )
 {
@@ -60,7 +60,7 @@ SrvTransportInit(
 }
 
 NTSTATUS
-SrvTransportShutdown(
+SrvPollTransportShutdown(
     VOID
     )
 {

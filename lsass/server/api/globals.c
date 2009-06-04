@@ -187,3 +187,6 @@ LsaSrvGetDispatchSpec(
 {
     return gMessageHandlers;
 }
+
+
+pthread_t gRpcSrvWorker;

@@ -868,7 +868,6 @@ AC_CONFIG_FILES([Makefile
                  server/lsassd/Makefile
                  server/sqlite/Makefile
                  server/rpc/Makefile
-                 server/rpc/rpcctl/Makefile
                  server/rpc/lsa/Makefile
                  server/rpc/samr/Makefile
                  server/rpc/dssetup/Makefile

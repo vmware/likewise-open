@@ -262,6 +262,7 @@ typedef struct _RDR_GLOBAL_RUNTIME
     pthread_t reaperThread;
     time_t expirationTime;
     time_t volatile nextWakeupTime;
+    pid_t SysPid;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

@@ -48,7 +48,7 @@ libsamr_srv_la_CFLAGS = \
     $(FEATURETEST_FLAGS) \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
-    -I$(rpc_srcdir)/rpcctl \
+    -I$(srv_srcdir)/api \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@ \
     @LWBASE_INCLUDES@
@@ -58,7 +58,7 @@ libsamr_srv_la_LIBADD = \
     @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LWBASE_LIBS@ \
-    $(rpc_srcdir)/rpcctl/librpcctl.la \
+    $(srv_srcdir)/api/liblsaserverapi.la \
     $(srv_srcdir)/store/dsapi/libdsapi.la \
     libsamr_ss.la
 

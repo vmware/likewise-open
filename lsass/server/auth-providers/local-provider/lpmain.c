@@ -72,6 +72,7 @@ LsaInitializeProvider(
                     ulMethod,
                     &gLPGlobals.pszLocalDomain,
                     &gLPGlobals.pszNetBIOSName,
+                    &gLPGlobals.pLocalDomainSID,
                     &gLPGlobals.llMaxPwdAge,
                     &gLPGlobals.llPwdChangeTime);
     BAIL_ON_LSA_ERROR(dwError);

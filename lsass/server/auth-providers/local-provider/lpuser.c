@@ -2030,11 +2030,14 @@ LocalDirAddUser_0(
     PDIRECTORY_ENTRY pMember = NULL;
     DWORD dwNumEntries = 0;
     BOOLEAN bUserAdded = FALSE;
+    gid_t gid = 0;
+    PSID pGroupSID = NULL;
 
     PWSTR wszMemberAttrs[] = {
         wszAttrObjectClass,
         wszAttrDistinguishedName,
         wszAttrObjectSID,
+        wszAttrGID,
         NULL
     };
 
@@ -2058,13 +2061,28 @@ LocalDirAddUser_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalDirFindGroupById(
-                    hProvider,
-                    pUserInfo->gid,
-                    dwGroupInfoLevel,
-                    &pwszGroupDN,
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pUserInfo->gid) {
+        dwError = LocalDirFindGroupById(
+                        hProvider,
+                        pUserInfo->gid,
+                        dwGroupInfoLevel,
+                        &pwszGroupDN,
+                        (PVOID*)&pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = RtlAllocateSidFromCString(
+                        &pGroupSID,
+                        pGroupInfo->pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!RtlIsPrefixSid(
+                        gLPGlobals.pLocalDomainSID,
+                        pGroupSID))
+        {
+            dwError = LSA_ERROR_INVALID_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
 
     dwError = LsaMbsToWc16s(
                     pLoginInfo->pszFullDomainName,
@@ -2159,7 +2177,10 @@ LocalDirAddUser_0(
     {
         mods[iMod++] = modUID;
     }
-    mods[iMod++] = modGID;
+    if (pUserInfo->gid)
+    {
+        mods[iMod++] = modGID;
+    }
     mods[iMod++] = modSamAccountName;
     mods[iMod++] = modCommonName;
     mods[iMod++] = modGecos;
@@ -2199,6 +2220,36 @@ LocalDirAddUser_0(
                     &pMember,
                     &dwNumEntries);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (!pwszGroupDN) {
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pMember,
+                        wszAttrGID,
+                        DIRECTORY_ATTR_TYPE_INTEGER,
+                        &gid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalDirFindGroupById(
+                        hProvider,
+                        gid,
+                        dwGroupInfoLevel,
+                        &pwszGroupDN,
+                        (PVOID*)&pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = RtlAllocateSidFromCString(
+                        &pGroupSID,
+                        pGroupInfo->pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!RtlIsPrefixSid(
+                        gLPGlobals.pLocalDomainSID,
+                        pGroupSID))
+        {
+            dwError = LSA_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
 
     dwError = DirectoryAddToGroup(
                     pContext->hDirectory,
@@ -2254,6 +2305,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszPassword);
     LSA_SAFE_FREE_MEMORY(pwszDomain);
     LSA_SAFE_FREE_MEMORY(pwszNetBIOSDomain);
+    RTL_FREE(&pGroupSID);
 
     LSA_SAFE_FREE_MEMORY(pwszFilter);
 

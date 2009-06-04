@@ -395,6 +395,11 @@ typedef PSID IDLREF_PSID;
 #define DOMAIN_ALIAS_RID_EVENT_LOG_READERS_GROUP        573 // BUILTIN\Event Log Readers
 
 //
+// Well-Known Likewise Local Groups (S-1-5-32-*)
+
+#define DOMAIN_ALIAS_RID_LW_USERS                       800 // MACHINE\Likewise Users
+
+//
 // Well-Known Security Package SIDs
 //
 
