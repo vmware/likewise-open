@@ -19,11 +19,15 @@ libsamr_la_SOURCES = \
     SamrOpenUser.c \
     SamrQueryUserInfo.c \
     SamrSetUserInfo.c \
+    SamrSetUserInfo2.c \
     SamrCreateUser.c \
     SamrDeleteUser.c \
     SamrCreateDomAlias.c \
     SamrDeleteDomAlias.c \
     SamrGetAliasMembership.c \
+    SamrCreateDomGroup.c \
+    SamrDeleteDomGroup.c \
+    SamrOpenGroup.c \
     SamrLookupRids.c \
     SamrQueryAliasInfo.c \
     SamrSetAliasInfo.c \
