@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,69 +28,29 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        libmain.c
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport API
+ *        Transport (based on select)
  *
- *        Library Main
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#include "includes.h"
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-NTSTATUS
-SrvSelectTransportInit(
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+extern LWIO_SRV_SELECT_TRANSPORT_GLOBALS gSrvSelectTransport;
 
-    *ppFnTable = &gSrvSelectTransport.fnTable;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportGetRequest(
-    OUT PLWIO_SRV_CONNECTION* ppConnection,
-    OUT PSMB_PACKET*          ppRequest
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportSendResponse(
-    IN          PLWIO_SRV_CONNECTION pConnection,
-    IN OPTIONAL PSMB_PACKET          pRequest,
-    IN          PSMB_PACKET          pResponse
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-
+#endif /* __EXTERNS_H__ */
