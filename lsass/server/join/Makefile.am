@@ -21,7 +21,7 @@ liblsajoin_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
 	@top_builddir@/server/krb5/liblsakrb5.la \
 	@top_builddir@/server/ldap/liblsaldap.la \
-	@top_builddir@/server/srvutils/liblsasrvutils.la \
+	@top_builddir@/server/api/liblsaserverapi.la \
 	@NETLOGON_LIBS@ \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@

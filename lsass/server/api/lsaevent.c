@@ -44,7 +44,7 @@
  * Authors: Wei Fu (wfu@likewisesoftware.com)
  */
 
-#include "includes.h"
+#include "api.h"
 
 DWORD
 LsaSrvOpenEventLog(

@@ -181,4 +181,13 @@ LWNetReadString(
     IN PACKED_ARRAY *pArray
     );
 
+DWORD
+LWNetGetPreferredDCList(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PDNS_SERVER_INFO* ppServerArray,
+    OUT PDWORD pdwServerCount
+    );
+
 #endif /* __LWNET_P_H__ */

@@ -133,7 +133,16 @@ cpp_quote("#endif")
         );
 	
     NTSTATUS samr_Function09();
-    NTSTATUS samr_Function0a();
+
+    /* function 0x0a */
+    NTSTATUS _SamrCreateDomGroup(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,ref] UnicodeString *group_name,
+        [in] uint32 access_mask,
+        [out,ref] PolicyHandle *group_handle,
+        [out,ref] uint32 *rid
+        );
+
     NTSTATUS samr_Function0b();
   
     /* function 0x0c */
@@ -198,11 +207,23 @@ cpp_quote("#endif")
         [out] Ids *types
         );
 
-    NTSTATUS samr_Function13();
+    /* function 0x13 */
+    NTSTATUS _SamrOpenGroup(
+        [in,ref] PolicyHandle *domain_handle,
+        [in,range(0,1000)] uint32 access_mask,
+        [in] uint32 rid,
+        [out,ref] PolicyHandle *group_handle
+        );
+
     NTSTATUS samr_Function14();
     NTSTATUS samr_Function15();
     NTSTATUS samr_Function16();
-    NTSTATUS samr_Function17();
+
+    /* function 0x17 */
+    NTSTATUS _SamrDeleteDomGroup(
+        [in,out,ref] PolicyHandle *group_handle
+        );
+
     NTSTATUS samr_Function18();
     NTSTATUS samr_Function19();
     NTSTATUS samr_Function1a();
@@ -272,6 +293,7 @@ cpp_quote("#endif")
         [out,switch_is(level)] UserInfo **info
         );
 
+    /* function 0x25 */
     NTSTATUS _SamrSetUserInfo(
         [in,ref] PolicyHandle *user_handle,
         [in] uint16 level,
@@ -351,7 +373,13 @@ cpp_quote("#endif")
         [out,ref] PolicyHandle *connect_handle
         );
 
-    NTSTATUS samr_Function3a();
+    /* function 0x3a */
+    NTSTATUS _SamrSetUserInfo2(
+        [in,ref] PolicyHandle *user_handle,
+        [in] uint16 level,
+        [in,ref,switch_is(level)] UserInfo *info
+        );
+
     NTSTATUS samr_Function3b();
     NTSTATUS samr_Function3c();
 

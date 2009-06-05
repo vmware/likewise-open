@@ -205,6 +205,14 @@ SamrSetUserInfo(
     );
 
 NTSTATUS
+SamrSetUserInfo2(
+    handle_t b,
+    PolicyHandle *user_h,
+    uint16 level,
+    UserInfo *info
+    );
+
+NTSTATUS
 SamrCreateDomAlias(
     handle_t bind,
     PolicyHandle *domain_handle,
@@ -339,6 +347,30 @@ SamrQueryDisplayInfo(
     SamrDisplayInfo **out_info
     );
 
+NTSTATUS
+SamrCreateDomGroup(
+    handle_t b,
+    PolicyHandle *domain_h,
+    wchar16_t *group,
+    uint32 access_mask,
+    PolicyHandle *group_h,
+    uint32 *rid
+    );
+
+NTSTATUS
+SamrDeleteDomGroup(
+    handle_t b,
+    PolicyHandle *group_h
+    );
+
+NTSTATUS
+SamrOpenGroup(
+    handle_t bind,
+    PolicyHandle *domain_handle,
+    uint32 access_mask,
+    uint32 rid,
+    PolicyHandle *group_handle
+    );
 
 NTSTATUS
 SamrInitMemory(
