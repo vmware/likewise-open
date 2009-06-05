@@ -16,6 +16,7 @@ liblwnetserverapi_la_SOURCES = \
        lwnet-cache.c      \
        lwnet-cachedb.c    \
        lwnet-pstore.c     \
+       lwnet-prefdc.c     \
        dcinfo.c           \
        event.c            \
        lwnet.c            \
