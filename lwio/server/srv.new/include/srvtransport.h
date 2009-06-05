@@ -57,6 +57,19 @@ SrvTransportInit(
     );
 
 NTSTATUS
+SrvTransportGetRequest(
+    OUT PLWIO_SRV_CONNECTION* ppConnection,
+    OUT PSMB_PACKET*          ppRequest
+    );
+
+NTSTATUS
+SrvTransportSendResponse(
+    IN          PLWIO_SRV_CONNECTION pConnection,
+    IN OPTIONAL PSMB_PACKET          pRequest,
+    IN          PSMB_PACKET          pResponse
+    );
+
+NTSTATUS
 SrvTransportShutdown(
     VOID
     );
