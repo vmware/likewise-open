@@ -98,7 +98,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
         status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
         goto_if_ntstatus_not_success(status, error);
 
-        status = DisableWksAccount(conn, machine_name, &account_h);
+        status = DisableWksAccount(conn, pi->pwszMachineAccount, &account_h);
         goto_if_ntstatus_not_success(status, error);
 
         status = NetDisconnectSamr(conn);

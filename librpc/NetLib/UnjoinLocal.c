@@ -34,7 +34,7 @@
 NTSTATUS
 DisableWksAccount(
     NetConn *conn,
-    wchar16_t *machine,
+    wchar16_t *account_name,
     PolicyHandle *account_h
     )
 {
@@ -45,33 +45,17 @@ DisableWksAccount(
 	NTSTATUS status;
 	handle_t samr_b;
 	PolicyHandle *domain_h;
-	wchar16_t *account_name, *names[1];
+	wchar16_t *names[1];
 	UserInfo16 *info16;
 	uint32 *rids, *types;
 	UserInfo sinfo;
     UserInfo *qinfo = NULL;
-    size_t account_name_cch = 0;
 
     memset((void*)&sinfo, 0, sizeof(sinfo));
 
 	samr_b   = conn->samr.bind;
 	domain_h = &conn->samr.dom_handle;
 	info16   = &sinfo.info16;
-
-	/* prepare account$ name */
-    account_name_cch = wc16slen(machine) + 2;
-	account_name = (wchar16_t*) malloc(sizeof(wchar16_t) *
-                                       (account_name_cch));
-	if (account_name == NULL) return STATUS_NO_MEMORY;
-    if (sw16printfw(
-                account_name,
-                account_name_cch,
-                L"%ws$",
-                machine) < 0)
-    {
-        status = ErrnoToNtStatus(errno);
-        goto done;
-    }
 
 	names[0] = account_name;
 	status = SamrLookupNames(samr_b, domain_h, 1, names, &rids, &types, NULL);
@@ -96,7 +80,6 @@ done:
     if (rids) SamrFreeMemory((void*)rids);
     if (types) SamrFreeMemory((void*)types);
     if (qinfo) SamrFreeMemory((void*)qinfo);
-	SAFE_FREE(account_name);
 
 	return status;
 }
