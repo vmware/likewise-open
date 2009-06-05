@@ -51,7 +51,7 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pi = NULL;
     NetConn *conn = NULL;
-    char localname[MAXHOSTNAMELEN] = {0};
+    char *localname = NULL;
     wchar16_t *domain_controller_name = NULL;
     wchar16_t *machine_name = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
@@ -62,10 +62,8 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     machine_name = wc16sdup(machine);
     goto_if_no_memory_ntstatus(machine_name, error);
 
-    if (gethostname((char*)localname, sizeof(localname)) < 0) {
-       err = ERROR_INTERNAL_ERROR;
-       goto error;
-    }
+    err = NetGetHostInfo(&localname);
+    goto_if_winerr_not_success(err, error);
 
     status = NetpGetDcName(domain, FALSE, &domain_controller_name);
     goto_if_ntstatus_not_success(status, error);
@@ -108,6 +106,11 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     }
 
 cleanup:
+    if (localname)
+    {
+        NetFreeMemory(localname);
+    }
+
     SAFE_FREE(machine_name);
 
     if (pi) {
@@ -148,26 +151,24 @@ NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
     wchar16_t *domain = NULL;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pi = NULL;
+    char *localname = NULL;
 
     /* at the moment we support only locally triggered unjoin */
     if (hostname) {
         status = STATUS_NOT_IMPLEMENTED;
 
     } else {
-        char hostname[MAXHOSTNAMELEN];
         wchar16_t host[MAXHOSTNAMELEN];
 
-        if (gethostname((char*)hostname, sizeof(hostname)) < 0) {
-            err = ERROR_INTERNAL_ERROR;
-            goto error;
-        }
+        err = NetGetHostInfo(&localname);
+        goto_if_winerr_not_success(err, error);
 
-        mbstowc16s(host, hostname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
+        mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
 
         status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
         goto_if_ntstatus_not_success(status, error);
 
-        status = LwpsGetPasswordByHostName(hStore, hostname, &pi);
+        status = LwpsGetPasswordByHostName(hStore, localname, &pi);
         goto_if_ntstatus_not_success(status, error);
 
         domain = pi->pwszDnsDomainName;
@@ -181,6 +182,11 @@ NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
     }
 
 cleanup:
+    if (localname)
+    {
+        NetFreeMemory(localname);
+    }
+
     if (pi) {
        LwpsFreePasswordInfo(hStore, pi);
     }
