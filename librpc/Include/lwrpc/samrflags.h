@@ -72,6 +72,13 @@
 #define ALIAS_ACCESS_LOOKUP_INFO               0x00000008
 #define ALIAS_ACCESS_SET_INFO                  0x00000010
 
+/* Group access mask flags */
+#define GROUP_ACCESS_LOOKUP_INFO               0x00000001
+#define GROUP_ACCESS_SET_INFO                  0x00000002
+#define GROUP_ACCESS_ADD_MEMBER                0x00000004
+#define GROUP_ACCESS_REMOVE_MEMBER             0x00000008
+#define GROUP_ACCESS_GET_MEMBERS               0x00000010
+
 
 #endif /* _SAMRFLAGS_H_ */
 
