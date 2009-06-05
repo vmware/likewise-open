@@ -40,7 +40,7 @@ RpcSvcWorkerMain(
     )
 {
     DWORD dwError = 0;
-    DWORD dwRpcStatus = rpc_s_ok;
+    unsigned32 dwRpcStatus = rpc_s_ok;
 
     DCETHREAD_TRY
     {
