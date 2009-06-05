@@ -1364,7 +1364,7 @@ AD_OnlineAuthenticateUser(
     PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PAC_LOGON_INFO *pPac = NULL;
     PSTR pszHostname = NULL;
-    PSTR pszUsername = NULL;
+    PSTR pszMachineAccountName = NULL;
     PSTR pszServicePassword = NULL;
     PSTR pszDomainDnsName = NULL;
     PSTR pszHostDnsDomain = NULL;
@@ -1419,13 +1419,13 @@ AD_OnlineAuthenticateUser(
 
     dwError = LsaKrb5GetMachineCreds(
                     pszHostname,
-                    &pszUsername,
+                    &pszMachineAccountName,
                     &pszServicePassword,
                     &pszDomainDnsName,
                     &pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //Leave the realm empty so that kerberos referrals are turned on.
+    // Leave the realm empty so that kerberos referrals are turned on.
     dwError = LsaAllocateStringPrintf(
                         &pszServicePrincipal,
                         "host/%s.%s@",
@@ -1472,6 +1472,30 @@ AD_OnlineAuthenticateUser(
                     pszServicePassword,
                     &pPac,
                     &dwGoodUntilTime);
+    if (dwError == LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
+    {
+        LSA_SAFE_FREE_STRING(pszServicePrincipal);
+
+        // Perhaps the host has no SPN or UPN.  Try again
+        // Using the sAMAccountName@REALM
+        dwError = LsaAllocateStringPrintf(
+                      &pszServicePrincipal,
+                      "%s@%s",
+                      pszMachineAccountName,
+		      pszDomainDnsName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSetupUserLoginSession(
+                      pUserInfo->userInfo.uid,
+                      pUserInfo->userInfo.gid,
+                      pszUpn,
+                      pszPassword,
+                      KRB5_File_Cache,
+                      pszServicePrincipal,
+                      pszServicePassword,
+                      &pPac,
+		      &dwGoodUntilTime);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pPac != NULL)
@@ -1516,7 +1540,7 @@ cleanup:
 
     LsaDbSafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
-    LSA_SAFE_FREE_STRING(pszUsername);
+    LSA_SAFE_FREE_STRING(pszMachineAccountName);
     LSA_SAFE_FREE_STRING(pszServicePassword);
     LSA_SAFE_FREE_STRING(pszDomainDnsName);
     LSA_SAFE_FREE_STRING(pszHostDnsDomain);
@@ -4104,3 +4128,13 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
