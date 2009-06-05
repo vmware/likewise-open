@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,14 +28,12 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        srv/protocol.h
  *
  * Abstract:
  *
@@ -43,42 +41,16 @@
  *
  *        Protocols
  *
+ *        Definitions
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __PROTOCOL_API_H__
+#define __PROTOCOL_API_H__
 
-#include <lwio/lwio.h>
+#include <protocols/defs.h>
+#include <protocols/structs.h>
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
-
-#include <srvtransport.h>
-
-#if defined(LW_USE_EPOLL)
-#include <lwepoll.h>
-#elif defined (LW_USE_KQUEUE)
-#include <lwkqueue.h>
-#elif defined (LW_USE_POLL)
-#include <lwpoll.h>
-#elif defined (LW_USE_SELECT)
-#include <lwselect.h>
-#endif
-
-#include "externs.h"
-
+#endif /* __PROTOCOL_API_H__ */

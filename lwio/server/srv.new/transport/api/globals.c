@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,57 +28,26 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        globals.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport API
+ *
+ *        Globals
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
-
-#include <srvtransport.h>
-
-#if defined(LW_USE_EPOLL)
-#include <lwepoll.h>
-#elif defined (LW_USE_KQUEUE)
-#include <lwkqueue.h>
-#elif defined (LW_USE_POLL)
-#include <lwpoll.h>
-#elif defined (LW_USE_SELECT)
-#include <lwselect.h>
-#endif
-
-#include "externs.h"
+PSRV_TRANSPORT_FUNCTION_TABLE gpSrvTransportApi = NULL;
 

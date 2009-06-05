@@ -45,8 +45,8 @@
  *
  */
 
-#ifndef __SRV_TRANSPORT_H__
-#define __SRV_TRANSPORT_H__
+#ifndef __TRANSPORT_API_H__
+#define __TRANSPORT_API_H__
 
 #include <transport/defs.h>
 #include <transport/structs.h>
@@ -74,4 +74,4 @@ SrvTransportShutdown(
     VOID
     );
 
-#endif /* __SRV_TRANSPORT_H__ */
+#endif /* __TRANSPORT_API_H__ */
