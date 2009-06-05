@@ -150,7 +150,7 @@ RpcSvcRegisterRpcInterface(
     )
 {
     DWORD dwError = 0;
-    DWORD rpcstatus = rpc_s_ok;
+    unsigned32 rpcstatus = rpc_s_ok;
 
     DCETHREAD_TRY
     {
@@ -191,7 +191,7 @@ RpcSvcBindRpcInterface(
     )
 {
     DWORD dwError = 0;
-    DWORD rpcstatus = rpc_s_ok;
+    unsigned32 rpcstatus = rpc_s_ok;
 
     DCETHREAD_TRY
     {
