@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -42,7 +40,7 @@
  *
  *      Likewise SAM Database Provider
  *
- *      SamDbInitUserTable
+ *      SAM User Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
@@ -446,3 +444,12 @@ SamDbGetUserCount(
                 pdwNumUsers);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
