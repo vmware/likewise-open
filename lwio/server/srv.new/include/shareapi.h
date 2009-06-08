@@ -118,9 +118,6 @@ typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
 
 } LWIO_SRV_SHARE_ENTRY_LIST, *PLWIO_SRV_SHARE_ENTRY_LIST;
 
-#include <shares/defs.h>
-#include <shares/structs.h>
-
 NTSTATUS
 SrvShareInit(
 	VOID

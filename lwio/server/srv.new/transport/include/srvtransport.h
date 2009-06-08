@@ -48,6 +48,30 @@
 #ifndef __SRV_TRANSPORT_H__
 #define __SRV_TRANSPORT_H__
 
+typedef enum
+{
+    LWIO_SRV_CONN_STATE_INITIAL = 0,
+    LWIO_SRV_CONN_STATE_NEGOTIATE,
+    LWIO_SRV_CONN_STATE_READY,
+    LWIO_SRV_CONN_STATE_INVALID
+} LWIO_SRV_CONN_STATE;
+
+typedef struct LWIO_SRV_SOCKET* PLWIO_SRV_SOCKET;
+
+typedef struct _SRV_CLIENT_PROPERITES
+{
+
+    USHORT MaxBufferSize;
+    USHORT MaxMpxCount;
+    USHORT VcNumber;
+    ULONG  SessionKey;
+    ULONG  Capabilities;
+    PWSTR  pwszNativeOS;
+    PWSTR  pwszNativeLanMan;
+    PWSTR  pwszNativeDomain;
+
+} SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
+
 typedef struct _LWIO_SRV_CONNECTION
 {
     LONG                refCount;
@@ -80,8 +104,8 @@ typedef struct _LWIO_SRV_CONNECTION
     PBYTE               pSessionKey;
     ULONG               ulSessionKeyLength;
 
-    PSRV_HOST_INFO       pHostinfo;
-    PLWIO_SRV_SHARE_LIST pShareList;
+    PSRV_HOST_INFO             pHostinfo;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
 
     HANDLE              hGssContext;
     HANDLE              hGssNegotiate;

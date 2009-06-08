@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,55 +28,39 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        srvstructs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Structures
  *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __SRV_STRUCTS_H__
+#define __SRV_STRUCTS_H__
 
-#include <uuid/uuid.h>
+typedef struct _SRV_PROPERTIES
+{
+    USHORT  preferredSecurityMode;
+    BOOLEAN bEncryptPasswords;
+    BOOLEAN bEnableSecuritySignatures;
+    BOOLEAN bRequireSecuritySignatures;
+    USHORT  MaxMpxCount;
+    USHORT  MaxNumberVCs;
+    ULONG   MaxBufferSize;
+    ULONG   MaxRawSize;
+    ULONG   Capabilities;
+    uuid_t  GUID;
 
-#include <lwio/lwio.h>
+} SRV_PROPERTIES, *PSRV_PROPERTIES;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvdefs.h>
-#include <srvstructs.h>
-#include <srvutils.h>
-#include <shareapi.h>
-
-#include <srvtransport.h>
-
-#include "structs.h"
-#include "libmain.h"
-#include "externs.h"
-
-
+#endif /* __SRV_STRUCTS_H__ */

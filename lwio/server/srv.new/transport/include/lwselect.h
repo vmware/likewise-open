@@ -51,12 +51,12 @@
 
 NTSTATUS
 SrvSelectTransportInit(
-    VOID
+    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     );
 
 NTSTATUS
 SrvSelectTransportShutdown(
-    VOID
+    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
     );
 
 #endif /* __LWSELECT_H__ */

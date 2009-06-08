@@ -6,7 +6,7 @@ SrvConnectionCreate(
     PLWIO_SRV_SOCKET           pSocket,
     HANDLE                    hPacketAllocator,
     HANDLE                    hGssContext,
-    PLWIO_SRV_SHARE_LIST pShareList,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     PSRV_PROPERTIES           pServerProperties,
     PSRV_HOST_INFO            pHostinfo,
     PLWIO_SRV_CONNECTION*      ppConnection

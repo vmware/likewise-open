@@ -10,7 +10,7 @@ typedef struct _LWIO_SRV_SOCKET
 
     struct sockaddr_in cliaddr;
 
-} LWIO_SRV_SOCKET, *PLWIO_SRV_SOCKET;
+} LWIO_SRV_SOCKET;
 
 typedef struct _LWIO_SRV_SOCKET_READER_CONTEXT
 {
@@ -56,7 +56,7 @@ typedef struct _LWIO_SRV_LISTENER_CONTEXT
     // Not owned
     HANDLE                    hPacketAllocator;
     HANDLE                    hGssContext;
-    PLWIO_SRV_SHARE_LIST      pShareList;
+    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList;
     PLWIO_SRV_SOCKET_READER   pReaderArray;
     ULONG                     ulNumReaders;
 
