@@ -97,16 +97,15 @@ SrvBuildNegotiateResponseForDialect(
 
 NTSTATUS
 SrvProcessNegotiate(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PSTR  pszDialectArray[128];
     ULONG ulNumDialects = 128;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET         pSmbRequest = pContext->pRequest;
     ULONG ulOffset = 0;
 
     ulOffset = (PBYTE)pSmbRequest->pParams - (PBYTE)pSmbRequest->pSMBHeader;

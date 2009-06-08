@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,15 +28,26 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        smb2.h
+ *
+ * Abstract:
+ *
+ *        Likewise IO (LWIO) - SRV
+ *
+ *        SMB V2 Protocol Handler API
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
+ */
 
-NTSTATUS
-SrvProcessSeek(
-    PLWIO_SRV_CONTEXT pContext
-    )
-{
-    NTSTATUS ntStatus = 0;
+#ifndef __SMB_V2_H__
+#define __SMB_V2_H__
 
-    return ntStatus;
-}
 
+
+#endif /* __SMB_V2_H__ */

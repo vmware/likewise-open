@@ -32,13 +32,12 @@
 
 NTSTATUS
 SrvProcessCreateDirectory(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE    pTree = NULL;
     PSMB_CREATE_DIRECTORY_REQUEST_HEADER pRequestHeader = NULL; // Do not free

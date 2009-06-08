@@ -52,16 +52,15 @@ SrvMarshallSessionSetupResponse(
 
 NTSTATUS
 SrvProcessSessionSetup(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
     ULONG       ulSecurityBlobLength = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET         pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     UNICODE_STRING uniUsername = {0};
 
