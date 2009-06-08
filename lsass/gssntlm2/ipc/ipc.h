@@ -46,13 +46,7 @@
  */
 #include "config.h"
 
-#include "lsasystem.h"
-
-#include "lsadef.h"
-#include "lsa/lsa.h"
-
 #include <lwmsg/lwmsg.h>
 
-#include "lsautils.h"
-#include "lsaipc.h"
+#include <ntlmipc.h>
 

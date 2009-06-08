@@ -48,14 +48,14 @@
 #define __IPCIO_P_H__
 
 DWORD
-LsaWriteData(
+NtlmWriteData(
     DWORD dwFd,
     PSTR pszBuf,
     DWORD dwLen
     );
 
 DWORD
-LsaReadData(
+NtlmReadData(
     DWORD  dwFd,
     PSTR   pszBuf,
     DWORD  dwBytesToRead,

@@ -47,7 +47,7 @@
 #include "ipc.h"
 
 DWORD
-LsaWriteData(
+NtlmWriteData(
     DWORD dwFd,
     PSTR pszBuf,
     DWORD dwLen
@@ -82,7 +82,7 @@ error:
 }
 
 DWORD
-LsaReadData(
+NtlmReadData(
     DWORD  dwFd,
     PSTR   pszBuf,
     DWORD  dwBytesToRead,
