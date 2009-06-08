@@ -11,9 +11,6 @@ function _setup_build_env
     CFLAGS="${_cflags}"
     CPPFLAGS="${_cppflags}"
 
-    libtool_set_staging_library_path
-    libtool_set_staging_path
-
     export LDFLAGS CFLAGS CPPFLAGS
 
     exit_on_error $?
