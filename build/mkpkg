@@ -111,6 +111,7 @@ function _make_rpm
 {
     local fullPath=""
     local file=""
+    local pathOverride="${PATH}"
 
     _setup_pkg_env "$1" "rpm"
 
