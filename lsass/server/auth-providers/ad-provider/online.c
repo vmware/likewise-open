@@ -207,10 +207,11 @@ AD_OnlineInitializeOperatingMode(
     PSTR  pszComputerDN = NULL;
     PSTR  pszCellDN = NULL;
     PSTR  pszRootDN = NULL;
-    ADConfigurationMode adConfMode = NonSchemaMode;
+    ADConfigurationMode adConfMode = UnknownMode;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PSTR pszNetbiosDomainName = NULL;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
+    AD_CELL_SUPPORT adCellSupport = AD_CELL_SUPPORT_FULL;
 
     dwError = LsaAllocateMemory(sizeof(*pProviderData), (PVOID*)&pProviderData);
     BAIL_ON_LSA_ERROR(dwError);
@@ -230,18 +231,30 @@ AD_OnlineInitializeOperatingMode(
                                &pszComputerDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_GetCellSupport() == AD_CELL_SUPPORT_UNPROVISIONED)
+    adCellSupport = AD_GetCellSupport();
+    switch (adCellSupport)
     {
-        LSA_LOG_INFO("Disabling cell support due to cell-support configuration setting");
-    }
-    else
-    {
-        dwError = AD_OnlineFindCellDN(
-                        pConn,
-                        pszComputerDN,
-                        pszRootDN,
-                        &pszCellDN);
-        BAIL_ON_LSA_ERROR(dwError);
+        case AD_CELL_SUPPORT_UNPROVISIONED:
+            LSA_LOG_INFO("Disabling cell support due to cell-support configuration setting");
+            break;
+
+        case AD_CELL_SUPPORT_DEFAULT_SCHEMA:
+            LSA_LOG_INFO("Using default schema mode due to cell-support configuration setting");
+
+            dwError = LsaAllocateStringPrintf(&pszCellDN, "CN=$LikewiseIdentityCell,%s", pszRootDN);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            adConfMode = SchemaMode;
+
+            break;
+
+        default:
+            dwError = AD_OnlineFindCellDN(
+                            pConn,
+                            pszComputerDN,
+                            pszRootDN,
+                            &pszCellDN);
+            BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszCellDN))
@@ -267,14 +280,17 @@ AD_OnlineInitializeOperatingMode(
                                    &pProviderData->adMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (pProviderData->dwDirectoryMode)
+    if (UnknownMode == adConfMode)
     {
-        case DEFAULT_MODE:
-        case CELL_MODE:
-            dwError = ADGetConfigurationMode(pConn, pszCellDN,
-                                             &adConfMode);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
+        switch (pProviderData->dwDirectoryMode)
+        {
+            case DEFAULT_MODE:
+            case CELL_MODE:
+                dwError = ADGetConfigurationMode(pConn, pszCellDN,
+                                                 &adConfMode);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+        }
     }
 
     dwError = LsaDmWrapGetDomainName(pszDomain, NULL, &pszNetbiosDomainName);
