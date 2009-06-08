@@ -24,6 +24,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadm_p.c                 \
        lsadmengine.c             \
        lsadmwrap.c               \
+       lsasqlite.c               \
        media-sense.c             \
        batch.c                   \
        lsaum.c                   \
@@ -49,7 +50,6 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/server/krb5/liblsakrb5.la \
 	@top_builddir@/server/ldap/liblsaldap.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
-	@top_builddir@/server/sqlite/liblsasqlite.la \
 	@top_builddir@/ipc/liblsaipc.la \
 	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \
 	@top_builddir@/provider/local-provider/client/liblsalocalclient.la \
@@ -59,6 +59,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@PROC_LIBS@ \
 	@KVM_LIBS@  \
 	@UUID_LIBS@ \
+        @SQLITE_LIBS@ \
 	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
@@ -68,4 +69,5 @@ liblsass_auth_provider_ad_la_LDFLAGS = \
 	@NETLOGON_LDFLAGS@ \
 	@CF_FRAMEWORK_LDFLAGS@ \
 	@SC_FRAMEWORK_LDFLAGS@ \
-	@CRYPTO_LDFLAGS@
+	@CRYPTO_LDFLAGS@  \
+        @SQLITE_LDFLAGS@

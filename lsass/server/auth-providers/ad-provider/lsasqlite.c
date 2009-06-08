@@ -42,7 +42,7 @@
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  *
  */
-#include "includes.h"
+#include "adprovider.h"
 
 DWORD
 LsaSqliteReadUInt64(
@@ -486,7 +486,6 @@ LsaSqliteExecWithRetry(
                 (PVOID)pszTransaction);
 }
 
-static
 DWORD
 LsaSqliteBasicCallback(
     IN sqlite3 *pDb,

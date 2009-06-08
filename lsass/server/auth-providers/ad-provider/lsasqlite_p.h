@@ -47,7 +47,6 @@
 #ifndef __SQLITE_P_H__
 #define __SQLITE_P_H__
 
-static
 DWORD
 LsaSqliteBasicCallback(
     IN sqlite3 *pDb,

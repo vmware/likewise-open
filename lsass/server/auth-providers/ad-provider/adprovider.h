@@ -105,6 +105,7 @@
 #include "provider-main.h"
 #include "offline-helper.h"
 #include "lsasqlite.h"
+#include "lsasqlite_p.h"
 
 #include "externs.h"
 

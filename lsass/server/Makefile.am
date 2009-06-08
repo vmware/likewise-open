@@ -5,6 +5,5 @@ SUBDIRS = \
          ldap           \
          join           \
          rpc            \
-         sqlite         \
          auth-providers \
          lsassd
