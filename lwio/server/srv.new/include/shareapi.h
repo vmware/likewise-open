@@ -44,6 +44,80 @@
 #ifndef __SHAREAPI_H__
 #define __SHAREAPI_H__
 
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
+#define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
+
+#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwtest"
+#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 't', 'e', 's', 't', 0 }
+
+#define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
+#define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
+
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npvfs"
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'v', 'f', 's', 0 }
+
+#define LWIO_SRV_SHARE_STRING_ID_ANY_A "????"
+#define LWIO_SRV_SHARE_STRING_ID_ANY_W {'?','?','?','?',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_IPC_A "IPC"
+#define LWIO_SRV_SHARE_STRING_ID_IPC_W {'I','P','C',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_COMM_A "COMM"
+#define LWIO_SRV_SHARE_STRING_ID_COMM_W {'C','O','M','M',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_PRINTER_A "LPT1:"
+#define LWIO_SRV_SHARE_STRING_ID_PRINTER_W {'L','P','T','1',':',0}
+
+#define LWIO_SRV_SHARE_STRING_ID_DISK_A "A:"
+#define LWIO_SRV_SHARE_STRING_ID_DISK_W {'A',':',0}
+
+typedef enum
+{
+    SHARE_SERVICE_DISK_SHARE = 0,
+    SHARE_SERVICE_PRINTER,
+    SHARE_SERVICE_COMM_DEVICE,
+    SHARE_SERVICE_NAMED_PIPE,
+    SHARE_SERVICE_ANY,
+    SHARE_SERVICE_UNKNOWN
+
+} SHARE_SERVICE;
+
+typedef struct _SRV_SHARE_INFO
+{
+    LONG refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PWSTR pwszName;
+    PWSTR pwszPath;
+    PWSTR pwszComment;
+    PBYTE pSecDesc;
+    ULONG ulSecDescLen;
+
+    SHARE_SERVICE service;
+
+    BOOLEAN bMarkedForDeletion;
+
+} SRV_SHARE_INFO, *PSRV_SHARE_INFO;
+
+typedef struct _SRV_SHARE_ENTRY
+{
+    PSRV_SHARE_INFO pInfo;
+
+    struct _SRV_SHARE_ENTRY  *pNext;
+
+} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
+
+typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
+{
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSRV_SHARE_ENTRY  pShareEntry;
+
+} LWIO_SRV_SHARE_ENTRY_LIST, *PLWIO_SRV_SHARE_ENTRY_LIST;
+
 #include <shares/defs.h>
 #include <shares/structs.h>
 

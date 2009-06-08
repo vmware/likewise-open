@@ -44,12 +44,135 @@
 #ifndef __SRV_UTILS_H__
 #define __SRV_UTILS_H__
 
-#include <utils/defs.h>
-#include <utils/structs.h>
-#include <utils/memory.h>
-#include <utils/string.h>
-#include <utils/path.h>
-#include <utils/prodcons.h>
-#include <utils/hostinfo.h>
+typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
+
+typedef struct _SMB_PROD_CONS_QUEUE
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    LWIO_QUEUE       queue;
+
+    ULONG           ulNumMaxItems;
+    ULONG           ulNumItems;
+
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem;
+
+    pthread_cond_t  event;
+    pthread_cond_t* pEvent;
+
+} SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
+
+
+typedef struct _SRV_HOST_INFO
+{
+    LONG  refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PSTR  pszHostname;
+    PSTR  pszDomain;
+
+} SRV_HOST_INFO, *PSRV_HOST_INFO;
+
+NTSTATUS
+SrvAllocateMemory(
+    IN  size_t size,
+    OUT PVOID* ppMemory
+    );
+
+NTSTATUS
+SrvReallocMemory(
+    IN  PVOID  pMemory,
+    IN  size_t size,
+    OUT PVOID* ppNewMemory
+    );
+
+VOID
+SrvFreeMemory(
+    IN PVOID pMemory
+    );
+
+NTSTATUS
+SrvAcquireHostInfo(
+    PSRV_HOST_INFO  pOrigHostInfo,
+    PSRV_HOST_INFO* ppNewHostInfo
+    );
+
+VOID
+SrvReleaseHostInfo(
+    PSRV_HOST_INFO pHostinfo
+    );
+
+NTSTATUS
+SrvBuildFilePath(
+    PWSTR  pwszPrefix,
+    PWSTR  pwszSuffix,
+    PWSTR* ppwszFilename
+    );
+
+NTSTATUS
+SrvProdConsInit(
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
+    PSMB_PROD_CONS_QUEUE*         ppQueue
+    );
+
+NTSTATUS
+SrvProdConsInitContents(
+    PSMB_PROD_CONS_QUEUE          pQueue,
+    ULONG                         ulNumMaxItems,
+    PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
+    );
+
+NTSTATUS
+SrvProdConsEnqueue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID                pItem
+    );
+
+NTSTATUS
+SrvProdConsDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    PVOID*               ppItem
+    );
+
+NTSTATUS
+SrvProdConsTimedDequeue(
+    PSMB_PROD_CONS_QUEUE pQueue,
+    struct timespec*     pTimespec,
+    PVOID*               ppItem
+    );
+
+VOID
+SrvProdConsFree(
+    PSMB_PROD_CONS_QUEUE pQueue
+    );
+NTSTATUS
+SrvMbsToWc16s(
+    IN  PCSTR  pszString,
+    OUT PWSTR* ppwszString
+    );
+
+NTSTATUS
+SrvWc16sToMbs(
+	IN  PCWSTR pwszString,
+	OUT PSTR*  ppszString
+	);
+
+NTSTATUS
+SrvAllocateStringPrintf(
+    PSTR* ppszOutputString,
+    PCSTR pszFormat,
+    ...
+    );
+
+VOID
+SrvProdConsFreeContents(
+    PSMB_PROD_CONS_QUEUE pQueue
+    );
+
+
 
 #endif /* __SRV_UTILS_H__ */

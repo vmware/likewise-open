@@ -50,7 +50,64 @@
 #ifndef __PROTOCOL_API_H__
 #define __PROTOCOL_API_H__
 
-#include <protocols/defs.h>
-#include <protocols/structs.h>
+
+typedef struct _LWIO_SRV_FILE
+{
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
+
+    LONG                    refcount;
+
+    USHORT                  fid;
+
+    IO_FILE_HANDLE          hFile;
+    PIO_FILE_NAME           pFilename; // physical path on server
+    PWSTR                   pwszFilename; // requested path
+    ACCESS_MASK             desiredAccess;
+    LONG64                  allocationSize;
+    FILE_ATTRIBUTES         fileAttributes;
+    FILE_SHARE_FLAGS        shareAccess;
+    FILE_CREATE_DISPOSITION createDisposition;
+    FILE_CREATE_OPTIONS     createOptions;
+
+} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
+
+typedef struct _LWIO_SRV_TREE
+{
+    LONG                   refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    USHORT            tid;
+
+    PSHARE_DB_INFO    pShareInfo;
+
+    PLWRTL_RB_TREE    pFileCollection;
+
+    USHORT            nextAvailableFid;
+
+} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
+
+typedef struct _LWIO_SRV_SESSION
+{
+    LONG              refcount;
+
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
+
+    USHORT            uid;
+
+    PLWRTL_RB_TREE    pTreeCollection;
+
+    HANDLE            hFinderRepository;
+
+    USHORT            nextAvailableTid;
+
+    PSTR              pszClientPrincipalName;
+
+    PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
+
+} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
 
 #endif /* __PROTOCOL_API_H__ */
