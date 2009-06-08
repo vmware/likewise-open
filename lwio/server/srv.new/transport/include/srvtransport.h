@@ -48,6 +48,50 @@
 #ifndef __SRV_TRANSPORT_H__
 #define __SRV_TRANSPORT_H__
 
+typedef struct _LWIO_SRV_CONNECTION
+{
+    LONG                refCount;
+
+    pthread_rwlock_t     mutex;
+    pthread_rwlock_t*    pMutex;
+
+    LWIO_SRV_CONN_STATE  state;
+
+    PLWIO_SRV_SOCKET     pSocket;
+
+    SRV_PROPERTIES        serverProperties;
+    SRV_CLIENT_PROPERTIES clientProperties;
+
+    ULONG               ulSequence;
+
+    // Invariant
+    // Not owned
+    HANDLE              hPacketAllocator;
+
+    struct
+    {
+        BOOLEAN         bReadHeader;
+        size_t          sNumBytesToRead;
+        size_t          sOffset;
+        PSMB_PACKET     pRequestPacket;
+
+    } readerState;
+
+    PBYTE               pSessionKey;
+    ULONG               ulSessionKeyLength;
+
+    PSRV_HOST_INFO       pHostinfo;
+    PLWIO_SRV_SHARE_LIST pShareList;
+
+    HANDLE              hGssContext;
+    HANDLE              hGssNegotiate;
+
+    PLWRTL_RB_TREE      pSessionCollection;
+
+    USHORT              nextAvailableUid;
+
+} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
+
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_GET_REQUEST)(
                         OUT PLWIO_SRV_CONNECTION* ppConnection,
                         OUT PSMB_PACKET*          ppRequest

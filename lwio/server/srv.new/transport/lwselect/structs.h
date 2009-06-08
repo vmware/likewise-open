@@ -1,6 +1,17 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct _LWIO_SRV_SOCKET
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    int fd;
+
+    struct sockaddr_in cliaddr;
+
+} LWIO_SRV_SOCKET, *PLWIO_SRV_SOCKET;
+
 typedef struct _LWIO_SRV_SOCKET_READER_CONTEXT
 {
     pthread_mutex_t  mutex;
