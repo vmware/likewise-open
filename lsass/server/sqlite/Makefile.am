@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblsasqlite.la
 
 liblsasqlite_la_SOURCES = \
-       sqlite.c
+       lsasqlite.c
 
 liblsasqlite_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
