@@ -30,7 +30,8 @@ Before you begin, please read over this list of prerequisite packages
 (depending on your Linux distro):
 
     * RedHat/Fedora - gcc, autoconf, automake, e2fsprogrs-devel,
-      pam-devel, ncurses-devel, flex, bison, rpm-build, rpm-devel
+      pam-devel, ncurses-devel, flex, bison, rpm-build, rpm-devel,
+      openssl-devel
 
       Optional packages: 
          o libglade2-devel - To build domainjoin-gui GTK application
@@ -39,7 +40,7 @@ Before you begin, please read over this list of prerequisite packages
 
     * Ubuntu - build-essential, fakeroot, devscripts, debhelper,
       autoconf, automake, libtool, libncurses5-dev, uuid-dev,
-      flex, bison, libpam0g-dev
+      flex, bison, libpam0g-dev, libssl-dev
 
       Optional packages: 
          o libglade2-dev - To build domainjoin-gui GTK application
