@@ -26,6 +26,28 @@ While the code is portable among a variety of *nix based platforms
 (Linux, Solaris, AIX, HP-UX, and OS X), this build system is 
 primarily intended for Linux platforms.
 
+Before you begin, please read over this list of prerequisite packages
+(depending on your Linux distro):
+
+    * RedHat/Fedora - gcc, autoconf, automake, e2fsprogrs-devel,
+      pam-devel, ncurses-devel, flex, bison, rpm-build, rpm-devel
+
+      Optional packages: 
+         o libglade2-devel - To build domainjoin-gui GTK application
+         o libattr-devel   - To enable extended attribute support for the 
+                             Likewise CIFS server (experimental)
+
+    * Ubuntu - build-essential, fakeroot, devscripts, debhelper,
+      autoconf, automake, libtool, libncurses5-dev, uuid-dev,
+      flex, bison, libpam0g-dev
+
+      Optional packages: 
+         o libglade2-dev - To build domainjoin-gui GTK application
+         o libattr1-dev  - To enable extended attribute support for the 
+                           Likewise CIFS server (experimental)
+
+    * SLES/SLED/openSUSE - TDB
+
 The easiest way to begin a build is to run:
 
   $ build/mkcomp all
@@ -40,6 +62,12 @@ debs are supported)
 
 Both mkcomp and mkpkg support the --debug option for including
 (and not tripping) debug symbols.
+
+
+
+RedHat/Fedora:
+
+Ubuntu: 
 
 
 Getting Help
