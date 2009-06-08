@@ -32,10 +32,8 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %{PrefixDir}/%{_lib}/*.so*
 %{PrefixDir}/bin/ConfigureLogin
 %{PrefixDir}/bin/gpcron
-%{PrefixDir}/bin/domainjoin-cli
-%{PrefixDir}/bin/domainjoin-gui
+%{PrefixDir}/bin/domainjoin-*
 %{PrefixDir}/share/likewise/*
-# /usr/bin/domainjoin-cli
 %{PrefixDir}/data/VERSION
 
 
