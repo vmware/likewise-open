@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.transport.select.la
 
 libsrv_transport_select_la_SOURCES = \
+    globals.c \
     libmain.c
 
 libsrv_transport_select_la_CPPFLAGS = \

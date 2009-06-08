@@ -39,7 +39,7 @@
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport
+ *        Transport API
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -48,17 +48,31 @@
 #ifndef __SRV_TRANSPORT_H__
 #define __SRV_TRANSPORT_H__
 
-#include <transport/defs.h>
-#include <transport/structs.h>
+typedef NTSTATUS (*PFN_SRV_TRANSPORT_GET_REQUEST)(
+                        OUT PLWIO_SRV_CONNECTION* ppConnection,
+                        OUT PSMB_PACKET*          ppRequest
+                        );
 
-NTSTATUS
-SrvTransportInit(
-    VOID
-    );
+typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_RESPONSE)(
+                        IN           PLWIO_SRV_CONNECTION pConnection,
+                        IN  OPTIONAL PSMB_PACKET          pRequest,
+                        IN           PSMB_PACKET          pResponse
+                        );
 
-NTSTATUS
-SrvTransportShutdown(
-    VOID
-    );
+typedef struct _SRV_TRANSPORT_FUNCTION_TABLE
+{
+
+    PFN_SRV_TRANSPORT_GET_REQUEST   pfnTransportGetRequest;
+    PFN_SRV_TRANSPORT_SEND_RESPONSE pfnTransportSendResponse;
+
+} SRV_TRANSPORT_FUNCTION_TABLE, *PSRV_TRANSPORT_FUNCTION_TABLE;
+
+typedef NTSTATUS (*PFN_SRV_TRANSPORT_INITIALIZE)(
+                    OUT PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+                    );
+
+typedef NTSTATUS (*PFN_SRV_TRANSPORT_SHUTDOWN)(
+                    IN PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
+                    );
 
 #endif /* __SRV_TRANSPORT_H__ */

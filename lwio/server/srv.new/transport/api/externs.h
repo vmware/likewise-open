@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        libmain.c
+ *        externs.h
  *
  * Abstract:
  *
@@ -41,56 +41,16 @@
  *
  *        Transport API
  *
- *        Library Main
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include "includes.h"
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-NTSTATUS
-SrvSelectTransportInit(
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+extern PSRV_TRANSPORT_FUNCTION_TABLE gpSrvTransportApi;
 
-    *ppFnTable = &gSrvSelectTransport.fnTable;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportGetRequest(
-    OUT PLWIO_SRV_CONNECTION* ppConnection,
-    OUT PSMB_PACKET*          ppRequest
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportSendResponse(
-    IN          PLWIO_SRV_CONNECTION pConnection,
-    IN OPTIONAL PSMB_PACKET          pRequest,
-    IN          PSMB_PACKET          pResponse
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
+#endif /* __EXTERNS_H__ */
 

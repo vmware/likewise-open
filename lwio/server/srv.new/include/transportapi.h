@@ -33,64 +33,45 @@
  *
  * Module Name:
  *
- *        libmain.c
+ *        srvtransport.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport API
- *
- *        Library Main
+ *        Transport
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include "includes.h"
+#ifndef __TRANSPORT_API_H__
+#define __TRANSPORT_API_H__
+
+#include <transport/defs.h>
+#include <transport/structs.h>
 
 NTSTATUS
-SrvSelectTransportInit(
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    *ppFnTable = &gSrvSelectTransport.fnTable;
-
-    return status;
-}
+SrvTransportInit(
+    VOID
+    );
 
 NTSTATUS
-SrvSelectTransportGetRequest(
+SrvTransportGetRequest(
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
+    );
 
 NTSTATUS
-SrvSelectTransportSendResponse(
+SrvTransportSendResponse(
     IN          PLWIO_SRV_CONNECTION pConnection,
     IN OPTIONAL PSMB_PACKET          pRequest,
     IN          PSMB_PACKET          pResponse
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
+    );
 
 NTSTATUS
-SrvSelectTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+SrvTransportShutdown(
+    VOID
+    );
 
-    return status;
-}
-
+#endif /* __TRANSPORT_API_H__ */

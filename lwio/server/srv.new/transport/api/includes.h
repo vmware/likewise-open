@@ -64,6 +64,12 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
+#include <srvdefs.h>
+#include <srvutils.h>
+#include <shareapi.h>
+
+#include <srvtransport.h>
+
 #if defined(LW_USE_EPOLL)
 #include <lwepoll.h>
 #elif defined (LW_USE_KQUEUE)
@@ -74,7 +80,5 @@
 #include <lwselect.h>
 #endif
 
-#include <srvdefs.h>
-#include <srvutils.h>
-#include <shareapi.h>
+#include "externs.h"
 

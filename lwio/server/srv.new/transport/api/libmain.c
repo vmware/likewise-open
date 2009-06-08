@@ -58,23 +58,45 @@ SrvTransportInit(
 
 #if defined(LW_USE_EPOLL)
 
-    status = SrvEPollTransportInit();
+    status = SrvEPollTransportInit(&gpSrvTransportApi);
 
 #elif defined (LW_USE_KQUEUE)
 
-    status = SrvKQueueTransportInit();
+    status = SrvKQueueTransportInit(&gpSrvTransportApi);
 
 #elif defined (LW_USE_POLL)
 
-    status = SrvPollTransportInit();
+    status = SrvPollTransportInit(&gpSrvTransportApi);
 
 #elif defined (LW_USE_SELECT)
 
-    status = SrvSelectTransportInit();
+    status = SrvSelectTransportInit(&gpSrvTransportApi);
 
 #endif
 
     return status;
+}
+
+NTSTATUS
+SrvTransportGetRequest(
+    OUT PLWIO_SRV_CONNECTION* ppConnection,
+    OUT PSMB_PACKET*          ppRequest
+    )
+{
+    return gpSrvTransportApi->pfnTransportGetRequest(ppContext, ppRequest);
+}
+
+NTSTATUS
+SrvTransportSendResponse(
+    IN          PLWIO_SRV_CONTEXT pConnection,
+    IN OPTIONAL PSMB_PACKET       pRequest,
+    IN          PSMB_PACKET       pResponse
+    )
+{
+    return gpSrvTransportApi->pfnTransportSendResponse(
+                                pConnection,
+                                pRequest,
+                                pResponse);
 }
 
 NTSTATUS
@@ -86,21 +108,23 @@ SrvTransportShutdown(
 
 #if defined(LW_USE_EPOLL)
 
-    status = SrvEPollTransportShutdown();
+    status = SrvEPollTransportShutdown(gpSrvTransportApi);
 
 #elif defined (LW_USE_KQUEUE)
 
-    status = SrvKQueueTransportShutdown();
+    status = SrvKQueueTransportShutdown(gpSrvTransportApi);
 
 #elif defined (LW_USE_POLL)
 
-    status = SrvPollTransportShutdown();
+    status = SrvPollTransportShutdown(gpSrvTransportApi);
 
 #elif defined (LW_USE_SELECT)
 
-    status = SrvSelectTransportShutdown();
+    status = SrvSelectTransportShutdown(gpSrvTransportApi);
 
 #endif
+
+    gpSrvTransportApi = NULL;
 
     return status;
 }

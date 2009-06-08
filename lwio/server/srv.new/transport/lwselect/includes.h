@@ -68,3 +68,9 @@
 #include <srvutils.h>
 #include <shareapi.h>
 
+#include <srvtransport.h>
+
+#include "libmain.h"
+#include "externs.h"
+
+

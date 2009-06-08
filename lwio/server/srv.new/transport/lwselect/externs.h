@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,29 +28,29 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srv/protocol.h
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport (based on select)
  *
- *        Definitions
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#ifndef __SRV_PROTOCOL_H__
-#define __SRV_PROTOCOL_H__
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-#include <protocols/defs.h>
-#include <protocols/structs.h>
+extern LWIO_SRV_SELECT_TRANSPORT_GLOBALS gSrvSelectTransport;
 
-#endif /* __SRV_PROTOCOL_H__ */
+#endif /* __EXTERNS_H__ */

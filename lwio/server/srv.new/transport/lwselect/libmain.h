@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        libmain.c
+ *        libmain.h
  *
  * Abstract:
  *
@@ -47,50 +47,21 @@
  *
  */
 
-#include "includes.h"
-
-NTSTATUS
-SrvSelectTransportInit(
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    *ppFnTable = &gSrvSelectTransport.fnTable;
-
-    return status;
-}
+#ifndef __LIBMAIN_H__
+#define __LIBMAIN_H__
 
 NTSTATUS
 SrvSelectTransportGetRequest(
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
+    );
 
 NTSTATUS
 SrvSelectTransportSendResponse(
     IN          PLWIO_SRV_CONNECTION pConnection,
     IN OPTIONAL PSMB_PACKET          pRequest,
     IN          PSMB_PACKET          pResponse
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+    );
 
-    return status;
-}
-
-NTSTATUS
-SrvSelectTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
+#endif /* __LIBMAIN_H__ */
 

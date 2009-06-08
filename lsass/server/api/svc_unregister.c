@@ -7,7 +7,7 @@ RpcSvcUnregisterRpcInterface(
     )
 {
     DWORD dwError = 0;
-    DWORD rpcstatus = rpc_s_ok;
+    unsigned32 rpcstatus = rpc_s_ok;
 
     rpc_server_unregister_if(SrvInterface,
                              NULL,
@@ -29,7 +29,7 @@ RpcSvcUnbindRpcInterface(
     )
 {
     DWORD dwError = 0;
-    DWORD rpcstatus = rpc_s_ok;
+    unsigned32 rpcstatus = rpc_s_ok;
 
     if (pSrvBinding) {
         rpc_ep_unregister(SrvInterface,
