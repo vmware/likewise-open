@@ -1,5 +1,5 @@
                           =================================
-                          README File for Likewise Open 5.2
+                          README File for Likewise Open 5.3
                           =================================
 
 Likewise Open has several goals:
@@ -64,11 +64,42 @@ debs are supported)
 Both mkcomp and mkpkg support the --debug option for including
 (and not tripping) debug symbols.
 
+The Likewise CIFS Server (in development)
+=========================================
 
+We are implementing a full SMBv1 and SMBv2 protocol stack in the 
+Likewise I/O Manager.  Some overview information is available at 
+http://www.likewiseopen.org/.
 
-RedHat/Fedora:
+Be warned that the server represents active design and development.  It is
+not recommended in any way for production use at this time.  If you are
+interested in track Likewise development or just experimenting with upcoming
+release feature, please note that the server drivers  (srv.sys.so, 
+pvfs.sys.so, and npvfs.sys.so) are disabled in /etc/likewise/lwiod.conf by
+default.  You will need to uncomment these drivers and restart lwiod.
+You will also want to start the srvsvcd daemon which allow the MMC
+share manager plugin to work against lwiod.
 
-Ubuntu: 
+Finally, the C$ share exports the /lwtest directory.  You will need to
+create this path on you server.
+
+More details about the server architecture can be found in the Likewise
+presentation at this past year's Samba XP conference.  The slides
+are duplicated at http://archives.likewiseopen.org/~gcarter/presentations/.
+
+This following is a short list of known issues in the Likewise CIFS 
+server:
+
+  * Only supports operation when joined to an AD domain.
+  * No interaction with POSIX file permissions (uses Extended Attributes
+    for storing the Windows security descriptor).
+  * No support for oplocks or directory notification
+  * Incomplete SMBv1 (NTLM 0.12) command set
+  * ...
+
+That said, I am using the server for roaming user profiles, iTunes media
+libraries, network home directories, "My Documents" redirection, and other
+fundamental file services on a daily basis.
 
 
 Getting Help
@@ -81,9 +112,8 @@ downloads.
 If you find any bugs, please file a report at http://lobugs.likewise.com/
 
 There are also mailing lists available for developer interaction at
-http://lists.likewisesoftware.com/.  Note that likewise-open-discuss user
-community list has been deprecated in favor of the forums.  But the 
-likewise-open-dev list is still available.
+http://lists.likewiseopen.org/.  There is also a link to the user community
+forums on the community section of likewise.com.
 
 ====
 
