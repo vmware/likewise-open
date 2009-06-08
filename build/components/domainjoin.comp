@@ -22,6 +22,9 @@ function _setup_build_env
             ;;
     esac
 
+    ## Allow the domainjoin-gui to be disabled
+    [ -n "${DISABLE_DJ_GUI}" ] && WANT_GTK=no
+
     export CC LDFLAGS CFLAGS LDSHFLAGS WANT_GTK
 }
 
@@ -82,10 +85,10 @@ function component_install
     install -m755 scripts/gpcron ${INSTALL_PREFIX_ROOT}/bin/
 
     PrintVersionData > ${INSTALL_PREFIX_ROOT}/data/VERSION
+    ln -s ${INSTALL_PREFIX_ROOT}/data/VERSION ${INSTALL_PREFIX_ROOT}/share/likewise/VERSION
+    
 
     if [ -x domainjoin-gui/gtk/domainjoin-gtk ] ; then
-        mkdir -m 755 -p ${INSTALL_PREFIX_ROOT}/share
-
         mv ${INSTALL_PREFIX_ROOT}/bin/domainjoin-gtk ${INSTALL_PREFIX_ROOT}/bin/domainjoin-gui
         cp domainjoin-gui/gtk/domainjoin-gtk.glade ${INSTALL_PREFIX_ROOT}/share/likewise
         cp domainjoin-gui/gtk/*.png ${INSTALL_PREFIX_ROOT}/share/likewise
