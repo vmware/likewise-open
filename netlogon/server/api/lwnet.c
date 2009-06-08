@@ -544,6 +544,28 @@ LWNetFilterFromBlackList(
     *pdwServerCount = dwServerWrote;
 }
 
+typedef DWORD (*PLWNET_DC_LIST_QUERY_METHOD)(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PDNS_SERVER_INFO* ppServerArray,
+    OUT PDWORD pdwServerCount
+    );
+
+static
+DWORD
+LWNetSrvGetDCNameDiscoverInternal(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    IN DWORD dwBlackListCount,
+    IN OPTIONAL PSTR* ppszAddressBlackList,
+    IN PLWNET_DC_LIST_QUERY_METHOD pfnDCListQuery,
+    OUT PLWNET_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
+    OUT OPTIONAL PDWORD pdwServerCount
+    );
+
 DWORD
 LWNetSrvGetDCNameDiscover(
     IN PCSTR pszDnsDomainName,
@@ -551,6 +573,62 @@ LWNetSrvGetDCNameDiscover(
     IN DWORD dwDsFlags,
     IN DWORD dwBlackListCount,
     IN OPTIONAL PSTR* ppszAddressBlackList,
+    OUT PLWNET_DC_INFO* ppDcInfo,
+    OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
+    OUT OPTIONAL PDWORD pdwServerCount
+    )
+{
+    DWORD dwError = 0;
+
+    /* First try with the "Preferred DC list" */
+
+    dwError = LWNetSrvGetDCNameDiscoverInternal(
+                  pszDnsDomainName,
+                  pszSiteName,
+                  dwDsFlags,
+                  dwBlackListCount,
+                  ppszAddressBlackList,
+                  &LWNetGetPreferredDCList,
+                  ppDcInfo,
+                  ppServerArray,
+                  pdwServerCount);
+    if (dwError == LWNET_ERROR_SUCCESS)
+    {
+        goto cleanup;
+    }
+
+    /* Try again using the standard DNS SRV queries */
+
+    dwError = LWNetSrvGetDCNameDiscoverInternal(
+                  pszDnsDomainName,
+                  pszSiteName,
+                  dwDsFlags,
+                  dwBlackListCount,
+                  ppszAddressBlackList,
+                  &LWNetDnsSrvQuery,
+                  ppDcInfo,
+                  ppServerArray,
+                  pdwServerCount);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LWNetSrvGetDCNameDiscoverInternal(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    IN DWORD dwBlackListCount,
+    IN OPTIONAL PSTR* ppszAddressBlackList,
+    IN PLWNET_DC_LIST_QUERY_METHOD pfnDCListQuery,
     OUT PLWNET_DC_INFO* ppDcInfo,
     OUT OPTIONAL PDNS_SERVER_INFO* ppServerArray,
     OUT OPTIONAL PDWORD pdwServerCount
@@ -573,8 +651,11 @@ LWNetSrvGetDCNameDiscover(
     PLWNET_DC_INFO pDcInfo = NULL;
     PSTR pszClientSiteName = NULL;
 
-    dwError = LWNetDnsSrvQuery(pszDnsDomainName, pszSiteName, dwDsFlags,
-                               &pServerArray, &dwServerCount);
+    dwError = pfnDCListQuery(pszDnsDomainName,
+                             pszSiteName,
+                             dwDsFlags,
+                             &pServerArray,
+                             &dwServerCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
     LWNetFilterFromBlackList(
@@ -963,3 +1044,13 @@ error:
     *ppszDest = pszOut;
     return dwError;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

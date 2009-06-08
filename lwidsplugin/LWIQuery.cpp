@@ -1400,7 +1400,7 @@ LWIQuery::SetGeneratedUID(PDSRECORD pRecord, const PLWIGROUP pGroup, bool bSetVa
 
     if (bSetValue)
     {
-        macError = BuildGeneratedUID(pGroup->gr_gid, &pszGUID);
+        macError = BuildGeneratedGID(pGroup->gr_gid, &pszGUID);
         GOTO_CLEANUP_ON_MACERROR(macError);
 
         macError = AddAttributeAndValue(kDS1AttrGeneratedUID, pszGUID, pRecord, &pAttribute);

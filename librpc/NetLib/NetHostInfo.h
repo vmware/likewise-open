@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,17 +28,21 @@
  * license@likewisesoftware.com
  */
 
+#ifndef __NET_HOSTINFO_H__
+#define __NET_HOSTINFO_H__
 
-#ifndef _UNJOIN_LOCAL_H_
-#define _UNJOIN_LOCAL_H_
-
-
-NTSTATUS
-DisableWksAccount(
-    NetConn *conn,
-    wchar16_t *account_name,
-    PolicyHandle *account_h
+WINERR
+NetGetHostInfo(
+    PSTR* ppszHostname
     );
 
+#endif /* __NET_HOSTINFO_H__ */
 
-#endif /* _UNJOIN_LOCAL_H_ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

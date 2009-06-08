@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,17 +28,42 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lwnet-prefdc.c
+ *
+ * Abstract:
+ *
+ *        Likewise Site Manager
+ *
+ *        GetPreferredDCList stub
+ *
+ * Authors: Getald Carter <gcarter@likewise.com>
+ */
 
-#ifndef _UNJOIN_LOCAL_H_
-#define _UNJOIN_LOCAL_H_
+#include "includes.h"
+
+DWORD
+LWNetGetPreferredDCList(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PDNS_SERVER_INFO* ppServerArray,
+    OUT PDWORD pdwServerCount
+    )
+{
+    return LWNET_ERROR_FAILED_FIND_DC;
+}
 
 
-NTSTATUS
-DisableWksAccount(
-    NetConn *conn,
-    wchar16_t *account_name,
-    PolicyHandle *account_h
-    );
-
-
-#endif /* _UNJOIN_LOCAL_H_ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

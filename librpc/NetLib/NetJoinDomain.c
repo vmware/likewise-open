@@ -614,8 +614,8 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
                              const wchar16_t *password,
                              uint32 options)
 {
-    NET_API_STATUS status;
-    char localname[MAXHOSTNAMELEN];
+    NET_API_STATUS status = ERROR_SUCCESS;
+    char *localname = NULL;
     wchar16_t host[MAXHOSTNAMELEN];
     wchar16_t *osName = NULL;
     wchar16_t *osVersion = NULL;
@@ -633,11 +633,13 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
     /*
       Get local host name to pass for local join
     */
-	if (gethostname((char*)localname, sizeof(localname)) < 0) {
-        status = ERROR_INTERNAL_ERROR;
-	    goto done;
-	}
-	mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
+    status = NetGetHostInfo(&localname);
+    if (status != ERROR_SUCCESS)
+    {
+        goto done;
+    }
+
+    mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
 
     /*
       Get operating system name&version information
@@ -658,6 +660,11 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
                                 osSvcPack);
 
 done:
+    if (localname)
+    {
+        NetFreeMemory(localname);
+    }
+
     SAFE_FREE(osName);
     SAFE_FREE(osVersion);
     SAFE_FREE(osSvcPack);

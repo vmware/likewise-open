@@ -35,7 +35,8 @@ libnetapi_la_SOURCES = \
 	LdapUtil.c \
 	NetDebug.c \
 	MachinePassword.c \
-	NetGetDcName.c
+	NetGetDcName.c \
+	NetHostInfo.c
 
 libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 

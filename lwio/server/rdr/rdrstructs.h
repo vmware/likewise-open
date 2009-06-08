@@ -112,6 +112,7 @@ typedef struct
     BOOLEAN  bSignedMessagesSupported;
     BOOLEAN  bSignedMessagesRequired;
     BOOLEAN  bUseSignedMessagesIfSupported;
+    BOOLEAN  bShutdown;
 
     PBYTE    pSessionKey;
     DWORD    dwSessionKeyLength;

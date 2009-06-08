@@ -56,16 +56,13 @@ NetMachineChangePassword(
     wchar16_t *domain_controller_name = NULL;
     size_t domain_controller_name_len = 0;
     char machine_pass[MACHPASS_LEN+1];
-    char localname[MAXHOSTNAMELEN];
+    char *localname = NULL;
 
     memset((void*)&nr, 0, sizeof(nr));
     memset((void*)machine_pass, 0, sizeof(machine_pass));
-    memset((void*)localname, 0, sizeof(localname));
-    
-    if (gethostname((char*)localname, sizeof(localname)) < 0) {
-        err = ERROR_INTERNAL_ERROR;
-        goto error;
-    }
+
+    err = NetGetHostInfo(&localname);
+    goto_if_winerr_not_success(err, error);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
     goto_if_ntstatus_not_success(status, error);
@@ -148,6 +145,10 @@ NetMachineChangePassword(
 cleanup:
     if (nr.RemoteName) {
         NetFreeMemory((void*)nr.RemoteName);
+    }
+    if (localname)
+    {
+        NetFreeMemory(localname);
     }
 
     SAFE_FREE(newpassword);
