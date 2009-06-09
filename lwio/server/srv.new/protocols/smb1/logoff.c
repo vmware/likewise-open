@@ -33,19 +33,19 @@
 static
 NTSTATUS
 SrvBuildLogoffResponse(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET* ppSmbResponse
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
     );
 
 NTSTATUS
 SrvProcessLogoffAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnectionRemoveSession(
@@ -54,7 +54,8 @@ SrvProcessLogoffAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildLogoffResponse(
-                    pContext,
+                    pConnection,
+                    pSmbRequest,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -81,13 +82,12 @@ error:
 static
 NTSTATUS
 SrvBuildLogoffResponse(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET* ppSmbResponse
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PLOGOFF_RESPONSE_HEADER pResponseHeader = NULL;
 

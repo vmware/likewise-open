@@ -42,13 +42,12 @@ SrvDeleteFiles(
 
 NTSTATUS
 SrvProcessDelete(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE    pTree = NULL;
     PSMB_DELETE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
@@ -168,7 +167,7 @@ cleanup:
 
     if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilesystemPath);
+        SrvFreeMemory(pwszFilesystemPath);
     }
 
     return ntStatus;
@@ -249,7 +248,7 @@ SrvDeleteFiles(
 
         if (pData)
         {
-            LwRtlMemoryFree(pData);
+            SrvFreeMemory(pData);
             pData = NULL;
         }
 
@@ -272,21 +271,20 @@ SrvDeleteFiles(
         {
             if (pwszFilePath)
             {
-                LwRtlMemoryFree(pwszFilePath);
+                SrvFreeMemory(pwszFilePath);
                 pwszFilePath = NULL;
             }
             if (pwszFilename)
             {
-                LwRtlMemoryFree(pwszFilename);
+                SrvFreeMemory(pwszFilename);
                 pwszFilename = NULL;
             }
 
             if (bUseLongFilenames)
             {
-                ntStatus = LW_RTL_ALLOCATE(
-                                &pwszFilename,
-                                WCHAR,
-                                pResult->FileNameLength + sizeof(wchar16_t));
+                ntStatus = SrvAllocateMemory(
+                                pResult->FileNameLength + sizeof(wchar16_t),
+                                (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
@@ -295,10 +293,9 @@ SrvDeleteFiles(
             }
             else
             {
-                ntStatus = LW_RTL_ALLOCATE(
-                                &pwszFilename,
-                                WCHAR,
-                                pResult->ShortNameLength + sizeof(wchar16_t));
+                ntStatus = SrvAllocateMemory(
+                                pResult->ShortNameLength + sizeof(wchar16_t),
+                                (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,

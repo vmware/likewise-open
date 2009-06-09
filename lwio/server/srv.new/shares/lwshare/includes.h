@@ -59,8 +59,6 @@
 
 #include <lw/ntstatus.h>
 
-#include <srvdefs.h>
-
 #include <srvutils.h>
 #include <shareapi.h>
 #include <sharerepository.h>

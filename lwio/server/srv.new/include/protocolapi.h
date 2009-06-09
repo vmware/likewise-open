@@ -50,7 +50,4 @@
 #ifndef __PROTOCOL_API_H__
 #define __PROTOCOL_API_H__
 
-#include <protocols/defs.h>
-#include <protocols/structs.h>
-
 #endif /* __PROTOCOL_API_H__ */

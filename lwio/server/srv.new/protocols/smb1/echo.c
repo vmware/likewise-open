@@ -45,17 +45,16 @@ SrvMarshallEchoResponse(
 
 NTSTATUS
 SrvProcessEchoAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
     USHORT   iEchoCount = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
     PBYTE       pEchoBlob = NULL; // Do Not Free
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET         pSmbRequest = pContext->pRequest;
     USHORT  usNumEchoesToSend = 0;
     ULONG   ulOffset = 0;
 
@@ -108,9 +107,9 @@ SrvProcessEchoAndX(
         // Give that last response back to the caller
         if (usNumEchoesToSend--)
         {
-            ntStatus = SrvConnectionWriteMessage(
-                            pConnection,
-                            0,
+            ntStatus = SrvTransportSendResponse(
+							pConnection,
+							pSmbRequest,
                             pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);
         }

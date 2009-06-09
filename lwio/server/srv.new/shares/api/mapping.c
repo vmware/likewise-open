@@ -359,7 +359,7 @@ error:
 
     if (pwszPath)
     {
-        LwRtlMemoryFree(pwszPath);
+        SrvFreeMemory(pwszPath);
     }
 
     goto cleanup;

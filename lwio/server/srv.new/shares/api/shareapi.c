@@ -680,19 +680,19 @@ SrvShareFreeInfo(
 
     if (pShareInfo->pwszName)
     {
-        LwRtlMemoryFree(pShareInfo->pwszName);
+        SrvFreeMemory(pShareInfo->pwszName);
     }
     if (pShareInfo->pwszPath)
     {
-        LwRtlMemoryFree(pShareInfo->pwszPath);
+        SrvFreeMemory(pShareInfo->pwszPath);
     }
     if (pShareInfo->pSecDesc)
     {
-        LwRtlMemoryFree(pShareInfo->pSecDesc);
+        SrvFreeMemory(pShareInfo->pSecDesc);
     }
     if (pShareInfo->pwszComment)
     {
-        LwRtlMemoryFree(pShareInfo->pwszComment);
+        SrvFreeMemory(pShareInfo->pwszComment);
     }
 
     SrvFreeMemory(pShareInfo);

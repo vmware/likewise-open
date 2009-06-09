@@ -131,8 +131,9 @@ typedef enum
 {
     AD_CELL_SUPPORT_UNINITIALIZED = 0, //not used
     AD_CELL_SUPPORT_FULL          = 1, //default
-    AD_CELL_SUPPORT_FILE          = 2,
+    AD_CELL_SUPPORT_FILE          = 2, // unused
     AD_CELL_SUPPORT_UNPROVISIONED = 3,
+    AD_CELL_SUPPORT_DEFAULT_SCHEMA = 4,
 } AD_CELL_SUPPORT;
 
 #define LSASS_DB_DIR CACHEDIR "/db"

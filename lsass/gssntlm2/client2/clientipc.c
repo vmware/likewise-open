@@ -43,7 +43,31 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  */
-#include "client.h"
+#include "clientipc.h"
+
+DWORD
+NtlmAllocateMemory(
+    DWORD dwSize,
+    PVOID * ppMemory
+    )
+{
+    DWORD dwError = 0;
+    PVOID pMemory = NULL;
+
+    pMemory = malloc(dwSize);
+    if (!pMemory)
+    {
+        dwError = ENOMEM;
+        *ppMemory = NULL;
+    }
+    else
+    {
+        memset(pMemory,0, dwSize);
+        *ppMemory = pMemory;
+    }
+
+    return dwError;
+}
 
 DWORD
 NtlmOpenServer(
@@ -62,7 +86,7 @@ NtlmOpenServer(
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIPCGetProtocolSpec()));
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIpcGetProtocolSpec()));
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(pContext->pProtocol, &pContext->pAssoc));
@@ -166,22 +190,23 @@ NtlmCloseServer(
 
 DWORD
 NtlmTransactAcceptSecurityContext(
-   HANDLE hServer,
-   PCredHandle phCredential,
-   PCtxtHandle phContext,
-   PSecBufferDesc pInput,
-   ULONG fContextReq,
-   ULONG TargetDataRep,
-   PCtxtHandle phNewContext,
-   PSecBufferDesc pOutput,
-   ULONG  pfContextAttr
-    PTimeStamp ptsTimeStamp
-   )
+    IN HANDLE hServer,
+    IN PCredHandle phCredential,
+    IN OUT PCtxtHandle phContext,
+    IN PSecBufferDesc pInput,
+    IN ULONG fContextReq,
+    IN ULONG TargetDataRep,
+    IN OUT PCtxtHandle phNewContext,
+    IN OUT PSecBufferDesc pOutput,
+    OUT ULONG  pfContextAttr,
+    OUT PTimeStamp ptsTimeStamp
+    )
 {
     DWORD dwError = 0;
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
                      (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
-    NTLM_IPC_ACCEPT_SECURITY_CONTEXT_REQ AcceptSecCtxtReq;
+    NTLM_IPC_ACCEPT_SEC_CTXT_REQ AcceptSecCtxtReq;
+
     // Do not free pResult and pError
     PNTLM_GROUP_INFO_LIST pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
@@ -190,11 +215,12 @@ NtlmTransactAcceptSecurityContext(
     LWMsgMessage response = {-1, NULL};
 
     AcceptSecCtxtReq.phCredential = phCredential;
-    AcceptSecCtxtReq.phContext = dwGroupInfoLevel;
+    AcceptSecCtxtReq.phContext = phContext;
     AcceptSecCtxtReq.pInput = pInput;
-    AcceptSecCtxt.fContextReq = fContextReq;
-    AcceptSecCtxt.TargetDataRep =
-    AcceptSecCtxtReq.pszName = pszGroupName;
+    AcceptSecCtxtReq.fContextReq = fContextReq;
+    AcceptSecCtxtReq.TargetDataRep = TargetDataRep;
+    AcceptSecCtxtReq.phNewContext = phNewContext;
+    AcceptSecCtxtReq.pOutput = pOutput;
 
     request.tag = NTLM_Q_ACCEPT_SEC_CTXT;
     request.object = &AcceptSecCtxtReq;
@@ -208,7 +234,7 @@ NtlmTransactAcceptSecurityContext(
     switch (response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_GROUP_INFO_LIST)response.object;
+            pResultList = (NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -229,8 +255,266 @@ cleanup:
     return dwError;
 
 error:
-    *ppGroupInfo = NULL;
 
     goto cleanup;
 }
 
+DWORD
+NtlmTransactAcquireCredentialsHandle(
+    IN HANDLE hServer,
+    IN SEC_CHAR *pszPrincipal,
+    IN SEC_CHAR *pszPackage,
+    IN ULONG fCredentialUse,
+    IN PLUID pvLogonID,
+    IN PVOID pAuthData,
+    IN SEC_GET_KEY_FN pGetKeyFn,
+    IN PVOID pvGetKeyArgument,
+    OUT PCredHandle phCredential,
+    OUT PTimeStamp ptsExpiry
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactDecryptMessage(
+    IN PCtxtHandle phContext,
+    IN OUT PSecBufferDesc pMessage,
+    IN ULONG MessageSeqNo,
+    OUT PULONG pfQoP
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactEncryptMessage(
+    IN PCtxtHandle phContext,
+    IN ULONG fQoP,
+    IN OUT PSecBufferDesc pMessage,
+    IN ULONG MessageSeqNo
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactExportSecurityContext(
+    IN PCtxtHandle phContext,
+    IN ULONG fFlags,
+    OUT PSecBuffer pPackedContext,
+    OUT OPTIONAL HANDLE *pToken
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactFreeCredentialsHandle(
+    IN PCredHandle phCredential
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactImportSecurityContext(
+    IN PSECURITY_STRING *pszPackage,
+    IN PSecBuffer pPackedContext,
+    IN OPTIONAL HANDLE pToken,
+    OUT PCtxtHandle phContext
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactInitializeSecurityContext(
+    IN OPTIONAL PCredHandle phCredential,
+    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN ULONG fContextReq,
+    IN ULONG Reserverd1,
+    IN ULONG TargetDataRep,
+    IN OPTIONAL PSecBufferDesc pInput,
+    IN ULONG Reserved2,
+    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PULONG pfContextAttr,
+    OUT OPTIONAL PTimeStamp ptsExpiry
+    )
+{
+    DWORD dwError = 0;
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+    NTLM_IPC_INIT_SEC_CTXT_REQ InitSecCtxtReq;
+
+    // Do not free pResult and pError
+    PNTLM_GROUP_INFO_LIST pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = {-1, NULL};
+    LWMsgMessage response = {-1, NULL};
+
+    InitSecCtxtReq.phCredential = phCredential;
+    InitSecCtxtReq.phContext = phContext;
+    InitSecCtxtReq.pszTargetName = pszTargetName;
+    InitSecCtxtReq.fContextReq = fContextReq;
+    InitSecCtxtReq.Reserverd1 = Reserverd1;
+    InitSecCtxtReq.TargetDataRep = TargetDataRep;
+    InitSecCtxtReq.pInput = pInput;
+    InitSecCtxtReq.Reserved2 = Reserved2;
+    InitSecCtxtReq.phNewContext = phNewContext;
+    InitSecCtxtReq.pOutput = pOutput;
+
+
+    request.tag = NTLM_Q_INIT_SEC_CTXT;
+    request.object = &InitSecCtxtReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case NTLM_R_INIT_SEC_CTXT_SUCCESS:
+            pResultList = (NTLM_IPC_INIT_SEC_CTXT_REQ)response.object;
+            break;
+        case NTLM_R_INIT_SEC_CTXT_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+cleanup:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+    memset(phNewContext, 0, sizeof(CtxtHandle));
+    pfContextAttr = 0;
+    memset(ptsExpiry, 0, sizeof(TimeStamp));
+    memset(pOutput, 0, sizeof(SecBufferDesc));
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactMakeSignature(
+    IN PCtxtHandle phContext,
+    IN ULONG fQoP,
+    IN OUT PSecBufferDesc pMessage,
+    IN ULONG MessageSeqNo
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactQueryCredentialsAttributes(
+    IN PCredHandle phCredential,
+    IN ULONG ulAttribute,
+    OUT PVOID pBuffer
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactQuerySecurityContextAttributes(
+    IN PCtxtHandle phContext,
+    IN ULONG ulAttribute,
+    OUT PVOID pBuffer
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactVerifySignature(
+    IN PCtxtHandle phContext,
+    IN PSecBufferDesc pMessage,
+    IN ULONG MessageSeqNo,
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}

@@ -1179,6 +1179,10 @@ AD_SetConfig_CellSupport(
     {
         pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
     }
+    else if (!strcasecmp(pszValue, "default-schema"))
+    {
+        pConfig->CellSupport = AD_CELL_SUPPORT_DEFAULT_SCHEMA;
+    }
     else
     {
         LSA_LOG_ERROR("Invalid value for cell-support parameter");

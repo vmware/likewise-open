@@ -407,16 +407,17 @@ HAVE_EPOLL=false
 HAVE_KQUEUE=false
 HAVE_POLL=false
 HAVE_SELECT=false
+TRANSPORT_METHOD_DEFINES=
 
 #AC_CHECK_FUNC([epoll_ctl],
-#              [HAVE_EPOLL=true;TRANSPORT_FOUND=true],
+#              [HAVE_EPOLL=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_EPOLL],
 #              [HAVE_EPOLL=false])
 AM_CONDITIONAL(HAVE_EPOLL, [$HAVE_EPOLL])
 #
 #if test x"$TRANSPORT_FOUND" = x"false"
 #then
 #AC_CHECK_FUNC([kqueue],
-#              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true],
+#              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_KQUEUE],
 #              [HAVE_KQUEUE=false])
 #fi
 #
@@ -424,7 +425,9 @@ AM_CONDITIONAL(HAVE_KQUEUE, [$HAVE_KQUEUE])
 #
 #if test x"$TRANSPORT_FOUND" = x"false"
 #then
-#AC_CHECK_FUNC([poll], [HAVE_POLL=true;TRANSPORT_FOUND=true], [HAVE_POLL=false])
+#AC_CHECK_FUNC([poll],
+#              [HAVE_POLL=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_POLL],
+#              [HAVE_POLL=false])
 #fi
 #
 AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
@@ -432,11 +435,12 @@ AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
 if test x"$TRANSPORT_FOUND" = x"false"
 then
 AC_CHECK_FUNC([select],
-              [HAVE_SELECT=true;TRANSPORT_FOUND=true],
+              [HAVE_SELECT=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_SELECT],
               [HAVE_SELECT=false])
 fi
 
 AM_CONDITIONAL(HAVE_SELECT, [$HAVE_SELECT])
+AC_SUBST(TRANSPORT_METHOD_DEFINES)
 
 AC_CHECK_HEADERS([sys/vfs.h])
 AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
@@ -564,6 +568,7 @@ AC_CONFIG_FILES([Makefile
         server/srv.new/shares/Makefile
         server/srv.new/shares/lwshare/Makefile
         server/srv.new/shares/api/Makefile
+        server/srv.new/elements/Makefile
         server/srv.new/protocols/Makefile
         server/srv.new/protocols/api/Makefile
         server/srv.new/protocols/smb1/Makefile

@@ -54,13 +54,12 @@ SrvExecuteReadFileAndX(
 
 NTSTATUS
 SrvProcessReadAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PREAD_ANDX_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     ULONG64 ullBytesToRead = 0;
     LONG64  llByteOffset = 0;
@@ -268,7 +267,7 @@ cleanup:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -300,10 +299,7 @@ SrvExecuteReadFileAndX(
     IO_STATUS_BLOCK ioStatusBlock = {0};
     PBYTE pBuffer = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pBuffer,
-                    BYTE,
-                    ulBytesToRead);
+    ntStatus = SrvAllocateMemory(ulBytesToRead, (PVOID*)&pBuffer);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoReadFile(
@@ -330,7 +326,7 @@ error:
 
     if (pBuffer)
     {
-        LwRtlMemoryFree(pBuffer);
+        SrvFreeMemory(pBuffer);
     }
 
     goto cleanup;

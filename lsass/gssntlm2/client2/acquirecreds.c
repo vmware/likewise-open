@@ -1,29 +1,48 @@
+#include "clientipc.h"
 
 DWORD
 NtlmClientAcquireCredentialsHandle(
-    SEC_CHAR *pszPrincipal,
-    SEC_CHAR *pszPackage,
-    ULONG fCredentialUse,
-    PLUID pvLogonID,
-    PVOID pAuthData,
-    SEC_GET_KEY_FN pGetKeyFn,
-    PVOID pvGetKeyArgument,
-    PCredHandle phCredential,
-    PTimeStamp ptsExpiry
+    IN SEC_CHAR *pszPrincipal,
+    IN SEC_CHAR *pszPackage,
+    IN ULONG fCredentialUse,
+    IN PLUID pvLogonID,
+    IN PVOID pAuthData,
+    IN SEC_GET_KEY_FN pGetKeyFn,
+    IN PVOID pvGetKeyArgument,
+    OUT PCredHandle phCredential,
+    OUT PTimeStamp ptsExpiry
     )
 {
     DWORD dwError = 0;
+    HANDLE hServer = INVALID_HANDLE;
+
+    memset(phCredential, 0, sizeof(CredHandle));
+    memset(ptsExpiry, 0, sizeof(TimeStamp));
+
+    dwError = NtlmOpenServer(&hServer);
+    BAIL_ON_NTLM_ERROR(dwError);
+
     dwError = NtlmTransactAcquireCredentialsHandle(
-                    hServer,
-                    pszPrincipal,
-                    pszPackage,
-                    fCredentialUse,
-                    pvLogonID,
-                    pAuthData,
-                    pGetKeyFn,
-                    pvGetKeyArgument,
-                    phCredential,
-                    ptsExpiry
-                    );
+        hServer,
+        pszPrincipal,
+        pszPackage,
+        fCredentialUse,
+        pvLogonID,
+        pAuthData,
+        pGetKeyFn,
+        pvGetKeyArgument,
+        phCredential,
+        ptsExpiry
+        );
+
+cleanup:
+    if(INVALID_HANDLE != hServer)
+    {
+        NtlmCloseServer(hServer);
+    }
     return(dwError);
+error:
+    memset(phCredential, 0, sizeof(CredHandle));
+    memset(ptsExpiry, 0, sizeof(TimeStamp));
+    goto cleanup;
 }

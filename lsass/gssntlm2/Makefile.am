@@ -1,1 +1,1 @@
-SUBDIRS=common server client test include
+SUBDIRS=include ipc server2 client2 test

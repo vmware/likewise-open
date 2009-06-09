@@ -62,11 +62,6 @@ PvfsWorkerDoWork(
     PVOID pArgs
     );
 
-static NTSTATUS
-DispatchIrp(
-PPVFS_IRP_CONTEXT pIrpCtx
-    );
-
 
 /* Code */
 
@@ -161,17 +156,26 @@ PvfsWorkerDoWork(
 
         pIrpCtx = (PPVFS_IRP_CONTEXT)pData;
 
-        /* Handle the IRP, save the return code,
-           and signal the driver that we are done */
-
         LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
-        pIrpCtx->ntError = DispatchIrp(pIrpCtx);
+        /* Let the WorkCallback() deal with cancellation */
 
-        pIrpCtx->bFinished = TRUE;
-        pthread_cond_signal(&pIrpCtx->Event);
+        ntError = pIrpCtx->pfnWorkCallback(pIrpCtx);
 
         LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
+
+        /* Check to to see if the request was requeued */
+
+        if (ntError != STATUS_PENDING)
+        {
+            PIRP pIrp = pIrpCtx->pIrp;
+
+            PvfsFreeIrpContext(&pIrpCtx);
+
+            pIrp->IoStatusBlock.Status = ntError;
+            IoIrpComplete(pIrp);
+
+        }
     }
 
 cleanup:
@@ -180,44 +184,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-/************************************************************
-  **********************************************************/
-
-static NTSTATUS
-DispatchIrp(
-    PPVFS_IRP_CONTEXT pIrpCtx
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    switch (pIrpCtx->pIrp->Type)
-    {
-    case IRP_TYPE_READ:
-        ntError = PvfsRead(pIrpCtx);
-        break;
-
-    case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(pIrpCtx);
-        break;
-
-    default:
-        /* Programmer error -- gave us an async op that was
-           not supported */
-        ntError = STATUS_IO_DEVICE_ERROR;
-        break;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
 
 
 

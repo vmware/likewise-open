@@ -81,15 +81,15 @@ SrvBuildFilePath(
     len_prefix = wc16slen(pwszPrefix);
     len_suffix = wc16slen(pwszSuffix);
 
-    if (len_suffix && *pwszSuffix && (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
+    if (len_suffix && *pwszSuffix &&
+        (*pwszSuffix != wszFwdSlash) && (*pwszSuffix != wszBackSlash))
     {
         len_separator = sizeof(wszBackSlash);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszFilename,
-                    WCHAR,
-                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+                    (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t),
+                    (PVOID*)&pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pwszFilename;
@@ -130,7 +130,7 @@ error:
 
     if (pwszFilename)
     {
-        LwRtlMemoryFree(pwszFilename);
+        SrvFreeMemory(pwszFilename);
     }
 
     goto cleanup;

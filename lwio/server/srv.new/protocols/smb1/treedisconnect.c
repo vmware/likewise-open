@@ -33,19 +33,19 @@
 static
 NTSTATUS
 SrvBuildTreeDisconnectResponse(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET* ppSmbResponse
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
     );
 
 NTSTATUS
 SrvProcessTreeDisconnectAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PLWIO_SRV_SESSION pSession = NULL;
 
@@ -61,7 +61,8 @@ SrvProcessTreeDisconnectAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildTreeDisconnectResponse(
-                    pContext,
+                    pConnection,
+                    pSmbRequest,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -88,13 +89,12 @@ error:
 static
 NTSTATUS
 SrvBuildTreeDisconnectResponse(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET* ppSmbResponse
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL;
 

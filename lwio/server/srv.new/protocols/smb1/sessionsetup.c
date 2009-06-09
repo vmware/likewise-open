@@ -52,16 +52,15 @@ SrvMarshallSessionSetupResponse(
 
 NTSTATUS
 SrvProcessSessionSetup(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
     PBYTE       pSecurityBlob = NULL; // Do Not Free
     ULONG       ulSecurityBlobLength = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET         pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     UNICODE_STRING uniUsername = {0};
 
@@ -187,7 +186,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeOS)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeOS);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeOS);
         pConnection->clientProperties.pwszNativeOS = NULL;
     }
     if (pwszNativeOS)
@@ -200,7 +199,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeLanMan)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeLanMan);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeLanMan);
         pConnection->clientProperties.pwszNativeLanMan = NULL;
     }
     if (pwszNativeLanMan)
@@ -213,7 +212,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeDomain)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeDomain);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeDomain);
         pConnection->clientProperties.pwszNativeDomain = NULL;
     }
     if (pwszNativeDomain)
@@ -348,7 +347,7 @@ cleanup:
 
     if (pReplySecurityBlob)
     {
-        LwRtlMemoryFree(pReplySecurityBlob);
+        SrvFreeMemory(pReplySecurityBlob);
     }
 
     return ntStatus;

@@ -74,13 +74,12 @@ SrvBuildLockingAndXResponse(
 
 NTSTATUS
 SrvProcessLockAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE pTree = NULL;
     PLWIO_SRV_FILE pFile = NULL;
@@ -221,10 +220,9 @@ SrvExecuteLargeFileLocks(
 
     if (pRequestHeader->usNumLocks)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &ppLockStateArray,
-                        PLOCKING_ANDX_RANGE_LARGE_FILE,
-                        sizeof(PLOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks);
+        ntStatus = SrvAllocateMemory(
+                        sizeof(PLOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks,
+                        (PVOID*)&ppLockStateArray);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -256,7 +254,7 @@ cleanup:
 
     if (ppLockStateArray)
     {
-        LwRtlMemoryFree(ppLockStateArray);
+        SrvFreeMemory(ppLockStateArray);
     }
 
     return ntStatus;
@@ -318,10 +316,9 @@ SrvExecuteLocks(
 
     if (pRequestHeader->usNumLocks)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &ppLockStateArray,
-                        PLOCKING_ANDX_RANGE,
-                        sizeof(PLOCKING_ANDX_RANGE) * pRequestHeader->usNumLocks);
+        ntStatus = SrvAllocateMemory(
+                        sizeof(PLOCKING_ANDX_RANGE) * pRequestHeader->usNumLocks,
+                        (PVOID*)&ppLockStateArray);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -349,7 +346,7 @@ cleanup:
 
     if (ppLockStateArray)
     {
-        LwRtlMemoryFree(ppLockStateArray);
+        SrvFreeMemory(ppLockStateArray);
     }
 
     return ntStatus;

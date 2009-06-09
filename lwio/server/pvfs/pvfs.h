@@ -68,6 +68,7 @@
 #include "lwioutils.h"
 
 #include "structs.h"
+#include "async_handler.h"
 #include "threads.h"
 #include "externs.h"
 #include "macros.h"

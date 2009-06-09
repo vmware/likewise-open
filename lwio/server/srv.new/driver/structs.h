@@ -85,35 +85,6 @@ typedef struct _SRV_IRP_CONTEXT
 
 } SRV_IRP_CONTEXT, *PSRV_IRP_CONTEXT;
 
-typedef struct _SRV_PROPERTIES
-{
-    USHORT  preferredSecurityMode;
-    BOOLEAN bEncryptPasswords;
-    BOOLEAN bEnableSecuritySignatures;
-    BOOLEAN bRequireSecuritySignatures;
-    USHORT  MaxMpxCount;
-    USHORT  MaxNumberVCs;
-    ULONG   MaxBufferSize;
-    ULONG   MaxRawSize;
-    ULONG   Capabilities;
-    uuid_t  GUID;
-
-} SRV_PROPERTIES, *PSRV_PROPERTIES;
-
-typedef struct _SRV_CLIENT_PROPERITES
-{
-
-    USHORT MaxBufferSize;
-    USHORT MaxMpxCount;
-    USHORT VcNumber;
-    ULONG  SessionKey;
-    ULONG  Capabilities;
-    PWSTR  pwszNativeOS;
-    PWSTR  pwszNativeLanMan;
-    PWSTR  pwszNativeDomain;
-
-} SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
-
 typedef struct _LWIO_SRV_WORKER_CONTEXT
 {
     pthread_mutex_t  mutex;

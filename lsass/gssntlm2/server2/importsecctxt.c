@@ -8,12 +8,5 @@ NtlmServerImportSecurityContext(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactImportSecurityContext(
-                    hServer,
-                    pszPackage,
-                    pPackedContext,
-                    pToken,
-                    phContext
-                    );
     return(dwError);
 }

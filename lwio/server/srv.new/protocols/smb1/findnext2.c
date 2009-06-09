@@ -61,14 +61,14 @@ SrvBuildFindNext2Response(
 
 NTSTATUS
 SrvProcessTrans2FindNext2(
-    PLWIO_SRV_CONNECTION         pConnection,
-    PSMB_PACKET                 pSmbRequest,
-    PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    PUSHORT                     pSetup,
-    PUSHORT                     pByteCount,
-    PBYTE                       pParameters,
-    PBYTE                       pData,
-    PSMB_PACKET*                ppSmbResponse
+    IN  PLWIO_SRV_CONNECTION         pConnection,
+    IN  PSMB_PACKET                 pSmbRequest,
+    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
+    IN  PUSHORT                     pSetup,
+    IN  PUSHORT                     pByteCount,
+    IN  PBYTE                       pParameters,
+    IN  PBYTE                       pData,
+    OUT PSMB_PACKET*                ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
@@ -387,7 +387,7 @@ cleanup:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;

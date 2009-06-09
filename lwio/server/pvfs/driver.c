@@ -128,34 +128,6 @@ PvfsDriverShutdown(
  Driver Dispatch Routine
  ***********************************************************/
 
-static NTSTATUS
-PvfsPendIrp(
-    PPVFS_IRP_CONTEXT pIrpCtx
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOL bInLock = FALSE;
-
-    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
-
-    LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-    while(!pIrpCtx->bFinished) {
-        pthread_cond_wait(&pIrpCtx->Event, &pIrpCtx->Mutex);
-    }
-    ntError = pIrpCtx->ntError;
-
-cleanup:
-    LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
-
-    return ntError;
-
-error:
-    goto cleanup;
-}
 
 static NTSTATUS
 PvfsDriverDispatch(
@@ -172,12 +144,15 @@ PvfsDriverDispatch(
     switch (pIrpCtx->pIrp->Type)
     {
     case IRP_TYPE_READ:
+        ntError = PvfsRead(pIrpCtx);
+        break;
+
     case IRP_TYPE_WRITE:
-        ntError = PvfsPendIrp(pIrpCtx);
+        ntError = PvfsWrite(pIrpCtx);
         break;
 
     case IRP_TYPE_CREATE:
-        ntError = PvfsCreate(pIrpCtx);
+        ntError = PvfsAsyncCreate(pIrpCtx);
         break;
 
     case IRP_TYPE_CLOSE:
@@ -228,14 +203,16 @@ PvfsDriverDispatch(
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
-    BAIL_ON_NT_STATUS(ntError);
+    if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING)) {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
 
 cleanup:
-    pIrp->IoStatusBlock.Status = ntError;
-
-    PvfsFreeIrpContext(&pIrpCtx);
-
+    if (ntError != STATUS_PENDING) {
+        PvfsFreeIrpContext(&pIrpCtx);
+        pIrp->IoStatusBlock.Status = ntError;
+    }
 
     return ntError;
 

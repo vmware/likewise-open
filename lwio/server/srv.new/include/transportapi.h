@@ -48,9 +48,6 @@
 #ifndef __TRANSPORT_API_H__
 #define __TRANSPORT_API_H__
 
-#include <transport/defs.h>
-#include <transport/structs.h>
-
 NTSTATUS
 SrvTransportInit(
     VOID

@@ -49,6 +49,8 @@
 #include <config.h>
 #include <lwiosys.h>
 
+#include <uuid/uuid.h>
+
 #include <lwio/lwio.h>
 
 #include <lwiodef.h>
@@ -64,9 +66,11 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
-#include <srvdefs.h>
+#include <smbwire.h>
+
 #include <srvutils.h>
 #include <shareapi.h>
+#include <elementsapi.h>
 
 #include <srvtransport.h>
 

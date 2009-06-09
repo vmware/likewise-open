@@ -50,13 +50,12 @@ SrvBuildRenameResponse(
 
 NTSTATUS
 SrvProcessRename(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE    pTree = NULL;
     PSMB_RENAME_REQUEST_HEADER pRequestHeader = NULL; // Do not free
@@ -211,10 +210,7 @@ SrvExecuteRename(
 
     ulDataLen = sizeof(FILE_RENAME_INFORMATION) + wc16slen(newName.FileName) * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pData,
-                    BYTE,
-                    ulDataLen);
+    ntStatus = SrvAllocateMemory(ulDataLen, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFileRenameInfo = (PFILE_RENAME_INFORMATION)pData;
@@ -248,12 +244,12 @@ cleanup:
 
     if (pwszOldPath)
     {
-        LwRtlMemoryFree(pwszOldPath);
+        SrvFreeMemory(pwszOldPath);
     }
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;

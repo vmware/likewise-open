@@ -83,14 +83,14 @@ SrvTransportGetRequest(
     OUT PSMB_PACKET*          ppRequest
     )
 {
-    return gpSrvTransportApi->pfnTransportGetRequest(ppContext, ppRequest);
+    return gpSrvTransportApi->pfnTransportGetRequest(ppConnection, ppRequest);
 }
 
 NTSTATUS
 SrvTransportSendResponse(
-    IN          PLWIO_SRV_CONTEXT pConnection,
-    IN OPTIONAL PSMB_PACKET       pRequest,
-    IN          PSMB_PACKET       pResponse
+    IN          PLWIO_SRV_CONNECTION pConnection,
+    IN OPTIONAL PSMB_PACKET          pRequest,
+    IN          PSMB_PACKET          pResponse
     )
 {
     return gpSrvTransportApi->pfnTransportSendResponse(

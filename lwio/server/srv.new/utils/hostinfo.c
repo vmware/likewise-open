@@ -19,10 +19,9 @@ SrvAcquireHostInfo(
 
     if (!pOrigHostInfo)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pHostInfo,
-                        SRV_HOST_INFO,
-                        sizeof(SRV_HOST_INFO));
+        ntStatus = SrvAllocateMemory(
+                        sizeof(SRV_HOST_INFO),
+                        (PVOID*)&pHostInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pHostInfo->refcount = 1;
@@ -98,5 +97,5 @@ SrvFreeHostInfo(
     LWIO_SAFE_FREE_STRING(pHostinfo->pszHostname);
     LWIO_SAFE_FREE_STRING(pHostinfo->pszDomain);
 
-    LwRtlMemoryFree(pHostinfo);
+    SrvFreeMemory(pHostinfo);
 }

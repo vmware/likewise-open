@@ -53,12 +53,12 @@ SrvBuildWriteResponse(
 
 NTSTATUS
 SrvProcessWrite(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE pTree = NULL;
     PLWIO_SRV_FILE pFile = NULL;
@@ -67,7 +67,6 @@ SrvProcessWrite(
     PWRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     PBYTE pData = NULL; // Do not free
     USHORT usBytesWritten = 0;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnectionFindSession(

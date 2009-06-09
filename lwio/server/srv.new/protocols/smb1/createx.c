@@ -43,13 +43,12 @@ SrvBuildNTCreateResponse(
 
 NTSTATUS
 SrvProcessNTCreateAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET         pSmbRequest = pContext->pRequest;
     PSMB_PACKET         pSmbResponse = NULL;
     PLWIO_SRV_SESSION    pSession = NULL;
     PLWIO_SRV_TREE       pTree = NULL;
@@ -89,10 +88,7 @@ SrvProcessNTCreateAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: Handle root fids
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pFilename,
-                    IO_FILE_NAME,
-                    sizeof(IO_FILE_NAME));
+    ntStatus = SrvAllocateMemory(sizeof(IO_FILE_NAME), (PVOID*)&pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildFilePath(
@@ -205,10 +201,10 @@ error:
     {
         if (pFilename->FileName)
         {
-            LwRtlMemoryFree(pFilename->FileName);
+            SrvFreeMemory(pFilename->FileName);
         }
 
-        LwRtlMemoryFree(pFilename);
+        SrvFreeMemory(pFilename);
     }
 
     if (hFile)

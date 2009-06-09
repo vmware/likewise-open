@@ -69,45 +69,44 @@ SrvBuildTreeConnectResponse(
 static
 NTSTATUS
 SrvGetMaximalShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 static
 NTSTATUS
 SrvGetGuestShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 static
 NTSTATUS
 SrvGetServiceName(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PSTR* ppszService
     );
 
 static
 NTSTATUS
 SrvGetNativeFilesystem(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PWSTR* ppwszNativeFilesystem
     );
 
 NTSTATUS
 SrvProcessTreeConnectAndX(
-    PLWIO_SRV_CONTEXT pContext,
-    PSMB_PACKET*      ppSmbResponse
-    )
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE pTree = NULL;
     BOOLEAN       bRemoveTreeFromSession = FALSE;
-    PSHARE_DB_INFO pShareInfo = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
     ULONG ulOffset = 0;
     TREE_CONNECT_REQUEST_HEADER* pRequestHeader = NULL; // Do not free
     uint8_t* pszPassword = NULL; // Do not free
@@ -161,7 +160,7 @@ SrvProcessTreeConnectAndX(
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
-    ntStatus = SrvFindShareByName(
+    ntStatus = SrvShareFindByName(
                     pConnection->pShareList,
                     pwszSharename,
                     &pShareInfo);
@@ -203,12 +202,12 @@ cleanup:
 
     if (pShareInfo)
     {
-        SrvShareDbReleaseInfo(pShareInfo);
+        SrvShareReleaseInfo(pShareInfo);
     }
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     return (ntStatus);
@@ -306,10 +305,9 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszPath_copy,
-                    WCHAR,
-                    (len + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -350,10 +348,9 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszSharename,
-                    WCHAR,
-                    (len_sharename + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -365,15 +362,15 @@ cleanup:
 
     if (pszHostPrefix)
     {
-        LwRtlMemoryFree(pszHostPrefix);
+        SrvFreeMemory(pszHostPrefix);
     }
     if (pwszHostPrefix)
     {
-        LwRtlMemoryFree(pwszHostPrefix);
+        SrvFreeMemory(pwszHostPrefix);
     }
     if (pwszPath_copy)
     {
-        LwRtlMemoryFree(pwszPath_copy);
+        SrvFreeMemory(pwszPath_copy);
     }
 
     return ntStatus;
@@ -384,7 +381,7 @@ error:
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     goto cleanup;
@@ -413,10 +410,9 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszPath_copy,
-                    WCHAR,
-                    (len + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -457,10 +453,9 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszSharename,
-                    WCHAR,
-                    (len_sharename + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -472,15 +467,15 @@ cleanup:
 
     if (pszHostPrefix)
     {
-        LwRtlMemoryFree(pszHostPrefix);
+        SrvFreeMemory(pszHostPrefix);
     }
     if (pwszHostPrefix)
     {
-        LwRtlMemoryFree(pwszHostPrefix);
+        SrvFreeMemory(pwszHostPrefix);
     }
     if (pwszPath_copy)
     {
-        LwRtlMemoryFree(pwszPath_copy);
+        SrvFreeMemory(pwszPath_copy);
     }
 
     return ntStatus;
@@ -491,7 +486,7 @@ error:
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     goto cleanup;
@@ -594,11 +589,11 @@ cleanup:
 
     if (pszService)
     {
-        LwRtlMemoryFree(pszService);
+        SrvFreeMemory(pszService);
     }
     if (pwszNativeFileSystem)
     {
-        LwRtlMemoryFree(pwszNativeFileSystem);
+        SrvFreeMemory(pwszNativeFileSystem);
     }
 
     return ntStatus;
@@ -618,7 +613,7 @@ error:
 static
 NTSTATUS
 SrvGetMaximalShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -675,7 +670,7 @@ SrvGetMaximalShareAccessMask(
 static
 NTSTATUS
 SrvGetGuestShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -732,7 +727,7 @@ SrvGetGuestShareAccessMask(
 static
 NTSTATUS
 SrvGetServiceName(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PSTR* ppszService
     )
 {
@@ -742,7 +737,7 @@ SrvGetServiceName(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
-    ntStatus = SrvShareGetServiceStringId(
+    ntStatus = SrvShareMapIdToServiceStringA(
                     pShareInfo->service,
                     &pszService);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -765,7 +760,7 @@ error:
 static
 NTSTATUS
 SrvGetNativeFilesystem(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PWSTR* ppwszNativeFilesystem
     )
 {
@@ -817,7 +812,7 @@ SrvGetNativeFilesystem(
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    ntStatus = SrvAllocateMemory(usBytesAllocated, (PVOID*)&pVolumeInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -872,7 +867,7 @@ cleanup:
 
     if (pVolumeInfo)
     {
-        LwRtlMemoryFree(pVolumeInfo);
+        SrvFreeMemory(pVolumeInfo);
     }
 
     if (hFile)
@@ -882,7 +877,7 @@ cleanup:
 
     if (pIoSecContext)
     {
-        IoSecurityFreeSecurityContext(&pIoSecContext);
+        IoSecurityDereferenceSecurityContext(&pIoSecContext);
     }
 
 

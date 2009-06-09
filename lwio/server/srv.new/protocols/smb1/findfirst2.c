@@ -61,14 +61,14 @@ SrvBuildFindFirst2Response(
 
 NTSTATUS
 SrvProcessTrans2FindFirst2(
-    PLWIO_SRV_CONNECTION         pConnection,
-    PSMB_PACKET                 pSmbRequest,
-    PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    PUSHORT                     pSetup,
-    PUSHORT                     pByteCount,
-    PBYTE                       pParameters,
-    PBYTE                       pData,
-    PSMB_PACKET*                ppSmbResponse
+    IN  PLWIO_SRV_CONNECTION        pConnection,
+    IN  PSMB_PACKET                 pSmbRequest,
+    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
+    IN  PUSHORT                     pSetup,
+    IN  PUSHORT                     pByteCount,
+    IN  PBYTE                       pParameters,
+    IN  PBYTE                       pData,
+    OUT PSMB_PACKET*                ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
@@ -444,15 +444,15 @@ cleanup:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
     if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilesystemPath);
+        SrvFreeMemory(pwszFilesystemPath);
     }
     if (pwszSearchPattern2)
     {
-        LwRtlMemoryFree(pwszSearchPattern2);
+        SrvFreeMemory(pwszSearchPattern2);
     }
 
     return ntStatus;
@@ -478,10 +478,10 @@ error:
 
 NTSTATUS
 SrvBuildSearchPath(
-    PWSTR  pwszPath,
-    PWSTR  pwszSearchPattern,
-    PWSTR* ppwszFilesystemPath,
-    PWSTR* ppwszSearchPattern
+    IN  PWSTR  pwszPath,
+    IN  PWSTR  pwszSearchPattern,
+    OUT PWSTR* ppwszFilesystemPath,
+    OUT PWSTR* ppwszSearchPattern
     )
 {
     NTSTATUS ntStatus = 0;
@@ -595,10 +595,9 @@ SrvBuildSearchPath(
 
         sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern3);
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pwszFilesystemPath,
-                        WCHAR,
-                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t));
+        ntStatus = SrvAllocateMemory(
+                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
+                        (PVOID*)&pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pDataCursor = (PBYTE)pwszFilesystemPath;
