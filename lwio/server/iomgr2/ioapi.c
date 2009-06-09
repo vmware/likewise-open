@@ -246,7 +246,7 @@ cleanup:
     IopIrpDereference(&pIrp);
     if (!status)
     {
-        IopFileObjectFree(&pFileObject);
+        IopFileObjectDereference(&pFileObject);
     }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
