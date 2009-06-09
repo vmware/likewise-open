@@ -203,7 +203,9 @@ PvfsDriverDispatch(
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
-    BAIL_ON_NT_STATUS(ntError);
+    if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING)) {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
 
 cleanup:
