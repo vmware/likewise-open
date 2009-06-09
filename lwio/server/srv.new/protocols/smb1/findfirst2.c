@@ -444,15 +444,15 @@ cleanup:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
     if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilesystemPath);
+        SrvFreeMemory(pwszFilesystemPath);
     }
     if (pwszSearchPattern2)
     {
-        LwRtlMemoryFree(pwszSearchPattern2);
+        SrvFreeMemory(pwszSearchPattern2);
     }
 
     return ntStatus;
@@ -595,10 +595,9 @@ SrvBuildSearchPath(
 
         sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern3);
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pwszFilesystemPath,
-                        WCHAR,
-                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t));
+        ntStatus = SrvAllocateMemory(
+                        sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
+                        (PVOID*)&pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pDataCursor = (PBYTE)pwszFilesystemPath;

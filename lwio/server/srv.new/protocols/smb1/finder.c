@@ -385,7 +385,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -473,10 +473,9 @@ SrvFinderGetDirInfoSearchResults(
         // Keep space for 10 items
         USHORT usBytesAllocated = (sizeof(FILE_DIRECTORY_INFORMATION) + 256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSearchSpace->pFileInfo,
-                        BYTE,
-                        usBytesAllocated);
+        ntStatus = SrvAllocateMemory(
+                        usBytesAllocated,
+                        (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSearchSpace->usFileInfoLen = usBytesAllocated;
@@ -595,7 +594,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -675,10 +674,7 @@ SrvFinderMarshallDirInfoResults(
 
     if (!pData)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pData,
-                        BYTE,
-                        usBytesRequired);
+        ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
         usDataLen = usBytesRequired;
@@ -792,7 +788,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -844,10 +840,9 @@ SrvFinderGetNamesInfoSearchResults(
         // Keep space for 10 items
         USHORT usBytesAllocated = (sizeof(FILE_NAMES_INFORMATION) + 256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSearchSpace->pFileInfo,
-                        BYTE,
-                        usBytesAllocated);
+        ntStatus = SrvAllocateMemory(
+                        usBytesAllocated,
+                        (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSearchSpace->usFileInfoLen = usBytesAllocated;
@@ -966,7 +961,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -1049,10 +1044,7 @@ SrvFinderMarshallNamesInfoResults(
 
     if (!pData)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pData,
-                        BYTE,
-                        usBytesRequired);
+        ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
         usDataLen = usBytesRequired;
@@ -1162,7 +1154,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -1196,10 +1188,9 @@ SrvFinderGetBothDirInfoSearchResults(
         // Keep space for 10 items
         USHORT usBytesAllocated = (sizeof(FILE_BOTH_DIR_INFORMATION) + 256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSearchSpace->pFileInfo,
-                        BYTE,
-                        usBytesAllocated);
+        ntStatus = SrvAllocateMemory(
+                        usBytesAllocated,
+                        (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSearchSpace->usFileInfoLen = usBytesAllocated;
@@ -1318,7 +1309,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -1401,10 +1392,9 @@ SrvFinderMarshallBothDirInfoResults(
 
     if (!pData)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pData,
-                        BYTE,
-                        usBytesRequired);
+        ntStatus = SrvAllocateMemory(
+                        usBytesRequired,
+                        (PVOID*)&pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
         usDataLen = usBytesRequired;
@@ -1532,7 +1522,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;

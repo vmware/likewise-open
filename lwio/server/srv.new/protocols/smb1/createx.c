@@ -88,10 +88,7 @@ SrvProcessNTCreateAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: Handle root fids
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pFilename,
-                    IO_FILE_NAME,
-                    sizeof(IO_FILE_NAME));
+    ntStatus = SrvAllocateMemory(sizeof(IO_FILE_NAME), (PVOID*)&pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildFilePath(
@@ -204,10 +201,10 @@ error:
     {
         if (pFilename->FileName)
         {
-            LwRtlMemoryFree(pFilename->FileName);
+            SrvFreeMemory(pFilename->FileName);
         }
 
-        LwRtlMemoryFree(pFilename);
+        SrvFreeMemory(pFilename);
     }
 
     if (hFile)

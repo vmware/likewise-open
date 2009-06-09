@@ -623,10 +623,9 @@ SrvShareDbWriteToShareInfo(
 		ULONG ulNumSharesNew = 5;
 		ULONG ulNumSharesAllocatedNew = ulNumSharesAllocated + ulNumSharesNew;
 
-	    ntStatus = LW_RTL_ALLOCATE(
-	                    &ppShareInfoListNew,
-	                    PSRV_SHARE_INFO,
-	                    sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocatedNew);
+	    ntStatus = SrvAllocateMemory(
+	                    sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocatedNew,
+	                    (PVOID*)&ppShareInfoListNew);
 	    BAIL_ON_NT_STATUS(ntStatus);
 
 	    if (ppShareInfoList)
@@ -635,7 +634,7 @@ SrvShareDbWriteToShareInfo(
 			   (PBYTE)ppShareInfoList,
 			   sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocated);
 
-		LwRtlMemoryFree(ppShareInfoList);
+		SrvFreeMemory(ppShareInfoList);
 	    }
 
 	    ppShareInfoList = ppShareInfoListNew;
@@ -715,10 +714,9 @@ SrvShareDbWriteToShareInfo(
                     {
 			PCVOID pBlob = sqlite3_column_blob(pSqlStatement, iCol);
 
-                        ntStatus = LW_RTL_ALLOCATE(
-                                       &pShareInfo->pSecDesc,
-                                       BYTE,
-                                       ulNumBytes);
+                        ntStatus = SrvAllocateMemory(
+                                       ulNumBytes,
+                                       (PVOID*)&pShareInfo->pSecDesc);
                         BAIL_ON_NT_STATUS(ntStatus);
 
                         memcpy(pShareInfo->pSecDesc, pBlob, ulNumBytes);

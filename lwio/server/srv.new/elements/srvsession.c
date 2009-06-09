@@ -86,10 +86,9 @@ SrvSessionCreate(
 
     LWIO_LOG_DEBUG("Creating session [uid:%u]", uid);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pSession,
-                    LWIO_SRV_SESSION,
-                    sizeof(LWIO_SRV_SESSION));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(LWIO_SRV_SESSION),
+                    (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSession->refcount = 1;
@@ -416,7 +415,7 @@ SrvSessionFree(
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
-    LwRtlMemoryFree(pSession);
+    SrvFreeMemory(pSession);
 }
 
 

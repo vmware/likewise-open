@@ -175,7 +175,7 @@ cleanup:
 
     if (pwszDirectoryPath)
     {
-        LwRtlMemoryFree(pwszDirectoryPath);
+        SrvFreeMemory(pwszDirectoryPath);
     }
 
     return ntStatus;

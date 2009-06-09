@@ -267,7 +267,7 @@ cleanup:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -299,10 +299,7 @@ SrvExecuteReadFileAndX(
     IO_STATUS_BLOCK ioStatusBlock = {0};
     PBYTE pBuffer = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pBuffer,
-                    BYTE,
-                    ulBytesToRead);
+    ntStatus = SrvAllocateMemory(ulBytesToRead, (PVOID*)&pBuffer);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoReadFile(
@@ -329,7 +326,7 @@ error:
 
     if (pBuffer)
     {
-        LwRtlMemoryFree(pBuffer);
+        SrvFreeMemory(pBuffer);
     }
 
     goto cleanup;

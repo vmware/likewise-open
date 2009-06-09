@@ -153,12 +153,12 @@ SrvShareDevCtlAdd(
 error:
 
     if (pAddShareInfoParams) {
-        LwRtlMemoryFree(pAddShareInfoParams);
+        SrvFreeMemory(pAddShareInfoParams);
     }
 
     if (pwszPathLocal)
     {
-        LwRtlMemoryFree(pwszPathLocal);
+        SrvFreeMemory(pwszPathLocal);
     }
 
     if (pwszShareType)
@@ -198,7 +198,7 @@ SrvShareDevCtlDelete(
 error:
 
     if (pDeleteShareInfoParams) {
-        LwRtlMemoryFree(pDeleteShareInfoParams);
+        SrvFreeMemory(pDeleteShareInfoParams);
     }
 
     return ntStatus;
@@ -252,10 +252,9 @@ SrvShareDevCtlEnum(
     {
         case 0:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p0,
-                          SHARE_INFO_0,
-                          sizeof(*p0) * ulNumEntries);
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p0) * ulNumEntries,
+							(PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -271,10 +270,9 @@ SrvShareDevCtlEnum(
 
         case 1:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p1,
-                          SHARE_INFO_1,
-                          sizeof(*p1) * ulNumEntries);
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p1) * ulNumEntries,
+							(PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -292,10 +290,9 @@ SrvShareDevCtlEnum(
 
         case 2:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                           &p2,
-                           SHARE_INFO_2,
-                           sizeof(*p2) * ulNumEntries);
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p2) * ulNumEntries,
+							(PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -323,10 +320,9 @@ SrvShareDevCtlEnum(
 
         case 501:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                           &p501,
-                           SHARE_INFO_501,
-                           sizeof(*p501) * ulNumEntries);
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p501) * ulNumEntries,
+							(PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -345,10 +341,9 @@ SrvShareDevCtlEnum(
 
         case 502:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                            &p502,
-                            SHARE_INFO_502,
-                            sizeof(*p502) * ulNumEntries);
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p502) * ulNumEntries,
+							(PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -424,11 +419,11 @@ cleanup:
 
     if (p0)
     {
-        LwRtlMemoryFree(p0);
+        SrvFreeMemory(p0);
     }
     if (p1)
     {
-        LwRtlMemoryFree(p1);
+        SrvFreeMemory(p1);
     }
     if (p2)
     {
@@ -436,14 +431,14 @@ cleanup:
         {
             if (p2[i].shi2_path)
             {
-                LwRtlMemoryFree(p2[i].shi2_path);
+                SrvFreeMemory(p2[i].shi2_path);
             }
         }
-        LwRtlMemoryFree(p2);
+        SrvFreeMemory(p2);
     }
     if (p501)
     {
-        LwRtlMemoryFree(p501);
+        SrvFreeMemory(p501);
     }
     if (p502)
     {
@@ -451,19 +446,19 @@ cleanup:
         {
             if (p502[i].shi502_path)
             {
-                LwRtlMemoryFree(p502[i].shi502_path);
+                SrvFreeMemory(p502[i].shi502_path);
             }
         }
 
-        LwRtlMemoryFree(p502);
+        SrvFreeMemory(p502);
     }
     if (pBuffer)
     {
-        LwRtlMemoryFree(pBuffer);
+        SrvFreeMemory(pBuffer);
     }
     if (pEnumShareInfoParamsIn)
     {
-        LwRtlMemoryFree(pEnumShareInfoParamsIn);
+        SrvFreeMemory(pEnumShareInfoParamsIn);
     }
 
     return ntStatus;
@@ -524,10 +519,9 @@ SrvShareDevCtlGetInfo(
     {
         case 0:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p0,
-                          SHARE_INFO_0,
-                          sizeof(*p0));
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p0),
+							(PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p0->shi0_netname             = pShareInfo->pwszName;
@@ -538,10 +532,9 @@ SrvShareDevCtlGetInfo(
 
         case 1:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p1,
-                          SHARE_INFO_1,
-                          sizeof(*p1));
+            ntStatus = SrvAllocateMemory(
+						sizeof(*p1),
+						(PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p1->shi1_netname             = pShareInfo->pwszName;
@@ -554,10 +547,9 @@ SrvShareDevCtlGetInfo(
 
         case 2:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p2,
-                          SHARE_INFO_2,
-                          sizeof(*p2));
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p2),
+							(PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p2->shi2_netname             = pShareInfo->pwszName;
@@ -580,10 +572,9 @@ SrvShareDevCtlGetInfo(
 
         case 501:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p501,
-                          SHARE_INFO_501,
-                          sizeof(*p501));
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p501),
+							(PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p501->shi501_netname         = pShareInfo->pwszName;
@@ -597,10 +588,9 @@ SrvShareDevCtlGetInfo(
 
         case 502:
 
-            ntStatus = LW_RTL_ALLOCATE(
-                          &p502,
-                          SHARE_INFO_502,
-                          sizeof(*p502));
+            ntStatus = SrvAllocateMemory(
+							sizeof(*p502),
+							(PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p502->shi502_netname             = pShareInfo->pwszName;
@@ -658,41 +648,41 @@ cleanup:
     }
 
     if (pGetShareInfoParamsIn) {
-        LwRtlMemoryFree(pGetShareInfoParamsIn);
+        SrvFreeMemory(pGetShareInfoParamsIn);
     }
 
     if (p0)
     {
-        LwRtlMemoryFree(p0);
+        SrvFreeMemory(p0);
     }
     if (p1)
     {
-        LwRtlMemoryFree(p1);
+        SrvFreeMemory(p1);
     }
     if (p2)
     {
         if (p2->shi2_path)
         {
-            LwRtlMemoryFree(p2->shi2_path);
+            SrvFreeMemory(p2->shi2_path);
         }
-        LwRtlMemoryFree(p2);
+        SrvFreeMemory(p2);
     }
     if (p501)
     {
-        LwRtlMemoryFree(p501);
+        SrvFreeMemory(p501);
     }
     if (p502)
     {
         if (p502->shi502_path)
         {
-            LwRtlMemoryFree(p502->shi502_path);
+            SrvFreeMemory(p502->shi502_path);
         }
 
-        LwRtlMemoryFree(p502);
+        SrvFreeMemory(p502);
     }
     if (pBuffer)
     {
-        LwRtlMemoryFree(pBuffer);
+        SrvFreeMemory(pBuffer);
     }
 
     return ntStatus;
@@ -800,7 +790,7 @@ SrvShareDevCtlSetInfo(
 
 error:
     if (pSetShareInfoParamsIn) {
-        LwRtlMemoryFree(pSetShareInfoParamsIn);
+        SrvFreeMemory(pSetShareInfoParamsIn);
     }
 
     if (pShareInfo) {

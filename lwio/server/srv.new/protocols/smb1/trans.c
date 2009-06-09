@@ -751,11 +751,11 @@ cleanup:
 
     if (pwszPipenamePrefix)
     {
-        LwRtlMemoryFree(pwszPipenamePrefix);
+        SrvFreeMemory(pwszPipenamePrefix);
     }
     if (pwszFilePath)
     {
-        LwRtlMemoryFree(pwszFilePath);
+        SrvFreeMemory(pwszFilePath);
     }
 
     return ntStatus;
@@ -844,7 +844,7 @@ SrvProcessTransactNamedPipe(
     // TODO: Make sure we have enough space in the reply buffer for this
     usResponseDataLen = pRequestHeader->maxDataCount;
 
-    ntStatus = LW_RTL_ALLOCATE(&pResponseData, BYTE, usResponseDataLen);
+    ntStatus = SrvAllocateMemory(usResponseDataLen, (PVOID*)&pResponseData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoReadFile(
@@ -927,7 +927,7 @@ cleanup:
 
     if (pResponseData)
     {
-        LwRtlMemoryFree(pResponseData);
+        SrvFreeMemory(pResponseData);
     }
 
     return ntStatus;
@@ -979,7 +979,9 @@ SrvMarshallGetNamedPipeInfoData(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(&pResponseDataBuffer, BYTE, usResponseDataLen);
+    ntStatus = SrvAllocateMemory(
+                    usResponseDataLen,
+                    (PVOID*)&pResponseDataBuffer);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseDataCursor = pResponseDataBuffer;
@@ -1012,7 +1014,7 @@ error:
 
     if (pResponseData)
     {
-        LwRtlMemoryFree(pResponseData);
+        SrvFreeMemory(pResponseData);
     }
 
     goto cleanup;

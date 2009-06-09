@@ -396,7 +396,7 @@ cleanup:
 
     if (pSessionKey)
     {
-        LwRtlMemoryFree(pSessionKey);
+        SrvFreeMemory(pSessionKey);
     }
 
     return ntStatus;

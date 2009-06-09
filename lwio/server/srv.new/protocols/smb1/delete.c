@@ -167,7 +167,7 @@ cleanup:
 
     if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilesystemPath);
+        SrvFreeMemory(pwszFilesystemPath);
     }
 
     return ntStatus;
@@ -248,7 +248,7 @@ SrvDeleteFiles(
 
         if (pData)
         {
-            LwRtlMemoryFree(pData);
+            SrvFreeMemory(pData);
             pData = NULL;
         }
 
@@ -271,21 +271,20 @@ SrvDeleteFiles(
         {
             if (pwszFilePath)
             {
-                LwRtlMemoryFree(pwszFilePath);
+                SrvFreeMemory(pwszFilePath);
                 pwszFilePath = NULL;
             }
             if (pwszFilename)
             {
-                LwRtlMemoryFree(pwszFilename);
+                SrvFreeMemory(pwszFilename);
                 pwszFilename = NULL;
             }
 
             if (bUseLongFilenames)
             {
-                ntStatus = LW_RTL_ALLOCATE(
-                                &pwszFilename,
-                                WCHAR,
-                                pResult->FileNameLength + sizeof(wchar16_t));
+                ntStatus = SrvAllocateMemory(
+                                pResult->FileNameLength + sizeof(wchar16_t),
+                                (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,
@@ -294,10 +293,9 @@ SrvDeleteFiles(
             }
             else
             {
-                ntStatus = LW_RTL_ALLOCATE(
-                                &pwszFilename,
-                                WCHAR,
-                                pResult->ShortNameLength + sizeof(wchar16_t));
+                ntStatus = SrvAllocateMemory(
+                                pResult->ShortNameLength + sizeof(wchar16_t),
+                                (PVOID*)&pwszFilename);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 memcpy((PBYTE)pwszFilename,

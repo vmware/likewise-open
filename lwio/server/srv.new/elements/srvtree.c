@@ -87,7 +87,7 @@ SrvTreeCreate(
 
     LWIO_LOG_DEBUG("Creating Tree [tid: %u]", tid);
 
-    ntStatus = LW_RTL_ALLOCATE(&pTree, LWIO_SRV_TREE, sizeof(LWIO_SRV_TREE));
+    ntStatus = SrvAllocateMemory(sizeof(LWIO_SRV_TREE), (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
@@ -413,7 +413,7 @@ SrvTreeFree(
         SrvShareReleaseInfo(pTree->pShareInfo);
     }
 
-    LwRtlMemoryFree(pTree);
+    SrvFreeMemory(pTree);
 }
 
 

@@ -76,10 +76,9 @@ SrvFileCreate(
 
     LWIO_LOG_DEBUG("Creating file [fid:%u]", fid);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pFile,
-                    LWIO_SRV_FILE,
-                    sizeof(LWIO_SRV_FILE));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(LWIO_SRV_FILE),
+                    (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->refcount = 1;
@@ -159,10 +158,10 @@ SrvFileFree(
     {
         if (pFile->pFilename->FileName)
         {
-            LwRtlMemoryFree (pFile->pFilename->FileName);
+            SrvFreeMemory (pFile->pFilename->FileName);
         }
 
-        LwRtlMemoryFree(pFile->pFilename);
+        SrvFreeMemory(pFile->pFilename);
     }
 
     if (pFile->hFile)
@@ -172,8 +171,8 @@ SrvFileFree(
 
     if (pFile->pwszFilename)
     {
-        LwRtlMemoryFree(pFile->pwszFilename);
+        SrvFreeMemory(pFile->pwszFilename);
     }
 
-    LwRtlMemoryFree(pFile);
+    SrvFreeMemory(pFile);
 }

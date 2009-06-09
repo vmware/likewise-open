@@ -682,10 +682,9 @@ SrvBuildQueryFileStreamInfoResponse(
 
     usBytesAllocated = sizeof(FILE_STREAM_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pFileStreamInfo,
-                    BYTE,
-                    usBytesAllocated);
+    ntStatus = SrvAllocateMemory(
+                    usBytesAllocated,
+                    (PVOID*)&pFileStreamInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -782,11 +781,11 @@ cleanup:
 
     if (pFileStreamInfo)
     {
-        LwRtlMemoryFree(pFileStreamInfo);
+        SrvFreeMemory(pFileStreamInfo);
     }
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -852,10 +851,9 @@ SrvMarshallFileStreamInfo(
         }
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pData,
-                    BYTE,
-                    usBytesRequired);
+    ntStatus = SrvAllocateMemory(
+                    usBytesRequired,
+                    (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -903,7 +901,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;

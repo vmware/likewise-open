@@ -210,10 +210,7 @@ SrvExecuteRename(
 
     ulDataLen = sizeof(FILE_RENAME_INFORMATION) + wc16slen(newName.FileName) * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pData,
-                    BYTE,
-                    ulDataLen);
+    ntStatus = SrvAllocateMemory(ulDataLen, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFileRenameInfo = (PFILE_RENAME_INFORMATION)pData;
@@ -247,12 +244,12 @@ cleanup:
 
     if (pwszOldPath)
     {
-        LwRtlMemoryFree(pwszOldPath);
+        SrvFreeMemory(pwszOldPath);
     }
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;

@@ -97,10 +97,9 @@ SrvConnectionCreate(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONNECTION pConnection = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pConnection,
-                    LWIO_SRV_CONNECTION,
-                    sizeof(LWIO_SRV_CONNECTION));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(LWIO_SRV_CONNECTION),
+                    (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
@@ -376,7 +375,7 @@ SrvConnectionRelease(
 
         if (pConnection->pSessionKey)
         {
-            LwRtlMemoryFree(pConnection->pSessionKey);
+            SrvFreeMemory(pConnection->pSessionKey);
         }
 
         if (pConnection->hGssNegotiate)
@@ -409,7 +408,7 @@ SrvConnectionRelease(
 
         SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
 
-        LwRtlMemoryFree(pConnection);
+        SrvFreeMemory(pConnection);
     }
 }
 
@@ -484,15 +483,15 @@ SrvConnectionFreeContentsClientProperties(
 {
     if (pProperties->pwszNativeLanMan)
     {
-        LwRtlMemoryFree(pProperties->pwszNativeLanMan);
+        SrvFreeMemory(pProperties->pwszNativeLanMan);
     }
     if (pProperties->pwszNativeOS)
     {
-        LwRtlMemoryFree(pProperties->pwszNativeOS);
+        SrvFreeMemory(pProperties->pwszNativeOS);
     }
     if (pProperties->pwszNativeDomain)
     {
-        LwRtlMemoryFree(pProperties->pwszNativeDomain);
+        SrvFreeMemory(pProperties->pwszNativeDomain);
     }
 }
 

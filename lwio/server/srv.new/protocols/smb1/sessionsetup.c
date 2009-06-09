@@ -186,7 +186,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeOS)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeOS);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeOS);
         pConnection->clientProperties.pwszNativeOS = NULL;
     }
     if (pwszNativeOS)
@@ -199,7 +199,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeLanMan)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeLanMan);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeLanMan);
         pConnection->clientProperties.pwszNativeLanMan = NULL;
     }
     if (pwszNativeLanMan)
@@ -212,7 +212,7 @@ SrvUnmarshallSessionSetupRequest(
 
     if (pConnection->clientProperties.pwszNativeDomain)
     {
-        LwRtlMemoryFree(pConnection->clientProperties.pwszNativeDomain);
+        SrvFreeMemory(pConnection->clientProperties.pwszNativeDomain);
         pConnection->clientProperties.pwszNativeDomain = NULL;
     }
     if (pwszNativeDomain)
@@ -347,7 +347,7 @@ cleanup:
 
     if (pReplySecurityBlob)
     {
-        LwRtlMemoryFree(pReplySecurityBlob);
+        SrvFreeMemory(pReplySecurityBlob);
     }
 
     return ntStatus;

@@ -220,10 +220,9 @@ SrvExecuteLargeFileLocks(
 
     if (pRequestHeader->usNumLocks)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &ppLockStateArray,
-                        PLOCKING_ANDX_RANGE_LARGE_FILE,
-                        sizeof(PLOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks);
+        ntStatus = SrvAllocateMemory(
+                        sizeof(PLOCKING_ANDX_RANGE_LARGE_FILE) * pRequestHeader->usNumLocks,
+                        (PVOID*)&ppLockStateArray);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -255,7 +254,7 @@ cleanup:
 
     if (ppLockStateArray)
     {
-        LwRtlMemoryFree(ppLockStateArray);
+        SrvFreeMemory(ppLockStateArray);
     }
 
     return ntStatus;
@@ -317,10 +316,9 @@ SrvExecuteLocks(
 
     if (pRequestHeader->usNumLocks)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &ppLockStateArray,
-                        PLOCKING_ANDX_RANGE,
-                        sizeof(PLOCKING_ANDX_RANGE) * pRequestHeader->usNumLocks);
+        ntStatus = SrvAllocateMemory(
+                        sizeof(PLOCKING_ANDX_RANGE) * pRequestHeader->usNumLocks,
+                        (PVOID*)&ppLockStateArray);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -348,7 +346,7 @@ cleanup:
 
     if (ppLockStateArray)
     {
-        LwRtlMemoryFree(ppLockStateArray);
+        SrvFreeMemory(ppLockStateArray);
     }
 
     return ntStatus;

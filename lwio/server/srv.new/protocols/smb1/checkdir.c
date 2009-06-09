@@ -188,7 +188,7 @@ cleanup:
 
     if (pwszFilesystemPath)
     {
-        LwRtlMemoryFree(pwszFilesystemPath);
+        SrvFreeMemory(pwszFilesystemPath);
     }
 
     if (hFile)

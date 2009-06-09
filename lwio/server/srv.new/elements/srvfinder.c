@@ -80,10 +80,9 @@ SrvFinderCreateRepository(
     NTSTATUS ntStatus = 0;
     PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pFinderRepository,
-                    SRV_FINDER_REPOSITORY,
-                    sizeof(SRV_FINDER_REPOSITORY));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_FINDER_REPOSITORY),
+                    (PVOID*)&pFinderRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFinderRepository->refCount = 1;
@@ -198,10 +197,9 @@ SrvFinderCreateSearchSpace(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pSearchSpace,
-                    SRV_SEARCH_SPACE,
-                    sizeof(SRV_SEARCH_SPACE));
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SEARCH_SPACE),
+                    (PVOID*)&pSearchSpace);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSearchSpace->refCount = 1;
@@ -373,7 +371,7 @@ SrvFinderFreeRepository(
         pthread_mutex_destroy(&pFinderRepository->mutex);
     }
 
-    LwRtlMemoryFree(pFinderRepository);
+    SrvFreeMemory(pFinderRepository);
 }
 
 static
@@ -432,7 +430,7 @@ SrvFinderFreeSearchSpace(
 
     if (pSearchSpace->pFileInfo)
     {
-        LwRtlMemoryFree(pSearchSpace->pFileInfo);
+        SrvFreeMemory(pSearchSpace->pFileInfo);
     }
 
     if (pSearchSpace->pwszSearchPattern)
@@ -441,5 +439,5 @@ SrvFinderFreeSearchSpace(
 
     }
 
-    LwRtlMemoryFree(pSearchSpace);
+    SrvFreeMemory(pSearchSpace);
 }

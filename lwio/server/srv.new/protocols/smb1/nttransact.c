@@ -281,10 +281,9 @@ SrvQuerySecurityDescriptor(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pSecurityDescriptor,
-                    BYTE,
-                    ulSecurityDescInitialLen);
+    ntStatus = SrvAllocateMemory(
+                    ulSecurityDescInitialLen,
+                    (PVOID*)&pSecurityDescriptor);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulSecurityDescAllocLen = ulSecurityDescInitialLen;
@@ -308,15 +307,12 @@ SrvQuerySecurityDescriptor(
 
             ulNewLen = LW_MIN(SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE, ulSecurityDescAllocLen + 4096);
 
-            ntStatus = LW_RTL_ALLOCATE(
-                            &pNewMemory,
-                            BYTE,
-                            ulNewLen);
+            ntStatus = SrvAllocateMemory(ulNewLen, (PVOID*)&pNewMemory);
             BAIL_ON_NT_STATUS(ntStatus);
 
             if (pSecurityDescriptor)
             {
-                LwRtlMemoryFree(pSecurityDescriptor);
+                SrvFreeMemory(pSecurityDescriptor);
             }
 
             pSecurityDescriptor = pNewMemory;
@@ -389,7 +385,7 @@ cleanup:
 
     if (pSecurityDescriptor)
     {
-        LwRtlMemoryFree(pSecurityDescriptor);
+        SrvFreeMemory(pSecurityDescriptor);
     }
 
     return ntStatus;
@@ -655,7 +651,7 @@ cleanup:
 
     if (pResponseBuffer)
     {
-        LwRtlMemoryFree(pResponseBuffer);
+        SrvFreeMemory(pResponseBuffer);
     }
 
     return ntStatus;
@@ -691,10 +687,7 @@ SrvExecuteFsctl(
     USHORT   usActualResponseLen = 0;
     IO_STATUS_BLOCK ioStatusBlock = {0};
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pResponseBuffer,
-                    BYTE,
-                    512);
+    ntStatus = SrvAllocateMemory(512, (PVOID*) &pResponseBuffer);
     BAIL_ON_NT_STATUS(ntStatus);
 
     usResponseBufferLen = 512;
@@ -724,15 +717,12 @@ SrvExecuteFsctl(
 
             if (pResponseBuffer)
             {
-                LwRtlMemoryFree(pResponseBuffer);
+                SrvFreeMemory(pResponseBuffer);
                 pResponseBuffer = NULL;
                 usResponseBufferLen = 0;
             }
 
-            ntStatus = LW_RTL_ALLOCATE(
-                            &pResponseBuffer,
-                            BYTE,
-                            usNewLength);
+            ntStatus = SrvAllocateMemory(usNewLength, (PVOID*)&pResponseBuffer);
             BAIL_ON_NT_STATUS(ntStatus);
 
             usResponseBufferLen = usNewLength;
@@ -759,7 +749,7 @@ error:
 
     if (pResponseBuffer)
     {
-        LwRtlMemoryFree(pResponseBuffer);
+        SrvFreeMemory(pResponseBuffer);
     }
 
     goto cleanup;
@@ -782,10 +772,7 @@ SrvExecuteIoctl(
     USHORT   usActualResponseLen = 0;
     IO_STATUS_BLOCK ioStatusBlock = {0};
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pResponseBuffer,
-                    BYTE,
-                    512);
+    ntStatus = SrvAllocateMemory(512, (PVOID*) &pResponseBuffer);
     BAIL_ON_NT_STATUS(ntStatus);
 
     usResponseBufferLen = 512;
@@ -815,15 +802,12 @@ SrvExecuteIoctl(
 
             if (pResponseBuffer)
             {
-                LwRtlMemoryFree(pResponseBuffer);
+                SrvFreeMemory(pResponseBuffer);
                 pResponseBuffer = NULL;
                 usResponseBufferLen = 0;
             }
 
-            ntStatus = LW_RTL_ALLOCATE(
-                            &pResponseBuffer,
-                            BYTE,
-                            usNewLength);
+            ntStatus = SrvAllocateMemory(usNewLength, (PVOID*)&pResponseBuffer);
             BAIL_ON_NT_STATUS(ntStatus);
 
             usResponseBufferLen = usNewLength;
@@ -850,7 +834,7 @@ error:
 
     if (pResponseBuffer)
     {
-        LwRtlMemoryFree(pResponseBuffer);
+        SrvFreeMemory(pResponseBuffer);
     }
 
     goto cleanup;

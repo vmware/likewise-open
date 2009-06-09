@@ -504,7 +504,7 @@ SrvBuildFSInfoVolumeResponse(
 
     usBytesAllocated = sizeof(FILE_FS_VOLUME_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    ntStatus = SrvAllocateMemory(usBytesAllocated, (PVOID*)&pVolumeInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -616,11 +616,11 @@ cleanup:
 
     if (pVolumeInfo)
     {
-        LwRtlMemoryFree(pVolumeInfo);
+        SrvFreeMemory(pVolumeInfo);
     }
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -664,7 +664,7 @@ SrvBuildFSVolumeInfoResponse(
 
     usBytesAllocated = sizeof(FILE_FS_VOLUME_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    ntStatus = SrvAllocateMemory(usBytesAllocated, (PVOID*)&pVolumeInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -760,11 +760,11 @@ cleanup:
 
     if (pVolumeInfo)
     {
-        LwRtlMemoryFree(pVolumeInfo);
+        SrvFreeMemory(pVolumeInfo);
     }
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -826,7 +826,7 @@ SrvMarshallFSInfoVolume(
         }
     }
 
-    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
+    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -857,7 +857,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -895,7 +895,7 @@ SrvMarshallFSVolumeInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
+    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -926,7 +926,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;
@@ -1067,7 +1067,7 @@ SrvBuildFSAttributeInfoResponse(
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    ntStatus = SrvAllocateMemory(usBytesAllocated, (PVOID*)&pVolumeInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -1163,11 +1163,11 @@ cleanup:
 
     if (pVolumeInfo)
     {
-        LwRtlMemoryFree(pVolumeInfo);
+        SrvFreeMemory(pVolumeInfo);
     }
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     return ntStatus;
@@ -1223,7 +1223,7 @@ SrvMarshallFSAttributeInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(&pData, BYTE, usBytesRequired);
+    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDataCursor = pData;
@@ -1253,7 +1253,7 @@ error:
 
     if (pData)
     {
-        LwRtlMemoryFree(pData);
+        SrvFreeMemory(pData);
     }
 
     goto cleanup;

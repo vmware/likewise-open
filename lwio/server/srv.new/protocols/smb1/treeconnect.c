@@ -207,7 +207,7 @@ cleanup:
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     return (ntStatus);
@@ -305,10 +305,9 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszPath_copy,
-                    WCHAR,
-                    (len + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -349,10 +348,9 @@ SrvGetShareNameCheckHostname(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszSharename,
-                    WCHAR,
-                    (len_sharename + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -364,15 +362,15 @@ cleanup:
 
     if (pszHostPrefix)
     {
-        LwRtlMemoryFree(pszHostPrefix);
+        SrvFreeMemory(pszHostPrefix);
     }
     if (pwszHostPrefix)
     {
-        LwRtlMemoryFree(pwszHostPrefix);
+        SrvFreeMemory(pwszHostPrefix);
     }
     if (pwszPath_copy)
     {
-        LwRtlMemoryFree(pwszPath_copy);
+        SrvFreeMemory(pwszPath_copy);
     }
 
     return ntStatus;
@@ -383,7 +381,7 @@ error:
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     goto cleanup;
@@ -412,10 +410,9 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszPath_copy,
-                    WCHAR,
-                    (len + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pwszPath_copy, pwszPath, len * sizeof(wchar16_t));
@@ -456,10 +453,9 @@ SrvGetShareNameCheckFQDN(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pwszSharename,
-                    WCHAR,
-                    (len_sharename + 1) * sizeof(wchar16_t));
+    ntStatus = SrvAllocateMemory(
+					(len_sharename + 1) * sizeof(wchar16_t),
+                    (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // copy from original path
@@ -471,15 +467,15 @@ cleanup:
 
     if (pszHostPrefix)
     {
-        LwRtlMemoryFree(pszHostPrefix);
+        SrvFreeMemory(pszHostPrefix);
     }
     if (pwszHostPrefix)
     {
-        LwRtlMemoryFree(pwszHostPrefix);
+        SrvFreeMemory(pwszHostPrefix);
     }
     if (pwszPath_copy)
     {
-        LwRtlMemoryFree(pwszPath_copy);
+        SrvFreeMemory(pwszPath_copy);
     }
 
     return ntStatus;
@@ -490,7 +486,7 @@ error:
 
     if (pwszSharename)
     {
-        LwRtlMemoryFree(pwszSharename);
+        SrvFreeMemory(pwszSharename);
     }
 
     goto cleanup;
@@ -593,11 +589,11 @@ cleanup:
 
     if (pszService)
     {
-        LwRtlMemoryFree(pszService);
+        SrvFreeMemory(pszService);
     }
     if (pwszNativeFileSystem)
     {
-        LwRtlMemoryFree(pwszNativeFileSystem);
+        SrvFreeMemory(pwszNativeFileSystem);
     }
 
     return ntStatus;
@@ -816,7 +812,7 @@ SrvGetNativeFilesystem(
 
     usBytesAllocated = sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 256 * sizeof(wchar16_t);
 
-    ntStatus = LW_RTL_ALLOCATE(&pVolumeInfo, BYTE, usBytesAllocated);
+    ntStatus = SrvAllocateMemory(usBytesAllocated, (PVOID*)&pVolumeInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -871,7 +867,7 @@ cleanup:
 
     if (pVolumeInfo)
     {
-        LwRtlMemoryFree(pVolumeInfo);
+        SrvFreeMemory(pVolumeInfo);
     }
 
     if (hFile)

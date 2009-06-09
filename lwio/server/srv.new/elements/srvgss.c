@@ -143,10 +143,9 @@ SrvGssGetSessionDetails(
             &nameOid);
         BAIL_ON_SEC_ERROR(ntStatus);
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pszClientPrincipalName,
-                        CHAR,
-                        nameBuffer.length + 1);
+        ntStatus = SrvAllocateMemory(
+						(nameBuffer.length + 1) * sizeof(CHAR),
+                        (PVOID*)&pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pszClientPrincipalName, nameBuffer.value, nameBuffer.length);
@@ -157,10 +156,9 @@ SrvGssGetSessionDetails(
     {
         assert(sessionKey.length > 0);
 
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSessionKey,
-                        BYTE,
-                        sessionKey.length * sizeof(BYTE));
+        ntStatus = SrvAllocateMemory(
+						sessionKey.length * sizeof(BYTE),
+                        (PVOID*)&pSessionKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSessionKey, sessionKey.value, sessionKey.length);
@@ -203,11 +201,11 @@ error:
 
     if (pSessionKey)
     {
-        LwRtlMemoryFree(pSessionKey);
+        SrvFreeMemory(pSessionKey);
     }
     if (pszClientPrincipalName)
     {
-        LwRtlMemoryFree(pszClientPrincipalName);
+        SrvFreeMemory(pszClientPrincipalName);
     }
 
     goto cleanup;
@@ -222,18 +220,16 @@ SrvGssBeginNegotiate(
     NTSTATUS ntStatus = 0;
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = NULL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pGssNegotiate,
-                    SRV_GSS_NEGOTIATE_CONTEXT,
-                    sizeof(SRV_GSS_NEGOTIATE_CONTEXT));
+    ntStatus = SrvAllocateMemory(
+					sizeof(SRV_GSS_NEGOTIATE_CONTEXT),
+                    (PVOID*)&pGssNegotiate);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pGssNegotiate->pGssContext,
-                    gss_ctx_id_t,
-                    sizeof(gss_ctx_id_t));
+    ntStatus = SrvAllocateMemory(
+					sizeof(gss_ctx_id_t),
+                    (PVOID*)&pGssNegotiate->pGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pGssNegotiate->pGssContext = GSS_C_NO_CONTEXT;
@@ -345,10 +341,10 @@ SrvGssEndNegotiate(
                         pGssNegotiateContext->pGssContext,
                         GSS_C_NO_BUFFER);
 
-        LwRtlMemoryFree(pGssNegotiateContext->pGssContext);
+        SrvFreeMemory(pGssNegotiateContext->pGssContext);
     }
 
-    LwRtlMemoryFree(pGssNegotiateContext);
+    SrvFreeMemory(pGssNegotiateContext);
 }
 
 VOID
@@ -376,10 +372,9 @@ SrvGssNewContext(
     PSRV_KRB5_CONTEXT pContext = NULL;
     BOOLEAN  bInLock = FALSE;
 
-    ntStatus = LW_RTL_ALLOCATE(
-                    &pContext,
-                    SRV_KRB5_CONTEXT,
-                    sizeof(SRV_KRB5_CONTEXT));
+    ntStatus = SrvAllocateMemory(
+					sizeof(SRV_KRB5_CONTEXT),
+                    (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pContext->refcount = 1;
@@ -433,7 +428,7 @@ error:
 
     if (pszCachePath)
     {
-        LwRtlMemoryFree(pszCachePath);
+        SrvFreeMemory(pszCachePath);
     }
 
     goto cleanup;
@@ -532,10 +527,9 @@ SrvGssInitNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSessionKey,
-                        BYTE,
-                        output_desc.length);
+        ntStatus = SrvAllocateMemory(
+						output_desc.length,
+                        (PVOID*)&pSessionKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSessionKey, output_desc.value, output_desc.length);
@@ -571,7 +565,7 @@ cleanup:
             pszCurrentCachePath,
             NULL);
 
-        LwRtlMemoryFree(pszCurrentCachePath);
+        SrvFreeMemory(pszCurrentCachePath);
     }
 
     return ntStatus;
@@ -587,7 +581,7 @@ error:
 
     if (pSessionKey)
     {
-        LwRtlMemoryFree(pSessionKey);
+        SrvFreeMemory(pSessionKey);
     }
 
     goto cleanup;
@@ -664,10 +658,9 @@ SrvGssContinueNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = LW_RTL_ALLOCATE(
-                        &pSecurityBlob,
-                        BYTE,
-                        output_desc.length);
+        ntStatus = SrvAllocateMemory(
+						output_desc.length,
+                        (PVOID*)&pSecurityBlob);
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSecurityBlob, output_desc.value, output_desc.length);
@@ -697,7 +690,7 @@ error:
 
     if (pSecurityBlob)
     {
-        LwRtlMemoryFree(pSecurityBlob);
+        SrvFreeMemory(pSecurityBlob);
     }
 
     goto cleanup;
@@ -724,11 +717,11 @@ SrvGssFreeContext(
 
     if (pContext->pszCachePath)
     {
-        LwRtlMemoryFree(pContext->pszCachePath);
+        SrvFreeMemory(pContext->pszCachePath);
     }
     if (pContext->pszMachinePrincipal)
     {
-        LwRtlMemoryFree(pContext->pszMachinePrincipal);
+        SrvFreeMemory(pContext->pszMachinePrincipal);
     }
 
     if (pContext->pMutex)

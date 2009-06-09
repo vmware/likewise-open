@@ -356,7 +356,7 @@ cleanup:
 
     if (pwszFilepath)
     {
-        LwRtlMemoryFree(pwszFilepath);
+        SrvFreeMemory(pwszFilepath);
     }
 
     return ntStatus;
