@@ -75,6 +75,8 @@ typedef PSecHandle   PCredHandle;
 typedef SecHandle    CtxtHandle;
 typedef PSecHandle   PCtxtHandle;
 
+typedef char*   SEC_CHAR;
+
 typedef struct _SecBuffer {
   ULONG cbBuffer;
   ULONG BufferType;

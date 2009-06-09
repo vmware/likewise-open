@@ -234,7 +234,7 @@ NtlmTransactAcceptSecurityContext(
     switch (response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
-            pResultList = ()response.object;
+            pResultList = (NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -255,7 +255,6 @@ cleanup:
     return dwError;
 
 error:
-    *ppGroupInfo = NULL;
 
     goto cleanup;
 }
@@ -411,8 +410,8 @@ NtlmTransactInitializeSecurityContext(
     InitSecCtxtReq.pOutput = pOutput;
 
 
-    request.tag = NTLM_Q_ACCEPT_SEC_CTXT;
-    request.object = &AcceptSecCtxtReq;
+    request.tag = NTLM_Q_INIT_SEC_CTXT;
+    request.object = &InitSecCtxtReq;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -422,10 +421,10 @@ NtlmTransactInitializeSecurityContext(
 
     switch (response.tag)
     {
-        case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
-            pResultList = ()response.object;
+        case NTLM_R_INIT_SEC_CTXT_SUCCESS:
+            pResultList = (NTLM_IPC_INIT_SEC_CTXT_REQ)response.object;
             break;
-        case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
+        case NTLM_R_INIT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_NTLM_ERROR(dwError);
@@ -444,8 +443,10 @@ cleanup:
     return dwError;
 
 error:
-    *ppGroupInfo = NULL;
-
+    memset(phNewContext, 0, sizeof(CtxtHandle));
+    pfContextAttr = 0;
+    memset(ptsExpiry, 0, sizeof(TimeStamp));
+    memset(pOutput, 0, sizeof(SecBufferDesc));
     goto cleanup;
 }
 

@@ -7,11 +7,5 @@ NtlmServerQueryCredentialsAttributes(
     )
 {
     DWORD dwError = 0;
-    dwError = NtlmTransactQueryCredentialsAttributes(
-                    hServer,
-                    phCredential,
-                    ulAttribute,
-                    pBuffer
-                    );
     return(dwError);
 }

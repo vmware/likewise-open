@@ -19,9 +19,7 @@ NtlmClientInitializeSecurityContext(
     DWORD dwError = 0;
     HANDLE hServer = INVALID_HANDLE;
 
-    dwError = NtlmOpenServer(
-        &hServer
-        );
+    dwError = NtlmOpenServer(&hServer);
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmTransactInitializeSecurityContext(
