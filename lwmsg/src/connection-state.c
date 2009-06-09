@@ -735,8 +735,12 @@ lwmsg_connection_state_begin_close(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_begin_send_shutdown(assoc, LWMSG_STATUS_PEER_CLOSE));
+    if (priv->fd != -1)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_begin_send_shutdown(assoc, LWMSG_STATUS_PEER_CLOSE));
+    }
 
 done:
 
@@ -762,23 +766,27 @@ lwmsg_connection_state_finish_close(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
 
     switch (*event)
     {
     case CONNECTION_EVENT_FINISH:
-        status = lwmsg_connection_finish_send_shutdown(assoc);
-
-        switch (status)
+        if (priv->fd != -1)
         {
-        case LWMSG_STATUS_PEER_CLOSE:
-        case LWMSG_STATUS_PEER_ABORT:
-        case LWMSG_STATUS_PEER_RESET:
-            /* Don't raise an error if the peer beat us to closing the connection */
-            status = LWMSG_STATUS_SUCCESS;
-            break;
-        default:
-            BAIL_ON_ERROR(status);
-            break;
+            status = lwmsg_connection_finish_send_shutdown(assoc);
+
+            switch (status)
+            {
+            case LWMSG_STATUS_PEER_CLOSE:
+            case LWMSG_STATUS_PEER_ABORT:
+            case LWMSG_STATUS_PEER_RESET:
+                /* Don't raise an error if the peer beat us to closing the connection */
+                status = LWMSG_STATUS_SUCCESS;
+                break;
+            default:
+                BAIL_ON_ERROR(status);
+                break;
+            }
         }
 
         BAIL_ON_ERROR(status = lwmsg_connection_finish_close(assoc));
