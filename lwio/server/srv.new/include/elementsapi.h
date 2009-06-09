@@ -44,6 +44,12 @@
 #ifndef __ELEMENTSAPI_H__
 #define __ELEMENTSAPI_H__
 
+#define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
+#define SMB_FIND_CLOSE_IF_EOS        0x2
+#define SMB_FIND_RETURN_RESUME_KEYS  0x4
+#define SMB_FIND_CONTINUE_SEARCH     0x8
+#define SMB_FIND_WITH_BACKUP_INTENT  0x10
+
 typedef struct _LWIO_SRV_FILE
 {
     pthread_rwlock_t        mutex;

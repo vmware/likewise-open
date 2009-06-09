@@ -73,6 +73,7 @@
 #include <srvutils.h>
 #include <shareapi.h>
 #include <elementsapi.h>
+#include <transportapi.h>
 #include <protocolapi.h>
 #include <smb1.h>
 

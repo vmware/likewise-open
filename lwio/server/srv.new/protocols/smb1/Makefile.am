@@ -21,7 +21,6 @@ libsrv_protocols_smb1_la_SOURCES = \
     read.c           \
     readx.c          \
     rename.c         \
-    seek.c           \
     sessionsetup.c   \
     srvfinder.c      \
     srvpipeinfo.c    \
@@ -30,9 +29,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     trans2qfsi.c     \
     trans2qpi.c      \
     trans2sfi.c      \
-    trans2spi.c      \
     trans.c          \
-    transcreate.c    \
     treeconnect.c    \
     treedisconnect.c \
     write.c          \

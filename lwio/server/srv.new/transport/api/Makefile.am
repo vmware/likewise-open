@@ -2,8 +2,7 @@ noinst_LTLIBRARIES = libsrv.transport.api.la
 
 libsrv_transport_api_la_SOURCES = \
     globals.c \
-    libmain.c \
-    srvconnection.c
+    libmain.c
 
 libsrv_transport_api_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

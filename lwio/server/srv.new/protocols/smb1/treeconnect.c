@@ -102,8 +102,6 @@ SrvProcessTreeConnectAndX(
 	)
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
-    PSMB_PACKET pSmbRequest = pContext->pRequest;
     PSMB_PACKET pSmbResponse = NULL;
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE pTree = NULL;
@@ -162,7 +160,7 @@ SrvProcessTreeConnectAndX(
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
-    ntStatus = SrvFindShareByName(
+    ntStatus = SrvShareFindByName(
                     pConnection->pShareList,
                     pwszSharename,
                     &pShareInfo);
@@ -204,7 +202,7 @@ cleanup:
 
     if (pShareInfo)
     {
-        SrvShareDbReleaseInfo(pShareInfo);
+        SrvShareReleaseInfo(pShareInfo);
     }
 
     if (pwszSharename)
@@ -743,7 +741,7 @@ SrvGetServiceName(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
-    ntStatus = SrvShareGetServiceStringId(
+    ntStatus = SrvShareMapIdToServiceStringA(
                     pShareInfo->service,
                     &pszService);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -883,7 +881,7 @@ cleanup:
 
     if (pIoSecContext)
     {
-        IoSecurityFreeSecurityContext(&pIoSecContext);
+        IoSecurityDereferenceSecurityContext(&pIoSecContext);
     }
 
 
