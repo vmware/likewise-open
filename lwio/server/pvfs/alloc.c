@@ -153,8 +153,7 @@ PvfsAllocateIrpContext(
     pthread_mutex_init(&pIrpContext->Mutex, NULL);
     pthread_cond_init(&pIrpContext->Event, NULL);
 
-    pIrpContext->ntError = STATUS_PENDING;
-    pIrpContext->bFinished = FALSE;
+    pIrpContext->bIsCancelled = FALSE;
 
     pIrpContext->pIrp = pIrp;
 

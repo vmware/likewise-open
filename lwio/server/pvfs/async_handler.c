@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        create.c
+ *        async_handler.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Create Dispatch Routine
+ *        Async IRP dispatch routines
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
@@ -51,76 +51,75 @@
 
 /* Code */
 
-/* Main entry to the Create() routine for driver.  Splits work based
-   on the CreateOptions */
+/************************************************************
+ ***********************************************************/
 
-NTSTATUS
-PvfsCreate(
-    PPVFS_IRP_CONTEXT  pIrpContext
+static VOID
+PvfsCancelIrp(
+    PIRP pIrp,
+    PVOID pCancelContext
+    )
+{
+    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
+    BOOLEAN bIsLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    pIrpCtx->bIsCancelled = TRUE;
+
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    return;
+}
+
+/************************************************************
+ ***********************************************************/
+
+static NTSTATUS
+PvfsPendIrp(
+    PPVFS_IRP_CONTEXT pIrpCtx
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    FILE_CREATE_OPTIONS CreateOptions = 0;
-    BOOLEAN bIsDirectory = FALSE;
-    PIRP pIrp = pIrpContext->pIrp;
-    PSTR pszFilename = NULL;
-    PSTR pszDiskFilename = NULL;
-    PVFS_STAT Stat = {0};
+    BOOLEAN bIsLocked = FALSE;
 
-    if (pIrpContext->bIsCancelled) {
-        ntError = STATUS_CANCELLED;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
 
-    CreateOptions = pIrp->Args.Create.CreateOptions;
+    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
 
-    if (CreateOptions & FILE_DIRECTORY_FILE)
-    {
-        bIsDirectory = TRUE;
-    }
-    else if (CreateOptions & FILE_NON_DIRECTORY_FILE)
-    {
-        bIsDirectory = FALSE;
-    }
-    else
-    {
-        /* stat() the path and find out if this is a file or directory */
-
-        ntError = PvfsCanonicalPathName(&pszFilename,
-                                        pIrp->Args.Create.FileName);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsLookupPath(&pszDiskFilename, pszFilename, FALSE);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsSysStat(pszDiskFilename, &Stat);
-        BAIL_ON_NT_STATUS(ntError);
-
-        bIsDirectory = S_ISDIR(Stat.s_mode);
-    }
-
-
-    if (bIsDirectory)
-    {
-        pIrp->Args.Create.CreateOptions |= FILE_DIRECTORY_FILE;
-        ntError = PvfsCreateDirectory(pIrpContext);
-    }
-    /* File branch */
-    else
-    {
-        pIrp->Args.Create.CreateOptions |= FILE_NON_DIRECTORY_FILE;
-        ntError = PvfsCreateFile(pIrpContext);
-    }
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
     BAIL_ON_NT_STATUS(ntError);
 
+    IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelIrp, pIrpCtx);
+
+    ntError = STATUS_PENDING;
+
 cleanup:
-    RtlCStringFree(&pszFilename);
-    RtlCStringFree(&pszDiskFilename);
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
 
     return ntError;
 
 error:
     goto cleanup;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncCreate(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsCreate;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
 }
 
 

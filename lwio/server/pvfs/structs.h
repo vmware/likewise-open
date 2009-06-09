@@ -205,17 +205,25 @@ typedef struct _PVFS_CCB
 
 } PVFS_CCB, *PPVFS_CCB;
 
-typedef struct _PVFS_IRP_CONTEXT
+struct _PVFS_IRP_CONTEXT;
+typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+
+typedef NTSTATUS (*PPVFS_WORK_CALLBACK)(
+    IN PPVFS_IRP_CONTEXT pIrpCtx
+    );
+
+struct _PVFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
     pthread_cond_t  Event;    /* synchronize point for worker threads */
 
-    BOOL bFinished;
-    NTSTATUS ntError;
+    BOOLEAN bIsCancelled;
 
     PIRP pIrp;
 
-} PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+    PPVFS_WORK_CALLBACK pfnWorkCallback;
+
+};
 
 
 /* Used for Query/Set level handlers */
