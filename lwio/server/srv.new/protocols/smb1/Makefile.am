@@ -9,6 +9,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     delete.c         \
     echo.c           \
     findclose2.c     \
+    finder.c         \
     findfirst2.c     \
     findnext2.c      \
     flush.c          \
@@ -18,12 +19,11 @@ libsrv_protocols_smb1_la_SOURCES = \
     negotiate.c      \
     nttransact.c     \
     openx.c          \
+    pipeinfo.c       \
     read.c           \
     readx.c          \
     rename.c         \
     sessionsetup.c   \
-    srvfinder.c      \
-    srvpipeinfo.c    \
     trans2.c         \
     trans2qfi.c      \
     trans2qfsi.c     \

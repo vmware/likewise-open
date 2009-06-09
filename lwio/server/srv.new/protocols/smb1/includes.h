@@ -77,8 +77,8 @@
 #include <protocolapi.h>
 #include <smb1.h>
 
-#include "srvfinder.h"
-#include "srvpipeinfo.h"
+#include "finder.h"
+#include "pipeinfo.h"
 #include "trans2qfi.h"
 #include "trans2qfsi.h"
 #include "trans2qpi.h"
