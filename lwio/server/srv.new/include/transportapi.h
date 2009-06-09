@@ -55,6 +55,11 @@ SrvTransportInit(
     VOID
     );
 
+HANDLE
+SrvTransportGetAllocator(
+    IN PLWIO_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvTransportGetRequest(
     OUT PLWIO_SRV_CONNECTION* ppConnection,

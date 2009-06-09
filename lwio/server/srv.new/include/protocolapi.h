@@ -81,7 +81,7 @@ typedef struct _LWIO_SRV_TREE
 
     USHORT            tid;
 
-    PSHARE_DB_INFO    pShareInfo;
+    PSRV_SHARE_INFO   pShareInfo;
 
     PLWRTL_RB_TREE    pFileCollection;
 
@@ -109,5 +109,156 @@ typedef struct _LWIO_SRV_SESSION
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
+
+NTSTATUS
+SrvGssAcquireContext(
+    PSRV_HOST_INFO pHostinfo,
+    HANDLE         hGssOrig,
+    PHANDLE        phGssNew
+    );
+
+BOOLEAN
+SrvGssNegotiateIsComplete(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    );
+
+NTSTATUS
+SrvGssGetSessionDetails(
+    HANDLE hGss,
+    HANDLE hGssNegotiate,
+    PBYTE* ppSessionKey,
+    PULONG pulSessionKeyLength,
+    PSTR* ppszClientPrincipalName
+    );
+
+NTSTATUS
+SrvGssBeginNegotiate(
+    HANDLE  hGss,
+    PHANDLE phGssNegotiate
+    );
+
+NTSTATUS
+SrvGssNegotiate(
+    HANDLE  hGss,
+    HANDLE  hGssResume,
+    PBYTE   pSecurityInputBlob,
+    ULONG   ulSecurityInputBlobLen,
+    PBYTE*  ppSecurityOutputBlob,
+    ULONG*  pulSecurityOutputBloblen
+    );
+
+VOID
+SrvGssEndNegotiate(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    );
+
+VOID
+SrvGssReleaseContext(
+    HANDLE hGss
+    );
+
+NTSTATUS
+SrvSessionCreate(
+    USHORT            uid,
+    PLWIO_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvSessionFindTree(
+    PLWIO_SRV_SESSION pSession,
+    USHORT           tid,
+    PLWIO_SRV_TREE*   ppTree
+    );
+
+NTSTATUS
+SrvSessionRemoveTree(
+    PLWIO_SRV_SESSION pSession,
+    USHORT           tid
+    );
+
+NTSTATUS
+SrvSessionCreateTree(
+    PLWIO_SRV_SESSION pSession,
+    PSRV_SHARE_INFO   pShareInfo,
+    PLWIO_SRV_TREE*   ppTree
+    );
+
+NTSTATUS
+SrvSessionGetNamedPipeClientPrincipal(
+    PLWIO_SRV_SESSION pSession,
+    PIO_ECP_LIST     pEcpList
+    );
+
+VOID
+SrvSessionRelease(
+    PLWIO_SRV_SESSION pSession
+    );
+
+NTSTATUS
+SrvTreeCreate(
+    USHORT            tid,
+    PSRV_SHARE_INFO   pShareInfo,
+    PLWIO_SRV_TREE*    ppTree
+    );
+
+NTSTATUS
+SrvTreeFindFile(
+    PLWIO_SRV_TREE  pTree,
+    USHORT         fid,
+    PLWIO_SRV_FILE* ppFile
+    );
+
+NTSTATUS
+SrvTreeCreateFile(
+    PLWIO_SRV_TREE           pTree,
+    PWSTR                   pwszFilename,
+    PIO_FILE_HANDLE         phFile,
+    PIO_FILE_NAME*          ppFilename,
+    ACCESS_MASK             desiredAccess,
+    LONG64                  allocationSize,
+    FILE_ATTRIBUTES         fileAttributes,
+    FILE_SHARE_FLAGS        shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS     createOptions,
+    PLWIO_SRV_FILE*          ppFile
+    );
+
+NTSTATUS
+SrvTreeRemoveFile(
+    PLWIO_SRV_TREE pTree,
+    USHORT        fid
+    );
+
+BOOLEAN
+SrvTreeIsNamedPipe(
+    PLWIO_SRV_TREE pTree
+    );
+
+VOID
+SrvTreeRelease(
+    PLWIO_SRV_TREE pTree
+    );
+
+NTSTATUS
+SrvFileCreate(
+    USHORT                  fid,
+    PWSTR                   pwszFilename,
+    PIO_FILE_HANDLE         phFile,
+    PIO_FILE_NAME*          ppFilename,
+    ACCESS_MASK             desiredAccess,
+    LONG64                  allocationSize,
+    FILE_ATTRIBUTES         fileAttributes,
+    FILE_SHARE_FLAGS        shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS     createOptions,
+    PLWIO_SRV_FILE*          ppFile
+    );
+
+VOID
+SrvFileRelease(
+    PLWIO_SRV_FILE pFile
+    );
 
 #endif /* __PROTOCOL_API_H__ */

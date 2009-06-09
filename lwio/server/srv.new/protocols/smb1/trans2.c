@@ -203,7 +203,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            pConnection->hPacketAllocator,
+            SrvTransportGetAllocator(pConnection),
             pSmbResponse);
     }
 

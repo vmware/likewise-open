@@ -64,7 +64,19 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
+#include <smbwire.h>
+
 #include <srvdefs.h>
 #include <srvutils.h>
 #include <shareapi.h>
+#include <transportapi.h>
+#include <protocolapi.h>
+
+#include "srvfinder.h"
+#include "srvfinder_p.h"
+#include "srvpipeinfo.h"
+#include "trans2qfi.h"
+#include "trans2qfsi.h"
+#include "trans2qpi.h"
+#include "trans2sfi.h"
 

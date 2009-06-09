@@ -77,6 +77,14 @@ SrvTransportInit(
     return status;
 }
 
+HANDLE
+SrvTransportGetAllocator(
+    IN PLWIO_SRV_CONNECTION pConnection
+    )
+{
+	return pConnection->hPacketAllocator;
+}
+
 NTSTATUS
 SrvTransportGetRequest(
     OUT PLWIO_SRV_CONNECTION* ppConnection,

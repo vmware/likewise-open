@@ -69,28 +69,28 @@ SrvBuildTreeConnectResponse(
 static
 NTSTATUS
 SrvGetMaximalShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 static
 NTSTATUS
 SrvGetGuestShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 static
 NTSTATUS
 SrvGetServiceName(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PSTR* ppszService
     );
 
 static
 NTSTATUS
 SrvGetNativeFilesystem(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PWSTR* ppwszNativeFilesystem
     );
 
@@ -108,7 +108,7 @@ SrvProcessTreeConnectAndX(
     PLWIO_SRV_SESSION pSession = NULL;
     PLWIO_SRV_TREE pTree = NULL;
     BOOLEAN       bRemoveTreeFromSession = FALSE;
-    PSHARE_DB_INFO pShareInfo = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
     ULONG ulOffset = 0;
     TREE_CONNECT_REQUEST_HEADER* pRequestHeader = NULL; // Do not free
     uint8_t* pszPassword = NULL; // Do not free
@@ -237,7 +237,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            pConnection->hPacketAllocator,
+            SrvTransportGetAllocator(pConnection),
             pSmbResponse);
     }
 
@@ -515,12 +515,12 @@ SrvBuildTreeConnectResponse(
     PWSTR  pwszNativeFileSystem = NULL;
 
     ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
+                    SrvTransportGetAllocator(pConnection),
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
+                    SrvTransportGetAllocator(pConnection),
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -609,7 +609,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            pConnection->hPacketAllocator,
+            SrvTransportGetAllocator(pConnection),
             pSmbResponse);
     }
 
@@ -619,7 +619,7 @@ error:
 static
 NTSTATUS
 SrvGetMaximalShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -676,7 +676,7 @@ SrvGetMaximalShareAccessMask(
 static
 NTSTATUS
 SrvGetGuestShareAccessMask(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -733,7 +733,7 @@ SrvGetGuestShareAccessMask(
 static
 NTSTATUS
 SrvGetServiceName(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PSTR* ppszService
     )
 {
@@ -766,7 +766,7 @@ error:
 static
 NTSTATUS
 SrvGetNativeFilesystem(
-    PSHARE_DB_INFO pShareInfo,
+    PSRV_SHARE_INFO pShareInfo,
     PWSTR* ppwszNativeFilesystem
     )
 {
