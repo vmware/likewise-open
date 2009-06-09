@@ -67,3 +67,5 @@
 #include <srvutils.h>
 #include <shareapi.h>
 
+#include <smb2.h>
+

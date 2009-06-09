@@ -48,6 +48,14 @@
 #ifndef __SMB_V2_H__
 #define __SMB_V2_H__
 
+NTSTATUS
+SrvProtocolInit_SMB_V2(
+    VOID
+    );
 
+NTSTATUS
+SrvProtocolShutdown_SMB_V2(
+    VOID
+    );
 
 #endif /* __SMB_V2_H__ */
