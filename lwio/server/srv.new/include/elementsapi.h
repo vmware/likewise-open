@@ -119,6 +119,21 @@ typedef enum
 
 typedef struct LWIO_SRV_SOCKET* PLWIO_SRV_SOCKET;
 
+typedef struct _SRV_PROPERTIES
+{
+    USHORT  preferredSecurityMode;
+    BOOLEAN bEncryptPasswords;
+    BOOLEAN bEnableSecuritySignatures;
+    BOOLEAN bRequireSecuritySignatures;
+    USHORT  MaxMpxCount;
+    USHORT  MaxNumberVCs;
+    ULONG   MaxBufferSize;
+    ULONG   MaxRawSize;
+    ULONG   Capabilities;
+    uuid_t  GUID;
+
+} SRV_PROPERTIES, *PSRV_PROPERTIES;
+
 typedef struct _SRV_CLIENT_PROPERITES
 {
 
