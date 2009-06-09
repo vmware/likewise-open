@@ -49,6 +49,7 @@
 #define __TRANSPORT_API_H__
 
 typedef struct LWIO_SRV_CONNECTION *PLWIO_SRV_CONNECTION;
+typedef struct LWIO_SRV_SOCKET     *PLWIO_SRV_SOCKET;
 
 NTSTATUS
 SrvTransportInit(
@@ -58,6 +59,74 @@ SrvTransportInit(
 HANDLE
 SrvTransportGetAllocator(
     IN PLWIO_SRV_CONNECTION pConnection
+    );
+
+NTSTATUS
+SrvConnectionCreate(
+    PLWIO_SRV_SOCKET           pSocket,
+    HANDLE                    hPacketAllocator,
+    HANDLE                    hGssContext,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    PSRV_PROPERTIES           pServerProperties,
+    PSRV_HOST_INFO            pHostinfo,
+    PLWIO_SRV_CONNECTION*      ppConnection
+    );
+
+NTSTATUS
+SrvConnectionCreateSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionFindSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT uid,
+    PLWIO_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+LWIO_SRV_CONN_STATE
+SrvConnectionGetState(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+BOOLEAN
+SrvConnectionIsInvalid(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionRelease(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+NTSTATUS
+SrvConnectionRemoveSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT              uid
+    );
+
+VOID
+SrvConnectionSetInvalid(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionSetState(
+    PLWIO_SRV_CONNECTION pConnection,
+    LWIO_SRV_CONN_STATE  connState
     );
 
 NTSTATUS

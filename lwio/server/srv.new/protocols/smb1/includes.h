@@ -49,6 +49,8 @@
 #include <config.h>
 #include <lwiosys.h>
 
+#include <uuid/uuid.h>
+
 #include <lwio/lwio.h>
 
 #include <lwiodef.h>
@@ -67,10 +69,12 @@
 #include <smbwire.h>
 
 #include <srvdefs.h>
+#include <srvstructs.h>
 #include <srvutils.h>
 #include <shareapi.h>
 #include <transportapi.h>
 #include <protocolapi.h>
+#include <smb1.h>
 
 #include "srvfinder.h"
 #include "srvfinder_p.h"

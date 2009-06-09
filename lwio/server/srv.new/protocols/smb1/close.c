@@ -48,7 +48,7 @@ SrvBuildCloseResponse(
 
 NTSTATUS
 SrvProcessCloseAndX(
-    IN  PLWIO_SRV_CONNECTION pConneciton,
+    IN  PLWIO_SRV_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
     OUT PSMB_PACKET*         ppSmbResponse
     )
