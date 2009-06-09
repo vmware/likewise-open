@@ -64,7 +64,6 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
-#include <srvdefs.h>
 #include <srvutils.h>
 #include <shareapi.h>
 

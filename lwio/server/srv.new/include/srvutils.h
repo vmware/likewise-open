@@ -44,6 +44,12 @@
 #ifndef __SRV_UTILS_H__
 #define __SRV_UTILS_H__
 
+#define SRV_SAFE_FREE_MEMORY(pMemory) \
+	if (pMemory) { SrvFreeMemory(pMemory); }
+
+#define SRV_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
+	if (pMemory) { SrvFreeMemory(pMemory); (pMemory) = NULL; }
+
 typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
 
 typedef struct _SMB_PROD_CONS_QUEUE
