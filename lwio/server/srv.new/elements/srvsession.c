@@ -147,7 +147,7 @@ error:
 NTSTATUS
 SrvSessionCreateTree(
     PLWIO_SRV_SESSION pSession,
-    PSHARE_DB_INFO   pShareInfo,
+    PSRV_SHARE_INFO   pShareInfo,
     PLWIO_SRV_TREE*   ppTree
     )
 {
@@ -364,7 +364,7 @@ SrvSessionFree(
     IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
 
     if (pSession->pIoSecurityContext) {
-        IoSecurityFreeSecurityContext(&pSession->pIoSecurityContext);
+        IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
     LwRtlMemoryFree(pSession);

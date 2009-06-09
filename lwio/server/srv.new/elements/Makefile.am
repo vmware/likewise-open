@@ -2,9 +2,10 @@ noinst_LTLIBRARIES = libsrvelements.la
 
 libsrvelements_la_SOURCES = \
     libmain.c    \
+    srvfile.c    \
+    srvfinder.c  \
     srvsession.c \
-    srvtree.c    \
-    srvfile.c
+    srvtree.c
 
 libsrvelements_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

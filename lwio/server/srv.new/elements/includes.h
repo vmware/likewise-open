@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,75 +28,45 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srv/protocol.h
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
- *
- *        Definitions
+ *        Elements
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#ifndef __PROTOCOL_API_H__
-#define __PROTOCOL_API_H__
+#include <config.h>
+#include <lwiosys.h>
 
-NTSTATUS
-SrvGssAcquireContext(
-    PSRV_HOST_INFO pHostinfo,
-    HANDLE         hGssOrig,
-    PHANDLE        phGssNew
-    );
+#include <uuid/uuid.h>
 
-BOOLEAN
-SrvGssNegotiateIsComplete(
-    HANDLE hGss,
-    HANDLE hGssNegotiate
-    );
+#include <lwio/lwio.h>
 
-NTSTATUS
-SrvGssGetSessionDetails(
-    HANDLE hGss,
-    HANDLE hGssNegotiate,
-    PBYTE* ppSessionKey,
-    PULONG pulSessionKeyLength,
-    PSTR* ppszClientPrincipalName
-    );
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiolog_r.h>
 
-NTSTATUS
-SrvGssBeginNegotiate(
-    HANDLE  hGss,
-    PHANDLE phGssNegotiate
-    );
+#include <lw/ntstatus.h>
 
-NTSTATUS
-SrvGssNegotiate(
-    HANDLE  hGss,
-    HANDLE  hGssResume,
-    PBYTE   pSecurityInputBlob,
-    ULONG   ulSecurityInputBlobLen,
-    PBYTE*  ppSecurityOutputBlob,
-    ULONG*  pulSecurityOutputBloblen
-    );
+#include <iodriver.h>
+#include <ioapi.h>
 
-VOID
-SrvGssEndNegotiate(
-    HANDLE hGss,
-    HANDLE hGssNegotiate
-    );
+#include <smbwire.h>
 
-VOID
-SrvGssReleaseContext(
-    HANDLE hGss
-    );
+#include <srvdefs.h>
+#include <srvstructs.h>
+#include <srvutils.h>
+#include <shareapi.h>
+#include <elementsapi.h>
 
-#endif /* __PROTOCOL_API_H__ */

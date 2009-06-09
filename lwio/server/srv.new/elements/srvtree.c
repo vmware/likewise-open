@@ -28,9 +28,9 @@ SrvTreeFree(
 
 NTSTATUS
 SrvTreeCreate(
-    USHORT            tid,
-    PSHARE_DB_INFO    pShareInfo,
-    PLWIO_SRV_TREE*    ppTree
+    USHORT          tid,
+    PSRV_SHARE_INFO pShareInfo,
+    PLWIO_SRV_TREE* ppTree
     )
 {
     NTSTATUS ntStatus = 0;
@@ -361,7 +361,7 @@ SrvTreeFree(
 
     if (pTree->pShareInfo)
     {
-        SrvShareDbReleaseInfo(pTree->pShareInfo);
+        SrvShareReleaseInfo(pTree->pShareInfo);
     }
 
     LwRtlMemoryFree(pTree);
