@@ -94,7 +94,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -368,7 +368,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 

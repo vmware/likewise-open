@@ -335,3 +335,29 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
+    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
+
+    ntStatus = IoRtlEcpListInsert(pEcpList,
+                                  IO_ECP_TYPE_PEER_ADDRESS,
+                                  pAddr,
+                                  ulAddrLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+

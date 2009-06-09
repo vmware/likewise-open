@@ -1,10 +1,12 @@
 noinst_LTLIBRARIES = libsrvelements.la
 
 libsrvelements_la_SOURCES = \
-    libmain.c    \
-    srvfile.c    \
-    srvfinder.c  \
-    srvsession.c \
+    libmain.c       \
+    srvconnection.c \
+    srvfile.c       \
+    srvfinder.c     \
+    srvgss.c        \
+    srvsession.c    \
     srvtree.c
 
 libsrvelements_la_CPPFLAGS = \

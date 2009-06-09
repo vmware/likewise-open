@@ -103,6 +103,74 @@ typedef struct _LWIO_SRV_SESSION
 
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
 
+typedef enum
+{
+    LWIO_SRV_CONN_STATE_INITIAL = 0,
+    LWIO_SRV_CONN_STATE_NEGOTIATE,
+    LWIO_SRV_CONN_STATE_READY,
+    LWIO_SRV_CONN_STATE_INVALID
+} LWIO_SRV_CONN_STATE;
+
+typedef struct LWIO_SRV_SOCKET* PLWIO_SRV_SOCKET;
+
+typedef struct _SRV_CLIENT_PROPERITES
+{
+
+    USHORT MaxBufferSize;
+    USHORT MaxMpxCount;
+    USHORT VcNumber;
+    ULONG  SessionKey;
+    ULONG  Capabilities;
+    PWSTR  pwszNativeOS;
+    PWSTR  pwszNativeLanMan;
+    PWSTR  pwszNativeDomain;
+
+} SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
+
+typedef struct _LWIO_SRV_CONNECTION
+{
+    LONG                refCount;
+
+    pthread_rwlock_t     mutex;
+    pthread_rwlock_t*    pMutex;
+
+    LWIO_SRV_CONN_STATE  state;
+
+    PLWIO_SRV_SOCKET     pSocket;
+
+    SRV_PROPERTIES        serverProperties;
+    SRV_CLIENT_PROPERTIES clientProperties;
+
+    ULONG               ulSequence;
+
+    // Invariant
+    // Not owned
+    HANDLE              hPacketAllocator;
+
+    struct
+    {
+        BOOLEAN         bReadHeader;
+        size_t          sNumBytesToRead;
+        size_t          sOffset;
+        PSMB_PACKET     pRequestPacket;
+
+    } readerState;
+
+    PBYTE               pSessionKey;
+    ULONG               ulSessionKeyLength;
+
+    PSRV_HOST_INFO             pHostinfo;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
+
+    HANDLE              hGssContext;
+    HANDLE              hGssNegotiate;
+
+    PLWRTL_RB_TREE      pSessionCollection;
+
+    USHORT              nextAvailableUid;
+
+} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
+
 typedef struct _SRV_FINDER_REPOSITORY
 {
     LONG             refCount;
@@ -141,6 +209,123 @@ NTSTATUS
 SrvElementsInit(
 	VOID
 	);
+
+NTSTATUS
+SrvGssAcquireContext(
+    PSRV_HOST_INFO pHostinfo,
+    HANDLE         hGssOrig,
+    PHANDLE        phGssNew
+    );
+
+BOOLEAN
+SrvGssNegotiateIsComplete(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    );
+
+NTSTATUS
+SrvGssGetSessionDetails(
+    HANDLE hGss,
+    HANDLE hGssNegotiate,
+    PBYTE* ppSessionKey,
+    PULONG pulSessionKeyLength,
+    PSTR* ppszClientPrincipalName
+    );
+
+NTSTATUS
+SrvGssBeginNegotiate(
+    HANDLE  hGss,
+    PHANDLE phGssNegotiate
+    );
+
+NTSTATUS
+SrvGssNegotiate(
+    HANDLE  hGss,
+    HANDLE  hGssResume,
+    PBYTE   pSecurityInputBlob,
+    ULONG   ulSecurityInputBlobLen,
+    PBYTE*  ppSecurityOutputBlob,
+    ULONG*  pulSecurityOutputBloblen
+    );
+
+VOID
+SrvGssEndNegotiate(
+    HANDLE hGss,
+    HANDLE hGssNegotiate
+    );
+
+VOID
+SrvGssReleaseContext(
+    HANDLE hGss
+    );
+
+NTSTATUS
+SrvConnectionCreate(
+    PLWIO_SRV_SOCKET           pSocket,
+    HANDLE                    hPacketAllocator,
+    HANDLE                    hGssContext,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    PSRV_PROPERTIES           pServerProperties,
+    PSRV_HOST_INFO            pHostinfo,
+    PLWIO_SRV_CONNECTION*      ppConnection
+    );
+
+NTSTATUS
+SrvConnectionCreateSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionFindSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT uid,
+    PLWIO_SRV_SESSION* ppSession
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+NTSTATUS
+SrvConnectionGetNamedPipeSessionKey(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    );
+
+LWIO_SRV_CONN_STATE
+SrvConnectionGetState(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+BOOLEAN
+SrvConnectionIsInvalid(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionRelease(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+NTSTATUS
+SrvConnectionRemoveSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT              uid
+    );
+
+VOID
+SrvConnectionSetInvalid(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+VOID
+SrvConnectionSetState(
+    PLWIO_SRV_CONNECTION pConnection,
+    LWIO_SRV_CONN_STATE  connState
+    );
 
 NTSTATUS
 SrvSessionCreate(

@@ -72,12 +72,11 @@
 #include <srvstructs.h>
 #include <srvutils.h>
 #include <shareapi.h>
-#include <transportapi.h>
+#include <elementsapi.h>
 #include <protocolapi.h>
 #include <smb1.h>
 
 #include "srvfinder.h"
-#include "srvfinder_p.h"
 #include "srvpipeinfo.h"
 #include "trans2qfi.h"
 #include "trans2qfsi.h"

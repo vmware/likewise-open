@@ -51,6 +51,11 @@
 
 #include <uuid/uuid.h>
 
+#include <krb5.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
+
 #include <lwio/lwio.h>
 
 #include <lwiodef.h>

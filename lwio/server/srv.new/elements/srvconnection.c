@@ -1,3 +1,52 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvconnection.c
+ *
+ * Abstract:
+ *
+ *        Likewise IO (LWIO) - SRV
+ *
+ *        Elements
+ *
+ *        Connection Object
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ */
+
 #include "includes.h"
 
 // Rules:
@@ -22,16 +71,6 @@ SrvConnectionFreeContentsClientProperties(
     );
 
 static
-NTSTATUS
-SrvConnectionReadMessage(
-    PLWIO_SRV_SOCKET pSocket,
-    size_t          sBytesToRead,
-    size_t          sOffset,
-    PSMB_PACKET     pPacket,
-    size_t*         psNumBytesRead
-    );
-
-static
 int
 SrvConnectionSessionCompare(
     PVOID pKey1,
@@ -47,18 +86,16 @@ SrvConnectionSessionRelease(
 NTSTATUS
 SrvConnectionCreate(
     PLWIO_SRV_SOCKET           pSocket,
-    HANDLE                    hPacketAllocator,
-    HANDLE                    hGssContext,
+    HANDLE                     hPacketAllocator,
+    HANDLE                     hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PSRV_PROPERTIES           pServerProperties,
-    PSRV_HOST_INFO            pHostinfo,
+    PSRV_PROPERTIES            pServerProperties,
+    PSRV_HOST_INFO             pHostinfo,
     PLWIO_SRV_CONNECTION*      ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONNECTION pConnection = NULL;
-
-    LWIO_LOG_DEBUG("Creating server connection [fd:%d]", pSocket->fd);
 
     ntStatus = LW_RTL_ALLOCATE(
                     &pConnection,
@@ -67,10 +104,6 @@ SrvConnectionCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
-
-    LWIO_LOG_DEBUG("Associating connection [object:0x%x][fd:%d]",
-                    pConnection,
-                    pSocket->fd);
 
     pthread_rwlock_init(&pConnection->mutex, NULL);
     pConnection->pMutex = &pConnection->mutex;
@@ -145,8 +178,6 @@ SrvConnectionSetInvalid(
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
-
-    LWIO_LOG_DEBUG("Setting connection [fd:%d] to invalid", pConnection->pSocket->fd);
 
     pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
 
@@ -329,45 +360,13 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SrvConnectionGetNamedPipeClientAddress(
-    PLWIO_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST        pEcpList
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
-    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
-
-    ntStatus = IoRtlEcpListInsert(pEcpList,
-                                  IO_ECP_TYPE_PEER_ADDRESS,
-                                  pAddr,
-                                  ulAddrLength,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 VOID
 SrvConnectionRelease(
     PLWIO_SRV_CONNECTION pConnection
     )
 {
-    LWIO_LOG_DEBUG("Releasing connection [fd:%d]", pConnection->pSocket->fd);
-
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
-        LWIO_LOG_DEBUG("Freeing connection [object:0x%x][fd:%d]",
-                        pConnection,
-                        pConnection->pSocket->fd);
-
         if (pConnection->readerState.pRequestPacket)
         {
             SMBPacketFree(

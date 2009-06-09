@@ -111,7 +111,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -348,7 +348,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -386,12 +386,12 @@ SrvBuildQueryFileBasicInfoResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -452,7 +452,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -489,12 +489,12 @@ SrvBuildQueryFileStandardInfoResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -555,7 +555,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -591,12 +591,12 @@ SrvBuildQueryFileEAInfoResponse(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -651,7 +651,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
@@ -722,12 +722,12 @@ SrvBuildQueryFileStreamInfoResponse(
     } while (TRUE);
 
     ntStatus = SMBPacketAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
-                    SrvTransportGetAllocator(pConnection),
+                    pConnection->hPacketAllocator,
                     64 * 1024,
                     &pSmbResponse->pRawBuffer,
                     &pSmbResponse->bufferLen);
@@ -798,7 +798,7 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(
-            SrvTransportGetAllocator(pConnection),
+            pConnection->hPacketAllocator,
             pSmbResponse);
     }
 
