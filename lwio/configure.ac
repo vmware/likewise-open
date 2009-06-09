@@ -568,6 +568,7 @@ AC_CONFIG_FILES([Makefile
         server/srv.new/shares/Makefile
         server/srv.new/shares/lwshare/Makefile
         server/srv.new/shares/api/Makefile
+        server/srv.new/elements/Makefile
         server/srv.new/protocols/Makefile
         server/srv.new/protocols/api/Makefile
         server/srv.new/protocols/smb1/Makefile
