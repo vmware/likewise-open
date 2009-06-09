@@ -209,9 +209,8 @@ PvfsDriverDispatch(
 cleanup:
     if (ntError != STATUS_PENDING) {
         PvfsFreeIrpContext(&pIrpCtx);
+        pIrp->IoStatusBlock.Status = ntError;
     }
-
-    pIrp->IoStatusBlock.Status = ntError;
 
     return ntError;
 
