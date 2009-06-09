@@ -498,51 +498,6 @@ SrvConnectionFreeContentsClientProperties(
 }
 
 static
-NTSTATUS
-SrvConnectionReadMessage(
-    PLWIO_SRV_SOCKET pSocket,
-    size_t          sBytesToRead,
-    size_t          sOffset,
-    PSMB_PACKET     pPacket,
-    size_t*         psNumBytesRead
-    )
-{
-    NTSTATUS ntStatus = 0;
-    ssize_t  sNumBytesRead = 0;
-    BOOLEAN  bInLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    do
-    {
-        sNumBytesRead = read(pSocket->fd, pPacket->pRawBuffer + sOffset, sBytesToRead);
-        if (sNumBytesRead < 0)
-        {
-            if ((errno != EAGAIN) && (errno != EINTR))
-            {
-                ntStatus = LwUnixErrnoToNtStatus(errno);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-        }
-
-    } while (sNumBytesRead < 0);
-
-    *psNumBytesRead = sNumBytesRead;
-
-cleanup:
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return ntStatus;
-
-error:
-
-    *psNumBytesRead = 0;
-
-    goto cleanup;
-}
-
-static
 int
 SrvConnectionSessionCompare(
     PVOID pKey1,
