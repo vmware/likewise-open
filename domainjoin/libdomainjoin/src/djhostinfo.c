@@ -695,7 +695,7 @@ DJConfigureDHCPService(
           dhcpFilePath,
           NULL
         };
-#if 0
+#ifndef HAVE_SETHOSTNAME
     PSTR  ppszNetArgs[] =
         {
 #if defined(_AIX)
@@ -739,8 +739,9 @@ DJConfigureDHCPService(
         pProcInfo = NULL;
     }
 
-#if 0
-
+#ifdef HAVE_SETHOSTNAME
+    sethostname(pszComputerName, strlen(pszComputerName));
+#else
     ceError = DJFixNetworkManagerOnlineTimeout();
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
@@ -756,11 +757,6 @@ DJConfigureDHCPService(
         ceError = CENTERROR_DOMAINJOIN_DHCPRESTART_FAIL;
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
     }
-
-#else
-
-    sethostname(pszComputerName, strlen(pszComputerName));
-
 #endif
 
 cleanup:

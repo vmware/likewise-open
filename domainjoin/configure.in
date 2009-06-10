@@ -420,7 +420,7 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog sysinfo sysconf clock_gettime clock_settime settimeofday gettimeofday sigprocmask])
+AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog sysinfo sysconf clock_gettime clock_settime settimeofday gettimeofday sigprocmask sethostname])
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
 
 AC_ARG_WITH(gtk,
