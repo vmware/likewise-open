@@ -981,7 +981,6 @@ AD_EnumUsersFromCache(
     PVOID                 pBlob = NULL;
     size_t                BlobSize = 0;
     LWMsgContext*         context = NULL;
-    LWMsgDataHandle*      pDataHandle = NULL;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response;
     LSA_USER_INFO_LIST    result;
@@ -996,14 +995,11 @@ AD_EnumUsersFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                              pDataHandle,
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
+                              context,
                               LsaAdIPCGetEnumUsersFromCacheReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
@@ -1093,8 +1089,8 @@ AD_EnumUsersFromCache(
     }
     response.pUserInfoList = &result;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataHandle,
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
+                              context,
                               LsaAdIPCGetEnumUsersFromCacheRespSpec(),
                               &response,
                               &pBlob,
@@ -1120,12 +1116,11 @@ cleanup:
 
     if ( request )
     {
-        lwmsg_data_free_graph(
-            pDataHandle,
+        lwmsg_context_free_graph(
+            context,
             LsaAdIPCGetEnumUsersFromCacheReqSpec(),
             request);
     }
-
     if ( context )
     {
         lwmsg_context_delete(context);
@@ -1600,7 +1595,6 @@ AD_EnumGroupsFromCache(
     PVOID                 pBlob;
     size_t                BlobSize;
     LWMsgContext*         context = NULL;
-    LWMsgDataHandle*      pDataHandle = NULL;
     PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response;
     LSA_GROUP_INFO_LIST   result;
@@ -1615,14 +1609,11 @@ AD_EnumGroupsFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                              pDataHandle,
+    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
+                              context,
                               LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
@@ -1710,8 +1701,8 @@ AD_EnumGroupsFromCache(
     }
     response.pGroupInfoList = &result;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataHandle,
+    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
+                              context,
                               LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
                               &response,
                               &pBlob,
@@ -1737,17 +1728,11 @@ cleanup:
 
     if ( request )
     {
-        lwmsg_data_free_graph(
-            pDataHandle,
+        lwmsg_context_free_graph(
+            context,
             LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
             request);
     }
-
-    if (pDataHandle)
-    {
-        lwmsg_data_handle_delete(pDataHandle);
-    }
-
     if ( context )
     {
         lwmsg_context_delete(context);
