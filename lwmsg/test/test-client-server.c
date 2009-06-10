@@ -285,7 +285,7 @@ MU_TEST(client_server, parallel)
     LWMsgMessage reply_msg;
     LWMsgTime timeout = {1, 0};
 
-    MU_TRY(lwmsg_context_new(&context));
+    MU_TRY(lwmsg_context_new(NULL, &context));
     lwmsg_context_set_log_function(context, lwmsg_test_log_function, NULL);
 
     MU_TRY(lwmsg_protocol_new(context, &protocol));

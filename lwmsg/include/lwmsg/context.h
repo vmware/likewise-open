@@ -163,6 +163,7 @@ typedef void
  */
 LWMsgStatus
 lwmsg_context_new(
+    const LWMsgContext* parent,
     LWMsgContext** out_context
     );
 
@@ -204,6 +205,15 @@ lwmsg_context_set_memory_functions(
     );
 
 void
+lwmsg_context_get_memory_functions(
+    const LWMsgContext* context,
+    LWMsgAllocFunction* alloc,
+    LWMsgFreeFunction* free,
+    LWMsgReallocFunction* realloc,
+    void** data
+    );
+
+void
 lwmsg_context_set_data_function(
     LWMsgContext* context,
     LWMsgContextDataFunction fn,
@@ -233,25 +243,5 @@ lwmsg_context_get_error_message(
     LWMsgContext* context,
     LWMsgStatus status
     );
-
-/**
- * @ingroup marshal
- * @brief Recursively free an object graph
- *
- * Recursively frees all objects in an object graph -- such as one
- * created by an unmarshal operation -- using the memory management
- * functions of the specified context.  This allows complex data
- * structures to be quickly and easily reclaimed.
- *
- * @param context the context
- * @param type the type of the root object
- * @param root the root of the object graph
- * @return LWMSG_STATUS_SUCCESS on success or appropriate status code on failure
- */
-LWMsgStatus
-lwmsg_context_free_graph(
-    LWMsgContext* context,
-    LWMsgTypeSpec* type,
-    void* root);
 
 #endif

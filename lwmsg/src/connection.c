@@ -115,6 +115,11 @@ lwmsg_connection_destruct(
 
         priv->session = NULL;
     }
+
+    if (priv->marshal_handle)
+    {
+        lwmsg_data_handle_delete(priv->marshal_handle);
+    }
 }
 
 
