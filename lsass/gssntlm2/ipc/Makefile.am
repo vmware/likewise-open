@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libntlmipc.la
 
-libntlmipc_la_SOURCES =    \
-       ipc_protocol.c \
-       ipcio.c
+libntlmntlmipc_la_SOURCES =    \
+       ntlmipc_protocol.c \
+       ntlmipcio.c
 
