@@ -695,7 +695,7 @@ DJConfigureDHCPService(
           dhcpFilePath,
           NULL
         };
-#ifndef HAVE_SETHOSTNAME
+#if !defined(HAVE_SETHOSTNAME) || !HAVE_DECL_SETHOSTNAME
     PSTR  ppszNetArgs[] =
         {
 #if defined(_AIX)
@@ -739,8 +739,12 @@ DJConfigureDHCPService(
         pProcInfo = NULL;
     }
 
-#ifdef HAVE_SETHOSTNAME
-    sethostname(pszComputerName, strlen(pszComputerName));
+#if defined(HAVE_SETHOSTNAME) && HAVE_DECL_SETHOSTNAME
+    if (sethostname(pszComputerName, strlen(pszComputerName)) < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    }
 #else
     ceError = DJFixNetworkManagerOnlineTimeout();
     CLEANUP_ON_CENTERROR_EE(ceError, EE);

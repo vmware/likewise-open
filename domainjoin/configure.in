@@ -422,6 +422,8 @@ AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([atexit bzero localtime_r memset select socket strchr strerror vsyslog sysinfo sysconf clock_gettime clock_settime settimeofday gettimeofday sigprocmask sethostname])
 AC_CHECK_DECLS([isblank], [], [], [#include <ctype.h>])
+AC_CHECK_DECLS([sethostname], [], [], [#include <unistd.h>])
+
 
 AC_ARG_WITH(gtk,
 [ --with-gtk=yes/no     Enable/disable GTK support (default: yes) ],
