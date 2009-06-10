@@ -59,7 +59,7 @@
 #include <strings.h>
 #endif
 
-static void
+void
 lwmsg_server_lock(
     LWMsgServer* server
     )
@@ -67,7 +67,7 @@ lwmsg_server_lock(
     pthread_mutex_lock(&server->lock);
 }
 
-static void
+void
 lwmsg_server_unlock(
     LWMsgServer* server
     )
@@ -488,6 +488,8 @@ lwmsg_server_set_endpoint(
     lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
     task = NULL;
 
+    server->num_endpoints++;
+
 error:
 
     lwmsg_server_unlock(server);
@@ -630,6 +632,7 @@ lwmsg_server_startup(
     size_t dispatch_index = 0;
     ServerIoThread* io_thread = NULL;
     ServerDispatchThread* dispatch_thread = NULL;
+    LWMsgBool locked = LWMSG_FALSE;
 
     LWMSG_LOG_INFO(&server->context, "Starting server");
 
@@ -667,6 +670,18 @@ lwmsg_server_startup(
         lwmsg_server_queue_io_task(server, task);
     }
 
+    SERVER_LOCK(server, locked);
+
+    while (server->num_running_endpoints < server->num_endpoints &&
+           server->error == LWMSG_STATUS_SUCCESS)
+    {
+        pthread_cond_wait(&server->event, &server->lock);
+    }
+
+    BAIL_ON_ERROR(status = server->error);
+
+    SERVER_UNLOCK(server, locked);
+
     LWMSG_LOG_INFO(&server->context, "Server started");
 
 done:
@@ -674,6 +689,8 @@ done:
     return status;
 
 error:
+
+    SERVER_UNLOCK(server, locked);
 
     LWMSG_LOG_ERROR(&server->context, "Error starting server: %s",
                     lwmsg_context_get_error_message(&server->context, status));

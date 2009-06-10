@@ -963,6 +963,18 @@ lwmsg_server_task_perform_listen(
         }
 
         (*task)->type = SERVER_TASK_ACCEPT;
+
+
+        /* lwmsg_server_startup() waits for all endpoints to be
+           ready before returning, so update the counter and wake
+           it if needed */
+        lwmsg_server_lock(server);
+        server->num_running_endpoints++;
+        if (server->num_running_endpoints == server->num_endpoints)
+        {
+            pthread_cond_signal(&server->event);
+        }
+        lwmsg_server_unlock(server);
     }
 
 error:
