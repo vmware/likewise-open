@@ -99,37 +99,33 @@ lwmsg_context_default_realloc (
 }
 
 void
-lwmsg_context_setup(LWMsgContext* context, LWMsgContext* parent)
+lwmsg_context_setup(
+    LWMsgContext* context,
+    const LWMsgContext* parent
+    )
 {
     context->parent = parent;
-
-    if (!parent)
-    {
-        lwmsg_context_set_memory_functions(
-            context,
-            lwmsg_context_default_alloc,
-            lwmsg_context_default_free,
-            lwmsg_context_default_realloc,
-            NULL);
-    }
 }
 
 LWMsgStatus
-lwmsg_context_new(LWMsgContext** out_context)
+lwmsg_context_new(
+    const LWMsgContext* parent,
+    LWMsgContext** context
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgContext* context = NULL;
+    LWMsgContext* my_context = NULL;
 
-    context = calloc(1, sizeof(*context));
+    my_context = calloc(1, sizeof(*my_context));
 
-    if (context == NULL)
+    if (my_context == NULL)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    lwmsg_context_setup(context, NULL);
+    lwmsg_context_setup(my_context, parent);
 
-    *out_context = context;
+    *context = my_context;
 
 error:
 
@@ -165,59 +161,64 @@ lwmsg_context_set_memory_functions(
 }
 
 const char*
-lwmsg_context_get_error_message(LWMsgContext* context, LWMsgStatus status)
+lwmsg_context_get_error_message(
+    LWMsgContext* context,
+    LWMsgStatus status
+    )
 {
     return lwmsg_error_message(status, &context->error);
 }
 
-LWMsgAllocFunction
-lwmsg_context_get_alloc(LWMsgContext* context)
+void
+lwmsg_context_get_memory_functions(
+    const LWMsgContext* context,
+    LWMsgAllocFunction* alloc,
+    LWMsgFreeFunction* free,
+    LWMsgReallocFunction* realloc,
+    void** data
+    )
 {
-    if (context->alloc)
+    if (!context)
     {
-        return context->alloc;
+        if (alloc)
+        {
+            *alloc = lwmsg_context_default_alloc;
+        }
+        if (free)
+        {
+            *free = lwmsg_context_default_free;
+        }
+        if (realloc)
+        {
+            *realloc = lwmsg_context_default_realloc;
+        }
+        if (data)
+        {
+            *data = NULL;
+        }
     }
-    else if (context->parent)
+    else if (context->alloc)
     {
-        return lwmsg_context_get_alloc(context->parent);
+        if (alloc)
+        {
+            *alloc = context->alloc;
+        }
+        if (free)
+        {
+            *free = context->free;
+        }
+        if (realloc)
+        {
+            *realloc = context->realloc;
+        }
+        if (data)
+        {
+            *data = context->memdata;
+        }
     }
     else
     {
-        return NULL;
-    }
-}
-
-LWMsgFreeFunction
-lwmsg_context_get_free(LWMsgContext* context)
-{
-    if (context->free)
-    {
-        return context->free;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_free(context->parent);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-LWMsgReallocFunction
-lwmsg_context_get_realloc(LWMsgContext* context)
-{
-    if (context->realloc)
-    {
-        return context->realloc;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_realloc(context->parent);
-    }
-    else
-    {
-        return NULL;
+        lwmsg_context_get_memory_functions(context->parent, alloc, free, realloc, data);
     }
 }
 
@@ -230,23 +231,6 @@ lwmsg_context_set_data_function(
 {
     context->datafn = fn;
     context->datafndata = data;
-}
-
-void*
-lwmsg_context_get_memdata(LWMsgContext* context)
-{
-    if (context->memdata)
-    {
-        return context->memdata;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_memdata(context->parent);
-    }
-    else
-    {
-        return NULL;
-    }
 }
 
 void
@@ -263,31 +247,31 @@ lwmsg_context_set_log_function(
 static
 void
 lwmsg_context_get_log_function(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     LWMsgLogFunction* logfn,
     void** logfndata
     )
 {
-    if (context->logfn)
+    if (!context)
+    {
+        *logfn = NULL;
+        *logfndata = NULL;
+    }
+    else if (context->logfn)
     {
         *logfn = context->logfn;
         *logfndata = context->logfndata;
     }
-    else if (context->parent)
-    {
-        lwmsg_context_get_log_function(context->parent, logfn, logfndata);
-    }
     else
     {
-        *logfn = NULL;
-        *logfndata = NULL;
+        lwmsg_context_get_log_function(context->parent, logfn, logfndata);
     }
 }
 
 
 typedef struct freeinfo
 {
-    LWMsgContext* context;
+    const LWMsgContext* context;
     LWMsgFreeFunction free;
     void* data;
 } freeinfo;
@@ -340,15 +324,14 @@ error:
 
 LWMsgStatus
 lwmsg_context_free_graph_internal(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     LWMsgTypeIter* iter,
     unsigned char* object)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     freeinfo info;
 
-    info.free = lwmsg_context_get_free(context);
-    info.data = lwmsg_context_get_memdata(context);
+    lwmsg_context_get_memory_functions(context, NULL, &info.free, NULL, &info.data);
     info.context = context;
 
     BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
@@ -364,7 +347,7 @@ error:
 
 LWMsgStatus
 lwmsg_context_free_graph(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     LWMsgTypeSpec* type,
     void* root)
 {
@@ -377,7 +360,7 @@ lwmsg_context_free_graph(
 
 LWMsgStatus
 lwmsg_context_get_data(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     const char* key,
     void** out_data
     )
@@ -406,7 +389,7 @@ error:
 
 void
 lwmsg_context_log(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     LWMsgLogLevel level,
     const char* message,
     const char* filename,
@@ -426,7 +409,7 @@ lwmsg_context_log(
 
 void
 lwmsg_context_log_printf(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     LWMsgLogLevel level,
     const char* filename,
     unsigned int line,

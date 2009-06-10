@@ -118,6 +118,7 @@
 /* @{ */
 
 #ifndef DOXYGEN
+struct LWMsgDataHandle;
 struct LWMsgContext;
 
 typedef enum LWMsgKind
@@ -192,7 +193,7 @@ typedef struct LWMsgTypeAttrs
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataHandle* handle,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -220,7 +221,7 @@ typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataHandle* handle,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
@@ -241,7 +242,7 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
  * in the type specification
  */
 typedef void (*LWMsgCustomFreeFunction) (
-    struct LWMsgContext* context,
+    const struct LWMsgContext* context,
     size_t object_size,
     LWMsgTypeAttrs* attr,
     void* object,
@@ -284,7 +285,7 @@ typedef LWMsgStatus
  * @param print_data the user data pointer to pass to the type print callback
  */
 typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
-    struct LWMsgContext* context,
+    const struct LWMsgContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attr,
@@ -332,7 +333,7 @@ typedef struct LWMsgCustomTypeClass
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgVerifyFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataHandle* handle,
     LWMsgBool unmarshalling,
     size_t object_size,
     void* object,
@@ -1237,7 +1238,7 @@ typedef enum LWMsgTypeDirective
 
 LWMsgStatus
 lwmsg_type_print_graph(
-    struct LWMsgContext* context,
+    const struct LWMsgContext* context,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgTypePrintFunction print,
