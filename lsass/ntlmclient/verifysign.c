@@ -4,7 +4,7 @@ DWORD
 NtlmClientVerifySignature(
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
+    IN ULONG MessageSeqNo
     )
 {
     DWORD dwError = 0;

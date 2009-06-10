@@ -6,7 +6,7 @@ NtlmClientInitializeSecurityContext(
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN ULONG fContextReq,
-    IN ULONG Reserverd1,
+    IN ULONG Reserved1,
     IN ULONG TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN ULONG Reserved2,

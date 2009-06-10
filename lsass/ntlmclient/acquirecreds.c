@@ -7,8 +7,8 @@ NtlmClientAcquireCredentialsHandle(
     IN ULONG fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    IN SEC_GET_KEY_FN pGetKeyFn,
-    IN PVOID pvGetKeyArgument,
+    // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT USED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     )
@@ -29,8 +29,8 @@ NtlmClientAcquireCredentialsHandle(
         fCredentialUse,
         pvLogonID,
         pAuthData,
-        pGetKeyFn,
-        pvGetKeyArgument,
+        //pGetKeyFn,
+        //pvGetKeyArgument,
         phCredential,
         ptsExpiry
         );

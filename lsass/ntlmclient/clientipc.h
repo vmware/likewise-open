@@ -90,7 +90,8 @@ typedef struct _SecBufferDesc {
 }SecBufferDesc, *PSecBufferDesc;
 
 DWORD
-NtlmTransactClientAcceptSecurityContext(
+NtlmTransactAcceptSecurityContext(
+    IN HANDLE hServer,
     IN PCredHandle phCredential,
     IN OUT PCtxtHandle phContext,
     IN PSecBufferDesc pInput,
@@ -98,25 +99,27 @@ NtlmTransactClientAcceptSecurityContext(
     IN ULONG TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT ULONG  pfContextAttr,
+    OUT PULONG  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     );
 
 DWORD
-NtlmTransactClientAcquireCredentialsHandle(
+NtlmTransactAcquireCredentialsHandle(
+    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN ULONG fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    IN SEC_GET_KEY_FN pGetKeyFn,
-    IN PVOID pvGetKeyArgument,
+    // NOT NEEDED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT NEEDED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     );
 
 DWORD
-NtlmTransactClientDecryptMessage(
+NtlmTransactDecryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
     IN ULONG MessageSeqNo,
@@ -124,7 +127,8 @@ NtlmTransactClientDecryptMessage(
     );
 
 DWORD
-NtlmTransactClientEncryptMessage(
+NtlmTransactEncryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -132,7 +136,8 @@ NtlmTransactClientEncryptMessage(
     );
 
 DWORD
-NtlmTransactClientExportSecurityContext(
+NtlmTransactExportSecurityContext(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fFlags,
     OUT PSecBuffer pPackedContext,
@@ -140,12 +145,14 @@ NtlmTransactClientExportSecurityContext(
     );
 
 DWORD
-NtlmTransactClientFreeCredentialsHandle(
+NtlmTransactFreeCredentialsHandle(
+    IN HANDLE hServer,
     IN PCredHandle phCredential
     );
 
 DWORD
-NtlmTransactClientImportSecurityContext(
+NtlmTransactImportSecurityContext(
+    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -153,7 +160,8 @@ NtlmTransactClientImportSecurityContext(
     );
 
 DWORD
-NtlmTransactClientInitializeSecurityContext(
+NtlmTransactInitializeSecurityContext(
+    IN HANDLE hServer,
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
@@ -169,7 +177,8 @@ NtlmTransactClientInitializeSecurityContext(
     );
 
 DWORD
-NtlmTransactClientMakeSignature(
+NtlmTransactMakeSignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -177,22 +186,27 @@ NtlmTransactClientMakeSignature(
     );
 
 DWORD
-NtlmTransactClientQueryCredentialsAttributes(
+NtlmTransactQueryCredentialsAttributes(
+    IN HANDLE hServer,
     IN PCredHandle phCredential,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmTransactClientQuerySecurityContextAttributes(
+NtlmTransactQuerySecurityContextAttributes(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmTransactClientVerifySignature(
+NtlmTransactVerifySignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
+    IN ULONG MessageSeqNo
     );
+
+#endif

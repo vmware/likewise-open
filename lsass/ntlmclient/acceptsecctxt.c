@@ -9,7 +9,7 @@ NtlmClientAcceptSecurityContext(
     IN ULONG TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT ULONG  pfContextAttr,
+    OUT PULONG  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {

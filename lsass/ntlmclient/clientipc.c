@@ -69,6 +69,14 @@ NtlmAllocateMemory(
     return dwError;
 }
 
+void
+NtlmFreeMemory(
+    PVOID pMemory
+    )
+{
+    free(pMemory);
+}
+
 DWORD
 NtlmOpenServer(
     PHANDLE phConnection
@@ -198,7 +206,7 @@ NtlmTransactAcceptSecurityContext(
     IN ULONG TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT ULONG  pfContextAttr,
+    OUT PULONG  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {
@@ -208,7 +216,8 @@ NtlmTransactAcceptSecurityContext(
     NTLM_IPC_ACCEPT_SEC_CTXT_REQ AcceptSecCtxtReq;
 
     // Do not free pResult and pError
-    PNTLM_GROUP_INFO_LIST pResultList = NULL;
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
@@ -234,7 +243,7 @@ NtlmTransactAcceptSecurityContext(
     switch (response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
-            pResultList = (NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
+            pResultList = (PNTLM_IPC_ERROR)response.object;
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -267,8 +276,8 @@ NtlmTransactAcquireCredentialsHandle(
     IN ULONG fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    IN SEC_GET_KEY_FN pGetKeyFn,
-    IN PVOID pvGetKeyArgument,
+    // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT USED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     )
@@ -285,6 +294,7 @@ error:
 
 DWORD
 NtlmTransactDecryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
     IN ULONG MessageSeqNo,
@@ -303,6 +313,7 @@ error:
 
 DWORD
 NtlmTransactEncryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -321,6 +332,7 @@ error:
 
 DWORD
 NtlmTransactExportSecurityContext(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fFlags,
     OUT PSecBuffer pPackedContext,
@@ -339,6 +351,7 @@ error:
 
 DWORD
 NtlmTransactFreeCredentialsHandle(
+    IN HANDLE hServer,
     IN PCredHandle phCredential
     )
 {
@@ -354,6 +367,7 @@ error:
 
 DWORD
 NtlmTransactImportSecurityContext(
+    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -372,11 +386,12 @@ error:
 
 DWORD
 NtlmTransactInitializeSecurityContext(
+    IN HANDLE hServer,
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN ULONG fContextReq,
-    IN ULONG Reserverd1,
+    IN ULONG Reserved1,
     IN ULONG TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN ULONG Reserved2,
@@ -392,7 +407,8 @@ NtlmTransactInitializeSecurityContext(
     NTLM_IPC_INIT_SEC_CTXT_REQ InitSecCtxtReq;
 
     // Do not free pResult and pError
-    PNTLM_GROUP_INFO_LIST pResultList = NULL;
+    // change this one to the corret results list when ready
+    PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = {-1, NULL};
@@ -402,7 +418,7 @@ NtlmTransactInitializeSecurityContext(
     InitSecCtxtReq.phContext = phContext;
     InitSecCtxtReq.pszTargetName = pszTargetName;
     InitSecCtxtReq.fContextReq = fContextReq;
-    InitSecCtxtReq.Reserverd1 = Reserverd1;
+    InitSecCtxtReq.Reserved1 = Reserved1;
     InitSecCtxtReq.TargetDataRep = TargetDataRep;
     InitSecCtxtReq.pInput = pInput;
     InitSecCtxtReq.Reserved2 = Reserved2;
@@ -422,7 +438,7 @@ NtlmTransactInitializeSecurityContext(
     switch (response.tag)
     {
         case NTLM_R_INIT_SEC_CTXT_SUCCESS:
-            pResultList = (NTLM_IPC_INIT_SEC_CTXT_REQ)response.object;
+            pResultList = (PNTLM_IPC_ERROR)response.object;
             break;
         case NTLM_R_INIT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -452,6 +468,7 @@ error:
 
 DWORD
 NtlmTransactMakeSignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -470,6 +487,7 @@ error:
 
 DWORD
 NtlmTransactQueryCredentialsAttributes(
+    IN HANDLE hServer,
     IN PCredHandle phCredential,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
@@ -487,6 +505,7 @@ error:
 
 DWORD
 NtlmTransactQuerySecurityContextAttributes(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
@@ -504,9 +523,10 @@ error:
 
 DWORD
 NtlmTransactVerifySignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
+    IN ULONG MessageSeqNo
     )
 {
     DWORD dwError = 0;
