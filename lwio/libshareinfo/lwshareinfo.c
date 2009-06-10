@@ -222,89 +222,7 @@ static LWMsgTypeSpec gShareInfoGetParamsSpec[] =
     LWMSG_TYPE_END
 };
 
-static pthread_once_t gShareMarshalContextControl = PTHREAD_ONCE_INIT;
-static LWMsgContext* gpMarshalContext = NULL;
-static LWMsgStatus gMarshalContextStatus = LWMSG_STATUS_SUCCESS;
 
-static
-void
-LwShareInfoInitMarshalContext(void)
-{
-    gMarshalContextStatus = lwmsg_context_new(NULL, &gpMarshalContext);
-}
-
-static
-LW_NTSTATUS
-LwShareInfoGetMarshalContext(
-    LWMsgContext** ppMarshalContext
-    )
-{
-    NTSTATUS Status = STATUS_SUCCESS;
-    int err = 0;
-
-    err = pthread_once(&gShareMarshalContextControl, LwShareInfoInitMarshalContext);
-    if (err)
-    {
-        Status = LwUnixErrnoToNtStatus(err);
-        BAIL_ON_NT_STATUS(Status);
-    }
-
-    Status = MAP_LWMSG_STATUS(gMarshalContextStatus);
-    BAIL_ON_NT_STATUS(Status);
-
-    *ppMarshalContext = gpMarshalContext;
-
-cleanup:
-
-    return Status;
-
-error:
-
-    *ppMarshalContext = NULL;
-
-    goto cleanup;
-}
-
-static
-LW_NTSTATUS
-LwShareInfoAcquireDataHandle(
-    LWMsgDataHandle** ppDataHandle
-    )
-{
-    NTSTATUS Status = STATUS_SUCCESS;
-    LWMsgContext* pContext;
-    LWMsgDataHandle* pDataHandle;
-
-    Status = LwShareInfoGetMarshalContext(&pContext);
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = MAP_LWMSG_STATUS(lwmsg_data_handle_new(pContext, &pDataHandle));
-    BAIL_ON_NT_STATUS(Status);
-
-    *ppDataHandle = pDataHandle;
-
-cleanup:
-
-    return Status;
-
-error:
-
-    *ppDataHandle = NULL;
-
-    goto cleanup;
-}
-
-static
-void
-LwShareInfoReleaseDataHandle(
-    LWMsgDataHandle* pDataHandle
-    )
-{
-    if (pDataHandle)
-    {
-        lwmsg_data_handle_delete(pDataHandle);
-    }
-}
 
 LW_NTSTATUS
 LwShareInfoMarshalAddParameters(
@@ -316,14 +234,15 @@ LwShareInfoMarshalAddParameters(
     NTSTATUS Status = STATUS_SUCCESS;
     VOID* pBuffer = NULL;
     size_t szBufferSize = 0;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    Status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
     Status = MAP_LWMSG_STATUS(
-        lwmsg_data_marshal_flat_alloc(
-            pDataHandle,
+        lwmsg_marshal_alloc(
+            pContext,
             gShareInfoAddParamsSpec,
             pParams,
             &pBuffer,
@@ -335,7 +254,10 @@ LwShareInfoMarshalAddParameters(
 
 cleanup:
 
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return Status;
 
@@ -360,14 +282,15 @@ LwShareInfoUnmarshalAddParameters(
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PSHARE_INFO_ADD_PARAMS pParams = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    Status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
     Status = MAP_LWMSG_STATUS(
-        lwmsg_data_unmarshal_flat(
-            pDataHandle,
+        lwmsg_unmarshal_simple(
+            pContext,
             gShareInfoAddParamsSpec,
             pBuffer,
             ulBufferSize,
@@ -378,7 +301,10 @@ LwShareInfoUnmarshalAddParameters(
 
 cleanup:
 
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return Status;
 
@@ -388,7 +314,7 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataHandle, gShareInfoAddParamsSpec, pParams);
+        lwmsg_context_free_graph(pContext, gShareInfoAddParamsSpec, pParams);
     }
 
     goto cleanup;
@@ -405,14 +331,15 @@ LwShareInfoMarshalDeleteParameters(
     NTSTATUS Status = STATUS_SUCCESS;
     VOID* pBuffer = NULL;
     size_t ulBufferSize = 0;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    Status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
     Status = MAP_LWMSG_STATUS(
-        lwmsg_data_marshal_flat_alloc(
-            pDataHandle,
+        lwmsg_marshal_alloc(
+            pContext,
             gShareInfoDeleteParamsSpec,
             pParams,
             &pBuffer,
@@ -424,7 +351,10 @@ LwShareInfoMarshalDeleteParameters(
 
 cleanup:
 
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return Status;
 
@@ -450,14 +380,15 @@ LwShareInfoUnmarshalDeleteParameters(
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PSHARE_INFO_DELETE_PARAMS pParams = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    Status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
     Status = MAP_LWMSG_STATUS(
-        lwmsg_data_unmarshal_flat(
-            pDataHandle,
+        lwmsg_unmarshal_simple(
+            pContext,
             gShareInfoDeleteParamsSpec,
             pBuffer,
             ulBufferSize,
@@ -468,7 +399,10 @@ LwShareInfoUnmarshalDeleteParameters(
 
 cleanup:
 
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return Status;
 
@@ -478,7 +412,7 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataHandle, gShareInfoDeleteParamsSpec, pParams);
+        lwmsg_context_free_graph(pContext, gShareInfoDeleteParamsSpec, pParams);
     }
 
     goto cleanup;
@@ -495,14 +429,15 @@ LwShareInfoMarshalEnumParameters(
     NTSTATUS status = STATUS_SUCCESS;
     VOID* pBuffer = NULL;
     size_t ulBufferSize = 0;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(status);
 
     status = MAP_LWMSG_STATUS(
-        lwmsg_data_marshal_flat_alloc(
-            pDataHandle,
+        lwmsg_marshal_alloc(
+            pContext,
             gShareInfoEnumParamsSpec,
             pParams,
             &pBuffer,
@@ -513,8 +448,10 @@ LwShareInfoMarshalEnumParameters(
     *pulBufferSize = (ULONG) ulBufferSize;
 
 cleanup:
-
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return status;
 
@@ -540,14 +477,15 @@ LwShareInfoUnmarshalEnumParameters(
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PSHARE_INFO_ENUM_PARAMS pParams = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    Status = LwShareInfoAcquireDataHandle(&pDataHandle);
+    Status = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
     Status = MAP_LWMSG_STATUS(
-        lwmsg_data_unmarshal_flat(
-            pDataHandle,
+        lwmsg_unmarshal_simple(
+            pContext,
             gShareInfoEnumParamsSpec,
             pBuffer,
             ulBufferSize,
@@ -558,7 +496,10 @@ LwShareInfoUnmarshalEnumParameters(
 
 cleanup:
 
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
 
     return Status;
 
@@ -568,7 +509,7 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataHandle, gShareInfoEnumParamsSpec, pParams);
+        lwmsg_context_free_graph(pContext, gShareInfoEnumParamsSpec, pParams);
     }
 
     goto cleanup;
@@ -585,14 +526,15 @@ LwShareInfoMarshalSetParameters(
     NTSTATUS ntStatus = 0;
     VOID* pBuffer = NULL;
     size_t ulBufferSize = 0;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    ntStatus = LwShareInfoAcquireDataHandle(&pDataHandle);
+    ntStatus = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = MAP_LWMSG_STATUS(
-        lwmsg_data_marshal_flat_alloc(
-            pDataHandle,
+        lwmsg_marshal_alloc(
+            pContext,
             gShareInfoSetParamsSpec,
             pParams,
             &pBuffer,
@@ -603,8 +545,9 @@ LwShareInfoMarshalSetParameters(
     *pulBufferSize = (ULONG) ulBufferSize;
 
 cleanup:
-
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext) {
+        lwmsg_context_delete(pContext);
+    }
 
     return ntStatus;
 
@@ -629,15 +572,15 @@ LwShareInfoUnmarshalSetParameters(
 {
     NTSTATUS ntStatus = 0;
     PSHARE_INFO_SETINFO_PARAMS pParams = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-
-    ntStatus = LwShareInfoAcquireDataHandle(&pDataHandle);
+    ntStatus = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = MAP_LWMSG_STATUS(
-        lwmsg_data_unmarshal_flat(
-            pDataHandle,
+        lwmsg_unmarshal_simple(
+            pContext,
             gShareInfoSetParamsSpec,
             pBuffer,
             ulBufferSize,
@@ -647,18 +590,17 @@ LwShareInfoUnmarshalSetParameters(
     *ppParams = pParams;
 
 cleanup:
-
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext) {
+        lwmsg_context_delete(pContext);
+    }
 
     return ntStatus;
 
 error:
-
     *ppParams = NULL;
 
-    if (pParams)
-    {
-        lwmsg_data_free_graph(pDataHandle, gShareInfoSetParamsSpec, pParams);
+    if (pParams) {
+        lwmsg_context_free_graph(pContext, gShareInfoSetParamsSpec, pParams);
     }
 
     goto cleanup;
@@ -675,14 +617,15 @@ LwShareInfoMarshalGetParameters(
     NTSTATUS ntStatus = 0;
     VOID* pBuffer = NULL;
     size_t ulBufferSize = 0;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    ntStatus = LwShareInfoAcquireDataHandle(&pDataHandle);
+    ntStatus = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = MAP_LWMSG_STATUS(
-        lwmsg_data_marshal_flat_alloc(
-            pDataHandle,
+        lwmsg_marshal_alloc(
+            pContext,
             gShareInfoGetParamsSpec,
             pParams,
             &pBuffer,
@@ -693,18 +636,17 @@ LwShareInfoMarshalGetParameters(
     *pulBufferSize = (ULONG) ulBufferSize;
 
 cleanup:
-
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext) {
+        lwmsg_context_delete(pContext);
+    }
 
     return ntStatus;
 
 error:
-
     *ppBuffer = NULL;
     *pulBufferSize = 0;
 
-    if (pBuffer)
-    {
+    if (pBuffer) {
         RtlMemoryFree(pBuffer);
     }
 
@@ -721,14 +663,15 @@ LwShareInfoUnmarshalGetParameters(
 {
     NTSTATUS ntStatus = 0;
     PSHARE_INFO_GETINFO_PARAMS pParams = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgContext* pContext = NULL;
 
-    ntStatus = LwShareInfoAcquireDataHandle(&pDataHandle);
+    ntStatus = MAP_LWMSG_STATUS(
+        lwmsg_context_new(&pContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = MAP_LWMSG_STATUS(
-        lwmsg_data_unmarshal_flat(
-            pDataHandle,
+        lwmsg_unmarshal_simple(
+            pContext,
             gShareInfoGetParamsSpec,
             pBuffer,
             ulBufferSize,
@@ -738,18 +681,17 @@ LwShareInfoUnmarshalGetParameters(
     *ppParams = pParams;
 
 cleanup:
-
-    LwShareInfoReleaseDataHandle(pDataHandle);
+    if (pContext) {
+        lwmsg_context_delete(pContext);
+    }
 
     return ntStatus;
 
 error:
-
     *ppParams = NULL;
 
-    if (pParams)
-    {
-        lwmsg_data_free_graph(pDataHandle, gShareInfoGetParamsSpec, pParams);
+    if (pParams) {
+        lwmsg_context_free_graph(pContext, gShareInfoGetParamsSpec, pParams);
     }
 
     goto cleanup;
