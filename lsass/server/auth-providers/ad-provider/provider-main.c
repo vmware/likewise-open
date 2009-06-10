@@ -625,8 +625,7 @@ AD_CheckUserInList(
     DWORD  dwError = 0;
     size_t  sNumGroupsFound = 0;
     PLSA_SECURITY_OBJECT* ppGroupList = NULL;
-    DWORD  dwUserInfoLevel  = 0;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     size_t  iGroup = 0;
     PLSA_HASH_TABLE pAllowedMemberList = NULL;
 
@@ -640,14 +639,10 @@ AD_CheckUserInList(
         goto cleanup;
     }
 
-    dwError = AD_FindUserByName(
-                    hProvider,
-                    pszUserName,
-                    dwUserInfoLevel,
-                    (PVOID*)&pUserInfo);
+    dwError = AD_FindUserObjectByName(hProvider, pszUserName, &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_IsMemberAllowed(pUserInfo->pszSid,
+    if (AD_IsMemberAllowed(pUserInfo->pszObjectSid,
                            pAllowedMemberList))
     {
         goto cleanup;
@@ -655,7 +650,7 @@ AD_CheckUserInList(
 
     dwError = AD_GetUserGroupObjectMembership(
                     hProvider,
-                    pUserInfo->uid,
+                    pUserInfo,
                     FALSE,
                     &sNumGroupsFound,
                     &ppGroupList);
@@ -676,11 +671,7 @@ AD_CheckUserInList(
 cleanup:
 
     LsaDbSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
+    LsaDbSafeFreeObject(&pUserInfo);
     LsaHashSafeFree(&pAllowedMemberList);
 
     return dwError;
@@ -1871,7 +1862,7 @@ error:
 DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppResult
@@ -1887,7 +1878,7 @@ AD_GetUserGroupObjectMembership(
     {
         dwError = AD_OnlineGetUserGroupObjectMembership(
             hProvider,
-            uid,
+            pUserInfo,
             bIsCacheOnlyMode,
             psNumGroupsFound,
             pppResult);
@@ -1897,7 +1888,7 @@ AD_GetUserGroupObjectMembership(
     {
         dwError = AD_OfflineGetUserGroupObjectMembership(
             hProvider,
-            uid,
+            pUserInfo,
             psNumGroupsFound,
             pppResult);
     }
@@ -1977,9 +1968,10 @@ error:
 
 
 DWORD
-AD_GetUserGroupMembership(
+AD_GetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwNumGroupsFound,
@@ -1994,8 +1986,7 @@ AD_GetUserGroupMembership(
     size_t sEnabledCount = 0;
     BOOLEAN bIsCacheOnlyMode = FALSE;
     HANDLE hLsaConnection = NULL;
-    DWORD dwUserInfoLevel = 1;
-    PLSA_USER_INFO_1 pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PSTR pszUserSID = NULL;
     PSTR pszUserDN = NULL;
     PSTR pszGroupSID = NULL;
@@ -2025,9 +2016,26 @@ AD_GetUserGroupMembership(
                     &pUserMemberships);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pszUserName)
+    {
+        dwError = AD_FindUserObjectByName(
+                        hProvider,
+                        pszUserName,
+                        &pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = AD_FindUserObjectById(
+                        hProvider,
+                        uid,
+                        &pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_GetUserGroupObjectMembership(
                 hProvider,
-                uid,
+                pUserInfo,
                 bIsCacheOnlyMode,
                 &sGroupObjectsCount,
                 &ppGroupObjects);
@@ -2036,14 +2044,7 @@ AD_GetUserGroupMembership(
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = AD_FindUserById(
-                hProvider,
-                uid,
-                dwUserInfoLevel,
-                (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszUserSID = pUserInfo->pszSid;
+    pszUserSID = pUserInfo->pszObjectSid;
     pszUserDN  = pUserInfo->pszDN;
 
     /* Get all local groups the user is member of */
@@ -2241,10 +2242,7 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    LsaDbSafeFreeObject(&pUserInfo);
 
     if (ppUserMembershipInfo)
     {

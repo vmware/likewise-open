@@ -284,15 +284,13 @@ error:
 
 DWORD
 AD_OfflineGetUserGroupObjectMembership(
-    HANDLE hProvider,
-    uid_t uid,
-    size_t* psNumGroupsFound,
-    PLSA_SECURITY_OBJECT** pppResult
+    IN HANDLE hProvider,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
+    OUT size_t* psNumGroupsFound,
+    OUT PLSA_SECURITY_OBJECT** pppResult
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    const DWORD dwUserInfoLevel = 0;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
     size_t sUserGroupMembershipsCount = 0;
     PLSA_GROUP_MEMBERSHIP* ppUserGroupMemberships = NULL;
     size_t sParentSidsCount = 0;
@@ -301,16 +299,9 @@ AD_OfflineGetUserGroupObjectMembership(
     size_t sGroupObjectsCount = 0;
     PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
 
-    dwError = AD_FindUserById(
-                    hProvider,
-                    uid,
-                    dwUserInfoLevel,
-                    (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaDbGetGroupsForUser(
                 gpLsaAdProviderState->hCacheConnection,
-                pUserInfo->pszSid,
+                pUserInfo->pszObjectSid,
                 AD_GetTrimUserMembershipEnabled(),
                 &sUserGroupMembershipsCount,
                 &ppUserGroupMemberships);
@@ -353,11 +344,6 @@ cleanup:
     LsaDbSafeFreeGroupMembershipList(sUserGroupMembershipsCount, &ppUserGroupMemberships);
     LSA_SAFE_FREE_MEMORY(ppszParentSids);
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
     return dwError;
 
 error:
@@ -365,8 +351,10 @@ error:
     *pppResult = NULL;
     *psNumGroupsFound = 0;
 
-    LSA_LOG_ERROR("Failed to find user's group memberships of uid %d. [error code %d]",
-                  uid, dwError);
+    LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
+                  pUserInfo->pszNetbiosDomainName,
+                  pUserInfo->pszSamAccountName,
+                  dwError);
 
     LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
 

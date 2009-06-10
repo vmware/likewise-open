@@ -640,20 +640,21 @@ error:
 }
 
 DWORD
-LsaTransactGetGroupsForUserById(
-    HANDLE  hServer,
-    uid_t   uid,
-    LSA_FIND_FLAGS FindFlags,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+LsaTransactGetGroupsForUser(
+    IN HANDLE hServer,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
 
-    LSA_IPC_FIND_OBJECT_BY_ID_REQ userGroupsReq;
+    LSA_IPC_FIND_OBJECT_REQ userGroupsReq;
     // Do not free pResultList and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -663,7 +664,17 @@ LsaTransactGetGroupsForUserById(
 
     userGroupsReq.FindFlags = FindFlags;
     userGroupsReq.dwInfoLevel = dwGroupInfoLevel;
-    userGroupsReq.id = uid;
+
+    if (pszUserName)
+    {
+        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_NAME;
+        userGroupsReq.ByData.pszName = pszUserName;
+    }
+    else
+    {
+        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_ID;
+        userGroupsReq.ByData.dwId = uid;
+    }
 
     request.tag = LSA_Q_GROUPS_FOR_USER;
     request.object = &userGroupsReq;

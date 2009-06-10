@@ -180,7 +180,8 @@ LocalFindGroupById(
 DWORD
 LocalGetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwGroupsFound,

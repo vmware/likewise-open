@@ -2967,6 +2967,7 @@ LocalDirCheckIfAdministrator(
     {
         dwError = LocalGetGroupsForUser(
                         hProvider,
+                        NULL,
                         uid,
                         0,
                         dwGroupInfoLevel,

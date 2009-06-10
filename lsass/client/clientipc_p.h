@@ -119,13 +119,14 @@ LsaTransactDeleteGroupById(
     );
 
 DWORD
-LsaTransactGetGroupsForUserById(
-    HANDLE  hServer,
-    uid_t   uid,
-    LSA_FIND_FLAGS FindFlags,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+LsaTransactGetGroupsForUser(
+    IN HANDLE hServer,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
     );
 
 DWORD

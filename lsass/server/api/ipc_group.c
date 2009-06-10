@@ -344,20 +344,39 @@ LsaSrvIpcGetGroupsForUser(
     PVOID* ppGroupInfoList = NULL;
     DWORD dwNumGroupsFound = 0;
     PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pRequest->object;
+    PLSA_IPC_FIND_OBJECT_REQ pReq = pRequest->object;
     PLSA_IPC_ERROR pError = NULL;
     PVOID Handle = NULL;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvGetGroupsForUser(
-                       (HANDLE)Handle,
-                       pReq->id,
-                       pReq->FindFlags,
-                       pReq->dwInfoLevel,
-                       &dwNumGroupsFound,
-                       &ppGroupInfoList);
+    switch (pReq->ByType)
+    {
+        case LSA_IPC_FIND_OBJECT_BY_TYPE_NAME:
+            dwError = LsaSrvGetGroupsForUser(
+                               (HANDLE)Handle,
+                               pReq->ByData.pszName,
+                               0,
+                               pReq->FindFlags,
+                               pReq->dwInfoLevel,
+                               &dwNumGroupsFound,
+                               &ppGroupInfoList);
+            break;
+        case LSA_IPC_FIND_OBJECT_BY_TYPE_ID:
+            dwError = LsaSrvGetGroupsForUser(
+                               (HANDLE)Handle,
+                               NULL,
+                               pReq->ByData.dwId,
+                               pReq->FindFlags,
+                               pReq->dwInfoLevel,
+                               &dwNumGroupsFound,
+                               &ppGroupInfoList);
+            break;
+        default:
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
 
     if (!dwError)
     {

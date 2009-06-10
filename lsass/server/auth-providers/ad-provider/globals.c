@@ -97,7 +97,7 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_EndEnumUsers,
             &AD_FindGroupByName,
             &AD_FindGroupById,
-            &AD_GetUserGroupMembership,
+            &AD_GetGroupsForUser,
             &AD_BeginEnumGroups,
             &AD_EnumGroups,
             &AD_EndEnumGroups,

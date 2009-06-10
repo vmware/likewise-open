@@ -478,12 +478,13 @@ error:
 
 DWORD
 LocalGetGroupsForUser(
-    HANDLE         hProvider,
-    uid_t          uid,
-    LSA_FIND_FLAGS dwFindFlags,
-    DWORD          dwGroupInfoLevel,
-    PDWORD         pdwNumGroupsFound,
-    PVOID**        pppGroupInfoList
+    IN HANDLE hProvider,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
+    IN LSA_FIND_FLAGS dwFindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwNumGroupsFound,
+    IN PVOID** pppGroupInfoList
     )
 {
     DWORD             dwError = 0;
@@ -496,13 +497,26 @@ LocalGetGroupsForUser(
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDirFindUserById(
-                    hProvider,
-                    uid,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszUserName)
+    {
+        dwError = LocalFindUserByNameEx(
+                        hProvider,
+                        pszUserName,
+                        dwUserInfoLevel,
+                        &pwszUserDN,
+                        (PVOID*)&pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LocalDirFindUserById(
+                        hProvider,
+                        uid,
+                        dwUserInfoLevel,
+                        &pwszUserDN,
+                        (PVOID*)&pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LocalDirGetGroupsForUser(
                     hProvider,

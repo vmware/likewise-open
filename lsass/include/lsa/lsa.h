@@ -1117,6 +1117,31 @@ LsaGetGidsForUserByName(
  * @ingroup user
  * @brief Look up groups by user ID
  *
+ * Looks up information on groups which a user is a member of based on user's login name.
+ *
+ * @param[in] hLsaConnection the connection handle
+ * @param[in] pszUserName the login name of the user
+ * @param[in] FindFlags options for the lookup operation
+ * @param[in] dwGroupInfoLevel the desired info level for the returned group info structures
+ * @param[out] pdwGroupsFound the number of groups find
+ * @param[out] pppGroupInfoList a heap-allocated list of group info structures
+ * @retval LSA_ERROR_SUCCESS success
+ * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ */
+LW_DWORD
+LsaGetGroupsForUserByName(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_IN LW_PCSTR pszUserName,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LW_DWORD dwGroupInfoLevel,
+    LW_OUT LW_PDWORD pdwGroupsFound,
+    LW_OUT LW_PVOID** pppGroupInfoList
+    );
+
+/**
+ * @ingroup user
+ * @brief Look up groups by user ID
+ *
  * Looks up information on groups which a user is a member of based on user ID.
  *
  * @param[in] hLsaConnection the connection handle

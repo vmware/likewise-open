@@ -212,16 +212,17 @@ AD_FindGroupById(
 DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppResult
     );
 
 DWORD
-AD_GetUserGroupMembership(
+AD_GetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwNumGroupsFound,
