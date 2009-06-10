@@ -56,6 +56,14 @@ SrvProtocolInit(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    status = SrvProtocolInit_SMB_V1();
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvProtocolInit_SMB_V2();
+    BAIL_ON_NT_STATUS(status);
+
+error:
+
     return status;
 }
 
@@ -65,6 +73,14 @@ SrvProtocolShutdown(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = SrvProtocolShutdown_SMB_V1();
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvProtocolInit_SMB_V2();
+    BAIL_ON_NT_STATUS(status);
+
+error:
 
     return status;
 }

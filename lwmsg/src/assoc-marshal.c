@@ -47,7 +47,7 @@
 
 static LWMsgStatus
 lwmsg_assoc_marshal_handle(
-    LWMsgContext* context, 
+    LWMsgContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -176,7 +176,7 @@ lwmsg_assoc_unmarshal_handle(
     char temp[5];
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
-    
+
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
     
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));

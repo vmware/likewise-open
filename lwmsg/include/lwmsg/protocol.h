@@ -207,7 +207,7 @@ lwmsg_protocol_get_error_message(
     );
 /**
  * @brief Marshal a protocol message
- * 
+ *
  * Marshals a message of the given tag and payload object into the specified
  * marshalling buffer.
  *
@@ -231,7 +231,7 @@ lwmsg_protocol_marshal(
 
 /**
  * @brief Unmarshal a protocol message
- * 
+ *
  * Unmarshals a message of the given tag from a marshalling buffer.
  *
  * @param prot the protocol object

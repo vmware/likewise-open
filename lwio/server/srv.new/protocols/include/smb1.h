@@ -49,6 +49,11 @@
 #define __SMB_V1_H__
 
 NTSTATUS
+SrvProtocolInit_SMB_V1(
+    VOID
+    );
+
+NTSTATUS
 SrvProcessCheckDirectory(
     IN  PLWIO_SRV_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
@@ -247,6 +252,11 @@ SrvProcessWriteAndX(
 	IN  PSMB_PACKET          pSmbRequest,
 	OUT PSMB_PACKET*         ppSmbResponse
 	);
+
+NTSTATUS
+SrvProtocolShutdown_SMB_V1(
+    VOID
+    );
 
 #endif /* __SMB_V1_H__ */
 

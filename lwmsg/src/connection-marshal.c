@@ -46,7 +46,7 @@
 
 static LWMsgStatus
 lwmsg_connection_marshal_fd(
-    LWMsgContext* context, 
+    LWMsgContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,

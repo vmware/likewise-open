@@ -323,7 +323,7 @@ SrvGetShareNameCheckHostname(
 
     SMBStrToUpper(pszHostPrefix);
 
-    ntStatus = SMBMbsToWc16s(
+    ntStatus = SrvMbsToWc16s(
                     pszHostPrefix,
                     &pwszHostPrefix);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -428,7 +428,7 @@ SrvGetShareNameCheckFQDN(
 
     SMBStrToUpper(pszHostPrefix);
 
-    ntStatus = SMBMbsToWc16s(
+    ntStatus = SrvMbsToWc16s(
                     pszHostPrefix,
                     &pwszHostPrefix);
     BAIL_ON_NT_STATUS(ntStatus);

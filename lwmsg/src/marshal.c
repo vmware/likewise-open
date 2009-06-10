@@ -201,7 +201,7 @@ error:
 
 static LWMsgStatus
 lwmsg_marshal_integer(
-    LWMsgContext* context, 
+    LWMsgContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -244,7 +244,7 @@ error:
 
 static LWMsgStatus
 lwmsg_marshal_custom(
-    LWMsgContext* context, 
+    LWMsgContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -267,7 +267,7 @@ error:
 
 static LWMsgStatus
 lwmsg_marshal_struct_member(
-    LWMsgContext* context, 
+    LWMsgContext* context,
     LWMsgTypeIter* struct_iter,
     LWMsgTypeIter* member_iter,
     unsigned char* object,
@@ -275,11 +275,11 @@ lwmsg_marshal_struct_member(
 {
     LWMsgMarshalState my_state;
     unsigned char* member_object = object + member_iter->offset;
-    
+
     my_state.dominating_object = object;
 
     return lwmsg_marshal_internal(
-        context, 
+        context,
         &my_state,
         member_iter,
         member_object,

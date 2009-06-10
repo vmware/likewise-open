@@ -50,7 +50,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvSMBV1ProtocolInit(
+SrvProtocolInit_SMB_V1(
     VOID
     )
 {
@@ -60,7 +60,7 @@ SrvSMBV1ProtocolInit(
 }
 
 NTSTATUS
-SrvSMBV1ProtocolShutdown(
+SrvProtocolShutdown_SMB_V1(
     VOID
     )
 {

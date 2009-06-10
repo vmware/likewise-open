@@ -11,5 +11,9 @@ libsrv_protocols_api_la_CPPFLAGS = \
     -I@top_srcdir@/server/srv.new/include \
     -I@top_srcdir@/server/srv.new/protocols/include
 
+libsrv_protocols_api_la_LIBADD = \
+    @top_builddir@/server/srv.new/protocols/smb1/libsrv.protocols.smb1.la \
+    @top_builddir@/server/srv.new/protocols/smb2/libsrv.protocols.smb2.la
+
 libsrv_protocols_api_la_LDFLAGS = -static
 
