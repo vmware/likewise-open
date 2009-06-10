@@ -1052,7 +1052,7 @@ LsaDmpDomainDestroy(
         LSA_SAFE_FREE_STRING(pDomain->pszForestName);
         LSA_SAFE_FREE_STRING(pDomain->pszClientSiteName);
         LsaDmFreeDcInfo(pDomain->pDcInfo);
-        LsaDmFreeDcInfo(pDomain->pDcInfo);
+        LsaDmFreeDcInfo(pDomain->pGcInfo);
         LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
         LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
         LSA_SAFE_FREE_MEMORY(pDomain);
