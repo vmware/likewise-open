@@ -67,10 +67,7 @@ PvfsCreate(
     PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = {0};
 
-    if (pIrpContext->bIsCancelled) {
-        ntError = STATUS_CANCELLED;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    PVFS_BAIL_ON_CANCELLED_IRP(pIrpContext, ntError);
 
     CreateOptions = pIrp->Args.Create.CreateOptions;
 

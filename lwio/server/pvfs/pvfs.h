@@ -153,6 +153,11 @@ PvfsQueryVolumeInformation(
     );
 
 NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     );

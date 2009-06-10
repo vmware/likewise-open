@@ -63,6 +63,8 @@ PvfsWrite(
     LONG64 Offset = 0;
     BOOLEAN bMutexLocked = FALSE;
 
+    PVFS_BAIL_ON_CANCELLED_IRP(pIrpContext, ntError);
+
     /* Sanity checks */
 
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);

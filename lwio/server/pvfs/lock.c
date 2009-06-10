@@ -57,6 +57,24 @@
  *************************************************************/
 
 NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    /* If the request is marked as FailImmediately, then
+       it must be synchronous */
+
+    if (pIrpContext->pIrp->Args.LockControl.FailImmediately) {
+        return PvfsLockControl(pIrpContext);
+    }
+
+    return PvfsAsyncLockControl(pIrpContext);
+}
+
+/**************************************************************
+ *************************************************************/
+
+NTSTATUS
 PvfsLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -69,6 +87,8 @@ PvfsLockControl(
     ULONG Key = Args.Key;
     PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
+
+    PVFS_BAIL_ON_CANCELLED_IRP(pIrpContext, ntError);
 
     /* Sanity checks */
 
