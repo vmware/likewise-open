@@ -166,6 +166,13 @@ IopIrpFree(
                 IoSecurityDereferenceSecurityContext(&pIrp->Args.Create.SecurityContext);
                 RtlWC16StringFree(&pIrp->Args.Create.FileName.FileName);
                 break;
+            case IRP_TYPE_QUERY_DIRECTORY:
+                if (pIrp->Args.QueryDirectory.FileSpec)
+                {
+                    LwRtlUnicodeStringFree(&pIrp->Args.QueryDirectory.FileSpec->Pattern);
+                    IO_FREE(&pIrp->Args.QueryDirectory.FileSpec);
+                }
+                break;
             default:
                 break;
         }
@@ -323,12 +330,16 @@ IoIrpComplete(
         *irpInternal->Completion.Async.pIoStatusBlock = pIrp->IoStatusBlock;
         irpInternal->Completion.Async.Callback(
                 irpInternal->Completion.Async.CallbackContext);
-        IopIrpDereference(&pIrp);
+        // IopIrpDereference(&pIrp);
     }
     else
     {
         LwRtlSetEvent(irpInternal->Completion.Sync.Event);
     }
+
+    //
+    // Release reference from IoIrpMarkPending().
+    //
 
     IopIrpDereference(&pIrp);
 }
@@ -417,6 +428,7 @@ IopIrpDispatch(
     int EE = 0;
     BOOLEAN isAsyncCall = FALSE;
     LW_RTL_EVENT event = LW_RTL_EVENT_ZERO_INITIALIZER;
+    PIRP pExtraIrpReference = NULL;
 
     if (AsyncControlBlock)
     {
@@ -429,6 +441,10 @@ IopIrpDispatch(
                 AsyncControlBlock->CallbackContext,
                 pIoStatusBlock,
                 pCreateFileHandle);
+
+        // Reference IRP since we may need to return an an async cancel context.
+        IopIrpReference(pIrp);
+        pExtraIrpReference = pIrp;
     }
     else
     {
@@ -466,7 +482,18 @@ IopIrpDispatch(
         LWIO_ASSERT(isAsyncCall);
 
         AsyncControlBlock->AsyncCancelContext = IopIrpGetAsyncCancelContextFromIrp(pIrp);
-        IopIrpReference(pIrp);
+    }
+    else
+    {
+        if (isAsyncCall)
+        {
+            //
+            // Remove async cancel context reference added earlier since we
+            // are returning synchronously w/o an async cancel context.
+            //
+
+            IopIrpDereference(&pExtraIrpReference);
+        }
     }
 
 cleanup:

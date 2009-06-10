@@ -63,7 +63,7 @@ RdrCommonQueryVolumeInformation(
     PSMB_CLIENT_FILE_HANDLE pFile = IoFileGetContext(pIrp->FileHandle);
     SMB_INFO_LEVEL infoLevel = 0;
 
-    switch(pIrp->Args.QueryVolume.FsInformationClass)
+    switch(pIrp->Args.QuerySetVolumeInformation.FsInformationClass)
     {
     case FileFsSizeInformation:
         infoLevel = SMB_INFO_ALLOCATION;
@@ -77,8 +77,8 @@ RdrCommonQueryVolumeInformation(
     ntStatus = RdrTransactQueryFsInfo(
         pFile->pTree,
         infoLevel,
-        pIrp->Args.QueryVolume.FsInformation,
-        pIrp->Args.QueryVolume.Length,
+        pIrp->Args.QuerySetVolumeInformation.FsInformation,
+        pIrp->Args.QuerySetVolumeInformation.Length,
         &pIrp->IoStatusBlock.BytesTransferred);
     BAIL_ON_NT_STATUS(ntStatus);
 

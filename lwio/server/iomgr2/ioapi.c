@@ -213,8 +213,11 @@ cleanup:
         ioStatusBlock.Status = status;
     }
 
-    *FileHandle = pResultFileObject;
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *FileHandle = pResultFileObject;
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
@@ -281,15 +284,24 @@ IopReadWriteFile(
     pIrp->Args.ReadWrite.ByteOffset = ByteOffset;
     pIrp->Args.ReadWrite.Key = Key;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsWrite ? "Write" : "Read");
     return status;
@@ -369,15 +381,23 @@ IopControlFile(
     pIrp->Args.IoFsControl.OutputBuffer = OutputBuffer;
     pIrp->Args.IoFsControl.OutputBufferLength = OutputBufferLength;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsFsControl ? "FsControl" : "DeviceIoControl" );
     return status;
@@ -447,15 +467,23 @@ IoFlushBuffersFile(
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
@@ -487,15 +515,24 @@ IopQuerySetInformationFile(
     pIrp->Args.QuerySetInformation.Length = Length;
     pIrp->Args.QuerySetInformation.FileInformationClass = FileInformationClass;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsSet ? "Set" : "Query");
     return status;
@@ -577,7 +614,6 @@ IoQueryDirectoryFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_QUERY_DIRECTORY;
     PIO_MATCH_FILE_SPEC fileSpec = NULL;
 
     if (FileSpec)
@@ -594,7 +630,7 @@ IoQueryDirectoryFile(
         fileSpec->Options = FileSpec->Options;
     }
 
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    status = IopIrpCreate(&pIrp, IRP_TYPE_QUERY_DIRECTORY, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -603,20 +639,22 @@ IoQueryDirectoryFile(
     pIrp->Args.QueryDirectory.FileInformationClass = FileInformationClass;
     pIrp->Args.QueryDirectory.RestartScan = RestartScan;
     pIrp->Args.QueryDirectory.ReturnSingleEntry = ReturnSingleEntry;
+    // Handled by IopIrpFree():
     pIrp->Args.QueryDirectory.FileSpec = fileSpec;
     fileSpec = NULL;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+    }
 
 cleanup:
-    if (FileSpec && !fileSpec && pIrp)
-    {
-        fileSpec = pIrp->Args.QueryDirectory.FileSpec;
-        pIrp->Args.QueryDirectory.FileSpec = NULL;
-    }
     if (fileSpec)
     {
         LwRtlUnicodeStringFree(&fileSpec->Pattern);
@@ -624,9 +662,61 @@ cleanup:
     }
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+
+static
+NTSTATUS
+IopQuerySetVolumeInformationFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN BOOLEAN bIsSet,
+    IN OUT PVOID FsInformation,
+    IN ULONG Length,
+    IN FS_INFORMATION_CLASS FsInformationClass
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = bIsSet ? IRP_TYPE_SET_VOLUME_INFORMATION : IRP_TYPE_QUERY_VOLUME_INFORMATION;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.QuerySetVolumeInformation.FsInformation = FsInformation;
+    pIrp->Args.QuerySetVolumeInformation.Length = Length;
+    pIrp->Args.QuerySetVolumeInformation.FsInformationClass = FsInformationClass;
+
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+    }
+
+cleanup:
+    IopIrpDereference(&pIrp);
+
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
+
+    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsSet ? "Set" : "Query");
     return status;
 }
 
@@ -640,32 +730,14 @@ IoQueryVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     )
 {
-    NTSTATUS status = 0;
-    int EE = 0;
-    PIRP pIrp = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_QUERY_VOLUME_INFORMATION;
-
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
-    ioStatusBlock.Status = status;
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    pIrp->Args.QueryVolume.FsInformation = FsInformation;
-    pIrp->Args.QueryVolume.Length = Length;
-    pIrp->Args.QueryVolume.FsInformationClass = FsInformationClass;
-
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
-
-cleanup:
-    IopIrpDereference(&pIrp);
-
-    *IoStatusBlock = ioStatusBlock;
-
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    return status;
+    return IopQuerySetVolumeInformationFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                FALSE,
+                FsInformation,
+                Length,
+                FsInformationClass);
 }
 
 NTSTATUS
@@ -678,8 +750,14 @@ IoSetVolumeInformationFile(
     IN FS_INFORMATION_CLASS FsInformationClass
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
-    return status;
+    return IopQuerySetVolumeInformationFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                TRUE,
+                FsInformation,
+                Length,
+                FsInformationClass);
 }
 
 NTSTATUS
@@ -698,9 +776,8 @@ IoLockFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
 
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    status = IopIrpCreate(&pIrp, IRP_TYPE_LOCK_CONTROL, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -711,15 +788,26 @@ IoLockFile(
     pIrp->Args.LockControl.FailImmediately = FailImmediately;
     pIrp->Args.LockControl.ExclusiveLock = ExclusiveLock;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
+
+    // Cannot return STATUS_PENDING if FailImmediately is TRUE.
+    LWIO_ASSERT(!FailImmediately || (STATUS_PENDING != status));
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
@@ -739,9 +827,8 @@ IoUnlockFile(
     int EE = 0;
     PIRP pIrp = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_LOCK_CONTROL;
 
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    status = IopIrpCreate(&pIrp, IRP_TYPE_LOCK_CONTROL, FileHandle);
     ioStatusBlock.Status = status;
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
@@ -750,15 +837,23 @@ IoUnlockFile(
     pIrp->Args.LockControl.Length = Length;
     pIrp->Args.LockControl.Key = Key;
 
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+    }
 
 cleanup:
     IopIrpDereference(&pIrp);
 
-    *IoStatusBlock = ioStatusBlock;
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
     return status;
@@ -853,6 +948,54 @@ IoSetQuotaInformationFile(
     return status;
 }
 
+static
+NTSTATUS
+IopQuerySetSecurityFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN BOOLEAN bIsSet,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    IRP_TYPE irpType = bIsSet ? IRP_TYPE_SET_SECURITY : IRP_TYPE_QUERY_SECURITY;
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.QuerySetSecurity.SecurityInformation = SecurityInformation;
+    pIrp->Args.QuerySetSecurity.SecurityDescriptor = SecurityDescriptor;
+    pIrp->Args.QuerySetSecurity.Length = Length;
+
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    NULL);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+    }
+
+cleanup:
+    IopIrpDereference(&pIrp);
+
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
+
+    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsSet ? "Set" : "Query");
+    return status;
+}
+
 NTSTATUS
 IoQuerySecurityFile(
     IN IO_FILE_HANDLE FileHandle,
@@ -863,32 +1006,14 @@ IoQuerySecurityFile(
     IN ULONG Length
     )
 {
-    NTSTATUS status = 0;
-    int EE = 0;
-    PIRP pIrp = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_QUERY_SECURITY;
-
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
-    ioStatusBlock.Status = status;
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    pIrp->Args.QuerySetSecurity.SecurityInformation = SecurityInformation;
-    pIrp->Args.QuerySetSecurity.SecurityDescriptor = SecurityDescriptor;
-    pIrp->Args.QuerySetSecurity.Length = Length;
-
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
-
-cleanup:
-    IopIrpDereference(&pIrp);
-
-    *IoStatusBlock = ioStatusBlock;
-
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    return status;
+    return IopQuerySetSecurityFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                FALSE,
+                SecurityInformation,
+                SecurityDescriptor,
+                Length);
 }
 
 NTSTATUS
@@ -901,32 +1026,14 @@ IoSetSecurityFile(
     IN ULONG Length
     )
 {
-    NTSTATUS status = 0;
-    int EE = 0;
-    PIRP pIrp = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
-    IRP_TYPE irpType = IRP_TYPE_SET_SECURITY;
-
-    status = IopIrpCreate(&pIrp, irpType, FileHandle);
-    ioStatusBlock.Status = status;
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    pIrp->Args.QuerySetSecurity.SecurityInformation = SecurityInformation;
-    pIrp->Args.QuerySetSecurity.SecurityDescriptor = SecurityDescriptor;
-    pIrp->Args.QuerySetSecurity.Length = Length;
-
-    status = IopDeviceCallDriver(FileHandle->pDevice, pIrp);
-    ioStatusBlock = pIrp->IoStatusBlock;
-    // TODO -- handle asyc behavior.
-    assert(ioStatusBlock.Status == status);
-
-cleanup:
-    IopIrpDereference(&pIrp);
-
-    *IoStatusBlock = ioStatusBlock;
-
-    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    return status;
+    return IopQuerySetSecurityFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                TRUE,
+                SecurityInformation,
+                SecurityDescriptor,
+                Length);
 }
 
 // TODO: QueryEaFile and SetEaFile.
