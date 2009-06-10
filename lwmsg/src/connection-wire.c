@@ -1345,16 +1345,6 @@ lwmsg_connection_finish_recv_handshake(
     lwmsg_connection_buffer_destruct(&priv->sendbuffer);
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
 
-    /* Set up marshal token for message exchange (this is where byte order
-       and other negotiated format settings should be set) */
-    if (priv->marshal_handle)
-    {
-        lwmsg_data_handle_delete(priv->marshal_handle);
-        priv->marshal_handle = NULL;
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_data_handle_new(&assoc->context, &priv->marshal_handle));
-
 error:
 
     if (fragment)
@@ -1378,6 +1368,7 @@ lwmsg_connection_begin_send_message(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
     LWMsgProtocol* prot = lwmsg_assoc_get_protocol(assoc);
+    LWMsgContext* context = &assoc->context;
     LWMsgTypeSpec* type = NULL;
     ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
@@ -1434,8 +1425,8 @@ lwmsg_connection_begin_send_message(
         buffer.wrap = lwmsg_connection_send_wrap;
         buffer.data = assoc;
 
-        BAIL_ON_ERROR(status = lwmsg_data_marshal(
-                          priv->marshal_handle,
+        BAIL_ON_ERROR(status = lwmsg_marshal(
+                          context,
                           type,
                           message->object,
                           &buffer));
@@ -1569,8 +1560,8 @@ lwmsg_connection_finish_recv_message(
         buffer.wrap = lwmsg_connection_recv_wrap;
         buffer.data = assoc;
 
-        BAIL_ON_ERROR(status = lwmsg_data_unmarshal(
-                          priv->marshal_handle,
+        BAIL_ON_ERROR(status = lwmsg_unmarshal(
+                          context,
                           type,
                           &buffer,
                           &priv->params.message->object));

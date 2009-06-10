@@ -83,56 +83,6 @@
 
 /*@{*/
 
-typedef struct LWMsgDataHandle LWMsgDataHandle;
-
-LWMsgStatus
-lwmsg_data_handle_new(
-    const LWMsgContext* context,
-    LWMsgDataHandle** handle
-    );
-
-void
-lwmsg_data_handle_delete(
-    LWMsgDataHandle* handle
-    );
-
-const char*
-lwmsg_data_handle_get_error_message(
-    LWMsgDataHandle* handle,
-    LWMsgStatus status
-    );
-
-void
-lwmsg_data_handle_set_byte_order(
-    LWMsgDataHandle* handle,
-    LWMsgByteOrder order
-    );
-
-LWMsgByteOrder
-lwmsg_data_handle_get_byte_order(
-    LWMsgDataHandle* handle
-    );
-
-const LWMsgContext*
-lwmsg_data_handle_get_context(
-    LWMsgDataHandle* handle
-    );
-
-LWMsgStatus
-lwmsg_data_handle_raise_error(
-    LWMsgDataHandle* handle,
-    LWMsgStatus status,
-    const char* format,
-    ...
-    );
-
-LWMsgStatus
-lwmsg_data_free_graph(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* root
-    );
-
 /**
  * @brief Marshal a data structure
  *
@@ -153,12 +103,7 @@ lwmsg_data_free_graph(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_data_marshal(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* object,
-    LWMsgBuffer* buffer
-    );
+lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuffer* buffer);
 
 /**
  * @brief Marshal a data structure into a simple buffer
@@ -181,20 +126,14 @@ lwmsg_data_marshal(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_data_marshal_flat(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* object,
-    void* buffer,
-    size_t length
-    );
+lwmsg_marshal_simple(LWMsgContext* context, LWMsgTypeSpec* type, void* object, void* buffer, size_t length);
 
 /**
  * @brief Marshal a data structure while allocating a buffer
  *
  * Converts a data structure of the specified type to a flat, serialized form, automatically
- * allocating sufficient space for the result.  The buffer is allocated using the memory management
- * functions in context passed to lwmsg_data_handle_new().
+ * allocating and returning a buffer.  The buffer is allocated using the memory management
+ * functions in the specified context.
  *
  * @param context the marshalling context
  * @param type the type specification which describes the type of the data
@@ -210,71 +149,7 @@ lwmsg_data_marshal_flat(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_data_marshal_flat_alloc(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* object,
-    void** buffer,
-    size_t* length
-    );
-
-/**
- * @ingroup marshal
- * @brief Unmarshal a data structure
- *
- * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
- * to form the object graph.
- *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param buffer the marshalling buffer from which data will be read
- * @param out the resulting unmarshalled object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
- * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its unmarshalled form}
- * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its unmarshalled form}
- * @lwmsg_etc{the provided context and buffer may raise implementation-specific errors}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_data_unmarshal(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    LWMsgBuffer* buffer,
-    void** out
-    );
-
-/**
- * @ingroup marshal
- * @brief Unmarshal a data structure from a simple buffer
- *
- * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
- * to form the object graph.  The serialized form is read from a simple buffer rather than a
- * full #LWMsgBuffer.
- *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param buffer the simple buffer from which data will be read
- * @param length the length of the buffer in bytes
- * @param out the resulting unmarshalled object
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
- * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its unmarshalled form}
- * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its unmarshalled form}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_data_unmarshal_flat(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* buffer,
-    size_t length,
-    void** out
-    );
+lwmsg_marshal_alloc(LWMsgContext* context, LWMsgTypeSpec* type, void* object, void** buffer, size_t* length);
 
 /*@}*/
 

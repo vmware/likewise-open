@@ -55,13 +55,13 @@ struct LWMsgContext
     void* logfndata;
     LWMsgErrorContext error;
     
-    const struct LWMsgContext* parent;
+    struct LWMsgContext* parent;
 };
 
 void
 lwmsg_context_setup(
     LWMsgContext* context,
-    const LWMsgContext* parent
+    LWMsgContext* parent
     );
 
 void
@@ -69,30 +69,42 @@ lwmsg_context_cleanup(
     LWMsgContext* context
     );
 
+LWMsgAllocFunction
+lwmsg_context_get_alloc(
+    LWMsgContext* context
+    );
+
+LWMsgFreeFunction
+lwmsg_context_get_free(
+    LWMsgContext* context
+    );
+
+LWMsgReallocFunction
+lwmsg_context_get_realloc(
+    LWMsgContext* context
+    );
+
+void*
+lwmsg_context_get_memdata(
+    LWMsgContext* context
+    );
+
 LWMsgStatus
 lwmsg_context_get_data(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     const char* key,
     void** out_data
     );
 
 LWMsgStatus
 lwmsg_context_free_graph_internal(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     LWMsgTypeIter* iter,
-    unsigned char* object
-    );
-
-LWMsgStatus
-lwmsg_context_free_graph(
-    const LWMsgContext* context,
-    LWMsgTypeSpec* type,
-    void* root
-    );
+    unsigned char* object);
 
 void
 lwmsg_context_log(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     LWMsgLogLevel level,
     const char* message,
     const char* filename,
@@ -101,7 +113,7 @@ lwmsg_context_log(
 
 void
 lwmsg_context_log_printf(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     LWMsgLogLevel level,
     const char* filename,
     unsigned int line,

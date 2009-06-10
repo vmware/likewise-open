@@ -43,8 +43,6 @@
 #include <lwmsg/status.h>
 #include <lwmsg/common.h>
 
-#include "status-private.h"
-
 /* Iteration */
 typedef struct LWMsgTypeIter
 {
@@ -240,7 +238,7 @@ lwmsg_type_visit_graph_children(
 
 LWMsgStatus
 lwmsg_type_verify_range(
-    LWMsgErrorContext* error,
+    LWMsgContext* context,
     LWMsgTypeIter* iter,
     void* object,
     size_t object_size

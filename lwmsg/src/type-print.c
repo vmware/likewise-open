@@ -45,7 +45,7 @@
 
 typedef struct
 {
-    const LWMsgContext* context;
+    LWMsgContext* context;
     unsigned int depth;
     LWMsgBool newline;
     LWMsgTypePrintFunction print;
@@ -375,7 +375,7 @@ error:
 
 LWMsgStatus
 lwmsg_type_print_graph(
-    const LWMsgContext* context,
+    LWMsgContext* context,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgTypePrintFunction print,

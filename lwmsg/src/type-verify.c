@@ -41,7 +41,7 @@
 
 LWMsgStatus
 lwmsg_type_verify_range(
-    LWMsgErrorContext* error,
+    LWMsgContext* context,
     LWMsgTypeIter* iter,
     void* object,
     size_t object_size
@@ -61,8 +61,8 @@ lwmsg_type_verify_range(
 
     if (value < iter->attrs.range_low || value > iter->attrs.range_high)
     {
-        status = RAISE(error, LWMSG_STATUS_MALFORMED, "Integer value did not fall within specified range");
-        BAIL_ON_ERROR(status);
+        RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
+                    "Integer value did not fall within specified range");
     }
 
 error:
