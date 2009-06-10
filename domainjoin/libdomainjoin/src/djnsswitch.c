@@ -1358,7 +1358,7 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
             &restartException);
     if(restartException != NULL && restartException->code == CENTERROR_COMMAND_FAILED)
     {
-        options->warningCallback(options, "Unable to restart services after nsswitch modification", restartException->longMsg);
+        options->warningCallback(options, "Some services require manual restart", restartException->longMsg);
         LW_HANDLE(&restartException);
     }
     LW_CLEANUP(exc, restartException);
