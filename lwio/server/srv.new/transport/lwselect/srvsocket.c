@@ -42,9 +42,11 @@ error:
 
 VOID
 SrvSocketFree(
-    PLWIO_SRV_SOCKET pSocket
+    HANDLE hSocket
     )
 {
+	PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)hSocket;
+
     if (pSocket->fd >= 0)
     {
         close(pSocket->fd);

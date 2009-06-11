@@ -85,13 +85,14 @@ SrvConnectionSessionRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    HANDLE                     hSocket,
-    HANDLE                     hPacketAllocator,
-    HANDLE                     hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PSRV_PROPERTIES            pServerProperties,
-    PSRV_HOST_INFO             pHostinfo,
-    PLWIO_SRV_CONNECTION*      ppConnection
+    HANDLE                          hSocket,
+    HANDLE                          hPacketAllocator,
+    HANDLE                          hGssContext,
+    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
+    PSRV_PROPERTIES                 pServerProperties,
+    PSRV_HOST_INFO                  pHostinfo,
+    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree,
+    PLWIO_SRV_CONNECTION*           ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
@@ -388,6 +389,11 @@ SrvConnectionRelease(
         if (pConnection->hGssContext)
         {
             SrvGssReleaseContext(pConnection->hGssContext);
+        }
+
+        if (pConnection->hSocket && pConnection->pfnSocketFree)
+        {
+		pConnection->pfnSocketFree(pConnection->hSocket);
         }
 
         if (pConnection->pSessionCollection)

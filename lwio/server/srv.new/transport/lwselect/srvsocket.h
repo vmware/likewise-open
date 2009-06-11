@@ -10,7 +10,7 @@ SrvSocketCreate(
 
 VOID
 SrvSocketFree(
-    PLWIO_SRV_SOCKET pSocket
+    HANDLE hSocket
     );
 
 #endif /* __SRVSOCK_H__ */

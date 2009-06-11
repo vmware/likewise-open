@@ -146,6 +146,8 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
+typedef VOID (*PFN_LWIO_SRV_FREE_SOCKET_HANDLE)(HANDLE hSocket);
+
 typedef struct _LWIO_SRV_CONNECTION
 {
     LONG                refCount;
@@ -155,7 +157,8 @@ typedef struct _LWIO_SRV_CONNECTION
 
     LWIO_SRV_CONN_STATE  state;
 
-    HANDLE               hSocket;
+    HANDLE                          hSocket;
+    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree;
 
     SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
@@ -280,13 +283,14 @@ SrvGssReleaseContext(
 
 NTSTATUS
 SrvConnectionCreate(
-    HANDLE                    hSocket,
-    HANDLE                    hPacketAllocator,
-    HANDLE                    hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PSRV_PROPERTIES           pServerProperties,
-    PSRV_HOST_INFO            pHostinfo,
-    PLWIO_SRV_CONNECTION*      ppConnection
+    HANDLE                          hSocket,
+    HANDLE                          hPacketAllocator,
+    HANDLE                          hGssContext,
+    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
+    PSRV_PROPERTIES                 pServerProperties,
+    PSRV_HOST_INFO                  pHostinfo,
+    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree,
+    PLWIO_SRV_CONNECTION*           ppConnection
     );
 
 NTSTATUS
