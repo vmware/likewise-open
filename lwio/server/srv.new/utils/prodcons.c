@@ -207,10 +207,11 @@ SrvProdConsTimedDequeue(
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
     PVOID    pItem = NULL;
+    BOOLEAN  bSignalEvent = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pQueue->mutex);
 
-    if (!pQueue->ulNumItems)
+    while (!pQueue->ulNumItems)
     {
         BOOLEAN bRetryWait = FALSE;
 
@@ -240,26 +241,21 @@ SrvProdConsTimedDequeue(
         } while (bRetryWait);
     }
 
-    if (pQueue->ulNumItems)
-    {
-        BOOLEAN  bSignalEvent = FALSE;
+	pItem = SMBDequeue(&pQueue->queue);
 
-        pItem = SMBDequeue(&pQueue->queue);
+	if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
+	{
+		bSignalEvent = TRUE;
+	}
 
-        if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
-        {
-            bSignalEvent = TRUE;
-        }
+	pQueue->ulNumItems--;
 
-        pQueue->ulNumItems--;
+	LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
-        LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
-
-        if (bSignalEvent)
-        {
-            pthread_cond_broadcast(&pQueue->event);
-        }
-    }
+	if (bSignalEvent)
+	{
+		pthread_cond_broadcast(&pQueue->event);
+	}
 
     *ppItem = pItem;
 
