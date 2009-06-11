@@ -99,6 +99,11 @@ PvfsFreeCCB(
     PPVFS_CCB pCCB
     )
 {
+    /* Release all byte range locks to ensure proper
+       processing of pending locks */
+
+    PvfsUnlockFile(pCCB, TRUE, NULL, 0, 0);
+
     if (pCCB->pDirContext) {
         PvfsFreeDirectoryContext(pCCB->pDirContext);
     }
