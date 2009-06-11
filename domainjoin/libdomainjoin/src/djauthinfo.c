@@ -1731,7 +1731,7 @@ void DJCreateComputerAccount(
 
         LW_CLEANUP_CTERR(exc, DJGetFQDN(&shortHostname, &hostFqdn));
 
-        if (strlen(hostFqdn) > (strlen(shortHostname) + 1))
+        if (hostFqdn && (strlen(hostFqdn) > (strlen(shortHostname) + 1)))
         {
             dnsDomain = hostFqdn + strlen(shortHostname) + 1;
         }
