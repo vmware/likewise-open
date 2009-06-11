@@ -478,12 +478,13 @@ error:
 
 DWORD
 LocalGetGroupsForUser(
-    HANDLE         hProvider,
-    uid_t          uid,
-    LSA_FIND_FLAGS dwFindFlags,
-    DWORD          dwGroupInfoLevel,
-    PDWORD         pdwNumGroupsFound,
-    PVOID**        pppGroupInfoList
+    IN HANDLE hProvider,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
+    IN LSA_FIND_FLAGS dwFindFlags,
+    IN DWORD dwGroupInfoLevel,
+    IN PDWORD pdwNumGroupsFound,
+    IN PVOID** pppGroupInfoList
     )
 {
     DWORD             dwError = 0;
@@ -496,13 +497,26 @@ LocalGetGroupsForUser(
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDirFindUserById(
-                    hProvider,
-                    uid,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszUserName)
+    {
+        dwError = LocalFindUserByNameEx(
+                        hProvider,
+                        pszUserName,
+                        dwUserInfoLevel,
+                        &pwszUserDN,
+                        (PVOID*)&pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LocalDirFindUserById(
+                        hProvider,
+                        uid,
+                        dwUserInfoLevel,
+                        &pwszUserDN,
+                        (PVOID*)&pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LocalDirGetGroupsForUser(
                     hProvider,
@@ -1533,6 +1547,7 @@ LocalGetGroupMembership(
 {
     DWORD dwError = 0;
     LWMsgContext *context = NULL;
+    LWMsgDataHandle *pDataHandle = NULL;
     PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ pRequest = NULL;
     LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP Reply;
     PWSTR pwszDN = NULL;
@@ -1543,11 +1558,14 @@ LocalGetGroupMembership(
 
     memset(&Reply, 0, sizeof(Reply));
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                              pDataHandle,
                               LsaLocalIPCGetGroupMembershipReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
@@ -1579,8 +1597,8 @@ LocalGetGroupMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataHandle,
                               LsaLocalIPCGetGroupMembershipRepSpec(),
                               &Reply,
                               &pRepBuffer,
@@ -1601,10 +1619,15 @@ cleanup:
     }
 
     if (pRequest) {
-        lwmsg_context_free_graph(
-                        context,
-                        LsaLocalIPCGetGroupMembershipReqSpec(),
-                        pRequest);
+        lwmsg_data_free_graph(
+            pDataHandle,
+            LsaLocalIPCGetGroupMembershipReqSpec(),
+            pRequest);
+    }
+
+    if (pDataHandle)
+    {
+        lwmsg_data_handle_delete(pDataHandle);
     }
 
     if (context) {

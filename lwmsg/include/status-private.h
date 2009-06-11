@@ -89,4 +89,6 @@ lwmsg_error_propagate(
     LWMsgStatus status
     );
 
+#define RAISE(ec, expr, ...) (lwmsg_error_raise((ec), (expr), __VA_ARGS__))
+
 #endif

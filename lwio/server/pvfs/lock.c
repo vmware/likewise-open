@@ -57,6 +57,24 @@
  *************************************************************/
 
 NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    /* If the request is marked as FailImmediately, then
+       it must be synchronous */
+
+    if (pIrpContext->pIrp->Args.LockControl.FailImmediately) {
+        return PvfsLockControl(pIrpContext);
+    }
+
+    return PvfsAsyncLockControl(pIrpContext);
+}
+
+/**************************************************************
+ *************************************************************/
+
+NTSTATUS
 PvfsLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -69,6 +87,8 @@ PvfsLockControl(
     ULONG Key = Args.Key;
     PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
+
+    PVFS_BAIL_ON_CANCELLED_IRP(pIrpContext, ntError);
 
     /* Sanity checks */
 
@@ -97,7 +117,7 @@ PvfsLockControl(
 
     switch(Args.LockControl) {
     case IO_LOCK_CONTROL_LOCK:
-        ntError = PvfsLockFile(pCcb, &Key, Offset, Length, Flags);
+        ntError = PvfsLockFile(pIrpContext, pCcb, &Key, Offset, Length, Flags);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK:
@@ -120,7 +140,9 @@ PvfsLockControl(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (pCcb) {
+    /* Release the CCB unless this is a pending lock */
+
+    if (ntError != STATUS_PENDING && pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 

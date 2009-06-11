@@ -44,7 +44,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
-#include "ipc.h"
+#include "ntlmipc.h"
 
 DWORD
 NtlmWriteData(

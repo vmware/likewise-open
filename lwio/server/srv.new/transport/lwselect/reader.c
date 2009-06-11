@@ -184,16 +184,17 @@ SrvSocketReaderEnqueueConnection(
     )
 {
     NTSTATUS ntStatus = 0;
+    PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
 
     pthread_mutex_lock(&pReader->context.mutex);
 
     LWIO_LOG_DEBUG("Enqueueing connection [fd:%d] at reader [id:%u]",
-                    pConnection->pSocket->fd,
+                    pSocket->fd,
                     pReader->readerId);
 
     ntStatus = LwRtlRBTreeAdd(
                     pReader->context.pConnections,
-                    &pConnection->pSocket->fd,
+                    &pSocket->fd,
                     pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -458,6 +459,7 @@ SrvSocketReaderProcessConnections(
          pIter = pIter->pNext)
     {
         PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pIter->pItem;
+        PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
 
         if (!SrvConnectionIsInvalid(pConnection))
         {
@@ -485,7 +487,7 @@ SrvSocketReaderProcessConnections(
                                         fd,
                                         SMB_SAFE_LOG_STRING(inet_ntop(
                                                                 AF_INET,
-                                                                &pConnection->pSocket->cliaddr.sin_addr,
+                                                                &pSocket->cliaddr.sin_addr,
                                                                 szIpAddr,
                                                                 sizeof(szIpAddr))));
                     }
@@ -573,11 +575,13 @@ SrvSocketReaderPurgeConnections(
 
         if (SrvConnectionIsInvalid(pSrvConnection))
         {
+		PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pSrvConnection->hSocket;
+
             pthread_mutex_lock(pReaderContext->pMutex);
 
             LwRtlRBTreeRemove(
                     pReaderContext->pConnections,
-                    &pSrvConnection->pSocket->fd);
+                    &pSocket->fd);
 
             pthread_mutex_unlock(pReaderContext->pMutex);
         }

@@ -64,6 +64,45 @@ static PVFS_FCB_TABLE gFcbTable;
 
 /* Code */
 
+/*******************************************************
+ ******************************************************/
+
+static VOID
+PvfsFreeFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    if (!pFcb) {
+        return;
+    }
+
+    RtlCStringFree(&pFcb->pszFilename);
+    pthread_mutex_destroy(&pFcb->ControlBlock);
+    pthread_rwlock_destroy(&pFcb->rwLock);
+    pthread_rwlock_destroy(&pFcb->rwBrlLock);
+
+    LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
+
+    PVFS_FREE(&pFcb);
+
+    return;
+}
+
+/***********************************************************
+ **********************************************************/
+
+static VOID
+PvfsFreePendingLock(
+    PVOID *ppData
+    )
+{
+    if (ppData && *ppData) {
+        PVFS_FREE(ppData);
+    }
+
+    return;
+}
+
 /***********************************************************
  **********************************************************/
 
@@ -81,6 +120,12 @@ PvfsAllocateFCB(
     ntError = PvfsAllocateMemory((PVOID*)&pFcb, sizeof(PVFS_FCB));
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Setup pendlock byte-range lock queue */
+
+    ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
+                             PVFS_FCB_MAX_PENDING_LOCKS,
+                             PvfsFreePendingLock);
+
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
@@ -93,10 +138,13 @@ PvfsAllocateFCB(
     NewRefCount = InterlockedIncrement(&pFcb->RefCount);
 
     *ppFcb = pFcb;
+    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PvfsFreeFCB(pFcb);
+
     return ntError;
 
 error:
@@ -127,25 +175,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-/*******************************************************
- ******************************************************/
-
-static NTSTATUS
-PvfsFreeFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    RtlCStringFree(&pFcb->pszFilename);
-    pthread_mutex_destroy(&pFcb->ControlBlock);
-    pthread_rwlock_destroy(&pFcb->rwLock);
-    pthread_rwlock_destroy(&pFcb->rwBrlLock);
-
-    PVFS_FREE(&pFcb);
-
-    return STATUS_SUCCESS;
-}
-
 
 /*******************************************************
  ******************************************************/

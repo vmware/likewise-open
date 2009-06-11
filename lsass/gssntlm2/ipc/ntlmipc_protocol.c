@@ -47,7 +47,7 @@
  *
  */
 
-#include "ipc.h"
+#include "ntlmipc.h"
 
 static LWMsgTypeSpec gNtlmIpcErrorSpec[] =
 {

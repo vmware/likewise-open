@@ -91,6 +91,7 @@ LWIFreeEventLogHandle(
     PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
     PEVENT_LOG_RECORD pEventRecord = &(pEventLogHandle->defaultEventLogRecord);
 
+    LWIFreeEventLogRpcBinding(pEventLogHandle->bindingHandle);
     LWIFreeEventRecordContents(pEventRecord);
     EVT_SAFE_FREE_MEMORY(pEventLogHandle);
 }

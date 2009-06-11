@@ -85,13 +85,14 @@ SrvConnectionSessionRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    PLWIO_SRV_SOCKET           pSocket,
-    HANDLE                     hPacketAllocator,
-    HANDLE                     hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PSRV_PROPERTIES            pServerProperties,
-    PSRV_HOST_INFO             pHostinfo,
-    PLWIO_SRV_CONNECTION*      ppConnection
+    HANDLE                          hSocket,
+    HANDLE                          hPacketAllocator,
+    HANDLE                          hGssContext,
+    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
+    PSRV_PROPERTIES                 pServerProperties,
+    PSRV_HOST_INFO                  pHostinfo,
+    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree,
+    PLWIO_SRV_CONNECTION*           ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
@@ -129,7 +130,7 @@ SrvConnectionCreate(
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->pShareList = pShareList;
     pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
-    pConnection->pSocket = pSocket;
+    pConnection->hSocket = hSocket;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
@@ -388,6 +389,11 @@ SrvConnectionRelease(
         if (pConnection->hGssContext)
         {
             SrvGssReleaseContext(pConnection->hGssContext);
+        }
+
+        if (pConnection->hSocket && pConnection->pfnSocketFree)
+        {
+		pConnection->pfnSocketFree(pConnection->hSocket);
         }
 
         if (pConnection->pSessionCollection)

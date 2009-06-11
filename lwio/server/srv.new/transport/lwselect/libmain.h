@@ -52,6 +52,7 @@
 
 NTSTATUS
 SrvSelectTransportGetRequest(
+    IN  struct timespec*      pTimespec,
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
     );

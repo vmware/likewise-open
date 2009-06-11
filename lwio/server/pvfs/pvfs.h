@@ -153,6 +153,11 @@ PvfsQueryVolumeInformation(
     );
 
 NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsLockControl(
     PPVFS_IRP_CONTEXT pIrpContext
     );
@@ -292,6 +297,7 @@ PvfsEnforceShareMode(
 
 NTSTATUS
 PvfsLockFile(
+    PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PULONG pKey,
     LONG64 Offset,

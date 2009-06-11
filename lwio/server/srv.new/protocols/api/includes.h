@@ -71,6 +71,7 @@
 #include <srvutils.h>
 #include <shareapi.h>
 #include <elementsapi.h>
+#include <transportapi.h>
 
 #include <smb1.h>
 #include <smb2.h>

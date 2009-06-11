@@ -1,8 +1,13 @@
 noinst_LTLIBRARIES = libsrv.transport.select.la
 
 libsrv_transport_select_la_SOURCES = \
-    globals.c \
-    libmain.c
+    globals.c       \
+    libmain.c       \
+    listener.c      \
+    reader.c        \
+    srvconnection.c \
+    srvcontext.c    \
+    srvsocket.c
 
 libsrv_transport_select_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

@@ -46,7 +46,7 @@
 
 #include "test-private.h"
 
-MU_LIBRARY_SETUP
+MU_LIBRARY_SETUP()
 {
     signal(SIGPIPE, SIG_IGN);
 }

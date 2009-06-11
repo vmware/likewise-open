@@ -197,7 +197,7 @@ AD_OnlineFindUserObjectById(
 DWORD
 AD_OnlineGetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
     OUT PLSA_SECURITY_OBJECT** pppResults

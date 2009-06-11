@@ -47,12 +47,7 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define SMB_SERVER_PORT      445
-#define SMB_LISTEN_Q         5
-
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
 #define LWIO_SRV_DEFAULT_NUM_WORKERS          4
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
 #define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS     10
 
 typedef ULONG CCB_TYPE;

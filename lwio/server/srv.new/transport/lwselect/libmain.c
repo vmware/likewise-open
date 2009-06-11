@@ -51,25 +51,102 @@
 
 NTSTATUS
 SrvSelectTransportInit(
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
+	PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
+	PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+	PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+	)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    INT iReader = 0;
+
+    gSrvSelectTransport.hPacketAllocator = hPacketAllocator;
+    gSrvSelectTransport.pShareList = pShareList;
+    gSrvSelectTransport.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
+    gSrvSelectTransport.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
+
+    status = SrvProdConsInitContents(
+                    &gSrvSelectTransport.workQueue,
+                    gSrvSelectTransport.ulMaxNumWorkItemsInQueue,
+                    &SrvContextFree);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvAllocateMemory(
+		        gSrvSelectTransport.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
+                    (PVOID*)&gSrvSelectTransport.pReaderArray);
+    BAIL_ON_NT_STATUS(status);
+
+    for (; iReader < gSrvSelectTransport.ulNumReaders; iReader++)
+    {
+        PLWIO_SRV_SOCKET_READER pReader = NULL;
+
+        pReader = &gSrvSelectTransport.pReaderArray[iReader];
+
+        pReader->readerId = iReader + 1;
+
+        status = SrvSocketReaderInit(
+                        &gSrvSelectTransport.workQueue,
+                        pReader);
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    status = SrvListenerInit(
+					gSrvSelectTransport.hPacketAllocator,
+                    gSrvSelectTransport.pShareList,
+                    gSrvSelectTransport.pReaderArray,
+                    gSrvSelectTransport.ulNumReaders,
+                    &gSrvSelectTransport.listener);
+    BAIL_ON_NT_STATUS(status);
 
     *ppFnTable = &gSrvSelectTransport.fnTable;
 
+cleanup:
+
     return status;
+
+error:
+
+	*ppFnTable = NULL;
+
+	goto cleanup;
 }
 
 NTSTATUS
 SrvSelectTransportGetRequest(
+    IN  struct timespec*      pTimespec,
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PLWIO_SRV_CONTEXT pContext = NULL;
+
+    status = SrvProdConsTimedDequeue(
+					&gSrvSelectTransport.workQueue,
+					pTimespec,
+					(PVOID*)&pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppConnection = pContext->pConnection;
+    pContext->pConnection = NULL;
+
+    *ppRequest = pContext->pRequest;
+    pContext->pRequest = NULL;
+
+cleanup:
+
+	if (pContext)
+	{
+		SrvContextFree(pContext);
+	}
 
     return status;
+
+error:
+
+	*ppConnection = NULL;
+	*ppRequest = NULL;
+
+	goto cleanup;
 }
 
 NTSTATUS
@@ -79,9 +156,10 @@ SrvSelectTransportSendResponse(
     IN          PSMB_PACKET          pResponse
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
+	return SrvConnectionWriteMessage(
+				pConnection,
+				pRequest->sequence + 1,
+				pResponse);
 }
 
 NTSTATUS
@@ -90,6 +168,30 @@ SrvSelectTransportShutdown(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    status = SrvListenerShutdown(&gSrvSelectTransport.listener);
+    BAIL_ON_NT_STATUS(status);
+
+    if (gSrvSelectTransport.pReaderArray)
+    {
+        if (gSrvSelectTransport.ulNumReaders)
+        {
+            INT      iReader = 0;
+
+            for (; iReader < gSrvSelectTransport.ulNumReaders; iReader++)
+            {
+                status = SrvSocketReaderFreeContents(
+                                &gSrvSelectTransport.pReaderArray[iReader]);
+                BAIL_ON_NT_STATUS(status);
+            }
+        }
+
+        SrvFreeMemory(gSrvSelectTransport.pReaderArray);
+    }
+
+    SrvProdConsFreeContents(&gSrvSelectTransport.workQueue);
+
+error:
 
     return status;
 }

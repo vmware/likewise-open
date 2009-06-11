@@ -103,10 +103,10 @@ AD_OfflineFindGroupById(
 
 DWORD
 AD_OfflineGetUserGroupObjectMembership(
-    HANDLE hProvider,
-    uid_t uid,
-    size_t* psNumGroupsFound,
-    PLSA_SECURITY_OBJECT** pppResult
+    IN HANDLE hProvider,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
+    OUT size_t* psNumGroupsFound,
+    OUT PLSA_SECURITY_OBJECT** pppResult
     );
 
 DWORD

@@ -92,14 +92,23 @@ LockEntryEqual(
     PPVFS_LOCK_ENTRY pEntry2
     );
 
+static NTSTATUS
+PvfsAddPendingLock(
+    PPVFS_FCB pFcb,
+    PPVFS_IRP_CONTEXT pIrpCtx,
+    PPVFS_CCB pCcb,
+    PPVFS_LOCK_ENTRY pLock
+    );
+
+
 /* Code */
 
 /**************************************************************
- TODO: Implement blocking locks
  *************************************************************/
 
 NTSTATUS
 PvfsLockFile(
+    PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PULONG pKey,
     LONG64 Offset,
@@ -155,22 +164,75 @@ cleanup:
     return ntError;
 
 error:
+    LWIO_LOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
+
     InitLockEntry(&RangeLock, pKey, Offset, Length, Flags);
+
+    /* Only try to pend a blocking lock that failed due
+       to a conflict.  Not for general failures */
+
+    if ((Flags & PVFS_LOCK_BLOCK) && (ntError == STATUS_LOCK_NOT_GRANTED))
+    {
+        NTSTATUS ntErrorPending = STATUS_UNSUCCESSFUL;
+
+        ntErrorPending = PvfsAddPendingLock(pFcb, pIrpCtx, pCcb, &RangeLock);
+        if (ntErrorPending == STATUS_SUCCESS) {
+            ntError = STATUS_PENDING;
+        }
+    }
 
     /* Windows 2003 & XP return FILE_LOCK_CONFLICT for all
        lock failures following the first.  The state machine
        resets every time a new lock range is requested.
        Pass all errors other than LOCK_NOT_GRANTED on through. */
 
-    LWIO_LOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
     if ((ntError == STATUS_LOCK_NOT_GRANTED) &&
         LockEntryEqual(&pFcb->LastFailedLock, &RangeLock))
     {
         ntError = STATUS_FILE_LOCK_CONFLICT;
         InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
     }
+
     LWIO_UNLOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
 
+    goto cleanup;
+}
+
+/* Caller must hold the mutex on the FCB */
+
+static NTSTATUS
+PvfsAddPendingLock(
+    PPVFS_FCB pFcb,
+    PPVFS_IRP_CONTEXT pIrpCtx,
+    PPVFS_CCB pCcb,
+    PPVFS_LOCK_ENTRY pLock
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_LOCK pPendingLock = NULL;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pPendingLock,
+                                 sizeof(PVFS_PENDING_LOCK));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pPendingLock->pIrpContext = pIrpCtx;
+    pPendingLock->pCcb = pCcb;
+    pPendingLock->PendingLock = *pLock;   /* structure assignment */
+
+    ntError = LwRtlQueueAddItem(pFcb->pPendingLockQueue,
+                                (PVOID)pPendingLock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Memory has been given to the Queue */
+
+    pPendingLock = NULL;
+
+cleanup:
+    PVFS_FREE(&pPendingLock);
+
+    return ntError;
+
+error:
     goto cleanup;
 }
 

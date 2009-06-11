@@ -51,9 +51,7 @@
 
 typedef struct _LWIO_SRV_CONFIG
 {
-    ULONG ulNumReaders;
     ULONG ulNumWorkers;
-    ULONG ulMaxNumWorkItemsInQueue;
     ULONG ulMaxNumPackets;
 
 } LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
@@ -94,10 +92,6 @@ typedef struct _LWIO_SRV_WORKER_CONTEXT
 
     ULONG   workerId;
 
-    // Invariant
-    // not owned
-    PSMB_PROD_CONS_QUEUE pWorkQueue;
-
 } LWIO_SRV_WORKER_CONTEXT, *PLWIO_SRV_WORKER_CONTEXT;
 
 typedef struct _LWIO_SRV_WORKER
@@ -113,28 +107,19 @@ typedef struct _LWIO_SRV_WORKER
 
 typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 {
-    pthread_mutex_t          mutex;
-    pthread_mutex_t*         pMutex;
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
 
-    LWIO_SRV_CONFIG          config;
+    LWIO_SRV_CONFIG           config;
 
     LWIO_SRV_SHARE_ENTRY_LIST shareList;
-
-#if 0
-    SMB_PROD_CONS_QUEUE      workQueue;
-
-    PLWIO_SRV_SOCKET_READER  pReaderArray;
-    ULONG                    ulNumReaders;
 
     PLWIO_SRV_WORKER         pWorkerArray;
     ULONG                    ulNumWorkers;
 
-    LWIO_SRV_LISTENER        listener;
+    PLWIO_PACKET_ALLOCATOR    hPacketAllocator;
 
-    PLWIO_PACKET_ALLOCATOR   hPacketAllocator;
-#endif
-
-    PSRV_CCB                 pCCBList;
+    PSRV_CCB                  pCCBList;
 
 } LWIO_SRV_RUNTIME_GLOBALS, *PLWIO_SRV_RUNTIME_GLOBALS;
 

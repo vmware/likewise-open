@@ -383,6 +383,39 @@ error:
 
 LSASS_API
 DWORD
+LsaGetGroupsForUserByName(
+    IN HANDLE hLsaConnection,
+    IN PCSTR pszUserName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaTransactGetGroupsForUser(
+                    hLsaConnection,
+                    pszUserName,
+                    0,
+                    FindFlags,
+                    dwGroupInfoLevel,
+                    pdwGroupsFound,
+                    pppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    *pdwGroupsFound = 0;
+    *pppGroupInfoList = NULL;
+
+   goto cleanup;
+}
+
+LSASS_API
+DWORD
 LsaGetGroupsForUserById(
     HANDLE  hLsaConnection,
     uid_t   uid,
@@ -394,8 +427,9 @@ LsaGetGroupsForUserById(
 {
     DWORD dwError = 0;
 
-    dwError = LsaTransactGetGroupsForUserById(
+    dwError = LsaTransactGetGroupsForUser(
                hLsaConnection,
+               NULL,
                uid,
                FindFlags,
                dwGroupInfoLevel,

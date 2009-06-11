@@ -475,6 +475,7 @@ FillAuthUserInfo(
     /* Find the user's groups */
 
     dwError = LocalGetGroupsForUser(hProvider,
+                                    NULL,
                                     pLsaUserInfo2->info1.uid,
                                     0,   /* Flags */
                                     0,   /* Level */

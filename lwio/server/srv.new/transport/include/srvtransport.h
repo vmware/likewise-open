@@ -48,7 +48,12 @@
 #ifndef __SRV_TRANSPORT_H__
 #define __SRV_TRANSPORT_H__
 
+#define SMB_SERVER_PORT      445
+
+#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS 20
+
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_GET_REQUEST)(
+		                IN  struct timespec*      pTimeSpec,
                         OUT PLWIO_SRV_CONNECTION* ppConnection,
                         OUT PSMB_PACKET*          ppRequest
                         );

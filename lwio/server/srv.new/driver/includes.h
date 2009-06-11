@@ -66,8 +66,13 @@
 #include <iodriver.h>
 #include <ioapi.h>
 
+#include <smbwire.h>
+
 #include <srvutils.h>
 #include <shareapi.h>
+#include <elementsapi.h>
+#include <protocolapi.h>
+#include <transportapi.h>
 
 #include "defs.h"
 #include "structs.h"
@@ -76,5 +81,6 @@
 #include "deviceio.h"
 #include "devicecreate.h"
 #include "device.h"
+#include "srvworker.h"
 
 #include "externs.h"

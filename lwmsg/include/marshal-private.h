@@ -40,6 +40,14 @@
 
 #include <lwmsg/marshal.h>
 #include "type-private.h"
+#include "status-private.h"
+
+struct LWMsgDataHandle
+{
+    LWMsgErrorContext error;
+    const LWMsgContext* context;
+    LWMsgByteOrder byte_order;
+};
 
 typedef struct LWMsgMarshalState
 {
@@ -47,5 +55,8 @@ typedef struct LWMsgMarshalState
 } LWMsgMarshalState;
 
 #define MAX_INTEGER_SIZE (16)
+
+#define MARSHAL_RAISE_ERROR(hand, expr, ...) \
+    BAIL_ON_ERROR(lwmsg_data_handle_raise_error((hand), (expr), __VA_ARGS__))
 
 #endif

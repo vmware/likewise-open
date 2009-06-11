@@ -28,13 +28,15 @@ SrvConnectionGetFd(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    if (pConnection->pSocket)
+    if (pConnection->hSocket)
     {
-        pthread_mutex_lock(&pConnection->pSocket->mutex);
+	PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
 
-        fd = pConnection->pSocket->fd;
+        pthread_mutex_lock(&pSocket->mutex);
 
-        pthread_mutex_unlock(&pConnection->pSocket->mutex);
+        fd = pSocket->fd;
+
+        pthread_mutex_unlock(&pSocket->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
@@ -116,7 +118,7 @@ SrvConnectionReadPacket(
         size_t sNumBytesRead = 0;
 
         ntStatus = SrvConnectionReadMessage(
-                        pConnection->pSocket,
+                        (PLWIO_SRV_SOCKET)pConnection->hSocket,
                         pConnection->readerState.sNumBytesToRead,
                         pConnection->readerState.sOffset,
                         pConnection->readerState.pRequestPacket,
@@ -160,7 +162,7 @@ SrvConnectionReadPacket(
         size_t sNumBytesRead = 0;
 
         ntStatus = SrvConnectionReadMessage(
-                        pConnection->pSocket,
+                        (PLWIO_SRV_SOCKET)pConnection->hSocket,
                         pConnection->readerState.sNumBytesToRead,
                         pConnection->readerState.sOffset,
                         pConnection->readerState.pRequestPacket,
@@ -226,6 +228,7 @@ SrvConnectionWriteMessage(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
+    PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
     size_t   sNumBytesToWrite = pPacket->bufferUsed;
     size_t   sTotalNumBytesWritten = 0;
     int fd = -1;
@@ -245,7 +248,7 @@ SrvConnectionWriteMessage(
 
     fd = SrvConnectionGetFd(pConnection);
 
-    LWIO_LOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
     // TODO: Use select to find out if the fd is ready to be written to
 
@@ -276,13 +279,13 @@ SrvConnectionWriteMessage(
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return ntStatus;
 
 error:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &pConnection->pSocket->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     SrvConnectionSetInvalid(pConnection);
 
@@ -342,8 +345,9 @@ SrvConnectionGetNamedPipeClientAddress(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PBYTE pAddr = (PBYTE)&pConnection->pSocket->cliaddr.sin_addr.s_addr;
-    ULONG ulAddrLength = sizeof(pConnection->pSocket->cliaddr.sin_addr.s_addr);
+    PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
+    PBYTE pAddr = (PBYTE)&pSocket->cliaddr.sin_addr.s_addr;
+    ULONG ulAddrLength = sizeof(pSocket->cliaddr.sin_addr.s_addr);
 
     ntStatus = IoRtlEcpListInsert(pEcpList,
                                   IO_ECP_TYPE_PEER_ADDRESS,

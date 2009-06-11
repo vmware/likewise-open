@@ -42,6 +42,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <lwmsg/connection.h>
+#include <lwmsg/marshal.h>
 
 #include "util-private.h"
 
@@ -152,7 +153,7 @@ typedef struct ConnectionPrivate
     ConnectionBuffer recvbuffer;
     /* Current state of connection state machine */
     ConnectionState state;
-    /* Parameters */
+    /* Parameters passed into state machine */
     union
     {
         LWMsgMessage* message;
@@ -186,6 +187,8 @@ typedef struct ConnectionPrivate
     LWMsgSession* session;
     /* Flag: this connection is nonblocking */
     unsigned is_nonblock:1;
+    /* Marshal handle */
+    LWMsgDataHandle* marshal_handle;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags

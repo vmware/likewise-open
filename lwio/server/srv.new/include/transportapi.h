@@ -50,11 +50,13 @@
 
 NTSTATUS
 SrvTransportInit(
-    VOID
+	PLWIO_PACKET_ALLOCATOR     hPacketAllocator,
+	PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
 
 NTSTATUS
 SrvTransportGetRequest(
+	IN  struct timespec*      pTimeSpec,
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
     );

@@ -73,7 +73,7 @@ PvfsQueryVolumeInformation(
     size_t sizeTable = sizeof(InfoLevelDispatchTable) /
                        sizeof(struct _InfoLevelDispatchEntry);
 
-    InfoLevel = pIrp->Args.QueryVolume.FsInformationClass;
+    InfoLevel = pIrp->Args.QuerySetVolumeInformation.FsInformationClass;
 
     /* Loop through the dispatch table.  Levels included in the table
        but having a NULL handler get NOT_IMPLEMENTED while those not in

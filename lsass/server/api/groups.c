@@ -204,7 +204,8 @@ error:
 DWORD
 LsaSrvGetGroupsForUser(
     IN HANDLE hServer,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     OUT PDWORD pdwGroupsFound,
@@ -238,6 +239,7 @@ LsaSrvGetGroupsForUser(
         {
             dwError = pProvider->pFnTable->pfnGetGroupsForUser(
                                                 hProvider,
+                                                pszUserName,
                                                 uid,
                                                 FindFlags,
                                                 dwGroupInfoLevel,

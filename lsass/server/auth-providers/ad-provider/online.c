@@ -2141,7 +2141,7 @@ error:
 DWORD
 AD_OnlineGetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psCount,
     OUT PLSA_SECURITY_OBJECT** pppResults
@@ -2161,15 +2161,8 @@ AD_OnlineGetUserGroupObjectMembership(
     PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
     PSTR* ppszSids = NULL;
-    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     PCSTR pszSid = NULL;
     int iPrimaryGroupIndex = -1;
-
-    dwError = AD_FindUserObjectById(
-                    hProvider,
-                    uid,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
 
     pszSid = pUserInfo->pszObjectSid;
 
@@ -2322,7 +2315,6 @@ cleanup:
     LsaDbSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
     LsaDbSafeFreeObjectList(sResultsCount, &ppResults);
     LsaDbSafeFreeObjectList(sUnexpirableResultsCount, &ppUnexpirableResults);
-    LsaDbSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -2332,8 +2324,10 @@ error:
 
     if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
     {
-        LSA_LOG_ERROR("Failed to find memberships for uid %d (error = %d)",
-                      uid, dwError);
+        LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
+                      pUserInfo->pszNetbiosDomainName,
+                      pUserInfo->pszSamAccountName,
+                      dwError);
     }
 
     LsaDbSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);

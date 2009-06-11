@@ -144,11 +144,11 @@ PvfsDriverDispatch(
     switch (pIrpCtx->pIrp->Type)
     {
     case IRP_TYPE_READ:
-        ntError = PvfsRead(pIrpCtx);
+        ntError = PvfsAsyncRead(pIrpCtx);
         break;
 
     case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(pIrpCtx);
+        ntError = PvfsAsyncWrite(pIrpCtx);
         break;
 
     case IRP_TYPE_CREATE:
@@ -168,7 +168,7 @@ PvfsDriverDispatch(
         break;
 
     case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = PvfsFlushBuffers(pIrpCtx);
+        ntError = PvfsAsyncFlushBuffers(pIrpCtx);
         break;
 
     case IRP_TYPE_QUERY_INFORMATION:
@@ -188,7 +188,7 @@ PvfsDriverDispatch(
         break;
 
     case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(pIrpCtx);
+        ntError = PvfsDispatchLockControl(pIrpCtx);
         break;
 
     case IRP_TYPE_QUERY_SECURITY:

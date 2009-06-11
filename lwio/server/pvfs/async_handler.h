@@ -44,13 +44,35 @@
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#ifndef _PVFS_ASYNC_HANDLER_H_
+#define _PVFS_ASYNC_HANDLER_H_
 
 NTSTATUS
 PvfsAsyncCreate(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsAsyncLockControl(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
 
+NTSTATUS
+PvfsAsyncRead(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncWrite(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncFlushBuffers(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+#endif /* _PVFS_ASYNC_HANDLER_H_ */
 
 /*
 local variables:

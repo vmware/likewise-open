@@ -69,14 +69,14 @@ typedef ULONG IRP_TYPE;
 // Here, however, two separate IRPs are used.
 #define IRP_TYPE_QUERY_DIRECTORY          12
 #define IRP_TYPE_QUERY_VOLUME_INFORMATION 13
-#define IRP_TYPE_LOCK_CONTROL             14
-#define IRP_TYPE_QUERY_SECURITY           15
-#define IRP_TYPE_SET_SECURITY             16
+#define IRP_TYPE_SET_VOLUME_INFORMATION   14
+#define IRP_TYPE_LOCK_CONTROL             15
+#define IRP_TYPE_QUERY_SECURITY           16
+#define IRP_TYPE_SET_SECURITY             17
 #if 0
-#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  17
-#define IPP_TYPE_QUERY_EA                 18
-#define IPP_TYPE_SET_EA                   19
-#define IRP_TYPE_SET_VOLUME_INFORMATION   20
+#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  18
+#define IPP_TYPE_QUERY_EA                 19
+#define IPP_TYPE_SET_EA                   20
 #define IRP_TYPE_QUERY_QUOTA              21
 #define IRP_TYPE_SET_QUOTA                22
 #define IRP_TYPE_QUERY_FULL_ATTRIBUTES    23
@@ -150,11 +150,11 @@ typedef struct _IRP_ARGS_QUERY_DIRECTORY {
     } Storage;
 } IRP_ARGS_QUERY_DIRECTORY, *PIRP_ARGS_QUERY_DIRECTORY;
 
-typedef struct _IRP_ARGS_QUERY_VOLUME {
-    OUT PVOID FsInformation;
+typedef struct _IRP_ARGS_QUERY_SET_VOLUME_INFORMATION {
+    IN OUT PVOID FsInformation;
     IN ULONG Length;
     IN FS_INFORMATION_CLASS FsInformationClass;
-} IRP_ARGS_QUERY_VOLUME, *PIRP_ARGS_QUERY_VOLUME;
+} IRP_ARGS_QUERY_SET_VOLUME_INFORMATION, *PIRP_ARGS_QUERY_VOLUME_INFORMATION;
 
 typedef struct _IRP_ARGS_LOCK_CONTROL {
     IN IO_LOCK_CONTROL LockControl;
@@ -189,7 +189,7 @@ typedef struct _IRP {
         // IRP_TYPE_QUERY_DIRECTORY
         IRP_ARGS_QUERY_DIRECTORY QueryDirectory;
         // IRP_TYPE_QUERY_VOLUME
-        IRP_ARGS_QUERY_VOLUME QueryVolume;
+        IRP_ARGS_QUERY_SET_VOLUME_INFORMATION QuerySetVolumeInformation;
         // IRP_TYPE_LOCK_CONTROL
         IRP_ARGS_LOCK_CONTROL LockControl;
         // IRP_TYPE_QUERY_SECURITY, IRP_TYPE_SET_SECURITY

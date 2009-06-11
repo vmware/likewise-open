@@ -113,12 +113,13 @@ typedef DWORD (*PFNLOOKUPGROUPBYID)(
                         );
 
 typedef DWORD (*PFNGETGROUPSFORUSER)(
-                        HANDLE  hProvider,
-                        uid_t   uid,
-                        LSA_FIND_FLAGS FindFlags,
-                        DWORD   dwGroupInfoLevel,
-                        PDWORD  pdwGroupsFound,
-                        PVOID** pppGroupInfoList
+                        IN HANDLE hProvider,
+                        IN OPTIONAL PCSTR pszUserName,
+                        IN OPTIONAL uid_t uid,
+                        IN LSA_FIND_FLAGS FindFlags,
+                        IN DWORD dwGroupInfoLevel,
+                        IN PDWORD pdwGroupsFound,
+                        IN PVOID** pppGroupInfoList
                         );
 
 typedef DWORD (*PFNBEGIN_ENUM_USERS)(

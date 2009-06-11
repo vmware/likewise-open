@@ -71,11 +71,18 @@
 #include <srvutils.h>
 #include <shareapi.h>
 #include <elementsapi.h>
-
+#include <transportapi.h>
 #include <srvtransport.h>
 
+#include "defs.h"
 #include "structs.h"
 #include "libmain.h"
+#include "listener.h"
+#include "reader.h"
+#include "srvconnection.h"
+#include "srvsocket.h"
+#include "srvcontext.h"
+
 #include "externs.h"
 
 

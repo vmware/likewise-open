@@ -8,7 +8,8 @@ libsrv_sys_la_SOURCES = \
     deviceio.c     \
     driver.c       \
     globals.c      \
-    srvshares.c
+    srvshares.c    \
+    srvworker.c
 
 libsrv_sys_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

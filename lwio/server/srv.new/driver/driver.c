@@ -232,15 +232,20 @@ SrvInitialize(
     )
 {
     NTSTATUS ntStatus = 0;
-#if 0
-    INT      iReader = 0;
     INT      iWorker = 0;
-#endif
 
     memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
 
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
+
+    gSMBSrvGlobals.config.ulMaxNumPackets = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
+    gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
+
+    ntStatus = SMBPacketCreateAllocator(
+                    gSMBSrvGlobals.config.ulMaxNumPackets,
+                    &gSMBSrvGlobals.hPacketAllocator);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareInit();
     BAIL_ON_NT_STATUS(ntStatus);
@@ -251,43 +256,13 @@ SrvInitialize(
     ntStatus = SrvShareBootstrap(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-#if 0
-    gSMBSrvGlobals.config.ulNumReaders = LWIO_SRV_DEFAULT_NUM_READERS;
-    gSMBSrvGlobals.config.ulNumWorkers = LWIO_SRV_DEFAULT_NUM_WORKERS;
-    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
-    gSMBSrvGlobals.config.ulMaxNumPackets = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
-
-    ntStatus = SMBPacketCreateAllocator(
-                    gSMBSrvGlobals.config.ulMaxNumPackets,
-                    &gSMBSrvGlobals.hPacketAllocator);
+    ntStatus = SrvProtocolInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsInitContents(
-                    &gSMBSrvGlobals.workQueue,
-                    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
-                    &SrvContextFree);
+    ntStatus = SrvTransportInit(
+					gSMBSrvGlobals.hPacketAllocator,
+					&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvAllocateMemory(
-					gSMBSrvGlobals.config.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
-                    (PVOID*)&gSMBSrvGlobals.pReaderArray);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    gSMBSrvGlobals.ulNumReaders = gSMBSrvGlobals.config.ulNumReaders;
-
-    for (; iReader < gSMBSrvGlobals.config.ulNumReaders; iReader++)
-    {
-        PLWIO_SRV_SOCKET_READER pReader = NULL;
-
-        pReader = &gSMBSrvGlobals.pReaderArray[iReader];
-
-        pReader->readerId = iReader + 1;
-
-        ntStatus = SrvSocketReaderInit(
-                        &gSMBSrvGlobals.workQueue,
-                        pReader);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     ntStatus = SrvAllocateMemory(
 					gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
@@ -302,20 +277,9 @@ SrvInitialize(
 
         pWorker->workerId = iWorker + 1;
 
-        ntStatus = SrvWorkerInit(
-                        &gSMBSrvGlobals.workQueue,
-                        pWorker);
+        ntStatus = SrvWorkerInit(pWorker);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvListenerInit(
-                    gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareList,
-                    gSMBSrvGlobals.pReaderArray,
-                    gSMBSrvGlobals.ulNumReaders,
-                    &gSMBSrvGlobals.listener);
-    BAIL_ON_NT_STATUS(ntStatus);
-#endif
 
 error:
 
@@ -418,87 +382,39 @@ SrvShutdown(
     )
 {
     NTSTATUS ntStatus = 0;
-#if 0
-    PLWIO_SRV_CONTEXT pContext = NULL;
-#endif
 
     if (gSMBSrvGlobals.pMutex)
     {
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
-#if 0
-        ntStatus = SrvListenerShutdown(
-                        &gSMBSrvGlobals.listener);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (gSMBSrvGlobals.pReaderArray)
-        {
-            if (gSMBSrvGlobals.ulNumReaders)
-            {
-                INT      iReader = 0;
-
-                for (; iReader < gSMBSrvGlobals.ulNumReaders; iReader++)
-                {
-                    ntStatus = SrvSocketReaderFreeContents(
-                                    &gSMBSrvGlobals.pReaderArray[iReader]);
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-            }
-
-            SrvFreeMemory(gSMBSrvGlobals.pReaderArray);
-        }
-
         if (gSMBSrvGlobals.pWorkerArray)
-        {
-            if (gSMBSrvGlobals.ulNumWorkers)
-            {
-                INT iWorker = 0;
-                INT iItem = 0;
+		{
+			INT iWorker = 0;
 
-                for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-                {
-                    PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+			for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+			{
+				PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
-                    SrvWorkerIndicateStop(pWorker);
-                }
+				SrvWorkerIndicateStop(pWorker);
+			}
 
-                // Interrupt the workers by inserting dummy items in the work queue
-                for (; iItem < gSMBSrvGlobals.ulNumWorkers * 2; iItem++)
-                {
-                    ntStatus = SrvAllocateMemory(
-									sizeof(LWIO_SRV_CONTEXT),
-                                    (PVOID*)&pContext);
-                    BAIL_ON_NT_STATUS(ntStatus);
+			for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+			{
+				PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
-                    ntStatus = SrvProdConsEnqueue(&gSMBSrvGlobals.workQueue, pContext);
-                    BAIL_ON_NT_STATUS(ntStatus);
-
-                    pContext = NULL;
-                }
-
-                for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-                {
-                    PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
-
-                    SrvWorkerFreeContents(pWorker);
-                }
-            }
-        }
-
-        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
-#endif
+				SrvWorkerFreeContents(pWorker);
+			}
+		}
 
         SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
 
         SrvShareShutdown();
 
-#if 0
         if (gSMBSrvGlobals.hPacketAllocator)
         {
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
-#endif
 
         while (gSMBSrvGlobals.pCCBList)
         {
@@ -510,28 +426,13 @@ SrvShutdown(
         }
     }
 
-// cleanup:
-
     if (gSMBSrvGlobals.pMutex)
     {
         pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
         gSMBSrvGlobals.pMutex = NULL;
     }
 
-#if 0
-    if (pContext)
-    {
-        SrvContextFree(pContext);
-    }
-#endif
-
     return ntStatus;
-
-#if 0
-error:
-
-    goto cleanup;
-#endif
 }
 
 

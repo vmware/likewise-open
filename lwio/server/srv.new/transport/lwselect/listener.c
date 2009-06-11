@@ -328,6 +328,7 @@ SrvListenerMain(
                         pContext->pShareList,
                         &pContext->serverProperties,
                         pHostinfo,
+                        &SrvSocketFree,
                         &pConnection);
         BAIL_ON_NT_STATUS(ntStatus);
 
