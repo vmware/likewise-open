@@ -51,512 +51,7 @@
 #include "lsaipc.h"
 #include "lsalist.h"
 #include <lw/ntstatus.h>
-#include <lw/security-types.h>
-
-#ifndef LW_ENDIAN_SWAP16
-
-#define LW_ENDIAN_SWAP16(wX)                     \
-        ((((UINT16)(wX) & 0xFF00) >> 8) |        \
-         (((UINT16)(wX) & 0x00FF) << 8))
-
-#endif
-
-#ifndef LW_ENDIAN_SWAP32
-
-#define LW_ENDIAN_SWAP32(dwX)                    \
-        ((((UINT32)(dwX) & 0xFF000000L) >> 24) | \
-         (((UINT32)(dwX) & 0x00FF0000L) >>  8) | \
-         (((UINT32)(dwX) & 0x0000FF00L) <<  8) | \
-         (((UINT32)(dwX) & 0x000000FFL) << 24))
-
-#endif
-
-#ifndef LW_ENDIAN_SWAP64
-
-#define LW_ENDIAN_SWAP64(llX)         \
-   (((UINT64)(LW_ENDIAN_SWAP32(((UINT64)(llX) & 0xFFFFFFFF00000000LL) >> 32))) | \
-   (((UINT64)LW_ENDIAN_SWAP32(((UINT64)(llX) & 0x00000000FFFFFFFFLL))) << 32))
-
-#endif
-
-#ifndef WIN32
-
-/* Special check for parsing error codes */
-
-#define BAIL_ON_LSA_PARSE_ERROR(dwError) \
-	if ((dwError != LSA_ERROR_SUCCESS) &&				\
-	    (dwError != LSA_ERROR_INSUFFICIENT_BUFFER)) {		\
-		LSA_LOG_DEBUG("Error at %s:%d [code: %d]",		\
-			      __FILE__, __LINE__, dwError);		\
-		goto error;						\
-	}
-
-#ifndef BAIL_ON_NT_STATUS
-#define BAIL_ON_NT_STATUS(err) \
-    do { \
-        if ((err) != STATUS_SUCCESS) { \
-            LSA_LOG_DEBUG("Error at %s:%d [code: %d]", \
-                            __FILE__, __LINE__, dwError); \
-		    goto error; \
-	    } \
-    } while (0);
-#endif
-
-#define BAIL_ON_LSA_ERROR(dwError) \
-    if (dwError) {\
-       LSA_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-       goto error;                 \
-    }
-
-#define BAIL_ON_LWMSG_ERROR(pAssoc, dwError) \
-    do { \
-        if (dwError) \
-        { \
-           (dwError) = LsaTranslateLwMsgError(pAssoc, dwError, __FILE__, __LINE__); \
-           goto error; \
-        } \
-    } while (0)
-
-#define BAIL_WITH_LSA_ERROR(_newerror_) \
-    do {dwError = (_newerror_); BAIL_ON_LSA_ERROR(dwError);} while (0)
-
-#endif
-
-#define LSA_SAFE_FREE_STRING(str) \
-        do {                      \
-           if (str) {             \
-              LsaFreeString(str); \
-              (str) = NULL;       \
-           }                      \
-        } while(0);
-
-#define LSA_SAFE_CLEAR_FREE_STRING(str)       \
-        do {                                  \
-           if (str) {                         \
-              if (*str) {                     \
-                 memset(str, 0, strlen(str)); \
-              }                               \
-              LsaFreeString(str);             \
-              (str) = NULL;                   \
-           }                                  \
-        } while(0);
-
-#define LSA_SAFE_FREE_MEMORY(mem) \
-        do {                      \
-           if (mem) {             \
-              LsaFreeMemory(mem); \
-              (mem) = NULL;       \
-           }                      \
-        } while(0);
-
-#define LSA_SAFE_FREE_STRING_ARRAY(ppszArray)               \
-        do {                                                \
-           if (ppszArray) {                                 \
-               LsaFreeNullTerminatedStringArray(ppszArray); \
-               (ppszArray) = NULL;                          \
-           }                                                \
-        } while (0);
-
-#define IsNullOrEmptyString(str) (!(str) || !(*(str)))
-
-/*
- * Logging
- */
-#if defined(LW_ENABLE_THREADS)
-
-extern pthread_mutex_t gLogLock;
-
-#define LSA_LOCK_LOGGER   pthread_mutex_lock(&gLogLock)
-#define LSA_UNLOCK_LOGGER pthread_mutex_unlock(&gLogLock)
-
-#define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
-    _LSA_LOG_MESSAGE(Level, \
-                     "0x%x:" Format, \
-                     (unsigned int)pthread_self(), \
-                     ## __VA_ARGS__)
-
-#else
-
-#define LSA_LOCK_LOGGER
-#define LSA_UNLOCK_LOGGER
-
-#define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
-    _LSA_LOG_MESSAGE(Level, \
-                     Format, \
-                     ## __VA_ARGS__)
-
-#endif
-
-#define _LSA_LOG_WITH_DEBUG(Level, Format, ...) \
-    _LSA_LOG_WITH_THREAD(Level, \
-                         "[%s() %s:%d] " Format, \
-                         __FUNCTION__, \
-                         __FILE__, \
-                         __LINE__, \
-                         ## __VA_ARGS__)
-
-extern HANDLE              ghLog;
-extern LsaLogLevel         gLsaMaxLogLevel;
-extern PFN_LSA_LOG_MESSAGE gpfnLogger;
-
-#define _LSA_LOG_MESSAGE(Level, Format, ...) \
-    LsaLogMessage(gpfnLogger, ghLog, Level, Format, ## __VA_ARGS__)
-
-#define _LSA_LOG_IF(Level, Format, ...)                     \
-    do {                                                    \
-        LSA_LOCK_LOGGER;                                    \
-        if (gpfnLogger && (gLsaMaxLogLevel >= (Level)))     \
-        {                                                   \
-            if (gLsaMaxLogLevel >= LSA_LOG_LEVEL_DEBUG)     \
-            {                                               \
-                _LSA_LOG_WITH_DEBUG(Level, Format, ## __VA_ARGS__); \
-            }                                               \
-            else                                            \
-            {                                               \
-                _LSA_LOG_WITH_THREAD(Level, Format, ## __VA_ARGS__); \
-            }                                               \
-        }                                                   \
-        LSA_UNLOCK_LOGGER;                                  \
-    } while (0)
-
-#define LSA_SAFE_LOG_STRING(x) \
-    ( (x) ? (x) : "<null>" )
-
-#define LSA_LOG_ALWAYS(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_ALWAYS, szFmt, ## __VA_ARGS__)
-
-#define LSA_LOG_ERROR(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_ERROR, szFmt, ## __VA_ARGS__)
-
-#define LSA_LOG_WARNING(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_WARNING, szFmt, ## __VA_ARGS__)
-
-#define LSA_LOG_INFO(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_INFO, szFmt, ## __VA_ARGS__)
-
-#define LSA_LOG_VERBOSE(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_VERBOSE, szFmt, ## __VA_ARGS__)
-
-#define LSA_LOG_DEBUG(szFmt, ...) \
-    _LSA_LOG_IF(LSA_LOG_LEVEL_DEBUG, szFmt, ## __VA_ARGS__)
-
-// Like assert() but also calls LSA_LOG.
-#define _LSA_ASSERT(Expression, Action) \
-    do { \
-        if (!(Expression)) \
-        { \
-            LSA_LOG_DEBUG("Assertion failed: '" # Expression "'"); \
-            Action; \
-        } \
-    } while (0)
-#define _LSA_ASSERT_OR_BAIL(Expression, dwError, Action) \
-    _LSA_ASSERT(Expression, \
-                (dwError) = LSA_ERROR_INTERNAL; \
-                Action ; \
-                BAIL_ON_LSA_ERROR(dwError))
-#ifdef NDEBUG
-#define LSA_ASSERT(Expression)
-#define LSA_ASSERT_OR_BAIL(Expression, dwError) \
-    _LSA_ASSERT_OR_BAIL(Expression, dwError, 0)
-#else
-#define LSA_ASSERT(Expression) \
-    _LSA_ASSERT(Expression, abort())
-#define LSA_ASSERT_OR_BAIL(Expression, dwError) \
-    _LSA_ASSERT_OR_BAIL(Expression, dwError, abort())
-#endif
-
-#define LSA_IS_XOR(Expression1, Expression2) \
-    (!!(Expression1) ^ !!(Expression2))
-
-#define LSA_SAFE_FREE_LOGIN_NAME_INFO(pLoginNameInfo) \
-    do { \
-        if (pLoginNameInfo) \
-        { \
-            LsaFreeNameInfo(pLoginNameInfo); \
-            (pLoginNameInfo) = NULL; \
-        } \
-    } while(0);
-
-#if defined(LW_ENABLE_THREADS)
-
-extern pthread_mutex_t gTraceLock;
-
-#define LSA_LOCK_TRACER   pthread_mutex_lock(&gTraceLock)
-#define LSA_UNLOCK_TRACER pthread_mutex_unlock(&gTraceLock)
-
-#else
-
-#define LSA_LOCK_TRACER
-#define LSA_UNLOCK_TRACER
-
-#endif
-
-#define LSA_TRACE_BEGIN_FUNCTION(traceFlagArray, dwNumFlags)  \
-    do {                                                      \
-        LSA_LOCK_TRACER;                                      \
-        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) {  \
-            LSA_LOG_ALWAYS("Begin %s() %s:%d",                \
-                           __FUNCTION__,                      \
-                           __FILE__,                          \
-                           __LINE__);                         \
-        }                                                     \
-        LSA_UNLOCK_TRACER;                                    \
-    } while (0)
-
-#define LSA_TRACE_END_FUNCTION(traceFlagArray, dwNumFlags)   \
-    do {                                                     \
-        LSA_LOCK_TRACER;                                     \
-        if (LsaTraceIsAllowed(traceFlagArray, dwNumFlags)) { \
-            LSA_LOG_ALWAYS("End %s() %s:%d",                 \
-                           __FUNCTION__,                     \
-                           __FILE__,                         \
-                           __LINE__);                        \
-        }                                                    \
-        LSA_UNLOCK_TRACER;                                   \
-    } while (0)
-
-#define SERVICE_LDAP        1
-#define SERVICE_KERBEROS    2
-
-typedef struct _DNS_FQDN
-{
-    PSTR pszFQDN;
-    PSTR pszAddress;
-} DNS_FQDN, *PDNS_FQDN;
-
-//defined flags in dwOptions
-#define LSA_CFG_OPTION_STRIP_SECTION    0x00000001
-#define LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR  0x00000002
-#define LSA_CFG_OPTION_STRIP_ALL              (LSA_CFG_OPTION_STRIP_SECTION | \
-                                              LSA_CFG_OPTION_STRIP_NAME_VALUE_PAIR)
-
-#define INIT_SEC_BUFFER_S(_s_, _l_) do{(_s_)->length = (_s_)->maxLength = (_l_); memset((_s_)->buffer, 0, S_BUFLEN);} while (0)
-#define INIT_SEC_BUFFER_S_VAL(_s_, _l_, _v_) do{(_s_)->length = (_s_)->maxLength = (_l_); memcpy((_s_)->buffer,(_v_), _l_);} while (0)
-#define SEC_BUFFER_COPY(_d_,_s_) memcpy((_d_)->buffer,(_s_)->buffer,(_s_)->maxLength)
-#define SEC_BUFFER_S_CONVERT(_sb_,_sbs_) do{(_sb_)->length = (_sbs_)->length;(_sb_)->maxLength=(_sbs_)->maxLength;(_sb_)->buffer = (_sbs_)->buffer;} while (0)
-
-#define BAIL_ON_INVALID_STRING(pszParam)          \
-        if (IsNullOrEmptyString(pszParam)) {      \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LSA_ERROR(dwError);            \
-        }
-
-#define BAIL_ON_INVALID_HANDLE(hParam)            \
-        if (hParam == (HANDLE)NULL) {             \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LSA_ERROR(dwError);            \
-        }
-
-#define BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LSA_ERROR(dwError);            \
-        }
-
-//format of string representation of SID in SECURITYIDENTIFIER:
-//S-<revision>-<authority>-<domain_computer_id>-<relative ID>
-//example: S-1-5-32-546 (Guests)
-//See http://support.microsoft.com/kb/243330
-
-#define WELLKNOWN_SID_DOMAIN_USER_GROUP_RID 513
-
-typedef struct __LSA_SECURITY_IDENTIFIER {
-    UCHAR* pucSidBytes;  //byte representation of multi-byte Security Identification Descriptor
-    DWORD dwByteLength;
-} LSA_SECURITY_IDENTIFIER, *PLSA_SECURITY_IDENTIFIER;
-
-/*
- * Config parsing callbacks
- */
-typedef DWORD (*PFNCONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PVOID    pData,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef struct __LSA_BIT_VECTOR
-{
-    DWORD  dwNumBits;
-    PDWORD pVector;
-} LSA_BIT_VECTOR, *PLSA_BIT_VECTOR;
-
-typedef struct __LSA_HASH_ENTRY LSA_HASH_ENTRY;
-
-typedef int (*LSA_HASH_KEY_COMPARE)(PCVOID, PCVOID);
-typedef size_t (*LSA_HASH_KEY)(PCVOID);
-typedef void (*LSA_HASH_FREE_ENTRY)(const LSA_HASH_ENTRY *);
-typedef DWORD (*LSA_HASH_COPY_ENTRY)(const LSA_HASH_ENTRY *, LSA_HASH_ENTRY *);
-
-struct __LSA_HASH_ENTRY
-{
-    PVOID pKey;
-    PVOID pValue;
-    //Next value in chain
-    struct __LSA_HASH_ENTRY *pNext;
-};
-
-typedef struct __LSA_HASH_TABLE
-{
-    size_t sTableSize;
-    size_t sCount;
-    LSA_HASH_ENTRY **ppEntries;
-    LSA_HASH_KEY_COMPARE fnComparator;
-    LSA_HASH_KEY fnHash;
-    LSA_HASH_FREE_ENTRY fnFree;
-    LSA_HASH_COPY_ENTRY fnCopy;
-} LSA_HASH_TABLE, *PLSA_HASH_TABLE;
-
-typedef struct __LSA_HASH_ITERATOR
-{
-    LSA_HASH_TABLE *pTable;
-    size_t sEntryIndex;
-    LSA_HASH_ENTRY *pEntryPos;
-} LSA_HASH_ITERATOR;
-
-typedef struct __DLINKEDLIST
-{
-    PVOID pItem;
-
-    struct __DLINKEDLIST * pNext;
-
-    struct __DLINKEDLIST * pPrev;
-
-} DLINKEDLIST, *PDLINKEDLIST;
-
-typedef VOID (*PFN_DLINKEDLIST_FUNC)(PVOID pData, PVOID pUserData);
-
-typedef DWORD (*PFN_LSA_FOREACH_STACK_ITEM)(PVOID pItem, PVOID pUserData);
-
-typedef struct __LSA_STACK
-{
-    PVOID pItem;
-
-    struct __LSA_STACK * pNext;
-
-} LSA_STACK, *PLSA_STACK;
-
-/* wire definition */
-typedef struct _SEC_BUFFER_RELATIVE {
-    USHORT length;
-    USHORT maxLength;
-    ULONG  offset;
-} SEC_BUFFER_RELATIVE, *PSEC_BUFFER_RELATIVE;
-
-typedef struct _OID {
-    DWORD length;
-    PVOID *elements;
-} OID, *POID;
-
-typedef struct _OID_SET {
-    DWORD count;
-    POID  elements;
-} OID_SET, *POID_SET;
-
-typedef struct _LSA_STRING_BUFFER
-{
-    PSTR pszBuffer;
-    // length of the string excluding terminating null
-    size_t sLen;
-    // capacity of the buffer excluding terminating null
-    size_t sCapacity;
-} LSA_STRING_BUFFER;
-
-typedef struct passwd * passwd_ptr_t;
-typedef struct group  * group_ptr_t;
-
-typedef enum
-{
-    NameType_NT4 = 0,
-    NameType_UPN = 1,
-    NameType_Alias
-} ADLogInNameType;
-
-typedef struct __LSA_LOGIN_NAME_INFO
-{
-    ADLogInNameType nameType;
-    PSTR  pszDomainNetBiosName;
-    PSTR  pszFullDomainName;
-    PSTR  pszName;
-    PSTR  pszObjectSid;
-} LSA_LOGIN_NAME_INFO, *PLSA_LOGIN_NAME_INFO;
-
-typedef enum
-{
-    LsaMetricSuccessfulAuthentications    =  0,
-    LsaMetricFailedAuthentications        =  1,
-    LsaMetricRootUserAuthentications      =  2,
-    LsaMetricSuccessfulUserLookupsByName  =  3,
-    LsaMetricFailedUserLookupsByName      =  4,
-    LsaMetricSuccessfulUserLookupsById    =  5,
-    LsaMetricFailedUserLookupsById        =  6,
-    LsaMetricSuccessfulGroupLookupsByName =  7,
-    LsaMetricFailedGroupLookupsByName     =  8,
-    LsaMetricSuccessfulGroupLookupsById   =  9,
-    LsaMetricFailedGroupLookupsById       = 10,
-    LsaMetricSuccessfulOpenSession        = 11,
-    LsaMetricFailedOpenSession            = 12,
-    LsaMetricSuccessfulCloseSession       = 13,
-    LsaMetricFailedCloseSession           = 14,
-    LsaMetricSuccessfulChangePassword     = 15,
-    LsaMetricFailedChangePassword         = 16,
-    LsaMetricUnauthorizedAccesses         = 17,
-    LsaMetricSentinel
-} LsaMetricType;
-
-typedef struct __LSA_NIS_NICKNAME
-{
-    PSTR pszMapAlias;
-    PSTR pszMapName;
-} LSA_NIS_NICKNAME, *PLSA_NIS_NICKNAME;
-
-typedef DWORD (*PFLSA_CACHE_HASH) (PVOID pKey, DWORD dwIndex, PVOID pData);
-typedef BOOLEAN (*PFLSA_CACHE_EQUAL) (PVOID pKey1, PVOID pKey2, DWORD dwIndex, PVOID pData);
-typedef PVOID (*PFLSA_CACHE_GETKEY) (PVOID pEntry, DWORD dwIndex, PVOID pData);
-typedef DWORD (*PFLSA_CACHE_MISS) (PVOID pKey, DWORD dwIndex, PVOID pData, PVOID* ppEntry);
-typedef DWORD (*PFLSA_CACHE_KICK) (PVOID pEntry, PVOID pData);
-
-typedef struct __LSA_CACHE_ENTRY
-{
-    DWORD dwRefCount;
-} LSA_CACHE_ENTRY, *PLSA_CACHE_ENTRY;
-
-typedef struct __LSA_CACHE
-{
-    DWORD dwNumKeys;
-    DWORD dwNumBuckets;
-    PVOID* ppEntries;
-    PFLSA_CACHE_HASH pfHash;
-    PFLSA_CACHE_EQUAL pfEqual;
-    PFLSA_CACHE_GETKEY pfGetKey;
-    PFLSA_CACHE_MISS pfMiss;
-    PFLSA_CACHE_KICK pfKick;
-    PVOID pData;
-    DWORD dwNumHashMisses;
-    DWORD dwNumFullMisses;
-    DWORD dwNumKicks;
-    DWORD dwNumUsedBuckets;
-    DWORD dwNumCollisions;
-} LSA_CACHE, *PLSA_CACHE;
+#include elw/security-types.h>
 
 #if !defined(HAVE_STRTOLL)
 
@@ -581,34 +76,34 @@ strtoull(
 #endif /* defined(HAVE_STRTOULL) */
 
 DWORD
-LsaInitializeStringBuffer(
+LwInitializeStringBuffer(
         LSA_STRING_BUFFER *pBuffer,
         size_t sCapacity);
 
 DWORD
-LsaAppendStringBuffer(
+LwAppendStringBuffer(
         LSA_STRING_BUFFER *pBuffer,
         PCSTR pszAppend);
 
 void
-LsaFreeStringBufferContents(
+LwFreeStringBufferContents(
         LSA_STRING_BUFFER *pBuffer);
 
 DWORD
-LsaAllocateMemory(
+LwAllocateMemory(
     DWORD dwSize,
     PVOID * ppMemory
     );
 
 DWORD
-LsaReallocMemory(
+LwReallocMemory(
     PVOID  pMemory,
     PVOID * ppNewMemory,
     DWORD dwSize
     );
 
 DWORD
-LsaAppendAndFreePtrs(
+LwAppendAndFreePtrs(
     IN OUT PDWORD pdwDestCount,
     IN OUT PVOID** pppDestPtrArray,
     IN OUT PDWORD pdwAppendCount,
@@ -616,92 +111,92 @@ LsaAppendAndFreePtrs(
     );
 
 void
-LsaFreeMemory(
+LwFreeMemory(
     PVOID pMemory
     );
 
 DWORD
-LsaAllocateString(
+LwAllocateString(
     PCSTR pszInputString,
     PSTR *ppszOutputString
     );
 
 void
-LsaFreeString(
+LwFreeString(
     PSTR pszString
     );
 
 void
-LsaStripWhitespace(
+LwStripWhitespace(
     PSTR pszString,
     BOOLEAN bLeading,
     BOOLEAN bTrailing
     );
 
 DWORD
-LsaStrIsAllSpace(
+LwStrIsAllSpace(
     PCSTR pszString,
     PBOOLEAN pbIsAllSpace
     );
 
 void
-LsaStrToUpper(
+LwStrToUpper(
     PSTR pszString
     );
 
 void
-LsaStrnToUpper(
+LwStrnToUpper(
     PSTR  pszString,
     DWORD dwLen
     );
 
 void
-LsaStrToLower(
+LwStrToLower(
     PSTR pszString
     );
 
 void
-LsaStrnToLower(
+LwStrnToLower(
     PSTR  pszString,
     DWORD dwLen
     );
 
 DWORD
-LsaEscapeString(
+LwEscapeString(
     PSTR pszOrig,
     PSTR * ppszEscapedString
     );
 
 DWORD
-LsaStrndup(
+LwStrndup(
     PCSTR pszInputString,
     size_t size,
     PSTR * ppszOutputString
     );
 
 DWORD
-LsaAllocateStringPrintf(
+LwAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...
     );
 
 DWORD
-LsaAllocateStringPrintfV(
+LwAllocateStringPrintfV(
     PSTR*   ppszOutputString,
     PCSTR   pszFormat,
     va_list args
     );
 
 VOID
-LsaStrCharReplace(
+LwStrCharReplace(
     PSTR pszStr,
     CHAR oldCh,
     CHAR newCh);
 
 // If pszInputString == NULL, then *ppszOutputString = NULL
 DWORD
-LsaStrDupOrNull(
+LwStrDupOrNull(
     PCSTR pszInputString,
     PSTR *ppszOutputString
     );
@@ -710,138 +205,138 @@ LsaStrDupOrNull(
 // If pszInputString == NULL, return "", else return pszInputString
 // The return value does not need to be freed.
 PCSTR
-LsaEmptyStrForNull(
+LwEmptyStrForNull(
     PCSTR pszInputString
     );
 
 
 void
-LsaStrChr(
+LwStrChr(
     PCSTR pszInputString,
     CHAR c,
     PSTR *pszOutputString
     );
 
 void
-LsaFreeStringArray(
+LwFreeStringArray(
     PSTR * ppStringArray,
     DWORD dwCount
     );
 
 void
-LsaFreeNullTerminatedStringArray(
+LwFreeNullTerminatedStringArray(
     PSTR * ppStringArray
     );
 
 VOID
-LsaPrincipalNonRealmToLower(
+LwPrincipalNonRealmToLower(
     IN OUT PSTR pszPrincipal
     );
 
 VOID
-LsaPrincipalRealmToUpper(
+LwPrincipalRealmToUpper(
     IN OUT PSTR pszPrincipal
     );
 
 DWORD
-LsaBitVectorCreate(
+LwBitVectorCreate(
     DWORD dwNumBits,
     PLSA_BIT_VECTOR* ppBitVector
     );
 
 VOID
-LsaBitVectorFree(
+LwBitVectorFree(
     PLSA_BIT_VECTOR pBitVector
     );
 
 BOOLEAN
-LsaBitVectorIsSet(
+LwBitVectorIsSet(
     PLSA_BIT_VECTOR pBitVector,
     DWORD           iBit
     );
 
 DWORD
-LsaBitVectorSetBit(
+LwBitVectorSetBit(
     PLSA_BIT_VECTOR pBitVector,
     DWORD           iBit
     );
 
 DWORD
-LsaBitVectorUnsetBit(
+LwBitVectorUnsetBit(
     PLSA_BIT_VECTOR pBitVector,
     DWORD           iBit
     );
 
 VOID
-LsaBitVectorReset(
+LwBitVectorReset(
     PLSA_BIT_VECTOR pBitVector
     );
 
 DWORD
-LsaDLinkedListPrepend(
+LwDLinkedListPrepend(
     PDLINKEDLIST* ppList,
     PVOID        pItem
     );
 
 DWORD
-LsaDLinkedListAppend(
+LwDLinkedListAppend(
     PDLINKEDLIST* ppList,
     PVOID        pItem
     );
 
 BOOLEAN
-LsaDLinkedListDelete(
+LwDLinkedListDelete(
     PDLINKEDLIST* ppList,
     PVOID        pItem
     );
 
 VOID
-LsaDLinkedListForEach(
+LwDLinkedListForEach(
     PDLINKEDLIST          pList,
     PFN_DLINKEDLIST_FUNC pFunc,
     PVOID                pUserData
     );
 
 VOID
-LsaDLinkedListFree(
+LwDLinkedListFree(
     PDLINKEDLIST pList
     );
 
 DWORD
-LsaStackPush(
+LwStackPush(
     PVOID pItem,
     PLSA_STACK* ppStack
     );
 
 PVOID
-LsaStackPop(
+LwStackPop(
     PLSA_STACK* ppStack
     );
 
 PVOID
-LsaStackPeek(
+LwStackPeek(
     PLSA_STACK pStack
     );
 
 DWORD
-LsaStackForeach(
+LwStackForeach(
     PLSA_STACK pStack,
     PFN_LSA_FOREACH_STACK_ITEM pfnAction,
     PVOID pUserData
     );
 
 PLSA_STACK
-LsaStackReverse(
+LwStackReverse(
     PLSA_STACK pStack
     );
 
 VOID
-LsaStackFree(
+LwStackFree(
     PLSA_STACK pStack
     );
 
 DWORD
-LsaHashCreate(
+LwHashCreate(
     size_t sTableSize,
     LSA_HASH_KEY_COMPARE fnComparator,
     LSA_HASH_KEY fnHash,
@@ -851,12 +346,12 @@ LsaHashCreate(
     );
 
 void
-LsaHashSafeFree(
+LwHashSafeFree(
     LSA_HASH_TABLE** ppResult
     );
 
 DWORD
-LsaHashSetValue(
+LwHashSetValue(
     LSA_HASH_TABLE *pTable,
     PVOID  pKey,
     PVOID  pValue
@@ -864,115 +359,115 @@ LsaHashSetValue(
 
 //Returns ENOENT if pKey is not in the table
 DWORD
-LsaHashGetValue(
+LwHashGetValue(
     LSA_HASH_TABLE *pTable,
     PCVOID  pKey,
     PVOID* ppValue
     );
 
 BOOLEAN
-LsaHashExists(
+LwHashExists(
     IN PLSA_HASH_TABLE pTable,
     IN PCVOID pKey
     );
 
 DWORD
-LsaHashCopy(
+LwHashCopy(
     IN  LSA_HASH_TABLE *pTable,
     OUT LSA_HASH_TABLE **ppResult
     );
 
 //Invalidates all iterators
 DWORD
-LsaHashResize(
+LwHashResize(
     LSA_HASH_TABLE *pTable,
     size_t sTableSize
     );
 
 DWORD
-LsaHashGetIterator(
+LwHashGetIterator(
     LSA_HASH_TABLE *pTable,
     LSA_HASH_ITERATOR *pIterator
     );
 
 // returns NULL after passing the last entry
 LSA_HASH_ENTRY *
-LsaHashNext(
+LwHashNext(
     LSA_HASH_ITERATOR *pIterator
     );
 
 DWORD
-LsaHashRemoveKey(
+LwHashRemoveKey(
     LSA_HASH_TABLE *pTable,
     PVOID  pKey
     );
 
 int
-LsaHashCaselessStringCompare(
+LwHashCaselessStringCompare(
     PCVOID str1,
     PCVOID str2
     );
 
 size_t
-LsaHashCaselessString(
+LwHashCaselessString(
     PCVOID str
     );
 
 VOID
-LsaHashFreeStringKey(
+LwHashFreeStringKey(
     IN OUT const LSA_HASH_ENTRY *pEntry
     );
 
 DWORD
-LsaRemoveFile(
+LwRemoveFile(
     PCSTR pszPath
     );
 
 DWORD
-LsaCheckFileExists(
+LwCheckFileExists(
     PCSTR pszPath,
     PBOOLEAN pbFileExists
     );
 
 DWORD
-LsaCheckSockExists(
+LwCheckSockExists(
     PSTR pszPath,
     PBOOLEAN pbFileExists
     );
 
 DWORD
-LsaCheckLinkExists(
+LwCheckLinkExists(
     PSTR pszPath,
     PBOOLEAN pbFileExists
     );
 
 DWORD
-LsaCheckFileOrLinkExists(
+LwCheckFileOrLinkExists(
     PSTR pszPath,
     PBOOLEAN pbExists
     );
 
 DWORD
-LsaMoveFile(
+LwMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     );
 
 DWORD
-LsaChangePermissions(
+LwChangePermissions(
     PCSTR pszPath,
     mode_t dwFileMode
     );
 
 DWORD
-LsaChangeOwner(
+LwChangeOwner(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid
     );
 
 DWORD
-LsaChangeOwnerAndPermissions(
+LwChangeOwnerAndPermissions(
     PCSTR pszPath,
     uid_t uid,
     gid_t gid,
@@ -980,22 +475,22 @@ LsaChangeOwnerAndPermissions(
     );
 
 DWORD
-LsaGetCurrentDirectoryPath(
+LwGetCurrentDirectoryPath(
     PSTR* ppszPath
     );
 
 DWORD
-LsaChangeDirectory(
+LwChangeDirectory(
     PSTR pszPath
     );
 
 DWORD
-LsaRemoveDirectory(
+LwRemoveDirectory(
     PSTR pszPath
     );
 
 DWORD
-LsaCopyDirectory(
+LwCopyDirectory(
     PCSTR pszSourceDirPath,
     uid_t ownerUid,
     gid_t ownerGid,
@@ -1003,32 +498,32 @@ LsaCopyDirectory(
     );
 
 DWORD
-LsaCheckDirectoryExists(
+LwCheckDirectoryExists(
     PCSTR pszPath,
     PBOOLEAN pbDirExists
     );
 
 DWORD
-LsaCreateDirectory(
+LwCreateDirectory(
     PCSTR pszPath,
     mode_t dwFileMode
     );
 
 DWORD
-LsaGetDirectoryFromPath(
+LwGetDirectoryFromPath(
     IN PCSTR pszPath,
     OUT PSTR* ppszDir
     );
 
 DWORD
-LsaCopyFileWithPerms(
+LwCopyFileWithPerms(
     PCSTR pszSrcPath,
     PCSTR pszDstPath,
     mode_t dwPerms
     );
 
 DWORD
-LsaGetOwnerAndPermissions(
+LwGetOwnerAndPermissions(
     PCSTR pszSrcPath,
     uid_t * uid,
     gid_t * gid,
@@ -1036,30 +531,30 @@ LsaGetOwnerAndPermissions(
     );
 
 DWORD
-LsaCopyFileWithOriginalPerms(
+LwCopyFileWithOriginalPerms(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     );
 
 DWORD
-LsaBackupFile(
+LwBackupFile(
     PCSTR pszPath
     );
 
 DWORD
-LsaGetSymlinkTarget(
+LwGetSymlinkTarget(
    PCSTR pszPath,
    PSTR* ppszTargetPath
    );
 
 DWORD
-LsaCreateSymlink(
+LwCreateSymlink(
    PCSTR pszOldPath,
    PCSTR pszNewPath
    );
 
 DWORD
-LsaGetMatchingFilePathsInFolder(
+LwGetMatchingFilePathsInFolder(
     PCSTR pszDirPath,
     PCSTR pszFileNameRegExp,
     PSTR** pppszHostFilePaths,
@@ -1067,193 +562,193 @@ LsaGetMatchingFilePathsInFolder(
     );
 
 DWORD
-LsaGetPrefixDirPath(
+LwGetPrefixDirPath(
     PSTR* ppszPath
     );
 
 DWORD
-LsaGetLibDirPath(
+LwGetLibDirPath(
     PSTR* ppszPath
     );
 
 DWORD
-LsaValidateGroupInfoLevel(
+LwValidateGroupInfoLevel(
     DWORD dwGroupInfoLevel
     );
 
 DWORD
-LsaValidateGroupName(
+LwValidateGroupName(
     PCSTR pszGroupName
     );
 
 DWORD
-LsaValidateGroupInfo(
+LwValidateGroupInfo(
     PVOID pGroupInfo,
     DWORD dwGroupInfoLevel
     );
 
 DWORD
-LsaValidateUserInfo(
+LwValidateUserInfo(
     PVOID pUserInfo,
     DWORD dwUserInfoLevel
     );
 
 DWORD
-LsaValidateUserInfoLevel(
+LwValidateUserInfoLevel(
     DWORD dwUserInfoLevel
     );
 
 DWORD
-LsaValidateUserName(
+LwValidateUserName(
     PCSTR pszName
     );
 
 #define LSA_DOMAIN_SEPARATOR_DEFAULT    '\\'
 
 CHAR
-LsaGetDomainSeparator(
+LwGetDomainSeparator(
     VOID
     );
 
 DWORD
-LsaSetDomainSeparator(
+LwSetDomainSeparator(
     CHAR chValue
     );
 
 DWORD
-LsaCrackDomainQualifiedName(
+LwCrackDomainQualifiedName(
     PCSTR pszId,
     PCSTR pszDefaultDomain,
     PLSA_LOGIN_NAME_INFO* ppNameInfo
     );
 
 void
-LsaFreeNameInfo(
+LwFreeNameInfo(
     PLSA_LOGIN_NAME_INFO pNameInfo
     );
 
 DWORD
-LsaAllocateGroupInfo(
+LwAllocateGroupInfo(
     PVOID *ppDstGroupInfo,
     DWORD dwLevel,
     PVOID pSrcGroupInfo
     );
 
 DWORD
-LsaBuildUserModInfo(
+LwBuildUserModInfo(
     uid_t uid,
     PLSA_USER_MOD_INFO* ppUserModInfo
     );
 
 DWORD
-LsaModifyUser_EnableUser(
+LwModifyUser_EnableUser(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_DisableUser(
+LwModifyUser_DisableUser(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_Unlock(
+LwModifyUser_Unlock(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_AddToGroups(
+LwModifyUser_AddToGroups(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszGroupList
     );
 
 DWORD
-LsaModifyUser_RemoveFromGroups(
+LwModifyUser_RemoveFromGroups(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszGroupList
     );
 
 DWORD
-LsaModifyUser_ChangePasswordAtNextLogon(
+LwModifyUser_ChangePasswordAtNextLogon(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_SetPasswordNeverExpires(
+LwModifyUser_SetPasswordNeverExpires(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_SetPasswordMustExpire(
+LwModifyUser_SetPasswordMustExpire(
     PLSA_USER_MOD_INFO pUserModInfo,
     BOOLEAN bValue
     );
 
 DWORD
-LsaModifyUser_SetAccountExpiryDate(
+LwModifyUser_SetAccountExpiryDate(
     PLSA_USER_MOD_INFO pUserModInfo,
     PCSTR pszDate
     );
 
 void
-LsaFreeUserModInfo(
+LwFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
     );
 
 DWORD
-LsaBuildGroupModInfo(
+LwBuildGroupModInfo(
     gid_t gid,
     PLSA_GROUP_MOD_INFO *ppGroupModInfo
     );
 
 DWORD
-LsaModifyGroup_AddMembers(
+LwModifyGroup_AddMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
     PVOID pData
     );
 
 DWORD
-LsaModifyGroup_RemoveMembers(
+LwModifyGroup_RemoveMembers(
     PLSA_GROUP_MOD_INFO pGroupModInfo,
     PVOID pData
     );
 
 void
-LsaFreeGroupModInfo(
+LwFreeGroupModInfo(
     PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
 void
-LsaFreeIpcNameSidsList(
+LwFreeIpcNameSidsList(
     PLSA_FIND_NAMES_BY_SIDS pNameSidsList
     );
 
 void
-LsaFreeIpcUserInfoList(
+LwFreeIpcUserInfoList(
     PLSA_USER_INFO_LIST pUserIpcInfoList
     );
 
 VOID
-LsaSrvFreeIpcMetriPack(
+LwSrvFreeIpcMetriPack(
     PLSA_METRIC_PACK pMetricPack
     );
 
 void
-LsaFreeIpcGroupInfoList(
+LwFreeIpcGroupInfoList(
     PLSA_GROUP_INFO_LIST pGroupIpcInfoList
     );
 
 void
-LsaFreeIpcNssArtefactInfoList(
+LwFreeIpcNssArtefactInfoList(
     PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
     );
 
 DWORD
-LsaParseConfigFile(
+LwParseConfigFile(
     PCSTR                     pszFilePath,
     DWORD                     dwOptions,
     PFNCONFIG_START_SECTION   pfnStartSectionHandler,
@@ -1264,44 +759,44 @@ LsaParseConfigFile(
     );
 
 DWORD
-LsaDnsGetHostInfo(
+LwDnsGetHostInfo(
     PSTR* ppszHostname
     );
 
 VOID
-LsaDnsFreeFQDNList(
+LwDnsFreeFQDNList(
     PDNS_FQDN* ppFQDNList,
     DWORD dwNFQDN
     );
 
 VOID
-LsaDnsFreeFQDN(
+LwDnsFreeFQDN(
     PDNS_FQDN pFQDN
     );
 
 DWORD
-LsaInitLogging(
+LwInitLogging(
     PCSTR         pszProgramName,
-    LsaLogTarget  logTarget,
-    LsaLogLevel   maxAllowedLogLevel,
+    LwLogTarget  logTarget,
+    LwLogLevel   maxAllowedLogLevel,
     PCSTR         pszPath
     );
 
 DWORD
-LsaLogGetInfo(
+LwLogGetInfo(
     PLSA_LOG_INFO* ppLogInfo
     );
 
 DWORD
-LsaLogSetInfo(
+LwLogSetInfo(
     PLSA_LOG_INFO pLogInfo
     );
 
 VOID
-LsaLogMessage(
+LwLogMessage(
     PFN_LSA_LOG_MESSAGE pfnLogger,
     HANDLE hLog,
-    LsaLogLevel logLevel,
+    LwLogLevel logLevel,
     PCSTR  pszFormat,
     ...
     );
@@ -1314,90 +809,90 @@ lsass_vsyslog(
     );
 
 DWORD
-LsaShutdownLogging(
+LwShutdownLogging(
     VOID
     );
 
 DWORD
-LsaValidateLogLevel(
+LwValidateLogLevel(
     DWORD dwLogLevel
     );
 
 DWORD
-LsaTraceInitialize(
+LwTraceInitialize(
     VOID
     );
 
 BOOLEAN
-LsaTraceIsFlagSet(
+LwTraceIsFlagSet(
     DWORD dwTraceFlag
     );
 
 BOOLEAN
-LsaTraceIsAllowed(
+LwTraceIsAllowed(
     DWORD dwTraceFlags[],
     DWORD dwNumFlags
     );
 
 DWORD
-LsaTraceSetFlag(
+LwTraceSetFlag(
     DWORD dwTraceFlag
     );
 
 DWORD
-LsaTraceUnsetFlag(
+LwTraceUnsetFlag(
     DWORD dwTraceFlag
     );
 
 VOID
-LsaTraceShutdown(
+LwTraceShutdown(
     VOID
     );
 
 VOID
-LsaTraceShutdown(
+LwTraceShutdown(
     VOID
     );
 
 DWORD
-LsaAllocSecurityIdentifierFromBinary(
+LwAllocSecurityIdentifierFromBinary(
     UCHAR* sidBytes,
     DWORD dwSidBytesLength,
     PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
     );
 
 DWORD
-LsaAllocSecurityIdentifierFromString(
+LwAllocSecurityIdentifierFromString(
     PCSTR pszSidString,
     PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
     );
 
 VOID
-LsaFreeSecurityIdentifier(
+LwFreeSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier
     );
 
 DWORD
-LsaGetSecurityIdentifierRid(
+LwGetSecurityIdentifierRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD pdwRid
     );
 
 DWORD
-LsaSetSecurityIdentifierRid(
+LwSetSecurityIdentifierRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     DWORD dwRid
     );
 
 DWORD
-LsaReplaceSidRid(
+LwReplaceSidRid(
     IN PCSTR pszSid,
     IN DWORD dwNewRid,
     OUT PSTR* ppszNewSid
     );
 
 DWORD
-LsaGetSecurityIdentifierHashedRid(
+LwGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid
     );
@@ -1405,45 +900,45 @@ LsaGetSecurityIdentifierHashedRid(
 // The UID is a DWORD constructued using a non-cryptographic hash
 // of the User's domain SID and user RID.
 DWORD
-LsaHashSecurityIdentifierToId(
+LwHashSecurityIdentifierToId(
     IN PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     OUT PDWORD pdwId
     );
 
 DWORD
-LsaHashSidStringToId(
+LwHashSidStringToId(
     IN PCSTR pszSidString,
     OUT PDWORD pdwId
     );
 
 DWORD
-LsaGetSecurityIdentifierBinary(
+LwGetSecurityIdentifierBinary(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     UCHAR** ppucSidBytes,
     DWORD* pdwSidBytesLength
     );
 
 DWORD
-LsaGetSecurityIdentifierString(
+LwGetSecurityIdentifierString(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PSTR* ppszSidStr
     );
 
 DWORD
-LsaSidBytesToString(
+LwSidBytesToString(
     UCHAR* pucSidBytes,
     DWORD dwSidBytesLength,
     PSTR* pszSidString
     );
 
 DWORD
-LsaGetDomainSecurityIdentifier(
+LwGetDomainSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PLSA_SECURITY_IDENTIFIER* ppDomainSID
     );
 
 DWORD
-LsaHexStrToByteArray(
+LwHexStrToByteArray(
     IN PCSTR pszHexString,
     IN OPTIONAL DWORD* pdwHexStringLength,
     OUT UCHAR** ppucByteArray,
@@ -1451,72 +946,72 @@ LsaHexStrToByteArray(
     );
 
 DWORD
-LsaByteArrayToHexStr(
+LwByteArrayToHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,
     OUT PSTR* ppszHexString
     );
 
 DWORD
-LsaByteArrayToLdapFormatHexStr(
+LwByteArrayToLdapFormatHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,
     OUT PSTR* ppszHexString
     );
 
 DWORD
-LsaSidStrToLdapFormatHexStr(
+LwSidStrToLdapFormatHexStr(
     IN PCSTR pszSid,
     OUT PSTR* ppszHexSid
     );
 
 int
-LsaStrError(
+LwStrError(
     int errnum,
     char *pszBuf,
     size_t buflen
     );
 
 VOID
-LsaFreeDCInfo(
+LwFreeDCInfo(
     PLSA_DC_INFO pDCInfo
     );
 
 VOID
-LsaFreeDomainInfoArray(
+LwFreeDomainInfoArray(
     DWORD dwNumDomains,
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfoArray
     );
 
 VOID
-LsaFreeDomainInfo(
+LwFreeDomainInfo(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfo
     );
 
 VOID
-LsaFreeDomainInfoContents(
+LwFreeDomainInfoContents(
     PLSA_TRUSTED_DOMAIN_INFO pDomainInfo
     );
 
 DWORD
-LsaNISGetNicknames(
+LwNISGetNicknames(
     PCSTR         pszNicknameFilePath,
     PDLINKEDLIST* ppNicknameList
     );
 
 PCSTR
-LsaNISLookupAlias(
+LwNISLookupAlias(
     PDLINKEDLIST pNicknameList,
     PCSTR pszAlias
     );
 
 VOID
-LsaNISFreeNicknameList(
+LwNISFreeNicknameList(
     PDLINKEDLIST pNicknameList
     );
 
 DWORD
-LsaCacheNew(
+LwCacheNew(
     DWORD dwNumKeys,
     DWORD dwNumBuckets,
     PFLSA_CACHE_HASH pfHash,
@@ -1529,19 +1024,19 @@ LsaCacheNew(
     );
 
 DWORD
-LsaCacheInsert(
+LwCacheInsert(
     PLSA_CACHE pCache,
     PVOID pEntry
     );
 
 DWORD
-LsaCacheRemove(
+LwCacheRemove(
     PLSA_CACHE pCache,
     PVOID pEntry
     );
 
 DWORD
-LsaCacheLookup(
+LwCacheLookup(
     PLSA_CACHE pCache,
     PVOID pkey,
     DWORD dwIndex,
@@ -1549,17 +1044,17 @@ LsaCacheLookup(
     );
 
 DWORD
-LsaCacheFlush(
+LwCacheFlush(
     PLSA_CACHE pCache
     );
 
 VOID
-LsaCacheDelete(
+LwCacheDelete(
     PLSA_CACHE pCache
     );
 
 DWORD
-LsaTranslateLwMsgError(
+LwTranslateLwMsgError(
         LWMsgAssoc *pAssoc,
         DWORD dwMsgError,
         const char *file,
@@ -1567,29 +1062,29 @@ LsaTranslateLwMsgError(
         );
 
 DWORD
-LsaNtStatusToLsaError(
+LwNtStatusToLwError(
     IN NTSTATUS Status
     );
 
 NTSTATUS
-LsaLsaErrorToNtStatus(
-    IN DWORD LsaError
+LwLwErrorToNtStatus(
+    IN DWORD LwError
     );
 
 DWORD
-LsaAllocateCStringFromSid(
+LwAllocateCStringFromSid(
     OUT PSTR* ppszStringSid,
     IN PSID pSid
     );
 
 DWORD
-LsaAllocateSidFromCString(
+LwAllocateSidFromCString(
     OUT PSID* ppSid,
     IN PCSTR pszStringSid
     );
 
 DWORD
-LsaAllocateSidAppendRid(
+LwAllocateSidAppendRid(
     OUT PSID* ppSid,
     IN PSID pDomainSid,
     IN ULONG Rid
