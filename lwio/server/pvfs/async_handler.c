@@ -81,7 +81,6 @@ PvfsPendIrp(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bIsLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
 
@@ -145,12 +144,10 @@ PvfsCancelLockControlIrp(
 
     if (pIrpCtx->pIrp->Args.LockControl.LockControl == IO_LOCK_CONTROL_LOCK)
     {
-        PIRP pIrp = pIrpCtx->pIrp;
-
-        pIrpCtx->pIrp = NULL;
-
         pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
         IoIrpComplete(pIrp);
+
+        pIrpCtx->pIrp = NULL;
     }
 
     LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
