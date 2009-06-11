@@ -20,12 +20,19 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
   size_t len,slen;
   unsigned char *copystr;
   krb5_MD4_CTX md4_context;
+  krb5_error_code ret = 0;
 
   if (params != NULL)
-      return KRB5_ERR_BAD_S2K_PARAMS;
+  {
+      ret = KRB5_ERR_BAD_S2K_PARAMS;
+      goto error;
+  }
   
   if (key->length != 16)
-    return (KRB5_BAD_MSIZE);
+  {
+      ret = KRB5_BAD_MSIZE;
+      goto error;
+  }
 
   /* We ignore salt per the Microsoft spec*/
 
@@ -38,10 +45,19 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
 
   copystr = malloc(len);
   if (copystr == NULL)
-    return ENOMEM;
+  {
+      ret = ENOMEM;
+      goto error;
+  }
 
   /* make the string.  start by creating the little endian unicode version of the password*/
   len = mbstowc16les((wchar16_t *)copystr, string->data, slen);
+  if (len == (size_t) -1)
+  {
+      ret = EINVAL;
+      goto error;
+  }
+
   len *= 2;
 
   /* the actual MD4 hash of the data */
@@ -63,7 +79,15 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
 
   /* Zero out the data behind us */
   memset (copystr, 0, len);
+
+error:
+
+  if (copystr)
+  {
+      free(copystr);
+  }
+
   memset(&md4_context, 0, sizeof(md4_context));
-  free(copystr);
-  return 0;
+
+  return ret;
 }

@@ -437,7 +437,7 @@ void CTCaptureOutputToExc(
         PSTR showOutput = output;
         if(showOutput == NULL)
             showOutput = "";
-        LW_RAISE_EX(exc, ceError, "Command failed", "The execution of '%s' returned a non-zero exit code. Here is the output from the program:\n%s", command, showOutput);
+        LW_RAISE_EX(exc, ceError, "Command failed", "%s", showOutput);
         goto cleanup;
     }
     LW_CLEANUP_CTERR(exc, ceError);

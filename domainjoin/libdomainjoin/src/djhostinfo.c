@@ -680,7 +680,7 @@ cleanup:
 
 static
 CENTERROR
-DJRestartDHCPService(
+DJConfigureDHCPService(
     PSTR pszComputerName
     )
 {
@@ -695,6 +695,7 @@ DJRestartDHCPService(
           dhcpFilePath,
           NULL
         };
+#if !defined(HAVE_SETHOSTNAME) || !HAVE_DECL_SETHOSTNAME
     PSTR  ppszNetArgs[] =
         {
 #if defined(_AIX)
@@ -705,6 +706,7 @@ DJRestartDHCPService(
             "restart",
             NULL
         };
+#endif
     PPROCINFO pProcInfo = NULL;
     LONG status = 0;
 
@@ -737,6 +739,13 @@ DJRestartDHCPService(
         pProcInfo = NULL;
     }
 
+#if defined(HAVE_SETHOSTNAME) && HAVE_DECL_SETHOSTNAME
+    if (sethostname(pszComputerName, strlen(pszComputerName)) < 0)
+    {
+        ceError = CTMapSystemError(errno);
+        CLEANUP_ON_CENTERROR_EE(ceError, EE);
+    }
+#else
     ceError = DJFixNetworkManagerOnlineTimeout();
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
@@ -752,6 +761,7 @@ DJRestartDHCPService(
         ceError = CENTERROR_DOMAINJOIN_DHCPRESTART_FAIL;
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
     }
+#endif
 
 cleanup:
 
@@ -871,7 +881,7 @@ FixNetworkInterfaces(
 
     // Only DHCP boxes need to restart their networks
     if (bDHCPHost) {
-        LW_CLEANUP_CTERR(exc, DJRestartDHCPService(pszComputerName));
+        LW_CLEANUP_CTERR(exc, DJConfigureDHCPService(pszComputerName));
     }
 
 cleanup:
