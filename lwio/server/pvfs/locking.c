@@ -100,6 +100,10 @@ PvfsAddPendingLock(
     PPVFS_LOCK_ENTRY pLock
     );
 
+static VOID
+PvfsProcessPendingLocks(
+    PPVFS_FCB pFcb
+    );
 
 /* Code */
 
@@ -347,7 +351,108 @@ PvfsUnlockFile(
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bBrlWriteLock, &pFcb->rwBrlLock);
 
+    /* See if any pending locks can be granted now */
+
+    PvfsProcessPendingLocks(pFcb);
+
     return ntError;
+}
+
+/**************************************************************
+ *************************************************************/
+
+static VOID
+PvfsProcessPendingLocks(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PLWRTL_QUEUE pProcessingQueue = NULL;
+    PPVFS_PENDING_LOCK pPendingLock = NULL;
+    PVOID pData = NULL;
+    LONG64 ByteOffset = 0;
+    LONG64 Length = 0;
+    PVFS_LOCK_FLAGS Flags = 0;
+    ULONG Key = 0;
+    PIRP pIrp = NULL;
+    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PPVFS_CCB pCcb = NULL;
+    BOOLEAN bFcbLocked = FALSE;
+
+    /* Take the pending lock queue for processing */
+
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+    if (!LwRtlQueueIsEmpty(pFcb->pPendingLockQueue))
+    {
+        pProcessingQueue = pFcb->pPendingLockQueue;
+        pFcb->pPendingLockQueue = NULL;
+
+        ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
+                                 PVFS_FCB_MAX_PENDING_LOCKS,
+                                 PvfsFreePendingLock);
+    }
+
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pProcessingQueue == NULL) {
+        goto cleanup;
+    }
+
+    /* Process the pending lock queue */
+
+    while (!LwRtlQueueIsEmpty(pProcessingQueue))
+    {
+        pData = NULL;
+        pPendingLock = NULL;
+
+        ntError = LwRtlQueueRemoveItem(pProcessingQueue,
+                                       &pData);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pPendingLock = (PPVFS_PENDING_LOCK)pData;
+
+        pIrpContext = pPendingLock->pIrpContext;
+        pCcb        = pPendingLock->pCcb;
+        pIrp        = pIrpContext->pIrp;
+
+        ByteOffset = pPendingLock->PendingLock.Offset;
+        Length     = pPendingLock->PendingLock.Length;
+        Key        = pPendingLock->PendingLock.Key;
+        Flags      = PVFS_LOCK_BLOCK;
+        if (pPendingLock->PendingLock.bExclusive) {
+            Flags |= PVFS_LOCK_EXCLUSIVE;
+        }
+
+        /* If the lock still cannot be granted, this will
+           add it back to the FCB's pending lock queue */
+
+        ntError = PvfsLockFile(pIrpContext,
+                               pCcb,
+                               Key != 0 ? &Key : NULL,
+                               ByteOffset,
+                               Length,
+                               Flags);
+        PvfsFreePendingLock((PVOID*)&pPendingLock);
+        if (ntError == STATUS_PENDING) {
+            continue;
+        }
+
+        /* We've processed the lock (to success or failure) */
+
+        PvfsReleaseCCB(pCcb);
+        PvfsFreeIrpContext(&pIrpContext);
+
+        pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrp);
+    }
+
+cleanup:
+    return;
+
+error:
+    goto cleanup;
 }
 
 /**************************************************************
