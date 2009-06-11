@@ -42,7 +42,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <lwmsg/connection.h>
-#include <lwmsg/marshal.h>
+#include <lwmsg/data.h>
 
 #include "util-private.h"
 

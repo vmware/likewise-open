@@ -37,7 +37,7 @@
  *
  */
 #include <lwmsg/type.h>
-#include <lwmsg/marshal.h>
+#include <lwmsg/data.h>
 #include "convert.h"
 #include "util-private.h"
 #include "connection-private.h"

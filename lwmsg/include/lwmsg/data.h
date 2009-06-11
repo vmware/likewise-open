@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,17 +26,17 @@
 /*
  * Module Name:
  *
- *        marshal.h
+ *        data.h
  *
  * Abstract:
  *
- *        Marshalling API (public header)
+ *        Data model API
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_MARSHAL_H__
-#define __LWMSG_MARSHAL_H__
+#ifndef __LWMSG_DATA_H__
+#define __LWMSG_DATA_H__
 
 #include <lwmsg/status.h>
 #include <lwmsg/type.h>
@@ -44,80 +44,153 @@
 #include <lwmsg/context.h>
 
 /**
- * @file marshal.h
- * @brief Marshalling routines
+ * @file data.h
+ * @brief Data model API
  */
 
 /**
- * @defgroup marshal Marshaller
+ * @defgroup data Data model
  * @ingroup public
- * @brief Marshal and unmarshal data structures
+ * @brief Data marshaling and manipulation
  *
- * The LWMsg marshaller interface allows data structures to
+ * The LWMsg data model allows ordinary C data structures to
  * be converted to and from flat octet-stream representations.
- * Before data structures can be processed by the marshaller, a
- * type specification must be constructed which describes the layout
- * and relationships of the structure fields.  For details, see
- * @ref types.
+ * Before data structures can be processed, a type specification
+ * must be constructed which describes the layout and relationships
+ * of the structure fields.  For details, see @ref types.
  *
  * The top level object passed to or returned by marshaller operations
  * must always be a pointer.  As a convenience, certain top-level type
  * specifications will automatically be promoted to pointers to accomodate
  * this restriction:
  * - Structures
- *  
- * All marshalling operations take place in a marshalling context
- * which controls ancillary behavior of the marshaller, such as:
+ *
+ * All operations take a data handle which controls tunable
+ * parameters of the data model:
  *
  * <ul>
- * <li>Memory management</li>
- * <li>Error message access</li>
+ * <li>Byte order of the octect representation</li>
  * </ul>
  *
- * Contexts can optionally reference a parent context,
- * allowing settings to be inherited and overridden.  For
- * example, a child context could override the memory manager
- * of its parent.
+ * In the event of an error, the data handle can be queried for
+ * a human-readable diagnostic message.  The data handle may
+ * also reference an LWMsg context.
  *
  */
 
 /*@{*/
 
+/**
+ * @brief Data handle
+ *
+ * An opqaue data handle which facilitates all
+ * data model operations.
+ */
 typedef struct LWMsgDataHandle LWMsgDataHandle;
 
+/**
+ * @brief Create a data handle
+ *
+ * Creates a new data handle with an optional context.  Data operations
+ * which return allocated memory (e.g. #lwmsg_data_unmarshal()) will use
+ * the context's memory management functions.
+ *
+ * @param[in] context an optional context
+ * @param[out] handle the created data handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_data_handle_new(
     const LWMsgContext* context,
     LWMsgDataHandle** handle
     );
 
+/**
+ * @brief Delete a data handle
+ *
+ * Deletes the specified data handle.
+ *
+ * @param[in,out] handle the data handle
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
 void
 lwmsg_data_handle_delete(
     LWMsgDataHandle* handle
     );
 
+/**
+ * @brief Get last error message
+ *
+ * Get a descriptive diagnostic message for the last
+ * error which occured on the specified data handle.
+ * The returned string will remain valid until another
+ * operation uses the handle.
+ *
+ * @param[in,out] handle the data handle
+ * @param[in] status the status code returned from the failing function
+ * @return a string describing the last error
+ */
 const char*
 lwmsg_data_handle_get_error_message(
     LWMsgDataHandle* handle,
     LWMsgStatus status
     );
 
+/**
+ * @brief Set byte order
+ *
+ * Sets the byte order which will be used for atomic data elements
+ * in subsequent marshal and unmarshal operations using the specified
+ * data handle.
+ *
+ * The default byte order is network byte order (big endian).  This is
+ * the preferred order for data destined for long-term storage or
+ * transmission over a network.
+ *
+ * @param[out] handle the data handle
+ * @param[in] order the data order
+ */
 void
 lwmsg_data_handle_set_byte_order(
     LWMsgDataHandle* handle,
     LWMsgByteOrder order
     );
 
+/**
+ * @brief Get Byte order
+ *
+ * Gets the byte order which will be used for subsequent marshal and
+ * unmarshal operations on the specified data handle.
+ *
+ * @param[in] handle the data handle
+ * @return the current byte order
+ */
 LWMsgByteOrder
 lwmsg_data_handle_get_byte_order(
     LWMsgDataHandle* handle
     );
 
+/**
+ * @brief Get context
+ *
+ * Gets the context which was given to #lwmsg_data_handle_new()
+ * when the specified data handle was created.
+ *
+ * @param[in] handle the data handle
+ * @return the context, or NULL if no context was given at creation time
+ */
 const LWMsgContext*
 lwmsg_data_handle_get_context(
     LWMsgDataHandle* handle
     );
 
+#ifndef DOXYGEN
 LWMsgStatus
 lwmsg_data_handle_raise_error(
     LWMsgDataHandle* handle,
@@ -125,7 +198,29 @@ lwmsg_data_handle_raise_error(
     const char* format,
     ...
     );
+#endif
 
+/**
+ * @brief Free in-memory data graph
+ *
+ * Recursively frees the data graph rooted at <tt>root</tt>
+ * whose type is specified by <tt>type</tt>.  Each contiguous
+ * memory object will be freed using the context given to
+ * #lwmsg_data_handle_new() when the specified data handle
+ * was created.
+ *
+ * The most common application of this function is to free
+ * the entire data graph allocated by a prior unmarshal operation,
+ * such as #lwmsg_data_unmarshal().
+ *
+ * Because the root of the data graph is always specified by
+ * a generic pointer, <tt>type</tt> is subject to pointer
+ * promotion.
+ *
+ * @param[in,out] handle the data handle
+ * @param[in] type the type of the root node of the graph
+ * @param[in,out] root the root of the graph
+ */
 LWMsgStatus
 lwmsg_data_free_graph(
     LWMsgDataHandle* handle,
@@ -139,10 +234,10 @@ lwmsg_data_free_graph(
  * Converts a data structure of the specified type to a flat, serialized form, storing
  * the result in the provided marshalling buffer.
  *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param object the root of the data to marshal
- * @param buffer the marshalling buffer into which the result will be stored
+ * @param[in,out] handle the data handle
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in] object the root of the data to marshal
+ * @param[in,out] buffer the marshalling buffer into which the result will be stored
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -166,11 +261,11 @@ lwmsg_data_marshal(
  * Converts a data structure of the specified type to a flat, serialized form, storing
  * the result in the provided simple buffer.
  *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param object the root of the data to marshal
- * @param buffer the buffer into which the result will be stored
- * @param length the size of the buffer in bytes
+ * @param[in,out] handle the data handle
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in] object the root of the data to marshal
+ * @param[out] buffer the buffer into which the result will be stored
+ * @param[in] length the size of the buffer in bytes
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -194,13 +289,13 @@ lwmsg_data_marshal_flat(
  *
  * Converts a data structure of the specified type to a flat, serialized form, automatically
  * allocating sufficient space for the result.  The buffer is allocated using the memory management
- * functions in context passed to lwmsg_data_handle_new().
+ * functions in context passed to #lwmsg_data_handle_new().
  *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param object the root of the data to marshal
- * @param buffer the allocated buffer containing the serialized representation
- * @param length the length of the buffer
+ * @param[in,out] handle the data handle
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in] object the root of the data to marshal
+ * @param[out] buffer the allocated buffer containing the serialized representation
+ * @param[out] length the length of the buffer
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -219,16 +314,15 @@ lwmsg_data_marshal_flat_alloc(
     );
 
 /**
- * @ingroup marshal
  * @brief Unmarshal a data structure
  *
  * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
  * to form the object graph.
  *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param buffer the marshalling buffer from which data will be read
- * @param out the resulting unmarshalled object
+ * @param[in,out] handle the data handle
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in,out] buffer the marshalling buffer from which data will be read
+ * @param[out] out the resulting unmarshalled object
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -247,18 +341,17 @@ lwmsg_data_unmarshal(
     );
 
 /**
- * @ingroup marshal
  * @brief Unmarshal a data structure from a simple buffer
  *
  * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
  * to form the object graph.  The serialized form is read from a simple buffer rather than a
  * full #LWMsgBuffer.
  *
- * @param context the marshalling context
- * @param type the type specification which describes the type of the data
- * @param buffer the simple buffer from which data will be read
- * @param length the length of the buffer in bytes
- * @param out the resulting unmarshalled object
+ * @param[in,out] handle the data handle
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in] buffer the simple buffer from which data will be read
+ * @param[in] length the length of the buffer in bytes
+ * @param[out] out the resulting unmarshalled object
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory

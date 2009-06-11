@@ -41,8 +41,7 @@
 #include "util-private.h"
 #include "convert.h"
 #include "xnet-private.h"
-#include <lwmsg/marshal.h>
-#include <lwmsg/unmarshal.h>
+#include <lwmsg/data.h>
 
 #include <sys/types.h>
 #include <sys/param.h>

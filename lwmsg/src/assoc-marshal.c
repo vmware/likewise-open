@@ -38,11 +38,10 @@
  */
 #include <lwmsg/type.h>
 #include <lwmsg/assoc.h>
-#include <lwmsg/marshal.h>
 #include "convert.h"
 #include "util-private.h"
 #include "assoc-private.h"
-#include "marshal-private.h"
+#include "data-private.h"
 
 #include <stdlib.h>
 #include <string.h>

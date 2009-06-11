@@ -35,7 +35,7 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include "marshal-private.h"
+#include "data-private.h"
 #include "util-private.h"
 #include "type-private.h"
 #include "convert.h"

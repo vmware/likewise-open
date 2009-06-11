@@ -36,9 +36,7 @@
  *
  */
 
-#include <lwmsg/unmarshal.h>
-#include "marshal-private.h"
-#include "unmarshal-private.h"
+#include "data-private.h"
 #include "util-private.h"
 #include "type-private.h"
 #include "config.h"

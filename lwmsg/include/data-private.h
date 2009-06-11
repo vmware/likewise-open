@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,19 +26,38 @@
 /*
  * Module Name:
  *
- *        unmarshal-private.h
+ *        marshal-private.h
  *
  * Abstract:
  *
- *        Unmarshalling API (private header)
+ *        Marshalling API (private header)
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_UNMARSHAL_PRIVATE_H__
-#define __LWMSG_UNMARSHAL_PRIVATE_H__
+#ifndef __LWMSG_MARSHAL_PRIVATE_H__
+#define __LWMSG_MARSHAL_PRIVATE_H__
 
+#include <lwmsg/data.h>
 #include "type-private.h"
+#include "status-private.h"
+
+struct LWMsgDataHandle
+{
+    LWMsgErrorContext error;
+    const LWMsgContext* context;
+    LWMsgByteOrder byte_order;
+};
+
+typedef struct LWMsgMarshalState
+{
+    unsigned char* dominating_object;
+} LWMsgMarshalState;
+
+#define MAX_INTEGER_SIZE (16)
+
+#define MARSHAL_RAISE_ERROR(hand, expr, ...) \
+    BAIL_ON_ERROR(lwmsg_data_handle_raise_error((hand), (expr), __VA_ARGS__))
 
 typedef struct LWMsgUnmarshalState
 {
