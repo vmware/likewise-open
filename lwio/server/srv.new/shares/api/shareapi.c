@@ -533,7 +533,7 @@ SrvShareRemoveFromList_inlock(
 }
 
 NTSTATUS
-SrvShareEnumShares(
+SrvShareEnum(
     IN      PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     OUT     PSRV_SHARE_INFO**          pppShareInfo,
     IN  OUT PULONG                     pulNumEntries
