@@ -970,7 +970,50 @@ LwNtCtxUnlockFile(
     IN LONG64 ByteOffset,
     IN LONG64 Length,
     IN ULONG Key
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE;
+    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE_RESULT;
+    NT_IPC_MESSAGE_UNLOCK_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    request.FileHandle = FileHandle;
+    request.ByteOffset = ByteOffset,
+    request.Length = Length;
+    request.Key = Key;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+
+}
 
 //
 // Namespace Operations
