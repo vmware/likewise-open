@@ -114,16 +114,16 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
-struct _PVFS_CCB;
+typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
+typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 
-typedef struct _PVFS_CCB_LIST_NODE
+struct _PVFS_CCB_LIST_NODE
 {
-    struct _PVFS_CCB_LIST_NODE  *pNext;
-    struct _PVFS_CCB_LIST_NODE  *pPrevious;
-    struct _PVFS_CCB            *pCcb;
-
-} PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
-
+    PPVFS_CCB_LIST_NODE pNext;
+    PPVFS_CCB_LIST_NODE pPrevious;
+    PPVFS_CCB           pCcb;
+};
 
 typedef DWORD PVFS_LOCK_FLAGS;
 
@@ -139,6 +139,16 @@ typedef struct _PVFS_LOCK_ENTRY
 
 } PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
 
+typedef struct _PVFS_PENDING_LOCK
+{
+    PVFS_LOCK_ENTRY PendingLock;
+    PPVFS_CCB pCcb;
+    PPVFS_IRP_CONTEXT pIrpContext;
+
+} PVFS_PENDING_LOCK, *PPVFS_PENDING_LOCK;
+
+#define PVFS_FCB_MAX_PENDING_LOCKS   50
+
 typedef struct _PVFS_FCB
 {
     LONG RefCount;
@@ -153,6 +163,8 @@ typedef struct _PVFS_FCB
     PPVFS_CCB_LIST_NODE pCcbList;
 
     PVFS_LOCK_ENTRY LastFailedLock;
+
+    PLWRTL_QUEUE pPendingLockQueue;
 
 } PVFS_FCB, *PPVFS_FCB;
 
@@ -175,7 +187,7 @@ typedef struct _PVFS_LOCK_TABLE
 
 } PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
 
-typedef struct _PVFS_CCB
+struct _PVFS_CCB
 {
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
     pthread_mutex_t ControlMutex;   /* Use for CCB SetFileInfo operations */
@@ -203,10 +215,7 @@ typedef struct _PVFS_CCB
 
     PVFS_LOCK_TABLE LockTable;
 
-} PVFS_CCB, *PPVFS_CCB;
-
-struct _PVFS_IRP_CONTEXT;
-typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+};
 
 typedef NTSTATUS (*PPVFS_WORK_CALLBACK)(
     IN PPVFS_IRP_CONTEXT pIrpCtx

@@ -297,6 +297,7 @@ PvfsEnforceShareMode(
 
 NTSTATUS
 PvfsLockFile(
+    PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
     PULONG pKey,
     LONG64 Offset,
