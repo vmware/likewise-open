@@ -125,8 +125,8 @@ SrvShareInitList(
             pShareEntry->pInfo = pShareInfo;
             InterlockedIncrement(&pShareInfo->refcount);
 
-            pShareEntry->pNext = pShareList->pShareEntry->pNext;
-            pShareList->pShareEntry->pNext = pShareEntry;
+            pShareEntry->pNext = pShareList->pShareEntry;
+            pShareList->pShareEntry = pShareEntry;
             pShareEntry = NULL;
         }
 
