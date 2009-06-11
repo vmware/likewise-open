@@ -376,20 +376,16 @@ PvfsCanReadWriteFile(
 
     /* Read lock so no one can add a CCB to the list */
 
-    ENTER_READER_RW_LOCK(&pFcb->rwLock);
-    bFcbReadLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
 
     /* Store the pending lock */
 
-    ENTER_READER_RW_LOCK(&pFcb->rwBrlLock);
-    bBrlReadLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bBrlReadLocked, &pFcb->rwBrlLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
          pCursor = PvfsNextCCBFromList(pFcb, pCursor))
     {
-        /* We'll deal with ourselves in AddLock() */
-
         if (pCcb == pCursor->pCcb) {
             continue;
         }
@@ -402,13 +398,8 @@ PvfsCanReadWriteFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (bBrlReadLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwBrlLock);
-    }
-
-    if (bFcbReadLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
-    }
+    LWIO_UNLOCK_RWMUTEX(bBrlReadLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
 
     return ntError;
 
