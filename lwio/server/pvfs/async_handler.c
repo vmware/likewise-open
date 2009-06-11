@@ -72,9 +72,6 @@ PvfsCancelIrp(
     return;
 }
 
-/************************************************************
- ***********************************************************/
-
 static NTSTATUS
 PvfsPendIrp(
     PPVFS_IRP_CONTEXT pIrpCtx
@@ -82,21 +79,18 @@ PvfsPendIrp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
     IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelIrp, pIrpCtx);
 
-    ntError = STATUS_PENDING;
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
+    if (ntError != STATUS_SUCCESS) {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+    }
 
-cleanup:
+    /* Always return STATUS_PENDING here */
 
-    return ntError;
-
-error:
-    goto cleanup;
+    return STATUS_PENDING;
 }
 
 /************************************************************
@@ -117,9 +111,6 @@ PvfsAsyncCreate(
 
     return ntError;
 }
-
-/************************************************************
- ***********************************************************/
 
 /************************************************************
  ***********************************************************/
@@ -162,21 +153,18 @@ PvfsPendLockControlIrp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
     IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelLockControlIrp, pIrpCtx);
 
-    ntError = STATUS_PENDING;
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
+    if (ntError != STATUS_SUCCESS) {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+    }
 
-cleanup:
+    /* Always return STATUS_PENDING here */
 
-    return ntError;
-
-error:
-    goto cleanup;
+    return STATUS_PENDING;
 }
 
 NTSTATUS
