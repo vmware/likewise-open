@@ -254,8 +254,20 @@ PvfsUnlockFile(
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
     PPVFS_LOCK_ENTRY pEntry = NULL;
     ULONG i = 0;
+    BOOLEAN bBrlWriteLock = FALSE;
 
-    ENTER_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLock, &pFcb->rwBrlLock);
+
+    /* If the caller wants to release all locks, just set the
+       NumberOfLocks to 0 */
+
+    if (bUnlockAll && (pKey == NULL)) {
+        pExclLocks->NumberOfLocks = 0;
+        pSharedLocks->NumberOfLocks = 0;
+
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
     /* Exclusive Locks */
 
@@ -263,7 +275,26 @@ PvfsUnlockFile(
     {
         pEntry = &pExclLocks->pLocks[i];
 
-        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        /* Two success cases:
+           1. bUnlockAll is set and the Key ID matches
+           2. Match a single lock
+        */
+
+        if (bUnlockAll)
+        {
+            if (*pKey == pEntry->Key) {
+                if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+                    RtlMoveMemory(pEntry, pEntry+1,
+                                  sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+                }
+                pExclLocks->NumberOfLocks--;
+
+                ntError = STATUS_SUCCESS;
+            }
+
+            continue;
+        }
+        else if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
         {
             if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
                 RtlMoveMemory(pEntry, pEntry+1,
@@ -282,9 +313,27 @@ PvfsUnlockFile(
     {
         pEntry = &pSharedLocks->pLocks[i];
 
-        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        /* Two success cases:
+           1. bUnlockAll is set and the Key ID matches
+           2. Match a single lock
+        */
+
+        if (bUnlockAll)
         {
-            if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+            if (*pKey == pEntry->Key) {
+                if (((pSharedLocks->NumberOfLocks-i) - 1) > 0) {
+                    RtlMoveMemory(pEntry, pEntry+1,
+                                  sizeof(PVFS_LOCK_ENTRY)* ((pSharedLocks->NumberOfLocks-i)-1));
+                }
+                pSharedLocks->NumberOfLocks--;
+
+                ntError = STATUS_SUCCESS;
+            }
+            continue;
+        }
+        else if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        {
+            if (((pSharedLocks->NumberOfLocks-i) - 1) > 0) {
                 RtlMoveMemory(pEntry, pEntry+1,
                               sizeof(PVFS_LOCK_ENTRY)* ((pSharedLocks->NumberOfLocks-i)-1));
             }
@@ -296,7 +345,7 @@ PvfsUnlockFile(
     }
 
 cleanup:
-    LEAVE_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLock, &pFcb->rwBrlLock);
 
     return ntError;
 }
