@@ -50,4 +50,20 @@
 #ifndef __PROTOCOL_API_H__
 #define __PROTOCOL_API_H__
 
+NTSTATUS
+SrvProtocolInit(
+    VOID
+    );
+
+NTSTATUS
+SrvProtocolExecute(
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest
+	);
+
+NTSTATUS
+SrvProtocolShutdown(
+    VOID
+    );
+
 #endif /* __PROTOCOL_API_H__ */

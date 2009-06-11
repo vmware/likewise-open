@@ -3,7 +3,6 @@
 
 NTSTATUS
 SrvWorkerInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue,
     PLWIO_SRV_WORKER      pWorker
     );
 

@@ -51,26 +51,39 @@
 
 NTSTATUS
 SrvTransportInit(
-    VOID
+    PLWIO_PACKET_ALLOCATOR     hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
 #if defined(LW_USE_EPOLL)
 
-    status = SrvEPollTransportInit(&gpSrvTransportApi);
+    status = SrvEPollTransportInit(
+					hPacketAllocator,
+					pShareList,
+					&gpSrvTransportApi);
 
 #elif defined (LW_USE_KQUEUE)
 
-    status = SrvKQueueTransportInit(&gpSrvTransportApi);
+    status = SrvKQueueTransportInit(
+					hPacketAllocator,
+					pShareList,
+					&gpSrvTransportApi);
 
 #elif defined (LW_USE_POLL)
 
-    status = SrvPollTransportInit(&gpSrvTransportApi);
+    status = SrvPollTransportInit(
+					hPacketAllocator,
+					pShareList,
+					&gpSrvTransportApi);
 
 #elif defined (LW_USE_SELECT)
 
-    status = SrvSelectTransportInit(&gpSrvTransportApi);
+    status = SrvSelectTransportInit(
+					hPacketAllocator,
+					pShareList,
+					&gpSrvTransportApi);
 
 #endif
 
@@ -79,11 +92,15 @@ SrvTransportInit(
 
 NTSTATUS
 SrvTransportGetRequest(
+    IN  struct timespec*      pTimeSpec,
     OUT PLWIO_SRV_CONNECTION* ppConnection,
     OUT PSMB_PACKET*          ppRequest
     )
 {
-    return gpSrvTransportApi->pfnTransportGetRequest(ppConnection, ppRequest);
+    return gpSrvTransportApi->pfnTransportGetRequest(
+									pTimeSpec,
+									ppConnection,
+									ppRequest);
 }
 
 NTSTATUS

@@ -1,17 +1,6 @@
 #ifndef __SRV_CONNECTION_H__
 #define __SRV_CONNECTION_H__
 
-NTSTATUS
-SrvConnectionCreate(
-    PLWIO_SRV_SOCKET           pSocket,
-    HANDLE                     hPacketAllocator,
-    HANDLE                     hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PSRV_PROPERTIES            pServerProperties,
-    PSRV_HOST_INFO             pHostinfo,
-    PLWIO_SRV_CONNECTION*      ppConnection
-    );
-
 int
 SrvConnectionGetFd(
     PLWIO_SRV_CONNECTION pConnection
@@ -87,11 +76,6 @@ NTSTATUS
 SrvConnectionGetNamedPipeClientAddress(
     PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
-    );
-
-VOID
-SrvConnectionRelease(
-    PLWIO_SRV_CONNECTION pConnection
     );
 
 #endif /* __SRV_CONNECTION_H__ */

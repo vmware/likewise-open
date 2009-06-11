@@ -85,7 +85,7 @@ SrvConnectionSessionRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    PLWIO_SRV_SOCKET           pSocket,
+    HANDLE                     hSocket,
     HANDLE                     hPacketAllocator,
     HANDLE                     hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
@@ -129,7 +129,7 @@ SrvConnectionCreate(
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->pShareList = pShareList;
     pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
-    pConnection->pSocket = pSocket;
+    pConnection->hSocket = hSocket;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);

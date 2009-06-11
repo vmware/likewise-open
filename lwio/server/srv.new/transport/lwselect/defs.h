@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,51 +28,28 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        defs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport API
  *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
+ *
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-#include <config.h>
-#include <lwiosys.h>
+#define SMB_LISTEN_Q                          5
+#define LWIO_SRV_DEFAULT_NUM_READERS          2
 
-#include <uuid/uuid.h>
-
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-
-#include <smb1.h>
-#include <smb2.h>
-
+#endif /* __DEFS_H__ */

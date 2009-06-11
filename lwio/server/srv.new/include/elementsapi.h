@@ -117,8 +117,6 @@ typedef enum
     LWIO_SRV_CONN_STATE_INVALID
 } LWIO_SRV_CONN_STATE;
 
-typedef struct LWIO_SRV_SOCKET* PLWIO_SRV_SOCKET;
-
 typedef struct _SRV_PROPERTIES
 {
     USHORT  preferredSecurityMode;
@@ -157,7 +155,7 @@ typedef struct _LWIO_SRV_CONNECTION
 
     LWIO_SRV_CONN_STATE  state;
 
-    PLWIO_SRV_SOCKET     pSocket;
+    HANDLE               hSocket;
 
     SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
@@ -282,7 +280,7 @@ SrvGssReleaseContext(
 
 NTSTATUS
 SrvConnectionCreate(
-    PLWIO_SRV_SOCKET           pSocket,
+    HANDLE                    hSocket,
     HANDLE                    hPacketAllocator,
     HANDLE                    hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
