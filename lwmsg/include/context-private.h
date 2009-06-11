@@ -76,20 +76,6 @@ lwmsg_context_get_data(
     void** out_data
     );
 
-LWMsgStatus
-lwmsg_context_free_graph_internal(
-    const LWMsgContext* context,
-    LWMsgTypeIter* iter,
-    unsigned char* object
-    );
-
-LWMsgStatus
-lwmsg_context_free_graph(
-    const LWMsgContext* context,
-    LWMsgTypeSpec* type,
-    void* root
-    );
-
 void
 lwmsg_context_log(
     const LWMsgContext* context,

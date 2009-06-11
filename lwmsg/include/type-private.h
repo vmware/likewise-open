@@ -139,12 +139,6 @@ typedef struct LWMsgTypeIter
     } debug;
 } LWMsgTypeIter;
 
-typedef LWMsgStatus (*LWMsgGraphVisitFunction) (
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    void* data
-    );
-
 void
 lwmsg_type_iterate(
     LWMsgTypeSpec* spec,
@@ -199,59 +193,6 @@ void
 lwmsg_type_iterate_promoted(
     LWMsgTypeSpec* spec,
     LWMsgTypeIter* iter
-    );
-
-LWMsgStatus
-lwmsg_type_extract_discrim_tag(
-    LWMsgTypeIter* iter,
-    unsigned char* dominating_struct,
-    intmax_t* tag
-    );
-
-LWMsgStatus
-lwmsg_type_extract_length(
-    LWMsgTypeIter* iter,
-    unsigned char* dominating_struct,
-    size_t *length
-    );
-
-LWMsgStatus
-lwmsg_type_extract_active_arm(
-    LWMsgTypeIter* iter,
-    unsigned char* dominating_struct,
-    LWMsgTypeIter* active_iter
-    );
-
-LWMsgStatus
-lwmsg_type_visit_graph(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    LWMsgGraphVisitFunction func,
-    void* data
-    );
-
-LWMsgStatus
-lwmsg_type_visit_graph_children(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    LWMsgGraphVisitFunction func,
-    void* data
-    );
-
-LWMsgStatus
-lwmsg_type_verify_range(
-    LWMsgErrorContext* error,
-    LWMsgTypeIter* iter,
-    void* object,
-    size_t object_size
-    );
-
-LWMsgStatus
-lwmsg_type_calculate_indirect_metrics(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    size_t* count,
-    size_t* element_size
     );
 
 #endif

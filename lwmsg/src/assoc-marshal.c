@@ -315,7 +315,7 @@ lwmsg_assoc_print_handle(
     void* object,
     LWMsgTypeAttrs* attrs,
     void* data,
-    LWMsgTypePrintFunction print,
+    LWMsgDataPrintFunction print,
     void* print_data
     )
 {

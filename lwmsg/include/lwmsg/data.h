@@ -369,6 +369,15 @@ lwmsg_data_unmarshal_flat(
     void** out
     );
 
+LWMsgStatus
+lwmsg_data_print_graph(
+    const struct LWMsgContext* context,
+    LWMsgTypeSpec* type,
+    void* object,
+    LWMsgDataPrintFunction print,
+    void* print_data
+    );
+
 /*@}*/
 
 #endif

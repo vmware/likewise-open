@@ -26,18 +26,17 @@
 /*
  * Module Name:
  *
- *        type-print.c
+ *        data-print.c
  *
  * Abstract:
  *
- *        Type specification API
- *        Object graph printing
+ *        Data graph printing
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
 
-#include "type-private.h"
+#include "data-private.h"
 #include "util-private.h"
 #include "convert.h"
 
@@ -48,13 +47,13 @@ typedef struct
     const LWMsgContext* context;
     unsigned int depth;
     LWMsgBool newline;
-    LWMsgTypePrintFunction print;
+    LWMsgDataPrintFunction print;
     void* print_data;
 } PrintInfo;
 
 static
 LWMsgStatus
-lwmsg_type_print_graph_visit(
+lwmsg_data_print_graph_visit(
     LWMsgTypeIter* iter,
     unsigned char* object,
     void* data
@@ -135,7 +134,7 @@ newline(
 
 static
 LWMsgStatus
-lwmsg_type_print_integer(
+lwmsg_data_print_integer(
     LWMsgTypeIter* iter,
     unsigned char* object,
     PrintInfo* info
@@ -170,7 +169,7 @@ error:
 
 static
 LWMsgStatus
-lwmsg_type_print_graph_visit_member(
+lwmsg_data_print_graph_visit_member(
     LWMsgTypeIter* iter,
     unsigned char* object,
     void* data
@@ -185,7 +184,7 @@ lwmsg_type_print_graph_visit_member(
     }
 
     BAIL_ON_ERROR(status =
-                  lwmsg_type_print_graph_visit(
+                  lwmsg_data_print_graph_visit(
                       iter,
                       object,
                       data));
@@ -199,7 +198,7 @@ error:
 
 static
 LWMsgStatus
-lwmsg_type_print_string(
+lwmsg_data_print_string(
     LWMsgTypeIter* iter,
     unsigned char* object,
     PrintInfo* info
@@ -222,7 +221,7 @@ lwmsg_type_print_string(
         input_string = object;
     }
 
-    BAIL_ON_ERROR(status = lwmsg_type_calculate_indirect_metrics(
+    BAIL_ON_ERROR(status = lwmsg_data_calculate_indirect_metrics(
                       iter,
                       input_string,
                       &element_count,
@@ -263,7 +262,7 @@ error:
 
 static
 LWMsgStatus
-lwmsg_type_print_graph_visit(
+lwmsg_data_print_graph_visit(
     LWMsgTypeIter* iter,
     unsigned char* object,
     void* data
@@ -289,10 +288,10 @@ lwmsg_type_print_graph_visit(
         BAIL_ON_ERROR(status = print(info, "{"));
         BAIL_ON_ERROR(status = newline(info));
         info->depth++;
-        BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
+        BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
                           iter,
                           object,
-                          lwmsg_type_print_graph_visit_member,
+                          lwmsg_data_print_graph_visit_member,
                           data));
         info->depth--;
         BAIL_ON_ERROR(status = print(info, "}"));
@@ -310,7 +309,7 @@ lwmsg_type_print_graph_visit(
         else if (iter->info.kind_indirect.encoding != NULL)
         {
             BAIL_ON_ERROR(status = print(info, "%s \"", prefix));
-            BAIL_ON_ERROR(status = lwmsg_type_print_string(iter, object, info));
+            BAIL_ON_ERROR(status = lwmsg_data_print_string(iter, object, info));
             BAIL_ON_ERROR(status = print(info, "\"", prefix));
         }
         /* Singleton case */
@@ -318,10 +317,10 @@ lwmsg_type_print_graph_visit(
                  iter->info.kind_indirect.term_info.static_length == 1)
         {
             BAIL_ON_ERROR(status = print(info, "%s ", prefix));
-            BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
+            BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
                               iter,
                               object,
-                              lwmsg_type_print_graph_visit,
+                              lwmsg_data_print_graph_visit,
                               data));
         }
         /* General case */
@@ -332,17 +331,17 @@ lwmsg_type_print_graph_visit(
             BAIL_ON_ERROR(status = print(info, "{"));
             BAIL_ON_ERROR(status = newline(info));
             info->depth++;
-            BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
+            BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
                               iter,
                               object,
-                              lwmsg_type_print_graph_visit_member,
+                              lwmsg_data_print_graph_visit_member,
                               data));
             info->depth--;
             BAIL_ON_ERROR(status = print(info, "}"));
         }
         break;
     case LWMSG_KIND_INTEGER:
-        BAIL_ON_ERROR(status = lwmsg_type_print_integer(
+        BAIL_ON_ERROR(status = lwmsg_data_print_integer(
                           iter,
                           object,
                           info));
@@ -374,11 +373,11 @@ error:
 }
 
 LWMsgStatus
-lwmsg_type_print_graph(
+lwmsg_data_print_graph(
     const LWMsgContext* context,
     LWMsgTypeSpec* type,
     void* object,
-    LWMsgTypePrintFunction print,
+    LWMsgDataPrintFunction print,
     void* print_data
     )
 {
@@ -394,10 +393,10 @@ lwmsg_type_print_graph(
 
     lwmsg_type_iterate_promoted(type, &iter);
 
-    BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
+    BAIL_ON_ERROR(status = lwmsg_data_visit_graph(
                       &iter,
                       (unsigned char*) &object,
-                      lwmsg_type_print_graph_visit,
+                      lwmsg_data_print_graph_visit,
                       &info));
 
     BAIL_ON_ERROR(status = newline(&info));

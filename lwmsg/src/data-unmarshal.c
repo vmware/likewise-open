@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,7 +26,7 @@
 /*
  * Module Name:
  *
- *        unmarshal.c
+ *        data-unmarshal.c
  *
  * Abstract:
  *
@@ -120,7 +120,7 @@ lwmsg_object_free(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgFreeFunction free = NULL;
     void* data = NULL;
-    
+
     lwmsg_context_get_memory_functions(handle->context, NULL, &free, NULL, &data);
 
     free(object, data);
@@ -141,7 +141,7 @@ lwmsg_data_unmarshal_integer_immediate(
     unsigned char temp[MAX_INTEGER_SIZE];
     size_t in_size;
     size_t out_size;
-    
+
     in_size = iter->info.kind_integer.width;
     out_size = iter->size;
 
@@ -159,7 +159,7 @@ lwmsg_data_unmarshal_integer_immediate(
     /* If a valid range is defined, check value against it */
     if (iter->attrs.range_low < iter->attrs.range_high)
     {
-        BAIL_ON_ERROR(status = lwmsg_type_verify_range(
+        BAIL_ON_ERROR(status = lwmsg_data_verify_range(
                           &handle->error,
                           iter,
                           object,
@@ -244,7 +244,7 @@ lwmsg_data_unmarshal_indirect_prologue(
         break;
     case LWMSG_TERM_MEMBER:
         /* The length is present in a member we have already unmarshalled */
-        BAIL_ON_ERROR(status = lwmsg_type_extract_length(
+        BAIL_ON_ERROR(status = lwmsg_data_extract_length(
                           iter,
                           state->dominating_object,
                           out_count));
@@ -296,7 +296,7 @@ lwmsg_data_unmarshal_indirect(
     {
         /* Otherwise, we need to unmarshal each element individually */
         element = object;
-        
+
         for (i = 0; i < count; i++)
         {
             BAIL_ON_ERROR(status = lwmsg_data_unmarshal_internal(
@@ -394,10 +394,7 @@ error:
 
     if (object)
     {
-        lwmsg_context_free_graph_internal(
-            handle->context,
-            iter,
-            (unsigned char*) &object);
+        lwmsg_data_free_graph_internal(handle, iter, (unsigned char*) &object);
     }
 
     goto done;
@@ -413,7 +410,7 @@ lwmsg_data_unmarshal_pointer(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     unsigned char ptr_flag;
-    
+
     if (iter->attrs.nonnull)
     {
         /* If pointer is never null, there is no flag in the stream */
@@ -424,7 +421,7 @@ lwmsg_data_unmarshal_pointer(
         /* A flag in the stream indicates whether the pointer is NULL or not. */
         BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &ptr_flag, sizeof(ptr_flag)));
     }
-    
+
     if (ptr_flag)
     {
         /* If the pointer is non-null, unmarshal the pointees */
@@ -454,7 +451,7 @@ lwmsg_data_unmarshal_array(
     LWMsgTypeIter inner;
 
     lwmsg_type_enter(iter, &inner);
-    
+
     /* Determine element size and count */
     BAIL_ON_ERROR(status = lwmsg_data_unmarshal_indirect_prologue(
                       handle,
@@ -545,8 +542,8 @@ lwmsg_data_unmarshal_free_partial_struct(
             break;
         }
 
-        BAIL_ON_ERROR(status = lwmsg_context_free_graph_internal(
-                          handle->context,
+        BAIL_ON_ERROR(status = lwmsg_data_free_graph_internal(
+                          handle,
                           &member,
                           object + member.offset));
     }
@@ -579,7 +576,7 @@ lwmsg_data_unmarshal_struct_pointee(
                       handle,
                       struct_iter->size,
                       &base_object));
-    
+
     /* Unmarshal all base members of the structure and find any flexible member */
     BAIL_ON_ERROR(status = lwmsg_data_unmarshal_struct(
                       handle,
@@ -604,7 +601,7 @@ lwmsg_data_unmarshal_struct_pointee(
         lwmsg_type_enter(&flex_iter, &inner_iter);
 
         my_state.dominating_object = base_object;
-        
+
         BAIL_ON_ERROR(status = lwmsg_data_unmarshal_indirect_prologue(
                           handle,
                           &my_state,
@@ -657,7 +654,7 @@ lwmsg_data_unmarshal_struct_pointee(
     }
 
     *out = full_object;
-    
+
 done:
 
     return status;
@@ -677,10 +674,7 @@ error:
 
     if (full_object)
     {
-        lwmsg_context_free_graph_internal(
-            handle->context,
-            pointer_iter,
-            (unsigned char*) &base_object);
+        lwmsg_data_free_graph_internal(handle, pointer_iter, (unsigned char*) &base_object);
     }
 
     goto done;
@@ -698,7 +692,7 @@ lwmsg_data_unmarshal_union(
     LWMsgTypeIter arm;
 
     /* Find the active arm */
-    BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
+    BAIL_ON_ERROR(status = lwmsg_data_extract_active_arm(
                       iter,
                       state->dominating_object,
                       &arm));
@@ -782,7 +776,7 @@ lwmsg_data_unmarshal_internal(
     default:
         BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
     }
-    
+
     if (iter->verify)
     {
         BAIL_ON_ERROR(status = iter->verify(handle, LWMSG_TRUE, iter->size, object, iter->verify_data));

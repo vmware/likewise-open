@@ -64,4 +64,70 @@ typedef struct LWMsgUnmarshalState
     unsigned char* dominating_object;
 } LWMsgUnmarshalState;
 
+typedef LWMsgStatus (*LWMsgGraphVisitFunction) (
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_data_visit_graph(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    LWMsgGraphVisitFunction func,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_data_visit_graph_children(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    LWMsgGraphVisitFunction func,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_data_extract_discrim_tag(
+    LWMsgTypeIter* iter,
+    unsigned char* dominating_struct,
+    intmax_t* tag
+    );
+
+LWMsgStatus
+lwmsg_data_extract_length(
+    LWMsgTypeIter* iter,
+    unsigned char* dominating_struct,
+    size_t *length
+    );
+
+LWMsgStatus
+lwmsg_data_extract_active_arm(
+    LWMsgTypeIter* iter,
+    unsigned char* dominating_struct,
+    LWMsgTypeIter* active_iter
+    );
+
+LWMsgStatus
+lwmsg_data_verify_range(
+    LWMsgErrorContext* error,
+    LWMsgTypeIter* iter,
+    void* object,
+    size_t object_size
+    );
+
+LWMsgStatus
+lwmsg_data_calculate_indirect_metrics(
+    LWMsgTypeIter* iter,
+    unsigned char* object,
+    size_t* count,
+    size_t* element_size
+    );
+
+LWMsgStatus
+lwmsg_data_free_graph_internal(
+    LWMsgDataHandle* handle,
+    LWMsgTypeIter* iter,
+    unsigned char* object
+    );
+
 #endif

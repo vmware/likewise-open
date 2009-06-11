@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,7 +26,7 @@
 /*
  * Module Name:
  *
- *        marshal.c
+ *        data-marshal.c
  *
  * Abstract:
  *
@@ -51,115 +51,6 @@ lwmsg_data_marshal_internal(
     unsigned char* object,
     LWMsgBuffer* buffer
     );
-
-LWMsgStatus
-lwmsg_data_handle_new(
-    const LWMsgContext* context,
-    LWMsgDataHandle** handle
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgDataHandle* my_handle = NULL;
-
-    my_handle = calloc(1, sizeof(*my_handle));
-    if (!my_handle)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-    }
-
-    my_handle->context = context;
-    my_handle->byte_order = LWMSG_BIG_ENDIAN;
-
-    *handle = my_handle;
-
-done:
-
-    return status;
-
-error:
-
-    *handle = NULL;
-
-    if (my_handle)
-    {
-        free(my_handle);
-    }
-
-    goto done;
-}
-
-void
-lwmsg_data_handle_delete(
-    LWMsgDataHandle* handle
-    )
-{
-    lwmsg_error_clear(&handle->error);
-
-    free(handle);
-}
-
-const char*
-lwmsg_data_handle_get_error_message(
-    LWMsgDataHandle* handle,
-    LWMsgStatus status
-    )
-{
-    return lwmsg_error_message(status, &handle->error);
-}
-
-void
-lwmsg_data_handle_set_byte_order(
-    LWMsgDataHandle* handle,
-    LWMsgByteOrder byte_order
-    )
-{
-    handle->byte_order = byte_order;
-}
-
-LWMsgByteOrder
-lwmsg_data_handle_get_byte_order(
-    LWMsgDataHandle* handle
-    )
-{
-    return handle->byte_order;
-}
-
-const LWMsgContext*
-lwmsg_data_handle_get_context(
-    LWMsgDataHandle* handle
-    )
-{
-    return handle->context;
-}
-
-LWMsgStatus
-lwmsg_data_handle_raise_error(
-    LWMsgDataHandle* handle,
-    LWMsgStatus status,
-    const char* format,
-    ...
-    )
-{
-    va_list ap;
-
-    va_start(ap, format);
-
-    status = lwmsg_error_raise_v(&handle->error, status, format, ap);
-
-    va_end(ap);
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_data_free_graph(
-    LWMsgDataHandle* handle,
-    LWMsgTypeSpec* type,
-    void* root
-    )
-{
-    return lwmsg_context_free_graph(handle->context, type, root);
-}
 
 static LWMsgStatus
 lwmsg_object_is_zero(LWMsgMarshalState* state, LWMsgTypeIter* iter, unsigned char* object, int* is_zero)
@@ -205,7 +96,7 @@ lwmsg_data_marshal_indirect_prologue(
         break;
     case LWMSG_TERM_MEMBER:
         /* Extract the length out of the field of the actual structure */
-        BAIL_ON_ERROR(status = lwmsg_type_extract_length(
+        BAIL_ON_ERROR(status = lwmsg_data_extract_length(
                           iter,
                           state->dominating_object,
                           count));
@@ -273,7 +164,7 @@ lwmsg_data_marshal_indirect(
                       buffer,
                       &inner_iter,
                       &count));
-    
+
     if (inner_iter.kind == LWMSG_KIND_INTEGER &&
         inner_iter.info.kind_integer.width == 1 &&
         inner_iter.size == 1)
@@ -282,8 +173,8 @@ lwmsg_data_marshal_indirect(
            packed and unpacked, we can write the entire array directly into
            the output.  This is important for character strings */
         BAIL_ON_ERROR(status = lwmsg_buffer_write(
-                          buffer, 
-                          object, 
+                          buffer,
+                          object,
                           count));
     }
     else if (count)
@@ -296,8 +187,8 @@ lwmsg_data_marshal_indirect(
             BAIL_ON_ERROR(status = lwmsg_data_marshal_internal(
                               handle,
                               state,
-                              &inner_iter, 
-                              element, 
+                              &inner_iter,
+                              element,
                               buffer));
             element += inner_iter.size;
         }
@@ -328,7 +219,7 @@ lwmsg_data_marshal_integer(
     /* If a valid range is defined, check value against it */
     if (iter->attrs.range_low < iter->attrs.range_high)
     {
-        BAIL_ON_ERROR(status = lwmsg_type_verify_range(
+        BAIL_ON_ERROR(status = lwmsg_data_verify_range(
                           &handle->error,
                           iter,
                           object,
@@ -342,7 +233,7 @@ lwmsg_data_marshal_integer(
                                                  out_size,
                                                  handle->byte_order,
                                                  iter->info.kind_integer.sign));
-    
+
     BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, out, out_size));
 
 
@@ -427,7 +318,7 @@ lwmsg_data_marshal_union(LWMsgDataHandle* handle, LWMsgMarshalState* state, LWMs
     LWMsgTypeIter arm;
 
     /* Find the active arm */
-    BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
+    BAIL_ON_ERROR(status = lwmsg_data_extract_active_arm(
                       iter,
                       state->dominating_object,
                       &arm));

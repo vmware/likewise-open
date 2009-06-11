@@ -14,13 +14,13 @@ liblwmsg_nothr_la_SOURCES = \
 	connection-security.c \
 	connection-marshal.c \
 	protocol.c \
-	marshal.c \
-	unmarshal.c \
+	data-handle.c \
+	data-graph.c \
+	data-marshal.c \
+	data-unmarshal.c \
+	data-print.c \
 	type.c \
 	type-iterate.c \
-	type-analyze.c \
-	type-verify.c \
-	type-print.c \
 	status.c \
 	context.c \
 	util.c \
