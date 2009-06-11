@@ -39,9 +39,11 @@
  *
  * Abstract:
  *
+ *          Common structure definitions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
 #ifndef __NTLM_H__

@@ -41,16 +41,15 @@
  *
  *        Header (Library)
  *
- *        Inter-process Communication (Client) API
+ *        Inter-process Communication (NTLM Client) API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  */
-#ifndef __CLIENTIPC_P_H__
-#define __CLIENTIPC_P_H__
+#ifndef __CLIENTIPC_H__
+#define __CLIENTIPC_H__
 
 #include <lwmsg/lwmsg.h>
-//#include <ntlmipc.h>
 
 #if 0
 typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT {
@@ -63,95 +62,6 @@ typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
 } NTLM_CLIENT_CONNECTION_CONTEXT, *PNTLM_CLIENT_CONNECTION_CONTEXT;
-
-/*
-#define BAIL_ON_NTLM_ERROR(dwError) \
-    if (dwError)               \
-    {                          \
-        goto error;            \
-    }
-
-#define BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
-           dwError = NTLM_ERROR_INTERNAL; \
-           BAIL_ON_NTLM_ERROR(dwError);            \
-        }
-
-typedef struct _SecHandle
-{
-    ULONG_PTR       dwLower;
-    ULONG_PTR       dwUpper;
-} SecHandle, * PSecHandle;
-
-typedef SecHandle    CredHandle;
-typedef PSecHandle   PCredHandle;
-
-typedef SecHandle    CtxtHandle;
-typedef PSecHandle   PCtxtHandle;
-
-typedef CHAR SEC_CHAR;
-
-typedef struct _SecBuffer
-{
-    ULONG cbBuffer;
-    ULONG BufferType;
-    PVOID pvBuffer;
-}SecBuffer, *PSecBuffer;
-
-typedef struct _SecBufferDesc
-{
-    ULONG      ulVersion;
-    ULONG      cBuffers;
-    PSecBuffer pBuffers;
-}SecBufferDesc, *PSecBufferDesc;
-
-typedef struct _LUID
-{
-    DWORD LowPart;
-    LONG  HighPart;
-}LUID, *PLUID;
-
-typedef struct _SEC_WINNT_AUTH_IDENTITY
-{
-  USHORT *User;
-  ULONG UserLength;
-  USHORT *Domain;
-  ULONG DomainLength;
-  USHORT *Password;
-  ULONG PasswordLength;
-  ULONG Flags;
-}SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
-
-#define INVALID_HANDLE  ((HANDLE)~0)
-
-typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
-//typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
-
-typedef SECURITY_INTEGER TimeStamp;                 // ntifs
-typedef SECURITY_INTEGER * PTimeStamp;      // ntifs
-
-//
-// If we are in 32 bit mode, define the SECURITY_STRING structure,
-// as a clone of the base UNICODE_STRING structure.  This is used
-// internally in security components, an as the string interface
-// for kernel components (e.g. FSPs)
-//
-// I'm going to default this to always be the non-unicode string
-// type so that its marshalling is predictable.  It can be converted
-// on either side if need be.
-//
-//#ifndef _NTDEF_
-typedef struct _SECURITY_STRING
-{
-    USHORT      Length;
-    USHORT      MaximumLength;
-    PUSHORT     Buffer;
-} SECURITY_STRING, * PSECURITY_STRING;
-//#else // _NTDEF_
-//typedef UNICODE_STRING SECURITY_STRING, *PSECURITY_STRING;  // ntifs
-//#  endif // _NTDEF_
-
-*/
 
 DWORD
 NtlmTransactAcceptSecurityContext(

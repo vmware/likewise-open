@@ -39,11 +39,10 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *
+ *        NTLM IPC
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
 

@@ -41,7 +41,10 @@
  *
  *        Interprocess Communication (Private Include)
  *
+ *        NTLM IPC
+ *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
 #include "config.h"

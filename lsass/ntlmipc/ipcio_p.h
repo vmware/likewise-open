@@ -39,9 +39,10 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Inter-process communication API
+ *        NTLM Inter-process communication API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
 #ifndef __IPCIO_P_H__

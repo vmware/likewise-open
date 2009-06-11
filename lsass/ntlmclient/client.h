@@ -39,10 +39,10 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        API (Client)
+ *        API (NTLM Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  */
 
 #ifndef __CLIENT_H__

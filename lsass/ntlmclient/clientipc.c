@@ -39,9 +39,10 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        NTLM Inter-process Communication (Client) API
+ *        Inter-process Communication (NTLM Client) API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  */
 #include "client.h"
 
