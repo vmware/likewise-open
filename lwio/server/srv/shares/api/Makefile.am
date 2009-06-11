@@ -11,11 +11,11 @@ libshareapi_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv.new/include \
-    -I@top_srcdir@/server/srv.new/shares/include
+    -I@top_srcdir@/server/srv/include \
+    -I@top_srcdir@/server/srv/shares/include
 
 libshareapi_la_LIBADD = \
-    @top_builddir@/server/srv.new/shares/lwshare/liblwshare.la
+    @top_builddir@/server/srv/shares/lwshare/liblwshare.la
 
 libshareapi_la_LDFLAGS = -static
 

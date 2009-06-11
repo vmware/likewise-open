@@ -8,8 +8,8 @@ libsrv_transport_epoll_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv.new/include \
-    -I@top_srcdir@/server/srv.new/transport/include
+    -I@top_srcdir@/server/srv/include \
+    -I@top_srcdir@/server/srv/transport/include
 
 libsrv_transport_epoll_la_LDFLAGS = -static
 

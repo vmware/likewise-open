@@ -11,8 +11,8 @@ liblwshare_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv.new/include \
-    -I@top_srcdir@/server/srv.new/shares/include
+    -I@top_srcdir@/server/srv/include \
+    -I@top_srcdir@/server/srv/shares/include
 
 liblwshare_la_LIBADD = \
     @SQLITE_LIBS@

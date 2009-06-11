@@ -8,8 +8,8 @@ libsrv_protocols_smb2_la_CPPFLAGS = \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv.new/include \
-    -I@top_srcdir@/server/srv.new/protocols/include
+    -I@top_srcdir@/server/srv/include \
+    -I@top_srcdir@/server/srv/protocols/include
 
 libsrv_protocols_smb2_la_LDFLAGS = -static
 
