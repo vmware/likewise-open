@@ -55,7 +55,7 @@
 #endif
 
 DWORD
-LsaLdapPingTcp(
+LwLdapPingTcp(
     PCSTR pszHostAddress,
     DWORD dwTimeoutSeconds
     )
@@ -183,26 +183,26 @@ error:
 }
 
 DWORD
-LsaLdapOpenDirectoryDomain(
+LwLdapOpenDirectoryDomain(
     IN PCSTR pszDnsDomainName,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     )
 {
-    return LsaLdapOpenDirectoryWithReaffinity(pszDnsDomainName,
+    return LwLdapOpenDirectoryWithReaffinity(pszDnsDomainName,
                                               dwFlags,
                                               FALSE,
                                               phDirectory);
 }
 
 DWORD
-LsaLdapOpenDirectoryGc(
+LwLdapOpenDirectoryGc(
     IN PCSTR pszDnsForestName,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     )
 {
-    return LsaLdapOpenDirectoryWithReaffinity(pszDnsForestName,
+    return LwLdapOpenDirectoryWithReaffinity(pszDnsForestName,
                                               dwFlags,
                                               TRUE,
                                               phDirectory);
@@ -210,7 +210,7 @@ LsaLdapOpenDirectoryGc(
 
 static
 DWORD
-LsaLdapOpenDirectoryWithReaffinity(
+LwLdapOpenDirectoryWithReaffinity(
     IN PCSTR pszDnsDomainOrForestName,
     IN DWORD dwFlags,
     IN BOOLEAN bNeedGc,
@@ -277,7 +277,7 @@ LsaLdapOpenDirectoryWithReaffinity(
                       pDCInfo->pszFullyQualifiedDomainName,
                       dwBlackListCount);
 
-        dwError = LsaLdapOpenDirectoryServer(
+        dwError = LwLdapOpenDirectoryServer(
                         pDCInfo->pszDomainControllerAddress,
                         pDCInfo->pszDomainControllerName,
                         dwFlags,
@@ -294,7 +294,7 @@ LsaLdapOpenDirectoryWithReaffinity(
 
         if (dwBlackListCount < MAX_SERVERS_TO_TRY)
         {
-            dwError = LsaAllocateString(
+            dwError = LwAllocateString(
                             pDCInfo->pszDomainControllerAddress,
                             &ppszBlackList[dwBlackListCount]);
             BAIL_ON_LSA_ERROR(dwError);
@@ -317,14 +317,14 @@ cleanup:
     return dwError;
 
 error:
-    LsaLdapCloseDirectory(hDirectory);
+    LwLdapCloseDirectory(hDirectory);
     hDirectory = 0;
     goto cleanup;
 }
 
 static
 DWORD
-LsaLdapOpenDirectoryServerSingleAttempt(
+LwLdapOpenDirectoryServerSingleAttempt(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
     IN DWORD dwTimeoutSec,
@@ -440,7 +440,7 @@ LsaLdapOpenDirectoryServerSingleAttempt(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(sizeof(*pDirectory), (PVOID *)&pDirectory);
+    dwError = LwAllocateMemory(sizeof(*pDirectory), (PVOID *)&pDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDirectory->ld = ld;
@@ -448,11 +448,11 @@ LsaLdapOpenDirectoryServerSingleAttempt(
 
     if (dwFlags & LSA_LDAP_OPT_ANNONYMOUS)
     {
-        dwError = LsaLdapBindDirectoryAnonymous((HANDLE)pDirectory);
+        dwError = LwLdapBindDirectoryAnonymous((HANDLE)pDirectory);
     }
     else
     {
-        dwError = LsaLdapBindDirectory((HANDLE)pDirectory, pszServerName);
+        dwError = LwLdapBindDirectory((HANDLE)pDirectory, pszServerName);
     }
     // The above functions return -1 when a connection times out.
     if (dwError == (DWORD)-1)
@@ -471,7 +471,7 @@ error:
 
     if (pDirectory)
     {
-        LsaLdapCloseDirectory(pDirectory);
+        LwLdapCloseDirectory(pDirectory);
     }
     if (ld)
     {
@@ -484,7 +484,7 @@ error:
 }
 
 DWORD
-LsaLdapOpenDirectoryServer(
+LwLdapOpenDirectoryServer(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
     IN DWORD dwFlags,
@@ -509,7 +509,7 @@ LsaLdapOpenDirectoryServer(
         // (which is the same amount of time netlogon will wait to get the dc
         // name). The second attempt halves the value to 7 seconds. The third
         // attempt halves it again to 3 seconds.
-        dwError = LsaLdapOpenDirectoryServerSingleAttempt(
+        dwError = LwLdapOpenDirectoryServerSingleAttempt(
                         pszServerAddress,
                         pszServerName,
                         dwTimeoutSec,
@@ -551,7 +551,7 @@ error:
 
     if (pDirectory)
     {
-        LsaLdapCloseDirectory(pDirectory);
+        LwLdapCloseDirectory(pDirectory);
     }
 
     *phDirectory = (HANDLE)NULL;
@@ -560,7 +560,7 @@ error:
 }
 
 DWORD
-LsaLdapBindDirectoryAnonymous(
+LwLdapBindDirectoryAnonymous(
     HANDLE hDirectory
     )
 {
@@ -594,7 +594,7 @@ error:
 }
 
 DWORD
-LsaLdapBindDirectory(
+LwLdapBindDirectory(
     HANDLE hDirectory,
     PCSTR pszServerName
     )
@@ -636,7 +636,7 @@ LsaLdapBindDirectory(
     input_desc.length = 0;
 
     //Leave the realm empty so that kerberos referrals are turned on.
-    dwError = LsaAllocateStringPrintf(&pszTargetName,"ldap/%s@", pszServerName);
+    dwError = LwAllocateStringPrintf(&pszTargetName,"ldap/%s@", pszServerName);
     BAIL_ON_LSA_ERROR(dwError);
 
     pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
@@ -698,7 +698,7 @@ LsaLdapBindDirectory(
          */
         LSA_LOG_INFO("Renewing machine tgt outside of password sync thread");
 
-        dwError = LsaKrb5RefreshMachineTGT(NULL);
+        dwError = LwKrb5RefreshMachineTGT(NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -793,7 +793,7 @@ void display_status_1(char *m, OM_uint32 code, int type)
 }
 
 void
-LsaLdapCloseDirectory(
+LwLdapCloseDirectory(
     HANDLE hDirectory
     )
 {
@@ -804,13 +804,13 @@ LsaLdapCloseDirectory(
         {
             ldap_unbind_s(pDirectory->ld);
         }
-        LsaFreeMemory(pDirectory);
+        LwFreeMemory(pDirectory);
     }
     return;
 }
 
 DWORD
-LsaLdapReadObject(
+LwLdapReadObject(
     HANDLE hDirectory,
     PCSTR  pszObjectDN,
     PSTR*  ppszAttributeList,
@@ -856,7 +856,7 @@ error:
 }
 
 DWORD
-LsaLdapGetParentDN(
+LwLdapGetParentDN(
     PCSTR pszObjectDN,
     PSTR* ppszParentDN
     )
@@ -878,7 +878,7 @@ LsaLdapGetParentDN(
 
     pComma++;
 
-    dwError= LsaAllocateString(pComma, &pszParentDN);
+    dwError= LwAllocateString(pComma, &pszParentDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszParentDN = pszParentDN;
@@ -893,7 +893,7 @@ error:
 }
 
 DWORD
-LsaLdapDirectorySearch(
+LwLdapDirectorySearch(
     HANDLE hDirectory,
     PCSTR  pszObjectDN,
     int    scope,
@@ -987,7 +987,7 @@ error:
 }
 
 DWORD
-LsaLdapDirectorySearchEx(
+LwLdapDirectorySearchEx(
     HANDLE hDirectory,
     PCSTR  pszObjectDN,
     int    scope,
@@ -1062,7 +1062,7 @@ error:
 }
 
 DWORD
-LsaLdapEnablePageControlOption(
+LwLdapEnablePageControlOption(
     HANDLE hDirectory
     )
 {
@@ -1095,7 +1095,7 @@ error:
 }
 
 DWORD
-LsaLdapDisablePageControlOption(
+LwLdapDisablePageControlOption(
     HANDLE hDirectory
     )
 {
@@ -1118,7 +1118,7 @@ error:
 }
 
 DWORD
-LsaLdapDirectoryOnePagedSearch(
+LwLdapDirectoryOnePagedSearch(
     HANDLE         hDirectory,
     PCSTR          pszObjectDN,
     PCSTR          pszQuery,
@@ -1141,7 +1141,7 @@ LsaLdapDirectoryOnePagedSearch(
     BOOLEAN bSearchFinished = FALSE;
     struct berval * pBerCookie = (struct berval *)pCookie->pvData;
 
-    LSA_ASSERT(pCookie->pfnFree == NULL || pCookie->pfnFree == LsaLdapFreeCookie);
+    LSA_ASSERT(pCookie->pfnFree == NULL || pCookie->pfnFree == LwLdapFreeCookie);
     pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
 
    // dwError = ADEnablePageControlOption(hDirectory);
@@ -1156,7 +1156,7 @@ LsaLdapDirectoryOnePagedSearch(
 
     ppInputControls[0] = pPageControl;
 
-    dwError = LsaLdapDirectorySearchEx(
+    dwError = LwLdapDirectorySearchEx(
                hDirectory,
                pszObjectDN,
                scope,
@@ -1207,7 +1207,7 @@ LsaLdapDirectoryOnePagedSearch(
     pCookie->bSearchFinished = bSearchFinished;
     *ppMessage = pMessage;
     pCookie->pvData = pBerCookie;
-    pCookie->pfnFree = LsaLdapFreeCookie;
+    pCookie->pfnFree = LwLdapFreeCookie;
 
 cleanup:
   /*  dwError_disable = ADDisablePageControlOption(hDirectory);
@@ -1243,7 +1243,7 @@ error:
 }
 
 LDAPMessage*
-LsaLdapFirstEntry(
+LwLdapFirstEntry(
     HANDLE hDirectory,
     LDAPMessage* pMessage
     )
@@ -1256,7 +1256,7 @@ LsaLdapFirstEntry(
 }
 
 LDAPMessage*
-LsaLdapNextEntry(
+LwLdapNextEntry(
     HANDLE hDirectory,
     LDAPMessage* pMessage
     )
@@ -1269,7 +1269,7 @@ LsaLdapNextEntry(
 }
 
 LDAP *
-LsaLdapGetSession(
+LwLdapGetSession(
     HANDLE hDirectory
     )
 {
@@ -1278,7 +1278,7 @@ LsaLdapGetSession(
 }
 
 DWORD
-LsaLdapGetBytes(
+LwLdapGetBytes(
         HANDLE hDirectory,
         LDAPMessage* pMessage,
         PSTR pszFieldName,
@@ -1298,7 +1298,7 @@ LsaLdapGetBytes(
 
     if (ppszValues && ppszValues[0]){
         if (ppszValues[0]->bv_len != 0){
-            dwError = LsaAllocateMemory(
+            dwError = LwAllocateMemory(
                         sizeof(BYTE) * ppszValues[0]->bv_len,
                         (PVOID *)&pszByteValue);
             BAIL_ON_LSA_ERROR(dwError);
@@ -1329,7 +1329,7 @@ error:
 
 
 DWORD
-LsaLdapGetString(
+LwLdapGetString(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PCSTR pszFieldName,
@@ -1345,7 +1345,7 @@ LsaLdapGetString(
 
     ppszValues = (PSTR*)ldap_get_values(pDirectory->ld, pMessage, pszFieldName);
     if (ppszValues && ppszValues[0]) {
-        dwError = LsaAllocateString(ppszValues[0], &pszValue);
+        dwError = LwAllocateString(ppszValues[0], &pszValue);
         BAIL_ON_LSA_ERROR(dwError);
     }
     *ppszValue = pszValue;
@@ -1365,7 +1365,7 @@ error:
 }
 
 DWORD
-LsaLdapGetDN(
+LwLdapGetDN(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PSTR* ppszValue
@@ -1385,7 +1385,7 @@ LsaLdapGetDN(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateString(pszLdapValue, &pszValue);
+    dwError = LwAllocateString(pszLdapValue, &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppszValue = pszValue;
@@ -1405,7 +1405,7 @@ error:
 }
 
 DWORD
-LsaLdapIsValidADEntry(
+LwLdapIsValidADEntry(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PBOOLEAN pbValidADEntry
@@ -1414,7 +1414,7 @@ LsaLdapIsValidADEntry(
     DWORD dwError = LSA_ERROR_SUCCESS;
     PSTR pszValue = NULL;
 
-    dwError = LsaLdapGetDN(
+    dwError = LwLdapGetDN(
                     hDirectory,
                     pMessage,
                     &pszValue);
@@ -1443,7 +1443,7 @@ error:
 
 
 DWORD
-LsaLdapGetUInt32(
+LwLdapGetUInt32(
     HANDLE       hDirectory,
     LDAPMessage* pMessage,
     PCSTR        pszFieldName,
@@ -1453,7 +1453,7 @@ LsaLdapGetUInt32(
     DWORD dwError = 0;
     PSTR pszValue = NULL;
 
-    dwError = LsaLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
+    dwError = LwLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszValue) {
@@ -1480,7 +1480,7 @@ error:
 }
 
 DWORD
-LsaLdapGetUInt64(
+LwLdapGetUInt64(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -1491,7 +1491,7 @@ LsaLdapGetUInt64(
     PSTR pszValue = NULL;
     PSTR pszEndPtr = NULL;
 
-    dwError = LsaLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
+    dwError = LwLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszValue)
@@ -1522,7 +1522,7 @@ error:
 }
 
 DWORD
-LsaLdapGetInt64(
+LwLdapGetInt64(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -1533,7 +1533,7 @@ LsaLdapGetInt64(
     PSTR pszValue = NULL;
     PSTR pszEndPtr = NULL;
 
-    dwError = LsaLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
+    dwError = LwLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszValue)
@@ -1568,7 +1568,7 @@ error:
 // It also handles the case when AD object does not have a SID,
 // Hence, <GUID=xxxxxxxx>;distinguishedName
 DWORD
-LsaLdapParseExtendedDNResult(
+LwLdapParseExtendedDNResult(
     IN PCSTR pszExtDnResult,
     OUT PSTR* ppszSid
     )
@@ -1631,20 +1631,20 @@ LsaLdapParseExtendedDNResult(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaHexStrToByteArray(
+    dwError = LwHexStrToByteArray(
                  pszSidHex,
                  &dwSidLength,
                  &pucSIDByteArr,
                  &dwSIDByteCount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocSecurityIdentifierFromBinary(
+    dwError = LwAllocSecurityIdentifierFromBinary(
                  pucSIDByteArr,
                  dwSIDByteCount,
                  &pSID);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaGetSecurityIdentifierString(
+    dwError = LwGetSecurityIdentifierString(
                  pSID,
                  &pszSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1659,7 +1659,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pucSIDByteArr);
     if (pSID)
     {
-        LsaFreeSecurityIdentifier(pSID);
+        LwFreeSecurityIdentifier(pSID);
     }
 
     return dwError;
@@ -1672,7 +1672,7 @@ error:
 }
 
 DWORD
-LsaLdapGetStrings(
+LwLdapGetStrings(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -1680,7 +1680,7 @@ LsaLdapGetStrings(
     OUT PDWORD pdwNumValues
     )
 {
-    return LsaLdapGetStringsWithExtDnResult(
+    return LwLdapGetStringsWithExtDnResult(
             hDirectory,
             pMessage,
             pszFieldName,
@@ -1690,7 +1690,7 @@ LsaLdapGetStrings(
 }
 
 DWORD
-LsaLdapGetStringsWithExtDnResult(
+LwLdapGetStringsWithExtDnResult(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -1725,7 +1725,7 @@ LsaLdapGetStringsWithExtDnResult(
         }
         else if (iNum > 0)
         {
-            dwError = LsaAllocateMemory((iNum+1)*sizeof(PSTR), (PVOID*)&ppszValues);
+            dwError = LwAllocateMemory((iNum+1)*sizeof(PSTR), (PVOID*)&ppszValues);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwNumValues = 0;
@@ -1733,12 +1733,12 @@ LsaLdapGetStringsWithExtDnResult(
             {
                 if (bDoSidParsing)
                 {
-                    dwError = LsaLdapParseExtendedDNResult(ppszLDAPValues[iValue], &ppszValues[dwNumValues]);
+                    dwError = LwLdapParseExtendedDNResult(ppszLDAPValues[iValue], &ppszValues[dwNumValues]);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 else
                 {
-                    dwError = LsaAllocateString(ppszLDAPValues[iValue], &ppszValues[dwNumValues]);
+                    dwError = LwAllocateString(ppszLDAPValues[iValue], &ppszValues[dwNumValues]);
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 if (ppszValues[dwNumValues])
@@ -1760,7 +1760,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaFreeNullTerminatedStringArray(ppszValues);
+    LwFreeNullTerminatedStringArray(ppszValues);
     *pppszValues = NULL;
     *pdwNumValues = 0;
 
@@ -1769,7 +1769,7 @@ error:
 
 /* Escapes a string according to the directions given in RFC 2254. */
 DWORD
-LsaLdapEscapeString(
+LwLdapEscapeString(
     PSTR *ppszResult,
     PCSTR pszInput
     )
@@ -1799,7 +1799,7 @@ LsaLdapEscapeString(
         }
     }
 
-    dwError = LsaAllocateMemory(iOutputPos + 1, (PVOID*)&pszResult);
+    dwError = LwAllocateMemory(iOutputPos + 1, (PVOID*)&pszResult);
     iOutputPos = 0;
     for(iInputPos = 0; pszInput[iInputPos]; iInputPos++)
     {
@@ -1839,7 +1839,7 @@ error:
 #define DC_PREFIX "dc="
 
 DWORD
-LsaLdapConvertDomainToDN(
+LwLdapConvertDomainToDN(
     PCSTR pszDomainName,
     PSTR* ppszDomainDN
     )
@@ -1867,7 +1867,7 @@ LsaLdapConvertDomainToDN(
         pszIter += stLength;
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
                     sizeof(CHAR) * (dwRequiredDomainDNLen +
                                     nDomainParts),
                     (PVOID*)&pszDomainDN);
@@ -1909,7 +1909,7 @@ error:
 }
 
 DWORD
-LsaLdapConvertDNToDomain(
+LwLdapConvertDNToDomain(
     PCSTR pszDN,
     PSTR* ppszDomainName
     )
@@ -1925,10 +1925,10 @@ LsaLdapConvertDNToDomain(
 
     BAIL_ON_INVALID_STRING(pszDN);
 
-    dwError = LsaAllocateString(pszDN, &pszDNCopy);
+    dwError = LwAllocateString(pszDN, &pszDNCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaStrToLower(pszDNCopy);
+    LwStrToLower(pszDNCopy);
 
     pszDcLocation = strstr(pszDNCopy, DC_PREFIX);
 
@@ -1937,7 +1937,7 @@ LsaLdapConvertDNToDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(strlen(pszDcLocation)*sizeof(CHAR),
+    dwError = LwAllocateMemory(strlen(pszDcLocation)*sizeof(CHAR),
                                 (PVOID*)&pszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1984,7 +1984,7 @@ error:
 }
 
 VOID
-LsaLdapFreeCookie(
+LwLdapFreeCookie(
     PVOID pCookie
     )
 {
@@ -1995,7 +1995,7 @@ LsaLdapFreeCookie(
 }
 
 VOID
-LsaFreeCookieContents(
+LwFreeCookieContents(
     IN OUT PLSA_SEARCH_COOKIE pCookie
     )
 {
@@ -2009,7 +2009,7 @@ LsaFreeCookieContents(
 }
 
 VOID
-LsaInitCookie(
+LwInitCookie(
     OUT PLSA_SEARCH_COOKIE pCookie
     )
 {
@@ -2017,7 +2017,7 @@ LsaInitCookie(
 }
 
 DWORD
-LsaLdapDirectoryExtendedDNSearch(
+LwLdapDirectoryExtendedDNSearch(
     IN HANDLE hDirectory,
     IN PCSTR pszObjectDN,
     IN PCSTR pszQuery,
@@ -2049,7 +2049,7 @@ LsaLdapDirectoryExtendedDNSearch(
 
     ppInputControls[0] = pExtDNControl;
 
-    dwError = LsaLdapDirectorySearchEx(
+    dwError = LwLdapDirectorySearchEx(
                hDirectory,
                pszObjectDN,
                scope,
