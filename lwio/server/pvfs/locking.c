@@ -417,6 +417,18 @@ PvfsProcessPendingLocks(
         pCcb        = pPendingLock->pCcb;
         pIrp        = pIrpContext->pIrp;
 
+        /* Cancelled IRPs have already been dealt with
+           by the cancellation callback.  So this
+           IrpContext is dead.  Just free it and move
+           on. */
+
+        if (pIrpContext->bIsCancelled) {
+            PvfsFreePendingLock((PVOID*)&pPendingLock);
+            PvfsFreeIrpContext(&pIrpContext);
+            PvfsReleaseCCB(pCcb);
+            continue;
+        }
+
         ByteOffset = pPendingLock->PendingLock.Offset;
         Length     = pPendingLock->PendingLock.Length;
         Key        = pPendingLock->PendingLock.Key;
