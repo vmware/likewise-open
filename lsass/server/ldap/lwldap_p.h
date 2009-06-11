@@ -56,7 +56,7 @@ typedef struct _LSA_LDAP_DIRECTORY_CONTEXT {
 
 static
 DWORD
-LsaLdapOpenDirectoryWithReaffinity(
+LwLdapOpenDirectoryWithReaffinity(
     IN PCSTR pszDnsDomainOrForestName,
     IN DWORD dwFlags,
     IN BOOLEAN bNeedGc,
@@ -65,20 +65,20 @@ LsaLdapOpenDirectoryWithReaffinity(
 
 static
 DWORD
-LsaLdapBindDirectoryAnonymous(
+LwLdapBindDirectoryAnonymous(
     HANDLE hDirectory
     );
 
 static
 DWORD
-LsaLdapBindDirectory(
+LwLdapBindDirectory(
     HANDLE hDirectory,
     PCSTR pszServerName
     );
 
 static
 DWORD
-LsaLdapOpenDirectoryServerSingleAttempt(
+LwLdapOpenDirectoryServerSingleAttempt(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
     IN DWORD dwTimeoutSec,
