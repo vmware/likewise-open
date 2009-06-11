@@ -566,7 +566,36 @@ NtLockFile(
     IN ULONG Key,
     IN BOOLEAN FailImmediately,
     IN BOOLEAN ExclusiveLock
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxLockFile(
+                    &context,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    ByteOffset,
+		    Length,
+		    Key,
+		    FailImmediately,
+		    ExclusiveLock);
+
+cleanup:
+
+    LwIoReleaseContext(&context);
+
+    return status;
+}
+
 
 NTSTATUS 
 NtUnlockFile(
