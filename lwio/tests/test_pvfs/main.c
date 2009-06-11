@@ -728,7 +728,6 @@ LockTest(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IO_FILE_NAME Filename = {0};
     IO_FILE_HANDLE hFile = NULL;
-    IO_FILE_HANDLE hFile2 = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
 
     ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
@@ -752,43 +751,25 @@ LockTest(
                            NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = NtCreateFile(&hFile,
-                           NULL,
-                           &StatusBlock,
-                           &Filename,
-                           NULL,
-                           NULL,
-                           FILE_ALL_ACCESS,
-                           0,
-                           FILE_ATTRIBUTE_NORMAL,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_OPEN_IF,
-                           FILE_NON_DIRECTORY_FILE,
-                           NULL,
-                           0,
-                           NULL);
+    ntError = NtLockFile(hFile,
+                         NULL,
+                         &StatusBlock,
+                         0, 10, 0,
+                         FALSE,
+                         TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = NtLockFile(hFile,
-                         NULL,
-                         &StatusBlock,
-                         0, 10, 0,
-                         FALSE,
-                         TRUE);
+    sleep(5);
 
-    ntError = NtLockFile(hFile,
-                         NULL,
-                         &StatusBlock,
-                         0, 10, 0,
-                         FALSE,
-                         TRUE);
+    ntError = NtUnlockFile(hFile,
+                           NULL,
+                           &StatusBlock,
+                           0, 10, 0);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     if (hFile) {
         NtCloseFile(hFile);
-    }
-    if (hFile2) {
-        NtCloseFile(hFile2);
     }
 
     return ntError;
