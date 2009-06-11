@@ -60,7 +60,7 @@ liblsa_ss_la_CFLAGS = \
 
 CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
-BUILT_SOURCES = lsa_cstub.c lsa_sstub.c lsa_h.h
+BUILT_SOURCES = lsa_h.h
 
 lsa_sstub.c lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
