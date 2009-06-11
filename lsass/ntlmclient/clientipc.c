@@ -43,7 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  */
-#include "clientipc.h"
+#include "client.h"
 
 DWORD
 NtlmAllocateMemory(

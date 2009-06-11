@@ -850,12 +850,14 @@ AC_CONFIG_FILES([Makefile
 		 lwmapsecurity/Makefile
 		 gssntlm/Makefile
                  gssntlm/client/Makefile
-		 gssntlm/common/Makefile
-		 gssntlm/server/Makefile
-		 gssntlm/test/Makefile
-		 gssntlm/test/serverapi/Makefile
-		 gssntlm/test/gss/Makefile
-		 gssntlm/include/Makefile
+			 gssntlm/common/Makefile
+			 gssntlm/server/Makefile
+			 gssntlm/test/Makefile
+			 gssntlm/test/serverapi/Makefile
+			 gssntlm/test/gss/Makefile
+			 gssntlm/include/Makefile
+			 ntlmclient/Makefile
+			 ntlmipc/Makefile
                  server/Makefile
                  server/krb5/Makefile
                  server/ldap/Makefile
@@ -870,9 +872,9 @@ AC_CONFIG_FILES([Makefile
                  server/rpc/samr/Makefile
                  server/rpc/dssetup/Makefile
                  server/store/Makefile
-		 server/store/samdb/Makefile
-		 server/store/dsapi/Makefile
-		 server/store/dsapi/dirdefs.h
+			 server/store/samdb/Makefile
+			 server/store/dsapi/Makefile
+			 server/store/dsapi/dirdefs.h
                  access/Makefile
                  auth/Makefile
                  auth/common/Makefile
@@ -881,7 +883,7 @@ AC_CONFIG_FILES([Makefile
                  lwicompat/Makefile
                  tools/Makefile
                  tools/add_user/Makefile
-		 tools/mod_user/Makefile
+			 tools/mod_user/Makefile
                  tools/del_user/Makefile
                  tools/add_group/Makefile
                  tools/mod_group/Makefile
@@ -904,21 +906,21 @@ AC_CONFIG_FILES([Makefile
                  tools/refresh_configuration/Makefile
                  tools/trace_info/Makefile
                  tools/ad_cache/Makefile
-		 etc/Makefile
-		 etc/lsassd.conf
+                 etc/Makefile
+                 etc/lsassd.conf
                  include/Makefile
                  tests/Makefile
-		 tests/lsaclient/Makefile
-		 tests/test_getgrgid/Makefile
-		 tests/test_getpwuid/Makefile
-		 tests/test_LsaGetNamesBySidList/Makefile
-		 tests/test_getgrnam/Makefile
-		 tests/test_LsaAllocSecurityIdentifierFromBinary/Makefile
-		 tests/test_LsaGetSecurityIdentifierHashedRid/Makefile
-		 tests/test_LsaAllocSecurityIdentifierFromString/Makefile
-		 tests/test_LsaParseConfigFile/Makefile
-		 tests/test_getpwent/Makefile
-		 tests/test_getpwnam/Makefile
+                 tests/lsaclient/Makefile
+                 tests/test_getgrgid/Makefile
+                 tests/test_getpwuid/Makefile
+                 tests/test_LsaGetNamesBySidList/Makefile
+                 tests/test_getgrnam/Makefile
+                 tests/test_LsaAllocSecurityIdentifierFromBinary/Makefile
+                 tests/test_LsaGetSecurityIdentifierHashedRid/Makefile
+                 tests/test_LsaAllocSecurityIdentifierFromString/Makefile
+                 tests/test_LsaParseConfigFile/Makefile
+                 tests/test_getpwent/Makefile
+                 tests/test_getpwnam/Makefile
                  tests/test_stress_ad_provider/Makefile
                  tests/test_bitvector/Makefile
                  tests/test_memcache/Makefile
@@ -931,7 +933,7 @@ AC_CONFIG_FILES([Makefile
                  tests/test_checkuserinlist/Makefile
                  tests/test_openldap/Makefile
                  scripts/Makefile
-		 docs/Makefile
-		 docs/Doxyfile])
+                 docs/Makefile
+                 docs/Doxyfile])
 
 AC_OUTPUT

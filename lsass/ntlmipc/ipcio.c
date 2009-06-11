@@ -44,7 +44,7 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
-#include "ntlmipc.h"
+#include "ipc.h"
 
 DWORD
 NtlmWriteData(
@@ -66,7 +66,7 @@ NtlmWriteData(
             if (errno != EAGAIN && errno != EINTR)
             {
                 dwError = errno;
-                BAIL_ON_LSA_ERROR(dwError);
+                BAIL_ON_NTLM_ERROR(dwError);
             }
         }
         else
@@ -121,7 +121,7 @@ NtlmReadData(
           if (select_status < 0) {
 
              dwError = errno;
-             BAIL_ON_LSA_ERROR(dwError);
+             BAIL_ON_NTLM_ERROR(dwError);
 
           } else if (select_status == 0) {
 
@@ -136,7 +136,7 @@ NtlmReadData(
 
                    if (errno != EAGAIN && errno != EINTR) {
                       dwError = errno;
-                      BAIL_ON_LSA_ERROR(dwError);
+                      BAIL_ON_NTLM_ERROR(dwError);
                    }
 
                 } else if (nBytesRead == 0) {

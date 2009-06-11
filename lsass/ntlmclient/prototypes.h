@@ -33,129 +33,23 @@
  *
  * Module Name:
  *
- *        clientipc.h
+ *        client.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Header (Library)
- *
- *        Inter-process Communication (Client) API
+ *        API (Client)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __CLIENTIPC_P_H__
-#define __CLIENTIPC_P_H__
 
-#include <lwmsg/lwmsg.h>
-//#include <ntlmipc.h>
-
-#if 0
-typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT {
-    int    fd;
-} NTLM_CLIENT_CONNECTION_CONTEXT, *PNTLM_CLIENT_CONNECTION_CONTEXT;
-#endif
-
-typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT
-{
-    LWMsgProtocol* pProtocol;
-    LWMsgAssoc* pAssoc;
-} NTLM_CLIENT_CONNECTION_CONTEXT, *PNTLM_CLIENT_CONNECTION_CONTEXT;
-
-/*
-#define BAIL_ON_NTLM_ERROR(dwError) \
-    if (dwError)               \
-    {                          \
-        goto error;            \
-    }
-
-#define BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
-           dwError = NTLM_ERROR_INTERNAL; \
-           BAIL_ON_NTLM_ERROR(dwError);            \
-        }
-
-typedef struct _SecHandle
-{
-    ULONG_PTR       dwLower;
-    ULONG_PTR       dwUpper;
-} SecHandle, * PSecHandle;
-
-typedef SecHandle    CredHandle;
-typedef PSecHandle   PCredHandle;
-
-typedef SecHandle    CtxtHandle;
-typedef PSecHandle   PCtxtHandle;
-
-typedef CHAR SEC_CHAR;
-
-typedef struct _SecBuffer
-{
-    ULONG cbBuffer;
-    ULONG BufferType;
-    PVOID pvBuffer;
-}SecBuffer, *PSecBuffer;
-
-typedef struct _SecBufferDesc
-{
-    ULONG      ulVersion;
-    ULONG      cBuffers;
-    PSecBuffer pBuffers;
-}SecBufferDesc, *PSecBufferDesc;
-
-typedef struct _LUID
-{
-    DWORD LowPart;
-    LONG  HighPart;
-}LUID, *PLUID;
-
-typedef struct _SEC_WINNT_AUTH_IDENTITY
-{
-  USHORT *User;
-  ULONG UserLength;
-  USHORT *Domain;
-  ULONG DomainLength;
-  USHORT *Password;
-  ULONG PasswordLength;
-  ULONG Flags;
-}SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
-
-#define INVALID_HANDLE  ((HANDLE)~0)
-
-typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
-//typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
-
-typedef SECURITY_INTEGER TimeStamp;                 // ntifs
-typedef SECURITY_INTEGER * PTimeStamp;      // ntifs
-
-//
-// If we are in 32 bit mode, define the SECURITY_STRING structure,
-// as a clone of the base UNICODE_STRING structure.  This is used
-// internally in security components, an as the string interface
-// for kernel components (e.g. FSPs)
-//
-// I'm going to default this to always be the non-unicode string
-// type so that its marshalling is predictable.  It can be converted
-// on either side if need be.
-//
-//#ifndef _NTDEF_
-typedef struct _SECURITY_STRING
-{
-    USHORT      Length;
-    USHORT      MaximumLength;
-    PUSHORT     Buffer;
-} SECURITY_STRING, * PSECURITY_STRING;
-//#else // _NTDEF_
-//typedef UNICODE_STRING SECURITY_STRING, *PSECURITY_STRING;  // ntifs
-//#  endif // _NTDEF_
-
-*/
+#ifndef __PROTOTYPES_H__
+#define __PROTOTYPES_H__
 
 DWORD
-NtlmTransactAcceptSecurityContext(
-    IN HANDLE hServer,
+NtlmClientAcceptSecurityContext(
     IN PCredHandle phCredential,
     IN OUT PCtxtHandle phContext,
     IN PSecBufferDesc pInput,
@@ -168,22 +62,20 @@ NtlmTransactAcceptSecurityContext(
     );
 
 DWORD
-NtlmTransactAcquireCredentialsHandle(
-    IN HANDLE hServer,
+NtlmClientAcquireCredentialsHandle(
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
     IN ULONG fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    // NOT NEEDED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
-    // NOT NEEDED BY NTLM - IN PVOID pvGetKeyArgument,
+    // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT USED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     );
 
 DWORD
-NtlmTransactDecryptMessage(
-    IN HANDLE hServer,
+NtlmClientDecryptMessage(
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
     IN ULONG MessageSeqNo,
@@ -191,8 +83,7 @@ NtlmTransactDecryptMessage(
     );
 
 DWORD
-NtlmTransactEncryptMessage(
-    IN HANDLE hServer,
+NtlmClientEncryptMessage(
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -200,8 +91,7 @@ NtlmTransactEncryptMessage(
     );
 
 DWORD
-NtlmTransactExportSecurityContext(
-    IN HANDLE hServer,
+NtlmClientExportSecurityContext(
     IN PCtxtHandle phContext,
     IN ULONG fFlags,
     OUT PSecBuffer pPackedContext,
@@ -209,14 +99,12 @@ NtlmTransactExportSecurityContext(
     );
 
 DWORD
-NtlmTransactFreeCredentialsHandle(
-    IN HANDLE hServer,
+NtlmClientFreeCredentialsHandle(
     IN PCredHandle phCredential
     );
 
 DWORD
-NtlmTransactImportSecurityContext(
-    IN HANDLE hServer,
+NtlmClientImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -224,13 +112,12 @@ NtlmTransactImportSecurityContext(
     );
 
 DWORD
-NtlmTransactInitializeSecurityContext(
-    IN HANDLE hServer,
+NtlmClientInitializeSecurityContext(
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN ULONG fContextReq,
-    IN ULONG Reserverd1,
+    IN ULONG Reserved1,
     IN ULONG TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN ULONG Reserved2,
@@ -241,8 +128,7 @@ NtlmTransactInitializeSecurityContext(
     );
 
 DWORD
-NtlmTransactMakeSignature(
-    IN HANDLE hServer,
+NtlmClientMakeSignature(
     IN PCtxtHandle phContext,
     IN ULONG fQoP,
     IN OUT PSecBufferDesc pMessage,
@@ -250,27 +136,24 @@ NtlmTransactMakeSignature(
     );
 
 DWORD
-NtlmTransactQueryCredentialsAttributes(
-    IN HANDLE hServer,
+NtlmClientQueryCredentialsAttributes(
     IN PCredHandle phCredential,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmTransactQuerySecurityContextAttributes(
-    IN HANDLE hServer,
+NtlmClientQuerySecurityContextAttributes(
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmTransactVerifySignature(
-    IN HANDLE hServer,
+NtlmClientVerifySignature(
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
     IN ULONG MessageSeqNo
     );
 
-#endif
+#endif // __PROTOTYPES_H__

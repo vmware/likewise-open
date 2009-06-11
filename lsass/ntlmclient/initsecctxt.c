@@ -1,4 +1,4 @@
-#include "clientipc.h"
+#include "client.h"
 
 DWORD
 NtlmClientInitializeSecurityContext(

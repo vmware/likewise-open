@@ -35,297 +35,102 @@
  *
  * Module Name:
  *
- *        lsaipc.h
+ *        ntlm.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) Interprocess Communication
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
-#ifndef __NTLMIPC_H__
-#define __NTLMIPC_H__
+#ifndef __NTLM_H__
+#define __NTLM_H__
 
-#include <lwmsg/lwmsg.h>
+#include <lw/types.h>
+#include <lw/attrs.h>
 
-#define NTLM_ERROR_SUCCESS                                   0x0000
-#define NTLM_ERROR_INTERNAL                                  0x8000 // 32768
+#define BAIL_ON_NTLM_ERROR(dwError) \
+    if (dwError)               \
+    {                          \
+        goto error;            \
+    }
 
-#define NTLM_CLIENT_PATH_FORMAT "/var/tmp/.ntlmclient_%05ld"
-#define NTLM_SERVER_FILENAME    ".ntlmsd"
+#define BAIL_ON_INVALID_POINTER(p)                \
+        if (NULL == p) {                          \
+           dwError = NTLM_ERROR_INTERNAL; \
+           BAIL_ON_NTLM_ERROR(dwError);            \
+        }
 
-typedef enum __NTLM_IPC_TAG
+typedef struct _SecHandle
 {
-    NTLM_Q_ACCEPT_SEC_CTXT,
-    NTLM_R_ACCEPT_SEC_CTXT_SUCCESS,
-    NTLM_R_ACCEPT_SEC_CTXT_FAILURE,
-    NTLM_Q_ACQUIRE_CREDS,
-    NTLM_R_ACQUIRE_CREDS_SUCCESS,
-    NTLM_R_ACQUIRE_CREDS_FAILURE,
-    NTLM_Q_DECRYPT_MSG,
-    NTLM_R_DECRYPT_MSG_SUCCESS,
-    NTLM_R_DECRYPT_MSG_FAILURE,
-    NTLM_Q_ENCRYPT_MSG,
-    NTLM_R_ENCRYPT_MSG_SUCCESS,
-    NTLM_R_ENCRYPT_MSG_FAILURE,
-    NTLM_Q_EXPORT_SEC_CTXT,
-    NTLM_R_EXPORT_SEC_CTXT_SUCCESS,
-    NTLM_R_EXPORT_SEC_CTXT_FAILURE,
-    NTLM_Q_FREE_CREDS,
-    NTLM_R_FREE_CREDS_SUCCESS,
-    NTLM_R_FREE_CREDS_FAILURE,
-    NTLM_Q_IMPORT_SEC_CTXT,
-    NTLM_R_IMPORT_SEC_CTXT_SUCCESS,
-    NTLM_R_IMPORT_SEC_CTXT_FAILURE,
-    NTLM_Q_INIT_SEC_CTXT,
-    NTLM_R_INIT_SEC_CTXT_SUCCESS,
-    NTLM_R_INIT_SEC_CTXT_FAILURE,
-    NTLM_Q_MAKE_SIGN,
-    NTLM_R_MAKE_SIGN_SUCCESS,
-    NTLM_R_MAKE_SIGN_FAILURE,
-    NTLM_Q_QUERY_CREDS,
-    NTLM_R_QUERY_CREDS_SUCCESS,
-    NTLM_R_QUERY_CREDS_FAILURE,
-    NTLM_Q_QUERY_CTXT,
-    NTLM_R_QUERY_CTXT_SUCCESS,
-    NTLM_R_QUERY_CTXT_FAILURE,
-    NTLM_Q_VERIFY_SIGN,
-    NTLM_R_VERIFY_SIGN_SUCCESS,
-    NTLM_R_VERIFY_SIGN_FAILURE
-} NTLM_IPC_TAG;
+    ULONG_PTR       dwLower;
+    ULONG_PTR       dwUpper;
+} SecHandle, * PSecHandle;
 
-/******************************************************************************/
+typedef SecHandle    CredHandle;
+typedef PSecHandle   PCredHandle;
 
-typedef struct __NTLM_IPC_ERROR
+typedef SecHandle    CtxtHandle;
+typedef PSecHandle   PCtxtHandle;
+
+typedef CHAR SEC_CHAR;
+
+typedef struct _SecBuffer
 {
-    DWORD dwError;
-} NTLM_IPC_ERROR, *PNTLM_IPC_ERROR;
+    ULONG cbBuffer;
+    ULONG BufferType;
+    PVOID pvBuffer;
+}SecBuffer, *PSecBuffer;
 
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
+typedef struct _SecBufferDesc
 {
-    PCredHandle phCredential;
-    PCtxtHandle phContext;
-    PSecBufferDesc pInput;
-    ULONG fContextReq;
-    ULONG TargetDataRep;
-    PCtxtHandle phNewContext;
-    PSecBufferDesc pOutput;
-} NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
+    ULONG      ulVersion;
+    ULONG      cBuffers;
+    PSecBuffer pBuffers;
+}SecBufferDesc, *PSecBufferDesc;
 
-typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
+typedef struct _LUID
 {
-    DWORD dwError;
-} NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE, *PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE;
+    DWORD LowPart;
+    LONG  HighPart;
+}LUID, *PLUID;
 
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_ACQUIRE_CREDS_REQ
+typedef struct _SEC_WINNT_AUTH_IDENTITY
 {
-    SEC_CHAR *pszPrincipal;
-    SEC_CHAR *pszPackage;
-    ULONG fCredentialUse;
-    PLUID pvLogonID;
-    PVOID pAuthData;
-    // NOT USED BY NTLM - SEC_GET_KEY_FN pGetKeyFn;
-    // NOT USED BY NTLM - PVOID pvGetKeyArgument;
-} NTLM_IPC_ACQUIRE_CREDS_REQ, *PNTLM_IPC_ACQUIRE_CREDS_REQ;
+  USHORT *User;
+  ULONG UserLength;
+  USHORT *Domain;
+  ULONG DomainLength;
+  USHORT *Password;
+  ULONG PasswordLength;
+  ULONG Flags;
+}SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
 
-typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
+#define INVALID_HANDLE  ((HANDLE)~0)
+
+typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
+//typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
+
+typedef SECURITY_INTEGER TimeStamp;                 // ntifs
+typedef SECURITY_INTEGER * PTimeStamp;      // ntifs
+
+//
+// If we are in 32 bit mode, define the SECURITY_STRING structure,
+// as a clone of the base UNICODE_STRING structure.  This is used
+// internally in security components, an as the string interface
+// for kernel components (e.g. FSPs)
+//
+// I'm going to default this to always be the non-unicode string
+// type so that its marshalling is predictable.  It can be converted
+// on either side if need be.
+//
+typedef struct _SECURITY_STRING
 {
-    DWORD dwError;
-} NTLM_IPC_ACQUIRE_CREDS_RESPONSE, *PNTLM_IPC_ACQUIRE_CREDS_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
-{
-    PCtxtHandle phContext;
-    PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
-} NTLM_IPC_DECRYPT_MSG_REQ, *PNTLM_IPC_DECRYPT_MSG_REQ;
-
-typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_DECRYPT_MSG_RESPONSE, *PNTLM_IPC_DECRYPT_MSG_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
-{
-    PCtxtHandle phContext;
-    ULONG fQoP;
-    PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
-} NTLM_IPC_ENCRYPT_MSG_REQ, *PNTLM_IPC_ENCRYPT_MSG_REQ;
-
-typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_ENCRYPT_MSG_RESPONSE, *PNTLM_IPC_ENCRYPT_MSG_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_REQ
-{
-    PCtxtHandle phContext;
-    ULONG fFlags;
-    PSecBuffer pPackedContext;
-    HANDLE *pToken;
-} NTLM_IPC_EXPORT_SEC_CTXT_REQ, *PNTLM_IPC_EXPORT_SEC_CTXT_REQ;
-
-typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE, *PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_FREE_CREDS_REQ
-{
-    PCredHandle phCredential;
-} NTLM_IPC_FREE_CREDS_REQ, *PNTLM_IPC_FREE_CREDS_REQ;
-
-typedef struct __NTLM_IPC_FREE_CREDS_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_FREE_CREDS_RESPONSE, *PNTLM_IPC_FREE_CREDS_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_REQ
-{
-    PSECURITY_STRING *pszPackage;
-    PSecBuffer pPackedContext;
-    HANDLE pToken;
-    PCtxtHandle phContext;
-} NTLM_IPC_IMPORT_SEC_CTXT_REQ, *PNTLM_IPC_IMPORT_SEC_CTXT_REQ;
-
-typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE, *PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
-{
-    PCredHandle phCredential;
-    PCtxtHandle phContext;
-    SEC_CHAR * pszTargetName;
-    ULONG fContextReq;
-    ULONG Reserved1;
-    ULONG TargetDataRep;
-    PSecBufferDesc pInput;
-    ULONG Reserved2;
-    PCtxtHandle phNewContext;
-    PSecBufferDesc pOutput;
-} NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
-
-typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_INIT_SEC_CTXT_RESPONSE, *PNTLM_IPC_INIT_SEC_CTXT_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_MAKE_SIGN_REQ
-{
-    PCtxtHandle phContext;
-    ULONG fQoP;
-    PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
-} NTLM_IPC_MAKE_SIGN_REQ, *PNTLM_IPC_MAKE_SIGN_REQ;
-
-typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_MAKE_SIGN_RESPONSE, *PNTLM_IPC_MAKE_SIGN_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_QUERY_CREDS_REQ
-{
-    PCredHandle phCredential;
-    ULONG ulAttribute;
-} NTLM_IPC_QUERY_CREDS_REQ, *PNTLM_IPC_QUERY_CREDS_REQ;
-
-typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_QUERY_CREDS_RESPONSE, *PNTLM_IPC_QUERY_CREDS_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_QUERY_CTXT_REQ
-{
-    PCtxtHandle phContext;
-    ULONG ulAttribute;
-} NTLM_IPC_QUERY_CTXT_REQ, *PNTLM_IPC_QUERY_CTXT_REQ;
-
-typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_QUERY_CTXT_RESPONSE, *PNTLM_IPC_QUERY_CTXT_RESPONSE;
-
-/******************************************************************************/
-
-typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
-{
-    PCtxtHandle phContext;
-    PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
-} NTLM_IPC_VERIFY_SIGN_REQ, *PNTLM_IPC_VERIFY_SIGN_REQ;
-
-typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_VERIFY_SIGN_RESPONSE, *PNTLM_IPC_VERIFY_SIGN_RESPONSE;
-
-/******************************************************************************/
-
-#define MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
-#define MAP_NTLM_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
-
-LWMsgProtocolSpec*
-NtlmIpcGetProtocolSpec(
-    void
-    );
-
-DWORD
-NtlmOpenServer(
-    PHANDLE phConnection
-    );
-
-DWORD
-NtlmCloseServer(
-    HANDLE hConnection
-    );
-
-DWORD
-NtlmWriteData(
-    DWORD dwFd,
-    PSTR  pszBuf,
-    DWORD dwLen);
-
-DWORD
-NtlmReadData(
-    DWORD  dwFd,
-    PSTR   pszBuf,
-    DWORD  dwBytesToRead,
-    PDWORD pdwBytesRead);
-
-DWORD
-NtlmMapLwmsgStatus(
-    LWMsgStatus status
-    );
-
-#endif /*__NTLMIPC_H__*/
-
+    USHORT      Length;
+    USHORT      MaximumLength;
+    PUSHORT     Buffer;
+} SECURITY_STRING, * PSECURITY_STRING;
 
 /*
 local variables:
@@ -335,3 +140,5 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+
+#endif // __NTLM_H__
