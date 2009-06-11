@@ -161,7 +161,6 @@ PvfsPendLockControlIrp(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bIsLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
 
