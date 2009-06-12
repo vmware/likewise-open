@@ -316,6 +316,7 @@ SMBValidateLogLevel(
         case LWIO_LOG_LEVEL_INFO:
         case LWIO_LOG_LEVEL_VERBOSE:
         case LWIO_LOG_LEVEL_DEBUG:
+        case LWIO_LOG_LEVEL_TRACE:
             dwError = 0;
             break;
         default:

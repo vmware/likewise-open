@@ -230,6 +230,11 @@ ParseArgs(
                         logLevel = LWIO_LOG_LEVEL_DEBUG;
                         bLogLevelSpecified = TRUE;
                     }
+                    else if (!strcasecmp(pszArg, "trace"))
+                    {
+                        logLevel = LWIO_LOG_LEVEL_TRACE;
+                        bLogLevelSpecified = TRUE;
+                    }
                     else
                     {
                         ShowUsage();
@@ -255,7 +260,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-smb-set-log-level {error, warning, info, verbose}\n");
+    printf("Usage: lw-smb-set-log-level {error, warning, info, verbose, debug, trace}\n");
 }
 
 DWORD
@@ -304,6 +309,9 @@ PrintLogInfo(
             break;
         case LWIO_LOG_LEVEL_DEBUG:
             fprintf(stdout, "%s\n", "debug");
+            break;
+        case LWIO_LOG_LEVEL_TRACE:
+            fprintf(stdout, "%s\n", "trace");
             break;
         default:
             dwError = EINVAL;

@@ -171,6 +171,13 @@ SMBLogToConsole(
             break;
         }
 
+        case LWIO_LOG_LEVEL_TRACE:
+        {
+            pszEntryType = LWIO_TRACE_TAG;
+            pTarget = pConsoleLog->fp_out;
+            break;
+        }
+
         default:
         {
             pszEntryType = LWIO_VERBOSE_TAG;
