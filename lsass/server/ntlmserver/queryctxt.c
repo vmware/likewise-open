@@ -39,14 +39,16 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        QuerySecurityContextAttributes client wrapper API
+ *        QueryContextAttributes client wrapper API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
+#include <ntlm/ntlm.h>
+
 DWORD
-NtlmServerQuerySecurityContextAttributes(
+NtlmServerQueryContextAttributes(
     PCtxtHandle phContext,
     ULONG ulAttribute,
     PVOID pBuffer

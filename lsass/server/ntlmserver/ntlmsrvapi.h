@@ -33,17 +33,20 @@
  *
  * Module Name:
  *
- *        acceptsecctxt.c
+ *        ntlmsrvapi.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        AcceptSecurityContext client wrapper API
+ *        Inter-process Communication API header (NTLM Server)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  */
+
+#ifndef __NTLMSRVAPI_H__
+#define __NTLMSRVAPI_H__
 
 #include <ntlm/ntlm.h>
 
@@ -58,10 +61,101 @@ NtlmServerAcceptSecurityContext(
     PSecBufferDesc pOutput,
     PULONG pfContextAttr,
     PTimeStamp ptsTimeStamp
-    )
-{
-    DWORD dwError = 0;
+    );
 
+DWORD
+NtlmServerAcquireCredentialsHandle(
+    SEC_CHAR *pszPrincipal,
+    SEC_CHAR *pszPackage,
+    ULONG fCredentialUse,
+    PLUID pvLogonID,
+    PVOID pAuthData,
+    // NOT NEEDED BY NTLM - SEC_GET_KEY_FN pGetKeyFn,
+    // NOT NEEDED BY NTLM - PVOID pvGetKeyArgument,
+    PCredHandle phCredential,
+    PTimeStamp ptsExpiry
+    );
 
-    return(dwError);
-}
+DWORD
+NtlmServerDecryptMessage(
+    PCtxtHandle phContext,
+    PSecBufferDesc pMessage,
+    ULONG MessageSeqNo,
+    PULONG pfQoP
+    );
+
+DWORD
+NtlmServerEncryptMessage(
+    PCtxtHandle phContext,
+    ULONG fQoP,
+    PSecBufferDesc pMessage,
+    ULONG MessageSeqNo
+    );
+
+DWORD
+NtlmServerExportSecurityContext(
+    PCtxtHandle phContext,
+    ULONG fFlags,
+    PSecBuffer pPackedContext,
+    HANDLE *pToken
+    );
+
+DWORD
+NtlmServerFreeCredentialsHandle(
+    PCredHandle phCredential
+    );
+
+DWORD
+NtlmServerImportSecurityContext(
+    PSECURITY_STRING *pszPackage,
+    PSecBuffer pPackedContext,
+    HANDLE pToken,
+    PCtxtHandle phContext
+    );
+
+DWORD
+NtlmServerInitializeSecurityContext(
+    PCredHandle phCredential,
+    PCtxtHandle phContext,
+    SEC_CHAR * pszTargetName,
+    ULONG fContextReq,
+    ULONG Reserved1,
+    ULONG TargetDataRep,
+    PSecBufferDesc pInput,
+    ULONG Reserved2,
+    PCtxtHandle phNewContext,
+    PSecBufferDesc pOutput,
+    PULONG pfContextAttr,
+    PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmServerMakeSignature(
+    PCtxtHandle phContext,
+    ULONG fQoP,
+    PSecBufferDesc pMessage,
+    ULONG MessageSeqNo
+    );
+
+DWORD
+NtlmServerQueryCredentialsAttributes(
+    PCredHandle phCredential,
+    ULONG ulAttribute,
+    PVOID pBuffer
+    );
+
+DWORD
+NtlmServerQueryContextAttributes(
+    PCtxtHandle phContext,
+    ULONG ulAttribute,
+    PVOID pBuffer
+    );
+
+DWORD
+NtlmServerVerifySignature(
+    PCtxtHandle phContext,
+    PSecBufferDesc pMessage,
+    ULONG MessageSeqNo
+    );
+
+#endif // __NTLMSRVAPI_H__
