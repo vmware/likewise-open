@@ -114,22 +114,25 @@ LsaSrvGetStatus(
                                             &pProviderOwnedStatus);
         if (dwError == LSA_ERROR_NOT_HANDLED)
         {
-           LsaSrvCloseProvider(pProvider, hProvider);
-           hProvider = (HANDLE)NULL;
-           continue;
+            dwError = 0;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaSrvCopyProviderStatus(
+                            pProviderOwnedStatus,
+                            pAuthProviderStatus);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pProvider->pFnTable->pfnFreeStatus(
+                            pProviderOwnedStatus);
+
+            pProviderOwnedStatus = NULL;
         }
 
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        dwError = LsaSrvCopyProviderStatus(
-                        pProviderOwnedStatus,
-                        pAuthProviderStatus);
-        BAIL_ON_LSA_ERROR(dwError);
-        
-        pProvider->pFnTable->pfnFreeStatus(
-                        pProviderOwnedStatus);
-        
-        pProviderOwnedStatus = NULL;
+        LsaSrvCloseProvider(pProvider, hProvider);
+        hProvider = (HANDLE)NULL;
     }
     
 done:
@@ -138,14 +141,14 @@ done:
 
 cleanup:
 
-    if (hProvider != (HANDLE)NULL) {
+    if (pProvider != NULL && pProviderOwnedStatus)
+    {
+        pProvider->pFnTable->pfnFreeStatus(
+                        pProviderOwnedStatus);
+    }
         
-        if (pProviderOwnedStatus)
-        {
-            pProvider->pFnTable->pfnFreeStatus(
-                            pProviderOwnedStatus);
-        }
-        
+    if (hProvider != NULL)
+    {
         LsaSrvCloseProvider(pProvider, hProvider);
     }
     
