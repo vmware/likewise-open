@@ -294,7 +294,7 @@ MU_TEST(client_server, parallel)
     MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(context, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
@@ -506,7 +506,7 @@ MU_TEST(client_server, async_immediate)
     MU_TRY(lwmsg_protocol_new(NULL, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, async_protocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
@@ -541,7 +541,7 @@ MU_TEST(client_server, async_delay)
     MU_TRY(lwmsg_protocol_new(NULL, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, async_protocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
@@ -576,7 +576,7 @@ MU_TEST(client_server, async_interrupt)
     MU_TRY(lwmsg_protocol_new(NULL, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, async_protocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
@@ -612,7 +612,7 @@ MU_TEST(client_server, async_shutdown)
     MU_TRY(lwmsg_protocol_new(NULL, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, async_protocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));

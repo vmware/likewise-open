@@ -55,17 +55,17 @@ lwmsg_server_log_incoming_message(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     char* msg_text = NULL;
 
-    if (lwmsg_context_would_log(&server->context, LWMSG_LOGLEVEL_TRACE))
+    if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_TRACE))
     {
         BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
-        LWMSG_LOG_TRACE(&server->context, "===> %s", msg_text);
+        LWMSG_LOG_TRACE(server->context, "===> %s", msg_text);
     }
 
 cleanup:
 
     if (msg_text)
     {
-        lwmsg_context_free(&server->context, msg_text);
+        lwmsg_context_free(server->context, msg_text);
     }
 
     return status;
@@ -86,17 +86,17 @@ lwmsg_server_log_outgoing_message(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     char* msg_text = NULL;
 
-    if (lwmsg_context_would_log(&server->context, LWMSG_LOGLEVEL_TRACE))
+    if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_TRACE))
     {
         BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
-        LWMSG_LOG_TRACE(&server->context, "<=== %s", msg_text);
+        LWMSG_LOG_TRACE(server->context, "<=== %s", msg_text);
     }
 
 cleanup:
 
     if (msg_text)
     {
-        lwmsg_context_free(&server->context, msg_text);
+        lwmsg_context_free(server->context, msg_text);
     }
 
     return status;

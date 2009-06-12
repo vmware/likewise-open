@@ -187,6 +187,7 @@ typedef enum LWMsgServerMode
  */
 LWMsgStatus
 lwmsg_server_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgServer** server
     );

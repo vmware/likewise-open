@@ -35,6 +35,7 @@ lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
 lwmsg_connection_set_endpoint
 lwmsg_local_token_get_eid
+lwmsg_error_message
 lwmsg_context_new
 lwmsg_context_delete
 lwmsg_context_set_memory_functions

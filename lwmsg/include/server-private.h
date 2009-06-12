@@ -113,7 +113,8 @@ typedef enum ServerState
 
 struct LWMsgServer
 {    
-    LWMsgContext context;
+    LWMsgErrorContext error;
+    const LWMsgContext* context;
     LWMsgProtocol* protocol;
     LWMsgSessionManager* manager;
     size_t max_clients;
@@ -164,18 +165,11 @@ struct LWMsgServer
     pthread_mutex_t lock;
     pthread_cond_t event;
     ServerState state;
-    LWMsgStatus error;
+    LWMsgStatus status;
 };
 
 #define SERVER_RAISE_ERROR(_server_, _status_, ...) \
-    RAISE_ERROR(&(_server_)->context, _status_, __VA_ARGS__)
-
-#define SERVER_RAISE_ERROR_LOCK(_server_, _lock_, _status_, ...) \
-    do                                                           \
-    {                                                            \
-        SERVER_LOCK(_server_, _lock_);                           \
-        SERVER_RAISE_ERROR(_server_, _status_, __VA_ARGS__);     \
-    } while (0)
+    RAISE_ERROR((_server_), (_status_), __VA_ARGS__)
 
 #define SERVER_LOCK(_server_, _lock_)           \
     do                                          \

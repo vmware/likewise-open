@@ -77,6 +77,7 @@ lwmsg_server_unlock(
 
 LWMsgStatus
 lwmsg_server_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgServer** out_server
     )
@@ -94,7 +95,7 @@ lwmsg_server_new(
 
     memset(&server->timeout, 0xFF, sizeof(server->timeout));
 
-    lwmsg_context_setup(&server->context, &protocol->context);
+    server->context = context;
 
     err = pthread_mutex_init(&server->lock, NULL);
     if (err)
@@ -146,7 +147,8 @@ lwmsg_server_delete(
     LWMsgServer* server
     )
 {
-    lwmsg_context_cleanup(&server->context);
+    lwmsg_error_clear(&server->error);
+
     lwmsg_session_manager_delete(server->manager);
 
     pthread_mutex_destroy(&server->lock);
@@ -185,7 +187,7 @@ lwmsg_server_set_timeout(
         (value->seconds < 0 || value->microseconds < 0))
     {
         SERVER_RAISE_ERROR(server, status = LWMSG_STATUS_INVALID_PARAMETER,
-                          "Invalid (negative) timeout value");
+                           "Invalid (negative) timeout value");
     }
 
     switch (type)
@@ -634,7 +636,7 @@ lwmsg_server_startup(
     ServerDispatchThread* dispatch_thread = NULL;
     LWMsgBool locked = LWMSG_FALSE;
 
-    LWMSG_LOG_INFO(&server->context, "Starting server");
+    LWMSG_LOG_INFO(server->context, "Starting server");
 
     /* Allocate and spin up IO threads */
     BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(
@@ -673,16 +675,16 @@ lwmsg_server_startup(
     SERVER_LOCK(server, locked);
 
     while (server->num_running_endpoints < server->num_endpoints &&
-           server->error == LWMSG_STATUS_SUCCESS)
+           server->status == LWMSG_STATUS_SUCCESS)
     {
         pthread_cond_wait(&server->event, &server->lock);
     }
 
-    BAIL_ON_ERROR(status = server->error);
+    BAIL_ON_ERROR(status = server->status);
 
     SERVER_UNLOCK(server, locked);
 
-    LWMSG_LOG_INFO(&server->context, "Server started");
+    LWMSG_LOG_INFO(server->context, "Server started");
 
 done:
 
@@ -692,8 +694,8 @@ error:
 
     SERVER_UNLOCK(server, locked);
 
-    LWMSG_LOG_ERROR(&server->context, "Error starting server: %s",
-                    lwmsg_context_get_error_message(&server->context, status));
+    LWMSG_LOG_ERROR(server->context, "Error starting server: %s",
+                    lwmsg_error_message(status, &server->error));
 
     if (server->io.threads)
     {
@@ -763,7 +765,7 @@ lwmsg_server_start(
 
     if (server->state == SERVER_STATE_ERROR)
     {
-        BAIL_ON_ERROR(status = server->error);
+        BAIL_ON_ERROR(status = server->status);
     }
 
 done:
@@ -776,7 +778,7 @@ error:
 
     SERVER_LOCK(server, locked);
     server->state = SERVER_STATE_ERROR;
-    server->error = status;
+    server->status = status;
     pthread_cond_broadcast(&server->event);
 
     goto done;
@@ -796,7 +798,7 @@ lwmsg_server_shutdown(
     ServerTask* task = NULL;
     size_t i = 0;
 
-    LWMSG_LOG_INFO(&server->context, "Shutting down server");
+    LWMSG_LOG_INFO(server->context, "Shutting down server");
 
     /* Notify IO threads */
     for (i = 0; i < server->max_io; i++)
@@ -860,7 +862,7 @@ lwmsg_server_shutdown(
     free(server->dispatch.threads);
     server->dispatch.threads = NULL;
 
-    LWMSG_LOG_INFO(&server->context, "Server shut down");
+    LWMSG_LOG_INFO(server->context, "Server shut down");
 
     return status;
 }
@@ -897,7 +899,7 @@ lwmsg_server_stop(
 
     if (server->state == SERVER_STATE_ERROR)
     {
-        BAIL_ON_ERROR(status = server->error);
+        BAIL_ON_ERROR(status = server->status);
     }
 
 done:
@@ -910,7 +912,7 @@ error:
 
     SERVER_LOCK(server, locked);
     server->state = SERVER_STATE_ERROR;
-    server->error = status;
+    server->status = status;
     pthread_cond_broadcast(&server->event);
 
     goto done;
