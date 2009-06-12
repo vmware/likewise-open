@@ -97,14 +97,14 @@ joinerror_new(GtkWindow* parent, LWException* exc)
 
     if (exc->longMsg)
     {
-	gtk_label_set_markup(dialog->error_long, exc->longMsg);
+	gtk_label_set_text(dialog->error_long, exc->longMsg);
     }
     else
     {
-	gtk_label_set_markup(dialog->error_long,
-			     "An unexpected or internal error was encountered "
-			     "during the domain join.  Please contact Likewise technical "
-			     "support for assistance.");
+	gtk_label_set_text(dialog->error_long,
+                           "An unexpected or internal error was encountered "
+                           "during the domain join.  Please contact Likewise technical "
+                           "support for assistance.");
     }
 
     dialog->error_details = GTK_TEXT_VIEW(glade_xml_get_widget(xml, "JoinErrorDetails"));
