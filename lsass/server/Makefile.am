@@ -5,5 +5,6 @@ SUBDIRS = \
          ldap           \
          join           \
          rpc            \
+         ntlmserver     \
          auth-providers \
          lsassd

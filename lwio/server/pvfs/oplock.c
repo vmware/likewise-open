@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,27 +33,50 @@
  *
  * Module Name:
  *
- *        verifysign.c
+ *       oplock.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Posix File System Driver (PVFS)
  *
- *        VerifySignature client wrapper API
+ *        Oplock Package
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
-#include <ntlm/ntlm.h>
+#include "pvfs.h"
 
-DWORD
-NtlmServerVerifySignature(
-    PCtxtHandle phContext,
-    PSecBufferDesc pMessage,
-    ULONG MessageSeqNo
+NTSTATUS
+PvfsOplockRequest(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
     )
 {
-    DWORD dwError = 0;
-    return(dwError);
+    return STATUS_SUCCESS;
 }
+
+NTSTATUS
+PvfsOplockAckBreak(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    )
+{
+    return STATUS_SUCCESS;
+}
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -143,7 +143,7 @@ NtlmClientQueryCredentialsAttributes(
     );
 
 DWORD
-NtlmClientQuerySecurityContextAttributes(
+NtlmClientQueryContextAttributes(
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer

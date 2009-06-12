@@ -1,6 +1,6 @@
-lib_LTLIBRARIES = libntlmserver.la
+lib_LTLIBRARIES = libntlmserver2.la
 
-libntlmserver_la_SOURCES = \
+libntlmserver2_la_SOURCES = \
        acceptsecctxt.c \
        acquirecreds.c \
        decryptmsg.c \
@@ -13,6 +13,6 @@ libntlmserver_la_SOURCES = \
        makesign.c \
        querycreds.c \
        queryctxt.c \
-       serveripc.c \
+       ntlmsrvipc.c \
        verifysign.c
 

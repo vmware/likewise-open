@@ -45,6 +45,8 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
+#include <ntlm/ntlm.h>
+
 DWORD
 NtlmServerDecryptMessage(
     PCtxtHandle phContext,

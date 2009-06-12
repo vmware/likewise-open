@@ -45,6 +45,8 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
+#include <ntlm/ntlm.h>
+
 DWORD
 NtlmServerAcquireCredentialsHandle(
     SEC_CHAR *pszPrincipal,
@@ -52,8 +54,8 @@ NtlmServerAcquireCredentialsHandle(
     ULONG fCredentialUse,
     PLUID pvLogonID,
     PVOID pAuthData,
-    SEC_GET_KEY_FN pGetKeyFn,
-    PVOID pvGetKeyArgument,
+    // NOT NEEDED BY NTLM - SEC_GET_KEY_FN pGetKeyFn,
+    // NOT NEEDED BY NTLM - PVOID pvGetKeyArgument,
     PCredHandle phCredential,
     PTimeStamp ptsExpiry
     )

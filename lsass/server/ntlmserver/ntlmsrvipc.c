@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        serveripc.c
+ *        ntlmsrvipc.c
  *
  * Abstract:
  *
@@ -45,7 +45,9 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmipc.h>
+#include <lwmsg/lwmsg.h>
+#include "ntlmsrvapi.h"
+#include "ntlmsrvipc.h"
 
 DWORD
 NtlmAllocateMemory(
@@ -113,7 +115,7 @@ NtlmSrvIpcAcceptSecurityContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerAcceptSecurityContext(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phCredential,
         pReq->phContext,
         pReq->pInput,
@@ -171,14 +173,14 @@ NtlmSrvIpcAcquireCredentialsHandle(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerAcquireCredentialsHandle(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->pszPrincipal,
         pReq->pszPackage,
         pReq->fCredentialUse,
         pReq->pvLogonID,
         pReq->pAuthData,
-        pReq->pGetKeyFn,
-        pReq->pvGetKeyArgument,
+        // NOT NEEDED FOR NTLM - pReq->pGetKeyFn,
+        // NOT NEEDED FOR NTLM - pReq->pvGetKeyArgument,
         &hCredential,
         &tsExpiry
         );
@@ -224,7 +226,7 @@ NtlmSrvIpcDecryptMessage(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerDecryptMessage(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phContext,
         pReq->pMessage,
         pReq->MessageSeqNo,
@@ -276,7 +278,7 @@ NtlmSrvIpcEncryptMessage(
         pReq->MessageSeqNo
         );
 
-    dwError = NtlmSrvIpcCreateError(dwError, NULL, &pError);
+    dwError = NtlmSrvIpcCreateError(dwError, &pError);
     BAIL_ON_NTLM_ERROR(dwError);
 
     if (!dwError)
@@ -315,7 +317,7 @@ NtlmSrvIpcExportSecurityContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerExportSecurityContext(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phContext,
         pReq->fFlags,
         pReq->pPackedContext,
@@ -343,7 +345,7 @@ error:
     goto cleanup;
 }
 LWMsgStatus
-NtlmSrvIpcFreeCredentials(
+NtlmSrvIpcFreeCredentialsHandle(
     LWMsgAssoc* assoc,
     const LWMsgMessage* pRequest,
     LWMsgMessage* pResponse,
@@ -358,8 +360,8 @@ NtlmSrvIpcFreeCredentials(
     dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmServerFreeCredentials(
-        (HANDLE)Handle,
+    dwError = NtlmServerFreeCredentialsHandle(
+        //(HANDLE)Handle,
         pReq->phCredential
         );
 
@@ -402,7 +404,7 @@ NtlmSrvIpcImportSecurityContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerImportSecurityContext(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->pszPackage,
         pReq->pPackedContext,
         pReq->pToken,
@@ -451,7 +453,7 @@ NtlmSrvIpcInitializeSecurityContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerInitializeSecurityContext(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phCredential,
         pReq->phContext,
         pReq->pszTargetName,
@@ -506,7 +508,7 @@ NtlmSrvIpcMakeSignature(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerMakeSignature(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phContext,
         pReq->fQoP,
         pReq->pMessage,
@@ -552,7 +554,7 @@ NtlmSrvIpcQueryCredentialsAttributes(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerQueryCredentialsAttributes(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phCredential,
         pReq->ulAttribute,
         pBuffer
@@ -599,7 +601,7 @@ NtlmSrvIpcQueryContextAttributes(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerQueryContextAttributes(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phContext,
         pReq->ulAttribute,
         pBuffer
@@ -642,13 +644,13 @@ NtlmSrvIpcVerifySignature(
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmServerVerifySignature(
-        (HANDLE)Handle,
+        //(HANDLE)Handle,
         pReq->phContext,
         pReq->pMessage,
         pReq->MessageSeqNo
         );
 
-    dwError = NtlmSrvIpcCreateError(dwError, NULL, &pError);
+    dwError = NtlmSrvIpcCreateError(dwError, &pError);
     BAIL_ON_NTLM_ERROR(dwError);
 
     if (!dwError)

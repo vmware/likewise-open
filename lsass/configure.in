@@ -863,6 +863,7 @@ AC_CONFIG_FILES([Makefile
                  server/ldap/Makefile
                  server/api/Makefile
                  server/join/Makefile
+                 server/ntlmserver/Makefile
                  server/auth-providers/Makefile
                  server/auth-providers/ad-provider/Makefile
                  server/auth-providers/local-provider/Makefile

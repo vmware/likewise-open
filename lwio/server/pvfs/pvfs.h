@@ -60,6 +60,7 @@
 
 
 #include "lwiosys.h"
+#include "lwiofsctl.h"
 
 #include <lw/base.h>
 #include <lw/security-types.h>
@@ -117,7 +118,7 @@ PvfsDeviceIoControl(
     );
 
 NTSTATUS
-PvfsFsIoControl(
+PvfsDispatchFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
@@ -137,8 +138,12 @@ PvfsClose(
     );
 
 NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
+PvfsQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsSetInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
@@ -168,8 +173,12 @@ PvfsFlushBuffers(
     );
 
 NTSTATUS
-PvfsQuerySetSecurityFile(
-    PVFS_INFO_TYPE RequestType,
+PvfsQuerySecurityFile(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsSetSecurityFile(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
@@ -322,6 +331,27 @@ PvfsCanReadWriteFile(
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
     );
+
+/* From oplock.c */
+
+NTSTATUS
+PvfsOplockRequest(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
+NTSTATUS
+PvfsOplockAckBreak(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
 
 #endif /* __PVFS_H__ */
 

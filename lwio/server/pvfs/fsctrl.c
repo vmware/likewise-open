@@ -46,23 +46,59 @@
 
 #include "pvfs.h"
 
+struct _PVFS_FSCTL_DISPATCH_TABLE
+{
+    ULONG FsCtlCode;
+    NTSTATUS (*fn)(
+        IN PPVFS_IRP_CONTEXT pIrpContext,
+        IN PVOID InputBuffer,
+        IN ULONG InputBufferLength,
+        OUT PVOID OutputBuffer,
+        IN ULONG OutputBufferLength);
+
+} PvfsFsCtlHandlerTable[] = {
+    { IO_FSCTL_OPLOCK_REQUEST,       PvfsOplockRequest },
+    { IO_FSCTL_OPLOCK_ACK_BREAK,     PvfsOplockAckBreak },
+};
+
+
 NTSTATUS
-PvfsFsIoControl(
+PvfsDispatchFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    ULONG FsCtlCode = pIrpContext->pIrp->Args.IoFsControl.ControlCode;
+    IRP_ARGS_IO_FS_CONTROL Args = pIrpContext->pIrp->Args.IoFsControl;
+    ULONG FsCtlCode = Args.ControlCode;
+    ULONG i = 0;
+    ULONG TableSize = sizeof(PvfsFsCtlHandlerTable) /
+                      sizeof(struct _PVFS_FSCTL_DISPATCH_TABLE);
 
-    switch(FsCtlCode)
+    /* Loop through the dispatch table.  Levels included in the table
+       but having a NULL handler get NOT_IMPLEMENTED while those not in
+       the table at all get NOT_SUPPORTED. */
+
+    for (i=0; i<TableSize; i++)
     {
-#if 0
-    case LWIO_FSCTL_:
-        break;
-#endif
-    default:
+        if (PvfsFsCtlHandlerTable[i].FsCtlCode == FsCtlCode)
+        {
+            if (PvfsFsCtlHandlerTable[i].fn == NULL)
+            {
+                ntError = STATUS_NOT_IMPLEMENTED;
+                break;
+            }
+
+            ntError = PvfsFsCtlHandlerTable[i].fn(pIrpContext,
+                                                  Args.InputBuffer,
+                                                  Args.InputBufferLength,
+                                                  Args.OutputBuffer,
+                                                  Args.OutputBufferLength);
+            break;
+        }
+    }
+
+    if (i == TableSize) {
         ntError = STATUS_NOT_SUPPORTED;
-        break;
     }
     BAIL_ON_NT_STATUS(ntError);
 
@@ -72,8 +108,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
 
 
 /*

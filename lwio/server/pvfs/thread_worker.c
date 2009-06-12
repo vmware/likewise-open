@@ -170,12 +170,11 @@ PvfsWorkerDoWork(
 
         if (ntError != STATUS_PENDING)
         {
-            PIRP pIrp = pIrpCtx->pIrp;
+            pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+            IoIrpComplete(pIrpCtx->pIrp);
 
             PvfsFreeIrpContext(&pIrpCtx);
 
-            pIrp->IoStatusBlock.Status = ntError;
-            IoIrpComplete(pIrp);
 
         }
     }

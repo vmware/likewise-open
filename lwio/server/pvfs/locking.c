@@ -220,8 +220,12 @@ PvfsAddPendingLock(
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingLock->pIrpContext = pIrpCtx;
+    pIrpCtx->pPendingLock = pPendingLock;  /* back link */
+
     pPendingLock->pCcb = pCcb;
     pPendingLock->PendingLock = *pLock;   /* structure assignment */
+
+    pPendingLock->bIsCancelled = FALSE;
 
     ntError = LwRtlQueueAddItem(pFcb->pPendingLockQueue,
                                 (PVOID)pPendingLock);
@@ -237,6 +241,8 @@ cleanup:
     return ntError;
 
 error:
+    pIrpCtx->pPendingLock = NULL;
+
     goto cleanup;
 }
 
@@ -417,15 +423,22 @@ PvfsProcessPendingLocks(
         pCcb        = pPendingLock->pCcb;
         pIrp        = pIrpContext->pIrp;
 
-        /* Cancelled IRPs have already been dealt with
-           by the cancellation callback.  So this
-           IrpContext is dead.  Just free it and move
-           on. */
+        if (pPendingLock->bIsCancelled) {
+            /* Safety net in case the canceled IrpContext
+               failed to be added to the general Irp work queue.
+               Otherwise pIrp will have been completed by the
+               worker thread queue and pIrpContext would have
+               been freed then as well.   See PvfsWorkerDoWork()
+               for details. */
 
-        if (pIrpContext->bIsCancelled) {
+            if (pIrp) {
+                pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+                IoIrpComplete(pIrp);
+
+                PvfsFreeIrpContext(&pIrpContext);
+            }
+
             PvfsFreePendingLock((PVOID*)&pPendingLock);
-            PvfsFreeIrpContext(&pIrpContext);
-            PvfsReleaseCCB(pCcb);
             continue;
         }
 
@@ -438,7 +451,10 @@ PvfsProcessPendingLocks(
         }
 
         /* If the lock still cannot be granted, this will
-           add it back to the FCB's pending lock queue */
+           add it back to the FCB's pending lock queue.
+           We don't need to lock the IrpCtx here since it
+           is too late to cancel and we are not in the worker
+           thread queue. */
 
         ntError = PvfsLockFile(pIrpContext,
                                pCcb,
