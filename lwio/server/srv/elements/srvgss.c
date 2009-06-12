@@ -384,7 +384,7 @@ SrvGssNewContext(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pHostinfo->mutex);
 
-    ntStatus = SMBAllocateStringPrintf(
+    ntStatus = SrvAllocateStringPrintf(
                     &pContext->pszMachinePrincipal,
                     "%s$@%s",
                     pHostinfo->pszHostname,
