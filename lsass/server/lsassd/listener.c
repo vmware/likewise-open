@@ -48,8 +48,67 @@
 #define MAX_DISPATCH 8
 #define MAX_CLIENTS 512
 
+static LWMsgContext* gpContext = NULL;
 static LWMsgProtocol* gpProtocol = NULL;
 static LWMsgServer* gpServer = NULL;
+
+static
+LWMsgBool
+LsaSrvLogIpc (
+    LWMsgLogLevel level,
+    const char* pszMessage,
+    const char* pszFilename,
+    unsigned int line,
+    void* pData
+    )
+{
+    SMBLogLevel lsaLevel;
+    LWMsgBool result;
+
+    switch (level)
+    {
+    case LWMSG_LOGLEVEL_ERROR:
+        lsaLevel = LSA_LOG_LEVEL_ERROR;
+        break;
+    case LWMSG_LOGLEVEL_WARNING:
+        lsaLevel = LSA_LOG_LEVEL_WARNING;
+        break;
+    case LWMSG_LOGLEVEL_INFO:
+        lsaLevel = LSA_LOG_LEVEL_INFO;
+        break;
+    case LWMSG_LOGLEVEL_VERBOSE:
+        lsaLevel = LSA_LOG_LEVEL_VERBOSE;
+        break;
+    case LWMSG_LOGLEVEL_DEBUG:
+        lsaLevel = LSA_LOG_LEVEL_DEBUG;
+        break;
+    case LWMSG_LOGLEVEL_TRACE:
+    default:
+        lsaLevel = LSA_LOG_LEVEL_TRACE;
+        break;
+    }
+
+    LSA_LOCK_LOGGER;
+    if (pszMessage)
+    {
+        if (gLsaMaxLogLevel >= lsaLevel)
+        {
+            LsaLogMessage(gpfnLogger, ghLog, lsaLevel, "[IPC] %s", pszMessage);
+            result = LWMSG_TRUE;
+        }
+        else
+        {
+            result = LWMSG_FALSE;
+        }
+    }
+    else
+    {
+        result = (gLsaMaxLogLevel >= lsaLevel);
+    }
+    LSA_UNLOCK_LOGGER;
+
+    return result;
+}
 
 DWORD
 LsaSrvStartListenThread(
@@ -81,8 +140,13 @@ LsaSrvStartListenThread(
                                       pszCachePath, LSA_SERVER_FILENAME);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &gpContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    lwmsg_context_set_log_function(gpContext, LsaSrvLogIpc, NULL);
+
     /* Set up IPC protocol object */
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &gpProtocol));
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(gpContext, &gpProtocol));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(

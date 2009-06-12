@@ -226,6 +226,11 @@ ParseArgs(
                         logLevel = LSA_LOG_LEVEL_DEBUG;
                         bLogLevelSpecified = TRUE;
                     }
+                    else if (!strcasecmp(pszArg, "trace"))
+                    {
+                        logLevel = LSA_LOG_LEVEL_TRACE;
+                        bLogLevelSpecified = TRUE;
+                    }
                     else
                     {
                         ShowUsage();
@@ -251,7 +256,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-set-log-level {error, warning, info, verbose}\n");
+    printf("Usage: lw-set-log-level {error, warning, info, verbose, debug, trace}\n");
 }
 
 DWORD
@@ -300,6 +305,9 @@ PrintLogInfo(
             break;
         case LSA_LOG_LEVEL_DEBUG:
             fprintf(stdout, "%s\n", "debug");
+            break;
+        case LSA_LOG_LEVEL_TRACE:
+            fprintf(stdout, "%s\n", "trace");
             break;
         default:
             dwError = EINVAL;

@@ -409,7 +409,8 @@ typedef enum
     LSA_LOG_LEVEL_WARNING,
     LSA_LOG_LEVEL_INFO,
     LSA_LOG_LEVEL_VERBOSE,
-    LSA_LOG_LEVEL_DEBUG
+    LSA_LOG_LEVEL_DEBUG,
+    LSA_LOG_LEVEL_TRACE
 } LsaLogLevel;
 
 typedef enum

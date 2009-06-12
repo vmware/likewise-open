@@ -232,6 +232,12 @@ LsaLogToFile(
             break;
         }
 
+        case LSA_LOG_LEVEL_TRACE:
+        {
+            pszEntryType = LSA_TRACE_TAG;
+            break;
+        }
+
         default:
         {
             pszEntryType = LSA_VERBOSE_TAG;
