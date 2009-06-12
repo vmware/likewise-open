@@ -48,4 +48,11 @@
 #define IO_FSCTL_SMB_GET_PEER_PRINCIPAL     0x03
 #define IO_FSCTL_SMB_GET_PEER_ADDRESS       0x04
 
+/* Oplock FsIoControl codes - possibly should be moved
+   to a public header file at some point */
+
+#define IO_FSCTL_OPLOCK_REQUEST             0x00000100
+#define IO_FSCTL_OPLOCK_ACK_BREAK           0x00000101
+
+
 #endif

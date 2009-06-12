@@ -60,6 +60,7 @@
 
 
 #include "lwiosys.h"
+#include "lwiofsctl.h"
 
 #include <lw/base.h>
 #include <lw/security-types.h>
@@ -117,7 +118,7 @@ PvfsDeviceIoControl(
     );
 
 NTSTATUS
-PvfsFsIoControl(
+PvfsDispatchFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
@@ -330,6 +331,27 @@ PvfsCanReadWriteFile(
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
     );
+
+/* From oplock.c */
+
+NTSTATUS
+PvfsOplockRequest(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
+NTSTATUS
+PvfsOplockAckBreak(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
 
 #endif /* __PVFS_H__ */
 

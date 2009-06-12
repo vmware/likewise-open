@@ -160,7 +160,7 @@ PvfsDriverDispatch(
         ntError = PvfsDispatchLockControl(pIrpCtx);
         break;
     case IRP_TYPE_FS_CONTROL:
-        ntError = PvfsFsIoControl(pIrpCtx);
+        ntError = PvfsDispatchFsIoControl(pIrpCtx);
         break;
 
     /* Currently only support synchronous calls */
