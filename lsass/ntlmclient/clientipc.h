@@ -168,7 +168,7 @@ NtlmTransactQueryCredentialsAttributes(
     );
 
 DWORD
-NtlmTransactQuerySecurityContextAttributes(
+NtlmTransactQueryContextAttributes(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,

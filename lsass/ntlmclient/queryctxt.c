@@ -48,7 +48,7 @@
 #include "client.h"
 
 DWORD
-NtlmClientQuerySecurityContextAttributes(
+NtlmClientQueryContextAttributes(
     IN PCtxtHandle phContext,
     IN ULONG ulAttribute,
     OUT PVOID pBuffer
@@ -62,7 +62,7 @@ NtlmClientQuerySecurityContextAttributes(
         );
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NtlmTransactQuerySecurityContextAttributes(
+    dwError = NtlmTransactQueryContextAttributes(
         hServer,
         phContext,
         ulAttribute,
