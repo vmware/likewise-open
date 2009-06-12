@@ -881,7 +881,7 @@ SMBSrvExecute(
     dwError = IoIpcAddProtocolSpec(pProtocol);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pProtocol, &pServer));
+    dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pContext, pProtocol, &pServer));
     BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoDaemonIpcAddDispatch(pServer);
