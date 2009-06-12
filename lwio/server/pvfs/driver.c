@@ -143,70 +143,59 @@ PvfsDriverDispatch(
 
     switch (pIrpCtx->pIrp->Type)
     {
-    case IRP_TYPE_READ:
-        ntError = PvfsAsyncRead(pIrpCtx);
-        break;
-
-    case IRP_TYPE_WRITE:
-        ntError = PvfsAsyncWrite(pIrpCtx);
-        break;
-
+    /* Converted to ssync model */
     case IRP_TYPE_CREATE:
         ntError = PvfsAsyncCreate(pIrpCtx);
         break;
-
-    case IRP_TYPE_CLOSE:
-        ntError = PvfsClose(pIrpCtx);
+    case IRP_TYPE_READ:
+        ntError = PvfsAsyncRead(pIrpCtx);
         break;
-
-    case IRP_TYPE_DEVICE_IO_CONTROL:
-        ntError = PvfsDeviceIoControl(pIrpCtx);
+    case IRP_TYPE_WRITE:
+        ntError = PvfsAsyncWrite(pIrpCtx);
         break;
-
+    case IRP_TYPE_FLUSH_BUFFERS:
+        ntError = PvfsAsyncFlushBuffers(pIrpCtx);
+        break;
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsDispatchLockControl(pIrpCtx);
+        break;
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsFsIoControl(pIrpCtx);
         break;
 
-    case IRP_TYPE_FLUSH_BUFFERS:
-        ntError = PvfsAsyncFlushBuffers(pIrpCtx);
+    /* Currently only support synchronous calls */
+    case IRP_TYPE_CLOSE:
+        ntError = PvfsClose(pIrpCtx);
         break;
-
+    case IRP_TYPE_DEVICE_IO_CONTROL:
+        ntError = PvfsDeviceIoControl(pIrpCtx);
+        break;
     case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_QUERY, pIrpCtx);
+        ntError = PvfsQueryInformationFile(pIrpCtx);
         break;
-
     case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsQuerySetInformation(PVFS_SET, pIrpCtx);
+        ntError = PvfsSetInformationFile(pIrpCtx);
         break;
-
     case IRP_TYPE_QUERY_DIRECTORY:
         ntError = PvfsQueryDirInformation(pIrpCtx);
         break;
-
     case IRP_TYPE_QUERY_VOLUME_INFORMATION:
         ntError = PvfsQueryVolumeInformation(pIrpCtx);
         break;
-
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsDispatchLockControl(pIrpCtx);
-        break;
-
     case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_QUERY, pIrpCtx);
+        ntError = PvfsQuerySecurityFile(pIrpCtx);
         break;
-
     case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsQuerySetSecurityFile(PVFS_SET, pIrpCtx);
+        ntError = PvfsSetSecurityFile(pIrpCtx);
         break;
-
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
     }
+
     if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING)) {
         BAIL_ON_NT_STATUS(ntError);
     }
-
 
 cleanup:
     if (ntError != STATUS_PENDING) {

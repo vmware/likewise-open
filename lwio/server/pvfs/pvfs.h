@@ -137,8 +137,12 @@ PvfsClose(
     );
 
 NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
+PvfsQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsSetInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
@@ -168,8 +172,12 @@ PvfsFlushBuffers(
     );
 
 NTSTATUS
-PvfsQuerySetSecurityFile(
-    PVFS_INFO_TYPE RequestType,
+PvfsQuerySecurityFile(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsSetSecurityFile(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
