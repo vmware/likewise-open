@@ -85,6 +85,7 @@ PvfsPendIrp(
     if (ntError != STATUS_SUCCESS) {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
         IoIrpComplete(pIrpCtx->pIrp);
+
         PvfsFreeIrpContext(&pIrpCtx);
     }
 
@@ -121,6 +122,7 @@ PvfsCancelLockControlIrp(
     PVOID pCancelContext
     )
 {
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
     BOOLEAN bIsLocked = FALSE;
 
@@ -128,17 +130,23 @@ PvfsCancelLockControlIrp(
 
     pIrpCtx->bIsCancelled = TRUE;
 
-    /* Complete a LOCK request (since it is not on the general
-       work queue),but allow the PENDING_LOCK to stay
-       in the FCB's queue.  It will be released the next time we
-       do pending lock processing */
-
-    if (pIrpCtx->pIrp->Args.LockControl.LockControl == IO_LOCK_CONTROL_LOCK)
+    if (pIrpCtx->pPendingLock)
     {
-        pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
-        IoIrpComplete(pIrp);
+        /* Cancel the pending lock */
 
-        pIrpCtx->pIrp = NULL;
+        pIrpCtx->pPendingLock->bIsCancelled = TRUE;
+        PvfsReleaseCCB(pIrpCtx->pPendingLock->pCcb);
+        pIrpCtx->pPendingLock->pCcb = NULL;
+
+        /* Add the canceled IRP_CONTEXT back to the work queue.  If
+           this fails, we will fallback to calling IoIrpComplete()
+           in PvfsProcessPendingLocks() */
+
+        ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pIrpCtx->pIrp = NULL;
+        }
+
     }
 
     LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
@@ -159,6 +167,7 @@ PvfsPendLockControlIrp(
     if (ntError != STATUS_SUCCESS) {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
         IoIrpComplete(pIrpCtx->pIrp);
+
         PvfsFreeIrpContext(&pIrpCtx);
     }
 
