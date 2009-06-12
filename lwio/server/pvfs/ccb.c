@@ -107,9 +107,18 @@ PvfsFreeCCB(
         RtlCStringFree(&pCCB->pszFilename);
     }
 
-    if (pCCB->pFcb) {
+    /* When can we have a NULL FCB? */
+
+    if (pCCB->pFcb)
+    {
+        /* Release all byte range locks to ensure proper
+           processing of pending locks */
+
+        PvfsUnlockFile(pCCB, TRUE, NULL, 0, 0);
+
         PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(pCCB->pFcb);
+
         pCCB->pFcb = NULL;
     }
 

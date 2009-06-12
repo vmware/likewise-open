@@ -40,8 +40,6 @@
 #include "connection-private.h"
 #include "util-private.h"
 #include <lwmsg/buffer.h>
-#include <lwmsg/unmarshal.h>
-#include <lwmsg/marshal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>

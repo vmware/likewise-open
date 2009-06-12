@@ -91,7 +91,7 @@ PvfsFreeFCB(
 /***********************************************************
  **********************************************************/
 
-static VOID
+VOID
 PvfsFreePendingLock(
     PVOID *ppData
     )
@@ -125,6 +125,7 @@ PvfsAllocateFCB(
     ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
                              PVFS_FCB_MAX_PENDING_LOCKS,
                              PvfsFreePendingLock);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Initialize mutexes and refcounts */
 

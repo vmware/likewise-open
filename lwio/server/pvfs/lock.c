@@ -88,8 +88,6 @@ PvfsLockControl(
     PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
 
-    PVFS_BAIL_ON_CANCELLED_IRP(pIrpContext, ntError);
-
     /* Sanity checks */
 
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);

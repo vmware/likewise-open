@@ -38,6 +38,7 @@
  */
 #include <config.h>
 #include <string.h>
+#include <lwmsg/data.h>
 #include "assoc-private.h"
 #include "util-private.h"
 #include "protocol-private.h"
@@ -533,6 +534,7 @@ error:
     return status;
 }
 
+/* FIXME: pass through to class */
 LWMsgStatus
 lwmsg_assoc_free_message(
     LWMsgAssoc* assoc,
@@ -541,6 +543,7 @@ lwmsg_assoc_free_message(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeSpec* type = NULL;
+    LWMsgDataHandle* handle = NULL;
 
     if (message->tag != -1)
     {
@@ -548,7 +551,8 @@ lwmsg_assoc_free_message(
 
         if (type != NULL)
         {
-            BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
+            BAIL_ON_ERROR(status = lwmsg_data_handle_new(&assoc->context, &handle));
+            BAIL_ON_ERROR(status = lwmsg_data_free_graph(handle, type, message->object));
         }
 
         message->tag = -1;
@@ -556,6 +560,11 @@ lwmsg_assoc_free_message(
     }
 
 error:
+
+    if (handle)
+    {
+        lwmsg_data_handle_delete(handle);
+    }
 
     return status;
 }
@@ -570,11 +579,18 @@ lwmsg_assoc_free_graph(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeSpec* type = NULL;
+    LWMsgDataHandle* handle = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, object));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type));
+    BAIL_ON_ERROR(status = lwmsg_data_handle_new(&assoc->context, &handle));
+    BAIL_ON_ERROR(status = lwmsg_data_free_graph(handle, type, object));
 
 error:
+
+    if (handle)
+    {
+        lwmsg_data_handle_delete(handle);
+    }
 
     return status;
 }

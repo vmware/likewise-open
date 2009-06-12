@@ -563,22 +563,21 @@ AC_CONFIG_FILES([Makefile
         server/smbwire/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
-        server/srv.new/Makefile
-        server/srv.new/utils/Makefile
-        server/srv.new/shares/Makefile
-        server/srv.new/shares/lwshare/Makefile
-        server/srv.new/shares/api/Makefile
-        server/srv.new/elements/Makefile
-        server/srv.new/protocols/Makefile
-        server/srv.new/protocols/api/Makefile
-        server/srv.new/protocols/smb1/Makefile
-        server/srv.new/protocols/smb2/Makefile
-        server/srv.new/transport/Makefile
-        server/srv.new/transport/api/Makefile
-        server/srv.new/transport/lwepoll/Makefile
-        server/srv.new/transport/lwpoll/Makefile
-        server/srv.new/transport/lwselect/Makefile
-        server/srv.new/driver/Makefile
+        server/srv/utils/Makefile
+        server/srv/shares/Makefile
+        server/srv/shares/lwshare/Makefile
+        server/srv/shares/api/Makefile
+        server/srv/elements/Makefile
+        server/srv/protocols/Makefile
+        server/srv/protocols/api/Makefile
+        server/srv/protocols/smb1/Makefile
+        server/srv/protocols/smb2/Makefile
+        server/srv/transport/Makefile
+        server/srv/transport/api/Makefile
+        server/srv/transport/lwepoll/Makefile
+        server/srv/transport/lwpoll/Makefile
+        server/srv/transport/lwselect/Makefile
+        server/srv/driver/Makefile
         server/npvfs/Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile

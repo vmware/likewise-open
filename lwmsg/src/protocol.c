@@ -35,8 +35,6 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include <lwmsg/marshal.h>
-#include <lwmsg/unmarshal.h>
 
 #include "protocol-private.h"
 #include "util-private.h"

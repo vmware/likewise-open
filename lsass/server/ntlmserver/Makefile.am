@@ -1,6 +1,6 @@
-lib_LTLIBRARIES = libserverntlm.la
+lib_LTLIBRARIES = libntlmserver.la
 
-libserverntlm_la_SOURCES = \
+libntlmserver_la_SOURCES = \
        acceptsecctxt.c \
        acquirecreds.c \
        decryptmsg.c \

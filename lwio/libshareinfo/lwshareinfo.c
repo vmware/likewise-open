@@ -222,7 +222,13 @@ static LWMsgTypeSpec gShareInfoGetParamsSpec[] =
     LWMSG_TYPE_END
 };
 
-static pthread_once_t gShareMarshalContextControl = PTHREAD_ONCE_INIT;
+#if defined(sun) || defined(_AIX)
+#  define ONCE_INIT {PTHREAD_ONCE_INIT}
+#else
+#  define ONCE_INIT PTHREAD_ONCE_INIT
+#endif
+
+static pthread_once_t gShareMarshalContextControl = ONCE_INIT;
 static LWMsgContext* gpMarshalContext = NULL;
 static LWMsgStatus gMarshalContextStatus = LWMSG_STATUS_SUCCESS;
 

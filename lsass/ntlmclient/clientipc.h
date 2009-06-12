@@ -41,16 +41,15 @@
  *
  *        Header (Library)
  *
- *        Inter-process Communication (Client) API
+ *        Inter-process Communication (NTLM Client) API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  */
-#ifndef __CLIENTIPC_P_H__
-#define __CLIENTIPC_P_H__
+#ifndef __CLIENTIPC_H__
+#define __CLIENTIPC_H__
 
 #include <lwmsg/lwmsg.h>
-#include <ntlmipc.h>
 
 #if 0
 typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT {
@@ -63,31 +62,6 @@ typedef struct __NTLM_CLIENT_CONNECTION_CONTEXT
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
 } NTLM_CLIENT_CONNECTION_CONTEXT, *PNTLM_CLIENT_CONNECTION_CONTEXT;
-
-typedef struct _SecHandle {
-  ULONG_PTR       dwLower;
-  ULONG_PTR       dwUpper;
-} SecHandle, * PSecHandle;
-
-typedef SecHandle    CredHandle;
-typedef PSecHandle   PCredHandle;
-
-typedef SecHandle    CtxtHandle;
-typedef PSecHandle   PCtxtHandle;
-
-typedef char*   SEC_CHAR;
-
-typedef struct _SecBuffer {
-  ULONG cbBuffer;
-  ULONG BufferType;
-  PVOID pvBuffer;
-}SecBuffer, *PSecBuffer;
-
-typedef struct _SecBufferDesc {
-  ULONG      ulVersion;
-  ULONG      cBuffers;
-  PSecBuffer pBuffers;
-}SecBufferDesc, *PSecBufferDesc;
 
 DWORD
 NtlmTransactAcceptSecurityContext(

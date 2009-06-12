@@ -72,35 +72,25 @@ PvfsCancelIrp(
     return;
 }
 
-/************************************************************
- ***********************************************************/
-
 static NTSTATUS
 PvfsPendIrp(
     PPVFS_IRP_CONTEXT pIrpCtx
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    BOOLEAN bIsLocked = FALSE;
-
-    BAIL_ON_INVALID_PTR(pIrpCtx, ntError);
-
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
-
-    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
-    BAIL_ON_NT_STATUS(ntError);
 
     IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelIrp, pIrpCtx);
 
-    ntError = STATUS_PENDING;
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
+    if (ntError != STATUS_SUCCESS) {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+    }
 
-cleanup:
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+    /* Always return STATUS_PENDING here */
 
-    return ntError;
-
-error:
-    goto cleanup;
+    return STATUS_PENDING;
 }
 
 /************************************************************
@@ -125,6 +115,58 @@ PvfsAsyncCreate(
 /************************************************************
  ***********************************************************/
 
+static VOID
+PvfsCancelLockControlIrp(
+    PIRP pIrp,
+    PVOID pCancelContext
+    )
+{
+    PPVFS_IRP_CONTEXT pIrpCtx = (PPVFS_IRP_CONTEXT)pCancelContext;
+    BOOLEAN bIsLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    pIrpCtx->bIsCancelled = TRUE;
+
+    /* Complete a LOCK request (since it is not on the general
+       work queue),but allow the PENDING_LOCK to stay
+       in the FCB's queue.  It will be released the next time we
+       do pending lock processing */
+
+    if (pIrpCtx->pIrp->Args.LockControl.LockControl == IO_LOCK_CONTROL_LOCK)
+    {
+        pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+        IoIrpComplete(pIrp);
+
+        pIrpCtx->pIrp = NULL;
+    }
+
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpCtx->Mutex);
+
+    return;
+}
+
+static NTSTATUS
+PvfsPendLockControlIrp(
+    PPVFS_IRP_CONTEXT pIrpCtx
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    IoIrpMarkPending(pIrpCtx->pIrp, PvfsCancelLockControlIrp, pIrpCtx);
+
+    ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pIrpCtx);
+    if (ntError != STATUS_SUCCESS) {
+        pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+    }
+
+    /* Always return STATUS_PENDING here */
+
+    return STATUS_PENDING;
+}
+
 NTSTATUS
 PvfsAsyncLockControl(
     PPVFS_IRP_CONTEXT  pIrpContext
@@ -136,7 +178,7 @@ PvfsAsyncLockControl(
 
     pIrpContext->pfnWorkCallback = PvfsLockControl;
 
-    ntError = PvfsPendIrp(pIrpContext);
+    ntError = PvfsPendLockControlIrp(pIrpContext);
 
     return ntError;
 }

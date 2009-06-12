@@ -15,9 +15,10 @@ libntlmclient_la_SOURCES = \
        queryctxt.c \
        verifysign.c
 
-libntlmclient_la_CPPFLAGS = -I@top_srcdir@/gssntlm2/include @LWMSG_INCLUDES@
+libntlmclient_la_CPPFLAGS = \
+    @LWMSG_INCLUDES@
 
 libntlmclient_la_LIBADD = \
-    @top_builddir@/gssntlm2/ipc/libntlmipc.la \
+    @top_builddir@/ntlmipc/libntlmipc.la \
     @LWMSG_NOTHR_LIBS@ \
     @SOCKET_LIBS@

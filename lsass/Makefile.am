@@ -4,6 +4,7 @@ compat_subdirs = \
 	    utils      \
 	    logging_r  \
         ipc            \
+        ntlmipc \
         client         \
         provider       \
         auth @MACCLIENT_DIR@ \
@@ -16,6 +17,7 @@ full_subdirs= \
         wbclient          \
 	lwicompat	  \
 	gssntlm	          \
+	ntlmclient \
         server            \
         access            \
         tools             \

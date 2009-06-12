@@ -39,10 +39,10 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Server API Globals
+ *        NTLM Server API Globals
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  */
 #include "api.h"
 

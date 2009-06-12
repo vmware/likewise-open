@@ -158,9 +158,11 @@ PvfsWorkerDoWork(
 
         LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
-        /* Let the WorkCallback() deal with cancellation */
-
-        ntError = pIrpCtx->pfnWorkCallback(pIrpCtx);
+        if (pIrpCtx->bIsCancelled) {
+            ntError = STATUS_CANCELLED;
+        } else {
+            ntError = pIrpCtx->pfnWorkCallback(pIrpCtx);
+        }
 
         LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 

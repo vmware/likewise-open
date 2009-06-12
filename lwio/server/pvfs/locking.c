@@ -100,6 +100,10 @@ PvfsAddPendingLock(
     PPVFS_LOCK_ENTRY pLock
     );
 
+static VOID
+PvfsProcessPendingLocks(
+    PPVFS_FCB pFcb
+    );
 
 /* Code */
 
@@ -254,8 +258,20 @@ PvfsUnlockFile(
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
     PPVFS_LOCK_ENTRY pEntry = NULL;
     ULONG i = 0;
+    BOOLEAN bBrlWriteLock = FALSE;
 
-    ENTER_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLock, &pFcb->rwBrlLock);
+
+    /* If the caller wants to release all locks, just set the
+       NumberOfLocks to 0 */
+
+    if (bUnlockAll && (pKey == NULL)) {
+        pExclLocks->NumberOfLocks = 0;
+        pSharedLocks->NumberOfLocks = 0;
+
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
     /* Exclusive Locks */
 
@@ -263,7 +279,26 @@ PvfsUnlockFile(
     {
         pEntry = &pExclLocks->pLocks[i];
 
-        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        /* Two success cases:
+           1. bUnlockAll is set and the Key ID matches
+           2. Match a single lock
+        */
+
+        if (bUnlockAll)
+        {
+            if (*pKey == pEntry->Key) {
+                if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+                    RtlMoveMemory(pEntry, pEntry+1,
+                                  sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+                }
+                pExclLocks->NumberOfLocks--;
+
+                ntError = STATUS_SUCCESS;
+            }
+
+            continue;
+        }
+        else if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
         {
             if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
                 RtlMoveMemory(pEntry, pEntry+1,
@@ -282,9 +317,27 @@ PvfsUnlockFile(
     {
         pEntry = &pSharedLocks->pLocks[i];
 
-        if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        /* Two success cases:
+           1. bUnlockAll is set and the Key ID matches
+           2. Match a single lock
+        */
+
+        if (bUnlockAll)
         {
-            if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
+            if (*pKey == pEntry->Key) {
+                if (((pSharedLocks->NumberOfLocks-i) - 1) > 0) {
+                    RtlMoveMemory(pEntry, pEntry+1,
+                                  sizeof(PVFS_LOCK_ENTRY)* ((pSharedLocks->NumberOfLocks-i)-1));
+                }
+                pSharedLocks->NumberOfLocks--;
+
+                ntError = STATUS_SUCCESS;
+            }
+            continue;
+        }
+        else if ((Offset == pEntry->Offset) && (Length == pEntry->Length))
+        {
+            if (((pSharedLocks->NumberOfLocks-i) - 1) > 0) {
                 RtlMoveMemory(pEntry, pEntry+1,
                               sizeof(PVFS_LOCK_ENTRY)* ((pSharedLocks->NumberOfLocks-i)-1));
             }
@@ -296,9 +349,122 @@ PvfsUnlockFile(
     }
 
 cleanup:
-    LEAVE_WRITER_RW_LOCK(&pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bBrlWriteLock, &pFcb->rwBrlLock);
+
+    /* See if any pending locks can be granted now */
+
+    PvfsProcessPendingLocks(pFcb);
 
     return ntError;
+}
+
+/**************************************************************
+ *************************************************************/
+
+static VOID
+PvfsProcessPendingLocks(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PLWRTL_QUEUE pProcessingQueue = NULL;
+    PPVFS_PENDING_LOCK pPendingLock = NULL;
+    PVOID pData = NULL;
+    LONG64 ByteOffset = 0;
+    LONG64 Length = 0;
+    PVFS_LOCK_FLAGS Flags = 0;
+    ULONG Key = 0;
+    PIRP pIrp = NULL;
+    PPVFS_IRP_CONTEXT pIrpContext = NULL;
+    PPVFS_CCB pCcb = NULL;
+    BOOLEAN bFcbLocked = FALSE;
+
+    /* Take the pending lock queue for processing */
+
+    LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+    if (!LwRtlQueueIsEmpty(pFcb->pPendingLockQueue))
+    {
+        pProcessingQueue = pFcb->pPendingLockQueue;
+        pFcb->pPendingLockQueue = NULL;
+
+        ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
+                                 PVFS_FCB_MAX_PENDING_LOCKS,
+                                 PvfsFreePendingLock);
+    }
+
+    LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (pProcessingQueue == NULL) {
+        goto cleanup;
+    }
+
+    /* Process the pending lock queue */
+
+    while (!LwRtlQueueIsEmpty(pProcessingQueue))
+    {
+        pData = NULL;
+        pPendingLock = NULL;
+
+        ntError = LwRtlQueueRemoveItem(pProcessingQueue,
+                                       &pData);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pPendingLock = (PPVFS_PENDING_LOCK)pData;
+
+        pIrpContext = pPendingLock->pIrpContext;
+        pCcb        = pPendingLock->pCcb;
+        pIrp        = pIrpContext->pIrp;
+
+        /* Cancelled IRPs have already been dealt with
+           by the cancellation callback.  So this
+           IrpContext is dead.  Just free it and move
+           on. */
+
+        if (pIrpContext->bIsCancelled) {
+            PvfsFreePendingLock((PVOID*)&pPendingLock);
+            PvfsFreeIrpContext(&pIrpContext);
+            PvfsReleaseCCB(pCcb);
+            continue;
+        }
+
+        ByteOffset = pPendingLock->PendingLock.Offset;
+        Length     = pPendingLock->PendingLock.Length;
+        Key        = pPendingLock->PendingLock.Key;
+        Flags      = PVFS_LOCK_BLOCK;
+        if (pPendingLock->PendingLock.bExclusive) {
+            Flags |= PVFS_LOCK_EXCLUSIVE;
+        }
+
+        /* If the lock still cannot be granted, this will
+           add it back to the FCB's pending lock queue */
+
+        ntError = PvfsLockFile(pIrpContext,
+                               pCcb,
+                               Key != 0 ? &Key : NULL,
+                               ByteOffset,
+                               Length,
+                               Flags);
+        PvfsFreePendingLock((PVOID*)&pPendingLock);
+        if (ntError == STATUS_PENDING) {
+            continue;
+        }
+
+        /* We've processed the lock (to success or failure) */
+
+        PvfsReleaseCCB(pCcb);
+        PvfsFreeIrpContext(&pIrpContext);
+
+        pIrp->IoStatusBlock.Status = ntError;
+        IoIrpComplete(pIrp);
+    }
+
+cleanup:
+    return;
+
+error:
+    goto cleanup;
 }
 
 /**************************************************************
@@ -327,20 +493,16 @@ PvfsCanReadWriteFile(
 
     /* Read lock so no one can add a CCB to the list */
 
-    ENTER_READER_RW_LOCK(&pFcb->rwLock);
-    bFcbReadLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
 
     /* Store the pending lock */
 
-    ENTER_READER_RW_LOCK(&pFcb->rwBrlLock);
-    bBrlReadLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bBrlReadLocked, &pFcb->rwBrlLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
          pCursor = PvfsNextCCBFromList(pFcb, pCursor))
     {
-        /* We'll deal with ourselves in AddLock() */
-
         if (pCcb == pCursor->pCcb) {
             continue;
         }
@@ -353,13 +515,8 @@ PvfsCanReadWriteFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (bBrlReadLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwBrlLock);
-    }
-
-    if (bFcbReadLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
-    }
+    LWIO_UNLOCK_RWMUTEX(bBrlReadLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
 
     return ntError;
 

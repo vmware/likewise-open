@@ -605,7 +605,34 @@ NtUnlockFile(
     IN LONG64 ByteOffset,
     IN LONG64 Length,
     IN ULONG Key
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    IO_CONTEXT context = { 0 };
+
+    NtpInitializeIoStatusBlock(IoStatusBlock);
+
+    status = LwIoAcquireContext(&context);
+    IoStatusBlock->Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = NtCtxUnlockFile(
+                    &context,
+                    FileHandle,
+                    AsyncControlBlock,
+                    IoStatusBlock,
+                    ByteOffset,
+		    Length,
+		    Key);
+
+cleanup:
+
+    LwIoReleaseContext(&context);
+
+    return status;
+}
+
 
 //
 // Namespace Operations
