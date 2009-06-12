@@ -1095,6 +1095,13 @@ lwmsg_assoc_set_session_functions(
     void* data
     );
 
+LWMsgStatus
+lwmsg_assoc_print_message_alloc(
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message,
+    char** result
+    );
+
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;
 

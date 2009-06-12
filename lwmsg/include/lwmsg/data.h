@@ -371,11 +371,19 @@ lwmsg_data_unmarshal_flat(
 
 LWMsgStatus
 lwmsg_data_print_graph(
-    const struct LWMsgContext* context,
+    LWMsgDataHandle* handle,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgDataPrintFunction print,
     void* print_data
+    );
+
+LWMsgStatus
+lwmsg_data_print_graph_alloc(
+    LWMsgDataHandle* handle,
+    LWMsgTypeSpec* type,
+    void* object,
+    char** result
     );
 
 /*@}*/

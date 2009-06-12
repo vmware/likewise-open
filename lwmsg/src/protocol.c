@@ -82,18 +82,42 @@ lwmsg_protocol_delete(LWMsgProtocol* prot)
 }
 
 LWMsgStatus
-lwmsg_protocol_get_message_type(LWMsgProtocol* prot, unsigned int type, LWMsgTypeSpec** out_type)
+lwmsg_protocol_get_message_type(LWMsgProtocol* prot, unsigned int tag, LWMsgTypeSpec** out_type)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    if (type >= prot->num_types)
+    if (tag >= prot->num_types)
     {
         RAISE_ERROR(&prot->context, status = LWMSG_STATUS_NOT_FOUND,
                     "Unknown message type");
     }
     else
     {
-        *out_type = prot->types[type];
+        *out_type = prot->types[tag]->type;
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_protocol_get_message_name(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    const char** name
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    if (tag >= prot->num_types)
+    {
+        RAISE_ERROR(&prot->context, status = LWMSG_STATUS_NOT_FOUND,
+                    "Unknown message type");
+    }
+    else
+    {
+        *name = prot->types[tag]->tag_name;
     }
 
 error:
@@ -105,7 +129,7 @@ LWMsgStatus
 lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeSpec** new_types = NULL;
+    LWMsgProtocolSpec** new_types = NULL;
     size_t num_types = 0;
     size_t i;
 
@@ -135,7 +159,7 @@ lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
     for (i = 0; spec[i].tag != -1; i++)
     {
         /* A NULL typespec indicates a message with an empty payload */
-        prot->types[spec[i].tag] = spec[i].type;
+        prot->types[spec[i].tag] = &spec[i];
     }
 
 error:

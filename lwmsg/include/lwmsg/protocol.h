@@ -110,6 +110,8 @@ typedef struct LWMsgProtocolSpec
 {
     unsigned int tag;
     LWMsgTypeSpec* type;
+    const char* tag_name;
+
 }
 #endif
 const LWMsgProtocolSpec;
@@ -134,6 +136,13 @@ lwmsg_protocol_get_message_type(
     LWMsgProtocol* prot,
     unsigned int tag,
     LWMsgTypeSpec** out_type
+    );
+
+LWMsgStatus
+lwmsg_protocol_get_message_name(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    const char** name
     );
 
 /**
@@ -220,7 +229,7 @@ lwmsg_protocol_get_error_message(
  * @hideinitializer
  */
 #define LWMSG_MESSAGE(tag, spec) \
-    { (tag), (spec) }
+    { (tag), (spec), #tag }
 
 /**
  * @ingroup protocol

@@ -754,3 +754,65 @@ lwmsg_assoc_set_session_functions(
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_assoc_print_message_alloc(
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message,
+    char** result
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgDataHandle* handle = NULL;
+    LWMsgTypeSpec* type = NULL;
+    char* payload_result = NULL;
+    char* my_result = NULL;
+    const char* tag_name = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_data_handle_new(&assoc->context, &handle));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_name(assoc->prot, message->tag, &tag_name));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
+
+    if (type)
+    {
+        BAIL_ON_ERROR(status = lwmsg_data_print_graph_alloc(handle, type, message->object, &payload_result));
+
+        my_result = lwmsg_format("%s: %s", tag_name, payload_result);
+    }
+    else
+    {
+        my_result = lwmsg_format("%s: <null>", tag_name);
+    }
+
+    if (!my_result)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    *result = my_result;
+
+cleanup:
+
+    if (handle)
+    {
+        lwmsg_data_handle_delete(handle);
+    }
+
+    if (payload_result)
+    {
+        lwmsg_context_free(&assoc->context, payload_result);
+    }
+
+    return status;
+
+error:
+
+    *result = NULL;
+
+    if (my_result)
+    {
+        lwmsg_context_free(&assoc->context, my_result);
+    }
+
+    goto cleanup;
+}

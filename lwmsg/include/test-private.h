@@ -96,7 +96,7 @@ lwmsg_test_assoc_pair(
     void (*func2) (LWMsgAssoc* assoc)
     );
 
-void
+LWMsgBool
 lwmsg_test_log_function(
     LWMsgLogLevel level,
     const char* message,

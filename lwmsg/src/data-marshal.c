@@ -471,13 +471,6 @@ lwmsg_data_marshal_flat(
     return lwmsg_data_marshal(handle, type, object, &mbuf);
 }
 
-typedef struct
-{
-    LWMsgReallocFunction realloc;
-    LWMsgFreeFunction free;
-    void* data;
-} AllocInfo;
-
 static
 LWMsgStatus
 lwmsg_data_marshal_alloc_wrap(
@@ -486,13 +479,13 @@ lwmsg_data_marshal_alloc_wrap(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    AllocInfo* info = buffer->data;
+    LWMsgDataHandle* handle = buffer->data;
     size_t oldlen = buffer->end - buffer->base;
     size_t newlen = oldlen == 0 ? 256 : oldlen * 2;
     void* newmem = NULL;
     size_t offset = 0;
 
-    BAIL_ON_ERROR(status = info->realloc(buffer->base, oldlen, newlen, &newmem, info->data));
+    BAIL_ON_ERROR(status = lwmsg_context_realloc(handle->context, buffer->base, oldlen, newlen, &newmem));
 
     offset = buffer->cursor - buffer->base;
     buffer->base = newmem;
@@ -514,16 +507,13 @@ lwmsg_data_marshal_flat_alloc(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    AllocInfo info = {0};
     LWMsgBuffer mbuf = {0};
-
-    lwmsg_context_get_memory_functions(handle->context, NULL, &info.free, &info.realloc, &info.data);
 
     mbuf.base = NULL;
     mbuf.cursor = NULL;
     mbuf.end = NULL;
     mbuf.wrap = lwmsg_data_marshal_alloc_wrap;
-    mbuf.data = &info;
+    mbuf.data = handle;
 
     BAIL_ON_ERROR(status = lwmsg_data_marshal(handle, type, object, &mbuf));
 
@@ -538,7 +528,7 @@ error:
 
     if (mbuf.base)
     {
-        info.free(mbuf.base, info.data);
+        lwmsg_context_free(handle->context, mbuf.base);
     }
 
     *buffer = NULL;

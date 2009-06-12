@@ -140,7 +140,7 @@ typedef LWMsgStatus
     void* data
     );
 
-typedef void
+typedef LWMsgBool
 (*LWMsgLogFunction) (
     LWMsgLogLevel level,
     const char* message,
@@ -225,6 +225,28 @@ lwmsg_context_set_log_function(
     LWMsgContext* context,
     LWMsgLogFunction logfn,
     void* data
+    );
+
+LWMsgStatus
+lwmsg_context_alloc(
+    const LWMsgContext* context,
+    size_t size,
+    void** object
+    );
+
+void
+lwmsg_context_free(
+    const LWMsgContext* context,
+    void* object
+    );
+
+LWMsgStatus
+lwmsg_context_realloc(
+    const LWMsgContext* context,
+    void* old_object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object
     );
 
 /**

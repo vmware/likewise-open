@@ -95,6 +95,12 @@ lwmsg_context_log_printf(
     ...
     );
 
+LWMsgBool
+lwmsg_context_would_log(
+    const LWMsgContext* context,
+    LWMsgLogLevel level
+    );
+
 #define LWMSG_LOG(context, level, ...) \
     (lwmsg_context_log_printf((context), (level), __FILE__, __LINE__, __VA_ARGS__))
 

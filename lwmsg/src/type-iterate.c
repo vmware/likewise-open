@@ -210,6 +210,7 @@ lwmsg_type_iterate_inner(
         /* Default termination settings for a pointer */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
+        iter->info.kind_indirect.encoding = NULL;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_ARRAY:
@@ -222,6 +223,7 @@ lwmsg_type_iterate_inner(
         /* Default termination settings for an array */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
+        iter->info.kind_indirect.encoding = NULL;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_TYPESPEC:

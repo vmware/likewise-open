@@ -35,6 +35,9 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
+#define LWMSG_SPEC_META
+
 #include <lwmsg/lwmsg.h>
 #include <moonunit/moonunit.h>
 #include <config.h>

@@ -44,6 +44,68 @@
 #include <errno.h>
 #include <fcntl.h>
 
+static
+LWMsgStatus
+lwmsg_server_log_incoming_message(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    char* msg_text = NULL;
+
+    if (lwmsg_context_would_log(&server->context, LWMSG_LOGLEVEL_TRACE))
+    {
+        BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
+        LWMSG_LOG_TRACE(&server->context, "===> %s", msg_text);
+    }
+
+cleanup:
+
+    if (msg_text)
+    {
+        lwmsg_context_free(&server->context, msg_text);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+LWMsgStatus
+lwmsg_server_log_outgoing_message(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    char* msg_text = NULL;
+
+    if (lwmsg_context_would_log(&server->context, LWMSG_LOGLEVEL_TRACE))
+    {
+        BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
+        LWMSG_LOG_TRACE(&server->context, "<=== %s", msg_text);
+    }
+
+cleanup:
+
+    if (msg_text)
+    {
+        lwmsg_context_free(&server->context, msg_text);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
 LWMsgStatus
 lwmsg_server_task_new(
     ServerTaskType type,
@@ -759,6 +821,7 @@ lwmsg_server_task_perform_recv(
         switch (status)
         {
         case LWMSG_STATUS_SUCCESS:
+            BAIL_ON_ERROR(status = lwmsg_server_log_incoming_message(server, (*task)->assoc, &(*task)->incoming_message));
             BAIL_ON_ERROR(status = lwmsg_server_task_dispatch(server, task));
             break;
         case LWMSG_STATUS_NOT_FINISHED:
@@ -800,6 +863,7 @@ lwmsg_server_task_perform_send(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
+    BAIL_ON_ERROR(status = lwmsg_server_log_outgoing_message(server, (*task)->assoc, &(*task)->outgoing_message));
     status = lwmsg_assoc_send_message((*task)->assoc, &(*task)->outgoing_message);
 
     switch (status)
@@ -861,6 +925,7 @@ lwmsg_server_task_perform_finish(
                 (*task)->type = SERVER_TASK_BEGIN_RECV;
                 break;
             case SERVER_TASK_FINISH_RECV:
+                BAIL_ON_ERROR(status = lwmsg_server_log_incoming_message(server, (*task)->assoc, &(*task)->incoming_message));
                 BAIL_ON_ERROR(status = lwmsg_server_task_dispatch(server, task));
                 break;
             case SERVER_TASK_FINISH_SEND:
