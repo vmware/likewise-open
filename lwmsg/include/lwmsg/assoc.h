@@ -348,7 +348,7 @@ typedef struct LWMsgAssocClass
      * @param[in] value the value of the timeout, or NULL for no timeout
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+     * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
      * @lwmsg_etc{implementation-specific error}
      * @lwmsg_endstatus
      */
@@ -1057,7 +1057,7 @@ lwmsg_assoc_get_session_data(
  * @param[in] value the value of the timeout, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+ * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
  * @lwmsg_etc{implementation-specific error}
  * @lwmsg_endstatus
  */

@@ -369,20 +369,58 @@ lwmsg_data_unmarshal_flat(
     void** out
     );
 
+/**
+ * @brief Print textual representation of a data graph
+ *
+ * Prints a human-readable textual representation of a data graph.
+ * The provided print function will called to output successive
+ * pieces of the representation.  Consider using #lwmsg_data_print_graph_alloc()
+ * if you want to easily print to a string.
+ *
+ * @param[in,out] handle the data handle
+ * @param[in] type a type specification which describes the graph root
+ * @param[in] root the root of the data graph
+ * @param[in] print a print callback function
+ * @param[in] print_data a data pointer to be passed to the print function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_data_print_graph(
     LWMsgDataHandle* handle,
     LWMsgTypeSpec* type,
-    void* object,
+    void* root,
     LWMsgDataPrintFunction print,
     void* print_data
     );
 
+
+/**
+ * @brief Print textual representation of a data graph to a string
+ *
+ * Prints a human-readable textual representation of a data graph,
+ * automatically allocating and returning a C string containing the
+ * result.  The string will be allocated using the context passed
+ * to #lwmsg_data_handle_new() when creating the data handle.
+ *
+ * @param[in,out] handle the data handle
+ * @param[in] type a type specification which describes the graph root
+ * @param[in] root the root of the data graph
+ * @param[out] result the resulting string
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_data_print_graph_alloc(
     LWMsgDataHandle* handle,
     LWMsgTypeSpec* type,
-    void* object,
+    void* root,
     char** result
     );
 
