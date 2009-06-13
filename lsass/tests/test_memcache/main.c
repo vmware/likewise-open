@@ -2,6 +2,9 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 
 typedef struct __USERINFO

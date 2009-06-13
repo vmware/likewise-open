@@ -357,14 +357,14 @@ typedef struct _DNS_FQDN
 //S-<revision>-<authority>-<domain_computer_id>-<relative ID>
 //example: S-1-5-32-546 (Guests)
 //See http://support.microsoft.com/kb/243330
-
+/*
 #define WELLKNOWN_SID_DOMAIN_USER_GROUP_RID 513
 
 typedef struct __LSA_SECURITY_IDENTIFIER {
     UCHAR* pucSidBytes;  //byte representation of multi-byte Security Identification Descriptor
     DWORD dwByteLength;
 } LSA_SECURITY_IDENTIFIER, *PLSA_SECURITY_IDENTIFIER;
-
+*/
 /*
  * Config parsing callbacks
  */

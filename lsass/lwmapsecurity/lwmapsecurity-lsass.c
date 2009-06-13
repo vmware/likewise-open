@@ -48,6 +48,9 @@
 #include <lsa/lsa.h>
 #include <lw/rtlgoto.h>
 #include <lw/safeint.h>
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include <assert.h>
 

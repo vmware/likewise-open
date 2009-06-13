@@ -48,10 +48,12 @@
 #include "lsasystem.h"
 #include "lsadef.h"
 #include "lsa/lsa.h"
-
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsasrvutils.h"
-#include "lsaldap.h"
+#include "lwldap.h"
 
 #define GOTO_CLEANUP_ON_ERROR(dwError) \
     do { \
@@ -183,7 +185,7 @@ SearchTest(
     LOG_TID("Searching scope '%s' for '%s'\n",
             tid, pszScopeDn, pszQuery);
 
-    dwError = LsaLdapDirectorySearch(
+    dwError = LwLdapDirectorySearch(
                     hDirectory,
                     pszScopeDn,
                     LDAP_SCOPE_SUBTREE,
@@ -192,7 +194,7 @@ SearchTest(
                     &pMessage);
     GOTO_CLEANUP_ON_ERROR_EE(dwError, EE);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
     count = ldap_count_entries(pLd, pMessage);
     LOG_TID("Got %d entries\n", tid, count);
     if (count < 0)
@@ -424,7 +426,7 @@ main(
 
     LOG("Pinging address '%s'\n", pszServerAddress);
 
-    dwError = LsaLdapPingTcp(pszServerAddress, 5);
+    dwError = LwLdapPingTcp(pszServerAddress, 5);
     GOTO_CLEANUP_ON_ERROR_EE(dwError, EE);
 
     if (!pszServerName)
@@ -434,7 +436,7 @@ main(
 
     LOG("Opening '%s'\n", pszServerName);
 
-    dwError = LsaLdapOpenDirectoryServer(
+    dwError = LwLdapOpenDirectoryServer(
                     pszServerAddress,
                     pszServerName,
                     0,

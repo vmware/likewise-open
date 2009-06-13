@@ -2654,7 +2654,7 @@ LsaDmpLdapConnectionDestroy(
 {
     if (pLdap != NULL)
     {
-        LsaLdapCloseDirectory(pLdap->hLdapConnection);
+        LwLdapCloseDirectory(pLdap->hLdapConnection);
         LSA_SAFE_FREE_STRING(pLdap->pszDnsDomainName);
         LsaFreeMemory(pLdap);
     }
@@ -2689,14 +2689,14 @@ LsaDmpLdapReconnectCallback(
 
     if (pLdap->bIsGc)
     {
-        dwError = LsaLdapOpenDirectoryGc(
+        dwError = LwLdapOpenDirectoryGc(
                         pLdap->pszDnsDomainName,
                         dwFlags,
                         &hNew);
     }
     else
     {
-        dwError = LsaLdapOpenDirectoryDomain(
+        dwError = LwLdapOpenDirectoryDomain(
                         pLdap->pszDnsDomainName,
                         dwFlags,
                         &hNew);
@@ -2710,7 +2710,7 @@ LsaDmpLdapReconnectCallback(
     hOld = pLdap->hLdapConnection;
     if (hOld)
     {
-        LsaLdapCloseDirectory(hOld);
+        LwLdapCloseDirectory(hOld);
         pLdap->hLdapConnection = NULL;
         bIsReconnect = TRUE;
     }
@@ -2772,7 +2772,7 @@ cleanup:
 error:
     if (hNew)
     {
-        LsaLdapCloseDirectory(hNew);
+        LwLdapCloseDirectory(hNew);
     }
     // Do not change pLdap->hLdapConnection since the old one has not been
     // freed.

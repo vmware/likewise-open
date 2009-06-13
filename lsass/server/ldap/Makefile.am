@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblsaldap.la
 
 liblsaldap_la_SOURCES = \
-       lsaldap.c
+       lwldap.c
 
 liblsaldap_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

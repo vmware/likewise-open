@@ -125,7 +125,7 @@ LsaAdBatchGatherSchemaModeUser(
     DWORD dwError = 0;
     DWORD dwValue = 0;
 
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                     hDirectory,
                     pMessage,
                     AD_LDAP_UID_TAG,
@@ -152,7 +152,7 @@ LsaAdBatchGatherSchemaModeUser(
 
     pItem->UserInfo.uid = (uid_t)dwValue;
 
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                     hDirectory,
                     pMessage,
                     AD_LDAP_GID_TAG,
@@ -169,35 +169,35 @@ LsaAdBatchGatherSchemaModeUser(
 
     pItem->UserInfo.gid = (gid_t)dwValue;
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_ALIAS_TAG,
                     &pItem->UserInfo.pszAlias);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_PASSWD_TAG,
                     &pItem->UserInfo.pszPasswd);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_GECOS_TAG,
                     &pItem->UserInfo.pszGecos);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_HOMEDIR_TAG,
                     &pItem->UserInfo.pszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_SHELL_TAG,
@@ -222,7 +222,7 @@ LsaAdBatchGatherSchemaModeGroup(
     DWORD dwError = 0;
     DWORD dwValue = 0;
 
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                     hDirectory,
                     pMessage,
                     AD_LDAP_GID_TAG,
@@ -249,14 +249,14 @@ LsaAdBatchGatherSchemaModeGroup(
 
     pItem->GroupInfo.gid = (gid_t)dwValue;
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_DISPLAY_NAME_TAG,
                     &pItem->GroupInfo.pszAlias);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_PASSWD_TAG,
@@ -513,7 +513,7 @@ LsaAdBatchGatherUnprovisionedModeUser(
     DWORD dwError = 0;
 
     // Need the primary group RID to marshal gid later.
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                 hDirectory,
                 pMessage,
                 AD_LDAP_PRIMEGID_TAG,
@@ -530,7 +530,7 @@ LsaAdBatchGatherUnprovisionedModeUser(
 #endif
 
     // Use display name for user gecos.
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_DISPLAY_NAME_TAG,
@@ -591,7 +591,7 @@ LsaAdBatchGatherRealUser(
 
     LSA_ASSERT(!pItem->UserInfo.pszUserPrincipalName);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_UPN_TAG,
@@ -605,7 +605,7 @@ LsaAdBatchGatherRealUser(
         LsaPrincipalRealmToUpper(pItem->UserInfo.pszUserPrincipalName);
     }
 
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                     hDirectory,
                     pMessage,
                     AD_LDAP_USER_CTRL_TAG,
@@ -620,14 +620,14 @@ LsaAdBatchGatherRealUser(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetUInt64(
+    dwError = LwLdapGetUInt64(
                     hDirectory,
                     pMessage,
                     AD_LDAP_ACCOUT_EXP_TAG,
                     &pItem->UserInfo.AccountExpires);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetUInt64(
+    dwError = LwLdapGetUInt64(
                     hDirectory,
                     pMessage,
                     AD_LDAP_PWD_LASTSET_TAG,
@@ -703,7 +703,7 @@ LsaAdBatchGatherRealObjectInternal(
 
     LSA_ASSERT(!pItem->pszSamAccountName);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_SAM_NAME_TAG,
@@ -717,7 +717,7 @@ LsaAdBatchGatherRealObjectInternal(
 
     LSA_ASSERT(!pItem->pszDn);
 
-    dwError = LsaLdapGetString(
+    dwError = LwLdapGetString(
                     hDirectory,
                     pMessage,
                     AD_LDAP_DN_TAG,

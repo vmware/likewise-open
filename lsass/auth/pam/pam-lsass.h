@@ -50,6 +50,9 @@
 #include "lsasystem.h"
 #include "lsa/lsa.h"
 #include "lsadef.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaclient.h"
 
