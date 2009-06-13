@@ -47,7 +47,7 @@
 #include "lsajoin.h"
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
-#include "lsaldap.h"
+#include "lwldap.h"
 
 #include <lwps/lwps.h>
 #include <lwnet.h>

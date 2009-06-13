@@ -336,10 +336,10 @@ LsaGetComputerDN(
     dwError = LsaKrb5SetDefaultCachePath(pszKrb5CachePath, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapOpenDirectoryDomain(pszDomain, 0, &hDirectory);
+    dwError = LwLdapOpenDirectoryDomain(pszDomain, 0, &hDirectory);
     BAIL_ON_LSA_ERROR(dwError);
         
-    dwError = LsaLdapConvertDomainToDN(
+    dwError = LwLdapConvertDomainToDN(
                         pszDomain,
                         &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -378,7 +378,7 @@ cleanup:
     }
     
     if (hDirectory != (HANDLE)NULL) {
-        LsaLdapCloseDirectory(hDirectory);
+        LwLdapCloseDirectory(hDirectory);
     }
 
     return dwError;
@@ -410,14 +410,14 @@ LsaSrvJoinFindComputerDN(
     PSTR pszComputerDN = NULL;
     PSTR pszEscapedUpperHostName = NULL;
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
-    dwError = LsaLdapConvertDomainToDN(
+    dwError = LwLdapConvertDomainToDN(
                     pszDomain,
                     &pszDirectoryRoot);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                     &pszEscapedUpperHostName,
                     pszHostName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -426,7 +426,7 @@ LsaSrvJoinFindComputerDN(
     
     sprintf(szQuery, "(sAMAccountName=%s)", pszEscapedUpperHostName);
 
-    dwError = LsaLdapDirectorySearch(
+    dwError = LwLdapDirectorySearch(
                     hDirectory,
                     pszDirectoryRoot,
                     LDAP_SCOPE_SUBTREE,
@@ -447,7 +447,7 @@ LsaSrvJoinFindComputerDN(
     }
     BAIL_ON_LSA_ERROR(dwError);   
     
-    dwError = LsaLdapGetDN(
+    dwError = LwLdapGetDN(
                     hDirectory,
                     pMessage,
                     &pszComputerDN);
