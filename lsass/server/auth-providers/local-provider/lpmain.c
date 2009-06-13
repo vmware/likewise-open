@@ -180,14 +180,14 @@ LocalCloseHandle(
         DirectoryClose(pContext->hDirectory);
     }
 
-    if (pContext)
-    {
-        LsaFreeMemory(pContext);
-    }
-
     if (pContext->pMutex)
     {
         pthread_mutex_destroy(&pContext->mutex);
+    }
+
+    if (pContext)
+    {
+        LsaFreeMemory(pContext);
     }
 }
 
