@@ -856,7 +856,7 @@ AD_BeginEnumUsers(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaInitCookie(&pEnumState->Cookie);
+    LwInitCookie(&pEnumState->Cookie);
 
     *phResume = (HANDLE)pEnumState;
 
@@ -2308,7 +2308,7 @@ AD_BeginEnumGroups(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaInitCookie(&pEnumState->Cookie);
+    LwInitCookie(&pEnumState->Cookie);
 
     *phResume = (HANDLE)pEnumState;
 
@@ -2710,7 +2710,7 @@ AD_BeginEnumNSSArtefacts(
                                 &pEnumState);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaInitCookie(&pEnumState->Cookie);
+            LwInitCookie(&pEnumState->Cookie);
 
             break;
 

@@ -289,12 +289,12 @@ LwLdapFreeCookie(
     );
 
 VOID
-LsaFreeCookieContents(
+LwFreeCookieContents(
     IN OUT PLSA_SEARCH_COOKIE pCookie
     );
 
 VOID
-LsaInitCookie(
+LwInitCookie(
     OUT PLSA_SEARCH_COOKIE pCookie
     );
 

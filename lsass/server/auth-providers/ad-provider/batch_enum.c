@@ -74,7 +74,7 @@ LsaAdBatchFreeCellCookie(
 
     if (pData != NULL)
     {
-        LsaFreeCookieContents(&pData->LdapCookie);
+        LwFreeCookieContents(&pData->LdapCookie);
         LsaDmLdapClose(pData->pLdapConn);
         LsaHashSafeFree(&pData->pEnumeratedSids);
 
@@ -729,7 +729,7 @@ LsaAdBatchEnumObjectsInLinkedCells(
         if (pCookieData->LdapCookie.bSearchFinished)
         {
             pCookieData->pCurrentCell = pCookieData->pCurrentCell->pNext;
-            LsaFreeCookieContents(&pCookieData->LdapCookie);
+            LwFreeCookieContents(&pCookieData->LdapCookie);
             LsaDmLdapClose(pCookieData->pLdapConn);
             pCookieData->pLdapConn = NULL;
         }
@@ -855,7 +855,7 @@ LsaAdBatchEnumObjects(
 
             if (pCookieData->LdapCookie.bSearchFinished)
             {
-                LsaFreeCookieContents(&pCookieData->LdapCookie);
+                LwFreeCookieContents(&pCookieData->LdapCookie);
                 LsaDmLdapClose(pCookieData->pLdapConn);
                 pCookieData->pLdapConn = NULL;
                 pCookieData->pCurrentCell = gpADProviderData->pCellList;
