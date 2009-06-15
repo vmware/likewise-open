@@ -379,6 +379,7 @@ LwIoCredentialCacheToTgt(
     PSTR pszCredCachePath = NULL;
     PIO_ACCESS_TOKEN pAccessToken = NULL;
     BOOLEAN bFoundTgt = FALSE;
+    BOOLEAN bStartSeq = FALSE;
     krb5_creds creds;
     krb5_cc_cursor cursor;
 
@@ -414,6 +415,8 @@ LwIoCredentialCacheToTgt(
         Status = STATUS_UNSUCCESSFUL;
         BAIL_ON_NT_STATUS(Status);
     }
+
+    bStartSeq = TRUE;
 
     while ((krb5Error = krb5_cc_next_cred(pContext, pCache, &cursor, &creds)) == 0)
     {
@@ -521,6 +524,11 @@ cleanup:
     if (bFoundTgt)
     {
         krb5_free_cred_contents(pContext, &creds);
+    }
+
+    if (bStartSeq)
+    {
+        krb5_cc_end_seq_get(pContext, pCache, &cursor);
     }
 
     if (pCache)

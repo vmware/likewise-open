@@ -36,13 +36,18 @@
 #include "lsadef.h"
 #include "lsa/lsa.h"
 #include "eventlog.h"
+
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+
 #include "lsautils.h"
 #include "lsaunistr.h"
 
 #include "lsajoin.h"
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
-#include "lsaldap.h"
+#include "lwldap.h"
 
 #include <lwps/lwps.h>
 #include <lwnet.h>

@@ -348,7 +348,7 @@ typedef struct LWMsgAssocClass
      * @param[in] value the value of the timeout, or NULL for no timeout
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+     * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
      * @lwmsg_etc{implementation-specific error}
      * @lwmsg_endstatus
      */
@@ -1057,7 +1057,7 @@ lwmsg_assoc_get_session_data(
  * @param[in] value the value of the timeout, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+ * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
  * @lwmsg_etc{implementation-specific error}
  * @lwmsg_endstatus
  */
@@ -1093,6 +1093,13 @@ lwmsg_assoc_set_session_functions(
     LWMsgSessionConstructor construct,
     LWMsgSessionDestructor destruct,
     void* data
+    );
+
+LWMsgStatus
+lwmsg_assoc_print_message_alloc(
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message,
+    char** result
     );
 
 #ifndef DOXYGEN

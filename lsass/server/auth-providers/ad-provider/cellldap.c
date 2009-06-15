@@ -161,7 +161,7 @@ CellModeSchemaFindNSSArtefactByKey(
                     pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                    &pszEscapedDN,
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -194,7 +194,7 @@ CellModeSchemaFindNSSArtefactByKey(
                    &pMessagePseudo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -417,7 +417,7 @@ CellModeSchemaEnumNSSArtefacts(
                    pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                    &pszEscapedDN,
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -441,7 +441,7 @@ CellModeSchemaEnumNSSArtefacts(
                        &pMessagePseudo);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(
                           pLd,

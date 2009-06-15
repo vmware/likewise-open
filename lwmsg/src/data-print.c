@@ -374,7 +374,7 @@ error:
 
 LWMsgStatus
 lwmsg_data_print_graph(
-    const LWMsgContext* context,
+    LWMsgDataHandle* handle,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgDataPrintFunction print,
@@ -387,7 +387,7 @@ lwmsg_data_print_graph(
 
     info.newline = LWMSG_TRUE;
     info.depth = 0;
-    info.context = context;
+    info.context = handle->context;
     info.print = print;
     info.print_data = print_data;
 
@@ -404,4 +404,93 @@ lwmsg_data_print_graph(
 error:
 
     return status;
+}
+
+typedef struct print_alloc_info
+{
+    LWMsgDataHandle* handle;
+    char* buffer;
+    size_t buffer_size;
+    size_t buffer_capacity;
+} print_alloc_info;
+
+static
+LWMsgStatus
+lwmsg_data_print_graph_alloc_print(
+    const char* text,
+    size_t length,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    print_alloc_info* info = (print_alloc_info*) data;
+    size_t new_capacity = 0;
+    char* new_buffer = NULL;
+
+    while (info->buffer_size + (length + 1) > info->buffer_capacity)
+    {
+        if (info->buffer_capacity == 0)
+        {
+            new_capacity = 512;
+        }
+        else
+        {
+            new_capacity = info->buffer_capacity * 2;
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_context_realloc(
+                          info->handle->context,
+                          info->buffer,
+                          info->buffer_capacity,
+                          new_capacity,
+                          (void**) (void*) &new_buffer));
+        info->buffer = new_buffer;
+        info->buffer_capacity = new_capacity;
+    }
+
+    memcpy(info->buffer + info->buffer_size, text, length);
+    info->buffer[info->buffer_size + length] = '\0';
+    info->buffer_size += length;
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_data_print_graph_alloc(
+    LWMsgDataHandle* handle,
+    LWMsgTypeSpec* type,
+    void* object,
+    char** result
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    print_alloc_info info = {0};
+
+    info.handle = handle;
+
+    BAIL_ON_ERROR(status = lwmsg_data_print_graph(
+                      handle,
+                      type,
+                      object,
+                      lwmsg_data_print_graph_alloc_print,
+                      &info));
+
+    *result = info.buffer;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *result = NULL;
+
+    if (info.buffer)
+    {
+        lwmsg_context_free(handle->context, info.buffer);
+    }
+
+    goto cleanup;
 }

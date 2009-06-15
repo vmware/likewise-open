@@ -122,19 +122,19 @@ const LWMsgDispatchSpec;
  *
  * This macro is used in dispatch table construction to
  * define the handler for a particular message type.
- * @param _type the message type
- * @param _func the callback to handle the specified message type
+ * @param tag the message tag
+ * @param func the callback to handle the specified message type
  * @hideinitializer
  * @deprecated use LWMSG_DISPATCH_SYNC() or LWMSG_DISPATCH_ASYNC() instead
  */
-#define LWMSG_DISPATCH(_tag, _func) \
-    {LWMSG_DISPATCH_TYPE_OLD, (_tag), (void*) (LWMsgAssocDispatchFunction) (_func)}
+#define LWMSG_DISPATCH(tag, func) \
+    {LWMSG_DISPATCH_TYPE_OLD, (tag), (void*) (LWMsgAssocDispatchFunction) (func)}
 
-#define LWMSG_DISPATCH_SYNC(_tag, _func) \
-    {LWMSG_DISPATCH_TYPE_SYNC, _tag, (void*) (LWMsgServerDispatchFunction) (_func)}
+#define LWMSG_DISPATCH_SYNC(tag, func) \
+    {LWMSG_DISPATCH_TYPE_SYNC, (tag), (void*) (LWMsgServerDispatchFunction) (func)}
 
-#define LWMSG_DISPATCH_ASYNC(_tag, _func) \
-    {LWMSG_DISPATCH_TYPE_ASYNC, _tag, (void*) (LWMsgServerDispatchFunction) (_func)}
+#define LWMSG_DISPATCH_ASYNC(tag, func) \
+    {LWMSG_DISPATCH_TYPE_ASYNC, (tag), (void*) (LWMsgServerDispatchFunction) (func)}
 
 /**
  * @ingroup server
@@ -177,6 +177,7 @@ typedef enum LWMsgServerMode
  *
  * Creates a new server object
  *
+ * @param[in] context an optional context
  * @param[in] protocol a protocol object which describes the protocol spoken by the server
  * @param[out] server the created server object
  * @lwmsg_status
@@ -187,6 +188,7 @@ typedef enum LWMsgServerMode
  */
 LWMsgStatus
 lwmsg_server_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgServer** server
     );

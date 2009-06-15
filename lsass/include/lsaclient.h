@@ -48,6 +48,9 @@
 #ifndef __LSACLIENT_H__
 #define __LSACLIENT_H__
 
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 
 DWORD

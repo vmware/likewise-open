@@ -60,7 +60,9 @@
 #include <eventlog.h>
 
 #include "lsadef.h"
-
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsalog_r.h"

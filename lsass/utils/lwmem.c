@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,39 +33,85 @@
  *
  * Module Name:
  *
- *        ipc.h
+ *        lsamem.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Security and Authentication Subsystem (LSASS) Memory Utilities
  *
- *        Interprocess Communication (Private Include)
- *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
- *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "config.h"
+#include "includes.h"
 
-#include "lsasystem.h"
+DWORD
+LwAllocateMemory(
+    DWORD dwSize,
+    PVOID * ppMemory
+    )
+{
+    DWORD dwError = 0;
+    PVOID pMemory = NULL;
 
-#include "lsadef.h"
-#include "lsa/lsa.h"
+    pMemory = malloc(dwSize);
+    if (!pMemory){
+        dwError = ENOMEM;
+        *ppMemory = NULL;
+    }else {
+        memset(pMemory,0, dwSize);
+        *ppMemory = pMemory;
+    }
 
-#include <lwmsg/lwmsg.h>
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-#include "lsaipc.h"
-#include "lsalocalprovider.h"
+    return dwError;
+}
 
+DWORD
+LwReallocMemory(
+    PVOID  pMemory,
+    PVOID * ppNewMemory,
+    DWORD dwSize
+    )
+{
+    DWORD dwError = 0;
+    PVOID pNewMemory = NULL;
 
+    if (pMemory == NULL) {
+       pNewMemory = malloc(dwSize);
+       memset(pNewMemory, 0, dwSize);
+    }else {
+       pNewMemory = realloc(pMemory, dwSize);
+    }
+    if (!pNewMemory){
+       dwError = ENOMEM;
+       *ppNewMemory = NULL;
+    }else {
+       *ppNewMemory = pNewMemory;
+    }
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    return dwError;
+}
+
+void
+LwFreeMemory(
+    PVOID pMemory
+    )
+{
+    free(pMemory);
+}
+
+void
+LwFreeNullTerminatedStringArray(
+    PSTR * ppStringArray
+    )
+{
+    PSTR* ppTmp = ppStringArray;
+
+    while (ppTmp && *ppTmp) {
+
+          LsaFreeString(*ppTmp);
+
+          ppTmp++;
+    }
+
+    LsaFreeMemory(ppStringArray);
+}

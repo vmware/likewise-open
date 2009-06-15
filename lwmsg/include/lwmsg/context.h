@@ -140,7 +140,7 @@ typedef LWMsgStatus
     void* data
     );
 
-typedef void
+typedef LWMsgBool
 (*LWMsgLogFunction) (
     LWMsgLogLevel level,
     const char* message,
@@ -153,18 +153,18 @@ typedef void
  * @ingroup marshal
  * @brief Create a new context
  *
- * Creates a new context with no parent and default settings:
- * <ul>
- * <li>A memory manager using plain malloc() and free()</li>
- * </ul>
+ * Creates a new context with an optional parent.
+ * Options not explicitly set in the context will be
+ * inherited from the parent.
  *
- * @param out_context the created context
+ * @param parent an optional parent context
+ * @param context the created context
  * @return LWMSG_STATUS_SUCCESS on success or LWMSG_STATUS_MEMORY if out of memory
  */
 LWMsgStatus
 lwmsg_context_new(
     const LWMsgContext* parent,
-    LWMsgContext** out_context
+    LWMsgContext** context
     );
 
 /**
@@ -225,6 +225,28 @@ lwmsg_context_set_log_function(
     LWMsgContext* context,
     LWMsgLogFunction logfn,
     void* data
+    );
+
+LWMsgStatus
+lwmsg_context_alloc(
+    const LWMsgContext* context,
+    size_t size,
+    void** object
+    );
+
+void
+lwmsg_context_free(
+    const LWMsgContext* context,
+    void* object
+    );
+
+LWMsgStatus
+lwmsg_context_realloc(
+    const LWMsgContext* context,
+    void* old_object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object
     );
 
 /**

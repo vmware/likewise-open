@@ -47,8 +47,8 @@ struct LWMsgProtocol
 {
     /* Number of message types in this protocol */
     size_t num_types;
-    /* Array of types indexed by message tag */
-    LWMsgTypeSpec** types;
+    /* Pointers to protocol spec entries indexed by message tag */
+    LWMsgProtocolSpec** types;
     /* Context for compiling specs, etc. */
     LWMsgContext context;
 };

@@ -60,6 +60,9 @@
 #include <lwnet.h>
 #include <lwio/lwio.h>
 
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsaipc.h"
@@ -69,7 +72,7 @@
 
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
-#include "lsaldap.h"
+#include "lwldap.h"
 #include "lsadb.h"
 
 #include "addef.h"

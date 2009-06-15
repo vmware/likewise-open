@@ -29,11 +29,14 @@ lwmsg_assoc_establish
 lwmsg_assoc_finish
 lwmsg_assoc_set_nonblock
 lwmsg_assoc_set_session_functions
+lwmsg_assoc_print_message_alloc
 lwmsg_connection_new
 lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
 lwmsg_connection_set_endpoint
 lwmsg_local_token_get_eid
+lwmsg_error_message
+lwmsg_error_clear
 lwmsg_context_new
 lwmsg_context_delete
 lwmsg_context_set_memory_functions
@@ -43,6 +46,10 @@ lwmsg_context_set_log_function
 lwmsg_context_get_error_message
 lwmsg_context_log
 lwmsg_context_log_printf
+lwmsg_context_would_log
+lwmsg_context_alloc
+lwmsg_context_free
+lwmsg_context_realloc
 lwmsg_data_handle_new
 lwmsg_data_handle_delete
 lwmsg_data_handle_get_error_message
@@ -56,7 +63,10 @@ lwmsg_data_marshal_flat_alloc
 lwmsg_data_unmarshal
 lwmsg_data_unmarshal_flat
 lwmsg_data_free_graph
+lwmsg_data_print_graph
+lwmsg_data_print_graph_alloc
 lwmsg_protocol_get_message_type
+lwmsg_protocol_get_message_name
 lwmsg_protocol_new
 lwmsg_protocol_add_protocol_spec
 lwmsg_protocol_delete
@@ -95,6 +105,5 @@ lwmsg_session_manager_handle_id_to_pointer
 lwmsg_session_manager_handle_pointer_to_id
 lwmsg_session_manager_register_handle_local
 lwmsg_session_manager_register_handle_remote
-lwmsg_data_print_graph
 lwmsg_fd_type_class
 lwmsg_handle_type_class

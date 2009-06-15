@@ -467,6 +467,10 @@ LsaSrvParseArgs(
 
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
 
+          } else if (!strcasecmp(pArg, "trace")) {
+
+            pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
+
           } else {
 
             LSA_LOG_ERROR("Error: Invalid log level [%s]", pArg);
@@ -537,7 +541,7 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
            "          [--logfile logFilePath]\n"
-           "          [--loglevel {error, warning, info, verbose}]\n", pszProgramName);
+           "          [--loglevel {error, warning, info, verbose, debug, trace}]\n", pszProgramName);
 }
 
 VOID

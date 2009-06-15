@@ -84,27 +84,27 @@ typedef struct __LSA_SEARCH_COOKIE
 } LSA_SEARCH_COOKIE, *PLSA_SEARCH_COOKIE;
 
 DWORD
-LsaLdapPingTcp(
+LwLdapPingTcp(
     PCSTR pszHostAddress,
     DWORD dwTimeoutSeconds
     );
 
 DWORD
-LsaLdapOpenDirectoryDomain(
+LwLdapOpenDirectoryDomain(
     IN PCSTR pszDnsDomainName,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     );
 
 DWORD
-LsaLdapOpenDirectoryGc(
+LwLdapOpenDirectoryGc(
     IN PCSTR pszDnsForestName,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     );
 
 DWORD
-LsaLdapOpenDirectoryServer(
+LwLdapOpenDirectoryServer(
     IN PCSTR pszServerAddress,
     IN PCSTR pszServerName,
     IN DWORD dwFlags,
@@ -112,24 +112,24 @@ LsaLdapOpenDirectoryServer(
     );
 
 DWORD
-LsaLdapConvertDomainToDN(
+LwLdapConvertDomainToDN(
     PCSTR pszDomainName,
     PSTR * ppszDomainDN
     );
 
 DWORD
-LsaLdapConvertDNToDomain(
+LwLdapConvertDNToDomain(
     PCSTR pszDN,
     PSTR* ppszDomainName
     );
 
 void
-LsaLdapCloseDirectory(
+LwLdapCloseDirectory(
     HANDLE hDirectory
     );
 
 DWORD
-LsaLdapReadObject(
+LwLdapReadObject(
     HANDLE hDirectory,
     PCSTR  pszObjectDN,
     PSTR*  ppszAttributeList,
@@ -137,13 +137,13 @@ LsaLdapReadObject(
     );
 
 DWORD
-LsaLdapGetParentDN(
+LwLdapGetParentDN(
     PCSTR pszObjectDN,
     PSTR* ppszParentDN
     );
 
 DWORD
-LsaLdapDirectorySearch(
+LwLdapDirectorySearch(
     HANDLE hDirectory,
     PCSTR  pszObjectDN,
     int    scope,
@@ -153,7 +153,7 @@ LsaLdapDirectorySearch(
     );
 
 DWORD
-LsaLdapDirectorySearchEx(
+LwLdapDirectorySearchEx(
     HANDLE hDirectory,
     PCSTR pszObjectDN,
     int scope,
@@ -165,17 +165,17 @@ LsaLdapDirectorySearchEx(
     );
 
 DWORD
-LsaLdapEnablePageControlOption(
+LwLdapEnablePageControlOption(
     HANDLE hDirectory
     );
 
 DWORD
-LsaLdapDisablePageControlOption(
+LwLdapDisablePageControlOption(
     HANDLE hDirectory
     );
 
 DWORD
-LsaLdapDirectoryOnePagedSearch(
+LwLdapDirectoryOnePagedSearch(
     HANDLE         hDirectory,
     PCSTR          pszObjectDN,
     PCSTR          pszQuery,
@@ -187,24 +187,24 @@ LsaLdapDirectoryOnePagedSearch(
     );
 
 LDAPMessage*
-LsaLdapFirstEntry(
+LwLdapFirstEntry(
     HANDLE hDirectory,
     LDAPMessage *pMessage
     );
 
 LDAPMessage*
-LsaLdapNextEntry(
+LwLdapNextEntry(
     HANDLE hDirectory,
     LDAPMessage* pMessage
     );
 
 LDAP *
-LsaLdapGetSession(
+LwLdapGetSession(
     HANDLE hDirectory
     );
 
 DWORD
-LsaLdapGetBytes(
+LwLdapGetBytes(
         HANDLE hDirectory,
         LDAPMessage* pMessage,
         PSTR pszFieldName,
@@ -213,7 +213,7 @@ LsaLdapGetBytes(
         );
 
 DWORD
-LsaLdapGetString(
+LwLdapGetString(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PCSTR pszFieldName,
@@ -221,21 +221,21 @@ LsaLdapGetString(
     );
 
 DWORD
-LsaLdapGetDN(
+LwLdapGetDN(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PSTR* ppszValue
     );
 
 DWORD
-LsaLdapIsValidADEntry(
+LwLdapIsValidADEntry(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PBOOLEAN pbValidADEntry
     );
 
 DWORD
-LsaLdapGetUInt32(
+LwLdapGetUInt32(
     HANDLE hDirectory,
     LDAPMessage* pMessage,
     PCSTR pszFieldName,
@@ -243,7 +243,7 @@ LsaLdapGetUInt32(
     );
 
 DWORD
-LsaLdapGetUInt64(
+LwLdapGetUInt64(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -251,7 +251,7 @@ LsaLdapGetUInt64(
     );
 
 DWORD
-LsaLdapGetInt64(
+LwLdapGetInt64(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -259,7 +259,7 @@ LsaLdapGetInt64(
     );
 
 DWORD
-LsaLdapGetStrings(
+LwLdapGetStrings(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -268,7 +268,7 @@ LsaLdapGetStrings(
     );
 
 DWORD
-LsaLdapGetStringsWithExtDnResult(
+LwLdapGetStringsWithExtDnResult(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -278,33 +278,33 @@ LsaLdapGetStringsWithExtDnResult(
     );
 
 DWORD
-LsaLdapEscapeString(
+LwLdapEscapeString(
     PSTR *ppszResult,
     PCSTR pszInput
     );
 
 VOID
-LsaLdapFreeCookie(
+LwLdapFreeCookie(
     PVOID pCookie
     );
 
 VOID
-LsaFreeCookieContents(
+LwFreeCookieContents(
     IN OUT PLSA_SEARCH_COOKIE pCookie
     );
 
 VOID
-LsaInitCookie(
+LwInitCookie(
     OUT PLSA_SEARCH_COOKIE pCookie
     );
 
 DWORD
-LsaLdapParseExtendedDNResult(
+LwLdapParseExtendedDNResult(
     IN PCSTR pszResult,
     OUT PSTR* ppszSid);
 
 DWORD
-LsaLdapDirectoryExtendedDNSearch(
+LwLdapDirectoryExtendedDNSearch(
     IN HANDLE hDirectory,
     IN PCSTR pszObjectDN,
     IN PCSTR pszQuery,

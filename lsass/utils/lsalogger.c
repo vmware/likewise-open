@@ -312,6 +312,7 @@ LsaValidateLogLevel(
         case LSA_LOG_LEVEL_INFO:
         case LSA_LOG_LEVEL_VERBOSE:
         case LSA_LOG_LEVEL_DEBUG:
+        case LSA_LOG_LEVEL_TRACE:
             dwError = 0;
             break;
         default:

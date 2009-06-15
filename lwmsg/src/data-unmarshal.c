@@ -63,7 +63,8 @@ lwmsg_data_unmarshal_struct_pointee(
     unsigned char** out
     );
 
-static LWMsgStatus
+static inline
+LWMsgStatus
 lwmsg_object_alloc(
     LWMsgDataHandle* handle,
     size_t size,
@@ -71,22 +72,16 @@ lwmsg_object_alloc(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    void* my_out = NULL;
-    LWMsgAllocFunction alloc = NULL;
-    void* data = NULL;
 
-    lwmsg_context_get_memory_functions(handle->context, &alloc, NULL, NULL, &data);
-
-    BAIL_ON_ERROR(status = alloc(size, &my_out, data));
-
-    *out = my_out;
+    BAIL_ON_ERROR(status = lwmsg_context_alloc(handle->context, size, (void**) (void*) out));
 
 error:
 
     return status;
 }
 
-static LWMsgStatus
+static inline
+LWMsgStatus
 lwmsg_object_realloc(
     LWMsgDataHandle* handle,
     unsigned char* object,
@@ -96,36 +91,27 @@ lwmsg_object_realloc(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    void* my_out = NULL;
-    LWMsgReallocFunction realloc = NULL;
-    void* data = NULL;
 
-    lwmsg_context_get_memory_functions(handle->context, NULL, NULL, &realloc, &data);
-
-    BAIL_ON_ERROR(status = realloc(object, old_size, new_size, &my_out, data));
-
-    *out = my_out;
+    BAIL_ON_ERROR(status = lwmsg_context_realloc(
+                      handle->context,
+                      (void*) object,
+                      old_size,
+                      new_size,
+                      (void**) (void*) out));
 
 error:
 
     return status;
 }
 
-static LWMsgStatus
+static inline
+void
 lwmsg_object_free(
     LWMsgDataHandle* handle,
     unsigned char* object
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgFreeFunction free = NULL;
-    void* data = NULL;
-
-    lwmsg_context_get_memory_functions(handle->context, NULL, &free, NULL, &data);
-
-    free(object, data);
-
-    return status;
+    lwmsg_context_free(handle->context, (void*) object);
 }
 
 static LWMsgStatus

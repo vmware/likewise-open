@@ -62,7 +62,7 @@ AD_OnlineFindCellDN(
     PSTR  pszCellDN = NULL;
     PSTR  pszTmpDN = NULL;
 
-    dwError = LsaLdapGetParentDN(pszComputerDN, &pszParentDN);
+    dwError = LwLdapGetParentDN(pszComputerDN, &pszParentDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     //
@@ -88,7 +88,7 @@ AD_OnlineFindCellDN(
         pszTmpDN = pszParentDN;
         pszParentDN = NULL;
 
-        dwError = LsaLdapGetParentDN(pszTmpDN, &pszParentDN);
+        dwError = LwLdapGetParentDN(pszTmpDN, &pszParentDN);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -224,7 +224,7 @@ AD_OnlineInitializeOperatingMode(
                     &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapConvertDomainToDN(pszDomain, &pszRootDN);
+    dwError = LwLdapConvertDomainToDN(pszDomain, &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADFindComputerDN(pConn, pszHostName, pszDomain,
@@ -390,7 +390,7 @@ AD_GetLinkedCellInfo(
                       &pCellMessage1);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -405,7 +405,7 @@ AD_GetLinkedCellInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     //Confirm the entry we obtain from AD is valid by retrieving its DN
-    dwError = LsaLdapIsValidADEntry(
+    dwError = LwLdapIsValidADEntry(
                     hDirectory,
                     pCellMessage1,
                     &bValidADEntry);
@@ -416,7 +416,7 @@ AD_GetLinkedCellInfo(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapGetStrings(
+    dwError = LwLdapGetStrings(
                      hDirectory,
                      pCellMessage1,
                      AD_LDAP_DESCRIP_TAG,
@@ -434,7 +434,7 @@ AD_GetLinkedCellInfo(
     }
 
     if (!IsNullOrEmptyString(pszLinkedCell)){
-        dwError = LsaLdapConvertDomainToDN(
+        dwError = LwLdapConvertDomainToDN(
                         pszDomain,
                         &pszDirectoryRoot);
         BAIL_ON_LSA_ERROR(dwError);
@@ -475,7 +475,7 @@ AD_GetLinkedCellInfo(
                               &pCellMessage2);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pGCLd = LsaLdapGetSession(hGCDirectory);
+            pGCLd = LwLdapGetSession(hGCDirectory);
 
             dwCount = ldap_count_entries(
                               pGCLd,
@@ -489,7 +489,7 @@ AD_GetLinkedCellInfo(
             }
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaLdapGetDN(
+            dwError = LwLdapGetDN(
                             hGCDirectory,
                             pCellMessage2,
                             &pszLinkedCellDN);
@@ -501,12 +501,12 @@ AD_GetLinkedCellInfo(
                              pszLinkedCellDN);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaLdapConvertDNToDomain(
+            dwError = LwLdapConvertDNToDomain(
                              pszLinkedCellDN,
                              &pLinkedCellInfo->pszDomain);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaLdapConvertDomainToDN(
+            dwError = LwLdapConvertDomainToDN(
                             pLinkedCellInfo->pszDomain,
                             &pszCellDirectoryRoot);
             BAIL_ON_LSA_ERROR(dwError);

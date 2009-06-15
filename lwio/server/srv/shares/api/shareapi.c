@@ -257,6 +257,11 @@ SrvShareAdd(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (!pwszShareType)
+    {
+	pwszShareType = &wszServiceType[0];
+    }
+
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
     ntStatus = SrvShareFindByName_inlock(
@@ -340,7 +345,7 @@ SrvShareAdd(
 											pShareInfo->pwszComment,
 											pShareInfo->pSecDesc,
 											pShareInfo->ulSecDescLen,
-											&wszServiceType[0]);
+											pwszShareType);
 	BAIL_ON_NT_STATUS(ntStatus);
 
 	pShareEntry->pNext = pShareList->pShareEntry;

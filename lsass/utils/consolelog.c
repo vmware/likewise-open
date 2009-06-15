@@ -171,6 +171,13 @@ LsaLogToConsole(
             break;
         }
 
+        case LSA_LOG_LEVEL_TRACE:
+        {
+            pszEntryType = LSA_TRACE_TAG;
+            pTarget = pConsoleLog->fp_out;
+            break;
+        }
+
         default:
         {
             pszEntryType = LSA_VERBOSE_TAG;

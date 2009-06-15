@@ -347,3 +347,119 @@ lwmsg_context_log_printf(
         }
     }
 }
+
+LWMsgStatus
+lwmsg_context_alloc(
+    const LWMsgContext* context,
+    size_t size,
+    void** object
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAllocFunction fn_alloc = NULL;
+    LWMsgReallocFunction fn_realloc = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, &fn_alloc, NULL, &fn_realloc, &data);
+
+    if (fn_alloc)
+    {
+        BAIL_ON_ERROR(status = fn_alloc(size, object, data));
+    }
+    else if (fn_realloc)
+    {
+        BAIL_ON_ERROR(status = fn_realloc(NULL, 0, size, object, data));
+    }
+    else
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *object = NULL;
+
+    goto cleanup;
+}
+
+void
+lwmsg_context_free(
+    const LWMsgContext* context,
+    void* object
+    )
+{
+    LWMsgFreeFunction fn_free = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, NULL, &fn_free, NULL, &data);
+
+    fn_free(object, data);
+}
+
+LWMsgStatus
+lwmsg_context_realloc(
+    const LWMsgContext* context,
+    void* old_object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAllocFunction fn_alloc = NULL;
+    LWMsgFreeFunction fn_free = NULL;
+    LWMsgReallocFunction fn_realloc = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, &fn_alloc, &fn_free, &fn_realloc, &data);
+
+    if (fn_realloc)
+    {
+        BAIL_ON_ERROR(status = fn_realloc(old_object, old_size, new_size, new_object, data));
+    }
+    else if (fn_alloc && fn_free)
+    {
+        BAIL_ON_ERROR(status = fn_alloc(new_size, new_object, data));
+        memcpy(*new_object, old_object, new_size < old_size ? new_size : old_size);
+        fn_free(old_object, data);
+    }
+    else
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *new_object = NULL;
+
+    goto cleanup;
+}
+
+LWMsgBool
+lwmsg_context_would_log(
+    const LWMsgContext* context,
+    LWMsgLogLevel level
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        return logfn(level, NULL, NULL, 0, logfndata);
+    }
+    else
+    {
+        return LWMSG_FALSE;
+    }
+}

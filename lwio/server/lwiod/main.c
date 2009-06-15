@@ -366,6 +366,10 @@ SMBSrvParseArgs(
 
             pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_DEBUG;
 
+          } else if (!strcasecmp(pArg, "trace")) {
+
+            pSMBServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_TRACE;
+
           } else {
 
             LWIO_LOG_ERROR("Error: Invalid log level [%s]", pArg);
@@ -438,7 +442,7 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
            "          [--logfile logFilePath]\n"
-           "          [--loglevel {error, warning, info, verbose}]\n", pszProgramName);
+           "          [--loglevel {error, warning, info, verbose, debug, trace}]\n", pszProgramName);
 }
 
 static
@@ -794,6 +798,63 @@ SMBSrvGetPidFromPidFile(
     return pid;
 }
 
+LWMsgBool
+LwIoDaemonLogIpc (
+    LWMsgLogLevel level,
+    const char* pszMessage,
+    const char* pszFilename,
+    unsigned int line,
+    void* pData
+    )
+{
+    SMBLogLevel ioLevel;
+    LWMsgBool result;
+
+    switch (level)
+    {
+    case LWMSG_LOGLEVEL_ERROR:
+        ioLevel = LWIO_LOG_LEVEL_ERROR;
+        break;
+    case LWMSG_LOGLEVEL_WARNING:
+        ioLevel = LWIO_LOG_LEVEL_WARNING;
+        break;
+    case LWMSG_LOGLEVEL_INFO:
+        ioLevel = LWIO_LOG_LEVEL_INFO;
+        break;
+    case LWMSG_LOGLEVEL_VERBOSE:
+        ioLevel = LWIO_LOG_LEVEL_VERBOSE;
+        break;
+    case LWMSG_LOGLEVEL_DEBUG:
+        ioLevel = LWIO_LOG_LEVEL_DEBUG;
+        break;
+    case LWMSG_LOGLEVEL_TRACE:
+    default:
+        ioLevel = LWIO_LOG_LEVEL_TRACE;
+        break;
+    }
+
+    LWIO_LOCK_LOGGER;
+    if (pszMessage)
+    {
+        if (gSMBMaxLogLevel >= ioLevel)
+        {
+            SMBLogMessage(gpfnSMBLogger, ghSMBLog, ioLevel, "[IPC] %s", pszMessage);
+            result = LWMSG_TRUE;
+        }
+        else
+        {
+            result = LWMSG_FALSE;
+        }
+    }
+    else
+    {
+        result = (gSMBMaxLogLevel >= ioLevel);
+    }
+    LWIO_UNLOCK_LOGGER;
+
+    return result;
+}
+
 static
 DWORD
 SMBSrvExecute(
@@ -801,11 +862,17 @@ SMBSrvExecute(
     )
 {
     DWORD dwError = 0;
+    LWMsgContext* pContext = NULL;
     LWMsgProtocol* pProtocol = NULL;
     LWMsgServer* pServer = NULL;
     LWMsgTime timeout = { 30, 0 }; /* 30 seconds */
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(NULL, &pProtocol));
+    dwError = MAP_LWMSG_STATUS(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    lwmsg_context_set_log_function(pContext, LwIoDaemonLogIpc, NULL);
+
+    dwError = MAP_LWMSG_STATUS(lwmsg_protocol_new(pContext, &pProtocol));
     BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoDaemonIpcAddProtocolSpec(pProtocol);
@@ -814,7 +881,7 @@ SMBSrvExecute(
     dwError = IoIpcAddProtocolSpec(pProtocol);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pProtocol, &pServer));
+    dwError = MAP_LWMSG_STATUS(lwmsg_server_new(pContext, pProtocol, &pServer));
     BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = LwIoDaemonIpcAddDispatch(pServer);

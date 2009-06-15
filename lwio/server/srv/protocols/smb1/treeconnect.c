@@ -314,11 +314,10 @@ SrvGetShareNameCheckHostname(
 
     wc16supper(pwszPath_copy);
 
-    ntStatus = SMBAllocateStringPrintf(
+    ntStatus = SrvAllocateStringPrintf(
                     &pszHostPrefix,
                     "\\\\%s\\",
-                    pszHostname,
-                    pszDomain);
+                    pszHostname);
     BAIL_ON_NT_STATUS(ntStatus);
 
     SMBStrToUpper(pszHostPrefix);
@@ -419,7 +418,7 @@ SrvGetShareNameCheckFQDN(
 
     wc16supper(pwszPath_copy);
 
-    ntStatus = SMBAllocateStringPrintf(
+    ntStatus = SrvAllocateStringPrintf(
                     &pszHostPrefix,
                     "\\\\%s.%s\\",
                     pszHostname,

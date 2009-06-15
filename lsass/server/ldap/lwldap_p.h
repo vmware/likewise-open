@@ -47,8 +47,8 @@
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
-#ifndef __LSALDAP_P_H__
-#define __LSALDAP_P_H__
+#ifndef __LWLDAP_P_H__
+#define __LWLDAP_P_H__
 
 typedef struct _LSA_LDAP_DIRECTORY_CONTEXT {
     LDAP *ld;
@@ -94,4 +94,4 @@ void display_status_1(char *m, OM_uint32 code, int type);
 typedef gss_ctx_id_t CtxtHandle, *PCtxtHandle;
 #endif
 
-#endif /* __LSALDAP_P_H__ */
+#endif /* __LWLDAP_P_H__ */
