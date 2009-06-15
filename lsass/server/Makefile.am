@@ -1,8 +1,7 @@
 SUBDIRS = \
          store          \
-         api            \
-         krb5           \
          join           \
+         api            \
          rpc            \
          ntlmserver     \
          auth-providers \

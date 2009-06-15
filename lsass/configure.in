@@ -859,7 +859,6 @@ AC_CONFIG_FILES([Makefile
 			 ntlmclient/Makefile
 			 ntlmipc/Makefile
                  server/Makefile
-                 server/krb5/Makefile
                  server/api/Makefile
                  server/join/Makefile
                  server/ntlmserver/Makefile

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,38 +33,38 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        krbtgt_p.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
- *        Global Variables in Join Interface
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        Kerberos 5 runtime environment
+ *
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ *
  */
 
-#include "includes.h"
+#ifndef __KRBTGT_P_H__
+#define __KRBTGT_P_H__
 
-LSA_NET_JOIN_FUNCTION_TABLE  gLsaNetJoinFuncTable =
-    {
-        &LsaNetJoinDomain,
-        &LsaNetTestJoinDomain,
-        &LsaNetLeaveDomain,
-        &LsaNetGetShortDomainName,
-        &LsaNetGetDCName,
-        &LsaGetDnsDomainName,
-        &LsaGetComputerDN,
-        &LsaNetGetErrorString,
-        &LsaEnableDebugLog,
-        &LsaDisableDebugLog,
-        &LsaNetFreeString
-    };
+// 12 hours in seconds
+#define LSA_KRB5_DEFAULT_TKT_LIFE (12 * 60 * 60)
 
-PLSA_NET_JOIN_FUNCTION_TABLE gpLsaNetJoinFuncTable = &gLsaNetJoinFuncTable;
+static
+BOOLEAN
+LwKrb5RealmIsOffline(
+    IN PCSTR pszRealm
+    );
 
-DWORD gdwClockDriftSecs = 60;
+#endif /* __KRBTGT_P_H__ */
 
 
-LSA_KRB5_STATE gLwKrb5State;
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

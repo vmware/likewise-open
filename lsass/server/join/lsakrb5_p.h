@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,38 +33,32 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        lsakrb5_p.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
- *        Global Variables in Join Interface
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        KRB5 API (Private Header)
+ *
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  */
+#ifndef __LSAKRB5_P_H__
+#define __LSAKRB5_P_H__
 
-#include "includes.h"
+DWORD
+LwKrb5CopyFromUserCache(
+                krb5_context ctx,
+                krb5_ccache destCC,
+                uid_t uid
+                );
 
-LSA_NET_JOIN_FUNCTION_TABLE  gLsaNetJoinFuncTable =
-    {
-        &LsaNetJoinDomain,
-        &LsaNetTestJoinDomain,
-        &LsaNetLeaveDomain,
-        &LsaNetGetShortDomainName,
-        &LsaNetGetDCName,
-        &LsaGetDnsDomainName,
-        &LsaGetComputerDN,
-        &LsaNetGetErrorString,
-        &LsaEnableDebugLog,
-        &LsaDisableDebugLog,
-        &LsaNetFreeString
-    };
+DWORD
+LwKrb5MoveCCacheToUserPath(
+                krb5_context ctx,
+                PCSTR pszNewCacheName,
+                uid_t uid,
+                gid_t gid
+                );
 
-PLSA_NET_JOIN_FUNCTION_TABLE gpLsaNetJoinFuncTable = &gLsaNetJoinFuncTable;
-
-DWORD gdwClockDriftSecs = 60;
-
-
-LSA_KRB5_STATE gLwKrb5State;
+#endif /* __LSAKRB5_P_H__ */

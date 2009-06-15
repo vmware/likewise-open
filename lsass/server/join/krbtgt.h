@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,38 +33,52 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        krbtgt.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
- *        Global Variables in Join Interface
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Kerberos 5 runtime environment
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak <rszczesniak@likewisesoftware.com>
+ *
  */
 
-#include "includes.h"
+#ifndef __KRBTGT_H__
+#define __KRBTGT_H__
 
-LSA_NET_JOIN_FUNCTION_TABLE  gLsaNetJoinFuncTable =
-    {
-        &LsaNetJoinDomain,
-        &LsaNetTestJoinDomain,
-        &LsaNetLeaveDomain,
-        &LsaNetGetShortDomainName,
-        &LsaNetGetDCName,
-        &LsaGetDnsDomainName,
-        &LsaGetComputerDN,
-        &LsaNetGetErrorString,
-        &LsaEnableDebugLog,
-        &LsaDisableDebugLog,
-        &LsaNetFreeString
-    };
+DWORD
+LwKrb5GetTgs(
+    PCSTR pszCliPrincipal,
+    PCSTR pszSvcPrincipal,
+    PSTR pszCcPath
+    );
 
-PLSA_NET_JOIN_FUNCTION_TABLE gpLsaNetJoinFuncTable = &gLsaNetJoinFuncTable;
+DWORD
+LwKrb5GetServiceTicketForUser(
+    uid_t         uid,
+    PCSTR         pszUserPrincipal,
+    PCSTR         pszServername,
+    PCSTR         pszDomain,
+    Krb5CacheType cacheType
+    );
 
-DWORD gdwClockDriftSecs = 60;
+VOID
+LwKrb5RealmTransitionOffline(
+    IN PCSTR pszRealm
+    );
+
+#endif /* __KRBTGT_H__ */
 
 
-LSA_KRB5_STATE gLwKrb5State;
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
