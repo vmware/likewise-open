@@ -47,7 +47,7 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/server/join/liblsajoin.la \
+	@top_builddir@/join/liblsajoin.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/ipc/liblsaipc.la \
 	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \

@@ -1,6 +1,5 @@
 SUBDIRS = \
          store          \
-         join           \
          api            \
          rpc            \
          ntlmserver     \
