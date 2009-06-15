@@ -3,8 +3,8 @@ lib_LTLIBRARIES = liblsakrb5.la
 liblsakrb5_la_SOURCES = \
        globals.c \
        krbtgt.c  \
-       lsakrb5.c \
-       lsakrb5smb.c
+       lwkrb5.c  \
+       lwkrb5smb.c
 
 liblsakrb5_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
