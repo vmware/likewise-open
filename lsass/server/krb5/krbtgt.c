@@ -51,7 +51,7 @@
 #include "krbtgt_p.h"
 
 DWORD
-LsaKrb5GetTgt(
+LwKrb5GetTgt(
     PCSTR  pszUserPrincipal,
     PCSTR  pszPassword,
     PCSTR  pszCcPath,
@@ -83,7 +83,7 @@ LsaKrb5GetTgt(
 
     LsaStrToUpper(++pszRealmIdx);
 
-    if (LsaKrb5RealmIsOffline(pszRealmIdx))
+    if (LwKrb5RealmIsOffline(pszRealmIdx))
     {
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
@@ -108,7 +108,7 @@ LsaKrb5GetTgt(
     ret = krb5_parse_name(ctx, pszUPN, &client);
     BAIL_ON_KRB_ERROR(ctx, ret);
  
-    dwError = pthread_mutex_lock(&gLsaKrb5State.ExistingClientLock);
+    dwError = pthread_mutex_lock(&gLwKrb5State.ExistingClientLock);
     BAIL_ON_LSA_ERROR(dwError);
     bUnlockExistingClientLock = TRUE;
     
@@ -160,7 +160,7 @@ cleanup:
 
     if (bUnlockExistingClientLock)
     {
-        pthread_mutex_unlock(&gLsaKrb5State.ExistingClientLock);
+        pthread_mutex_unlock(&gLwKrb5State.ExistingClientLock);
     }
 
     if (ctx) {
@@ -196,7 +196,7 @@ error:
 
     if (KRB5_KDC_UNREACH == ret)
     {
-        LsaKrb5RealmTransitionOffline(pszRealmIdx);
+        LwKrb5RealmTransitionOffline(pszRealmIdx);
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
     }
 
@@ -205,7 +205,7 @@ error:
 
 
 DWORD
-LsaKrb5GetTgs(
+LwKrb5GetTgs(
     PCSTR pszCliPrincipal,
     PCSTR pszSvcPrincipal,
     PSTR pszCcPath
@@ -279,7 +279,7 @@ error:
 
 
 DWORD
-LsaKrb5GetServiceTicketForUser(
+LwKrb5GetServiceTicketForUser(
     uid_t         uid,
     PCSTR         pszUserPrincipal,
     PCSTR         pszServername,
@@ -318,7 +318,7 @@ LsaKrb5GetServiceTicketForUser(
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
     
-    dwError = LsaKrb5GetUserCachePath(
+    dwError = LwKrb5GetUserCachePath(
                     uid,
                     cacheType,
                     &pszCachePath);
@@ -403,28 +403,28 @@ error:
 
 static
 BOOLEAN
-LsaKrb5RealmIsOffline(
+LwKrb5RealmIsOffline(
     IN PCSTR pszRealm
     )
 {
     BOOLEAN bIsOffline = FALSE;
 
-    if (pszRealm && gLsaKrb5State.pfIsOfflineCallback)
+    if (pszRealm && gLwKrb5State.pfIsOfflineCallback)
     {
-        bIsOffline = gLsaKrb5State.pfIsOfflineCallback(pszRealm);
+        bIsOffline = gLwKrb5State.pfIsOfflineCallback(pszRealm);
     }
 
     return bIsOffline;
 }
 
 VOID
-LsaKrb5RealmTransitionOffline(
+LwKrb5RealmTransitionOffline(
     IN PCSTR pszRealm
     )
 {
-    if (pszRealm && gLsaKrb5State.pfTransitionOfflineCallback)
+    if (pszRealm && gLwKrb5State.pfTransitionOfflineCallback)
     {
-        gLsaKrb5State.pfTransitionOfflineCallback(pszRealm);
+        gLwKrb5State.pfTransitionOfflineCallback(pszRealm);
     }
 }
 

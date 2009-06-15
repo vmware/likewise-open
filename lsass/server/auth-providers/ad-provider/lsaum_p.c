@@ -758,7 +758,7 @@ LsaUmpCreateKeys(
 
         LsaStrToLower(pszHostname);
 
-        dwError = LsaKrb5GetMachineCreds(
+        dwError = LwKrb5GetMachineCreds(
                       pszHostname,
                       &pszUsername,
                       &pszServicePassword,
@@ -1506,7 +1506,7 @@ LsaUmpRefreshUserCreds(
 
     LsaStrToLower(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                   pszHostname,
                   &pszMachineAccountName,
                   &pszServicePassword,

@@ -53,21 +53,21 @@
 #include "lwps/lwps.h"
 
 DWORD
-LsaKrb5Init(
+LwKrb5Init(
     IN OPTIONAL LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
     IN OPTIONAL LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
     )
 {
     DWORD dwError = 0;
 
-    dwError = pthread_mutex_init(&gLsaKrb5State.ExistingClientLock, NULL);
+    dwError = pthread_mutex_init(&gLwKrb5State.ExistingClientLock, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = pthread_mutex_init(&gLsaKrb5State.UserCacheMutex, NULL);
+    dwError = pthread_mutex_init(&gLwKrb5State.UserCacheMutex, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    gLsaKrb5State.pfIsOfflineCallback = pfIsOfflineCallback;
-    gLsaKrb5State.pfTransitionOfflineCallback = pfTransitionOfflineCallback;
+    gLwKrb5State.pfIsOfflineCallback = pfIsOfflineCallback;
+    gLwKrb5State.pfTransitionOfflineCallback = pfTransitionOfflineCallback;
 
 cleanup:
 
@@ -81,7 +81,7 @@ error:
 }
 
 DWORD
-LsaKrb5GetDefaultRealm(
+LwKrb5GetDefaultRealm(
     PSTR* ppszRealm
     )
 {
@@ -124,7 +124,7 @@ error:
 
 
 DWORD
-LsaKrb5GetSystemCachePath(
+LwKrb5GetSystemCachePath(
     Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     )
@@ -175,7 +175,7 @@ error:
 
 
 DWORD
-LsaKrb5GetUserCachePath(
+LwKrb5GetUserCachePath(
     uid_t         uid,
     Krb5CacheType cacheType,
     PSTR*         ppszCachePath
@@ -229,7 +229,7 @@ error:
 
 
 DWORD
-LsaKrb5SetDefaultCachePath(
+LwKrb5SetDefaultCachePath(
     PCSTR pszCachePath,
     PSTR* ppszOrigCachePath
     )
@@ -270,7 +270,7 @@ error:
 
 
 DWORD
-LsaKrb5GetSystemKeytabPath(
+LwKrb5GetSystemKeytabPath(
     PSTR* ppszKeytabPath
     )
 {
@@ -311,7 +311,7 @@ error:
 }
 
 DWORD
-LsaKrb5SetProcessDefaultCachePath(
+LwKrb5SetProcessDefaultCachePath(
     PCSTR pszCachePath
     )
 {
@@ -368,10 +368,10 @@ LsaSetupMachineSession(
     PSTR pszMachPrincipal = NULL;
     DWORD dwGoodUntilTime = 0;
 
-    dwError = LsaKrb5GetSystemKeytabPath(&pszHostKeytabFile);
+    dwError = LwKrb5GetSystemKeytabPath(&pszHostKeytabFile);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateString(pszRealm, &pszRealmCpy);
@@ -386,7 +386,7 @@ LsaSetupMachineSession(
     BAIL_ON_LSA_ERROR(dwError);
     LsaStrToLower(pszDomname);
 
-    dwError = LsaKrb5GetTgt(
+    dwError = LwKrb5GetTgt(
 		      pszMachPrincipal,
                   pszPassword,
                   pszKrb5CcPath,
@@ -419,7 +419,7 @@ error:
 }
 
 DWORD
-LsaKrb5CleanupMachineSession(
+LwKrb5CleanupMachineSession(
     VOID
     )
 {
@@ -429,7 +429,7 @@ LsaKrb5CleanupMachineSession(
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
 
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     ret = krb5_init_context(&ctx);
@@ -511,7 +511,7 @@ typedef struct _PAC_LOGON_NAME {
 } PAC_LOGON_NAME;
 
 DWORD
-LsaKrb5DecodePac(
+LwKrb5DecodePac(
     krb5_context ctx,
     const krb5_ticket *pTgsTicket,
     const struct berval *pPacBerVal,
@@ -778,7 +778,7 @@ error:
 }
 
 DWORD
-LsaKrb5FindPac(
+LwKrb5FindPac(
     krb5_context ctx,
     const krb5_ticket *pTgsTicket,
     const krb5_keyblock *serviceKey,
@@ -849,7 +849,7 @@ LsaKrb5FindPac(
 
                 if (adType == AD_WIN2K_PAC)
                 {
-                    dwError = LsaKrb5DecodePac(
+                    dwError = LwKrb5DecodePac(
                         ctx,
                         pTgsTicket,
                         &contents,
@@ -898,7 +898,7 @@ error:
 }
 
 DWORD
-LsaKrb5CopyFromUserCache(
+LwKrb5CopyFromUserCache(
                 krb5_context ctx,
                 krb5_ccache destCC,
                 uid_t uid
@@ -924,7 +924,7 @@ LsaKrb5CopyFromUserCache(
             &destClient);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
-    dwError = LsaKrb5GetUserCachePath(
+    dwError = LwKrb5GetUserCachePath(
                     uid,
                     KRB5_File_Cache,
                     &pszCachePath);
@@ -1081,7 +1081,7 @@ error:
 }
 
 DWORD
-LsaKrb5MoveCCacheToUserPath(
+LwKrb5MoveCCacheToUserPath(
     krb5_context ctx,
     PCSTR pszNewCacheName,
     uid_t uid,
@@ -1092,7 +1092,7 @@ LsaKrb5MoveCCacheToUserPath(
     PSTR  pszCachePath = NULL;
     PCSTR  pszCachePathReal = NULL;
 
-    dwError = LsaKrb5GetUserCachePath(
+    dwError = LwKrb5GetUserCachePath(
                     uid,
                     KRB5_File_Cache,
                     &pszCachePath);
@@ -1177,7 +1177,7 @@ LsaSetupUserLoginSession(
             &cc);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
-    dwError = LsaKrb5GetTgt(
+    dwError = LwKrb5GetTgt(
             pszUsername,
             pszPassword,
             krb5_cc_get_name(ctx, cc),
@@ -1317,7 +1317,7 @@ LsaSetupUserLoginSession(
 	    &pDecryptedTgs);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
-    dwError = LsaKrb5FindPac(
+    dwError = LwKrb5FindPac(
         ctx,
         pDecryptedTgs,
         &serviceKey,
@@ -1331,11 +1331,11 @@ LsaSetupUserLoginSession(
          * 2. Delete the existing creds cache.
          * 3. Move the temporary cache file into the final path.
          */
-        dwError = pthread_mutex_lock(&gLsaKrb5State.UserCacheMutex);
+        dwError = pthread_mutex_lock(&gLwKrb5State.UserCacheMutex);
         BAIL_ON_LSA_ERROR(dwError);
         bInLock = TRUE;
 
-        dwError = LsaKrb5CopyFromUserCache(
+        dwError = LwKrb5CopyFromUserCache(
                     ctx,
                     cc,
                     uid
@@ -1354,7 +1354,7 @@ LsaSetupUserLoginSession(
         // Just to make sure no one accesses this now invalid pointer
         cc = NULL;
 
-        dwError = LsaKrb5MoveCCacheToUserPath(
+        dwError = LwKrb5MoveCCacheToUserPath(
                     ctx,
                     pszTempCachePath,
                     uid,
@@ -1416,7 +1416,7 @@ cleanup:
     }
     if (bInLock)
     {
-        pthread_mutex_unlock(&gLsaKrb5State.UserCacheMutex);
+        pthread_mutex_unlock(&gLwKrb5State.UserCacheMutex);
     }
     LSA_SAFE_FREE_STRING(pszTempCachePath);
 
@@ -1428,7 +1428,7 @@ error:
     {
         if (pszUnreachableRealm)
         {
-            LsaKrb5RealmTransitionOffline(pszUnreachableRealm);
+            LwKrb5RealmTransitionOffline(pszUnreachableRealm);
         }
         dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
     }
@@ -1443,19 +1443,19 @@ error:
 }
 
 DWORD
-LsaKrb5Shutdown(
+LwKrb5Shutdown(
     VOID
     )
 {
     DWORD dwError = 0;
 
-    gLsaKrb5State.pfIsOfflineCallback = NULL;
-    gLsaKrb5State.pfTransitionOfflineCallback = NULL;
+    gLwKrb5State.pfIsOfflineCallback = NULL;
+    gLwKrb5State.pfTransitionOfflineCallback = NULL;
 
-    dwError = pthread_mutex_destroy(&gLsaKrb5State.ExistingClientLock);
+    dwError = pthread_mutex_destroy(&gLwKrb5State.ExistingClientLock);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = pthread_mutex_destroy(&gLsaKrb5State.UserCacheMutex);
+    dwError = pthread_mutex_destroy(&gLwKrb5State.UserCacheMutex);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -1470,7 +1470,7 @@ error:
 }
 
 DWORD
-LsaKrb5GetMachineCreds(
+LwKrb5GetMachineCreds(
     PCSTR pszHostname,
     PSTR* ppszUsername,
     PSTR* ppszPassword,
@@ -1569,7 +1569,7 @@ error:
 }
 
 DWORD
-LsaKrb5RefreshMachineTGT(
+LwKrb5RefreshMachineTGT(
     PDWORD pdwGoodUntilTime
     )
 {
@@ -1588,7 +1588,7 @@ LsaKrb5RefreshMachineTGT(
 
     LsaStrToUpper(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,

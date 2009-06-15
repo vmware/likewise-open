@@ -99,13 +99,13 @@ LsaSetSMBAccessToken(
 
     if (bSetDefaultCachePath)
     {
-        dwError = LsaKrb5SetDefaultCachePath(
+        dwError = LwKrb5SetDefaultCachePath(
                   pszNewCachePath,
                   NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaKrb5GetTgt(
+    dwError = LwKrb5GetTgt(
                 pszUsername,
                 pszPassword,
                 pszNewCachePath,

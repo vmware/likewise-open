@@ -1433,7 +1433,7 @@ AD_OnlineAuthenticateUser(
 
     LsaStrToLower(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszMachineAccountName,
                     &pszServicePassword,

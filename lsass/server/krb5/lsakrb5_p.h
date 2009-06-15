@@ -47,14 +47,14 @@
 #define __LSAKRB5_P_H__
 
 DWORD
-LsaKrb5CopyFromUserCache(
+LwKrb5CopyFromUserCache(
                 krb5_context ctx,
                 krb5_ccache destCC,
                 uid_t uid
                 );
 
 DWORD
-LsaKrb5MoveCCacheToUserPath(
+LwKrb5MoveCCacheToUserPath(
                 krb5_context ctx,
                 PCSTR pszNewCacheName,
                 uid_t uid,

@@ -698,7 +698,7 @@ LwLdapBindDirectory(
          */
         LSA_LOG_INFO("Renewing machine tgt outside of password sync thread");
 
-        dwError = LsaKrb5RefreshMachineTGT(NULL);
+        dwError = LwKrb5RefreshMachineTGT(NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

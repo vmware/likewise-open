@@ -53,7 +53,7 @@
 
 static
 BOOLEAN
-LsaKrb5RealmIsOffline(
+LwKrb5RealmIsOffline(
     IN PCSTR pszRealm
     );
 

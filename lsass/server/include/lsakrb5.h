@@ -85,37 +85,37 @@ typedef BOOLEAN (*LSA_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 typedef VOID (*LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 
 DWORD
-LsaKrb5Init(
+LwKrb5Init(
     IN OPTIONAL LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
     IN OPTIONAL LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
     );
 
 DWORD
-LsaKrb5GetDefaultRealm(
+LwKrb5GetDefaultRealm(
     PSTR* ppszRealm
     );
 
 DWORD
-LsaKrb5GetSystemCachePath(
+LwKrb5GetSystemCachePath(
     Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     );
 
 DWORD
-LsaKrb5GetUserCachePath(
+LwKrb5GetUserCachePath(
     uid_t         uid,
     Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     );
 
 DWORD
-LsaKrb5SetDefaultCachePath(
+LwKrb5SetDefaultCachePath(
     PCSTR pszCachePath,
     PSTR* ppszOriginalCachePath
     );
 
 DWORD
-LsaKrb5SetProcessDefaultCachePath(
+LwKrb5SetProcessDefaultCachePath(
     PCSTR pszCachePath
     );
 
@@ -130,7 +130,7 @@ LsaSetupMachineSession(
     );
 
 DWORD
-LsaKrb5CleanupMachineSession(
+LwKrb5CleanupMachineSession(
     VOID
     );
 
@@ -148,7 +148,7 @@ LsaSetupUserLoginSession(
     );
 
 DWORD
-LsaKrb5GetTgt(
+LwKrb5GetTgt(
     PCSTR  pszUserPrincipal,
     PCSTR  pszPassword,
     PCSTR  pszCcPath,
@@ -156,7 +156,7 @@ LsaKrb5GetTgt(
     );
 
 DWORD
-LsaKrb5GetServiceTicketForUser(
+LwKrb5GetServiceTicketForUser(
     uid_t         uid,
     PCSTR         pszUserPrincipal,
     PCSTR         pszServername,
@@ -165,17 +165,17 @@ LsaKrb5GetServiceTicketForUser(
     );
 
 DWORD
-LsaKrb5Shutdown(
+LwKrb5Shutdown(
     VOID
     );
 
 DWORD
-LsaKrb5RefreshMachineTGT(
+LwKrb5RefreshMachineTGT(
     PDWORD pdwGoodUntilTime
     );
 
 DWORD
-LsaKrb5GetMachineCreds(
+LwKrb5GetMachineCreds(
     PCSTR pszHostname,
     PSTR* ppszUsername,
     PSTR* ppszPassword,

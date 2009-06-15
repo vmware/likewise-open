@@ -54,7 +54,7 @@ typedef struct _LSA_KRB5_STATE {
     LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback;
 } LSA_KRB5_STATE, *PLSA_KRB5_STATE;
 
-extern LSA_KRB5_STATE gLsaKrb5State;
+extern LSA_KRB5_STATE gLwKrb5State;
 
 #endif /* __EXTERNS_H__ */
 

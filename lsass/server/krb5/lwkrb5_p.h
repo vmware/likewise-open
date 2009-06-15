@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,26 +33,32 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        lsakrb5_p.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
- *        Kerberos 5 API Globals
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *        KRB5 API (Private Header)
+ *
+ * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#include "lsakrb.h"
+#ifndef __LSAKRB5_P_H__
+#define __LSAKRB5_P_H__
 
-LSA_KRB5_STATE gLwKrb5State;
+DWORD
+LwKrb5CopyFromUserCache(
+                krb5_context ctx,
+                krb5_ccache destCC,
+                uid_t uid
+                );
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+DWORD
+LwKrb5MoveCCacheToUserPath(
+                krb5_context ctx,
+                PCSTR pszNewCacheName,
+                uid_t uid,
+                gid_t gid
+                );
+
+#endif /* __LSAKRB5_P_H__ */

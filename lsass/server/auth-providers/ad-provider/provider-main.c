@@ -91,13 +91,13 @@ AD_MachineCredentialsCacheIsInitialized(
 
 static
 BOOLEAN
-LsaAdProviderLsaKrb5IsOfflineCallback(
+LsaAdProviderLwKrb5IsOfflineCallback(
     IN PCSTR pszRealm
     );
 
 static
 VOID
-LsaAdProviderLsaKrb5TransitionOfflineCallback(
+LsaAdProviderLwKrb5TransitionOfflineCallback(
     IN PCSTR pszRealm
     );
 
@@ -175,9 +175,9 @@ LsaInitializeProvider(
     dwError = LsaAdProviderStateCreate(&gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5Init(
-                LsaAdProviderLsaKrb5IsOfflineCallback,
-                LsaAdProviderLsaKrb5TransitionOfflineCallback);
+    dwError = LwKrb5Init(
+                LsaAdProviderLwKrb5IsOfflineCallback,
+                LsaAdProviderLwKrb5TransitionOfflineCallback);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_NetInitMemory();
@@ -214,7 +214,7 @@ LsaInitializeProvider(
 
     LsaStrToUpper(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -259,10 +259,10 @@ LsaInitializeProvider(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
+    dwError = LwKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADState_OpenDb(
@@ -393,7 +393,7 @@ LsaShutdownProvider(
         gpADProviderData = NULL;
     }
 
-    dwError = LsaKrb5Shutdown();
+    dwError = LwKrb5Shutdown();
     if (dwError)
     {
         LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown krb5 (error = %d)", dwError);
@@ -3829,7 +3829,7 @@ static
 DWORD
 AD_MachineCredentialsCacheClear()
 {
-    return LsaKrb5CleanupMachineSession();
+    return LwKrb5CleanupMachineSession();
 }
 
 static
@@ -3873,7 +3873,7 @@ AD_MachineCredentialsCacheInitialize(
     LsaStrToUpper(pszHostname);
 
     // Read password info before acquiring the lock.
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -3931,7 +3931,7 @@ error:
 
 static
 BOOLEAN
-LsaAdProviderLsaKrb5IsOfflineCallback(
+LsaAdProviderLwKrb5IsOfflineCallback(
     IN PCSTR pszRealm
     )
 {
@@ -3940,7 +3940,7 @@ LsaAdProviderLsaKrb5IsOfflineCallback(
 
 static
 VOID
-LsaAdProviderLsaKrb5TransitionOfflineCallback(
+LsaAdProviderLwKrb5TransitionOfflineCallback(
     IN PCSTR pszRealm
     )
 {

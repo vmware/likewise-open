@@ -51,14 +51,14 @@
 #define __KRBTGT_H__
 
 DWORD
-LsaKrb5GetTgs(
+LwKrb5GetTgs(
     PCSTR pszCliPrincipal,
     PCSTR pszSvcPrincipal,
     PSTR pszCcPath
     );
 
 DWORD
-LsaKrb5GetServiceTicketForUser(
+LwKrb5GetServiceTicketForUser(
     uid_t         uid,
     PCSTR         pszUserPrincipal,
     PCSTR         pszServername,
@@ -67,7 +67,7 @@ LsaKrb5GetServiceTicketForUser(
     );
 
 VOID
-LsaKrb5RealmTransitionOffline(
+LwKrb5RealmTransitionOffline(
     IN PCSTR pszRealm
     );
 

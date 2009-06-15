@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,26 +33,34 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        lsakrb.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
- *        
- *        Kerberos 5 API Globals
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Krb5 (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#include "lsakrb.h"
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+#include "lsautils.h"
+#include "lsaunistr.h"
 
-LSA_KRB5_STATE gLwKrb5State;
+#include "lwnet.h"
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#include "lsakrb5.h"
+
+#include "krb5sys.h"
+#include "lsakrb5_error.h"
+
+#include "krbtgt.h"
+#include "externs.h"
+

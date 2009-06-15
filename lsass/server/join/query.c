@@ -320,20 +320,20 @@ LsaGetComputerDN(
                 pAcct->pszDnsDomainName);
     BAIL_ON_LSA_ERROR(dwError);
     
-    dwError = LsaKrb5GetUserCachePath(
+    dwError = LwKrb5GetUserCachePath(
                 geteuid(),
                 KRB5_InMemory_Cache,
                 &pszKrb5CachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetTgt(
+    dwError = LwKrb5GetTgt(
                 pszUsername,
                 pAcct->pszMachinePassword,
                 pszKrb5CachePath,
                 NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5SetDefaultCachePath(pszKrb5CachePath, NULL);
+    dwError = LwKrb5SetDefaultCachePath(pszKrb5CachePath, NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwLdapOpenDirectoryDomain(pszDomain, 0, &hDirectory);

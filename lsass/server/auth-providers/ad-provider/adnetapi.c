@@ -76,7 +76,7 @@ AD_GetSystemAccessToken(
 
     LsaStrToUpper(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -91,7 +91,7 @@ AD_GetSystemAccessToken(
                     pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetSystemCachePath(
+    dwError = LwKrb5GetSystemCachePath(
                     KRB5_File_Cache,
                     &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1548,7 +1548,7 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
+    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
