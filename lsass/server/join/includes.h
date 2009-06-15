@@ -64,4 +64,19 @@
 #include "join_p.h"
 #include "externs.h"
 
+
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+#include "lsautils.h"
+#include "lwldap.h"
+#include "lsakrb5.h"
+#include "lsakrb5_error.h"
+#include "lwldap_p.h"
+#include "lwnet.h"
+
 #endif /* __INCLUDES_H__ */

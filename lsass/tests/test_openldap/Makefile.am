@@ -9,7 +9,7 @@ test_openldap_CPPFLAGS = \
 	@KRB5_INCLUDES@
 
 test_openldap_LDADD = \
-	@top_builddir@/server/ldap/liblsaldap.la \
+	@top_builddir@/server/join/liblsajoin.la \
 	@top_builddir@/server/krb5/liblsakrb5.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
