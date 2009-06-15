@@ -1,6 +1,6 @@
 lsaincludedir = $(includedir)/lsa
 
-lsainclude_HEADERS = lsa/lsa.h
+lsainclude_HEADERS = lsa/lsa.h lsa/lwerror.h
 
 noinst_HEADERS = \
 	crypto.h \
