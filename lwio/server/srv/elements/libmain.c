@@ -56,12 +56,10 @@ SrvElementsInit(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-#if 0
     status = SrvTimerInit(&gSrvElements.timer);
     BAIL_ON_NT_STATUS(status);
 
 error:
-#endif
 
     return status;
 }
@@ -97,11 +95,9 @@ SrvElementsShutdown(
     VOID
     )
 {
-#if 0
     SrvTimerIndicateStop(&gSrvElements.timer);
 
     SrvTimerFreeContents(&gSrvElements.timer);
-#endif
 
     return STATUS_SUCCESS;
 }

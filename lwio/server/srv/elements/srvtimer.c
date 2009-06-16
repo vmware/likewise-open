@@ -209,9 +209,19 @@ SrvTimerMain(
 
 	if (difftime(time(NULL), pTimerRequest->timespan.tv_sec) >= 0)
 	{
-		pTimerRequest->pfnTimerExpiredCB(
-								pTimerRequest,
-								pTimerRequest->pUserData);
+		BOOLEAN bInLock = FALSE;
+
+		LWIO_LOCK_MUTEX(bInLock, &pTimerRequest->mutex);
+
+		if (pTimerRequest->pfnTimerExpiredCB)
+		{
+			// Timer has not been canceled
+				pTimerRequest->pfnTimerExpiredCB(
+									pTimerRequest,
+									pTimerRequest->pUserData);
+		}
+
+		LWIO_UNLOCK_MUTEX(bInLock, &pTimerRequest->mutex);
 
 		SrvTimerDetachRequest(pContext, pTimerRequest);
 	}
@@ -312,6 +322,8 @@ SrvTimerPostRequestSpecific(
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PSRV_TIMER_REQUEST pTimerRequest = NULL;
+	PSRV_TIMER_REQUEST pTimerIter = NULL;
+	PSRV_TIMER_REQUEST pPrev = NULL;
 	BOOLEAN bInLock = FALSE;
 
 	if (!timespan.tv_sec && !timespan.tv_nsec)
@@ -331,13 +343,45 @@ SrvTimerPostRequestSpecific(
 	BAIL_ON_NT_STATUS(status);
 
 	pTimerRequest->refCount = 1;
+
 	pTimerRequest->timespan = timespan;
 	pTimerRequest->pUserData = pUserData;
 	pTimerRequest->pfnTimerExpiredCB = pfnTimerExpiredCB;
 
+	pthread_mutex_init(&pTimerRequest->mutex, NULL);
+	pTimerRequest->pMutex = &pTimerRequest->mutex;
+
 	LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
-	// TODO: Enqueue new timer
+	for (pTimerIter = pTimer->context.pRequests;
+		 pTimerIter && (pTimerIter->timespan.tv_sec <= timespan.tv_sec);
+		 pPrev = pTimerIter, pTimerIter = pTimerIter->pNext);
+
+	if (!pPrev)
+	{
+		pTimerRequest->pNext = pTimer->context.pRequests;
+		if (pTimer->context.pRequests)
+		{
+			pTimer->context.pRequests->pPrev = pTimerRequest;
+		}
+		pTimer->context.pRequests = pTimerRequest;
+	}
+	else
+	{
+		pTimerRequest->pNext = pPrev->pNext;
+		pTimerRequest->pPrev = pPrev;
+		pPrev->pNext = pTimerRequest;
+		if (pTimerRequest->pNext)
+		{
+			pTimerRequest->pNext->pPrev = pTimerRequest;
+		}
+	}
+
+	InterlockedIncrement(&pTimerRequest->refCount);
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
+
+	pthread_cond_signal(&pTimer->context.event);
 
 	*ppTimerRequest = pTimerRequest;
 
@@ -363,10 +407,63 @@ SrvTimerCancelRequestSpecific(
 	)
 {
 	NTSTATUS status = STATUS_SUCCESS;
+	BOOLEAN bInLock = FALSE;
+	PSRV_TIMER_REQUEST pIter = NULL;
 
-	// TODO: Dequeue timer
+	LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
+
+	for (pIter = pTimer->context.pRequests;
+	     pIter && (pIter != pTimerRequest);
+	     pIter = pIter->pNext);
+
+	if (pIter)
+	{
+		BOOLEAN bInLock2 = FALSE;
+		PSRV_TIMER_REQUEST pPrev = pIter->pPrev;
+
+		if (pPrev)
+		{
+			pPrev->pNext = pIter->pNext;
+		}
+
+		if (pIter->pNext)
+		{
+			pIter->pNext->pPrev = pPrev;
+		}
+
+		pIter->pPrev = NULL;
+		pIter->pNext = NULL;
+
+		LWIO_LOCK_MUTEX(bInLock2, &pIter->mutex);
+
+		pIter->pfnTimerExpiredCB = NULL;
+
+		LWIO_UNLOCK_MUTEX(bInLock2, &pIter->mutex);
+	}
+	else
+	{
+		status = STATUS_NOT_FOUND;
+		BAIL_ON_NT_STATUS(status);
+	}
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
+
+	pthread_cond_signal(&pTimer->context.event);
+
+cleanup:
+
+	if (pIter)
+	{
+		SrvTimerRelease(pIter);
+	}
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
 	return status;
+
+error:
+
+	goto cleanup;
 }
 
 NTSTATUS
@@ -388,6 +485,11 @@ SrvTimerFree(
 	IN  PSRV_TIMER_REQUEST pTimerRequest
 	)
 {
+	if (pTimerRequest->pMutex)
+	{
+		pthread_mutex_destroy(&pTimerRequest->mutex);
+	}
+
 	SrvFreeMemory(pTimerRequest);
 }
 

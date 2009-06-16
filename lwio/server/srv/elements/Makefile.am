@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrvelements.la
 
 libsrvelements_la_SOURCES = \
+    globals.c       \
     libmain.c       \
     srvconnection.c \
     srvfile.c       \
