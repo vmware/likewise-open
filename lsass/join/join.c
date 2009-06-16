@@ -447,7 +447,7 @@ LsaSyncTimeToDC(
     ttDCTime = (time_t) dcTime;
 
     if (labs(ttDCTime - time(NULL)) > gdwClockDriftSecs) {
-        dwError = LsaSetSystemTime(ttDCTime);
+        dwError = LwSetSystemTime(ttDCTime);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
