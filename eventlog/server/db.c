@@ -106,6 +106,8 @@
 #define DB_QUERY_DELETE     "DELETE FROM     lwievents    \
                              WHERE  (%s)"
 
+#define DB_QUERY_DELETE_ALL     "DELETE FROM     lwievents"
+
 #define DB_QUERY_INSERT_EVENT "INSERT INTO lwievents         \
                                      (                         \
                                         EventTableCategoryId,  \
@@ -749,32 +751,12 @@ SrvClearEventLog(
     )
 {
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
     ENTER_RW_WRITER_LOCK;
 
-
-    sprintf(szQuery, DB_QUERY_DROP_EVENTS_TABLE);
-
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    if (dwError != 1) BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_EVENTS_TABLE);
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_UNIQUE_INDEX, "recordId", "EventRecordId");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_INDEX, "tableCategoryId", "EventTableCategoryId");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_INDEX, "dateTime", "EventDateTime");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvQueryEventLog(hDB, DB_QUERY_DELETE_ALL, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);
 
  cleanup:
@@ -785,7 +767,6 @@ SrvClearEventLog(
     return dwError;
  error:
     goto cleanup;
-
 }
 
 DWORD
