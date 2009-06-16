@@ -103,8 +103,7 @@ PvfsRead(
        the buffer atomically while it may take several read()
        calls */
 
-    ENTER_MUTEX(&pCcb->FileMutex);
-    bMutexLocked = TRUE;
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     while (totalBytesRead < bufLen)
     {
@@ -139,9 +138,7 @@ PvfsRead(
         STATUS_END_OF_FILE;
 
 cleanup:
-    if (bMutexLocked) {
-        LEAVE_MUTEX(&pCcb->FileMutex);
-    }
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);

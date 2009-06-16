@@ -95,8 +95,7 @@ PvfsWrite(
        the buffer atomically while it may take several write()
        calls */
 
-    ENTER_MUTEX(&pCcb->FileMutex);
-    bMutexLocked = TRUE;
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     while (totalBytesWritten < bufLen)
     {
@@ -124,9 +123,7 @@ PvfsWrite(
 
 
 cleanup:
-    if (bMutexLocked) {
-        LEAVE_MUTEX(&pCcb->FileMutex);
-    }
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);
