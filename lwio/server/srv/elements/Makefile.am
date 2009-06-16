@@ -7,6 +7,7 @@ libsrvelements_la_SOURCES = \
     srvfinder.c     \
     srvgss.c        \
     srvsession.c    \
+    srvtimer.c      \
     srvtree.c
 
 libsrvelements_la_CPPFLAGS = \

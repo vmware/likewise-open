@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,14 +28,12 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        defs.h
  *
  * Abstract:
  *
@@ -43,38 +41,48 @@
  *
  *        Elements
  *
+ *        Structures
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-#include <config.h>
-#include <lwiosys.h>
+typedef struct _SRV_TIMER_REQUEST
+{
+	LONG                   refCount;
 
-#include <uuid/uuid.h>
+	struct timespec        timespan;
+	PVOID                  pUserData;
+	PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
 
-#include <krb5.h>
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_generic.h>
-#include <gssapi/gssapi_krb5.h>
+} SRV_TIMER_REQUEST;
 
-#include <lwio/lwio.h>
+typedef struct _SRV_TIMER_CONTEXT
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
+	BOOLEAN bStop;
 
-#include <lw/ntstatus.h>
+} SRV_TIMER_CONTEXT, *PSRV_TIMER_CONTEXT;
 
-#include <iodriver.h>
-#include <ioapi.h>
+typedef struct _SRV_TIMER
+{
+	pthread_t  timerThread;
+	pthread_t* pTimerThread;
 
-#include <smbwire.h>
+	SRV_TIMER_CONTEXT context;
 
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
+} SRV_TIMER, *PSRV_TIMER;
 
-#include "structs.h"
-#include "srvtimer.h"
+typedef struct _SRV_ELEMENTS_GLOBALS
+{
+	pthread_mutex_t  mutex;
 
-#include "externs.h"
+	SRV_TIMER timer;
 
+} SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
+
+#endif /* __STRUCTS_H__ */

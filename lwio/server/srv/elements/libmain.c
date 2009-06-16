@@ -56,7 +56,38 @@ SrvElementsInit(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    status = SrvTimerInit(&gSrvElements.timer);
+    BAIL_ON_NT_STATUS(status);
+
+error:
+
     return status;
+}
+
+NTSTATUS
+SrvTimerPostRequest(
+	IN  struct timespec        timespan,
+	IN  PVOID                  pUserData,
+	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+	)
+{
+	return SrvTimerPostRequestSpecific(
+				&gSrvElements.timer,
+				timespan,
+				pUserData,
+				pfnTimerExpiredCB,
+				ppTimerRequest);
+}
+
+NTSTATUS
+SrvTimerCancelRequest(
+	IN  PSRV_TIMER_REQUEST pTimerRequest
+	)
+{
+	return SrvTimerCancelRequestSpecific(
+				&gSrvElements.timer,
+				pTimerRequest);
 }
 
 NTSTATUS
@@ -64,8 +95,10 @@ SrvElementsShutdown(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    SrvTimerIndicateStop(&gSrvElements.timer);
 
-    return status;
+    SrvTimerFreeContents(&gSrvElements.timer);
+
+    return STATUS_SUCCESS;
 }
 

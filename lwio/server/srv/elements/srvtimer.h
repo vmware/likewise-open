@@ -1,7 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -35,7 +34,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        srvtimer.h
  *
  * Abstract:
  *
@@ -43,38 +42,42 @@
  *
  *        Elements
  *
+ *        Timer
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __SRV_TIMER_H__
+#define __SRV_TIMER_H__
 
-#include <uuid/uuid.h>
+NTSTATUS
+SrvTimerInit(
+	IN PSRV_TIMER pTimer
+	);
 
-#include <krb5.h>
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_generic.h>
-#include <gssapi/gssapi_krb5.h>
+NTSTATUS
+SrvTimerPostRequestSpecific(
+	IN  PSRV_TIMER             pTimer,
+	IN  struct timespec        timespan,
+	IN  PVOID                  pUserData,
+	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+	);
 
-#include <lwio/lwio.h>
+NTSTATUS
+SrvTimerCancelRequestSpecific(
+	IN  PSRV_TIMER         pTimer,
+	IN  PSRV_TIMER_REQUEST pTimerRequest
+	);
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
+VOID
+SrvTimerIndicateStop(
+	PSRV_TIMER pTimer
+	);
 
-#include <lw/ntstatus.h>
+VOID
+SrvTimerFreeContents(
+	PSRV_TIMER pTimer
+	);
 
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-
-#include "structs.h"
-#include "srvtimer.h"
-
-#include "externs.h"
-
+#endif /* __SRV_TIMER_H__ */

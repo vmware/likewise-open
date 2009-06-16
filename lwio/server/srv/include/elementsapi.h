@@ -227,9 +227,34 @@ typedef struct _SRV_SEARCH_SPACE
 
 } SRV_SEARCH_SPACE, *PSRV_SEARCH_SPACE;
 
+typedef struct _SRV_TIMER_REQUEST* PSRV_TIMER_REQUEST;
+
+typedef NTSTATUS (*PFN_SRV_TIMER_CALLBACK)(
+						PSRV_TIMER_REQUEST pTimerRequest,
+						PVOID              pUserData
+						);
+
 NTSTATUS
 SrvElementsInit(
 	VOID
+	);
+
+NTSTATUS
+SrvTimerPostRequest(
+	IN  struct timespec        timespan,
+	IN  PVOID                  pUserData,
+	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+	);
+
+NTSTATUS
+SrvTimerCancelRequest(
+	IN  PSRV_TIMER_REQUEST pTimerRequest
+	);
+
+NTSTATUS
+SrvTimerRelease(
+	IN  PSRV_TIMER_REQUEST pTimerRequest
 	);
 
 NTSTATUS
