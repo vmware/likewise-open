@@ -162,31 +162,36 @@ PvfsDriverDispatch(
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsDispatchFsIoControl(pIrpCtx);
         break;
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntError = PvfsAsyncQueryInformationFile(pIrpCtx);
+        break;
+    case IRP_TYPE_SET_INFORMATION:
+        ntError = PvfsAsyncSetInformationFile(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntError = PvfsAsyncQueryDirInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntError = PvfsAsyncQueryVolumeInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsAsyncQuerySecurityFile(pIrpCtx);
+        break;
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsAsyncSetSecurityFile(pIrpCtx);
+        break;
 
     /* Currently only support synchronous calls */
     case IRP_TYPE_CLOSE:
         ntError = PvfsClose(pIrpCtx);
         break;
+
+    /* Not implemented */
     case IRP_TYPE_DEVICE_IO_CONTROL:
         ntError = PvfsDeviceIoControl(pIrpCtx);
         break;
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQueryInformationFile(pIrpCtx);
-        break;
-    case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsSetInformationFile(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsQueryDirInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsQueryVolumeInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySecurityFile(pIrpCtx);
-        break;
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsSetSecurityFile(pIrpCtx);
+    case IRP_TYPE_SET_VOLUME_INFORMATION:
+        ntError = PvfsSetVolumeInformation(pIrpCtx);
         break;
     default:
         ntError = STATUS_INVALID_PARAMETER;

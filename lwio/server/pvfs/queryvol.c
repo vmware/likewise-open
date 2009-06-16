@@ -106,6 +106,14 @@ error:
 }
 
 
+NTSTATUS
+PvfsSetVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
 /*
 local variables:
 mode: c
