@@ -46,12 +46,12 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "api.h"
+#include "includes.h"
 
 //Convert to seconds string of form ##s, ##m, ##h, or ##d
 //where s,m,h,d = seconds, minutes, hours, days.
 DWORD
-LsaParseDateString(
+LwParseDateString(
     PCSTR  pszTimeInterval,
     PDWORD pdwTimeInterval
     )
@@ -63,11 +63,11 @@ LsaParseDateString(
     DWORD  dwUnitMultiplier = 0;
     PSTR   pszUnitCode = NULL;
 
-    LsaStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     BAIL_ON_INVALID_STRING(pszTimeInterval);
 
-    dwError = LsaAllocateString(
+    dwError = LwAllocateString(
                     pszTimeInterval,
                     &pszTimeIntervalLocal
                     );
@@ -116,7 +116,7 @@ LsaParseDateString(
         *pszUnitCode = ' ';
     }
 
-    LsaStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
+    LwStripWhitespace(pszTimeIntervalLocal, TRUE, TRUE);
 
     dwTimeInterval = (DWORD) atoi(pszTimeIntervalLocal) * dwUnitMultiplier;
 
@@ -134,7 +134,7 @@ error:
 }
 
 DWORD
-LsaSetSystemTime(
+LwSetSystemTime(
     time_t ttCurTime
     )
 {
@@ -263,7 +263,7 @@ error:
 
 // This function is just a wrapper to getting the current time as a time_t.
 DWORD
-LsaGetCurrentTimeSeconds(
+LwGetCurrentTimeSeconds(
     OUT time_t* pTime
     )
 {
