@@ -57,12 +57,20 @@ typedef struct _SRV_TIMER_REQUEST
 	PVOID                  pUserData;
 	PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
 
+	struct _SRV_TIMER_REQUEST* pNext;
+	struct _SRV_TIMER_REQUEST* pPrev;
+
 } SRV_TIMER_REQUEST;
 
 typedef struct _SRV_TIMER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
+
+    pthread_cond_t   event;
+    pthread_cond_t*  pEvent;
+
+    PSRV_TIMER_REQUEST pRequests;
 
 	BOOLEAN bStop;
 

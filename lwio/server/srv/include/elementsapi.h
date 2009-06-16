@@ -229,10 +229,10 @@ typedef struct _SRV_SEARCH_SPACE
 
 typedef struct _SRV_TIMER_REQUEST* PSRV_TIMER_REQUEST;
 
-typedef NTSTATUS (*PFN_SRV_TIMER_CALLBACK)(
-						PSRV_TIMER_REQUEST pTimerRequest,
-						PVOID              pUserData
-						);
+typedef VOID (*PFN_SRV_TIMER_CALLBACK)(
+					PSRV_TIMER_REQUEST pTimerRequest,
+					PVOID              pUserData
+					);
 
 NTSTATUS
 SrvElementsInit(
