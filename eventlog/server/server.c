@@ -206,7 +206,7 @@ error:
 idl_long_int
 RpcLWIWriteEventLogRecords(
     handle_t bindingHandle,
-    DWORD cRecords,
+    unsigned32 cRecords,
     EVENT_LOG_RECORD* pEventRecords
     )
 {
