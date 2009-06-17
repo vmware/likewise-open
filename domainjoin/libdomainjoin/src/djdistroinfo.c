@@ -485,7 +485,6 @@ struct
     { OS_DARWIN, "Darwin"},
     { OS_DARWIN, "OsX" },
     { OS_HPUX, "HP-UX"},
-    { OS_HPUX, "HPUX" },
     { OS_LINUX, "Linux" },
     { OS_FREEBSD, "FreeBSD" },
 };
@@ -524,7 +523,6 @@ struct
     { DISTRO_DARWIN, "Darwin"},
     { DISTRO_DARWIN, "OsX" },
     { DISTRO_HPUX, "HP-UX"},
-    { DISTRO_HPUX, "HPUX" },
     { DISTRO_RHEL, "RHEL" },
     { DISTRO_REDHAT, "Redhat" },
     { DISTRO_FEDORA, "Fedora" },
