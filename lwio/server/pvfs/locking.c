@@ -190,10 +190,11 @@ error:
        resets every time a new lock range is requested.
        Pass all errors other than LOCK_NOT_GRANTED on through. */
 
-    if ((ntError == STATUS_LOCK_NOT_GRANTED) &&
-        LockEntryEqual(&pFcb->LastFailedLock, &RangeLock))
+    if (ntError == STATUS_LOCK_NOT_GRANTED)
     {
-        ntError = STATUS_FILE_LOCK_CONFLICT;
+        if (LockEntryEqual(&pFcb->LastFailedLock, &RangeLock)) {
+            ntError = STATUS_FILE_LOCK_CONFLICT;
+        }
         InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
     }
 
