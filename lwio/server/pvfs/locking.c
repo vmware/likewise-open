@@ -259,7 +259,7 @@ PvfsUnlockFile(
     LONG64 Length
     )
 {
-    NTSTATUS ntError = STATUS_INVALID_LOCK_SEQUENCE;
+    NTSTATUS ntError = STATUS_RANGE_NOT_LOCKED;
     PPVFS_FCB pFcb = pCcb->pFcb;
     PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
@@ -360,7 +360,9 @@ cleanup:
 
     /* See if any pending locks can be granted now */
 
-    PvfsProcessPendingLocks(pFcb);
+    if (ntError == STATUS_SUCCESS) {
+        PvfsProcessPendingLocks(pFcb);
+    }
 
     return ntError;
 }
