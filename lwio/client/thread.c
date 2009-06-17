@@ -189,7 +189,7 @@ __LwIoThreadInit(
 
     LwIoInitialize();
 
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(gpLwIoProtocol, &gpClient));
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(NULL, gpLwIoProtocol, &gpClient));
     BAIL_ON_NT_STATUS(Status);
 
     Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_endpoint(
