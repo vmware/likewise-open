@@ -164,6 +164,7 @@ typedef struct _PVFS_FCB
     PPVFS_CCB_LIST_NODE pCcbList;
 
     PVFS_LOCK_ENTRY LastFailedLock;
+    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used to match pointer */
 
     PLWRTL_QUEUE pPendingLockQueue;
 
