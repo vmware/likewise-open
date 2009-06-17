@@ -59,8 +59,12 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-list-groups <user name>\n"
-           "   or: lw-list-groups --uid <uid>\n");
+    printf("Usage: lw-list-groups [options] <user name>\n"
+           "   or: lw-list-groups [options] --uid <uid>\n"
+           "\n"
+           "  where options are:\n"
+           "\n"
+           "    --show-sid  -- Show SIDs\n");
 }
 
 DWORD
@@ -128,7 +132,8 @@ ParseArgs(
     IN int argc,
     IN char* argv[],
     OUT PCSTR* ppszUserName,
-    OUT PDWORD pdwId
+    OUT PDWORD pdwId,
+    OUT PBOOLEAN pbShowSid
     )
 {
     DWORD dwError = 0;
@@ -137,6 +142,7 @@ ParseArgs(
     BOOLEAN bIsId = FALSE;
     PSTR pszUserName = NULL;
     DWORD dwId = 0;
+    BOOLEAN bShowSid = FALSE;
 
     if (argc < 2)
     {
@@ -184,6 +190,14 @@ ParseArgs(
                 ShowUsage();
                 exit(1);
             }
+
+            // There can be no options following this one.
+            iArg++;
+            break;
+        }
+        else if (!strcmp(pszArg, "--show-sid"))
+        {
+            bShowSid = TRUE;
         }
         else
         {
@@ -220,6 +234,7 @@ ParseArgs(
 
     *ppszUserName = pszUserName;
     *pdwId = dwId;
+    *pbShowSid = bShowSid;
 }
 
 int
@@ -237,8 +252,9 @@ main(
     DWORD dwGroupInfoLevel = 0;
     PVOID* ppGroupInfoList = NULL;
     DWORD dwId = 0;
+    BOOLEAN bShowSid = FALSE;
 
-    ParseArgs(argc, argv, &pszUserName, &dwId);
+    ParseArgs(argc, argv, &pszUserName, &dwId, &bShowSid);
 
     if (pszUserName)
     {
@@ -289,12 +305,25 @@ main(
             {
                 PLSA_GROUP_INFO_0* pGroupInfoList = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
 
-                fprintf(stdout,
-                        "Group[%d of %d] name = %s (gid = %u)\n",
-                        iGroup+1,
-                        dwNumGroups,
-                        pGroupInfoList[iGroup]->pszName,
-                        (unsigned int) pGroupInfoList[iGroup]->gid);
+                if (bShowSid)
+                {
+                    fprintf(stdout,
+                            "Group[%d of %d] name = %s (gid = %u, sid = %s)\n",
+                            iGroup+1,
+                            dwNumGroups,
+                            pGroupInfoList[iGroup]->pszName,
+                            (unsigned int) pGroupInfoList[iGroup]->gid,
+                            pGroupInfoList[iGroup]->pszSid);
+                }
+                else
+                {
+                    fprintf(stdout,
+                            "Group[%d of %d] name = %s (gid = %u)\n",
+                            iGroup+1,
+                            dwNumGroups,
+                            pGroupInfoList[iGroup]->pszName,
+                            (unsigned int) pGroupInfoList[iGroup]->gid);
+                }
             }
 
             break;

@@ -249,6 +249,120 @@ PvfsAsyncFlushBuffers(
     return ntError;
 }
 
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsQueryInformationFile;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncSetInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsSetInformationFile;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncQueryDirInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsQueryDirInformation;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncQueryVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsQueryVolumeInformation;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncQuerySecurityFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsQuerySecurityFile;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
+/************************************************************
+ ***********************************************************/
+
+NTSTATUS
+PvfsAsyncSetSecurityFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Save the pvfs callback and pend the Irp */
+
+    pIrpContext->pfnWorkCallback = PvfsSetSecurityFile;
+
+    ntError = PvfsPendIrp(pIrpContext);
+
+    return ntError;
+}
+
 
 
 /*

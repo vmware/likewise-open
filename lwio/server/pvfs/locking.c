@@ -187,14 +187,19 @@ error:
 
     /* Windows 2003 & XP return FILE_LOCK_CONFLICT for all
        lock failures following the first.  The state machine
-       resets every time a new lock range is requested.
-       Pass all errors other than LOCK_NOT_GRANTED on through. */
+       resets every time a new lock range (on a new handle) is
+       requested.  Pass all errors other than LOCK_NOT_GRANTED
+       on through. */
 
-    if ((ntError == STATUS_LOCK_NOT_GRANTED) &&
-        LockEntryEqual(&pFcb->LastFailedLock, &RangeLock))
+    if (ntError == STATUS_LOCK_NOT_GRANTED)
     {
-        ntError = STATUS_FILE_LOCK_CONFLICT;
+        if (LockEntryEqual(&pFcb->LastFailedLock, &RangeLock) &&
+           (pFcb->pLastFailedLockOwner == pCcb))
+        {
+            ntError = STATUS_FILE_LOCK_CONFLICT;
+        }
         InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
+        pFcb->pLastFailedLockOwner = pCcb;
     }
 
     LWIO_UNLOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
@@ -258,7 +263,7 @@ PvfsUnlockFile(
     LONG64 Length
     )
 {
-    NTSTATUS ntError = STATUS_INVALID_LOCK_SEQUENCE;
+    NTSTATUS ntError = STATUS_RANGE_NOT_LOCKED;
     PPVFS_FCB pFcb = pCcb->pFcb;
     PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
     PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
@@ -359,7 +364,9 @@ cleanup:
 
     /* See if any pending locks can be granted now */
 
-    PvfsProcessPendingLocks(pFcb);
+    if (ntError == STATUS_SUCCESS) {
+        PvfsProcessPendingLocks(pFcb);
+    }
 
     return ntError;
 }
@@ -745,8 +752,9 @@ LockEntryEqual(
         return FALSE;
     }
 
-    if ((pEntry1->bExclusive == pEntry2->bExclusive) &&
-        (pEntry1->Key == pEntry2->Key) &&
+    /* According to tests, the lock type is ignored */
+
+    if ((pEntry1->Key == pEntry2->Key) &&
         (pEntry1->Offset == pEntry2->Offset) &&
         (pEntry1->Length == pEntry2->Length))
     {

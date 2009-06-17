@@ -575,6 +575,40 @@ error:
 
 
 DWORD
+LWIWriteEventLogRecords(
+    HANDLE hEventLog,
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
+    )
+{
+    volatile DWORD dwError = 0;
+    PEVENT_LOG_HANDLE pEventLogHandle = (PEVENT_LOG_HANDLE) hEventLog;
+
+    TRY
+    {
+        dwError = RpcLWIWriteEventLogRecords(
+                        (handle_t) pEventLogHandle->bindingHandle,
+                        cRecords,
+                        pEventRecords);
+    }
+    CATCH_ALL
+    {
+        dwError = EVTGetRpcError(THIS_CATCH, EVT_ERROR_RPC_EXCEPTION_UPON_WRITE);
+    }
+    ENDTRY;
+
+    BAIL_ON_EVT_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+    EVT_LOG_ERROR("Failed to write event log. Error code [%d]\n", dwError);
+    goto cleanup;
+}
+
+DWORD
 LWIWriteEventLogBase(
     HANDLE hEventLog,
     EVENT_LOG_RECORD eventRecord
@@ -658,8 +692,10 @@ LWIWriteEventLogBase(
 
     TRY
     {
-        dwError = RpcLWIWriteEventLog( (handle_t) pEventLogHandle->bindingHandle,
-                                       eventRecordLocal);
+        dwError = RpcLWIWriteEventLogRecords(
+                        (handle_t) pEventLogHandle->bindingHandle,
+                        1,
+                        &eventRecordLocal);
     }
     CATCH_ALL
     {
@@ -677,8 +713,6 @@ error:
     EVT_LOG_ERROR("Failed to write event log. Error code [%d]\n", dwError);
     goto cleanup;
 }
-
-
 
 DWORD
 LWIWriteEventLog(

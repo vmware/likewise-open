@@ -100,13 +100,15 @@ SrvReadEventLog(
 DWORD
 SrvWriteEventLog(
     HANDLE hDB,
-    PEVENT_LOG_RECORD pEventRecord
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
     );
 
 DWORD
 SrvWriteToDB(
     HANDLE hDB,
-    PEVENT_LOG_RECORD pEventRecord
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
     );
 
 DWORD

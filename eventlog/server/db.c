@@ -106,8 +106,10 @@
 #define DB_QUERY_DELETE     "DELETE FROM     lwievents    \
                              WHERE  (%s)"
 
+#define DB_QUERY_DELETE_ALL     "DELETE FROM     lwievents"
+
 #define DB_QUERY_INSERT_EVENT "INSERT INTO lwievents         \
-                                     (EventRecordId,         \
+                                     (                         \
                                         EventTableCategoryId,  \
                                         EventType,             \
                                         EventDateTime,         \
@@ -119,17 +121,18 @@
                                         Description,           \
                                         Data                   \
                                      )                         \
-                                VALUES( NULL,                  \
-                                        %Q,                    \
-                                        %Q,                    \
-                                        %d,                    \
-                                        %Q,                    \
-                                        %Q,                    \
-                                        %d,                    \
-                                        %Q,                    \
-                                        %Q,                    \
-                                        %Q,                    \
-                                        %Q)"
+                                VALUES                         \
+                                     (                         \
+                                        ?1,                    \
+                                        ?2,                    \
+                                        ?3,                    \
+                                        ?4,                    \
+                                        ?5,                    \
+                                        ?6,                    \
+                                        ?7,                    \
+                                        ?8,                    \
+                                        ?9,                    \
+                                        ?10)"
 
 //Delete the record over 'n' entries
 #define DB_QUERY_DELETE_ABOVE_LIMIT "DELETE FROM     lwievents    \
@@ -455,59 +458,173 @@ SrvReadEventLog(
 DWORD
 SrvWriteEventLog(
     HANDLE hDB,
-    PEVENT_LOG_RECORD pEventRecord
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
     )
 {
-
-    EVT_LOG_VERBOSE("server::evtdb.c SrvWriteEventLog(pszComputer=%s, hDB=%.16X)\n",
-                    (IsNullOrEmptyString(pEventRecord->pszComputer) ? "" : pEventRecord->pszComputer), hDB);
-
     DWORD dwError = 0;
-    PSTR pszQuery = NULL;    
-    DWORD nRows = 0;
-    DWORD nCols = 0;
-    PSTR* ppszResult = NULL;
+    sqlite3_stmt *pstQuery = NULL;
+    PEVENTLOG_CONTEXT pContext = (PEVENTLOG_CONTEXT)hDB;
+    int iColumnPos = 1;
+    const EVENT_LOG_RECORD* pRecord = NULL;
+    DWORD dwIndex = 0;
+    PSTR pszError = NULL;
+
+    EVT_LOG_VERBOSE("server::evtdb.c Writing %u records (hDB=%.16X)\n",
+                    cRecords, hDB);
 
     ENTER_RW_WRITER_LOCK;
-    
-    pszQuery = sqlite3_mprintf(
-               DB_QUERY_INSERT_EVENT,
-               IsNullOrEmptyString(pEventRecord->pszEventTableCategoryId) ? "" : pEventRecord->pszEventTableCategoryId,
-               IsNullOrEmptyString(pEventRecord->pszEventType) ? "" : pEventRecord->pszEventType,
-               pEventRecord->dwEventDateTime,
-               IsNullOrEmptyString(pEventRecord->pszEventSource) ? "" : pEventRecord->pszEventSource,
-               IsNullOrEmptyString(pEventRecord->pszEventCategory) ? "" : pEventRecord->pszEventCategory,
-               pEventRecord->dwEventSourceId,
-               IsNullOrEmptyString(pEventRecord->pszUser) ? "" : pEventRecord->pszUser,
-               IsNullOrEmptyString(pEventRecord->pszComputer) ? "" : pEventRecord->pszComputer,
-               IsNullOrEmptyString(pEventRecord->pszDescription) ? "" : pEventRecord->pszDescription,
-               IsNullOrEmptyString(pEventRecord->pszData) ? "" : pEventRecord->pszData);
-    if (!pszQuery)
+
+    dwError = sqlite3_prepare_v2(
+                    pContext->pDbHandle,
+                    TEXT(DB_QUERY_INSERT_EVENT),
+                    -1, //search for null termination in szQuery to get length
+                    &pstQuery,
+                    NULL);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    dwError = sqlite3_exec(
+                    pContext->pDbHandle,
+                    "begin;",
+                    NULL,
+                    NULL,
+                    &pszError);
+    BAIL_ON_EVT_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < cRecords; dwIndex++)
     {
-        dwError = ENOMEM;
+        pRecord = &pEventRecords[dwIndex];
+        iColumnPos = 1;
+
+        dwError = sqlite3_reset(pstQuery);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszEventTableCategoryId,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszEventType,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_int64(
+            pstQuery,
+            iColumnPos,
+            pRecord->dwEventDateTime);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszEventSource,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszEventCategory,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_int64(
+            pstQuery,
+            iColumnPos,
+            pRecord->dwEventSourceId);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszUser,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszComputer,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszDescription,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = sqlite3_bind_text(
+            pstQuery,
+            iColumnPos,
+            pRecord->pszData,
+            -1,
+            SQLITE_STATIC);
+        BAIL_ON_EVT_ERROR(dwError);
+        iColumnPos++;
+
+        dwError = (DWORD)sqlite3_step(pstQuery);
+        if (dwError == SQLITE_DONE)
+        {
+            dwError = 0;
+        }
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-    dwError = SrvQueryEventLog(hDB, pszQuery, &nRows, &nCols, &ppszResult);
+    dwError = sqlite3_exec(
+                    pContext->pDbHandle,
+                    "end",
+                    NULL,
+                    NULL,
+                    &pszError);
     BAIL_ON_EVT_ERROR(dwError);
 
     EVT_LOG_VERBOSE("server::evtdb.c SrvWriteEventLog() finished\n");
 
- cleanup: 
-    
-    if (pszQuery){
-        sqlite3_free(pszQuery);
-    }
-    
-    if (ppszResult) {
-        sqlite3_free_table(ppszResult);
+ cleanup:
+    if (pstQuery)
+    {
+        sqlite3_finalize(pstQuery);
     }
     LEAVE_RW_WRITER_LOCK;
-    
     return dwError;
- error:
-    goto cleanup;
 
+ error:
+
+    if (pszError)
+    {
+        sqlite3_free(pszError);
+    }
+    sqlite3_exec(
+                    pContext->pDbHandle,
+                    "rollback",
+                    NULL,
+                    NULL,
+                    NULL);
+
+    goto cleanup;
 }
 
 /* A routine to trim the database*/
@@ -600,7 +717,8 @@ error:
 DWORD
 SrvWriteToDB(
     HANDLE hDB,
-    PEVENT_LOG_RECORD pEventRecord
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
     )
 {
     DWORD dwError = 0;
@@ -613,7 +731,10 @@ SrvWriteToDB(
 
     if(bSafeInsert) {
         //Write the eventlog
-        dwError = SrvWriteEventLog(hDB,pEventRecord);
+        dwError = SrvWriteEventLog(
+                        hDB,
+                        cRecords,
+                        pEventRecords);
         BAIL_ON_EVT_ERROR(dwError);
     }
 
@@ -630,32 +751,12 @@ SrvClearEventLog(
     )
 {
     DWORD dwError = 0;
-    CHAR  szQuery[8092];
     DWORD nRows = 0;
     DWORD nCols = 0;
     PSTR* ppszResult = NULL;
     ENTER_RW_WRITER_LOCK;
 
-
-    sprintf(szQuery, DB_QUERY_DROP_EVENTS_TABLE);
-
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    if (dwError != 1) BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_EVENTS_TABLE);
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_UNIQUE_INDEX, "recordId", "EventRecordId");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_INDEX, "tableCategoryId", "EventTableCategoryId");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    sprintf(szQuery, DB_QUERY_CREATE_INDEX, "dateTime", "EventDateTime");
-    dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+    dwError = SrvQueryEventLog(hDB, DB_QUERY_DELETE_ALL, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);
 
  cleanup:
@@ -666,7 +767,6 @@ SrvClearEventLog(
     return dwError;
  error:
     goto cleanup;
-
 }
 
 DWORD

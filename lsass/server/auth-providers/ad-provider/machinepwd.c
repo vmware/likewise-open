@@ -183,7 +183,7 @@ ADSyncMachinePasswords(
         
         if (bRefreshTGT)
         {
-        	dwError = LsaKrb5RefreshMachineTGT(&dwGoodUntilTime);
+		dwError = LwKrb5RefreshMachineTGT(&dwGoodUntilTime);
         	if (dwError)
         	{
                     if (AD_EventlogEnabled())

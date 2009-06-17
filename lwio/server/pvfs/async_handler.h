@@ -72,6 +72,39 @@ PvfsAsyncFlushBuffers(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsAsyncQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncSetInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncQueryDirInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncQueryVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncQuerySecurityFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsAsyncSetSecurityFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+
+
+
 #endif /* _PVFS_ASYNC_HANDLER_H_ */
 
 /*

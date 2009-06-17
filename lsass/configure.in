@@ -829,6 +829,7 @@ AC_CONFIG_FILES([Makefile
                  utils/Makefile
                  logging_r/Makefile
                  lsaunistr/Makefile
+                 join/Makefile
                  ipc/Makefile
                  client/Makefile
                  provider/Makefile
@@ -859,10 +860,7 @@ AC_CONFIG_FILES([Makefile
 			 ntlmclient/Makefile
 			 ntlmipc/Makefile
                  server/Makefile
-                 server/krb5/Makefile
-                 server/ldap/Makefile
                  server/api/Makefile
-                 server/join/Makefile
                  server/ntlmserver/Makefile
                  server/auth-providers/Makefile
                  server/auth-providers/ad-provider/Makefile

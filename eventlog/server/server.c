@@ -204,9 +204,10 @@ error:
 
 
 idl_long_int
-RpcLWIWriteEventLog(
+RpcLWIWriteEventLogRecords(
     handle_t bindingHandle,
-    EVENT_LOG_RECORD EventRecord
+    DWORD cRecords,
+    EVENT_LOG_RECORD* pEventRecords
     )
 {
     DWORD  dwError = 0;
@@ -226,8 +227,10 @@ RpcLWIWriteEventLog(
     dwError =  SrvOpenEventDatabase(&hDB);
     BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = SrvWriteToDB( hDB,
-                            &EventRecord);
+    dwError = SrvWriteToDB(
+                    hDB,
+                    cRecords,
+                    pEventRecords);
     BAIL_ON_EVT_ERROR(dwError);
 
 cleanup:

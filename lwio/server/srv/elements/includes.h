@@ -73,3 +73,8 @@
 #include <shareapi.h>
 #include <elementsapi.h>
 
+#include "structs.h"
+#include "srvtimer.h"
+
+#include "externs.h"
+

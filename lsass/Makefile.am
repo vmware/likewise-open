@@ -18,6 +18,7 @@ full_subdirs= \
 	lwicompat	  \
 	gssntlm	          \
 	ntlmclient \
+        join                \
         server            \
         access            \
         tools             \

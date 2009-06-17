@@ -230,6 +230,13 @@ LWIWriteEventLogBase(
     );
 
 DWORD
+LWIWriteEventLogRecords(
+    HANDLE hEventLog,
+    DWORD cRecords,
+    PEVENT_LOG_RECORD pEventRecords
+    );
+
+DWORD
 LWIWriteEventLog(
     HANDLE hEventLog,
     PCSTR eventType,

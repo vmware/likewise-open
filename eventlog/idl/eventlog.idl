@@ -108,9 +108,10 @@ interface eventlog {
 	);
 
     long
-    RpcLWIWriteEventLog(
+    RpcLWIWriteEventLogRecords(
         [in] handle_t bindingHandle,
-	[in] EVENT_LOG_RECORD EventRecord
+	[in] unsigned32 cRecords,
+	[in, size_is(cRecords)] EVENT_LOG_RECORD* pEventRecords
 	);
 
     long
