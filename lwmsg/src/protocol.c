@@ -55,8 +55,6 @@ lwmsg_protocol_new(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    lwmsg_context_setup(&my_prot->context, context);
-
     *prot = my_prot;
 
 done:
@@ -76,7 +74,6 @@ error:
 void
 lwmsg_protocol_delete(LWMsgProtocol* prot)
 {
-    lwmsg_context_cleanup(&prot->context);
     free(prot->types);
     free(prot);
 }
@@ -88,7 +85,7 @@ lwmsg_protocol_get_message_type(LWMsgProtocol* prot, unsigned int tag, LWMsgType
 
     if (tag >= prot->num_types)
     {
-        RAISE_ERROR(&prot->context, status = LWMSG_STATUS_NOT_FOUND,
+        RAISE_ERROR(prot, status = LWMSG_STATUS_NOT_FOUND,
                     "Unknown message type");
     }
     else
@@ -112,7 +109,7 @@ lwmsg_protocol_get_message_name(
 
     if (tag >= prot->num_types)
     {
-        RAISE_ERROR(&prot->context, status = LWMSG_STATUS_NOT_FOUND,
+        RAISE_ERROR(prot, status = LWMSG_STATUS_NOT_FOUND,
                     "Unknown message type");
     }
     else
@@ -174,5 +171,5 @@ lwmsg_protocol_get_error_message(
     LWMsgStatus status
     )
 {
-    return lwmsg_context_get_error_message(&prot->context, status);
+    return lwmsg_error_message(status, &prot->error);
 }

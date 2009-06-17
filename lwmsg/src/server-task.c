@@ -455,7 +455,7 @@ lwmsg_server_task_perform_accept(
             }
 
             /* Create new connection with client fd, put it into task, schedule task */
-            BAIL_ON_ERROR(status = lwmsg_connection_new(server->protocol, &assoc));
+            BAIL_ON_ERROR(status = lwmsg_connection_new(server->context, server->protocol, &assoc));
             BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_LOCAL, client_fd));
             BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, server->manager));
             BAIL_ON_ERROR(status = lwmsg_assoc_set_session_functions(

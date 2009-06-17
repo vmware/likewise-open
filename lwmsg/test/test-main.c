@@ -96,7 +96,7 @@ lwmsg_test_assoc_pair(
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                protocol,
                &s1.assoc));
 
@@ -105,7 +105,7 @@ lwmsg_test_assoc_pair(
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                protocol,
                &s2.assoc));
 

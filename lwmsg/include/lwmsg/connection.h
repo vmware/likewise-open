@@ -129,6 +129,7 @@ typedef enum LWMsgConnectionMode
  */
 LWMsgStatus
 lwmsg_connection_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssoc** out_assoc
     );

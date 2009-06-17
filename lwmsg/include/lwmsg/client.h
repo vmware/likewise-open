@@ -92,6 +92,7 @@ typedef struct LWMsgClient LWMsgClient;
  */
 LWMsgStatus
 lwmsg_client_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgClient** client
     );

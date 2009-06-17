@@ -78,6 +78,7 @@ lwmsg_client_signal(
 
 LWMsgStatus
 lwmsg_client_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgClient** out_client
     )
@@ -86,8 +87,6 @@ lwmsg_client_new(
     LWMsgClient* client = NULL;
 
     client = calloc(1, sizeof(*client));
-
-    lwmsg_context_setup(&client->context, &protocol->context);
 
     if (!client)
     {
@@ -106,6 +105,7 @@ lwmsg_client_new(
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&client->manager));
 
+    client->context = context;
     client->protocol = protocol;
     client->assoc_pool_capacity = 4;
     client->assoc_pool_created = 0;
@@ -207,9 +207,7 @@ lwmsg_client_acquire_assoc(
     }
     else if (client->assoc_pool_created < client->assoc_pool_capacity)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_new(client->protocol, &assoc));
-        /* Force assoc context to route through us */
-        assoc->context.parent = &client->context;
+        BAIL_ON_ERROR(status = lwmsg_connection_new(client->context, client->protocol, &assoc));
 
         BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
         BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
@@ -245,7 +243,7 @@ lwmsg_client_create_assoc(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_new(client->protocol, &assoc));
+    BAIL_ON_ERROR(status = lwmsg_connection_new(client->context, client->protocol, &assoc));
     BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
     BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
 
@@ -540,8 +538,6 @@ lwmsg_client_delete(
     pthread_cond_destroy(&client->event);
     
     lwmsg_session_manager_delete(client->manager);
-
-    lwmsg_context_cleanup(&client->context);
 
     free(client->endpoint);
     free(client->assoc_pool);

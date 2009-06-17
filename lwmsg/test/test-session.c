@@ -223,11 +223,11 @@ MU_TEST(session, trivial_send_recv)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                trivial_protocol,
                &send_assocs[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                trivial_protocol,
                &send_assocs[1]));
     
@@ -241,11 +241,11 @@ MU_TEST(session, trivial_send_recv)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets_b[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                trivial_protocol,
                &recv_assocs[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                trivial_protocol,
                &recv_assocs[1]));
     
