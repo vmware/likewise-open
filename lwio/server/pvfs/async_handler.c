@@ -253,7 +253,7 @@ PvfsAsyncFlushBuffers(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycQueryInformationFile(
+PvfsAsyncQueryInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -272,7 +272,7 @@ PvfsAsycQueryInformationFile(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycSetInformationFile(
+PvfsAsyncSetInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -291,7 +291,7 @@ PvfsAsycSetInformationFile(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycQueryDirInformation(
+PvfsAsyncQueryDirInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -310,7 +310,7 @@ PvfsAsycQueryDirInformation(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycQueryVolumeInformation(
+PvfsAsyncQueryVolumeInformation(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -329,7 +329,7 @@ PvfsAsycQueryVolumeInformation(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycQuerySecurityFile(
+PvfsAsyncQuerySecurityFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -348,7 +348,7 @@ PvfsAsycQuerySecurityFile(
  ***********************************************************/
 
 NTSTATUS
-PvfsAsycSetSecurityFile(
+PvfsAsyncSetSecurityFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
