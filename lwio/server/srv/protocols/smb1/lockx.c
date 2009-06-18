@@ -464,7 +464,7 @@ SrvExecuteLockRequest(
 		LONG64 llExpiry = 0LL;
 
 		llExpiry = (time(NULL) +
-				    pLockRequest->ulTimeout * 1000 + 11644473600LL) * 10000000LL;
+				    (pLockRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
 
 		ntStatus = SrvTimerPostRequest(
 						llExpiry,
