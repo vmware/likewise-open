@@ -1,6 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -27,57 +28,90 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srvtimer.h
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Elements
- *
- *        Timer
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef __SRV_TIMER_H__
-#define __SRV_TIMER_H__
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-NTSTATUS
-SrvTimerInit(
-	IN PSRV_TIMER pTimer
-	);
+typedef enum
+{
+	SRV_SMB_UNLOCK = 0,
+	SRV_SMB_LOCK
+} SRV_SMB_LOCK_OPERATION_TYPE;
 
-NTSTATUS
-SrvTimerPostRequestSpecific(
-	IN  PSRV_TIMER             pTimer,
-	IN  LONG64                 llExpiry,
-	IN  PVOID                  pUserData,
-	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
-	);
+typedef struct _SRV_SMB_LOCK_REQUEST* PSRV_SMB_LOCK_REQUEST;
 
-NTSTATUS
-SrvTimerCancelRequestSpecific(
-	IN  PSRV_TIMER         pTimer,
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	);
+typedef struct _SRV_SMB_LOCK_CONTEXT
+{
+	SRV_SMB_LOCK_OPERATION_TYPE operation;
 
-VOID
-SrvTimerIndicateStop(
-	PSRV_TIMER pTimer
-	);
+	ULONG   ulKey;
+	BOOLEAN bExclusiveLock;
 
-VOID
-SrvTimerFreeContents(
-	PSRV_TIMER pTimer
-	);
+	IO_ASYNC_CONTROL_BLOCK  acb;
+	PIO_ASYNC_CONTROL_BLOCK pAcb;
 
-#endif /* __SRV_TIMER_H__ */
+	IO_STATUS_BLOCK ioStatusBlock;
+
+	SRV_SMB_LOCK_TYPE lockType;
+
+	union
+	{
+		LOCKING_ANDX_RANGE_LARGE_FILE largeFileRange;
+		LOCKING_ANDX_RANGE            regularRange;
+
+	} lockInfo;
+
+	PSRV_SMB_LOCK_REQUEST pLockRequest;
+
+} SRV_SMB_LOCK_CONTEXT, *PSRV_SMB_LOCK_CONTEXT;
+
+typedef struct _SRV_SMB_LOCK_REQUEST
+{
+	LONG              refCount;
+
+	pthread_mutex_t   mutex;
+	pthread_mutex_t*  pMutex;
+
+	PLWIO_SRV_FILE       pFile;
+	PLWIO_SRV_CONNECTION pConnection;
+
+	USHORT            usTid;
+	USHORT            usMid;
+	USHORT            usUid;
+	USHORT            usPid;
+
+	ULONG             ulTimeout;
+
+	USHORT            usNumUnlocks;
+	USHORT            usNumLocks;
+
+	PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
+
+	LONG              lPendingContexts;
+
+	BOOLEAN            bExpired;
+	BOOLEAN            bResponseSent;
+
+	PSRV_TIMER_REQUEST pTimerRequest;
+
+	ULONG              ulResponseSequence;
+
+} SRV_SMB_LOCK_REQUEST;
+
+#endif /* __STRUCTS_H__ */

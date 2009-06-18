@@ -56,7 +56,7 @@ typedef struct _SRV_TIMER_REQUEST
 	pthread_mutex_t        mutex;
 	pthread_mutex_t*       pMutex;
 
-	struct timespec        timespan;
+	LONG64                 llExpiry;
 	PVOID                  pUserData;
 	PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
 

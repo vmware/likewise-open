@@ -152,14 +152,10 @@ error:
 NTSTATUS
 SrvSelectTransportSendResponse(
     IN          PLWIO_SRV_CONNECTION pConnection,
-    IN OPTIONAL PSMB_PACKET          pRequest,
     IN          PSMB_PACKET          pResponse
     )
 {
-	return SrvConnectionWriteMessage(
-				pConnection,
-				pRequest->sequence + 1,
-				pResponse);
+	return SrvConnectionWriteMessage(pConnection, pResponse);
 }
 
 NTSTATUS

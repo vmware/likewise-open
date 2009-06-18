@@ -134,6 +134,7 @@ SrvTimerMain(
     {
 	int errCode = 0;
 	BOOLEAN bRetryWait = FALSE;
+	LONG64 llCurTime = 0LL;
 
 	if (pTimerRequest)
 	{
@@ -144,7 +145,8 @@ SrvTimerMain(
 	status = SrvTimerGetNextRequest(pContext, &pTimerRequest);
 	if (status == STATUS_NOT_FOUND)
 	{
-		struct timespec tsLong = { .tv_sec = 86400, .tv_nsec = 0 };
+		struct timespec tsLong = { .tv_sec = time(NULL) + 86400,
+				                   .tv_nsec = 0 };
 
 		do
 		{
@@ -173,8 +175,10 @@ SrvTimerMain(
 	}
 	BAIL_ON_NT_STATUS(status);
 
+	llCurTime = (time(NULL) + 11644473600LL) * 10000000LL;
+
 	// Has it already expired ?
-	if (difftime(time(NULL), pTimerRequest->timespan.tv_sec) >= 0)
+	if (llCurTime >= pTimerRequest->llExpiry)
 	{
 		pTimerRequest->pfnTimerExpiredCB(
 								pTimerRequest,
@@ -187,15 +191,18 @@ SrvTimerMain(
 
 	do
 	{
+		struct timespec ts = {.tv_sec = 0, .tv_nsec = 0};
 		bRetryWait = FALSE;
+
+		ts.tv_sec = (pTimerRequest->llExpiry/10000000LL) - 11644473600LL;
 
 		errCode = pthread_cond_timedwait(
 							&pContext->event,
 							&pContext->mutex,
-							&pTimerRequest->timespan);
+							&ts);
 			if (errCode == ETIMEDOUT)
 			{
-				if (time(NULL) < pTimerRequest->timespan.tv_sec)
+				if (time(NULL) < ts.tv_sec)
 				{
 					bRetryWait = TRUE;
 					continue;
@@ -207,7 +214,9 @@ SrvTimerMain(
 
 	} while (bRetryWait && !SrvTimerMustStop(pContext));
 
-	if (difftime(time(NULL), pTimerRequest->timespan.tv_sec) >= 0)
+	llCurTime = (time(NULL) + 11644473600LL) * 10000000LL;
+
+	if (llCurTime >= pTimerRequest->llExpiry)
 	{
 		BOOLEAN bInLock = FALSE;
 
@@ -314,7 +323,7 @@ SrvTimerDetachRequest(
 NTSTATUS
 SrvTimerPostRequestSpecific(
 	IN  PSRV_TIMER             pTimer,
-	IN  struct timespec        timespan,
+	IN  LONG64                 llExpiry,
 	IN  PVOID                  pUserData,
 	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
 	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
@@ -326,7 +335,7 @@ SrvTimerPostRequestSpecific(
 	PSRV_TIMER_REQUEST pPrev = NULL;
 	BOOLEAN bInLock = FALSE;
 
-	if (!timespan.tv_sec && !timespan.tv_nsec)
+	if (!llExpiry)
 	{
 		status = STATUS_INVALID_PARAMETER_1;
 		BAIL_ON_NT_STATUS(status);
@@ -344,7 +353,7 @@ SrvTimerPostRequestSpecific(
 
 	pTimerRequest->refCount = 1;
 
-	pTimerRequest->timespan = timespan;
+	pTimerRequest->llExpiry = llExpiry;
 	pTimerRequest->pUserData = pUserData;
 	pTimerRequest->pfnTimerExpiredCB = pfnTimerExpiredCB;
 
@@ -354,7 +363,7 @@ SrvTimerPostRequestSpecific(
 	LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
 	for (pTimerIter = pTimer->context.pRequests;
-		 pTimerIter && (pTimerIter->timespan.tv_sec <= timespan.tv_sec);
+		 pTimerIter && (pTimerIter->llExpiry <= llExpiry);
 		 pPrev = pTimerIter, pTimerIter = pTimerIter->pNext);
 
 	if (!pPrev)
