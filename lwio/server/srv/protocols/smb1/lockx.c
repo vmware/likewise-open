@@ -533,7 +533,7 @@ SrvLockRequestExpiredCB(
 						pLockRequest->usPid,
 						pLockRequest->usUid,
 						pLockRequest->usMid,
-						STATUS_NOT_LOCKED,
+						STATUS_FILE_LOCK_CONFLICT,
 						&pSmbResponse);
 		BAIL_ON_NT_STATUS(ntStatus);
 
@@ -612,7 +612,7 @@ SrvExecuteLockContextAsyncCB(
 								pLockRequest->usPid,
 								pLockRequest->usUid,
 								pLockRequest->usMid,
-								STATUS_NOT_LOCKED,
+								STATUS_FILE_LOCK_CONFLICT,
 								&pSmbResponse);
 			}
 			BAIL_ON_NT_STATUS(ntStatus);
