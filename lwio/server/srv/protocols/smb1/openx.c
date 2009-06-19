@@ -132,30 +132,30 @@ SrvProcessOpenAndX(
 
     switch (pRequestHeader->usDesiredAccess & 0x70)
     {
-        case 0: /* compatibility mode */
+        case 0x00: /* compatibility mode */
 
             break;
 
-        case 1: /* deny read/write/execute (exclusive) */
+        case 0x10: /* deny read/write/execute (exclusive) */
 
             usShareAccess &= (USHORT)~FILE_SHARE_READ;
             usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
 
             break;
 
-        case 2: /* deny write */
+        case 0x20: /* deny write */
 
             usShareAccess &= (USHORT)~FILE_SHARE_WRITE;
 
             break;
 
-        case 3: /* deny read/execute */
+        case 0x30: /* deny read/execute */
 
             usShareAccess &= (USHORT)~FILE_SHARE_READ;
 
             break;
 
-        case 4: /* deny none */
+        case 0x40: /* deny none */
 
             break;
     }
