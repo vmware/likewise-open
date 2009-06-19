@@ -222,7 +222,6 @@ error:
 NTSTATUS
 SrvConnectionWriteMessage(
     PLWIO_SRV_CONNECTION pConnection,
-    ULONG               ulSequence,
     PSMB_PACKET         pPacket
     )
 {
@@ -240,7 +239,7 @@ SrvConnectionWriteMessage(
 
         ntStatus = SMBPacketSign(
                         pPacket,
-                        ulSequence,
+                        pPacket->sequence,
                         pConnection->pSessionKey,
                         pConnection->ulSessionKeyLength);
         BAIL_ON_NT_STATUS(ntStatus);

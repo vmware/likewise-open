@@ -1,6 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
  * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -27,57 +28,32 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srvtimer.h
+ *        defs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Elements
- *
- *        Timer
+ *        Defines
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef __SRV_TIMER_H__
-#define __SRV_TIMER_H__
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-NTSTATUS
-SrvTimerInit(
-	IN PSRV_TIMER pTimer
-	);
+typedef enum
+{
+	SRV_SMB_LOCK_TYPE_UNKNOWN = 0,
+	SRV_SMB_LOCK_TYPE_REGULAR,
+	SRV_SMB_LOCK_TYPE_LARGE
 
-NTSTATUS
-SrvTimerPostRequestSpecific(
-	IN  PSRV_TIMER             pTimer,
-	IN  LONG64                 llExpiry,
-	IN  PVOID                  pUserData,
-	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
-	);
+} SRV_SMB_LOCK_TYPE;
 
-NTSTATUS
-SrvTimerCancelRequestSpecific(
-	IN  PSRV_TIMER         pTimer,
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	);
-
-VOID
-SrvTimerIndicateStop(
-	PSRV_TIMER pTimer
-	);
-
-VOID
-SrvTimerFreeContents(
-	PSRV_TIMER pTimer
-	);
-
-#endif /* __SRV_TIMER_H__ */
+#endif /* __DEFS_H__ */

@@ -64,7 +64,6 @@ SrvTransportGetRequest(
 NTSTATUS
 SrvTransportSendResponse(
     IN          PLWIO_SRV_CONNECTION pConnection,
-    IN OPTIONAL PSMB_PACKET          pRequest,
     IN          PSMB_PACKET          pResponse
     );
 

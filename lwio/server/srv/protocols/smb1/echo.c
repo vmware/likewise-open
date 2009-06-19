@@ -107,10 +107,9 @@ SrvProcessEchoAndX(
         // Give that last response back to the caller
         if (usNumEchoesToSend--)
         {
-            ntStatus = SrvTransportSendResponse(
-							pConnection,
-							pSmbRequest,
-                            pSmbResponse);
+		pSmbResponse->sequence = pSmbRequest->sequence + 1;
+
+            ntStatus = SrvTransportSendResponse(pConnection, pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }

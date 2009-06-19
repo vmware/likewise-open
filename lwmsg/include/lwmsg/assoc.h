@@ -414,6 +414,7 @@ typedef LWMsgStatus (*LWMsgAssocDispatchFunction) (
  *
  * Creates a new association with the specified implementation and protocol.
  * 
+ * @param[in] context an optional context
  * @param[in] prot the protocol understood by the association
  * @param[in] aclass the implementation structure for the new association
  * @param[out] assoc the created association
@@ -425,6 +426,7 @@ typedef LWMsgStatus (*LWMsgAssocDispatchFunction) (
  */
 LWMsgStatus
 lwmsg_assoc_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssocClass* aclass,
     LWMsgAssoc** assoc

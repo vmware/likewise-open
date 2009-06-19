@@ -241,7 +241,7 @@ SrvElementsInit(
 
 NTSTATUS
 SrvTimerPostRequest(
-	IN  struct timespec        timespan,
+	IN  LONG64                 llExpiry,
 	IN  PVOID                  pUserData,
 	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
 	OUT PSRV_TIMER_REQUEST*    ppTimerRequest

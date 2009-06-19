@@ -75,6 +75,8 @@
 #include <protocolapi.h>
 #include <smb1.h>
 
+#include "defs.h"
+#include "structs.h"
 #include "finder.h"
 #include "pipeinfo.h"
 #include "trans2qfi.h"
@@ -82,6 +84,5 @@
 #include "trans2qpi.h"
 #include "trans2sfi.h"
 
-#include "smb1.h"
 
 

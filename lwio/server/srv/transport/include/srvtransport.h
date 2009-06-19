@@ -60,7 +60,6 @@ typedef NTSTATUS (*PFN_SRV_TRANSPORT_GET_REQUEST)(
 
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_RESPONSE)(
                         IN           PLWIO_SRV_CONNECTION pConnection,
-                        IN  OPTIONAL PSMB_PACKET          pRequest,
                         IN           PSMB_PACKET          pResponse
                         );
 

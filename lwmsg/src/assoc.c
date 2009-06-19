@@ -229,6 +229,7 @@ lwmsg_assoc_context_get_data(
 
 LWMsgStatus
 lwmsg_assoc_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssocClass* aclass,
     LWMsgAssoc** out_assoc
@@ -246,7 +247,7 @@ lwmsg_assoc_new(
     assoc->prot = prot;
     assoc->aclass = aclass;
 
-    lwmsg_context_setup(&assoc->context, &prot->context);
+    lwmsg_context_setup(&assoc->context, context);
 
     lwmsg_context_set_data_function(&assoc->context, lwmsg_assoc_context_get_data, assoc);
 

@@ -391,6 +391,7 @@ static LWMsgAssocClass connection_class =
 
 LWMsgStatus
 lwmsg_connection_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssoc** out_assoc
     )
@@ -399,7 +400,7 @@ lwmsg_connection_new(
     LWMsgAssoc* assoc = NULL;
     ConnectionPrivate* priv = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_new(prot, &connection_class, &assoc));
+    BAIL_ON_ERROR(status = lwmsg_assoc_new(context, prot, &connection_class, &assoc));
 
     priv = lwmsg_assoc_get_private(assoc);
     priv->state = CONNECTION_STATE_START;

@@ -98,7 +98,7 @@ NtlmOpenServer(
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIpcGetProtocolSpec()));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(pContext->pProtocol, &pContext->pAssoc));
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(

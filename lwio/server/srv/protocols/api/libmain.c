@@ -49,15 +49,6 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvProtocolBuildErrorResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    NTSTATUS             errorStatus,
-    PSMB_PACKET*         ppSmbResponse
-    );
-
 NTSTATUS
 SrvProtocolInit(
     VOID
@@ -350,17 +341,26 @@ SrvProtocolExecute(
     {
         ntStatus = SrvProtocolBuildErrorResponse(
                         pConnection,
-                        pSmbRequest,
+                        pSmbRequest->pSMBHeader->command,
+                        pSmbRequest->pSMBHeader->tid,
+                        pSmbRequest->pSMBHeader->pid,
+                        pSmbRequest->pSMBHeader->uid,
+                        pSmbRequest->pSMBHeader->mid,
                         ntStatus,
                         &pSmbResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvTransportSendResponse(
-                    pConnection,
-                    pSmbRequest,
-                    pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pSmbResponse)
+    {
+	pSmbResponse->sequence = pSmbRequest->sequence + 1;
+
+	/* synchronous response */
+		ntStatus = SrvTransportSendResponse(
+						pConnection,
+						pSmbResponse);
+		BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -378,11 +378,14 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvProtocolBuildErrorResponse(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
+    BYTE                 ucCommand,
+    USHORT               usTid,
+    USHORT               usPid,
+    USHORT               usUid,
+    USHORT               usMid,
     NTSTATUS             errorStatus,
     PSMB_PACKET*         ppSmbResponse
     )
@@ -407,13 +410,13 @@ SrvProtocolBuildErrorResponse(
     ntStatus = SMBPacketMarshallHeader(
                 pSmbResponse->pRawBuffer,
                 pSmbResponse->bufferLen,
-                pSmbRequest->pSMBHeader->command,
+                ucCommand,
                 errorStatus,
                 TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                pSmbRequest->pSMBHeader->uid,
-                pSmbRequest->pSMBHeader->mid,
+                usTid,
+                usPid,
+                usUid,
+                usMid,
                 pConnection->serverProperties.bRequireSecuritySignatures,
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

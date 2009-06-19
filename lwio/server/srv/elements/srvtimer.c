@@ -57,14 +57,14 @@ SrvTimerMain(
 
 static
 NTSTATUS
-SrvTimerGetNextRequest(
+SrvTimerGetNextRequest_inlock(
 	IN  PSRV_TIMER_CONTEXT  pContext,
 	OUT PSRV_TIMER_REQUEST* ppTimerRequest
 	);
 
 static
 NTSTATUS
-SrvTimerDetachRequest(
+SrvTimerDetachRequest_inlock(
 	IN OUT PSRV_TIMER_CONTEXT pContext,
 	IN OUT PSRV_TIMER_REQUEST pTimerRequest
 	);
@@ -77,7 +77,7 @@ SrvTimerFree(
 
 static
 BOOLEAN
-SrvTimerMustStop(
+SrvTimerMustStop_inlock(
 	IN  PSRV_TIMER_CONTEXT pContext
     );
 
@@ -127,24 +127,50 @@ SrvTimerMain(
     NTSTATUS status = 0;
     PSRV_TIMER_CONTEXT pContext = (PSRV_TIMER_CONTEXT)pData;
     PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    BOOLEAN bInLock = FALSE;
 
     LWIO_LOG_DEBUG("Srv timer starting");
 
-    while (!SrvTimerMustStop(pContext))
+    LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
+
+    while (!SrvTimerMustStop_inlock(pContext))
     {
 	int errCode = 0;
 	BOOLEAN bRetryWait = FALSE;
+	LONG64 llCurTime = (time(NULL) + 11644473600LL) * 10000000LL;
 
 	if (pTimerRequest)
 	{
+		if (llCurTime >= pTimerRequest->llExpiry)
+		{
+			LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
+			LWIO_LOCK_MUTEX(bInLock, &pTimerRequest->mutex);
+
+			if (pTimerRequest->pfnTimerExpiredCB)
+			{
+				// Timer has not been canceled
+				pTimerRequest->pfnTimerExpiredCB(
+									pTimerRequest,
+									pTimerRequest->pUserData);
+			}
+
+			LWIO_UNLOCK_MUTEX(bInLock, &pTimerRequest->mutex);
+			LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
+
+			SrvTimerDetachRequest_inlock(pContext, pTimerRequest);
+		}
+
 		SrvTimerRelease(pTimerRequest);
 		pTimerRequest = NULL;
 	}
 
-	status = SrvTimerGetNextRequest(pContext, &pTimerRequest);
+	status = SrvTimerGetNextRequest_inlock(pContext, &pTimerRequest);
 	if (status == STATUS_NOT_FOUND)
 	{
-		struct timespec tsLong = { .tv_sec = 86400, .tv_nsec = 0 };
+		struct timespec tsLong = { .tv_sec = time(NULL) + 86400,
+				                   .tv_nsec = 0 };
+
+		status = STATUS_SUCCESS;
 
 		do
 		{
@@ -162,72 +188,50 @@ SrvTimerMain(
 					bRetryWait = TRUE;
 					continue;
 				}
+
+				break;
 			}
 
                 status = LwUnixErrnoToNtStatus(errCode);
                 BAIL_ON_NT_STATUS(status);
 
-		} while (bRetryWait && !SrvTimerMustStop(pContext));
+		} while (bRetryWait && !SrvTimerMustStop_inlock(pContext));
 
 		continue;
 	}
 	BAIL_ON_NT_STATUS(status);
 
-	// Has it already expired ?
-	if (difftime(time(NULL), pTimerRequest->timespan.tv_sec) >= 0)
-	{
-		pTimerRequest->pfnTimerExpiredCB(
-								pTimerRequest,
-								pTimerRequest->pUserData);
-
-		SrvTimerDetachRequest(pContext, pTimerRequest);
-
-		continue;
-	}
-
 	do
 	{
+		struct timespec ts = {.tv_sec = 0, .tv_nsec = 0};
 		bRetryWait = FALSE;
+
+		ts.tv_sec = (pTimerRequest->llExpiry/10000000LL) - 11644473600LL;
 
 		errCode = pthread_cond_timedwait(
 							&pContext->event,
 							&pContext->mutex,
-							&pTimerRequest->timespan);
+							&ts);
 			if (errCode == ETIMEDOUT)
 			{
-				if (time(NULL) < pTimerRequest->timespan.tv_sec)
+				if (time(NULL) < ts.tv_sec)
 				{
 					bRetryWait = TRUE;
 					continue;
 				}
+
+				break;
 			}
 
             status = LwUnixErrnoToNtStatus(errCode);
             BAIL_ON_NT_STATUS(status);
 
-	} while (bRetryWait && !SrvTimerMustStop(pContext));
-
-	if (difftime(time(NULL), pTimerRequest->timespan.tv_sec) >= 0)
-	{
-		BOOLEAN bInLock = FALSE;
-
-		LWIO_LOCK_MUTEX(bInLock, &pTimerRequest->mutex);
-
-		if (pTimerRequest->pfnTimerExpiredCB)
-		{
-			// Timer has not been canceled
-				pTimerRequest->pfnTimerExpiredCB(
-									pTimerRequest,
-									pTimerRequest->pUserData);
-		}
-
-		LWIO_UNLOCK_MUTEX(bInLock, &pTimerRequest->mutex);
-
-		SrvTimerDetachRequest(pContext, pTimerRequest);
-	}
+	} while (bRetryWait && !SrvTimerMustStop_inlock(pContext));
     }
 
 cleanup:
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
 
 	if (pTimerRequest)
 	{
@@ -240,23 +244,20 @@ cleanup:
 
 error:
 
-	LWIO_LOG_ERROR("Srv timer due to error [%d]", status);
+	LWIO_LOG_ERROR("Srv timer stopping due to error [%d]", status);
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvTimerGetNextRequest(
+SrvTimerGetNextRequest_inlock(
 	IN  PSRV_TIMER_CONTEXT  pContext,
 	OUT PSRV_TIMER_REQUEST* ppTimerRequest
 	)
 {
 	NTSTATUS status = STATUS_SUCCESS;
-	BOOLEAN bInLock = FALSE;
 	PSRV_TIMER_REQUEST pTimerRequest = NULL;
-
-	LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
 
 	if (!pContext->pRequests)
 	{
@@ -272,8 +273,6 @@ SrvTimerGetNextRequest(
 
 cleanup:
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
-
 	return status;
 
 error:
@@ -285,15 +284,11 @@ error:
 
 static
 NTSTATUS
-SrvTimerDetachRequest(
+SrvTimerDetachRequest_inlock(
 	IN OUT PSRV_TIMER_CONTEXT pContext,
 	IN OUT PSRV_TIMER_REQUEST pTimerRequest
 	)
 {
-	BOOLEAN bInLock = FALSE;
-
-	LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
-
 	if (pTimerRequest->pPrev)
 	{
 		pTimerRequest->pPrev->pNext = pTimerRequest->pNext;
@@ -302,8 +297,6 @@ SrvTimerDetachRequest(
 	{
 		pContext->pRequests = pTimerRequest->pNext;
 	}
-
-	LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
 
 	pTimerRequest->pPrev = NULL;
 	pTimerRequest->pNext = NULL;
@@ -314,7 +307,7 @@ SrvTimerDetachRequest(
 NTSTATUS
 SrvTimerPostRequestSpecific(
 	IN  PSRV_TIMER             pTimer,
-	IN  struct timespec        timespan,
+	IN  LONG64                 llExpiry,
 	IN  PVOID                  pUserData,
 	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
 	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
@@ -326,7 +319,7 @@ SrvTimerPostRequestSpecific(
 	PSRV_TIMER_REQUEST pPrev = NULL;
 	BOOLEAN bInLock = FALSE;
 
-	if (!timespan.tv_sec && !timespan.tv_nsec)
+	if (!llExpiry)
 	{
 		status = STATUS_INVALID_PARAMETER_1;
 		BAIL_ON_NT_STATUS(status);
@@ -344,7 +337,7 @@ SrvTimerPostRequestSpecific(
 
 	pTimerRequest->refCount = 1;
 
-	pTimerRequest->timespan = timespan;
+	pTimerRequest->llExpiry = llExpiry;
 	pTimerRequest->pUserData = pUserData;
 	pTimerRequest->pfnTimerExpiredCB = pfnTimerExpiredCB;
 
@@ -354,7 +347,7 @@ SrvTimerPostRequestSpecific(
 	LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
 	for (pTimerIter = pTimer->context.pRequests;
-		 pTimerIter && (pTimerIter->timespan.tv_sec <= timespan.tv_sec);
+		 pTimerIter && (pTimerIter->llExpiry <= llExpiry);
 		 pPrev = pTimerIter, pTimerIter = pTimerIter->pNext);
 
 	if (!pPrev)
@@ -540,17 +533,13 @@ SrvTimerFreeContents(
 
 static
 BOOLEAN
-SrvTimerMustStop(
+SrvTimerMustStop_inlock(
 	IN  PSRV_TIMER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
 
-    pthread_mutex_lock(&pContext->mutex);
-
     bStop = pContext->bStop;
-
-    pthread_mutex_unlock(&pContext->mutex);
 
     return bStop;
 }

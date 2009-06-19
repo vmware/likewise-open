@@ -302,7 +302,7 @@ MU_TEST(client_server, parallel)
     MU_TRY(lwmsg_server_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(context, protocol, &client));
     MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
@@ -511,7 +511,7 @@ MU_TEST(client_server, async_immediate)
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(NULL, protocol, &client));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_IMMEDIATE;
@@ -546,7 +546,7 @@ MU_TEST(client_server, async_delay)
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(NULL, protocol, &client));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;
@@ -581,7 +581,7 @@ MU_TEST(client_server, async_interrupt)
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(NULL, protocol, &client));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;
@@ -617,7 +617,7 @@ MU_TEST(client_server, async_shutdown)
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(NULL, protocol, &client));
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;

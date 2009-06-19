@@ -62,6 +62,18 @@ SrvProtocolExecute(
 	);
 
 NTSTATUS
+SrvProtocolBuildErrorResponse(
+    PLWIO_SRV_CONNECTION pConnection,
+    BYTE                 ucCommand,
+    USHORT               usTid,
+    USHORT               usPid,
+    USHORT               usUid,
+    USHORT               usMid,
+    NTSTATUS             errorStatus,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+NTSTATUS
 SrvProtocolShutdown(
     VOID
     );

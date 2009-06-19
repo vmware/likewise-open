@@ -22,7 +22,6 @@ SrvConnectionReadPacket(
 NTSTATUS
 SrvConnectionWriteMessage(
     PLWIO_SRV_CONNECTION pConnection,
-    ULONG               ulSequence,
     PSMB_PACKET         pPacket
     );
 

@@ -119,7 +119,7 @@ MU_TEST(assoc, empty_send_recv)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                empty_protocol,
                &send_assoc));
     
@@ -128,7 +128,7 @@ MU_TEST(assoc, empty_send_recv)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                empty_protocol,
                &recv_assoc));
     
@@ -289,7 +289,7 @@ MU_TEST(assoc, foo_send_recv)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                foo_protocol,
                &send_assoc));
     
@@ -298,7 +298,7 @@ MU_TEST(assoc, foo_send_recv)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                foo_protocol,
                &recv_assoc));
     
@@ -348,7 +348,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                foo_protocol,
                &send_assoc));
     
@@ -361,7 +361,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                foo_protocol,
                &recv_assoc));
 
@@ -412,7 +412,7 @@ MU_TEST(assoc, foo_send_timeout_connect)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                foo_protocol,
                &send_assoc));
     
@@ -560,7 +560,7 @@ MU_TEST(assoc, auth_send_recv)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                auth_protocol,
                &send_assoc));
     
@@ -569,7 +569,7 @@ MU_TEST(assoc, auth_send_recv)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                auth_protocol,
                &recv_assoc));
     
@@ -926,7 +926,7 @@ MU_TEST(assoc, handle_store_state)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                handle_protocol,
                &send_assoc));
     
@@ -935,7 +935,7 @@ MU_TEST(assoc, handle_store_state)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                handle_protocol,
                &recv_assoc));
     
@@ -1098,7 +1098,7 @@ MU_TEST(assoc, fd_send_recv)
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                fd_protocol,
                &send_assoc));
     
@@ -1107,7 +1107,7 @@ MU_TEST(assoc, fd_send_recv)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                fd_protocol,
                &recv_assoc));
     
