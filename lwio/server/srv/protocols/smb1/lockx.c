@@ -415,6 +415,12 @@ SrvFreeLockRequest(
 		SrvConnectionRelease(pLockRequest->pConnection);
 	}
 
+	if (pLockRequest->pTimerRequest)
+	{
+		SrvTimerCancelRequest(pLockRequest->pTimerRequest);
+		SrvTimerRelease(pLockRequest->pTimerRequest);
+	}
+
 	SRV_SAFE_FREE_MEMORY(pLockRequest->pLockContexts);
 }
 
