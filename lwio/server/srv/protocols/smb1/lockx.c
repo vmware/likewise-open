@@ -434,6 +434,7 @@ SrvExecuteLockRequest(
 	NTSTATUS ntStatus = STATUS_SUCCESS;
 	BOOLEAN  bFailImmediately = (pLockRequest->ulTimeout == 0);
 	BOOLEAN  bWaitIndefinitely = (pLockRequest->ulTimeout == (ULONG)-1);
+	BOOLEAN  bAsync = FALSE;
 	ULONG iLock = 0;
 	LONG  lNumContexts = 0;
 	PSMB_PACKET pSmbResponse = NULL;
@@ -468,10 +469,16 @@ SrvExecuteLockRequest(
 
 					break;
 		}
+		if (ntStatus == STATUS_PENDING)
+		{
+			// Asynchronous requests can complete synchronously.
+			bAsync = TRUE;
+			ntStatus = STATUS_SUCCESS;
+		}
 		BAIL_ON_NT_STATUS(ntStatus);
 	}
 
-	if (!bFailImmediately && !bWaitIndefinitely)
+	if (!bFailImmediately && !bWaitIndefinitely && bAsync)
 	{
 		LONG64 llExpiry = 0LL;
 
@@ -490,7 +497,7 @@ SrvExecuteLockRequest(
 
 	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (bFailImmediately)
+	if (bFailImmediately || !bAsync)
 	{
 		ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
 		BAIL_ON_NT_STATUS(ntStatus);
@@ -734,8 +741,6 @@ error:
 	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
 	{
 		InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-
-		ntStatus = STATUS_SUCCESS;
 	}
 
     goto cleanup;
@@ -808,8 +813,6 @@ error:
 	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
 	{
 	    InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-
-		ntStatus = STATUS_SUCCESS;
 	}
 
 	goto cleanup;
