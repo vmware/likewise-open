@@ -1147,7 +1147,9 @@ static BOOLEAN NormalizeModuleName( char *destName, const char *srcName, size_t 
     size_t copyLen;
     if(bufferSize < 1)
         return FALSE;
-    if(CTStrStartsWith(srcName, "/usr/lib/security/"))
+    if(CTStrStartsWith(srcName, "/usr/lib/security/$ISA/"))
+        srcName += strlen("/usr/lib/security/$ISA/");
+    else if(CTStrStartsWith(srcName, "/usr/lib/security/"))
         srcName += strlen("/usr/lib/security/");
     else if(CTStrStartsWith(srcName, "/lib64/security/"))
         srcName += strlen("/lib64/security/");
@@ -1159,8 +1161,6 @@ static BOOLEAN NormalizeModuleName( char *destName, const char *srcName, size_t 
         srcName += strlen("/lib/security/hpux64/");
     else if(CTStrStartsWith(srcName, "/lib/security/$ISA/"))
         srcName += strlen("/lib/security/$ISA/");
-    else if(CTStrStartsWith(srcName, "/usr/lib/security/$ISA/"))
-        srcName += strlen("/usr/lib/security/$ISA/");
     else if(CTStrStartsWith(srcName, "/lib/security/"))
         srcName += strlen("/lib/security/");
     else if(CTStrStartsWith(srcName, "/usr/lib/vmware/lib/libpam.so.0/security/"))

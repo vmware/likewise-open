@@ -507,8 +507,6 @@ SMBSocketReaderMain(
     BOOLEAN bInLock = FALSE;
     PSMB_PACKET pPacket = NULL;
 
-    pthread_detach(pthread_self());
-
     LWIO_LOG_INFO("Spawning socket reader thread for [%s]",
                  SMB_SAFE_LOG_STRING((char *) pSocket->pszHostname));
 
