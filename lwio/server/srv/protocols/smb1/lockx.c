@@ -302,12 +302,16 @@ SrvBuildLockRequest(
 		pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
 
 		pContext->lockInfo.largeFileRange = pUnlockRangeLarge[iLock];
+
+		pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
 	    }
 	    else
 	    {
 		pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
 
 		pContext->lockInfo.regularRange = pUnlockRange[iLock];
+
+		pContext->ulKey = pContext->lockInfo.regularRange.usPid;
 	    }
 
 		pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
@@ -319,7 +323,6 @@ SrvBuildLockRequest(
 		}
 
 		pContext->pLockRequest = pLockRequest;
-		pContext->ulKey = iContext;
 	}
 
 	for (iLock = 0; iContext < lNumContexts; iContext++, iLock++)
@@ -336,12 +339,16 @@ SrvBuildLockRequest(
 		pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
 
 		pContext->lockInfo.largeFileRange = pLockRangeLarge[iLock];
+
+		pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
 	    }
 	    else
 	    {
 		pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
 
 		pContext->lockInfo.regularRange = pLockRange[iLock];
+
+		pContext->ulKey = pContext->lockInfo.regularRange.usPid;
 	    }
 
 		pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
@@ -353,7 +360,6 @@ SrvBuildLockRequest(
 		}
 
 		pContext->pLockRequest = pLockRequest;
-		pContext->ulKey = iContext;
 	}
 
 	pLockRequest->bExpired = FALSE;
