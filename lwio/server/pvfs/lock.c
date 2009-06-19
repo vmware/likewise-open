@@ -119,7 +119,7 @@ PvfsLockControl(
         break;
 
     case IO_LOCK_CONTROL_UNLOCK:
-        ntError = PvfsUnlockFile(pCcb, FALSE, NULL, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, FALSE, &Key, Offset, Length);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY:
