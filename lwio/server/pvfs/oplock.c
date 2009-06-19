@@ -55,6 +55,14 @@ PvfsCancelOplockRequestIrp(
     PVOID pCancelContext
     );
 
+static NTSTATUS
+PvfsOplockGrant(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb,
+    ULONG OplockType
+    );
+
+
 /* File Globals */
 
 
@@ -105,12 +113,12 @@ PvfsOplockRequest(
     BAIL_ON_NT_STATUS(ntError);
 
     if (PVFS_IS_DIR(pCcb)) {
-        ntError = STATUS_FILE_IS_A_DIRECTORY;
+        ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    //ntError = PvfsOplockGrant(pCcb, pOplockRequest->OplockRequestType);
-    //BAIL_ON_NT_STATUS(ntError);
+    ntError = PvfsOplockGrant(pIrpContext, pCcb, pOplockRequest->OplockRequestType);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Successful grant so pend the resulit now */
 
@@ -167,6 +175,92 @@ PvfsCancelOplockRequestIrp(
 
     return;
 }
+
+/********************************************************
+ *******************************************************/
+
+static NTSTATUS
+PvfsOplockGrant(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    PPVFS_CCB pCcb,
+    ULONG OplockType
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_OPLOCK_RECORD pNewOplock = NULL;
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    PPVFS_FCB pFcb = NULL;
+    BOOLEAN bFcbReadLocked = FALSE;
+
+    BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
+
+    /* Case #1 - We have a registered oplock on the file */
+
+    if (pCcb->pFcb->pOplockList) {
+        /* We only support Batch/Exclusive so just fail the
+           request for now.
+
+           Technically, a batch/level1 oplock request will
+           break a level2 oplock. */
+
+        ntError = STATUS_OPLOCK_NOT_GRANTED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Case #2 - We have more than one open file handle on
+       this object so we have to check the perms and possible
+       sharing flags */
+
+    /* Read lock so no one can add a CCB to the list */
+
+    ntError = STATUS_SUCCESS;
+    pFcb = pCcb->pFcb;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
+
+    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
+         pCursor;
+         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    {
+        /* Be stupid for now and fail if there are any
+           other open handles on this object */
+
+        if (pCursor->pCcb != pCcb) {
+            ntError = STATUS_OPLOCK_NOT_GRANTED;
+            break;
+        }
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
+
+    BAIL_ON_NT_STATUS(ntError);
+
+
+    /* Case #3 - No current oplock register on the file and no
+       conflicting opens.  Grant it */
+
+    ntError = PvfsAllocateMemory((PVOID*)&pNewOplock,
+                                 sizeof(PVFS_OPLOCK_RECORD));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pNewOplock->OplockType = OplockType;
+    pNewOplock->pCcb = pCcb;
+    pNewOplock->pIrpContext = pIrpContext;
+
+    pCcb->pFcb->pOplockList = pNewOplock;
+    pNewOplock = NULL;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    PVFS_FREE(&pNewOplock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 

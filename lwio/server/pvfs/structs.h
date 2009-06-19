@@ -117,6 +117,7 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
+typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
 
 struct _PVFS_CCB_LIST_NODE
 {
@@ -161,6 +162,7 @@ typedef struct _PVFS_FCB
     PSTR pszFilename;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
 
+    LONG CcbCount;
     PPVFS_CCB_LIST_NODE pCcbList;
 
     PVFS_LOCK_ENTRY LastFailedLock;
@@ -168,8 +170,9 @@ typedef struct _PVFS_FCB
 
     PLWRTL_QUEUE pPendingLockQueue;
 
-} PVFS_FCB, *PPVFS_FCB;
+    PPVFS_OPLOCK_RECORD pOplockList;
 
+} PVFS_FCB, *PPVFS_FCB;
 
 typedef struct _PVFS_LOCK_LIST
 {
@@ -236,6 +239,9 @@ struct _PVFS_IRP_CONTEXT
 
     /* Used to cancel a pending blocking lock */
     PPVFS_PENDING_LOCK pPendingLock;
+
+    /* Used to cancel a registered oplock */
+    PPVFS_OPLOCK_RECORD pOplock;
 };
 
 
@@ -245,6 +251,22 @@ struct _InfoLevelDispatchEntry {
     FILE_INFORMATION_CLASS Level;
     NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
                    PPVFS_IRP_CONTEXT pIrpContext);
+};
+
+/* Registered oplock types
+   TODO -- Add Win 7 oplock types */
+
+#define PVFS_OPLOCK_TYPE_NONE       0x00
+#define PVFS_OPLOCK_TYPE_BATCH      0x01
+#define PVFS_OPLOCK_TYPE_LEVEL_1    0x02
+#define PVFS_OPLOCK_TYPE_LEVEL_2    0x03
+
+struct _PVFS_OPLOCK_RECORD
+{
+    ULONG OplockType;
+    PPVFS_CCB pCcb;
+    PPVFS_IRP_CONTEXT pIrpContext;
+
 };
 
 #endif    /* _PVFS_STRUCTS_H */
