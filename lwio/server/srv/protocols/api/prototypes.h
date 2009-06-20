@@ -33,49 +33,29 @@
  *
  * Module Name:
  *
- *        smb1.h
+ *        prototypes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        SMB V1 Protocol Handler API
+ *        Protocol Handler API
+ *
+ *        prototypes
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SMB_V1_H__
-#define __SMB_V1_H__
+#ifndef __PROTOTYPES_H__
+#define __PROTOTYPES_H__
 
 NTSTATUS
-SrvProtocolInit_SMB_V1(
-    VOID
-    );
+SrvProcessNegotiate(
+        IN  PLWIO_SRV_CONNECTION pConnection,
+        IN  PSMB_PACKET          pSmbRequest,
+        OUT PSMB_PACKET*         ppSmbResponse
+        );
 
-NTSTATUS
-SrvProtocolExecute_SMB_V1(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProtocolBuildErrorResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    BYTE                 ucCommand,
-    USHORT               usTid,
-    USHORT               usPid,
-    USHORT               usUid,
-    USHORT               usMid,
-    NTSTATUS             errorStatus,
-    PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProtocolShutdown_SMB_V1(
-    VOID
-    );
-
-#endif /* __SMB_V1_H__ */
+#endif /* __PROTOTYPES_H__ */
 

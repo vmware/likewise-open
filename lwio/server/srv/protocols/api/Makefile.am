@@ -1,7 +1,8 @@
 noinst_LTLIBRARIES = libsrv.protocols.api.la
 
 libsrv_protocols_api_la_SOURCES = \
-    libmain.c
+    libmain.c   \
+    negotiate.c
 
 libsrv_protocols_api_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

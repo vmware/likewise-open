@@ -77,6 +77,7 @@
 
 #include "defs.h"
 #include "structs.h"
+#include "prototypes.h"
 #include "finder.h"
 #include "pipeinfo.h"
 #include "trans2qfi.h"
