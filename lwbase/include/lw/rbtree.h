@@ -66,7 +66,7 @@ typedef int   (*PFN_LWRTL_RB_TREE_COMPARE)( PVOID pKey1, PVOID pKey2);
 typedef VOID  (*PFN_LWRTL_RB_TREE_FREE_KEY)(PVOID pKey);
 typedef VOID  (*PFN_LWRTL_RB_TREE_FREE_DATA)(PVOID pData);
 
-typedef DWORD (*PFN_LWRTL_RB_TREE_VISIT)(
+typedef NTSTATUS (*PFN_LWRTL_RB_TREE_VISIT)(
                     PVOID pKey,
                     PVOID pData,
                     PVOID pUserData,
