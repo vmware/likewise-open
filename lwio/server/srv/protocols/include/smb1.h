@@ -54,6 +54,21 @@ SrvProtocolInit_SMB_V1(
     );
 
 NTSTATUS
+SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    USHORT               idxDialect,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+NTSTATUS
+SrvBuildNegotiateResponse_SMB_V1_Invalid(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET  pSmbRequest,
+    PSMB_PACKET* ppSmbResponse
+    );
+
+NTSTATUS
 SrvProtocolExecute_SMB_V1(
 	IN  PLWIO_SRV_CONNECTION pConnection,
 	IN  PSMB_PACKET          pSmbRequest,

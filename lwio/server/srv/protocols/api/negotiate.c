@@ -40,32 +40,6 @@ SrvBuildNegotiateResponseForDialect(
     PSMB_PACKET*         ppSmbResponse
     );
 
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    uint16_t             idxDialect,
-    PSMB_PACKET*         ppSmbResponse
-    );
-
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_SMB_2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    uint16_t             idxDialect,
-    PSMB_PACKET*         ppSmbResponse
-    );
-
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_Invalid(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
-    );
-
 NTSTATUS
 SrvProcessNegotiate(
 	IN  PLWIO_SRV_CONNECTION pConnection,
@@ -136,11 +110,10 @@ SrvBuildNegotiateResponseForDialect(
 	{
 		if (!strcmp(ppszDialectArray[iDialect], SRV_NEGOTIATE_DIALECT_SMB_2))
 		{
-		    ntStatus = SrvBuildNegotiateResponseByDialect_SMB_2(
-		                        pConnection,
-		                        pSmbRequest,
-		                        iDialect,
-		                        &pSmbResponse);
+		    ntStatus = SrvBuildNegotiateResponse_SMB_V2(
+							pConnection,
+							pSmbRequest,
+							&pSmbResponse);
 		    BAIL_ON_NT_STATUS(ntStatus);
 
 		    goto done;
@@ -152,7 +125,7 @@ SrvBuildNegotiateResponseForDialect(
         if (!strcmp(ppszDialectArray[iDialect],
 			    SRV_NEGOTIATE_DIALECT_NTLM_0_12))
         {
-            ntStatus = SrvBuildNegotiateResponseByDialect_NTLM_0_12(
+            ntStatus = SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                                 pConnection,
                                 pSmbRequest,
                                 iDialect,
@@ -163,250 +136,13 @@ SrvBuildNegotiateResponseForDialect(
         }
     }
 
-    ntStatus = SrvBuildNegotiateResponseByDialect_Invalid(
+    ntStatus = SrvBuildNegotiateResponse_SMB_V1_Invalid(
                         pConnection,
                         pSmbRequest,
                         &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
 done:
-
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-	*ppSmbResponse = NULL;
-
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
-
-	goto cleanup;
-}
-
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_NTLM_0_12(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    uint16_t             idxDialect,
-    PSMB_PACKET*         ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    NEGOTIATE_RESPONSE_HEADER* pResponseHeader = NULL;
-    time_t    curTime;
-    ULONG64   llUTCTime;
-    uint16_t  byteCount = 0;
-    uint8_t*  pDataCursor = NULL;
-    PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
-    PBYTE     pSessionKey = 0;
-    ULONG     ulSessionKeyLength = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-				pSmbResponse->pRawBuffer,
-				pSmbResponse->bufferLen,
-                COM_NEGOTIATE,
-                0,
-                TRUE,
-                pSmbRequest->pSMBHeader->tid,
-                pSmbRequest->pSMBHeader->pid,
-                0,
-                pSmbRequest->pSMBHeader->mid,
-                FALSE,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 17;
-
-    pResponseHeader = (NEGOTIATE_RESPONSE_HEADER*)pSmbResponse->pParams;
-    pSmbResponse->pData = pSmbResponse->pParams + sizeof(NEGOTIATE_RESPONSE_HEADER);
-    pSmbResponse->bufferUsed += sizeof(NEGOTIATE_RESPONSE_HEADER);
-
-    pResponseHeader->dialectIndex = idxDialect;
-
-    pResponseHeader->securityMode = 0;
-    if (pServerProperties->preferredSecurityMode == SMB_SECURITY_MODE_USER)
-    {
-        pResponseHeader->securityMode |= 0x1; // User level security
-    }
-    if (pServerProperties->bEncryptPasswords)
-    {
-        pResponseHeader->securityMode |= 0x2;
-    }
-    if (pServerProperties->bEnableSecuritySignatures)
-    {
-        pResponseHeader->securityMode |= 0x4;
-    }
-    if (pServerProperties->bRequireSecuritySignatures)
-    {
-        pResponseHeader->securityMode |= 0x8;
-    }
-
-    pResponseHeader->maxMpxCount = pServerProperties->MaxMpxCount;
-    pResponseHeader->maxNumberVcs = pServerProperties->MaxNumberVCs;
-    pResponseHeader->maxBufferSize = pServerProperties->MaxBufferSize;
-    pResponseHeader->maxRawSize = pServerProperties->MaxRawSize;
-    pResponseHeader->sessionKey = 0;
-    pResponseHeader->capabilities = pServerProperties->Capabilities;
-
-    curTime = time(NULL);
-
-    pResponseHeader->serverTimeZone = (mktime(gmtime(&curTime)) - curTime)/60;
-
-    llUTCTime = (curTime + 11644473600LL) * 10000000LL;
-
-    pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
-    pResponseHeader->systemTimeHigh = (llUTCTime & 0xFFFFFFFF00000000LL) >> 32;
-
-
-    pResponseHeader->encryptionKeyLength = 0;
-
-    pDataCursor = pSmbResponse->pData;
-    if (pResponseHeader->capabilities & CAP_EXTENDED_SECURITY)
-    {
-        memcpy(pDataCursor, pServerProperties->GUID, sizeof(pServerProperties->GUID));
-        pDataCursor += sizeof(pServerProperties->GUID);
-
-        byteCount += sizeof(pServerProperties->GUID);
-
-        ntStatus = SrvGssBeginNegotiate(
-                        pConnection->hGssContext,
-                        &pConnection->hGssNegotiate);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvGssNegotiate(
-                        pConnection->hGssContext,
-                        pConnection->hGssNegotiate,
-                        NULL,
-                        0,
-                        &pSessionKey,
-                        &ulSessionKeyLength);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (ulSessionKeyLength)
-        {
-            memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
-            pDataCursor += ulSessionKeyLength;
-            byteCount += ulSessionKeyLength;
-        }
-    }
-    else
-    {
-        ntStatus = STATUS_NOT_SUPPORTED;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pResponseHeader->byteCount = byteCount;
-    pSmbResponse->bufferUsed += byteCount;
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
-
-    return ntStatus;
-
-error:
-
-	*ppSmbResponse = NULL;
-
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_SMB_2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    uint16_t             idxDialect,
-    PSMB_PACKET*         ppSmbResponse
-    )
-{
-	return SrvBuildNegotiateResponse_SMB_V2(
-				pConnection,
-				pSmbRequest,
-				ppSmbResponse);
-}
-
-static
-NTSTATUS
-SrvBuildNegotiateResponseByDialect_Invalid(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET  pSmbRequest,
-    PSMB_PACKET* ppSmbResponse
-    )
-{
-    NTSTATUS ntStatus = 0;
-    NEGOTIATE_INVALID_RESPONSE_HEADER* pResponseHeader = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketMarshallHeader(
-				pSmbResponse->pRawBuffer,
-				pSmbResponse->bufferLen,
-                COM_NEGOTIATE,
-                0,
-                TRUE,
-                0,
-                pSmbRequest->pSMBHeader->tid,
-                0,
-                0,
-                FALSE,
-                pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSmbResponse->pSMBHeader->wordCount = 1;
-    pResponseHeader = (NEGOTIATE_INVALID_RESPONSE_HEADER*)pSmbResponse->pParams;
-    pSmbResponse->pData = pSmbResponse->pParams + sizeof(NEGOTIATE_INVALID_RESPONSE_HEADER);
-    pSmbResponse->bufferUsed += sizeof(NEGOTIATE_INVALID_RESPONSE_HEADER);
-
-    pResponseHeader->dialectIndex = 0xFF;
-    pResponseHeader->byteCount = 0;
-
-    ntStatus = SMBPacketMarshallFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
