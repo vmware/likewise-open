@@ -33,43 +33,42 @@
  *
  * Module Name:
  *
- *        smb2.h
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        SMB V2 Protocol Handler API
+ *        Protocols API - SMBV2
+ *
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SMB_V2_H__
-#define __SMB_V2_H__
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-NTSTATUS
-SrvProtocolInit_SMB_V2(
-    VOID
-    );
+typedef struct __SMB2_NEGOTIATE_HEADER
+{
+	USHORT  usLength;
+	BYTE    ucFlags;
+	BYTE    ucPad;
+	USHORT  usDialect;
+	USHORT  usPad2;
+	BYTE    serverGUID[16];
+	ULONG   ulCapabilities;
+	ULONG   ulMaxTxSize;
+	ULONG   ulMaxReadSize;
+	ULONG   ulMaxWriteSize;
+	ULONG64 ullCurrentTime;
+	ULONG64 ullBootTime;
+	USHORT  usBlobOffset;
+	USHORT  usBlobLength;
 
-NTSTATUS
-SrvProtocolExecute_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
+	/* GSS Blob follows immediately */
 
-NTSTATUS
-SrvBuildNegotiateResponse_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
+} __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
 
-NTSTATUS
-SrvProtocolShutdown_SMB_V2(
-    VOID
-    );
-
-#endif /* __SMB_V2_H__ */
+#endif /* __STRUCTS_H__ */

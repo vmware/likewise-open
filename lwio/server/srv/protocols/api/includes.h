@@ -77,6 +77,7 @@
 #include <smb1.h>
 #include <smb2.h>
 
+#include "defs.h"
 #include "prototypes.h"
 
 

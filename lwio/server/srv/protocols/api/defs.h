@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,48 +28,29 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        smb2.h
+ *        defs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        SMB V2 Protocol Handler API
+ *        Protocols
+ *
+ *        Defines
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-#ifndef __SMB_V2_H__
-#define __SMB_V2_H__
+#define SRV_NEGOTIATE_DIALECT_NTLM_0_12 "NT LM 0.12"
+#define SRV_NEGOTIATE_DIALECT_SMB_2     "SMB 2.002"
 
-NTSTATUS
-SrvProtocolInit_SMB_V2(
-    VOID
-    );
-
-NTSTATUS
-SrvProtocolExecute_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvBuildNegotiateResponse_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProtocolShutdown_SMB_V2(
-    VOID
-    );
-
-#endif /* __SMB_V2_H__ */
+#endif /* __DEFS_H__ */

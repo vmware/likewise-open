@@ -75,4 +75,6 @@
 #include <protocolapi.h>
 #include <smb2.h>
 
-
+#include "defs.h"
+#include "structs.h"
+#include "wire.h"

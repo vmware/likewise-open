@@ -33,43 +33,39 @@
  *
  * Module Name:
  *
- *        smb2.h
+ *        wire.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        SMB V2 Protocol Handler API
+ *        Protocols API - SMBV2
+ *
+ *        Wire protocol
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SMB_V2_H__
-#define __SMB_V2_H__
+#ifndef __WIRE_H__
+#define __WIRE_H__
 
 NTSTATUS
-SrvProtocolInit_SMB_V2(
-    VOID
-    );
-
-NTSTATUS
-SrvProtocolExecute_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
+SMB2MarshalHeader(
+	PSMB_PACKET pSmbPacket,
+	USHORT      usCommand,
+	USHORT      usCredits,
+	ULONG       ulPid,
+	ULONG       ulTid,
+	ULONG64     ullSessionId,
+	NTSTATUS    status,
+	BOOLEAN     bIsResponse
 	);
 
 NTSTATUS
-SrvBuildNegotiateResponse_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProtocolShutdown_SMB_V2(
-    VOID
+SMB2PacketMarshallFooter(
+    PSMB_PACKET pPacket
     );
 
-#endif /* __SMB_V2_H__ */
+#endif /* __WIRE_H__ */
+

@@ -33,43 +33,29 @@
  *
  * Module Name:
  *
- *        smb2.h
+ *        defs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        SMB V2 Protocol Handler API
+ *        Protocols API - SMBV2
+ *
+ *        Defines
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __SMB_V2_H__
-#define __SMB_V2_H__
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-NTSTATUS
-SrvProtocolInit_SMB_V2(
-    VOID
-    );
+typedef ULONG SMB2_FLAGS;
 
-NTSTATUS
-SrvProtocolExecute_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
+#define SMB2_FLAGS_SERVER_TO_REDIR   0x00000001
+#define SMB2_FLAGS_ASYNC_COMMAND     0x00000002
+#define SMB2_FLAGS_RELATED_OPERATION 0x00000004
+#define SMB2_FLAGS_SIGNED            0x00000008
+#define SMB2_FLAGS_DFS_OPERATIONS    0x08000000
 
-NTSTATUS
-SrvBuildNegotiateResponse_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProtocolShutdown_SMB_V2(
-    VOID
-    );
-
-#endif /* __SMB_V2_H__ */
+#endif /* __DEFS_H__ */

@@ -1,7 +1,9 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
-    libmain.c
+    libmain.c   \
+    negotiate.c \
+    wire.c
 
 libsrv_protocols_smb2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
