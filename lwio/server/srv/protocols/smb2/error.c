@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        wire.h
+ *        error.c
  *
  * Abstract:
  *
@@ -41,31 +41,62 @@
  *
  *        Protocols API - SMBV2
  *
- *        Wire protocol
+ *        Error
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __WIRE_H__
-#define __WIRE_H__
+#include "includes.h"
 
 NTSTATUS
-SMB2MarshalHeader(
-	PSMB_PACKET pSmbPacket,
-	USHORT      usCommand,
-	USHORT      usCredits,
-	ULONG       ulPid,
-	ULONG       ulTid,
-	ULONG64     ullSessionId,
-	NTSTATUS    status,
-	BOOLEAN     bIsResponse
-	);
+SrvBuildErrorResponse_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB2_HEADER         pSmbRequestHeader,
+    NTSTATUS             errorStatus,
+    PSMB_PACKET*         ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
 
-NTSTATUS
-SMB2PacketMarshallFooter(
-    PSMB_PACKET pPacket
-    );
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#endif /* __WIRE_H__ */
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMB2MarshalHeader(
+                pSmbResponse,
+                pSmbRequestHeader->command,
+                pSmbRequestHeader->usCredits, /* TODO: Figure out this one */
+                pSmbRequestHeader->ulPid,
+                pSmbRequestHeader->ulTid,
+                pSmbRequestHeader->ullSessionId,
+                errorStatus,
+                TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+	return ntStatus;
+
+error:
+
+	*ppSmbResponse = NULL;
+
+	if (pSmbResponse)
+	{
+		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+	}
+
+	goto cleanup;
+}

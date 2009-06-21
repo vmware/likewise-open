@@ -105,13 +105,6 @@ SrvProtocolExecute_SMB_V1(
 
 	switch (pSmbRequest->pSMBHeader->command)
 	{
-		case COM_NEGOTIATE:
-
-				// Handled at a higher layer
-				ntStatus = STATUS_INTERNAL_ERROR;
-
-				break;
-
 		case COM_SESSION_SETUP_ANDX:
 
 			ntStatus = SrvProcessSessionSetup(
