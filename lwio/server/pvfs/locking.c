@@ -915,14 +915,6 @@ PvfsCheckLockedRegionCanWrite(
         }
     }
 
-    /* Fast path...if this is ourself, there can be no conflict
-       with a write lock */
-
-    if (bSelf) {
-        ntError = STATUS_SUCCESS;
-        goto cleanup;
-    }
-
     /* Region must be unlocked  */
 
     for (i=0; i<pExclLocks->NumberOfLocks; i++)
@@ -931,8 +923,10 @@ PvfsCheckLockedRegionCanWrite(
 
         if (DoRangesOverlap(Offset, Length, pEntry->Offset, pEntry->Length))
         {
-            ntError = STATUS_FILE_LOCK_CONFLICT;
-            BAIL_ON_NT_STATUS(ntError);
+            if (!(bSelf && (Key == pEntry->Key))) {
+                ntError = STATUS_FILE_LOCK_CONFLICT;
+                BAIL_ON_NT_STATUS(ntError);
+            }
         }
     }
 
