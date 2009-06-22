@@ -835,6 +835,9 @@ error:
 
 }
 
+/**************************************************************
+ *************************************************************/
+
 static NTSTATUS
 PvfsCheckLockedRegionCanRead(
     IN PPVFS_CCB pCcb,
@@ -846,12 +849,12 @@ PvfsCheckLockedRegionCanRead(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     ULONG i = 0;
-    PPVFS_LOCK_LIST pLocks = &pCcb->LockTable.ExclusiveLocks;
+    PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
     PPVFS_LOCK_ENTRY pEntry = NULL;
 
     /* Trivial case */
 
-    if (pLocks->NumberOfLocks == 0)
+    if (pExclLocks->NumberOfLocks == 0)
     {
         ntError = STATUS_SUCCESS;
         goto cleanup;
@@ -859,9 +862,9 @@ PvfsCheckLockedRegionCanRead(
 
     /* Check Lock table */
 
-    for (i=0; i<pLocks->NumberOfLocks; i++)
+    for (i=0; i<pExclLocks->NumberOfLocks; i++)
     {
-        pEntry = &pLocks->pLocks[i];
+        pEntry = &pExclLocks->pLocks[i];
 
         if (DoRangesOverlap(Offset, Length, pEntry->Offset, pEntry->Length))
         {
@@ -880,6 +883,9 @@ error:
     goto cleanup;
 }
 
+/**************************************************************
+ *************************************************************/
+
 static NTSTATUS
 PvfsCheckLockedRegionCanWrite(
     IN PPVFS_CCB pCcb,
@@ -889,7 +895,52 @@ PvfsCheckLockedRegionCanWrite(
     IN ULONG Length
     )
 {
-    return STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    ULONG i = 0;
+    PPVFS_LOCK_LIST pExclLocks = &pCcb->LockTable.ExclusiveLocks;
+    PPVFS_LOCK_LIST pSharedLocks = &pCcb->LockTable.SharedLocks;
+    PPVFS_LOCK_ENTRY pEntry = NULL;
+
+    /* A Shared lock prevents all write access to a region...even
+       ourself */
+
+    for (i=0; i<pSharedLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pSharedLocks->pLocks[i];
+
+        if (DoRangesOverlap(Offset, Length, pEntry->Offset, pEntry->Length))
+        {
+            ntError = STATUS_FILE_LOCK_CONFLICT;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+    /* Fast path...if this is ourself, there can be no conflict
+       with a write lock */
+
+    if (bSelf) {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    /* Region must be unlocked  */
+
+    for (i=0; i<pExclLocks->NumberOfLocks; i++)
+    {
+        pEntry = &pExclLocks->pLocks[i];
+
+        if (DoRangesOverlap(Offset, Length, pEntry->Offset, pEntry->Length))
+        {
+            ntError = STATUS_FILE_LOCK_CONFLICT;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
