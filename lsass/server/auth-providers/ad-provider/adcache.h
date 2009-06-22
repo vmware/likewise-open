@@ -40,60 +40,23 @@
  *        This is the public interface for the AD Provider Local Cache
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
 #include "adprovider.h"
 
-
-typedef DWORD (*PFNOPENHANDLE)(
-                    uid_t peerUID,
-                    gid_t peerGID,
-                    PHANDLE phProvider
-                    );
-
-typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
-{
-    PFNOPENHANDLE                  pfnOpenHandle;
-} ADCACHE_PROVIDER_FUNCTION_TABLE, *ADCACHE_PROVIDER_FUNCTION_TABLE;
-
-#define ADCACHE_SYMBOL_NAME_INITIALIZE_PROVIDER "AdCacheInitializeProvider"
-
-typedef DWORD (*PFNINITIALIZEPROVIDER)(
-                    PCSTR pszConfigFilePath,
-                    PSTR* ppszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
-                    );
-
-#define ADCACHE_SYMBOL_NAME_SHUTDOWN_PROVIDER "AdCacheShutdownProvider"
-
-typedef DWORD (*PFNSHUTDOWNPROVIDER)(
-                    PSTR pszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
-                    );
-
-#endif /* __LSAPROVIDER_H__ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
 
 typedef
 DWORD
 (*PFNOpen)(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
-    )
+    );
 typedef
 void
 (*PFNSafeClose)(
     PLSA_DB_HANDLE phDb
-    )
+    );
 
 typedef
 DWORD
@@ -101,60 +64,60 @@ DWORD
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
-    )
+    );
 typedef
 DWORD
 (*PFNFindUserById)(
     LSA_DB_HANDLE hDb,
     uid_t uid,
     PLSA_SECURITY_OBJECT* ppObject
-    )
+    );
 typedef
 DWORD
 (*PFNFindGroupByName)(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
-    )
+    );
 typedef
 DWORD
 (*PFNFindGroupById)(
     LSA_DB_HANDLE hDb,
     gid_t gid,
     PLSA_SECURITY_OBJECT* ppObject
-    )
+    );
 typedef
 DWORD
 (*PFNRemoveUserBySid)(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
-    )
+    );
 
 typedef
 DWORD
 (*PFNRemoveGroupBySid)(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
-    )
+    );
 typedef
 DWORD
 (*PFNEmptyCache)(
     IN LSA_DB_HANDLE hDb
-    )
+    );
 
 typedef
 DWORD
 (*PFNStoreObjectEntry)(
     LSA_DB_HANDLE hDb,
     PLSA_SECURITY_OBJECT pObject
-    )
+    );
 typedef
 DWORD
 (*PFNStoreObjectEntries)(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
     PLSA_SECURITY_OBJECT* ppObjects
-    )
+    );
 
 typedef
 DWORD
@@ -163,7 +126,7 @@ DWORD
     IN PCSTR pszParentSid,
     IN size_t sMemberCount,
     IN PLSA_GROUP_MEMBERSHIP* ppMembers
-    )
+    );
 typedef
 DWORD
 (*PFNStoreGroupsForUser)(
@@ -183,7 +146,7 @@ DWORD
     IN BOOLEAN bFilterNotInPacNorLdap,
     OUT size_t* psCount,
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    )
+    );
 
 typedef
 DWORD
@@ -230,7 +193,8 @@ DWORD
 (*PFNFindObjectByDN)(
     LSA_DB_HANDLE hDb,
     PCSTR pszDN,
-    PLSA_SECURITY_OBJECT *ppObject);
+    PLSA_SECURITY_OBJECT *ppObject
+    );
 
 typedef
 DWORD
@@ -239,7 +203,7 @@ DWORD
     IN size_t sCount,
     IN PSTR* ppszDnList,
     OUT PLSA_SECURITY_OBJECT** pppResults
-    )
+    );
 
 typedef
 DWORD
@@ -272,3 +236,48 @@ DWORD
     LSA_DB_HANDLE hDb,
     PLSA_PASSWORD_VERIFIER pVerifier
     );
+
+
+typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
+{
+    PFNOPENHANDLE               pfnOpenHandle;
+    PFNSafeClose                pfnSafeClose;
+    PFNFindUserByName           pfnFindUserByName;
+    PFNFindUserById             pfnFindUserById;
+    PFNFindGroupByName          pfnFindGroupByName;
+    PFNFindGroupById            pfnFindGroupById;
+    PFNRemoveUserBySid          pfnRemoveUserBySid;
+    PFNRemoveGroupBySid         pfnRemoveGroupBySid;
+    PFNEmptyCache               pfnEmptyCache;
+    PFNStoreObjectEntry         pfnStoreObjectEntry;
+    PFNStoreObjectEntries       pfnStoreObjectEntries;
+    PFNStoreGroupMembership     pfnStoreGroupMembership;
+    PFNStoreGroupsForUser       pfnStoreGroupsForUser;
+    PFNGetMemberships           pfnGetMemberships;
+    PFNGetGroupMembers          pfnGetGroupMembers;
+    PFNGetGroupsForUser         pfnGetGroupsForUser;
+    PFNEnumUsersCache           pfnEnumUsersCache;
+    PFNEnumGroupsCache          pfnEnumGroupsCache;
+    PFNFindObjectByDN           pfnFindObjectByDN;
+    PFNFindObjectsByDNList      pfnFindObjectsByDNList;
+    PFNFindObjectBySid          pfnFindObjectBySid;
+    PFNFindObjectBySidList      pfnFindObjectsBySidList;
+    PFNGetPasswordVerifier      pfnGetPasswordVerifier;
+    PFNStorePasswordVerifier    pfnStorePasswordVerifier;
+} ADCACHE_PROVIDER_FUNCTION_TABLE, *ADCACHE_PROVIDER_FUNCTION_TABLE;
+
+#define ADCACHE_SYMBOL_NAME_INITIALIZE_PROVIDER "AdCacheInitializeProvider"
+
+typedef DWORD (*PFNINITIALIZEPROVIDER)(
+                    PCSTR pszConfigFilePath,
+                    PSTR* ppszProviderName,
+                    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
+                    );
+
+#define ADCACHE_SYMBOL_NAME_SHUTDOWN_PROVIDER "AdCacheShutdownProvider"
+
+typedef DWORD (*PFNSHUTDOWNPROVIDER)(
+                    PSTR pszProviderName,
+                    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+                    );
+
