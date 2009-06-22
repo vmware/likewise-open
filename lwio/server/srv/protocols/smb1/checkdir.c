@@ -73,9 +73,9 @@ SrvProcessCheckDirectory(
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
 
     ntStatus = SrvConnectionFindSession(
-	        pConnection,
-		pSmbRequest->pSMBHeader->uid,
-		&pSession);
+                    pConnection,
+                    pSmbRequest->pSMBHeader->uid,
+                    &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSessionFindTree(

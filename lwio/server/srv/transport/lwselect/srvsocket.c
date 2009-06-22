@@ -45,7 +45,7 @@ SrvSocketFree(
     HANDLE hSocket
     )
 {
-	PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)hSocket;
+    PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)hSocket;
 
     if (pSocket->fd >= 0)
     {

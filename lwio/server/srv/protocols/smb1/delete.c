@@ -42,10 +42,10 @@ SrvDeleteFiles(
 
 NTSTATUS
 SrvProcessDelete(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_SESSION pSession = NULL;
@@ -316,7 +316,7 @@ SrvDeleteFiles(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-		    CreateOptions |=  FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
+            CreateOptions |=  FILE_DELETE_ON_CLOSE|FILE_NON_DIRECTORY_FILE;
 
             ntStatus = IoCreateFile(
                             &hFile,

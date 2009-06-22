@@ -64,29 +64,29 @@ SrvShareMapIdToServiceStringW(
     OUT PWSTR*         ppwszService
     )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PWSTR pwszShareType = NULL;
-	PSTR  pszShareType = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszShareType = NULL;
+    PSTR  pszShareType = NULL;
 
-	ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	*ppwszService = pwszShareType;
+    *ppwszService = pwszShareType;
 
 cleanup:
 
-	SRV_SAFE_FREE_MEMORY(pszShareType);
+    SRV_SAFE_FREE_MEMORY(pszShareType);
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*ppwszService = NULL;
+    *ppwszService = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
@@ -279,7 +279,7 @@ SrvShareMapFromWindowsPath(
 
     pwszPathReadCursor += sFSPrefixLen;
     memcpy((PBYTE)pwszPathWriteCursor, (PBYTE)&wszFileSystemRoot[0],
-		sFSRootLen * sizeof(wchar16_t));
+            sFSRootLen * sizeof(wchar16_t));
     pwszPathWriteCursor += sFSRootLen;
     *pwszPathWriteCursor++ = wszBackslash[0];
 
@@ -337,7 +337,7 @@ SrvShareMapToWindowsPath(
                     &pwszPath);
     if (ntStatus == STATUS_OBJECT_PATH_SYNTAX_BAD)
     {
-	wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
+        wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
 
         ntStatus = SrvShareMapSpecificToWindowsPath(
                             &wszFileSystemPrefix[0],
@@ -429,7 +429,7 @@ SrvShareMapSpecificToWindowsPath(
 
     pwszPathReadCursor += sFSRootLen;
     memcpy((PBYTE)pwszPathWriteCursor, (PBYTE)pwszFSPrefix,
-		sFSPrefixLen * sizeof(wchar16_t));
+            sFSPrefixLen * sizeof(wchar16_t));
     pwszPathWriteCursor += sFSPrefixLen;
 
     while (pwszPathReadCursor &&

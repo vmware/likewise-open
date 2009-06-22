@@ -54,10 +54,10 @@ SrvExecuteReadFileAndX(
 
 NTSTATUS
 SrvProcessReadAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PREAD_ANDX_REQUEST_HEADER pRequestHeader = NULL; // Do not free

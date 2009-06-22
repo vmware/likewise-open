@@ -120,8 +120,8 @@ typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
 
 NTSTATUS
 SrvShareInit(
-	VOID
-	);
+    VOID
+    );
 
 NTSTATUS
 SrvShareMapIdToServiceStringW(
@@ -178,10 +178,10 @@ SrvShareAdd(
 
 NTSTATUS
 SrvShareUpdate(
-	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-	IN     PWSTR                      pwszShareName,
-	IN     PSRV_SHARE_INFO            pShareInfo
-	);
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName,
+    IN     PSRV_SHARE_INFO            pShareInfo
+    );
 
 NTSTATUS
 SrvShareDelete(
@@ -191,7 +191,7 @@ SrvShareDelete(
 
 NTSTATUS
 SrvShareEnum(
-	IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
     OUT    PSRV_SHARE_INFO**          pppShareInfo,
     IN OUT PULONG                     pulNumEntries
     );

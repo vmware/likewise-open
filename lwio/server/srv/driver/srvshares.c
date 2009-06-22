@@ -83,19 +83,19 @@ SrvShareDevCtlAdd(
     switch (pAddShareInfoParams->dwInfoLevel)
     {
     case 0:
-	    pShareInfo0   = pAddShareInfoParams->info.p0;
-	    pwszShareName = pShareInfo0->shi0_netname;
+        pShareInfo0   = pAddShareInfoParams->info.p0;
+        pwszShareName = pShareInfo0->shi0_netname;
         ulShareType   = SHARE_SERVICE_DISK_SHARE;
         pwszComment   = NULL;
-	    pwszPath      = NULL;
+        pwszPath      = NULL;
         break;
 
     case 1:
-	    pShareInfo1   = pAddShareInfoParams->info.p1;
-	    pwszShareName = pShareInfo1->shi1_netname;
+        pShareInfo1   = pAddShareInfoParams->info.p1;
+        pwszShareName = pShareInfo1->shi1_netname;
         ulShareType   = pShareInfo1->shi1_type;
         pwszComment   = pShareInfo1->shi1_remark;
-	    pwszPath      = NULL;
+        pwszPath      = NULL;
         break;
 
     case 2:
@@ -108,19 +108,19 @@ SrvShareDevCtlAdd(
 
     case 501:
         pShareInfo501 = pAddShareInfoParams->info.p501;
-	    pwszShareName = pShareInfo501->shi501_netname;
+        pwszShareName = pShareInfo501->shi501_netname;
         ulShareType   = pShareInfo501->shi501_type;
         pwszComment   = pShareInfo501->shi501_remark;
-	    pwszPath      = NULL;
+        pwszPath      = NULL;
         break;
 
     case 502:
         pShareInfo502 = pAddShareInfoParams->info.p502;
-	    pwszShareName = pShareInfo502->shi502_netname;
+        pwszShareName = pShareInfo502->shi502_netname;
         ulShareType   = pShareInfo502->shi502_type;
         pwszComment   = pShareInfo502->shi502_remark;
-	    pwszPath      = pShareInfo502->shi502_path;
-	    break;
+        pwszPath      = pShareInfo502->shi502_path;
+        break;
 
     default:
         ntStatus = STATUS_INVALID_PARAMETER;
@@ -137,8 +137,8 @@ SrvShareDevCtlAdd(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareMapIdToServiceStringW(
-					ulShareType,
-					&pwszShareType);
+                    ulShareType,
+                    &pwszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareAdd(
@@ -163,7 +163,7 @@ error:
 
     if (pwszShareType)
     {
-	SrvFreeMemory(pwszShareType);
+        SrvFreeMemory(pwszShareType);
     }
 
     return ntStatus;
@@ -253,8 +253,8 @@ SrvShareDevCtlEnum(
         case 0:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p0) * ulNumEntries,
-							(PVOID*)&p0);
+                            sizeof(*p0) * ulNumEntries,
+                            (PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -271,8 +271,8 @@ SrvShareDevCtlEnum(
         case 1:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p1) * ulNumEntries,
-							(PVOID*)&p1);
+                            sizeof(*p1) * ulNumEntries,
+                            (PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -291,8 +291,8 @@ SrvShareDevCtlEnum(
         case 2:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p2) * ulNumEntries,
-							(PVOID*)&p2);
+                            sizeof(*p2) * ulNumEntries,
+                            (PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -321,8 +321,8 @@ SrvShareDevCtlEnum(
         case 501:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p501) * ulNumEntries,
-							(PVOID*)&p501);
+                            sizeof(*p501) * ulNumEntries,
+                            (PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -342,8 +342,8 @@ SrvShareDevCtlEnum(
         case 502:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p502) * ulNumEntries,
-							(PVOID*)&p502);
+                            sizeof(*p502) * ulNumEntries,
+                            (PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
@@ -520,8 +520,8 @@ SrvShareDevCtlGetInfo(
         case 0:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p0),
-							(PVOID*)&p0);
+                            sizeof(*p0),
+                            (PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p0->shi0_netname             = pShareInfo->pwszName;
@@ -533,8 +533,8 @@ SrvShareDevCtlGetInfo(
         case 1:
 
             ntStatus = SrvAllocateMemory(
-						sizeof(*p1),
-						(PVOID*)&p1);
+                        sizeof(*p1),
+                        (PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p1->shi1_netname             = pShareInfo->pwszName;
@@ -548,8 +548,8 @@ SrvShareDevCtlGetInfo(
         case 2:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p2),
-							(PVOID*)&p2);
+                            sizeof(*p2),
+                            (PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p2->shi2_netname             = pShareInfo->pwszName;
@@ -573,8 +573,8 @@ SrvShareDevCtlGetInfo(
         case 501:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p501),
-							(PVOID*)&p501);
+                            sizeof(*p501),
+                            (PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p501->shi501_netname         = pShareInfo->pwszName;
@@ -589,8 +589,8 @@ SrvShareDevCtlGetInfo(
         case 502:
 
             ntStatus = SrvAllocateMemory(
-							sizeof(*p502),
-							(PVOID*)&p502);
+                            sizeof(*p502),
+                            (PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
 
             p502->shi502_netname             = pShareInfo->pwszName;

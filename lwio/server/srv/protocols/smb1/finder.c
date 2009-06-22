@@ -1458,7 +1458,7 @@ SrvFinderMarshallBothDirInfoResults(
             memset((PBYTE)pInfoHeader->ShortName, 0x0, sizeof(pInfoHeader->ShortName));
 
             pInfoHeader->ShortNameLength = 0;
-	}
+    }
 
 
         pDataCursor += sizeof(SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER);

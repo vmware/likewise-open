@@ -42,10 +42,10 @@ SrvBuildNegotiateResponseForDialect(
 
 NTSTATUS
 SrvProcessNegotiate(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
@@ -107,23 +107,23 @@ SrvBuildNegotiateResponseForDialect(
     PSMB_PACKET pSmbResponse = NULL;
 
     for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
-	{
-		if (!strcmp(ppszDialectArray[iDialect], SRV_NEGOTIATE_DIALECT_SMB_2))
-		{
-		    ntStatus = SrvBuildNegotiateResponse_SMB_V2(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
-		    BAIL_ON_NT_STATUS(ntStatus);
+    {
+        if (!strcmp(ppszDialectArray[iDialect], SRV_NEGOTIATE_DIALECT_SMB_2))
+        {
+            ntStatus = SrvBuildNegotiateResponse_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-		    goto done;
-		}
-	}
+            goto done;
+        }
+    }
 
     for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
     {
         if (!strcmp(ppszDialectArray[iDialect],
-			    SRV_NEGOTIATE_DIALECT_NTLM_0_12))
+                    SRV_NEGOTIATE_DIALECT_NTLM_0_12))
         {
             ntStatus = SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                                 pConnection,
@@ -152,14 +152,14 @@ cleanup:
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 

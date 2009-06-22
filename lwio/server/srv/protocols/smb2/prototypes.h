@@ -54,10 +54,10 @@
 
 NTSTATUS
 SrvProcessSessionSetup_SMB_V2(
-	PLWIO_SRV_CONNECTION pConnection,
-	PSMB_PACKET          pSmbRequest,
-	PSMB_PACKET*         ppSmbResponse
-	);
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
 
 
 // error.c
@@ -74,15 +74,15 @@ SrvBuildErrorResponse_SMB_V2(
 
 NTSTATUS
 SMB2MarshalHeader(
-	PSMB_PACKET pSmbPacket,
-	USHORT      usCommand,
-	USHORT      usCredits,
-	ULONG       ulPid,
-	ULONG       ulTid,
-	ULONG64     ullSessionId,
-	NTSTATUS    status,
-	BOOLEAN     bIsResponse
-	);
+    PSMB_PACKET pSmbPacket,
+    USHORT      usCommand,
+    USHORT      usCredits,
+    ULONG       ulPid,
+    ULONG       ulTid,
+    ULONG64     ullSessionId,
+    NTSTATUS    status,
+    BOOLEAN     bIsResponse
+    );
 
 NTSTATUS
 SMB2PacketMarshallFooter(

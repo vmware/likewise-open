@@ -241,21 +241,21 @@ SrvProdConsTimedDequeue(
         } while (bRetryWait);
     }
 
-	pItem = SMBDequeue(&pQueue->queue);
+    pItem = SMBDequeue(&pQueue->queue);
 
-	if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
-	{
-		bSignalEvent = TRUE;
-	}
+    if (pQueue->ulNumItems == pQueue->ulNumMaxItems)
+    {
+        bSignalEvent = TRUE;
+    }
 
-	pQueue->ulNumItems--;
+    pQueue->ulNumItems--;
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pQueue->mutex);
 
-	if (bSignalEvent)
-	{
-		pthread_cond_broadcast(&pQueue->event);
-	}
+    if (bSignalEvent)
+    {
+        pthread_cond_broadcast(&pQueue->event);
+    }
 
     *ppItem = pItem;
 

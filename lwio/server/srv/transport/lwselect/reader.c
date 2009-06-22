@@ -573,7 +573,7 @@ SrvSocketReaderPurgeConnections(
 
         if (SrvConnectionIsInvalid(pSrvConnection))
         {
-		PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pSrvConnection->hSocket;
+            PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pSrvConnection->hSocket;
 
             pthread_mutex_lock(pReaderContext->pMutex);
 

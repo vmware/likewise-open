@@ -52,32 +52,32 @@
 
 NTSTATUS
 SrvTimerInit(
-	IN PSRV_TIMER pTimer
-	);
+    IN PSRV_TIMER pTimer
+    );
 
 NTSTATUS
 SrvTimerPostRequestSpecific(
-	IN  PSRV_TIMER             pTimer,
-	IN  LONG64                 llExpiry,
-	IN  PVOID                  pUserData,
-	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
-	);
+    IN  PSRV_TIMER             pTimer,
+    IN  LONG64                 llExpiry,
+    IN  PVOID                  pUserData,
+    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    );
 
 NTSTATUS
 SrvTimerCancelRequestSpecific(
-	IN  PSRV_TIMER         pTimer,
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	);
+    IN  PSRV_TIMER         pTimer,
+    IN  PSRV_TIMER_REQUEST pTimerRequest
+    );
 
 VOID
 SrvTimerIndicateStop(
-	PSRV_TIMER pTimer
-	);
+    PSRV_TIMER pTimer
+    );
 
 VOID
 SrvTimerFreeContents(
-	PSRV_TIMER pTimer
-	);
+    PSRV_TIMER pTimer
+    );
 
 #endif /* __SRV_TIMER_H__ */

@@ -54,60 +54,60 @@
 static
 NTSTATUS
 SrvBuildLockRequest(
-	PLWIO_SRV_CONNECTION             pConnection,
-	PLWIO_SRV_FILE                   pFile,
-	PSMB_PACKET                      pSmbRequest,
-	PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
-	PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
-	PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
-    PLOCKING_ANDX_RANGE   	         pUnlockRange,
+    PLWIO_SRV_CONNECTION             pConnection,
+    PLWIO_SRV_FILE                   pFile,
+    PSMB_PACKET                      pSmbRequest,
+    PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
+    PLOCKING_ANDX_RANGE                pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange,
-	PSRV_SMB_LOCK_REQUEST*           ppLockRequest
-	);
+    PSRV_SMB_LOCK_REQUEST*           ppLockRequest
+    );
 
 static
 VOID
 SrvReleaseLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	);
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    );
 
 static
 VOID
 SrvFreeLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	);
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    );
 
 static
 NTSTATUS
 SrvExecuteLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest,
-	PSMB_PACKET*          ppSmbResponse
-	);
+    PSRV_SMB_LOCK_REQUEST pLockRequest,
+    PSMB_PACKET*          ppSmbResponse
+    );
 
 static
 VOID
 SrvLockRequestExpiredCB(
-	PSRV_TIMER_REQUEST pTimerRequest,
-	PVOID              pUserData
-	);
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    );
 
 static
 VOID
 SrvExecuteLockContextAsyncCB(
-	PVOID pContext
-	);
+    PVOID pContext
+    );
 
 static
 VOID
 SrvClearLocks(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	);
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    );
 
 static
 VOID
 SrvClearLocks_inlock(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	);
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    );
 
 static
 NTSTATUS
@@ -118,7 +118,7 @@ SrvUnlockFile_inlock(
 static
 NTSTATUS
 SrvLockFile_inlock(
-	PSRV_SMB_LOCK_CONTEXT pLockContext
+    PSRV_SMB_LOCK_CONTEXT pLockContext
     );
 
 static
@@ -130,9 +130,9 @@ SrvBuildLockingAndXResponse(
 
 NTSTATUS
 SrvProcessLockAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
@@ -177,15 +177,15 @@ SrvProcessLockAndX(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildLockRequest(
-						pConnection,
-						pFile,
-						pSmbRequest,
-						pRequestHeader,
-						pUnlockRangeLarge,
-						pLockRangeLarge,
-						pUnlockRange,
-						pLockRange,
-						&pLockRequest);
+                        pConnection,
+                        pFile,
+                        pSmbRequest,
+                        pRequestHeader,
+                        pUnlockRangeLarge,
+                        pLockRangeLarge,
+                        pUnlockRange,
+                        pLockRange,
+                        &pLockRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvExecuteLockRequest(pLockRequest, &pSmbResponse);
@@ -209,7 +209,7 @@ cleanup:
     }
     if (pLockRequest)
     {
-	SrvReleaseLockRequest(pLockRequest);
+        SrvReleaseLockRequest(pLockRequest);
     }
 
     return ntStatus;
@@ -231,22 +231,22 @@ error:
 static
 NTSTATUS
 SrvBuildLockRequest(
-	PLWIO_SRV_CONNECTION             pConnection,
-	PLWIO_SRV_FILE                   pFile,
-	PSMB_PACKET                      pSmbRequest,
-	PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
-	PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
-	PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
-    PLOCKING_ANDX_RANGE   	         pUnlockRange,
+    PLWIO_SRV_CONNECTION             pConnection,
+    PLWIO_SRV_FILE                   pFile,
+    PSMB_PACKET                      pSmbRequest,
+    PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pUnlockRangeLarge,
+    PLOCKING_ANDX_RANGE_LARGE_FILE   pLockRangeLarge,
+    PLOCKING_ANDX_RANGE                pUnlockRange,
     PLOCKING_ANDX_RANGE              pLockRange,
-	PSRV_SMB_LOCK_REQUEST*           ppLockRequest
-	)
+    PSRV_SMB_LOCK_REQUEST*           ppLockRequest
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	LONG lNumContexts = 0;
-	LONG iContext = 0;
-	LONG iLock = 0;
-	PSRV_SMB_LOCK_REQUEST pLockRequest = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LONG lNumContexts = 0;
+    LONG iContext = 0;
+    LONG iLock = 0;
+    PSRV_SMB_LOCK_REQUEST pLockRequest = NULL;
 
     if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
     {
@@ -266,195 +266,195 @@ SrvBuildLockRequest(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-	ntStatus = SrvAllocateMemory(
-						sizeof(SRV_SMB_LOCK_REQUEST),
-						(PVOID*)&pLockRequest);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvAllocateMemory(
+                        sizeof(SRV_SMB_LOCK_REQUEST),
+                        (PVOID*)&pLockRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	pthread_mutex_init(&pLockRequest->mutex, NULL);
-	pLockRequest->pMutex = &pLockRequest->mutex;
+    pthread_mutex_init(&pLockRequest->mutex, NULL);
+    pLockRequest->pMutex = &pLockRequest->mutex;
 
-	pLockRequest->refCount = 1;
+    pLockRequest->refCount = 1;
 
-	pLockRequest->pFile = pFile;
-	InterlockedIncrement(&pFile->refcount);
+    pLockRequest->pFile = pFile;
+    InterlockedIncrement(&pFile->refcount);
 
-	pLockRequest->pConnection = pConnection;
-	InterlockedIncrement(&pConnection->refCount);
+    pLockRequest->pConnection = pConnection;
+    InterlockedIncrement(&pConnection->refCount);
 
-	pLockRequest->usTid = pSmbRequest->pSMBHeader->tid;
-	pLockRequest->usMid = pSmbRequest->pSMBHeader->mid;
-	pLockRequest->usUid = pSmbRequest->pSMBHeader->uid;
-	pLockRequest->usPid = pSmbRequest->pSMBHeader->pid;
-	pLockRequest->ulTimeout = pRequestHeader->ulTimeout;
-	pLockRequest->ulResponseSequence = pSmbRequest->sequence + 1;
+    pLockRequest->usTid = pSmbRequest->pSMBHeader->tid;
+    pLockRequest->usMid = pSmbRequest->pSMBHeader->mid;
+    pLockRequest->usUid = pSmbRequest->pSMBHeader->uid;
+    pLockRequest->usPid = pSmbRequest->pSMBHeader->pid;
+    pLockRequest->ulTimeout = pRequestHeader->ulTimeout;
+    pLockRequest->ulResponseSequence = pSmbRequest->sequence + 1;
 
-	pLockRequest->usNumUnlocks = pRequestHeader->usNumUnlocks;
-	pLockRequest->usNumLocks = pRequestHeader->usNumLocks;
+    pLockRequest->usNumUnlocks = pRequestHeader->usNumUnlocks;
+    pLockRequest->usNumLocks = pRequestHeader->usNumLocks;
 
-	lNumContexts = pLockRequest->usNumUnlocks + pLockRequest->usNumLocks;
-	ntStatus = SrvAllocateMemory(
-					sizeof(SRV_SMB_LOCK_CONTEXT) * lNumContexts,
-					(PVOID*)&pLockRequest->pLockContexts);
-	BAIL_ON_NT_STATUS(ntStatus);
+    lNumContexts = pLockRequest->usNumUnlocks + pLockRequest->usNumLocks;
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SMB_LOCK_CONTEXT) * lNumContexts,
+                    (PVOID*)&pLockRequest->pLockContexts);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	pLockRequest->lPendingContexts = lNumContexts;
+    pLockRequest->lPendingContexts = lNumContexts;
 
-	for (iLock = 0; iContext < pLockRequest->usNumUnlocks; iContext++, iLock++)
-	{
-		PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iContext];
+    for (iLock = 0; iContext < pLockRequest->usNumUnlocks; iContext++, iLock++)
+    {
+        PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iContext];
 
-		pContext->operation = SRV_SMB_UNLOCK;
+        pContext->operation = SRV_SMB_UNLOCK;
 
-		pContext->bExclusiveLock =
-			!(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
+        pContext->bExclusiveLock =
+            !(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
 
-	    if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
-	    {
-		pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
+        if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
+        {
+            pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
 
-		pContext->lockInfo.largeFileRange = pUnlockRangeLarge[iLock];
+            pContext->lockInfo.largeFileRange = pUnlockRangeLarge[iLock];
 
-		pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
-	    }
-	    else
-	    {
-		pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
+            pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
+        }
+        else
+        {
+            pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
 
-		pContext->lockInfo.regularRange = pUnlockRange[iLock];
+            pContext->lockInfo.regularRange = pUnlockRange[iLock];
 
-		pContext->ulKey = pContext->lockInfo.regularRange.usPid;
-	    }
+            pContext->ulKey = pContext->lockInfo.regularRange.usPid;
+        }
 
-		pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
-		pContext->acb.CallbackContext = pContext;
+        pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
+        pContext->acb.CallbackContext = pContext;
 
-		if (pLockRequest->ulTimeout)
-		{
-			pContext->pAcb = &pContext->acb;
-		}
+        if (pLockRequest->ulTimeout)
+        {
+            pContext->pAcb = &pContext->acb;
+        }
 
-		pContext->pLockRequest = pLockRequest;
+        pContext->pLockRequest = pLockRequest;
 
-		pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
-	}
+        pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
+    }
 
-	for (iLock = 0; iContext < lNumContexts; iContext++, iLock++)
-	{
-		PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iContext];
+    for (iLock = 0; iContext < lNumContexts; iContext++, iLock++)
+    {
+        PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iContext];
 
-		pContext->operation = SRV_SMB_LOCK;
+        pContext->operation = SRV_SMB_LOCK;
 
-		pContext->bExclusiveLock =
-			!(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
+        pContext->bExclusiveLock =
+            !(pRequestHeader->ucLockType & LWIO_LOCK_TYPE_SHARED_LOCK);
 
-	    if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
-	    {
-		pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
+        if (pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
+        {
+            pContext->lockType = SRV_SMB_LOCK_TYPE_LARGE;
 
-		pContext->lockInfo.largeFileRange = pLockRangeLarge[iLock];
+            pContext->lockInfo.largeFileRange = pLockRangeLarge[iLock];
 
-		pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
-	    }
-	    else
-	    {
-		pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
+            pContext->ulKey = pContext->lockInfo.largeFileRange.usPid;
+        }
+        else
+        {
+            pContext->lockType = SRV_SMB_LOCK_TYPE_REGULAR;
 
-		pContext->lockInfo.regularRange = pLockRange[iLock];
+            pContext->lockInfo.regularRange = pLockRange[iLock];
 
-		pContext->ulKey = pContext->lockInfo.regularRange.usPid;
-	    }
+            pContext->ulKey = pContext->lockInfo.regularRange.usPid;
+        }
 
-		pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
-		pContext->acb.CallbackContext = pContext;
+        pContext->acb.Callback = &SrvExecuteLockContextAsyncCB;
+        pContext->acb.CallbackContext = pContext;
 
-		if (pLockRequest->ulTimeout)
-		{
-			pContext->pAcb = &pContext->acb;
-		}
+        if (pLockRequest->ulTimeout)
+        {
+            pContext->pAcb = &pContext->acb;
+        }
 
-		pContext->pLockRequest = pLockRequest;
+        pContext->pLockRequest = pLockRequest;
 
-		pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
-	}
+        pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
+    }
 
-	pLockRequest->bExpired = FALSE;
+    pLockRequest->bExpired = FALSE;
 
-	*ppLockRequest = pLockRequest;
+    *ppLockRequest = pLockRequest;
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*ppLockRequest = NULL;
+    *ppLockRequest = NULL;
 
-	if (pLockRequest)
-	{
-		SrvReleaseLockRequest(pLockRequest);
-	}
+    if (pLockRequest)
+    {
+        SrvReleaseLockRequest(pLockRequest);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 VOID
 SrvReleaseLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	)
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    )
 {
-	if (InterlockedDecrement(&pLockRequest->refCount) == 0)
-	{
-		SrvFreeLockRequest(pLockRequest);
-	}
+    if (InterlockedDecrement(&pLockRequest->refCount) == 0)
+    {
+        SrvFreeLockRequest(pLockRequest);
+    }
 }
 
 static
 VOID
 SrvFreeLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	)
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    )
 {
-	if (pLockRequest->pMutex)
-	{
-		pthread_mutex_destroy(&pLockRequest->mutex);
-	}
+    if (pLockRequest->pMutex)
+    {
+        pthread_mutex_destroy(&pLockRequest->mutex);
+    }
 
-	if (pLockRequest->pFile)
-	{
-		SrvFileRelease(pLockRequest->pFile);
-	}
+    if (pLockRequest->pFile)
+    {
+        SrvFileRelease(pLockRequest->pFile);
+    }
 
-	if (pLockRequest->pConnection)
-	{
-		SrvConnectionRelease(pLockRequest->pConnection);
-	}
+    if (pLockRequest->pConnection)
+    {
+        SrvConnectionRelease(pLockRequest->pConnection);
+    }
 
-	if (pLockRequest->pTimerRequest)
-	{
-		SrvTimerCancelRequest(pLockRequest->pTimerRequest);
-		SrvTimerRelease(pLockRequest->pTimerRequest);
-	}
+    if (pLockRequest->pTimerRequest)
+    {
+        SrvTimerCancelRequest(pLockRequest->pTimerRequest);
+        SrvTimerRelease(pLockRequest->pTimerRequest);
+    }
 
-	SRV_SAFE_FREE_MEMORY(pLockRequest->pLockContexts);
+    SRV_SAFE_FREE_MEMORY(pLockRequest->pLockContexts);
 }
 
 static
 NTSTATUS
 SrvExecuteLockRequest(
-	PSRV_SMB_LOCK_REQUEST pLockRequest,
-	PSMB_PACKET*          ppSmbResponse
-	)
+    PSRV_SMB_LOCK_REQUEST pLockRequest,
+    PSMB_PACKET*          ppSmbResponse
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	BOOLEAN  bFailImmediately = (pLockRequest->ulTimeout == 0);
-	BOOLEAN  bWaitIndefinitely = (pLockRequest->ulTimeout == (ULONG)-1);
-	BOOLEAN  bAsync = FALSE;
-	ULONG iLock = 0;
-	LONG  lNumContexts = 0;
-	PSMB_PACKET pSmbResponse = NULL;
-	BOOLEAN bInLock = FALSE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bFailImmediately = (pLockRequest->ulTimeout == 0);
+    BOOLEAN  bWaitIndefinitely = (pLockRequest->ulTimeout == (ULONG)-1);
+    BOOLEAN  bAsync = FALSE;
+    ULONG iLock = 0;
+    LONG  lNumContexts = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+    BOOLEAN bInLock = FALSE;
 
     /*
      * Case 1: If requested to fail immediately, lock synchronously
@@ -463,298 +463,298 @@ SrvExecuteLockRequest(
      *         register a timer call back
      */
 
-	LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	lNumContexts = pLockRequest->usNumUnlocks + pLockRequest->usNumLocks;
+    lNumContexts = pLockRequest->usNumUnlocks + pLockRequest->usNumLocks;
 
-	for (iLock = 0; iLock < lNumContexts; iLock++)
-	{
-		PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iLock];
+    for (iLock = 0; iLock < lNumContexts; iLock++)
+    {
+        PSRV_SMB_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iLock];
 
-		switch (pContext->operation)
-		{
-			case SRV_SMB_UNLOCK:
+        switch (pContext->operation)
+        {
+            case SRV_SMB_UNLOCK:
 
-					ntStatus = SrvUnlockFile_inlock(pContext);
+                    ntStatus = SrvUnlockFile_inlock(pContext);
 
-					break;
+                    break;
 
-			case SRV_SMB_LOCK:
+            case SRV_SMB_LOCK:
 
-					ntStatus = SrvLockFile_inlock(pContext);
+                    ntStatus = SrvLockFile_inlock(pContext);
 
-					break;
-		}
-		if (ntStatus == STATUS_PENDING)
-		{
-			// Asynchronous requests can complete synchronously.
-			bAsync = TRUE;
-			ntStatus = STATUS_SUCCESS;
-		}
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+                    break;
+        }
+        if (ntStatus == STATUS_PENDING)
+        {
+            // Asynchronous requests can complete synchronously.
+            bAsync = TRUE;
+            ntStatus = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	if (!bFailImmediately && !bWaitIndefinitely && bAsync)
-	{
-		LONG64 llExpiry = 0LL;
+    if (!bFailImmediately && !bWaitIndefinitely && bAsync)
+    {
+        LONG64 llExpiry = 0LL;
 
-		llExpiry = (time(NULL) +
-				    (pLockRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
+        llExpiry = (time(NULL) +
+                    (pLockRequest->ulTimeout/1000) + 11644473600LL) * 10000000LL;
 
-		ntStatus = SrvTimerPostRequest(
-						llExpiry,
-						pLockRequest,
-						&SrvLockRequestExpiredCB,
-						&pLockRequest->pTimerRequest);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvTimerPostRequest(
+                        llExpiry,
+                        pLockRequest,
+                        &SrvLockRequestExpiredCB,
+                        &pLockRequest->pTimerRequest);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-		InterlockedIncrement(&pLockRequest->refCount);
-	}
+        InterlockedIncrement(&pLockRequest->refCount);
+    }
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (bFailImmediately || !bAsync)
-	{
-		ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (bFailImmediately || !bAsync)
+    {
+        ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	*ppSmbResponse = pSmbResponse;
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (!bAsync)
-	{
-		SrvClearLocks(pLockRequest);
-	}
+    if (!bAsync)
+    {
+        SrvClearLocks(pLockRequest);
+    }
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(
-			pLockRequest->pConnection->hPacketAllocator,
-			pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+            pLockRequest->pConnection->hPacketAllocator,
+            pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 VOID
 SrvLockRequestExpiredCB(
-	PSRV_TIMER_REQUEST pTimerRequest,
-	PVOID              pUserData
-	)
+    PSRV_TIMER_REQUEST pTimerRequest,
+    PVOID              pUserData
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSRV_SMB_LOCK_REQUEST pLockRequest = (PSRV_SMB_LOCK_REQUEST)pUserData;
-	BOOLEAN bInLock = FALSE;
-	PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SMB_LOCK_REQUEST pLockRequest = (PSRV_SMB_LOCK_REQUEST)pUserData;
+    BOOLEAN bInLock = FALSE;
+    PSMB_PACKET pSmbResponse = NULL;
 
-	LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	pLockRequest->bExpired = TRUE;
+    pLockRequest->bExpired = TRUE;
 
-	if (!pLockRequest->bResponseSent)
-	{
-		// The timer expired first
+    if (!pLockRequest->bResponseSent)
+    {
+        // The timer expired first
 
-		ntStatus = SrvProtocolBuildErrorResponse(
-						pLockRequest->pConnection,
-						COM_LOCKING_ANDX,
-						pLockRequest->usTid,
-						pLockRequest->usPid,
-						pLockRequest->usUid,
-						pLockRequest->usMid,
-						STATUS_FILE_LOCK_CONFLICT,
-						&pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvProtocolBuildErrorResponse(
+                        pLockRequest->pConnection,
+                        COM_LOCKING_ANDX,
+                        pLockRequest->usTid,
+                        pLockRequest->usPid,
+                        pLockRequest->usUid,
+                        pLockRequest->usMid,
+                        STATUS_FILE_LOCK_CONFLICT,
+                        &pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-		pSmbResponse->sequence = pLockRequest->ulResponseSequence;
+        pSmbResponse->sequence = pLockRequest->ulResponseSequence;
 
-		ntStatus = SrvTransportSendResponse(
-							pLockRequest->pConnection,
-							pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvTransportSendResponse(
+                            pLockRequest->pConnection,
+                            pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-		pLockRequest->bResponseSent = TRUE;
-	}
+        pLockRequest->bResponseSent = TRUE;
+    }
 
 cleanup:
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(
-				pLockRequest->pConnection->hPacketAllocator,
-				pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+                pLockRequest->pConnection->hPacketAllocator,
+                pSmbResponse);
+    }
 
-	SrvReleaseLockRequest(pLockRequest);
+    SrvReleaseLockRequest(pLockRequest);
 
-	return;
+    return;
 
 error:
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 VOID
 SrvExecuteLockContextAsyncCB(
-	PVOID pContext
-	)
+    PVOID pContext
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSRV_SMB_LOCK_CONTEXT pLockContext = (PSRV_SMB_LOCK_CONTEXT)pContext;
-	PSRV_SMB_LOCK_REQUEST pLockRequest = pLockContext->pLockRequest;
-	BOOLEAN bInLock = FALSE;
-	PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SMB_LOCK_CONTEXT pLockContext = (PSRV_SMB_LOCK_CONTEXT)pContext;
+    PSRV_SMB_LOCK_REQUEST pLockRequest = pLockContext->pLockRequest;
+    BOOLEAN bInLock = FALSE;
+    PSMB_PACKET pSmbResponse = NULL;
 
-	if (InterlockedDecrement(&pLockRequest->lPendingContexts) == 0)
-	{
-		BOOLEAN bSuccess = TRUE;
-		LONG iCtx = 0;
+    if (InterlockedDecrement(&pLockRequest->lPendingContexts) == 0)
+    {
+        BOOLEAN bSuccess = TRUE;
+        LONG iCtx = 0;
 
-		LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+        LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-		if (!pLockRequest->bExpired && !pLockRequest->bResponseSent)
-		{
-			for (; iCtx < pLockRequest->usNumLocks; iCtx++)
-			{
-				PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iCtx];
+        if (!pLockRequest->bExpired && !pLockRequest->bResponseSent)
+        {
+            for (; iCtx < pLockRequest->usNumLocks; iCtx++)
+            {
+                PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iCtx];
 
-				if (pIter->ioStatusBlock.Status != STATUS_SUCCESS)
-				{
-					bSuccess = FALSE;
-					break;
-				}
-			}
+                if (pIter->ioStatusBlock.Status != STATUS_SUCCESS)
+                {
+                    bSuccess = FALSE;
+                    break;
+                }
+            }
 
-			if (bSuccess)
-			{
-				ntStatus = SrvBuildLockingAndXResponse(
-								pLockRequest,
-								&pSmbResponse);
-				BAIL_ON_NT_STATUS(ntStatus);
-			}
-			else
-			{
-				SrvClearLocks_inlock(pLockRequest);
+            if (bSuccess)
+            {
+                ntStatus = SrvBuildLockingAndXResponse(
+                                pLockRequest,
+                                &pSmbResponse);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                SrvClearLocks_inlock(pLockRequest);
 
-				ntStatus = SrvProtocolBuildErrorResponse(
-								pLockRequest->pConnection,
-								COM_LOCKING_ANDX,
-								pLockRequest->usTid,
-								pLockRequest->usPid,
-								pLockRequest->usUid,
-								pLockRequest->usMid,
-								STATUS_FILE_LOCK_CONFLICT,
-								&pSmbResponse);
-			}
+                ntStatus = SrvProtocolBuildErrorResponse(
+                                pLockRequest->pConnection,
+                                COM_LOCKING_ANDX,
+                                pLockRequest->usTid,
+                                pLockRequest->usPid,
+                                pLockRequest->usUid,
+                                pLockRequest->usMid,
+                                STATUS_FILE_LOCK_CONFLICT,
+                                &pSmbResponse);
+            }
 
-			pSmbResponse->sequence = pLockRequest->ulResponseSequence;
+            pSmbResponse->sequence = pLockRequest->ulResponseSequence;
 
-			ntStatus = SrvTransportSendResponse(
-								pLockRequest->pConnection,
-								pSmbResponse);
-			BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = SrvTransportSendResponse(
+                                pLockRequest->pConnection,
+                                pSmbResponse);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-			pLockRequest->bResponseSent = TRUE;
-		}
-	}
+            pLockRequest->bResponseSent = TRUE;
+        }
+    }
 
 cleanup:
 
-	if (pLockContext->pAcb->AsyncCancelContext)
-	{
-		IoDereferenceAsyncCancelContext(&pLockContext->pAcb->AsyncCancelContext);
-	}
+    if (pLockContext->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pLockContext->pAcb->AsyncCancelContext);
+    }
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(
-				pLockRequest->pConnection->hPacketAllocator,
-				pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(
+                pLockRequest->pConnection->hPacketAllocator,
+                pSmbResponse);
+    }
 
-	SrvReleaseLockRequest(pLockRequest);
+    SrvReleaseLockRequest(pLockRequest);
 
-	return;
+    return;
 
 error:
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 VOID
 SrvClearLocks(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	)
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    )
 {
-	BOOLEAN bInLock = FALSE;
+    BOOLEAN bInLock = FALSE;
 
-	LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	SrvClearLocks_inlock(pLockRequest);
+    SrvClearLocks_inlock(pLockRequest);
 
-	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 }
 
 static
 VOID
 SrvClearLocks_inlock(
-	PSRV_SMB_LOCK_REQUEST pLockRequest
-	)
+    PSRV_SMB_LOCK_REQUEST pLockRequest
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	ULONG   iCtx = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG   iCtx = 0;
 
-	if (InterlockedRead(&pLockRequest->lPendingContexts) == 0)
-	{
-		LWIO_LOG_ERROR("Attempt to clear lock request with pending contexts.");
-		ntStatus = STATUS_INTERNAL_ERROR;
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (InterlockedRead(&pLockRequest->lPendingContexts) == 0)
+    {
+        LWIO_LOG_ERROR("Attempt to clear lock request with pending contexts.");
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	// Note: this routine must always be called on error, after all the actors
-	//       are done processing the request.
-	for (iCtx = pLockRequest->usNumUnlocks;
-		 iCtx < (pLockRequest->usNumUnlocks + pLockRequest->usNumLocks);
-		 iCtx++)
-	{
-		PSRV_SMB_LOCK_CONTEXT pLockContext = &pLockRequest->pLockContexts[iCtx];
+    // Note: this routine must always be called on error, after all the actors
+    //       are done processing the request.
+    for (iCtx = pLockRequest->usNumUnlocks;
+         iCtx < (pLockRequest->usNumUnlocks + pLockRequest->usNumLocks);
+         iCtx++)
+    {
+        PSRV_SMB_LOCK_CONTEXT pLockContext = &pLockRequest->pLockContexts[iCtx];
 
-		if (pLockContext->ioStatusBlock.Status == STATUS_SUCCESS)
-		{
-			NTSTATUS ntStatus1 = STATUS_SUCCESS;
+        if (pLockContext->ioStatusBlock.Status == STATUS_SUCCESS)
+        {
+            NTSTATUS ntStatus1 = STATUS_SUCCESS;
 
-			pLockContext->pAcb = NULL; // make it synchronous
+            pLockContext->pAcb = NULL; // make it synchronous
 
-			ntStatus1 = SrvUnlockFile_inlock(pLockContext);
-			if (ntStatus1)
-			{
-				LWIO_LOG_ERROR("Failed in unlock. error code [%d]", ntStatus1);
-			}
-		}
-	}
+            ntStatus1 = SrvUnlockFile_inlock(pLockContext);
+            if (ntStatus1)
+            {
+                LWIO_LOG_ERROR("Failed in unlock. error code [%d]", ntStatus1);
+            }
+        }
+    }
 
 error:
 
-	return;
+    return;
 }
 
 static
@@ -769,52 +769,52 @@ SrvLockFile_inlock(
 
     switch (pLockContext->lockType)
     {
-		case SRV_SMB_LOCK_TYPE_LARGE:
-			{
-				PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
-										&pLockContext->lockInfo.largeFileRange;
+        case SRV_SMB_LOCK_TYPE_LARGE:
+            {
+                PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
+                                        &pLockContext->lockInfo.largeFileRange;
 
-				llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-				           ((LONG64)pLockInfo->ulOffsetLow);
+                llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                           ((LONG64)pLockInfo->ulOffsetLow);
 
-				llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-				           ((LONG64)pLockInfo->ulLengthLow);
-			}
+                llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                           ((LONG64)pLockInfo->ulLengthLow);
+            }
 
-			break;
+            break;
 
-		case SRV_SMB_LOCK_TYPE_REGULAR:
-			{
-				PLOCKING_ANDX_RANGE pLockInfo =
-										&pLockContext->lockInfo.regularRange;
+        case SRV_SMB_LOCK_TYPE_REGULAR:
+            {
+                PLOCKING_ANDX_RANGE pLockInfo =
+                                        &pLockContext->lockInfo.regularRange;
 
-				llOffset = pLockInfo->ulOffset;
-				llLength = pLockInfo->ulLength;
-			}
+                llOffset = pLockInfo->ulOffset;
+                llLength = pLockInfo->ulLength;
+            }
 
-			break;
+            break;
 
-		case SRV_SMB_LOCK_TYPE_UNKNOWN:
+        case SRV_SMB_LOCK_TYPE_UNKNOWN:
 
-			ntStatus = STATUS_DATA_ERROR;
-			BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
 
-			break;
+            break;
     }
 
-	ntStatus = IoLockFile(
-					pLockContext->pLockRequest->pFile->hFile,
-					pLockContext->pAcb,
-					&pLockContext->ioStatusBlock,
-					llOffset,
-					llLength,
-					pLockContext->ulKey,
-					(pLockContext->pLockRequest->ulTimeout == 0),
-					pLockContext->bExclusiveLock);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = IoLockFile(
+                    pLockContext->pLockRequest->pFile->hFile,
+                    pLockContext->pAcb,
+                    &pLockContext->ioStatusBlock,
+                    llOffset,
+                    llLength,
+                    pLockContext->ulKey,
+                    (pLockContext->pLockRequest->ulTimeout == 0),
+                    pLockContext->bExclusiveLock);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	// Synchronous case
-	InterlockedDecrement(&pLockContext->pLockRequest->lPendingContexts);
+    // Synchronous case
+    InterlockedDecrement(&pLockContext->pLockRequest->lPendingContexts);
 
 cleanup:
 
@@ -822,11 +822,11 @@ cleanup:
 
 error:
 
-	// Asynchronous case
-	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
-	{
-		InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-	}
+    // Asynchronous case
+    if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
+    {
+        InterlockedIncrement(&pLockContext->pLockRequest->refCount);
+    }
 
     goto cleanup;
 }
@@ -843,37 +843,37 @@ SrvUnlockFile_inlock(
 
     switch (pLockContext->lockType)
     {
-		case SRV_SMB_LOCK_TYPE_LARGE:
-			{
-				PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
-										&pLockContext->lockInfo.largeFileRange;
+        case SRV_SMB_LOCK_TYPE_LARGE:
+            {
+                PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
+                                        &pLockContext->lockInfo.largeFileRange;
 
-				llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
-				           ((LONG64)pLockInfo->ulOffsetLow);
+                llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                           ((LONG64)pLockInfo->ulOffsetLow);
 
-				llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
-				           ((LONG64)pLockInfo->ulLengthLow);
-			}
+                llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                           ((LONG64)pLockInfo->ulLengthLow);
+            }
 
-			break;
+            break;
 
-		case SRV_SMB_LOCK_TYPE_REGULAR:
-			{
-				PLOCKING_ANDX_RANGE pLockInfo =
-										&pLockContext->lockInfo.regularRange;
+        case SRV_SMB_LOCK_TYPE_REGULAR:
+            {
+                PLOCKING_ANDX_RANGE pLockInfo =
+                                        &pLockContext->lockInfo.regularRange;
 
-				llOffset = pLockInfo->ulOffset;
-				llLength = pLockInfo->ulLength;
-			}
+                llOffset = pLockInfo->ulOffset;
+                llLength = pLockInfo->ulLength;
+            }
 
-			break;
+            break;
 
-		case SRV_SMB_LOCK_TYPE_UNKNOWN:
+        case SRV_SMB_LOCK_TYPE_UNKNOWN:
 
-			ntStatus = STATUS_DATA_ERROR;
-			BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
 
-			break;
+            break;
     }
 
     ntStatus = IoUnlockFile(
@@ -894,13 +894,13 @@ cleanup:
 
 error:
 
-	// Asynchronous case
-	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
-	{
-	    InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-	}
+    // Asynchronous case
+    if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
+    {
+        InterlockedIncrement(&pLockContext->pLockRequest->refCount);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static

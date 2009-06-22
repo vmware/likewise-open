@@ -52,22 +52,22 @@
 
 typedef struct __SMB2_NEGOTIATE_HEADER
 {
-	USHORT  usLength;
-	BYTE    ucFlags;
-	BYTE    ucPad;
-	USHORT  usDialect;
-	USHORT  usPad2;
-	BYTE    serverGUID[16];
-	ULONG   ulCapabilities;
-	ULONG   ulMaxTxSize;
-	ULONG   ulMaxReadSize;
-	ULONG   ulMaxWriteSize;
-	ULONG64 ullCurrentTime;
-	ULONG64 ullBootTime;
-	USHORT  usBlobOffset;
-	USHORT  usBlobLength;
+    USHORT  usLength;
+    BYTE    ucFlags;
+    BYTE    ucPad;
+    USHORT  usDialect;
+    USHORT  usPad2;
+    BYTE    serverGUID[16];
+    ULONG   ulCapabilities;
+    ULONG   ulMaxTxSize;
+    ULONG   ulMaxReadSize;
+    ULONG   ulMaxWriteSize;
+    ULONG64 ullCurrentTime;
+    ULONG64 ullBootTime;
+    USHORT  usBlobOffset;
+    USHORT  usBlobLength;
 
-	/* GSS Blob follows immediately */
+    /* GSS Blob follows immediately */
 
 } __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
 

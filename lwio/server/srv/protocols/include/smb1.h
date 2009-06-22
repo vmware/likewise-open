@@ -70,10 +70,10 @@ SrvBuildNegotiateResponse_SMB_V1_Invalid(
 
 NTSTATUS
 SrvProtocolExecute_SMB_V1(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    );
 
 NTSTATUS
 SrvProtocolBuildErrorResponse(

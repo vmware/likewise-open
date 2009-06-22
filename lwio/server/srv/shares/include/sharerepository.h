@@ -49,63 +49,63 @@
 #define __SRV_SHARE_REPOSITORY_H__
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_OPEN)(
-						OUT PHANDLE phRepository
-						);
+                        OUT PHANDLE phRepository
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_FIND_BY_NAME)(
-						IN  HANDLE           hRepository,
-						IN  PWSTR            pwszShareName,
-						OUT PSRV_SHARE_INFO* ppShareInfo
-						);
+                        IN  HANDLE           hRepository,
+                        IN  PWSTR            pwszShareName,
+                        OUT PSRV_SHARE_INFO* ppShareInfo
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_ADD)(
-						IN  HANDLE        hRepository,
-						IN  PWSTR         pwszShareName,
-						IN  PWSTR         pwszPath,
-						IN  PWSTR         pwszComment,
-						IN  PBYTE         pSecDesc,
-						IN  ULONG         ulSecDescLen,
-						IN  PWSTR         pwszService
-						);
+                        IN  HANDLE        hRepository,
+                        IN  PWSTR         pwszShareName,
+                        IN  PWSTR         pwszPath,
+                        IN  PWSTR         pwszComment,
+                        IN  PBYTE         pSecDesc,
+                        IN  ULONG         ulSecDescLen,
+                        IN  PWSTR         pwszService
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM)(
-						IN  HANDLE  hRepository,
-						IN  ULONG   ulLimit,
-						OUT PHANDLE phResume
-						);
+                        IN  HANDLE  hRepository,
+                        IN  ULONG   ulLimit,
+                        OUT PHANDLE phResume
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_ENUM)(
-						IN     HANDLE            hRepository,
-						IN     HANDLE            hResume,
-						OUT    PSRV_SHARE_INFO** pppShareInfoList,
-						IN OUT PULONG            pulNumSharesFound
-						);
+                        IN     HANDLE            hRepository,
+                        IN     HANDLE            hResume,
+                        OUT    PSRV_SHARE_INFO** pppShareInfoList,
+                        IN OUT PULONG            pulNumSharesFound
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_END_ENUM)(
-						IN HANDLE           hRepository,
-						IN HANDLE           hResume
-						);
+                        IN HANDLE           hRepository,
+                        IN HANDLE           hResume
+                        );
 
 typedef NTSTATUS (*PFN_SRV_SHARE_REPOSITORY_DELETE)(
-						IN HANDLE hRepository,
-						IN PWSTR  pwszShareName
-						);
+                        IN HANDLE hRepository,
+                        IN PWSTR  pwszShareName
+                        );
 
 typedef VOID (*PFN_SRV_SHARE_REPOSITORY_CLOSE)(
-						IN HANDLE hRepository
-						);
+                        IN HANDLE hRepository
+                        );
 
 typedef struct _SRV_SHARE_REPOSITORY_FUNCTION_TABLE
 {
 
-	PFN_SRV_SHARE_REPOSITORY_OPEN         pfnShareRepositoryOpen;
-	PFN_SRV_SHARE_REPOSITORY_FIND_BY_NAME pfnShareRepositoryFindByName;
-	PFN_SRV_SHARE_REPOSITORY_ADD          pfnShareRepositoryAdd;
-	PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM   pfnShareRepositoryBeginEnum;
-	PFN_SRV_SHARE_REPOSITORY_ENUM         pfnShareRepositoryEnum;
-	PFN_SRV_SHARE_REPOSITORY_END_ENUM     pfnShareRepositoryEndEnum;
-	PFN_SRV_SHARE_REPOSITORY_DELETE       pfnShareRepositoryDelete;
-	PFN_SRV_SHARE_REPOSITORY_CLOSE		  pfnShareRepositoryClose;
+    PFN_SRV_SHARE_REPOSITORY_OPEN         pfnShareRepositoryOpen;
+    PFN_SRV_SHARE_REPOSITORY_FIND_BY_NAME pfnShareRepositoryFindByName;
+    PFN_SRV_SHARE_REPOSITORY_ADD          pfnShareRepositoryAdd;
+    PFN_SRV_SHARE_REPOSITORY_BEGIN_ENUM   pfnShareRepositoryBeginEnum;
+    PFN_SRV_SHARE_REPOSITORY_ENUM         pfnShareRepositoryEnum;
+    PFN_SRV_SHARE_REPOSITORY_END_ENUM     pfnShareRepositoryEndEnum;
+    PFN_SRV_SHARE_REPOSITORY_DELETE       pfnShareRepositoryDelete;
+    PFN_SRV_SHARE_REPOSITORY_CLOSE          pfnShareRepositoryClose;
 
 } SRV_SHARE_REPOSITORY_FUNCTION_TABLE, *PSRV_SHARE_REPOSITORY_FUNCTION_TABLE;
 

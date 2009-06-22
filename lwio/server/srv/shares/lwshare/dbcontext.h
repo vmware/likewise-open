@@ -52,12 +52,12 @@
 
 NTSTATUS
 SrvShareDbAcquireContext(
-	PSRV_SHARE_DB_CONTEXT* ppDbContext
+    PSRV_SHARE_DB_CONTEXT* ppDbContext
     );
 
 VOID
 SrvShareDbReleaseContext(
-	PSRV_SHARE_DB_CONTEXT pDbContext
+    PSRV_SHARE_DB_CONTEXT pDbContext
     );
 
 #endif /* __SRV_SHARE_DB_CONTEXT_H__ */

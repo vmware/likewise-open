@@ -523,52 +523,52 @@ SrvBuildSearchPath(
     if (pwszSearchPattern && *pwszSearchPattern)
     {
 
-	    ntStatus = SMBAllocateStringW(
-		    pwszSearchPattern,
-		    &pwszSearchPattern3);
+        ntStatus = SMBAllocateStringW(
+                       pwszSearchPattern,
+                       &pwszSearchPattern3);
 
-	    BAIL_ON_NT_STATUS(ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pwszCursor = pwszSearchPattern3;
     while (pwszCursor && *pwszCursor)
     {
-	    if (*pwszCursor == wszGT[0])
-	    {
-		    *pwszCursor = wszQuestionMark[0];
-	    }
-	    else if (*pwszCursor == wszQuote[0])
-	    {
-		    PWSTR pwszNext = pwszCursor;
+        if (*pwszCursor == wszGT[0])
+        {
+            *pwszCursor = wszQuestionMark[0];
+        }
+        else if (*pwszCursor == wszQuote[0])
+        {
+            PWSTR pwszNext = pwszCursor;
 
-		    pwszNext++;
+            pwszNext++;
 
-		    if (!pwszNext ||
-                        ((*pwszNext == wszQuestionMark[0] ||
-                          *pwszNext == wszStar[0] ||
-                          *pwszNext == wszGT[0] ||
-			  *pwszNext == wszLT[0] ||
-                          *pwszNext == wszQuote[0])))
-		    {
-			    *pwszCursor = wszDot[0];
-		    }
-	    }
-	    else if (*pwszCursor == wszLT[0])
-	    {
-		    PWSTR pwszNext = pwszCursor;
+            if (!pwszNext ||
+                ((*pwszNext == wszQuestionMark[0] ||
+                  *pwszNext == wszStar[0] ||
+                  *pwszNext == wszGT[0] ||
+                  *pwszNext == wszLT[0] ||
+                  *pwszNext == wszQuote[0])))
+            {
+                *pwszCursor = wszDot[0];
+            }
+        }
+        else if (*pwszCursor == wszLT[0])
+        {
+            PWSTR pwszNext = pwszCursor;
 
-		    pwszNext++;
+            pwszNext++;
 
-		    if (pwszNext ||
-                        (((*pwszNext == wszDot[0]) ||
-			  (*pwszNext == wszQuote[0]) ||
-                          (*pwszNext == wszLT[0]))))
-		    {
-			    *pwszCursor = wszStar[0];
-		    }
-	    }
+            if (pwszNext ||
+                (((*pwszNext == wszDot[0]) ||
+                 (*pwszNext == wszQuote[0]) ||
+                 (*pwszNext == wszLT[0]))))
+            {
+                *pwszCursor = wszStar[0];
+            }
+        }
 
-	    pwszCursor++;
+        pwszCursor++;
     }
 
     pwszCursor = pwszSearchPattern3;

@@ -263,12 +263,12 @@ SrvInitialize(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTransportInit(
-					gSMBSrvGlobals.hPacketAllocator,
-					&gSMBSrvGlobals.shareList);
+                    gSMBSrvGlobals.hPacketAllocator,
+                    &gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
-					gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
+                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
                     (PVOID*)&gSMBSrvGlobals.pWorkerArray);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -295,71 +295,71 @@ SrvShareBootstrap(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	wchar16_t wszPipeRootName[] = {'I','P','C','$',0};
-	wchar16_t wszFileRootName[] = {'C','$',0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    wchar16_t wszPipeRootName[] = {'I','P','C','$',0};
+    wchar16_t wszFileRootName[] = {'C','$',0};
     PSTR  pszFileSystemRoot = NULL;
     PWSTR pwszFileSystemRoot = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
 
     ntStatus = SrvShareFindByName(
-					pShareList,
-					&wszPipeRootName[0],
-					&pShareInfo);
+                    pShareList,
+                    &wszPipeRootName[0],
+                    &pShareInfo);
     if (ntStatus == STATUS_NOT_FOUND)
     {
-	wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
-	wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_IPC_W;
-	wchar16_t wszDesc[] = {'R','e','m','o','t','e',' ','I','P','C',0};
+        wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
+        wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_IPC_W;
+        wchar16_t wszDesc[] = {'R','e','m','o','t','e',' ','I','P','C',0};
 
-	ntStatus = SrvShareAdd(
-							pShareList,
-	                    &wszPipeRootName[0],
-	                    &wszPipeSystemRoot[0],
-	                    &wszDesc[0],
-	                    NULL,
-	                    0,
-	                    &wszServiceType[0]);
+        ntStatus = SrvShareAdd(
+                            pShareList,
+                            &wszPipeRootName[0],
+                            &wszPipeSystemRoot[0],
+                            &wszDesc[0],
+                            NULL,
+                            0,
+                            &wszServiceType[0]);
     }
     else
     {
-	SrvShareReleaseInfo(pShareInfo);
-	pShareInfo = NULL;
+        SrvShareReleaseInfo(pShareInfo);
+        pShareInfo = NULL;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvShareFindByName(
-						pShareList,
-						&wszFileRootName[0],
-						&pShareInfo);
+                        pShareList,
+                        &wszFileRootName[0],
+                        &pShareInfo);
     if (ntStatus == STATUS_NOT_FOUND)
     {
-	wchar16_t wszDesc[] =
-						{'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
-	wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
-	CHAR szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
-	CHAR szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
+        wchar16_t wszDesc[] =
+                        {'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
+        wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+        CHAR szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
+        CHAR szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
 
-	ntStatus = SrvAllocateStringPrintf(
-	                    &pszFileSystemRoot,
-	                    "%s%s%s",
-	                    &szTmpFSRoot[0],
-	                    (((szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '/') ||
-	                      (szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '\\')) ? "" : "\\"),
-	                    &szDefaultSharePath[0]);
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvAllocateStringPrintf(
+                            &pszFileSystemRoot,
+                            "%s%s%s",
+                            &szTmpFSRoot[0],
+                            (((szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '/') ||
+                              (szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '\\')) ? "" : "\\"),
+                            &szDefaultSharePath[0]);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-	ntStatus = SrvMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-		ntStatus = SrvShareAdd(
-						pShareList,
-						&wszFileRootName[0],
-						pwszFileSystemRoot,
-						&wszDesc[0],
-						NULL,
-						0,
-						&wszServiceType[0]);
+        ntStatus = SrvShareAdd(
+                        pShareList,
+                        &wszFileRootName[0],
+                        pwszFileSystemRoot,
+                        &wszDesc[0],
+                        NULL,
+                        0,
+                        &wszServiceType[0]);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -368,14 +368,14 @@ cleanup:
     SRV_SAFE_FREE_MEMORY(pszFileSystemRoot);
     SRV_SAFE_FREE_MEMORY(pwszFileSystemRoot);
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	LWIO_LOG_ERROR("Failed to bootstrap default shares. [error code: %d]",
-			       ntStatus);
+    LWIO_LOG_ERROR("Failed to bootstrap default shares. [error code: %d]",
+                   ntStatus);
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
@@ -391,23 +391,23 @@ SrvShutdown(
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
 
         if (gSMBSrvGlobals.pWorkerArray)
-		{
-			INT iWorker = 0;
+        {
+            INT iWorker = 0;
 
-			for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-			{
-				PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+            for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            {
+                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
-				SrvWorkerIndicateStop(pWorker);
-			}
+                SrvWorkerIndicateStop(pWorker);
+            }
 
-			for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
-			{
-				PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            {
+                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
-				SrvWorkerFreeContents(pWorker);
-			}
-		}
+                SrvWorkerFreeContents(pWorker);
+            }
+        }
 
         SrvTransportShutdown();
 

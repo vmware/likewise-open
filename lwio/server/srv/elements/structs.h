@@ -51,17 +51,17 @@
 
 typedef struct _SRV_TIMER_REQUEST
 {
-	LONG                   refCount;
+    LONG                   refCount;
 
-	pthread_mutex_t        mutex;
-	pthread_mutex_t*       pMutex;
+    pthread_mutex_t        mutex;
+    pthread_mutex_t*       pMutex;
 
-	LONG64                 llExpiry;
-	PVOID                  pUserData;
-	PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
+    LONG64                 llExpiry;
+    PVOID                  pUserData;
+    PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
 
-	struct _SRV_TIMER_REQUEST* pNext;
-	struct _SRV_TIMER_REQUEST* pPrev;
+    struct _SRV_TIMER_REQUEST* pNext;
+    struct _SRV_TIMER_REQUEST* pPrev;
 
 } SRV_TIMER_REQUEST;
 
@@ -75,24 +75,24 @@ typedef struct _SRV_TIMER_CONTEXT
 
     PSRV_TIMER_REQUEST pRequests;
 
-	BOOLEAN bStop;
+    BOOLEAN bStop;
 
 } SRV_TIMER_CONTEXT, *PSRV_TIMER_CONTEXT;
 
 typedef struct _SRV_TIMER
 {
-	pthread_t  timerThread;
-	pthread_t* pTimerThread;
+    pthread_t  timerThread;
+    pthread_t* pTimerThread;
 
-	SRV_TIMER_CONTEXT context;
+    SRV_TIMER_CONTEXT context;
 
 } SRV_TIMER, *PSRV_TIMER;
 
 typedef struct _SRV_ELEMENTS_GLOBALS
 {
-	pthread_mutex_t  mutex;
+    pthread_mutex_t  mutex;
 
-	SRV_TIMER timer;
+    SRV_TIMER timer;
 
 } SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
 

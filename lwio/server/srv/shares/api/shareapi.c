@@ -90,9 +90,9 @@ SrvShareInitList(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryBeginEnum(
-											hRepository,
-											ulLimit,
-											&hResume);
+                                            hRepository,
+                                            ulLimit,
+                                            &hResume);
     BAIL_ON_NT_STATUS(ntStatus);
 
     do
@@ -101,16 +101,16 @@ SrvShareInitList(
 
         if (ppShareInfoList)
         {
-		SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
-		ppShareInfoList = NULL;
-		ulNumSharesFound = 0;
+            SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+            ppShareInfoList = NULL;
+            ulNumSharesFound = 0;
         }
 
         ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryEnum(
-												hRepository,
-												hResume,
-												&ppShareInfoList,
-												&ulNumSharesFound);
+                                                hRepository,
+                                                hResume,
+                                                &ppShareInfoList,
+                                                &ulNumSharesFound);
         BAIL_ON_NT_STATUS(ntStatus);
 
         for (; iShare < ulNumSharesFound; iShare++)
@@ -118,8 +118,8 @@ SrvShareInitList(
             PSRV_SHARE_INFO pShareInfo = ppShareInfoList[iShare];
 
             ntStatus = SrvAllocateMemory(
-							sizeof(SRV_SHARE_ENTRY),
-							(PVOID*)&pShareEntry);
+                            sizeof(SRV_SHARE_ENTRY),
+                            (PVOID*)&pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pShareEntry->pInfo = pShareInfo;
@@ -136,14 +136,14 @@ cleanup:
 
     if (hResume)
     {
-	gSrvShareApi.pFnTable->pfnShareRepositoryEndEnum(
-									hRepository,
-							hResume);
+        gSrvShareApi.pFnTable->pfnShareRepositoryEndEnum(
+                                    hRepository,
+                                    hResume);
     }
 
     if (hRepository)
     {
-	gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     }
 
     if (ppShareInfoList)
@@ -155,7 +155,7 @@ cleanup:
 
 error:
 
-	SrvShareFreeListContents(pShareList);
+    SrvShareFreeListContents(pShareList);
 
     goto cleanup;
 }
@@ -209,8 +209,8 @@ SrvShareFindByName_inlock(
 
     if (!pShareInfo)
     {
-	ntStatus = STATUS_NOT_FOUND;
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     InterlockedIncrement(&pShareInfo->refcount);
@@ -223,7 +223,7 @@ cleanup:
 
 error:
 
-	*ppShareInfo = NULL;
+    *ppShareInfo = NULL;
 
     goto cleanup;
 }
@@ -259,7 +259,7 @@ SrvShareAdd(
 
     if (!pwszShareType)
     {
-	pwszShareType = &wszServiceType[0];
+        pwszShareType = &wszServiceType[0];
     }
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
@@ -275,7 +275,7 @@ SrvShareAdd(
     }
 
     ntStatus = SrvAllocateMemory(
-					sizeof(SRV_SHARE_INFO),
+                    sizeof(SRV_SHARE_INFO),
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -308,26 +308,26 @@ SrvShareAdd(
 
     if (ulSecDescLen)
     {
-	ntStatus = SrvAllocateMemory(
-						ulSecDescLen,
-						(PVOID*)&pShareInfo->pSecDesc);
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvAllocateMemory(
+                        ulSecDescLen,
+                        (PVOID*)&pShareInfo->pSecDesc);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-	memcpy(pShareInfo->pSecDesc, pSecDesc, ulSecDescLen);
+        memcpy(pShareInfo->pSecDesc, pSecDesc, ulSecDescLen);
 
-	pShareInfo->ulSecDescLen = ulSecDescLen;
+        pShareInfo->ulSecDescLen = ulSecDescLen;
     }
     else
     {
-		pShareInfo->pSecDesc     = NULL;
-		pShareInfo->ulSecDescLen = 0;
+        pShareInfo->pSecDesc     = NULL;
+        pShareInfo->ulSecDescLen = 0;
     }
     // pShareInfo->service     = ulShareType;
 
     pShareInfo->bMarkedForDeletion = FALSE;
 
     ntStatus = SrvAllocateMemory(
-					sizeof(SRV_SHARE_ENTRY),
+                    sizeof(SRV_SHARE_ENTRY),
                     (PVOID*)&pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -339,24 +339,24 @@ SrvShareAdd(
 
     // TODO: We only allow adding disk sharess
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryAdd(
-											hRepository,
-											pShareInfo->pwszName,
-											pShareInfo->pwszPath,
-											pShareInfo->pwszComment,
-											pShareInfo->pSecDesc,
-											pShareInfo->ulSecDescLen,
-											pwszShareType);
-	BAIL_ON_NT_STATUS(ntStatus);
+                                            hRepository,
+                                            pShareInfo->pwszName,
+                                            pShareInfo->pwszPath,
+                                            pShareInfo->pwszComment,
+                                            pShareInfo->pSecDesc,
+                                            pShareInfo->ulSecDescLen,
+                                            pwszShareType);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	pShareEntry->pNext = pShareList->pShareEntry;
-	pShareList->pShareEntry = pShareEntry;
+    pShareEntry->pNext = pShareList->pShareEntry;
+    pShareList->pShareEntry = pShareEntry;
 
 cleanup:
 
-	if (hRepository)
-	{
-		gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
-	}
+    if (hRepository)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
@@ -369,20 +369,20 @@ cleanup:
 
 error:
 
-	if (pShareEntry)
-	{
-		SrvShareFreeEntry(pShareEntry);
-	}
+    if (pShareEntry)
+    {
+        SrvShareFreeEntry(pShareEntry);
+    }
 
     goto cleanup;
 }
 
 NTSTATUS
 SrvShareUpdate(
-	IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-	IN     PWSTR                      pwszShareName,
-	IN     PSRV_SHARE_INFO            pShareInfo
-	)
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+    IN     PWSTR                      pwszShareName,
+    IN     PSRV_SHARE_INFO            pShareInfo
+    )
 {
     NTSTATUS ntStatus = 0;
 
@@ -455,8 +455,8 @@ SrvShareDelete(
 
     if (IsNullOrEmptyString(pwszShareName))
     {
-	ntStatus = STATUS_INVALID_PARAMETER;
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
@@ -465,15 +465,15 @@ SrvShareDelete(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryDelete(
-											hRepository,
-											pwszShareName);
+                                            hRepository,
+                                            pwszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-	if (hRepository)
-	{
-		gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
-		hRepository = NULL;
-	}
+    if (hRepository)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        hRepository = NULL;
+    }
 
     ntStatus = SrvShareRemoveFromList_inlock(
                         pShareList,
@@ -482,10 +482,10 @@ SrvShareDelete(
 
 cleanup:
 
-	if (hRepository)
-	{
-		gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
-	}
+    if (hRepository)
+    {
+        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
@@ -565,7 +565,7 @@ SrvShareEnum(
         ULONG i = 0;
 
         ntStatus = SrvAllocateMemory(
-						ulCount * sizeof(PSRV_SHARE_INFO),
+                        ulCount * sizeof(PSRV_SHARE_INFO),
                         (PVOID*)&ppShares);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -608,15 +608,15 @@ SrvShareFreeListContents(
     )
 {
     if (pShareList->pShareEntry)
-	{
-		SrvShareFreeEntry(pShareList->pShareEntry);
-		pShareList->pShareEntry = NULL;
-	}
+    {
+        SrvShareFreeEntry(pShareList->pShareEntry);
+        pShareList->pShareEntry = NULL;
+    }
 
     if (pShareList->pMutex)
     {
-	pthread_rwlock_destroy(&pShareList->mutex);
-	pShareList->pMutex = NULL;
+        pthread_rwlock_destroy(&pShareList->mutex);
+        pShareList->pMutex = NULL;
     }
 }
 
@@ -625,19 +625,19 @@ SrvShareFreeEntry(
     IN PSRV_SHARE_ENTRY pShareEntry
     )
 {
-	while (pShareEntry)
-	{
-		PSRV_SHARE_ENTRY pTmpShareEntry = pShareEntry;
+    while (pShareEntry)
+    {
+        PSRV_SHARE_ENTRY pTmpShareEntry = pShareEntry;
 
-		pShareEntry = pShareEntry->pNext;
+        pShareEntry = pShareEntry->pNext;
 
-		if (pTmpShareEntry->pInfo)
-		{
-			SrvShareReleaseInfo(pTmpShareEntry->pInfo);
-		}
+        if (pTmpShareEntry->pInfo)
+        {
+            SrvShareReleaseInfo(pTmpShareEntry->pInfo);
+        }
 
-		SrvFreeMemory(pTmpShareEntry);
-	}
+        SrvFreeMemory(pTmpShareEntry);
+    }
 }
 
 VOID
@@ -646,19 +646,19 @@ SrvShareFreeInfoList(
     ULONG            ulNumInfos
     )
 {
-	ULONG iInfo = 0;
+    ULONG iInfo = 0;
 
-	for (; iInfo < ulNumInfos; iInfo++)
-	{
-		PSRV_SHARE_INFO pShareInfo = ppInfoList[iInfo];
+    for (; iInfo < ulNumInfos; iInfo++)
+    {
+        PSRV_SHARE_INFO pShareInfo = ppInfoList[iInfo];
 
-		if (pShareInfo)
-		{
-			SrvShareReleaseInfo(pShareInfo);
-		}
-	}
+        if (pShareInfo)
+        {
+            SrvShareReleaseInfo(pShareInfo);
+        }
+    }
 
-	SrvFreeMemory(ppInfoList);
+    SrvFreeMemory(ppInfoList);
 }
 
 VOID

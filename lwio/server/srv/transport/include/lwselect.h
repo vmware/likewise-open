@@ -51,8 +51,8 @@
 
 NTSTATUS
 SrvSelectTransportInit(
-	PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-	PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
     PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     );
 

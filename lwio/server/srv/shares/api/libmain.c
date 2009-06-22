@@ -54,15 +54,15 @@ SrvShareInit(
     VOID
     )
 {
-	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
 #if defined(SRV_SHAREAPI_USE_LWSHARE)
 
-	status = LwShareRepositoryInit(&gSrvShareApi.pFnTable);
+    status = LwShareRepositoryInit(&gSrvShareApi.pFnTable);
 
 #endif
 
-	return status;
+    return status;
 }
 
 NTSTATUS
@@ -70,19 +70,19 @@ SrvShareShutdown(
     VOID
     )
 {
-	NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
 #if defined(SRV_SHAREAPI_USE_LWSHARE)
 
-	status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
+    status = LwShareRepositoryShutdown(gSrvShareApi.pFnTable);
 
 #endif
-	BAIL_ON_NT_STATUS(status);
+    BAIL_ON_NT_STATUS(status);
 
-	gSrvShareApi.pFnTable = NULL;
+    gSrvShareApi.pFnTable = NULL;
 
 error:
 
-	return status;
+    return status;
 }
 

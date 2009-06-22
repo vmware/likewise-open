@@ -49,17 +49,17 @@ SRV_SHARE_DB_GLOBALS gShareRepository_lwshare =
 {
     .mutex   = PTHREAD_MUTEX_INITIALIZER,
 
-	.fnTable =
-		{
-			.pfnShareRepositoryOpen       = &SrvShareDbOpen,
-			.pfnShareRepositoryFindByName = &SrvShareDbFindByName,
-			.pfnShareRepositoryAdd        = &SrvShareDbAdd,
-			.pfnShareRepositoryBeginEnum  = &SrvShareDbBeginEnum,
-			.pfnShareRepositoryEnum       = &SrvShareDbEnum,
-			.pfnShareRepositoryEndEnum    = &SrvShareDbEndEnum,
-			.pfnShareRepositoryDelete     = &SrvShareDbDelete,
-			.pfnShareRepositoryClose      = &SrvShareDbClose
-		}
+    .fnTable =
+        {
+            .pfnShareRepositoryOpen       = &SrvShareDbOpen,
+            .pfnShareRepositoryFindByName = &SrvShareDbFindByName,
+            .pfnShareRepositoryAdd        = &SrvShareDbAdd,
+            .pfnShareRepositoryBeginEnum  = &SrvShareDbBeginEnum,
+            .pfnShareRepositoryEnum       = &SrvShareDbEnum,
+            .pfnShareRepositoryEndEnum    = &SrvShareDbEndEnum,
+            .pfnShareRepositoryDelete     = &SrvShareDbDelete,
+            .pfnShareRepositoryClose      = &SrvShareDbClose
+        }
 };
 
 

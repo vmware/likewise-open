@@ -30,7 +30,7 @@ SrvConnectionGetFd(
 
     if (pConnection->hSocket)
     {
-	PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
+        PLWIO_SRV_SOCKET pSocket = (PLWIO_SRV_SOCKET)pConnection->hSocket;
 
         pthread_mutex_lock(&pSocket->mutex);
 
@@ -185,41 +185,41 @@ SrvConnectionReadPacket(
     if (!pConnection->readerState.bReadHeader &&
         !pConnection->readerState.sNumBytesToRead)
     {
-	PBYTE pPreamble = NULL;
+        PBYTE pPreamble = NULL;
         PSMB_PACKET pPacket = pConnection->readerState.pRequestPacket;
         size_t bufferUsed = sizeof(NETBIOS_HEADER);
 
         pPreamble = (PBYTE)(pPacket->pRawBuffer + bufferUsed);
         if (*pPreamble == 0xFF)
         {
-		pPacket->packetType = SMB_PACKET_TYPE_SMB_1;
+            pPacket->packetType = SMB_PACKET_TYPE_SMB_1;
 
-			pPacket->pSMBHeader = (PSMB_HEADER)(pPacket->pRawBuffer + bufferUsed);
-			bufferUsed += sizeof(SMB_HEADER);
+            pPacket->pSMBHeader = (PSMB_HEADER)(pPacket->pRawBuffer + bufferUsed);
+            bufferUsed += sizeof(SMB_HEADER);
 
-			if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
-			{
-				pPacket->pAndXHeader = (ANDX_HEADER *)( pPacket->pSMBHeader +
-														bufferUsed );
-				bufferUsed += sizeof(ANDX_HEADER);
-			}
+            if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
+            {
+                pPacket->pAndXHeader = (ANDX_HEADER *)( pPacket->pSMBHeader +
+                                                        bufferUsed );
+                bufferUsed += sizeof(ANDX_HEADER);
+            }
 
-			pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
-			pPacket->pData = NULL;
-			pPacket->bufferUsed = bufferUsed;
+            pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
+            pPacket->pData = NULL;
+            pPacket->bufferUsed = bufferUsed;
 
         }
         else if (*pPreamble == 0xFE)
         {
-		pPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+            pPacket->packetType = SMB_PACKET_TYPE_SMB_2;
 
-		pPacket->pSMB2Header = (PSMB2_HEADER)(pPacket->pRawBuffer + bufferUsed);
-		bufferUsed += sizeof(SMB2_HEADER);
+            pPacket->pSMB2Header = (PSMB2_HEADER)(pPacket->pRawBuffer + bufferUsed);
+            bufferUsed += sizeof(SMB2_HEADER);
         }
         else
         {
-		ntStatus = STATUS_DATA_ERROR;
-		BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
         *ppPacket = pConnection->readerState.pRequestPacket;

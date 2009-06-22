@@ -57,9 +57,9 @@ SrvProtocolInit(
 
 NTSTATUS
 SrvProtocolExecute(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest
-	);
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest
+    );
 
 NTSTATUS
 SrvProtocolShutdown(

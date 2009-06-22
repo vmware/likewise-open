@@ -113,10 +113,10 @@ SrvMarshallGetNamedPipeInfoData(
 
 NTSTATUS
 SrvProcessTransaction(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PTRANSACTION_REQUEST_HEADER pRequestHeader = NULL; // Do not free
@@ -874,7 +874,7 @@ SrvProcessTransactNamedPipe(
                 pSmbResponse->bufferLen,
                 COM_TRANSACTION,
                 ioStatusBlock.BytesTransferred < usResponseDataLen ?
-		    STATUS_SUCCESS : STATUS_BUFFER_OVERFLOW,
+                         STATUS_SUCCESS : STATUS_BUFFER_OVERFLOW,
                 TRUE,
                 pSmbRequest->pSMBHeader->tid,
                 pSmbRequest->pSMBHeader->pid,

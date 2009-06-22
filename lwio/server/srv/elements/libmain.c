@@ -66,28 +66,28 @@ error:
 
 NTSTATUS
 SrvTimerPostRequest(
-	IN  LONG64                 llExpiry,
-	IN  PVOID                  pUserData,
-	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
-	)
+    IN  LONG64                 llExpiry,
+    IN  PVOID                  pUserData,
+    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    )
 {
-	return SrvTimerPostRequestSpecific(
-				&gSrvElements.timer,
-				llExpiry,
-				pUserData,
-				pfnTimerExpiredCB,
-				ppTimerRequest);
+    return SrvTimerPostRequestSpecific(
+                &gSrvElements.timer,
+                llExpiry,
+                pUserData,
+                pfnTimerExpiredCB,
+                ppTimerRequest);
 }
 
 NTSTATUS
 SrvTimerCancelRequest(
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	)
+    IN  PSRV_TIMER_REQUEST pTimerRequest
+    )
 {
-	return SrvTimerCancelRequestSpecific(
-				&gSrvElements.timer,
-				pTimerRequest);
+    return SrvTimerCancelRequestSpecific(
+                &gSrvElements.timer,
+                pTimerRequest);
 }
 
 NTSTATUS
