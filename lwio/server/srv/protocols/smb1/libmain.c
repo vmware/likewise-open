@@ -333,7 +333,9 @@ SrvProtocolExecute_SMB_V1(
 		BAIL_ON_NT_STATUS(ntStatus);
 	}
 
-	pSmbResponse->sequence = pSmbRequest->sequence + 1;
+	if (pSmbResponse) {
+		pSmbResponse->sequence = pSmbRequest->sequence + 1;
+	}
 
 	*ppSmbResponse = pSmbResponse;
 
