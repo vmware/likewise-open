@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,62 +28,47 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocols API - SMBV2
+ *
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __STRUCTS_H__
+#define __STRUCTS_H__
 
-#include <uuid/uuid.h>
+typedef struct __SMB2_NEGOTIATE_HEADER
+{
+	USHORT  usLength;
+	BYTE    ucFlags;
+	BYTE    ucPad;
+	USHORT  usDialect;
+	USHORT  usPad2;
+	BYTE    serverGUID[16];
+	ULONG   ulCapabilities;
+	ULONG   ulMaxTxSize;
+	ULONG   ulMaxReadSize;
+	ULONG   ulMaxWriteSize;
+	ULONG64 ullCurrentTime;
+	ULONG64 ullBootTime;
+	USHORT  usBlobOffset;
+	USHORT  usBlobLength;
 
-#include <lwio/lwio.h>
+	/* GSS Blob follows immediately */
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+} __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
 
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <smb1.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "finder.h"
-#include "pipeinfo.h"
-#include "trans2qfi.h"
-#include "trans2qfsi.h"
-#include "trans2qpi.h"
-#include "trans2sfi.h"
-
-
-
+#endif /* __STRUCTS_H__ */

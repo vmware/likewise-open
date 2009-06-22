@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,62 +28,34 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        defs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocols API - SMBV2
+ *
+ *        Defines
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-#include <uuid/uuid.h>
+typedef ULONG SMB2_FLAGS;
 
-#include <lwio/lwio.h>
+#define SMB2_FLAGS_SERVER_TO_REDIR   0x00000001
+#define SMB2_FLAGS_ASYNC_COMMAND     0x00000002
+#define SMB2_FLAGS_RELATED_OPERATION 0x00000004
+#define SMB2_FLAGS_SIGNED            0x00000008
+#define SMB2_FLAGS_DFS_OPERATIONS    0x08000000
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <smb1.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "finder.h"
-#include "pipeinfo.h"
-#include "trans2qfi.h"
-#include "trans2qfsi.h"
-#include "trans2qpi.h"
-#include "trans2sfi.h"
-
-
-
+#endif /* __DEFS_H__ */

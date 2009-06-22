@@ -98,6 +98,18 @@ SrvExecuteLockContextAsyncCB(
 	);
 
 static
+VOID
+SrvClearLocks(
+	PSRV_SMB_LOCK_REQUEST pLockRequest
+	);
+
+static
+VOID
+SrvClearLocks_inlock(
+	PSRV_SMB_LOCK_REQUEST pLockRequest
+	);
+
+static
 NTSTATUS
 SrvUnlockFile_inlock(
     PSRV_SMB_LOCK_CONTEXT pLockContext
@@ -323,6 +335,8 @@ SrvBuildLockRequest(
 		}
 
 		pContext->pLockRequest = pLockRequest;
+
+		pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
 	}
 
 	for (iLock = 0; iContext < lNumContexts; iContext++, iLock++)
@@ -360,6 +374,8 @@ SrvBuildLockRequest(
 		}
 
 		pContext->pLockRequest = pLockRequest;
+
+		pContext->ioStatusBlock.Status = STATUS_NOT_LOCKED;
 	}
 
 	pLockRequest->bExpired = FALSE;
@@ -434,6 +450,7 @@ SrvExecuteLockRequest(
 	NTSTATUS ntStatus = STATUS_SUCCESS;
 	BOOLEAN  bFailImmediately = (pLockRequest->ulTimeout == 0);
 	BOOLEAN  bWaitIndefinitely = (pLockRequest->ulTimeout == (ULONG)-1);
+	BOOLEAN  bAsync = FALSE;
 	ULONG iLock = 0;
 	LONG  lNumContexts = 0;
 	PSMB_PACKET pSmbResponse = NULL;
@@ -468,10 +485,16 @@ SrvExecuteLockRequest(
 
 					break;
 		}
+		if (ntStatus == STATUS_PENDING)
+		{
+			// Asynchronous requests can complete synchronously.
+			bAsync = TRUE;
+			ntStatus = STATUS_SUCCESS;
+		}
 		BAIL_ON_NT_STATUS(ntStatus);
 	}
 
-	if (!bFailImmediately && !bWaitIndefinitely)
+	if (!bFailImmediately && !bWaitIndefinitely && bAsync)
 	{
 		LONG64 llExpiry = 0LL;
 
@@ -490,7 +513,7 @@ SrvExecuteLockRequest(
 
 	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-	if (bFailImmediately)
+	if (bFailImmediately || !bAsync)
 	{
 		ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
 		BAIL_ON_NT_STATUS(ntStatus);
@@ -505,6 +528,13 @@ cleanup:
 	return ntStatus;
 
 error:
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
+	if (!bAsync)
+	{
+		SrvClearLocks(pLockRequest);
+	}
 
 	*ppSmbResponse = NULL;
 
@@ -594,15 +624,15 @@ SrvExecuteLockContextAsyncCB(
 	if (InterlockedDecrement(&pLockRequest->lPendingContexts) == 0)
 	{
 		BOOLEAN bSuccess = TRUE;
-		LONG iContext = 0;
+		LONG iCtx = 0;
 
 		LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
 		if (!pLockRequest->bExpired && !pLockRequest->bResponseSent)
 		{
-			for (; iContext < pLockRequest->usNumLocks; iContext++)
+			for (; iCtx < pLockRequest->usNumLocks; iCtx++)
 			{
-				PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iContext];
+				PSRV_SMB_LOCK_CONTEXT pIter = &pLockRequest->pLockContexts[iCtx];
 
 				if (pIter->ioStatusBlock.Status != STATUS_SUCCESS)
 				{
@@ -613,10 +643,15 @@ SrvExecuteLockContextAsyncCB(
 
 			if (bSuccess)
 			{
-				ntStatus = SrvBuildLockingAndXResponse(pLockRequest, &pSmbResponse);
+				ntStatus = SrvBuildLockingAndXResponse(
+								pLockRequest,
+								&pSmbResponse);
+				BAIL_ON_NT_STATUS(ntStatus);
 			}
 			else
 			{
+				SrvClearLocks_inlock(pLockRequest);
+
 				ntStatus = SrvProtocolBuildErrorResponse(
 								pLockRequest->pConnection,
 								COM_LOCKING_ANDX,
@@ -627,7 +662,6 @@ SrvExecuteLockContextAsyncCB(
 								STATUS_FILE_LOCK_CONFLICT,
 								&pSmbResponse);
 			}
-			BAIL_ON_NT_STATUS(ntStatus);
 
 			pSmbResponse->sequence = pLockRequest->ulResponseSequence;
 
@@ -663,6 +697,64 @@ cleanup:
 error:
 
 	goto cleanup;
+}
+
+static
+VOID
+SrvClearLocks(
+	PSRV_SMB_LOCK_REQUEST pLockRequest
+	)
+{
+	BOOLEAN bInLock = FALSE;
+
+	LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
+
+	SrvClearLocks_inlock(pLockRequest);
+
+	LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
+}
+
+static
+VOID
+SrvClearLocks_inlock(
+	PSRV_SMB_LOCK_REQUEST pLockRequest
+	)
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	ULONG   iCtx = 0;
+
+	if (InterlockedRead(&pLockRequest->lPendingContexts) == 0)
+	{
+		LWIO_LOG_ERROR("Attempt to clear lock request with pending contexts.");
+		ntStatus = STATUS_INTERNAL_ERROR;
+		BAIL_ON_NT_STATUS(ntStatus);
+	}
+
+	// Note: this routine must always be called on error, after all the actors
+	//       are done processing the request.
+	for (iCtx = pLockRequest->usNumUnlocks;
+		 iCtx < (pLockRequest->usNumUnlocks + pLockRequest->usNumLocks);
+		 iCtx++)
+	{
+		PSRV_SMB_LOCK_CONTEXT pLockContext = &pLockRequest->pLockContexts[iCtx];
+
+		if (pLockContext->ioStatusBlock.Status == STATUS_SUCCESS)
+		{
+			NTSTATUS ntStatus1 = STATUS_SUCCESS;
+
+			pLockContext->pAcb = NULL; // make it synchronous
+
+			ntStatus1 = SrvUnlockFile_inlock(pLockContext);
+			if (ntStatus1)
+			{
+				LWIO_LOG_ERROR("Failed in unlock. error code [%d]", ntStatus1);
+			}
+		}
+	}
+
+error:
+
+	return;
 }
 
 static
@@ -734,8 +826,6 @@ error:
 	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
 	{
 		InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-
-		ntStatus = STATUS_SUCCESS;
 	}
 
     goto cleanup;
@@ -808,8 +898,6 @@ error:
 	if (pLockContext->pAcb && (ntStatus == STATUS_PENDING))
 	{
 	    InterlockedIncrement(&pLockContext->pLockRequest->refCount);
-
-		ntStatus = STATUS_SUCCESS;
 	}
 
 	goto cleanup;

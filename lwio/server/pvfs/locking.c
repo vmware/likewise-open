@@ -52,17 +52,16 @@
 static NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
-    BOOLEAN bExclusive,
-    BOOLEAN bAllowOverlaps
+    BOOLEAN bExclusive
     );
 
 static NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     BOOLEAN bExclusive
@@ -71,7 +70,7 @@ AddLock(
 static NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     BOOLEAN bExclusive
@@ -80,7 +79,7 @@ StoreLock(
 static VOID
 InitLockEntry(
     PPVFS_LOCK_ENTRY pEntry,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -114,7 +113,7 @@ NTSTATUS
 PvfsLockFile(
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -152,11 +151,11 @@ PvfsLockFile(
         }
 
         ntError = CanLock(&pCursor->pCcb->LockTable,
-                          pKey, Offset, Length, bExclusive, FALSE);
+                          Key, Offset, Length, bExclusive);
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = AddLock(pCcb, pKey, Offset, Length, bExclusive);
+    ntError = AddLock(pCcb, Key, Offset, Length, bExclusive);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = STATUS_SUCCESS;
@@ -170,7 +169,7 @@ cleanup:
 error:
     LWIO_LOCK_MUTEX(bLastFailedLock, &pFcb->ControlBlock);
 
-    InitLockEntry(&RangeLock, pKey, Offset, Length, Flags);
+    InitLockEntry(&RangeLock, Key, Offset, Length, Flags);
 
     /* Only try to pend a blocking lock that failed due
        to a conflict.  Not for general failures */
@@ -198,7 +197,7 @@ error:
         {
             ntError = STATUS_FILE_LOCK_CONFLICT;
         }
-        InitLockEntry(&pFcb->LastFailedLock, pKey, Offset, Length, Flags);
+        InitLockEntry(&pFcb->LastFailedLock, Key, Offset, Length, Flags);
         pFcb->pLastFailedLockOwner = pCcb;
     }
 
@@ -258,7 +257,7 @@ NTSTATUS
 PvfsUnlockFile(
     PPVFS_CCB pCcb,
     BOOLEAN bUnlockAll,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length
     )
@@ -270,14 +269,13 @@ PvfsUnlockFile(
     PPVFS_LOCK_ENTRY pEntry = NULL;
     ULONG i = 0;
     BOOLEAN bBrlWriteLock = FALSE;
-    ULONG Key = pKey ? *pKey : 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bBrlWriteLock, &pFcb->rwBrlLock);
 
     /* If the caller wants to release all locks, just set the
        NumberOfLocks to 0 */
 
-    if (bUnlockAll && (pKey == NULL)) {
+    if (bUnlockAll && (Key == 0)) {
         pExclLocks->NumberOfLocks = 0;
         pSharedLocks->NumberOfLocks = 0;
 
@@ -470,7 +468,7 @@ PvfsProcessPendingLocks(
 
         ntError = PvfsLockFile(pIrpContext,
                                pCcb,
-                               Key != 0 ? &Key : NULL,
+                               Key,
                                ByteOffset,
                                Length,
                                Flags);
@@ -502,7 +500,7 @@ error:
 NTSTATUS
 PvfsCanReadWriteFile(
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -536,7 +534,7 @@ PvfsCanReadWriteFile(
         }
 
         ntError = CanLock(&pCursor->pCcb->LockTable,
-                          pKey, Offset, Length, bExclusive, TRUE);
+                          Key, Offset, Length, bExclusive);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -560,11 +558,10 @@ error:
 static NTSTATUS
 CanLock(
     PPVFS_LOCK_TABLE pLockTable,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
-    BOOLEAN bExclusive,
-    BOOLEAN bAllowOverlaps
+    BOOLEAN bExclusive
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -592,8 +589,11 @@ CanLock(
         if ((Offset >= pEntry->Offset) &&
             (Offset < (pEntry->Offset + pEntry->Length)))
         {
-            ntError = STATUS_LOCK_NOT_GRANTED;
-            BAIL_ON_NT_STATUS(ntError);
+            if (bExclusive || (Key != pEntry->Key))
+            {
+                ntError = STATUS_LOCK_NOT_GRANTED;
+                BAIL_ON_NT_STATUS(ntError);
+            }
         }
     }
 
@@ -606,8 +606,8 @@ CanLock(
         if ((Offset >= pEntry->Offset) &&
             (Offset < (pEntry->Offset + pEntry->Length)))
         {
-            /* Owning CCB can overlap shared locks only */
-            if (!bExclusive || !bAllowOverlaps) {
+            if (bExclusive)
+            {
                 ntError = STATUS_LOCK_NOT_GRANTED;
                 BAIL_ON_NT_STATUS(ntError);
             }
@@ -629,7 +629,7 @@ error:
 static NTSTATUS
 AddLock(
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     BOOLEAN bExclusive
@@ -641,10 +641,10 @@ AddLock(
     /* See if we can lock the region.  Allow overlaps since we
        own the lock table */
 
-    ntError = CanLock(pLockTable, pKey, Offset, Length, bExclusive, TRUE);
+    ntError = CanLock(pLockTable, Key, Offset, Length, bExclusive);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = StoreLock(pLockTable, pKey, Offset, Length, bExclusive);
+    ntError = StoreLock(pLockTable, Key, Offset, Length, bExclusive);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = STATUS_SUCCESS;
@@ -663,7 +663,7 @@ error:
 static NTSTATUS
 StoreLock(
     PPVFS_LOCK_TABLE pLockTable,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     BOOLEAN bExclusive
@@ -697,7 +697,7 @@ StoreLock(
     pLocks[NumLocks].bExclusive = bExclusive;
     pLocks[NumLocks].Offset     = Offset;
     pLocks[NumLocks].Length     = Length;
-    pLocks[NumLocks].Key        = pKey ? *pKey : 0;
+    pLocks[NumLocks].Key        = Key;
 
     NumLocks++;
 
@@ -719,7 +719,7 @@ error:
 static VOID
 InitLockEntry(
     PPVFS_LOCK_ENTRY pEntry,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -732,7 +732,7 @@ InitLockEntry(
     }
 
     pEntry->bExclusive = (Flags & PVFS_LOCK_EXCLUSIVE) ? TRUE : FALSE;
-    pEntry->Key = pKey != NULL ? *pKey : 0;
+    pEntry->Key = Key;
     pEntry->Offset = Offset;
     pEntry->Length = Length;
 

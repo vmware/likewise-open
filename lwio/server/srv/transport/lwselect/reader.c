@@ -27,9 +27,8 @@ SrvSocketReaderFillFdSet(
     PSMB_SOCKET_READER_WORK_SET pReaderWorkset
     );
 
-// TODO-Fix to NTSTATUS
 static
-DWORD
+NTSTATUS
 SrvSocketReaderFillFdSetInOrder(
     PVOID pKey,
     PVOID pConnection,
@@ -391,9 +390,8 @@ error:
     goto cleanup;
 }
 
-// TODO -- Fix to NTSTATUS
 static
-DWORD
+NTSTATUS
 SrvSocketReaderFillFdSetInOrder(
     PVOID pKey,
     PVOID pConnection,

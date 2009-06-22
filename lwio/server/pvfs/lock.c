@@ -115,19 +115,19 @@ PvfsLockControl(
 
     switch(Args.LockControl) {
     case IO_LOCK_CONTROL_LOCK:
-        ntError = PvfsLockFile(pIrpContext, pCcb, &Key, Offset, Length, Flags);
+        ntError = PvfsLockFile(pIrpContext, pCcb, Key, Offset, Length, Flags);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK:
-        ntError = PvfsUnlockFile(pCcb, FALSE, &Key, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, FALSE, Key, Offset, Length);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY:
-        ntError = PvfsUnlockFile(pCcb, TRUE, &Key, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, TRUE, Key, Offset, Length);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK_ALL:
-        ntError = PvfsUnlockFile(pCcb, TRUE, NULL, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, TRUE, 0, Offset, Length);
         break;
 
     default:

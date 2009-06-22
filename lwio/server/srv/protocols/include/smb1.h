@@ -54,204 +54,38 @@ SrvProtocolInit_SMB_V1(
     );
 
 NTSTATUS
-SrvProcessCheckDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    USHORT               idxDialect,
+    PSMB_PACKET*         ppSmbResponse
     );
 
 NTSTATUS
-SrvProcessCloseAndX(
-    IN  PLWIO_SRV_CONNECTION pConneciton,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+SrvBuildNegotiateResponse_SMB_V1_Invalid(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET  pSmbRequest,
+    PSMB_PACKET* ppSmbResponse
     );
 
 NTSTATUS
-SrvProcessCreateDirectory(
-    IN  PLWIO_SRV_CONNECTION pConnection,
-    IN  PSMB_PACKET          pSmbRequest,
-    OUT PSMB_PACKET*         ppSmbResponse
+SrvProtocolExecute_SMB_V1(
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	);
+
+NTSTATUS
+SrvProtocolBuildErrorResponse(
+    PLWIO_SRV_CONNECTION pConnection,
+    BYTE                 ucCommand,
+    USHORT               usTid,
+    USHORT               usPid,
+    USHORT               usUid,
+    USHORT               usMid,
+    NTSTATUS             errorStatus,
+    PSMB_PACKET*         ppSmbResponse
     );
-
-NTSTATUS
-SrvProcessNTCreateAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessDeleteDirectory(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessDelete(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessEchoAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessTrans2FindFirst2(
-    IN  PLWIO_SRV_CONNECTION        pConnection,
-    IN  PSMB_PACKET                 pSmbRequest,
-    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    IN  PUSHORT                     pSetup,
-    IN  PUSHORT                     pByteCount,
-    IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData,
-    OUT PSMB_PACKET*                ppSmbResponse
-    );
-
-NTSTATUS
-SrvBuildSearchPath(
-    IN  PWSTR  pwszPath,
-    IN  PWSTR  pwszSearchPattern,
-    OUT PWSTR* ppwszFilesystemPath,
-    OUT PWSTR* ppwszSearchPattern
-    );
-
-NTSTATUS
-SrvProcessTrans2FindNext2(
-    IN  PLWIO_SRV_CONNECTION         pConnection,
-    IN  PSMB_PACKET                 pSmbRequest,
-    IN  PTRANSACTION_REQUEST_HEADER pRequestHeader,
-    IN  PUSHORT                     pSetup,
-    IN  PUSHORT                     pByteCount,
-    IN  PBYTE                       pParameters,
-    IN  PBYTE                       pData,
-    OUT PSMB_PACKET*                ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessFindClose2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessFlush(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessLockAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessLogoffAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessNegotiate(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessNtTransact(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessOpenAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-    );
-
-NTSTATUS
-SrvProcessRead(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessReadAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessRename(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessSessionSetup(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessTransaction(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessTransaction2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessTreeConnectAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessTreeDisconnectAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessWrite(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
-
-NTSTATUS
-SrvProcessWriteAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	);
 
 NTSTATUS
 SrvProtocolShutdown_SMB_V1(

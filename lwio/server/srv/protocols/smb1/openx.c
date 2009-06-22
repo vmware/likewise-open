@@ -67,6 +67,7 @@ SrvProcessOpenAndX(
     USHORT               usShareAccess = 0;
     PSMB_PACKET          pSmbResponse = NULL;
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
+    ACCESS_MASK          DesiredAccessMask = 0;
 
     ntStatus = SrvConnectionFindSession(
                         pConnection,
@@ -184,6 +185,26 @@ SrvProcessOpenAndX(
             break;
     }
 
+    /* action to take if the file exists */
+    switch (pRequestHeader->usOpenFunction & 0x7)
+    {
+    case 0x00:
+        DesiredAccessMask = GENERIC_READ;
+    case 0x01:
+        DesiredAccessMask = GENERIC_WRITE;
+    case 0x02:
+        DesiredAccessMask = GENERIC_READ | GENERIC_WRITE;
+        break;
+    case 0x03:
+        DesiredAccessMask = GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE;
+        break;
+    default:
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
+    }
+
+
     ntStatus = IoCreateFile(
                     &hFile,
                     pAsyncControlBlock,
@@ -192,7 +213,7 @@ SrvProcessOpenAndX(
                     pFilename,
                     pSecurityDescriptor,
                     pSecurityQOS,
-                    pRequestHeader->usDesiredAccess,
+                    DesiredAccessMask,
                     pRequestHeader->ulAllocationSize,
                     pRequestHeader->usFileAttributes,
                     usShareAccess,
@@ -447,3 +468,14 @@ error:
 
     goto cleanup;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

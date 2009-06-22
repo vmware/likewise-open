@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        libmain.c
+ *        error.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Protocols API - SMBV2
  *
- *        Library Main
+ *        Error
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -50,88 +50,40 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProtocolInit_SMB_V2(
-    VOID
+SrvBuildErrorResponse_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB2_HEADER         pSmbRequestHeader,
+    NTSTATUS             errorStatus,
+    PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
 
-    return status;
-}
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-NTSTATUS
-SrvProtocolExecute_SMB_V2(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
-{
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSMB_PACKET pSmbResponse = NULL;
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	switch (pSmbRequest->pSMB2Header->command)
-	{
-		case COM2_NEGOTIATE:
+    ntStatus = SMB2MarshalHeader(
+                pSmbResponse,
+                pSmbRequestHeader->command,
+                pSmbRequestHeader->usCredits, /* TODO: Figure out this one */
+                pSmbRequestHeader->ulPid,
+                pSmbRequestHeader->ulTid,
+                pSmbRequestHeader->ullSessionId,
+                errorStatus,
+                TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-			// Handled at a higher layer
-			ntStatus = STATUS_INTERNAL_ERROR;
-
-			break;
-
-		case COM2_SESSION_SETUP:
-
-			{
-				LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
-
-				if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
-					(connState != LWIO_SRV_CONN_STATE_READY))
-				{
-					ntStatus = STATUS_INVALID_SERVER_STATE;
-				}
-			}
-
-			break;
-
-		default:
-
-			if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
-			{
-				ntStatus = STATUS_INVALID_SERVER_STATE;
-			}
-
-			break;
-	}
-	BAIL_ON_NT_STATUS(ntStatus);
-
-	switch (pSmbRequest->pSMB2Header->command)
-	{
-		case COM2_SESSION_SETUP:
-
-			ntStatus = SrvProcessSessionSetup_SMB_V2(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
-
-			break;
-
-		default:
-
-			ntStatus = STATUS_NOT_IMPLEMENTED;
-
-			break;
-	}
-
-	if (ntStatus)
-	{
-		ntStatus = SrvBuildErrorResponse_SMB_V2(
-						pConnection,
-						pSmbRequest->pSMB2Header,
-						ntStatus,
-						&pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
-
-	*ppSmbResponse = pSmbResponse;
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -148,14 +100,3 @@ error:
 
 	goto cleanup;
 }
-
-NTSTATUS
-SrvProtocolShutdown_SMB_V2(
-    VOID
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    return status;
-}
-

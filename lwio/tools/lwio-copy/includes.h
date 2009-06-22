@@ -8,6 +8,7 @@
 #include <lwio/win32fileapi.h>
 #include <krb5/krb5.h>
 #include "lwnet.h"
+#include <stdlib.h>
 
 #define BUFF_SIZE 1024
 #define MAX_BUFFER 4096

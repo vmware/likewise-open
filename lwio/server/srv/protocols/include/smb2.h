@@ -54,6 +54,20 @@ SrvProtocolInit_SMB_V2(
     );
 
 NTSTATUS
+SrvProtocolExecute_SMB_V2(
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	);
+
+NTSTATUS
+SrvBuildNegotiateResponse_SMB_V2(
+	IN  PLWIO_SRV_CONNECTION pConnection,
+	IN  PSMB_PACKET          pSmbRequest,
+	OUT PSMB_PACKET*         ppSmbResponse
+	);
+
+NTSTATUS
 SrvProtocolShutdown_SMB_V2(
     VOID
     );

@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        defs.h
  *
  * Abstract:
  *
@@ -43,47 +43,14 @@
  *
  *        Protocols
  *
+ *        Defines
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
+#ifndef __DEFS_H__
+#define __DEFS_H__
 
-#include <config.h>
-#include <lwiosys.h>
+#define SRV_NEGOTIATE_DIALECT_NTLM_0_12 "NT LM 0.12"
+#define SRV_NEGOTIATE_DIALECT_SMB_2     "SMB 2.002"
 
-#include <uuid/uuid.h>
-
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <smb1.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "finder.h"
-#include "pipeinfo.h"
-#include "trans2qfi.h"
-#include "trans2qfsi.h"
-#include "trans2qpi.h"
-#include "trans2sfi.h"
-
-
-
+#endif /* __DEFS_H__ */

@@ -340,7 +340,7 @@ typedef UCHAR SMB_BUFFER_FORMAT;
 
 typedef struct
 {
-    uchar8_t        smb[4];     /* Contains {0xFF,0xFE} , 'SMB' */
+    uchar8_t        smb[4];     /* Contains 0xFF 'SMB' */
     uint8_t         command;    /* Command code */
     uint32_t        error;      /* Error code */
     uint8_t         flags;      /* Flags */
@@ -365,6 +365,23 @@ typedef struct
 
 typedef struct
 {
+	uchar8_t        smb[4];     /* Contains 0xFE 'SMB' */
+	uint16_t        usHeaderLen;
+	uint16_t        usEpoch;
+	uint32_t        error;
+	uint16_t        command;
+	uint16_t        usCredits;
+	uint32_t        ulFlags;
+	uint32_t        ulChainOffset;
+	uint64_t        ullCommandSequence;
+	uint32_t        ulPid;
+	uint32_t        ulTid;
+	uint64_t        ullSessionId;
+	uchar8_t        signature[16];
+} __attribute__((__packed__)) SMB2_HEADER, *PSMB2_HEADER;
+
+typedef struct
+{
     uint8_t     andXCommand;    /* Secondary (X) command; 0xFF = none */
     uint8_t     andXReserved;   /* Reserved (must be 0) */
     uint16_t    andXOffset;     /* Offset to next command wordCount */
@@ -379,10 +396,23 @@ typedef struct
     /* SMB packet immediately follows */
 }  __attribute__((__packed__))  NETBIOS_HEADER;
 
+typedef enum
+{
+	SMB_PACKET_TYPE_SMB_1 = 0,
+	SMB_PACKET_TYPE_SMB_2
+} SMB_PACKET_TYPE;
+
 typedef struct
 {
     NETBIOS_HEADER *pNetBIOSHeader;
-    SMB_HEADER     *pSMBHeader;
+
+    SMB_PACKET_TYPE packetType;
+    union
+    {
+	PSMB_HEADER  pSMBHeader;
+	PSMB2_HEADER pSMB2Header;
+    };
+
     ANDX_HEADER    *pAndXHeader; /* If NULL, no AndX */
 
     uint8_t        *pParams;     /* Pointer to start of message specific

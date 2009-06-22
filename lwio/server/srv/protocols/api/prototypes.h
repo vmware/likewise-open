@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,62 +28,34 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        prototypes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocol Handler API
+ *
+ *        prototypes
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __PROTOTYPES_H__
+#define __PROTOTYPES_H__
 
-#include <uuid/uuid.h>
+NTSTATUS
+SrvProcessNegotiate(
+        IN  PLWIO_SRV_CONNECTION pConnection,
+        IN  PSMB_PACKET          pSmbRequest,
+        OUT PSMB_PACKET*         ppSmbResponse
+        );
 
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-#include <smb1.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "finder.h"
-#include "pipeinfo.h"
-#include "trans2qfi.h"
-#include "trans2qfsi.h"
-#include "trans2qpi.h"
-#include "trans2sfi.h"
-
-
+#endif /* __PROTOTYPES_H__ */
 

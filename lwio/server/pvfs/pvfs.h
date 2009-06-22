@@ -313,7 +313,7 @@ NTSTATUS
 PvfsLockFile(
     PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -323,7 +323,7 @@ NTSTATUS
 PvfsUnlockFile(
     PPVFS_CCB pCcb,
     BOOLEAN bUnlockAll,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length
     );
@@ -331,7 +331,7 @@ PvfsUnlockFile(
 NTSTATUS
 PvfsCanReadWriteFile(
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
