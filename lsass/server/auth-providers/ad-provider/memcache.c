@@ -46,7 +46,7 @@
 
 
 DWORD
-ADCacheSetup(
+MemCacheSetup(
     IN sqlite3* pSqlHandle
     )
 {
@@ -60,7 +60,7 @@ ADCacheSetup(
 }
 
 DWORD
-ADCacheOpen(
+MemCacheOpen(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
     )
@@ -76,14 +76,14 @@ ADCacheOpen(
 
 
 DWORD
-ADCacheFreePreparedStatements(
+MemCacheFreePreparedStatements(
     IN OUT PLSA_DB_CONNECTION pConn
     )
 {
 }
 
 void
-ADCacheSafeClose(
+MemCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
@@ -94,7 +94,7 @@ ADCacheSafeClose(
 }
 
 DWORD
-ADCacheFindUserByName(
+MemCacheFindUserByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
@@ -112,7 +112,7 @@ ADCacheFindUserByName(
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
-ADCacheFindUserById(
+MemCacheFindUserById(
     LSA_DB_HANDLE hDb,
     uid_t uid,
     PLSA_SECURITY_OBJECT* ppObject
@@ -121,7 +121,7 @@ ADCacheFindUserById(
 }
 
 DWORD
-ADCacheFindGroupByName(
+MemCacheFindGroupByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
@@ -130,7 +130,7 @@ ADCacheFindGroupByName(
 }
 
 DWORD
-ADCacheFindGroupById(
+MemCacheFindGroupById(
     LSA_DB_HANDLE hDb,
     gid_t gid,
     PLSA_SECURITY_OBJECT* ppObject
@@ -147,7 +147,7 @@ ADCacheFindGroupById(
 }
 
 DWORD
-ADCacheRemoveUserBySid(
+MemCacheRemoveUserBySid(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
     )
@@ -162,7 +162,7 @@ ADCacheRemoveUserBySid(
 }
 
 DWORD
-ADCacheRemoveGroupBySid(
+MemCacheRemoveGroupBySid(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
     )
@@ -177,7 +177,7 @@ ADCacheRemoveGroupBySid(
 }
 
 DWORD
-ADCacheEmptyCache(
+MemCacheEmptyCache(
     IN LSA_DB_HANDLE hDb
     )
 {
@@ -191,7 +191,7 @@ ADCacheEmptyCache(
 
 
 DWORD
-ADCacheUnpackCacheInfo(
+MemCacheUnpackCacheInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT_VERSION_INFO pResult)
@@ -210,7 +210,7 @@ ADCacheUnpackCacheInfo(
 
 
 DWORD
-ADCacheUnpackObjectInfo(
+MemCacheUnpackObjectInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
@@ -219,7 +219,7 @@ ADCacheUnpackObjectInfo(
 
 
 DWORD
-ADCacheUnpackUserInfo(
+MemCacheUnpackUserInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
@@ -229,7 +229,7 @@ ADCacheUnpackUserInfo(
 
 
 DWORD
-ADCacheUnpackGroupInfo(
+MemCacheUnpackGroupInfo(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
@@ -238,7 +238,7 @@ ADCacheUnpackGroupInfo(
 
 
 DWORD
-ADCacheUnpackGroupMembershipInfo(
+MemCacheUnpackGroupMembershipInfo(
     IN sqlite3_stmt* pstQuery,
     IN OUT int* piColumnPos,
     IN OUT PLSA_GROUP_MEMBERSHIP pResult
@@ -247,7 +247,7 @@ ADCacheUnpackGroupMembershipInfo(
 }
 
 DWORD
-ADCacheStoreObjectEntry(
+MemCacheStoreObjectEntry(
     LSA_DB_HANDLE hDb,
     PLSA_SECURITY_OBJECT pObject
     )
@@ -263,7 +263,7 @@ ADCacheStoreObjectEntry(
 }
 
 DWORD
-ADCacheStoreObjectEntries(
+MemCacheStoreObjectEntries(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
     PLSA_SECURITY_OBJECT* ppObjects
@@ -280,7 +280,7 @@ ADCacheStoreObjectEntries(
 }
 
 void
-ADCacheSafeFreeObject(
+MemCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
@@ -294,7 +294,7 @@ ADCacheSafeFreeObject(
 
 
 DWORD
-ADCacheCreateCacheTag(
+MemCacheCreateCacheTag(
     IN PLSA_DB_CONNECTION pConn,
     IN time_t tLastUpdated,
     OUT int64_t *pqwCacheId
@@ -304,7 +304,7 @@ ADCacheCreateCacheTag(
 
 
 DWORD
-ADCacheUpdateMembership(
+MemCacheUpdateMembership(
     IN sqlite3_stmt* pstQuery,
     IN int64_t CacheId,
     IN PCSTR pszParentSid,
@@ -315,7 +315,7 @@ ADCacheUpdateMembership(
 
 
 DWORD
-ADCacheAddMembership(
+MemCacheAddMembership(
     IN PLSA_DB_CONNECTION pConn,
     IN time_t tLastUpdated,
     IN int64_t CacheId,
@@ -331,7 +331,7 @@ ADCacheAddMembership(
 
 
 DWORD
-ADCacheStoreGroupMembershipCallback(
+MemCacheStoreGroupMembershipCallback(
     IN sqlite3 *pDb,
     IN PVOID pContext,
     OUT PSTR* ppszError
@@ -340,7 +340,7 @@ ADCacheStoreGroupMembershipCallback(
 }
 
 DWORD
-ADCacheStoreGroupMembership(
+MemCacheStoreGroupMembership(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszParentSid,
     IN size_t sMemberCount,
@@ -360,7 +360,7 @@ ADCacheStoreGroupMembership(
 
 
 DWORD
-ADCacheStoreUserMembershipCallback(
+MemCacheStoreUserMembershipCallback(
     IN sqlite3 *pDb,
     IN PVOID pContext,
     OUT PSTR* ppszError
@@ -369,7 +369,7 @@ ADCacheStoreUserMembershipCallback(
 }
 
 DWORD
-ADCacheStoreGroupsForUser(
+MemCacheStoreGroupsForUser(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszChildSid,
     IN size_t sMemberCount,
@@ -391,7 +391,7 @@ ADCacheStoreGroupsForUser(
 
 
 DWORD
-ADCacheGetMemberships(
+MemCacheGetMemberships(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bIsGroupMembers,
@@ -415,7 +415,7 @@ ADCacheGetMemberships(
 }
 
 DWORD
-ADCacheGetGroupMembers(
+MemCacheGetGroupMembers(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
@@ -436,7 +436,7 @@ ADCacheGetGroupMembers(
 }
 
 DWORD
-ADCacheGetGroupsForUser(
+MemCacheGetGroupsForUser(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
@@ -447,27 +447,27 @@ ADCacheGetGroupsForUser(
 }
 
 void
-ADCacheSafeFreeGroupMembership(
+MemCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership)
 {
 }
 
 void
-ADCacheSafeFreeGroupMembershipList(
+MemCacheSafeFreeGroupMembershipList(
         size_t sCount,
         PLSA_GROUP_MEMBERSHIP** pppMembershipList)
 {
 }
 
 void
-ADCacheSafeFreeObjectList(
+MemCacheSafeFreeObjectList(
         size_t sCount,
         PLSA_SECURITY_OBJECT** pppObjectList)
 {
 }
 
 DWORD
-ADCacheQueryObjectMulti(
+MemCacheQueryObjectMulti(
     IN sqlite3_stmt* pstQuery,
     OUT PLSA_SECURITY_OBJECT* ppObject
     )
@@ -475,7 +475,7 @@ ADCacheQueryObjectMulti(
 }
 
 DWORD
-ADCacheEnumUsersCache(
+MemCacheEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
     IN PCSTR                   pszResume,
@@ -497,7 +497,7 @@ ADCacheEnumUsersCache(
 }
 
 DWORD
-ADCacheEnumGroupsCache(
+MemCacheEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumGroups,
     IN PCSTR                   pszResume,
@@ -520,7 +520,7 @@ ADCacheEnumGroupsCache(
 
 
 DWORD
-ADCacheQueryObject(
+MemCacheQueryObject(
     IN sqlite3_stmt* pstQuery,
     OUT PLSA_SECURITY_OBJECT* ppObject
     )
@@ -529,14 +529,14 @@ ADCacheQueryObject(
 
 
 PCSTR
-ADCacheGetObjectFieldList(
+MemCacheGetObjectFieldList(
     VOID
     )
 {
 }
 
 DWORD
-ADCacheFindObjectByDN(
+MemCacheFindObjectByDN(
     LSA_DB_HANDLE hDb,
     PCSTR pszDN,
     PLSA_SECURITY_OBJECT *ppObject)
@@ -552,7 +552,7 @@ ADCacheFindObjectByDN(
 }
 
 DWORD
-ADCacheFindObjectsByDNList(
+MemCacheFindObjectsByDNList(
     IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszDnList,
@@ -571,7 +571,7 @@ ADCacheFindObjectsByDNList(
 }
 
 DWORD
-ADCacheFindObjectBySid(
+MemCacheFindObjectBySid(
     LSA_DB_HANDLE hDb,
     PCSTR pszSid,
     PLSA_SECURITY_OBJECT *ppObject)
@@ -590,7 +590,7 @@ ADCacheFindObjectBySid(
 // Leaves NULLs in pppResults for the objects which can't be found in the
 // version.
 DWORD
-ADCacheFindObjectsBySidList(
+MemCacheFindObjectsBySidList(
     IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszSidList,
@@ -602,7 +602,7 @@ ADCacheFindObjectsBySidList(
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
-ADCacheGetPasswordVerifier(
+MemCacheGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszUserSid,
     OUT PLSA_PASSWORD_VERIFIER *ppResult
@@ -611,14 +611,14 @@ ADCacheGetPasswordVerifier(
 }
 
 void
-ADCacheFreePasswordVerifier(
+MemCacheFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
 }
 
 DWORD
-ADCacheStorePasswordVerifier(
+MemCacheStorePasswordVerifier(
     LSA_DB_HANDLE hDb,
     PLSA_PASSWORD_VERIFIER pVerifier
     )
