@@ -159,13 +159,6 @@ cleanup:
     return ntStatus;
 
 error:
-    switch(ntStatus) {
-    case STATUS_NOT_FOUND:
-	    ntStatus = STATUS_INVALID_HANDLE;
-	    break;
-    default:
-	    break;
-    }
 
     *ppTree = NULL;
 
