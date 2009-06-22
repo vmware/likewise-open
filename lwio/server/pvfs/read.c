@@ -65,7 +65,7 @@ PvfsRead(
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
+    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     PPVFS_CCB pCcb = NULL;
     size_t totalBytesRead = 0;
     LONG64 Offset = 0;
@@ -93,17 +93,22 @@ PvfsRead(
     ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_READ_DATA|FILE_EXECUTE);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Simple loop to fill the buffer */
-
-    if (bUseOffset) {
-        Offset = *pIrp->Args.ReadWrite.ByteOffset;
-    }
-
     /* Enter critical region - ReadFile() needs to fill
        the buffer atomically while it may take several read()
        calls */
 
     LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+
+    if (pIrp->Args.ReadWrite.ByteOffset) {
+        Offset = *pIrp->Args.ReadWrite.ByteOffset;
+    } else {
+        ntError = PvfsSysLseek(pCcb->fd, 0, SEEK_CUR, &Offset);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = PvfsCheckLockedRegion(pCcb, PVFS_OPERATION_READ,
+                                    Key, Offset, bufLen);
+    BAIL_ON_NT_STATUS(ntError);
 
     while (totalBytesRead < bufLen)
     {
@@ -112,7 +117,7 @@ PvfsRead(
         ntError = PvfsSysRead(pCcb,
                               pBuffer + totalBytesRead,
                               bufLen - totalBytesRead,
-                              bUseOffset ? &Offset : NULL,
+                              &Offset,
                               &bytesRead);
         if (ntError == STATUS_PENDING) {
             continue;

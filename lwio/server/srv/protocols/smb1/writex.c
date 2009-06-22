@@ -37,7 +37,8 @@ SrvExecuteWriteAndX(
     PBYTE         pData,
     PLONG64       pllDataOffset,
     ULONG64       ullDataLength,
-    PULONG64      pullBytesWritten
+    PULONG64      pullBytesWritten,
+    PULONG        pulKey
     );
 
 static
@@ -53,10 +54,10 @@ SrvBuildWriteAndXResponse(
 
 NTSTATUS
 SrvProcessWriteAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
@@ -69,6 +70,7 @@ SrvProcessWriteAndX(
     LONG64  llDataLength = 0;
     ULONG64 ullBytesWritten = 0;
     ULONG   ulOffset = 0;
+    ULONG   Key = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -101,12 +103,15 @@ SrvProcessWriteAndX(
     llDataOffset = (((LONG64)pRequestHeader->offsetHigh) << 32) | ((LONG64)pRequestHeader->offset);
     llDataLength = (((LONG64)pRequestHeader->dataLengthHigh) << 32) | ((LONG64)pRequestHeader->dataLength);
 
+    Key = pSmbRequest->pSMBHeader->pid;
+
     ntStatus = SrvExecuteWriteAndX(
                     pFile,
                     pData,
                     &llDataOffset,
                     llDataLength,
-                    &ullBytesWritten);
+                    &ullBytesWritten,
+		    &Key);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildWriteAndXResponse(
@@ -160,7 +165,8 @@ SrvExecuteWriteAndX(
     PBYTE         pData,
     PLONG64       pllDataOffset,
     ULONG64       ullDataLength,
-    PULONG64      pullBytesWritten
+    PULONG64      pullBytesWritten,
+    PULONG        pulKey
     )
 {
     NTSTATUS ntStatus = 0;
@@ -188,7 +194,7 @@ SrvExecuteWriteAndX(
                         pData,
                         ulDataLength,
                         &llDataOffset,
-                        NULL);
+                        pulKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ullDataLength -= ioStatusBlock.BytesTransferred;

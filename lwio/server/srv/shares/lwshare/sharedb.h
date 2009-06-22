@@ -62,14 +62,14 @@ SrvShareDbOpen(
 
 NTSTATUS
 SrvShareDbFindByName(
-	IN  HANDLE           hRepository,
-	IN  PWSTR            pwszShareName,
-	OUT PSRV_SHARE_INFO* ppShareInfo
-	);
+    IN  HANDLE           hRepository,
+    IN  PWSTR            pwszShareName,
+    OUT PSRV_SHARE_INFO* ppShareInfo
+    );
 
 NTSTATUS
 SrvShareDbAdd(
-	IN HANDLE hRepository,
+    IN HANDLE hRepository,
     IN PWSTR  pwszShareName,
     IN PWSTR  pwszPath,
     IN PWSTR  pwszComment,
@@ -80,41 +80,41 @@ SrvShareDbAdd(
 
 NTSTATUS
 SrvShareDbBeginEnum(
-	IN  HANDLE  hRepository,
-	IN  ULONG   ulLimit,
-	OUT PHANDLE phResume
-	);
+    IN  HANDLE  hRepository,
+    IN  ULONG   ulLimit,
+    OUT PHANDLE phResume
+    );
 
 NTSTATUS
 SrvShareDbEnum(
-	IN     HANDLE            hRepository,
-	IN     HANDLE            hResume,
-	OUT    PSRV_SHARE_INFO** pppShareInfoList,
-	IN OUT PULONG            pulNumSharesFound
-	);
+    IN     HANDLE            hRepository,
+    IN     HANDLE            hResume,
+    OUT    PSRV_SHARE_INFO** pppShareInfoList,
+    IN OUT PULONG            pulNumSharesFound
+    );
 
 NTSTATUS
 SrvShareDbEndEnum(
-	IN HANDLE           hRepository,
-	IN HANDLE           hResume
-	);
+    IN HANDLE           hRepository,
+    IN HANDLE           hResume
+    );
 
 NTSTATUS
 SrvShareDbDelete(
-	IN HANDLE hRepository,
-	IN PWSTR  pwszShareName
-	);
+    IN HANDLE hRepository,
+    IN PWSTR  pwszShareName
+    );
 
 NTSTATUS
 SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
+    IN     HANDLE  hRepository,
     IN OUT PULONG  pulNumShares
     );
 
 VOID
 SrvShareDbClose(
-	IN HANDLE hRepository
-	);
+    IN HANDLE hRepository
+    );
 
 VOID
 SrvShareDbShutdown(

@@ -315,10 +315,10 @@ SrvSessionAcquireTreeId_inlock(
             ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
-	else
-	{
+        else
+        {
             candidateTid++;
-	}
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
     } while ((candidateTid != pSession->nextAvailableTid) && !bFound);

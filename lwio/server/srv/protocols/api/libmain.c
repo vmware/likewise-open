@@ -52,10 +52,10 @@
 static
 NTSTATUS
 SrvProtocolExecute_SMB_V1_Filter(
-	PLWIO_SRV_CONNECTION pConnection,
-	PSMB_PACKET          pSmbRequest,
-	PSMB_PACKET*         ppSmbResponse
-	);
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
 
 NTSTATUS
 SrvProtocolInit(
@@ -77,133 +77,133 @@ error:
 
 NTSTATUS
 SrvProtocolExecute(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse = NULL;
 
-	switch (pSmbRequest->packetType)
-	{
-		case SMB_PACKET_TYPE_SMB_1:
+    switch (pSmbRequest->packetType)
+    {
+        case SMB_PACKET_TYPE_SMB_1:
 
-			ntStatus = SrvProtocolExecute_SMB_V1_Filter(
-								pConnection,
-								pSmbRequest,
-								&pSmbResponse);
+            ntStatus = SrvProtocolExecute_SMB_V1_Filter(
+                                pConnection,
+                                pSmbRequest,
+                                &pSmbResponse);
 
-			break;
+            break;
 
-		case SMB_PACKET_TYPE_SMB_2:
+        case SMB_PACKET_TYPE_SMB_2:
 
-			ntStatus = SrvProtocolExecute_SMB_V2(
-								pConnection,
-								pSmbRequest,
-								&pSmbResponse);
+            ntStatus = SrvProtocolExecute_SMB_V2(
+                                pConnection,
+                                pSmbRequest,
+                                &pSmbResponse);
 
-			break;
-	}
-	BAIL_ON_NT_STATUS(ntStatus);
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	if (pSmbResponse)
-	{
-		/* synchronous response */
-		ntStatus = SrvTransportSendResponse(
-						pConnection,
-						pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (pSmbResponse)
+    {
+        /* synchronous response */
+        ntStatus = SrvTransportSendResponse(
+                        pConnection,
+                        pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	goto cleanup;
+    goto cleanup;
 }
 
 static
 NTSTATUS
 SrvProtocolExecute_SMB_V1_Filter(
-	PLWIO_SRV_CONNECTION pConnection,
-	PSMB_PACKET          pSmbRequest,
-	PSMB_PACKET*         ppSmbResponse
-	)
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse = NULL;
 
-	switch (pSmbRequest->pSMBHeader->command)
-	{
-		case COM_NEGOTIATE:
+    switch (pSmbRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
 
-			if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
-			{
-				ntStatus = STATUS_INVALID_SERVER_STATE;
-			}
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
 
-			break;
-	}
-	BAIL_ON_NT_STATUS(ntStatus);
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	switch (pSmbRequest->pSMBHeader->command)
-	{
-		case COM_NEGOTIATE:
+    switch (pSmbRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
 
-				ntStatus = SrvProcessNegotiate(
-								pConnection,
-								pSmbRequest,
-								&pSmbResponse);
+                ntStatus = SrvProcessNegotiate(
+                                pConnection,
+                                pSmbRequest,
+                                &pSmbResponse);
 
-				if (ntStatus)
-				{
-					ntStatus = SrvProtocolBuildErrorResponse(
-									pConnection,
-									pSmbRequest->pSMBHeader->command,
-									pSmbRequest->pSMBHeader->tid,
-									pSmbRequest->pSMBHeader->pid,
-									pSmbRequest->pSMBHeader->uid,
-									pSmbRequest->pSMBHeader->mid,
-									ntStatus,
-									&pSmbResponse);
-				}
+                if (ntStatus)
+                {
+                    ntStatus = SrvProtocolBuildErrorResponse(
+                                    pConnection,
+                                    pSmbRequest->pSMBHeader->command,
+                                    pSmbRequest->pSMBHeader->tid,
+                                    pSmbRequest->pSMBHeader->pid,
+                                    pSmbRequest->pSMBHeader->uid,
+                                    pSmbRequest->pSMBHeader->mid,
+                                    ntStatus,
+                                    &pSmbResponse);
+                }
 
-				break;
+                break;
 
-		default:
+        default:
 
-				ntStatus = SrvProtocolExecute_SMB_V1(
-								pConnection,
-								pSmbRequest,
-								&pSmbResponse);
+                ntStatus = SrvProtocolExecute_SMB_V1(
+                                pConnection,
+                                pSmbRequest,
+                                &pSmbResponse);
 
-				break;
-	}
-	BAIL_ON_NT_STATUS(ntStatus);
+                break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	*ppSmbResponse = pSmbResponse;
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS

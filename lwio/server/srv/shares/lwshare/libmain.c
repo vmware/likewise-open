@@ -47,41 +47,41 @@
 
 NTSTATUS
 LwShareRepositoryInit(
-	OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     )
 {
-	NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
 
-	pthread_rwlock_init(&gShareRepository_lwshare.dbMutex, NULL);
-	gShareRepository_lwshare.pDbMutex = &gShareRepository_lwshare.dbMutex;
+    pthread_rwlock_init(&gShareRepository_lwshare.dbMutex, NULL);
+    gShareRepository_lwshare.pDbMutex = &gShareRepository_lwshare.dbMutex;
 
-	gShareRepository_lwshare.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
-	gShareRepository_lwshare.ulNumDbContexts = 0;
-	gShareRepository_lwshare.pDbContextList = NULL;
+    gShareRepository_lwshare.ulMaxNumDbContexts = LWIO_SRV_MAX_NUM_DB_CONTEXTS;
+    gShareRepository_lwshare.ulNumDbContexts = 0;
+    gShareRepository_lwshare.pDbContextList = NULL;
 
-	status = SrvShareDbInit();
-	BAIL_ON_NT_STATUS(status);
+    status = SrvShareDbInit();
+    BAIL_ON_NT_STATUS(status);
 
-	*ppFnTable = &gShareRepository_lwshare.fnTable;
+    *ppFnTable = &gShareRepository_lwshare.fnTable;
 
 cleanup:
 
-	return status;
+    return status;
 
 error:
 
-	*ppFnTable = NULL;
+    *ppFnTable = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
 LwShareRepositoryShutdown(
-	IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
-	)
+    IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+    )
 {
-	SrvShareDbShutdown();
+    SrvShareDbShutdown();
 
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 

@@ -40,10 +40,10 @@ SrvBuildLogoffResponse(
 
 NTSTATUS
 SrvProcessLogoffAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;

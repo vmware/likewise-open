@@ -773,7 +773,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Administrators",
             .pszSID         = "S-1-5-32-544",
-            .dwGID          = 544,
+            .dwGID          = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_ADMINS),
             .pszDescription = "Administrators have complete and unrestricted "
                               "access to the computer/domain",
             .pszDomainName  = "BUILTIN",
@@ -784,7 +784,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Users",
             .pszSID         = "S-1-5-32-545",
-            .dwGID          = 545,
+            .dwGID          = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_USERS),
             .pszDescription = "Users are prevented from making accidental "
                               "or intentional system-wide changes. Thus, "
                               "users can run certified applications, but not "
@@ -797,7 +797,7 @@ SamDbAddBuiltinAccounts(
         {
             .pszName        = "Guests",
             .pszSID         = "S-1-5-32-546",
-            .dwGID          = 546,
+            .dwGID          = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_GUESTS),
             .pszDescription = "Guests have the same access as members of the "
                               "Users group by default, except for the Guest "
                               "account which is further restricted",

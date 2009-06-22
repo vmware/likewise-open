@@ -48,37 +48,37 @@
 
 typedef struct _SRV_SHARE_DB_CONTEXT
 {
-	sqlite3*      pDbHandle;
+    sqlite3*      pDbHandle;
 
-	sqlite3_stmt* pInsertStmt;
-	sqlite3_stmt* pEnumStmt;
-	sqlite3_stmt* pDeleteStmt;
-	sqlite3_stmt* pCountStmt;
-	sqlite3_stmt* pFindStmt;
+    sqlite3_stmt* pInsertStmt;
+    sqlite3_stmt* pEnumStmt;
+    sqlite3_stmt* pDeleteStmt;
+    sqlite3_stmt* pCountStmt;
+    sqlite3_stmt* pFindStmt;
 
-	struct _SRV_SHARE_DB_CONTEXT *pNext;
+    struct _SRV_SHARE_DB_CONTEXT *pNext;
 
 } SRV_SHARE_DB_CONTEXT, *PSRV_SHARE_DB_CONTEXT;
 
 typedef struct _SRV_SHARE_DB_ENUM_CONTEXT
 {
 
-	ULONG ulOffset;
-	ULONG ulLimit;
+    ULONG ulOffset;
+    ULONG ulLimit;
 
 } SRV_SHARE_DB_ENUM_CONTEXT, *PSRV_SHARE_DB_ENUM_CONTEXT;
 
 typedef struct _SRV_SHARE_DB_GLOBALS
 {
-	pthread_mutex_t      mutex;
+    pthread_mutex_t      mutex;
 
-	SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
+    SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
 
-	pthread_rwlock_t      dbMutex;
-	pthread_rwlock_t*     pDbMutex;
-	ULONG                 ulMaxNumDbContexts;
-	ULONG                 ulNumDbContexts;
-	PSRV_SHARE_DB_CONTEXT pDbContextList;
+    pthread_rwlock_t      dbMutex;
+    pthread_rwlock_t*     pDbMutex;
+    ULONG                 ulMaxNumDbContexts;
+    ULONG                 ulNumDbContexts;
+    PSRV_SHARE_DB_CONTEXT pDbContextList;
 
 } SRV_SHARE_DB_GLOBALS, *PSRV_SHARE_DB_GLOBALS;
 

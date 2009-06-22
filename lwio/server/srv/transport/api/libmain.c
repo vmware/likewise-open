@@ -60,30 +60,30 @@ SrvTransportInit(
 #if defined(LW_USE_EPOLL)
 
     status = SrvEPollTransportInit(
-					hPacketAllocator,
-					pShareList,
-					&gpSrvTransportApi);
+                    hPacketAllocator,
+                    pShareList,
+                    &gpSrvTransportApi);
 
 #elif defined (LW_USE_KQUEUE)
 
     status = SrvKQueueTransportInit(
-					hPacketAllocator,
-					pShareList,
-					&gpSrvTransportApi);
+                    hPacketAllocator,
+                    pShareList,
+                    &gpSrvTransportApi);
 
 #elif defined (LW_USE_POLL)
 
     status = SrvPollTransportInit(
-					hPacketAllocator,
-					pShareList,
-					&gpSrvTransportApi);
+                    hPacketAllocator,
+                    pShareList,
+                    &gpSrvTransportApi);
 
 #elif defined (LW_USE_SELECT)
 
     status = SrvSelectTransportInit(
-					hPacketAllocator,
-					pShareList,
-					&gpSrvTransportApi);
+                    hPacketAllocator,
+                    pShareList,
+                    &gpSrvTransportApi);
 
 #endif
 
@@ -98,9 +98,9 @@ SrvTransportGetRequest(
     )
 {
     return gpSrvTransportApi->pfnTransportGetRequest(
-									pTimeSpec,
-									ppConnection,
-									ppRequest);
+                                    pTimeSpec,
+                                    ppConnection,
+                                    ppRequest);
 }
 
 NTSTATUS

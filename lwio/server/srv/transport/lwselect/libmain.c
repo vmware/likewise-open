@@ -51,10 +51,10 @@
 
 NTSTATUS
 SrvSelectTransportInit(
-	PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-	PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
-	PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-	)
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     INT iReader = 0;
@@ -71,7 +71,7 @@ SrvSelectTransportInit(
     BAIL_ON_NT_STATUS(status);
 
     status = SrvAllocateMemory(
-		        gSrvSelectTransport.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
+                    gSrvSelectTransport.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
                     (PVOID*)&gSrvSelectTransport.pReaderArray);
     BAIL_ON_NT_STATUS(status);
 
@@ -90,7 +90,7 @@ SrvSelectTransportInit(
     }
 
     status = SrvListenerInit(
-					gSrvSelectTransport.hPacketAllocator,
+                    gSrvSelectTransport.hPacketAllocator,
                     gSrvSelectTransport.pShareList,
                     gSrvSelectTransport.pReaderArray,
                     gSrvSelectTransport.ulNumReaders,
@@ -105,9 +105,9 @@ cleanup:
 
 error:
 
-	*ppFnTable = NULL;
+    *ppFnTable = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
@@ -121,9 +121,9 @@ SrvSelectTransportGetRequest(
     PLWIO_SRV_CONTEXT pContext = NULL;
 
     status = SrvProdConsTimedDequeue(
-					&gSrvSelectTransport.workQueue,
-					pTimespec,
-					(PVOID*)&pContext);
+                    &gSrvSelectTransport.workQueue,
+                    pTimespec,
+                    (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(status);
 
     *ppConnection = pContext->pConnection;
@@ -134,19 +134,19 @@ SrvSelectTransportGetRequest(
 
 cleanup:
 
-	if (pContext)
-	{
-		SrvContextFree(pContext);
-	}
+    if (pContext)
+    {
+        SrvContextFree(pContext);
+    }
 
     return status;
 
 error:
 
-	*ppConnection = NULL;
-	*ppRequest = NULL;
+    *ppConnection = NULL;
+    *ppRequest = NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
@@ -155,7 +155,7 @@ SrvSelectTransportSendResponse(
     IN          PSMB_PACKET          pResponse
     )
 {
-	return SrvConnectionWriteMessage(pConnection, pResponse);
+    return SrvConnectionWriteMessage(pConnection, pResponse);
 }
 
 NTSTATUS

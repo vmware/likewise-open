@@ -393,7 +393,7 @@ SrvConnectionRelease(
 
         if (pConnection->hSocket && pConnection->pfnSocketFree)
         {
-		pConnection->pfnSocketFree(pConnection->hSocket);
+            pConnection->pfnSocketFree(pConnection->hSocket);
         }
 
         if (pConnection->pSessionCollection)
@@ -433,7 +433,7 @@ SrvConnectionAcquireSessionId_inlock(
     {
         PLWIO_SRV_SESSION pSession = NULL;
 
-	/* 0 is never a valid session vuid */
+        /* 0 is never a valid session vuid */
 
         if ((candidateUid == 0) || (candidateUid == UINT16_MAX))
         {
@@ -449,10 +449,10 @@ SrvConnectionAcquireSessionId_inlock(
             ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
-	else
-	{
+        else
+        {
             candidateUid++;
-	}
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
     } while ((candidateUid != pConnection->nextAvailableUid) && !bFound);

@@ -62,8 +62,8 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
-				pSmbResponse->pRawBuffer,
-				pSmbResponse->bufferLen,
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
                 COM_NEGOTIATE,
                 0,
                 TRUE,
@@ -174,12 +174,12 @@ cleanup:
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
     goto cleanup;
 }
@@ -208,8 +208,8 @@ SrvBuildNegotiateResponse_SMB_V1_Invalid(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketMarshallHeader(
-				pSmbResponse->pRawBuffer,
-				pSmbResponse->bufferLen,
+                pSmbResponse->pRawBuffer,
+                pSmbResponse->bufferLen,
                 COM_NEGOTIATE,
                 0,
                 TRUE,
@@ -240,13 +240,13 @@ cleanup:
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 

@@ -54,10 +54,10 @@ SrvExecuteReadFileAndX(
 
 NTSTATUS
 SrvProcessReadAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PREAD_ANDX_REQUEST_HEADER pRequestHeader = NULL; // Do not free
@@ -162,6 +162,7 @@ SrvBuildReadAndXResponse(
     ULONG ulBytesRead = 0;
     ULONG ulBytesToRead = 0;
     PBYTE pData = NULL;
+    ULONG Key = 0;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -218,6 +219,7 @@ SrvBuildReadAndXResponse(
     ulDataOffset += ulDataOffset % 2;
 
     ulBytesToRead = SMB_MIN(ullBytesToRead, pConnection->serverProperties.MaxBufferSize - ulDataOffset);
+    Key = pSmbRequest->pSMBHeader->pid;
 
     ntStatus = SrvExecuteReadFileAndX(
                     pFile,
@@ -225,7 +227,7 @@ SrvBuildReadAndXResponse(
                     &llByteOffset,
                     &pData,
                     &ulBytesRead,
-                    NULL);
+                    &Key);
     if (ntStatus == STATUS_END_OF_FILE)
     {
         ntStatus = 0;

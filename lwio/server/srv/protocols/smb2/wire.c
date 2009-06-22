@@ -51,67 +51,67 @@
 
 NTSTATUS
 SMB2MarshalHeader(
-	PSMB_PACKET pSmbPacket,
-	USHORT      usCommand,
-	USHORT      usCredits,
-	ULONG       ulPid,
-	ULONG       ulTid,
-	ULONG64     ullSessionId,
-	NTSTATUS    status,
-	BOOLEAN     bIsResponse
-	)
+    PSMB_PACKET pSmbPacket,
+    USHORT      usCommand,
+    USHORT      usCredits,
+    ULONG       ulPid,
+    ULONG       ulTid,
+    ULONG64     ullSessionId,
+    NTSTATUS    status,
+    BOOLEAN     bIsResponse
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	static uchar8_t smb2Magic[4] = { 0xFE, 'S', 'M', 'B' };
-	ULONG    ulBufferUsed = 0;
-	ULONG    ulBufferAvailable = pSmbPacket->bufferLen;
-	PBYTE pBuffer = pSmbPacket->pRawBuffer;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    static uchar8_t smb2Magic[4] = { 0xFE, 'S', 'M', 'B' };
+    ULONG    ulBufferUsed = 0;
+    ULONG    ulBufferAvailable = pSmbPacket->bufferLen;
+    PBYTE pBuffer = pSmbPacket->pRawBuffer;
 
-	if (ulBufferAvailable < sizeof(NETBIOS_HEADER))
-	{
-		ntStatus = STATUS_INVALID_BUFFER_SIZE;
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (ulBufferAvailable < sizeof(NETBIOS_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
-	ulBufferUsed += sizeof(NETBIOS_HEADER);
-	ulBufferAvailable -= sizeof(NETBIOS_HEADER);
-	pBuffer += sizeof(NETBIOS_HEADER);
+    pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
+    ulBufferUsed += sizeof(NETBIOS_HEADER);
+    ulBufferAvailable -= sizeof(NETBIOS_HEADER);
+    pBuffer += sizeof(NETBIOS_HEADER);
 
-	if (ulBufferAvailable < sizeof(SMB2_HEADER))
-	{
-		ntStatus = STATUS_INVALID_BUFFER_SIZE;
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (ulBufferAvailable < sizeof(SMB2_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	pSmbPacket->packetType = SMB_PACKET_TYPE_SMB_2;
-	pSmbPacket->pSMB2Header = (PSMB2_HEADER)(pBuffer);
+    pSmbPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+    pSmbPacket->pSMB2Header = (PSMB2_HEADER)(pBuffer);
 
-	ulBufferUsed += sizeof(SMB2_HEADER);
-	ulBufferAvailable -= sizeof(SMB2_HEADER);
-	pBuffer += sizeof(SMB2_HEADER);
+    ulBufferUsed += sizeof(SMB2_HEADER);
+    ulBufferAvailable -= sizeof(SMB2_HEADER);
+    pBuffer += sizeof(SMB2_HEADER);
 
-	memcpy(&pSmbPacket->pSMB2Header->smb[0], &smb2Magic[0], sizeof(smb2Magic));
-	pSmbPacket->pSMB2Header->command        = usCommand;
-	pSmbPacket->pSMB2Header->usCredits      = usCredits;
-	pSmbPacket->pSMB2Header->ulPid          = ulPid;
-	pSmbPacket->pSMB2Header->ulTid          = ulTid;
-	pSmbPacket->pSMB2Header->ullSessionId   = ullSessionId;
-	pSmbPacket->pSMB2Header->error         = status;
-	pSmbPacket->pSMB2Header->usHeaderLen = sizeof(SMB2_HEADER);
+    memcpy(&pSmbPacket->pSMB2Header->smb[0], &smb2Magic[0], sizeof(smb2Magic));
+    pSmbPacket->pSMB2Header->command        = usCommand;
+    pSmbPacket->pSMB2Header->usCredits      = usCredits;
+    pSmbPacket->pSMB2Header->ulPid          = ulPid;
+    pSmbPacket->pSMB2Header->ulTid          = ulTid;
+    pSmbPacket->pSMB2Header->ullSessionId   = ullSessionId;
+    pSmbPacket->pSMB2Header->error         = status;
+    pSmbPacket->pSMB2Header->usHeaderLen = sizeof(SMB2_HEADER);
 
-	if (bIsResponse)
-	{
-		pSmbPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SERVER_TO_REDIR;
-	}
+    if (bIsResponse)
+    {
+        pSmbPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SERVER_TO_REDIR;
+    }
 
-	pSmbPacket->pParams = pSmbPacket->pRawBuffer + ulBufferUsed;
+    pSmbPacket->pParams = pSmbPacket->pRawBuffer + ulBufferUsed;
 
-	pSmbPacket->bufferUsed = ulBufferUsed;
+    pSmbPacket->bufferUsed = ulBufferUsed;
 
 error:
 
-	return ntStatus;
+    return ntStatus;
 }
 
 NTSTATUS

@@ -51,16 +51,16 @@ SrvMbsToWc16s(
     OUT PWSTR* ppwszString
     )
 {
-	return LwRtlWC16StringAllocateFromCString(ppwszString, pszString);
+    return LwRtlWC16StringAllocateFromCString(ppwszString, pszString);
 }
 
 NTSTATUS
 SrvWc16sToMbs(
-	IN  PCWSTR pwszString,
-	OUT PSTR*  ppszString
-	)
+    IN  PCWSTR pwszString,
+    OUT PSTR*  ppszString
+    )
 {
-	return LwRtlCStringAllocateFromWC16String(ppszString, pwszString);
+    return LwRtlCStringAllocateFromWC16String(ppszString, pwszString);
 }
 
 NTSTATUS

@@ -11,7 +11,7 @@ SrvContextCreate(
     PLWIO_SRV_CONTEXT pContext = NULL;
 
     ntStatus = SrvAllocateMemory(
-					sizeof(LWIO_SRV_CONTEXT),
+                    sizeof(LWIO_SRV_CONTEXT),
                     (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 

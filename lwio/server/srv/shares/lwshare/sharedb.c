@@ -58,12 +58,12 @@ static
 NTSTATUS
 SrvShareDbAdd_inlock(
     IN PSRV_SHARE_DB_CONTEXT pDbContext,
-	IN PCSTR                 pszShareName,
-	IN PCSTR                 pszPath,
-	IN PCSTR                 pszComment,
-	IN PBYTE                 pSecDesc,
-	IN ULONG                 ulSecDescLen,
-	IN PCSTR                 pszService
+    IN PCSTR                 pszShareName,
+    IN PCSTR                 pszPath,
+    IN PCSTR                 pszComment,
+    IN PBYTE                 pSecDesc,
+    IN ULONG                 ulSecDescLen,
+    IN PCSTR                 pszService
     );
 
 static
@@ -135,15 +135,15 @@ SrvShareDbCreate(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gShareRepository_lwshare.dbMutex);
 
     ntStatus = sqlite3_exec(
-					   pDbContext->pDbHandle,
-					   DB_QUERY_CREATE_SHARES_TABLE,
-					   NULL,
-					   NULL,
-					   &pszError);
+                       pDbContext->pDbHandle,
+                       DB_QUERY_CREATE_SHARES_TABLE,
+                       NULL,
+                       NULL,
+                       &pszError);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
 
     ntStatus = SMBChangeOwnerAndPermissions(
-					pszShareDBPath,
+                    pszShareDBPath,
                     0,
                     0,
                     S_IRWXU);
@@ -153,7 +153,7 @@ cleanup:
 
     if (pDbContext)
     {
-	SrvShareDbReleaseContext(pDbContext);
+        SrvShareDbReleaseContext(pDbContext);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gShareRepository_lwshare.dbMutex);
@@ -176,28 +176,28 @@ SrvShareDbOpen(
     OUT PHANDLE phRepository
     )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSRV_SHARE_DB_CONTEXT pDbContext = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_DB_CONTEXT pDbContext = NULL;
 
-	ntStatus = SrvShareDbAcquireContext(&pDbContext);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvShareDbAcquireContext(&pDbContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	*phRepository = (HANDLE)pDbContext;
+    *phRepository = (HANDLE)pDbContext;
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*phRepository = (HANDLE)NULL;
+    *phRepository = (HANDLE)NULL;
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
 SrvShareDbFindByName(
-	HANDLE           hRepository,
+    HANDLE           hRepository,
     PWSTR            pwszShareName,
     PSRV_SHARE_INFO* ppShareInfo
     )
@@ -222,7 +222,7 @@ SrvShareDbFindByName(
 
     if (!pDbContext->pFindStmt)
     {
-	PCSTR pszQueryTemplate = "SELECT " LWIO_SRV_SHARES_DB_COL_NAME    ","  \
+        PCSTR pszQueryTemplate = "SELECT " LWIO_SRV_SHARES_DB_COL_NAME    ","  \
                                            LWIO_SRV_SHARES_DB_COL_PATH    ","  \
                                            LWIO_SRV_SHARES_DB_COL_COMMENT ","  \
                                            LWIO_SRV_SHARES_DB_COL_SECDESC ","  \
@@ -230,21 +230,21 @@ SrvShareDbFindByName(
                                  " FROM "  LWIO_SRV_SHARES_DB_TABLE_NAME       \
                     " WHERE UPPER(" LWIO_SRV_SHARES_DB_COL_NAME ") = UPPER(?1)";
 
-	ntStatus = sqlite3_prepare_v2(
-						pDbContext->pDbHandle,
-						pszQueryTemplate,
-						-1,
-						&pDbContext->pFindStmt,
-						NULL);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
+        ntStatus = sqlite3_prepare_v2(
+                        pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDbContext->pFindStmt,
+                        NULL);
+        BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
     }
 
     ntStatus = sqlite3_bind_text(
-					pDbContext->pFindStmt,
-					1,
-					pszShareName,
-					-1,
-					SQLITE_TRANSIENT);
+                    pDbContext->pFindStmt,
+                    1,
+                    pszShareName,
+                    -1,
+                    SQLITE_TRANSIENT);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pFindStmt);
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gShareRepository_lwshare.dbMutex);
@@ -261,33 +261,33 @@ cleanup:
 
     if (pDbContext)
     {
-	if (pDbContext->pFindStmt)
-	{
-		sqlite3_reset(pDbContext->pFindStmt);
-	}
+        if (pDbContext->pFindStmt)
+        {
+            sqlite3_reset(pDbContext->pFindStmt);
+        }
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gShareRepository_lwshare.dbMutex);
 
-	if (ppShareInfoList)
-	{
-		SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
-	}
+    if (ppShareInfoList)
+    {
+        SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+    }
 
-	SRV_SAFE_FREE_MEMORY(pszShareName);
+    SRV_SAFE_FREE_MEMORY(pszShareName);
 
     return ntStatus;
 
 error:
 
-	*ppShareInfo = NULL;
+    *ppShareInfo = NULL;
 
     goto cleanup;
 }
 
 NTSTATUS
 SrvShareDbAdd(
-	IN HANDLE hRepository,
+    IN HANDLE hRepository,
     IN PWSTR  pwszShareName,
     IN PWSTR  pwszPath,
     IN PWSTR  pwszComment,
@@ -306,23 +306,23 @@ SrvShareDbAdd(
 
     if (pwszShareName)
     {
-		ntStatus = SrvWc16sToMbs(pwszShareName, &pszShareName);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvWc16sToMbs(pwszShareName, &pszShareName);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
     if (pwszPath)
     {
-		ntStatus = SrvWc16sToMbs(pwszPath, &pszPath);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvWc16sToMbs(pwszPath, &pszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
     if (pwszComment)
     {
-		ntStatus = SrvWc16sToMbs(pwszComment, &pszComment);
-		BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvWc16sToMbs(pwszComment, &pszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
     if (pwszService)
     {
-	ntStatus = SrvWc16sToMbs(pwszService, &pszService);
-	BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvWc16sToMbs(pwszService, &pszService);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gShareRepository_lwshare.dbMutex);
@@ -330,7 +330,7 @@ SrvShareDbAdd(
     pDbContext = (PSRV_SHARE_DB_CONTEXT)hRepository;
 
     ntStatus = SrvShareDbAdd_inlock(
-					pDbContext,
+                    pDbContext,
                     pszShareName,
                     pszPath,
                     pszComment,
@@ -359,12 +359,12 @@ static
 NTSTATUS
 SrvShareDbAdd_inlock(
     IN PSRV_SHARE_DB_CONTEXT pDbContext,
-	IN PCSTR                 pszShareName,
-	IN PCSTR                 pszPath,
-	IN PCSTR                 pszComment,
-	IN PBYTE                 pSecDesc,
-	IN ULONG                 ulSecDescLen,
-	IN PCSTR                 pszService
+    IN PCSTR                 pszShareName,
+    IN PCSTR                 pszPath,
+    IN PCSTR                 pszComment,
+    IN PBYTE                 pSecDesc,
+    IN ULONG                 ulSecDescLen,
+    IN PCSTR                 pszService
     )
 {
     NTSTATUS ntStatus = 0;
@@ -381,79 +381,79 @@ SrvShareDbAdd_inlock(
 
     if (!pDbContext->pInsertStmt)
     {
-	PCSTR pszSqlTemplate = "INSERT INTO " LWIO_SRV_SHARES_DB_TABLE_NAME \
+        PCSTR pszSqlTemplate = "INSERT INTO " LWIO_SRV_SHARES_DB_TABLE_NAME \
                                "(" LWIO_SRV_SHARES_DB_COL_NAME ","          \
                                    LWIO_SRV_SHARES_DB_COL_PATH ","          \
                                    LWIO_SRV_SHARES_DB_COL_COMMENT ","       \
                                    LWIO_SRV_SHARES_DB_COL_SECDESC ","       \
                                    LWIO_SRV_SHARES_DB_COL_SERVICE           \
                                ") VALUES (?1, ?2, ?3, ?4, ?5)";
-	ntStatus = sqlite3_prepare_v2(
-						pDbContext->pDbHandle,
-						pszSqlTemplate,
-						-1,
-						&pDbContext->pInsertStmt,
-						NULL);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
+        ntStatus = sqlite3_prepare_v2(
+                        pDbContext->pDbHandle,
+                        pszSqlTemplate,
+                        -1,
+                        &pDbContext->pInsertStmt,
+                        NULL);
+        BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
     }
 
     ntStatus = sqlite3_bind_text(
-					pDbContext->pInsertStmt,
-					iCol++,
-					pszShareName,
-					-1,
-					SQLITE_TRANSIENT);
+                    pDbContext->pInsertStmt,
+                    iCol++,
+                    pszShareName,
+                    -1,
+                    SQLITE_TRANSIENT);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
     ntStatus = sqlite3_bind_text(
-					pDbContext->pInsertStmt,
-					iCol++,
-					pszPath,
-					-1,
-					SQLITE_TRANSIENT);
+                    pDbContext->pInsertStmt,
+                    iCol++,
+                    pszPath,
+                    -1,
+                    SQLITE_TRANSIENT);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
     if (pszComment)
     {
         ntStatus = sqlite3_bind_text(
-					pDbContext->pInsertStmt,
-					iCol++,
-					pszComment,
-					-1,
-					SQLITE_TRANSIENT);
+                        pDbContext->pInsertStmt,
+                        iCol++,
+                        pszComment,
+                        -1,
+                        SQLITE_TRANSIENT);
     }
     else
     {
-	ntStatus = sqlite3_bind_null(pDbContext->pInsertStmt, iCol++);
+        ntStatus = sqlite3_bind_null(pDbContext->pInsertStmt, iCol++);
     }
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
-	if (pSecDesc)
-	{
-		ntStatus = sqlite3_bind_blob(
-						pDbContext->pInsertStmt,
-						iCol++,
-						pSecDesc,
-						ulSecDescLen,
-						SQLITE_TRANSIENT);
-	}
+    if (pSecDesc)
+    {
+        ntStatus = sqlite3_bind_blob(
+                        pDbContext->pInsertStmt,
+                        iCol++,
+                        pSecDesc,
+                        ulSecDescLen,
+                        SQLITE_TRANSIENT);
+    }
     else
     {
-	ntStatus = sqlite3_bind_null(pDbContext->pInsertStmt, iCol++);
+        ntStatus = sqlite3_bind_null(pDbContext->pInsertStmt, iCol++);
     }
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
     ntStatus = sqlite3_bind_text(
-					pDbContext->pInsertStmt,
-					iCol++,
-					pszService,
-					-1,
-					SQLITE_TRANSIENT);
+                    pDbContext->pInsertStmt,
+                    iCol++,
+                    pszService,
+                    -1,
+                    SQLITE_TRANSIENT);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
     if ((ntStatus = sqlite3_step(pDbContext->pInsertStmt)) == SQLITE_DONE)
     {
-	ntStatus = STATUS_SUCCESS;
+        ntStatus = STATUS_SUCCESS;
     }
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
@@ -461,10 +461,10 @@ cleanup:
 
     if (pDbContext)
     {
-	if (pDbContext->pInsertStmt)
-	{
-		sqlite3_reset(pDbContext->pInsertStmt);
-	}
+        if (pDbContext->pInsertStmt)
+        {
+            sqlite3_reset(pDbContext->pInsertStmt);
+        }
     }
 
     return ntStatus;
@@ -476,35 +476,35 @@ error:
 
 NTSTATUS
 SrvShareDbBeginEnum(
-	HANDLE  hRepository,
-	ULONG   ulLimit,
-	PHANDLE phResume
-	)
+    HANDLE  hRepository,
+    ULONG   ulLimit,
+    PHANDLE phResume
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSRV_SHARE_DB_ENUM_CONTEXT pEnumContext = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_SHARE_DB_ENUM_CONTEXT pEnumContext = NULL;
 
-	ntStatus = SrvAllocateMemory(
-					sizeof(SRV_SHARE_DB_ENUM_CONTEXT),
-					(PVOID*)&pEnumContext);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SHARE_DB_ENUM_CONTEXT),
+                    (PVOID*)&pEnumContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	pEnumContext->ulOffset = 0;
-	pEnumContext->ulLimit = ulLimit;
+    pEnumContext->ulOffset = 0;
+    pEnumContext->ulLimit = ulLimit;
 
-	*phResume = (HANDLE)pEnumContext;
+    *phResume = (HANDLE)pEnumContext;
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*phResume = NULL;
+    *phResume = NULL;
 
-	SRV_SAFE_FREE_MEMORY(pEnumContext);
+    SRV_SAFE_FREE_MEMORY(pEnumContext);
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
@@ -525,77 +525,77 @@ SrvShareDbEnum(
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gShareRepository_lwshare.dbMutex);
 
     if (!pDbContext->pEnumStmt)
-	{
-		PCSTR pszQueryTemplate = "SELECT " LWIO_SRV_SHARES_DB_COL_NAME    ","  \
-										   LWIO_SRV_SHARES_DB_COL_PATH    ","  \
-										   LWIO_SRV_SHARES_DB_COL_COMMENT ","  \
-										   LWIO_SRV_SHARES_DB_COL_SECDESC ","  \
-										   LWIO_SRV_SHARES_DB_COL_SERVICE      \
-								 " FROM "  LWIO_SRV_SHARES_DB_TABLE_NAME       \
-								 " ORDER BY " LWIO_SRV_SHARES_DB_COL_NAME      \
-								 " LIMIT ?1 OFFSET ?2";
+    {
+        PCSTR pszQueryTemplate = "SELECT " LWIO_SRV_SHARES_DB_COL_NAME    ","  \
+                                           LWIO_SRV_SHARES_DB_COL_PATH    ","  \
+                                           LWIO_SRV_SHARES_DB_COL_COMMENT ","  \
+                                           LWIO_SRV_SHARES_DB_COL_SECDESC ","  \
+                                           LWIO_SRV_SHARES_DB_COL_SERVICE      \
+                                 " FROM "  LWIO_SRV_SHARES_DB_TABLE_NAME       \
+                                 " ORDER BY " LWIO_SRV_SHARES_DB_COL_NAME      \
+                                 " LIMIT ?1 OFFSET ?2";
 
-		ntStatus = sqlite3_prepare_v2(
-						pDbContext->pDbHandle,
-						pszQueryTemplate,
-						-1,
-						&pDbContext->pEnumStmt,
-						NULL);
-		BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
-	}
+        ntStatus = sqlite3_prepare_v2(
+                        pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDbContext->pEnumStmt,
+                        NULL);
+        BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
+    }
 
-	ntStatus = sqlite3_bind_int(pDbContext->pEnumStmt, 1, pResume->ulLimit);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pEnumStmt);
+    ntStatus = sqlite3_bind_int(pDbContext->pEnumStmt, 1, pResume->ulLimit);
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pEnumStmt);
 
-	ntStatus = sqlite3_bind_int(pDbContext->pEnumStmt, 2, pResume->ulOffset);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pEnumStmt);
+    ntStatus = sqlite3_bind_int(pDbContext->pEnumStmt, 2, pResume->ulOffset);
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pEnumStmt);
 
-	ntStatus = SrvShareDbWriteToShareInfo(
-					pDbContext->pEnumStmt,
-					&ppShareInfoList,
-					&ulNumSharesFound);
-	BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvShareDbWriteToShareInfo(
+                    pDbContext->pEnumStmt,
+                    &ppShareInfoList,
+                    &ulNumSharesFound);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	pResume->ulOffset += ulNumSharesFound;
+    pResume->ulOffset += ulNumSharesFound;
 
-	*pppShareInfoList =  ppShareInfoList;
-	*pulNumSharesFound = ulNumSharesFound;
+    *pppShareInfoList =  ppShareInfoList;
+    *pulNumSharesFound = ulNumSharesFound;
 
 cleanup:
 
-	if (pDbContext)
-	{
-		if (pDbContext->pEnumStmt)
-		{
-			sqlite3_reset(pDbContext->pEnumStmt);
-		}
-	}
+    if (pDbContext)
+    {
+        if (pDbContext->pEnumStmt)
+        {
+            sqlite3_reset(pDbContext->pEnumStmt);
+        }
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gShareRepository_lwshare.dbMutex);
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	if (ppShareInfoList)
-	{
-		SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
-	}
+    if (ppShareInfoList)
+    {
+        SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS
 SrvShareDbEndEnum(
-	IN HANDLE hRepository,
-	IN HANDLE hResume
-	)
+    IN HANDLE hRepository,
+    IN HANDLE hResume
+    )
 {
-	PSRV_SHARE_DB_ENUM_CONTEXT pResume = (PSRV_SHARE_DB_ENUM_CONTEXT)hResume;
+    PSRV_SHARE_DB_ENUM_CONTEXT pResume = (PSRV_SHARE_DB_ENUM_CONTEXT)hResume;
 
-	SrvFreeMemory(pResume);
+    SrvFreeMemory(pResume);
 
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 static
@@ -615,36 +615,36 @@ SrvShareDbWriteToShareInfo(
 
     while ((ntStatus = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
     {
-	ULONG iCol = 0;
+        ULONG iCol = 0;
 
-	if (!ulNumSharesAvailable)
-	{
-		PSRV_SHARE_INFO* ppShareInfoListNew = NULL;
-		ULONG ulNumSharesNew = 5;
-		ULONG ulNumSharesAllocatedNew = ulNumSharesAllocated + ulNumSharesNew;
+        if (!ulNumSharesAvailable)
+        {
+            PSRV_SHARE_INFO* ppShareInfoListNew = NULL;
+            ULONG ulNumSharesNew = 5;
+            ULONG ulNumSharesAllocatedNew = ulNumSharesAllocated + ulNumSharesNew;
 
-	    ntStatus = SrvAllocateMemory(
-	                    sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocatedNew,
-	                    (PVOID*)&ppShareInfoListNew);
-	    BAIL_ON_NT_STATUS(ntStatus);
+            ntStatus = SrvAllocateMemory(
+                            sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocatedNew,
+                            (PVOID*)&ppShareInfoListNew);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-	    if (ppShareInfoList)
-	    {
-		memcpy((PBYTE)ppShareInfoListNew,
-			   (PBYTE)ppShareInfoList,
-			   sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocated);
+            if (ppShareInfoList)
+            {
+                memcpy((PBYTE)ppShareInfoListNew,
+                       (PBYTE)ppShareInfoList,
+                       sizeof(PSRV_SHARE_INFO) * ulNumSharesAllocated);
 
-		SrvFreeMemory(ppShareInfoList);
-	    }
+                SrvFreeMemory(ppShareInfoList);
+            }
 
-	    ppShareInfoList = ppShareInfoListNew;
-	    ulNumSharesAllocated = ulNumSharesAllocatedNew;
-	    ulNumSharesAvailable = ulNumSharesNew;
-	}
+            ppShareInfoList = ppShareInfoListNew;
+            ulNumSharesAllocated = ulNumSharesAllocatedNew;
+            ulNumSharesAvailable = ulNumSharesNew;
+        }
 
         ntStatus = SrvAllocateMemory(
-						sizeof(SRV_SHARE_INFO),
-						(PVOID*)&pShareInfo);
+                        sizeof(SRV_SHARE_INFO),
+                        (PVOID*)&pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pShareInfo->refcount = 1;
@@ -654,48 +654,48 @@ SrvShareDbWriteToShareInfo(
 
         for (; iCol < 5; iCol++)
         {
-		const unsigned char* pszStringVal = NULL;
-		ULONG ulNumBytes = sqlite3_column_bytes(pSqlStatement, iCol);
+            const unsigned char* pszStringVal = NULL;
+            ULONG ulNumBytes = sqlite3_column_bytes(pSqlStatement, iCol);
 
             switch(iCol)
             {
                 case 0: /* ShareName */
 
-			if (ulNumBytes)
-			{
-						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
+                    if (ulNumBytes)
+                    {
+                        pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SrvMbsToWc16s(
-										   (PCSTR)pszStringVal,
-										   &pShareInfo->pwszName);
-						BAIL_ON_NT_STATUS(ntStatus);
-			}
+                        ntStatus = SrvMbsToWc16s(
+                                           (PCSTR)pszStringVal,
+                                           &pShareInfo->pwszName);
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
 
                     break;
 
                 case 1: /* PathName */
 
-			if (ulNumBytes)
-			{
-						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
+                    if (ulNumBytes)
+                    {
+                        pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SrvMbsToWc16s(
-										   (PCSTR)pszStringVal,
-										   &pShareInfo->pwszPath);
-						BAIL_ON_NT_STATUS(ntStatus);
-			}
+                        ntStatus = SrvMbsToWc16s(
+                                           (PCSTR)pszStringVal,
+                                           &pShareInfo->pwszPath);
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
 
                     break;
 
                 case 2: /* Comment */
 
-			if (ulNumBytes)
-			{
-						pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
+                    if (ulNumBytes)
+                    {
+                        pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
 
-						ntStatus = SrvMbsToWc16s(
-										   (PCSTR)pszStringVal,
-										   &pShareInfo->pwszComment);
+                        ntStatus = SrvMbsToWc16s(
+                                           (PCSTR)pszStringVal,
+                                           &pShareInfo->pwszComment);
                     }
                     else
                     {
@@ -712,7 +712,7 @@ SrvShareDbWriteToShareInfo(
 
                     if (ulNumBytes)
                     {
-			PCVOID pBlob = sqlite3_column_blob(pSqlStatement, iCol);
+                        PCVOID pBlob = sqlite3_column_blob(pSqlStatement, iCol);
 
                         ntStatus = SrvAllocateMemory(
                                        ulNumBytes,
@@ -727,10 +727,10 @@ SrvShareDbWriteToShareInfo(
 
                 case 4: /* service */
 
-			if (ulNumBytes)
-			{
-				pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
-			}
+                    if (ulNumBytes)
+                    {
+                        pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
+                    }
 
                     ntStatus = SrvShareMapServiceStringToId(
                                     (PCSTR)pszStringVal,
@@ -748,7 +748,7 @@ SrvShareDbWriteToShareInfo(
     }
     if (ntStatus == SQLITE_DONE)
     {
-	ntStatus = STATUS_SUCCESS;
+        ntStatus = STATUS_SUCCESS;
     }
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pSqlStatement);
 
@@ -779,7 +779,7 @@ error:
 
 NTSTATUS
 SrvShareDbDelete(
-	IN HANDLE hRepository,
+    IN HANDLE hRepository,
     IN PWSTR  pwszShareName
     )
 {
@@ -801,29 +801,29 @@ SrvShareDbDelete(
 
     if (!pDbContext->pDeleteStmt)
     {
-	PCSTR pszQueryTemplate = "DELETE FROM " LWIO_SRV_SHARES_DB_TABLE_NAME \
-	           " WHERE UPPER(" LWIO_SRV_SHARES_DB_COL_NAME ") = UPPER(?1)";
+        PCSTR pszQueryTemplate = "DELETE FROM " LWIO_SRV_SHARES_DB_TABLE_NAME \
+                   " WHERE UPPER(" LWIO_SRV_SHARES_DB_COL_NAME ") = UPPER(?1)";
 
-	ntStatus = sqlite3_prepare_v2(
-						pDbContext->pDbHandle,
-						pszQueryTemplate,
-						-1,
-						&pDbContext->pDeleteStmt,
-						NULL);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
+        ntStatus = sqlite3_prepare_v2(
+                        pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDbContext->pDeleteStmt,
+                        NULL);
+        BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
     }
 
     ntStatus = sqlite3_bind_text(
-					pDbContext->pDeleteStmt,
-					1,
-					pszShareName,
-					-1,
-					SQLITE_TRANSIENT);
+                    pDbContext->pDeleteStmt,
+                    1,
+                    pszShareName,
+                    -1,
+                    SQLITE_TRANSIENT);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pDeleteStmt);
 
     if ((ntStatus = sqlite3_step(pDbContext->pDeleteStmt)) == SQLITE_DONE)
     {
-	ntStatus = STATUS_SUCCESS;
+        ntStatus = STATUS_SUCCESS;
     }
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pDeleteStmt);
 
@@ -831,10 +831,10 @@ cleanup:
 
     if (pDbContext)
     {
-	if (pDbContext->pDeleteStmt)
-		{
-		   sqlite3_reset(pDbContext->pDeleteStmt);
-		}
+        if (pDbContext->pDeleteStmt)
+        {
+           sqlite3_reset(pDbContext->pDeleteStmt);
+        }
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gShareRepository_lwshare.dbMutex);
@@ -850,7 +850,7 @@ error:
 
 NTSTATUS
 SrvShareDbGetCount(
-	IN     HANDLE  hRepository,
+    IN     HANDLE  hRepository,
     IN OUT PULONG  pulNumShares
     )
 {
@@ -861,17 +861,17 @@ SrvShareDbGetCount(
 
     if (!pDbContext->pCountStmt)
     {
-	PCSTR pszQueryTemplate = "SELECT COUNT(*) FROM " \
-								 LWIO_SRV_SHARES_DB_TABLE_NAME;
+        PCSTR pszQueryTemplate = "SELECT COUNT(*) FROM " \
+                                 LWIO_SRV_SHARES_DB_TABLE_NAME;
 
 
-	ntStatus = sqlite3_prepare_v2(
-						pDbContext->pDbHandle,
-						pszQueryTemplate,
-						-1,
-						&pDbContext->pCountStmt,
-						NULL);
-	BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
+        ntStatus = sqlite3_prepare_v2(
+                        pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDbContext->pCountStmt,
+                        NULL);
+        BAIL_ON_LWIO_SRV_SQLITE_ERROR_DB(ntStatus, pDbContext->pDbHandle);
     }
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gShareRepository_lwshare.dbMutex);
@@ -894,13 +894,13 @@ SrvShareDbGetCount(
 
 cleanup:
 
-	if (pDbContext)
-	{
-		if (pDbContext->pCountStmt)
-		{
-			sqlite3_reset(pDbContext->pCountStmt);
-		}
-	}
+    if (pDbContext)
+    {
+        if (pDbContext->pCountStmt)
+        {
+            sqlite3_reset(pDbContext->pCountStmt);
+        }
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gShareRepository_lwshare.dbMutex);
 
@@ -915,12 +915,12 @@ error:
 
 VOID
 SrvShareDbClose(
-	IN HANDLE hRepository
-	)
+    IN HANDLE hRepository
+    )
 {
-	PSRV_SHARE_DB_CONTEXT pDbContext = (PSRV_SHARE_DB_CONTEXT)hRepository;
+    PSRV_SHARE_DB_CONTEXT pDbContext = (PSRV_SHARE_DB_CONTEXT)hRepository;
 
-	SrvShareDbReleaseContext(pDbContext);
+    SrvShareDbReleaseContext(pDbContext);
 }
 
 VOID
@@ -928,9 +928,9 @@ SrvShareDbShutdown(
     VOID
     )
 {
-	PSRV_SHARE_DB_GLOBALS pGlobals = &gShareRepository_lwshare;
+    PSRV_SHARE_DB_GLOBALS pGlobals = &gShareRepository_lwshare;
 
-	if (pGlobals->pDbMutex)
+    if (pGlobals->pDbMutex)
     {
         pthread_rwlock_destroy(&pGlobals->dbMutex);
         pGlobals->pDbMutex = NULL;
@@ -938,10 +938,10 @@ SrvShareDbShutdown(
 
     while (pGlobals->pDbContextList)
     {
-	PSRV_SHARE_DB_CONTEXT pDbContext = pGlobals->pDbContextList;
-	pGlobals->pDbContextList = pGlobals->pDbContextList->pNext;
+        PSRV_SHARE_DB_CONTEXT pDbContext = pGlobals->pDbContextList;
+        pGlobals->pDbContextList = pGlobals->pDbContextList->pNext;
 
-	SrvShareDbReleaseContext(pDbContext);
+        SrvShareDbReleaseContext(pDbContext);
     }
 
     pGlobals->ulNumDbContexts = pGlobals->ulMaxNumDbContexts;

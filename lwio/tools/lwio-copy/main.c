@@ -100,12 +100,6 @@ GetCurrentDomain(
     PSTR* ppszDomain
     );
 
-NTSTATUS
-SetEnvVariable(
-    PSTR pszKrb5CachePath
-    );
-
-
 int
 main(
     int argc,
@@ -118,6 +112,7 @@ main(
     PSTR pszSourcePath = NULL;
     PSTR pszTargetPath = NULL;
     PSTR pszCachePath = NULL;
+    PSTR pszEnvString = NULL;
 
     DWORD dwFileOrDir = ACTION_NONE;
     DWORD dwToRFromNt = NONE_NT;
@@ -134,9 +129,21 @@ main(
 
     if(pszCachePath)
     {
-        status = SetEnvVariable(pszCachePath);
+        status = LwRtlCStringAllocatePrintf(
+                    &pszEnvString,
+                    "KRB5CCNAME=%s",
+                    pszCachePath);
         BAIL_ON_NT_STATUS(status);
 
+        if (putenv(pszEnvString) < 0)
+        {
+            status = UnixErrnoToNtStatus(errno);
+        }
+        BAIL_ON_NT_STATUS(status);
+
+        // The string is owned by the environ variable, and cannot be
+        // deleted.
+        pszEnvString = NULL;
     }
 
     if(dwToRFromNt == COPY_FROM_NT)
@@ -180,6 +187,7 @@ cleanup:
     LWIO_SAFE_FREE_STRING(pszTargetPath);
     LWIO_SAFE_FREE_STRING(pszSourcePath);
     LWIO_SAFE_FREE_STRING(pszCachePath);
+    LWIO_SAFE_FREE_STRING(pszEnvString);
 
     return (status);
 
@@ -418,29 +426,6 @@ error:
 
     return status ;
 }
-
-NTSTATUS
-SetEnvVariable(
-    PSTR pszKrb5CachePath
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-
-    if ( setenv("KRB5CCNAME", pszKrb5CachePath, 1) < 0 )
-    {
-      fprintf(stderr, "ERROR: Can not add KRB5CCNAME to the environment\n");
-      goto error;
-    }
-
-cleanup:
-
-    return status;
-
-error:
-
-    goto cleanup;
-}
-
 
 NTSTATUS
 GetSystemName(

@@ -230,32 +230,32 @@ typedef struct _SRV_SEARCH_SPACE
 typedef struct _SRV_TIMER_REQUEST* PSRV_TIMER_REQUEST;
 
 typedef VOID (*PFN_SRV_TIMER_CALLBACK)(
-					PSRV_TIMER_REQUEST pTimerRequest,
-					PVOID              pUserData
-					);
+                    PSRV_TIMER_REQUEST pTimerRequest,
+                    PVOID              pUserData
+                    );
 
 NTSTATUS
 SrvElementsInit(
-	VOID
-	);
+    VOID
+    );
 
 NTSTATUS
 SrvTimerPostRequest(
-	IN  LONG64                 llExpiry,
-	IN  PVOID                  pUserData,
-	IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-	OUT PSRV_TIMER_REQUEST*    ppTimerRequest
-	);
+    IN  LONG64                 llExpiry,
+    IN  PVOID                  pUserData,
+    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    );
 
 NTSTATUS
 SrvTimerCancelRequest(
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	);
+    IN  PSRV_TIMER_REQUEST pTimerRequest
+    );
 
 NTSTATUS
 SrvTimerRelease(
-	IN  PSRV_TIMER_REQUEST pTimerRequest
-	);
+    IN  PSRV_TIMER_REQUEST pTimerRequest
+    );
 
 NTSTATUS
 SrvGssAcquireContext(

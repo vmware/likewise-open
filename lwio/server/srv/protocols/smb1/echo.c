@@ -45,10 +45,10 @@ SrvMarshallEchoResponse(
 
 NTSTATUS
 SrvProcessEchoAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     USHORT   iEchoCount = 0;
@@ -107,7 +107,7 @@ SrvProcessEchoAndX(
         // Give that last response back to the caller
         if (usNumEchoesToSend--)
         {
-		pSmbResponse->sequence = pSmbRequest->sequence + 1;
+            pSmbResponse->sequence = pSmbRequest->sequence + 1;
 
             ntStatus = SrvTransportSendResponse(pConnection, pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);

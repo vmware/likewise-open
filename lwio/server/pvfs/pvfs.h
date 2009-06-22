@@ -329,12 +329,12 @@ PvfsUnlockFile(
     );
 
 NTSTATUS
-PvfsCanReadWriteFile(
-    PPVFS_CCB pCcb,
-    ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
-    PVFS_LOCK_FLAGS Flags
+PvfsCheckLockedRegion(
+    IN PPVFS_CCB pCcb,
+    IN PVFS_OPERATION_TYPE Operation,
+    IN ULONG Key,
+    IN LONG64 Offset,
+    IN ULONG Length
     );
 
 /* From oplock.c */

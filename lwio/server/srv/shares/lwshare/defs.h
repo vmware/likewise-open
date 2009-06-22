@@ -88,11 +88,11 @@
                       LWIO_SRV_SHARES_DB_COL_SECDESC " blob,"                  \
                       LWIO_SRV_SHARES_DB_COL_SERVICE " text,"                  \
                     " UNIQUE (" LWIO_SRV_SHARES_DB_COL_NAME ","                \
-				    LWIO_SRV_SHARES_DB_COL_PATH "),"               \
+                                LWIO_SRV_SHARES_DB_COL_PATH "),"               \
                     " CHECK(" LWIO_SRV_SHARES_DB_COL_SERVICE "== \"A:\" or "   \
-				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"LPT1:\" or "\
-				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"IPC\" or "  \
-				  LWIO_SRV_SHARES_DB_COL_SERVICE "== \"COMM\" )"   \
+                              LWIO_SRV_SHARES_DB_COL_SERVICE "== \"LPT1:\" or "\
+                              LWIO_SRV_SHARES_DB_COL_SERVICE "== \"IPC\" or "  \
+                              LWIO_SRV_SHARES_DB_COL_SERVICE "== \"COMM\" )"   \
                     ")"
 
 #endif /* __LWSHARE_DEFS_H__ */

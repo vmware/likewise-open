@@ -43,9 +43,9 @@ SrvBuildNTCreateResponse(
 
 NTSTATUS
 SrvProcessNTCreateAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;

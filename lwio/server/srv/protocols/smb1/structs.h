@@ -50,67 +50,67 @@
 
 typedef enum
 {
-	SRV_SMB_UNLOCK = 0,
-	SRV_SMB_LOCK
+    SRV_SMB_UNLOCK = 0,
+    SRV_SMB_LOCK
 } SRV_SMB_LOCK_OPERATION_TYPE;
 
 typedef struct _SRV_SMB_LOCK_REQUEST* PSRV_SMB_LOCK_REQUEST;
 
 typedef struct _SRV_SMB_LOCK_CONTEXT
 {
-	SRV_SMB_LOCK_OPERATION_TYPE operation;
+    SRV_SMB_LOCK_OPERATION_TYPE operation;
 
-	ULONG   ulKey;
-	BOOLEAN bExclusiveLock;
+    ULONG   ulKey;
+    BOOLEAN bExclusiveLock;
 
-	IO_ASYNC_CONTROL_BLOCK  acb;
-	PIO_ASYNC_CONTROL_BLOCK pAcb;
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
 
-	IO_STATUS_BLOCK ioStatusBlock;
+    IO_STATUS_BLOCK ioStatusBlock;
 
-	SRV_SMB_LOCK_TYPE lockType;
+    SRV_SMB_LOCK_TYPE lockType;
 
-	union
-	{
-		LOCKING_ANDX_RANGE_LARGE_FILE largeFileRange;
-		LOCKING_ANDX_RANGE            regularRange;
+    union
+    {
+        LOCKING_ANDX_RANGE_LARGE_FILE largeFileRange;
+        LOCKING_ANDX_RANGE            regularRange;
 
-	} lockInfo;
+    } lockInfo;
 
-	PSRV_SMB_LOCK_REQUEST pLockRequest;
+    PSRV_SMB_LOCK_REQUEST pLockRequest;
 
 } SRV_SMB_LOCK_CONTEXT, *PSRV_SMB_LOCK_CONTEXT;
 
 typedef struct _SRV_SMB_LOCK_REQUEST
 {
-	LONG              refCount;
+    LONG              refCount;
 
-	pthread_mutex_t   mutex;
-	pthread_mutex_t*  pMutex;
+    pthread_mutex_t   mutex;
+    pthread_mutex_t*  pMutex;
 
-	PLWIO_SRV_FILE       pFile;
-	PLWIO_SRV_CONNECTION pConnection;
+    PLWIO_SRV_FILE       pFile;
+    PLWIO_SRV_CONNECTION pConnection;
 
-	USHORT            usTid;
-	USHORT            usMid;
-	USHORT            usUid;
-	USHORT            usPid;
+    USHORT            usTid;
+    USHORT            usMid;
+    USHORT            usUid;
+    USHORT            usPid;
 
-	ULONG             ulTimeout;
+    ULONG             ulTimeout;
 
-	USHORT            usNumUnlocks;
-	USHORT            usNumLocks;
+    USHORT            usNumUnlocks;
+    USHORT            usNumLocks;
 
-	PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
+    PSRV_SMB_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
 
-	LONG              lPendingContexts;
+    LONG              lPendingContexts;
 
-	BOOLEAN            bExpired;
-	BOOLEAN            bResponseSent;
+    BOOLEAN            bExpired;
+    BOOLEAN            bResponseSent;
 
-	PSRV_TIMER_REQUEST pTimerRequest;
+    PSRV_TIMER_REQUEST pTimerRequest;
 
-	ULONG              ulResponseSequence;
+    ULONG              ulResponseSequence;
 
 } SRV_SMB_LOCK_REQUEST;
 

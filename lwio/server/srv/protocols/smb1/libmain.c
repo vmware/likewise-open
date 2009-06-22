@@ -61,296 +61,298 @@ SrvProtocolInit_SMB_V1(
 
 NTSTATUS
 SrvProtocolExecute_SMB_V1(
-	PLWIO_SRV_CONNECTION pConnection,
-	PSMB_PACKET          pSmbRequest,
-	PSMB_PACKET*         ppSmbResponse
-	)
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    )
 {
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse = NULL;
 
-	switch (pSmbRequest->pSMBHeader->command)
-	{
-		case COM_NEGOTIATE:
+    switch (pSmbRequest->pSMBHeader->command)
+    {
+        case COM_NEGOTIATE:
 
-			// Handled at a higher layer
-			ntStatus = STATUS_INTERNAL_ERROR;
+            // Handled at a higher layer
+            ntStatus = STATUS_INTERNAL_ERROR;
 
-			break;
+            break;
 
-		case COM_SESSION_SETUP_ANDX:
+        case COM_SESSION_SETUP_ANDX:
 
-			{
-				LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+            {
+                LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
 
-				if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
-					(connState != LWIO_SRV_CONN_STATE_READY))
-				{
-					ntStatus = STATUS_INVALID_SERVER_STATE;
-				}
-			}
+                if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
+                    (connState != LWIO_SRV_CONN_STATE_READY))
+                {
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+                }
+            }
 
-			break;
+            break;
 
-		default:
+        default:
 
-			if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
-			{
-				ntStatus = STATUS_INVALID_SERVER_STATE;
-			}
+            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
+            {
+                ntStatus = STATUS_INVALID_SERVER_STATE;
+            }
 
-			break;
-	}
-	BAIL_ON_NT_STATUS(ntStatus);
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-	switch (pSmbRequest->pSMBHeader->command)
-	{
-		case COM_SESSION_SETUP_ANDX:
+    switch (pSmbRequest->pSMBHeader->command)
+    {
+        case COM_SESSION_SETUP_ANDX:
 
-			ntStatus = SrvProcessSessionSetup(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessSessionSetup(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_TREE_CONNECT_ANDX:
+        case COM_TREE_CONNECT_ANDX:
 
-			ntStatus = SrvProcessTreeConnectAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessTreeConnectAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_OPEN_ANDX:
+        case COM_OPEN_ANDX:
 
-			ntStatus = SrvProcessOpenAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessOpenAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_NT_CREATE_ANDX:
+        case COM_NT_CREATE_ANDX:
 
-			ntStatus = SrvProcessNTCreateAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessNTCreateAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_LOCKING_ANDX:
+        case COM_LOCKING_ANDX:
 
-			ntStatus = SrvProcessLockAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessLockAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_READ:
+        case COM_READ:
 
-			ntStatus = SrvProcessRead(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessRead(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_READ_ANDX:
+        case COM_READ_ANDX:
 
-			ntStatus = SrvProcessReadAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessReadAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_WRITE:
+        case COM_WRITE:
 
-			ntStatus = SrvProcessWrite(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessWrite(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_WRITE_ANDX:
+        case COM_WRITE_ANDX:
 
-			ntStatus = SrvProcessWriteAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessWriteAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_TRANSACTION:
+        case COM_TRANSACTION:
 
-			ntStatus = SrvProcessTransaction(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessTransaction(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_TRANSACTION2:
+        case COM_TRANSACTION2:
 
-			ntStatus = SrvProcessTransaction2(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessTransaction2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_FIND_CLOSE2:
+        case COM_FIND_CLOSE2:
 
-			ntStatus = SrvProcessFindClose2(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessFindClose2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_CLOSE:
+        case COM_CLOSE:
 
-			ntStatus = SrvProcessCloseAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessCloseAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_CREATE_DIRECTORY:
+        case COM_CREATE_DIRECTORY:
 
-			ntStatus = SrvProcessCreateDirectory(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessCreateDirectory(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_DELETE_DIRECTORY:
+        case COM_DELETE_DIRECTORY:
 
-			ntStatus = SrvProcessDeleteDirectory(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessDeleteDirectory(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_DELETE:
+        case COM_DELETE:
 
-			ntStatus = SrvProcessDelete(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessDelete(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_RENAME:
+        case COM_RENAME:
 
-			ntStatus = SrvProcessRename(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessRename(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_NT_TRANSACT:
+        case COM_NT_TRANSACT:
 
-			ntStatus = SrvProcessNtTransact(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessNtTransact(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_TREE_DISCONNECT:
+        case COM_TREE_DISCONNECT:
 
-			ntStatus = SrvProcessTreeDisconnectAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessTreeDisconnectAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_ECHO:
+        case COM_ECHO:
 
-			ntStatus = SrvProcessEchoAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessEchoAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_FLUSH:
+        case COM_FLUSH:
 
-			ntStatus = SrvProcessFlush(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessFlush(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_LOGOFF_ANDX:
+        case COM_LOGOFF_ANDX:
 
-			ntStatus = SrvProcessLogoffAndX(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessLogoffAndX(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		case COM_CHECK_DIRECTORY:
+        case COM_CHECK_DIRECTORY:
 
-			ntStatus = SrvProcessCheckDirectory(
-							pConnection,
-							pSmbRequest,
-							&pSmbResponse);
+            ntStatus = SrvProcessCheckDirectory(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
 
-			break;
+            break;
 
-		default:
+        default:
 
-			ntStatus = STATUS_NOT_IMPLEMENTED;
+            ntStatus = STATUS_NOT_IMPLEMENTED;
 
-			break;
-	}
+            break;
+    }
 
-	if (ntStatus)
-	{
-		ntStatus = SrvProtocolBuildErrorResponse(
-						pConnection,
-						pSmbRequest->pSMBHeader->command,
-						pSmbRequest->pSMBHeader->tid,
-						pSmbRequest->pSMBHeader->pid,
-						pSmbRequest->pSMBHeader->uid,
-						pSmbRequest->pSMBHeader->mid,
-						ntStatus,
-						&pSmbResponse);
-		BAIL_ON_NT_STATUS(ntStatus);
-	}
+    if (ntStatus)
+    {
+        ntStatus = SrvProtocolBuildErrorResponse(
+                        pConnection,
+                        pSmbRequest->pSMBHeader->command,
+                        pSmbRequest->pSMBHeader->tid,
+                        pSmbRequest->pSMBHeader->pid,
+                        pSmbRequest->pSMBHeader->uid,
+                        pSmbRequest->pSMBHeader->mid,
+                        ntStatus,
+                        &pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-	pSmbResponse->sequence = pSmbRequest->sequence + 1;
+    if (pSmbResponse) {
+        pSmbResponse->sequence = pSmbRequest->sequence + 1;
+    }
 
-	*ppSmbResponse = pSmbResponse;
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }
 
 NTSTATUS

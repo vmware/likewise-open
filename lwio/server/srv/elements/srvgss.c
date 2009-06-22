@@ -144,7 +144,7 @@ SrvGssGetSessionDetails(
         BAIL_ON_SEC_ERROR(ntStatus);
 
         ntStatus = SrvAllocateMemory(
-						(nameBuffer.length + 1) * sizeof(CHAR),
+                        (nameBuffer.length + 1) * sizeof(CHAR),
                         (PVOID*)&pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -157,7 +157,7 @@ SrvGssGetSessionDetails(
         assert(sessionKey.length > 0);
 
         ntStatus = SrvAllocateMemory(
-						sessionKey.length * sizeof(BYTE),
+                        sessionKey.length * sizeof(BYTE),
                         (PVOID*)&pSessionKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -221,14 +221,14 @@ SrvGssBeginNegotiate(
     PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = NULL;
 
     ntStatus = SrvAllocateMemory(
-					sizeof(SRV_GSS_NEGOTIATE_CONTEXT),
+                    sizeof(SRV_GSS_NEGOTIATE_CONTEXT),
                     (PVOID*)&pGssNegotiate);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
 
     ntStatus = SrvAllocateMemory(
-					sizeof(gss_ctx_id_t),
+                    sizeof(gss_ctx_id_t),
                     (PVOID*)&pGssNegotiate->pGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -373,7 +373,7 @@ SrvGssNewContext(
     BOOLEAN  bInLock = FALSE;
 
     ntStatus = SrvAllocateMemory(
-					sizeof(SRV_KRB5_CONTEXT),
+                    sizeof(SRV_KRB5_CONTEXT),
                     (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -528,7 +528,7 @@ SrvGssInitNegotiate(
     if (output_desc.length)
     {
         ntStatus = SrvAllocateMemory(
-						output_desc.length,
+                        output_desc.length,
                         (PVOID*)&pSessionKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -659,7 +659,7 @@ SrvGssContinueNegotiate(
     if (output_desc.length)
     {
         ntStatus = SrvAllocateMemory(
-						output_desc.length,
+                        output_desc.length,
                         (PVOID*)&pSecurityBlob);
         BAIL_ON_NT_STATUS(ntStatus);
 

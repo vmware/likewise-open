@@ -51,10 +51,10 @@
 
 NTSTATUS
 SrvEPollTransportInit(
-	PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-	ULONG                          ulMaxQueueSize,
-	PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
-	PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
+    ULONG                          ulMaxQueueSize,
+    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

@@ -111,8 +111,8 @@ SrvWorkerMain(
         if (pConnection && pSmbRequest)
         {
             NTSTATUS ntStatus2 = SrvProtocolExecute(
-									pConnection,
-									pSmbRequest);
+                                    pConnection,
+                                    pSmbRequest);
             if (ntStatus2)
             {
                 LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
@@ -125,11 +125,11 @@ SrvWorkerMain(
 
 cleanup:
 
-	if (pSmbRequest)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbRequest);
-		pSmbRequest = NULL;
-	}
+    if (pSmbRequest)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbRequest);
+        pSmbRequest = NULL;
+    }
 
     LWIO_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
 

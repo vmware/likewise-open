@@ -87,16 +87,16 @@ SrvBuildErrorResponse_SMB_V2(
 
 cleanup:
 
-	return ntStatus;
+    return ntStatus;
 
 error:
 
-	*ppSmbResponse = NULL;
+    *ppSmbResponse = NULL;
 
-	if (pSmbResponse)
-	{
-		SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-	}
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
 
-	goto cleanup;
+    goto cleanup;
 }

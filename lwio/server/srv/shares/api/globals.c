@@ -53,5 +53,5 @@
 
 SRV_SHAREAPI_GLOBALS gSrvShareApi =
 {
-	.pFnTable = NULL
+    .pFnTable = NULL
 };

@@ -96,10 +96,10 @@ SrvGetNativeFilesystem(
 
 NTSTATUS
 SrvProcessTreeConnectAndX(
-	IN  PLWIO_SRV_CONNECTION pConnection,
-	IN  PSMB_PACKET          pSmbRequest,
-	OUT PSMB_PACKET*         ppSmbResponse
-	)
+    IN  PLWIO_SRV_CONNECTION pConnection,
+    IN  PSMB_PACKET          pSmbRequest,
+    OUT PSMB_PACKET*         ppSmbResponse
+    )
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
@@ -306,7 +306,7 @@ SrvGetShareNameCheckHostname(
     }
 
     ntStatus = SrvAllocateMemory(
-					(len + 1) * sizeof(wchar16_t),
+                    (len + 1) * sizeof(wchar16_t),
                     (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -348,7 +348,7 @@ SrvGetShareNameCheckHostname(
     }
 
     ntStatus = SrvAllocateMemory(
-					(len_sharename + 1) * sizeof(wchar16_t),
+                    (len_sharename + 1) * sizeof(wchar16_t),
                     (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -410,7 +410,7 @@ SrvGetShareNameCheckFQDN(
     }
 
     ntStatus = SrvAllocateMemory(
-					(len + 1) * sizeof(wchar16_t),
+                    (len + 1) * sizeof(wchar16_t),
                     (PVOID*)&pwszPath_copy);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -453,7 +453,7 @@ SrvGetShareNameCheckFQDN(
     }
 
     ntStatus = SrvAllocateMemory(
-					(len_sharename + 1) * sizeof(wchar16_t),
+                    (len_sharename + 1) * sizeof(wchar16_t),
                     (PVOID*)&pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -782,9 +782,9 @@ SrvGetNativeFilesystem(
     fileName.FileName = pShareInfo->pwszPath;
 
     ntStatus = IoSecurityCreateSecurityContextFromUidGid(&pIoSecContext,
-							 0,
-							 0,
-							 NULL);
+                             0,
+                             0,
+                             NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoCreateFile(
