@@ -46,20 +46,6 @@
 
 
 DWORD
-ADCacheSetup(
-    IN sqlite3* pSqlHandle
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->Setup(
-                    pSqlHandle
-                    );
-
-    return dwError;
-}
-
-DWORD
 ADCacheOpen(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
@@ -72,14 +58,6 @@ ADCacheOpen(
                         phDb
                         );
     return dwError;
-}
-
-
-DWORD
-ADCacheFreePreparedStatements(
-    IN OUT PLSA_DB_CONNECTION pConn
-    )
-{
 }
 
 void
@@ -118,6 +96,12 @@ ADCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    dwError = pCacheProvider->FindUserById(
+                    hDb,
+                    uid,
+                    ppObject
+                    );
+    return dwError;
 }
 
 DWORD
@@ -127,6 +111,14 @@ ADCacheFindGroupByName(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    dwError = pCacheProvider->FindGroupById(
+                    hDb,
+                    pGroupNameInfo,
+                    ppObject
+                    );
+    return dwError;
 }
 
 DWORD
@@ -189,63 +181,6 @@ ADCacheEmptyCache(
     return dwError;
 }
 
-
-DWORD
-ADCacheUnpackCacheInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT_VERSION_INFO pResult)
-{
-
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->UnpackCacheInfo(
-                    pstQuery,
-                    piColumnPos,
-                    pResult
-                    );
-
-    return dwError;
-}
-
-
-DWORD
-ADCacheUnpackObjectInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-ADCacheUnpackUserInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-    return dwError;
-}
-
-
-DWORD
-ADCacheUnpackGroupInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-ADCacheUnpackGroupMembershipInfo(
-    IN sqlite3_stmt* pstQuery,
-    IN OUT int* piColumnPos,
-    IN OUT PLSA_GROUP_MEMBERSHIP pResult
-    )
-{
-}
-
 DWORD
 ADCacheStoreObjectEntry(
     LSA_DB_HANDLE hDb,
@@ -284,59 +219,7 @@ ADCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
-    DWORD dwError = 0;
 
-    dwError = pCacheProvider->SafeFreeObject(
-                    ppObject
-                    );
-    return dwError;
-}
-
-
-DWORD
-ADCacheCreateCacheTag(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    OUT int64_t *pqwCacheId
-    )
-{
-}
-
-
-DWORD
-ADCacheUpdateMembership(
-    IN sqlite3_stmt* pstQuery,
-    IN int64_t CacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid
-    )
-{
-}
-
-
-DWORD
-ADCacheAddMembership(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    IN int64_t CacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid,
-    IN BOOLEAN bIsInPac,
-    IN BOOLEAN bIsInPacOnly,
-    IN BOOLEAN bIsInLdap,
-    IN BOOLEAN bIsDomainPrimaryGroup
-    )
-{
-}
-
-
-DWORD
-ADCacheStoreGroupMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
 }
 
 DWORD
@@ -356,16 +239,6 @@ ADCacheStoreGroupMembership(
                         ppMembers
                         );
     return dwError;
-}
-
-
-DWORD
-ADCacheStoreUserMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
 }
 
 DWORD
@@ -518,23 +391,6 @@ ADCacheEnumGroupsCache(
     return dwError;
 }
 
-
-DWORD
-ADCacheQueryObject(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-}
-
-
-PCSTR
-ADCacheGetObjectFieldList(
-    VOID
-    )
-{
-}
-
 DWORD
 ADCacheFindObjectByDN(
     LSA_DB_HANDLE hDb,
@@ -597,6 +453,16 @@ ADCacheFindObjectsBySidList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
+    DWORD dwError = 0;
+
+    dwError = pCacheProvider->FindObjectsBySidList(
+                        hDb,
+                        sCount,
+                        ppszSidList,
+                        pppResults
+                        );
+
+    return dwError;
 
 }
 
@@ -608,6 +474,14 @@ ADCacheGetPasswordVerifier(
     OUT PLSA_PASSWORD_VERIFIER *ppResult
     )
 {
+    DWORD dwError = 0;
+
+    dwError = pCacheProvider->GetPasswordVerifier(
+                    hDb,
+                    pszUserSid,
+                    ppResult
+                    );
+    return dwError;
 }
 
 void
@@ -623,4 +497,13 @@ ADCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
+    DWORD dwError = 0;
+
+    dwError = pCacheProvider->StorePasswordVerifier(
+                        hDb,
+                        pVerifier
+                        );
+
+    return dwError;
+
 }

@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        adcache.c
+ *        memcache.c
  *
  * Abstract:
  *
- *        This is the public interface for the AD Provider Local Cache
+ *        This is the in-memory implementation of the AD Provider Local Cache
  *
- * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Krishna Ganugapati (kstemen@likewisesoftware.com)
  *
  */
 #include "adprovider.h"
@@ -52,9 +52,6 @@ MemCacheSetup(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->Setup(
-                    pSqlHandle
-                    );
 
     return dwError;
 }
@@ -67,10 +64,6 @@ MemCacheOpen(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->Open(
-                        pszDbPath,
-                        phDb
-                        );
     return dwError;
 }
 
@@ -87,9 +80,6 @@ MemCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
-    pCacheProvider->SafeClose(
-                        phDb
-                        );
     return;
 }
 
@@ -118,6 +108,9 @@ MemCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
@@ -127,6 +120,9 @@ MemCacheFindGroupByName(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
@@ -138,11 +134,6 @@ MemCacheFindGroupById(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindGroupById(
-                    hDb,
-                    gid,
-                    ppObject
-                    );
     return dwError;
 }
 
@@ -154,10 +145,6 @@ MemCacheRemoveUserBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveUserBySid(
-                    hDb,
-                    pszSid
-                    );
     return dwError;
 }
 
@@ -169,10 +156,6 @@ MemCacheRemoveGroupBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveGroupBySid(
-                     hDb,
-                     pszSid
-                    );
     return dwError;
 }
 
@@ -183,9 +166,6 @@ MemCacheEmptyCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EmptyCache(
-                    hDb
-                    );
     return dwError;
 }
 
