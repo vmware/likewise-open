@@ -37,7 +37,8 @@ SrvExecuteWrite(
     PBYTE         pData,
     PULONG        pulDataOffset,
     USHORT        usDataLength,
-    PUSHORT       pusBytesWritten
+    PUSHORT       pusBytesWritten,
+    PULONG        pulKey
     );
 
 static
@@ -68,6 +69,7 @@ SrvProcessWrite(
     PBYTE pData = NULL; // Do not free
     USHORT usBytesWritten = 0;
     PSMB_PACKET pSmbResponse = NULL;
+    ULONG Key = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -99,12 +101,15 @@ SrvProcessWrite(
 
     ulDataOffset = pRequestHeader->offset;
 
+    Key = pSmbRequest->pSMBHeader->pid;
+
     ntStatus = SrvExecuteWrite(
                     pFile,
                     pData,
                     &ulDataOffset,
                     pRequestHeader->dataLength,
-                    &usBytesWritten);
+                    &usBytesWritten,
+		    &Key);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildWriteResponse(
@@ -156,7 +161,8 @@ SrvExecuteWrite(
     PBYTE         pData,
     PULONG        pulDataOffset,
     USHORT        usDataLength,
-    PUSHORT       pusBytesWritten
+    PUSHORT       pusBytesWritten,
+    PULONG        pulKey
     )
 {
     NTSTATUS ntStatus = 0;
@@ -174,7 +180,7 @@ SrvExecuteWrite(
                         pData,
                         ulDataLength,
                         &llDataOffset,
-                        NULL);
+                        pulKey);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ulBytesWritten = ioStatusBlock.BytesTransferred;
