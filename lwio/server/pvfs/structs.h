@@ -131,6 +131,11 @@ typedef DWORD PVFS_LOCK_FLAGS;
 #define PVFS_LOCK_EXCLUSIVE            0x00000001
 #define PVFS_LOCK_BLOCK                0x00000002
 
+typedef DWORD PVFS_OPERATION_TYPE;
+
+#define PVFS_OPERATION_READ            0x00000001
+#define PVFS_OPERATION_WRITE           0x00000002
+
 typedef struct _PVFS_LOCK_ENTRY
 {
     BOOLEAN bExclusive;
@@ -185,8 +190,6 @@ typedef struct _PVFS_LOCK_LIST
 
 typedef struct _PVFS_LOCK_TABLE
 {
-    pthread_rwlock_t rwLock;
-
     PVFS_LOCK_LIST ExclusiveLocks;
     PVFS_LOCK_LIST SharedLocks;
 
