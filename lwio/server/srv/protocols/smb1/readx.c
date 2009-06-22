@@ -225,7 +225,7 @@ SrvBuildReadAndXResponse(
                     &llByteOffset,
                     &pData,
                     &ulBytesRead,
-                    NULL);
+                    (PULONG)&pSmbRequest->pSMBHeader->pid);
     if (ntStatus == STATUS_END_OF_FILE)
     {
         ntStatus = 0;
