@@ -245,8 +245,8 @@ main(
                         pszNameServer,
                         pszZone,
                         pszHostnameFQDN,
-                        pAddrArray,
-                        dwNumAddrs);
+                        dwNumAddrs,
+                        pAddrArray);
         if (dwError)
         {
             LWDNS_LOG_ERROR(

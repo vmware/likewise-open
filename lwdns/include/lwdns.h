@@ -223,8 +223,8 @@ DNSUpdateSecure(
     PCSTR  pszServerName,
     PCSTR  pszDomainName,
     PCSTR  pszHostname,
-    PSOCKADDR_IN pAddrArray,
-    DWORD  dwNumAddrs
+    DWORD  dwNumAddrs,
+    PSOCKADDR_IN pAddrArray
     );
 
 DWORD
