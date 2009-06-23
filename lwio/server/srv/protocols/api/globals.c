@@ -52,7 +52,7 @@
 SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
 {
     .mutex        = PTHREAD_MUTEX_INITIALIZER,
-    .bSupportSMB2 = FALSE
+    .bSupportSMB2 = TRUE
 };
 
 

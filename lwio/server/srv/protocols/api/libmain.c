@@ -91,9 +91,9 @@ SrvProtocolExecute(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_PACKET pSmbResponse = NULL;
 
-    switch (pSmbRequest->packetType)
+    switch (pSmbRequest->protocolVer)
     {
-        case SMB_PACKET_TYPE_SMB_1:
+        case SMB_PROTOCOL_VERSION_1:
 
             ntStatus = SrvProtocolExecute_SMB_V1_Filter(
                                 pConnection,
@@ -102,7 +102,7 @@ SrvProtocolExecute(
 
             break;
 
-        case SMB_PACKET_TYPE_SMB_2:
+        case SMB_PROTOCOL_VERSION_2:
 
             ntStatus = SrvProtocolExecute_SMB_V2(
                                 pConnection,

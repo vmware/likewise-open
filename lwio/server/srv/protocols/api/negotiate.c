@@ -123,6 +123,11 @@ SrvBuildNegotiateResponseForDialect(
                                 &pSmbResponse);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                ntStatus = SrvConnectionSetProtocolVersion(
+                                pConnection,
+                                SMB_PROTOCOL_VERSION_2);
+                BAIL_ON_NT_STATUS(ntStatus);
+
                 goto done;
             }
         }

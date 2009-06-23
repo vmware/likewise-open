@@ -84,7 +84,7 @@ SMB2MarshalHeader(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pSmbPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+    pSmbPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
     pSmbPacket->pSMB2Header = (PSMB2_HEADER)(pBuffer);
 
     ulBufferUsed += sizeof(SMB2_HEADER);
@@ -116,10 +116,10 @@ error:
 
 NTSTATUS
 SMB2UnmarshallSessionSetup(
-    PSMB_PACKET                 pPacket,
-    PSMB2_SESSION_SETUP_HEADER* ppHeader,
-    PBYTE*                      ppSecurityBlob,
-    PULONG                      pulSecurityBlobLen
+    PSMB_PACKET                         pPacket,
+    PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
+    PBYTE*                              ppSecurityBlob,
+    PULONG                              pulSecurityBlobLen
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -127,7 +127,7 @@ SMB2UnmarshallSessionSetup(
     ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
     PBYTE pBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
     ULONG ulBytesAvailable = 0;
-    PSMB2_SESSION_SETUP_HEADER pHeader = NULL;
+    PSMB2_SESSION_SETUP_REQUEST_HEADER pHeader = NULL;
     PBYTE pSecurityBlob = NULL;
     ULONG ulSecurityBlobLen = 0;
 
@@ -135,15 +135,15 @@ SMB2UnmarshallSessionSetup(
                        sizeof(NETBIOS_HEADER) -
                        sizeof(SMB2_HEADER);
 
-    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_HEADER))
+    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pHeader = (PSMB2_SESSION_SETUP_HEADER)pBuffer;
-    ulOffset += sizeof(SMB2_SESSION_SETUP_HEADER);
-    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_HEADER);
+    pHeader = (PSMB2_SESSION_SETUP_REQUEST_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER);
 
     // Is dynamic part present?
     if (pHeader->usLength & 0x1)

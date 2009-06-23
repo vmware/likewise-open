@@ -194,7 +194,7 @@ SrvConnectionReadPacket(
         ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
         if (*pPreamble == 0xFF)
         {
-            pPacket->packetType = SMB_PACKET_TYPE_SMB_1;
+            pPacket->protocolVer = SMB_PROTOCOL_VERSION_1;
 
             if (ulBytesAvailable < sizeof(SMB_HEADER))
             {
@@ -227,7 +227,7 @@ SrvConnectionReadPacket(
         }
         else if (*pPreamble == 0xFE)
         {
-            pPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+            pPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
 
             if (ulBytesAvailable < sizeof(SMB2_HEADER))
             {

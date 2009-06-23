@@ -71,7 +71,7 @@ typedef struct __SMB2_NEGOTIATE_HEADER
 
 } __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
 
-typedef struct __SMB2_SESSION_SETUP_HEADER
+typedef struct __SMB2_SESSION_SETUP_REQUEST_HEADER
 {
     USHORT  usLength;
     BYTE    ucVCNumber;
@@ -84,8 +84,21 @@ typedef struct __SMB2_SESSION_SETUP_HEADER
 
     /* GSS Blob follows immediately */
 
-} __attribute__((__packed__)) SMB2_SESSION_SETUP_HEADER;
+} __attribute__((__packed__)) SMB2_SESSION_SETUP_REQUEST_HEADER;
 
-typedef SMB2_SESSION_SETUP_HEADER *PSMB2_SESSION_SETUP_HEADER;
+typedef SMB2_SESSION_SETUP_REQUEST_HEADER *PSMB2_SESSION_SETUP_REQUEST_HEADER;
+
+typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER
+{
+    USHORT  usLength;
+    USHORT  usSessionFlags;
+    USHORT  usBlobOffset;
+    USHORT  usBlobLength;
+
+    /* GSS Blob follows immediately */
+
+} __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER;
+
+typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER* PSMB2_SESSION_SETUP_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

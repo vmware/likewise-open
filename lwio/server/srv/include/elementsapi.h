@@ -71,9 +71,30 @@ typedef struct _LWIO_SRV_FILE
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
+typedef struct _LWIO_SRV_FILE_2
+{
+    pthread_rwlock_t        mutex;
+    pthread_rwlock_t*       pMutex;
+
+    LONG                    refcount;
+
+    ULONG64                 ullFid;
+
+    IO_FILE_HANDLE          hFile;
+    PIO_FILE_NAME           pFilename; // physical path on server
+    PWSTR                   pwszFilename; // requested path
+    ACCESS_MASK             desiredAccess;
+    LONG64                  allocationSize;
+    FILE_ATTRIBUTES         fileAttributes;
+    FILE_SHARE_FLAGS        shareAccess;
+    FILE_CREATE_DISPOSITION createDisposition;
+    FILE_CREATE_OPTIONS     createOptions;
+
+} LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
+
 typedef struct _LWIO_SRV_TREE
 {
-    LONG                   refcount;
+    LONG              refcount;
 
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
@@ -87,6 +108,23 @@ typedef struct _LWIO_SRV_TREE
     USHORT            nextAvailableFid;
 
 } LWIO_SRV_TREE, *PLWIO_SRV_TREE;
+
+typedef struct _LWIO_SRV_TREE_2
+{
+    LONG              refcount;
+
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    ULONG             ulTid;
+
+    PSRV_SHARE_INFO   pShareInfo;
+
+    PLWRTL_RB_TREE    pFileCollection;
+
+    ULONG64           ullNextAvailableFid;
+
+} LWIO_SRV_TREE_2, *PLWIO_SRV_TREE_2;
 
 typedef struct _LWIO_SRV_SESSION
 {
@@ -108,6 +146,27 @@ typedef struct _LWIO_SRV_SESSION
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
+
+typedef struct _LWIO_SRV_SESSION_2
+{
+    LONG              refcount;
+
+    pthread_rwlock_t   mutex;
+    pthread_rwlock_t*  pMutex;
+
+    ULONG64           ullUid;
+
+    PLWRTL_RB_TREE    pTreeCollection;
+
+    HANDLE            hFinderRepository;
+
+    ULONG             ulNextAvailableTid;
+
+    PSTR              pszClientPrincipalName;
+
+    PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
+
+} LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
 
 typedef enum
 {
@@ -163,7 +222,19 @@ typedef struct _LWIO_SRV_CONNECTION
     SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
 
-    ULONG               ulSequence;
+    SMB_PROTOCOL_VERSION protocolVer;
+
+    union
+    {
+        ULONG           ulSequence;
+        ULONG64         ullSequence;
+    };
+
+    union
+    {
+        USHORT          usNextAvailableUid;
+        ULONG64         ullNextAvailableUid;
+    };
 
     // Invariant
     // Not owned
@@ -188,8 +259,6 @@ typedef struct _LWIO_SRV_CONNECTION
     HANDLE              hGssNegotiate;
 
     PLWRTL_RB_TREE      pSessionCollection;
-
-    USHORT              nextAvailableUid;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -319,16 +388,35 @@ SrvConnectionCreate(
     );
 
 NTSTATUS
+SrvConnectionSetProtocolVersion(
+    PLWIO_SRV_CONNECTION pConnection,
+    SMB_PROTOCOL_VERSION protoVer
+    );
+
+NTSTATUS
 SrvConnectionCreateSession(
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_SESSION* ppSession
     );
 
 NTSTATUS
+SrvConnection2CreateSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
 SrvConnectionFindSession(
     PLWIO_SRV_CONNECTION pConnection,
-    USHORT uid,
-    PLWIO_SRV_SESSION* ppSession
+    USHORT               uid,
+    PLWIO_SRV_SESSION*   ppSession
+    );
+
+NTSTATUS
+SrvConnection2FindSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullUid,
+    PLWIO_SRV_SESSION_2* ppSession
     );
 
 NTSTATUS
@@ -362,6 +450,12 @@ NTSTATUS
 SrvConnectionRemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
     USHORT              uid
+    );
+
+NTSTATUS
+SrvConnection2RemoveSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullUid
     );
 
 VOID
@@ -413,6 +507,43 @@ SrvSessionRelease(
     );
 
 NTSTATUS
+SrvSession2Create(
+    ULONG64              ullUid,
+    PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
+SrvSession2FindTree(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG               ulTid,
+    PLWIO_SRV_TREE_2*   ppTree
+    );
+
+NTSTATUS
+SrvSession2RemoveTree(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG               ulTid
+    );
+
+NTSTATUS
+SrvSession2CreateTree(
+    PLWIO_SRV_SESSION_2 pSession,
+    PSRV_SHARE_INFO     pShareInfo,
+    PLWIO_SRV_TREE_2*   ppTree
+    );
+
+NTSTATUS
+SrvSession2GetNamedPipeClientPrincipal(
+    PLWIO_SRV_SESSION_2 pSession,
+    PIO_ECP_LIST        pEcpList
+    );
+
+VOID
+SrvSession2Release(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+NTSTATUS
 SrvTreeCreate(
     USHORT            tid,
     PSRV_SHARE_INFO   pShareInfo,
@@ -458,6 +589,51 @@ SrvTreeRelease(
     );
 
 NTSTATUS
+SrvTree2Create(
+    ULONG             ulTid,
+    PSRV_SHARE_INFO   pShareInfo,
+    PLWIO_SRV_TREE_2* ppTree
+    );
+
+NTSTATUS
+SrvTree2FindFile(
+    PLWIO_SRV_TREE_2  pTree,
+    ULONG64           ullFid,
+    PLWIO_SRV_FILE_2* ppFile
+    );
+
+NTSTATUS
+SrvTree2CreateFile(
+    PLWIO_SRV_TREE_2        pTree,
+    PWSTR                   pwszFilename,
+    PIO_FILE_HANDLE         phFile,
+    PIO_FILE_NAME*          ppFilename,
+    ACCESS_MASK             desiredAccess,
+    LONG64                  allocationSize,
+    FILE_ATTRIBUTES         fileAttributes,
+    FILE_SHARE_FLAGS        shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS     createOptions,
+    PLWIO_SRV_FILE_2*       ppFile
+    );
+
+NTSTATUS
+SrvTree2RemoveFile(
+    PLWIO_SRV_TREE_2 pTree,
+    ULONG64          ullFid
+    );
+
+BOOLEAN
+SrvTree2IsNamedPipe(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+VOID
+SrvTree2Release(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+NTSTATUS
 SrvFileCreate(
     USHORT                  fid,
     PWSTR                   pwszFilename,
@@ -475,6 +651,26 @@ SrvFileCreate(
 VOID
 SrvFileRelease(
     PLWIO_SRV_FILE pFile
+    );
+
+NTSTATUS
+SrvFile2Create(
+    ULONG64                 ullFid,
+    PWSTR                   pwszFilename,
+    PIO_FILE_HANDLE         phFile,
+    PIO_FILE_NAME*          ppFilename,
+    ACCESS_MASK             desiredAccess,
+    LONG64                  allocationSize,
+    FILE_ATTRIBUTES         fileAttributes,
+    FILE_SHARE_FLAGS        shareAccess,
+    FILE_CREATE_DISPOSITION createDisposition,
+    FILE_CREATE_OPTIONS     createOptions,
+    PLWIO_SRV_FILE_2*       ppFile
+    );
+
+VOID
+SrvFile2Release(
+    PLWIO_SRV_FILE_2 pFile
     );
 
 NTSTATUS

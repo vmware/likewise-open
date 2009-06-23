@@ -56,11 +56,12 @@ SrvProcessSessionSetup_SMB_V2(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB2_SESSION_SETUP_HEADER pSessionSetupHeader = NULL; // Do not free
+    PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
     PBYTE       pSecurityBlob = NULL; // Do not free
     ULONG       ulSecurityBlobLen = 0;
     PBYTE       pReplySecurityBlob = NULL;
     ULONG       ulReplySecurityBlobLength = 0;
+    PLWIO_SRV_SESSION_2 pSession = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SMB2UnmarshallSessionSetup(
@@ -98,12 +99,22 @@ SrvProcessSessionSetup_SMB_V2(
     }
     else
     {
-        // Create session
+        ntStatus = SrvConnection2CreateSession(
+                            pConnection,
+                            &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->pSMB2Header->ullSessionId = pSession->ullUid;
     }
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
+    }
 
     SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
 
