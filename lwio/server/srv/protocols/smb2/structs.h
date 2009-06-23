@@ -78,9 +78,9 @@ typedef struct __SMB2_SESSION_SETUP_HEADER
     BYTE    ucSecurityMode;
     ULONG   ulCapabilities;
     ULONG   ulChannel;
-    ULONG64 ullPrevSessionId;
     USHORT  usBlobOffset;
     USHORT  usBlobLength;
+    ULONG64 ullPrevSessionId;
 
     /* GSS Blob follows immediately */
 
