@@ -53,7 +53,7 @@ ADCacheOpen(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->Open(
+    dwError = (*pCacheProvider->pfnOpen)(
                         pszDbPath,
                         phDb
                         );
@@ -65,7 +65,7 @@ ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
-    pCacheProvider->SafeClose(
+    (*pCacheProvider->pfnSafeClose)(
                         phDb
                         );
     return;
@@ -80,7 +80,7 @@ ADCacheFindUserByName(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindUserByName(
+    dwError = (*pCacheProvider->pfnFindUserByName)(
                         hDb,
                         pUserNameInfo,
                         ppObject
@@ -96,7 +96,7 @@ ADCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
-    dwError = pCacheProvider->FindUserById(
+    dwError = (*pCacheProvider->pfnFindUserById)(
                     hDb,
                     uid,
                     ppObject
@@ -113,7 +113,7 @@ ADCacheFindGroupByName(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindGroupById(
+    dwError = (*pCacheProvider->pfnFindGroupById)(
                     hDb,
                     pGroupNameInfo,
                     ppObject
@@ -130,7 +130,7 @@ ADCacheFindGroupById(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindGroupById(
+    dwError = (*pCacheProvider->pfnFindGroupById)(
                     hDb,
                     gid,
                     ppObject
@@ -146,7 +146,7 @@ ADCacheRemoveUserBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveUserBySid(
+    dwError = (*pCacheProvider->pfnRemoveUserBySid)(
                     hDb,
                     pszSid
                     );
@@ -161,7 +161,7 @@ ADCacheRemoveGroupBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveGroupBySid(
+    dwError = (*pCacheProvider->pfnRemoveGroupBySid)(
                      hDb,
                      pszSid
                     );
@@ -175,7 +175,7 @@ ADCacheEmptyCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EmptyCache(
+    dwError = (*pCacheProvider->pfnEmptyCache)(
                     hDb
                     );
     return dwError;
@@ -189,7 +189,7 @@ ADCacheStoreObjectEntry(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreObjectEntry(
+    dwError = (*pCacheProvider->pfnStoreObjectEntry)(
                         hDb,
                         pObject
                         );
@@ -206,7 +206,7 @@ ADCacheStoreObjectEntries(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreObjectEntries(
+    dwError = (*pCacheProvider->pfnStoreObjectEntries)(
                         hDb,
                         sObjectCount,
                         ppObjects
@@ -232,7 +232,7 @@ ADCacheStoreGroupMembership(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupMembership(
+    dwError = (*pCacheProvider->pfnStoreGroupMembership)(
                         hDb,
                         pszParentSid,
                         sMemberCount,
@@ -252,7 +252,7 @@ ADCacheStoreGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupsForUser(
+    dwError = (*pCacheProvider->pfnStoreGroupsForUser)(
                     hDb,
                     pszChildSid,
                     sMemberCount,
@@ -275,7 +275,7 @@ ADCacheGetMemberships(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetMemberships(
+    dwError = (*pCacheProvider->pfnGetMemberships)(
                     hDb,
                     pszSid,
                     bIsGroupMembers,
@@ -298,7 +298,7 @@ ADCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetGroupMembers(
+    dwError = (*pCacheProvider->pfnGetGroupMembers)(
                         hDb,
                         pszSid,
                         bFilterNotInPacNorLdap,
@@ -340,14 +340,6 @@ ADCacheSafeFreeObjectList(
 }
 
 DWORD
-ADCacheQueryObjectMulti(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-}
-
-DWORD
 ADCacheEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
@@ -358,7 +350,7 @@ ADCacheEnumUsersCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EnumUsersCache(
+    dwError = (*pCacheProvider->pfnEnumUsersCache)(
                         hDb,
                         dwMaxNumUsers,
                         pszResume,
@@ -380,7 +372,7 @@ ADCacheEnumGroupsCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EnumGroupsCache(
+    dwError = (*pCacheProvider->pfnEnumGroupsCache)(
                         hDb,
                         dwMaxNumGroups,
                         pszResume,
@@ -399,7 +391,7 @@ ADCacheFindObjectByDN(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectByDN(
+    dwError = (*pCacheProvider->pfnFindObjectByDN)(
                         hDb,
                         pszDN,
                         ppObject
@@ -417,7 +409,7 @@ ADCacheFindObjectsByDNList(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectsByDNList(
+    dwError = (*pCacheProvider->pfnFindObjectsByDNList)(
                         hDb,
                         sCount,
                         ppszDnList,
@@ -434,7 +426,7 @@ ADCacheFindObjectBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectBySid(
+    dwError = (*pCacheProvider->pfnFindObjectBySid)(
                             hDb,
                             pszSid,
                             ppObject
@@ -455,7 +447,7 @@ ADCacheFindObjectsBySidList(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectsBySidList(
+    dwError = (*pCacheProvider->pfnFindObjectsBySidList)(
                         hDb,
                         sCount,
                         ppszSidList,
@@ -476,7 +468,7 @@ ADCacheGetPasswordVerifier(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetPasswordVerifier(
+    dwError = (*pCacheProvider->pfnGetPasswordVerifier)(
                     hDb,
                     pszUserSid,
                     ppResult
@@ -499,7 +491,7 @@ ADCacheStorePasswordVerifier(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StorePasswordVerifier(
+    dwError = (*pCacheProvider->pfnStorePasswordVerifier(
                         hDb,
                         pVerifier
                         );
