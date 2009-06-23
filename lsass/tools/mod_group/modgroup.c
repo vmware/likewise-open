@@ -450,6 +450,7 @@ ResolveNames(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PDLINKEDLIST pListMember = pTaskList;
     DWORD dwGroupInfoLevel = 1;
     PLSA_GROUP_INFO_1 pGroupInfo = NULL;
@@ -459,6 +460,7 @@ ResolveNames(
     PSTR pszDN = NULL;
     PSTR pszSID = NULL;
     PSTR *ppszMember = NULL;
+    PSID pSid = NULL;
 
     for (; pListMember; pListMember = pListMember->pNext)
     {
@@ -468,33 +470,42 @@ ResolveNames(
         {
             pszName = (PSTR)pTask->pszData;
 
-            dwError = LsaFindGroupByName(hLsaConnection,
-                                         pszName,
-                                         LSA_FIND_FLAGS_NSS,
-                                         dwGroupInfoLevel,
-                                         (PVOID*)&pGroupInfo);
-            if (dwError == 0) {
-                dwError = LsaAllocateString(pGroupInfo->pszSid, &pszSID);
-                BAIL_ON_LSA_ERROR(dwError);
+            ntStatus = RtlAllocateSidFromCString(&pSid, pszName);
+            if (ntStatus == STATUS_SUCCESS) {
+                pszDN  = NULL;
 
-                dwError = LsaAllocateString(pGroupInfo->pszDN, &pszDN);
-                BAIL_ON_LSA_ERROR(dwError);
-
-            } else if (dwError == LSA_ERROR_NO_SUCH_GROUP) {
-                dwError = LsaFindUserByName(hLsaConnection,
-                                            pszName,
-                                            dwUserInfoLevel,
-                                            (PVOID*)&pUserInfo);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                dwError = LsaAllocateString(pUserInfo->pszSid, &pszSID);
-                BAIL_ON_LSA_ERROR(dwError);
-
-                dwError = LsaAllocateString(pUserInfo->pszDN, &pszDN);
+                dwError = LsaAllocateString(pszName, &pszSID);
                 BAIL_ON_LSA_ERROR(dwError);
 
             } else {
-                BAIL_ON_LSA_ERROR(dwError);
+                dwError = LsaFindGroupByName(hLsaConnection,
+                                             pszName,
+                                             LSA_FIND_FLAGS_NSS,
+                                             dwGroupInfoLevel,
+                                             (PVOID*)&pGroupInfo);
+                if (dwError == 0) {
+                    dwError = LsaAllocateString(pGroupInfo->pszSid, &pszSID);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    dwError = LsaAllocateString(pGroupInfo->pszDN, &pszDN);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                } else if (dwError == LSA_ERROR_NO_SUCH_GROUP) {
+                    dwError = LsaFindUserByName(hLsaConnection,
+                                                pszName,
+                                                dwUserInfoLevel,
+                                                (PVOID*)&pUserInfo);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    dwError = LsaAllocateString(pUserInfo->pszSid, &pszSID);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    dwError = LsaAllocateString(pUserInfo->pszDN, &pszDN);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                } else {
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
             }
 
             LSA_SAFE_FREE_STRING(pszName);
