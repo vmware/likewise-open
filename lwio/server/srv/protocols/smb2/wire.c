@@ -115,6 +115,84 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshallSessionSetup(
+    PSMB_PACKET                 pPacket,
+    PSMB2_SESSION_SETUP_HEADER* ppHeader,
+    PBYTE*                      ppSecurityBlob,
+    PULONG                      pulSecurityBlobLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    PBYTE pBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulBytesAvailable = 0;
+    PSMB2_SESSION_SETUP_HEADER pHeader = NULL;
+    PBYTE pSecurityBlob = NULL;
+    ULONG ulSecurityBlobLen = 0;
+
+    ulBytesAvailable = pPacket->bufferLen -
+                       sizeof(NETBIOS_HEADER) -
+                       sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SESSION_SETUP_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_SESSION_SETUP_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_HEADER);
+
+    // Is dynamic part present?
+    if (pHeader->usLength & 0x1)
+    {
+        USHORT usAlign = ulOffset %8;
+        if (usAlign)
+        {
+            if (ulBytesAvailable < usAlign)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulOffset += usAlign;
+            ulBytesAvailable -= usAlign;
+        }
+
+        if (!pHeader->usBlobLength ||
+            (pHeader->usBlobOffset < ulOffset) ||
+            (pHeader->usBlobOffset % 8) ||
+            (pHeader->usBlobOffset > ulPacketSize) ||
+            (pHeader->usBlobOffset + pHeader->usBlobLength) > ulPacketSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pSecurityBlob = (PBYTE)pPacket->pSMB2Header + pHeader->usBlobOffset;
+        ulSecurityBlobLen = pHeader->usBlobLength;
+    }
+
+    *ppHeader = pHeader;
+    *ppSecurityBlob = pSecurityBlob;
+    *pulSecurityBlobLen = ulSecurityBlobLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppSecurityBlob = NULL;
+    *pulSecurityBlobLen = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2PacketMarshallFooter(
     PSMB_PACKET pPacket
     )

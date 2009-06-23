@@ -69,7 +69,7 @@ SrvProcessWrite(
     PBYTE pData = NULL; // Do not free
     USHORT usBytesWritten = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    ULONG Key = 0;
+    ULONG ulKey = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -101,7 +101,7 @@ SrvProcessWrite(
 
     ulDataOffset = pRequestHeader->offset;
 
-    Key = pSmbRequest->pSMBHeader->pid;
+    ulKey = pSmbRequest->pSMBHeader->pid;
 
     ntStatus = SrvExecuteWrite(
                     pFile,
@@ -109,7 +109,7 @@ SrvProcessWrite(
                     &ulDataOffset,
                     pRequestHeader->dataLength,
                     &usBytesWritten,
-		    &Key);
+		    &ulKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildWriteResponse(

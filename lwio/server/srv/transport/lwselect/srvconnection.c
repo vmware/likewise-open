@@ -186,25 +186,41 @@ SrvConnectionReadPacket(
         !pConnection->readerState.sNumBytesToRead)
     {
         PBYTE pPreamble = NULL;
+        ULONG ulBytesAvailable = 0;
         PSMB_PACKET pPacket = pConnection->readerState.pRequestPacket;
         size_t bufferUsed = sizeof(NETBIOS_HEADER);
 
         pPreamble = (PBYTE)(pPacket->pRawBuffer + bufferUsed);
+        ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
         if (*pPreamble == 0xFF)
         {
             pPacket->packetType = SMB_PACKET_TYPE_SMB_1;
 
+            if (ulBytesAvailable < sizeof(SMB_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             pPacket->pSMBHeader = (PSMB_HEADER)(pPacket->pRawBuffer + bufferUsed);
             bufferUsed += sizeof(SMB_HEADER);
+            ulBytesAvailable -= sizeof(SMB_HEADER);
 
             if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
             {
+                if (ulBytesAvailable < sizeof(ANDX_HEADER))
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
                 pPacket->pAndXHeader = (ANDX_HEADER *)( pPacket->pSMBHeader +
                                                         bufferUsed );
                 bufferUsed += sizeof(ANDX_HEADER);
+                ulBytesAvailable -= sizeof(ANDX_HEADER);
             }
 
-            pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
+            pPacket->pParams = (ulBytesAvailable > 0) ? pPacket->pRawBuffer + bufferUsed : NULL;
             pPacket->pData = NULL;
             pPacket->bufferUsed = bufferUsed;
 
@@ -213,12 +229,23 @@ SrvConnectionReadPacket(
         {
             pPacket->packetType = SMB_PACKET_TYPE_SMB_2;
 
+            if (ulBytesAvailable < sizeof(SMB2_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             pPacket->pSMB2Header = (PSMB2_HEADER)(pPacket->pRawBuffer + bufferUsed);
             bufferUsed += sizeof(SMB2_HEADER);
+            ulBytesAvailable -= sizeof(SMB2_HEADER);
+
+            pPacket->pParams    = NULL;
+            pPacket->pData      = NULL;
+            pPacket->bufferUsed = bufferUsed;
         }
         else
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 

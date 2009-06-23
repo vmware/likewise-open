@@ -70,7 +70,7 @@ SrvProcessWriteAndX(
     LONG64  llDataLength = 0;
     ULONG64 ullBytesWritten = 0;
     ULONG   ulOffset = 0;
-    ULONG   Key = 0;
+    ULONG   ulKey = 0;
 
     ntStatus = SrvConnectionFindSession(
                     pConnection,
@@ -103,7 +103,7 @@ SrvProcessWriteAndX(
     llDataOffset = (((LONG64)pRequestHeader->offsetHigh) << 32) | ((LONG64)pRequestHeader->offset);
     llDataLength = (((LONG64)pRequestHeader->dataLengthHigh) << 32) | ((LONG64)pRequestHeader->dataLength);
 
-    Key = pSmbRequest->pSMBHeader->pid;
+    ulKey = pSmbRequest->pSMBHeader->pid;
 
     ntStatus = SrvExecuteWriteAndX(
                     pFile,
@@ -111,7 +111,7 @@ SrvProcessWriteAndX(
                     &llDataOffset,
                     llDataLength,
                     &ullBytesWritten,
-		    &Key);
+		    &ulKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildWriteAndXResponse(

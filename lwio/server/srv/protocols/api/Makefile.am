@@ -1,6 +1,8 @@
 noinst_LTLIBRARIES = libsrv.protocols.api.la
 
 libsrv_protocols_api_la_SOURCES = \
+    config.c    \
+    globals.c   \
     libmain.c   \
     negotiate.c
 

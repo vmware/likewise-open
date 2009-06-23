@@ -104,19 +104,27 @@ SrvBuildNegotiateResponseForDialect(
 {
     NTSTATUS ntStatus = 0;
     ULONG iDialect = 0;
+    BOOLEAN bSupportSMBV2 = FALSE;
     PSMB_PACKET pSmbResponse = NULL;
 
-    for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
-    {
-        if (!strcmp(ppszDialectArray[iDialect], SRV_NEGOTIATE_DIALECT_SMB_2))
-        {
-            ntStatus = SrvBuildNegotiateResponse_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &pSmbResponse);
-            BAIL_ON_NT_STATUS(ntStatus);
+    ntStatus = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-            goto done;
+    if (bSupportSMBV2)
+    {
+        for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
+        {
+            if (!strcmp(ppszDialectArray[iDialect],
+                        SRV_NEGOTIATE_DIALECT_SMB_2))
+            {
+                ntStatus = SrvBuildNegotiateResponse_SMB_V2(
+                                pConnection,
+                                pSmbRequest,
+                                &pSmbResponse);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                goto done;
+            }
         }
     }
 

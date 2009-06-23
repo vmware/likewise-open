@@ -63,12 +63,19 @@ SrvProtocolInit(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bSupportSMBV2 = FALSE;
+
+    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
+    BAIL_ON_NT_STATUS(status);
 
     status = SrvProtocolInit_SMB_V1();
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V2();
-    BAIL_ON_NT_STATUS(status);
+    if (bSupportSMBV2)
+    {
+        status = SrvProtocolInit_SMB_V2();
+        BAIL_ON_NT_STATUS(status);
+    }
 
 error:
 
@@ -212,12 +219,19 @@ SrvProtocolShutdown(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bSupportSMBV2 = FALSE;
+
+    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
+    BAIL_ON_NT_STATUS(status);
 
     status = SrvProtocolShutdown_SMB_V1();
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V2();
-    BAIL_ON_NT_STATUS(status);
+    if (bSupportSMBV2)
+    {
+        status = SrvProtocolInit_SMB_V2();
+        BAIL_ON_NT_STATUS(status);
+    }
 
 error:
 

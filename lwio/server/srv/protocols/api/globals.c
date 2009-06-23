@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -33,39 +33,26 @@
  *
  * Module Name:
  *
- *        prototypes.h
+ *        structs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocol Handler API
+ *        Protocols
  *
- *        prototypes
+ *        Globals
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#ifndef __PROTOTYPES_H__
-#define __PROTOTYPES_H__
+#include "includes.h"
 
+SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
+{
+    .mutex        = PTHREAD_MUTEX_INITIALIZER,
+    .bSupportSMB2 = FALSE
+};
 
-// config.c
-
-NTSTATUS
-SrvProtocolConfigSupports_SMB_V2(
-    PBOOLEAN pbSupportSMBV2
-    );
-
-// negotiate.c
-
-NTSTATUS
-SrvProcessNegotiate(
-        IN  PLWIO_SRV_CONNECTION pConnection,
-        IN  PSMB_PACKET          pSmbRequest,
-        OUT PSMB_PACKET*         ppSmbResponse
-        );
-
-#endif /* __PROTOTYPES_H__ */
 
