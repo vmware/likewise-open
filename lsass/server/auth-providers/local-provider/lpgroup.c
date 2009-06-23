@@ -2136,7 +2136,8 @@ LocalDirModifyGroup(
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     PWSTR pwszBase = NULL;
     ULONG ulScope = 0;
-    wchar_t wszFilterFmt[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\'";
+    wchar_t wszFilterFmt[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\' AND %ws=\'%ws\'";
+    wchar_t wszFilterFmtSidOnly[] = L"(%ws=%d OR %ws=%d) AND %ws=\'%ws\'";
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
     WCHAR wszAttrObjectClass[] = LOCAL_DIR_ATTR_OBJECT_CLASS;
@@ -2231,6 +2232,8 @@ LocalDirModifyGroup(
                            10 +
                           (sizeof(wszAttrObjectSid) - 2) +
                           (strlen(pszSID) * sizeof(WCHAR)) +
+                          (sizeof(wszAttrDistinguishedName) - 2) +
+                          (strlen(pszDN) * sizeof(WCHAR)) +
                           sizeof(wszFilterFmt);
 
             dwError = LsaAllocateMemory(
@@ -2241,7 +2244,8 @@ LocalDirModifyGroup(
             sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
                         wszAttrObjectClass, dwObjectClassGroupMember,
                         wszAttrObjectClass, dwObjectClassLocalUser,
-                        wszAttrObjectSid, pwszSID);
+                        wszAttrObjectSid, pwszSID,
+                        wszAttrDistinguishedName, pwszDN);
 
             dwError = DirectorySearch(
                         pContext->hDirectory,
@@ -2317,26 +2321,44 @@ LocalDirModifyGroup(
             dwError = LsaMbsToWc16s(pszSID, &pwszSID);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaMbsToWc16s(pszDN, &pwszDN);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (pszDN) {
+                dwError = LsaMbsToWc16s(pszDN, &pwszDN);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
 
             dwFilterLen = (sizeof(wszAttrObjectClass) - 1) +
                            10 +
                           (sizeof(wszAttrObjectClass) - 2) +
                            10 +
                           (sizeof(wszAttrObjectSid) - 1) +
-                          (strlen(pszSID) * sizeof(WCHAR)) +
-                          sizeof(wszFilterFmt);
+                          (strlen(pszSID) * sizeof(WCHAR));
+            if (pwszDN) {
+                dwFilterLen += (sizeof(wszAttrDistinguishedName) - 2) +
+                               (strlen(pszDN) * sizeof(WCHAR)) +
+                               sizeof(wszFilterFmt);
+            } else {
+                dwFilterLen += sizeof(wszFilterFmtSidOnly);
+            }
 
             dwError = LsaAllocateMemory(
                         dwFilterLen,
                         (PVOID*)&pwszFilter);
             BAIL_ON_LSA_ERROR(dwError);
 
-            sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
-                        wszAttrObjectClass, dwObjectClassGroupMember,
-                        wszAttrObjectClass, dwObjectClassLocalUser,
-                        wszAttrObjectSid, pwszSID);
+            if (pwszDN) {
+                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR), wszFilterFmt,
+                            wszAttrObjectClass, dwObjectClassGroupMember,
+                            wszAttrObjectClass, dwObjectClassLocalUser,
+                            wszAttrObjectSid, pwszSID,
+                            wszAttrDistinguishedName, pwszDN);
+
+            } else {
+                sw16printfw(pwszFilter, dwFilterLen/sizeof(WCHAR),
+                            wszFilterFmtSidOnly,
+                            wszAttrObjectClass, dwObjectClassGroupMember,
+                            wszAttrObjectClass, dwObjectClassLocalUser,
+                            wszAttrObjectSid, pwszSID);
+            }
 
             dwError = DirectorySearch(
                         pContext->hDirectory,
@@ -2351,6 +2373,10 @@ LocalDirModifyGroup(
 
             if (dwNumEntries == 0) {
                 dwError = LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+                BAIL_ON_LSA_ERROR(dwError);
+
+            } else if (dwNumEntries > 1) {
+                dwError = LSA_ERROR_SAM_DATABASE_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 

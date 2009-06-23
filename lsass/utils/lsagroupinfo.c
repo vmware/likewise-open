@@ -368,10 +368,14 @@ LsaModifyGroup_RemoveMembers(
         pszSID  = ppszMember[1];
         iMember = pGroupModInfo->dwRemoveMembersNum - 1;
 
-        dwError = LsaAllocateString(
-                    pszDN,
-                    &pGroupModInfo->pRemoveMembers[iMember].pszDN);
-        BAIL_ON_LSA_ERROR(dwError);
+        /* DN is optional - we could be removing a member that doesn't
+           exist anymore. In that case we'd know only its SID */
+        if (pszDN) {
+            dwError = LsaAllocateString(
+                        pszDN,
+                        &pGroupModInfo->pRemoveMembers[iMember].pszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = LsaAllocateString(
                     pszSID,
