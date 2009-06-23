@@ -234,6 +234,11 @@ LsaSrvWriteLoginFailedEvent(
             strcpy(szReason, "An unexpected error occurred");
     }
 
+    if (dwErrCode == LSASS_EVENT_LOGON_PHASE_CHECK_USER)
+    {
+            dwEventID = LSASS_EVENT_FAILED_LOGON_CHECK_USER;
+    }
+
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
                  "Logon Failure:\r\n\r\n" \
