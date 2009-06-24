@@ -93,6 +93,14 @@ SMB2UnmarshallSessionSetup(
     );
 
 NTSTATUS
+SMB2MarshalSessionSetup(
+    PSMB_PACKET        pPacket,
+    SMB2_SESSION_FLAGS usFlags,
+    PBYTE              pSecurityBlob,
+    ULONG              ulSecurityBlobLen
+    );
+
+NTSTATUS
 SMB2PacketMarshallFooter(
     PSMB_PACKET pPacket
     );

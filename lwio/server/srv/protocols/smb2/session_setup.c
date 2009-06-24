@@ -92,6 +92,17 @@ SrvProcessSessionSetup_SMB_V2(
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMB2MarshalHeader(
+                    pSmbResponse,
+                    COM2_SESSION_SETUP,
+                    9,
+                    pSmbRequest->pSMB2Header->ulPid,
+                    pSmbRequest->pSMB2Header->ulTid,
+                    0LL,
+                    STATUS_SUCCESS,
+                    TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
                                    pConnection->hGssNegotiate))
     {
@@ -106,6 +117,13 @@ SrvProcessSessionSetup_SMB_V2(
 
         pSmbResponse->pSMB2Header->ullSessionId = pSession->ullUid;
     }
+
+    ntStatus = SMB2MarshalSessionSetup(
+                    pSmbResponse,
+                    0,
+                    pReplySecurityBlob,
+                    ulReplySecurityBlobLength);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 

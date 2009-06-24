@@ -193,6 +193,76 @@ error:
 }
 
 NTSTATUS
+SMB2MarshalSessionSetup(
+    PSMB_PACKET        pPacket,
+    SMB2_SESSION_FLAGS usFlags,
+    PBYTE              pSecurityBlob,
+    ULONG              ulSecurityBlobLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_SESSION_SETUP_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulOffset = (PBYTE)pPacket->pParams - (PBYTE)pPacket->pSMB2Header;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+    USHORT usAlign = 0;
+
+    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SESSION_SETUP_RESPONSE_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    ulBytesUsed += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+
+    if ((usAlign = ulOffset % 8))
+    {
+        if (ulBytesAvailable < usAlign)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulOffset += usAlign;
+        ulBytesUsed += usAlign;
+        ulBytesAvailable -= usAlign;
+        pBuffer += usAlign;
+    }
+
+    pHeader->usLength = ulBytesUsed;
+
+    if (ulSecurityBlobLen)
+    {
+        if (ulBytesAvailable < ulSecurityBlobLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pBuffer, pSecurityBlob, ulSecurityBlobLen);
+
+        pHeader->usLength++;
+
+        ulBytesUsed += ulSecurityBlobLen;
+    }
+
+    pHeader->usSessionFlags = usFlags;
+    pHeader->usBlobOffset = ulOffset;
+    pHeader->usBlobLength = ulSecurityBlobLen;
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
 SMB2PacketMarshallFooter(
     PSMB_PACKET pPacket
     )
