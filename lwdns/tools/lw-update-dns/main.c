@@ -272,6 +272,8 @@ main(
 
     printf("A record successfully updated in DNS\n");
 
+    bDNSUpdated = FALSE;
+
     for (iAddr = 0; iAddr < dwNumAddrs; iAddr++)
     {
         PSOCKADDR_IN pSockAddr = &pAddrArray[iAddr];
@@ -281,16 +283,19 @@ main(
                         pszHostnameFQDN);
         if (dwError)
         {
-            LWDNS_LOG_WARNING("Unable to register address %s with hostname %s",
+            printf("Unable to register reverse PTR record address %s with hostname %s\n",
                     inet_ntoa(pSockAddr->sin_addr), pszHostnameFQDN);
             dwError = 0;
-            bDNSUpdated = FALSE;
+        }
+        else
+        {
+            bDNSUpdated = TRUE;
         }
     }
     
     if (bDNSUpdated)
     {
-        printf("PTR record successfully updated in DNS\n");
+        printf("PTR records successfully updated in DNS\n");
     }
 
 cleanup:

@@ -386,6 +386,7 @@ DNSUpdatePtrSecure(
     PSTR pszRecordName = NULL;
     DWORD   iNS = 0;
     HANDLE hDNSServer = (HANDLE)NULL;
+    PCSTR pszAddress = NULL;
 
     dwError = DNSGetPtrNameForAddr(
                     &pszRecordName,
@@ -412,7 +413,8 @@ DNSUpdatePtrSecure(
             DNSClose(hDNSServer);
         }
 
-        LWDNS_LOG_INFO("Attempting to update name server [%s]", pszNameServer);
+        pszAddress = inet_ntoa(pAddr->sin_addr);
+        LWDNS_LOG_INFO("Attempting to update PTR record for %s to %s on name server [%s]", pszAddress, pszHostnameFQDN, pszNameServer);
 
         dwError = DNSOpen(
                         pszNameServer,
