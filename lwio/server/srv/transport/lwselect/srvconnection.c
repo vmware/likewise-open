@@ -87,6 +87,48 @@ SrvConnectionGetNextSequence(
 }
 
 NTSTATUS
+SrvConnection2GetNextSequence(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PULONG64             pullRequestSequence
+    )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG64  ullRequestSequence = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    switch (pSmbRequest->pSMB2Header->command)
+    {
+        case COM2_NEGOTIATE:
+        case COM2_ECHO:
+
+            break;
+
+        case COM2_CANCEL:
+
+            ullRequestSequence = pConnection->ullSequence++;
+
+            break;
+
+        default:
+
+            ullRequestSequence = pConnection->ullSequence++;
+
+            pConnection->ullSequence++; // Response
+
+            break;
+    }
+
+    *pullRequestSequence = ullRequestSequence;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
 SrvConnectionReadPacket(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET*        ppPacket
@@ -270,7 +312,7 @@ error:
 NTSTATUS
 SrvConnectionWriteMessage(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pPacket
+    PSMB_PACKET          pPacket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -301,6 +343,7 @@ SrvConnectionWriteMessage(
 
                 ntStatus = SMB2PacketSign(
                                 pPacket,
+                                pPacket->ullSequence,
                                 pConnection->pSessionKey,
                                 pConnection->ulSessionKeyLength);
 

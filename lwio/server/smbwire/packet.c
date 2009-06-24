@@ -541,17 +541,20 @@ error:
 NTSTATUS
 SMB2PacketVerifySignature(
     PSMB_PACKET pPacket,
+    ULONG64     ullExpectedSequence,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     )
 {
-    NTSTATUS ntStatus = 0;
-    uint8_t  digest[32];
-    uint8_t  origSignature[16];
+    NTSTATUS   ntStatus = 0;
+    BYTE       digest[32];
+    BYTE       origSignature[16];
     SHA256_CTX sha256Value;
+    ULONG64 ullLittleEndianSequence = SMB_HTOL64(ullExpectedSequence);
 
     memcpy(origSignature, pPacket->pSMB2Header->signature, sizeof(pPacket->pSMB2Header->signature));
     memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
+    memcpy(&pPacket->pSMB2Header->signature[0], &ullLittleEndianSequence, sizeof(ullLittleEndianSequence));
 
     SHA256_Init(&sha256Value);
 
@@ -645,6 +648,7 @@ SMBPacketSign(
 NTSTATUS
 SMB2PacketSign(
     PSMB_PACKET pPacket,
+    ULONG64     ullSequence,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     )
@@ -652,8 +656,10 @@ SMB2PacketSign(
     NTSTATUS ntStatus = 0;
     uint8_t digest[32];
     SHA256_CTX sha256Value;
+    ULONG64 ullLittleEndianSequence = SMB_HTOL64(ullSequence);
 
     memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
+    memcpy(&pPacket->pSMB2Header->signature[0], &ullLittleEndianSequence, sizeof(ullLittleEndianSequence));
 
     SHA256_Init(&sha256Value);
 

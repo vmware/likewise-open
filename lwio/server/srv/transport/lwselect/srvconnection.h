@@ -14,6 +14,13 @@ SrvConnectionGetNextSequence(
     );
 
 NTSTATUS
+SrvConnection2GetNextSequence(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PULONG64             pullRequestSequence
+    );
+
+NTSTATUS
 SrvConnectionReadPacket(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET* ppPacket

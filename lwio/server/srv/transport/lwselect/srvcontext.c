@@ -3,8 +3,8 @@
 NTSTATUS
 SrvContextCreate(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pRequest,
-    PLWIO_SRV_CONTEXT*  ppContext
+    PSMB_PACKET          pRequest,
+    PLWIO_SRV_CONTEXT*   ppContext
     )
 {
     NTSTATUS ntStatus = 0;
@@ -38,8 +38,15 @@ SrvContextCreate(
 
             case SMB_PROTOCOL_VERSION_2:
 
+                ntStatus = SrvConnection2GetNextSequence(
+                                pConnection,
+                                pRequest,
+                                &pRequest->ullSequence);
+                BAIL_ON_NT_STATUS(ntStatus);
+
                 ntStatus = SMB2PacketVerifySignature(
                                 pRequest,
+                                pRequest->ullSequence,
                                 pConnection->pSessionKey,
                                 pConnection->ulSessionKeyLength);
 
