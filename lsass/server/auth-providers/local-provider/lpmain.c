@@ -352,12 +352,53 @@ LocalFindUserByName(
     PVOID*  ppUserInfo
     )
 {
-    return LocalFindUserByNameEx(
+    DWORD dwError = STATUS_SUCCESS;
+    PVOID pUserInfo = NULL;
+
+    dwError = LocalFindUserByNameEx(
                 hProvider,
                 pszLoginId,
                 dwUserInfoLevel,
                 NULL,
-                ppUserInfo);
+                &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch(dwUserInfoLevel)
+    {
+        /* Add any info levels that contain the NT/LM hash here */
+        case 2:
+        {
+            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
+
+            if (pUserInfo2->pNTHash)
+            {
+                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
+            }
+
+            if (pUserInfo2->pLMHash)
+            {
+                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
+            }
+        }
+        break;
+    }
+
+    /* give the memory away now */
+
+    *ppUserInfo = pUserInfo;
+    pUserInfo = NULL;
+
+cleanup:
+
+    return dwError;
+
+error:
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -460,7 +501,28 @@ LocalFindUserById(
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    switch(dwUserInfoLevel)
+    {
+        /* Add any info levels that contain the NT/LM hash here */
+        case 2:
+        {
+            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
+
+            if (pUserInfo2->pNTHash)
+            {
+                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
+            }
+
+            if (pUserInfo2->pLMHash)
+            {
+                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
+            }
+        }
+        break;
+    }
+
     *ppUserInfo = pUserInfo;
+    pUserInfo = NULL;
 
 cleanup:
 
