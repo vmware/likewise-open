@@ -1547,7 +1547,7 @@ LocalGetGroupMembership(
 {
     DWORD dwError = 0;
     LWMsgContext *context = NULL;
-    LWMsgDataHandle *pDataHandle = NULL;
+    LWMsgDataContext *pDataContext = NULL;
     PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ pRequest = NULL;
     LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP Reply;
     PWSTR pwszDN = NULL;
@@ -1561,11 +1561,11 @@ LocalGetGroupMembership(
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                              pDataHandle,
+                              pDataContext,
                               LsaLocalIPCGetGroupMembershipReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
@@ -1598,7 +1598,7 @@ LocalGetGroupMembership(
     }
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataHandle,
+                              pDataContext,
                               LsaLocalIPCGetGroupMembershipRepSpec(),
                               &Reply,
                               &pRepBuffer,
@@ -1620,14 +1620,14 @@ cleanup:
 
     if (pRequest) {
         lwmsg_data_free_graph(
-            pDataHandle,
+            pDataContext,
             LsaLocalIPCGetGroupMembershipReqSpec(),
             pRequest);
     }
 
-    if (pDataHandle)
+    if (pDataContext)
     {
-        lwmsg_data_handle_delete(pDataHandle);
+        lwmsg_data_context_delete(pDataContext);
     }
 
     if (context) {

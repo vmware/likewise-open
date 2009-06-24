@@ -182,8 +182,8 @@ LsaTransactFindGroupByName(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByNameReq.FindFlags = FindFlags;
     findObjectByNameReq.dwInfoLevel = dwGroupInfoLevel;
@@ -267,8 +267,8 @@ LsaTransactFindGroupById(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByIdReq.FindFlags = FindFlags;
     findObjectByIdReq.dwInfoLevel = dwGroupInfoLevel;
@@ -345,8 +345,8 @@ LsaTransactBeginEnumGroups(
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
@@ -408,8 +408,8 @@ LsaTransactEnumGroups(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_GROUPS;
     request.object = hResume;
@@ -478,8 +478,8 @@ LsaTransactEndEnumGroups(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_END_ENUM_GROUPS;
     request.object = hResume;
@@ -534,8 +534,8 @@ LsaTransactAddGroup(
     PLSA_IPC_ERROR pError = NULL;
     LSA_GROUP_INFO_LIST addGroupInfoReq;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     addGroupInfoReq.dwGroupInfoLevel = dwGroupInfoLevel;
     addGroupInfoReq.dwNumGroups = 1;
@@ -600,8 +600,8 @@ LsaTransactDeleteGroupById(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_DELETE_GROUP;
     request.object = &gid;
@@ -659,8 +659,8 @@ LsaTransactGetGroupsForUser(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     userGroupsReq.FindFlags = FindFlags;
     userGroupsReq.dwInfoLevel = dwGroupInfoLevel;
@@ -748,8 +748,8 @@ LsaTransactFindUserByName(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByNameReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByNameReq.pszName = pszName;
@@ -837,8 +837,8 @@ LsaTransactFindUserById(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByIdReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByIdReq.id = uid;
@@ -925,8 +925,8 @@ LsaTransactBeginEnumUsers(
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
     beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
@@ -987,8 +987,8 @@ LsaTransactEnumUsers(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_USERS;
     request.object = hResume;
@@ -1062,8 +1062,8 @@ LsaTransactEndEnumUsers(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_END_ENUM_USERS;
     request.object = hResume;
@@ -1118,8 +1118,8 @@ LsaTransactAddUser(
     LSA_USER_INFO_LIST addUserInfoReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     addUserInfoReq.dwUserInfoLevel = dwUserInfoLevel;
     addUserInfoReq.dwNumUsers = 1;
@@ -1187,8 +1187,8 @@ LsaTransactDeleteUserById(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_DELETE_USER;
     request.object = &uid;
@@ -1239,8 +1239,8 @@ LsaTransactAuthenticateUser(
     LSA_IPC_AUTH_USER_REQ authUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     authUserReq.pszLoginName = pszLoginName;
     authUserReq.pszPassword = pszPassword;
@@ -1294,8 +1294,8 @@ LsaTransactAuthenticateUserEx(
     LSA_AUTH_USER_PARAMS authUserExReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     authUserExReq.AuthType = pParams->AuthType;
     authUserExReq.pass = pParams->pass;
@@ -1353,8 +1353,8 @@ LsaTransactValidateUser(
     LSA_IPC_AUTH_USER_REQ validateUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     validateUserReq.pszLoginName = pszLoginName;
     validateUserReq.pszPassword = pszPassword;
@@ -1409,8 +1409,8 @@ LsaTransactChangePassword(
     LSA_IPC_CHANGE_PASSWORD_REQ changePasswordReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     changePasswordReq.pszLoginName = pszLoginName;
     changePasswordReq.pszOldPassword = pszOldPassword;
@@ -1465,8 +1465,8 @@ LsaTransactSetPassword(
     LSA_IPC_SET_PASSWORD_REQ setPasswordReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     setPasswordReq.pszLoginName   = pszLoginName;
     setPasswordReq.pszNewPassword = pszNewPassword;
@@ -1518,8 +1518,8 @@ LsaTransactModifyUser(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_MODIFY_USER;
     request.object = pUserModInfo;
@@ -1573,8 +1573,8 @@ LsaTransactGetNamesBySidList(
     PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     getNamesBySidsReq.sCount = sCount;
     getNamesBySidsReq.ppszSidList = ppszSidList;
@@ -1632,8 +1632,8 @@ LsaTransactModifyGroup(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag    = LSA_Q_MODIFY_GROUP;
     request.object = pGroupModInfo;
@@ -1688,8 +1688,8 @@ LsaTransactProviderIoControl(
     PLSA_DATA_BLOB pResultBuffer = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = { -1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     providerIoControlReq.pszProvider = pszProvider;
     providerIoControlReq.dwIoControlCode = dwIoControlCode;

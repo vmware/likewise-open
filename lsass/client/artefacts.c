@@ -66,8 +66,8 @@ LsaFindNSSArtefactByKey(
     PLSA_NSS_ARTEFACT_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findNssArtefactByKeyReq.dwInfoLevel = dwInfoLevel;
     findNssArtefactByKeyReq.pszMapName = pszMapName;
@@ -148,8 +148,8 @@ LsaBeginEnumNSSArtefacts(
     LSA_IPC_BEGIN_ENUM_NSSARTEFACT_REQ beginNssArtefactEnumReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     beginNssArtefactEnumReq.dwInfoLevel = dwInfoLevel;
     beginNssArtefactEnumReq.dwMaxNumNSSArtefacts = dwMaxNumNSSArtefacts;
@@ -209,8 +209,8 @@ LsaEnumNSSArtefacts(
     PLSA_NSS_ARTEFACT_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_NSS_ARTEFACTS;
     request.object = hResume;
@@ -275,8 +275,8 @@ LsaEndEnumNSSArtefacts(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_END_ENUM_NSS_ARTEFACTS;
     request.object = hResume;
