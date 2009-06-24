@@ -53,6 +53,7 @@ NTSTATUS
 SMB2MarshalHeader(
     PSMB_PACKET pSmbPacket,
     USHORT      usCommand,
+    USHORT      usEpoch,
     USHORT      usCredits,
     ULONG       ulPid,
     ULONG64     ullMid,
@@ -95,6 +96,7 @@ SMB2MarshalHeader(
 
     memcpy(&pSmbPacket->pSMB2Header->smb[0], &smb2Magic[0], sizeof(smb2Magic));
     pSmbPacket->pSMB2Header->command        = usCommand;
+    pSmbPacket->pSMB2Header->usEpoch        = usEpoch;
     pSmbPacket->pSMB2Header->usCredits      = usCredits;
     pSmbPacket->pSMB2Header->ulPid          = ulPid;
     pSmbPacket->pSMB2Header->ullCommandSequence = ullMid;

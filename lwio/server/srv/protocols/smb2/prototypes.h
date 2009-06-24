@@ -76,6 +76,7 @@ NTSTATUS
 SMB2MarshalHeader(
     PSMB_PACKET pSmbPacket,
     USHORT      usCommand,
+    USHORT      usEpoch,
     USHORT      usCredits,
     ULONG       ulPid,
     ULONG64     ullMid,

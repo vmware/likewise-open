@@ -84,6 +84,7 @@ SrvBuildNegotiateResponse_SMB_V2(
     ntStatus = SMB2MarshalHeader(
                 pSmbResponse,
                 COM2_NEGOTIATE,
+                0, /* usEpoch      */
                 1, /* usCredits    */
                 0, /* usPid        */
                 0, /* ullMid       */

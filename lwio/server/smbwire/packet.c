@@ -668,6 +668,8 @@ SMB2PacketSign(
 
     memcpy(&pPacket->pSMB2Header->signature[0], &digest[0], sizeof(pPacket->pSMB2Header->signature));
 
+    pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
+
     return ntStatus;
 }
 

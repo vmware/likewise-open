@@ -75,6 +75,7 @@ SrvBuildErrorResponse_SMB_V2(
     ntStatus = SMB2MarshalHeader(
                 pSmbResponse,
                 pSmbRequestHeader->command,
+                pSmbRequestHeader->usEpoch,
                 pSmbRequestHeader->usCredits, /* TODO: Figure out this one */
                 pSmbRequestHeader->ulPid,
                 pSmbRequestHeader->ullCommandSequence,

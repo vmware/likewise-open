@@ -61,6 +61,7 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG       ulSecurityBlobLen = 0;
     PBYTE       pReplySecurityBlob = NULL;
     ULONG       ulReplySecurityBlobLength = 0;
+    UNICODE_STRING uniUsername = {0};
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
@@ -95,6 +96,7 @@ SrvProcessSessionSetup_SMB_V2(
     ntStatus = SMB2MarshalHeader(
                     pSmbResponse,
                     COM2_SESSION_SETUP,
+                    1,
                     9,
                     pSmbRequest->pSMB2Header->ulPid,
                     pSmbRequest->pSMB2Header->ullCommandSequence,
@@ -117,7 +119,41 @@ SrvProcessSessionSetup_SMB_V2(
                             &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        if (!pConnection->pSessionKey)
+        {
+             ntStatus = SrvGssGetSessionDetails(
+                             pConnection->hGssContext,
+                             pConnection->hGssNegotiate,
+                             &pConnection->pSessionKey,
+                             &pConnection->ulSessionKeyLength,
+                             &pSession->pszClientPrincipalName);
+        }
+        else
+        {
+             ntStatus = SrvGssGetSessionDetails(
+                             pConnection->hGssContext,
+                             pConnection->hGssNegotiate,
+                             NULL,
+                             NULL,
+                             &pSession->pszClientPrincipalName);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Generate and store the IoSecurityContext */
+
+        ntStatus = RtlUnicodeStringAllocateFromCString(
+                       &uniUsername,
+                       pSession->pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoSecurityCreateSecurityContextFromUsername(
+                       &pSession->pIoSecurityContext,
+                       &uniUsername);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         pSmbResponse->pSMB2Header->ullSessionId = pSession->ullUid;
+
+        SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
 
     ntStatus = SMB2MarshalSessionSetup(
@@ -138,6 +174,8 @@ cleanup:
     {
         SrvSession2Release(pSession);
     }
+
+    RtlUnicodeStringFree(&uniUsername);
 
     SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
 
