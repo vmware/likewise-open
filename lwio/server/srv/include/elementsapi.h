@@ -224,11 +224,7 @@ typedef struct _LWIO_SRV_CONNECTION
 
     SMB_PROTOCOL_VERSION protocolVer;
 
-    union
-    {
-        ULONG           ulSequence;
-        ULONG64         ullSequence;
-    };
+    ULONG           ulSequence;
 
     union
     {

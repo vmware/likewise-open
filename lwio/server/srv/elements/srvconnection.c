@@ -212,7 +212,6 @@ SrvConnectionSetProtocolVersion(
 
             case SMB_PROTOCOL_VERSION_2:
 
-                pConnection->ullSequence = 0;
                 pConnection->ullNextAvailableUid = 0;
 
                 ntStatus = LwRtlRBTreeCreate(
