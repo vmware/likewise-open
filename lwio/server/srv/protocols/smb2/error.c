@@ -77,9 +77,11 @@ SrvBuildErrorResponse_SMB_V2(
                 pSmbRequestHeader->command,
                 pSmbRequestHeader->usCredits, /* TODO: Figure out this one */
                 pSmbRequestHeader->ulPid,
+                pSmbRequestHeader->ullCommandSequence,
                 pSmbRequestHeader->ulTid,
                 pSmbRequestHeader->ullSessionId,
                 errorStatus,
+                FALSE,
                 TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 

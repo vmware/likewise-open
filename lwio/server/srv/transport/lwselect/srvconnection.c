@@ -285,11 +285,33 @@ SrvConnectionWriteMessage(
     {
         pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
 
-        ntStatus = SMBPacketSign(
-                        pPacket,
-                        pPacket->sequence,
-                        pConnection->pSessionKey,
-                        pConnection->ulSessionKeyLength);
+        switch (pPacket->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                ntStatus = SMBPacketSign(
+                                pPacket,
+                                pPacket->sequence,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                ntStatus = SMB2PacketSign(
+                                pPacket,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

@@ -78,9 +78,11 @@ SMB2MarshalHeader(
     USHORT      usCommand,
     USHORT      usCredits,
     ULONG       ulPid,
+    ULONG64     ullMid,
     ULONG       ulTid,
     ULONG64     ullSessionId,
     NTSTATUS    status,
+    BOOLEAN     bCommandAllowsSignature,
     BOOLEAN     bIsResponse
     );
 
@@ -101,7 +103,7 @@ SMB2MarshalSessionSetup(
     );
 
 NTSTATUS
-SMB2PacketMarshallFooter(
+SMB2MarshalFooter(
     PSMB_PACKET pPacket
     );
 

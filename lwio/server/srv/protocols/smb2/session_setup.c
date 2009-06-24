@@ -97,9 +97,11 @@ SrvProcessSessionSetup_SMB_V2(
                     COM2_SESSION_SETUP,
                     9,
                     pSmbRequest->pSMB2Header->ulPid,
+                    pSmbRequest->pSMB2Header->ullCommandSequence,
                     pSmbRequest->pSMB2Header->ulTid,
                     0LL,
                     STATUS_SUCCESS,
+                    TRUE,
                     TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -123,6 +125,9 @@ SrvProcessSessionSetup_SMB_V2(
                     0,
                     pReplySecurityBlob,
                     ulReplySecurityBlobLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;

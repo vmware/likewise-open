@@ -55,9 +55,11 @@ SMB2MarshalHeader(
     USHORT      usCommand,
     USHORT      usCredits,
     ULONG       ulPid,
+    ULONG64     ullMid,
     ULONG       ulTid,
     ULONG64     ullSessionId,
     NTSTATUS    status,
+    BOOLEAN     bCommandAllowsSignature,
     BOOLEAN     bIsResponse
     )
 {
@@ -95,6 +97,7 @@ SMB2MarshalHeader(
     pSmbPacket->pSMB2Header->command        = usCommand;
     pSmbPacket->pSMB2Header->usCredits      = usCredits;
     pSmbPacket->pSMB2Header->ulPid          = ulPid;
+    pSmbPacket->pSMB2Header->ullCommandSequence = ullMid;
     pSmbPacket->pSMB2Header->ulTid          = ulTid;
     pSmbPacket->pSMB2Header->ullSessionId   = ullSessionId;
     pSmbPacket->pSMB2Header->error         = status;
@@ -108,6 +111,8 @@ SMB2MarshalHeader(
     pSmbPacket->pParams = pSmbPacket->pRawBuffer + ulBufferUsed;
 
     pSmbPacket->bufferUsed = ulBufferUsed;
+
+    pSmbPacket->allowSignature = bCommandAllowsSignature;
 
 error:
 
@@ -263,7 +268,7 @@ error:
 }
 
 NTSTATUS
-SMB2PacketMarshallFooter(
+SMB2MarshalFooter(
     PSMB_PACKET pPacket
     )
 {

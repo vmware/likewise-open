@@ -24,11 +24,33 @@ SrvContextCreate(
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
-        ntStatus = SMBPacketVerifySignature(
-                        pRequest,
-                        pRequest->sequence,
-                        pConnection->pSessionKey,
-                        pConnection->ulSessionKeyLength);
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                ntStatus = SMBPacketVerifySignature(
+                                pRequest,
+                                pRequest->sequence,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                ntStatus = SMB2PacketVerifySignature(
+                                pRequest,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

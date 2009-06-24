@@ -86,9 +86,11 @@ SrvBuildNegotiateResponse_SMB_V2(
                 COM2_NEGOTIATE,
                 1, /* usCredits    */
                 0, /* usPid        */
+                0, /* ullMid       */
                 0, /* usTid        */
                 0, /* ullSessionId */
                 0, /* status       */
+                FALSE, /* do not sign */
                 TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -188,7 +190,7 @@ SrvBuildNegotiateResponse_SMB_V2(
 
     pSmbResponse->bufferUsed += ulBytesUsed;
 
-    ntStatus = SMB2PacketMarshallFooter(pSmbResponse);
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
