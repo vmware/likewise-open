@@ -438,12 +438,7 @@ typedef struct
     size_t          bufferLen;   /* Number of bytes allocated from buffer */
     uint32_t        bufferUsed;  /* Number of bytes available/needed from
                                     buffer */
-    union
-    {
-        uint32_t    sequence;    /* Sequence number */
-        uint64_t    ullSequence;
-    };
-
+    uint32_t        sequence;    /* Sequence number */
     uint8_t         allowSignature; /* Whether to allow signing for this packet */
     uint8_t         haveSignature; /* Whether packet has signature */
 } SMB_PACKET, *PSMB_PACKET;
@@ -2159,7 +2154,6 @@ SMBPacketVerifySignature(
 NTSTATUS
 SMB2PacketVerifySignature(
     PSMB_PACKET pPacket,
-    ULONG64     ullExpectedSequence,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     );
@@ -2184,7 +2178,6 @@ SMBPacketSign(
 NTSTATUS
 SMB2PacketSign(
     PSMB_PACKET pPacket,
-    ULONG64     ullSequence,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     );

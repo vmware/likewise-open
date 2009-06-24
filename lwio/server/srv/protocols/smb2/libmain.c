@@ -131,11 +131,6 @@ SrvProtocolExecute_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pSmbResponse)
-    {
-        pSmbResponse->ullSequence = pSmbRequest->ullSequence + 1;
-    }
-
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
