@@ -293,7 +293,7 @@ SrvSession2AcquireTreeId_inlock(
    )
 {
     NTSTATUS ntStatus = 0;
-    USHORT   candidateTid = pSession->ulNextAvailableTid;
+    ULONG    ulCandidateTid = pSession->ulNextAvailableTid;
     BOOLEAN  bFound = FALSE;
 
     do
@@ -302,14 +302,14 @@ SrvSession2AcquireTreeId_inlock(
 
         /* 0 is never a valid tid */
 
-        if ((candidateTid == 0) || (candidateTid == UINT32_MAX))
+        if ((ulCandidateTid == 0) || (ulCandidateTid == UINT32_MAX))
         {
-            candidateTid = 1;
+            ulCandidateTid = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
                         pSession->pTreeCollection,
-                        &candidateTid,
+                        &ulCandidateTid,
                         (PVOID*)&pTree);
         if (ntStatus == STATUS_NOT_FOUND)
         {
@@ -318,11 +318,11 @@ SrvSession2AcquireTreeId_inlock(
         }
         else
         {
-            candidateTid++;
+            ulCandidateTid++;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-    } while ((candidateTid != pSession->ulNextAvailableTid) && !bFound);
+    } while ((ulCandidateTid != pSession->ulNextAvailableTid) && !bFound);
 
     if (!bFound)
     {
@@ -330,12 +330,12 @@ SrvSession2AcquireTreeId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pulTid = candidateTid;
+    *pulTid = ulCandidateTid;
 
     /* Increment by 1 by make sure tyo deal with wraparound */
 
-    candidateTid++;
-    pSession->ulNextAvailableTid = candidateTid ? candidateTid : 1;
+    ulCandidateTid++;
+    pSession->ulNextAvailableTid = ulCandidateTid ? ulCandidateTid : 1;
 
 cleanup:
 
