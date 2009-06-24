@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 #include "includes.h"
 
 static
@@ -65,6 +69,7 @@ main(
     DWORD        dwNumAddrs = 0;
     PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
     HANDLE hPasswordStore = (HANDLE)NULL;
+    DWORD iAddr = 0;
 
     if (geteuid() != 0)
     {
@@ -163,8 +168,6 @@ main(
     }
     else
     {
-        DWORD iAddr = 0;
-
         dwError = DNSGetNetworkInterfaces(
                         &pInterfaceInfos,
                         &dwNumItfInfos);
@@ -266,8 +269,29 @@ main(
         dwError = LWDNS_ERROR_UPDATE_FAILED;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
+
+    printf("A record successfully updated in DNS\n");
+
+    for (iAddr = 0; iAddr < dwNumAddrs; iAddr++)
+    {
+        PSOCKADDR_IN pSockAddr = &pAddrArray[iAddr];
+
+        dwError = DNSUpdatePtrSecure(
+                        pSockAddr,
+                        pszHostnameFQDN);
+        if (dwError)
+        {
+            LWDNS_LOG_WARNING("Unable to register address %s with hostname %s",
+                    inet_ntoa(pSockAddr->sin_addr), pszHostnameFQDN);
+            dwError = 0;
+            bDNSUpdated = FALSE;
+        }
+    }
     
-    printf("DNS was updated successfully\n");
+    if (bDNSUpdated)
+    {
+        printf("PTR record successfully updated in DNS\n");
+    }
 
 cleanup:
 

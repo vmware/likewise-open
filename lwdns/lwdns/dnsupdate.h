@@ -1,3 +1,39 @@
+DWORD
+DNSUpdateCreatePtrRUpdateRequest(
+    PDNS_UPDATE_REQUEST* ppDNSUpdateRequest,
+    PCSTR pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostNameFQDN
+    );
+
+DWORD
+DNSSendPtrUpdate(
+    HANDLE hDNSServer,
+    PCSTR  pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostNameFQDN,
+    PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
+    );
+
+DWORD
+DNSSendPtrSecureUpdate(
+    HANDLE hDNSServer,
+    PCtxtHandle pGSSContext,
+    PCSTR pszKeyName,
+    PCSTR pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostNameFQDN,
+    PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
+    );
+
+DWORD
+DNSUpdatePtrSecureOnServer(
+    HANDLE hDNSServer,
+    PCSTR  pszServerName,
+    PCSTR  pszZoneName,
+    PCSTR  pszPtrName,
+    PCSTR  pszHostNameFQDN
+    );
 
 DWORD
 DNSUpdateCreateARUpdateRequest(
@@ -59,3 +95,8 @@ DNSBuildMessageBuffer(
     PDWORD pdwMessageSize
     );
 
+DWORD
+DNSGetPtrNameForAddr(
+    PSTR* ppszRecordName,
+    PSOCKADDR_IN pAddr
+    );

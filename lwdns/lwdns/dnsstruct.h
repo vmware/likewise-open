@@ -65,7 +65,6 @@ typedef struct _DNS_RR_HEADER {
 	WORD wClass;
 	DWORD dwTTL;
 	WORD  wRDataSize;
-	PBYTE pRData;
 }DNS_RR_HEADER, *PDNS_RR_HEADER;
 
 
@@ -104,7 +103,9 @@ typedef struct _DNS_RR_RECORD {
 		DNS_TKEY_OFFSETS TKey;
 		DNS_TSIG_OFFSETS TSig;
 	}Offsets;
+	// either pRData or pRDataDomain may be set
 	PBYTE pRData;
+	PDNS_DOMAIN_NAME pRDataDomain;
 }DNS_RR_RECORD, *PDNS_RR_RECORD;
 
 

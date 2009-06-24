@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*++
     Linux DNS client library implementation
     Copyright (C) 2006 Krishna Ganugapati
@@ -639,7 +643,6 @@ DNSMarshallRRHeader(
     DWORD dwRead = 0;
     WORD wnType = 0;
     WORD wnClass = 0;
-    WORD wnRDataSize = 0;
     DWORD dwnTTL = 0;
 
     dwError = DNSMarshallDomainName(
@@ -671,14 +674,6 @@ DNSMarshallRRHeader(
                 &dwRead);
     BAIL_ON_LWDNS_ERROR(dwError);
 
-    wnRDataSize = htons(pDNSRecord->RRHeader.wRDataSize);
-    dwError = DNSMarshallBuffer(
-                hSendBuffer,
-                (PBYTE)&wnRDataSize,
-                sizeof(WORD),
-                &dwRead);
-    BAIL_ON_LWDNS_ERROR(dwError);
-
 error:
 
     return(dwError);
@@ -690,11 +685,53 @@ DNSMarshallRData(
     PDNS_RR_RECORD pDNSRecord
     )
 {
+    DWORD dwError = 0;
     DWORD dwWritten = 0;
+    WORD wnRDataSize = 0;
+    PDNS_SENDBUFFER_CONTEXT pDNSContext = NULL;
+    DWORD dwSizeOffset = 0;
+    DWORD dwDataStartOffset = 0;
+    DWORD  dwRead = 0;
 
-    return DNSMarshallBuffer(
+    pDNSContext = (PDNS_SENDBUFFER_CONTEXT)hSendBuffer;
+
+    wnRDataSize = htons(pDNSRecord->RRHeader.wRDataSize);
+    // Remember where the rdata size is written in the buffer so it can be
+    // fixed up later
+    dwSizeOffset = pDNSContext->dwBufferOffset;
+    dwError = DNSMarshallBuffer(
                 hSendBuffer,
-                pDNSRecord->pRData,
-                pDNSRecord->RRHeader.wRDataSize,
-                &dwWritten);
+                (PBYTE)&wnRDataSize,
+                sizeof(WORD),
+                &dwRead);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwDataStartOffset = pDNSContext->dwBufferOffset;
+
+    if (pDNSRecord->pRDataDomain)
+    {
+        dwError = DNSMarshallDomainName(
+                    hSendBuffer,
+                    pDNSRecord->pRDataDomain);
+        BAIL_ON_LWDNS_ERROR(dwError);
+
+        // Fix up the length
+        wnRDataSize = htons(pDNSContext->dwBufferOffset - dwDataStartOffset);
+        *(WORD *)&pDNSContext->pSendBuffer[dwSizeOffset] = wnRDataSize;
+    }
+    else
+    {
+        dwError = DNSMarshallBuffer(
+                    hSendBuffer,
+                    pDNSRecord->pRData,
+                    pDNSRecord->RRHeader.wRDataSize,
+                    &dwWritten);
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }

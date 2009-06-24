@@ -6,6 +6,476 @@
 #include  "includes.h"
 
 DWORD
+DNSUpdateCreatePtrRUpdateRequest(
+    PDNS_UPDATE_REQUEST* ppDNSUpdateRequest,
+    PCSTR pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostnameFQDN
+    )
+{
+    DWORD dwError = 0;
+    PDNS_UPDATE_REQUEST pDNSUpdateRequest = NULL;
+    PDNS_ZONE_RECORD pDNSZoneRecord = NULL;
+    PDNS_RR_RECORD pDNSPtrRecord = NULL;
+
+    // Allocate pDNSUpdateRequest and fill in wIdentification and wParameter
+    dwError = DNSUpdateCreateUpdateRequest(
+                    &pDNSUpdateRequest);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSCreateZoneRecord(
+                        pszZoneName,
+                        &pDNSZoneRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateAddZoneSection(
+                        pDNSUpdateRequest,
+                        pDNSZoneRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSZoneRecord = NULL;
+
+    // Delete all PTR records associated with the fqdn.
+    // This deletes hostnames that do not belong to the computer.
+    dwError = DNSCreateDeleteRecord(
+                    pszPtrName,
+                    DNS_CLASS_ANY,
+                    QTYPE_PTR,
+                    &pDNSPtrRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateAddUpdateSection(
+                    pDNSUpdateRequest,
+                    pDNSPtrRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSPtrRecord = NULL;
+
+    dwError = DNSCreatePtrRecord(
+                    pszPtrName,
+                    DNS_CLASS_IN,
+                    pszHostnameFQDN,
+                    &pDNSPtrRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateAddUpdateSection(
+                    pDNSUpdateRequest,
+                    pDNSPtrRecord);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    pDNSPtrRecord = NULL;
+
+    *ppDNSUpdateRequest = pDNSUpdateRequest;
+
+cleanup:
+
+    if (pDNSZoneRecord) {
+        DNSFreeZoneRecord(pDNSZoneRecord);
+    }
+
+    if (pDNSPtrRecord)
+    {
+        DNSFreeRecord(pDNSPtrRecord);
+    }
+
+    return(dwError);
+
+error:
+
+    *ppDNSUpdateRequest = NULL;
+
+    if (pDNSUpdateRequest) {
+        DNSUpdateFreeRequest(pDNSUpdateRequest);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+DNSSendPtrUpdate(
+    HANDLE hDNSServer,
+    PCSTR  pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostNameFQDN,
+    PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
+    )
+{
+    DWORD dwError = 0;
+    PDNS_UPDATE_REQUEST  pDNSUpdateRequest = NULL;
+    PDNS_UPDATE_RESPONSE pDNSUpdateResponse = NULL;
+    PDNS_ZONE_RECORD pDNSZoneRecord = NULL;
+    PDNS_RR_RECORD   pDNSARecord = NULL;
+
+    LWDNS_LOG_INFO("Attempting DNS Update (in-secure)");
+
+    dwError = DNSUpdateCreatePtrRUpdateRequest(
+                    &pDNSUpdateRequest,
+                    pszZoneName,
+                    pszPtrName,
+                    pszHostNameFQDN);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateSendUpdateRequest2(
+                    hDNSServer,
+                    pDNSUpdateRequest);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateReceiveUpdateResponse(
+                    hDNSServer,
+                    &pDNSUpdateResponse);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    *ppDNSUpdateResponse = pDNSUpdateResponse;
+
+    LWDNS_LOG_INFO("DNS Update (in-secure) succeeded");
+
+cleanup:
+
+    if (pDNSZoneRecord) {
+        DNSFreeZoneRecord(pDNSZoneRecord);
+    }
+
+    if (pDNSARecord)
+    {
+        DNSFreeRecord(pDNSARecord);
+    }
+
+    if (pDNSUpdateRequest) {
+        DNSUpdateFreeRequest(pDNSUpdateRequest);
+    }
+
+    return(dwError);
+
+error:
+
+    *ppDNSUpdateResponse = NULL;
+
+    if (pDNSUpdateResponse) {
+        DNSUpdateFreeResponse(pDNSUpdateResponse);
+    }
+
+    LWDNS_LOG_ERROR("DNS Update (in-secure) failed. [Error code:%d]", dwError);
+
+    goto cleanup;
+}
+
+DWORD
+DNSSendPtrSecureUpdate(
+    HANDLE hDNSServer,
+    PCtxtHandle pGSSContext,
+    PCSTR pszKeyName,
+    PCSTR pszZoneName,
+    PCSTR pszPtrName,
+    PCSTR pszHostNameFQDN,
+    PDNS_UPDATE_RESPONSE * ppDNSUpdateResponse
+    )
+{
+    DWORD dwError = 0;
+    PDNS_UPDATE_REQUEST pDNSUpdateRequest = NULL;
+    PDNS_UPDATE_RESPONSE pDNSUpdateResponse = NULL;
+
+    LWDNS_LOG_INFO("Attempting DNS Update (secure)");
+
+    dwError = DNSUpdateCreatePtrRUpdateRequest(
+                    &pDNSUpdateRequest,
+                    pszZoneName,
+                    pszPtrName,
+                    pszHostNameFQDN);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    //
+    // Now Sign the Record
+    //
+    dwError = DNSUpdateGenerateSignature(
+                        pGSSContext,
+                        pDNSUpdateRequest,
+                        pszKeyName);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateSendUpdateRequest2(
+                    hDNSServer,
+                    pDNSUpdateRequest);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateReceiveUpdateResponse(
+                    hDNSServer,
+                    &pDNSUpdateResponse);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    *ppDNSUpdateResponse = pDNSUpdateResponse;
+
+    LWDNS_LOG_INFO("DNS Update (secure) succeeded");
+
+cleanup:
+
+    if (pDNSUpdateRequest) {
+        DNSUpdateFreeRequest(pDNSUpdateRequest);
+    }
+
+    return(dwError);
+
+error:
+
+    if (pDNSUpdateResponse) {
+        DNSUpdateFreeResponse(pDNSUpdateResponse);
+    }
+
+    *ppDNSUpdateResponse = NULL;
+
+    LWDNS_LOG_ERROR("DNS Update (secure) failed. [Error code:%d]", dwError);
+
+    goto cleanup;
+}
+
+DWORD
+DNSUpdatePtrSecureOnServer(
+    HANDLE hDNSServer,
+    PCSTR  pszServerName,
+    PCSTR  pszZoneName,
+    PCSTR  pszPtrName,
+    PCSTR  pszHostNameFQDN
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwResponseCode = 0;
+    PCSTR pszDomainName = strchr(pszServerName, '.');
+
+    CtxtHandle GSSContext = {0};
+    PCtxtHandle pGSSContext = &GSSContext;
+
+    PDNS_UPDATE_RESPONSE pDNSUpdateResponse = NULL;
+    PDNS_UPDATE_RESPONSE pDNSSecureUpdateResponse = NULL;
+    PSTR pszKeyName = NULL;
+
+    if (pszDomainName != NULL)
+    {
+        pszDomainName++;
+    }
+    else
+    {
+        dwError = LWDNS_ERROR_NO_SUCH_ZONE;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+    dwError = DNSSendPtrUpdate(
+                    hDNSServer,
+                    pszZoneName,
+                    pszPtrName,
+                    pszHostNameFQDN,
+                    &pDNSUpdateResponse);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSUpdateGetResponseCode(
+                    pDNSUpdateResponse,
+                    &dwResponseCode);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    if (dwResponseCode == DNS_REFUSED) {
+
+        dwError = DNSGenerateKeyName(&pszKeyName);
+        BAIL_ON_LWDNS_ERROR(dwError);
+
+        dwError = DNSNegotiateSecureContext(
+                        hDNSServer,
+                        pszDomainName,
+                        pszServerName,
+                        pszKeyName,
+                        pGSSContext);
+        BAIL_ON_LWDNS_ERROR(dwError);
+
+        dwError = DNSSendPtrSecureUpdate(
+                        hDNSServer,
+                        pGSSContext,
+                        pszKeyName,
+                        pszZoneName,
+                        pszPtrName,
+                        pszHostNameFQDN,
+                        &pDNSSecureUpdateResponse);
+        BAIL_ON_LWDNS_ERROR(dwError);
+
+        dwError = DNSUpdateGetResponseCode(
+                    pDNSSecureUpdateResponse,
+                    &dwResponseCode);
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+    dwError = DNSMapRCode(dwResponseCode);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+cleanup:
+
+    if (*pGSSContext != GSS_C_NO_CONTEXT)
+    {
+        OM_uint32 dwMinorStatus = 0;
+
+        gss_delete_sec_context(
+            &dwMinorStatus,
+            pGSSContext,
+            GSS_C_NO_BUFFER);
+    }
+
+    if (pDNSUpdateResponse){
+        DNSUpdateFreeResponse(pDNSUpdateResponse);
+    }
+
+    if (pDNSSecureUpdateResponse) {
+        DNSUpdateFreeResponse(pDNSSecureUpdateResponse);
+    }
+
+    LWDNS_SAFE_FREE_STRING(pszKeyName);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+DNSGetPtrNameForAddr(
+    PSTR* ppszRecordName,
+    PSOCKADDR_IN pAddr
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszRecordName = NULL;
+
+    if (pAddr->sin_family != AF_INET)
+    {
+        dwError = LWDNS_ERROR_INVALID_IP_ADDRESS;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+    dwError = LwRtlCStringAllocatePrintf(
+                    &pszRecordName,
+                    "%d.%d.%d.%d.in-addr.arpa",
+                    (pAddr->sin_addr.s_addr >> 24) & 255,
+                    (pAddr->sin_addr.s_addr >> 16) & 255,
+                    (pAddr->sin_addr.s_addr >>  8) & 255,
+                    (pAddr->sin_addr.s_addr >>  0) & 255
+                );
+    if (dwError)
+    {
+        dwError = ENOMEM;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+    *ppszRecordName = pszRecordName;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppszRecordName = NULL;
+    LWDNS_SAFE_FREE_STRING(pszRecordName);
+
+    goto cleanup;
+}
+
+DWORD
+DNSUpdatePtrSecure(
+    PSOCKADDR_IN pAddr,
+    PCSTR  pszHostnameFQDN
+    )
+{
+    DWORD dwError = 0;
+    PSTR   pszZone = NULL;
+    PLW_NS_INFO pNameServerInfos = NULL;
+    DWORD   dwNumNSInfos = 0;
+    BOOLEAN bDNSUpdated = FALSE;
+    PSTR pszRecordName = NULL;
+    DWORD   iNS = 0;
+    HANDLE hDNSServer = (HANDLE)NULL;
+
+    dwError = DNSGetPtrNameForAddr(
+                    &pszRecordName,
+                    pAddr);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    dwError = DNSGetNameServers(
+                    pszRecordName,
+                    &pszZone,
+                    &pNameServerInfos,
+                    &dwNumNSInfos);
+    BAIL_ON_LWDNS_ERROR(dwError);
+
+    for (; !bDNSUpdated && (iNS < dwNumNSInfos); iNS++)
+    {
+        PSTR   pszNameServer = NULL;
+        PLW_NS_INFO pNSInfo = NULL;
+
+        pNSInfo = &pNameServerInfos[iNS];
+        pszNameServer = pNSInfo->pszNSHostName;
+
+        if (hDNSServer != (HANDLE)NULL)
+        {
+            DNSClose(hDNSServer);
+        }
+
+        LWDNS_LOG_INFO("Attempting to update name server [%s]", pszNameServer);
+
+        dwError = DNSOpen(
+                        pszNameServer,
+                        DNS_TCP,
+                        &hDNSServer);
+        if (dwError)
+        {
+            LWDNS_LOG_ERROR(
+                    "Failed to open connection to Name Server [%s]. [Error code:%d]",
+                    pszNameServer,
+                    dwError);
+            dwError = 0;
+
+            continue;
+        }
+
+        dwError = DNSUpdatePtrSecureOnServer(
+                        hDNSServer,
+                        pszNameServer,
+                        pszZone,
+                        pszRecordName,
+                        pszHostnameFQDN);
+        if (dwError)
+        {
+            LWDNS_LOG_ERROR(
+                    "Failed to update Name Server [%s]. [Error code:%d]",
+                    pszNameServer,
+                    dwError);
+            dwError = 0;
+
+            continue;
+        }
+
+        bDNSUpdated = TRUE;
+    }
+
+    if (!bDNSUpdated)
+    {
+        dwError = LWDNS_ERROR_UPDATE_FAILED;
+        BAIL_ON_LWDNS_ERROR(dwError);
+    }
+
+cleanup:
+    LWDNS_SAFE_FREE_STRING(pszZone);
+    if (pNameServerInfos)
+    {
+        DNSFreeNameServerInfoArray(
+                pNameServerInfos,
+                dwNumNSInfos);
+    }
+    LWDNS_SAFE_FREE_STRING(pszRecordName);
+    if (hDNSServer)
+    {
+        DNSClose(hDNSServer);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
 DNSUpdateSecure(
     HANDLE hDNSServer,
     PCSTR  pszServerName,
@@ -243,7 +713,6 @@ DNSSendUpdate(
     PDNS_UPDATE_RESPONSE pDNSUpdateResponse = NULL;
     PDNS_ZONE_RECORD pDNSZoneRecord = NULL;
     PDNS_RR_RECORD   pDNSARecord = NULL;
-    PDNS_RR_RECORD   pDNSPRRecord = NULL;
 
     LWDNS_LOG_INFO("Attempting DNS Update (in-secure)");
 
@@ -278,11 +747,6 @@ cleanup:
     if (pDNSARecord)
     {
         DNSFreeRecord(pDNSARecord);
-    }
-
-    if (pDNSPRRecord)
-    {
-        DNSFreeRecord(pDNSPRRecord);
     }
 
     if (pDNSUpdateRequest) {

@@ -37,6 +37,7 @@
 #include "dnsupdate.h"
 #include "dnsupresp.h"
 #include "dnsparser.h"
+#include "lw/rtlstring.h"
 
 #include "externs.h"
 
