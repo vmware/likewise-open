@@ -46,6 +46,11 @@
 
 #include "test-private.h"
 
+MU_LIBRARY_DESTRUCT()
+{
+    unlink(TEST_ENDPOINT);
+}
+
 MU_LIBRARY_SETUP()
 {
     signal(SIGPIPE, SIG_IGN);

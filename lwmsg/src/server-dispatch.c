@@ -75,12 +75,12 @@ lwmsg_server_dispatch_loop(
         pthread_mutex_unlock(&server->dispatch.lock);
         in_lock = LWMSG_FALSE;
 
-        if (task->incoming_message.tag >= server->dispatch.vector_length)
+        if (task->info.call.incoming_message.tag >= server->dispatch.vector_length)
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
         }
 
-        spec = server->dispatch.vector[task->incoming_message.tag];
+        spec = server->dispatch.vector[task->info.call.incoming_message.tag];
 
         if (!spec->data)
         {
@@ -91,16 +91,16 @@ lwmsg_server_dispatch_loop(
         {
         case LWMSG_DISPATCH_TYPE_OLD:
             status = ((LWMsgAssocDispatchFunction) spec->data) (
-                task->assoc,
-                &task->incoming_message,
-                &task->outgoing_message,
+                task->info.call.assoc,
+                &task->info.call.incoming_message,
+                &task->info.call.outgoing_message,
                 server->dispatch_data);
             break;
         case LWMSG_DISPATCH_TYPE_BLOCK:
             status = ((LWMsgServerCallFunction) spec->data) (
-                LWMSG_CALL(&task->call),
-                &task->incoming_message,
-                &task->outgoing_message,
+                LWMSG_CALL(&task->info.call.control),
+                &task->info.call.incoming_message,
+                &task->info.call.outgoing_message,
                 server->dispatch_data);
             break;
         default:
@@ -111,7 +111,7 @@ lwmsg_server_dispatch_loop(
         switch (status)
         {
         case LWMSG_STATUS_SUCCESS:
-            lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
+            lwmsg_assoc_destroy_message(task->info.call.assoc, &task->info.call.incoming_message);
             task->type = SERVER_TASK_BEGIN_SEND;
             break;
         default:

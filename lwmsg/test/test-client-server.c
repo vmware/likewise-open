@@ -275,8 +275,6 @@ add_thread(void* _data)
 #define NUM_THREADS 16
 #define NUM_ITERS 10
 
-#define ENDPOINT "/tmp/.lwmsg_server_test_socket"
-
 MU_TEST(client_server, parallel)
 {
     Data data;
@@ -300,7 +298,7 @@ MU_TEST(client_server, parallel)
 
     MU_TRY(lwmsg_server_new(context, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
     MU_TRY(lwmsg_server_set_max_dispatch(server, MAX_DISPATCH));
     MU_TRY(lwmsg_server_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
@@ -308,7 +306,7 @@ MU_TEST(client_server, parallel)
 
     MU_TRY(lwmsg_client_new(context, protocol, &client));
     MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request.counter = 0;
     request_msg.tag = COUNTER_OPEN;
@@ -514,11 +512,11 @@ MU_TEST(client_server, async_immediate)
 
     MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
     MU_TRY(lwmsg_client_new(NULL, protocol, &client));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_IMMEDIATE;
 
@@ -549,11 +547,11 @@ MU_TEST(client_server, async_delay)
 
     MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
     MU_TRY(lwmsg_client_new(NULL, protocol, &client));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;
 
@@ -584,11 +582,11 @@ MU_TEST(client_server, async_interrupt)
 
     MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
     MU_TRY(lwmsg_client_new(NULL, protocol, &client));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;
 
@@ -620,11 +618,11 @@ MU_TEST(client_server, async_shutdown)
 
     MU_TRY(lwmsg_server_new(NULL, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
 
     MU_TRY(lwmsg_client_new(NULL, protocol, &client));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request_msg.tag = ASYNC_REQUEST_DELAY;
 

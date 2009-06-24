@@ -83,8 +83,8 @@ typedef struct ServerCall
         SERVER_CALL_PENDING,
         SERVER_CALL_CANCELED,
         SERVER_CALL_COMPLETE
-    } state;
-    LWMsgStatus status;
+    } volatile state;
+    LWMsgStatus volatile status;
     LWMsgCancelFunction cancel;
     void* cancel_data;
     struct ServerIoThread* owner;
@@ -96,12 +96,26 @@ typedef struct ServerTask
     LWMsgRing ring;
     ServerTaskType volatile type;
     LWMsgBool blocked;
-    int fd;
-    LWMsgAssoc* assoc;
-    ServerCall call;
-    LWMsgMessage incoming_message;
-    LWMsgMessage outgoing_message;
     LWMsgTime deadline;
+    int fd;
+    union
+    {
+        /* Data for listen/accept tasks */
+        struct
+        {
+            LWMsgServerMode mode;
+            char* endpoint;
+            mode_t perms;
+        } listen;
+        /* Data for call-oriented tasks */
+        struct
+        {
+            LWMsgAssoc* assoc;
+            ServerCall control;
+            LWMsgMessage incoming_message;
+            LWMsgMessage outgoing_message;
+        } call;
+    } info;
 } ServerTask;
 
 typedef struct ServerIoThread
@@ -231,6 +245,9 @@ lwmsg_server_task_new(
 
 LWMsgStatus
 lwmsg_server_task_new_listen(
+    LWMsgServerMode mode,
+    const char* endpoint,
+    mode_t perms,
     int fd,
     ServerTask** task
     );

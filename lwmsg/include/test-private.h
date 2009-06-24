@@ -89,6 +89,8 @@
                 "Unexpected error");                                    \
     } while (0)
 
+#define TEST_ENDPOINT "/tmp/.lwmsg_server_test_socket"
+
 void
 lwmsg_test_assoc_pair(
     LWMsgProtocolSpec* pspec,
