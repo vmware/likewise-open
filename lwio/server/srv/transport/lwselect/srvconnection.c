@@ -283,11 +283,11 @@ SrvConnectionWriteMessage(
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
-        pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
-
         switch (pPacket->protocolVer)
         {
             case SMB_PROTOCOL_VERSION_1:
+
+                pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
 
                 ntStatus = SMBPacketSign(
                                 pPacket,
