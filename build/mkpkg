@@ -26,7 +26,7 @@ function _setup_pkg_env
     PKG_TYPE="$2"
     PKG_POPULATE_DIR="${STAGE_PKG_DIR}/${PKG_NAME}/populate"
     PKG_PACKAGE_DIR="${STAGE_PKG_DIR}/${PKG_NAME}/${PKG_TYPE}"
-    PKG_VERSION=$(LikewiseOpenVersion)
+    PKG_VERSION=`echo $(LikewiseOpenVersion) | sed 's/-.*$//'`
 
     [ "${PKG_PACKAGE_DIR}" != "/" ] && rm -rf ${PKG_PACKAGE_DIR}
     mkdir -p "${PKG_PACKAGE_DIR}"
