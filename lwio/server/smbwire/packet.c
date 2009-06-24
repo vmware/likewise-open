@@ -662,13 +662,13 @@ SMB2PacketSign(
         SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
     }
 
+    pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
+
     SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, ntohl(pPacket->pNetBIOSHeader->len));
 
     SHA256_Final(digest, &sha256Value);
 
     memcpy(&pPacket->pSMB2Header->signature[0], &digest[0], sizeof(pPacket->pSMB2Header->signature));
-
-    pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
 
     return ntStatus;
 }
