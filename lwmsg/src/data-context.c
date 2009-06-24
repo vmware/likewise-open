@@ -26,11 +26,11 @@
 /*
  * Module Name:
  *
- *        data-handle.c
+ *        data-context.c
  *
  * Abstract:
  *
- *        Data handle management
+ *        Data context management
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
@@ -42,24 +42,24 @@
 #include "util-private.h"
 
 LWMsgStatus
-lwmsg_data_handle_new(
+lwmsg_data_context_new(
     const LWMsgContext* context,
-    LWMsgDataHandle** handle
+    LWMsgDataContext** dcontext
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgDataHandle* my_handle = NULL;
+    LWMsgDataContext* my_context = NULL;
 
-    my_handle = calloc(1, sizeof(*my_handle));
-    if (!my_handle)
+    my_context = calloc(1, sizeof(*my_context));
+    if (!my_context)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    my_handle->context = context;
-    my_handle->byte_order = LWMSG_BIG_ENDIAN;
+    my_context->context = context;
+    my_context->byte_order = LWMSG_BIG_ENDIAN;
 
-    *handle = my_handle;
+    *dcontext = my_context;
 
 done:
 
@@ -67,63 +67,63 @@ done:
 
 error:
 
-    *handle = NULL;
+    *dcontext = NULL;
 
-    if (my_handle)
+    if (my_context)
     {
-        free(my_handle);
+        free(my_context);
     }
 
     goto done;
 }
 
 void
-lwmsg_data_handle_delete(
-    LWMsgDataHandle* handle
+lwmsg_data_context_delete(
+    LWMsgDataContext* context
     )
 {
-    lwmsg_error_clear(&handle->error);
+    lwmsg_error_clear(&context->error);
 
-    free(handle);
+    free(context);
 }
 
 const char*
-lwmsg_data_handle_get_error_message(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_get_error_message(
+    LWMsgDataContext* context,
     LWMsgStatus status
     )
 {
-    return lwmsg_error_message(status, &handle->error);
+    return lwmsg_error_message(status, &context->error);
 }
 
 void
-lwmsg_data_handle_set_byte_order(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_set_byte_order(
+    LWMsgDataContext* context,
     LWMsgByteOrder byte_order
     )
 {
-    handle->byte_order = byte_order;
+    context->byte_order = byte_order;
 }
 
 LWMsgByteOrder
-lwmsg_data_handle_get_byte_order(
-    LWMsgDataHandle* handle
+lwmsg_data_context_get_byte_order(
+    LWMsgDataContext* context
     )
 {
-    return handle->byte_order;
+    return context->byte_order;
 }
 
 const LWMsgContext*
-lwmsg_data_handle_get_context(
-    LWMsgDataHandle* handle
+lwmsg_data_context_get_context(
+    LWMsgDataContext* context
     )
 {
-    return handle->context;
+    return context->context;
 }
 
 LWMsgStatus
-lwmsg_data_handle_raise_error(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_raise_error(
+    LWMsgDataContext* context,
     LWMsgStatus status,
     const char* format,
     ...
@@ -133,7 +133,7 @@ lwmsg_data_handle_raise_error(
 
     va_start(ap, format);
 
-    status = lwmsg_error_raise_v(&handle->error, status, format, ap);
+    status = lwmsg_error_raise_v(&context->error, status, format, ap);
 
     va_end(ap);
 

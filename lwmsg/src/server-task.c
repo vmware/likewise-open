@@ -39,7 +39,6 @@
 #include <config.h>
 #include "server-private.h"
 #include "assoc-private.h"
-#include "dispatch-private.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -117,7 +116,7 @@ lwmsg_server_task_new(
 
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_task));
 
-    BAIL_ON_ERROR(status = lwmsg_dispatch_init(&my_task->dispatch));
+    BAIL_ON_ERROR(status = lwmsg_server_call_init(&my_task->call));
 
     lwmsg_ring_init(&my_task->ring);
     my_task->type = type;
@@ -190,16 +189,16 @@ lwmsg_server_task_delete(
 {
     lwmsg_ring_remove(&task->ring);
 
-    lwmsg_dispatch_destroy(&task->dispatch);
+    lwmsg_server_call_destroy(&task->call);
 
     if (task->assoc && task->incoming_message.tag != -1)
     {
-        lwmsg_assoc_free_message(task->assoc, &task->incoming_message);
+        lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
     }
 
     if (task->assoc && task->outgoing_message.tag != -1)
     {
-        lwmsg_assoc_free_message(task->assoc, &task->outgoing_message);
+        lwmsg_assoc_destroy_message(task->assoc, &task->outgoing_message);
     }
 
     if (task->fd >= 0 && !task->assoc)
@@ -266,25 +265,12 @@ lwmsg_server_task_subject_to_timeout(
     LWMsgBool shutdown
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgSessionManager* manager = NULL;
-    LWMsgSession* session = NULL;
     size_t handle_count = 0;
     size_t num_clients = 0;
 
     if (!shutdown && task->type == SERVER_TASK_FINISH_RECV)
     {
-        /* Clients that are sitting idle without sending a message
-           are not subject to timeout if:
-
-           - The server is not shutting down, and
-              * The client has an open handle, or
-              * There are still available client slots
-         */
-        BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(task->assoc, &manager));
-        BAIL_ON_ERROR(status = task->assoc->aclass->get_session(task->assoc, &session));
-
-        handle_count = lwmsg_session_manager_get_session_handle_count(manager, session);
+        handle_count = lwmsg_session_get_handle_count(task->call.session);
         num_clients = lwmsg_server_get_num_clients(server);
 
         return handle_count == 0 && num_clients == server->max_clients;
@@ -293,8 +279,6 @@ lwmsg_server_task_subject_to_timeout(
     {
         return LWMSG_TRUE;
     }
-
-error:
 
     return LWMSG_TRUE;
 }
@@ -400,7 +384,7 @@ lwmsg_server_task_handle_assoc_error(
     case LWMSG_STATUS_SECURITY:
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
-    case LWMSG_STATUS_INTERRUPT:
+    case LWMSG_STATUS_CANCELLED:
         lwmsg_server_task_drop(server, task);
         status = LWMSG_STATUS_SUCCESS;
         break;
@@ -520,9 +504,10 @@ lwmsg_server_task_perform_establish(
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
+        BAIL_ON_ERROR(status = lwmsg_assoc_get_session((*task)->assoc, &(*task)->call.session));
         (*task)->type = SERVER_TASK_BEGIN_RECV;
         break;
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
         (*task)->blocked = LWMSG_TRUE;
         (*task)->type = SERVER_TASK_FINISH_ESTABLISH;
         lwmsg_server_task_update_deadline(
@@ -567,7 +552,7 @@ lwmsg_server_task_perform_close(
     case LWMSG_STATUS_SUCCESS:
         lwmsg_server_task_drop(server, task);
         break;
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
         (*task)->blocked = LWMSG_TRUE;
         (*task)->type = SERVER_TASK_FINISH_CLOSE;
         status = LWMSG_STATUS_SUCCESS;
@@ -612,7 +597,7 @@ lwmsg_server_task_perform_reset(
     case LWMSG_STATUS_SUCCESS:
         lwmsg_server_task_drop(server, task);
         break;
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
         (*task)->blocked = LWMSG_TRUE;
         (*task)->type = SERVER_TASK_FINISH_RESET;
         status = LWMSG_STATUS_SUCCESS;
@@ -654,12 +639,12 @@ lwmsg_server_task_dispatch(
     switch (spec->type)
     {
     case LWMSG_DISPATCH_TYPE_OLD:
-    case LWMSG_DISPATCH_TYPE_SYNC:
+    case LWMSG_DISPATCH_TYPE_BLOCK:
         (*task)->type = SERVER_TASK_DISPATCH;
         lwmsg_server_queue_dispatch_task(server, (*task));
         *task = NULL;
         break;
-    case LWMSG_DISPATCH_TYPE_ASYNC:
+    case LWMSG_DISPATCH_TYPE_NONBLOCK:
         (*task)->type = SERVER_TASK_BEGIN_ASYNC;
         (*task)->blocked = LWMSG_FALSE;
         break;
@@ -670,24 +655,6 @@ lwmsg_server_task_dispatch(
 error:
 
     return status;
-}
-
-static
-void
-lwmsg_server_task_complete_async(
-    LWMsgDispatchHandle* handle,
-    LWMsgStatus status,
-    void* data
-    )
-{
-    ServerIoThread* thread = (ServerIoThread*) data;
-
-    /* Poke the thread owning the task so it wakes up and
-       notices the dispatch completed */
-    pthread_mutex_lock(&thread->lock);
-    thread->num_events++;
-    lwmsg_server_signal_io_thread(thread);
-    pthread_mutex_unlock(&thread->lock);
 }
 
 static
@@ -702,23 +669,23 @@ lwmsg_server_task_perform_async(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgDispatchSpec* spec = server->dispatch.vector[(*task)->incoming_message.tag];
-    LWMsgServerDispatchFunction func = (LWMsgServerDispatchFunction) spec->data;
+    LWMsgServerCallFunction func = (LWMsgServerCallFunction) spec->data;
+    ServerCall* call = &(*task)->call;
 
-    lwmsg_dispatch_begin(&(*task)->dispatch,
-                         lwmsg_server_task_complete_async,
-                         thread);
-
-    status = func(&(*task)->dispatch,
-                  &(*task)->incoming_message,
-                  &(*task)->outgoing_message,
-                  server->dispatch_data);
+    call->owner = thread;
+    call->state = SERVER_CALL_TRANSACTING;
+    status = call->status =
+        func(LWMSG_CALL(call),
+             &(*task)->incoming_message,
+             &(*task)->outgoing_message,
+             server->dispatch_data);
 
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
         (*task)->type = SERVER_TASK_BEGIN_SEND;
         break;
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
         (*task)->type = SERVER_TASK_FINISH_ASYNC;
         status = LWMSG_STATUS_SUCCESS;
         break;
@@ -742,24 +709,26 @@ lwmsg_server_task_finish_async(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    status = lwmsg_dispatch_get_result(&(*task)->dispatch);
+    pthread_mutex_lock(&(*task)->call.lock);
+    status = (*task)->call.status;
+    pthread_mutex_unlock(&(*task)->call.lock);
 
-    if (status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_PENDING)
     {
         if (shutdown)
         {
-            /* Interrupt dispatch so we can shut down */
-            lwmsg_dispatch_interrupt(&(*task)->dispatch);
+            /* Interrupt call so we can shut down */
+            lwmsg_call_cancel(LWMSG_CALL(&(*task)->call));
             (*task)->blocked = LWMSG_TRUE;
         }
         else if (!(*task)->blocked)
         {
             /* Check for interrupt/close from peer.
-               This is done within the dispatch lock
+               This is done within the call lock
                to serialize access to the association */
-            pthread_mutex_lock(&(*task)->dispatch.lock);
+            pthread_mutex_lock(&(*task)->call.lock);
             status = lwmsg_assoc_finish((*task)->assoc);
-            pthread_mutex_unlock(&(*task)->dispatch.lock);
+            pthread_mutex_unlock(&(*task)->call.lock);
 
             switch (status)
             {
@@ -769,7 +738,7 @@ lwmsg_server_task_finish_async(
                 break;
             default:
                 /* Interrupt dispatch go back to sleep waiting for completion */
-                lwmsg_dispatch_interrupt(&(*task)->dispatch);
+                lwmsg_call_cancel(LWMSG_CALL(&(*task)->call));
                 (*task)->blocked = LWMSG_TRUE;
                 break;
             }
@@ -784,7 +753,7 @@ lwmsg_server_task_finish_async(
         case LWMSG_STATUS_SUCCESS:
             (*task)->blocked = LWMSG_FALSE;
             (*task)->type = SERVER_TASK_BEGIN_SEND;
-            lwmsg_assoc_free_message((*task)->assoc, &(*task)->incoming_message);
+            lwmsg_assoc_destroy_message((*task)->assoc, &(*task)->incoming_message);
             break;
         default:
             BAIL_ON_ERROR(status = lwmsg_server_task_handle_assoc_error(server, task, status));
@@ -824,7 +793,7 @@ lwmsg_server_task_perform_recv(
             BAIL_ON_ERROR(status = lwmsg_server_log_incoming_message(server, (*task)->assoc, &(*task)->incoming_message));
             BAIL_ON_ERROR(status = lwmsg_server_task_dispatch(server, task));
             break;
-        case LWMSG_STATUS_NOT_FINISHED:
+        case LWMSG_STATUS_PENDING:
             (*task)->blocked = LWMSG_TRUE;
             (*task)->type = SERVER_TASK_FINISH_RECV;
             lwmsg_server_task_update_deadline(
@@ -869,10 +838,10 @@ lwmsg_server_task_perform_send(
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
-        lwmsg_assoc_free_message((*task)->assoc, &(*task)->outgoing_message);
+        lwmsg_assoc_destroy_message((*task)->assoc, &(*task)->outgoing_message);
         (*task)->type = SERVER_TASK_BEGIN_RECV;
         break;
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
         (*task)->blocked = LWMSG_TRUE;
         (*task)->type = SERVER_TASK_FINISH_SEND;
         status = LWMSG_STATUS_SUCCESS;
@@ -922,6 +891,7 @@ lwmsg_server_task_perform_finish(
             switch ((*task)->type)
             {
             case SERVER_TASK_FINISH_ESTABLISH:
+                BAIL_ON_ERROR(status = lwmsg_assoc_get_session((*task)->assoc, &(*task)->call.session));
                 (*task)->type = SERVER_TASK_BEGIN_RECV;
                 break;
             case SERVER_TASK_FINISH_RECV:
@@ -929,7 +899,7 @@ lwmsg_server_task_perform_finish(
                 BAIL_ON_ERROR(status = lwmsg_server_task_dispatch(server, task));
                 break;
             case SERVER_TASK_FINISH_SEND:
-                lwmsg_assoc_free_message((*task)->assoc, &(*task)->outgoing_message);
+                lwmsg_assoc_destroy_message((*task)->assoc, &(*task)->outgoing_message);
                 (*task)->type = SERVER_TASK_BEGIN_RECV;
                 break;
             case SERVER_TASK_FINISH_CLOSE:
@@ -940,7 +910,7 @@ lwmsg_server_task_perform_finish(
                 break;
             }
             break;
-        case LWMSG_STATUS_NOT_FINISHED:
+        case LWMSG_STATUS_PENDING:
             (*task)->blocked = LWMSG_TRUE;
             status = LWMSG_STATUS_SUCCESS;
             break;

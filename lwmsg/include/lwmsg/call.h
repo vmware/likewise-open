@@ -26,42 +26,66 @@
 /*
  * Module Name:
  *
- *        server.h
+ *        call.h
  *
  * Abstract:
  *
- *        Call dispatch API (public header)
+ *        Call handle interface
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_DISPATCH_H__
-#define __LWMSG_DISPATCH_H__
 
-#include <lwmsg/common.h>
+#ifndef __LWMSG_CALL_H__
+#define __LWMSG_CALL_H__
+
+#include <lwmsg/message.h>
 #include <lwmsg/status.h>
-#include <lwmsg/assoc.h>
+#include <lwmsg/context.h>
 
-typedef struct LWMsgDispatchHandle LWMsgDispatchHandle;
+typedef struct LWMsgCall LWMsgCall;
 
-typedef
-void
-(*LWMsgDispatchInterruptFunction) (
-    LWMsgDispatchHandle* handle,
+typedef LWMsgStatus
+(*LWMsgCompleteFunction) (
+    LWMsgCall* call,
+    LWMsgStatus status,
     void* data
     );
 
-void
-lwmsg_dispatch_set_interrupt_function(
-    LWMsgDispatchHandle* handle,
-    LWMsgDispatchInterruptFunction interrupt,
+typedef LWMsgStatus
+(*LWMsgCancelFunction) (
+    LWMsgCall* call,
     void* data
     );
 
-void
-lwmsg_dispatch_finish(
-    LWMsgDispatchHandle* handle,
+LWMsgStatus
+lwmsg_call_transact(
+    LWMsgCall* call,
+    LWMsgCompleteFunction complete,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_call_pend(
+    LWMsgCall* call,
+    LWMsgCancelFunction cancel,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_call_complete(
+    LWMsgCall* call,
     LWMsgStatus status
+    );
+
+LWMsgStatus
+lwmsg_call_cancel(
+    LWMsgCall* call
+    );
+
+void
+lwmsg_call_release(
+    LWMsgCall* call
     );
 
 #endif

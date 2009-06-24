@@ -374,7 +374,7 @@ error:
 
 LWMsgStatus
 lwmsg_data_print_graph(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgDataPrintFunction print,
@@ -387,7 +387,7 @@ lwmsg_data_print_graph(
 
     info.newline = LWMSG_TRUE;
     info.depth = 0;
-    info.context = handle->context;
+    info.context = context->context;
     info.print = print;
     info.print_data = print_data;
 
@@ -408,7 +408,7 @@ error:
 
 typedef struct print_alloc_info
 {
-    LWMsgDataHandle* handle;
+    LWMsgDataContext* context;
     char* buffer;
     size_t buffer_size;
     size_t buffer_capacity;
@@ -439,7 +439,7 @@ lwmsg_data_print_graph_alloc_print(
         }
 
         BAIL_ON_ERROR(status = lwmsg_context_realloc(
-                          info->handle->context,
+                          info->context->context,
                           info->buffer,
                           info->buffer_capacity,
                           new_capacity,
@@ -459,7 +459,7 @@ error:
 
 LWMsgStatus
 lwmsg_data_print_graph_alloc(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     char** result
@@ -468,10 +468,10 @@ lwmsg_data_print_graph_alloc(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     print_alloc_info info = {0};
 
-    info.handle = handle;
+    info.context = context;
 
     BAIL_ON_ERROR(status = lwmsg_data_print_graph(
-                      handle,
+                      context,
                       type,
                       object,
                       lwmsg_data_print_graph_alloc_print,
@@ -489,7 +489,7 @@ error:
 
     if (info.buffer)
     {
-        lwmsg_context_free(handle->context, info.buffer);
+        lwmsg_context_free(context->context, info.buffer);
     }
 
     goto cleanup;

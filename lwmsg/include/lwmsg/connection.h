@@ -120,6 +120,7 @@ typedef enum LWMsgConnectionMode
  * A new connection begins in an unconnected state and must be
  * bound to a socket or endpoint before it can continue.
  *
+ * @param context an optional context
  * @param prot the protocol supported by the new connection
  * @param out_assoc the created connection
  * @lwmsg_status

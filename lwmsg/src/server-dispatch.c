@@ -96,9 +96,9 @@ lwmsg_server_dispatch_loop(
                 &task->outgoing_message,
                 server->dispatch_data);
             break;
-        case LWMSG_DISPATCH_TYPE_SYNC:
-            status = ((LWMsgServerDispatchFunction) spec->data) (
-                &task->dispatch,
+        case LWMSG_DISPATCH_TYPE_BLOCK:
+            status = ((LWMsgServerCallFunction) spec->data) (
+                LWMSG_CALL(&task->call),
                 &task->incoming_message,
                 &task->outgoing_message,
                 server->dispatch_data);
@@ -111,7 +111,7 @@ lwmsg_server_dispatch_loop(
         switch (status)
         {
         case LWMSG_STATUS_SUCCESS:
-            lwmsg_assoc_free_message(task->assoc, &task->incoming_message);
+            lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
             task->type = SERVER_TASK_BEGIN_SEND;
             break;
         default:
@@ -150,44 +150,4 @@ done:
 error:
 
     goto done;
-}
-
-LWMsgStatus
-lwmsg_server_dispatch_get_security_token(
-    LWMsgDispatchHandle* handle,
-    LWMsgSecurityToken** token
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerTask* task = LWMSG_OBJECT_FROM_MEMBER(handle, ServerTask, dispatch);
-
-    pthread_mutex_lock(&task->dispatch.lock);
-
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_peer_security_token(task->assoc, token));
-
-error:
-
-    pthread_mutex_unlock(&task->dispatch.lock);
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_server_dispatch_get_session_data(
-    LWMsgDispatchHandle* handle,
-    void** session_data
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerTask* task = LWMSG_OBJECT_FROM_MEMBER(handle, ServerTask, dispatch);
-
-    pthread_mutex_lock(&task->dispatch.lock);
-
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_data(task->assoc, session_data));
-
-error:
-
-    pthread_mutex_unlock(&task->dispatch.lock);
-
-    return status;
 }

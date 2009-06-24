@@ -6,6 +6,7 @@ AM_CPPFLAGS = @LWMSG_CPPFLAGS@
 liblwmsg_nothr_la_SOURCES = \
 	assoc.c \
 	assoc-marshal.c \
+	call.c \
 	convert.c \
 	connection.c \
 	connection-buffer.c \
@@ -13,8 +14,9 @@ liblwmsg_nothr_la_SOURCES = \
 	connection-wire.c \
 	connection-security.c \
 	connection-marshal.c \
+	message.c \
 	protocol.c \
-	data-handle.c \
+	data-context.c \
 	data-graph.c \
 	data-marshal.c \
 	data-unmarshal.c \
@@ -35,11 +37,11 @@ liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@
 liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \
-	dispatch.c \
 	server.c \
 	server-task.c \
 	server-io.c \
 	server-dispatch.c \
+	server-call.c \
 	client.c \
 	session-shared.c
 

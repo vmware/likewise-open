@@ -188,7 +188,7 @@ typedef struct ConnectionPrivate
     /* Flag: this connection is nonblocking */
     unsigned is_nonblock:1;
     /* Marshal handle */
-    LWMsgDataHandle* marshal_handle;
+    LWMsgDataContext* marshal_context;
 } ConnectionPrivate;
 
 typedef enum ConnectionGreetingFlags

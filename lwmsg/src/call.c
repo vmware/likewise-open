@@ -26,72 +26,61 @@
 /*
  * Module Name:
  *
- *        server.h
+ *        call.c
  *
  * Abstract:
  *
- *        Call dispatch API (private header)
+ *        Call handle API
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_DISPATCH_PRIVATE_H__
-#define __LWMSG_DISPATCH_PRIVATE_H__
 
-#include <lwmsg/dispatch.h>
-#include <pthread.h>
+#include <config.h>
+#include "call-private.h"
+#include "util-private.h"
 
-typedef void
-(*LWMsgDispatchCompleteFunction) (
-    LWMsgDispatchHandle* handle,
-    LWMsgStatus status,
+LWMsgStatus
+lwmsg_call_transact(
+    LWMsgCall* call,
+    LWMsgCompleteFunction complete,
     void* data
-    );
-
-typedef enum LWMsgDispatchState
+    )
 {
-    LWMSG_DISPATCH_STATE_PENDING,
-    LWMSG_DISPATCH_STATE_INTERRUPTED,
-    LWMSG_DISPATCH_STATE_FINISHED
-} LWMsgDispatchState;
-
-struct LWMsgDispatchHandle
-{
-    LWMsgDispatchState volatile state;
-    LWMsgStatus volatile status;
-    LWMsgDispatchCompleteFunction complete;
-    void *complete_data;
-    LWMsgDispatchInterruptFunction interrupt;
-    void *interrupt_data;
-    pthread_mutex_t lock;
-};
+    return call->vtbl->transact(call, complete, data);
+}
 
 LWMsgStatus
-lwmsg_dispatch_init(
-    LWMsgDispatchHandle* handle
-    );
-
-void
-lwmsg_dispatch_destroy(
-    LWMsgDispatchHandle* handle
-    );
+lwmsg_call_pend(
+    LWMsgCall* call,
+    LWMsgCancelFunction cancel,
+    void* data
+    )
+{
+    return call->vtbl->pend(call, cancel, data);
+}
 
 LWMsgStatus
-lwmsg_dispatch_get_result(
-    LWMsgDispatchHandle* handle
-    );
+lwmsg_call_complete(
+    LWMsgCall* call,
+    LWMsgStatus status
+    )
+{
+    return call->vtbl->complete(call, status);
+}
+
+LWMsgStatus
+lwmsg_call_cancel(
+    LWMsgCall* call
+    )
+{
+    return call->vtbl->cancel(call);
+}
 
 void
-lwmsg_dispatch_begin(
-    LWMsgDispatchHandle* handle,
-    LWMsgDispatchCompleteFunction complete,
-    void* complete_data
-    );
-
-void
-lwmsg_dispatch_interrupt(
-    LWMsgDispatchHandle* handle
-    );
-
-
-#endif
+lwmsg_call_release(
+    LWMsgCall* call
+    )
+{
+    call->vtbl->release(call);
+}

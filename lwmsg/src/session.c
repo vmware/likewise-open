@@ -98,30 +98,15 @@ lwmsg_session_manager_generate_smid(
 }
 
 LWMsgStatus
-lwmsg_session_manager_new(
-    LWMsgSessionManagerClass* mclass,
-    LWMsgSessionManager** out_manager
+lwmsg_session_manager_init(
+    LWMsgSessionManager* manager,
+    LWMsgSessionManagerClass* mclass
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgSessionManager* manager = NULL;
-
-    manager = calloc(1, offsetof(LWMsgSessionManager, private_data) + mclass->private_size);
-    
-    if (!manager)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-    }
-
-    BAIL_ON_ERROR(status = mclass->construct(manager));
 
     manager->mclass = mclass;
-
     lwmsg_session_manager_generate_smid(&manager->smid);
-
-    *out_manager = manager;
-
-error:
 
     return status;
 }
@@ -131,17 +116,7 @@ lwmsg_session_manager_delete(
     LWMsgSessionManager* manager
     )
 {
-    manager->mclass->destruct(manager);
-
-    free(manager);
-}
-
-void*
-lwmsg_session_manager_get_private(
-    LWMsgSessionManager* manager
-    )
-{
-    return manager->private_data;
+    manager->mclass->delete(manager);
 }
 
 const LWMsgSessionID*
@@ -296,19 +271,110 @@ lwmsg_session_manager_get_session_id(
 }
 
 size_t
-lwmsg_session_manager_get_session_assoc_count(
-    LWMsgSessionManager* manager,
+lwmsg_session_get_assoc_count(
     LWMsgSession* session
     )
 {
-    return manager->mclass->get_session_assoc_count(manager, session);
+    return session->manager->mclass->get_session_assoc_count(session->manager, session);
 }
 
 size_t
-lwmsg_session_manager_get_session_handle_count(
-    LWMsgSessionManager* manager,
+lwmsg_session_get_handle_count(
     LWMsgSession* session
     )
 {
-    return manager->mclass->get_session_handle_count(manager, session);
+    return session->manager->mclass->get_session_handle_count(session->manager, session);
+}
+
+LWMsgStatus
+lwmsg_session_register_handle(
+    LWMsgSession* session,
+    const char* typename,
+    void* handle,
+    LWMsgHandleCleanupFunction cleanup
+    )
+{
+    return lwmsg_session_manager_register_handle_local (
+        session->manager,
+        session,
+        typename,
+        handle,
+        cleanup,
+        NULL);
+}
+
+LWMsgStatus
+lwmsg_session_retain_handle(
+    LWMsgSession* session,
+    void* handle
+    )
+{
+    return lwmsg_session_manager_retain_handle(
+        session->manager,
+        session,
+        handle);
+}
+
+LWMsgStatus
+lwmsg_session_release_handle(
+    LWMsgSession* session,
+    void* handle
+    )
+{
+    return lwmsg_session_manager_release_handle(
+        session->manager,
+        session,
+        handle);
+}
+
+LWMsgStatus
+lwmsg_session_unregister_handle(
+    LWMsgSession* session,
+    void* handle
+    )
+{
+    return lwmsg_session_manager_unregister_handle (
+        session->manager,
+        session,
+        handle);
+}
+
+LWMsgStatus
+lwmsg_session_get_handle_location(
+    LWMsgSession* session,
+    void* handle,
+    LWMsgHandleType* location
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    status = lwmsg_session_manager_handle_pointer_to_id(
+        session->manager,
+        session,
+        handle,
+        NULL,
+        location,
+        NULL);
+
+    return status;
+}
+
+void*
+lwmsg_session_get_data(
+    LWMsgSession* session
+    )
+{
+    return lwmsg_session_manager_get_session_data(
+        session->manager,
+        session);
+}
+
+LWMsgSecurityToken*
+lwmsg_session_get_peer_security_token(
+    LWMsgSession* session
+    )
+{
+    return session->manager->mclass->get_session_peer_security_token(
+        session->manager,
+        session);
 }

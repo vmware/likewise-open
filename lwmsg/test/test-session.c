@@ -107,8 +107,8 @@ static void*
 trivial_sender(void* _assocs)
 {
     LWMsgAssoc** assocs = (LWMsgAssoc**) _assocs;
-    LWMsgMessageTag reply_type;
-    void* reply_object;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     TrivialRequest request;
     TrivialHandle* handle;
     char smid_str[17];
@@ -121,11 +121,13 @@ trivial_sender(void* _assocs)
     MU_INFO("Sending first message to peer with session ID %s", smid_str);
     
     request.trivial = 42;
+    request_msg.tag = TRIVIAL_OPEN;
+    request_msg.data = &request;
 
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send_transact(assocs[0], TRIVIAL_OPEN, &request, &reply_type, &reply_object));
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, TRIVIAL_OPEN_SUCCESS);
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send_message_transact(assocs[0], &request_msg, &reply_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, TRIVIAL_OPEN_SUCCESS);
 
-    handle = reply_object;
+    handle = reply_msg.data;
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_establish(assocs[1]));
 
@@ -133,9 +135,11 @@ trivial_sender(void* _assocs)
     lwmsg_session_id_to_string(&id, smid_str);
     MU_INFO("Sending second message to peer with session ID %s", smid_str);
 
+    request_msg.tag = TRIVIAL_CLOSE;
+    request_msg.data = handle;
 
-    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_send_transact(assocs[1], TRIVIAL_CLOSE, handle, &reply_type, &reply_object));
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, TRIVIAL_CLOSE_SUCCESS);
+    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_send_message_transact(assocs[1], &request_msg, &reply_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, TRIVIAL_CLOSE_SUCCESS);
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_close(assocs[0]));
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_close(assocs[1]));
@@ -149,8 +153,8 @@ static void*
 trivial_receiver(void* _assocs)
 {
     LWMsgAssoc** assocs = (LWMsgAssoc**) _assocs;
-    LWMsgMessageTag request_type;
-    void* request_object;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     TrivialHandle* handle;
     TrivialReply reply;
     char smid_str[17];
@@ -162,14 +166,16 @@ trivial_receiver(void* _assocs)
     lwmsg_session_id_to_string(&id, smid_str);
     MU_INFO("Receiving first message from peer with session ID %s", smid_str);
 
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_recv(assocs[0], &request_type, &request_object));
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, TRIVIAL_OPEN);
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_recv_message(assocs[0], &request_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_OPEN);
 
     handle = malloc(sizeof(*handle));
     handle->trivial = 42;
+    reply_msg.tag = TRIVIAL_OPEN_SUCCESS;
+    reply_msg.data = handle;
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_register_handle(assocs[0], "TrivialHandle", handle, free));
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send(assocs[0], TRIVIAL_OPEN_SUCCESS, handle));
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send_message(assocs[0], &reply_msg));
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_establish(assocs[1]));
 
@@ -177,15 +183,16 @@ trivial_receiver(void* _assocs)
     lwmsg_session_id_to_string(&id, smid_str);
     MU_INFO("Receiving second message from peer with session ID %s", smid_str);
 
-    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_recv(assocs[1], &request_type, &request_object));
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_type, TRIVIAL_CLOSE);
+    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_recv_message(assocs[1], &request_msg));
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_CLOSE);
 
-    MU_ASSERT_EQUAL(MU_TYPE_POINTER, handle, request_object);
+    MU_ASSERT_EQUAL(MU_TYPE_POINTER, handle, request_msg.data);
 
     reply.trivial = 42;
+    reply_msg.tag = TRIVIAL_CLOSE_SUCCESS;
+    reply_msg.data = &reply;
 
-    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_send(assocs[1], TRIVIAL_CLOSE_SUCCESS, &reply));
-    
+    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_send_message(assocs[1], &reply_msg));
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_close(assocs[0]));
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_close(assocs[1]));
     lwmsg_assoc_delete(assocs[0]);

@@ -43,7 +43,7 @@
 #include "test-private.h"
 
 static LWMsgContext* context = NULL;
-static LWMsgDataHandle* handle = NULL;
+static LWMsgDataContext* dcontext = NULL;
 
 static void
 allocate_buffer(LWMsgBuffer* buffer)
@@ -66,7 +66,7 @@ rewind_buffer(LWMsgBuffer* buffer)
 MU_FIXTURE_SETUP(marshal)
 {
     MU_TRY(lwmsg_context_new(NULL, &context));
-    MU_TRY(lwmsg_data_handle_new(context, &handle));
+    MU_TRY(lwmsg_data_context_new(context, &dcontext));
 }
 
 typedef struct basic_struct
@@ -79,7 +79,7 @@ typedef struct basic_struct
 static
 LWMsgStatus
 basic_verify_foo(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* dcontext,
     LWMsgBool unmarshalling,
     size_t object_size,
     void* object,
@@ -138,12 +138,12 @@ MU_TEST(marshal, basic)
     longs[0] = 1234;
     longs[1] = 4321;
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal_flat_alloc(handle, type, &basic, &buffer, &length));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal_flat_alloc(dcontext, type, &basic, &buffer, &length));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, sizeof(expected), length);
     MU_ASSERT(!memcmp(buffer, expected, sizeof(expected)));
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal_flat(handle, type, buffer, length, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal_flat(dcontext, type, buffer, length, (void**) (void*) &out));
 
     MU_ASSERT(basic.foo == out->foo);
     MU_ASSERT(basic.len == out->len);
@@ -168,7 +168,7 @@ MU_TEST(marshal, basic_verify_marshal_failure)
     longs[0] = 1234;
     longs[1] = 4321;
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &basic, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &basic, &buffer));
 }
 
 MU_TEST(marshal, basic_verify_unmarshal_failure)
@@ -197,7 +197,7 @@ MU_TEST(marshal, basic_verify_unmarshal_failure)
     buffer.end = buffer.base + sizeof(bytes);
     
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 }
 
 MU_TEST(marshal, basic_verify_range_failure)
@@ -226,7 +226,7 @@ MU_TEST(marshal, basic_verify_range_failure)
     buffer.end = buffer.base + sizeof(bytes);
     
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 }
 
 MU_TEST(marshal, basic_verify_null_failure)
@@ -249,7 +249,7 @@ MU_TEST(marshal, basic_verify_null_failure)
     buffer.end = buffer.base + sizeof(bytes);
     
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 }
 
 typedef struct
@@ -295,13 +295,13 @@ MU_TEST(marshal, string)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &strings, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &strings, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.foo, out->foo);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.bar, out->bar);
@@ -357,13 +357,13 @@ MU_TEST(marshal, struct_array)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &structs, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &structs, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT(structs.len == out->len);
     MU_ASSERT(structs.foo[0].a == out->foo[0].a);
@@ -420,19 +420,19 @@ MU_TEST(marshal, string_array)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &strings, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &strings, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.strings[0], out->strings[0]);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.strings[1], out->strings[1]);
     MU_ASSERT(out->strings[2] == NULL);
 
-    lwmsg_data_free_graph(handle, type, out);
+    lwmsg_data_free_graph(dcontext, type, out);
 }
 
 MU_TEST(marshal, string_array_empty)
@@ -455,17 +455,17 @@ MU_TEST(marshal, string_array_empty)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &strings, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &strings, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_POINTER, strings.strings[0], out->strings[0]);
 
-    lwmsg_data_free_graph(handle, type, out);
+    lwmsg_data_free_graph(dcontext, type, out);
 }
 
 MU_TEST(marshal, string_array_null)
@@ -485,17 +485,17 @@ MU_TEST(marshal, string_array_null)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &strings, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &strings, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_POINTER, out->strings, NULL);
 
-    lwmsg_data_free_graph(handle, type, out);
+    lwmsg_data_free_graph(dcontext, type, out);
 }
 
 
@@ -585,13 +585,13 @@ MU_TEST(marshal, two_union)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &unions, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &unions, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
@@ -652,13 +652,13 @@ MU_TEST(marshal, nested_struct)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &nested, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &nested, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, nested.foo, out->foo);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, nested.inner.foo, out->inner.foo);
@@ -717,13 +717,13 @@ MU_TEST(marshal, nested_union)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &unions, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &unions, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
@@ -754,13 +754,13 @@ MU_TEST(marshal, nested_union_empty)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &unions, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &unions, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag1, out->tag1);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, unions.tag2, out->tag2);
@@ -813,13 +813,13 @@ MU_TEST(marshal, inline_array)
     
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &in, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &in, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.foo, out->foo);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array[0], out->array[0]);
@@ -868,13 +868,13 @@ MU_TEST(marshal, flexible_string)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, in, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, in, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in->foo, out->foo);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, in->string, out->string);
@@ -924,13 +924,13 @@ MU_TEST(marshal, flexible_array)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, in, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, in, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in->len, out->len);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in->array[0], out->array[0]);
@@ -1018,13 +1018,13 @@ MU_TEST(marshal, info_level_1)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &in, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &in, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);
@@ -1034,7 +1034,7 @@ MU_TEST(marshal, info_level_1)
         MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.array.level_1[0].number1, out->array.level_1[0].number1);
     }
 
-    lwmsg_data_free_graph(handle, type, out);
+    lwmsg_data_free_graph(dcontext, type, out);
 }
 
 MU_TEST(marshal, info_level_2)
@@ -1075,13 +1075,13 @@ MU_TEST(marshal, info_level_2)
 
     allocate_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_marshal(handle, type, &in, &buffer));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal(dcontext, type, &in, &buffer));
 
     MU_ASSERT(!memcmp(buffer.base, expected, sizeof(expected)));
 
     rewind_buffer(&buffer);
 
-    MU_TRY_HANDLE(handle, lwmsg_data_unmarshal(handle, type, &buffer, (void**) (void*) &out));
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.length, out->length);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, in.level, out->level);

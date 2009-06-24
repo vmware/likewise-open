@@ -13,8 +13,7 @@ lwmsg_server_stop
 lwmsg_server_set_session_functions
 lwmsg_server_set_dispatch_data
 lwmsg_server_get_dispatch_data
-lwmsg_server_dispatch_get_security_token
-lwmsg_server_dispatch_get_session_data
+lwmsg_server_call_get_session
 lwmsg_client_new
 lwmsg_client_set_endpoint
 lwmsg_client_acquire_assoc
@@ -30,5 +29,3 @@ lwmsg_client_shutdown
 lwmsg_client_delete
 lwmsg_client_create_assoc
 lwmsg_shared_session_manager_new
-lwmsg_dispatch_set_interrupt_function
-lwmsg_dispatch_finish

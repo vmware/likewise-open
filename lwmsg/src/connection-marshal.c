@@ -47,7 +47,7 @@
 
 static LWMsgStatus
 lwmsg_connection_marshal_fd(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -91,7 +91,7 @@ error:
 
 static LWMsgStatus
 lwmsg_connection_unmarshal_fd(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,

@@ -58,7 +58,7 @@ static const char* default_message[] =
     [LWMSG_STATUS_SYSTEM] = "Unhandled system error",
     [LWMSG_STATUS_TIMEOUT] = "Operation timed out",
     [LWMSG_STATUS_SECURITY] = "Security violation",
-    [LWMSG_STATUS_INTERRUPT] = "Operation interrupted",
+    [LWMSG_STATUS_CANCELLED] = "Operation cancelled",
     [LWMSG_STATUS_FILE_NOT_FOUND] = "File not found",
     [LWMSG_STATUS_CONNECTION_REFUSED] = "Connection refused",
     [LWMSG_STATUS_PEER_CLOSE] = "Connection closed by peer",
@@ -67,7 +67,8 @@ static const char* default_message[] =
     [LWMSG_STATUS_SESSION_LOST] = "Session lost",
     [LWMSG_STATUS_UNSUPPORTED] = "Unsupported operation",
     [LWMSG_STATUS_INVALID_HANDLE] = "Invalid handle",
-    [LWMSG_STATUS_BUSY] = "Conflicting operation already in progress"
+    [LWMSG_STATUS_BUSY] = "Conflicting operation already in progress",
+    [LWMSG_STATUS_PENDING] = "Operating is pending"
 };
 
 void

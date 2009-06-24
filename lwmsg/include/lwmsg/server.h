@@ -42,7 +42,8 @@
 #include <lwmsg/protocol.h>
 #include <lwmsg/time.h>
 #include <lwmsg/assoc.h>
-#include <lwmsg/dispatch.h>
+#include <lwmsg/message.h>
+#include <lwmsg/call.h>
 
 /**
  * @file server.h
@@ -71,30 +72,23 @@ typedef enum LWMsgDispatchType
 {
     LWMSG_DISPATCH_TYPE_END,
     LWMSG_DISPATCH_TYPE_OLD,
-    LWMSG_DISPATCH_TYPE_SYNC,
-    LWMSG_DISPATCH_TYPE_ASYNC
+    LWMSG_DISPATCH_TYPE_BLOCK,
+    LWMSG_DISPATCH_TYPE_NONBLOCK
 } LWMsgDispatchType;
 #endif
 
 typedef
 LWMsgStatus
-(*LWMsgServerDispatchFunction) (
-    LWMsgDispatchHandle* handle,
+(*LWMsgServerCallFunction) (
+    LWMsgCall* call,
     LWMsgMessage* request,
     LWMsgMessage* response,
     void* data
     );
 
-LWMsgStatus
-lwmsg_server_dispatch_get_security_token(
-    LWMsgDispatchHandle* handle,
-    LWMsgSecurityToken** token
-    );
-
-LWMsgStatus
-lwmsg_server_dispatch_get_session_data(
-    LWMsgDispatchHandle* handle,
-    void** session_data
+LWMsgSession*
+lwmsg_server_call_get_session(
+    LWMsgCall* call
     );
 
 /**
@@ -110,7 +104,7 @@ typedef struct LWMsgDispatchSpec
 #ifndef DOXYGEN
 {
     LWMsgDispatchType type;
-    LWMsgMessageTag tag;
+    LWMsgTag tag;
     void* data;
 }
 #endif
@@ -125,16 +119,16 @@ const LWMsgDispatchSpec;
  * @param tag the message tag
  * @param func the callback to handle the specified message type
  * @hideinitializer
- * @deprecated use LWMSG_DISPATCH_SYNC() or LWMSG_DISPATCH_ASYNC() instead
+ * @deprecated use LWMSG_DISPATCH_BLOCK() or LWMSG_DISPATCH_NONBLOCK() instead
  */
 #define LWMSG_DISPATCH(tag, func) \
     {LWMSG_DISPATCH_TYPE_OLD, (tag), (void*) (LWMsgAssocDispatchFunction) (func)}
 
-#define LWMSG_DISPATCH_SYNC(tag, func) \
-    {LWMSG_DISPATCH_TYPE_SYNC, (tag), (void*) (LWMsgServerDispatchFunction) (func)}
+#define LWMSG_DISPATCH_BLOCK(tag, func) \
+    {LWMSG_DISPATCH_TYPE_BLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
 
-#define LWMSG_DISPATCH_ASYNC(tag, func) \
-    {LWMSG_DISPATCH_TYPE_ASYNC, (tag), (void*) (LWMsgServerDispatchFunction) (func)}
+#define LWMSG_DISPATCH_NONBLOCK(tag, func) \
+    {LWMSG_DISPATCH_TYPE_NONBLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
 
 /**
  * @ingroup server
