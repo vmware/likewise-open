@@ -662,7 +662,7 @@ SMB2PacketSign(
         SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
     }
 
-    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMBHeader, ntohl(pPacket->pNetBIOSHeader->len));
+    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, ntohl(pPacket->pNetBIOSHeader->len));
 
     SHA256_Final(digest, &sha256Value);
 
