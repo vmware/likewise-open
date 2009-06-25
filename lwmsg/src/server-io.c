@@ -243,6 +243,8 @@ done:
 
 error:
 
+    LWMSG_LOG_WARNING(server->context, "IO thread exiting with status %i\n", status);
+
     goto done;
 }
 

@@ -48,6 +48,8 @@ typedef struct LWMsgSessionID
     unsigned char bytes[8];
 } LWMsgSessionID;
 
+typedef char LWMsgSessionString[33];
+
 typedef struct LWMsgSession LWMsgSession;
 
 /**
@@ -107,7 +109,7 @@ lwmsg_session_manager_get_id(
 void
 lwmsg_session_id_to_string(
     const LWMsgSessionID* smid,
-    char buffer[17]
+    LWMsgSessionString buffer
     );
 
 size_t
@@ -160,6 +162,11 @@ lwmsg_session_get_data(
 
 LWMsgSecurityToken*
 lwmsg_session_get_peer_security_token(
+    LWMsgSession* session
+    );
+
+const LWMsgSessionID*
+lwmsg_session_get_id(
     LWMsgSession* session
     );
 
