@@ -75,7 +75,7 @@ typedef struct _LWNET_IPC_DCTIME_REQ
 
 typedef struct _LWNET_IPC_DCTIME_RES
 {
-    UNIX_TIME_T dcTime;
+    LWNET_UNIX_TIME_T dcTime;
 } LWNET_IPC_DCTIME_RES, *PLWNET_IPC_DCTIME_RES;
 
 typedef struct _LWNET_IPC_DC_REQ

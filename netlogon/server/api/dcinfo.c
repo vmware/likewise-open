@@ -281,7 +281,7 @@ error:
 DWORD
 LWNetSrvGetDCTime(
     IN PCSTR pszDomainFQDN,
-    OUT PUNIX_TIME_T pDCTime
+    OUT PLWNET_UNIX_TIME_T pDCTime
     )
 {
     DWORD dwError   = 0;
@@ -296,7 +296,7 @@ LWNetSrvGetDCTime(
              "currentTime",
              NULL
         };
-    UNIX_TIME_T result = 0;
+    LWNET_UNIX_TIME_T result = 0;
 #ifndef HAVE_TIMEGM
     struct tm epochTime = {0};
 #endif

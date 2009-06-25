@@ -50,6 +50,7 @@
 #include "lsasystem.h"
 #include "lsa/lsa.h"
 #include "lsaclient.h"
+#include "util_str.h"
 
 #define LSA_WBC_LIBRARY_MAJOR_VERSION          0
 #define LSA_WBC_LIBRARY_MINOR_VERSION          1

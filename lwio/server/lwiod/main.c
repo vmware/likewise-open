@@ -308,6 +308,11 @@ SMBSrvParseArgs(
                 pSMBServerInfo->logTarget = LWIO_LOG_TARGET_SYSLOG;
             }
           }
+          else if (strcmp(pArg, "--syslog") == 0)
+          {
+            bLogTargetSet = TRUE;
+            pSMBServerInfo->logTarget = LWIO_LOG_TARGET_SYSLOG;
+          }
           else if (strcmp(pArg, "--loglevel") == 0) {
             parseMode = PARSE_MODE_LOGLEVEL;
           } else {
@@ -399,7 +404,7 @@ SMBSrvParseArgs(
     }
     else
     {
-        if (pSMBServerInfo->logTarget != LWIO_LOG_TARGET_FILE)
+        if (!bLogTargetSet)
         {
             pSMBServerInfo->logTarget = LWIO_LOG_TARGET_CONSOLE;
         }
@@ -442,6 +447,7 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
            "          [--logfile logFilePath]\n"
+           "          [--syslog]\n"
            "          [--loglevel {error, warning, info, verbose, debug, trace}]\n", pszProgramName);
 }
 

@@ -51,6 +51,7 @@ LWNETSERVERINFO gServerInfo =
 {
     PTHREAD_MUTEX_INITIALIZER,  /* Lock              */
     0,                          /* Start as daemon   */
+    FALSE,                      /* Log to syslog */
     LOG_LEVEL_ERROR,            /* Max Log Level     */
     FALSE,                      /* Enable debug logs */
     "",                         /* Log file path     */

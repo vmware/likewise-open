@@ -75,6 +75,8 @@ EVTInitLoggingToSyslog(
 
     EVTSetSyslogMask(dwLogLevel);
 
+    gEvtLogInfo.dwLogLevel = dwLogLevel;
+
     gEvtLogInfo.bLoggingInitiated = 1;
 
 error:

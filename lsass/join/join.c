@@ -436,7 +436,7 @@ LsaSyncTimeToDC(
     )
 {
     DWORD dwError = 0;
-    UNIX_TIME_T dcTime = 0;
+    LWNET_UNIX_TIME_T dcTime = 0;
     time_t ttDCTime = 0;
 
     dwError = LWNetGetDCTime(

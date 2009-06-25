@@ -409,6 +409,11 @@ LsaSrvParseArgs(
                 pLsaServerInfo->logTarget = LSA_LOG_TARGET_SYSLOG;
             }
           }
+          else if (strcmp(pArg, "--syslog") == 0)
+          {
+            bLogTargetSet = TRUE;
+            pLsaServerInfo->logTarget = LSA_LOG_TARGET_SYSLOG;
+          }
           else if (strcmp(pArg, "--loglevel") == 0) {
             parseMode = PARSE_MODE_LOGLEVEL;
           } else {
@@ -500,7 +505,7 @@ LsaSrvParseArgs(
     }
     else
     {
-        if (pLsaServerInfo->logTarget != LSA_LOG_TARGET_FILE)
+        if (!bLogTargetSet)
         {
             pLsaServerInfo->logTarget = LSA_LOG_TARGET_CONSOLE;
         }
@@ -541,6 +546,7 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
            "          [--logfile logFilePath]\n"
+           "          [--syslog]\n"
            "          [--loglevel {error, warning, info, verbose, debug, trace}]\n", pszProgramName);
 }
 

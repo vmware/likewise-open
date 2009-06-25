@@ -137,6 +137,8 @@ SMBPacketAllocate(
         SMBStackPopNoFree(&pPacketAllocator->pFreePacketStack);
 
         pPacketAllocator->freePacketCount--;
+
+        memset(pPacket, 0, sizeof(SMB_PACKET));
     }
     else
     {
@@ -400,6 +402,8 @@ SMBPacketMarshallHeader(
 
     ntStatus = ConsumeBuffer(pBuffer, bufferLen, &bufferUsed, sizeof(NETBIOS_HEADER));
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pPacket->protocolVer = SMB_PROTOCOL_VERSION_1;
 
     pPacket->pSMBHeader = (SMB_HEADER *) (pBuffer + bufferUsed);
 
