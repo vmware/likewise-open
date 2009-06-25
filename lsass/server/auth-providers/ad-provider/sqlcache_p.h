@@ -33,19 +33,19 @@
  *
  * Module Name:
  *
- *        db_p.h
+ *        sqlcache_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Private functions for AD Caching
+ *        Private functions in sqlite3 Caching backend
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  *
  */
-#ifndef __DB_P_H__
-#define __DB_P_H__
+#ifndef __SQLCACHE_P_H__
+#define __SQLCACHE_P_H__
 
 #define LSA_DB_FREE_UNUSED_CACHEIDS   \
     "delete from " LSA_DB_TABLE_NAME_CACHE_TAGS " where CacheId NOT IN " \
@@ -203,4 +203,4 @@ InitializeDbCacheProvider(
     PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
     );
 
-#endif /* __CACHEDB_P_H__ */
+#endif /* __SQLCACHE_P_H__ */

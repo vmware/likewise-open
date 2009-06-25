@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        dbcreate.h
+ *        sqlcache_create.h
  *
  * Abstract:
  *
@@ -44,8 +44,8 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#ifndef __DBCREATE_H__
-#define __DBCREATE_H__
+#ifndef __SQLCACHE_CREATE_H__
+#define __SQLCACHE_CREATE_H__
 
 #define LSA_DB_TABLE_NAME_CACHE_TAGS       "lwicachetags"
 #define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects2"
@@ -154,5 +154,5 @@
     "\n" \
     ""
 
-#endif /* __DBCREATE_H__ */
+#endif /* __SQLCACHE_CREATE_H__ */
 

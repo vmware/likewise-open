@@ -33,11 +33,11 @@
  *
  * Module Name:
  *
- *        db.c
+ *        sqlcache.c
  *
  * Abstract:
  *
- *        Caching for AD Provider Database Interface
+ *        Sqlite3 Caching backend for AD Provider Database Interface
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  *

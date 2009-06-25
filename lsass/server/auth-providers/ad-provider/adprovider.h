@@ -114,6 +114,6 @@
 
 #include "externs.h"
 
-#include "dbcreate.h"
-#include "db_p.h"
+#include "sqlcache_create.h"
+#include "sqlcache_p.h"
 #include "lsasqlite.h"
