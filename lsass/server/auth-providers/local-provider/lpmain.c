@@ -339,9 +339,10 @@ LocalCheckUserInList(
     PCSTR  pszListName
     )
 {
-    // TODO:
+    // require-membership-of is currently not supported
+    // for the local provider.  So just return success here.
 
-    return LSA_ERROR_NOT_HANDLED;
+    return LSA_ERROR_SUCCESS;
 }
 
 DWORD
