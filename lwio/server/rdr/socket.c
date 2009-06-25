@@ -140,7 +140,7 @@ SMBSocketCreate(
        changes, such as made by ntpd */
     pSocket->lastActiveTime = time(NULL);
 
-    pSocket->fd = 0;
+    pSocket->fd = -1;
 
     /* Hostname is trusted */
     ntStatus = SMBStrndup(
