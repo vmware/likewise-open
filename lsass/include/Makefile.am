@@ -3,7 +3,6 @@ lsaincludedir = $(includedir)/lsa
 lsainclude_HEADERS = lsa/lsa.h lsa/lwerror.h lsa/join.h
 
 noinst_HEADERS = \
-	crypto.h \
 	lsaclient.h \
 	lsasystem.h \
 	ntlmgsssrv.h \
