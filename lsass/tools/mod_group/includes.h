@@ -48,6 +48,7 @@
 #include "config.h"
 #include "lsasystem.h"
 #include "lsadef.h"
+#include "lw/security-api.h"
 #include "lsa/lsa.h"
 #include "lwmem.h"
 #include "lwstr.h"

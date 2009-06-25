@@ -2,7 +2,7 @@ bin_PROGRAMS = lwio-copy
 
 lwio_copy_SOURCES = \
     main.c \
-    copyfile.c
+    lwiocopy.c
 
 lwio_copy_CPPFLAGS =  \
     @KRB5_INCLUDES@   \

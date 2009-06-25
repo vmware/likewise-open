@@ -281,7 +281,7 @@ error:
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
-    case LWMSG_STATUS_NOT_FINISHED:
+    case LWMSG_STATUS_PENDING:
     case LWMSG_STATUS_BUSY:
         break;
     default:
@@ -357,7 +357,7 @@ lwmsg_connection_state_begin_connect(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_CONNECT;
         *event = CONNECTION_EVENT_FINISH;
@@ -423,7 +423,7 @@ lwmsg_connection_state_begin_send_handshake(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_SEND_HANDSHAKE;
         *event = CONNECTION_EVENT_FINISH;
@@ -489,7 +489,7 @@ lwmsg_connection_state_begin_recv_handshake(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_RECV_HANDSHAKE;
         *event = CONNECTION_EVENT_FINISH;
@@ -604,7 +604,7 @@ lwmsg_connection_state_begin_send_message(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_SEND_MESSAGE;
         *event = CONNECTION_EVENT_FINISH;
@@ -671,7 +671,7 @@ lwmsg_connection_state_begin_recv_message(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_RECV_MESSAGE;
         *event = CONNECTION_EVENT_FINISH;
@@ -742,7 +742,7 @@ lwmsg_connection_state_begin_close(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_CLOSE;
         *event = CONNECTION_EVENT_FINISH;
@@ -820,7 +820,7 @@ lwmsg_connection_state_begin_reset(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_RESET;
         *event = CONNECTION_EVENT_FINISH;

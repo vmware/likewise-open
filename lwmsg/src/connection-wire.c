@@ -626,7 +626,7 @@ lwmsg_connection_transceive(
            We did not succeed in doing any.
 
            This means that the current operation cannot complete and needs to be finished later */
-        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FINISHED);
+        BAIL_ON_ERROR(status = LWMSG_STATUS_PENDING);
     }
 
 error:
@@ -778,7 +778,7 @@ lwmsg_connection_send_wrap(LWMsgBuffer* buffer, size_t needed)
     /* Flush the send buffer */
     status = lwmsg_connection_flush(assoc);
 
-    if (needed && status == LWMSG_STATUS_NOT_FINISHED)
+    if (needed && status == LWMSG_STATUS_PENDING)
     {
         /* If we have more to marshal but we can't send,
            ignore it for now and continue to queue up packets */
@@ -901,7 +901,7 @@ lwmsg_connection_check(
 
 error:
 
-    if (status == LWMSG_STATUS_NOT_FINISHED)
+    if (status == LWMSG_STATUS_PENDING)
     {
         status = LWMSG_STATUS_SUCCESS;
     }
@@ -962,7 +962,7 @@ lwmsg_connection_begin_connect_local(
             break;
         case EINPROGRESS:
             /* We are only supposed to BEGIN the operation, so
-               we don't return LWMSG_STATUS_NOT_FINISHED */
+               we don't return LWMSG_STATUS_PENDING */
             status = LWMSG_STATUS_SUCCESS;
             break;
         case ENOENT:
@@ -1070,7 +1070,8 @@ lwmsg_connection_finish_connect(
         status = LWMSG_STATUS_SUCCESS;
         break;
     case EINPROGRESS:
-        status = LWMSG_STATUS_NOT_FINISHED;
+        status = LWMSG_STATUS_PENDING;
+        break;
     case ENOENT:
         status = LWMSG_STATUS_FILE_NOT_FOUND;
         break;
@@ -1090,7 +1091,7 @@ done:
 
 error:
 
-    if (status != LWMSG_STATUS_NOT_FINISHED)
+    if (status != LWMSG_STATUS_PENDING)
     {
         if (priv->fd != -1)
         {
@@ -1346,13 +1347,13 @@ lwmsg_connection_finish_recv_handshake(
 
     /* Set up marshal token for message exchange (this is where byte order
        and other negotiated format settings should be set) */
-    if (priv->marshal_handle)
+    if (priv->marshal_context)
     {
-        lwmsg_data_handle_delete(priv->marshal_handle);
-        priv->marshal_handle = NULL;
+        lwmsg_data_context_delete(priv->marshal_context);
+        priv->marshal_context = NULL;
     }
 
-    BAIL_ON_ERROR(status = lwmsg_data_handle_new(&assoc->context, &priv->marshal_handle));
+    BAIL_ON_ERROR(status = lwmsg_data_context_new(&assoc->context, &priv->marshal_context));
 
 error:
 
@@ -1434,9 +1435,9 @@ lwmsg_connection_begin_send_message(
         buffer.data = assoc;
 
         BAIL_ON_ERROR(status = lwmsg_data_marshal(
-                          priv->marshal_handle,
+                          priv->marshal_context,
                           type,
-                          message->object,
+                          message->data,
                           &buffer));
     }
 
@@ -1558,7 +1559,7 @@ lwmsg_connection_finish_recv_message(
     if (type == NULL)
     {
         /* If message has no payload, just set the payload to NULL */
-        priv->params.message->object = NULL;
+        priv->params.message->data = NULL;
     }
     else
     {
@@ -1569,10 +1570,10 @@ lwmsg_connection_finish_recv_message(
         buffer.data = assoc;
 
         BAIL_ON_ERROR(status = lwmsg_data_unmarshal(
-                          priv->marshal_handle,
+                          priv->marshal_context,
                           type,
                           &buffer,
-                          &priv->params.message->object));
+                          &priv->params.message->data));
     }
 
 error:

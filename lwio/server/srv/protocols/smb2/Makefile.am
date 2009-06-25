@@ -5,6 +5,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     libmain.c       \
     negotiate.c     \
     session_setup.c \
+    treeconnect.c   \
     wire.c
 
 libsrv_protocols_smb2_la_CPPFLAGS = \

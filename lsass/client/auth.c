@@ -88,8 +88,8 @@ LsaCheckUserInList(
     LSA_IPC_CHECK_USER_IN_LIST_REQ checkUserinListReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     checkUserinListReq.pszLoginName = pszLoginName;
     checkUserinListReq.pszListName = pszListName;

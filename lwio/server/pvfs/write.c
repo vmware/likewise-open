@@ -94,8 +94,12 @@ PvfsWrite(
     if (pIrp->Args.ReadWrite.ByteOffset) {
         Offset = *pIrp->Args.ReadWrite.ByteOffset;
     } else {
-        ntError = PvfsSysLseek(pCcb->fd, 0, SEEK_CUR, &Offset);
+        off_t offset = 0;
+
+        ntError = PvfsSysLseek(pCcb->fd, 0, SEEK_CUR, &offset);
         BAIL_ON_NT_STATUS(ntError);
+
+        Offset = offset;
     }
 
     ntError = PvfsCheckLockedRegion(pCcb, PVFS_OPERATION_WRITE,

@@ -63,12 +63,19 @@ SrvProtocolInit(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bSupportSMBV2 = FALSE;
+
+    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
+    BAIL_ON_NT_STATUS(status);
 
     status = SrvProtocolInit_SMB_V1();
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V2();
-    BAIL_ON_NT_STATUS(status);
+    if (bSupportSMBV2)
+    {
+        status = SrvProtocolInit_SMB_V2();
+        BAIL_ON_NT_STATUS(status);
+    }
 
 error:
 
@@ -84,9 +91,9 @@ SrvProtocolExecute(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_PACKET pSmbResponse = NULL;
 
-    switch (pSmbRequest->packetType)
+    switch (pSmbRequest->protocolVer)
     {
-        case SMB_PACKET_TYPE_SMB_1:
+        case SMB_PROTOCOL_VERSION_1:
 
             ntStatus = SrvProtocolExecute_SMB_V1_Filter(
                                 pConnection,
@@ -95,7 +102,7 @@ SrvProtocolExecute(
 
             break;
 
-        case SMB_PACKET_TYPE_SMB_2:
+        case SMB_PROTOCOL_VERSION_2:
 
             ntStatus = SrvProtocolExecute_SMB_V2(
                                 pConnection,
@@ -212,12 +219,19 @@ SrvProtocolShutdown(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bSupportSMBV2 = FALSE;
+
+    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
+    BAIL_ON_NT_STATUS(status);
 
     status = SrvProtocolShutdown_SMB_V1();
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvProtocolInit_SMB_V2();
-    BAIL_ON_NT_STATUS(status);
+    if (bSupportSMBV2)
+    {
+        status = SrvProtocolInit_SMB_V2();
+        BAIL_ON_NT_STATUS(status);
+    }
 
 error:
 

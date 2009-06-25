@@ -42,7 +42,7 @@
 #include "type-private.h"
 #include "status-private.h"
 
-struct LWMsgDataHandle
+struct LWMsgDataContext
 {
     LWMsgErrorContext error;
     const LWMsgContext* context;
@@ -57,7 +57,7 @@ typedef struct LWMsgMarshalState
 #define MAX_INTEGER_SIZE (16)
 
 #define MARSHAL_RAISE_ERROR(hand, expr, ...) \
-    BAIL_ON_ERROR(lwmsg_data_handle_raise_error((hand), (expr), __VA_ARGS__))
+    BAIL_ON_ERROR(lwmsg_data_context_raise_error((hand), (expr), __VA_ARGS__))
 
 typedef struct LWMsgUnmarshalState
 {
@@ -125,7 +125,7 @@ lwmsg_data_calculate_indirect_metrics(
 
 LWMsgStatus
 lwmsg_data_free_graph_internal(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeIter* iter,
     unsigned char* object
     );

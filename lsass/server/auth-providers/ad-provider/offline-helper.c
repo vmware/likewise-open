@@ -68,7 +68,7 @@ AD_OfflineGetGroupMembers(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     size_t sIndex = 0;
 
-    dwError = LsaDbGetGroupMembers(
+    dwError = ADCacheGetGroupMembers(
         gpLsaAdProviderState->hCacheConnection,
         pszGroupSid,
         AD_GetTrimUserMembershipEnabled(),
@@ -106,9 +106,9 @@ AD_OfflineGetGroupMembers(
     sObjectsCount = 0;
 
 cleanup:
-    LsaDbSafeFreeObjectList(sObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(sObjectsCount, &ppObjects);
     LSA_SAFE_FREE_MEMORY(ppszMemberSids);
-    LsaDbSafeFreeGroupMembershipList(sGroupMembershipsCount,
+    ADCacheSafeFreeGroupMembershipList(sGroupMembershipsCount,
                                           &ppGroupMemberships);
 
     return dwError;
@@ -134,7 +134,7 @@ AD_OfflineFindObjectsBySidList(
      * Lookup users and groups from the cache.
      */
 
-    dwError = LsaDbFindObjectsBySidList(
+    dwError = ADCacheFindObjectsBySidList(
                     gpLsaAdProviderState->hCacheConnection,
                     sCount,
                     ppszSidList,
@@ -145,7 +145,7 @@ AD_OfflineFindObjectsBySidList(
     ppObjects = NULL;
 
 cleanup:
-    LsaDbSafeFreeObjectList(sCount, &ppObjects);
+    ADCacheSafeFreeObjectList(sCount, &ppObjects);
     return dwError;
 
 error:
@@ -359,14 +359,14 @@ AD_GroupExpansionDataAddExpansionResults(
             if (dwExpandedGroupDepth >= pExpansionData->dwMaxDepth)
             {
                 pExpansionData->bDiscardedDueToDepth = TRUE;
-                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
+                ADCacheSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else if (LsaHashExists(pExpansionData->pExpandedGroups,
                                    pCurrentMember) ||
                      LsaHashExists(pExpansionData->pGroupsToExpand,
                                    pCurrentMember))
             {
-                LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
+                ADCacheSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
             else
             {
@@ -381,21 +381,21 @@ AD_GroupExpansionDataAddExpansionResults(
         else
         {
             // some other kind of object -- should not happen
-            LsaDbSafeFreeObject(&ppMembers[sMembersCount-1]);
+            ADCacheSafeFreeObject(&ppMembers[sMembersCount-1]);
         }
     }
 
 cleanup:
     if (ppMembers && (sMembersCount == 0))
     {
-        LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
+        ADCacheSafeFreeObjectList(sMembersCount, &ppMembers);
     }
     *psMembersCount = sMembersCount;
     *pppMembers = ppMembers;
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sMembersCount, &ppMembers);
+    ADCacheSafeFreeObjectList(sMembersCount, &ppMembers);
     if (dwError && !pExpansionData->dwLastError)
     {
         pExpansionData->dwLastError = dwError;
@@ -476,7 +476,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObject(&pGroupToExpand);
+    ADCacheSafeFreeObject(&pGroupToExpand);
     dwGroupToExpandDepth = 0;
 
     if (dwError && !pExpansionData->dwLastError)
@@ -551,7 +551,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sUserMembersCount, &ppUserMembers);
+    ADCacheSafeFreeObjectList(sUserMembersCount, &ppUserMembers);
     sUserMembersCount = 0;
 
     if (dwError && !pExpansionData->dwLastError)

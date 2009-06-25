@@ -73,7 +73,9 @@
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
 #include "lwldap.h"
-#include "lsadb.h"
+//#include "lsadb.h"
+#include "adcache.h"
+#include "adcachespi.h"
 
 #include "addef.h"
 #include "media-sense.h"

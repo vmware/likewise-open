@@ -118,7 +118,7 @@
 /* @{ */
 
 #ifndef DOXYGEN
-struct LWMsgDataHandle;
+struct LWMsgDataContext;
 struct LWMsgContext;
 
 typedef enum LWMsgKind
@@ -193,7 +193,7 @@ typedef struct LWMsgTypeAttrs
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
-    struct LWMsgDataHandle* handle,
+    struct LWMsgDataContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -221,7 +221,7 @@ typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
-    struct LWMsgDataHandle* handle,
+    struct LWMsgDataContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
@@ -333,7 +333,7 @@ typedef struct LWMsgCustomTypeClass
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgVerifyFunction) (
-    struct LWMsgDataHandle* handle,
+    struct LWMsgDataContext* context,
     LWMsgBool unmarshalling,
     size_t object_size,
     void* object,

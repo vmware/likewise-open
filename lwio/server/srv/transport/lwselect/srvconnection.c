@@ -186,39 +186,66 @@ SrvConnectionReadPacket(
         !pConnection->readerState.sNumBytesToRead)
     {
         PBYTE pPreamble = NULL;
+        ULONG ulBytesAvailable = 0;
         PSMB_PACKET pPacket = pConnection->readerState.pRequestPacket;
         size_t bufferUsed = sizeof(NETBIOS_HEADER);
 
         pPreamble = (PBYTE)(pPacket->pRawBuffer + bufferUsed);
+        ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
         if (*pPreamble == 0xFF)
         {
-            pPacket->packetType = SMB_PACKET_TYPE_SMB_1;
+            pPacket->protocolVer = SMB_PROTOCOL_VERSION_1;
+
+            if (ulBytesAvailable < sizeof(SMB_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pPacket->pSMBHeader = (PSMB_HEADER)(pPacket->pRawBuffer + bufferUsed);
             bufferUsed += sizeof(SMB_HEADER);
+            ulBytesAvailable -= sizeof(SMB_HEADER);
 
             if (SMBIsAndXCommand(pPacket->pSMBHeader->command))
             {
+                if (ulBytesAvailable < sizeof(ANDX_HEADER))
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
                 pPacket->pAndXHeader = (ANDX_HEADER *)( pPacket->pSMBHeader +
                                                         bufferUsed );
                 bufferUsed += sizeof(ANDX_HEADER);
+                ulBytesAvailable -= sizeof(ANDX_HEADER);
             }
 
-            pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
+            pPacket->pParams = (ulBytesAvailable > 0) ? pPacket->pRawBuffer + bufferUsed : NULL;
             pPacket->pData = NULL;
             pPacket->bufferUsed = bufferUsed;
 
         }
         else if (*pPreamble == 0xFE)
         {
-            pPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+            pPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
+
+            if (ulBytesAvailable < sizeof(SMB2_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pPacket->pSMB2Header = (PSMB2_HEADER)(pPacket->pRawBuffer + bufferUsed);
             bufferUsed += sizeof(SMB2_HEADER);
+            ulBytesAvailable -= sizeof(SMB2_HEADER);
+
+            pPacket->pParams    = NULL;
+            pPacket->pData      = NULL;
+            pPacket->bufferUsed = bufferUsed;
         }
         else
         {
-            ntStatus = STATUS_DATA_ERROR;
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -256,13 +283,37 @@ SrvConnectionWriteMessage(
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
-        pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+        switch (pPacket->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
 
-        ntStatus = SMBPacketSign(
-                        pPacket,
-                        pPacket->sequence,
-                        pConnection->pSessionKey,
-                        pConnection->ulSessionKeyLength);
+                pPacket->pSMBHeader->flags2 |= FLAG2_SECURITY_SIG;
+
+                ntStatus = SMBPacketSign(
+                                pPacket,
+                                pPacket->sequence,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+#if 0
+                ntStatus = SMB2PacketSign(
+                                pPacket,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+#endif
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

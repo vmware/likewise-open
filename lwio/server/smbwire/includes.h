@@ -32,6 +32,7 @@
 #include "lwiosys.h"
 
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 
 #include "lwio/lwio.h"
 

@@ -130,7 +130,7 @@ LsaAdEnumUsersFromCache(
     PVOID pBlob = NULL;
     size_t BlobSize = 0;
     LWMsgContext* context = NULL;
-    LWMsgDataHandle* pDataHandle = NULL;
+    LWMsgDataContext* pDataContext = NULL;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response = NULL;
     PLSA_USER_INFO_LIST pResultList = NULL;
@@ -151,11 +151,11 @@ LsaAdEnumUsersFromCache(
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataHandle,
+                              pDataContext,
                               LsaAdIPCGetEnumUsersFromCacheReqSpec(),
                               &request,
                               &pBlob,
@@ -173,7 +173,7 @@ LsaAdEnumUsersFromCache(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                              pDataHandle,
+                              pDataContext,
                               LsaAdIPCGetEnumUsersFromCacheRespSpec(),
                               pOutputBuffer,
                               dwOutputBufferSize,
@@ -217,14 +217,14 @@ cleanup:
     if ( response )
     {
         lwmsg_data_free_graph(
-            pDataHandle,
+            pDataContext,
             LsaAdIPCGetEnumUsersFromCacheRespSpec(),
             response);
     }
 
-    if (pDataHandle)
+    if (pDataContext)
     {
-        lwmsg_data_handle_delete(pDataHandle);
+        lwmsg_data_context_delete(pDataContext);
     }
 
     if ( context )

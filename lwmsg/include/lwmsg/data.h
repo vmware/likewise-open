@@ -65,15 +65,15 @@
  * this restriction:
  * - Structures
  *
- * All operations take a data handle which controls tunable
+ * All operations take a data context which controls tunable
  * parameters of the data model:
  *
  * <ul>
  * <li>Byte order of the octect representation</li>
  * </ul>
  *
- * In the event of an error, the data handle can be queried for
- * a human-readable diagnostic message.  The data handle may
+ * In the event of an error, the data context can be queried for
+ * a human-readable diagnostic message.  The data context may
  * also reference an LWMsg context.
  *
  */
@@ -81,64 +81,64 @@
 /*@{*/
 
 /**
- * @brief Data handle
+ * @brief Data context
  *
- * An opqaue data handle which facilitates all
+ * An opqaue data context which facilitates all
  * data model operations.
  */
-typedef struct LWMsgDataHandle LWMsgDataHandle;
+typedef struct LWMsgDataContext LWMsgDataContext;
 
 /**
- * @brief Create a data handle
+ * @brief Create a data context
  *
- * Creates a new data handle with an optional context.  Data operations
+ * Creates a new data context with an optional context.  Data operations
  * which return allocated memory (e.g. #lwmsg_data_unmarshal()) will use
  * the context's memory management functions.
  *
  * @param[in] context an optional context
- * @param[out] handle the created data handle
+ * @param[out] context the created data context
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_data_handle_new(
+lwmsg_data_context_new(
     const LWMsgContext* context,
-    LWMsgDataHandle** handle
+    LWMsgDataContext** dcontext
     );
 
 /**
- * @brief Delete a data handle
+ * @brief Delete a data context
  *
- * Deletes the specified data handle.
+ * Deletes the specified data context.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
  * @lwmsg_endstatus
  */
 void
-lwmsg_data_handle_delete(
-    LWMsgDataHandle* handle
+lwmsg_data_context_delete(
+    LWMsgDataContext* context
     );
 
 /**
  * @brief Get last error message
  *
  * Get a descriptive diagnostic message for the last
- * error which occured on the specified data handle.
+ * error which occured on the specified data context.
  * The returned string will remain valid until another
- * operation uses the handle.
+ * operation uses the context.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] status the status code returned from the failing function
  * @return a string describing the last error
  */
 const char*
-lwmsg_data_handle_get_error_message(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_get_error_message(
+    LWMsgDataContext* context,
     LWMsgStatus status
     );
 
@@ -147,18 +147,18 @@ lwmsg_data_handle_get_error_message(
  *
  * Sets the byte order which will be used for atomic data elements
  * in subsequent marshal and unmarshal operations using the specified
- * data handle.
+ * data context.
  *
  * The default byte order is network byte order (big endian).  This is
  * the preferred order for data destined for long-term storage or
  * transmission over a network.
  *
- * @param[out] handle the data handle
+ * @param[out] context the data context
  * @param[in] order the data order
  */
 void
-lwmsg_data_handle_set_byte_order(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_set_byte_order(
+    LWMsgDataContext* context,
     LWMsgByteOrder order
     );
 
@@ -166,34 +166,34 @@ lwmsg_data_handle_set_byte_order(
  * @brief Get Byte order
  *
  * Gets the byte order which will be used for subsequent marshal and
- * unmarshal operations on the specified data handle.
+ * unmarshal operations on the specified data context.
  *
- * @param[in] handle the data handle
+ * @param[in] context the data context
  * @return the current byte order
  */
 LWMsgByteOrder
-lwmsg_data_handle_get_byte_order(
-    LWMsgDataHandle* handle
+lwmsg_data_context_get_byte_order(
+    LWMsgDataContext* context
     );
 
 /**
  * @brief Get context
  *
- * Gets the context which was given to #lwmsg_data_handle_new()
- * when the specified data handle was created.
+ * Gets the context which was given to #lwmsg_data_context_new()
+ * when the specified data context was created.
  *
- * @param[in] handle the data handle
+ * @param[in] context the data context
  * @return the context, or NULL if no context was given at creation time
  */
 const LWMsgContext*
-lwmsg_data_handle_get_context(
-    LWMsgDataHandle* handle
+lwmsg_data_context_get_context(
+    LWMsgDataContext* context
     );
 
 #ifndef DOXYGEN
 LWMsgStatus
-lwmsg_data_handle_raise_error(
-    LWMsgDataHandle* handle,
+lwmsg_data_context_raise_error(
+    LWMsgDataContext* context,
     LWMsgStatus status,
     const char* format,
     ...
@@ -206,7 +206,7 @@ lwmsg_data_handle_raise_error(
  * Recursively frees the data graph rooted at <tt>root</tt>
  * whose type is specified by <tt>type</tt>.  Each contiguous
  * memory object will be freed using the context given to
- * #lwmsg_data_handle_new() when the specified data handle
+ * #lwmsg_data_context_new() when the specified data context
  * was created.
  *
  * The most common application of this function is to free
@@ -217,13 +217,13 @@ lwmsg_data_handle_raise_error(
  * a generic pointer, <tt>type</tt> is subject to pointer
  * promotion.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type of the root node of the graph
  * @param[in,out] root the root of the graph
  */
 LWMsgStatus
 lwmsg_data_free_graph(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* root
     );
@@ -234,7 +234,7 @@ lwmsg_data_free_graph(
  * Converts a data structure of the specified type to a flat, serialized form, storing
  * the result in the provided marshalling buffer.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type specification which describes the type of the data
  * @param[in] object the root of the data to marshal
  * @param[in,out] buffer the marshalling buffer into which the result will be stored
@@ -249,7 +249,7 @@ lwmsg_data_free_graph(
  */
 LWMsgStatus
 lwmsg_data_marshal(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     LWMsgBuffer* buffer
@@ -261,7 +261,7 @@ lwmsg_data_marshal(
  * Converts a data structure of the specified type to a flat, serialized form, storing
  * the result in the provided simple buffer.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type specification which describes the type of the data
  * @param[in] object the root of the data to marshal
  * @param[out] buffer the buffer into which the result will be stored
@@ -277,7 +277,7 @@ lwmsg_data_marshal(
  */
 LWMsgStatus
 lwmsg_data_marshal_flat(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     void* buffer,
@@ -289,9 +289,9 @@ lwmsg_data_marshal_flat(
  *
  * Converts a data structure of the specified type to a flat, serialized form, automatically
  * allocating sufficient space for the result.  The buffer is allocated using the memory management
- * functions in context passed to #lwmsg_data_handle_new().
+ * functions in context passed to #lwmsg_data_context_new().
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type specification which describes the type of the data
  * @param[in] object the root of the data to marshal
  * @param[out] buffer the allocated buffer containing the serialized representation
@@ -306,7 +306,7 @@ lwmsg_data_marshal_flat(
  */
 LWMsgStatus
 lwmsg_data_marshal_flat_alloc(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     void** buffer,
@@ -319,7 +319,7 @@ lwmsg_data_marshal_flat_alloc(
  * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary
  * to form the object graph.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type specification which describes the type of the data
  * @param[in,out] buffer the marshalling buffer from which data will be read
  * @param[out] out the resulting unmarshalled object
@@ -334,7 +334,7 @@ lwmsg_data_marshal_flat_alloc(
  */
 LWMsgStatus
 lwmsg_data_unmarshal(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     LWMsgBuffer* buffer,
     void** out
@@ -347,7 +347,7 @@ lwmsg_data_unmarshal(
  * to form the object graph.  The serialized form is read from a simple buffer rather than a
  * full #LWMsgBuffer.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type the type specification which describes the type of the data
  * @param[in] buffer the simple buffer from which data will be read
  * @param[in] length the length of the buffer in bytes
@@ -362,7 +362,7 @@ lwmsg_data_unmarshal(
  */
 LWMsgStatus
 lwmsg_data_unmarshal_flat(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* buffer,
     size_t length,
@@ -377,7 +377,7 @@ lwmsg_data_unmarshal_flat(
  * pieces of the representation.  Consider using #lwmsg_data_print_graph_alloc()
  * if you want to easily print to a string.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type a type specification which describes the graph root
  * @param[in] root the root of the data graph
  * @param[in] print a print callback function
@@ -390,7 +390,7 @@ lwmsg_data_unmarshal_flat(
  */
 LWMsgStatus
 lwmsg_data_print_graph(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* root,
     LWMsgDataPrintFunction print,
@@ -404,9 +404,9 @@ lwmsg_data_print_graph(
  * Prints a human-readable textual representation of a data graph,
  * automatically allocating and returning a C string containing the
  * result.  The string will be allocated using the context passed
- * to #lwmsg_data_handle_new() when creating the data handle.
+ * to #lwmsg_data_context_new() when creating the data context.
  *
- * @param[in,out] handle the data handle
+ * @param[in,out] context the data context
  * @param[in] type a type specification which describes the graph root
  * @param[in] root the root of the data graph
  * @param[out] result the resulting string
@@ -418,7 +418,7 @@ lwmsg_data_print_graph(
  */
 LWMsgStatus
 lwmsg_data_print_graph_alloc(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* root,
     char** result

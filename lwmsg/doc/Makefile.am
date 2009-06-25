@@ -11,6 +11,7 @@ DOXYGEN_PDF_INSTALL_TARGET=
 endif
 
 DOXYGEN_HEADER_DEPS = \
+	$(top_srcdir)/include/lwmsg/call.h \
 	$(top_srcdir)/include/lwmsg/assoc.h \
 	$(top_srcdir)/include/lwmsg/buffer.h \
 	$(top_srcdir)/include/lwmsg/client.h \
@@ -18,7 +19,6 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/lwmsg/connection.h \
 	$(top_srcdir)/include/lwmsg/context.h \
 	$(top_srcdir)/include/lwmsg/data.h \
-	$(top_srcdir)/include/lwmsg/dispatch.h \
 	$(top_srcdir)/include/lwmsg/lwmsg.h \
 	$(top_srcdir)/include/lwmsg/protocol.h \
 	$(top_srcdir)/include/lwmsg/security.h \

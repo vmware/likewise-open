@@ -59,8 +59,8 @@ LsaSetTraceFlags(
     LSA_IPC_SET_TRACE_INFO_REQ setTraceinfoReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     setTraceinfoReq.dwNumFlags = dwNumFlags;
     setTraceinfoReq.pTraceFlagArray = pTraceFlagArray;
@@ -115,8 +115,8 @@ LsaEnumTraceFlags(
     PLSA_TRACE_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_TRACE_INFO;
     request.object = NULL;
@@ -174,8 +174,8 @@ LsaGetTraceFlag(
     PLSA_TRACE_INFO_LIST pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_GET_TRACE_INFO;
     request.object = &dwTraceFlag;

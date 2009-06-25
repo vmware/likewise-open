@@ -1,6 +1,7 @@
 SUBDIRS = lwmsg
 
 noinst_HEADERS = \
+	call-private.h \
 	data-private.h \
 	assoc-private.h \
 	connection-private.h \
@@ -15,5 +16,4 @@ noinst_HEADERS = \
 	session-private.h \
 	mt19937ar.h \
 	client-private.h \
-	server-private.h \
-	dispatch-private.h
+	server-private.h

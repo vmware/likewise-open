@@ -161,8 +161,8 @@ LWNetTransactGetDCName(
     LWNET_IPC_DCNAME_REQ dcReq;
     PLWNET_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcReq.pszServerFQDN = pszServerFQDN;
     dcReq.pszDomainFQDN = pszDomainFQDN;
@@ -226,8 +226,8 @@ LWNetTransactGetDCTime(
                      (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
     PLWNET_IPC_ERROR pError = NULL;
     LWNET_IPC_DCTIME_REQ dcTimeReq;
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcTimeReq.pszDomainFQDN = pszDomainFQDN;
     request.tag = LWNET_Q_DCTIME;
@@ -281,8 +281,8 @@ LWNetTransactGetDomainController(
     PLWNET_IPC_ERROR pError = NULL;
     LWNET_IPC_DC_REQ dcReq;
     PLWNET_IPC_DC_RES dcRes = NULL;
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcReq.pszDomainFQDN = pszDomainFQDN;
     request.tag = LWNET_Q_DC;
@@ -338,8 +338,8 @@ LWNetTransactGetCurrentDomain(
     PLWNET_IPC_ERROR pError = NULL;
     PLWNET_IPC_CURRENT_RES pCurRes = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LWNET_Q_CURRENT_DOMAIN;
     request.object = NULL;

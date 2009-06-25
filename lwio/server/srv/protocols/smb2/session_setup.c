@@ -56,14 +56,128 @@ SrvProcessSessionSetup_SMB_V2(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
+    PBYTE       pSecurityBlob = NULL; // Do not free
+    ULONG       ulSecurityBlobLen = 0;
+    PBYTE       pReplySecurityBlob = NULL;
+    ULONG       ulReplySecurityBlobLength = 0;
+    UNICODE_STRING uniUsername = {0};
+    PLWIO_SRV_SESSION_2 pSession = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
-    ntStatus = STATUS_NOT_IMPLEMENTED;
+    ntStatus = SMB2UnmarshallSessionSetup(
+                    pSmbRequest,
+                    &pSessionSetupHeader,
+                    &pSecurityBlob,
+                    &ulSecurityBlobLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGssNegotiate(
+                    pConnection->hGssContext,
+                    pConnection->hGssNegotiate,
+                    pSecurityBlob,
+                    ulSecurityBlobLen,
+                    &pReplySecurityBlob,
+                    &ulReplySecurityBlobLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketAllocate(
+                        pConnection->hPacketAllocator,
+                        &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalHeader(
+                    pSmbResponse,
+                    COM2_SESSION_SETUP,
+                    0,
+                    9,
+                    pSmbRequest->pSMB2Header->ulPid,
+                    pSmbRequest->pSMB2Header->ullCommandSequence,
+                    pSmbRequest->pSMB2Header->ulTid,
+                    0LL,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
+                                   pConnection->hGssNegotiate))
+    {
+        pSmbResponse->pSMB2Header->error = STATUS_MORE_PROCESSING_REQUIRED;
+    }
+    else
+    {
+        ntStatus = SrvConnection2CreateSession(
+                            pConnection,
+                            &pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!pConnection->pSessionKey)
+        {
+             ntStatus = SrvGssGetSessionDetails(
+                             pConnection->hGssContext,
+                             pConnection->hGssNegotiate,
+                             &pConnection->pSessionKey,
+                             &pConnection->ulSessionKeyLength,
+                             &pSession->pszClientPrincipalName);
+        }
+        else
+        {
+             ntStatus = SrvGssGetSessionDetails(
+                             pConnection->hGssContext,
+                             pConnection->hGssNegotiate,
+                             NULL,
+                             NULL,
+                             &pSession->pszClientPrincipalName);
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        /* Generate and store the IoSecurityContext */
+
+        ntStatus = RtlUnicodeStringAllocateFromCString(
+                       &uniUsername,
+                       pSession->pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoSecurityCreateSecurityContextFromUsername(
+                       &pSession->pIoSecurityContext,
+                       &uniUsername);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSmbResponse->pSMB2Header->ullSessionId = pSession->ullUid;
+
+        SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
+    }
+
+    ntStatus = SMB2MarshalSessionSetup(
+                    pSmbResponse,
+                    0,
+                    pReplySecurityBlob,
+                    ulReplySecurityBlobLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
+    }
+
+    RtlUnicodeStringFree(&uniUsername);
+
+    SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
 
     return ntStatus;
 

@@ -30,6 +30,14 @@ DNSCreateDeleteRecord(
 	);
 
 DWORD
+DNSCreatePtrRecord(
+    PCSTR pszName,
+    WORD  wClass,
+    PCSTR pszDest,
+    PDNS_RR_RECORD * ppDNSRecord
+    );
+
+DWORD
 DNSCreateARecord(
 	PCSTR pszHost,
 	WORD  wClass,

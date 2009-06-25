@@ -352,12 +352,53 @@ LocalFindUserByName(
     PVOID*  ppUserInfo
     )
 {
-    return LocalFindUserByNameEx(
+    DWORD dwError = STATUS_SUCCESS;
+    PVOID pUserInfo = NULL;
+
+    dwError = LocalFindUserByNameEx(
                 hProvider,
                 pszLoginId,
                 dwUserInfoLevel,
                 NULL,
-                ppUserInfo);
+                &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch(dwUserInfoLevel)
+    {
+        /* Add any info levels that contain the NT/LM hash here */
+        case 2:
+        {
+            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
+
+            if (pUserInfo2->pNTHash)
+            {
+                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
+            }
+
+            if (pUserInfo2->pLMHash)
+            {
+                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
+            }
+        }
+        break;
+    }
+
+    /* give the memory away now */
+
+    *ppUserInfo = pUserInfo;
+    pUserInfo = NULL;
+
+cleanup:
+
+    return dwError;
+
+error:
+    if (pUserInfo)
+    {
+        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -460,7 +501,28 @@ LocalFindUserById(
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
+    switch(dwUserInfoLevel)
+    {
+        /* Add any info levels that contain the NT/LM hash here */
+        case 2:
+        {
+            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
+
+            if (pUserInfo2->pNTHash)
+            {
+                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
+            }
+
+            if (pUserInfo2->pLMHash)
+            {
+                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
+            }
+        }
+        break;
+    }
+
     *ppUserInfo = pUserInfo;
+    pUserInfo = NULL;
 
 cleanup:
 
@@ -1547,7 +1609,7 @@ LocalGetGroupMembership(
 {
     DWORD dwError = 0;
     LWMsgContext *context = NULL;
-    LWMsgDataHandle *pDataHandle = NULL;
+    LWMsgDataContext *pDataContext = NULL;
     PLSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REQ pRequest = NULL;
     LSA_LOCAL_IPC_GET_GROUP_MEMBERSHIP_REP Reply;
     PWSTR pwszDN = NULL;
@@ -1561,11 +1623,11 @@ LocalGetGroupMembership(
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_handle_new(context, &pDataHandle));
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                              pDataHandle,
+                              pDataContext,
                               LsaLocalIPCGetGroupMembershipReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
@@ -1598,7 +1660,7 @@ LocalGetGroupMembership(
     }
 
     dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataHandle,
+                              pDataContext,
                               LsaLocalIPCGetGroupMembershipRepSpec(),
                               &Reply,
                               &pRepBuffer,
@@ -1620,14 +1682,14 @@ cleanup:
 
     if (pRequest) {
         lwmsg_data_free_graph(
-            pDataHandle,
+            pDataContext,
             LsaLocalIPCGetGroupMembershipReqSpec(),
             pRequest);
     }
 
-    if (pDataHandle)
+    if (pDataContext)
     {
-        lwmsg_data_handle_delete(pDataHandle);
+        lwmsg_data_context_delete(pDataContext);
     }
 
     if (context) {

@@ -50,6 +50,16 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+
+// config.c
+
+NTSTATUS
+SrvProtocolConfigSupports_SMB_V2(
+    PBOOLEAN pbSupportSMBV2
+    );
+
+// negotiate.c
+
 NTSTATUS
 SrvProcessNegotiate(
         IN  PLWIO_SRV_CONNECTION pConnection,

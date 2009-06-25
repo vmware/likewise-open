@@ -124,10 +124,11 @@ LocalAuthenticateUserExInternal(
                                       pUserParams->pszAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByName(hProvider,
-                                  pszAccountName,
-                                  dwUserInfoLevel,
-                                  (PVOID*)&pUserInfo2);
+    dwError = LocalFindUserByNameEx(hProvider,
+                                    pszAccountName,
+                                    dwUserInfoLevel,
+                                    NULL,
+                                    (PVOID*)&pUserInfo2);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCheckAccountFlags(pUserInfo2);

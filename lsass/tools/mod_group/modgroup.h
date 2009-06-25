@@ -59,7 +59,7 @@ typedef enum
 typedef struct __GROUP_MOD_TASK
 {
     GroupModificationTaskType taskType;
-    PVOID pszData;
+    PVOID pData;
 } GROUP_MOD_TASK, *PGROUP_MOD_TASK;
 
 DWORD

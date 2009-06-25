@@ -1,6 +1,8 @@
 lwmsg_includedir = $(includedir)/lwmsg
 
 lwmsg_include_HEADERS = \
+	call.h \
+	message.h \
 	data.h \
 	assoc.h \
 	context.h \
@@ -15,5 +17,4 @@ lwmsg_include_HEADERS = \
 	security.h \
 	common.h \
 	session.h \
-	client.h \
-	dispatch.h
+	client.h

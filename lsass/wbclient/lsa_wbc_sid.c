@@ -435,7 +435,7 @@ wbcErr wbcLookupRids(
         /* Add one more to the end to NULL terminate the
            array of strings.  Required by _wbc_free_string_array() */
 
-        *names = _wbc_malloc_zero(sizeof(char*)*num_rids+1,
+        *names = _wbc_malloc_zero(sizeof(char*)*(num_rids+1),
                      _wbc_free_string_array);
         BAIL_ON_NULL_PTR(*names, dwErr);
     }

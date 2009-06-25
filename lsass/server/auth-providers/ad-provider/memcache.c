@@ -33,31 +33,20 @@
  *
  * Module Name:
  *
- *        adcache.c
+ *        memcache.c
  *
  * Abstract:
  *
- *        This is the public interface for the AD Provider Local Cache
+ *        This is the in-memory implementation of the AD Provider Local Cache
  *
- * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Krishna Ganugapati (kstemen@likewisesoftware.com)
  *
  */
 #include "adprovider.h"
 
 
-DWORD
-MemCacheSetup(
-    IN sqlite3* pSqlHandle
-    )
-{
-    DWORD dwError = 0;
+#ifdef AD_CACHE_IN_MEMORY
 
-    dwError = pCacheProvider->Setup(
-                    pSqlHandle
-                    );
-
-    return dwError;
-}
 
 DWORD
 MemCacheOpen(
@@ -67,29 +56,15 @@ MemCacheOpen(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->Open(
-                        pszDbPath,
-                        phDb
-                        );
     return dwError;
 }
 
-
-DWORD
-MemCacheFreePreparedStatements(
-    IN OUT PLSA_DB_CONNECTION pConn
-    )
-{
-}
 
 void
 MemCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
-    pCacheProvider->SafeClose(
-                        phDb
-                        );
     return;
 }
 
@@ -118,6 +93,9 @@ MemCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
@@ -127,6 +105,9 @@ MemCacheFindGroupByName(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
@@ -138,11 +119,6 @@ MemCacheFindGroupById(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindGroupById(
-                    hDb,
-                    gid,
-                    ppObject
-                    );
     return dwError;
 }
 
@@ -154,10 +130,6 @@ MemCacheRemoveUserBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveUserBySid(
-                    hDb,
-                    pszSid
-                    );
     return dwError;
 }
 
@@ -169,10 +141,6 @@ MemCacheRemoveGroupBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveGroupBySid(
-                     hDb,
-                     pszSid
-                    );
     return dwError;
 }
 
@@ -183,67 +151,7 @@ MemCacheEmptyCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EmptyCache(
-                    hDb
-                    );
     return dwError;
-}
-
-
-DWORD
-MemCacheUnpackCacheInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT_VERSION_INFO pResult)
-{
-
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->UnpackCacheInfo(
-                    pstQuery,
-                    piColumnPos,
-                    pResult
-                    );
-
-    return dwError;
-}
-
-
-DWORD
-MemCacheUnpackObjectInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-MemCacheUnpackUserInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-    return dwError;
-}
-
-
-DWORD
-MemCacheUnpackGroupInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-MemCacheUnpackGroupMembershipInfo(
-    IN sqlite3_stmt* pstQuery,
-    IN OUT int* piColumnPos,
-    IN OUT PLSA_GROUP_MEMBERSHIP pResult
-    )
-{
 }
 
 DWORD
@@ -279,29 +187,6 @@ MemCacheStoreObjectEntries(
     return dwError;
 }
 
-void
-MemCacheSafeFreeObject(
-    PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->SafeFreeObject(
-                    ppObject
-                    );
-    return dwError;
-}
-
-
-DWORD
-MemCacheCreateCacheTag(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    OUT int64_t *pqwCacheId
-    )
-{
-}
-
 
 DWORD
 MemCacheUpdateMembership(
@@ -314,30 +199,6 @@ MemCacheUpdateMembership(
 }
 
 
-DWORD
-MemCacheAddMembership(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    IN int64_t CacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid,
-    IN BOOLEAN bIsInPac,
-    IN BOOLEAN bIsInPacOnly,
-    IN BOOLEAN bIsInLdap,
-    IN BOOLEAN bIsDomainPrimaryGroup
-    )
-{
-}
-
-
-DWORD
-MemCacheStoreGroupMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
-}
 
 DWORD
 MemCacheStoreGroupMembership(
@@ -349,24 +210,9 @@ MemCacheStoreGroupMembership(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupMembership(
-                        hDb,
-                        pszParentSid,
-                        sMemberCount,
-                        ppMembers
-                        );
     return dwError;
 }
 
-
-DWORD
-MemCacheStoreUserMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
-}
 
 DWORD
 MemCacheStoreGroupsForUser(
@@ -379,13 +225,6 @@ MemCacheStoreGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupsForUser(
-                    hDb,
-                    pszChildSid,
-                    sMemberCount,
-                    ppMembers,
-                    bIsPacAuthoritative
-                    );
     return dwError;
 }
 
@@ -425,13 +264,6 @@ MemCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetGroupMembers(
-                        hDb,
-                        pszSid,
-                        bFilterNotInPacNorLdap,
-                        psCount,
-                        pppResults
-                        );
     return dwError;
 }
 
@@ -444,35 +276,11 @@ MemCacheGetGroupsForUser(
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
-void
-MemCacheSafeFreeGroupMembership(
-        PLSA_GROUP_MEMBERSHIP* ppMembership)
-{
-}
-
-void
-MemCacheSafeFreeGroupMembershipList(
-        size_t sCount,
-        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
-{
-}
-
-void
-MemCacheSafeFreeObjectList(
-        size_t sCount,
-        PLSA_SECURITY_OBJECT** pppObjectList)
-{
-}
-
-DWORD
-MemCacheQueryObjectMulti(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-}
 
 DWORD
 MemCacheEnumUsersCache(
@@ -484,14 +292,6 @@ MemCacheEnumUsersCache(
     )
 {
     DWORD dwError = 0;
-
-    dwError = pCacheProvider->EnumUsersCache(
-                        hDb,
-                        dwMaxNumUsers,
-                        pszResume,
-                        dwNumUsersFound,
-                        pppObjects
-                        );
 
     return dwError;
 }
@@ -507,33 +307,10 @@ MemCacheEnumGroupsCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EnumGroupsCache(
-                        hDb,
-                        dwMaxNumGroups,
-                        pszResume,
-                        dwNumGroupsFound,
-                        pppObjects
-                        );
 
     return dwError;
 }
 
-
-DWORD
-MemCacheQueryObject(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-}
-
-
-PCSTR
-MemCacheGetObjectFieldList(
-    VOID
-    )
-{
-}
 
 DWORD
 MemCacheFindObjectByDN(
@@ -561,12 +338,6 @@ MemCacheFindObjectsByDNList(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectsByDNList(
-                        hDb,
-                        sCount,
-                        ppszDnList,
-                        pppResults
-                        );
     return dwError;
 }
 
@@ -578,11 +349,6 @@ MemCacheFindObjectBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectBySid(
-                            hDb,
-                            pszSid,
-                            ppObject
-                            );
 
     return dwError;
 }
@@ -597,7 +363,9 @@ MemCacheFindObjectsBySidList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
+    DWORD dwError = 0;
 
+    return dwError;
 }
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
@@ -608,6 +376,9 @@ MemCacheGetPasswordVerifier(
     OUT PLSA_PASSWORD_VERIFIER *ppResult
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 void
@@ -615,6 +386,9 @@ MemCacheFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
 
 DWORD
@@ -623,4 +397,39 @@ MemCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
+    DWORD dwError = 0;
+
+    return dwError;
 }
+
+
+void
+MemCacheInitProvider()
+{
+    MemCacheTable.pfnOPENHANDLE               = MemCacheOpenHandle;
+    MemCacheTable.pfnSafeClose                = MemCacheSafeClose;
+    MemCacheTable.pfnFindUserByName           = MemCacheFindUserByName;
+    MemCacheTable.pfnFindUserById             = MemCacheFindUserById;
+    MemCacheTable.pfnFindGroupByName          = MemCacheFindGroupByName;
+    MemCacheTable.pfnFindGroupById            = MemCacheFindGroupById;
+    MemCacheTable.pfnRemoveUserBySid          = MemCacheRemoveUserBySid;
+    MemCacheTable.pfnRemoveGroupBySid         = MemCacheRemoveGroupBySid;
+    MemCacheTable.pfnEmptyCache               = MemCacheEmptyCache;
+    MemCacheTable.pfnStoreObjectEntry         = MemCacheStoreObjectEntry;
+    MemCacheTable.pfnStoreObjectEntries       = MemCacheStoreObjectEntries;
+    MemCacheTable.pfnStoreGroupMembership     = MemCacheStoreGroupMembership;
+    MemCacheTable.pfnStoreGroupsForUser       = MemCacheStoreGroupsForUser;
+    MemCacheTable.pfnGetMemberships           = MemCacheGetMemberships;
+    MemCacheTable.pfnGetGroupMembers          = MemCacheGetGroupMembers;
+    MemCacheTable.pfnGetGroupsForUser         = MemCacheGetGroupsForUser;
+    MemCacheTable.pfnEnumUsersCache           = MemCacheEnumUsersCache;
+    MemCacheTable.pfnEnumGroupsCache          = MemCacheEnumGroupsCache;
+    MemCacheTable.pfnFindObjectByDN           = MemCacheFindObjectByDN;
+    MemCacheTable.pfnFindObjectsByDNList      = MemCacheFindObjectsByDNList;
+    MemCacheTable.pfnFindObjectBySid          = MemCacheFindObjectBySid;
+    MemCacheTable.pfnFindObjectBySidList      = MemCacheFindObjectsBySidList;
+    MemCacheTable.pfnGetPasswordVerifier      = MemCacheGetPasswordVerifier;
+    MemCacheTable.pfnStorePasswordVerifier    = MemCacheStorePasswordVerifier;
+}
+
+#endif

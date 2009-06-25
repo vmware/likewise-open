@@ -48,7 +48,7 @@
 
 static LWMsgStatus
 lwmsg_assoc_marshal_handle(
-    LWMsgDataHandle* mhandle,
+    LWMsgDataContext* mcontext,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -65,8 +65,8 @@ lwmsg_assoc_marshal_handle(
     LWMsgSession* session = NULL;
     unsigned char blob[5];
     const char* type = NULL;
-    const LWMsgContext* context = lwmsg_data_handle_get_context(mhandle);
-    LWMsgByteOrder byte_order = lwmsg_data_handle_get_byte_order(mhandle);
+    const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
+    LWMsgByteOrder byte_order = lwmsg_data_context_get_byte_order(mcontext);
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
@@ -98,7 +98,7 @@ lwmsg_assoc_marshal_handle(
         /* Confirm that the handle is of the expected type */
         if (strcmp((const char*) data, type))
         {
-            MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+            MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                         "Invalid handle 0x%lx(%lu): expected handle of type '%s', "
                         "got '%s'",
                         (unsigned long) pointer,
@@ -113,7 +113,7 @@ lwmsg_assoc_marshal_handle(
         {
             if (location == LWMSG_HANDLE_LOCAL)
             {
-                MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+                MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                             "Invalid handle 0x%lx(%lu): expected handle which is "
                             "local for the receiver",
                             (unsigned long) pointer,
@@ -121,7 +121,7 @@ lwmsg_assoc_marshal_handle(
             }
             else
             {
-                MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+                MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                             "Invalid handle 0x%lx(%lu): expected handle which is "
                             "local for the sender",
                             (unsigned long) pointer,
@@ -147,7 +147,7 @@ lwmsg_assoc_marshal_handle(
         /* If the handle was not supposed to be NULL, raise an error */
         if (attrs->nonnull)
         {
-            MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+            MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                         "Invalid handle: expected non-null handle");
         }
 
@@ -163,7 +163,7 @@ error:
 
 static LWMsgStatus
 lwmsg_assoc_unmarshal_handle(
-    LWMsgDataHandle* mhandle,
+    LWMsgDataContext* mcontext,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
@@ -179,8 +179,8 @@ lwmsg_assoc_unmarshal_handle(
     char temp[5];
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
-    const LWMsgContext* context = lwmsg_data_handle_get_context(mhandle);
-   LWMsgByteOrder byte_order = lwmsg_data_handle_get_byte_order(mhandle);
+    const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
+   LWMsgByteOrder byte_order = lwmsg_data_context_get_byte_order(mcontext);
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
@@ -212,7 +212,7 @@ lwmsg_assoc_unmarshal_handle(
         {
             if (location == LWMSG_HANDLE_LOCAL)
             {
-                MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+                MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                             "Invalid handle (%lu): expected handle which is "
                             "local for the receiver",
                             (unsigned long) pointer,
@@ -220,7 +220,7 @@ lwmsg_assoc_unmarshal_handle(
             }
             else
             {
-                MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+                MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                             "Invalid handle (%lu): expected handle which is "
                             "local for the sender",
                             (unsigned long) pointer,
@@ -269,7 +269,7 @@ lwmsg_assoc_unmarshal_handle(
     {
         if (attrs->nonnull)
         {
-            MARSHAL_RAISE_ERROR(mhandle, status = LWMSG_STATUS_INVALID_HANDLE,
+            MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                         "Invalid handle: expected non-null handle");
         }
         *(void**) object = NULL;

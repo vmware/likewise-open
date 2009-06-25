@@ -43,10 +43,6 @@
 #include "session-private.h"
 #include "assoc-private.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <errno.h>
@@ -390,59 +386,13 @@ lwmsg_server_set_fd(
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(fd, &task));
+    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(mode, NULL, 0, fd, &task));
 
     lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
 
 error:
 
     lwmsg_server_unlock(server);
-
-    return status;
-}
-
-static LWMsgStatus
-lwmsg_server_create_local_socket(
-    LWMsgServer* server,
-    const char* endpoint,
-    mode_t mode,
-    int* fd
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    int sock = -1;
-    struct sockaddr_un sockaddr;
-
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (sock == -1)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    sockaddr.sun_family = AF_UNIX;
-
-    if (strlen(endpoint) > sizeof(sockaddr.sun_path))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-    }
-
-    strcpy(sockaddr.sun_path, endpoint);
-    unlink(sockaddr.sun_path);
-
-    if (bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == -1)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    if (chmod(sockaddr.sun_path, mode) < 0)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
-
-    *fd = sock;
-
-error:
 
     return status;
 }
@@ -457,7 +407,6 @@ lwmsg_server_set_endpoint(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ServerTask* task = NULL;
-    int fd = -1;
 
     lwmsg_server_lock(server);
 
@@ -474,18 +423,12 @@ lwmsg_server_set_endpoint(
     switch (mode)
     {
     case LWMSG_SERVER_MODE_LOCAL:
-        BAIL_ON_ERROR(status = lwmsg_server_create_local_socket(
-                          server,
-                          endpoint,
-                          permissions,
-                          &fd));
         break;
     default:
         BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
     }
 
-    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(fd, &task));
-    fd = -1;
+    BAIL_ON_ERROR(status = lwmsg_server_task_new_listen(mode, endpoint, permissions, -1, &task));
 
     lwmsg_ring_insert_after(&server->io_tasks, &task->ring);
     task = NULL;
@@ -495,11 +438,6 @@ lwmsg_server_set_endpoint(
 error:
 
     lwmsg_server_unlock(server);
-
-    if (fd != -1)
-    {
-        close(fd);
-    }
 
     if (task)
     {

@@ -53,11 +53,14 @@ NTSTATUS
 SMB2MarshalHeader(
     PSMB_PACKET pSmbPacket,
     USHORT      usCommand,
+    USHORT      usEpoch,
     USHORT      usCredits,
     ULONG       ulPid,
+    ULONG64     ullMid,
     ULONG       ulTid,
     ULONG64     ullSessionId,
     NTSTATUS    status,
+    BOOLEAN     bCommandAllowsSignature,
     BOOLEAN     bIsResponse
     )
 {
@@ -84,7 +87,7 @@ SMB2MarshalHeader(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pSmbPacket->packetType = SMB_PACKET_TYPE_SMB_2;
+    pSmbPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
     pSmbPacket->pSMB2Header = (PSMB2_HEADER)(pBuffer);
 
     ulBufferUsed += sizeof(SMB2_HEADER);
@@ -93,8 +96,10 @@ SMB2MarshalHeader(
 
     memcpy(&pSmbPacket->pSMB2Header->smb[0], &smb2Magic[0], sizeof(smb2Magic));
     pSmbPacket->pSMB2Header->command        = usCommand;
+    pSmbPacket->pSMB2Header->usEpoch        = usEpoch;
     pSmbPacket->pSMB2Header->usCredits      = usCredits;
     pSmbPacket->pSMB2Header->ulPid          = ulPid;
+    pSmbPacket->pSMB2Header->ullCommandSequence = ullMid;
     pSmbPacket->pSMB2Header->ulTid          = ulTid;
     pSmbPacket->pSMB2Header->ullSessionId   = ullSessionId;
     pSmbPacket->pSMB2Header->error         = status;
@@ -109,13 +114,292 @@ SMB2MarshalHeader(
 
     pSmbPacket->bufferUsed = ulBufferUsed;
 
+    pSmbPacket->allowSignature = bCommandAllowsSignature;
+
 error:
 
     return ntStatus;
 }
 
 NTSTATUS
-SMB2PacketMarshallFooter(
+SMB2UnmarshallSessionSetup(
+    PSMB_PACKET                         pPacket,
+    PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
+    PBYTE*                              ppSecurityBlob,
+    PULONG                              pulSecurityBlobLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    PBYTE pBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulBytesAvailable = 0;
+    PSMB2_SESSION_SETUP_REQUEST_HEADER pHeader = NULL;
+    PBYTE pSecurityBlob = NULL;
+    ULONG ulSecurityBlobLen = 0;
+
+    ulBytesAvailable = pPacket->bufferLen -
+                       sizeof(NETBIOS_HEADER) -
+                       sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SESSION_SETUP_REQUEST_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_REQUEST_HEADER);
+
+    // Is dynamic part present?
+    if (pHeader->usLength & 0x1)
+    {
+        USHORT usAlign = ulOffset %8;
+        if (usAlign)
+        {
+            if (ulBytesAvailable < usAlign)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulOffset += usAlign;
+            ulBytesAvailable -= usAlign;
+        }
+
+        if (!pHeader->usBlobLength ||
+            (pHeader->usBlobOffset < ulOffset) ||
+            (pHeader->usBlobOffset % 8) ||
+            (pHeader->usBlobOffset > ulPacketSize) ||
+            (pHeader->usBlobOffset + pHeader->usBlobLength) > ulPacketSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pSecurityBlob = (PBYTE)pPacket->pSMB2Header + pHeader->usBlobOffset;
+        ulSecurityBlobLen = pHeader->usBlobLength;
+    }
+
+    *ppHeader = pHeader;
+    *ppSecurityBlob = pSecurityBlob;
+    *pulSecurityBlobLen = ulSecurityBlobLen;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppSecurityBlob = NULL;
+    *pulSecurityBlobLen = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalSessionSetup(
+    PSMB_PACKET        pPacket,
+    SMB2_SESSION_FLAGS usFlags,
+    PBYTE              pSecurityBlob,
+    ULONG              ulSecurityBlobLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_SESSION_SETUP_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulOffset = (PBYTE)pPacket->pParams - (PBYTE)pPacket->pSMB2Header;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+    USHORT usAlign = 0;
+
+    if (ulBytesAvailable < sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SESSION_SETUP_RESPONSE_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    ulBytesUsed += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_SESSION_SETUP_RESPONSE_HEADER);
+
+    if ((usAlign = ulOffset % 8))
+    {
+        if (ulBytesAvailable < usAlign)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulOffset += usAlign;
+        ulBytesUsed += usAlign;
+        ulBytesAvailable -= usAlign;
+        pBuffer += usAlign;
+    }
+
+    pHeader->usLength = ulBytesUsed;
+
+    if (ulSecurityBlobLen)
+    {
+        if (ulBytesAvailable < ulSecurityBlobLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pBuffer, pSecurityBlob, ulSecurityBlobLen);
+
+        pHeader->usLength++;
+
+        ulBytesUsed += ulSecurityBlobLen;
+    }
+
+    pHeader->usSessionFlags = usFlags;
+    pHeader->usBlobOffset = ulOffset;
+    pHeader->usBlobLength = ulSecurityBlobLen;
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
+SMB2UnmarshalTreeConnect(
+    PSMB_PACKET                        pPacket,
+    PSMB2_TREE_CONNECT_REQUEST_HEADER* ppTreeConnectRequestHeader,
+    PUNICODE_STRING                    pwszPath
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_TREE_CONNECT_REQUEST_HEADER pHeader = NULL;
+    UNICODE_STRING wszPath = {0};
+
+    if (ulBytesAvailable < sizeof(SMB2_TREE_CONNECT_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_TREE_CONNECT_REQUEST_HEADER)pDataBuffer;
+    ulBytesAvailable -= sizeof(SMB2_TREE_CONNECT_REQUEST_HEADER);
+    ulOffset += sizeof(SMB2_TREE_CONNECT_REQUEST_HEADER);
+
+    if (pHeader->usLength & 0x1)
+    {
+        if ((pHeader->usPathOffset < ulOffset) ||
+            (pHeader->usPathOffset % 2) ||
+            (pHeader->usPathLength % 2) ||
+            (pHeader->usPathOffset > ulPacketSize) ||
+            (pHeader->usPathLength + pHeader->usPathOffset) > ulPacketSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        wszPath.Buffer = (PWSTR)((PBYTE)pPacket->pSMB2Header + pHeader->usPathOffset);
+        wszPath.Length = wszPath.MaximumLength = pHeader->usPathLength;
+    }
+
+    if (!wszPath.Length)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppTreeConnectRequestHeader = pHeader;
+    *pwszPath = wszPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppTreeConnectRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalTreeConnectResponse(
+    PSMB_PACKET          pPacket,
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_TREE_2     pTree
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_TREE_CONNECT_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulOffset = (PBYTE)pPacket->pParams - (PBYTE)pPacket->pSMB2Header;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_TREE_CONNECT_RESPONSE_HEADER)pBuffer;
+    ulOffset += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
+    ulBytesUsed += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
+
+    pHeader->usLength = ulBytesUsed;
+
+    ntStatus = SrvGetMaximalShareAccessMask(
+                    pTree->pShareInfo,
+                    &pHeader->ulShareAccessMask);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pTree->pShareInfo->service)
+    {
+        case SHARE_SERVICE_DISK_SHARE:
+
+            pHeader->usShareType = 1;
+
+            break;
+
+        case SHARE_SERVICE_NAMED_PIPE:
+
+            pHeader->usShareType = 2;
+
+            break;
+
+        default:
+
+            LWIO_LOG_DEBUG("Unrecognized share type %d", pTree->pShareInfo->service);
+
+            break;
+    }
+
+    // TODO: Fill in Share capabilities
+    // TODO: Fill in Share flags
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalFooter(
     PSMB_PACKET pPacket
     )
 {

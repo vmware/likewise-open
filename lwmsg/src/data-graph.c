@@ -365,7 +365,7 @@ error:
 
 typedef struct freeinfo
 {
-    LWMsgDataHandle* handle;
+    LWMsgDataContext* context;
     LWMsgFreeFunction free;
     void* data;
 } freeinfo;
@@ -387,7 +387,7 @@ lwmsg_data_free_graph_visit(
         if (iter->info.kind_custom.typeclass->free)
         {
             iter->info.kind_custom.typeclass->free(
-                info->handle->context,
+                info->context->context,
                 iter->size,
                 &iter->attrs,
                 object,
@@ -418,7 +418,7 @@ error:
 
 LWMsgStatus
 lwmsg_data_free_graph_internal(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeIter* iter,
     unsigned char* object
     )
@@ -426,8 +426,8 @@ lwmsg_data_free_graph_internal(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     freeinfo info;
 
-    lwmsg_context_get_memory_functions(handle->context, NULL, &info.free, NULL, &info.data);
-    info.handle = handle;
+    lwmsg_context_get_memory_functions(context->context, NULL, &info.free, NULL, &info.data);
+    info.context = context;
 
     BAIL_ON_ERROR(status = lwmsg_data_visit_graph(
                       iter,
@@ -442,7 +442,7 @@ error:
 
 LWMsgStatus
 lwmsg_data_free_graph(
-    LWMsgDataHandle* handle,
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* root
     )
@@ -451,5 +451,5 @@ lwmsg_data_free_graph(
 
     lwmsg_type_iterate_promoted(type, &iter);
 
-    return lwmsg_data_free_graph_internal(handle, &iter, (unsigned char*) &root);
+    return lwmsg_data_free_graph_internal(context, &iter, (unsigned char*) &root);
 }

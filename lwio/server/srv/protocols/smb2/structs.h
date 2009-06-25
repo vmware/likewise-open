@@ -71,4 +71,51 @@ typedef struct __SMB2_NEGOTIATE_HEADER
 
 } __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
 
+typedef struct __SMB2_SESSION_SETUP_REQUEST_HEADER
+{
+    USHORT  usLength;
+    BYTE    ucVCNumber;
+    BYTE    ucSecurityMode;
+    ULONG   ulCapabilities;
+    ULONG   ulChannel;
+    USHORT  usBlobOffset;
+    USHORT  usBlobLength;
+    ULONG64 ullPrevSessionId;
+
+    /* GSS Blob follows immediately */
+
+} __attribute__((__packed__)) SMB2_SESSION_SETUP_REQUEST_HEADER;
+
+typedef SMB2_SESSION_SETUP_REQUEST_HEADER *PSMB2_SESSION_SETUP_REQUEST_HEADER;
+
+typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER
+{
+    USHORT  usLength;
+    USHORT  usSessionFlags;
+    USHORT  usBlobOffset;
+    USHORT  usBlobLength;
+
+    /* GSS Blob follows immediately */
+
+} __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER;
+
+typedef struct __SMB2_TREE_CONNECT_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usPad;
+    USHORT usPathOffset;
+    USHORT usPathLength;
+} SMB2_TREE_CONNECT_REQUEST_HEADER, *PSMB2_TREE_CONNECT_REQUEST_HEADER;
+
+typedef struct __SMB2_TREE_CONNECT_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usShareType;
+    ULONG  ulShareFlags;
+    ULONG  ulShareCapabilities;
+    ULONG  ulShareAccessMask;
+} SMB2_TREE_CONNECT_RESPONSE_HEADER, *PSMB2_TREE_CONNECT_RESPONSE_HEADER;
+
+typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER* PSMB2_SESSION_SETUP_RESPONSE_HEADER;
+
 #endif /* __STRUCTS_H__ */

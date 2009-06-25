@@ -49,7 +49,7 @@ SrvExecuteReadFileAndX(
     PLONG64       plByteOffset,
     PBYTE*        ppBuffer,
     PULONG        pulBytesRead,
-    PULONG        pKey
+    PULONG        pulKey
     );
 
 NTSTATUS
@@ -162,7 +162,7 @@ SrvBuildReadAndXResponse(
     ULONG ulBytesRead = 0;
     ULONG ulBytesToRead = 0;
     PBYTE pData = NULL;
-    ULONG Key = 0;
+    ULONG ulKey = 0;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -219,7 +219,7 @@ SrvBuildReadAndXResponse(
     ulDataOffset += ulDataOffset % 2;
 
     ulBytesToRead = SMB_MIN(ullBytesToRead, pConnection->serverProperties.MaxBufferSize - ulDataOffset);
-    Key = pSmbRequest->pSMBHeader->pid;
+    ulKey = pSmbRequest->pSMBHeader->pid;
 
     ntStatus = SrvExecuteReadFileAndX(
                     pFile,
@@ -227,7 +227,7 @@ SrvBuildReadAndXResponse(
                     &llByteOffset,
                     &pData,
                     &ulBytesRead,
-                    &Key);
+                    &ulKey);
     if (ntStatus == STATUS_END_OF_FILE)
     {
         ntStatus = 0;
@@ -294,7 +294,7 @@ SrvExecuteReadFileAndX(
     PLONG64       pllByteOffset,
     PBYTE*        ppBuffer,
     PULONG        pulBytesRead,
-    PULONG        pKey
+    PULONG        pulKey
     )
 {
     NTSTATUS ntStatus = 0;
@@ -311,7 +311,7 @@ SrvExecuteReadFileAndX(
                     pBuffer,
                     ulBytesToRead,
                     pllByteOffset,
-                    pKey);
+                    pulKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pulBytesRead = ioStatusBlock.BytesTransferred;

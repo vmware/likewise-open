@@ -84,6 +84,7 @@
 #define LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED                     1212 // Similar to Window event id 536
 #define LSASS_EVENT_FAILED_LOGON_UNEXPECTED_ERROR                    1213 // Similar to Window event id 537
 #define LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED                      1214 // Similar to Window event id 539
+#define LSASS_EVENT_FAILED_LOGON_CHECK_USER                          1215
 
 #define LSASS_EVENT_LOGON_PHASE_AUTHENTICATE                         1
 #define LSASS_EVENT_LOGON_PHASE_CREATE_SESSION                       2

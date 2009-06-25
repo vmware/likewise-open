@@ -549,7 +549,7 @@ NtlmMapLwmsgStatus(
         return EINVAL;
     case LWMSG_STATUS_SECURITY:
         return EACCES;
-    case LWMSG_STATUS_INTERRUPT:
+    case LWMSG_STATUS_CANCELLED:
         return EINTR;
     case LWMSG_STATUS_FILE_NOT_FOUND:
         return ENOENT;

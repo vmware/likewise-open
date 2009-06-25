@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 #include "includes.h"
 
 static
@@ -65,6 +69,7 @@ main(
     DWORD        dwNumAddrs = 0;
     PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
     HANDLE hPasswordStore = (HANDLE)NULL;
+    DWORD iAddr = 0;
 
     if (geteuid() != 0)
     {
@@ -163,8 +168,6 @@ main(
     }
     else
     {
-        DWORD iAddr = 0;
-
         dwError = DNSGetNetworkInterfaces(
                         &pInterfaceInfos,
                         &dwNumItfInfos);
@@ -245,8 +248,8 @@ main(
                         pszNameServer,
                         pszZone,
                         pszHostnameFQDN,
-                        pAddrArray,
-                        dwNumAddrs);
+                        dwNumAddrs,
+                        pAddrArray);
         if (dwError)
         {
             LWDNS_LOG_ERROR(
@@ -266,8 +269,34 @@ main(
         dwError = LWDNS_ERROR_UPDATE_FAILED;
         BAIL_ON_LWDNS_ERROR(dwError);
     }
+
+    printf("A record successfully updated in DNS\n");
+
+    bDNSUpdated = FALSE;
+
+    for (iAddr = 0; iAddr < dwNumAddrs; iAddr++)
+    {
+        PSOCKADDR_IN pSockAddr = &pAddrArray[iAddr];
+
+        dwError = DNSUpdatePtrSecure(
+                        pSockAddr,
+                        pszHostnameFQDN);
+        if (dwError)
+        {
+            printf("Unable to register reverse PTR record address %s with hostname %s\n",
+                    inet_ntoa(pSockAddr->sin_addr), pszHostnameFQDN);
+            dwError = 0;
+        }
+        else
+        {
+            bDNSUpdated = TRUE;
+        }
+    }
     
-    printf("DNS was updated successfully\n");
+    if (bDNSUpdated)
+    {
+        printf("PTR records successfully updated in DNS\n");
+    }
 
 cleanup:
 

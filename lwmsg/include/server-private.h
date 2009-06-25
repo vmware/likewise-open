@@ -45,7 +45,7 @@
 #include <lwmsg/session.h>
 #include "context-private.h"
 #include "util-private.h"
-#include "dispatch-private.h"
+#include "call-private.h"
 
 #include <pthread.h>
 #include <sys/time.h>
@@ -72,17 +72,50 @@ typedef enum ServerTaskType
     SERVER_TASK_FINISH_ASYNC
 } ServerTaskType;
 
+typedef struct ServerCall
+{
+    LWMsgCall base;
+    pthread_mutex_t lock;
+    enum
+    {
+        SERVER_CALL_IDLE,
+        SERVER_CALL_TRANSACTING,
+        SERVER_CALL_PENDING,
+        SERVER_CALL_CANCELED,
+        SERVER_CALL_COMPLETE
+    } volatile state;
+    LWMsgStatus volatile status;
+    LWMsgCancelFunction cancel;
+    void* cancel_data;
+    struct ServerIoThread* owner;
+    LWMsgSession* session;
+} ServerCall;
+
 typedef struct ServerTask
 {
     LWMsgRing ring;
     ServerTaskType volatile type;
     LWMsgBool blocked;
-    int fd;
-    LWMsgAssoc* assoc;
-    LWMsgDispatchHandle dispatch;
-    LWMsgMessage incoming_message;
-    LWMsgMessage outgoing_message;
     LWMsgTime deadline;
+    int fd;
+    union
+    {
+        /* Data for listen/accept tasks */
+        struct
+        {
+            LWMsgServerMode mode;
+            char* endpoint;
+            mode_t perms;
+        } listen;
+        /* Data for call-oriented tasks */
+        struct
+        {
+            LWMsgAssoc* assoc;
+            ServerCall control;
+            LWMsgMessage incoming_message;
+            LWMsgMessage outgoing_message;
+        } call;
+    } info;
 } ServerTask;
 
 typedef struct ServerIoThread
@@ -192,6 +225,8 @@ struct LWMsgServer
     } while (0)
 
 
+#define SERVER_CALL(h) ((ServerCall*) (h))
+
 void
 lwmsg_server_lock(
     LWMsgServer* server
@@ -210,6 +245,9 @@ lwmsg_server_task_new(
 
 LWMsgStatus
 lwmsg_server_task_new_listen(
+    LWMsgServerMode mode,
+    const char* endpoint,
+    mode_t perms,
     int fd,
     ServerTask** task
     );
@@ -278,6 +316,16 @@ lwmsg_server_release_client_slot(
 size_t
 lwmsg_server_get_num_clients(
     LWMsgServer* server
+    );
+
+LWMsgStatus
+lwmsg_server_call_init(
+    ServerCall* call
+    );
+
+void
+lwmsg_server_call_destroy(
+    ServerCall* call
     );
 
 #endif

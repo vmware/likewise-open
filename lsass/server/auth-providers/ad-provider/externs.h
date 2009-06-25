@@ -110,5 +110,7 @@ extern PLSA_HASH_TABLE gpAllowedSIDs;
 // please put all new globals in the following structure:
 extern PLSA_AD_PROVIDER_STATE gpLsaAdProviderState;
 
+extern PADCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider;
+
 #endif /* __EXTERNS_H__ */
 

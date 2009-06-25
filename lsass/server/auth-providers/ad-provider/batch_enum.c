@@ -316,7 +316,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -411,7 +411,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -493,7 +493,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -641,7 +641,7 @@ cleanup:
     {
         ldap_msgfree(pMessage);
     }
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
@@ -650,7 +650,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup.
-    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    ADCacheSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
 
     goto cleanup;
@@ -744,13 +744,13 @@ cleanup:
     *pdwObjectsCount = dwObjectsCount;
     *pppObjects = ppObjects;
 
-    LsaDbSafeFreeObjectList(dwObjectsCountInOneCell, &ppObjectsInOneCell);
+    ADCacheSafeFreeObjectList(dwObjectsCountInOneCell, &ppObjectsInOneCell);
 
     return dwError;
 
 error:
    // set OUT params in cleanup...
-   LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+   ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
    dwObjectsCount = 0;
 
    goto cleanup;
@@ -895,7 +895,7 @@ LsaAdBatchEnumObjects(
                 if (dwError == LSA_ERROR_SUCCESS)
                 {
                     // The object is already in the hash
-                    LsaDbSafeFreeObject(&ppTotalObjects[dwInput]);
+                    ADCacheSafeFreeObject(&ppTotalObjects[dwInput]);
                 }
                 else if (dwError == ENOENT)
                 {
@@ -947,9 +947,9 @@ cleanup:
 
 error:
     // set OUT params in cleanup...
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
-    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    ADCacheSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
     goto cleanup;
 }

@@ -38,7 +38,7 @@
 #ifndef __LWMSG_TEST_PRIVATE_H__
 #define __LWMSG_TEST_PRIVATE_H__
 
-#define MU_TRY_HANDLE(_handle_, _x_)                                  \
+#define MU_TRY_DCONTEXT(_dcontext_, _x_)                                \
     do                                                                  \
     {                                                                   \
         LWMsgStatus __status__ = (_x_);                                 \
@@ -48,7 +48,7 @@
                 __LINE__,                                               \
                 MU_STATUS_EXCEPTION,                                    \
                 "%s",                                                   \
-                lwmsg_data_handle_get_error_message(_handle_, __status__)); \
+                lwmsg_data_context_get_error_message(_dcontext_, __status__)); \
     } while (0)
 
 #define MU_TRY_PROTOCOL(_context_, _x_)                                 \
@@ -88,6 +88,8 @@
                 MU_STATUS_EXCEPTION,                                    \
                 "Unexpected error");                                    \
     } while (0)
+
+#define TEST_ENDPOINT "/tmp/.lwmsg_server_test_socket"
 
 void
 lwmsg_test_assoc_pair(

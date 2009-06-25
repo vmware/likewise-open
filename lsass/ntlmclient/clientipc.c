@@ -221,8 +221,8 @@ NtlmTransactAcceptSecurityContext(
     PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     AcceptSecCtxtReq.phCredential = phCredential;
     AcceptSecCtxtReq.phContext = phContext;
@@ -412,8 +412,8 @@ NtlmTransactInitializeSecurityContext(
     PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     InitSecCtxtReq.phCredential = phCredential;
     InitSecCtxtReq.phContext = phContext;

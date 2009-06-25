@@ -70,22 +70,64 @@ SrvBuildErrorResponse_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// tree_connect.c
+
+NTSTATUS
+SrvProcessTreeConnect_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // wire.c
 
 NTSTATUS
 SMB2MarshalHeader(
     PSMB_PACKET pSmbPacket,
     USHORT      usCommand,
+    USHORT      usEpoch,
     USHORT      usCredits,
     ULONG       ulPid,
+    ULONG64     ullMid,
     ULONG       ulTid,
     ULONG64     ullSessionId,
     NTSTATUS    status,
+    BOOLEAN     bCommandAllowsSignature,
     BOOLEAN     bIsResponse
     );
 
 NTSTATUS
-SMB2PacketMarshallFooter(
+SMB2UnmarshallSessionSetup(
+    PSMB_PACKET                         pPacket,
+    PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
+    PBYTE*                              ppSecurityBlob,
+    PULONG                              pulSecurityBlobLen
+    );
+
+NTSTATUS
+SMB2MarshalSessionSetup(
+    PSMB_PACKET        pPacket,
+    SMB2_SESSION_FLAGS usFlags,
+    PBYTE              pSecurityBlob,
+    ULONG              ulSecurityBlobLen
+    );
+
+NTSTATUS
+SMB2UnmarshalTreeConnect(
+    PSMB_PACKET                        pSmbRequest,
+    PSMB2_TREE_CONNECT_REQUEST_HEADER* ppTreeConnectRequestHeader,
+    PUNICODE_STRING                    pwszPath
+    );
+
+NTSTATUS
+SMB2MarshalTreeConnectResponse(
+    PSMB_PACKET          pPacket,
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_TREE_2     pTree
+    );
+
+NTSTATUS
+SMB2MarshalFooter(
     PSMB_PACKET pPacket
     );
 

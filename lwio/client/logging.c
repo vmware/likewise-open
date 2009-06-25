@@ -71,7 +71,7 @@ SMBSetLogInfo(
     )
 {
     DWORD dwError = 0;
-    LWMsgMessageTag replyType;
+    LWMsgTag replyType;
     PVOID pResponse = NULL;
     PIO_CONTEXT pConnection = NULL;
 
@@ -130,7 +130,7 @@ SMBGetLogInfo(
 {
     DWORD dwError = 0;
     SMB_REQUEST request = {0};
-    LWMsgMessageTag replyType;
+    LWMsgTag replyType;
     PVOID pResponse = NULL;
     PIO_CONTEXT pConnection = NULL;
 

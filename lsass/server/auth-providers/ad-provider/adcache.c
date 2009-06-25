@@ -46,20 +46,6 @@
 
 
 DWORD
-ADCacheSetup(
-    IN sqlite3* pSqlHandle
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->Setup(
-                    pSqlHandle
-                    );
-
-    return dwError;
-}
-
-DWORD
 ADCacheOpen(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
@@ -67,19 +53,11 @@ ADCacheOpen(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->Open(
+    dwError = (*gpCacheProvider->pfnOpenHandle)(
                         pszDbPath,
                         phDb
                         );
     return dwError;
-}
-
-
-DWORD
-ADCacheFreePreparedStatements(
-    IN OUT PLSA_DB_CONNECTION pConn
-    )
-{
 }
 
 void
@@ -87,7 +65,7 @@ ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
-    pCacheProvider->SafeClose(
+    (*gpCacheProvider->pfnSafeClose)(
                         phDb
                         );
     return;
@@ -102,7 +80,7 @@ ADCacheFindUserByName(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindUserByName(
+    dwError = (*gpCacheProvider->pfnFindUserByName)(
                         hDb,
                         pUserNameInfo,
                         ppObject
@@ -118,6 +96,14 @@ ADCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFindUserById)(
+                    hDb,
+                    uid,
+                    ppObject
+                    );
+    return dwError;
 }
 
 DWORD
@@ -127,6 +113,14 @@ ADCacheFindGroupByName(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFindGroupByName)(
+                    hDb,
+                    pGroupNameInfo,
+                    ppObject
+                    );
+    return dwError;
 }
 
 DWORD
@@ -138,7 +132,7 @@ ADCacheFindGroupById(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindGroupById(
+    dwError = (*gpCacheProvider->pfnFindGroupById)(
                     hDb,
                     gid,
                     ppObject
@@ -154,7 +148,7 @@ ADCacheRemoveUserBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveUserBySid(
+    dwError = (*gpCacheProvider->pfnRemoveUserBySid)(
                     hDb,
                     pszSid
                     );
@@ -169,7 +163,7 @@ ADCacheRemoveGroupBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->RemoveGroupBySid(
+    dwError = (*gpCacheProvider->pfnRemoveGroupBySid)(
                      hDb,
                      pszSid
                     );
@@ -183,67 +177,10 @@ ADCacheEmptyCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EmptyCache(
+    dwError = (*gpCacheProvider->pfnEmptyCache)(
                     hDb
                     );
     return dwError;
-}
-
-
-DWORD
-ADCacheUnpackCacheInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT_VERSION_INFO pResult)
-{
-
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->UnpackCacheInfo(
-                    pstQuery,
-                    piColumnPos,
-                    pResult
-                    );
-
-    return dwError;
-}
-
-
-DWORD
-ADCacheUnpackObjectInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-ADCacheUnpackUserInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-    return dwError;
-}
-
-
-DWORD
-ADCacheUnpackGroupInfo(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PLSA_SECURITY_OBJECT pResult)
-{
-}
-
-
-DWORD
-ADCacheUnpackGroupMembershipInfo(
-    IN sqlite3_stmt* pstQuery,
-    IN OUT int* piColumnPos,
-    IN OUT PLSA_GROUP_MEMBERSHIP pResult
-    )
-{
 }
 
 DWORD
@@ -254,7 +191,7 @@ ADCacheStoreObjectEntry(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreObjectEntry(
+    dwError = (*gpCacheProvider->pfnStoreObjectEntry)(
                         hDb,
                         pObject
                         );
@@ -271,72 +208,12 @@ ADCacheStoreObjectEntries(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreObjectEntries(
+    dwError = (*gpCacheProvider->pfnStoreObjectEntries)(
                         hDb,
                         sObjectCount,
                         ppObjects
                         );
     return dwError;
-}
-
-void
-ADCacheSafeFreeObject(
-    PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = pCacheProvider->SafeFreeObject(
-                    ppObject
-                    );
-    return dwError;
-}
-
-
-DWORD
-ADCacheCreateCacheTag(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    OUT int64_t *pqwCacheId
-    )
-{
-}
-
-
-DWORD
-ADCacheUpdateMembership(
-    IN sqlite3_stmt* pstQuery,
-    IN int64_t CacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid
-    )
-{
-}
-
-
-DWORD
-ADCacheAddMembership(
-    IN PLSA_DB_CONNECTION pConn,
-    IN time_t tLastUpdated,
-    IN int64_t CacheId,
-    IN PCSTR pszParentSid,
-    IN PCSTR pszChildSid,
-    IN BOOLEAN bIsInPac,
-    IN BOOLEAN bIsInPacOnly,
-    IN BOOLEAN bIsInLdap,
-    IN BOOLEAN bIsDomainPrimaryGroup
-    )
-{
-}
-
-
-DWORD
-ADCacheStoreGroupMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
 }
 
 DWORD
@@ -349,23 +226,13 @@ ADCacheStoreGroupMembership(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupMembership(
+    dwError = (*gpCacheProvider->pfnStoreGroupMembership)(
                         hDb,
                         pszParentSid,
                         sMemberCount,
                         ppMembers
                         );
     return dwError;
-}
-
-
-DWORD
-ADCacheStoreUserMembershipCallback(
-    IN sqlite3 *pDb,
-    IN PVOID pContext,
-    OUT PSTR* ppszError
-    )
-{
 }
 
 DWORD
@@ -379,7 +246,7 @@ ADCacheStoreGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->StoreGroupsForUser(
+    dwError = (*gpCacheProvider->pfnStoreGroupsForUser)(
                     hDb,
                     pszChildSid,
                     sMemberCount,
@@ -402,7 +269,7 @@ ADCacheGetMemberships(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetMemberships(
+    dwError = (*gpCacheProvider->pfnGetMemberships)(
                     hDb,
                     pszSid,
                     bIsGroupMembers,
@@ -425,7 +292,7 @@ ADCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->GetGroupMembers(
+    dwError = (*gpCacheProvider->pfnGetGroupMembers)(
                         hDb,
                         pszSid,
                         bFilterNotInPacNorLdap,
@@ -444,34 +311,16 @@ ADCacheGetGroupsForUser(
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
     )
 {
-}
+    DWORD dwError = 0;
 
-void
-ADCacheSafeFreeGroupMembership(
-        PLSA_GROUP_MEMBERSHIP* ppMembership)
-{
-}
-
-void
-ADCacheSafeFreeGroupMembershipList(
-        size_t sCount,
-        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
-{
-}
-
-void
-ADCacheSafeFreeObjectList(
-        size_t sCount,
-        PLSA_SECURITY_OBJECT** pppObjectList)
-{
-}
-
-DWORD
-ADCacheQueryObjectMulti(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
+    dwError = (*gpCacheProvider->pfnGetGroupsForUser)(
+                        hDb,
+                        pszSid,
+                        bFilterNotInPacNorLdap,
+                        psCount,
+                        pppResults
+                        );
+    return dwError;
 }
 
 DWORD
@@ -485,7 +334,7 @@ ADCacheEnumUsersCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EnumUsersCache(
+    dwError = (*gpCacheProvider->pfnEnumUsersCache)(
                         hDb,
                         dwMaxNumUsers,
                         pszResume,
@@ -507,7 +356,7 @@ ADCacheEnumGroupsCache(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->EnumGroupsCache(
+    dwError = (*gpCacheProvider->pfnEnumGroupsCache)(
                         hDb,
                         dwMaxNumGroups,
                         pszResume,
@@ -518,23 +367,6 @@ ADCacheEnumGroupsCache(
     return dwError;
 }
 
-
-DWORD
-ADCacheQueryObject(
-    IN sqlite3_stmt* pstQuery,
-    OUT PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-}
-
-
-PCSTR
-ADCacheGetObjectFieldList(
-    VOID
-    )
-{
-}
-
 DWORD
 ADCacheFindObjectByDN(
     LSA_DB_HANDLE hDb,
@@ -543,7 +375,7 @@ ADCacheFindObjectByDN(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectByDN(
+    dwError = (*gpCacheProvider->pfnFindObjectByDN)(
                         hDb,
                         pszDN,
                         ppObject
@@ -561,7 +393,7 @@ ADCacheFindObjectsByDNList(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectsByDNList(
+    dwError = (*gpCacheProvider->pfnFindObjectsByDNList)(
                         hDb,
                         sCount,
                         ppszDnList,
@@ -578,7 +410,7 @@ ADCacheFindObjectBySid(
 {
     DWORD dwError = 0;
 
-    dwError = pCacheProvider->FindObjectBySid(
+    dwError = (*gpCacheProvider->pfnFindObjectBySid)(
                             hDb,
                             pszSid,
                             ppObject
@@ -597,6 +429,16 @@ ADCacheFindObjectsBySidList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFindObjectsBySidList)(
+                        hDb,
+                        sCount,
+                        ppszSidList,
+                        pppResults
+                        );
+
+    return dwError;
 
 }
 
@@ -608,6 +450,14 @@ ADCacheGetPasswordVerifier(
     OUT PLSA_PASSWORD_VERIFIER *ppResult
     )
 {
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnGetPasswordVerifier)(
+                    hDb,
+                    pszUserSid,
+                    ppResult
+                    );
+    return dwError;
 }
 
 void
@@ -623,4 +473,95 @@ ADCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnStorePasswordVerifier)(
+                        hDb,
+                        pVerifier
+                        );
+
+    return dwError;
+
+}
+
+
+
+void
+ADCacheSafeFreeObject(
+    PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    if (ppObject != NULL && *ppObject != NULL)
+    {
+        pObject = *ppObject;
+
+        LSA_SAFE_FREE_STRING(pObject->pszObjectSid);
+
+        LSA_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
+        LSA_SAFE_FREE_STRING(pObject->pszSamAccountName);
+        LSA_SAFE_FREE_STRING(pObject->pszDN);
+
+        if (pObject->type == AccountType_User)
+        {
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszShell);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
+        }
+        else if (pObject->type == AccountType_Group)
+        {
+            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
+            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
+        }
+
+        LSA_SAFE_FREE_MEMORY(pObject);
+        *ppObject = NULL;
+    }
+}
+
+void
+ADCacheSafeFreeGroupMembership(
+        PLSA_GROUP_MEMBERSHIP* ppMembership)
+{
+    if (*ppMembership != NULL)
+    {
+        LSA_SAFE_FREE_STRING((*ppMembership)->pszParentSid);
+        LSA_SAFE_FREE_STRING((*ppMembership)->pszChildSid);
+    }
+    LSA_SAFE_FREE_MEMORY(*ppMembership);
+}
+
+void
+ADCacheSafeFreeGroupMembershipList(
+        size_t sCount,
+        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
+{
+    if (*pppMembershipList != NULL)
+    {
+        size_t iMember;
+        for (iMember = 0; iMember < sCount; iMember++)
+        {
+            ADCacheSafeFreeGroupMembership(&(*pppMembershipList)[iMember]);
+        }
+        LSA_SAFE_FREE_MEMORY(*pppMembershipList);
+    }
+}
+
+void
+ADCacheSafeFreeObjectList(
+        size_t sCount,
+        PLSA_SECURITY_OBJECT** pppObjectList)
+{
+    if (*pppObjectList != NULL)
+    {
+        size_t sIndex;
+        for (sIndex = 0; sIndex < sCount; sIndex++)
+        {
+            ADCacheSafeFreeObject(&(*pppObjectList)[sIndex]);
+        }
+        LSA_SAFE_FREE_MEMORY(*pppObjectList);
+    }
 }

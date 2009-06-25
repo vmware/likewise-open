@@ -138,6 +138,19 @@ typedef enum
 	COM2_BREAK           = 0x12
 } SMB2_COMMAND;
 
+typedef ULONG SMB2_FLAGS;
+
+#define SMB2_FLAGS_SERVER_TO_REDIR   0x00000001
+#define SMB2_FLAGS_ASYNC_COMMAND     0x00000002
+#define SMB2_FLAGS_RELATED_OPERATION 0x00000004
+#define SMB2_FLAGS_SIGNED            0x00000008
+#define SMB2_FLAGS_DFS_OPERATIONS    0x08000000
+
+typedef USHORT SMB2_SESSION_FLAGS;
+
+#define SMB2_SESSION_FLAGS_IS_GUEST_USER 0x0001
+#define SMB2_SESSION_FLAGS_IS_NULL_USER  0x0002
+
 typedef USHORT SMB_SUB_COMMAND, *PSMB_SUB_COMMAND;
 
 #define SMB_SUB_COMMAND_TRANS_SET_NAMED_PIPE_HANDLE_STATE   0x01
@@ -398,15 +411,15 @@ typedef struct
 
 typedef enum
 {
-	SMB_PACKET_TYPE_SMB_1 = 0,
-	SMB_PACKET_TYPE_SMB_2
-} SMB_PACKET_TYPE;
+	SMB_PROTOCOL_VERSION_1 = 0,
+	SMB_PROTOCOL_VERSION_2
+} SMB_PROTOCOL_VERSION;
 
 typedef struct
 {
     NETBIOS_HEADER *pNetBIOSHeader;
 
-    SMB_PACKET_TYPE packetType;
+    SMB_PROTOCOL_VERSION protocolVer;
     union
     {
 	PSMB_HEADER  pSMBHeader;
@@ -2139,6 +2152,13 @@ SMBPacketVerifySignature(
     );
 
 NTSTATUS
+SMB2PacketVerifySignature(
+    PSMB_PACKET pPacket,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    );
+
+NTSTATUS
 SMBPacketDecodeHeader(
     IN OUT PSMB_PACKET pPacket,
     IN BOOLEAN bVerifySignature,
@@ -2151,6 +2171,13 @@ NTSTATUS
 SMBPacketSign(
     PSMB_PACKET pPacket,
     ULONG       ulSequence,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    );
+
+NTSTATUS
+SMB2PacketSign(
+    PSMB_PACKET pPacket,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     );

@@ -57,8 +57,8 @@ LsaGetStatus(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_GET_STATUS;
     request.object = NULL;

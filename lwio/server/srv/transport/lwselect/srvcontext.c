@@ -15,20 +15,56 @@ SrvContextCreate(
                     (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnectionGetNextSequence(
-                    pConnection,
-                    pRequest,
-                    &pRequest->sequence);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (pConnection->protocolVer)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            // Update the sequence whether we end up signing or not
+            ntStatus = SrvConnectionGetNextSequence(
+                            pConnection,
+                            pRequest,
+                            &pRequest->sequence);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+
+        default:
+
+            break;
+    }
 
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
-        ntStatus = SMBPacketVerifySignature(
-                        pRequest,
-                        pRequest->sequence,
-                        pConnection->pSessionKey,
-                        pConnection->ulSessionKeyLength);
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                ntStatus = SMBPacketVerifySignature(
+                                pRequest,
+                                pRequest->sequence,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+#if 0
+                ntStatus = SMB2PacketVerifySignature(
+                                pRequest,
+                                pConnection->pSessionKey,
+                                pConnection->ulSessionKeyLength);
+#endif
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

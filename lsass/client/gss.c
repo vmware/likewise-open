@@ -102,8 +102,8 @@ LsaTransactGSSBuildAuthMessage(
     PLSA_GSS_R_MAKE_AUTH_MSG pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     makeAuthMsgReq.negotiateFlags = negotiateFlags;
 
@@ -176,8 +176,8 @@ LsaTransactGSSValidateAuthMessage(
     PLSA_GSS_R_CHECK_AUTH_MSG pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     checkAuthMsgReq.negotiateFlags = negotiateFlags;
 

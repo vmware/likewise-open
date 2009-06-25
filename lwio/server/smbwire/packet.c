@@ -479,6 +479,14 @@ SMBPacketIsSigned(
     return (pPacket->pSMBHeader->flags2 & FLAG2_SECURITY_SIG);
 }
 
+BOOLEAN
+SMB2PacketIsSigned(
+    PSMB_PACKET pPacket
+    )
+{
+    return (pPacket->pSMB2Header->ulFlags & SMB2_FLAGS_SIGNED);
+}
+
 NTSTATUS
 SMBPacketVerifySignature(
     PSMB_PACKET pPacket,
@@ -515,7 +523,7 @@ SMBPacketVerifySignature(
     }
 
     // restore signature
-    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &origSignature[8], sizeof(origSignature));
+    memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &origSignature[0], sizeof(origSignature));
 
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -526,6 +534,52 @@ cleanup:
 error:
 
     LWIO_LOG_WARNING("SMB Packet verification failed (status = 0x%08X)", ntStatus);
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2PacketVerifySignature(
+    PSMB_PACKET pPacket,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+    uint8_t  digest[32];
+    uint8_t  origSignature[16];
+    SHA256_CTX sha256Value;
+
+    memcpy(origSignature, pPacket->pSMB2Header->signature, sizeof(pPacket->pSMB2Header->signature));
+    memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
+
+    SHA256_Init(&sha256Value);
+
+    if (pSessionKey)
+    {
+        SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
+    }
+
+    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, pPacket->pNetBIOSHeader->len);
+    SHA256_Final(digest, &sha256Value);
+
+    if (memcmp(&origSignature[0], &digest[0], sizeof(origSignature)))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+    }
+
+    // restore signature
+    memcpy(&pPacket->pSMB2Header->signature[0], &origSignature[0], sizeof(origSignature));
+
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    LWIO_LOG_WARNING("SMB2 Packet verification failed (status = 0x%08X)", ntStatus);
 
     goto cleanup;
 }
@@ -584,6 +638,37 @@ SMBPacketSign(
     MD5_Final(digest, &md5Value);
 
     memcpy(&pPacket->pSMBHeader->extra.securitySignature[0], &digest[0], sizeof(pPacket->pSMBHeader->extra.securitySignature));
+
+    return ntStatus;
+}
+
+NTSTATUS
+SMB2PacketSign(
+    PSMB_PACKET pPacket,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+    uint8_t digest[32];
+    SHA256_CTX sha256Value;
+
+    memset(&pPacket->pSMB2Header->signature[0], 0, sizeof(pPacket->pSMB2Header->signature));
+
+    SHA256_Init(&sha256Value);
+
+    if (pSessionKey)
+    {
+        SHA256_Update(&sha256Value, pSessionKey, ulSessionKeyLength);
+    }
+
+    pPacket->pSMB2Header->ulFlags |= SMB2_FLAGS_SIGNED;
+
+    SHA256_Update(&sha256Value, (PBYTE)pPacket->pSMB2Header, ntohl(pPacket->pNetBIOSHeader->len));
+
+    SHA256_Final(digest, &sha256Value);
+
+    memcpy(&pPacket->pSMB2Header->signature[0], &digest[0], sizeof(pPacket->pSMB2Header->signature));
 
     return ntStatus;
 }

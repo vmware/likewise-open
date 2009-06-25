@@ -39,6 +39,7 @@
 #define __LWMSG_ASSOC_H__
 
 #include <lwmsg/status.h>
+#include <lwmsg/message.h>
 #include <lwmsg/protocol.h>
 #include <lwmsg/context.h>
 #include <lwmsg/time.h>
@@ -85,38 +86,6 @@
  * Associations are abstract -- it is possible to create a new implementation
  * with a custom transport mechanism or extended features.
  */
-
-/**
- * @ingroup assoc
- * @brief The tag of a message
- *
- * A tag which identifies a message
- */
-typedef unsigned int LWMsgMessageTag;
-
-/**
- * @ingroup assoc
- * @brief A Message
- *
- * Contains all information needed to describe a message
- */
-typedef struct LWMsgMessage
-{
-    /** The tag of the message */
-    LWMsgMessageTag tag;
-    /** The unmarshalled message payload */
-    void *object;
-} LWMsgMessage;
-
-/**
- * @brief Callback to clean up a handle
- *
- * A callback used to clean up a handle after it is no longer in use.
- * A cleanup callback can be registered as part of lwmsg_assoc_register_handle().
- *
- * @param[in] handle the handle to clean up
- */
-typedef void (*LWMsgHandleCleanupFunction) (void* handle);
 
 /**
  * @ingroup assoc
@@ -590,11 +559,12 @@ lwmsg_assoc_recv_message_transact(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_send(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag type,
+    LWMsgTag type,
     void* object
     );
 
@@ -612,11 +582,12 @@ lwmsg_assoc_send(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_recv(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag* type,
+    LWMsgTag* type,
     void** object
     );
 
@@ -637,13 +608,14 @@ lwmsg_assoc_recv(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_send_transact(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag in_type,
+    LWMsgTag in_type,
     void* in_object,
-    LWMsgMessageTag* out_type,
+    LWMsgTag* out_type,
     void** out_object
     );
 
@@ -843,13 +815,12 @@ lwmsg_assoc_get_handle_location(
 
 /**
  * @ingroup assoc
- * @brief Free a message
+ * @brief Destroy a message
  *
- * Frees the object graph of a message using the memory manager and
- * protocol of the specified association.
+ * Destroys a message structure, freeing any data payload it may contain.
  *
  * @param[in] assoc the assocation
- * @param[in] message the message to free
+ * @param[in] message the message to destroy
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{NOT_FOUND, the message tag is not known by the association's protocol}
@@ -857,10 +828,18 @@ lwmsg_assoc_get_handle_location(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_assoc_free_message(
+lwmsg_assoc_destroy_message(
     LWMsgAssoc* assoc,
     LWMsgMessage* message
     );
+
+/**
+ * @brief Alias for #lwmsg_assoc_destroy_message()
+ * @deprecated
+ * @hideinitializer
+ */
+#define lwmsg_assoc_free_message(assoc, message) \
+    lwmsg_assoc_destroy_message(assoc, message)
 
 /**
  * @ingroup assoc
@@ -876,11 +855,12 @@ lwmsg_assoc_free_message(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag tag,
+    LWMsgTag tag,
     void* root
     );
 
@@ -980,6 +960,12 @@ LWMsgStatus
 lwmsg_assoc_get_session_manager(
     LWMsgAssoc* assoc,
     LWMsgSessionManager** manager
+    );
+
+LWMsgStatus
+lwmsg_assoc_get_session(
+    LWMsgAssoc* assoc,
+    LWMsgSession** session
     );
 
 /**

@@ -114,10 +114,10 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_SECURITY = 13,
-    /** Operation interrupted
+    /** Operation canceled
      * @hideinitializer
      */
-    LWMSG_STATUS_INTERRUPT = 14,
+    LWMSG_STATUS_CANCELLED = 14,
     /**
      * File not found
      * @hideinitializer
@@ -164,7 +164,7 @@ typedef enum
      */
     LWMSG_STATUS_INVALID_HANDLE = 23,
     LWMSG_STATUS_BUSY = 24,
-    LWMSG_STATUS_NOT_FINISHED = 25,
+    LWMSG_STATUS_PENDING = 25,
     LWMSG_STATUS_INTERNAL = 26,
 } LWMsgStatus;
 

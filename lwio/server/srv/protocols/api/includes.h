@@ -78,6 +78,8 @@
 #include <smb2.h>
 
 #include "defs.h"
+#include "structs.h"
 #include "prototypes.h"
+#include "externs.h"
 
 
