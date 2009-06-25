@@ -9,6 +9,7 @@ AM_CFLAGS += -I$(top_srcdir)/include  \
           @NETLOGON_INCLUDE@     \
           @LWDNS_INCLUDE@        \
           @EVENTLOG_INCLUDES@     \
+          $(LSASS_INCLUDES)     \
           $(LWI_OS_FLAGS)
 
 SCRIPTDIR = $(bindir)
@@ -26,6 +27,8 @@ libdomainjoin_la_LIBADD = \
 	$(LWDNS_LIBS)   \
 	$(EVENTLOG_LDFLAGS) \
 	$(EVENTLOG_LIBS) \
+	$(LSASS_LDFLAGS) \
+	$(LSASS_LIBS) \
         @LIB_XNET@
 
 libdomainjoin_la_SOURCES = \
