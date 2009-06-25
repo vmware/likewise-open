@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        main.c
+ *        lwiocopy.c
  *
  * Abstract:
  *
@@ -45,102 +45,11 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#define _POSIX_PTHREAD_SEMANTICS 1
-
-#include "includes.h"
-
-
-static
-NTSTATUS
-SLocalOpenFile(
-    IN PCSTR pszFileName,
-    IN INT dwMode,
-    IN INT dwPerms,
-    OUT INT *dwHandle
-    );
-
-static
-NTSTATUS
-SLocalCreateDir(
-    IN PCSTR pszPath,
-    IN mode_t dwFileMode
-    );
-
-static
-NTSTATUS
-SLocalCreateDirInternal(
-    IN PSTR pszPath,
-    IN PSTR pszLastSlash,
-    IN mode_t dwFileMode
-    );
-
-static
-NTSTATUS
-SLocalChangePermissions(
-    IN PCSTR pszPath,
-    IN mode_t dwFileMode
-    );
-
-static
-NTSTATUS
-SLocalCheckDirExists(
-    IN PCSTR pszPath,
-    IN PBOOLEAN pbDirExists
-    );
-
-static
-NTSTATUS
-SLocalRemoveDir(
-    IN PCSTR pszPath
-    );
-
-static
-NTSTATUS
-SLocalRemoveFile(
-    IN PCSTR pszPath
-    );
-
-static
-HANDLE
-SRemoteCreateFile(
-    IN PCSTR pszFileName
-    );
-
-static
-HANDLE
-SRemoteOpenFile(
-    IN PCSTR pszFileName
-    );
-
-static
-NTSTATUS
-SRemoteWriteFile(
-    IN HANDLE hFile,
-    IN PVOID pBuffer,
-    IN DWORD dwNumBytesToWrite,
-    OUT PDWORD pdwNumBytesWritten,
-    IN OUT OPTIONAL POVERLAPPED pOverlapped
-    );
-
-static
-NTSTATUS
-SRemoteReadFile(
-    IN HANDLE hFile,
-    OUT PVOID pBuffer,
-    IN DWORD dwNumberOfBytesToRead,
-    OUT PDWORD pdwBytesRead,
-    IN OUT OPTIONAL POVERLAPPED pOverlapped
-    );
-
-static
-PFILE_BOTH_DIR_INFORMATION
-GetNextDirInfo(
-    PFILE_BOTH_DIR_INFORMATION pInfo
-    );
+#include "lwiocopy.h"
 
 
 NTSTATUS
-CopyFileFromNt(
+LwioCopyFileFromRemote(
     IN PCSTR pszSourcePath,
     IN PCSTR pszTargetPath
     )
@@ -149,14 +58,17 @@ CopyFileFromNt(
     HANDLE hRemoteFile = (HANDLE)NULL;
     int hLocalFile = -1;
 
-    hRemoteFile = SRemoteOpenFile( (PCSTR)pszSourcePath);
+    BAIL_ON_NULL_POINTER(pszSourcePath);
+    BAIL_ON_NULL_POINTER(pszTargetPath);
+
+    hRemoteFile = LwioRemoteOpenFile( (PCSTR)pszSourcePath);
     if (hRemoteFile == INVALID_HANDLE_VALUE)
     {
-        fprintf(stderr, "Failed to open file  %s \n", pszSourcePath);
+        status = INVALID_HANDLE_VALUE;
         goto error;
     }
 
-    status = SLocalOpenFile(
+    status = LwioLocalOpenFile(
                 (PCSTR)pszTargetPath,
                 O_WRONLY|O_TRUNC|O_CREAT,
                 0666,
@@ -170,12 +82,11 @@ CopyFileFromNt(
         DWORD dwRead = 0;
         DWORD dwWrote = 0;
 
-        status = SRemoteReadFile(
+        status = LwioRemoteReadFile(
                         hRemoteFile,
                         szBuff,
                         sizeof(szBuff),
-                        &dwRead,  // number of bytes read
-                        NULL);    // not overlapped
+                        &dwRead);  // number of bytes read
         if (!dwRead)
         {
             status = STATUS_SUCCESS;
@@ -186,8 +97,7 @@ CopyFileFromNt(
 
         if ((dwWrote = write(hLocalFile, szBuff, dwRead)) == -1)
         {
-            fprintf(stderr, "Write failed! (%s)\n", strerror(errno));
-            status = STATUS_UNSUCCESSFUL;
+            status = LwUnixErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -212,7 +122,7 @@ error:
 }
 
 NTSTATUS
-CopyDirFromNt(
+LwioCopyDirFromRemote(
     IN PCSTR pszSourcePath,
     IN PCSTR pszTargetPath
     )
@@ -228,6 +138,9 @@ CopyDirFromNt(
     PFILE_BOTH_DIR_INFORMATION pInfo = NULL;
     PSTR pszLocalPath = NULL;
     PSTR pszRemotePath = NULL;
+
+    BAIL_ON_NULL_POINTER(pszSourcePath);
+    BAIL_ON_NULL_POINTER(pszTargetPath);
 
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
@@ -260,7 +173,7 @@ CopyDirFromNt(
         NULL);                 /* ECP list */
     BAIL_ON_NT_STATUS(status);
 
-    status = SLocalCreateDir(
+    status = LwioLocalCreateDir(
                 pszTargetPath,
                 S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BAIL_ON_NT_STATUS(status);
@@ -289,7 +202,8 @@ CopyDirFromNt(
 
         bRestart = FALSE;
 
-        for (pInfo = (PFILE_BOTH_DIR_INFORMATION) buffer; pInfo; pInfo = GetNextDirInfo(pInfo))
+        for (pInfo = (PFILE_BOTH_DIR_INFORMATION) buffer; pInfo;
+                   pInfo = (pInfo->NextEntryOffset)?(PFILE_BOTH_DIR_INFORMATION) (((PBYTE) pInfo) + pInfo->NextEntryOffset):NULL)
         {
             RTL_FREE(&pszEntryFilename);
             RTL_FREE(&pszRemotePath);
@@ -322,14 +236,14 @@ CopyDirFromNt(
             if(pInfo->FileAttributes == FILE_ATTRIBUTE_DIRECTORY)
             {
 
-                status = CopyDirFromNt(
+                status = LwioCopyDirFromRemote(
                             pszRemotePath,
                             pszLocalPath);
                 BAIL_ON_NT_STATUS(status);
             }
             else
             {
-                status = CopyFileFromNt(
+                status = LwioCopyFileFromRemote(
                             pszRemotePath,
                             pszLocalPath);
                 BAIL_ON_NT_STATUS(status);
@@ -356,24 +270,9 @@ error:
     goto cleanup;
 }
 
-static
-PFILE_BOTH_DIR_INFORMATION
-GetNextDirInfo(
-    PFILE_BOTH_DIR_INFORMATION pInfo
-    )
-{
-    if (pInfo->NextEntryOffset)
-    {
-        return (PFILE_BOTH_DIR_INFORMATION) (((PBYTE) pInfo) + pInfo->NextEntryOffset);
-    }
-    else
-    {
-        return NULL;
-    }
-}
 
 NTSTATUS
-CopyFileToNt(
+LwioCopyFileToRemote(
     IN PCSTR pszSourcePath,
     IN PCSTR pszTargetPath
     )
@@ -384,7 +283,10 @@ CopyFileToNt(
     DWORD dwBytesRead = 0;
     CHAR szBuf[BUFF_SIZE];
 
-    status = SLocalOpenFile(
+    BAIL_ON_NULL_POINTER(pszSourcePath);
+    BAIL_ON_NULL_POINTER(pszTargetPath);
+
+    status = LwioLocalOpenFile(
                 (PCSTR)pszSourcePath,
                 O_RDONLY,
                 0,
@@ -392,10 +294,10 @@ CopyFileToNt(
 
     BAIL_ON_NT_STATUS(status);
 
-    hRemoteFile = SRemoteCreateFile( (PCSTR)pszTargetPath);
+    hRemoteFile = LwioRemoteCreateFile( (PCSTR)pszTargetPath);
     if (hRemoteFile == INVALID_HANDLE_VALUE)
     {
-        fprintf(stderr, "Failed to open file  %s \n", pszTargetPath);
+        status = INVALID_HANDLE_VALUE;
         goto error;
     }
 
@@ -407,8 +309,7 @@ CopyFileToNt(
 
         if ((dwBytesRead = read(hLocalFile, szBuf, sizeof(szBuf))) == -1)
         {
-            fprintf(stderr, "Read failed! (%s)\n", strerror(errno));
-            status = STATUS_UNSUCCESSFUL;
+            status = LwUnixErrnoToNtStatus(errno);
             BAIL_ON_NT_STATUS(status);
         }
 
@@ -417,12 +318,11 @@ CopyFileToNt(
             break;
         }
 
-        status  = SRemoteWriteFile(
+        status  = LwioRemoteWriteFile(
                             hRemoteFile,
                             szBuf,
                             dwBytesRead,
-                            &dwWritten,
-                            NULL);
+                            &dwWritten);
 
         BAIL_ON_NT_STATUS(status);
 
@@ -446,7 +346,7 @@ error:
 }
 
 NTSTATUS
-CopyDirToNt(
+LwioCopyDirToRemote(
     IN PCSTR pszSourcePath,
     IN PCSTR pszTargetPath
     )
@@ -462,6 +362,9 @@ CopyDirToNt(
     PSTR pszLocalPath = NULL;
     PSTR pszRemotePath = NULL;
     CHAR szBuf[BUFF_SIZE];
+
+    BAIL_ON_NULL_POINTER(pszSourcePath);
+    BAIL_ON_NULL_POINTER(pszTargetPath);
 
     if ((pDir = opendir(pszSourcePath)) == NULL)
     {
@@ -535,14 +438,14 @@ CopyDirToNt(
 
         if ((statbuf.st_mode & S_IFMT) == S_IFDIR)
         {
-            status = CopyDirToNt(
+            status = LwioCopyDirToRemote(
                             pszLocalPath,
                             pszRemotePath);
             BAIL_ON_NT_STATUS(status);
         }
         else
         {
-            status = CopyFileToNt(
+            status = LwioCopyFileToRemote(
                             pszLocalPath,
                             pszRemotePath);
             BAIL_ON_NT_STATUS(status);
@@ -574,9 +477,9 @@ error:
 
 }
 
-static
+
 HANDLE
-SRemoteOpenFile(
+LwioRemoteOpenFile(
     IN PCSTR pszFileName
     )
 {
@@ -585,6 +488,8 @@ SRemoteOpenFile(
     IO_FILE_HANDLE handle = NULL;
     IO_STATUS_BLOCK ioStatus ;
     PSTR pszRemoteFileName = NULL;
+
+    BAIL_ON_NULL_POINTER(pszFileName);
 
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
@@ -628,9 +533,9 @@ error:
     goto cleanup;
 }
 
-static
+
 NTSTATUS
-SLocalOpenFile(
+LwioLocalOpenFile(
     IN PCSTR pszFileName,
     IN INT  dwMode,
     IN INT dwPerms,
@@ -640,25 +545,26 @@ SLocalOpenFile(
     NTSTATUS status = STATUS_SUCCESS;
     int fd = -1;
 
+    BAIL_ON_NULL_POINTER(pszFileName);
+
     if ((fd = open(pszFileName, dwMode, dwPerms)) == -1)
     {
-        fprintf(stderr, "Failed to open local file \"%s\" for copy (%s).\n",
-                pszFileName, strerror(errno));
-
-        status = STATUS_UNSUCCESSFUL;
+        status = LwUnixErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(status);
     }
 
 
 error:
+
     *dwHandle = fd;
+
     return status;
 
 }
 
-static
+
 NTSTATUS
-SLocalCreateDir(
+LwioLocalCreateDir(
     IN PCSTR pszPath,
     IN mode_t dwFileMode
     )
@@ -666,18 +572,14 @@ SLocalCreateDir(
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszTmpPath = NULL;
 
-    if (pszPath == NULL)
-    {
-        status = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(status);
-    }
+    BAIL_ON_NULL_POINTER(pszPath);
 
     status = SMBAllocateString(
                 pszPath,
                 &pszTmpPath);
     BAIL_ON_NT_STATUS(status);
 
-    status = SLocalCreateDirInternal(
+    status = LwioLocalCreateDirInternal(
                 pszTmpPath,
                 NULL,
                 dwFileMode);
@@ -692,9 +594,9 @@ error:
     goto cleanup;
 }
 
-static
+
 NTSTATUS
-SLocalCreateDirInternal(
+LwioLocalCreateDirInternal(
     IN PSTR pszPath,
     IN PSTR pszLastSlash,
     IN mode_t dwFileMode
@@ -705,6 +607,8 @@ SLocalCreateDirInternal(
     BOOLEAN bDirExists = FALSE;
     BOOLEAN bDirCreated = FALSE;
 
+    BAIL_ON_NULL_POINTER(pszPath);
+
     pszSlash = pszLastSlash ? strchr(pszLastSlash + 1, '/') : strchr(pszPath, '/');
 
     if (pszSlash)
@@ -714,7 +618,7 @@ SLocalCreateDirInternal(
 
     if (pszPath[0])
     {
-        status = SLocalCheckDirExists(pszPath, &bDirExists);
+        status = LwioLocalCheckDirExists(pszPath, &bDirExists);
         BAIL_ON_NT_STATUS(status);
 
         if (!bDirExists)
@@ -735,7 +639,7 @@ SLocalCreateDirInternal(
 
     if (pszSlash)
     {
-        status = SLocalCreateDirInternal(pszPath, pszSlash, dwFileMode);
+        status = LwioLocalCreateDirInternal(pszPath, pszSlash, dwFileMode);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -746,7 +650,7 @@ SLocalCreateDirInternal(
 
     if (bDirCreated)
     {
-        status = SLocalChangePermissions(pszPath, dwFileMode);
+        status = LwioLocalChangePermissions(pszPath, dwFileMode);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -768,7 +672,7 @@ error:
 
     if (bDirCreated)
     {
-        SLocalRemoveDir(pszPath);
+        LwioLocalRemoveDir(pszPath);
     }
 
     if (pszSlash)
@@ -779,14 +683,16 @@ error:
     goto cleanup;
 }
 
-static
+
 NTSTATUS
-SLocalChangePermissions(
+LwioLocalChangePermissions(
     IN PCSTR pszPath,
     IN mode_t dwFileMode
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    BAIL_ON_NULL_POINTER(pszPath);
 
     while (1)
     {
@@ -809,15 +715,17 @@ error:
     return status;
 }
 
-static
+
 NTSTATUS
-SLocalCheckDirExists(
+LwioLocalCheckDirExists(
     IN PCSTR pszPath,
     IN PBOOLEAN pbDirExists
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     struct stat statbuf;
+
+    BAIL_ON_NULL_POINTER(pszPath);
 
     while (1)
     {
@@ -846,9 +754,9 @@ error:
     return status;
 }
 
-static
+
 NTSTATUS
-SLocalRemoveDir(
+LwioLocalRemoveDir(
     IN PCSTR pszPath
     )
 {
@@ -857,6 +765,8 @@ SLocalRemoveDir(
     struct dirent* pDirEntry = NULL;
     struct stat statbuf;
     CHAR szBuf[BUFF_SIZE+1];
+
+    BAIL_ON_NULL_POINTER(pszPath);
 
     if ((pDir = opendir(pszPath)) == NULL)
     {
@@ -883,7 +793,7 @@ SLocalRemoveDir(
 
         if ((statbuf.st_mode & S_IFMT) == S_IFDIR)
         {
-            status = SLocalRemoveDir(szBuf);
+            status = LwioLocalRemoveDir(szBuf);
             BAIL_ON_NT_STATUS(status);
 
             if (rmdir(szBuf) < 0)
@@ -894,7 +804,7 @@ SLocalRemoveDir(
         }
         else
         {
-            status = SLocalRemoveFile(szBuf);
+            status = LwioLocalRemoveFile(szBuf);
             BAIL_ON_NT_STATUS(status);
 
         }
@@ -923,13 +833,15 @@ error:
     return status;
 }
 
-static
+
 NTSTATUS
-SLocalRemoveFile(
+LwioLocalRemoveFile(
     IN PCSTR pszPath
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+    BAIL_ON_NULL_POINTER(pszPath);
 
     while (1)
     {
@@ -953,14 +865,13 @@ error:
     return status;
 }
 
-static
+
 NTSTATUS
-SRemoteReadFile(
+LwioRemoteReadFile(
     IN HANDLE hFile,
     OUT PVOID pBuffer,
     IN DWORD dwNumberOfBytesToRead,
-    OUT PDWORD pdwBytesRead,
-    IN OUT OPTIONAL POVERLAPPED pOverlapped
+    OUT PDWORD pdwBytesRead
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -979,14 +890,20 @@ SRemoteReadFile(
     *pdwBytesRead = (int) ioStatus.BytesTransferred;
 
 cleanup:
+
     return status;
+
 error:
+
+    *pdwBytesRead = 0;
+    pBuffer = NULL;
+
     goto cleanup;
 }
 
-static
+
 HANDLE
-SRemoteCreateFile(
+LwioRemoteCreateFile(
     IN PCSTR pszFileName
     )
 {
@@ -995,6 +912,8 @@ SRemoteCreateFile(
     IO_FILE_HANDLE handle = NULL;
     IO_STATUS_BLOCK ioStatus ;
     PSTR pszRemoteFileName = NULL;
+
+    BAIL_ON_NULL_POINTER(pszFileName);
 
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
@@ -1038,18 +957,19 @@ error:
     goto cleanup;
 }
 
-static
+
 NTSTATUS
-SRemoteWriteFile(
+LwioRemoteWriteFile(
     IN HANDLE hFile,
     IN PVOID pBuffer,
     IN DWORD dwNumBytesToWrite,
-    OUT PDWORD pdwNumBytesWritten,
-    IN OUT OPTIONAL POVERLAPPED pOverlapped
+    OUT PDWORD pdwNumBytesWritten
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     IO_STATUS_BLOCK ioStatus ;
+
+    BAIL_ON_NULL_POINTER(pBuffer);
 
     status = LwNtWriteFile(
         hFile,                                 // File handle
@@ -1064,8 +984,101 @@ SRemoteWriteFile(
     *pdwNumBytesWritten = (int) ioStatus.BytesTransferred;
 
 cleanup:
+
     return status;
+
 error:
+
+    *pdwNumBytesWritten = 0;
+
     goto cleanup;
 
+}
+
+NTSTATUS
+LwioCheckFileExists(
+    PCSTR pszPath,
+    PBOOLEAN pbFileExists
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    struct stat statbuf;
+
+    BAIL_ON_NULL_POINTER(pszPath);
+
+    memset(&statbuf, 0, sizeof(struct stat));
+
+    while (1) {
+        if (stat(pszPath, &statbuf) < 0) {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            else if (errno == ENOENT || errno == ENOTDIR)
+            {
+                *pbFileExists = FALSE;
+                break;
+            }
+
+            status = LwUnixErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(status);
+
+        } else {
+            *pbFileExists = (((statbuf.st_mode & S_IFMT) == S_IFREG) ? TRUE : FALSE);
+            break;
+        }
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *pbFileExists = FALSE;
+
+    goto cleanup;
+}
+
+NTSTATUS
+LwioCheckDirectoryExists(
+    PCSTR pszPath,
+    PBOOLEAN pbDirExists
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    struct stat statbuf;
+
+    while (1) {
+
+        memset(&statbuf, 0, sizeof(struct stat));
+
+        if (stat(pszPath, &statbuf) < 0) {
+
+            if (errno == EINTR) {
+                continue;
+            }
+            else if (errno == ENOENT || errno == ENOTDIR) {
+                *pbDirExists = FALSE;
+                break;
+            }
+
+            status = LwUnixErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(status);
+
+        }
+
+        *pbDirExists = (((statbuf.st_mode & S_IFMT) == S_IFDIR) ? TRUE : FALSE);
+        break;
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *pbDirExists = FALSE;
+
+    goto cleanup;
 }

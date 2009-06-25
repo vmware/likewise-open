@@ -47,13 +47,12 @@
 
 #define _POSIX_PTHREAD_SEMANTICS 1
 
-#include "includes.h"
+#include "lwiocopy.h"
 
 #define ACTION_NONE 0
 #define ACTION_FILE 1
 #define ACTION_DIR 2
 
-#define NONE_NT    0
 #define COPY_FROM_NT 1
 #define COPY_TO_NT   2
 
@@ -115,7 +114,8 @@ main(
     PSTR pszEnvString = NULL;
 
     DWORD dwFileOrDir = ACTION_NONE;
-    DWORD dwToRFromNt = NONE_NT;
+    DWORD dwToRFromNt = 0;
+    BOOLEAN bExists = 0;
 
     status = ParseArgs(
                 argc,
@@ -150,14 +150,14 @@ main(
     {
         if(dwFileOrDir == ACTION_FILE)
         {
-            status = CopyFileFromNt(
+            status = LwioCopyFileFromRemote(
                             pszSourcePath,
                             pszTargetPath);
             BAIL_ON_NT_STATUS(status);
         }
         else if(dwFileOrDir == ACTION_DIR)
         {
-            status = CopyDirFromNt(
+            status = LwioCopyDirFromRemote(
                             pszSourcePath,
                             pszTargetPath);
             BAIL_ON_NT_STATUS(status);
@@ -167,14 +167,34 @@ main(
     {
         if(dwFileOrDir == ACTION_FILE)
         {
-            status = CopyFileToNt(
+            status = LwioCheckFileExists(
+                            pszSourcePath,
+                            &bExists);
+            BAIL_ON_NT_STATUS(status);
+            if(!bExists)
+            {
+                printf("Source file doesn't exists, please check the path %s\n", pszSourcePath);
+                goto error;
+            }
+
+            status = LwioCopyFileToRemote(
                             pszSourcePath,
                             pszTargetPath);
             BAIL_ON_NT_STATUS(status);
         }
         else if(dwFileOrDir == ACTION_DIR)
         {
-            status = CopyDirToNt(
+            status = LwioCheckDirectoryExists(
+                            pszSourcePath,
+                            &bExists);
+            BAIL_ON_NT_STATUS(status);
+            if(!bExists)
+            {
+                printf("Source directory doesn't exists, please check the path %s\n", pszSourcePath);
+                goto error;
+            }
+
+            status = LwioCopyDirToRemote(
                             pszSourcePath,
                             pszTargetPath);
             BAIL_ON_NT_STATUS(status);
@@ -245,7 +265,7 @@ ParseArgs(
     PSTR pszDestPath = NULL;
     PSTR pszCachePath = NULL;
     DWORD dwFileOrDir = ACTION_NONE;
-    DWORD dwToRFromNt = NONE_NT;
+    DWORD dwToRFromNt = 0;
     PSTR pszSlash = NULL;
     PSTR pszLast = NULL;
 
@@ -325,7 +345,7 @@ ParseArgs(
         ShowUsage();
         exit(0);
     }
-    else if ((strcmp(pszArg, "--dest") == 0) || (strcmp(pszArg, "-d") == 0))
+    else if ((strcmp(pszArg, "--target") == 0) || (strcmp(pszArg, "-t") == 0))
     {
         status = SMBAllocateString(
                     argv[iArg++],
@@ -398,7 +418,7 @@ GetDirectionToCopy(
     PSTR pszTmpPath = NULL;
     PSTR pszHostname = NULL;
 
-    *pdwToRFromNt = NONE_NT;
+    *pdwToRFromNt = 0;
 
     status = SMBAllocateString(
                     pszSrcPath,
@@ -485,12 +505,12 @@ void
 ShowUsage()
 {
     printf("Usage: lwio-copy --file|dir --setkrb <cache path> --src <source path> --dest <target path>\n");
-    printf("\t--help    | -h    Show help\n");
-    printf("\t--file 	| -f	Operate file\n");
-    printf("\t--dir 	| -d    Operate directory\n");
-    printf("\t--setkrb  | -k    Set KRB5CCNAME env \n");
-    printf("\t--src 	| -s    Set source path \n");
-    printf("\t--dest 	| -d    Set destination path \n");
+    printf("\t--help      | -h    Show help\n");
+    printf("\t--file      | -f    Operate file\n");
+    printf("\t--dir       | -d    Operate directory\n");
+    printf("\t--setkrb    | -k    Set KRB5CCNAME env \n");
+    printf("\t--src       | -s    Set source path \n");
+    printf("\t--target    | -t    Set target path \n");
     printf("<source path>/<dest path> should be of the form '/<hostname>/<Sharename>/<path>'\n");
 }
 
