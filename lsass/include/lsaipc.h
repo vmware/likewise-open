@@ -53,6 +53,24 @@
 #define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
 #define LSA_SERVER_FILENAME    ".lsasd"
 
+#if 1
+// TODO: Remove this after switching to new NTLM code.
+typedef struct _SEC_BUFFER {
+    LW_USHORT length;
+    LW_USHORT maxLength;
+    LW_PBYTE buffer;
+} SEC_BUFFER, *PSEC_BUFFER;
+
+/* static buffer secbufer */
+#define S_BUFLEN 24
+
+typedef struct _SEC_BUFFER_S {
+    LW_USHORT length;
+    LW_USHORT maxLength;
+    LW_BYTE buffer[S_BUFLEN];
+} SEC_BUFFER_S, *PSEC_BUFFER_S;
+#endif
+
 typedef enum __LSA_IPC_TAG
 {
     LSA_Q_GROUP_BY_ID,
