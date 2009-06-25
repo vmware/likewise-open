@@ -49,7 +49,6 @@
 #include "lwnet-def.h"
 #include "lwnet.h"
 #include "lwnet-utils.h"
-#include "lwnet-client.h"
 
 static
 void
@@ -118,7 +117,7 @@ main(
     PCSTR  pszTimeFormat = "%Y-%m-%d %H:%M:%S %Z";
     PSTR   pszTargetFQDN = NULL;
     CHAR   szTime[256] = "";
-    UNIX_TIME_T dcTime = 0;
+    LWNET_UNIX_TIME_T dcTime = 0;
     time_t dcTimeCopy = 0;
     struct tm dcDateTime = { 0 };
     

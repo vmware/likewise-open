@@ -87,7 +87,7 @@ LWNetSrvGetDCName(
 DWORD
 LWNetSrvGetDCTime(
     IN PCSTR pszDomainFQDN,
-    OUT PUNIX_TIME_T pDCTime
+    OUT PLWNET_UNIX_TIME_T pDCTime
     );
 
 DWORD

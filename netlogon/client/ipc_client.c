@@ -218,7 +218,7 @@ DWORD
 LWNetTransactGetDCTime(
     HANDLE hConnection,
     PCSTR pszDomainFQDN,
-    PUNIX_TIME_T pDCTime
+    PLWNET_UNIX_TIME_T pDCTime
     )
 {
     DWORD dwError = 0;
