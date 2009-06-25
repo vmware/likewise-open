@@ -299,10 +299,12 @@ SrvConnectionWriteMessage(
 
             case SMB_PROTOCOL_VERSION_2:
 
+#if 0
                 ntStatus = SMB2PacketSign(
                                 pPacket,
                                 pConnection->pSessionKey,
                                 pConnection->ulSessionKeyLength);
+#endif
 
                 break;
 
