@@ -128,6 +128,11 @@ PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 PLSA_AD_PROVIDER_STATE gpLsaAdProviderState = NULL;
 
 
+ADCACHE_PROVIDER_FUNCTION_TABLE ADCacheTable;
+
+PADCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider = &ADCacheTable;
+
+
 /*
 local variables:
 mode: c

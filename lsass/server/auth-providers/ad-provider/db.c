@@ -44,6 +44,12 @@
  */
 #include "adprovider.h"
 
+DWORD
+LsaDbStoreObjectEntries(
+    LSA_DB_HANDLE hDb,
+    size_t  sObjectCount,
+    PLSA_SECURITY_OBJECT* ppObjects
+    );
 
 DWORD
 LsaDbSetup(
@@ -711,7 +717,7 @@ cleanup:
 
 error:
     *ppObject = NULL;
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -758,7 +764,7 @@ cleanup:
 
 error:
     *ppObject = NULL;
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -834,7 +840,7 @@ cleanup:
 
 error:
     *ppObject = NULL;
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -880,7 +886,7 @@ cleanup:
 
 error:
     *ppObject = NULL;
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -1713,43 +1719,6 @@ error:
     goto cleanup;
 }
 
-void
-LsaDbSafeFreeObject(
-    PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-    PLSA_SECURITY_OBJECT pObject = NULL;
-    if (ppObject != NULL && *ppObject != NULL)
-    {
-        pObject = *ppObject;
-
-        LSA_SAFE_FREE_STRING(pObject->pszObjectSid);
-
-        LSA_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
-        LSA_SAFE_FREE_STRING(pObject->pszSamAccountName);
-        LSA_SAFE_FREE_STRING(pObject->pszDN);
-
-        if (pObject->type == AccountType_User)
-        {
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszShell);
-            LSA_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
-        }
-        else if (pObject->type == AccountType_Group)
-        {
-            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
-            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
-        }
-
-        LSA_SAFE_FREE_MEMORY(pObject);
-        *ppObject = NULL;
-    }
-}
-
-
 DWORD
 LsaDbCreateCacheTag(
     IN PLSA_DB_CONNECTION pConn,
@@ -2422,7 +2391,7 @@ LsaDbGetMemberships(
 
         if (bSkip)
         {
-            LsaDbSafeFreeGroupMembership(&pMembership);
+            ADCacheSafeFreeGroupMembership(&pMembership);
         }
         else
         {
@@ -2452,8 +2421,8 @@ cleanup:
 error:
     *psCount = 0;
     *pppResults = NULL;
-    LsaDbSafeFreeGroupMembership(&pMembership);
-    LsaDbSafeFreeGroupMembershipList(sResultCount, &ppResults);
+    ADCacheSafeFreeGroupMembership(&pMembership);
+    ADCacheSafeFreeGroupMembershipList(sResultCount, &ppResults);
     if (pstQuery != NULL)
     {
         sqlite3_reset(pstQuery);
@@ -2488,50 +2457,6 @@ LsaDbGetGroupsForUser(
     return LsaDbGetMemberships(hDb, pszSid, FALSE,
                                     bFilterNotInPacNorLdap,
                                     psCount, pppResults);
-}
-
-void
-LsaDbSafeFreeGroupMembership(
-        PLSA_GROUP_MEMBERSHIP* ppMembership)
-{
-    if (*ppMembership != NULL)
-    {
-        LSA_SAFE_FREE_STRING((*ppMembership)->pszParentSid);
-        LSA_SAFE_FREE_STRING((*ppMembership)->pszChildSid);
-    }
-    LSA_SAFE_FREE_MEMORY(*ppMembership);
-}
-
-void
-LsaDbSafeFreeGroupMembershipList(
-        size_t sCount,
-        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
-{
-    if (*pppMembershipList != NULL)
-    {
-        size_t iMember;
-        for (iMember = 0; iMember < sCount; iMember++)
-        {
-            LsaDbSafeFreeGroupMembership(&(*pppMembershipList)[iMember]);
-        }
-        LSA_SAFE_FREE_MEMORY(*pppMembershipList);
-    }
-}
-
-void
-LsaDbSafeFreeObjectList(
-        size_t sCount,
-        PLSA_SECURITY_OBJECT** pppObjectList)
-{
-    if (*pppObjectList != NULL)
-    {
-        size_t sIndex;
-        for (sIndex = 0; sIndex < sCount; sIndex++)
-        {
-            LsaDbSafeFreeObject(&(*pppObjectList)[sIndex]);
-        }
-        LSA_SAFE_FREE_MEMORY(*pppObjectList);
-    }
 }
 
 DWORD
@@ -2615,7 +2540,7 @@ error:
 
     *ppObject = NULL;
 
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     sqlite3_reset(pstQuery);
 
     goto cleanup;
@@ -2696,7 +2621,7 @@ error:
     *dwNumUsersFound = 0;
     *pppObjects = NULL;
 
-    LsaDbSafeFreeObjectList(dwUserCount, &ppObjectsLocal);
+    ADCacheSafeFreeObjectList(dwUserCount, &ppObjectsLocal);
 
     sqlite3_reset(pstQuery);
 
@@ -2778,7 +2703,7 @@ error:
     *dwNumGroupsFound = 0;
     *pppObjects = NULL;
 
-    LsaDbSafeFreeObjectList(dwGroupCount, &ppObjectsLocal);
+    ADCacheSafeFreeObjectList(dwGroupCount, &ppObjectsLocal);
     sqlite3_reset(pstQuery);
 
     goto cleanup;
@@ -2898,7 +2823,7 @@ cleanup:
 
 error:
     *ppObject = NULL;
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     sqlite3_reset(pstQuery);
 
     goto cleanup;
@@ -3016,7 +2941,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sCount, &ppResults);
+    ADCacheSafeFreeObjectList(sCount, &ppResults);
     goto cleanup;
 }
 
@@ -3093,7 +3018,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sCount, &ppResults);
+    ADCacheSafeFreeObjectList(sCount, &ppResults);
     goto cleanup;
 }
 
@@ -3298,4 +3223,36 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+
+void
+InitializeDbCacheProvider(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
+    )
+{
+    pCacheTable->pfnOpenHandle               = LsaDbOpen;
+    pCacheTable->pfnSafeClose                = LsaDbSafeClose;
+    pCacheTable->pfnFindUserByName           = LsaDbFindUserByName;
+    pCacheTable->pfnFindUserById             = LsaDbFindUserById;
+    pCacheTable->pfnFindGroupByName          = LsaDbFindGroupByName;
+    pCacheTable->pfnFindGroupById            = LsaDbFindGroupById;
+    pCacheTable->pfnRemoveUserBySid          = LsaDbRemoveUserBySid;
+    pCacheTable->pfnRemoveGroupBySid         = LsaDbRemoveGroupBySid;
+    pCacheTable->pfnEmptyCache               = LsaDbEmptyCache;
+    pCacheTable->pfnStoreObjectEntry         = LsaDbStoreObjectEntry;
+    pCacheTable->pfnStoreObjectEntries       = LsaDbStoreObjectEntries;
+    pCacheTable->pfnStoreGroupMembership     = LsaDbStoreGroupMembership;
+    pCacheTable->pfnStoreGroupsForUser       = LsaDbStoreGroupsForUser;
+    pCacheTable->pfnGetMemberships           = LsaDbGetMemberships;
+    pCacheTable->pfnGetGroupMembers          = LsaDbGetGroupMembers;
+    pCacheTable->pfnGetGroupsForUser         = LsaDbGetGroupsForUser;
+    pCacheTable->pfnEnumUsersCache           = LsaDbEnumUsersCache;
+    pCacheTable->pfnEnumGroupsCache          = LsaDbEnumGroupsCache;
+    pCacheTable->pfnFindObjectByDN           = LsaDbFindObjectByDN;
+    pCacheTable->pfnFindObjectsByDNList      = LsaDbFindObjectsByDNList;
+    pCacheTable->pfnFindObjectBySid          = LsaDbFindObjectBySid;
+    pCacheTable->pfnFindObjectsBySidList     = LsaDbFindObjectsBySidList;
+    pCacheTable->pfnGetPasswordVerifier      = LsaDbGetPasswordVerifier;
+    pCacheTable->pfnStorePasswordVerifier    = LsaDbStorePasswordVerifier;
 }

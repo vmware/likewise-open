@@ -53,7 +53,7 @@ ADCacheOpen(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnOpen)(
+    dwError = (*gpCacheProvider->pfnOpenHandle)(
                         pszDbPath,
                         phDb
                         );
@@ -65,7 +65,7 @@ ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
     )
 {
-    (*pCacheProvider->pfnSafeClose)(
+    (*gpCacheProvider->pfnSafeClose)(
                         phDb
                         );
     return;
@@ -80,7 +80,7 @@ ADCacheFindUserByName(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindUserByName)(
+    dwError = (*gpCacheProvider->pfnFindUserByName)(
                         hDb,
                         pUserNameInfo,
                         ppObject
@@ -96,7 +96,9 @@ ADCacheFindUserById(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
-    dwError = (*pCacheProvider->pfnFindUserById)(
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFindUserById)(
                     hDb,
                     uid,
                     ppObject
@@ -113,7 +115,7 @@ ADCacheFindGroupByName(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindGroupById)(
+    dwError = (*gpCacheProvider->pfnFindGroupByName)(
                     hDb,
                     pGroupNameInfo,
                     ppObject
@@ -130,7 +132,7 @@ ADCacheFindGroupById(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindGroupById)(
+    dwError = (*gpCacheProvider->pfnFindGroupById)(
                     hDb,
                     gid,
                     ppObject
@@ -146,7 +148,7 @@ ADCacheRemoveUserBySid(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnRemoveUserBySid)(
+    dwError = (*gpCacheProvider->pfnRemoveUserBySid)(
                     hDb,
                     pszSid
                     );
@@ -161,7 +163,7 @@ ADCacheRemoveGroupBySid(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnRemoveGroupBySid)(
+    dwError = (*gpCacheProvider->pfnRemoveGroupBySid)(
                      hDb,
                      pszSid
                     );
@@ -175,7 +177,7 @@ ADCacheEmptyCache(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnEmptyCache)(
+    dwError = (*gpCacheProvider->pfnEmptyCache)(
                     hDb
                     );
     return dwError;
@@ -189,7 +191,7 @@ ADCacheStoreObjectEntry(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnStoreObjectEntry)(
+    dwError = (*gpCacheProvider->pfnStoreObjectEntry)(
                         hDb,
                         pObject
                         );
@@ -206,20 +208,12 @@ ADCacheStoreObjectEntries(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnStoreObjectEntries)(
+    dwError = (*gpCacheProvider->pfnStoreObjectEntries)(
                         hDb,
                         sObjectCount,
                         ppObjects
                         );
     return dwError;
-}
-
-void
-ADCacheSafeFreeObject(
-    PLSA_SECURITY_OBJECT* ppObject
-    )
-{
-
 }
 
 DWORD
@@ -232,7 +226,7 @@ ADCacheStoreGroupMembership(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnStoreGroupMembership)(
+    dwError = (*gpCacheProvider->pfnStoreGroupMembership)(
                         hDb,
                         pszParentSid,
                         sMemberCount,
@@ -252,7 +246,7 @@ ADCacheStoreGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnStoreGroupsForUser)(
+    dwError = (*gpCacheProvider->pfnStoreGroupsForUser)(
                     hDb,
                     pszChildSid,
                     sMemberCount,
@@ -275,7 +269,7 @@ ADCacheGetMemberships(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnGetMemberships)(
+    dwError = (*gpCacheProvider->pfnGetMemberships)(
                     hDb,
                     pszSid,
                     bIsGroupMembers,
@@ -298,7 +292,7 @@ ADCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnGetGroupMembers)(
+    dwError = (*gpCacheProvider->pfnGetGroupMembers)(
                         hDb,
                         pszSid,
                         bFilterNotInPacNorLdap,
@@ -317,26 +311,16 @@ ADCacheGetGroupsForUser(
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
     )
 {
-}
+    DWORD dwError = 0;
 
-void
-ADCacheSafeFreeGroupMembership(
-        PLSA_GROUP_MEMBERSHIP* ppMembership)
-{
-}
-
-void
-ADCacheSafeFreeGroupMembershipList(
-        size_t sCount,
-        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
-{
-}
-
-void
-ADCacheSafeFreeObjectList(
-        size_t sCount,
-        PLSA_SECURITY_OBJECT** pppObjectList)
-{
+    dwError = (*gpCacheProvider->pfnGetGroupsForUser)(
+                        hDb,
+                        pszSid,
+                        bFilterNotInPacNorLdap,
+                        psCount,
+                        pppResults
+                        );
+    return dwError;
 }
 
 DWORD
@@ -350,7 +334,7 @@ ADCacheEnumUsersCache(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnEnumUsersCache)(
+    dwError = (*gpCacheProvider->pfnEnumUsersCache)(
                         hDb,
                         dwMaxNumUsers,
                         pszResume,
@@ -372,7 +356,7 @@ ADCacheEnumGroupsCache(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnEnumGroupsCache)(
+    dwError = (*gpCacheProvider->pfnEnumGroupsCache)(
                         hDb,
                         dwMaxNumGroups,
                         pszResume,
@@ -391,7 +375,7 @@ ADCacheFindObjectByDN(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindObjectByDN)(
+    dwError = (*gpCacheProvider->pfnFindObjectByDN)(
                         hDb,
                         pszDN,
                         ppObject
@@ -409,7 +393,7 @@ ADCacheFindObjectsByDNList(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindObjectsByDNList)(
+    dwError = (*gpCacheProvider->pfnFindObjectsByDNList)(
                         hDb,
                         sCount,
                         ppszDnList,
@@ -426,7 +410,7 @@ ADCacheFindObjectBySid(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindObjectBySid)(
+    dwError = (*gpCacheProvider->pfnFindObjectBySid)(
                             hDb,
                             pszSid,
                             ppObject
@@ -447,7 +431,7 @@ ADCacheFindObjectsBySidList(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnFindObjectsBySidList)(
+    dwError = (*gpCacheProvider->pfnFindObjectsBySidList)(
                         hDb,
                         sCount,
                         ppszSidList,
@@ -468,7 +452,7 @@ ADCacheGetPasswordVerifier(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnGetPasswordVerifier)(
+    dwError = (*gpCacheProvider->pfnGetPasswordVerifier)(
                     hDb,
                     pszUserSid,
                     ppResult
@@ -491,11 +475,93 @@ ADCacheStorePasswordVerifier(
 {
     DWORD dwError = 0;
 
-    dwError = (*pCacheProvider->pfnStorePasswordVerifier(
+    dwError = (*gpCacheProvider->pfnStorePasswordVerifier)(
                         hDb,
                         pVerifier
                         );
 
     return dwError;
 
+}
+
+
+
+void
+ADCacheSafeFreeObject(
+    PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    if (ppObject != NULL && *ppObject != NULL)
+    {
+        pObject = *ppObject;
+
+        LSA_SAFE_FREE_STRING(pObject->pszObjectSid);
+
+        LSA_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
+        LSA_SAFE_FREE_STRING(pObject->pszSamAccountName);
+        LSA_SAFE_FREE_STRING(pObject->pszDN);
+
+        if (pObject->type == AccountType_User)
+        {
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszShell);
+            LSA_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
+        }
+        else if (pObject->type == AccountType_Group)
+        {
+            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
+            LSA_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
+        }
+
+        LSA_SAFE_FREE_MEMORY(pObject);
+        *ppObject = NULL;
+    }
+}
+
+void
+ADCacheSafeFreeGroupMembership(
+        PLSA_GROUP_MEMBERSHIP* ppMembership)
+{
+    if (*ppMembership != NULL)
+    {
+        LSA_SAFE_FREE_STRING((*ppMembership)->pszParentSid);
+        LSA_SAFE_FREE_STRING((*ppMembership)->pszChildSid);
+    }
+    LSA_SAFE_FREE_MEMORY(*ppMembership);
+}
+
+void
+ADCacheSafeFreeGroupMembershipList(
+        size_t sCount,
+        PLSA_GROUP_MEMBERSHIP** pppMembershipList)
+{
+    if (*pppMembershipList != NULL)
+    {
+        size_t iMember;
+        for (iMember = 0; iMember < sCount; iMember++)
+        {
+            ADCacheSafeFreeGroupMembership(&(*pppMembershipList)[iMember]);
+        }
+        LSA_SAFE_FREE_MEMORY(*pppMembershipList);
+    }
+}
+
+void
+ADCacheSafeFreeObjectList(
+        size_t sCount,
+        PLSA_SECURITY_OBJECT** pppObjectList)
+{
+    if (*pppObjectList != NULL)
+    {
+        size_t sIndex;
+        for (sIndex = 0; sIndex < sCount; sIndex++)
+        {
+            ADCacheSafeFreeObject(&(*pppObjectList)[sIndex]);
+        }
+        LSA_SAFE_FREE_MEMORY(*pppObjectList);
+    }
 }

@@ -1,6 +1,7 @@
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
 
 liblsass_auth_provider_ad_la_SOURCES = \
+       adcache.c                 \
        adcfg.c                   \
        adldap.c                  \
        ad_marshal_user.c         \

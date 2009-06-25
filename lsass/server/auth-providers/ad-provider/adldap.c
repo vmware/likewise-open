@@ -1603,7 +1603,7 @@ ADLdap_GetGroupMembers(
     *pppResults = ppResults;
 
 cleanup:
-    LsaDbSafeFreeObject(&pGroupObj);
+    ADCacheSafeFreeObject(&pGroupObj);
     LsaFreeStringArray(ppszLDAPValues, dwSidCount);
     LsaDmLdapClose(pConn);
 
@@ -1616,7 +1616,7 @@ error:
     LSA_LOG_ERROR("Failed to find group's members of objectSid=%s. [error code:%d]",
                   LSA_SAFE_LOG_STRING(pszSid), dwError);
 
-    LsaDbSafeFreeObjectList((DWORD)sFoundCount, &ppResults);
+    ADCacheSafeFreeObjectList((DWORD)sFoundCount, &ppResults);
     goto cleanup;
 }
 
@@ -1734,7 +1734,7 @@ error:
                       pUserInfo->userInfo.uid, dwError);
     }
 
-    LsaDbSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
+    ADCacheSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
 
     goto cleanup;
 }

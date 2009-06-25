@@ -153,6 +153,12 @@ AD_SetCanonicalNameToAlias(
     PSTR  pszCanonicalName
     );
 
+
+void
+InitADCacheFunctionTable(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
+    );
+
 DWORD
 LsaInitializeProvider(
     PCSTR pszConfigFilePath,
@@ -171,6 +177,8 @@ LsaInitializeProvider(
     LSA_AD_CONFIG config = {0};
 
     pthread_rwlock_init(&gADGlobalDataLock, NULL);
+
+    InitADCacheFunctionTable(gpCacheProvider);
 
     dwError = LsaAdProviderStateCreate(&gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -269,7 +277,7 @@ LsaInitializeProvider(
                 &gpLsaAdProviderState->hStateConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbOpen(
+    dwError = ADCacheOpen(
                 LSASS_AD_CACHE,
                 &gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -601,7 +609,7 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     if (pLoginInfo)
     {
@@ -670,8 +678,8 @@ AD_CheckUserInList(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
+    ADCacheSafeFreeObject(&pUserInfo);
     LsaHashSafeFree(&pAllowedMemberList);
 
     return dwError;
@@ -727,7 +735,7 @@ AD_FindUserByName(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -780,7 +788,7 @@ AD_FindUserById(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1001,7 +1009,7 @@ AD_EnumUsersFromCache(
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbEnumUsersCache(
+    dwError = ADCacheEnumUsersCache(
                   gpLsaAdProviderState->hCacheConnection,
                   request->dwMaxNumUsers,
                   request->pszResume,
@@ -1037,7 +1045,7 @@ AD_EnumUsersFromCache(
                           &ppUserInfoList[dwInfoCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaDbSafeFreeObject(&ppUserObjectList[dwInfoCount]);
+            ADCacheSafeFreeObject(&ppUserObjectList[dwInfoCount]);
         }
 
         if (AD_ShouldAssumeDefaultDomain())
@@ -1097,7 +1105,7 @@ AD_EnumUsersFromCache(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
+    ADCacheSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
 
     if (ppUserInfoList)
     {
@@ -1239,14 +1247,14 @@ AD_RemoveUserByIdFromCache(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveUserBySid(
+    dwError = ADCacheRemoveUserBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pUserInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -1331,7 +1339,7 @@ AD_FindGroupByNameWithCacheMode(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1434,7 +1442,7 @@ AD_GetExpandedGroupUsersEx(
 
 cleanup:
     AD_GroupExpansionDataDestroy(pExpansionData);
-    LsaDbSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
+    ADCacheSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
 
     if (pbIsFullyExpanded)
     {
@@ -1447,7 +1455,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
+    ADCacheSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
     sExpandedUsersCount = 0;
     bIsFullyExpanded = FALSE;
     goto cleanup;
@@ -1620,7 +1628,7 @@ AD_EnumGroupsFromCache(
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbEnumGroupsCache(
+    dwError = ADCacheEnumGroupsCache(
                   gpLsaAdProviderState->hCacheConnection,
                   request->dwMaxNumGroups,
                   request->pszResume,
@@ -1658,7 +1666,7 @@ AD_EnumGroupsFromCache(
                           &ppGroupInfoList[dwInfoCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaDbSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
+            ADCacheSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
         }
 
         if (AD_ShouldAssumeDefaultDomain())
@@ -1714,7 +1722,7 @@ AD_EnumGroupsFromCache(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
+    ADCacheSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
 
     if (ppGroupInfoList)
     {
@@ -1793,7 +1801,7 @@ AD_RemoveGroupByNameFromCache(
                   &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveGroupBySid(
+    dwError = ADCacheRemoveGroupBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pGroupInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1801,7 +1809,7 @@ AD_RemoveGroupByNameFromCache(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszFreeGroupName);
-    LsaDbSafeFreeObject(&pGroupInfo);
+    ADCacheSafeFreeObject(&pGroupInfo);
 
     return dwError;
 
@@ -1838,7 +1846,7 @@ AD_RemoveGroupByIdFromCache(
                   (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveGroupBySid(
+    dwError = ADCacheRemoveGroupBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pGroupInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1955,7 +1963,7 @@ AD_GroupObjectToGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LsaDbSafeFreeObjectList(sMembers, &ppMembers);
+    ADCacheSafeFreeObjectList(sMembers, &ppMembers);
     LSA_SAFE_FREE_STRING(pszFullDomainName);
 
     return dwError;
@@ -2242,7 +2250,7 @@ cleanup:
         LsaCloseServer(hLsaConnection);
     }
 
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     if (ppUserMembershipInfo)
     {
@@ -2270,7 +2278,7 @@ cleanup:
         LsaHashSafeFree(&pUserMemberships);
     }
 
-    LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    ADCacheSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
     return dwError;
 
 error:
@@ -2514,7 +2522,7 @@ AD_EmptyCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaDbEmptyCache(
+    dwError = ADCacheEmptyCache(
                   gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -3456,7 +3464,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3533,7 +3541,7 @@ error:
 
     *ppResult = NULL;
 
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3562,7 +3570,7 @@ AD_RemoveUserByNameFromCacheInternal(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveUserBySid(
+    dwError = ADCacheRemoveUserBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pUserInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3570,7 +3578,7 @@ AD_RemoveUserByNameFromCacheInternal(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszFreeLoginId);
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -3627,7 +3635,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3704,7 +3712,7 @@ error:
 
     *ppResult = NULL;
 
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3811,7 +3819,7 @@ LsaAdProviderStateDestroy(
 {
     if (pState)
     {
-        LsaDbSafeClose(&pState->hCacheConnection);
+        ADCacheSafeClose(&pState->hCacheConnection);
         ADState_SafeCloseDb(&pState->hStateConnection);
 
         MediaSenseStop(&pState->MediaSenseHandle);
@@ -4219,7 +4227,7 @@ AD_ResolveConfiguredLists(
             }
             dwError = LSA_ERROR_SUCCESS;
 
-            LsaDbSafeFreeObject(&pGroupInfo);
+            ADCacheSafeFreeObject(&pGroupInfo);
             dwError = AD_FindGroupObjectByName(
                             hProvider,
                             pszMember,
@@ -4261,7 +4269,7 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    LsaDbSafeFreeObject(&pGroupInfo);
+    ADCacheSafeFreeObject(&pGroupInfo);
 
     return dwError;
 
@@ -4435,6 +4443,20 @@ error:
 
     return dwError;
 }
+
+void
+InitADCacheFunctionTable(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
+    )
+{
+    InitializeDbCacheProvider(
+        pCacheProviderTable
+        );
+    return;
+}
+
+
+
 
 
 /*

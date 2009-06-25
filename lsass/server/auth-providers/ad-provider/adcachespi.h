@@ -43,12 +43,13 @@
  *          Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
  */
-#include "adprovider.h"
 
+#ifndef __ADCACHESPI_H__
+#define __ADCACHESPI_H__
 
 typedef
 DWORD
-(*PFNOpen)(
+(*PFNOpenHandle)(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
     );
@@ -240,7 +241,7 @@ DWORD
 
 typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
 {
-    PFNOPENHANDLE               pfnOpenHandle;
+    PFNOpenHandle               pfnOpenHandle;
     PFNSafeClose                pfnSafeClose;
     PFNFindUserByName           pfnFindUserByName;
     PFNFindUserById             pfnFindUserById;
@@ -261,23 +262,24 @@ typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
     PFNFindObjectByDN           pfnFindObjectByDN;
     PFNFindObjectsByDNList      pfnFindObjectsByDNList;
     PFNFindObjectBySid          pfnFindObjectBySid;
-    PFNFindObjectBySidList      pfnFindObjectsBySidList;
+    PFNFindObjectsBySidList      pfnFindObjectsBySidList;
     PFNGetPasswordVerifier      pfnGetPasswordVerifier;
     PFNStorePasswordVerifier    pfnStorePasswordVerifier;
-} ADCACHE_PROVIDER_FUNCTION_TABLE, *ADCACHE_PROVIDER_FUNCTION_TABLE;
+} ADCACHE_PROVIDER_FUNCTION_TABLE, *PADCACHE_PROVIDER_FUNCTION_TABLE;
 
 #define ADCACHE_SYMBOL_NAME_INITIALIZE_PROVIDER "AdCacheInitializeProvider"
 
-typedef DWORD (*PFNINITIALIZEPROVIDER)(
+typedef DWORD (*PFNInitializeCacheProvider)(
                     PCSTR pszConfigFilePath,
                     PSTR* ppszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
+                    PADCACHE_PROVIDER_FUNCTION_TABLE* ppFnTable
                     );
 
 #define ADCACHE_SYMBOL_NAME_SHUTDOWN_PROVIDER "AdCacheShutdownProvider"
 
-typedef DWORD (*PFNSHUTDOWNPROVIDER)(
+typedef DWORD (*PFNShutdownCacheProvider)(
                     PSTR pszProviderName,
-                    PLSA_PROVIDER_FUNCTION_TABLE pFnTable
+                    PADCACHE_PROVIDER_FUNCTION_TABLE pFnTable
                     );
 
+#endif /* __ADCACHESPI_H__ */

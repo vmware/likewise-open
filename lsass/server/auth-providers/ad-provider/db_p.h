@@ -198,4 +198,9 @@ LsaDbStoreUserMembershipCallback(
     OUT PSTR* ppszError
     );
 
+void
+InitializeDbCacheProvider(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
+    );
+
 #endif /* __CACHEDB_P_H__ */

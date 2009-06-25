@@ -208,7 +208,7 @@ typedef struct __LSA_DB_PASSWORD_VERIFIER
 } LSA_PASSWORD_VERIFIER, *PLSA_PASSWORD_VERIFIER;
 
 DWORD
-AdCacheOpen(
+ADCacheOpen(
     IN PCSTR pszDbPath,
     PLSA_DB_HANDLE phDb
     );
@@ -216,13 +216,13 @@ AdCacheOpen(
 // Sets the handle to null after closing it. If a null handle is passed in,
 // it is ignored.
 void
-AdCacheSafeClose(
+ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
     );
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
-AdCacheFindUserByName(
+ADCacheFindUserByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
@@ -230,79 +230,79 @@ AdCacheFindUserByName(
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
-AdCacheFindUserById(
+ADCacheFindUserById(
     LSA_DB_HANDLE hDb,
     uid_t uid,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
-AdCacheFindGroupByName(
+ADCacheFindGroupByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pGroupNameInfo,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
-AdCacheFindGroupById(
+ADCacheFindGroupById(
     LSA_DB_HANDLE hDb,
     uid_t uid,
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 DWORD
-AdCacheRemoveUserBySid(
+ADCacheRemoveUserBySid(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
     );
 
 DWORD
-AdCacheRemoveGroupBySid(
+ADCacheRemoveGroupBySid(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid
     );
 
 DWORD
-AdCacheEmptyCache(
+ADCacheEmptyCache(
     IN LSA_DB_HANDLE hDb
     );
 
 DWORD
-AdCacheStoreObjectEntry(
+ADCacheStoreObjectEntry(
     LSA_DB_HANDLE hDb,
     PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD
-AdCacheStoreObjectEntries(
+ADCacheStoreObjectEntries(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
     PLSA_SECURITY_OBJECT* ppObjects
     );
 
 void
-AdCacheSafeFreeObject(
+ADCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
     );
 
 void
-AdCacheSafeFreeObjectList(
+ADCacheSafeFreeObjectList(
         size_t sCount,
         PLSA_SECURITY_OBJECT** pppObjectList);
 
 #define LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(x) \
     if ((x) != NULL) { \
-        AdCacheFreePasswordVerifier(x); \
+        ADCacheFreePasswordVerifier(x); \
         (x) = NULL; \
     }
 
 void
-AdCacheFreePasswordVerifier(
+ADCacheFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     );
 
 DWORD
-AdCacheStoreGroupMembership(
+ADCacheStoreGroupMembership(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszParentSid,
     IN size_t sMemberCount,
@@ -310,7 +310,7 @@ AdCacheStoreGroupMembership(
     );
 
 DWORD
-AdCacheStoreGroupsForUser(
+ADCacheStoreGroupsForUser(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszChildSid,
     IN size_t sMemberCount,
@@ -319,7 +319,7 @@ AdCacheStoreGroupsForUser(
     );
 
 DWORD
-AdCacheGetGroupMembers(
+ADCacheGetGroupMembers(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
@@ -328,7 +328,7 @@ AdCacheGetGroupMembers(
     );
 
 DWORD
-AdCacheGetGroupsForUser(
+ADCacheGetGroupsForUser(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
@@ -337,16 +337,16 @@ AdCacheGetGroupsForUser(
     );
 
 void
-AdCacheSafeFreeGroupMembership(
+ADCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership);
 
 void
-AdCacheSafeFreeGroupMembershipList(
+ADCacheSafeFreeGroupMembershipList(
         size_t sCount,
         PLSA_GROUP_MEMBERSHIP** pppMembershipList);
 
 DWORD
-AdCacheFindObjectsByDNList(
+ADCacheFindObjectsByDNList(
     IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszDnList,
@@ -354,7 +354,7 @@ AdCacheFindObjectsByDNList(
     );
 
 DWORD
-AdCacheFindObjectsBySidList(
+ADCacheFindObjectsBySidList(
     IN LSA_DB_HANDLE hDb,
     IN size_t sCount,
     IN PSTR* ppszSidList,
@@ -362,19 +362,19 @@ AdCacheFindObjectsBySidList(
     );
 
 DWORD
-AdCacheFindObjectByDN(
+ADCacheFindObjectByDN(
     LSA_DB_HANDLE hDb,
     PCSTR pszDN,
     PLSA_SECURITY_OBJECT *ppObject);
 
 DWORD
-AdCacheFindObjectBySid(
+ADCacheFindObjectBySid(
     LSA_DB_HANDLE hDb,
     PCSTR pszSid,
     PLSA_SECURITY_OBJECT *ppObject);
 
 DWORD
-AdCacheEnumUsersCache(
+ADCacheEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
     IN PCSTR                   pszResume,
@@ -383,7 +383,7 @@ AdCacheEnumUsersCache(
     );
 
 DWORD
-AdCacheEnumGroupsCache(
+ADCacheEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumGroups,
     IN PCSTR                   pszResume,
@@ -393,14 +393,14 @@ AdCacheEnumGroupsCache(
 
 // returns LSA_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
-AdCacheGetPasswordVerifier(
+ADCacheGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszUserSid,
     OUT PLSA_PASSWORD_VERIFIER *ppResult
     );
 
 DWORD
-AdCacheStorePasswordVerifier(
+ADCacheStorePasswordVerifier(
     IN LSA_DB_HANDLE hDb,
     IN PLSA_PASSWORD_VERIFIER pVerifier
     );
