@@ -47,9 +47,6 @@
 #ifndef __LSA_JOIN_EXTERNS_H__
 #define __LSA_JOIN_EXTERNS_H__
 
-extern LSA_NET_JOIN_FUNCTION_TABLE  gLsaNetJoinFuncTable;
-extern PLSA_NET_JOIN_FUNCTION_TABLE gpLsaNetJoinFuncTable;
-
 extern DWORD gdwClockDriftSecs;
 
 typedef struct _LSA_KRB5_STATE {

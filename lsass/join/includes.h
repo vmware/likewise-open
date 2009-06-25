@@ -44,7 +44,6 @@
 #include "lsautils.h"
 #include "lsaunistr.h"
 
-#include "lsajoin.h"
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
 #include "lwtime.h"
@@ -62,6 +61,7 @@
 
 #include <lwio/lwio.h>
 
+#include <lsa/join.h>
 #include "join_p.h"
 
 
