@@ -1490,6 +1490,7 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszDomainController = NULL;
     PWSTR pwszServerName = NULL;
     PWSTR pwszShortDomain = NULL;
+    PWSTR pwszPrimaryShortDomain = NULL;
     PWSTR pwszUsername = NULL;
     PSTR pszHostname = NULL;
     PWSTR pwszCcachePath = NULL;
@@ -1545,6 +1546,10 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaMbsToWc16s(gpADProviderData->szShortDomain,
+                            &pwszPrimaryShortDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1582,7 +1587,7 @@ AD_NetlogonAuthenticationUserEx(
                                      pMachAcctInfo->pwszMachineAccount,
                                      pwszDomainController,
                                      pwszServerName,
-                                     pwszShortDomain,
+                                     pwszPrimaryShortDomain,
                                      pMachAcctInfo->pwszHostname,
                                      pMachAcctInfo->pwszMachinePassword,
                                      &gSchannelCreds,
@@ -1682,6 +1687,7 @@ cleanup:
     LSA_SAFE_FREE_MEMORY(pwszDomainController);
     LSA_SAFE_FREE_MEMORY(pwszServerName);
     LSA_SAFE_FREE_MEMORY(pwszShortDomain);
+    LSA_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
     LSA_SAFE_FREE_MEMORY(pszServerName);
     LSA_SAFE_FREE_MEMORY(pszCcachePath);
     LSA_SAFE_FREE_MEMORY(pwszCcachePath);
