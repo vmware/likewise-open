@@ -57,6 +57,9 @@ typedef struct {
     pthread_mutex_t lock;
     /* Should start as daemon */
     DWORD dwStartAsDaemon;
+    /* Log to syslog if this is true or starting as a daemon without a log
+     * file. */
+    BOOLEAN bLogToSyslog;
     /* How much logging do you want? */
     DWORD dwLogLevel;
     /* Enable debug logs */
