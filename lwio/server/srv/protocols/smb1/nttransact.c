@@ -77,6 +77,8 @@ SrvProcessIOCTL(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
     PLWIO_SRV_TREE       pTree,
+    PUSHORT             pSetup,
+    UCHAR               ucSetupCount,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -185,6 +187,8 @@ SrvProcessNtTransact(
                             pConnection,
                             pSmbRequest,
                             pTree,
+                            pSetup,
+                            pRequestHeader->ucSetupCount,
                             pParameters,
                             pRequestHeader->ulTotalParameterCount,
                             pData,
@@ -529,7 +533,9 @@ NTSTATUS
 SrvProcessIOCTL(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET         pSmbRequest,
-    PLWIO_SRV_TREE       pTree,
+    PLWIO_SRV_TREE      pTree,
+    PUSHORT             pSetup,
+    UCHAR               ucSetupCount,
     PBYTE               pParameters,
     ULONG               ulParameterCount,
     PBYTE               pData,
@@ -539,7 +545,7 @@ SrvProcessIOCTL(
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_FILE pFile = NULL;
-    UCHAR   ucSetupCount = 1;
+    UCHAR   ucResponseSetupCount = 1;
     ULONG   ulDataOffset = 0;
     ULONG   ulParameterOffset = 0;
     ULONG   ulNumPackageBytesUsed = 0;
@@ -548,13 +554,26 @@ SrvProcessIOCTL(
     PBYTE   pResponseBuffer = NULL;
     USHORT  usResponseBufferLen = 0;
 
-    if (ulParameterCount != sizeof(SMB_IOCTL_HEADER))
+    if (pSetup)
+    {
+        if (sizeof(SMB_IOCTL_HEADER) != ucSetupCount * sizeof(USHORT))
+        {
+            ntStatus = STATUS_DATA_ERROR;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pIoctlRequest = (PSMB_IOCTL_HEADER)((PBYTE)pSetup);
+
+    }
+    else if (ulParameterCount == sizeof(SMB_IOCTL_HEADER))
+    {
+        pIoctlRequest = (PSMB_IOCTL_HEADER)pParameters;
+    }
+    else
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    pIoctlRequest = (PSMB_IOCTL_HEADER)pParameters;
 
     if (pIoctlRequest->ucFlags & 0x1)
     {
@@ -618,14 +637,14 @@ SrvProcessIOCTL(
                 pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pSmbResponse->pSMBHeader->wordCount = 18 + ucSetupCount;
+    pSmbResponse->pSMBHeader->wordCount = 18 + ucResponseSetupCount;
 
     ntStatus = WireMarshallNtTransactionResponse(
                     pSmbResponse->pParams,
                     pSmbResponse->bufferLen - pSmbResponse->bufferUsed,
                     (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMBHeader,
                     &usResponseBufferLen,
-                    ucSetupCount,
+                    ucResponseSetupCount,
                     NULL,
                     0,
                     pResponseBuffer,
