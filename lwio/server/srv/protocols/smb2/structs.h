@@ -99,6 +99,23 @@ typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER
 
 } __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER;
 
+typedef struct __SMB2_TREE_CONNECT_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usPad;
+    USHORT usPathOffset;
+    USHORT usPathLength;
+} SMB2_TREE_CONNECT_REQUEST_HEADER, *PSMB2_TREE_CONNECT_REQUEST_HEADER;
+
+typedef struct __SMB2_TREE_CONNECT_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usShareType;
+    ULONG  ulShareFlags;
+    ULONG  ulShareCapabilities;
+    ULONG  ulShareAccessMask;
+} SMB2_TREE_CONNECT_RESPONSE_HEADER, *PSMB2_TREE_CONNECT_RESPONSE_HEADER;
+
 typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER* PSMB2_SESSION_SETUP_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

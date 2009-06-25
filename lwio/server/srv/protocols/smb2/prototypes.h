@@ -70,6 +70,15 @@ SrvBuildErrorResponse_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// tree_connect.c
+
+NTSTATUS
+SrvProcessTreeConnect_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // wire.c
 
 NTSTATUS
@@ -101,6 +110,20 @@ SMB2MarshalSessionSetup(
     SMB2_SESSION_FLAGS usFlags,
     PBYTE              pSecurityBlob,
     ULONG              ulSecurityBlobLen
+    );
+
+NTSTATUS
+SMB2UnmarshalTreeConnect(
+    PSMB_PACKET                        pSmbRequest,
+    PSMB2_TREE_CONNECT_REQUEST_HEADER* ppTreeConnectRequestHeader,
+    PUNICODE_STRING                    pwszPath
+    );
+
+NTSTATUS
+SMB2MarshalTreeConnectResponse(
+    PSMB_PACKET          pPacket,
+    PLWIO_SRV_CONNECTION pConnection,
+    PLWIO_SRV_TREE_2     pTree
     );
 
 NTSTATUS

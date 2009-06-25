@@ -96,7 +96,7 @@ SrvProcessSessionSetup_SMB_V2(
     ntStatus = SMB2MarshalHeader(
                     pSmbResponse,
                     COM2_SESSION_SETUP,
-                    1,
+                    0,
                     9,
                     pSmbRequest->pSMB2Header->ulPid,
                     pSmbRequest->pSMB2Header->ullCommandSequence,

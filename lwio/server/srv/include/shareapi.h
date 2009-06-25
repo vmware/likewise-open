@@ -154,6 +154,26 @@ SrvShareMapToWindowsPath(
     );
 
 NTSTATUS
+SrvGetShareName(
+    IN  PCSTR  pszHostname,
+    IN  PCSTR  pszDomain,
+    IN  PWSTR  pwszPath,
+    OUT PWSTR* ppwszSharename
+    );
+
+NTSTATUS
+SrvGetMaximalShareAccessMask(
+    PSRV_SHARE_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    );
+
+NTSTATUS
+SrvGetGuestShareAccessMask(
+    PSRV_SHARE_INFO pShareInfo,
+    ACCESS_MASK*   pMask
+    );
+
+NTSTATUS
 SrvShareInitList(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );

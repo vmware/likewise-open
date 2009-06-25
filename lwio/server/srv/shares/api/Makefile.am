@@ -4,7 +4,8 @@ libshareapi_la_SOURCES = \
     globals.c  \
     libmain.c  \
     mapping.c  \
-    shareapi.c
+    shareapi.c \
+    utils.c
 
 libshareapi_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
