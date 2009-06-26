@@ -39,7 +39,6 @@ liblsajoin_la_LIBADD = \
 	-llber
 
 liblsajoin_la_LDFLAGS = \
-        -module -avoid-version -export-dynamic \
 	@NETLOGON_LDFLAGS@ \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \

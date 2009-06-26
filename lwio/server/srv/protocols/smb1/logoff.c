@@ -136,6 +136,8 @@ cleanup:
 
 error:
 
+    *ppSmbResponse = NULL;
+
     if (pSmbResponse)
     {
         SMBPacketFree(

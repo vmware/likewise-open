@@ -102,6 +102,7 @@
 
 #define LWMSG_ALLOC(_obj_) (LWMSG_ALLOC_ARRAY(1, _obj_))
 
+#define LWMSG_POINTER_AS_ULONG(ptr) ((unsigned long) (size_t) (ptr))
 
 char* lwmsg_formatv(const char* fmt, va_list ap);
 char* lwmsg_format(const char* fmt, ...);

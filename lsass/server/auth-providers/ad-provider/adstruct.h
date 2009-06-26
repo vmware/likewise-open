@@ -137,6 +137,7 @@ typedef struct _LSA_AD_PROVIDER_STATE {
     LSA_DB_HANDLE hCacheConnection;
 
     ADSTATE_CONNECTION_HANDLE hStateConnection;
+    DWORD dwMaxAllowedClockDriftSeconds;
 } LSA_AD_PROVIDER_STATE, *PLSA_AD_PROVIDER_STATE;
 
 #endif /* __AD_STRUCT_H__ */

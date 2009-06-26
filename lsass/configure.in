@@ -63,7 +63,6 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="yes"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
-		# MACCLIENT_DIR="macclient"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
 	freebsd*:*)
@@ -107,7 +106,6 @@ case "$host_os:$host_cpu" in
 esac
 
 AC_SUBST(NSS_SUBDIR)
-AC_SUBST(MACCLIENT_DIR)
 AC_SUBST(MOD_EXT)
 AC_SUBST(CF_FRAMEWORK_LDFLAGS)
 AC_SUBST(SC_FRAMEWORK_LDFLAGS)
@@ -839,26 +837,26 @@ AC_CONFIG_FILES([Makefile
                  provider/local-provider/Makefile
                  provider/local-provider/ipc/Makefile
                  provider/local-provider/client/Makefile
-                 macclient/Makefile
-		 nsswitch/Makefile
-		 nsswitch/common/Makefile
-		 nsswitch/linux/Makefile
-		 nsswitch/freebsd/Makefile
-		 nsswitch/aix/Makefile
-		 nsswitch/hpux/Makefile
-		 nsswitch/solaris/Makefile
-		 nsswitch/mac/Makefile
-		 lwmapsecurity/Makefile
-		 gssntlm/Makefile
+                 interop/Makefile
+                 interop/nsswitch/Makefile
+                 interop/nsswitch/common/Makefile
+                 interop/nsswitch/linux/Makefile
+                 interop/nsswitch/freebsd/Makefile
+                 interop/nsswitch/aix/Makefile
+                 interop/nsswitch/hpux/Makefile
+                 interop/nsswitch/solaris/Makefile
+                 interop/nsswitch/mac/Makefile
+                 interop/lwmapsecurity/Makefile
+                 gssntlm/Makefile
                  gssntlm/client/Makefile
-			 gssntlm/common/Makefile
-			 gssntlm/server/Makefile
-			 gssntlm/test/Makefile
-			 gssntlm/test/serverapi/Makefile
-			 gssntlm/test/gss/Makefile
-			 gssntlm/include/Makefile
-			 ntlmclient/Makefile
-			 ntlmipc/Makefile
+                 gssntlm/common/Makefile
+                 gssntlm/server/Makefile
+                 gssntlm/test/Makefile
+                 gssntlm/test/serverapi/Makefile
+                 gssntlm/test/gss/Makefile
+                 gssntlm/include/Makefile
+                 ntlmclient/Makefile
+                 ntlmipc/Makefile
                  server/Makefile
                  server/api/Makefile
                  server/ntlmserver/Makefile
@@ -871,18 +869,18 @@ AC_CONFIG_FILES([Makefile
                  server/rpc/samr/Makefile
                  server/rpc/dssetup/Makefile
                  server/store/Makefile
-			 server/store/samdb/Makefile
-			 server/store/dsapi/Makefile
-			 server/store/dsapi/dirdefs.h
-                 access/Makefile
-                 auth/Makefile
-                 auth/common/Makefile
-                 auth/pam/Makefile
-                 wbclient/Makefile
-                 lwicompat/Makefile
+                 server/store/samdb/Makefile
+                 server/store/dsapi/Makefile
+                 server/store/dsapi/dirdefs.h
+                 interop/access/Makefile
+                 interop/auth/Makefile
+                 interop/auth/common/Makefile
+                 interop/auth/pam/Makefile
+                 interop/wbclient/Makefile
+                 interop/lwicompat/Makefile
                  tools/Makefile
                  tools/add_user/Makefile
-			 tools/mod_user/Makefile
+                 tools/mod_user/Makefile
                  tools/del_user/Makefile
                  tools/add_group/Makefile
                  tools/mod_group/Makefile

@@ -1493,8 +1493,6 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszPrimaryShortDomain = NULL;
     PWSTR pwszUsername = NULL;
     PSTR pszHostname = NULL;
-    PWSTR pwszCcachePath = NULL;
-    PSTR pszCcachePath = NULL;
     HANDLE hPwdDb = (HANDLE)NULL;
     RPCSTATUS status = 0;
     handle_t netr_b = NULL;
@@ -1543,24 +1541,18 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pszServerName, &pwszServerName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(gpADProviderData->szShortDomain,
-                            &pwszPrimaryShortDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!ghSchannelBinding)
     {
+        dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(gpADProviderData->szShortDomain,
+                                &pwszPrimaryShortDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
         /* Establish the initial bind to \NETLOGON */
 
         dwError = AD_SetSystemAccess(&pOldToken);
@@ -1663,8 +1655,6 @@ cleanup:
         hPwdDb = (HANDLE)NULL;
     }
 
-    LSA_SAFE_FREE_MEMORY(pszHostname);
-
     if (netr_b)
     {
         FreeNetlogonBinding(&netr_b);
@@ -1684,13 +1674,18 @@ cleanup:
         LwIoDeleteAccessToken(pAccessToken);
     }
 
+    if (pValidationInfo) {
+        NetrFreeMemory((void*)pValidationInfo);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszHostname);
+    LSA_SAFE_FREE_MEMORY(pszServerName);
+
+    LSA_SAFE_FREE_MEMORY(pwszUsername);
     LSA_SAFE_FREE_MEMORY(pwszDomainController);
     LSA_SAFE_FREE_MEMORY(pwszServerName);
     LSA_SAFE_FREE_MEMORY(pwszShortDomain);
     LSA_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
-    LSA_SAFE_FREE_MEMORY(pszServerName);
-    LSA_SAFE_FREE_MEMORY(pszCcachePath);
-    LSA_SAFE_FREE_MEMORY(pwszCcachePath);
 
     pthread_mutex_unlock(&gSchannelLock);
 

@@ -1552,7 +1552,7 @@ AD_GetClockDriftSeconds(
     BOOLEAN bInLock = FALSE;
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    dwClockDriftSecs = gdwClockDriftSecs;
+    dwClockDriftSecs = gpLsaAdProviderState->dwMaxAllowedClockDriftSeconds;
     LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return dwClockDriftSecs;

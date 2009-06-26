@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        session_setup.c
+ *        treeconnect.c
  *
  * Abstract:
  *

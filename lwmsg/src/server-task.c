@@ -39,6 +39,7 @@
 #include <config.h>
 #include "server-private.h"
 #include "assoc-private.h"
+#include "session-private.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -54,6 +55,38 @@ lwmsg_server_task_drop(
     );
 
 static
+void
+lwmsg_server_session_string_for_session(
+    LWMsgSession* session,
+    LWMsgSessionString string
+    )
+{
+    const LWMsgSessionID* rsmid = NULL;
+
+    rsmid = lwmsg_session_get_id(session);
+    lwmsg_session_id_to_string(rsmid, string);
+}
+
+static
+void
+lwmsg_server_session_string_for_assoc(
+    LWMsgAssoc* assoc,
+    LWMsgSessionString string
+    )
+{
+    LWMsgSession* session = NULL;
+
+    if (lwmsg_assoc_get_session(assoc, &session) == LWMSG_STATUS_SUCCESS)
+    {
+        lwmsg_server_session_string_for_session(session, string);
+    }
+    else
+    {
+        strncpy(string, "<null session>", sizeof (string));
+    }
+}
+
+static
 LWMsgStatus
 lwmsg_server_log_incoming_message(
     LWMsgServer* server,
@@ -67,7 +100,11 @@ lwmsg_server_log_incoming_message(
     if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_TRACE))
     {
         BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
-        LWMSG_LOG_TRACE(server->context, "===> %s", msg_text);
+        LWMSG_LOG_TRACE(
+            server->context,
+            "(assoc:0x%lx) => %s",
+            LWMSG_POINTER_AS_ULONG(assoc),
+            msg_text);
     }
 
 cleanup:
@@ -98,7 +135,11 @@ lwmsg_server_log_outgoing_message(
     if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_TRACE))
     {
         BAIL_ON_ERROR(lwmsg_assoc_print_message_alloc(assoc, message, &msg_text));
-        LWMSG_LOG_TRACE(server->context, "<=== %s", msg_text);
+        LWMSG_LOG_TRACE(
+            server->context,
+            "(assoc:0x%lx) <= %s",
+            LWMSG_POINTER_AS_ULONG(assoc),
+            msg_text);
     }
 
 cleanup:
@@ -113,6 +154,26 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+LWMsgStatus
+lwmsg_server_log_establish(
+    LWMsgServer* server,
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgSessionString buffer;
+
+    if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_VERBOSE))
+    {
+        lwmsg_server_session_string_for_assoc(assoc, buffer);
+
+        LWMSG_LOG_VERBOSE(server->context, "(session:%s) Established association 0x%lx",
+                          buffer, (unsigned long) (size_t) assoc);
+    }
+
+    return LWMSG_STATUS_SUCCESS;
 }
 
 LWMsgStatus
@@ -419,6 +480,8 @@ lwmsg_server_task_handle_assoc_error(
     LWMsgStatus status
     )
 {
+    LWMsgSessionString buffer;
+
     switch (status)
     {
     case LWMSG_STATUS_CONNECTION_REFUSED:
@@ -430,6 +493,14 @@ lwmsg_server_task_handle_assoc_error(
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
     case LWMSG_STATUS_CANCELLED:
+        if (lwmsg_context_would_log(server->context, LWMSG_LOGLEVEL_VERBOSE))
+        {
+            lwmsg_server_session_string_for_assoc((*task)->info.call.assoc, buffer);
+            LWMSG_LOG_VERBOSE(server->context, "(assoc:0x%lx) %s",
+                              LWMSG_POINTER_AS_ULONG((*task)->info.call.assoc),
+                              lwmsg_assoc_get_error_message((*task)->info.call.assoc, status));
+        }
+
         lwmsg_server_task_drop(server, task);
         status = LWMSG_STATUS_SUCCESS;
         break;
@@ -551,6 +622,7 @@ lwmsg_server_task_perform_establish(
     case LWMSG_STATUS_SUCCESS:
         BAIL_ON_ERROR(status = lwmsg_assoc_get_session((*task)->info.call.assoc, &(*task)->info.call.control.session));
         (*task)->type = SERVER_TASK_BEGIN_RECV;
+        BAIL_ON_ERROR(status = lwmsg_server_log_establish(server, (*task)->info.call.assoc));
         break;
     case LWMSG_STATUS_PENDING:
         (*task)->blocked = LWMSG_TRUE;
@@ -937,6 +1009,7 @@ lwmsg_server_task_perform_finish(
             {
             case SERVER_TASK_FINISH_ESTABLISH:
                 BAIL_ON_ERROR(status = lwmsg_assoc_get_session((*task)->info.call.assoc, &(*task)->info.call.control.session));
+                BAIL_ON_ERROR(status = lwmsg_server_log_establish(server, (*task)->info.call.assoc));
                 (*task)->type = SERVER_TASK_BEGIN_RECV;
                 break;
             case SERVER_TASK_FINISH_RECV:

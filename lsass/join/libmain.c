@@ -48,7 +48,6 @@
 
 DWORD
 LsaNetJoinInitialize(
-    PLSA_NET_JOIN_FUNCTION_TABLE* ppFuncTable
     )
 {
     DWORD dwError = 0;
@@ -68,24 +67,17 @@ LsaNetJoinInitialize(
     dwError = NetInitMemory();
     BAIL_ON_LSA_ERROR(dwError);
 
-    BAIL_ON_INVALID_POINTER(ppFuncTable);
-
-    *ppFuncTable = gpLsaNetJoinFuncTable;
-
 cleanup:
 
     return dwError;
 
 error:
 
-    *ppFuncTable = NULL;
-
     goto cleanup;
 }
 
 VOID
 LsaNetJoinShutdown(
-    PLSA_NET_JOIN_FUNCTION_TABLE pFuncTable
     )
 {
     LwKrb5Shutdown();

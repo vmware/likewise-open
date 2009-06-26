@@ -97,7 +97,22 @@ typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER
 
     /* GSS Blob follows immediately */
 
-} __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER,
+                             *PSMB2_SESSION_SETUP_RESPONSE_HEADER;
+
+typedef struct __SMB2_LOGOFF_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_LOGOFF_REQUEST_HEADER,
+                             *PSMB2_LOGOFF_REQUEST_HEADER;
+
+typedef struct __SMB2_LOGOFF_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_LOGOFF_RESPONSE_HEADER,
+                             *PSMB2_LOGOFF_RESPONSE_HEADER;
 
 typedef struct __SMB2_TREE_CONNECT_REQUEST_HEADER
 {
@@ -105,7 +120,8 @@ typedef struct __SMB2_TREE_CONNECT_REQUEST_HEADER
     USHORT usPad;
     USHORT usPathOffset;
     USHORT usPathLength;
-} SMB2_TREE_CONNECT_REQUEST_HEADER, *PSMB2_TREE_CONNECT_REQUEST_HEADER;
+} __attribute__((__packed__)) SMB2_TREE_CONNECT_REQUEST_HEADER,
+                             *PSMB2_TREE_CONNECT_REQUEST_HEADER;
 
 typedef struct __SMB2_TREE_CONNECT_RESPONSE_HEADER
 {
@@ -114,8 +130,121 @@ typedef struct __SMB2_TREE_CONNECT_RESPONSE_HEADER
     ULONG  ulShareFlags;
     ULONG  ulShareCapabilities;
     ULONG  ulShareAccessMask;
-} SMB2_TREE_CONNECT_RESPONSE_HEADER, *PSMB2_TREE_CONNECT_RESPONSE_HEADER;
+} __attribute__((__packed__)) SMB2_TREE_CONNECT_RESPONSE_HEADER,
+                             *PSMB2_TREE_CONNECT_RESPONSE_HEADER;
 
-typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER* PSMB2_SESSION_SETUP_RESPONSE_HEADER;
+typedef struct __SMB2_TREE_DISCONNECT_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_TREE_DISCONNECT_REQUEST_HEADER,
+                             *PSMB2_TREE_DISCONNECT_REQUEST_HEADER;
+
+typedef struct __SMB2_TREE_DISCONNECT_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_TREE_DISCONNECT_RESPONSE_HEADER,
+                             *PSMB2_TREE_DISCONNECT_RESPONSE_HEADER;
+
+typedef struct __SMB2_CREATE_REQUEST_HEADER
+{
+    USHORT  usLength;
+    UCHAR   ucSecurityFlags;
+    UCHAR   ucOplockLevel;
+    ULONG   ulImpersonationLevel;
+    ULONG64 ullCreateFlags;
+    ULONG64 ullReserved;
+    ULONG   ulDesiredAccess;
+    ULONG   ulFileAttributes;
+    ULONG   ulShareAccess;
+    ULONG   ulCreateDisposition;
+    ULONG   ulCreateOptions;
+    USHORT  usNameOffset;
+    USHORT  usNameLength;
+    ULONG   ulCreateContextOffset;
+    ULONG   ulCreateContextLength;
+} __attribute__((__packed__)) SMB2_CREATE_REQUEST_HEADER,
+                             *PSMB2_CREATE_REQUEST_HEADER;
+
+typedef struct __SMB2_FID
+{
+    ULONG64 ullPersistentId;
+    ULONG64 ullVolatileId;
+} __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
+
+typedef struct __SMB2_CREATE_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucOplockLevel;
+    UCHAR    ucReserved;
+    ULONG    ulCreateAction;
+    ULONG64  ullCreationTime;
+    ULONG64  ullLastAccessTime;
+    ULONG64  ullLastWriteTime;
+    ULONG64  ullLastChangeTime;
+    ULONG64  ullAllocationSize;
+    ULONG64  ullEndOfFile;
+    ULONG    ulFileAttributes;
+    ULONG    ulReserved2;
+    SMB2_FID fid;
+    ULONG    ulCreateContextOffset;
+    ULONG    ulCreateContextLength;
+} __attribute__((__packed__)) SMB2_CREATE_RESPONSE_HEADER,
+                             *PSMB2_CREATE_RESPONSE_HEADER;
+
+typedef struct __SMB2_CLOSE_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    ULONG    ulReserved;
+    SMB2_FID fid;
+} __attribute__((__packed__)) SMB2_CLOSE_REQUEST_HEADER,
+                             *PSMB2_CLOSE_REQUEST_HEADER;
+
+typedef struct __SMB2_CLOSE_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    USHORT   usReserved;
+    ULONG64  ullCreationTime;
+    ULONG64  ullLastAccessTime;
+    ULONG64  ullLastWriteTime;
+    ULONG64  ullLastChangeTime;
+    ULONG64  ullAllocationSize;
+    ULONG64  ullEndOfFile;
+    ULONG    ulFileAttributes;
+} __attribute__((__packed__)) SMB2_CLOSE_RESPONSE_HEADER,
+                             *PSMB2_CLOSE_RESPONSE_HEADER;
+
+typedef struct __SMB2_FLUSH_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    ULONG    ulReserved;
+    SMB2_FID fid;
+} __attribute__((__packed__)) SMB2_FLUSH_REQUEST_HEADER,
+                             *PSMB2_FLUSH_REQUEST_HEADER;
+
+typedef struct __SMB2_FLUSH_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_FLUSH_RESPONSE_HEADER,
+                             *PSMB2_FLUSH_RESPONSE_HEADER;
+
+typedef struct __SMB2_ECHO_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_ECHO_REQUEST_HEADER,
+                             *PSMB2_ECHO_REQUEST_HEADER;
+
+typedef struct __SMB2_ECHO_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_ECHO_RESPONSE_HEADER,
+                             *PSMB2_ECHO_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

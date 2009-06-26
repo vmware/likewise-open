@@ -11,7 +11,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        state_store.c             \
        cache.c                   \
        cellldap.c                \
-       db.c                      \
+       sqlcache.c                \
        defldap.c                 \
        enumstate.c               \
        globals.c                 \

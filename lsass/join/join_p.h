@@ -73,73 +73,12 @@ LsaSetSMBAccessTokenWithFlags(
     OUT PLSA_ACCESS_TOKEN_FREE_INFO* ppFreeInfo
     );
 
-DWORD
-LsaNetJoinDomain(
-    PCSTR pszHostname,
-    PCSTR pszHostDnsDomain,
-    PCSTR pszDomain,
-    PCSTR pszOU,
-    PCSTR pszUsername,
-    PCSTR pszPassword,
-    PCSTR pszOSName,
-    PCSTR pszOSVersion,
-    PCSTR pszOSServicePack,
-    DWORD dwFlags
-    );
-
-DWORD
-LsaNetTestJoinDomain(
-    PBOOLEAN pbIsJoined
-    );
-
-DWORD
-LsaNetLeaveDomain(
-    PCSTR pszUsername,
-    PCSTR pszPassword
-    );
-
-DWORD
-LsaNetGetShortDomainName(
-    PCSTR pszDomainFQDN,
-    PSTR* ppszShortDomainName
-    );
-
-DWORD
-LsaNetGetDCName(
-	PCSTR pszDomainName,
-	PSTR* ppszDCName
-	);
-
-DWORD
-LsaGetDnsDomainName(
-    PSTR* ppszDnsDomainName
-    );
-
-DWORD
-LsaGetComputerDN(
-    PSTR* ppszComputerDN
-    );
 
 size_t
 LsaNetGetErrorString(
     DWORD  dwErrorCode,
     PSTR   pszBuffer,
     size_t bufSize
-    );
-
-VOID
-LsaEnableDebugLog(
-    VOID
-    );
-
-VOID
-LsaDisableDebugLog(
-    VOID
-    );
-
-VOID
-LsaNetFreeString(
-    PSTR pszString
     );
 
 DWORD

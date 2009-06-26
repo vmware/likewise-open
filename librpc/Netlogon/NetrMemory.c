@@ -223,7 +223,7 @@ NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
     nbt_workstation_len = wc16slen(workstation);
     status = NetrAllocateMemory((void**)&nbt_workstation,
                                 (nbt_workstation_len + 3) * sizeof(wchar16_t),
-                                dep);
+                                NULL);
     goto_if_ntstatus_not_success(status, error);
 
     if (sw16printfw(
@@ -264,11 +264,11 @@ NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
     ptr->logon_id_low  = logon_id_low;
     ptr->logon_id_high = logon_id_high;
 
+cleanup:
     if (nbt_workstation) {
         NetrFreeMemory((void*)nbt_workstation);
     }
 
-cleanup:
     return status;
 
 error:
@@ -409,7 +409,7 @@ NTSTATUS NetrAllocateLogonInfoNet(
                                     (void*)ptr);
         goto_if_ntstatus_not_success(status, error);
 
-        status = NetrInitIdentityInfo(&net->identity, (void*)net,
+        status = NetrInitIdentityInfo(&net->identity, (void*)ptr,
                                       domain, workstation, account, 0, 0, 0);
         goto_if_ntstatus_not_success(status, error);
 
@@ -420,7 +420,7 @@ NTSTATUS NetrAllocateLogonInfoNet(
         {
             status = NetrAllocateMemory((void**)&net->lm.data,
                                         lm_resp_len,
-                                        (void*)net);
+                                        (void*)ptr);
             goto_if_ntstatus_not_success(status, error);
 
             net->lm.length = lm_resp_len;
@@ -430,7 +430,9 @@ NTSTATUS NetrAllocateLogonInfoNet(
 
         /* Always have NT Response */
 
-        status = NetrAllocateMemory((void**)&net->nt.data, nt_resp_len, (void*)net);
+        status = NetrAllocateMemory((void**)&net->nt.data,
+                                    nt_resp_len,
+                                    (void*)ptr);
         goto_if_ntstatus_not_success(status, error);
 
         net->nt.length = nt_resp_len;
@@ -657,14 +659,14 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
     goto_if_ntstatus_not_success(status, error);
 
     if (in) {
-        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)ptr);
+        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)dep);
         goto_if_ntstatus_not_success(status, error);
 
         ptr->sidcount = in->sidcount;
 
         status = NetrAllocateMemory((void*)&ptr->sids,
                                     sizeof(NetrSidAttr) * ptr->sidcount,
-                                    (void*)ptr);
+                                    (void*)dep);
         goto_if_ntstatus_not_success(status, error);
 
         for (i = 0; i<ptr->sidcount; i++) {
@@ -675,7 +677,7 @@ static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
                 MsRpcDuplicateSid(&ptr_sa->sid, in_sa->sid);
                 goto_if_no_memory_ntstatus(ptr_sa->sid, error);
 
-                status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);
+                status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)dep);
                 goto_if_ntstatus_not_success(status, error);
 
             } else {

@@ -61,7 +61,6 @@ void DJGuessShortDomainName(PCSTR longName,
                 LWException **exc);
 
 extern const JoinModule DJDoJoinModule;
-extern const JoinModule DJLwiConfModule;
 extern const JoinModule DJDoLeaveModule;
 
 void

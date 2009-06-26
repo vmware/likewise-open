@@ -552,10 +552,10 @@ cleanup:
     return dwError;
 
 error:
-    /* If the domain is unknown, allow the next provider
-       a chance to answer */
+    /* On this one, it is a good idea to fallback to
+       the local provider */
 
-    if (dwError == LSA_ERROR_NO_SUCH_DOMAIN) {
+    if (dwError == LSA_ERROR_RPC_NETLOGON_FAILED) {
         dwError = LSA_ERROR_NOT_HANDLED;
     }
 
@@ -3785,6 +3785,8 @@ LsaAdProviderStateCreate(
 
     dwError = AD_InitializeConfig(&pState->config);
     BAIL_ON_LSA_ERROR(dwError);
+
+    pState->dwMaxAllowedClockDriftSeconds = AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS;
 
     *ppState = pState;
 

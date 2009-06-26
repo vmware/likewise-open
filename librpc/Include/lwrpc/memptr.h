@@ -38,11 +38,14 @@ typedef struct ptr_node {
     void *dep;               /* other pointer that ptr depends on */
 
     struct ptr_node *next;   /* next node */
+    struct ptr_node *prev;   /* previous node */
 } PtrNode;
 
 
 typedef struct ptr_list {
-    struct ptr_node *p;
+    size_t count;
+    struct ptr_node *head;
+    struct ptr_node *tail;
     pthread_mutex_t mutex;
 } PtrList;
 

@@ -78,6 +78,7 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_ECHO:
         case COM2_SESSION_SETUP:
 
             {
@@ -114,9 +115,63 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_LOGOFF:
+
+            ntStatus = SrvProcessLogoff_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         case COM2_TREE_CONNECT:
 
             ntStatus = SrvProcessTreeConnect_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_TREE_DISCONNECT:
+
+            ntStatus = SrvProcessTreeDisconnect_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_CREATE:
+
+            ntStatus = SrvProcessCreate_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_CLOSE:
+
+            ntStatus = SrvProcessClose_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_FLUSH:
+
+            ntStatus = SrvProcessFlush_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_ECHO:
+
+            ntStatus = SrvProcessEcho_SMB_V2(
                             pConnection,
                             pSmbRequest,
                             &pSmbResponse);

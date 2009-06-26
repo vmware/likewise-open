@@ -1,11 +1,16 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
-    error.c         \
-    libmain.c       \
-    negotiate.c     \
-    session_setup.c \
-    treeconnect.c   \
+    close.c          \
+    create.c         \
+    echo.c           \
+    error.c          \
+    flush.c          \
+    libmain.c        \
+    negotiate.c      \
+    session_setup.c  \
+    treeconnect.c    \
+    treedisconnect.c \
     wire.c
 
 libsrv_protocols_smb2_la_CPPFLAGS = \

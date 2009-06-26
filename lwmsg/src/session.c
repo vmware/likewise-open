@@ -378,3 +378,13 @@ lwmsg_session_get_peer_security_token(
         session->manager,
         session);
 }
+
+const LWMsgSessionID*
+lwmsg_session_get_id(
+    LWMsgSession* session
+    )
+{
+    return lwmsg_session_manager_get_session_id(
+        session->manager,
+        session);
+}

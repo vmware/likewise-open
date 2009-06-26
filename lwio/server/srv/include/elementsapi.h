@@ -79,6 +79,7 @@ typedef struct _LWIO_SRV_FILE_2
     LONG                    refcount;
 
     ULONG64                 ullFid;
+    uuid_t                  GUID;
 
     IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename; // physical path on server

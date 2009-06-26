@@ -50,6 +50,52 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+
+// close.c
+
+NTSTATUS
+SrvProcessClose_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// create.c
+
+NTSTATUS
+SrvProcessCreate_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// echo.c
+
+NTSTATUS
+SrvProcessEcho_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// flush.c
+
+NTSTATUS
+SrvProcessFlush_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// logoff.c
+
+NTSTATUS
+SrvProcessLogoff_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // session_setup.c
 
 NTSTATUS
@@ -74,6 +120,15 @@ SrvBuildErrorResponse_SMB_V2(
 
 NTSTATUS
 SrvProcessTreeConnect_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// tree_disconnect.c
+
+NTSTATUS
+SrvProcessTreeDisconnect_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
@@ -113,6 +168,17 @@ SMB2MarshalSessionSetup(
     );
 
 NTSTATUS
+SMB2UnmarshalLogoffRequest(
+    PSMB_PACKET                  pPacket,
+    PSMB2_LOGOFF_REQUEST_HEADER* ppHeader
+    );
+
+NTSTATUS
+SMB2MarshalLogoffResponse(
+    PSMB_PACKET pSmbResponse
+    );
+
+NTSTATUS
 SMB2UnmarshalTreeConnect(
     PSMB_PACKET                        pSmbRequest,
     PSMB2_TREE_CONNECT_REQUEST_HEADER* ppTreeConnectRequestHeader,
@@ -124,6 +190,52 @@ SMB2MarshalTreeConnectResponse(
     PSMB_PACKET          pPacket,
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_TREE_2     pTree
+    );
+
+NTSTATUS
+SMB2UnmarshalTreeDisconnectRequest(
+    PSMB_PACKET                           pSmbRequest,
+    PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
+    );
+
+NTSTATUS
+SMB2MarshalTreeDisconnectResponse(
+    PSMB_PACKET      pSmbResponse
+    );
+
+NTSTATUS
+SMB2UnmarshalCreateRequest(
+    PSMB_PACKET                  pPacket,
+    PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
+    PUNICODE_STRING              pwszFileName
+    );
+
+NTSTATUS
+SMB2UnmarshalCloseRequest(
+   PSMB_PACKET pPacket,
+   PSMB2_FID*  ppFid
+   );
+
+NTSTATUS
+SMB2UnmarshalFlushRequest(
+   PSMB_PACKET pPacket,
+   PSMB2_FID*  ppFid
+   );
+
+NTSTATUS
+SMB2MarshalFlushResponse(
+    PSMB_PACKET pPacket
+    );
+
+NTSTATUS
+SMB2UnmarshalEchoRequest(
+   PSMB_PACKET                 pPacket,
+   PSMB2_ECHO_REQUEST_HEADER*  ppHeader
+   );
+
+NTSTATUS
+SMB2MarshalEchoResponse(
+    PSMB_PACKET pPacket
     );
 
 NTSTATUS
