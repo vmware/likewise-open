@@ -50,6 +50,15 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+// create.c
+
+NTSTATUS
+SrvProcessCreate_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // session_setup.c
 
 NTSTATUS
@@ -124,6 +133,13 @@ SMB2MarshalTreeConnectResponse(
     PSMB_PACKET          pPacket,
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_TREE_2     pTree
+    );
+
+NTSTATUS
+SMB2UnmarshalCreateRequest(
+    PSMB_PACKET                  pPacket,
+    PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
+    PUNICODE_STRING              pwszFileName
     );
 
 NTSTATUS

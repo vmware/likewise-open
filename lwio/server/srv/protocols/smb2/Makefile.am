@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
+    create.c        \
     error.c         \
     libmain.c       \
     negotiate.c     \

@@ -399,6 +399,68 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalCreateRequest(
+    PSMB_PACKET                  pPacket,
+    PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
+    PUNICODE_STRING              pwszFileName
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_CREATE_REQUEST_HEADER pHeader = NULL; // Do not free
+    UNICODE_STRING wszFileName = {0}; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_CREATE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_CREATE_REQUEST_HEADER)pDataBuffer;
+
+    ulBytesAvailable -= sizeof(SMB2_CREATE_REQUEST_HEADER);
+    ulOffset += sizeof(SMB2_CREATE_REQUEST_HEADER);
+
+    if (pHeader->usLength & 0x1)
+    {
+        if ((pHeader->usNameOffset < ulOffset) ||
+            (pHeader->usNameOffset % 2) ||
+            (pHeader->usNameLength % 2) ||
+            (pHeader->usNameOffset > ulPacketSize) ||
+            (pHeader->usNameLength + pHeader->usNameOffset) > ulPacketSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        wszFileName.Buffer = (PWSTR)((PBYTE)pPacket->pSMB2Header + pHeader->usNameOffset);
+        wszFileName.Length = wszFileName.MaximumLength = pHeader->usNameLength;
+    }
+
+    if (!wszFileName.Length)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppCreateRequestHeader = pHeader;
+    *pwszFileName = wszFileName;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppCreateRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
     )
