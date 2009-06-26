@@ -141,6 +141,24 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_CLOSE:
+
+            ntStatus = SrvProcessClose_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_FLUSH:
+
+            ntStatus = SrvProcessFlush_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         default:
 
             ntStatus = STATUS_NOT_IMPLEMENTED;

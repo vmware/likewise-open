@@ -50,10 +50,29 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+
+// close.c
+
+NTSTATUS
+SrvProcessClose_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // create.c
 
 NTSTATUS
 SrvProcessCreate_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// flush.c
+
+NTSTATUS
+SrvProcessFlush_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
@@ -161,6 +180,12 @@ SMB2UnmarshalCreateRequest(
     PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
     PUNICODE_STRING              pwszFileName
     );
+
+NTSTATUS
+SMB2UnmarshalCloseRequest(
+   PSMB_PACKET pPacket,
+   PSMB2_FID*  ppFid
+   );
 
 NTSTATUS
 SMB2MarshalFooter(

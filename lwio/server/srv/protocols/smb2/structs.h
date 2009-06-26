@@ -179,4 +179,28 @@ typedef struct __SMB2_CREATE_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_CREATE_RESPONSE_HEADER,
                              *PSMB2_CREATE_RESPONSE_HEADER;
 
+typedef struct __SMB2_CLOSE_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    USHORT   usReserved;
+    SMB2_FID fid;
+} __attribute__((__packed__)) SMB2_CLOSE_REQUEST_HEADER,
+                             *PSMB2_CLOSE_REQUEST_HEADER;
+
+typedef struct __SMB2_CLOSE_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    USHORT   usReserved;
+    ULONG64  ullCreationTime;
+    ULONG64  ullLastAccessTime;
+    ULONG64  ullLastWriteTime;
+    ULONG64  ullLastChangeTime;
+    ULONG64  ullAllocationSize;
+    ULONG64  ullEndOfFile;
+    ULONG    ulFileAttributes;
+} __attribute__((__packed__)) SMB2_CLOSE_RESPONSE_HEADER,
+                             *PSMB2_CLOSE_RESPONSE_HEADER;
+
 #endif /* __STRUCTS_H__ */

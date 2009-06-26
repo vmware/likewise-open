@@ -1,8 +1,10 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
+    close.c          \
     create.c         \
     error.c          \
+    flush.c          \
     libmain.c        \
     negotiate.c      \
     session_setup.c  \
