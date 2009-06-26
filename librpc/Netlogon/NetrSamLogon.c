@@ -188,14 +188,14 @@ NTSTATUS NetrSamLogonNetwork(
         goto cleanup;
     }
 
-    status = NetrAllocateUniString(&srv, server, NULL);
+    status = RtlWC16StringDuplicate(&srv, server);
     goto_if_ntstatus_not_success(status, error);
 
-    status = NetrAllocateUniString(&comp, computer, NULL);
+    status = RtlWC16StringDuplicate(&comp, computer);
     goto_if_ntstatus_not_success(status, error);
 
     /* Create authenticator info with credentials chain */
-    status = NetrAllocateMemory((void**)&auth, sizeof(NetrAuth), NULL);
+    status = RTL_ALLOCATE((void**)&auth, NetrAuth, sizeof(NetrAuth));
     goto_if_ntstatus_not_success(status, error);
 
     creds->sequence += 2;
@@ -205,7 +205,7 @@ NTSTATUS NetrSamLogonNetwork(
     memcpy(auth->cred.data, creds->cli_chal.data, sizeof(auth->cred.data));
 
     /* Allocate returned authenticator */
-    status = NetrAllocateMemory((void**)&ret_auth, sizeof(NetrAuth), NULL);
+    status = RTL_ALLOCATE((void**)&ret_auth, NetrAuth, sizeof(NetrAuth));
     goto_if_ntstatus_not_success(status, error);
 
     status = NetrAllocateLogonInfoNet(&logon_info, logon_level,
@@ -232,17 +232,10 @@ NTSTATUS NetrSamLogonNetwork(
 cleanup:
     NetrCleanStubValidationInfo(&validation, validation_level);
 
-    if (srv) {
-        NetrFreeMemory((void*)srv);
-    }
-
-    if (comp) {
-        NetrFreeMemory((void*)comp);
-    }
-
-    if (auth) {
-        NetrFreeMemory((void*)auth);
-    }
+    RtlWC16StringFree(&srv);
+    RtlWC16StringFree(&comp);
+    RTL_FREE(&auth);
+    RTL_FREE(&ret_auth);
 
     if (logon_info) {
         NetrFreeMemory((void*)logon_info);
