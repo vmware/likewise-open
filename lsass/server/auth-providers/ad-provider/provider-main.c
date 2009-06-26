@@ -3786,6 +3786,8 @@ LsaAdProviderStateCreate(
     dwError = AD_InitializeConfig(&pState->config);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pState->dwMaxAllowedClockDriftSeconds = AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS;
+
     *ppState = pState;
 
 cleanup:

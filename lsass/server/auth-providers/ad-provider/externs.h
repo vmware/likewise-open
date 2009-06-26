@@ -95,8 +95,6 @@ extern pthread_mutex_t gMachinePasswordSyncThreadLock;
 extern pthread_cond_t  gMachinePasswordSyncThreadCondition;
 extern pthread_t*      gpMachinePasswordSyncThread;
 
-extern DWORD gdwClockDriftSecs;
-
 extern HANDLE ghPasswordStore;
 
 extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;

@@ -113,6 +113,8 @@
 
 #define AD_SPACE_REPLACEMENT_DEFAULT         '^'
 
+#define AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS 60
+
 #define AD_STR_IS_SID(str) \
     (!IsNullOrEmptyString(str) && !strncasecmp(str, "s-", sizeof("s-")-1))
 

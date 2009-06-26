@@ -47,7 +47,4 @@
 
 #include "includes.h"
 
-DWORD gdwClockDriftSecs = 60;
-
-
 LSA_KRB5_STATE gLwKrb5State;

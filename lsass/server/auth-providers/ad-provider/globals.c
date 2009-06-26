@@ -73,8 +73,6 @@ pthread_mutex_t gMachinePasswordSyncThreadLock       = PTHREAD_MUTEX_INITIALIZER
 pthread_cond_t  gMachinePasswordSyncThreadCondition  = PTHREAD_COND_INITIALIZER;
 pthread_t*      gpMachinePasswordSyncThread          = NULL;
 
-DWORD gdwClockDriftSecs = 60;
-
 HANDLE ghPasswordStore = (HANDLE)NULL;
 
 DWORD gdwMachineTGTExpiry = 0;

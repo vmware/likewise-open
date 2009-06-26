@@ -51,6 +51,8 @@
 #define LSA_JOIN_CN_PREFIX "CN="
 #define LSA_JOIN_DC_PREFIX "DC="
 
+#define LSA_JOIN_MAX_ALLOWED_CLOCK_DRIFT_SECONDS 60
+
 DWORD
 LsaNetJoinDomain(
     PCSTR pszHostname,
@@ -446,7 +448,7 @@ LsaSyncTimeToDC(
 
     ttDCTime = (time_t) dcTime;
 
-    if (labs(ttDCTime - time(NULL)) > gdwClockDriftSecs) {
+    if (labs(ttDCTime - time(NULL)) > LSA_JOIN_MAX_ALLOWED_CLOCK_DRIFT_SECONDS) {
         dwError = LwSetSystemTime(ttDCTime);
         BAIL_ON_LSA_ERROR(dwError);
     }

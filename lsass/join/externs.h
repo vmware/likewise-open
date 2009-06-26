@@ -47,8 +47,6 @@
 #ifndef __LSA_JOIN_EXTERNS_H__
 #define __LSA_JOIN_EXTERNS_H__
 
-extern DWORD gdwClockDriftSecs;
-
 typedef struct _LSA_KRB5_STATE {
     pthread_mutex_t ExistingClientLock;
     pthread_mutex_t UserCacheMutex;
