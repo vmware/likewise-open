@@ -100,6 +100,20 @@ typedef struct __SMB2_SESSION_SETUP_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_SESSION_SETUP_RESPONSE_HEADER,
                              *PSMB2_SESSION_SETUP_RESPONSE_HEADER;
 
+typedef struct __SMB2_LOGOFF_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_LOGOFF_REQUEST_HEADER,
+                             *PSMB2_LOGOFF_REQUEST_HEADER;
+
+typedef struct __SMB2_LOGOFF_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_LOGOFF_RESPONSE_HEADER,
+                             *PSMB2_LOGOFF_RESPONSE_HEADER;
+
 typedef struct __SMB2_TREE_CONNECT_REQUEST_HEADER
 {
     USHORT usLength;

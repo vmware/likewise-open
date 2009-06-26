@@ -78,6 +78,15 @@ SrvProcessFlush_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// logoff.c
+
+NTSTATUS
+SrvProcessLogoff_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // session_setup.c
 
 NTSTATUS
@@ -147,6 +156,17 @@ SMB2MarshalSessionSetup(
     SMB2_SESSION_FLAGS usFlags,
     PBYTE              pSecurityBlob,
     ULONG              ulSecurityBlobLen
+    );
+
+NTSTATUS
+SMB2UnmarshalLogoffRequest(
+    PSMB_PACKET                  pPacket,
+    PSMB2_LOGOFF_REQUEST_HEADER* ppHeader
+    );
+
+NTSTATUS
+SMB2MarshalLogoffResponse(
+    PSMB_PACKET pSmbResponse
     );
 
 NTSTATUS
