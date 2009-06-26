@@ -208,6 +208,17 @@ SMB2UnmarshalCloseRequest(
    );
 
 NTSTATUS
+SMB2UnmarshalFlushRequest(
+   PSMB_PACKET pPacket,
+   PSMB2_FID*  ppFid
+   );
+
+NTSTATUS
+SMB2MarshalFlushResponse(
+    PSMB_PACKET pPacket
+    );
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
     );

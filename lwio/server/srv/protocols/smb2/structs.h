@@ -197,7 +197,7 @@ typedef struct __SMB2_CLOSE_REQUEST_HEADER
 {
     USHORT   usLength;
     USHORT   usFlags;
-    USHORT   usReserved;
+    ULONG    ulReserved;
     SMB2_FID fid;
 } __attribute__((__packed__)) SMB2_CLOSE_REQUEST_HEADER,
                              *PSMB2_CLOSE_REQUEST_HEADER;
@@ -216,5 +216,21 @@ typedef struct __SMB2_CLOSE_RESPONSE_HEADER
     ULONG    ulFileAttributes;
 } __attribute__((__packed__)) SMB2_CLOSE_RESPONSE_HEADER,
                              *PSMB2_CLOSE_RESPONSE_HEADER;
+
+typedef struct __SMB2_FLUSH_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    ULONG    ulReserved;
+    SMB2_FID fid;
+} __attribute__((__packed__)) SMB2_FLUSH_REQUEST_HEADER,
+                             *PSMB2_FLUSH_REQUEST_HEADER;
+
+typedef struct __SMB2_FLUSH_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_FLUSH_RESPONSE_HEADER,
+                             *PSMB2_FLUSH_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

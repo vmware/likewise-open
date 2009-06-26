@@ -51,6 +51,14 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvBuildFlushResponse_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 NTSTATUS
 SrvProcessFlush_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
@@ -58,5 +66,139 @@ SrvProcessFlush_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_FID pFid = NULL; // Do not free
+    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_SRV_TREE_2    pTree = NULL;
+    PLWIO_SRV_FILE_2    pFile = NULL;
+    IO_STATUS_BLOCK     ioStatusBlock = {0};
+    PSMB_PACKET pSmbResponse = NULL;
+
+    ntStatus = SrvConnection2FindSession(
+                    pConnection,
+                    pSmbRequest->pSMB2Header->ullSessionId,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSession2FindTree(
+                    pSession,
+                    pSmbRequest->pSMB2Header->ulTid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2UnmarshalFlushRequest(
+                    pSmbRequest,
+                    &pFid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTree2FindFile(
+                        pTree,
+                        pFid->ullVolatileId,
+                        &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoFlushBuffersFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvBuildFlushResponse_SMB_V2(
+                    pConnection,
+                    pSmbRequest,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFile2Release(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTree2Release(pTree);
+    }
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
+    }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildFlushResponse_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &pSmbResponse->pRawBuffer,
+                    &pSmbResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalHeader(
+                    pSmbResponse,
+                    COM2_FLUSH,
+                    0,
+                    1,
+                    pSmbRequest->pSMB2Header->ulPid,
+                    pSmbRequest->pSMB2Header->ullCommandSequence,
+                    pSmbRequest->pSMB2Header->ulTid,
+                    pSmbRequest->pSMB2Header->ullSessionId,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFlushResponse(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
+
+    goto cleanup;
 }
