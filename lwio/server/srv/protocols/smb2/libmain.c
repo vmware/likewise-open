@@ -78,6 +78,7 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_ECHO:
         case COM2_SESSION_SETUP:
 
             {
@@ -162,6 +163,15 @@ SrvProtocolExecute_SMB_V2(
         case COM2_FLUSH:
 
             ntStatus = SrvProcessFlush_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
+        case COM2_ECHO:
+
+            ntStatus = SrvProcessEcho_SMB_V2(
                             pConnection,
                             pSmbRequest,
                             &pSmbResponse);

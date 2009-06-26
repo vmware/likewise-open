@@ -233,4 +233,18 @@ typedef struct __SMB2_FLUSH_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_FLUSH_RESPONSE_HEADER,
                              *PSMB2_FLUSH_RESPONSE_HEADER;
 
+typedef struct __SMB2_ECHO_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_ECHO_REQUEST_HEADER,
+                             *PSMB2_ECHO_REQUEST_HEADER;
+
+typedef struct __SMB2_ECHO_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+} __attribute__((__packed__)) SMB2_ECHO_RESPONSE_HEADER,
+                             *PSMB2_ECHO_RESPONSE_HEADER;
+
 #endif /* __STRUCTS_H__ */
