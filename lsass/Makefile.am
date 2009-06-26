@@ -1,26 +1,21 @@
 ACLOCAL_AMFLAGS = -I m4
 
 compat_subdirs = \
-	    utils      \
-	    logging_r  \
+	utils \
+	logging_r \
         ipc            \
         ntlmipc \
         client         \
         provider       \
-        auth @MACCLIENT_DIR@ \
-        nsswitch
+	interop
 
 full_subdirs= \
 	$(compat_subdirs) \
-	lwmapsecurity     \
 	lsaunistr         \
-        wbclient          \
-	lwicompat	  \
 	gssntlm	          \
 	ntlmclient \
         join                \
         server            \
-        access            \
         tools             \
         etc               \
         include           \
@@ -33,4 +28,3 @@ SUBDIRS = $(compat_subdirs)
 else
 SUBDIRS = $(full_subdirs)
 endif
-
