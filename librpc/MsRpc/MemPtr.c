@@ -98,7 +98,6 @@
 static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PtrNode *last = NULL;
     int locked = 0;
 
     goto_if_invalid_param_ntstatus(list, done);
@@ -106,20 +105,19 @@ static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 
     PTR_LIST_LOCK(list);
 
-    /* Find the last node */
-    last = list->p;
-    while (last && last->next) last = last->next;
+    node->next = node->prev = NULL;
 
-    if (last == NULL) {
+    if (list->head == NULL) {
         /* This is the very first node */
-        list->p = node;
-
+        list->head = node;
+        list->tail = node;
     } else {
         /* Append the new node */
-        last->next = node;
+        list->tail->next = node;
+        node->prev = list->tail;
+        list->tail = node;
     }
-
-    node->next = NULL;
+    list->count++;
 
 done:
     PTR_LIST_UNLOCK(list); 
@@ -133,31 +131,33 @@ error:
 static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PtrNode *prev = NULL;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    goto_if_invalid_param_ntstatus(list, error);
+    goto_if_invalid_param_ntstatus(node, error);
 
     /* We're assuming the list has already been locked */
 
-    /* Simple case - this happens to be the first node */
-    if (node == list->p) {
-        list->p = node->next;
-        goto done;
+    if ((node == list->head) && (node == list->tail))
+    {
+        list->head = list->tail = NULL;
     }
-
-    /* Find node that is previous to the requested one */
-    prev = list->p;
-    while (prev && prev->next != node) {
-        prev = prev->next;
+    else if (node == list->head)
+    {
+        list->head = node->next;
+        list->head->prev = NULL;
     }
-
-    if (prev == NULL) {
-        status = STATUS_INVALID_PARAMETER;
-        goto error;
+    else if (node == list->tail)
+    {
+        list->tail = node->prev;
+        list->tail->next = NULL;
     }
+    else
+    {
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+    list->count--;
 
-    prev->next = node->next;
 
 done:
     return status;
@@ -177,7 +177,9 @@ NTSTATUS MemPtrListInit(PtrList **out)
     list = (PtrList*) malloc(sizeof(PtrList));
     goto_if_no_memory_ntstatus(list, error);
 
-    list->p = NULL;
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
 
     /* According to pthread_mutex_init(3) documentation
        the function call always succeeds */
@@ -206,7 +208,7 @@ NTSTATUS MemPtrListDestroy(PtrList **out)
 
     list = *out;
 
-    node = list->p;
+    node = list->head;
     while (node) {
         PtrNode *rmnode = NULL;
 
@@ -286,7 +288,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     PTR_LIST_LOCK(list);
 
     /* Free the pointer and all pointers (nodes) depending on it */
-    node = list->p;
+    node = list->head;
     while (node) {
         if (node->dep == ptr || node->ptr == ptr) {
             PtrNode *rmnode = NULL;
