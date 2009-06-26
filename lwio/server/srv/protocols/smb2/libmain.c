@@ -178,6 +178,15 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_GETINFO:
+
+            ntStatus = SrvProcessGetInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         default:
 
             ntStatus = STATUS_NOT_IMPLEMENTED;

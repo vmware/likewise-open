@@ -247,4 +247,21 @@ typedef struct __SMB2_ECHO_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ECHO_RESPONSE_HEADER,
                              *PSMB2_ECHO_RESPONSE_HEADER;
 
+typedef struct __SMB2_GET_INFO_REQUEST_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucInfoType;
+    UCHAR    ucInfoClass;
+    ULONG    ulOutputBufferLen;
+    USHORT   usInputBufferOffset;
+    USHORT   usReserved;
+    ULONG    ulInputBufferLen;
+    ULONG    ulAdditionalInfo;
+    ULONG    ulFlags;
+    SMB2_FID fid;
+
+} __attribute__((__packed__)) SMB2_GET_INFO_REQUEST_HEADER,
+                             *PSMB2_GET_INFO_REQUEST_HEADER;
+
+
 #endif /* __STRUCTS_H__ */

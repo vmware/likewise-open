@@ -745,6 +745,39 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalGetInfoRequest(
+    PSMB_PACKET                    pPacket,
+    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_GET_INFO_REQUEST_HEADER pHeader = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_GET_INFO_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_GET_INFO_REQUEST_HEADER)pDataBuffer;
+
+    *ppHeader = pHeader;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
     )

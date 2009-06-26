@@ -87,6 +87,14 @@ SrvProcessFlush_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// getinfo.c
+NTSTATUS
+SrvProcessGetInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // logoff.c
 
 NTSTATUS
@@ -236,6 +244,12 @@ SMB2UnmarshalEchoRequest(
 NTSTATUS
 SMB2MarshalEchoResponse(
     PSMB_PACKET pPacket
+    );
+
+NTSTATUS
+SMB2UnmarshalGetInfoRequest(
+    PSMB_PACKET                    pPacket,
+    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
     );
 
 NTSTATUS

@@ -6,6 +6,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     echo.c           \
     error.c          \
     flush.c          \
+    getinfo.c        \
     libmain.c        \
     negotiate.c      \
     session_setup.c  \
