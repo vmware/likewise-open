@@ -61,6 +61,141 @@ SrvGetFileInfo_SMB_V2(
     PSMB_PACKET*                  ppSmbResponse
     );
 
+NTSTATUS
+SrvGetFileBasicInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileStandardInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileInternalInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileEAInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileAccessInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFilePositionInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileFullEAInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileModeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileAlignmentInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileAllInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileAlternateNameInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileStreamInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileCompressionInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileNetworkOpenInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+NTSTATUS
+SrvGetFileAttributeTagInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
 static
 NTSTATUS
 SrvGetFileSystemInfo_SMB_V2(
@@ -73,7 +208,87 @@ SrvGetFileSystemInfo_SMB_V2(
 
 static
 NTSTATUS
+SrvGetFileSystemVolumeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemSizeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemDeviceInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemAttributeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemQuotaInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemFullInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemObjectIdInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
 SrvGetSecurityInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    );
+
+static
+NTSTATUS
+SrvGetFileSecurityBasicInfo_SMB_V2(
     PLWIO_SRV_CONNECTION          pConnection,
     PSMB_PACKET                   pSmbRequest,
     PLWIO_SRV_FILE_2              pFile,
@@ -202,6 +417,362 @@ SrvGetFileInfo_SMB_V2(
     PSMB_PACKET*                  ppSmbResponse
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    switch (pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_BASIC :
+
+            ntStatus = SrvGetFileBasicInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_STANDARD :
+
+            ntStatus = SrvGetFileStandardInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_INTERNAL :
+
+            ntStatus = SrvGetFileInternalInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_EA :
+
+            ntStatus = SrvGetFileEAInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ACCESS :
+
+            ntStatus = SrvGetFileAccessInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_POSITION :
+
+            ntStatus = SrvGetFilePositionInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_FULL_EA :
+
+            ntStatus = SrvGetFileFullEAInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_MODE :
+
+            ntStatus = SrvGetFileModeInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ALIGNMENT :
+
+            ntStatus = SrvGetFileAlignmentInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ALL :
+
+            ntStatus = SrvGetFileAllInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ALTERNATE_NAME :
+
+            ntStatus = SrvGetFileAlternateNameInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_STREAM :
+
+            ntStatus = SrvGetFileStreamInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_COMPRESSION :
+
+            ntStatus = SrvGetFileCompressionInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_NETWORK_OPEN :
+
+            ntStatus = SrvGetFileNetworkOpenInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FILE_INFO_CLASS_ATTRIBUTE_TAG :
+
+            ntStatus = SrvGetFileAttributeTagInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvGetFileBasicInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileStandardInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileInternalInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileEAInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileAccessInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFilePositionInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileFullEAInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileModeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileAlignmentInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileAllInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileAlternateNameInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileStreamInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileCompressionInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileNetworkOpenInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SrvGetFileAttributeTagInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
     return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -215,12 +786,226 @@ SrvGetFileSystemInfo_SMB_V2(
     PSMB_PACKET*                  ppSmbResponse
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    switch (pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FS_INFO_CLASS_VOLUME:
+
+            ntStatus = SrvGetFileSystemVolumeInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_SIZE:
+
+            ntStatus = SrvGetFileSystemSizeInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_DEVICE:
+
+            ntStatus = SrvGetFileSystemDeviceInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_ATTRIBUTE:
+
+            ntStatus = SrvGetFileSystemAttributeInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_QUOTA:
+
+            ntStatus = SrvGetFileSystemQuotaInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB2_FS_INFO_CLASS_FULL_SIZE:
+
+            ntStatus = SrvGetFileSystemFullInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        case SMB_FS_INFO_CLASS_OBJECTID:
+
+            ntStatus = SrvGetFileSystemObjectIdInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemVolumeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemSizeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemDeviceInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemAttributeInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemQuotaInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemFullInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemObjectIdInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
     return STATUS_NOT_IMPLEMENTED;
 }
 
 static
 NTSTATUS
 SrvGetSecurityInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION          pConnection,
+    PSMB_PACKET                   pSmbRequest,
+    PLWIO_SRV_FILE_2              pFile,
+    PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*                  ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    switch (pRequestHeader->ucInfoClass)
+    {
+        case SMB2_SEC_INFO_CLASS_BASIC:
+
+            ntStatus = SrvGetFileSecurityBasicInfo_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            ppSmbResponse);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvGetFileSecurityBasicInfo_SMB_V2(
     PLWIO_SRV_CONNECTION          pConnection,
     PSMB_PACKET                   pSmbRequest,
     PLWIO_SRV_FILE_2              pFile,
