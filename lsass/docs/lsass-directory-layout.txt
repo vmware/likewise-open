@@ -1,0 +1,111 @@
+                            LSASS Directory Layout
+                            ----------------------
+
+INTRODUCTION:
+------------
+
+This document describes the desired directory layout (and componentization)
+inside lsass.
+
+TERMINOLOGY:
+-----------
+
+The following terminology is used in the LAYOUT section below.
+
+utility library - in effect, a static library that is pulled into some other
+    shared object or binary.  Note that a utility library should never be
+    included in two shared objects or binaries that can be loaded in the same
+    address space.
+
+shared object - shared library
+
+binary - an executable
+
+LAYOUT:
+------
+
+- include (shared headers)
+  - lsa (public client header -- lsa.h)
+- client (1 shared object)
+  + api (1 utility library)
+    - ad (1 utility library)
+    - local (1 utility library)
+- server (1 binary and 3 shared objects + store + rpc + ntlm shared objects)
+  + include (shared server-only headers)
+  + logging_r (1 utility library)
+  + api (1 shared object)
+  + providers (2 shared objects)
+    - local (1 shared object)
+    - ad (1 shared object)
+  + lsassd (1 binary)
+  + ntlmserver (1 shared object – new code, currently unused) [1]
+  + rpc (currently various shared objects) [2]
+  + store (2 shared objects used by local provider and rpc)
+- common (1 utility library used by client & server)
+  + ipc
+    - api
+    - local
+    - ad
+  + utils
+  + lsaunistr [3]
+  + lwunistr [3]
+- interop (several shared objects, only consumed externally)
+  + auth [4]
+  + nsswitch [4]
+  + wbclient
+  + lwicompat
+  + lwmapsecurity (dlopen plugin for lwmapsecurity)
+  + access (dlopen by eventlog) [5]
+- docs
+- etc
+- tools
+- tests?
+- ntlmclient [1]
+- ntlmipc [1]
+- gssntlm [6]
+- gssntlm3 [7]
+- join [8]
+
+PROBLEM:
+-------
+
+Some server-side code calls client APIs.  This includes (1) AD provider and
+(2) legacy gssntlm server code (in gssntlm/server).  This needs to be fixed up
+to finish the layout change.  A provider-side interface can be used to solve
+the AD problem.  Since the gssntlm legacy code is not currently used, it can
+just be made not to link into any of the client/server binaries.
+
+NOTES:
+-----
+
+[1] ntlmserver, ntlmclient, and ntlmipc should be renamed ntlm under each of
+    server, client, and common/ipc directories.
+
+[2] rpc will need to become a single shared object.
+
+[3] lsaunistr and lwunistr will eventually be modified, merged, and moved into
+    separate advapi component
+
+[4] auth contains PAM and authentication code used by the LAM module that
+    currently resides in nsswitch/aix.  It may be desirable refactor a little
+    so that PAM is at interop/pam and perhaps LAM is at interop/lam.
+
+[5] access should eventually go away after switching eventlog to use a model
+    based on security descriptors and access tokens (using lwmapsecurity).
+
+[6] gssntlm is legacy NTLM code that will go away when new NTLM code is used.
+
+[7] gssntlm3 will become interop/gssntlm as it is just a gssapi layer for
+    NTLM.
+
+[8] join is currently 1 shared object used by AD provider and domain join that
+    contains 3 pieces: (1) LDAP wrapper, (2) KRB5 wrapper, and (3) domain join
+    helper code.  It will later be split into advapi and domainjoin components.
+
+
+BUILDS FOR EMBEDDED SYSTEMS:
+---------------------------
+
+Note that a minimal build (for embedded systems) will collapse some of the
+shared objects to create a monolithic client API shared object and server
+daemon.
