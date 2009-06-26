@@ -91,6 +91,8 @@ SrvFile2Create(
                     &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    uuid_generate(pFile->GUID);
+
     pFile->ullFid = ullFid;
     pFile->hFile = *phFile;
     *phFile = NULL;

@@ -119,6 +119,20 @@ typedef struct __SMB2_TREE_CONNECT_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_TREE_CONNECT_RESPONSE_HEADER,
                              *PSMB2_TREE_CONNECT_RESPONSE_HEADER;
 
+typedef struct __SMB2_TREE_DISCONNECT_REQUEST_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_TREE_DISCONNECT_REQUEST_HEADER,
+                             *PSMB2_TREE_DISCONNECT_REQUEST_HEADER;
+
+typedef struct __SMB2_TREE_DISCONNECT_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+} __attribute__((__packed__)) SMB2_TREE_DISCONNECT_RESPONSE_HEADER,
+                             *PSMB2_TREE_DISCONNECT_RESPONSE_HEADER;
+
 typedef struct __SMB2_CREATE_REQUEST_HEADER
 {
     USHORT  usLength;

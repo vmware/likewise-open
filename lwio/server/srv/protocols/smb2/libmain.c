@@ -123,6 +123,15 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_TREE_DISCONNECT:
+
+            ntStatus = SrvProcessTreeDisconnect_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         case COM2_CREATE:
 
             ntStatus = SrvProcessCreate_SMB_V2(

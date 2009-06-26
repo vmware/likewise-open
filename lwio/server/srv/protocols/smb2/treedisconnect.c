@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        treeconnect.c
+ *        treedisconnect.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Protocols API - SMBV2
  *
- *        Tree Connect
+ *        Tree disconnect
  *
  * Authors: Krishna Ganugapati (kganugapati@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -51,22 +51,16 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessTreeConnect_SMB_V2(
+SrvProcessTreeDisconnect_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader = NULL;// Do not free
-    UNICODE_STRING    wszPath = {0}; // Do not free
     PLWIO_SRV_SESSION_2 pSession = NULL;
-    PLWIO_SRV_TREE_2 pTree = NULL;
-    PSRV_SHARE_INFO pShareInfo = NULL;
-    PWSTR pwszPath = NULL;
-    PWSTR pwszSharename = NULL;
-    BOOLEAN bInLock = FALSE;
-    BOOLEAN bRemoveTreeFromSession = FALSE;
+    PLWIO_SRV_TREE_2    pTree = NULL;
+    PSMB2_TREE_DISCONNECT_REQUEST_HEADER pTreeDisconnectHeader = NULL; // Do not free
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
@@ -75,47 +69,21 @@ SrvProcessTreeConnect_SMB_V2(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2UnmarshalTreeConnect(
+    ntStatus = SMB2UnmarshalTreeDisconnectRequest(
                     pSmbRequest,
-                    &pTreeConnectHeader,
-                    &wszPath);
+                    &pTreeDisconnectHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateMemory(
-                    wszPath.Length + sizeof(wchar16_t),
-                    (PVOID*)&pwszPath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy((PBYTE)pwszPath, (PBYTE)wszPath.Buffer, wszPath.Length);
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->pHostinfo->mutex);
-
-    ntStatus = SrvGetShareName(
-                    pConnection->pHostinfo->pszHostname,
-                    pConnection->pHostinfo->pszDomain,
-                    pwszPath,
-                    &pwszSharename);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
-
-    ntStatus = SrvShareFindByName(
-                    pConnection->pShareList,
-                    pwszSharename,
-                    &pShareInfo);
-    if (ntStatus == STATUS_NOT_FOUND)
-    {
-        ntStatus = STATUS_BAD_NETWORK_NAME;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvSession2CreateTree(
+    ntStatus = SrvSession2FindTree(
                     pSession,
-                    pShareInfo,
+                    pSmbRequest->pSMB2Header->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    bRemoveTreeFromSession = TRUE;
+    ntStatus = SrvSession2RemoveTree(
+                        pSession,
+                        pSmbRequest->pSMB2Header->ulTid);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -131,9 +99,9 @@ SrvProcessTreeConnect_SMB_V2(
 
     ntStatus = SMB2MarshalHeader(
                     pSmbResponse,
-                    COM2_TREE_CONNECT,
+                    COM2_TREE_DISCONNECT,
                     0,
-                    8,
+                    1,
                     pSmbRequest->pSMB2Header->ulPid,
                     pSmbRequest->pSMB2Header->ullCommandSequence,
                     pTree->ulTid,
@@ -143,10 +111,7 @@ SrvProcessTreeConnect_SMB_V2(
                     TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalTreeConnectResponse(
-                    pSmbResponse,
-                    pConnection,
-                    pTree);
+    ntStatus = SMB2MarshalTreeDisconnectResponse(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);
@@ -155,8 +120,6 @@ SrvProcessTreeConnect_SMB_V2(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->pHostinfo->mutex);
 
     if (pSession)
     {
@@ -168,34 +131,11 @@ cleanup:
         SrvTree2Release(pTree);
     }
 
-    if (pShareInfo)
-    {
-        SrvShareReleaseInfo(pShareInfo);
-    }
-
-    SRV_SAFE_FREE_MEMORY(pwszPath);
-
     return ntStatus;
 
 error:
 
     *ppSmbResponse = NULL;
-
-    if (bRemoveTreeFromSession)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvSession2RemoveTree(
-                        pSession,
-                        pTree->ulTid);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to remove tid [%u] from session [uid=%u][code:%d]",
-                            pTree->ulTid,
-                            pSmbRequest->pSMB2Header->ullSessionId,
-                            ntStatus2);
-        }
-    }
 
     if (pSmbResponse)
     {

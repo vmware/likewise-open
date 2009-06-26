@@ -399,6 +399,65 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalTreeDisconnectRequest(
+    PSMB_PACKET                           pSmbRequest,
+    PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulBytesAvailable = pSmbRequest->bufferLen - pSmbRequest->bufferUsed;
+    PBYTE pBuffer = (PBYTE)pSmbRequest->pSMB2Header + sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_TREE_DISCONNECT_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppTreeDisconnectHeader = (PSMB2_TREE_DISCONNECT_REQUEST_HEADER)pBuffer;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppTreeDisconnectHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalTreeDisconnectResponse(
+    PSMB_PACKET      pPacket
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_TREE_DISCONNECT_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_TREE_DISCONNECT_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_TREE_DISCONNECT_RESPONSE_HEADER)pBuffer;
+
+    ulBytesUsed += sizeof(SMB2_TREE_DISCONNECT_RESPONSE_HEADER);
+
+    pHeader->usLength = sizeof(SMB2_TREE_DISCONNECT_RESPONSE_HEADER);
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
 SMB2UnmarshalCreateRequest(
     PSMB_PACKET                  pPacket,
     PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,

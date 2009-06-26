@@ -88,6 +88,15 @@ SrvProcessTreeConnect_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// tree_disconnect.c
+
+NTSTATUS
+SrvProcessTreeDisconnect_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // wire.c
 
 NTSTATUS
@@ -133,6 +142,17 @@ SMB2MarshalTreeConnectResponse(
     PSMB_PACKET          pPacket,
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_TREE_2     pTree
+    );
+
+NTSTATUS
+SMB2UnmarshalTreeDisconnectRequest(
+    PSMB_PACKET                           pSmbRequest,
+    PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
+    );
+
+NTSTATUS
+SMB2MarshalTreeDisconnectResponse(
+    PSMB_PACKET      pSmbResponse
     );
 
 NTSTATUS
