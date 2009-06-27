@@ -263,5 +263,12 @@ typedef struct __SMB2_GET_INFO_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_GET_INFO_REQUEST_HEADER,
                              *PSMB2_GET_INFO_REQUEST_HEADER;
 
+typedef struct __SMB2_ERROR_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+    ULONG  ulStatus;
+} __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
+                             *PSMB2_ERROR_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

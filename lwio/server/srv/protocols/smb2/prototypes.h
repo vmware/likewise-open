@@ -253,6 +253,12 @@ SMB2UnmarshalGetInfoRequest(
     );
 
 NTSTATUS
+SMB2MarshalError(
+    PSMB_PACKET pPacket,
+    NTSTATUS    status
+    );
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
     );

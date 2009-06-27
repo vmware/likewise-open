@@ -778,6 +778,40 @@ error:
 }
 
 NTSTATUS
+SMB2MarshalError(
+    PSMB_PACKET pPacket,
+    NTSTATUS    status
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_ERROR_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_ERROR_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_ERROR_RESPONSE_HEADER)pBuffer;
+    ulBytesUsed += sizeof(SMB2_ERROR_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_ERROR_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_ERROR_RESPONSE_HEADER);
+
+    pHeader->usLength = ulBytesUsed;
+
+    pHeader->ulStatus = status;
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
     )
