@@ -45,14 +45,14 @@
 
 typedef struct LWMsgCall LWMsgCall;
 
-typedef LWMsgStatus
+typedef void
 (*LWMsgCompleteFunction) (
     LWMsgCall* call,
     LWMsgStatus status,
     void* data
     );
 
-typedef LWMsgStatus
+typedef void
 (*LWMsgCancelFunction) (
     LWMsgCall* call,
     void* data

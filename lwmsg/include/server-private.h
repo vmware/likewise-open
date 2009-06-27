@@ -67,28 +67,29 @@ typedef enum ServerTaskType
     SERVER_TASK_FINISH_CLOSE,
     SERVER_TASK_BEGIN_RESET,
     SERVER_TASK_FINISH_RESET,
-    SERVER_TASK_DISPATCH,
-    SERVER_TASK_BEGIN_ASYNC,
-    SERVER_TASK_FINISH_ASYNC
+    SERVER_TASK_BEGIN_CALL,
+    SERVER_TASK_FINISH_CALL
 } ServerTaskType;
 
 typedef struct ServerCall
 {
     LWMsgCall base;
+    LWMsgRing ring;
     pthread_mutex_t lock;
-    enum
-    {
-        SERVER_CALL_IDLE,
-        SERVER_CALL_TRANSACTING,
-        SERVER_CALL_PENDING,
-        SERVER_CALL_CANCELED,
-        SERVER_CALL_COMPLETE
-    } volatile state;
+    LWMsgBool volatile pended;
+    LWMsgBool volatile canceled;
+    LWMsgBool volatile dispatched;
+    LWMsgBool volatile completed;
     LWMsgStatus volatile status;
     LWMsgCancelFunction cancel;
     void* cancel_data;
     struct ServerIoThread* owner;
+    LWMsgAssoc* assoc;
     LWMsgSession* session;
+    LWMsgDispatchSpec* spec;
+    void* dispatch_data;
+    LWMsgMessage incoming;
+    LWMsgMessage outgoing;
 } ServerCall;
 
 typedef struct ServerTask
@@ -108,13 +109,7 @@ typedef struct ServerTask
             mode_t perms;
         } listen;
         /* Data for call-oriented tasks */
-        struct
-        {
-            LWMsgAssoc* assoc;
-            ServerCall control;
-            LWMsgMessage incoming_message;
-            LWMsgMessage outgoing_message;
-        } call;
+        ServerCall call;
     } info;
 } ServerTask;
 
@@ -288,9 +283,9 @@ lwmsg_server_queue_io_task(
     );
 
 void
-lwmsg_server_queue_dispatch_task(
+lwmsg_server_queue_call(
     LWMsgServer* server,
-    ServerTask* task
+    ServerCall* call
     );
 
 void*
@@ -326,6 +321,14 @@ lwmsg_server_call_init(
 void
 lwmsg_server_call_destroy(
     ServerCall* call
+    );
+
+void
+lwmsg_server_call_setup(
+    ServerCall* call,
+    ServerIoThread* owner,
+    LWMsgDispatchSpec* spec,
+    void* dispatch_data
     );
 
 #endif

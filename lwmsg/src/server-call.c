@@ -42,6 +42,25 @@
 #include "call-private.h"
 #include "util-private.h"
 
+void
+lwmsg_server_call_setup(
+    ServerCall* call,
+    ServerIoThread* owner,
+    LWMsgDispatchSpec* spec,
+    void* dispatch_data
+    )
+{
+    call->owner = owner;
+    call->spec = spec;
+    call->dispatch_data = dispatch_data;
+    call->canceled = LWMSG_FALSE;
+    call->dispatched = LWMSG_FALSE;
+    call->pended = LWMSG_FALSE;
+    call->completed = LWMSG_FALSE;
+    call->status = LWMSG_STATUS_SUCCESS;
+    call->cancel = NULL;
+}
+
 static
 LWMsgStatus
 lwmsg_server_call_transact(
@@ -50,7 +69,49 @@ lwmsg_server_call_transact(
     void* data
     )
 {
-    return LWMSG_STATUS_UNSUPPORTED;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ServerCall* scall = SERVER_CALL(call);
+
+    if (!scall->spec->data)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    switch (scall->spec->type)
+    {
+    case LWMSG_DISPATCH_TYPE_OLD:
+        status = ((LWMsgAssocDispatchFunction) scall->spec->data) (
+            scall->assoc,
+            &scall->incoming,
+            &scall->outgoing,
+            scall->dispatch_data);
+        break;
+    case LWMSG_DISPATCH_TYPE_BLOCK:
+    case LWMSG_DISPATCH_TYPE_NONBLOCK:
+        status = ((LWMsgServerCallFunction) scall->spec->data) (
+            call,
+            &scall->incoming,
+            &scall->outgoing,
+            scall->dispatch_data);
+        break;
+    default:
+        status = LWMSG_STATUS_INTERNAL;
+        break;
+    }
+
+    pthread_mutex_lock(&scall->lock);
+    scall->dispatched = LWMSG_TRUE;
+
+    if (scall->canceled && scall->pended)
+    {
+        scall->cancel(call, scall->cancel_data);
+    }
+
+    pthread_mutex_unlock(&scall->lock);
+
+error:
+
+    return status;
 }
 
 static
@@ -66,16 +127,9 @@ lwmsg_server_call_pend(
 
     pthread_mutex_lock(&scall->lock);
 
-    if (scall->state != SERVER_CALL_TRANSACTING)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-
-    scall->state = SERVER_CALL_PENDING;
+    scall->pended = LWMSG_TRUE;
     scall->cancel = cancel;
     scall->cancel_data = data;
-
-error:
 
     pthread_mutex_unlock(&scall->lock);
 
@@ -91,36 +145,22 @@ lwmsg_server_call_complete(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ServerCall* scall = SERVER_CALL(call);
-    LWMsgBool locked = LWMSG_FALSE;
 
     pthread_mutex_lock(&scall->lock);
-    locked = LWMSG_TRUE;
 
-    if (scall->state != SERVER_CALL_PENDING &&
-        scall->state != SERVER_CALL_CANCELED)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-
-    scall->state = SERVER_CALL_COMPLETE;
+    scall->completed = LWMSG_TRUE;
     scall->status = call_status;
 
-    pthread_mutex_unlock(&scall->lock);
-    locked = LWMSG_FALSE;
+    /* Wake the IO thread that owns the call.
 
-    /* Poke the thread owning the call so it wakes up and notices the completion */
+       We need to hold the thread lock and the call lock at the same time.
+       Otherwise, during a server shutdown, an IO thread that is already awake
+       might notice the call is complete, exit, and be freed before we can
+       signal it */
     pthread_mutex_lock(&scall->owner->lock);
-    scall->owner->num_events++;
     lwmsg_server_signal_io_thread(scall->owner);
     pthread_mutex_unlock(&scall->owner->lock);
-
-error:
-
-    if (locked)
-    {
-        pthread_mutex_unlock(&scall->lock);
-        locked = LWMSG_FALSE;
-    }
+    pthread_mutex_unlock(&scall->lock);
 
     return status;
 }
@@ -135,21 +175,19 @@ lwmsg_server_call_cancel(
     ServerCall* scall = SERVER_CALL(call);
 
     pthread_mutex_lock(&scall->lock);
+    scall->canceled = LWMSG_TRUE;
 
-    if (scall->state != SERVER_CALL_PENDING &&
-        scall->state != SERVER_CALL_COMPLETE)
+    /* If the dispatch function is not finished running,
+       we don't call the cancel callback right now --
+       lwmsg_server_call_transact() will handle it.
+
+       If the call is already completed, we silently
+       ignore the cancel request and return success */
+
+    if (scall->dispatched && !scall->completed)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+        scall->cancel(call, scall->cancel_data);
     }
-
-    if (scall->state == SERVER_CALL_PENDING)
-    {
-        scall->state = SERVER_CALL_CANCELED;
-
-        BAIL_ON_ERROR(status = scall->cancel(call, scall->cancel_data));
-    }
-
-error:
 
     pthread_mutex_unlock(&scall->lock);
 
@@ -162,9 +200,9 @@ lwmsg_server_call_release(
     LWMsgCall* call
     )
 {
-    ServerCall* scall = SERVER_CALL(call);
-
-    scall->state = SERVER_CALL_IDLE;
+    /* The call block is allocated as part of an ServerIoTask,
+       so we do nothing here. */
+    return;
 }
 
 static LWMsgCallClass server_call_class =
@@ -186,12 +224,15 @@ lwmsg_server_call_init(
     memset(call, 0, sizeof(*call));
 
     call->base.vtbl = &server_call_class;
-    call->state = SERVER_CALL_IDLE;
 
     if (pthread_mutex_init(&call->lock, NULL) < 0)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
+
+    lwmsg_message_init(&call->incoming);
+    lwmsg_message_init(&call->outgoing);
+    lwmsg_ring_init(&call->ring);
 
 error:
 

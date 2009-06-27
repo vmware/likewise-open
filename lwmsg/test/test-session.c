@@ -118,7 +118,7 @@ trivial_sender(void* _assocs)
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
-    MU_INFO("Sending first message to peer with session ID %s", smid_str);
+    MU_VERBOSE("Sending first message to peer with session ID %s", smid_str);
     
     request.trivial = 42;
     request_msg.tag = TRIVIAL_OPEN;
@@ -133,7 +133,7 @@ trivial_sender(void* _assocs)
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);
-    MU_INFO("Sending second message to peer with session ID %s", smid_str);
+    MU_VERBOSE("Sending second message to peer with session ID %s", smid_str);
 
     request_msg.tag = TRIVIAL_CLOSE;
     request_msg.data = handle;
@@ -164,7 +164,7 @@ trivial_receiver(void* _assocs)
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
-    MU_INFO("Receiving first message from peer with session ID %s", smid_str);
+    MU_VERBOSE("Receiving first message from peer with session ID %s", smid_str);
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_recv_message(assocs[0], &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_OPEN);
@@ -181,7 +181,7 @@ trivial_receiver(void* _assocs)
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);
-    MU_INFO("Receiving second message from peer with session ID %s", smid_str);
+    MU_VERBOSE("Receiving second message from peer with session ID %s", smid_str);
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_recv_message(assocs[1], &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_CLOSE);
@@ -293,5 +293,3 @@ MU_TEST(session, trivial_send_recv)
         MU_FAILURE("pthread_join(): %s", strerror(err));
     }
 }
-
-
