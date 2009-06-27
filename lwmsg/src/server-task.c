@@ -814,7 +814,7 @@ lwmsg_server_task_finish_call(
     LWMsgBool completed = LWMSG_FALSE;
 
     pthread_mutex_lock(&(*task)->info.call.lock);
-    completed = (*task)->info.call.completed;
+    completed = ((*task)->info.call.state & SERVER_CALL_COMPLETED) ? LWMSG_TRUE : LWMSG_FALSE;
     status = (*task)->info.call.status;
     pthread_mutex_unlock(&(*task)->info.call.lock);
 

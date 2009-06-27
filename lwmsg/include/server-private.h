@@ -76,10 +76,14 @@ typedef struct ServerCall
     LWMsgCall base;
     LWMsgRing ring;
     pthread_mutex_t lock;
-    LWMsgBool volatile pended;
-    LWMsgBool volatile canceled;
-    LWMsgBool volatile dispatched;
-    LWMsgBool volatile completed;
+    enum
+    {
+        SERVER_CALL_NONE = 0x0,
+        SERVER_CALL_DISPATCHED = 0x1,
+        SERVER_CALL_PENDED = 0x2,
+        SERVER_CALL_COMPLETED = 0x4,
+        SERVER_CALL_CANCELLED = 0x8
+    } state;
     LWMsgStatus volatile status;
     LWMsgCancelFunction cancel;
     void* cancel_data;
