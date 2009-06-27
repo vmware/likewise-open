@@ -120,7 +120,6 @@ SrvBuildLogoffResponse_SMB_V2(
 {
     NTSTATUS ntStatus = 0;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB2_LOGOFF_RESPONSE_HEADER pResponseHeader = NULL;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,

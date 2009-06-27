@@ -761,7 +761,7 @@ SrvGetFileNetworkOpenInfo_SMB_V2(
     PSMB_PACKET*                  ppSmbResponse
     )
 {
-return STATUS_NOT_IMPLEMENTED;
+    return STATUS_INVALID_PARAMETER;
 }
 
 NTSTATUS

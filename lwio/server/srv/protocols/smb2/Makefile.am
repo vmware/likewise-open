@@ -8,6 +8,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     flush.c          \
     getinfo.c        \
     libmain.c        \
+    logoff.c         \
     negotiate.c      \
     session_setup.c  \
     treeconnect.c    \
