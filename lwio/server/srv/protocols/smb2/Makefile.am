@@ -7,6 +7,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     error.c          \
     flush.c          \
     getinfo.c        \
+    ioctl.c          \
     libmain.c        \
     logoff.c         \
     negotiate.c      \

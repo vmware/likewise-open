@@ -317,6 +317,24 @@ typedef struct __SMB2_READ_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_READ_RESPONSE_HEADER,
                              *PSMB2_READ_RESPONSE_HEADER;
 
+typedef struct __SMB2_IOCTL_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulFunctionCode;
+    SMB2_FID fid;
+    ULONG    ulInOffset;
+    ULONG    ulInLength;
+    ULONG    ulMaxInLength;
+    ULONG    ulOutOffset;
+    ULONG    ulOutLength;
+    ULONG    ulMaxOutLength;
+    ULONG    ulFlags;
+    ULONG    ulReserved;
+
+} __attribute__((__packed__)) SMB2_IOCTL_REQUEST_HEADER,
+                             *PSMB2_IOCTL_REQUEST_HEADER;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;

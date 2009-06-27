@@ -95,6 +95,15 @@ SrvProcessGetInfo_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// ioctl.c
+
+NTSTATUS
+SrvProcessIOCTL_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // logoff.c
 
 NTSTATUS
@@ -288,6 +297,13 @@ SMB2MarshalReadResponse(
     ULONG       ulBytesRead,
     ULONG       ulBytesRemaining,
     PULONG      pulDataOffset
+    );
+
+NTSTATUS
+SMB2UnmarshalIOCTLRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
     );
 
 NTSTATUS

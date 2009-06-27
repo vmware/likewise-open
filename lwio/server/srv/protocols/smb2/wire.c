@@ -972,6 +972,68 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalIOCTLRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PBYTE                      pData = NULL;
+
+    if (ulBytesAvailable < sizeof(SMB2_IOCTL_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pRequestHeader = (PSMB2_IOCTL_REQUEST_HEADER)pDataBuffer;
+    ulOffset += sizeof(SMB2_IOCTL_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_IOCTL_REQUEST_HEADER);
+
+    if (pRequestHeader->usLength & 0x1)
+    {
+        if ((pRequestHeader->ulInOffset < ulOffset) ||
+            (pRequestHeader->ulOutOffset < ulOffset) ||
+            (pRequestHeader->ulInOffset > ulPacketSize) ||
+            (pRequestHeader->ulOutOffset > ulPacketSize) ||
+            ((pRequestHeader->ulInLength + pRequestHeader->ulInOffset) > ulPacketSize) ||
+            ((pRequestHeader->ulOutLength + pRequestHeader->ulOutOffset) > ulPacketSize))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pData = (PBYTE)pPacket->pSMB2Header + pRequestHeader->ulInOffset;
+    }
+
+    if (pRequestHeader->ulInLength && !pData)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppRequestHeader = pRequestHeader;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2MarshalError(
     PSMB_PACKET pPacket,
     NTSTATUS    status
