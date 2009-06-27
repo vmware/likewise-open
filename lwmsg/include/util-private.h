@@ -297,6 +297,27 @@ lwmsg_ring_remove(
 
 static inline
 void
+lwmsg_ring_enqueue(
+    LWMsgRing* anchor,
+    LWMsgRing* element
+    )
+{
+    lwmsg_ring_insert_before(anchor, element);
+}
+
+static inline
+void
+lwmsg_ring_dequeue(
+    LWMsgRing* anchor,
+    LWMsgRing** element
+    )
+{
+    *element = anchor->next;
+    lwmsg_ring_remove(*element);
+}
+
+static inline
+void
 lwmsg_ring_move(
     LWMsgRing* from,
     LWMsgRing* to

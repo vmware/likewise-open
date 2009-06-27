@@ -26,11 +26,11 @@
 /*
  * Module Name:
  *
- *        server.c
+ *        server-dispatch.c
  *
  * Abstract:
  *
- *        Multi-threaded server API
+ *        Server -- Blocking call dispatch thread
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
@@ -56,7 +56,7 @@ lwmsg_server_dispatch_loop(
         pthread_mutex_lock(&server->dispatch.lock);
         in_lock = LWMSG_TRUE;
 
-        while (lwmsg_ring_is_empty(&server->dispatch.tasks) &&
+        while (lwmsg_ring_is_empty(&server->dispatch.calls) &&
                !server->dispatch.shutdown)
         {
             pthread_cond_wait(&server->dispatch.event, &server->dispatch.lock);
@@ -67,8 +67,7 @@ lwmsg_server_dispatch_loop(
             break;
         }
 
-        head = server->dispatch.tasks.next;
-        lwmsg_ring_remove(head);
+        lwmsg_ring_dequeue(&server->dispatch.calls, &head);
         call = LWMSG_OBJECT_FROM_MEMBER(head, ServerCall, ring);
 
         pthread_mutex_unlock(&server->dispatch.lock);

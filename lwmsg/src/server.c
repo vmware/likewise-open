@@ -121,7 +121,7 @@ lwmsg_server_new(
     }
 
     lwmsg_ring_init(&server->io_tasks);
-    lwmsg_ring_init(&server->dispatch.tasks);
+    lwmsg_ring_init(&server->dispatch.calls);
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&server->manager));
 
@@ -786,7 +786,7 @@ lwmsg_server_shutdown(
         pthread_join(dispatch_thread->thread, NULL);
     }
 
-    for (iter = server->dispatch.tasks.next; iter != &server->dispatch.tasks; iter = next)
+    for (iter = server->dispatch.calls.next; iter != &server->dispatch.calls; iter = next)
     {
          next = iter->next;
 
@@ -946,7 +946,7 @@ lwmsg_server_queue_io_task(
     pthread_mutex_unlock(&server->io.lock);
 
     pthread_mutex_lock(&thread->lock);
-    lwmsg_ring_insert_before((LWMsgRing*) &thread->tasks, &task->ring);
+    lwmsg_ring_enqueue((LWMsgRing*) &thread->tasks, &task->ring);
     lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 }
@@ -958,7 +958,7 @@ lwmsg_server_queue_call(
     )
 {
     pthread_mutex_lock(&server->dispatch.lock);
-    lwmsg_ring_insert_before(&server->dispatch.tasks, &call->ring);
+    lwmsg_ring_enqueue(&server->dispatch.calls, &call->ring);
     pthread_cond_signal(&server->dispatch.event);
     pthread_mutex_unlock(&server->dispatch.lock);
 }

@@ -178,7 +178,7 @@ struct LWMsgServer
         LWMsgDispatchSpec** vector;
         size_t vector_length;
         ServerDispatchThread* threads;
-        LWMsgRing tasks;
+        LWMsgRing calls;
         pthread_mutex_t lock;
         pthread_cond_t event;
         LWMsgBool shutdown;
