@@ -169,6 +169,15 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_WRITE:
+
+            ntStatus = SrvProcessWrite_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         case COM2_ECHO:
 
             ntStatus = SrvProcessEcho_SMB_V2(

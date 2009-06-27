@@ -13,7 +13,8 @@ libsrv_protocols_smb2_la_SOURCES = \
     session_setup.c  \
     treeconnect.c    \
     treedisconnect.c \
-    wire.c
+    wire.c           \
+    write.c
 
 libsrv_protocols_smb2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

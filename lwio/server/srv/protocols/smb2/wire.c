@@ -778,6 +778,101 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalWriteRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulPacketSize = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_WRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PBYTE                      pData = NULL;
+
+    if (ulBytesAvailable < sizeof(SMB2_WRITE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pRequestHeader = (PSMB2_WRITE_REQUEST_HEADER)pDataBuffer;
+    ulOffset += sizeof(SMB2_WRITE_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_WRITE_REQUEST_HEADER);
+
+    if (pRequestHeader->usLength & 0x1)
+    {
+        if ((pRequestHeader->usDataOffset < ulOffset) ||
+            (pRequestHeader->usDataOffset > ulPacketSize) ||
+            (pRequestHeader->ulDataLength + pRequestHeader->usDataOffset) > ulPacketSize)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pData = (PBYTE)pPacket->pSMB2Header + pRequestHeader->usDataOffset;
+    }
+
+    if (pRequestHeader->ulDataLength && !pData)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppRequestHeader = pRequestHeader;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalWriteResponse(
+    PSMB_PACKET pPacket,
+    ULONG       ulBytesWritten,
+    ULONG       ulBytesRemaining
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_WRITE_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_WRITE_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_WRITE_RESPONSE_HEADER)pBuffer;
+    ulBytesUsed += sizeof(SMB2_WRITE_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_WRITE_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_WRITE_RESPONSE_HEADER);
+
+    pHeader->ulBytesWritten = ulBytesWritten;
+    pHeader->ulBytesRemaining = ulBytesRemaining;
+
+    pHeader->usLength = ulBytesUsed;
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
+}
+
+NTSTATUS
 SMB2MarshalError(
     PSMB_PACKET pPacket,
     NTSTATUS    status

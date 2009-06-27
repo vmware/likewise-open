@@ -253,6 +253,20 @@ SMB2UnmarshalGetInfoRequest(
     );
 
 NTSTATUS
+SMB2UnmarshalWriteRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    );
+
+NTSTATUS
+SMB2MarshalWriteResponse(
+    PSMB_PACKET pPacket,
+    ULONG       ulBytesWritten,
+    ULONG       ulBytesRemaining
+    );
+
+NTSTATUS
 SMB2MarshalError(
     PSMB_PACKET pPacket,
     NTSTATUS    status
@@ -261,6 +275,15 @@ SMB2MarshalError(
 NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
+    );
+
+// write.c
+
+NTSTATUS
+SrvProcessWrite_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
     );
 
 #endif /* __PROTOTYPES_H__ */
