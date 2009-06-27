@@ -863,7 +863,7 @@ SMB2MarshalWriteResponse(
     pHeader->ulBytesWritten = ulBytesWritten;
     pHeader->ulBytesRemaining = ulBytesRemaining;
 
-    pHeader->usLength = ulBytesUsed;
+    pHeader->usLength = ulBytesUsed + 1;
 
     pPacket->bufferUsed += ulBytesUsed;
 
