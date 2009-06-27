@@ -65,20 +65,20 @@ lwmsg_call_transact(
     void* data
     );
 
-LWMsgStatus
+void
 lwmsg_call_pend(
     LWMsgCall* call,
     LWMsgCancelFunction cancel,
     void* data
     );
 
-LWMsgStatus
+void
 lwmsg_call_complete(
     LWMsgCall* call,
     LWMsgStatus status
     );
 
-LWMsgStatus
+void
 lwmsg_call_cancel(
     LWMsgCall* call
     );
