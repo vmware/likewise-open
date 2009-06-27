@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        write.c
+ *        read.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Protocols API - SMBV2
  *
- *        Write
+ *        Read
  *
  * Authors: Krishna Ganugapati (kganugapati@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -53,16 +53,16 @@
 
 static
 NTSTATUS
-SrvBuildWriteResponse_SMB_V2(
-    PSMB_PACKET          pSmbRequest,
-    PLWIO_SRV_CONNECTION pConnection,
-    ULONG                ulBytesWritten,
-    ULONG                ulBytesRemaining,
-    PSMB_PACKET*         ppSmbResponse
+SrvBuildReadResponse_SMB_V2(
+    PSMB_PACKET               pSmbRequest,
+    PLWIO_SRV_CONNECTION      pConnection,
+    PSMB2_READ_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_FILE_2          pFile,
+    PSMB_PACKET*              ppSmbResponse
     );
 
 NTSTATUS
-SrvProcessWrite_SMB_V2(
+SrvProcessRead_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
@@ -72,12 +72,8 @@ SrvProcessWrite_SMB_V2(
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PLWIO_SRV_TREE_2    pTree = NULL;
     PLWIO_SRV_FILE_2    pFile = NULL;
-    PSMB2_WRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PBYTE                      pData = NULL; // Do not free
-    LONG64                     llDataOffset = 0LL;
-    ULONG                      ulKey = 0L;
-    IO_STATUS_BLOCK            ioStatusBlock = {0};
-    PSMB_PACKET                pSmbResponse = NULL;
+    PSMB2_READ_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PSMB_PACKET               pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
@@ -91,10 +87,9 @@ SrvProcessWrite_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2UnmarshalWriteRequest(
+    ntStatus = SMB2UnmarshalReadRequest(
                     pSmbRequest,
-                    &pRequestHeader,
-                    &pData);
+                    &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvTree2FindFile(
@@ -103,24 +98,11 @@ SrvProcessWrite_SMB_V2(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulKey = pSmbRequest->pSMB2Header->ulPid;
-    llDataOffset = pRequestHeader->ullFileOffset;
-
-    ntStatus = IoWriteFile(
-                    pFile->hFile,
-                    NULL,
-                    &ioStatusBlock,
-                    pData,
-                    pRequestHeader->ulDataLength,
-                    &llDataOffset,
-                    &ulKey);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvBuildWriteResponse_SMB_V2(
+    ntStatus = SrvBuildReadResponse_SMB_V2(
                     pSmbRequest,
                     pConnection,
-                    ioStatusBlock.BytesTransferred,
-                    pRequestHeader->ulDataLength-ioStatusBlock.BytesTransferred,
+                    pRequestHeader,
+                    pFile,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -159,15 +141,22 @@ error:
 
 static
 NTSTATUS
-SrvBuildWriteResponse_SMB_V2(
-    PSMB_PACKET          pSmbRequest,
-    PLWIO_SRV_CONNECTION pConnection,
-    ULONG                ulBytesWritten,
-    ULONG                ulBytesRemaining,
-    PSMB_PACKET*         ppSmbResponse
+SrvBuildReadResponse_SMB_V2(
+    PSMB_PACKET               pSmbRequest,
+    PLWIO_SRV_CONNECTION      pConnection,
+    PSMB2_READ_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_FILE_2          pFile,
+    PSMB_PACKET*              ppSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG           ulDataOffset = 0L;
+    ULONG           ulBytesToRead = 0L;
+    ULONG           ulRemaining = 0L;
+    ULONG           ulKey = 0L;
+    LONG64          llFileOffset = 0LL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PBYTE           pData = NULL;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SMBPacketAllocate(
@@ -184,7 +173,7 @@ SrvBuildWriteResponse_SMB_V2(
 
     ntStatus = SMB2MarshalHeader(
                     pSmbResponse,
-                    COM2_WRITE,
+                    COM2_READ,
                     0,
                     1,
                     pSmbRequest->pSMB2Header->ulPid,
@@ -196,10 +185,49 @@ SrvBuildWriteResponse_SMB_V2(
                     TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalWriteResponse(
+    ntStatus = SMB2MarshalReadResponse(
                     pSmbResponse,
-                    ulBytesWritten,
-                    ulBytesRemaining);
+                    NULL,
+                    pRequestHeader->ulDataLength,
+                    0,
+                    &ulDataOffset);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulBytesToRead = SMB_MIN(pRequestHeader->ulDataLength,
+                    pConnection->serverProperties.MaxBufferSize - ulDataOffset);
+
+    ntStatus = SrvAllocateMemory(ulBytesToRead, (PVOID*)&pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    llFileOffset = pRequestHeader->ullFileOffset;
+    ulKey = pSmbRequest->pSMB2Header->ulPid;
+
+    ntStatus = IoReadFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pData,
+                    ulBytesToRead,
+                    &llFileOffset,
+                    &ulKey);
+    if (ntStatus == STATUS_END_OF_FILE)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ioStatusBlock.BytesTransferred < pRequestHeader->ulMinimumCount)
+    {
+        ulRemaining = pRequestHeader->ulMinimumCount -
+                      ioStatusBlock.BytesTransferred;
+    }
+
+    ntStatus = SMB2MarshalReadResponse(
+                    pSmbResponse,
+                    pData,
+                    ioStatusBlock.BytesTransferred,
+                    ulRemaining,
+                    &ulDataOffset);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);
@@ -208,6 +236,8 @@ SrvBuildWriteResponse_SMB_V2(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    SRV_SAFE_FREE_MEMORY(pData);
 
     return ntStatus;
 
