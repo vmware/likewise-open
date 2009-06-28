@@ -998,8 +998,10 @@ SMB2UnmarshalIOCTLRequest(
 
     if (pRequestHeader->usLength & 0x1)
     {
-        if ((pRequestHeader->ulInOffset < ulOffset) ||
-            (pRequestHeader->ulOutOffset < ulOffset) ||
+        if (((pRequestHeader->ulInOffset > 0) &&
+             (pRequestHeader->ulInOffset < ulOffset)) ||
+            ((pRequestHeader->ulOutOffset > 0) &&
+             (pRequestHeader->ulOutOffset < ulOffset)) ||
             (pRequestHeader->ulInOffset > ulPacketSize) ||
             (pRequestHeader->ulOutOffset > ulPacketSize) ||
             ((pRequestHeader->ulInLength + pRequestHeader->ulInOffset) > ulPacketSize) ||
@@ -1031,6 +1033,56 @@ error:
     *ppData = NULL;
 
     goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalIOCTLResponse(
+    PSMB_PACKET                pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
+    PBYTE                      pOutBuffer,
+    ULONG                      ulOutLength
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSMB2_IOCTL_RESPONSE_HEADER pResponseHeader = NULL;
+    ULONG ulDataOffset = sizeof(SMB2_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_IOCTL_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSMB2_IOCTL_RESPONSE_HEADER)pBuffer;
+    ulBytesUsed += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
+    ulDataOffset += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_IOCTL_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_IOCTL_RESPONSE_HEADER);
+
+    pResponseHeader->usLength       = ulBytesUsed + 1;
+    pResponseHeader->ulFunctionCode = pRequestHeader->ulFunctionCode;
+    pResponseHeader->fid            = pRequestHeader->fid;
+    pResponseHeader->ulInOffset     = ulDataOffset;
+    pResponseHeader->ulInLength     = 0;
+    pResponseHeader->ulOutOffset    = ulDataOffset;
+    pResponseHeader->ulOutLength    = ulOutLength;
+    pResponseHeader->ulFlags        = pRequestHeader->ulFlags;
+
+    // TODO: Check against max buffer size
+    if (ulOutLength)
+    {
+        memcpy(pBuffer, pOutBuffer, ulOutLength);
+        ulBytesUsed += ulOutLength;
+    }
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
 }
 
 NTSTATUS

@@ -307,6 +307,14 @@ SMB2UnmarshalIOCTLRequest(
     );
 
 NTSTATUS
+SMB2MarshalIOCTLResponse(
+    PSMB_PACKET                pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
+    PBYTE                      pOutBuffer,
+    ULONG                      ulOutLength
+    );
+
+NTSTATUS
 SMB2MarshalError(
     PSMB_PACKET pPacket,
     NTSTATUS    status
