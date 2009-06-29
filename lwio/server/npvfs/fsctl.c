@@ -70,6 +70,13 @@ NpfsCommonGetPeerAddress(
     PIRP pIrp
     );
 
+static
+NTSTATUS
+NpfsCommonTransceive(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    );
+
 NTSTATUS
 NpfsFsCtl(
     IO_DEVICE_HANDLE IoDeviceHandle,
@@ -119,6 +126,9 @@ NpfsCommonFsCtl(
         break;
     case IO_FSCTL_SMB_GET_PEER_ADDRESS:
         ntStatus = NpfsCommonGetPeerAddress(pIrpContext, pIrp);
+        break;
+    case IO_FSCTL_PIPE_TRANSCEIVE:
+        ntStatus = NpfsCommonTransceive(pIrpContext, pIrp);
         break;
     default:
         ntStatus = STATUS_NOT_SUPPORTED;
@@ -332,6 +342,36 @@ cleanup:
     {
         NpfsReleaseCCB(pCCB);
     }
+
+    pIrp->IoStatusBlock.Status = ntStatus;
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+NpfsCommonTransceive(
+    PNPFS_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = NpfsCommonWrite(
+                    pIrpContext,
+                    pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NpfsCommonRead(
+                    pIrpContext,
+                    pIrp);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
 
     pIrp->IoStatusBlock.Status = ntStatus;
 

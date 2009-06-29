@@ -237,8 +237,22 @@ NpfsServerWriteFile_Connected(
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
 
-    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
-    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+    switch (pIrpContext->pIrp->Type)
+    {
+        case IRP_TYPE_FS_CONTROL:
+
+            pBuffer = pIrpContext->pIrp->Args.IoFsControl.InputBuffer;
+            Length = pIrpContext->pIrp->Args.IoFsControl.InputBufferLength;
+
+            break;
+
+        default:
+
+            pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+            Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+
+            break;
+    }
 
     pPipe = pSCB->pPipe;
     pCCB = pPipe->pCCB;
@@ -273,8 +287,23 @@ NpfsClientWriteFile_Connected(
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
 
-    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
-    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+    switch (pIrpContext->pIrp->Type)
+    {
+        case IRP_TYPE_FS_CONTROL:
+
+            pBuffer = pIrpContext->pIrp->Args.IoFsControl.InputBuffer;
+            Length = pIrpContext->pIrp->Args.IoFsControl.InputBufferLength;
+
+            break;
+
+        default:
+
+            pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+            Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+
+            break;
+    }
+
     pPipe = pCCB->pPipe;
     pSCB = pPipe->pSCB;
 

@@ -55,6 +55,8 @@
 #define IO_FSCTL_OPLOCK_REQUEST             0x00000100
 #define IO_FSCTL_OPLOCK_ACK_BREAK           0x00000101
 
+#define IO_FSCTL_PIPE_TRANSCEIVE            0x0011C017
+
 
 /* Oplock Request Input Buffer */
 
