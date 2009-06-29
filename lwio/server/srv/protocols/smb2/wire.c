@@ -778,6 +778,105 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalReadRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
+    )
+{
+    NTSTATUS ntStatus  = STATUS_SUCCESS;
+    ULONG ulOffset     = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer  = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    PSMB2_READ_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_READ_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pRequestHeader = (PSMB2_READ_REQUEST_HEADER)pDataBuffer;
+    ulOffset += sizeof(SMB2_READ_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_READ_REQUEST_HEADER);
+
+    *ppRequestHeader = pRequestHeader;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalReadResponse(
+    PSMB_PACKET pPacket,
+    PBYTE       pData,
+    ULONG       ulBytesRead,
+    ULONG       ulBytesRemaining,
+    PULONG      pulDataOffset
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_READ_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulDataOffset = sizeof(SMB2_HEADER);
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_READ_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_READ_RESPONSE_HEADER)pBuffer;
+    ulBytesUsed += sizeof(SMB2_READ_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_READ_RESPONSE_HEADER);
+    ulDataOffset += sizeof(SMB2_READ_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_READ_RESPONSE_HEADER);
+
+    pHeader->ulDataLength = ulBytesRead;
+    pHeader->ulRemaining  = ulBytesRemaining;
+
+    if (ulBytesAvailable < ulBytesRead)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader->usDataOffset = ulDataOffset;
+
+    pHeader->usLength = ulBytesUsed + 1;
+
+    if (pData)
+    {
+        memcpy(pBuffer, pData, ulBytesRead);
+        ulBytesUsed += ulBytesRead;
+        ulBytesAvailable -= ulBytesRead;
+        pBuffer += ulBytesRead;
+
+        pPacket->bufferUsed += ulBytesUsed;
+    }
+
+    *pulDataOffset = ulDataOffset;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulDataOffset = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2UnmarshalWriteRequest(
     PSMB_PACKET                 pPacket,
     PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
@@ -873,26 +972,44 @@ error:
 }
 
 NTSTATUS
-SMB2UnmarshalReadRequest(
+SMB2UnmarshalLockRequest(
     PSMB_PACKET                pPacket,
-    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
+    PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
     )
 {
-    NTSTATUS ntStatus  = STATUS_SUCCESS;
-    ULONG ulOffset     = sizeof(SMB2_HEADER);
-    PBYTE pDataBuffer  = (PBYTE)pPacket->pSMB2Header + ulOffset;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = sizeof(SMB2_HEADER);
+    PBYTE pDataBuffer = (PBYTE)pPacket->pSMB2Header + ulOffset;
     ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
-    PSMB2_READ_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PSMB2_LOCK_REQUEST_HEADER pRequestHeader = NULL;
 
-    if (ulBytesAvailable < sizeof(SMB2_READ_REQUEST_HEADER))
+    if (ulBytesAvailable < sizeof(SMB2_LOCK_REQUEST_HEADER))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pRequestHeader = (PSMB2_READ_REQUEST_HEADER)pDataBuffer;
-    ulOffset += sizeof(SMB2_READ_REQUEST_HEADER);
-    ulBytesAvailable -= sizeof(SMB2_READ_REQUEST_HEADER);
+    pRequestHeader = (PSMB2_LOCK_REQUEST_HEADER)pDataBuffer;
+    ulBytesAvailable -= sizeof(SMB2_LOCK_REQUEST_HEADER);
+    ulOffset += sizeof(SMB2_LOCK_REQUEST_HEADER);
+
+    if (!pRequestHeader->usLockCount)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pRequestHeader->usLength != sizeof(SMB2_LOCK_REQUEST_HEADER))
+    {
+        USHORT usLocksRemaining = pRequestHeader->usLockCount - 1;
+
+        if (!usLocksRemaining ||
+            (ulBytesAvailable < (usLocksRemaining * sizeof(SMB2_LOCK))))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
 
     *ppRequestHeader = pRequestHeader;
 
@@ -903,70 +1020,6 @@ cleanup:
 error:
 
     *ppRequestHeader = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SMB2MarshalReadResponse(
-    PSMB_PACKET pPacket,
-    PBYTE       pData,
-    ULONG       ulBytesRead,
-    ULONG       ulBytesRemaining,
-    PULONG      pulDataOffset
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB2_READ_RESPONSE_HEADER pHeader = NULL;
-    ULONG ulDataOffset = sizeof(SMB2_HEADER);
-    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
-    ULONG ulBytesUsed = 0;
-    PBYTE pBuffer = pPacket->pParams;
-
-    if (ulBytesAvailable < sizeof(SMB2_READ_RESPONSE_HEADER))
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pHeader = (PSMB2_READ_RESPONSE_HEADER)pBuffer;
-    ulBytesUsed += sizeof(SMB2_READ_RESPONSE_HEADER);
-    ulBytesAvailable -= sizeof(SMB2_READ_RESPONSE_HEADER);
-    ulDataOffset += sizeof(SMB2_READ_RESPONSE_HEADER);
-    pBuffer += sizeof(SMB2_READ_RESPONSE_HEADER);
-
-    pHeader->ulDataLength = ulBytesRead;
-    pHeader->ulRemaining  = ulBytesRemaining;
-
-    if (ulBytesAvailable < ulBytesRead)
-    {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pHeader->usDataOffset = ulDataOffset;
-
-    pHeader->usLength = ulBytesUsed + 1;
-
-    if (pData)
-    {
-        memcpy(pBuffer, pData, ulBytesRead);
-        ulBytesUsed += ulBytesRead;
-        ulBytesAvailable -= ulBytesRead;
-        pBuffer += ulBytesRead;
-
-        pPacket->bufferUsed += ulBytesUsed;
-    }
-
-    *pulDataOffset = ulDataOffset;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pulDataOffset = 0;
 
     goto cleanup;
 }

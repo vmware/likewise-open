@@ -351,6 +351,24 @@ typedef struct __SMB2_IOCTL_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_IOCTL_RESPONSE_HEADER,
                              *PSMB2_IOCTL_RESPONSE_HEADER;
 
+typedef struct __SMB2_LOCK
+{
+    ULONG64 ulFileOffset;
+    ULONG64 ulByteRange;
+    ULONG   ulFlags;
+    ULONG   ulReserved;
+} __attribute__((__packed__)) SMB2_LOCK, *PSMB2_LOCK;
+
+typedef struct __SMB2_LOCK_REQUEST_HEADER
+{
+    USHORT    usLength;
+    USHORT    usLockCount;
+    ULONG     ulReserved;
+    SMB2_FID  fid;
+    SMB2_LOCK locks[0];
+} __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
+                             *PSMB2_LOCK_REQUEST_HEADER;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;

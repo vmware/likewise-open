@@ -104,6 +104,15 @@ SrvProcessIOCTL_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// lock.c
+
+NTSTATUS
+SrvProcessLock_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // logoff.c
 
 NTSTATUS
@@ -271,6 +280,21 @@ SMB2UnmarshalGetInfoRequest(
     );
 
 NTSTATUS
+SMB2UnmarshalReadRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+SMB2MarshalReadResponse(
+    PSMB_PACKET pPacket,
+    PBYTE       pData,
+    ULONG       ulBytesRead,
+    ULONG       ulBytesRemaining,
+    PULONG      pulDataOffset
+    );
+
+NTSTATUS
 SMB2UnmarshalWriteRequest(
     PSMB_PACKET                 pPacket,
     PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
@@ -285,18 +309,9 @@ SMB2MarshalWriteResponse(
     );
 
 NTSTATUS
-SMB2UnmarshalReadRequest(
+SMB2UnmarshalLockRequest(
     PSMB_PACKET                pPacket,
-    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
-    );
-
-NTSTATUS
-SMB2MarshalReadResponse(
-    PSMB_PACKET pPacket,
-    PBYTE       pData,
-    ULONG       ulBytesRead,
-    ULONG       ulBytesRemaining,
-    PULONG      pulDataOffset
+    PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
     );
 
 NTSTATUS

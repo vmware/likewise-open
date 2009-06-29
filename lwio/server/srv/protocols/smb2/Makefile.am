@@ -9,6 +9,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     getinfo.c        \
     ioctl.c          \
     libmain.c        \
+    lock.c           \
     logoff.c         \
     negotiate.c      \
     read.c           \

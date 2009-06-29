@@ -187,6 +187,15 @@ SrvProtocolExecute_SMB_V2(
 
             break;
 
+        case COM2_LOCK:
+
+            ntStatus = SrvProcessLock_SMB_V2(
+                            pConnection,
+                            pSmbRequest,
+                            &pSmbResponse);
+
+            break;
+
         case COM2_IOCTL:
 
             ntStatus = SrvProcessIOCTL_SMB_V2(
