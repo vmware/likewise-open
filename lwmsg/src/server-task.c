@@ -443,6 +443,7 @@ lwmsg_server_task_prepare_select(
     case SERVER_TASK_FINISH_ESTABLISH:
     case SERVER_TASK_FINISH_RECV:
     case SERVER_TASK_FINISH_SEND:
+    case SERVER_TASK_FINISH_CALL:
         /* For tasks performed on an association, use its state to
            determine what to wait for */
         switch (lwmsg_assoc_get_state(task->info.call.assoc))
