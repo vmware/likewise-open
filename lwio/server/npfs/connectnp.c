@@ -69,13 +69,18 @@ NpfsConnectNamedPipe(
                         pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
+cleanup:
+
+    return ntStatus;
+
 error:
 
-    if(pIrpContext) {
+    if (pIrpContext)
+    {
         NpfsFreeIrpContext(pIrpContext);
     }
 
-    return ntStatus;
+    goto cleanup;
 }
 
 
@@ -99,7 +104,8 @@ NpfsCommonConnectNamedPipe(
 
     ENTER_MUTEX(&pPipe->PipeMutex);
 
-    if (pPipe->PipeServerState !=  PIPE_SERVER_INIT_STATE) {
+    if (pPipe->PipeServerState != PIPE_SERVER_INIT_STATE)
+    {
 
         ntStatus = STATUS_INVALID_SERVER_STATE;
 
@@ -107,7 +113,8 @@ NpfsCommonConnectNamedPipe(
 
         LEAVE_MUTEX(&pPipe->PipeMutex);
 
-        if (pSCB){
+        if (pSCB)
+        {
             NpfsReleaseCCB(pSCB);
         }
         return(ntStatus);
@@ -115,10 +122,9 @@ NpfsCommonConnectNamedPipe(
 
     pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
 
-    while(pPipe->PipeClientState != PIPE_CLIENT_CONNECTED){
-
+    while (pPipe->PipeClientState != PIPE_CLIENT_CONNECTED)
+    {
         pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
-
     }
 
     pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
@@ -127,10 +133,12 @@ NpfsCommonConnectNamedPipe(
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
-    if (pSCB) {
+    if (pSCB)
+    {
         NpfsReleaseCCB(pSCB);
     }
 
 error:
-    return(ntStatus);
+
+    return (ntStatus);
 }

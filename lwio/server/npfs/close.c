@@ -121,19 +121,19 @@ NpfsCloseHandle(
 
     switch (pCCB->CcbType) {
 
-        case SERVER_CCB:
-            ntStatus = NpfsServerCloseHandle(
-                    pCCB
-                    );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
+    case NPFS_CCB_SERVER:
+        ntStatus = NpfsServerCloseHandle(
+            pCCB
+            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
 
-        case CLIENT_CCB:
-            ntStatus = NpfsClientCloseHandle(
-                            pCCB
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
+    case NPFS_CCB_CLIENT:
+        ntStatus = NpfsClientCloseHandle(
+            pCCB
+            );
+        BAIL_ON_NT_STATUS(ntStatus);
+        break;
     }
 
 error:
