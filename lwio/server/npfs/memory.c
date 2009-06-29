@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        setinfo.c
+ *        memory.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise Named Pipe File System Driver (NPFS)
  *
- *        SetInfo Dispatch Routines
+ *        Memory Management Functions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -49,16 +49,23 @@
 
 #include "npfs.h"
 
+
 NTSTATUS
-NpfsSetInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
+NpfsAllocateMemory(
+    IN ULONG ulSize,
+    OUT PVOID* ppMemory
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    return ntStatus;
+    return RTL_ALLOCATE(ppMemory, VOID, ulSize);
 }
 
-
-
+VOID
+NpfsFreeMemory(
+    IN OUT PVOID pMemory
+    )
+{
+    if (pMemory)
+    {
+        RtlMemoryFree(pMemory);
+    }
+}

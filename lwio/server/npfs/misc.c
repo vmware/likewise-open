@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -35,13 +35,13 @@
  *
  * Module Name:
  *
- *        close.c
+ *        misc.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (NPFS)
+ *        Likewise Named Pipe File System Driver (NPFS)
  *
- *        Close Dispatch Function
+ *        Memory Management Functions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
@@ -49,43 +49,52 @@
 
 #include "npfs.h"
 
-NTSTATUS
-NpfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
-    );
+VOID
+NpfsInterlockedIncrement(
+    PNPFS_INTERLOCKED_ULONG pCounter
+    )
+{
+    pthread_mutex_lock(&pCounter->CounterMutex);
 
+    pCounter->ulCounter++;
 
-NTSTATUS
-NpfsCommonClose(
-    PNPFS_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
-    );
+    pthread_mutex_unlock(&pCounter->CounterMutex);
+}
 
-NTSTATUS
-NpfsCloseHandle(
-    PNPFS_CCB pCCB
-    );
+VOID
+NpfsInterlockedDecrement(
+    PNPFS_INTERLOCKED_ULONG pCounter
+    )
+{
+    pthread_mutex_lock(&pCounter->CounterMutex);
 
-NTSTATUS
-NpfsServerCloseHandle(
-    PNPFS_CCB pSCB
-    );
+    pCounter->ulCounter--;
 
-NTSTATUS
-NpfsClientCloseHandle(
-    PNPFS_CCB pCCB
-    );
+    pthread_mutex_unlock(&pCounter->CounterMutex);
+}
 
-NTSTATUS
-NpfsServerFreeCCB(
-    PNPFS_CCB pSCB
-    );
+VOID
+NpfsInitializeInterlockedCounter(
+    PNPFS_INTERLOCKED_ULONG pCounter
+    )
+{
+    pthread_mutex_init(&pCounter->CounterMutex, NULL);
+    pCounter->ulCounter = 0;
+}
 
-NTSTATUS
-NpfsClientFreeCCB(
-    PNPFS_CCB pCCB
-    );
+ULONG
+NpfsInterlockedCounter(
+    PNPFS_INTERLOCKED_ULONG pCounter
+    )
+{
+    ULONG ulCounter = 0;
 
+    pthread_mutex_lock(&pCounter->CounterMutex);
 
+    ulCounter = pCounter->ulCounter;
 
+    pthread_mutex_unlock(&pCounter->CounterMutex);
+
+    return ulCounter;
+
+}

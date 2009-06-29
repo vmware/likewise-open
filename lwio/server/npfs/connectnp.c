@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -35,23 +35,23 @@
  *
  * Module Name:
  *
- *        close.c
+ *        connectnp.c
  *
  * Abstract:
  *
  *        Likewise Named Pipe File System Driver (NPFS)
  *
- *        Close Dispatch Function
+ *       ConnectNamedPipe Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
 
 #include "npfs.h"
 
 NTSTATUS
-NpfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
+NpfsConnectNamedPipe(
+    IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     )
 {
@@ -64,7 +64,7 @@ NpfsClose(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsCommonClose(
+    ntStatus = NpfsCommonConnectNamedPipe(
                         pIrpContext,
                         pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -80,127 +80,57 @@ error:
 
 
 NTSTATUS
-NpfsCommonClose(
+NpfsCommonConnectNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PNPFS_CCB pCCB = NULL;
+    PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pSCB = NULL;
 
     ntStatus = NpfsGetCCB(
                     pIrpContext->pIrp->FileHandle,
-                    &pCCB
+                    &pSCB
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = NpfsCloseHandle(
-                        pCCB
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-error:
-    if (pCCB) {
-        NpfsReleaseCCB(pCCB);
-    }
-
-    return(ntStatus);
-}
-
-
-
-NTSTATUS
-NpfsCloseHandle(
-    PNPFS_CCB pCCB
-    )
-{
-
-    NpfsAddRefCCB(pCCB);
-
-    NTSTATUS ntStatus = 0;
-
-    switch (pCCB->CcbType) {
-        
-        case SERVER_CCB:
-            ntStatus = NpfsServerCloseHandle(
-                    pCCB
-                    );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-
-        case CLIENT_CCB:
-            ntStatus = NpfsClientCloseHandle(
-                            pCCB
-                            );
-            BAIL_ON_NT_STATUS(ntStatus);
-            break;
-    }
-
-error:
-
-    NpfsReleaseCCB(pCCB);
-
-    return(ntStatus);
-}
-
-NTSTATUS
-NpfsServerCloseHandle(
-    PNPFS_CCB pSCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_PIPE pPipe = NULL;
 
     pPipe = pSCB->pPipe;
+
     ENTER_MUTEX(&pPipe->PipeMutex);
 
-    pPipe->PipeServerState = PIPE_SERVER_CLOSED;
-    pthread_cond_signal(&pPipe->PipeCondition);
+    if (pPipe->PipeServerState !=  PIPE_SERVER_INIT_STATE) {
 
-    NpfsReleaseCCB(pSCB);
+        ntStatus = STATUS_INVALID_SERVER_STATE;
 
-    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED) {
-        
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
-        BAIL_ON_NT_STATUS(ntStatus);
+        pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
+        LEAVE_MUTEX(&pPipe->PipeMutex);
+
+        if (pSCB){
+            NpfsReleaseCCB(pSCB);
+        }
+        return(ntStatus);
+    }
+
+    pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
+
+    while(pPipe->PipeClientState != PIPE_CLIENT_CONNECTED){
+
+        pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
+
+    }
+
+    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+
+    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+
+    LEAVE_MUTEX(&pPipe->PipeMutex);
+
+    if (pSCB) {
+        NpfsReleaseCCB(pSCB);
     }
 
 error:
-
-    LEAVE_MUTEX(&pPipe->PipeMutex);
-    return(ntStatus);
-}
-
-
-
-NTSTATUS
-NpfsClientCloseHandle(
-    PNPFS_CCB pCCB
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_PIPE pPipe = NULL;
-
-    pPipe = pCCB->pPipe;
-    ENTER_MUTEX(&pPipe->PipeMutex);
-
-    pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
-    pthread_cond_signal(&pPipe->PipeCondition);
-
-    NpfsReleaseCCB( pCCB);
-
-    if (pPipe->PipeServerState == PIPE_SERVER_CLOSED) {
-        
-        ntStatus = NpfsFreePipeContext(
-                        pPipe
-                        );
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-error:
-
-    LEAVE_MUTEX(&pPipe->PipeMutex);
     return(ntStatus);
 }

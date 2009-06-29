@@ -35,23 +35,23 @@
  *
  * Module Name:
  *
- *        connectnp.c
+ *        close.c
  *
  * Abstract:
  *
  *        Likewise Named Pipe File System Driver (NPFS)
  *
- *       ConnectNamedPipe Dispatch Routine
+ *        Close Dispatch Function
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
 #include "npfs.h"
 
 NTSTATUS
-NpfsConnectNamedPipe(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+NpfsClose(
+    IO_DEVICE_HANDLE DeviceHandle,
     PIRP pIrp
     )
 {
@@ -64,7 +64,7 @@ NpfsConnectNamedPipe(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NpfsCommonConnectNamedPipe(
+    ntStatus = NpfsCommonClose(
                         pIrpContext,
                         pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -80,57 +80,127 @@ error:
 
 
 NTSTATUS
-NpfsCommonConnectNamedPipe(
+NpfsCommonClose(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PNPFS_PIPE pPipe = NULL;
-    PNPFS_CCB pSCB = NULL;
+    PNPFS_CCB pCCB = NULL;
 
     ntStatus = NpfsGetCCB(
                     pIrpContext->pIrp->FileHandle,
-                    &pSCB
+                    &pCCB
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pPipe = pSCB->pPipe;
+    ntStatus = NpfsCloseHandle(
+                        pCCB
+                        );
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ENTER_MUTEX(&pPipe->PipeMutex);
-
-    if (pPipe->PipeServerState !=  PIPE_SERVER_INIT_STATE) {
-
-        ntStatus = STATUS_INVALID_SERVER_STATE;
-
-        pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-        
-        LEAVE_MUTEX(&pPipe->PipeMutex);
-
-        if (pSCB){
-            NpfsReleaseCCB(pSCB);
-        }
-        return(ntStatus);
+error:
+    if (pCCB) {
+        NpfsReleaseCCB(pCCB);
     }
 
-    pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
+    return(ntStatus);
+}
 
-    while(pPipe->PipeClientState != PIPE_CLIENT_CONNECTED){
 
-        pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
 
-    }
+NTSTATUS
+NpfsCloseHandle(
+    PNPFS_CCB pCCB
+    )
+{
 
-    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+    NpfsAddRefCCB(pCCB);
 
-    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+    NTSTATUS ntStatus = 0;
 
-    LEAVE_MUTEX(&pPipe->PipeMutex);
+    switch (pCCB->CcbType) {
 
-    if (pSCB) {
-        NpfsReleaseCCB(pSCB);
+        case SERVER_CCB:
+            ntStatus = NpfsServerCloseHandle(
+                    pCCB
+                    );
+            BAIL_ON_NT_STATUS(ntStatus);
+            break;
+
+        case CLIENT_CCB:
+            ntStatus = NpfsClientCloseHandle(
+                            pCCB
+                            );
+            BAIL_ON_NT_STATUS(ntStatus);
+            break;
     }
 
 error:
+
+    NpfsReleaseCCB(pCCB);
+
+    return(ntStatus);
+}
+
+NTSTATUS
+NpfsServerCloseHandle(
+    PNPFS_CCB pSCB
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    pPipe = pSCB->pPipe;
+    ENTER_MUTEX(&pPipe->PipeMutex);
+
+    pPipe->PipeServerState = PIPE_SERVER_CLOSED;
+    pthread_cond_signal(&pPipe->PipeCondition);
+
+    NpfsReleaseCCB(pSCB);
+
+    if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED) {
+
+        ntStatus = NpfsFreePipeContext(
+                        pPipe
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    LEAVE_MUTEX(&pPipe->PipeMutex);
+    return(ntStatus);
+}
+
+
+
+NTSTATUS
+NpfsClientCloseHandle(
+    PNPFS_CCB pCCB
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+
+    pPipe = pCCB->pPipe;
+    ENTER_MUTEX(&pPipe->PipeMutex);
+
+    pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
+    pthread_cond_signal(&pPipe->PipeCondition);
+
+    NpfsReleaseCCB( pCCB);
+
+    if (pPipe->PipeServerState == PIPE_SERVER_CLOSED) {
+
+        ntStatus = NpfsFreePipeContext(
+                        pPipe
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    LEAVE_MUTEX(&pPipe->PipeMutex);
     return(ntStatus);
 }

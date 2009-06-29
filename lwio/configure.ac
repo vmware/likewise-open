@@ -578,7 +578,7 @@ AC_CONFIG_FILES([Makefile
         server/srv/transport/lwpoll/Makefile
         server/srv/transport/lwselect/Makefile
         server/srv/driver/Makefile
-        server/npvfs/Makefile
+        server/npfs/Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile
         drivers/Makefile

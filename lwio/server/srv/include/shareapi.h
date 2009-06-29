@@ -53,8 +53,8 @@
 #define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
 #define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
 
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npvfs"
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'v', 'f', 's', 0 }
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npfs"
+#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'f', 's', 0 }
 
 #define LWIO_SRV_SHARE_STRING_ID_ANY_A "????"
 #define LWIO_SRV_SHARE_STRING_ID_ANY_W {'?','?','?','?',0}

@@ -44,7 +44,7 @@
  *       CreateNamedPipe Dispatch Routine
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          
+ *
  */
 
 #include "npfs.h"
@@ -65,7 +65,7 @@ NpfsCreateNamedPipe(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NpfsCommonCreateNamedPipe(
-                        pIrpContext, 
+                        pIrpContext,
                         pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -119,7 +119,7 @@ NpfsCommonCreateNamedPipe(
                     &pPipe
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-    
+
     ntStatus = NpfsCreateSCB(
                     pIrpContext,
                     &pSCB
@@ -137,7 +137,7 @@ NpfsCommonCreateNamedPipe(
     NpfsAddRefPipe(pPipe);
 
     ntStatus = NpfsSetCCB(
-                        pIrpContext->pIrp->FileHandle, 
+                        pIrpContext->pIrp->FileHandle,
                         pSCB
                         );
     BAIL_ON_NT_STATUS(ntStatus);
@@ -145,7 +145,7 @@ NpfsCommonCreateNamedPipe(
 error:
 
     pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
-    
+
     return(ntStatus);
 }
 

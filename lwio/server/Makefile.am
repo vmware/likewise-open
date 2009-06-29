@@ -1,7 +1,7 @@
 SUBDIRS = \
     iomgr2  \
     smbwire \
-    npvfs   \
+    npfs   \
     pvfs    \
     rdr     \
     srv     \

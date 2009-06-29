@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -60,22 +60,22 @@ NpfsFileBasicInfo(
     case NPFS_SET:
         ntStatus = STATUS_NOT_SUPPORTED;
         break;
-        
+
     case NPFS_QUERY:
         ntStatus = NpfsQueryFileBasicInfo(pIrpContext);
         break;
 
     default:
         ntStatus = STATUS_INVALID_PARAMETER;
-        break;        
+        break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
-    
+
 cleanup:
     return ntStatus;
 
 error:
-    goto cleanup;    
+    goto cleanup;
 }
 
 
@@ -84,10 +84,10 @@ NpfsQueryFileBasicInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     )
 {
-    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;    
+    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PNPFS_CCB pCcb = NULL;
-    PFILE_BASIC_INFORMATION pFileInfo = NULL;    
+    PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
 
     /* Sanity checks */
@@ -103,10 +103,10 @@ NpfsQueryFileBasicInfo(
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntStatus = STATUS_BUFFER_TOO_SMALL;
-        BAIL_ON_NT_STATUS(ntStatus);        
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;    
+    pFileInfo = (PFILE_BASIC_INFORMATION)Args.FileInformation;
 
     pFileInfo->LastAccessTime = 0;
     pFileInfo->LastWriteTime = 0;
@@ -114,7 +114,7 @@ NpfsQueryFileBasicInfo(
     pFileInfo->CreationTime = 0;
     pFileInfo->FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);    
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntStatus = STATUS_SUCCESS;
 
 cleanup:
@@ -122,9 +122,9 @@ cleanup:
         NpfsReleaseCCB(pCcb);
     }
     return ntStatus;
-    
-error: 
-    goto cleanup;    
+
+error:
+    goto cleanup;
 }
 
 
