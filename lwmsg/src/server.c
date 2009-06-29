@@ -121,7 +121,7 @@ lwmsg_server_new(
     }
 
     lwmsg_ring_init(&server->io_tasks);
-    lwmsg_ring_init(&server->dispatch.tasks);
+    lwmsg_ring_init(&server->dispatch.calls);
 
     BAIL_ON_ERROR(status = lwmsg_shared_session_manager_new(&server->manager));
 
@@ -538,7 +538,6 @@ lwmsg_server_destroy_io_thread(
 {
     pthread_mutex_lock(&thread->lock);
     thread->shutdown = LWMSG_TRUE;
-    thread->num_events++;
     lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 
@@ -745,16 +744,9 @@ lwmsg_server_shutdown(
 
         pthread_mutex_lock(&io_thread->lock);
         io_thread->shutdown = LWMSG_TRUE;
-        io_thread->num_events++;
         lwmsg_server_signal_io_thread(io_thread);
         pthread_mutex_unlock(&io_thread->lock);
     }
-
-    /* Notify dispatch threads */
-    pthread_mutex_lock(&server->dispatch.lock);
-    server->dispatch.shutdown = LWMSG_TRUE;
-    pthread_cond_broadcast(&server->dispatch.event);
-    pthread_mutex_unlock(&server->dispatch.lock);
 
     /* Clean up IO threads */
     for (i = 0; i < server->max_io; i++)
@@ -780,6 +772,12 @@ lwmsg_server_shutdown(
     free(server->io.threads);
     server->io.threads = NULL;
 
+    /* Notify dispatch threads */
+    pthread_mutex_lock(&server->dispatch.lock);
+    server->dispatch.shutdown = LWMSG_TRUE;
+    pthread_cond_broadcast(&server->dispatch.event);
+    pthread_mutex_unlock(&server->dispatch.lock);
+
     /* Clean up dispatch threads */
     for (i = 0; i < server->max_dispatch; i++)
     {
@@ -788,7 +786,7 @@ lwmsg_server_shutdown(
         pthread_join(dispatch_thread->thread, NULL);
     }
 
-    for (iter = server->dispatch.tasks.next; iter != &server->dispatch.tasks; iter = next)
+    for (iter = server->dispatch.calls.next; iter != &server->dispatch.calls; iter = next)
     {
          next = iter->next;
 
@@ -924,6 +922,8 @@ lwmsg_server_signal_io_thread(
     char c = 0;
     int res = 0;
 
+    thread->num_events++;
+
     do
     {
         res = write(thread->event[1], &c, sizeof(c));
@@ -946,20 +946,19 @@ lwmsg_server_queue_io_task(
     pthread_mutex_unlock(&server->io.lock);
 
     pthread_mutex_lock(&thread->lock);
-    lwmsg_ring_insert_before((LWMsgRing*) &thread->tasks, &task->ring);
-    thread->num_events++;
+    lwmsg_ring_enqueue((LWMsgRing*) &thread->tasks, &task->ring);
     lwmsg_server_signal_io_thread(thread);
     pthread_mutex_unlock(&thread->lock);
 }
 
 void
-lwmsg_server_queue_dispatch_task(
+lwmsg_server_queue_call(
     LWMsgServer* server,
-    ServerTask* task
+    ServerCall* call
     )
 {
     pthread_mutex_lock(&server->dispatch.lock);
-    lwmsg_ring_insert_before(&server->dispatch.tasks, &task->ring);
+    lwmsg_ring_enqueue(&server->dispatch.calls, &call->ring);
     pthread_cond_signal(&server->dispatch.event);
     pthread_mutex_unlock(&server->dispatch.lock);
 }
@@ -977,7 +976,6 @@ lwmsg_server_wake_io_threads(
     {
         thread = &server->io.threads[i];
         pthread_mutex_lock(&thread->lock);
-        thread->num_events++;
         lwmsg_server_signal_io_thread(thread);
         pthread_mutex_unlock(&thread->lock);
     }

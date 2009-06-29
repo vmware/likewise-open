@@ -247,4 +247,116 @@ typedef struct __SMB2_ECHO_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ECHO_RESPONSE_HEADER,
                              *PSMB2_ECHO_RESPONSE_HEADER;
 
+typedef struct __SMB2_GET_INFO_REQUEST_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucInfoType;
+    UCHAR    ucInfoClass;
+    ULONG    ulOutputBufferLen;
+    USHORT   usInputBufferOffset;
+    USHORT   usReserved;
+    ULONG    ulInputBufferLen;
+    ULONG    ulAdditionalInfo;
+    ULONG    ulFlags;
+    SMB2_FID fid;
+
+} __attribute__((__packed__)) SMB2_GET_INFO_REQUEST_HEADER,
+                             *PSMB2_GET_INFO_REQUEST_HEADER;
+
+typedef struct __SMB2_WRITE_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usDataOffset;
+    ULONG    ulDataLength;
+    ULONG64  ullFileOffset;
+    SMB2_FID fid;
+    ULONG    ulRemaining;
+    ULONG    ulChannel;
+    USHORT   usWriteChannelInfoOffset;
+    USHORT   usWriteChannelInfoLength;
+    ULONG    ulFlags;
+
+} __attribute__((__packed__)) SMB2_WRITE_REQUEST_HEADER,
+                             *PSMB2_WRITE_REQUEST_HEADER;
+
+typedef struct __SMB2_WRITE_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulBytesWritten;
+    ULONG    ulBytesRemaining;
+    USHORT   usWriteChannelInfoOffset;
+    USHORT   usWriteChannelInfoLength;
+
+} __attribute__((__packed__)) SMB2_WRITE_RESPONSE_HEADER,
+                             *PSMB2_WRITE_RESPONSE_HEADER;
+
+typedef struct __SMB2_READ_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulDataLength;
+    ULONG64  ullFileOffset;
+    SMB2_FID fid;
+    ULONG    ulMinimumCount;
+    ULONG    ulChannel;
+    USHORT   usReadChannelInfoOffset;
+    USHORT   usReadChannelInfoLength;
+
+} __attribute__((__packed__)) SMB2_READ_REQUEST_HEADER,
+                             *PSMB2_READ_REQUEST_HEADER;
+
+typedef struct __SMB2_READ_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usDataOffset;
+    ULONG  ulDataLength;
+    ULONG  ulRemaining;
+    ULONG  ulReserved;
+
+} __attribute__((__packed__)) SMB2_READ_RESPONSE_HEADER,
+                             *PSMB2_READ_RESPONSE_HEADER;
+
+typedef struct __SMB2_IOCTL_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulFunctionCode;
+    SMB2_FID fid;
+    ULONG    ulInOffset;
+    ULONG    ulInLength;
+    ULONG    ulMaxInLength;
+    ULONG    ulOutOffset;
+    ULONG    ulOutLength;
+    ULONG    ulMaxOutLength;
+    ULONG    ulFlags;
+    ULONG    ulReserved;
+
+} __attribute__((__packed__)) SMB2_IOCTL_REQUEST_HEADER,
+                             *PSMB2_IOCTL_REQUEST_HEADER;
+
+typedef struct __SMB2_IOCTL_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usReserved;
+    ULONG    ulFunctionCode;
+    SMB2_FID fid;
+    ULONG    ulInOffset;
+    ULONG    ulInLength;
+    ULONG    ulOutOffset;
+    ULONG    ulOutLength;
+    ULONG    ulFlags;
+    ULONG    ulReserved;
+
+} __attribute__((__packed__)) SMB2_IOCTL_RESPONSE_HEADER,
+                             *PSMB2_IOCTL_RESPONSE_HEADER;
+
+typedef struct __SMB2_ERROR_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+    ULONG  ulStatus;
+} __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
+                             *PSMB2_ERROR_RESPONSE_HEADER;
+
 #endif /* __STRUCTS_H__ */

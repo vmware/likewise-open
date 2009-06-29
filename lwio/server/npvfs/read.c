@@ -157,7 +157,7 @@ NpfsServerReadFile(
     switch(pPipe->PipeServerState) {
 
         case PIPE_SERVER_CONNECTED:
-            while (NpfsMdlListIsEmpty(pSCB->pMdlList) && 
+            while (NpfsMdlListIsEmpty(pSCB->pMdlList) &&
                 (pPipe->PipeClientState == PIPE_CLIENT_CONNECTED)) {
                 pthread_cond_wait(&pPipe->PipeCondition,&pPipe->PipeMutex);
             }
@@ -165,7 +165,7 @@ NpfsServerReadFile(
                 && (NpfsMdlListIsEmpty(pSCB->pMdlList))){
                 ntStatus = STATUS_END_OF_FILE;
                 BAIL_ON_NT_STATUS(ntStatus);
-            }else if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED) 
+            }else if ((pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
                     && (!NpfsMdlListIsEmpty(pSCB->pMdlList))){
                 ntStatus = NpfsServerReadFile_Connected(pSCB, pIrpContext);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -202,8 +202,22 @@ NpfsServerReadFile_Connected(
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
 
-    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
-    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+    switch (pIrpContext->pIrp->Type)
+    {
+        case IRP_TYPE_FS_CONTROL:
+
+            pBuffer = pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+            Length = pIrpContext->pIrp->Args.IoFsControl.OutputBufferLength;
+
+            break;
+
+        default:
+
+            pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+            Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+
+            break;
+    }
 
     ntStatus = NpfsDequeueBuffer(
                         pSCB->pMdlList,
@@ -247,7 +261,7 @@ NpfsClientReadFile(
                 && (NpfsMdlListIsEmpty(pCCB->pMdlList))){
                 ntStatus = STATUS_END_OF_FILE;
                 BAIL_ON_NT_STATUS(ntStatus);
-            }else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED) 
+            }else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
                     && (!NpfsMdlListIsEmpty(pCCB->pMdlList))){
                 ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -285,8 +299,22 @@ NpfsClientReadFile_Connected(
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
 
-    pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
-    Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+    switch (pIrpContext->pIrp->Type)
+    {
+        case IRP_TYPE_FS_CONTROL:
+
+            pBuffer = pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+            Length = pIrpContext->pIrp->Args.IoFsControl.OutputBufferLength;
+
+            break;
+
+        default:
+
+            pBuffer = pIrpContext->pIrp->Args.ReadWrite.Buffer;
+            Length = pIrpContext->pIrp->Args.ReadWrite.Length;
+
+            break;
+    }
 
     ntStatus = NpfsDequeueBuffer(
                         pCCB->pMdlList,

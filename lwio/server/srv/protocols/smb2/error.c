@@ -86,6 +86,12 @@ SrvBuildErrorResponse_SMB_V2(
                 TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMB2MarshalError(pSmbResponse, errorStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     *ppSmbResponse = pSmbResponse;
 
 cleanup:

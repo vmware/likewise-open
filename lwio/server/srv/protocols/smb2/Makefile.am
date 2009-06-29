@@ -6,12 +6,17 @@ libsrv_protocols_smb2_la_SOURCES = \
     echo.c           \
     error.c          \
     flush.c          \
+    getinfo.c        \
+    ioctl.c          \
     libmain.c        \
+    logoff.c         \
     negotiate.c      \
+    read.c           \
     session_setup.c  \
     treeconnect.c    \
     treedisconnect.c \
-    wire.c
+    wire.c           \
+    write.c
 
 libsrv_protocols_smb2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \

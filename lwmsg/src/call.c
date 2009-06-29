@@ -50,31 +50,31 @@ lwmsg_call_transact(
     return call->vtbl->transact(call, complete, data);
 }
 
-LWMsgStatus
+void
 lwmsg_call_pend(
     LWMsgCall* call,
     LWMsgCancelFunction cancel,
     void* data
     )
 {
-    return call->vtbl->pend(call, cancel, data);
+    call->vtbl->pend(call, cancel, data);
 }
 
-LWMsgStatus
+void
 lwmsg_call_complete(
     LWMsgCall* call,
     LWMsgStatus status
     )
 {
-    return call->vtbl->complete(call, status);
+    call->vtbl->complete(call, status);
 }
 
-LWMsgStatus
+void
 lwmsg_call_cancel(
     LWMsgCall* call
     )
 {
-    return call->vtbl->cancel(call);
+    call->vtbl->cancel(call);
 }
 
 void

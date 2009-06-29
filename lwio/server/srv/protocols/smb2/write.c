@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        logoff.c
+ *        write.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Protocols API - SMBV2
  *
- *        Logoff
+ *        Write
  *
  * Authors: Krishna Ganugapati (kganugapati@likewise.com)
  *          Sriram Nambakam (snambakam@likewise.com)
@@ -53,14 +53,16 @@
 
 static
 NTSTATUS
-SrvBuildLogoffResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
+SrvBuildWriteResponse_SMB_V2(
     PSMB_PACKET          pSmbRequest,
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG                ulBytesWritten,
+    ULONG                ulBytesRemaining,
     PSMB_PACKET*         ppSmbResponse
     );
 
 NTSTATUS
-SrvProcessLogoff_SMB_V2(
+SrvProcessWrite_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
@@ -68,7 +70,14 @@ SrvProcessLogoff_SMB_V2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION_2 pSession = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
+    PLWIO_SRV_TREE_2    pTree = NULL;
+    PLWIO_SRV_FILE_2    pFile = NULL;
+    PSMB2_WRITE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+    PBYTE                      pData = NULL; // Do not free
+    LONG64                     llDataOffset = 0LL;
+    ULONG                      ulKey = 0L;
+    IO_STATUS_BLOCK            ioStatusBlock = {0};
+    PSMB_PACKET                pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
@@ -76,20 +85,58 @@ SrvProcessLogoff_SMB_V2(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2RemoveSession(
-                    pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId);
+    ntStatus = SrvSession2FindTree(
+                    pSession,
+                    pSmbRequest->pSMB2Header->ulTid,
+                    &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildLogoffResponse_SMB_V2(
-                    pConnection,
+    ntStatus = SMB2UnmarshalWriteRequest(
                     pSmbRequest,
+                    &pRequestHeader,
+                    &pData);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvTree2FindFile(
+                    pTree,
+                    pRequestHeader->fid.ullVolatileId,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulKey = pSmbRequest->pSMB2Header->ulPid;
+    llDataOffset = pRequestHeader->ullFileOffset;
+
+    ntStatus = IoWriteFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pData,
+                    pRequestHeader->ulDataLength,
+                    &llDataOffset,
+                    &ulKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvBuildWriteResponse_SMB_V2(
+                    pSmbRequest,
+                    pConnection,
+                    ioStatusBlock.BytesTransferred,
+                    pRequestHeader->ulDataLength-ioStatusBlock.BytesTransferred,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pFile)
+    {
+        SrvFile2Release(pFile);
+    }
+
+    if (pTree)
+    {
+        SrvTree2Release(pTree);
+    }
 
     if (pSession)
     {
@@ -112,13 +159,15 @@ error:
 
 static
 NTSTATUS
-SrvBuildLogoffResponse_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
+SrvBuildWriteResponse_SMB_V2(
     PSMB_PACKET          pSmbRequest,
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG                ulBytesWritten,
+    ULONG                ulBytesRemaining,
     PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SMBPacketAllocate(
@@ -135,7 +184,7 @@ SrvBuildLogoffResponse_SMB_V2(
 
     ntStatus = SMB2MarshalHeader(
                     pSmbResponse,
-                    COM2_LOGOFF,
+                    COM2_WRITE,
                     0,
                     1,
                     pSmbRequest->pSMB2Header->ulPid,
@@ -147,7 +196,10 @@ SrvBuildLogoffResponse_SMB_V2(
                     TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalLogoffResponse(pSmbResponse);
+    ntStatus = SMB2MarshalWriteResponse(
+                    pSmbResponse,
+                    ulBytesWritten,
+                    ulBytesRemaining);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);

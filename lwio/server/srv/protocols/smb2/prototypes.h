@@ -87,6 +87,23 @@ SrvProcessFlush_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// getinfo.c
+NTSTATUS
+SrvProcessGetInfo_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// ioctl.c
+
+NTSTATUS
+SrvProcessIOCTL_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // logoff.c
 
 NTSTATUS
@@ -113,6 +130,15 @@ SrvBuildErrorResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB2_HEADER         pSmbRequestHeader,
     NTSTATUS             errorStatus,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// read.c
+
+NTSTATUS
+SrvProcessRead_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
     );
 
@@ -239,8 +265,73 @@ SMB2MarshalEchoResponse(
     );
 
 NTSTATUS
+SMB2UnmarshalGetInfoRequest(
+    PSMB_PACKET                    pPacket,
+    PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
+    );
+
+NTSTATUS
+SMB2UnmarshalWriteRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    );
+
+NTSTATUS
+SMB2MarshalWriteResponse(
+    PSMB_PACKET pPacket,
+    ULONG       ulBytesWritten,
+    ULONG       ulBytesRemaining
+    );
+
+NTSTATUS
+SMB2UnmarshalReadRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_READ_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+SMB2MarshalReadResponse(
+    PSMB_PACKET pPacket,
+    PBYTE       pData,
+    ULONG       ulBytesRead,
+    ULONG       ulBytesRemaining,
+    PULONG      pulDataOffset
+    );
+
+NTSTATUS
+SMB2UnmarshalIOCTLRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    );
+
+NTSTATUS
+SMB2MarshalIOCTLResponse(
+    PSMB_PACKET                pPacket,
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
+    PBYTE                      pOutBuffer,
+    ULONG                      ulOutLength
+    );
+
+NTSTATUS
+SMB2MarshalError(
+    PSMB_PACKET pPacket,
+    NTSTATUS    status
+    );
+
+NTSTATUS
 SMB2MarshalFooter(
     PSMB_PACKET pPacket
+    );
+
+// write.c
+
+NTSTATUS
+SrvProcessWrite_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
     );
 
 #endif /* __PROTOTYPES_H__ */

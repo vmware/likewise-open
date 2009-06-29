@@ -45,14 +45,14 @@
 
 typedef struct LWMsgCall LWMsgCall;
 
-typedef LWMsgStatus
+typedef void
 (*LWMsgCompleteFunction) (
     LWMsgCall* call,
     LWMsgStatus status,
     void* data
     );
 
-typedef LWMsgStatus
+typedef void
 (*LWMsgCancelFunction) (
     LWMsgCall* call,
     void* data
@@ -65,20 +65,20 @@ lwmsg_call_transact(
     void* data
     );
 
-LWMsgStatus
+void
 lwmsg_call_pend(
     LWMsgCall* call,
     LWMsgCancelFunction cancel,
     void* data
     );
 
-LWMsgStatus
+void
 lwmsg_call_complete(
     LWMsgCall* call,
     LWMsgStatus status
     );
 
-LWMsgStatus
+void
 lwmsg_call_cancel(
     LWMsgCall* call
     );

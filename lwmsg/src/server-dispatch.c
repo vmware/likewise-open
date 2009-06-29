@@ -26,11 +26,11 @@
 /*
  * Module Name:
  *
- *        server.c
+ *        server-dispatch.c
  *
  * Abstract:
  *
- *        Multi-threaded server API
+ *        Server -- Blocking call dispatch thread
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
@@ -48,16 +48,15 @@ lwmsg_server_dispatch_loop(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgBool in_lock = LWMSG_FALSE;
     LWMsgRing* head = NULL;
-    ServerTask* task = NULL;
+    ServerCall* call = NULL;
     LWMsgServer* server = thread->server;
-    LWMsgDispatchSpec* spec = NULL;
 
     for (;;)
     {
         pthread_mutex_lock(&server->dispatch.lock);
         in_lock = LWMSG_TRUE;
 
-        while (lwmsg_ring_is_empty(&server->dispatch.tasks) &&
+        while (lwmsg_ring_is_empty(&server->dispatch.calls) &&
                !server->dispatch.shutdown)
         {
             pthread_cond_wait(&server->dispatch.event, &server->dispatch.lock);
@@ -68,67 +67,33 @@ lwmsg_server_dispatch_loop(
             break;
         }
 
-        head = server->dispatch.tasks.next;
-        lwmsg_ring_remove(head);
-        task = LWMSG_OBJECT_FROM_MEMBER(head, ServerTask, ring);
+        lwmsg_ring_dequeue(&server->dispatch.calls, &head);
+        call = LWMSG_OBJECT_FROM_MEMBER(head, ServerCall, ring);
 
         pthread_mutex_unlock(&server->dispatch.lock);
         in_lock = LWMSG_FALSE;
 
-        if (task->info.call.incoming_message.tag >= server->dispatch.vector_length)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
-        }
-
-        spec = server->dispatch.vector[task->info.call.incoming_message.tag];
-
-        if (!spec->data)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
-        }
-
-        switch (spec->type)
-        {
-        case LWMSG_DISPATCH_TYPE_OLD:
-            status = ((LWMsgAssocDispatchFunction) spec->data) (
-                task->info.call.assoc,
-                &task->info.call.incoming_message,
-                &task->info.call.outgoing_message,
-                server->dispatch_data);
-            break;
-        case LWMSG_DISPATCH_TYPE_BLOCK:
-            status = ((LWMsgServerCallFunction) spec->data) (
-                LWMSG_CALL(&task->info.call.control),
-                &task->info.call.incoming_message,
-                &task->info.call.outgoing_message,
-                server->dispatch_data);
-            break;
-        default:
-            BAIL_ON_ERROR(status = LWMSG_STATUS_INTERNAL);
-            break;
-        }
+        status = lwmsg_call_transact(LWMSG_CALL(call), NULL, NULL);
 
         switch (status)
         {
-        case LWMSG_STATUS_SUCCESS:
-            lwmsg_assoc_destroy_message(task->info.call.assoc, &task->info.call.incoming_message);
-            task->type = SERVER_TASK_BEGIN_SEND;
+        case LWMSG_STATUS_PENDING:
+            /* Callee will asynchronously complete for us */
             break;
         default:
-            task->type = SERVER_TASK_BEGIN_CLOSE;
+            /* Manually invoke complete to wake up IO thread */
+            lwmsg_call_complete(LWMSG_CALL(call), status);
             break;
         }
 
+        /* Ignore any error -- the IO thread will handle it */
         status = LWMSG_STATUS_SUCCESS;
-        lwmsg_server_queue_io_task(server, task);
     }
 
     if (in_lock)
     {
         pthread_mutex_unlock(&server->dispatch.lock);
     }
-
-error:
 
     return status;
 }
