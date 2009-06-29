@@ -256,7 +256,7 @@ SrvExecuteFsctl_SMB_V2(
     } while (ntStatus != STATUS_SUCCESS);
 
     *ppResponseBuffer = pResponseBuffer;
-    *pulResponseBufferLen = ulResponseBufferLen;
+    *pulResponseBufferLen = ulActualResponseLen;
 
 cleanup:
 
@@ -341,7 +341,7 @@ SrvExecuteIoctl_SMB_V2(
     } while (ntStatus != STATUS_SUCCESS);
 
     *ppResponseBuffer = pResponseBuffer;
-    *pulResponseBufferLen = ulResponseBufferLen;
+    *pulResponseBufferLen = ulActualResponseLen;
 
 cleanup:
 
@@ -404,7 +404,7 @@ SrvBuildIOCTLResponse_SMB_V2(
                     pSmbResponse,
                     pRequestHeader,
                     pResponseBuffer,
-                    SMB_MIN(ulResponseBufferLen, pRequestHeader->ulOutLength));
+                    SMB_MIN(ulResponseBufferLen, pRequestHeader->ulMaxOutLength));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);
