@@ -996,6 +996,12 @@ SMB2UnmarshalIOCTLRequest(
     ulOffset += sizeof(SMB2_IOCTL_REQUEST_HEADER);
     ulBytesAvailable -= sizeof(SMB2_IOCTL_REQUEST_HEADER);
 
+    if (!pRequestHeader->ulInLength || !pRequestHeader->ulMaxOutLength)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     if (pRequestHeader->usLength & 0x1)
     {
         if (((pRequestHeader->ulInOffset > 0) &&
