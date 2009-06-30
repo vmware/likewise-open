@@ -1099,10 +1099,8 @@ lwmsg_server_task_create_local_socket(
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-    if (chmod(sockaddr.sun_path, task->info.listen.perms) < 0)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    // ignore errors
+    chmod(sockaddr.sun_path, task->info.listen.perms);
 
     task->fd = sock;
     sock = -1;

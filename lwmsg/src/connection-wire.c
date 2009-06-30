@@ -52,6 +52,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <config.h>
 
 #ifndef CMSG_ALIGN
@@ -938,11 +939,8 @@ lwmsg_connection_begin_connect_local(
     opts |= O_NONBLOCK;
 
     /* Set socket flags */
-    if (fcntl(priv->fd, F_SETFL, opts) < 0)
-    {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not set socket flags: %s", strerror(errno));
-    }
+    /* ignore errors */
+    fcntl(priv->fd, F_SETFL, opts);
 
     sockaddr.sun_family = AF_UNIX;
 
