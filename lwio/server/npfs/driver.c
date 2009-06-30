@@ -170,7 +170,7 @@ DriverEntry(
 
     ntStatus = IoDeviceCreate(&deviceHandle,
                               DriverHandle,
-                              "npvfs",
+                              "npfs",
                               NULL);
     GOTO_CLEANUP_ON_STATUS_EE(ntStatus, EE);
 

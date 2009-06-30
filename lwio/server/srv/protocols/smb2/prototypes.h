@@ -78,6 +78,15 @@ SrvProcessEcho_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// find.c
+
+NTSTATUS
+SrvProcessFind_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // flush.c
 
 NTSTATUS
@@ -99,6 +108,15 @@ SrvProcessGetInfo_SMB_V2(
 
 NTSTATUS
 SrvProcessIOCTL_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
+// lock.c
+
+NTSTATUS
+SrvProcessLock_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSMB_PACKET*         ppSmbResponse
@@ -271,20 +289,6 @@ SMB2UnmarshalGetInfoRequest(
     );
 
 NTSTATUS
-SMB2UnmarshalWriteRequest(
-    PSMB_PACKET                 pPacket,
-    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
-    PBYTE*                      ppData
-    );
-
-NTSTATUS
-SMB2MarshalWriteResponse(
-    PSMB_PACKET pPacket,
-    ULONG       ulBytesWritten,
-    ULONG       ulBytesRemaining
-    );
-
-NTSTATUS
 SMB2UnmarshalReadRequest(
     PSMB_PACKET                pPacket,
     PSMB2_READ_REQUEST_HEADER* ppRequestHeader
@@ -300,6 +304,32 @@ SMB2MarshalReadResponse(
     );
 
 NTSTATUS
+SMB2UnmarshalWriteRequest(
+    PSMB_PACKET                 pPacket,
+    PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
+    PBYTE*                      ppData
+    );
+
+NTSTATUS
+SMB2MarshalWriteResponse(
+    PSMB_PACKET pPacket,
+    ULONG       ulBytesWritten,
+    ULONG       ulBytesRemaining
+    );
+
+NTSTATUS
+SMB2UnmarshalLockRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+SMB2MarshalLockResponse(
+    PSMB_PACKET            pPacket,
+    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    );
+
+NTSTATUS
 SMB2UnmarshalIOCTLRequest(
     PSMB_PACKET                 pPacket,
     PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
@@ -312,6 +342,13 @@ SMB2MarshalIOCTLResponse(
     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
     PBYTE                      pOutBuffer,
     ULONG                      ulOutLength
+    );
+
+NTSTATUS
+SMB2UnmarshalFindRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
+    PUNICODE_STRING            pwszFilename
     );
 
 NTSTATUS

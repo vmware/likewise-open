@@ -82,7 +82,7 @@ PvfsWrite(
     }
 #endif
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_WRITE_DATA|FILE_APPEND_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Enter critical region - WriteFile() needs to fill

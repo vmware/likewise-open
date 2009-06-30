@@ -351,6 +351,89 @@ typedef struct __SMB2_IOCTL_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_IOCTL_RESPONSE_HEADER,
                              *PSMB2_IOCTL_RESPONSE_HEADER;
 
+typedef struct __SMB2_LOCK
+{
+    ULONG64 ullFileOffset;
+    ULONG64 ullByteRange;
+    ULONG   ulFlags;
+    ULONG   ulReserved;
+} __attribute__((__packed__)) SMB2_LOCK, *PSMB2_LOCK;
+
+typedef struct __SMB2_LOCK_REQUEST_HEADER
+{
+    USHORT    usLength;
+    USHORT    usLockCount;
+    ULONG     ulReserved;
+    SMB2_FID  fid;
+    SMB2_LOCK locks[1];
+} __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
+                             *PSMB2_LOCK_REQUEST_HEADER;
+
+typedef struct __SMB2_LOCK_RESPONSE_HEADER
+{
+    USHORT    usLength;
+    USHORT    usReserved;
+} __attribute__((__packed__)) SMB2_LOCK_RESPONSE_HEADER,
+                             *PSMB2_LOCK_RESPONSE_HEADER;;
+
+typedef struct _SRV_SMB2_LOCK_REQUEST* PSRV_SMB2_LOCK_REQUEST;
+
+typedef struct _SRV_SMB2_LOCK_CONTEXT
+{
+    SMB2_LOCK               lockInfo;
+
+    ULONG                   ulKey;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    PSRV_SMB2_LOCK_REQUEST  pLockRequest;
+
+} SRV_SMB2_LOCK_CONTEXT, *PSRV_SMB2_LOCK_CONTEXT;
+
+typedef struct _SRV_SMB2_LOCK_REQUEST
+{
+    LONG                   refCount;
+
+    pthread_mutex_t        mutex;
+    pthread_mutex_t*       pMutex;
+
+    PLWIO_SRV_FILE_2       pFile;
+    PLWIO_SRV_CONNECTION   pConnection;
+
+    ULONG                  ulTid;
+    ULONG64                ullCommandSequence;
+    ULONG64                ullSessionId;
+    ULONG                  ulPid;
+
+    ULONG                  ulNumContexts;
+
+    PSRV_SMB2_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
+
+    LONG                   lPendingContexts;
+
+    BOOLEAN                bResponseSent;
+
+} SRV_SMB2_LOCK_REQUEST;
+
+typedef struct __SMB2_FIND_REQUEST_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucInfoClass;
+    UCHAR    ucSearchFlags;
+    ULONG    ulFileIndex;
+    SMB2_FID fid;
+    USHORT   usFilenameOffset;
+    USHORT   usFilenameLength;
+    ULONG    ulOutBufferLength;
+
+    /* File name/Search pattern follows */
+
+} __attribute__((__packed__)) SMB2_FIND_REQUEST_HEADER,
+                             *PSMB2_FIND_REQUEST_HEADER;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;

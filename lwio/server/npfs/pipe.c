@@ -75,7 +75,7 @@ NpfsFindAvailablePipe(
 
             return(ntStatus);
         }
-        
+
         LEAVE_MUTEX(&pPipe->PipeMutex);
         pPipe = pPipe->pNext;
     }

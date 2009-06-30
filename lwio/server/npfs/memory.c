@@ -28,10 +28,44 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern PNPFS_FCB gpFCB;
-extern pthread_rwlock_t gServerLock;
 
-#endif /* __EXTERNS_H__ */
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        memory.c
+ *
+ * Abstract:
+ *
+ *        Likewise Named Pipe File System Driver (NPFS)
+ *
+ *        Memory Management Functions
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ */
+
+#include "npfs.h"
+
+
+NTSTATUS
+NpfsAllocateMemory(
+    IN ULONG ulSize,
+    OUT PVOID* ppMemory
+    )
+{
+    return RTL_ALLOCATE(ppMemory, VOID, ulSize);
+}
+
+VOID
+NpfsFreeMemory(
+    IN OUT PVOID pMemory
+    )
+{
+    if (pMemory)
+    {
+        RtlMemoryFree(pMemory);
+    }
+}

@@ -233,7 +233,7 @@ CreatePipeClient(
 
     ntStatus = LwRtlCStringAllocatePrintf(
                     &smbpath,
-                    "\\npvfs\\%s",
+                    "\\npfs\\%s",
                     (char*) pipename);
     BAIL_ON_NT_STATUS(ntStatus);
 

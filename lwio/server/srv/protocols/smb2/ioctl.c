@@ -53,28 +53,6 @@
 
 static
 NTSTATUS
-SrvExecuteFsctl_SMB_V2(
-    PLWIO_SRV_FILE_2 pFile,
-    PBYTE            pData,
-    ULONG            ulDataLen,
-    ULONG            ulControlCode,
-    PBYTE*           ppResponseBuffer,
-    PULONG           pulResponseBufferLen
-    );
-
-static
-NTSTATUS
-SrvExecuteIoctl_SMB_V2(
-    PLWIO_SRV_FILE_2 pFile,
-    PBYTE            pData,
-    ULONG            ulDataLen,
-    ULONG            ulControlCode,
-    PBYTE*           ppResponseBuffer,
-    PULONG           pulResponseBufferLen
-    );
-
-static
-NTSTATUS
 SrvBuildIOCTLResponse_SMB_V2(
     PSMB_PACKET                pSmbRequest,
     PLWIO_SRV_CONNECTION       pConnection,
@@ -91,15 +69,17 @@ SrvProcessIOCTL_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
-    PLWIO_SRV_TREE_2    pTree = NULL;
-    PLWIO_SRV_FILE_2    pFile = NULL;
-    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader = NULL; // Do not free
-    PBYTE   pData = NULL; // Do not free
-    PBYTE   pResponseBuffer = NULL;
-    ULONG   ulResponseBufferLen = 0;
-    PSMB_PACKET pSmbResponse = NULL;
+    NTSTATUS                   ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION_2        pSession = NULL;
+    PLWIO_SRV_TREE_2           pTree    = NULL;
+    PLWIO_SRV_FILE_2           pFile    = NULL;
+    PSMB2_IOCTL_REQUEST_HEADER pRequestHeader  = NULL; // Do not free
+    PBYTE                      pData           = NULL; // Do not free
+    IO_STATUS_BLOCK            ioStatusBlock   = {0};
+    PBYTE                      pResponseBuffer = NULL;
+    size_t                     sResponseBufferLen  = 0;
+    ULONG                      ulResponseBufferLen = 0;
+    PSMB_PACKET                pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
@@ -125,25 +105,38 @@ SrvProcessIOCTL_SMB_V2(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    pRequestHeader->ulMaxOutLength,
+                    &pResponseBuffer,
+                    &sResponseBufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulResponseBufferLen = sResponseBufferLen;
+
     if (pRequestHeader->ulFlags & 0x1)
     {
-        ntStatus = SrvExecuteFsctl_SMB_V2(
-                        pFile,
-                        pData,
-                        pRequestHeader->ulInLength,
-                        pRequestHeader->ulFunctionCode,
-                        &pResponseBuffer,
-                        &ulResponseBufferLen);
+        ntStatus = IoFsControlFile(
+                                pFile->hFile,
+                                NULL,
+                                &ioStatusBlock,
+                                pRequestHeader->ulFunctionCode,
+                                pData,
+                                pRequestHeader->ulInLength,
+                                pResponseBuffer,
+                                ulResponseBufferLen);
     }
     else
     {
-        ntStatus = SrvExecuteIoctl_SMB_V2(
-                        pFile,
-                        pData,
-                        pRequestHeader->ulInLength,
-                        pRequestHeader->ulFunctionCode,
-                        &pResponseBuffer,
-                        &ulResponseBufferLen);
+        ntStatus = IoDeviceIoControlFile(
+                                pFile->hFile,
+                                NULL,
+                                &ioStatusBlock,
+                                pRequestHeader->ulFunctionCode,
+                                pData,
+                                pRequestHeader->ulInLength,
+                                pResponseBuffer,
+                                ulResponseBufferLen);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -152,13 +145,21 @@ SrvProcessIOCTL_SMB_V2(
                     pConnection,
                     pRequestHeader,
                     pResponseBuffer,
-                    ulResponseBufferLen,
+                    ioStatusBlock.BytesTransferred,
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pResponseBuffer)
+    {
+        SMBPacketBufferFree(
+            pConnection->hPacketAllocator,
+            pResponseBuffer,
+            sResponseBufferLen);
+    }
 
     if (pFile)
     {
@@ -184,177 +185,6 @@ error:
     if (pSmbResponse)
     {
         SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SrvExecuteFsctl_SMB_V2(
-    PLWIO_SRV_FILE_2 pFile,
-    PBYTE            pData,
-    ULONG            ulDataLen,
-    ULONG            ulFunctionCode,
-    PBYTE*           ppResponseBuffer,
-    PULONG           pulResponseBufferLen
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PBYTE    pResponseBuffer = NULL;
-    ULONG    ulResponseBufferLen = 0;
-    ULONG    ulActualResponseLen = 0;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-
-    ntStatus = SrvAllocateMemory(512, (PVOID*) &pResponseBuffer);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ulResponseBufferLen = 512;
-
-    do
-    {
-        ntStatus = IoFsControlFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        ulFunctionCode,
-                        pData,
-                        ulDataLen,
-                        pResponseBuffer,
-                        ulResponseBufferLen);
-        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
-        {
-            ULONG ulNewLength = 0;
-
-            if ((ulResponseBufferLen + 256) > UINT32_MAX)
-            {
-                ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            ulNewLength = ulResponseBufferLen + 256;
-
-            if (pResponseBuffer)
-            {
-                SrvFreeMemory(pResponseBuffer);
-                pResponseBuffer = NULL;
-                ulResponseBufferLen = 0;
-            }
-
-            ntStatus = SrvAllocateMemory(ulNewLength, (PVOID*)&pResponseBuffer);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            ulResponseBufferLen = ulNewLength;
-
-            continue;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ulActualResponseLen = ioStatusBlock.BytesTransferred;
-
-    } while (ntStatus != STATUS_SUCCESS);
-
-    *ppResponseBuffer = pResponseBuffer;
-    *pulResponseBufferLen = ulActualResponseLen;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppResponseBuffer = NULL;
-    *pulResponseBufferLen = 0;
-
-    if (pResponseBuffer)
-    {
-        SrvFreeMemory(pResponseBuffer);
-    }
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvExecuteIoctl_SMB_V2(
-    PLWIO_SRV_FILE_2 pFile,
-    PBYTE            pData,
-    ULONG            ulDataLen,
-    ULONG            ulControlCode,
-    PBYTE*           ppResponseBuffer,
-    PULONG           pulResponseBufferLen
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PBYTE    pResponseBuffer = NULL;
-    USHORT   ulResponseBufferLen = 0;
-    USHORT   ulActualResponseLen = 0;
-    IO_STATUS_BLOCK ioStatusBlock = {0};
-
-    ntStatus = SrvAllocateMemory(512, (PVOID*) &pResponseBuffer);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ulResponseBufferLen = 512;
-
-    do
-    {
-        ntStatus = IoDeviceIoControlFile(
-                        pFile->hFile,
-                        NULL,
-                        &ioStatusBlock,
-                        ulControlCode,
-                        pData,
-                        ulDataLen,
-                        pResponseBuffer,
-                        ulResponseBufferLen);
-        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
-        {
-            USHORT ulNewLength = 0;
-
-            if ((ulResponseBufferLen + 256) > UINT32_MAX)
-            {
-                ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            ulNewLength = ulResponseBufferLen + 256;
-
-            if (pResponseBuffer)
-            {
-                SrvFreeMemory(pResponseBuffer);
-                pResponseBuffer = NULL;
-                ulResponseBufferLen = 0;
-            }
-
-            ntStatus = SrvAllocateMemory(ulNewLength, (PVOID*)&pResponseBuffer);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            ulResponseBufferLen = ulNewLength;
-
-            continue;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ulActualResponseLen = ioStatusBlock.BytesTransferred;
-
-    } while (ntStatus != STATUS_SUCCESS);
-
-    *ppResponseBuffer = pResponseBuffer;
-    *pulResponseBufferLen = ulActualResponseLen;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppResponseBuffer = NULL;
-    *pulResponseBufferLen = 0;
-
-    if (pResponseBuffer)
-    {
-        SrvFreeMemory(pResponseBuffer);
     }
 
     goto cleanup;
@@ -413,6 +243,11 @@ SrvBuildIOCTLResponse_SMB_V2(
     *ppSmbResponse = pSmbResponse;
 
 cleanup:
+
+    if (pResponseBuffer)
+    {
+
+    }
 
     return ntStatus;
 

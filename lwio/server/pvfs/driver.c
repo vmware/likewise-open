@@ -185,11 +185,11 @@ PvfsDriverDispatch(
     case IRP_TYPE_CLOSE:
         ntError = PvfsClose(pIrpCtx);
         break;
-
-    /* Not implemented */
     case IRP_TYPE_DEVICE_IO_CONTROL:
         ntError = PvfsDeviceIoControl(pIrpCtx);
         break;
+
+    /* Not implemented */
     case IRP_TYPE_SET_VOLUME_INFORMATION:
         ntError = PvfsSetVolumeInformation(pIrpCtx);
         break;

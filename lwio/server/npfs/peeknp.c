@@ -147,7 +147,7 @@ NpfsServerPeekNamedPipeFile(
     switch(pPipe->PipeServerState) {
 
         case PIPE_SERVER_CONNECTED:
-            while (NpfsMdlListIsEmpty(pSCB->pMdlList) && 
+            while (NpfsMdlListIsEmpty(pSCB->pMdlList) &&
                 (pPipe->PipeClientState == PIPE_CLIENT_CONNECTED)) {
                 pthread_cond_wait(&pPipe->PipeCondition,&pPipe->PipeMutex);
             }

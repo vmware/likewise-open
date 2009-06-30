@@ -96,7 +96,7 @@ NpfsQueryFilePipeLocalInfo(
                     &pCcb
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-    
+
     pPipe = pCcb->pPipe;
     NpfsAddRefPipe(pPipe);
 
@@ -119,7 +119,7 @@ NpfsQueryFilePipeLocalInfo(
     pPipeInfo->InboundQuota = 0;
     pPipeInfo->MaximumInstances = pFCB->MaxNumberOfInstances;
     pPipeInfo->NamedPipeConfiguration = pFCB->NamedPipeConfiguration;
-    pPipeInfo->NamedPipeEnd = (pCcb->CcbType == NPFS_CCB_SERVER)? 
+    pPipeInfo->NamedPipeEnd = (pCcb->CcbType == NPFS_CCB_SERVER)?
                                 FILE_PIPE_SERVER_END: FILE_PIPE_CLIENT_END;
     pPipeInfo->NamedPipeState = 0;
     pPipeInfo->NamedPipeType = pFCB->NamedPipeType;
