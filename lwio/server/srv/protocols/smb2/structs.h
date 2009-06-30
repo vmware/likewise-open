@@ -376,14 +376,6 @@ typedef struct __SMB2_LOCK_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_LOCK_RESPONSE_HEADER,
                              *PSMB2_LOCK_RESPONSE_HEADER;;
 
-typedef struct __SMB2_ERROR_RESPONSE_HEADER
-{
-    USHORT usLength;
-    USHORT usReserved;
-    ULONG  ulStatus;
-} __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
-                             *PSMB2_ERROR_RESPONSE_HEADER;
-
 typedef struct _SRV_SMB2_LOCK_REQUEST* PSRV_SMB2_LOCK_REQUEST;
 
 typedef struct _SRV_SMB2_LOCK_CONTEXT
@@ -425,5 +417,29 @@ typedef struct _SRV_SMB2_LOCK_REQUEST
     BOOLEAN                bResponseSent;
 
 } SRV_SMB2_LOCK_REQUEST;
+
+typedef struct __SMB2_FIND_REQUEST_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucInfoClass;
+    UCHAR    ucSearchFlags;
+    ULONG    ulFileIndex;
+    SMB2_FID fid;
+    USHORT   usFilenameOffset;
+    USHORT   usFilenameLength;
+    ULONG    ulOutBufferLength;
+
+    /* File name/Search pattern follows */
+
+} __attribute__((__packed__)) SMB2_FIND_REQUEST_HEADER,
+                             *PSMB2_FIND_REQUEST_HEADER;
+
+typedef struct __SMB2_ERROR_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usReserved;
+    ULONG  ulStatus;
+} __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
+                             *PSMB2_ERROR_RESPONSE_HEADER;
 
 #endif /* __STRUCTS_H__ */

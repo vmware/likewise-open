@@ -5,6 +5,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     create.c         \
     echo.c           \
     error.c          \
+    find.c           \
     flush.c          \
     getinfo.c        \
     ioctl.c          \

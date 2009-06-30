@@ -78,6 +78,15 @@ SrvProcessEcho_SMB_V2(
     PSMB_PACKET*         ppSmbResponse
     );
 
+// find.c
+
+NTSTATUS
+SrvProcessFind_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB_PACKET*         ppSmbResponse
+    );
+
 // flush.c
 
 NTSTATUS
@@ -333,6 +342,13 @@ SMB2MarshalIOCTLResponse(
     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader,
     PBYTE                      pOutBuffer,
     ULONG                      ulOutLength
+    );
+
+NTSTATUS
+SMB2UnmarshalFindRequest(
+    PSMB_PACKET                pPacket,
+    PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
+    PUNICODE_STRING            pwszFilename
     );
 
 NTSTATUS
