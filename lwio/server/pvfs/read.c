@@ -90,7 +90,7 @@ PvfsRead(
     }
 #endif
 
-    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_READ_DATA|FILE_EXECUTE);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Enter critical region - ReadFile() needs to fill
