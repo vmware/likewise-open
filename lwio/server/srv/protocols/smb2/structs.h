@@ -369,6 +369,13 @@ typedef struct __SMB2_LOCK_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
                              *PSMB2_LOCK_REQUEST_HEADER;
 
+typedef struct __SMB2_LOCK_RESPONSE_HEADER
+{
+    USHORT    usLength;
+    USHORT    usReserved;
+} __attribute__((__packed__)) SMB2_LOCK_RESPONSE_HEADER,
+                             *PSMB2_LOCK_RESPONSE_HEADER;;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;

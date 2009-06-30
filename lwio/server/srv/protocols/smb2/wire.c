@@ -1030,7 +1030,30 @@ SMB2MarshalLockResponse(
     PSRV_SMB2_LOCK_REQUEST pLockRequest
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_LOCK_RESPONSE_HEADER pHeader = NULL;
+    ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
+    ULONG ulBytesUsed = 0;
+    PBYTE pBuffer = pPacket->pParams;
+
+    if (ulBytesAvailable < sizeof(SMB2_LOCK_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_LOCK_RESPONSE_HEADER)pBuffer;
+    ulBytesUsed += sizeof(SMB2_LOCK_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_LOCK_RESPONSE_HEADER);
+    pBuffer += sizeof(SMB2_LOCK_RESPONSE_HEADER);
+
+    pHeader->usLength = ulBytesUsed;
+
+    pPacket->bufferUsed += ulBytesUsed;
+
+error:
+
+    return ntStatus;
 }
 
 NTSTATUS

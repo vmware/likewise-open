@@ -149,6 +149,12 @@ SrvProcessLock_SMB_V2(
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (pRequestHeader->usLockCount != 1)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvTree2FindFile(
                         pTree,
                         pRequestHeader->fid.ullVolatileId,
