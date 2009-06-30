@@ -621,7 +621,11 @@ CENTERROR DJGetLikewiseVersion(PSTR *version, PSTR *build, PSTR *revision)
     *build = NULL;
     *revision = NULL;
 
+#ifdef MINIMAL_JOIN
+    GCE(ceError = CTOpenFile(LOCALSTATEDIR "/VERSION", "r", &versionFile));
+#else
     GCE(ceError = CTOpenFile(PREFIXDIR "/data/VERSION", "r", &versionFile));
+#endif
 
     while (TRUE)
     {

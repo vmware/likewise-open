@@ -1,5 +1,11 @@
 ACLOCAL_AMFLAGS = -I m4
 
+if ENABLE_MINIMAL
+MINIMAL_CFLAGS = "-DMINIMAL_JOIN=1"
+else
+MINIMAL_CFLAGS =
+endif
+
 AM_CFLAGS = $(CPPFLAGS) -Wall -Werror-implicit-function-declaration
 
 AM_CFLAGS += -I$(top_srcdir)/include  \
@@ -10,7 +16,8 @@ AM_CFLAGS += -I$(top_srcdir)/include  \
           @LWDNS_INCLUDE@        \
           @EVENTLOG_INCLUDES@     \
           $(LSASS_INCLUDES)     \
-          $(LWI_OS_FLAGS)
+          $(LWI_OS_FLAGS)        \
+          $(MINIMAL_CFLAGS)
 
 SCRIPTDIR = $(bindir)
 AM_CPPFLAGS = -DSCRIPTDIR=\"$(SCRIPTDIR)\" -DLIBDIR=\"$(libdir)\" -DSYSCONFDIR=\"$(sysconfdir)\" -DDYNLIBEXT=\"$(DYNLIBEXT)\" $(LWI_OS_FLAGS)
