@@ -1025,6 +1025,15 @@ error:
 }
 
 NTSTATUS
+SMB2MarshalLockResponse(
+    PSMB_PACKET            pPacket,
+    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
 SMB2UnmarshalIOCTLRequest(
     PSMB_PACKET                 pPacket,
     PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
