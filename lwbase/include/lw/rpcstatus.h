@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,30 +26,28 @@
 /*
  * Module Name:
  *
- *        base.h
+ *        rpcstatus.h
  *
  * Abstract:
  *
- *        Base include header
+ *        Rpc status helper functions
  *
- * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
+ * Authors: Kyle Stemen <kstemen@likewise.com>
  *
  */
 
-#ifndef __LWBASE_H__
-#define __LWBASE_H__
+#ifndef __LWBASE_RPCSTATUS_H__
+#define __LWBASE_RPCSTATUS_H__
 
 #include <lw/types.h>
-#include <lw/attrs.h>
-#include <lw/atomic.h>
-#include <lw/ntstatus.h>
-#include <lw/errno.h>
-#include <lw/rpcstatus.h>
-#include <lw/rtlmemory.h>
-#include <lw/rtlstring.h>
-#include <lw/rbtree.h>
-#include <lw/rtlqueue.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
+
+LW_NTSTATUS
+LwRpcStatusToNtStatus(
+    LW_IN LW_DWORD status
+    );
+
+#ifndef LW_STRICT_NAMESPACE
+#define RpcStatusToNtStatus(code)    LwRpcStatusToNtStatus(code)
+#endif /* LW_STRICT_NAMESPACE */
 
 #endif
