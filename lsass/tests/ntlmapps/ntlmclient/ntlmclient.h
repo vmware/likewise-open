@@ -25,23 +25,15 @@
 
 #include "config.h"
 
-#ifdef UNICODE
-#undef UNICODE
-#endif
-
 #include <lw/base.h>
 #include <lsa/lwerror.h>
+#include <ntlm/ntlm.h>
 
-//#include <windows.h>
-//#include <rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <io.h>
-//#include <fcntl.h>
-//#include <winsock2.h>
-//#define SECURITY_WIN32
-//#include <security.h>
-//#include <ntsecapi.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <stddef.h>
 #include <sys/types.h>
 

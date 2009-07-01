@@ -45,7 +45,12 @@ DWORD
 SignServer(
     IN INT nSocket,
     IN CredHandle *pServerCreds,
-    IN OM_uint32 AscFlags
+    IN DWORD AscFlags
+    );
+
+DWORD
+FreeContextBuffer(
+    IN PVOID pBuffer
     );
 
 DWORD
@@ -53,7 +58,7 @@ ServerEstablishContext(
     IN INT nSocket,
     IN CredHandle *pServerCreds,
     OUT CtxtHandle *pContext,
-    IN OM_uint32 AscFlags
+    IN DWORD AscFlags
     );
 
 DWORD

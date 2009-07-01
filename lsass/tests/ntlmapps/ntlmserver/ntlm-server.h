@@ -23,27 +23,24 @@
 #ifndef _NTLM_SERVER_H_
 #define _NTLM_SERVER_H_
 
-#ifdef UNICODE
-#undef UNICODE
-#endif
+#include "config.h"
 
-//#include <windows.h>
-//#include <winerror.h>
-//#include <rpc.h>
+#include <lw/base.h>
+#include <lsa/lwerror.h>
+#include <ntlm/ntlm.h>
+#include <wc16str.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-//#include <io.h>
-//#include <fcntl.h>
-//#include <winsock2.h>
-//#define SECURITY_WIN32
-//#include <security.h>
-//#include <ntsecapi.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <stddef.h>
 #include <sys/types.h>
 
+#include "externs.h"
 #include "defines.h"
 #include "structs.h"
-#include "externs.h"
 #include "prototypes.h"
 
 #endif  //_NTLM_SERVER_H_
