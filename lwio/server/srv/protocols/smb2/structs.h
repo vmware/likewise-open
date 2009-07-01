@@ -166,6 +166,8 @@ typedef struct __SMB2_CREATE_CONTEXT
 typedef struct __SRV_CREATE_CONTEXT
 {
     SMB2_CONTEXT_ITEM_TYPE contextItemType;
+    PCSTR                  pszName;
+    USHORT                 usNameLen;
     ULONG                  ulDataLength;
     PBYTE                  pData;
 } SRV_CREATE_CONTEXT, *PSRV_CREATE_CONTEXT;
