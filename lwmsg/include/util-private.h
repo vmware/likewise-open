@@ -176,7 +176,7 @@ lwmsg_buffer_write(LWMsgBuffer* buffer, unsigned char* in_bytes, size_t count)
         {
             if (buffer->wrap)
             {
-                BAIL_ON_ERROR(buffer->wrap(buffer, count));
+                BAIL_ON_ERROR(status = buffer->wrap(buffer, count));
             }
             else
             {
