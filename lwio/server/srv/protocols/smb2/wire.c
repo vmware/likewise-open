@@ -525,7 +525,9 @@ NTSTATUS
 SMB2UnmarshalCreateRequest(
     PSMB_PACKET                  pPacket,
     PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
-    PUNICODE_STRING              pwszFileName
+    PUNICODE_STRING              pwszFileName,
+    PSRV_CREATE_CONTEXT*         ppCreateContexts,
+    PULONG                       pulNumContexts
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -535,6 +537,8 @@ SMB2UnmarshalCreateRequest(
     ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
     PSMB2_CREATE_REQUEST_HEADER pHeader = NULL; // Do not free
     UNICODE_STRING wszFileName = {0}; // Do not free
+    PSRV_CREATE_CONTEXT pCreateContexts = NULL;
+    ULONG               ulNumContexts = 0;
 
     if (ulBytesAvailable < sizeof(SMB2_CREATE_REQUEST_HEADER))
     {
@@ -561,16 +565,26 @@ SMB2UnmarshalCreateRequest(
 
         wszFileName.Buffer = (PWSTR)((PBYTE)pPacket->pSMB2Header + pHeader->usNameOffset);
         wszFileName.Length = wszFileName.MaximumLength = pHeader->usNameLength;
+
+        ulOffset = pHeader->usNameOffset + pHeader->usNameLength;
     }
 
-    if (!wszFileName.Length)
+    if (pHeader->ulCreateContextOffset && pHeader->ulCreateContextLength)
     {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
+        if ((pHeader->ulCreateContextOffset < ulOffset) ||
+            ((pHeader->ulCreateContextOffset + pHeader->ulCreateContextLength) > ulPacketSize))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        // TODO: build the create context array
     }
 
     *ppCreateRequestHeader = pHeader;
     *pwszFileName = wszFileName;
+    *ppCreateContexts = pCreateContexts;
+    *pulNumContexts = ulNumContexts;
 
 cleanup:
 
@@ -579,6 +593,11 @@ cleanup:
 error:
 
     *ppCreateRequestHeader = NULL;
+    memset(pwszFileName, 0, sizeof(UNICODE_STRING));
+    *ppCreateContexts = NULL;
+    *pulNumContexts = 0;
+
+    SRV_SAFE_FREE_MEMORY(pCreateContexts);
 
     goto cleanup;
 }

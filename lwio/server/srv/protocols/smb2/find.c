@@ -51,6 +51,16 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvFindBothDirInformation(
+    PLWIO_SRV_CONNECTION      pConnection,
+    PSMB_PACKET               pSmbRequest,
+    PLWIO_SRV_FILE_2          pFile,
+    PSMB2_FIND_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*              ppSmbResponse
+    );
+
 NTSTATUS
 SrvProcessFind_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
@@ -90,8 +100,28 @@ SrvProcessFind_SMB_V2(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = STATUS_NOT_IMPLEMENTED;
+    switch (pRequestHeader->ucInfoClass)
+    {
+        case SMB2_FILE_INFO_CLASS_BOTH_DIR:
+
+            ntStatus = SrvFindBothDirInformation(
+                            pConnection,
+                            pSmbRequest,
+                            pFile,
+                            pRequestHeader,
+                            &pSmbResponse);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+
+            break;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -109,6 +139,40 @@ cleanup:
     {
         SrvSession2Release(pSession);
     }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvFindBothDirInformation(
+    PLWIO_SRV_CONNECTION      pConnection,
+    PSMB_PACKET               pSmbRequest,
+    PLWIO_SRV_FILE_2          pFile,
+    PSMB2_FIND_REQUEST_HEADER pRequestHeader,
+    PSMB_PACKET*              ppSmbResponse
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB_PACKET pSmbResponse = NULL;
+
+    ntStatus = STATUS_NOT_IMPLEMENTED;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
 
     return ntStatus;
 

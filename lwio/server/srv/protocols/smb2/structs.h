@@ -147,6 +147,29 @@ typedef struct __SMB2_TREE_DISCONNECT_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_TREE_DISCONNECT_RESPONSE_HEADER,
                              *PSMB2_TREE_DISCONNECT_RESPONSE_HEADER;
 
+typedef struct __SMB2_CREATE_CONTEXT
+{
+    ULONG  ulNextContextOffset;
+    USHORT usNameOffset;
+    USHORT usNameLength;
+    USHORT usReserved;
+    USHORT usDataOffset;
+    ULONG  ulDataLength;
+
+    /* ANSI Name */
+    /* Optional padding to 8 byte boundary */
+    /* Data */
+
+} __attribute__((__packed__)) SMB2_CREATE_CONTEXT,
+                             *PSMB2_CREATE_CONTEXT;
+
+typedef struct __SRV_CREATE_CONTEXT
+{
+    SMB2_CONTEXT_ITEM_TYPE contextItemType;
+    ULONG                  ulDataLength;
+    PBYTE                  pData;
+} SRV_CREATE_CONTEXT, *PSRV_CREATE_CONTEXT;
+
 typedef struct __SMB2_CREATE_REQUEST_HEADER
 {
     USHORT  usLength;
@@ -433,6 +456,17 @@ typedef struct __SMB2_FIND_REQUEST_HEADER
 
 } __attribute__((__packed__)) SMB2_FIND_REQUEST_HEADER,
                              *PSMB2_FIND_REQUEST_HEADER;
+
+typedef struct __SMB2_FIND_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usOutBufferOffset;
+    ULONG    ulOutBufferLength;
+
+    /* File name/Search results follow */
+
+} __attribute__((__packed__)) SMB2_FIND_RESPONSE_HEADER,
+                             *PSMB2_FIND_RESPONSE_HEADER;
 
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
