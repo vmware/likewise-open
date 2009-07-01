@@ -311,6 +311,7 @@ AC_CONFIG_FILES([Makefile
                  tests/Makefile
                  tests/netlogonclient/Makefile
                  tests/get_domain_controller/Makefile
+                 tests/plugin/Makefile
                  tools/Makefile
                  tools/get_dc_info/Makefile
                  tools/get_dc_time/Makefile

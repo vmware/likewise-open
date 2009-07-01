@@ -48,45 +48,12 @@
  */
 #include "includes.h"
 
-pthread_rwlock_t g_SiteMgrLock;
-
-HANDLE ghEventLogItf = (HANDLE)NULL;
-pthread_rwlock_t ghEventLogItf_rwlock;
-
-pthread_rwlock_t gLWNetGlobalDataLock;
-
-/*
- * Caching
- */
-PSTR gpszLWNetCurrentSiteName = NULL;
-
-const DWORD gdwLWNetCacheReaperTimeoutSecsMinimum = 5 * LWNET_SECONDS_IN_MINUTE;
-const DWORD gdwLWNetCacheReaperTimeoutSecsDefault = 15 * LWNET_SECONDS_IN_MINUTE;
-const DWORD gdwLWNetCacheReaperTimeoutSecsMaximum = 1 * LWNET_SECONDS_IN_DAY;
-DWORD gdwLWNetCacheReaperTimeoutSecs              = 15 * LWNET_SECONDS_IN_MINUTE;
-
-const DWORD gdwLWNetCacheEntryExpirySecsMinimum = 15 * LWNET_SECONDS_IN_MINUTE;
-const DWORD gdwLWNetCacheEntryExpirySecsDefault = 2 * LWNET_SECONDS_IN_HOUR;
-const DWORD gdwLWNetCacheEntryExpirySecsMaximum = 1 * LWNET_SECONDS_IN_DAY;
-DWORD gdwLWNetCacheEntryExpirySecs              = 2 * LWNET_SECONDS_IN_HOUR;
-
-const DWORD gdwLWNetCacheWriteRetryIntervalMilliseconds = 500;
-const DWORD gdwLWNetCacheWriteRetryAttempts = 20;
-
-pthread_t       gLWNetCacheReaperThread;
-pthread_mutex_t gLWNetCacheReaperThreadLock      = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  gLWNetCacheReaperThreadCondition = PTHREAD_COND_INITIALIZER;
-pthread_t*      gpLWNetCacheReaperThread = NULL;
-
-
 DWORD
 LWNetSrvApiInit(
     PCSTR pszConfigFilePath
     )
 {
     DWORD dwError = 0;
-    
-    pthread_rwlock_init(&ghEventLogItf_rwlock, NULL);
     
     LWNetSrvInitEventlogInterface();
 
@@ -96,8 +63,8 @@ LWNetSrvApiInit(
     dwError = LWNetCacheInitialize();
     BAIL_ON_LWNET_ERROR(dwError);
 
-    //dwError = LWNetInitCacheReaper();
-    //BAIL_ON_LWNET_ERROR(dwError);
+    dwError = LWNetInitializePlugin(LWGetPluginPath());
+    BAIL_ON_LWNET_ERROR(dwError);
 
 error:
     return dwError;
@@ -108,8 +75,8 @@ LWNetSrvApiShutdown(
     VOID
     )
 {
+    LWNetCleanupPlugin();
     LWNetSrvShutdownEventlogInterface();
     
     return 0;
 }
-

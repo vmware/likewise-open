@@ -182,7 +182,16 @@ LWNetReadString(
     );
 
 DWORD
-LWNetGetPreferredDCList(
+LWNetInitializePlugin(
+    IN PCSTR pszPath
+    );
+
+VOID
+LWNetCleanupPlugin(
+    );
+
+DWORD
+LWNetGetPreferredDcList(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,
