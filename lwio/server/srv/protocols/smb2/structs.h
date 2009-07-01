@@ -286,6 +286,15 @@ typedef struct __SMB2_GET_INFO_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_GET_INFO_REQUEST_HEADER,
                              *PSMB2_GET_INFO_REQUEST_HEADER;
 
+typedef struct __SMB2_GET_INFO_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usOutBufferOffset;
+    ULONG  ulOutBufferLength;
+
+} __attribute__((__packed__)) SMB2_GET_INFO_RESPONSE_HEADER,
+                             *PSMB2_GET_INFO_RESPONSE_HEADER;;
+
 typedef struct __SMB2_WRITE_REQUEST_HEADER
 {
     USHORT   usLength;

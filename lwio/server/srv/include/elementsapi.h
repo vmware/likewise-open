@@ -300,6 +300,16 @@ typedef VOID (*PFN_SRV_TIMER_CALLBACK)(
                     PVOID              pUserData
                     );
 
+typedef struct _SMB_FS_VOLUME_INFO_HEADER
+{
+    LONG64  llVolumeCreationTime;
+    ULONG   ulVolumeSerialNumber;
+    ULONG   ulVolumeLabelLength;
+    BOOLEAN bSupportsObjects;
+    UCHAR   pad;
+} __attribute__((__packed__)) SMB_FS_VOLUME_INFO_HEADER,
+                             *PSMB_FS_VOLUME_INFO_HEADER;
+
 NTSTATUS
 SrvElementsInit(
     VOID
