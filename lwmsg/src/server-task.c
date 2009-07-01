@@ -663,6 +663,8 @@ lwmsg_server_task_perform_close(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
+    lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.incoming);
+    lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.outgoing);
     status = lwmsg_assoc_close((*task)->info.call.assoc);
 
     switch (status)
