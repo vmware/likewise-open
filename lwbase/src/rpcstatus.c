@@ -795,6 +795,6 @@ LwRpcStatusToNtStatus(
         case LW_ERROR_RPC_M_CTXRUNDOWN_EXC:
         case LW_ERROR_RPC_S_FAULT_CODESET_CONV_ERROR:
 	default:
-            return LW_STATUS_NONE_MAPPED;
+            return LW_STATUS_UNSUCCESSFUL;
     }
 }
