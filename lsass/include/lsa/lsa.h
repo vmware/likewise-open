@@ -592,7 +592,7 @@ typedef struct __LSA_DC_INFO
     LSA_DS_FLAGS dwFlags;
 } LSA_DC_INFO, *PLSA_DC_INFO;
 
-typedef struct __LSA_TRUSTED_DOMAIN_INFO
+typedef struct __LW_LSA_TRUSTED_DOMAIN_INFO
 {
     LW_PSTR pszDnsDomain;
     LW_PSTR pszNetbiosDomain;
@@ -609,7 +609,12 @@ typedef struct __LSA_TRUSTED_DOMAIN_INFO
     LSA_DM_DOMAIN_FLAGS dwDomainFlags;
     PLSA_DC_INFO pDCInfo;
     PLSA_DC_INFO pGCInfo;
-} LSA_TRUSTED_DOMAIN_INFO, *PLSA_TRUSTED_DOMAIN_INFO;
+} LW_LSA_TRUSTED_DOMAIN_INFO, *PLW_LSA_TRUSTED_DOMAIN_INFO;
+
+#ifndef LW_STRICT_NAMESPACE
+typedef LW_LSA_TRUSTED_DOMAIN_INFO LSA_TRUSTED_DOMAIN_INFO;
+typedef PLW_LSA_TRUSTED_DOMAIN_INFO PLSA_TRUSTED_DOMAIN_INFO;
+#endif
 
 typedef struct __LSA_AUTH_PROVIDER_STATUS
 {
@@ -623,7 +628,7 @@ typedef struct __LSA_AUTH_PROVIDER_STATUS
     LW_PSTR pszCell;
     LW_DWORD dwNetworkCheckInterval;
     LW_DWORD dwNumTrustedDomains;
-    PLSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfoArray;
+    PLW_LSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfoArray;
 } LSA_AUTH_PROVIDER_STATUS, *PLSA_AUTH_PROVIDER_STATUS;
 
 typedef struct __LSA_VERSION
@@ -659,17 +664,22 @@ typedef struct __LSA_AUTH_CLEARTEXT_PARAM
     LW_PSTR pszPassword;
 } LSA_AUTH_CLEARTEXT_PARAM, *PLSA_AUTH_CLEARTEXT_PARAM;
 
-typedef struct __LSA_DATA_BLOB
+typedef struct __LW_LSA_DATA_BLOB
 {
     LW_DWORD dwLen;
     LW_PBYTE pData;
-} LSA_DATA_BLOB, *PLSA_DATA_BLOB;
+} LW_LSA_DATA_BLOB, *PLW_LSA_DATA_BLOB;
+
+#ifndef LW_STRICT_NAMESPACE
+typedef LW_LSA_DATA_BLOB LSA_DATA_BLOB;
+typedef PLW_LSA_DATA_BLOB PLSA_DATA_BLOB;
+#endif
 
 typedef struct __LSA_AUTH_CHAP_PARAM
 {
-    PLSA_DATA_BLOB pChallenge;
-    PLSA_DATA_BLOB pLM_resp;
-    PLSA_DATA_BLOB pNT_resp;
+    PLW_LSA_DATA_BLOB pChallenge;
+    PLW_LSA_DATA_BLOB pLM_resp;
+    PLW_LSA_DATA_BLOB pNT_resp;
 } LSA_AUTH_CHAP_PARAM, *PLSA_AUTH_CHAP_PARAM;
 
 typedef struct __LSA_AUTH_USER_PARAMS
@@ -717,8 +727,8 @@ typedef struct __LSA_AUTH_USER_INFO
     LW_PSTR pszDnsDomain;
 
     LW_DWORD dwAcctFlags;
-    PLSA_DATA_BLOB pSessionKey;
-    PLSA_DATA_BLOB pLmSessionKey;
+    PLW_LSA_DATA_BLOB pSessionKey;
+    PLW_LSA_DATA_BLOB pLmSessionKey;
 
     LW_UINT16 LogonCount;
     LW_UINT16 BadPasswordCount;
@@ -1484,41 +1494,41 @@ LsaGetErrorMessageForLoggingEvent(
 
 
 /*
- * LSA_DATA_BLOB access functions and methods
+ * LW_LSA_DATA_BLOB access functions and methods
  */
 
 LW_DWORD
 LsaDataBlobAllocate(
-    PLSA_DATA_BLOB* ppBlob,
+    PLW_LSA_DATA_BLOB* ppBlob,
     LW_DWORD dwSize
     );
 
 LW_DWORD
 LsaDataBlobFree(
-    PLSA_DATA_BLOB* ppBlob
+    PLW_LSA_DATA_BLOB* ppBlob
     );
 
 LW_DWORD
 LsaDataBlobStore(
-    PLSA_DATA_BLOB* ppBlob,
+    PLW_LSA_DATA_BLOB* ppBlob,
     LW_DWORD dwSize,
     const LW_PBYTE pBuffer
     );
 
 LW_DWORD
 LsaDataBlobCopy(
-    PLSA_DATA_BLOB* ppDst,
-    PLSA_DATA_BLOB pSrc
+    PLW_LSA_DATA_BLOB* ppDst,
+    PLW_LSA_DATA_BLOB pSrc
     );
 
 LW_DWORD
 LsaDataBlobLength(
-    PLSA_DATA_BLOB pBlob
+    PLW_LSA_DATA_BLOB pBlob
     );
 
 LW_PBYTE
 LsaDataBlobBuffer(
-    PLSA_DATA_BLOB pBlob
+    PLW_LSA_DATA_BLOB pBlob
     );
 
 
