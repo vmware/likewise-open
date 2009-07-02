@@ -357,10 +357,14 @@ lwmsg_connection_state_begin_connect(
 
 done:
 
-    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
+    if (status == LWMSG_STATUS_PENDING)
     {
         *state = CONNECTION_STATE_FINISH_CONNECT;
         *event = CONNECTION_EVENT_FINISH;
+    }
+    else if (status == LWMSG_STATUS_SUCCESS)
+    {
+        *state = CONNECTION_STATE_BEGIN_SEND_HANDSHAKE;
     }
 
     return status;
