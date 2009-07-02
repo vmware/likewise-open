@@ -39,7 +39,291 @@
  *
  *        NTLM Credentials file
  *
- * Authors:
+ * Authors: Marc Guy (mguy@likewisesoftware.com)
  *
  */
 
+#include "ntlmsrvapi.h"
+
+/******************************************************************************/
+DWORD
+NtlmInitCredentials(
+    OUT PNTLM_CREDENTIALS *ppNtlmCreds
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    if(!ppNtlmCreds)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(
+        sizeof(NTLM_CREDENTIALS),
+        (PVOID*)ppNtlmCreds
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    memset((*ppNtlmCreds), 0, sizeof(NTLM_CREDENTIALS));
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    if(*ppNtlmCreds)
+    {
+        LsaFreeMemory(*ppNtlmCreds);
+        *ppNtlmCreds = NULL;
+    }
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmInsertCredentials(
+    PNTLM_CREDENTIALS pNtlmCreds
+    )
+{
+    // WARNING:
+    // WARNING: Creds lock must already be acquired
+    // WARNING:
+
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOLEAN bCollision = FALSE;
+    PNTLM_CREDENTIALS pCollisionCred = NULL;
+
+    if(!pNtlmCreds)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    // This handle should be random and will be our key into a either a
+    // double linked list (bad) or a red-black tree (good)
+    //
+    do
+    {
+        bCollision = FALSE;
+
+        dwError = NtlmGetRandomBuffer(
+            (PBYTE)&(pNtlmCreds->ContextHandle),
+            sizeof(CredHandle)
+            );
+
+        if(LSA_ERROR_SUCCESS != dwError)
+        {
+            break;
+        }
+
+        dwError = NtlmFindCredentials(
+            &(pNtlmCreds->CredHandle),
+            &pCollisionCred
+            );
+
+        if(dwError == LSA_ERROR_SUCCESS)
+        {
+            bCollision = TRUE;
+
+            // This removes the reference we added for the find function
+            NtlmRemoveCredentials(pCollisionCred);
+        }
+
+    } while(bCollision);
+
+    if(LSA_ERROR_INVALID_TOKEN == dwError)
+    {
+        pNtlmCreds->pNext = gpNtlmCredsList;
+        gpNtlmCredsList = pNtlmCreds;
+        pNtlmCreds->dwRefCount++;
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmRemoveCredentials(
+    IN PCredHandle pCredHandle
+    )
+{
+    // WARNING:
+    // WARNING: Creds lock must already be acquired
+    // WARNING:
+
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PNTLM_CREDENTIALS pTrav = NULL;
+    PNTLM_CREDENTIALS pHold = NULL;
+
+    if(!pCredHandle)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    pTrav = gpNtlmCredsList;
+
+    if(!pTrav)
+    {
+        dwError = LSA_ERROR_INVALID_TOKEN;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+    else if(pTrav->CredHandle.dwLower == pCredHandle->dwLower &&
+            pTrav->CredHandle.dwUpper == pCredHandle->dwUpper)
+    {
+        pTrav->dwRefCount--;
+
+        if(pTrav->dwRefCount <= 0)
+        {
+            gpNtlmCredsList = pTrav->pNext;
+            NtlmFreeContext(pTrav);
+        }
+    }
+    else
+    {
+        while(pTrav->pNext)
+        {
+            if(pTrav->pNext->CredHandle.dwLower == pCredHandle->dwLower&&
+               pTrav->pNext->CredHandle.dwUpper == pCredHandle->dwUpper)
+            {
+                pHold->dwRefCount--;
+
+                if(pHold->dwRefCount <= 0)
+                {
+                    pHold = pTrav->pNext;
+                    pTrav->pNext = pHold->pNext;
+
+                    NtlmFreeContext(pHold);
+                }
+
+                break;
+            }
+            pTrav = pTrav->pNext;
+        }
+        dwError = LSA_ERROR_INVALID_TOKEN;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmRemoveAllCredentials(
+    VOID
+    )
+{
+    // WARNING:
+    // WARNING: Creds lock must already be acquired
+    // WARNING:
+    // WARNING: Also, this wipes the creds... all of them... regardless
+    // WARNING: of the reference count.  Only use this at shutdown.
+    // WARNING:
+
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PNTLM_CREDENTIALS pTrav = NULL;
+
+    while(gpNtlmCredsList)
+    {
+        pTrav = gpNtlmCredsList;
+        gpNtlmCredsList = pTrav->pNext;
+
+        dwError = NtlmFreeCredentials(pTrav);
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmFindCredentials(
+    IN PCredHandle pCredHandle,
+    OUT PNTLM_CREDENTIALS *ppNtlmCreds
+    )
+{
+    // WARNING:
+    // WARNING: Creds lock must already be acquired
+    // WARNING:
+
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PNTLM_CREDENTIALS pTrav = NULL;
+
+    *ppNtlmCreds = NULL;
+
+    if(!pCredHandle)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    pTrav = gpNtlmCredsList;
+
+    while(pTrav)
+    {
+        if(pTrav->CredHandle.dwLower == (*ppNtlmCreds)->CredHandle.dwLower &&
+           pTrav->CredHandle.dwUpper == (*ppNtlmCreds)->CredHandle.dwUpper)
+        {
+            *ppNtlmCreds = pTrav;
+            (*ppNtlmCreds)->dwRefCount++;
+            break;
+        }
+
+        pTrav = pTrav->pNext;
+    }
+
+    if(!(*ppNtlmCreds))
+    {
+        dwError = LSA_ERROR_INVALID_TOKEN;
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+
+}
+
+/******************************************************************************/
+DWORD
+NtlmFreeCredentials(
+    PNTLM_CREDENTIALS pNtlmCreds
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    if(!pNtlmCreds)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    if(pNtlmCreds->pUserName)
+    {
+        LsaFreeMemory(pNtlmCreds->pUserName);
+    }
+
+    if(pNtlmCreds->pPassWord)
+    {
+        LsaFreeMemory(pNtlmCreds->pPassWord);
+    }
+
+    LsaFreeMemory(pNtlmCreds);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}

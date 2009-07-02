@@ -45,14 +45,14 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerMakeSignature(
     PCtxtHandle phContext,
-    ULONG fQoP,
+    BOOL bEncrypt,
     PSecBufferDesc pMessage,
-    ULONG MessageSeqNo
+    DWORD MessageSeqNo
     )
 {
     DWORD dwError = 0;

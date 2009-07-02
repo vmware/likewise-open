@@ -45,7 +45,7 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerFreeCredentialsHandle(

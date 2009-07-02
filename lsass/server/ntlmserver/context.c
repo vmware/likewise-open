@@ -52,7 +52,6 @@ NtlmInitContext(
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
-    BOOLEAN bInLock = FALSE;
 
     if(!ppNtlmContext)
     {
@@ -68,10 +67,7 @@ NtlmInitContext(
     BAIL_ON_NTLM_ERROR(dwError);
 
     memset((*ppNtlmContext), 0, sizeof(NTLM_CONTEXT));
-
     (*ppNtlmContext)->NtlmState = NtlmStateBlank;
-    (*ppNtlmContext)->pMessage = NULL;
-    (*ppNtlmContext)->dwReferenceCount = 0;
 
     BAIL_ON_NTLM_ERROR(dwError);
 
@@ -128,12 +124,12 @@ NtlmInsertContext(
             &pCollisionContext
             );
 
-        // We don't want duplicate handles... get a new one if the context
-        // is found.  Once we start ref counting, we'll have to actually
-        // dereference the context we got back.
         if(dwError == LSA_ERROR_SUCCESS)
         {
             bCollision = TRUE;
+
+            // This removes the reference we added for the find function
+            NtlmRemoveContext(&(pCollisionContext->ContextHandle));
         }
 
     } while(bCollision);
@@ -142,7 +138,7 @@ NtlmInsertContext(
     {
         pNtlmContext->pNext = gpNtlmContextList;
         gpNtlmContextList = pNtlmContext;
-        pNtlmContext->dwReferenceCount++;
+        pNtlmContext->dwRefCount++;
     }
 
 cleanup:
@@ -181,9 +177,9 @@ NtlmRemoveContext(
     else if(pTrav->ContextHandle.dwLower == pCtxtHandle->dwLower &&
             pTrav->ContextHandle.dwUpper == pCtxtHandle->dwUpper)
     {
-        pTrav->dwReferenceCount--;
+        pTrav->dwRefCount--;
 
-        if(pTrav->dwReferenceCount <= 0)
+        if(pTrav->dwRefCount <= 0)
         {
             gpNtlmContextList = pTrav->pNext;
             NtlmFreeContext(pTrav);
@@ -196,9 +192,9 @@ NtlmRemoveContext(
             if(pTrav->pNext->ContextHandle.dwLower == pCtxtHandle->dwLower&&
                pTrav->pNext->ContextHandle.dwUpper == pCtxtHandle->dwUpper)
             {
-                pHold->dwReferenceCount--;
+                pHold->dwRefCount--;
 
-                if(pHold->dwReferenceCount <= 0)
+                if(pHold->dwRefCount <= 0)
                 {
                     pHold = pTrav->pNext;
                     pTrav->pNext = pHold->pNext;
@@ -281,7 +277,7 @@ NtlmFindContext(
            pTrav->ContextHandle.dwUpper == (*ppNtlmContext)->ContextHandle.dwUpper)
         {
             *ppNtlmContext = pTrav;
-            (*ppNtlmContext)->dwReferenceCount++;
+            (*ppNtlmContext)->dwRefCount++;
             break;
         }
 
@@ -325,6 +321,18 @@ cleanup:
     return dwError;
 error:
     goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmCreateContextFromSecBufferDesc(
+    PSecBufferDesc pSecBufferDesc,
+    NTLM_STATE nsContextType,
+    PNTLM_CONTEXT *ppNtlmContext
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    return dwError;
 }
 
 /******************************************************************************/
@@ -869,27 +877,27 @@ DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
     IN DWORD dwResponseType,
-    OUT PNTLM_RESPONSE_MESSAGE *ppAuthMsg
+    IN PWCHAR pPassword,
+    OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
     DWORD dwSize = 0;
 
     // sanity checks
-    if(!pChlngMsg || !ppAuthMsg)
+    if(!pChlngMsg || !ppRespMsg)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    *ppAuthMsg = NULL;
+    *ppRespMsg = NULL;
 
     // calculate the repsonse... we need to get the size first
     switch(dwResponseType)
     {
     case NTLM_RESPONSE_TYPE_LM:
         {
-            LSA_ERROR_SUCCESS;
             dwError = NtlmBuildLmResponse();
             BAIL_ON_NTLM_ERROR(dwError);
         }
@@ -935,17 +943,18 @@ NtlmCreateResponseMessage(
         }
     }
 
-    dwError = LsaAllocateMemory(dwSize, (*ppAuthMsg));
+    dwError = LsaAllocateMemory(dwSize, (PVOID*)(ppRespMsg));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    memset(*ppAuthMsg, 0, dwSize);
+    memset(*ppRespMsg, 0, dwSize);
 
     // Data is checked and memory is allocated; fill in the structure
     //
-    memcpy(&((*ppNegMsg)->NtlmSignature), NTLM_SIGNATURE, NTLM_SIGNATURE_SIZE);
-    (*ppNegMsg)->MessageType = NTLM_RESPONSE_MSG;
-    (*ppNegMsg)->NtlmFlags = dwOptions;
+    memcpy(&((*ppRespMsg)->NtlmSignature), NTLM_SIGNATURE, NTLM_SIGNATURE_SIZE);
+    (*ppRespMsg)->MessageType = NTLM_RESPONSE_MSG;
 
+    // I don't believe we will be calculating/supporting LM auth... skip this
+    memset(&((*ppRespMsg)->LmResponse), 0, sizeof(NTLM_SEC_BUFFER));
 
 cleanup:
     return dwError;
@@ -956,7 +965,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmValidatResponseMessage(
-    IN PNTLM_AUTHENTICATE_MESSAGE pAuthMsg
+    IN PNTLM_RESPONSE_MESSAGE pAuthMsg
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;

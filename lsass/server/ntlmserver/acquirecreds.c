@@ -45,13 +45,13 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerAcquireCredentialsHandle(
     SEC_CHAR *pszPrincipal,
     SEC_CHAR *pszPackage,
-    ULONG fCredentialUse,
+    DWORD fCredentialUse,
     PLUID pvLogonID,
     PVOID pAuthData,
     // NOT NEEDED BY NTLM - SEC_GET_KEY_FN pGetKeyFn,
@@ -62,5 +62,26 @@ NtlmServerAcquireCredentialsHandle(
 {
     DWORD dwError = 0;
 
+    memset(phCredential, 0, sizeof(CredHandle));
+    memset(ptsExpiry, 0, sizeof(TimeStamp));
+
+    // For the moment, we're not going to worry about fCredentialUse... it
+    // will not effect anything at this point.
+
+    if(strcmp("NTLM", pszPackage))
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    if(!pszPrincipal)
+    {
+        pszPrincipal = getlogin();
+    }
+
+
+cleanup:
     return(dwError);
+error:
+    goto cleanup;
 }

@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        decryptmsg.c
+ *        delsecctxt.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        DecryptMessage client wrapper API
+ *        DeleteSecurityContext client wrapper API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
@@ -48,14 +48,12 @@
 #include <ntlmsrvapi.h>
 
 DWORD
-NtlmServerDecryptMessage(
-    PCtxtHandle phContext,
-    PSecBufferDesc pMessage,
-    DWORD MessageSeqNo,
-    PBOOL pbEncrypted
+NtlmServerDeleteSecurityContext(
+    PCtxtHandle phContext
     )
 {
     DWORD dwError = 0;
+
 
     return(dwError);
 }
