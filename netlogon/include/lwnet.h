@@ -325,7 +325,7 @@ LWNET_API
 LW_VOID
 LWNetFreeDCList(
     LW_IN LW_OUT PLWNET_DC_ADDRESS pDcList,
-    LW_IN DWORD dwDcCount
+    LW_IN LW_DWORD dwDcCount
     );
 
 LWNET_API
