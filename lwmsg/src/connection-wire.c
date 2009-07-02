@@ -293,48 +293,53 @@ lwmsg_connection_send_fragment(
     } buf_un;
     struct cmsghdr *cmsg = NULL;
     size_t sent = 0;
-    size_t fds_to_send = buffer->fd_length;
+    size_t fds_to_send = 0;
     size_t i;
 
-    if (fds_to_send > MAX_FD_PAYLOAD)
+    while (!lwmsg_connection_fragment_is_complete(fragment))
     {
-        fds_to_send = MAX_FD_PAYLOAD;
+        fds_to_send = buffer->fd_length;
+
+        if (fds_to_send > MAX_FD_PAYLOAD)
+        {
+            fds_to_send = MAX_FD_PAYLOAD;
+        }
+
+        iovec.iov_base = fragment->cursor;
+        iovec.iov_len =
+            lwmsg_connection_packet_length((ConnectionPacket*) fragment->data)
+            - (fragment->cursor - fragment->data);
+
+        msghdr.msg_iov = &iovec;
+        msghdr.msg_iovlen = 1;
+
+        if (fds_to_send)
+        {
+            msghdr.msg_control = buf_un.buf;
+            msghdr.msg_controllen = CMSG_SPACE(fds_to_send * sizeof(int));
+
+            cmsg = CMSG_FIRSTHDR(&msghdr);
+            cmsg->cmsg_level = SOL_SOCKET;
+            cmsg->cmsg_type = SCM_RIGHTS;
+            cmsg->cmsg_len = CMSG_LEN(fds_to_send * sizeof(int));
+
+            memcpy(CMSG_DATA(cmsg), buffer->fd, sizeof(int) * fds_to_send);
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_connection_sendmsg(priv->fd, &msghdr, 0, &sent));
+
+        fragment->cursor += sent;
+
+        /* Close sent fds since they were copies */
+        for (i = 0; i < fds_to_send; i++)
+        {
+            close(buffer->fd[i]);
+        }
+
+        /* Remove sent fds from queue */
+        memmove(buffer->fd, buffer->fd + fds_to_send, (buffer->fd_length - fds_to_send) * sizeof(int));
+        buffer->fd_length -= fds_to_send;
     }
-
-    iovec.iov_base = fragment->cursor;
-    iovec.iov_len =
-        lwmsg_connection_packet_length((ConnectionPacket*) fragment->data)
-        - (fragment->cursor - fragment->data);
-
-    msghdr.msg_iov = &iovec;
-    msghdr.msg_iovlen = 1;
-
-    if (fds_to_send)
-    {
-        msghdr.msg_control = buf_un.buf;
-        msghdr.msg_controllen = CMSG_SPACE(fds_to_send * sizeof(int));
-        
-        cmsg = CMSG_FIRSTHDR(&msghdr);
-        cmsg->cmsg_level = SOL_SOCKET;
-        cmsg->cmsg_type = SCM_RIGHTS;
-        cmsg->cmsg_len = CMSG_LEN(fds_to_send * sizeof(int));
-        
-        memcpy(CMSG_DATA(cmsg), buffer->fd, sizeof(int) * fds_to_send);
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_connection_sendmsg(priv->fd, &msghdr, 0, &sent));
-
-    fragment->cursor += sent;
-
-    /* Close sent fds since they were copies */
-    for (i = 0; i < fds_to_send; i++)
-    {
-        close(buffer->fd[i]);
-    }
-
-    /* Remove sent fds from queue */
-    memmove(buffer->fd, buffer->fd + fds_to_send, (buffer->fd_length - fds_to_send) * sizeof(int));
-    buffer->fd_length -= fds_to_send;
 
 error:
 
