@@ -151,8 +151,7 @@ LsaNetJoinDomain(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = Win32ErrorToErrno(
-        NetJoinDomainLocal(
+    dwError = NetJoinDomainLocal(
             pwszHostname,
             pwszHostDnsDomain,
             pwszDomain,
@@ -162,7 +161,7 @@ LsaNetJoinDomain(
             dwOptions,
             pwszOSName,
             pwszOSVersion,
-            pwszOSServicePack));
+            pwszOSServicePack);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
