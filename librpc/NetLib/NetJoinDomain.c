@@ -384,10 +384,11 @@ NetJoinDomainLocalInternal(
 
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
-
         close_status = DisableWksAccount(conn, machname, &account_handle);
         BAIL_ON_NTSTATUS_ERROR(close_status);
+
+        err = NtStatusToWin32Error(status);
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     err = SaveMachinePassword(
@@ -402,6 +403,8 @@ NetJoinDomainLocalInternal(
     if (err != ERROR_SUCCESS) {
         close_status = DisableWksAccount(conn, machacct_name, &account_handle);
         BAIL_ON_NTSTATUS_ERROR(close_status);
+
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     /* 
