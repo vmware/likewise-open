@@ -113,22 +113,22 @@ NetrOpenSchannel(
 
     rpcstatus = InitNetlogonBindingDefault(&schn_b, pszHostname, access_token,
                                            TRUE);
-    if (rpcstatus) goto error;
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     rpc_binding_set_auth_info(schn_b,
                               NULL,
 #if 0
-                              /* Secure */
-                              rpc_c_authn_level_pkt_privacy,
-#else
                               /* Helps to debug network traces */
                               rpc_c_authn_level_pkt_integrity,
+#else
+                              /* Secure */
+                              rpc_c_authn_level_pkt_privacy,
 #endif
                               rpc_c_authn_schannel,
                               (rpc_auth_identity_handle_t)&schnauth_info,
                               rpc_c_authz_name, /* authz_protocol */
                               &rpcstatus);
-    if (rpcstatus) goto error;
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     *schannel_b = schn_b;
 
