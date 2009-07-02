@@ -105,10 +105,12 @@ LWRaiseLsassError(
         }
 
         LWRaiseEx(dest, err, file, line, "Lsass Error", buffer);
+        (*dest)->subcode = code;
         goto cleanup;
     }
 
     LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code %X has occurred, but an error string cannot be retrieved", code);
+    (*dest)->subcode = code;
 
 cleanup:
     CT_SAFE_FREE_STRING(buffer);
