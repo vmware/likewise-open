@@ -146,12 +146,12 @@ cleanup:
     if (nr.RemoteName) {
         NetFreeMemory((void*)nr.RemoteName);
     }
+
     if (localname)
     {
         NetFreeMemory(localname);
     }
 
-    SAFE_FREE(localname);
     SAFE_FREE(newpassword);
     SAFE_FREE(domain_controller_name);
 
