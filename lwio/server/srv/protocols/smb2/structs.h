@@ -487,4 +487,23 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
 
+typedef struct __SMB2_MESSAGE
+{
+    PSMB2_HEADER pHeader;
+    ULONG        ulSize;
+
+} SMB2_MESSAGE, *PSMB2_MESSAGE;
+
+typedef struct __SMB2_REQUEST
+{
+    PLWIO_SRV_CONNECTION  pConnection;
+
+    PSMB_PACKET   pRequest;
+    ULONG         ulNumChainedRequests;
+    PSMB2_MESSAGE pChainedRequests;
+
+    PSMB_PACKET   pResponse;
+
+} SMB2_REQUEST, *PSMB2_REQUEST;
+
 #endif /* __STRUCTS_H__ */

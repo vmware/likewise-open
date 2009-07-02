@@ -200,6 +200,8 @@ SrvProcessCreate_SMB_V2(
 
     bRemoveFileFromTree = TRUE;
 
+    // TODO: Execute create contexts and add results
+
     ntStatus = SrvBuildCreateResponse_SMB_V2(
                     pConnection,
                     pSmbRequest,

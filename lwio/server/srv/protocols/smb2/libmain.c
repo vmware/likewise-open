@@ -49,6 +49,14 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvBuildRequestChain_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB2_REQUEST        pRequest
+    );
+
 NTSTATUS
 SrvProtocolInit_SMB_V2(
     VOID
@@ -67,7 +75,13 @@ SrvProtocolExecute_SMB_V2(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse = NULL;
+    SMB2_REQUEST request = {0};
+
+    ntStatus = SrvBuildRequestChain_SMB_V2(
+                    pConnection,
+                    pSmbRequest,
+                    &request);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pSmbRequest->pSMB2Header->command)
     {
@@ -111,7 +125,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessSessionSetup_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -120,7 +134,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessLogoff_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -129,7 +143,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessTreeConnect_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -138,7 +152,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessTreeDisconnect_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -147,7 +161,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessCreate_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -156,7 +170,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessClose_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -165,7 +179,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessFlush_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -174,7 +188,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessRead_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -183,7 +197,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessWrite_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -192,7 +206,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessLock_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -201,7 +215,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessIOCTL_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -210,7 +224,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessEcho_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -219,7 +233,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessFind_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -228,7 +242,7 @@ SrvProtocolExecute_SMB_V2(
             ntStatus = SrvProcessGetInfo_SMB_V2(
                             pConnection,
                             pSmbRequest,
-                            &pSmbResponse);
+                            &request.pResponse);
 
             break;
 
@@ -245,13 +259,21 @@ SrvProtocolExecute_SMB_V2(
                         pConnection,
                         pSmbRequest->pSMB2Header,
                         ntStatus,
-                        &pSmbResponse);
+                        &request.pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppSmbResponse = pSmbResponse;
+    *ppSmbResponse = request.pResponse;
+    request.pResponse = NULL;
 
 cleanup:
+
+    SRV_SAFE_FREE_MEMORY(request.pChainedRequests);
+
+    if (request.pResponse)
+    {
+        SMBPacketFree(request.pConnection->hPacketAllocator, request.pResponse);
+    }
 
     return ntStatus;
 
@@ -259,10 +281,131 @@ error:
 
     *ppSmbResponse = NULL;
 
-    if (pSmbResponse)
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildRequestChain_SMB_V2(
+    PLWIO_SRV_CONNECTION pConnection,
+    PSMB_PACKET          pSmbRequest,
+    PSMB2_REQUEST        pRequest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG    ulNumChainedRequests = 0;
+    ULONG    iRequest = 0;
+    ULONG    ulPrevOffset = 0;
+    ULONG    ulPacketSize = pSmbRequest->bufferLen - sizeof(NETBIOS_HEADER);
+    PSMB2_HEADER pHeader = NULL;
+    PSMB2_HEADER pPrevHeader = NULL;
+    PSMB2_MESSAGE pMessages = NULL;
+    UCHAR         smb2magic[4] = {0xFE, 'S','M','B'};
+
+    pHeader = pSmbRequest->pSMB2Header;
+
+    while (pHeader)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        ulNumChainedRequests++;
+
+        if (pHeader->ulChainOffset)
+        {
+            ULONG ulBytesAvailable = 0;
+
+            if ((pHeader->ulChainOffset < ulPrevOffset) ||
+                (pHeader->ulChainOffset > ulPacketSize))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulBytesAvailable = ulPacketSize - pHeader->ulChainOffset;
+
+            if (ulBytesAvailable < sizeof(SMB2_HEADER))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulPrevOffset = pHeader->ulChainOffset;
+
+            pHeader = (PSMB2_HEADER)((PBYTE)pSmbRequest->pSMB2Header +
+                                      pHeader->ulChainOffset);
+
+            if (memcmp(&smb2magic[0], &pHeader->smb[0], sizeof(smb2magic)))
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+        }
+        else
+        {
+            pHeader = NULL;
+        }
     }
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SMB2_MESSAGE) * ulNumChainedRequests,
+                    (PVOID*)&pMessages);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pPrevHeader = NULL;
+
+    for (; iRequest < ulNumChainedRequests; iRequest++)
+    {
+        PSMB2_MESSAGE pMessage = &pMessages[iRequest];
+
+        if (!pPrevHeader)
+        {
+            pMessage->pHeader = pSmbRequest->pSMB2Header;
+            pMessage->ulSize = ulPacketSize;
+        }
+        else
+        {
+            pMessage->pHeader = (PSMB2_HEADER)(((PBYTE)pSmbRequest->pSMB2Header)
+                                               + pPrevHeader->ulChainOffset);
+            if (pMessage->pHeader->ulChainOffset)
+            {
+                pMessage->ulSize = pMessage->pHeader->ulChainOffset -
+                                   pPrevHeader->ulChainOffset;
+            }
+            else
+            {
+                pMessage->ulSize = ulPacketSize -
+                                   ((PBYTE)pMessage->pHeader -
+                                    (PBYTE)pSmbRequest->pSMB2Header);
+            }
+        }
+
+        // None of the chained requests may be async
+        if ((ulNumChainedRequests > 1) &&
+            (pMessage->pHeader->ulFlags & SMB2_FLAGS_ASYNC_COMMAND))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pPrevHeader = pMessage->pHeader;
+    }
+
+
+    pRequest->pConnection = pConnection;
+    pRequest->pRequest    = pSmbRequest;
+    pRequest->pChainedRequests = pMessages;
+    pRequest->ulNumChainedRequests = ulNumChainedRequests;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    pRequest->pConnection = NULL;
+    pRequest->pRequest    = NULL;
+    pRequest->pChainedRequests = NULL;
+    pRequest->ulNumChainedRequests = 0;
+
+    SRV_SAFE_FREE_MEMORY(pMessages);
 
     goto cleanup;
 }
