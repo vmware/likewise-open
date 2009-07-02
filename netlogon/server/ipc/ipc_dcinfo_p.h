@@ -55,6 +55,14 @@ LWNetSrvIpcGetDCName(
     void* data
     );
 
+LWMsgStatus
+LWNetSrvIpcGetDCList(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
 DWORD
 LWNetSrvIpcGetDCTime(
     LWMsgAssoc* assoc,

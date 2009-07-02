@@ -215,6 +215,76 @@ error:
 }
 
 DWORD
+LWNetTransactGetDCList(
+    IN HANDLE hConnection,
+    IN PCSTR pszDomainFQDN,
+    IN PCSTR pszSiteName,
+    IN DWORD dwFlags,
+    OUT PLWNET_DC_ADDRESS* ppDcList,
+    OUT LW_PDWORD pdwDcCount
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    LWNET_IPC_DCNAME_REQ dcReq = { 0 };
+    PLWNET_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    dcReq.pszDomainFQDN = pszDomainFQDN;
+    dcReq.pszSiteName = pszSiteName;
+    dcReq.dwFlags = dwFlags;
+
+    request.tag = LWNET_Q_DCLIST;
+    request.object = &dcReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_DCLIST_SUCCESS:
+    {
+        PLWNET_IPC_DCLIST_RES pResult = (PLWNET_IPC_DCLIST_RES) response.object;
+        *ppDcList = pResult->pDcList;
+        pResult->pDcList = NULL;
+        *pdwDcCount = pResult->dwDcCount;
+        break;
+    }
+    case LWNET_R_DCLIST_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    *ppDcList = NULL;
+    *pdwDcCount = 0;
+
+    goto cleanup;
+
+}
+
+DWORD
 LWNetTransactGetDCTime(
     HANDLE hConnection,
     PCSTR pszDomainFQDN,

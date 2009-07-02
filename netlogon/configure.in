@@ -314,6 +314,7 @@ AC_CONFIG_FILES([Makefile
                  tests/plugin/Makefile
                  tools/Makefile
                  tools/get_dc_info/Makefile
+                 tools/get_dc_list/Makefile
                  tools/get_dc_time/Makefile
                  tools/get_current_domain/Makefile
                  tools/export_dc_cache/Makefile

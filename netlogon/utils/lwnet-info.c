@@ -66,3 +66,18 @@ LWNetFreeDCInfo(
     LWNetFreeMemory(pDCInfo);
 }
 
+LWNET_API
+LW_VOID
+LWNetFreeDCList(
+    LW_IN LW_OUT PLWNET_DC_ADDRESS pDcList,
+    LW_IN DWORD dwDcCount
+    )
+{
+    DWORD i = 0;
+    for (i = 0; i < dwDcCount; i++)
+    {
+        LWNET_SAFE_FREE_STRING(pDcList[i].pszDomainControllerName);
+        LWNET_SAFE_FREE_STRING(pDcList[i].pszDomainControllerAddress);
+    }
+    LWNetFreeMemory(pDcList);
+}
