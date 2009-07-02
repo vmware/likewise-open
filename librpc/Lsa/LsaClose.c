@@ -31,17 +31,24 @@
 #include "includes.h"
 
 
-NTSTATUS LsaClose(handle_t b, PolicyHandle *handle)
+NTSTATUS
+LsaClose(
+    handle_t b,
+    PolicyHandle *handle
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(b, done);
-    goto_if_invalid_param_ntstatus(handle, done);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(handle);
 
     DCERPC_CALL(_LsaClose(b, handle));
 
-done:
+cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

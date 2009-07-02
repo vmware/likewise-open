@@ -48,35 +48,35 @@ SamrLookupRids(
     wchar16_t **out_names = NULL;
     uint32 *out_types = NULL;
 
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(domain_h, cleanup);
-    goto_if_no_memory_ntstatus(rids, cleanup);
-    goto_if_no_memory_ntstatus(names, cleanup);
-    goto_if_no_memory_ntstatus(types, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(rids);
+    BAIL_ON_INVALID_PTR(names);
+    BAIL_ON_INVALID_PTR(types);
     
     DCERPC_CALL(_SamrLookupRids(b, domain_h, num_rids, rids, &n, &t));
 	
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (n.count > 0) {
         status = SamrAllocateMemory((void**)&out_names,
                                     sizeof(wchar16_t*) * n.count,
                                     NULL);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = SamrAllocateMemory((void**)&out_types,
                                     sizeof(uint32) * n.count,
                                     NULL);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         for (i = 0; i < n.count; i++) {
             UnicodeString *name = &(n.names[i]);
 
             out_names[i] = GetFromUnicodeString(name);
-            goto_if_no_memory_ntstatus(out_names[i], error);
+            BAIL_ON_NO_MEMORY(out_names[i]);
 
             status = SamrAddDepMemory(out_names[i], (void*)out_names);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             out_types[i] = t.ids[i];
         }
@@ -103,7 +103,7 @@ error:
     *names = NULL;
     *types = NULL;
 
-    goto error;
+    goto cleanup;
 }
 
 

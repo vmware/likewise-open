@@ -48,11 +48,11 @@ SamrEnumDomains(
     uint32 num = 0;
     wchar16_t **out_names = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(conn_h, cleanup);
-    goto_if_invalid_param_ntstatus(resume, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(conn_h);
+    BAIL_ON_INVALID_PTR(resume);
+    BAIL_ON_INVALID_PTR(names);
+    BAIL_ON_INVALID_PTR(count);
 
     res = *resume;
 	
@@ -67,7 +67,7 @@ SamrEnumDomains(
 
     if (domains != NULL) {
         status = SamrAllocateNames(&out_names, domains);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     *resume = res;

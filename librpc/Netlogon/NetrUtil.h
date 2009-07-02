@@ -42,10 +42,10 @@
 #include <compat/rpcstatus.h>
 
 
-#define goto_if_ntstatus_not_success(s, lbl) \
+#define BAIL_ON_NTSTATUS_ERROR(s)            \
     if ((s) != STATUS_SUCCESS) {             \
-        status = s;                          \
-        goto lbl;                            \
+        status = (s);                        \
+        goto error;                          \
     }
 
 #define goto_if_winerr_not_success(e, lbl)   \
@@ -54,16 +54,16 @@
         goto lbl;                            \
     }
 
-#define goto_if_rpcstatus_not_success(s, lbl) \
-    if ((s) != RPC_S_OK) {                    \
-        rpcstatus = s;                        \
-        goto lbl;                             \
+#define BAIL_ON_RPCSTATUS_ERROR(s)           \
+    if ((s) != RPC_S_OK) {                   \
+        rpcstatus = (s);                     \
+        goto error;                          \
     }
 
-#define goto_if_no_memory_ntstatus(p, lbl)   \
+#define BAIL_ON_NO_MEMORY(p)                 \
     if ((p) == NULL) {                       \
         status = STATUS_NO_MEMORY;           \
-        goto lbl;                            \
+        goto error;                          \
     }
 
 #define goto_if_no_memory_winerr(p, lbl)     \
@@ -72,10 +72,10 @@
         goto lbl;                            \
     }
 
-#define goto_if_invalid_param_ntstatus(p, lbl) \
+#define BAIL_ON_INVALID_PTR(p)               \
     if ((p) == NULL) {                       \
         status = STATUS_INVALID_PARAMETER;   \
-        goto lbl;                            \
+        goto error;                          \
     }
 
 #define goto_if_invalid_param_winerr(p, lbl) \

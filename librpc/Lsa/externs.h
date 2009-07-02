@@ -51,7 +51,7 @@ extern int bLsaInitialised;
         ret = pthread_mutex_lock(&g_lsa_data_mutex);  \
         if (ret) {                                    \
             status = STATUS_UNSUCCESSFUL;		      \
-            goto done;                                \
+            goto error;                               \
                                                       \
         } else {                                      \
             locked = 1;                               \

@@ -2745,6 +2745,94 @@ done:
 }
 
 
+int TestSamrCreateGroup(struct test *t, const wchar16_t *hostname,
+                        const wchar16_t *user, const wchar16_t *pass,
+                        struct parameter *options, int optcount)
+{
+    const uint32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
+                                    SAMR_ACCESS_ENUM_DOMAINS |
+                                    SAMR_ACCESS_CONNECT_TO_SERVER;
+
+    const uint32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                   DOMAIN_ACCESS_CREATE_USER |
+                                   DOMAIN_ACCESS_CREATE_ALIAS |
+                                   DOMAIN_ACCESS_CREATE_GROUP |
+                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
+
+    const uint32 group_access = GROUP_ACCESS_LOOKUP_INFO |
+                                GROUP_ACCESS_SET_INFO |
+                                DELETE;
+
+    const char *def_groupname = "Testgroup";
+
+    NTSTATUS status = STATUS_SUCCESS;
+    enum param_err perr = perr_success;
+    handle_t samr_binding = NULL;
+    wchar16_t *newgroupname = NULL;
+    wchar16_t *domname = NULL;
+    uint32 rid = 0;
+    PolicyHandle conn_handle = {0};
+    PolicyHandle dom_handle = {0};
+    PolicyHandle account_handle = {0};
+    PSID sid = NULL;
+
+    perr = fetch_value(options, optcount, "groupname", pt_w16string,
+                       &newgroupname, &def_groupname);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(pCreds);
+
+    samr_binding = CreateSamrBinding(&samr_binding, hostname);
+    if (samr_binding == NULL) return false;
+
+    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
+                          &conn_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = GetSamDomainName(&domname, hostname);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrLookupDomain(samr_binding, &conn_handle, domname, &sid);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrOpenDomain(samr_binding, &conn_handle, dom_access_mask,
+                            sid, &dom_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrCreateDomGroup(samr_binding, &dom_handle, newgroupname,
+                                group_access, &account_handle, &rid);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrClose(samr_binding, &account_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrOpenGroup(samr_binding, &dom_handle, group_access, rid,
+                           &account_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrDeleteDomGroup(samr_binding, &account_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrClose(samr_binding, &dom_handle);
+    if (status != 0) rpc_fail(status);
+
+    status = SamrClose(samr_binding, &conn_handle);
+    if (status != 0) rpc_fail(status);
+
+    FreeSamrBinding(&samr_binding);
+    RELEASE_SESSION_CREDS;
+
+done:
+    if (sid) SamrFreeMemory((void*)sid);
+
+    SAFE_FREE(domname);
+    SAFE_FREE(newgroupname);
+
+    return (status == STATUS_SUCCESS);
+}
+
+
 int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
                             const wchar16_t *user, const wchar16_t *pass,
                             struct parameter *options, int optcount)
@@ -2769,6 +2857,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
 
     const char *newuser = "Testuser";
     const char *testpass = "JustTesting30$";
+    const uint32 def_primary_gid = 513;
 
     NTSTATUS status = STATUS_SUCCESS;
     RPCSTATUS rpcstatus;
@@ -2791,6 +2880,8 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     unsigned16 sess_key_len;
     unsigned char digested_sess_key[16] = {0};
     struct md5context ctx;
+    UserInfo9 *info9 = NULL;
+    uint32 primary_gid = 0;
 
     memset((void*)&userinfo, 0, sizeof(userinfo));
 
@@ -2800,6 +2891,10 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
 
     perr = fetch_value(options, optcount, "password", pt_w16string,
                        &password, &testpass);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "primarygid", pt_uint32,
+                       &primary_gid, &def_primary_gid);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     SET_SESSION_CREDS(pCreds);
@@ -2841,6 +2936,12 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
 
     status = SamrOpenUser(samr_binding, &dom_handle, usr_access_mask,
                           rid, &account_handle);
+    if (status != 0) rpc_fail(status);
+
+    info9 = &userinfo.info9;
+    info9->primary_gid = primary_gid;
+
+    status = SamrSetUserInfo(samr_binding, &account_handle, 9, &userinfo);
     if (status != 0) rpc_fail(status);
 
     info26 = &userinfo.info26;
@@ -3599,6 +3700,7 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-ENUM-DOMAINS", TestSamrEnumDomains);
     AddTest(t, "SAMR-CREATE-USER", TestSamrCreateUserAccount);
     AddTest(t, "SAMR-CREATE-ALIAS", TestSamrCreateAlias);
+    AddTest(t, "SAMR-CREATE-GROUP", TestSamrCreateGroup);
     AddTest(t, "SAMR-USER-PASSWORD", TestSamrSetUserPassword);
     AddTest(t, "SAMR-MULTIPLE-CONNECTION", TestSamrMultipleConnections);
     AddTest(t, "SAMR-USER-PASSWORD-CHANGE", TestSamrChangeUserPassword);

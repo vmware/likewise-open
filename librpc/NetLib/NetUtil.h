@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -36,36 +36,29 @@
 #include <ldap.h>
 
 
-#define goto_if_ntstatus_not_success(s, lbl) \
-    if (s != STATUS_SUCCESS) {               \
+#define BAIL_ON_NTSTATUS_ERROR(s)            \
+    if ((s) != STATUS_SUCCESS) {             \
         status = (s);                        \
         err = NtStatusToWin32Error((s));     \
-        goto lbl;                            \
+        goto error;                          \
     }
 
-#define goto_if_winerr_not_success(e, lbl) \
-    if (e != ERROR_SUCCESS) {              \
-        err = e;                           \
-        goto lbl;                          \
+#define BAIL_ON_WINERR_ERROR(e)              \
+    if ((e) != ERROR_SUCCESS) {              \
+        err = (e);                           \
+        goto error;                          \
     }
 
-#define goto_if_lderr_not_success(e, lbl) \
-    if (e != LDAP_SUCCESS) {              \
-        lderr = e;                        \
-        goto lbl;                         \
+#define BAIL_ON_LDERR_ERROR(e)               \
+    if ((e) != LDAP_SUCCESS) {               \
+        lderr = (e);                         \
+        goto error;                          \
     }
 
-
-#define goto_if_no_memory_ntstatus(p, lbl)   \
+#define BAIL_ON_NO_MEMORY(p)                 \
     if ((p) == NULL) {                       \
-        status = STATUS_NO_MEMORY;           \
-        goto lbl;                            \
-    }
-
-#define goto_if_no_memory_winerr(ptr, lbl) \
-    if (ptr == NULL) {                     \
-        err = ERROR_OUTOFMEMORY;           \
-        goto lbl;                          \
+        err = ERROR_OUTOFMEMORY;             \
+        goto error;                          \
     }
 
 #define goto_if_no_memory_lderr(p, lbl) \
@@ -75,24 +68,11 @@
         goto lbl;                       \
     }
 
-#define goto_if_invalid_param_ntstatus(p, lbl) \
+#define BAIL_ON_INVALID_PTR(p)                 \
     if ((p) == NULL) {                         \
         status = STATUS_INVALID_PARAMETER;     \
         err = ERROR_INVALID_PARAMETER;         \
-        goto lbl;                              \
-    }
-
-#define goto_if_invalid_param_winerr(parm, lbl) \
-    if ((parm) == NULL) {                       \
-        err = ERROR_INVALID_PARAMETER;          \
-        goto lbl;                               \
-    }
-
-#define goto_if_invalid_param_lderr(parm, lbl)  \
-    if ((parm) == NULL) {                       \
-        lderr = LDAP_PARAM_ERROR;               \
-        err = ERROR_INVALID_PARAMETER;          \
-        goto lbl;                               \
+        goto error;                            \
     }
 
 

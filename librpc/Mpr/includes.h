@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,55 +28,21 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+#include <config.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
-NTSTATUS
-SamrCreateUser2(
-    handle_t b,
-    PolicyHandle *domain_h,
-    wchar16_t *account_name,
-    uint32 account_flags,
-    uint32 account_mask,
-    PolicyHandle *account_h,
-    uint32 *out_access_granted,
-    uint32 *out_rid
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeStringEx acct_name = {0};
-    uint32 access = 0;
-    uint32 rid = 0;
+#include <wc16str.h>
+#include <lw/ntstatus.h>
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(account_name);
-    BAIL_ON_INVALID_PTR(account_h);
-    BAIL_ON_INVALID_PTR(out_access_granted);
-    BAIL_ON_INVALID_PTR(out_rid);
+#include <lwrpc/types.h>
+#include <lwrpc/winerror.h>
+#include <lwrpc/errconv.h>
+#include <lwrpc/mpr.h>
 
-    status = InitUnicodeStringEx(&acct_name, account_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    DCERPC_CALL(_SamrCreateUser2(b, domain_h, &acct_name,
-                                 account_flags, account_mask,
-                                 account_h, &access, &rid));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *out_access_granted = access;
-    *out_rid            = rid;
-
-cleanup:
-    FreeUnicodeStringEx(&acct_name);
-
-    return status;
-
-error:
-    *out_access_granted = 0;
-    *out_rid            = 0;
-    goto cleanup;
-}
 
 
 /*

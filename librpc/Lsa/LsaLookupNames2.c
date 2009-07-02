@@ -35,10 +35,17 @@
 #include "includes.h"
 
 
-NTSTATUS LsaLookupNames2(handle_t b, PolicyHandle *handle,
-                         uint32 num_names, wchar16_t *names[],
-                         RefDomainList **domains, TranslatedSid2** sids,
-                         uint16 level, uint32 *count)
+NTSTATUS
+LsaLookupNames2(
+    handle_t b,
+    PolicyHandle *handle,
+    uint32 num_names,
+    wchar16_t *names[],
+    RefDomainList **domains,
+    TranslatedSid2** sids,
+    uint16 level,
+    uint32 *count
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret_status = STATUS_SUCCESS;
@@ -50,15 +57,15 @@ NTSTATUS LsaLookupNames2(handle_t b, PolicyHandle *handle,
     TranslatedSidArray2 sid_array = {0};
     TranslatedSid2* out_sids = NULL;
 	
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(domains, cleanup);
-    goto_if_invalid_param_ntstatus(sids, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(handle);
+    BAIL_ON_INVALID_PTR(names);
+    BAIL_ON_INVALID_PTR(domains);
+    BAIL_ON_INVALID_PTR(sids);
+    BAIL_ON_INVALID_PTR(count);
 
     lsa_names = InitUnicodeStringExArray(names, num_names);
-    goto_if_no_memory_ntstatus(lsa_names, cleanup);
+    BAIL_ON_NO_MEMORY(lsa_names);
 
     *count = 0;
 
@@ -71,10 +78,10 @@ NTSTATUS LsaLookupNames2(handle_t b, PolicyHandle *handle,
         ret_status != STATUS_SOME_UNMAPPED) goto error;
 
     status = LsaAllocateTranslatedSids2(&out_sids, &sid_array);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaAllocateRefDomainList(&out_domains, ref_domains);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
     
     *sids    = out_sids;
     *domains = out_domains;

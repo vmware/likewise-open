@@ -36,6 +36,19 @@
 
 #include "includes.h"
 
+#define BAIL_ON_NO_MEMORY_RPCSTATUS(p)     \
+    if ((p) == NULL) {                     \
+        rpcstatus = RPC_S_OUT_OF_MEMORY;   \
+        goto error;                        \
+    }
+
+#define BAIL_ON_INVALID_PTR_RPCSTATUS(p)   \
+    if ((p) == NULL) {                     \
+        rpcstatus = RPC_S_INVALID_ARG;     \
+        goto error;                        \
+    }
+
+
 RPCSTATUS
 InitLsaBindingDefault(
     handle_t *binding,
@@ -52,9 +65,10 @@ InitLsaBindingDefault(
 
     rpcstatus = InitLsaBindingFull(&b, prot_seq, hostname, endpoint,
                                    uuid, options, access_token);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     *binding = b;
+
 cleanup:
     return rpcstatus;
 
@@ -86,48 +100,48 @@ InitLsaBindingFull(
     handle_t b = NULL;
     rpc_transport_info_handle_t info = NULL;
 
-    goto_if_invalid_param_rpcstatus(binding, cleanup);
-    goto_if_invalid_param_rpcstatus(hostname, cleanup);
-    goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(binding);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(hostname);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(prot_seq);
 
     ps = (unsigned char*) strdup(prot_seq);
-    goto_if_no_memory_rpcstatus(ps, error);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(ps);
 
     if (endpoint != NULL) {
         ep = (unsigned char*) strdup(endpoint);
-        goto_if_no_memory_rpcstatus(ep, error);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(ep);
     }
 
     if (uuid != NULL) {
         u = (unsigned char*) strdup(uuid);
-        goto_if_no_memory_rpcstatus(u, error);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(u);
     }
 
     if (options != NULL) {
         opts = (unsigned char*) strdup(options);
-        goto_if_no_memory_rpcstatus(opts, error);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(opts);
     }
 
     addr = (unsigned char*) strdup(hostname);
-    goto_if_no_memory_rpcstatus(addr, error);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(addr);
 
     rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
                                &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     rpc_smb_transport_info_from_lwio_token(access_token, FALSE, &info, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     rpc_binding_set_transport_info(b, info, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     info = NULL;
 
     rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
     
     *binding = b;
 
@@ -173,11 +187,14 @@ FreeLsaBinding(
     /* Free the binding itself */
     if (binding && *binding) {
 	    rpc_binding_free(binding, &rpcstatus);
-        goto_if_rpcstatus_not_success(rpcstatus, done);
+        BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
     }
 
-done:
+cleanup:
     return rpcstatus;
+
+error:
+    goto cleanup;
 }
 
 

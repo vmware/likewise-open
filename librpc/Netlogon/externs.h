@@ -47,7 +47,7 @@ extern int bInitialised;
         ret = pthread_mutex_lock(&g_data_mutex);  \
         if (ret) {                                \
             status = STATUS_UNSUCCESSFUL;         \
-            goto done;                            \
+            goto error;                           \
                                                   \
         } else {                                  \
             locked = 1;                           \

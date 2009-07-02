@@ -47,7 +47,7 @@ extern int bSamrInitialised;
         ret = pthread_mutex_lock(&g_samr_data_mutex);  \
         if (ret) {                                     \
             status = STATUS_UNSUCCESSFUL;		       \
-            goto done;                                 \
+            goto error;                                \
                                                        \
         } else {                                       \
             locked = 1;                                \

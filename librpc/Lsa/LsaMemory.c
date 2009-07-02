@@ -38,7 +38,9 @@
 
 
 NTSTATUS
-LsaRpcInitMemory()
+LsaRpcInitMemory(
+    void
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     int locked = 0;
@@ -47,19 +49,25 @@ LsaRpcInitMemory()
 
     if (!bLsaInitialised) {
         status = MemPtrListInit((PtrList**)&lsa_ptr_list);
-        goto_if_ntstatus_not_success(status, done);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         bLsaInitialised = 1;
     }
-done:
+
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 
 NTSTATUS
-LsaRpcDestroyMemory()
+LsaRpcDestroyMemory(
+    void
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     int locked = 0;
@@ -68,15 +76,18 @@ LsaRpcDestroyMemory()
 
     if (bLsaInitialised && lsa_ptr_list) {
         status = MemPtrListDestroy((PtrList**)&lsa_ptr_list);
-        goto_if_ntstatus_not_success(status, done);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         bLsaInitialised = 0;
     }
 
-done:
+cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -121,14 +132,14 @@ LsaAllocateTranslatedSids(
     int i = 0;
     int count = 0;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     count = (in == NULL) ? 1 : in->count;
 
     status = LsaRpcAllocateMemory((void**)&ptr,
                                   sizeof(TranslatedSid) * count,
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in != NULL) {
         for (i = 0; i < count; i++) {
@@ -164,14 +175,14 @@ LsaAllocateTranslatedSids2(
     int i = 0;
     int count = 0;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     count = (in == NULL) ? 1 : in->count;
 
     status = LsaRpcAllocateMemory((void**)&ptr,
                                   sizeof(TranslatedSid2) * count,
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in != NULL) {
         for (i = 0; i < count; i++) {
@@ -208,14 +219,14 @@ LsaAllocateTranslatedSids3(
     int i = 0;
     int count = 0;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     count = (in == NULL) ? 1 : in->count;
 
     status = LsaRpcAllocateMemory((void**)&ptr,
                                   sizeof(TranslatedSid2) * count,
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in != NULL) {
         for (i = 0; i < count; i++) {
@@ -225,14 +236,14 @@ LsaAllocateTranslatedSids3(
 
             if (in->sids[i].sid) {
                 status = MsRpcDuplicateSid(&(ptr[i].sid), in->sids[i].sid);
-                goto_if_ntstatus_not_success(status, error);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
             } else {
                 ptr[i].sid = NULL;
             }
 
             status = LsaRpcAddDepMemory(ptr[i].sid, ptr);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
     }
 
@@ -261,11 +272,11 @@ LsaAllocateRefDomainList(
     RefDomainList *ptr = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     status = LsaRpcAllocateMemory((void**)&ptr, sizeof(RefDomainList),
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in == NULL) goto cleanup;
 
@@ -275,25 +286,25 @@ LsaAllocateRefDomainList(
     status = LsaRpcAllocateMemory((void**)&ptr->domains,
                                   sizeof(LsaDomainInfo) * ptr->count,
                                   (void*)ptr);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < ptr->count; i++) {
         LsaDomainInfo *info = &(ptr->domains[i]);
 
         status = CopyUnicodeStringEx(&info->name, &in->domains[i].name);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         if (info->name.string) {
             status = LsaRpcAddDepMemory((void*)info->name.string, (void*)ptr);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
 
         MsRpcDuplicateSid(&info->sid, in->domains[i].sid);
-        goto_if_no_memory_ntstatus(info->sid, error);
+        BAIL_ON_NO_MEMORY(info->sid);
 
         if (info->sid) {
             status = LsaRpcAddDepMemory((void*)info->sid, (void*)ptr);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
     }
 
@@ -324,7 +335,7 @@ LsaAllocateTranslatedNames(
     int i = 0;
     int count = 0;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     count = (in) ? in->count : 1;
 
@@ -333,7 +344,7 @@ LsaAllocateTranslatedNames(
     status = LsaRpcAllocateMemory((void**)&ptr, 
                                   sizeof(TranslatedName) * count,
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in != NULL) {
         for (i = 0; i < in->count; i++) {
@@ -344,11 +355,11 @@ LsaAllocateTranslatedNames(
             nout->sid_index = nin->sid_index;
 
             status = CopyUnicodeString(&nout->name, &nin->name);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (nout->name.string) {
                 status = LsaRpcAddDepMemory((void*)nout->name.string, (void*)ptr);
-                goto_if_ntstatus_not_success(status, error);
+                BAIL_ON_NTSTATUS_ERROR(status);
             }
         }
     }
@@ -377,13 +388,16 @@ LsaCopyPolInfoField(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     memcpy(out, in, size);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -397,8 +411,8 @@ LsaCopyPolInfoAuditEvents(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     out->auditing_mode = in->auditing_mode;
     out->count         = in->count;
@@ -406,13 +420,16 @@ LsaCopyPolInfoAuditEvents(
     status = LsaRpcAllocateMemory((void**)&out->settings,
                                   (size_t)out->count,
                                   dep);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy((void*)&out->settings, (void*)&in->settings,
            out->count);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -426,27 +443,30 @@ LsaCopyPolInfoLsaDomain(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     status = CopyUnicodeStringEx(&out->name, &in->name);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->name.string) {
         status = LsaRpcAddDepMemory((void*)out->name.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     MsRpcDuplicateSid(&out->sid, in->sid);
-    goto_if_no_memory_ntstatus(out->sid, cleanup);
+    BAIL_ON_NO_MEMORY(out->sid);
 
     if (out->sid) {
         status = LsaRpcAddDepMemory((void*)out->sid, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -460,19 +480,22 @@ LsaCopyPolInfoPDAccount(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     status = CopyUnicodeString(&out->name, &in->name);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->name.string) {
         status = LsaRpcAddDepMemory((void*)out->name.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -486,27 +509,30 @@ LsaCopyPolInfoReplicaSource(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     status = CopyUnicodeString(&out->source, &in->source);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->source.string) {
         status = LsaRpcAddDepMemory((void*)out->source.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = CopyUnicodeString(&out->account, &in->account);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->account.string) {
         status = LsaRpcAddDepMemory((void*)out->account.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -520,46 +546,49 @@ LsaCopyPolInfoDnsDomain(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
-    goto_if_invalid_param_ntstatus(in, cleanup);
+    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(in);
 
     status = CopyUnicodeStringEx(&out->name, &in->name);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->name.string) {
         status = LsaRpcAddDepMemory((void*)out->name.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = CopyUnicodeStringEx(&out->dns_domain, &in->dns_domain);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->dns_domain.string) {
         status = LsaRpcAddDepMemory((void*)out->dns_domain.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = CopyUnicodeStringEx(&out->dns_forest, &in->dns_forest);
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (out->dns_forest.string) {
         status = LsaRpcAddDepMemory((void*)out->dns_forest.string, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     memcpy((void*)&out->domain_guid, (void*)&in->domain_guid,
            sizeof(Guid));
 
     MsRpcDuplicateSid(&out->sid, in->sid);
-    goto_if_no_memory_ntstatus(out->sid, cleanup);
+    BAIL_ON_NO_MEMORY(out->sid);
 
     if (out->sid) {
         status = LsaRpcAddDepMemory((void*)out->sid, dep);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -573,12 +602,12 @@ LsaAllocatePolicyInformation(
     NTSTATUS status = STATUS_SUCCESS;
     LsaPolicyInformation *ptr = NULL;
 
-    goto_if_invalid_param_ntstatus(out, cleanup);
+    BAIL_ON_INVALID_PTR(out);
 
     status = LsaRpcAllocateMemory((void**)&ptr,
                                   sizeof(LsaPolicyInformation),
                                   NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (in != NULL) {
 
@@ -651,7 +680,7 @@ LsaAllocatePolicyInformation(
             status = STATUS_INVALID_LEVEL;
         }
 
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
     }
 

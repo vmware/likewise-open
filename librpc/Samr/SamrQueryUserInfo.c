@@ -43,17 +43,17 @@ SamrQueryUserInfo(
     UserInfo *i = NULL;
     UserInfo *out_info = NULL;
 
-    goto_if_no_memory_ntstatus(b, cleanup);
-    goto_if_no_memory_ntstatus(user_h, cleanup);
-    goto_if_no_memory_ntstatus(info, cleanup);
+    BAIL_ON_NO_MEMORY(b);
+    BAIL_ON_NO_MEMORY(user_h);
+    BAIL_ON_NO_MEMORY(info);
 	
     DCERPC_CALL(_SamrQueryUserInfo(b, user_h, level, &i));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (i) {
         status = SamrAllocateUserInfo(&out_info, i, level);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     *info = out_info;

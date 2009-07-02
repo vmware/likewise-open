@@ -67,11 +67,11 @@ NetUserEnum(
     uint32 resume = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_ntstatus(hostname, cleanup);
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(out_entries, cleanup);
-    goto_if_invalid_param_ntstatus(out_total, cleanup);
-    goto_if_invalid_param_ntstatus(out_resume, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(out_entries);
+    BAIL_ON_INVALID_PTR(out_total);
+    BAIL_ON_INVALID_PTR(out_resume);
 
     switch (filter) {
     case FILTER_NORMAL_ACCOUNT:
@@ -104,7 +104,7 @@ NetUserEnum(
     }
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
     dom_h  = conn->samr.dom_handle;
@@ -117,7 +117,7 @@ NetUserEnum(
     dom_h  = conn->samr.dom_handle;
 
     status = SamrQueryDomainInfo(samr_b, &dom_h, dominfo_level, &dominfo);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     total    = dominfo->info2.num_users;
     resume   = *out_resume;
@@ -135,7 +135,7 @@ NetUserEnum(
     status = NetAllocateMemory((void**)&sinfo,
                                sizeof(UserInfo) * num_entries,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num_entries; i++) {
         if (level != 0) {
@@ -149,10 +149,10 @@ NetUserEnum(
 
             status = SamrOpenUser(samr_b, &dom_h, user_flags, userrids[i],
                                   &user_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrQueryUserInfo(samr_b, &user_h, infolevel, &ui);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (ui) {
                 memcpy(&(sinfo[i]), &ui->info21, sizeof(UserInfo21));
@@ -160,7 +160,7 @@ NetUserEnum(
             }
 
             status = SamrClose(samr_b, &user_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
     }
 
@@ -178,7 +178,7 @@ NetUserEnum(
         break;
     }
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer      = ninfo;
     *out_resume  = resume;

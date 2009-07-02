@@ -58,9 +58,9 @@ NetUserGetInfo(
     USER_INFO_20 *ninfo20 = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(username, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(buffer);
 
     if (level != 20) {
         err = ERROR_INVALID_LEVEL;
@@ -68,25 +68,25 @@ NetUserGetInfo(
     }
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetOpenUser(conn, username, access_rights, &user_h,
                          &user_rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrQueryUserInfo(samr_b, &user_h, samr_level, &info);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = PullUserInfo20((void**)&ninfo20, &info->info21, num);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrClose(samr_b, &user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer = ninfo20;
 

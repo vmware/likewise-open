@@ -48,18 +48,18 @@ NetUserDel(
     PIO_ACCESS_TOKEN access_token = NULL;
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
     status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrDeleteUser(samr_b, &user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (err == ERROR_SUCCESS &&

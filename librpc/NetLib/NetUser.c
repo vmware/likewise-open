@@ -50,24 +50,24 @@ NetOpenUser(
     uint32 *rids = NULL;
     uint32 *types = NULL;
 
-    goto_if_invalid_param_ntstatus(conn, cleanup);
-    goto_if_invalid_param_ntstatus(username, cleanup);
-    goto_if_invalid_param_ntstatus(user_h, cleanup);
-    goto_if_invalid_param_ntstatus(rid, cleanup);
+    BAIL_ON_INVALID_PTR(conn);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(user_h);
+    BAIL_ON_INVALID_PTR(rid);
 
     samr_b   = conn->samr.bind;
     domain_h = conn->samr.dom_handle;
 
     usernames[0] = wc16sdup(username);
-    goto_if_no_memory_ntstatus(usernames[0], error);
+    BAIL_ON_NO_MEMORY(usernames[0]);
 	
     status = SamrLookupNames(samr_b, &domain_h, num_users, usernames,
                              &rids, &types, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrOpenUser(samr_b, &domain_h, access_mask, rids[0],
                           user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *rid = rids[0];
 
@@ -111,17 +111,17 @@ NetOpenAlias(
     uint32 alias_rid = 0;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(conn, cleanup);
-    goto_if_invalid_param_ntstatus(aliasname, cleanup);
-    goto_if_invalid_param_ntstatus(out_alias_h, cleanup);
-    goto_if_invalid_param_ntstatus(out_rid, cleanup);
+    BAIL_ON_INVALID_PTR(conn);
+    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(out_alias_h);
+    BAIL_ON_INVALID_PTR(out_rid);
 
     samr_b        = conn->samr.bind;
     domains_h[0]  = conn->samr.dom_handle;
     domains_h[1]  = conn->samr.btin_dom_handle;
 
     aliasnames[0] = wc16sdup(aliasname);
-    goto_if_no_memory_ntstatus(aliasnames[0], error);
+    BAIL_ON_NO_MEMORY(aliasnames[0]);
 
     /*
      * Try to look for alias in host domain first, then in builtin
@@ -152,15 +152,15 @@ NetOpenAlias(
         }
 
         /* Catch other possible errors */
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* Allow to open alias only if a valid one has been found */
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrOpenAlias(samr_b, &domain_h, access_mask, alias_rid,
                            &alias_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_rid     = alias_rid;
     *out_alias_h = alias_h;

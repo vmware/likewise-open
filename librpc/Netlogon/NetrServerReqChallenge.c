@@ -49,22 +49,22 @@ NTSTATUS NetrServerReqChallenge(
 
     memset((void*)&creds, 0, sizeof(creds));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(server, cleanup);
-    goto_if_invalid_param_ntstatus(computer, cleanup);
-    goto_if_invalid_param_ntstatus(cli_challenge, cleanup);
-    goto_if_invalid_param_ntstatus(srv_challenge, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(computer);
+    BAIL_ON_INVALID_PTR(cli_challenge);
+    BAIL_ON_INVALID_PTR(srv_challenge);
 
     memcpy(creds.data, cli_challenge, sizeof(creds.data));
 
     srv = wc16sdup(server);
-    goto_if_no_memory_ntstatus(srv, error);
+    BAIL_ON_NO_MEMORY(srv);
 
     comp = wc16sdup(computer);
-    goto_if_no_memory_ntstatus(comp, error);
+    BAIL_ON_NO_MEMORY(comp);
 
     DCERPC_CALL(status, _NetrServerReqChallenge(b, srv, comp, &creds));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(srv_challenge, creds.data, sizeof(creds.data));
 

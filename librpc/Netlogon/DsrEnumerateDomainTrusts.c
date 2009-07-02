@@ -48,22 +48,19 @@ DsrEnumerateDomainTrusts(
 
     memset((void*)&tlist, 0, sizeof(tlist));
 
-    goto_if_invalid_param_winerr(b, cleanup);
-    goto_if_invalid_param_winerr(server, cleanup);
-    goto_if_invalid_param_winerr(trusts, cleanup);
-    goto_if_invalid_param_winerr(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(trusts);
+    BAIL_ON_INVALID_PTR(count);
     
     srv = wc16sdup(server);
-    goto_if_no_memory_winerr(srv, cleanup);
+    BAIL_ON_NO_MEMORY(srv);
 
     DCERPC_CALL(err, _DsrEnumerateDomainTrusts(b, srv, flags, &tlist));
-    goto_if_winerr_not_success(err, cleanup);
+    if (err) goto error;
 
     status = NetrAllocateDomainTrusts(&t, &tlist);
-    if (status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
-        goto error;
-    }
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *count  = tlist.count;
     *trusts = t;
@@ -71,6 +68,11 @@ DsrEnumerateDomainTrusts(
 cleanup:
     SAFE_FREE(srv);
     NetrCleanStubDomainTrustList(&tlist);
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
 
     return err;
 

@@ -40,13 +40,13 @@ SamrGetUserPwInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
     
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(user_h, cleanup);
-    goto_if_invalid_param_ntstatus(info, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(user_h);
+    BAIL_ON_INVALID_PTR(info);
 
     DCERPC_CALL(_SamrGetUserPwInfo(b, user_h, info));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     return status;

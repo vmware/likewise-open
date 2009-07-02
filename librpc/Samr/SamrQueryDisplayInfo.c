@@ -53,11 +53,11 @@ SamrQueryDisplayInfo(
 
     memset(&info, 0, sizeof(info));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(out_total_size, cleanup);
-    goto_if_invalid_param_ntstatus(out_returned_size, cleanup);
-    goto_if_invalid_param_ntstatus(out_info, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(out_total_size);
+    BAIL_ON_INVALID_PTR(out_returned_size);
+    BAIL_ON_INVALID_PTR(out_info);
 
     DCERPC_CALL(_SamrQueryDisplayInfo(b, domain_h, level, start_idx,
                                       max_entries, buf_size,
@@ -69,11 +69,11 @@ SamrQueryDisplayInfo(
     /* Status other than success doesn't have to mean failure here */
     if (status != STATUS_SUCCESS &&
         status != STATUS_MORE_ENTRIES) {
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = SamrAllocateDisplayInfo(&disp_info, &info, level);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_total_size    = total_size;
     *out_returned_size = returned_size;

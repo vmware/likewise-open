@@ -75,22 +75,22 @@ const uint16 lookup_level = 1;
     wchar16_t *can_username = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(aliasname, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
-    goto_if_invalid_param_winerr(out_entries, cleanup);
-    goto_if_invalid_param_winerr(out_total, cleanup);
-    goto_if_invalid_param_winerr(out_resume, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(out_entries);
+    BAIL_ON_INVALID_PTR(out_total);
+    BAIL_ON_INVALID_PTR(out_resume);
 
     total    = 0;
     resume   = 0;
     num_sids = 0;
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b        = conn->samr.bind;
     domain_h      = conn->samr.dom_handle;
@@ -103,7 +103,7 @@ const uint16 lookup_level = 1;
            Try to look in builtin domain. */
         status = NetOpenAlias(conn, aliasname, alias_access,
                               &alias_h, &alias_rid);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
     } else if (status != STATUS_SUCCESS) {
         err = NtStatusToWin32Error(status);
@@ -111,7 +111,7 @@ const uint16 lookup_level = 1;
     }
 
     status = SamrGetMembersInAlias(samr_b, &alias_h, &sids, &num_sids);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     total += num_sids;
     entries = total;
@@ -122,23 +122,23 @@ const uint16 lookup_level = 1;
     status = NetAllocateMemory((void**)&info,
                                sizeof(LOCALGROUP_MEMBERS_INFO_3) * entries,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     lsa_b = conn->lsa.bind;
     lsa_h = conn->lsa.policy_handle;
 
     status = NetAllocateMemory((void**)&sid_array, sizeof(SidArray), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     sid_array->num_sids = num_sids;
 
     status = NetAllocateMemory((void**)&sid_array->sids,
                                sizeof(SidPtr) * sid_array->num_sids,
                                sid_array);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < sid_array->num_sids; i++) {
         sid_array->sids[i].sid = sids[i];
@@ -157,16 +157,16 @@ const uint16 lookup_level = 1;
         sid_index = names[i].sid_index;
 
         domainname = GetFromUnicodeStringEx(&domains->domains[sid_index].name);
-        goto_if_no_memory_ntstatus(domainname, error);
+        BAIL_ON_NO_MEMORY(domainname);
 
         status = NetAddDepMemory(domainname, info);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         username = GetFromUnicodeString(&names[i].name);
-        goto_if_no_memory_ntstatus(username, error);
+        BAIL_ON_NO_MEMORY(username);
 
         status = NetAddDepMemory(username, info);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         domainname_size = wc16slen(domainname);
         username_size = wc16slen(username);
@@ -177,7 +177,7 @@ const uint16 lookup_level = 1;
         status = NetAllocateMemory((void**)&can_username,
                                    name_size * sizeof(wchar16_t),
                                    info);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         if (sw16printfw(
                     can_username,
@@ -187,7 +187,7 @@ const uint16 lookup_level = 1;
                     username) < 0)
         {
             status = ErrnoToNtStatus(errno);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
         info[i].lgrmi3_domainandname = can_username;
 
@@ -201,7 +201,7 @@ const uint16 lookup_level = 1;
     }
 
     status = SamrClose(samr_b, &alias_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *buffer      = (void*)info;
     *out_total   = total;

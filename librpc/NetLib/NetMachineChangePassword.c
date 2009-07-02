@@ -62,13 +62,13 @@ NetMachineChangePassword(
     memset((void*)machine_pass, 0, sizeof(machine_pass));
 
     err = NetGetHostInfo(&localname);
-    goto_if_winerr_not_success(err, error);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwpsGetPasswordByHostName(hStore, localname, &pass_info);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (!pass_info) {
         err = ERROR_INTERNAL_ERROR;
@@ -79,7 +79,7 @@ NetMachineChangePassword(
 
     status = NetpGetDcName(pass_info->pwszDnsDomainName, FALSE,
                            &domain_controller_name);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     username    = pass_info->pwszMachineAccount;
     oldpassword = pass_info->pwszMachinePassword;
@@ -97,7 +97,7 @@ NetMachineChangePassword(
                                (domain_controller_name_len + 8) *
                                sizeof(wchar16_t),
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* specify credentials for domain controller connection */
     if (sw16printfw(nr.RemoteName,
@@ -106,14 +106,14 @@ NetMachineChangePassword(
             domain_controller_name) < 0)
     {
         status = ErrnoToNtStatus(errno);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
     conn_err = WNetAddConnection2(&nr, oldpassword, username);
-    goto_if_winerr_not_success(conn_err, error);
+    BAIL_ON_WINERR_ERROR(conn_err);
 
     err = NetUserChangePassword(domain_controller_name, username,
                                 oldpassword, newpassword);
-    goto_if_winerr_not_success(err, error);
+    BAIL_ON_WINERR_ERROR(err);
 
     err = SaveMachinePassword(
               pass_info->pwszHostname,
@@ -125,7 +125,7 @@ NetMachineChangePassword(
               domain_controller_name,
               pass_info->pwszSID,
               newpassword);
-    goto_if_winerr_not_success(err, error);
+    BAIL_ON_WINERR_ERROR(err);
 
     if (pass_info) {
         LwpsFreePasswordInfo(hStore, pass_info);
@@ -135,12 +135,12 @@ NetMachineChangePassword(
     if (hStore != (HANDLE)NULL) {
         status = LwpsClosePasswordStore(hStore);
         hStore = NULL;
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* release the domain controller connection creds */
     conn_err = WNetCancelConnection2(nr.RemoteName, 0, 0);
-    goto_if_winerr_not_success(conn_err, error);
+    BAIL_ON_WINERR_ERROR(conn_err);
 
 cleanup:
     if (nr.RemoteName) {
@@ -151,6 +151,7 @@ cleanup:
         NetFreeMemory(localname);
     }
 
+    SAFE_FREE(localname);
     SAFE_FREE(newpassword);
     SAFE_FREE(domain_controller_name);
 

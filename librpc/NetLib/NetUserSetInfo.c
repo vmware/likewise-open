@@ -73,20 +73,20 @@ NetUserSetInfo(
 
     memset(&info, 0, sizeof(info));
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(username, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(buffer);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, domain_access, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
     
     samr_b = conn->samr.bind;
 
     status = NetOpenUser(conn, username, access_rights, &user_h, &user_rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
     case 0:
@@ -139,13 +139,13 @@ NetUserSetInfo(
         status = STATUS_INVALID_LEVEL;
         break;
     }
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
     status = SamrSetUserInfo(samr_b, &user_h, samr_level, info);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
     status = SamrClose(samr_b, &user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (info) {

@@ -56,22 +56,22 @@ NetrGetDomainInfo(
 
     memset((void*)&info, 0, sizeof(info));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(creds, cleanup);
-    goto_if_invalid_param_ntstatus(server, cleanup);
-    goto_if_invalid_param_ntstatus(computer, cleanup);
-    goto_if_invalid_param_ntstatus(query, cleanup);
-    goto_if_invalid_param_ntstatus(out_info, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(creds);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(computer);
+    BAIL_ON_INVALID_PTR(query);
+    BAIL_ON_INVALID_PTR(out_info);
 
     status = NetrAllocateUniString(&srv, server, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateUniString(&comp, computer, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* Create authenticator info with credentials chain */
     status = NetrAllocateMemory((void**)&auth, sizeof(NetrAuth), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     creds->sequence += 2;
     NetrCredentialsCliStep(creds);
@@ -81,13 +81,13 @@ NetrGetDomainInfo(
 
     /* Allocate returned authenticator */
     status = NetrAllocateMemory((void**)&ret_auth, sizeof(NetrAuth), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(status, _NetrLogonGetDomainInfo(b, srv, comp, auth, ret_auth,
                                                 level, query, &info));
 
     status = NetrAllocateDomainInfo(&domain_info, &info, level);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_info = domain_info;
 

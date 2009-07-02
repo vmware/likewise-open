@@ -68,9 +68,9 @@ NetLocalGroupChangeMembers(
     RefDomainList *domains = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(aliasname, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(buffer);
 
     if (!(level == 0 || level == 3)) {
         err = ERROR_INVALID_LEVEL;
@@ -83,7 +83,7 @@ NetLocalGroupChangeMembers(
     BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&conn, hostname, access, btin_domain_access, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
@@ -94,14 +94,14 @@ NetLocalGroupChangeMembers(
            Try to look in builtin domain. */
         status = NetOpenAlias(conn, aliasname, access_rights,
                               &alias_h, &alias_rid);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 	
     } else if (status != STATUS_SUCCESS) {
         goto error;
     }
 
     status = NetConnectLsa(&conn, hostname, lsa_access, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     lsa_b = conn->lsa.bind;
     lsa_h = conn->lsa.policy_handle;
@@ -127,7 +127,7 @@ NetLocalGroupChangeMembers(
 
             status = LsaLookupNames(lsa_b, &lsa_h, num_names, names,
                                     &domains, &sids, lookup_level, &count);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (count == 0) continue;
 
@@ -140,7 +140,7 @@ NetLocalGroupChangeMembers(
                 status = MsRpcAllocateSidAppendRid(&user_sid,
                                                     dom_sid,
                                                     sids[0].rid);
-                goto_if_ntstatus_not_success(status, error);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
             }
 
@@ -156,16 +156,16 @@ NetLocalGroupChangeMembers(
             info0 = (LOCALGROUP_MEMBERS_INFO_0*)buffer;
 
             MsRpcDuplicateSid(&user_sid, info0[i].lgrmi0_sid);
-            goto_if_no_memory_ntstatus(user_sid, error);
+            BAIL_ON_NO_MEMORY(user_sid);
         }
 
         if (access_rights == ALIAS_ACCESS_ADD_MEMBER) {
             status = SamrAddAliasMember(samr_b, &alias_h, user_sid);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
         } else if (access_rights == ALIAS_ACCESS_REMOVE_MEMBER) {
             status = SamrDeleteAliasMember(samr_b, &alias_h, user_sid);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
 
         if (user_sid) {
@@ -174,7 +174,7 @@ NetLocalGroupChangeMembers(
     }
 
     status = SamrClose(samr_b, &alias_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (err == ERROR_SUCCESS &&

@@ -74,14 +74,14 @@ NetUserGetLocalGroups(
     wchar16_t *alias_name = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(username, cleanup);
-    goto_if_invalid_param_winerr(hostname, cleanup);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(hostname);
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
     
     samr_b        = conn->samr.bind;
     domain_h      = conn->samr.dom_handle;
@@ -89,7 +89,7 @@ NetUserGetLocalGroups(
     domain_sid    = conn->samr.dom_sid;
 
     status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = MsRpcAllocateSidAppendRid(&user_sid, domain_sid, user_rid);
     if (status != 0) return NtStatusToWin32Error(status);
@@ -100,27 +100,27 @@ NetUserGetLocalGroups(
 
     status = SamrGetAliasMembership(samr_b, &domain_h, user_sid, 1,
                                     &user_rids, &rids_count);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrGetAliasMembership(samr_b, &btin_domain_h, user_sid, 1,
                                     &btin_user_rids, &btin_rids_count);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (rids_count > 0) {
         status = SamrLookupRids(samr_b, &domain_h, rids_count,
                                 user_rids, &alias_names, &alias_types);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     if (btin_rids_count > 0) {
         status = SamrLookupRids(samr_b, &btin_domain_h,
                                 btin_rids_count, btin_user_rids,
                                 &btin_alias_names, &btin_alias_types);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = SamrClose(samr_b, &user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     total = rids_count + btin_rids_count;
 
@@ -129,7 +129,7 @@ NetUserGetLocalGroups(
     } else {
         status = STATUS_SUCCESS;
     }
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     entries = total;
     while (entries * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
@@ -143,16 +143,16 @@ NetUserGetLocalGroups(
         status = NetAllocateMemory((void**)&info,
                                    sizeof(LOCALGROUP_USERS_INFO_0) * entries,
                                    NULL);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         for (i = 0; i < entries && i < rids_count; i++) {
             alias_name = wc16sdup(alias_names[i]);
-            goto_if_no_memory_ntstatus(alias_name, error);
+            BAIL_ON_NO_MEMORY(alias_name);
 
             info[i].lgrui0_name = alias_name;
 
             status = NetAddDepMemory(alias_name, info);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             alias_name = NULL;
         }
@@ -160,12 +160,12 @@ NetUserGetLocalGroups(
         /* continue copying from where previous loop has finished */
         for (i = rids_count; i < entries; i++) {
             alias_name = wc16sdup(btin_alias_names[i - rids_count]);
-            goto_if_no_memory_ntstatus(alias_name, error);
+            BAIL_ON_NO_MEMORY(alias_name);
 
             info[i].lgrui0_name = alias_name;
 
             status = NetAddDepMemory(alias_name, info);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             alias_name = NULL;
         }

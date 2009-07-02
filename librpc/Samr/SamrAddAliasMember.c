@@ -40,13 +40,13 @@ SamrAddAliasMember(
 {
     NTSTATUS status = STATUS_SUCCESS;
     
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(alias_h, cleanup);
-    goto_if_invalid_param_ntstatus(sid, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(alias_h);
+    BAIL_ON_INVALID_PTR(sid);
 
     DCERPC_CALL(_SamrAddAliasMember(b, alias_h, sid));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     return status;

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -41,12 +41,12 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     SECURITY_QUALITY_OF_SERVICE qos = {0};
     ObjectAttribute attr = {0};
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(sysname, cleanup);
-    goto_if_invalid_param_ntstatus(lsa_policy, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(sysname);
+    BAIL_ON_INVALID_PTR(lsa_policy);
 
     system_name = wc16sdup(sysname);
-    goto_if_no_memory_ntstatus(system_name, cleanup);
+    BAIL_ON_NO_MEMORY(system_name);
 
     /* ObjectAttribute argument is not used, so just pass an empty structure */
     qos.Length              = 0;
@@ -63,7 +63,7 @@ NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
     attr.sec_qos      = &qos;
 
     DCERPC_CALL(_LsaOpenPolicy2(b, system_name, &attr, access_mask, &handle));
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *lsa_policy = handle;
 
@@ -71,6 +71,9 @@ cleanup:
     SAFE_FREE(system_name);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 

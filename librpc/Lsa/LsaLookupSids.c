@@ -42,12 +42,12 @@ NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
     TranslatedName *out_names = NULL;
     RefDomainList *out_domains = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
-    goto_if_invalid_param_ntstatus(sids, cleanup);
-    goto_if_invalid_param_ntstatus(domains, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(handle);
+    BAIL_ON_INVALID_PTR(sids);
+    BAIL_ON_INVALID_PTR(domains);
+    BAIL_ON_INVALID_PTR(names);
+    BAIL_ON_INVALID_PTR(count);
 
     /* windows allows level to be in range 1-6 */
 
@@ -62,10 +62,10 @@ NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
         ret_status != STATUS_SOME_UNMAPPED) goto error;
 
     status = LsaAllocateTranslatedNames(&out_names, &name_array);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaAllocateRefDomainList(&out_domains, ref_domains);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *names   = out_names;
     *domains = out_domains;

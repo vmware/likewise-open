@@ -49,18 +49,18 @@ SamrConnect4(
         client_version = SAMR_CONNECT_POST_WIN2K;
     }
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(sysname, cleanup);
-    goto_if_invalid_param_ntstatus(conn_handle, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(sysname);
+    BAIL_ON_INVALID_PTR(conn_handle);
 
     system_name = wc16sdup(sysname);
-    goto_if_no_memory_ntstatus(system_name, error);
+    BAIL_ON_NO_MEMORY(system_name);
 
     system_name_len = wc16slen(system_name) + 1;
 
     DCERPC_CALL(_SamrConnect4(b, system_name_len, system_name, client_version,
                               access_mask, &handle));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *conn_handle = handle;
 

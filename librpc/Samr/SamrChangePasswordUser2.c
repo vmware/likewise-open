@@ -57,17 +57,17 @@ SamrChangePasswordUser2(
     memset((void*)&srv, 0, sizeof(srv));
     memset((void*)&acct, 0, sizeof(acct));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(hostname, cleanup);
-    goto_if_invalid_param_ntstatus(account, cleanup);
-    goto_if_invalid_param_ntstatus(ntpass, cleanup);
-    goto_if_invalid_param_ntstatus(ntverify, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(account);
+    BAIL_ON_INVALID_PTR(ntpass);
+    BAIL_ON_INVALID_PTR(ntverify);
 
     status = InitUnicodeString(&srv, hostname);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = InitUnicodeString(&acct, account);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(ntp.data, ntpass, sizeof(ntp.data));
     memcpy(ntv.data, ntverify, sizeof(ntv.data));
@@ -85,7 +85,7 @@ SamrChangePasswordUser2(
 
     DCERPC_CALL(_SamrChangePasswordUser2(b, &srv, &acct, &ntp, &ntv,
                                          lm_change, lmpwd, lmver));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     FreeUnicodeString(&acct);

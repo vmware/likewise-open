@@ -50,14 +50,14 @@ NetInitMemory(
 
     /* Init allocation of dependant rpc libraries first */
     status = LsaRpcInitMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrInitMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (!bNetApiInitialised) {
         status = MemPtrListInit((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         bNetApiInitialised = 1;
     }
@@ -65,6 +65,9 @@ cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -81,22 +84,25 @@ NetDestroyMemory(
 
     if (bNetApiInitialised && netapi_ptr_list) {
         status = MemPtrListDestroy((PtrList**)&netapi_ptr_list);
-        goto_if_ntstatus_not_success(status, cleanup);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         bNetApiInitialised = 0;
     }
 
     /* Destroy allocation of dependant rpc libraries */
     status = LsaRpcDestroyMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrDestroyMemory();
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     GLOBAL_DATA_UNLOCK(locked);
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 

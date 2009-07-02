@@ -38,15 +38,15 @@ NTSTATUS LsaQueryInfoPolicy(handle_t b, PolicyHandle *handle,
     LsaPolicyInformation *i = NULL;
     LsaPolicyInformation *out_info = NULL;
     
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
-    goto_if_invalid_param_ntstatus(info, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(handle);
+    BAIL_ON_INVALID_PTR(info);
 
     DCERPC_CALL(_LsaQueryInfoPolicy(b, handle, level, &i));
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LsaAllocatePolicyInformation(&out_info, i, level);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *info = out_info;
 
