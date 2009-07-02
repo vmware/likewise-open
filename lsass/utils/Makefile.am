@@ -42,4 +42,4 @@ liblsautils_la_SOURCES =       \
 
 liblsautils_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 
-liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@ @LWBASE_LIBS@
+liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@ @LWBASE_NOTHR_LIBS@
