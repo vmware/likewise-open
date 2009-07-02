@@ -47,38 +47,6 @@
 #include "client.h"
 
 DWORD
-NtlmAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
-    )
-{
-    DWORD dwError = 0;
-    PVOID pMemory = NULL;
-
-    pMemory = malloc(dwSize);
-    if (!pMemory)
-    {
-        dwError = ENOMEM;
-        *ppMemory = NULL;
-    }
-    else
-    {
-        memset(pMemory,0, dwSize);
-        *ppMemory = pMemory;
-    }
-
-    return dwError;
-}
-
-void
-NtlmFreeMemory(
-    PVOID pMemory
-    )
-{
-    free(pMemory);
-}
-
-DWORD
 NtlmOpenServer(
     PHANDLE phConnection
     )
@@ -87,21 +55,21 @@ NtlmOpenServer(
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext = NULL;
     static LWMsgTime connectTimeout = {2, 0};
 
-    BAIL_ON_INVALID_POINTER(phConnection);
+    BAIL_ON_NTLM_INVALID_POINTER(phConnection);
 
-    dwError = NtlmAllocateMemory(sizeof(NTLM_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
+    dwError = LsaAllocateMemory(sizeof(NTLM_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIpcGetProtocolSpec()));
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIpcGetProtocolSpec()));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
                                   pContext->pAssoc,
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   CACHEDIR "/" NTLM_SERVER_FILENAME));
@@ -117,13 +85,13 @@ NtlmOpenServer(
        lwmsg will handle reconnecting for us if these conditions are met.
     */
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
                                   pContext->pAssoc,
                                   LWMSG_STATUS_PEER_RESET,
                                   LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
                                   pContext->pAssoc,
                                   LWMSG_STATUS_PEER_CLOSE,
                                   LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
@@ -133,14 +101,14 @@ NtlmOpenServer(
     {
         /* Give up connecting within 2 seconds in case lsassd
            is unresponsive (e.g. it's being traced in a debugger) */
-        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+        dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
                                       pContext->pAssoc,
                                       LWMSG_TIMEOUT_ESTABLISH,
                                       &connectTimeout));
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
     BAIL_ON_NTLM_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
@@ -161,7 +129,7 @@ error:
             lwmsg_protocol_delete(pContext->pProtocol);
         }
 
-        NtlmFreeMemory(pContext);
+        LsaFreeMemory(pContext);
     }
 
     if (phConnection)
@@ -192,7 +160,7 @@ NtlmCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    NtlmFreeMemory(pContext);
+    LsaFreeMemory(pContext);
 
     return dwError;
 }
@@ -203,11 +171,11 @@ NtlmTransactAcceptSecurityContext(
     IN PCredHandle phCredential,
     IN OUT PCtxtHandle phContext,
     IN PSecBufferDesc pInput,
-    IN ULONG fContextReq,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT PULONG  pfContextAttr,
+    OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {
@@ -235,7 +203,7 @@ NtlmTransactAcceptSecurityContext(
     request.tag = NTLM_Q_ACCEPT_SEC_CTXT;
     request.object = &AcceptSecCtxtReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
                               &request,
                               &response));
@@ -274,7 +242,7 @@ NtlmTransactAcquireCredentialsHandle(
     IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
-    IN ULONG fCredentialUse,
+    IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
     // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
@@ -298,8 +266,8 @@ NtlmTransactDecryptMessage(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
-    OUT PULONG pfQoP
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;
@@ -313,12 +281,70 @@ error:
 }
 
 DWORD
+NtlmTransactDeleteSecurityContext(
+    IN HANDLE hServer,
+    IN PCtxtHandle phContext
+    )
+{
+    DWORD dwError = 0;
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+    NTLM_IPC_DELETE_SEC_CTXT_REQ AcceptSecCtxtReq;
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    AcceptSecCtxtReq.phContext = phContext;
+
+    request.tag = NTLM_Q_DELETE_SEC_CTXT;
+    request.object = &AcceptSecCtxtReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_DELETE_SEC_CTXT_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+cleanup:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
 NtlmTransactEncryptMessage(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG fQoP,
+    IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo
     )
 {
     DWORD dwError = 0;
@@ -335,7 +361,7 @@ DWORD
 NtlmTransactExportSecurityContext(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG fFlags,
+    IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
     )
@@ -391,14 +417,14 @@ NtlmTransactInitializeSecurityContext(
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
-    IN ULONG fContextReq,
-    IN ULONG Reserved1,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD Reserved1,
+    IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
-    IN ULONG Reserved2,
+    IN DWORD Reserved2,
     IN OUT OPTIONAL PCtxtHandle phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
-    OUT PULONG pfContextAttr,
+    OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {
@@ -430,7 +456,7 @@ NtlmTransactInitializeSecurityContext(
     request.tag = NTLM_Q_INIT_SEC_CTXT;
     request.object = &InitSecCtxtReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
                               &request,
                               &response));
@@ -471,9 +497,27 @@ DWORD
 NtlmTransactMakeSignature(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG fQoP,
+    IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo
+    )
+{
+    DWORD dwError = 0;
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+DWORD
+NtlmTransactQueryContextAttributes(
+    IN HANDLE hServer,
+    IN PCtxtHandle phContext,
+    IN DWORD ulAttribute,
+    OUT PVOID pBuffer
     )
 {
     DWORD dwError = 0;
@@ -490,7 +534,7 @@ DWORD
 NtlmTransactQueryCredentialsAttributes(
     IN HANDLE hServer,
     IN PCredHandle phCredential,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {
@@ -508,7 +552,7 @@ DWORD
 NtlmTransactQuerySecurityContextAttributes(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {
@@ -527,7 +571,8 @@ NtlmTransactVerifySignature(
     IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;

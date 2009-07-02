@@ -52,14 +52,14 @@ NtlmClientInitializeSecurityContext(
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
-    IN ULONG fContextReq,
-    IN ULONG Reserved1,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD Reserved1,
+    IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
-    IN ULONG Reserved2,
+    IN DWORD Reserved2,
     IN OUT OPTIONAL PCtxtHandle phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
-    OUT PULONG pfContextAttr,
+    OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {

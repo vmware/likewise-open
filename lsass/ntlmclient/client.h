@@ -48,20 +48,12 @@
 #ifndef __CLIENT_H__
 #define __CLIENT_H__
 
-#include "config.h"
+#include <ntlm/ntlm.h>
+#include <ntlmipc.h>
 
-#include "lsasystem.h"
-
-#include "ntlm/ntlm.h"
-
-#include "lsadef.h"
-
-#include <lwmsg/lwmsg.h>
-
-#include "ntlmipc.h"
-
-#include "clientipc.h"
-
+#include "defines.h"
+#include "structs.h"
+#include "externs.h"
 #include "prototypes.h"
 
 #endif // __CLIENT_H__

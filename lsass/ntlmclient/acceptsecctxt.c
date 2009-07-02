@@ -52,11 +52,11 @@ NtlmClientAcceptSecurityContext(
     IN PCredHandle phCredential,
     IN OUT PCtxtHandle phContext,
     IN PSecBufferDesc pInput,
-    IN ULONG fContextReq,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT PULONG  pfContextAttr,
+    OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {

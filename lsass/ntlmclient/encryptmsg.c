@@ -50,9 +50,9 @@
 DWORD
 NtlmClientEncryptMessage(
     IN PCtxtHandle phContext,
-    IN ULONG fQoP,
+    IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo
     )
 {
     DWORD dwError = 0;
@@ -64,7 +64,7 @@ NtlmClientEncryptMessage(
     dwError = NtlmTransactEncryptMessage(
         hServer,
         phContext,
-        fQoP,
+        bEncrypt,
         pMessage,
         MessageSeqNo
         );
