@@ -504,7 +504,10 @@ MachAcctCreate(
         BAIL_ON_LDERR_ERROR(lderr);
 
         dn_context_name = ambstowc16s("defaultNamingContext");
-        goto_if_no_memory_lderr(dn_context_name, error);
+        if (!dn_context_name) {
+            lderr = ENOMEM;
+            goto error;
+        }
 
         dn_context_val = LdapAttributeGet(ld, info, dn_context_name, NULL);
         if (dn_context_val == NULL) {
@@ -517,7 +520,10 @@ MachAcctCreate(
         BAIL_ON_LDERR_ERROR(lderr);
 
         dn_name = ambstowc16s("distinguishedName");
-        goto_if_no_memory_lderr(dn_name, error);
+        if (!dn_name) {
+            lderr = ENOMEM;
+            goto error;
+        }
 
         dn_val = LdapAttributeGet(ld, machacct, dn_name, NULL);
         if (dn_val == NULL) {
