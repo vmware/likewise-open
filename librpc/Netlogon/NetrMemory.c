@@ -379,7 +379,8 @@ error:
     goto cleanup;
 }
 
-NTSTATUS NetrAllocateLogonInfoNet(
+NTSTATUS
+NetrAllocateLogonInfoNet(
     NetrLogonInfo **out,
     uint16 level,
     const wchar16_t *domain,
@@ -426,7 +427,7 @@ NTSTATUS NetrAllocateLogonInfoNet(
         {
             status = NetrAllocateMemory((void**)&net->lm.data,
                                         lm_resp_len,
-                                        (void*)net);
+                                        (void*)ptr);
             BAIL_ON_NTSTATUS_ERROR(status);
 
             net->lm.length = lm_resp_len;
