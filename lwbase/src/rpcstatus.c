@@ -414,7 +414,7 @@ LwRpcStatusToNtStatus(
     switch(status)
     {
         case LW_ERROR_RPC_S_CANT_CREATE_SOCKET:
-            return LW_STATUS_OPEN_FAILED;
+            return LW_STATUS_CONNECTION_REFUSED;
         case LW_ERROR_RPC_S_CANT_BIND_SOCKET:
             return LW_STATUS_ADDRESS_NOT_ASSOCIATED;
         case LW_ERROR_RPC_S_RPCD_COMM_FAILURE:
