@@ -51,18 +51,18 @@ SamrLookupNames(
     uint32 *out_rids = NULL;
     uint32 *out_types = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(rids, cleanup);
-    goto_if_invalid_param_ntstatus(types, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(names);
+    BAIL_ON_INVALID_PTR(rids);
+    BAIL_ON_INVALID_PTR(types);
 
     samr_names = InitUnicodeStringArray(names, num_names);
-    goto_if_no_memory_ntstatus(samr_names, error);
+    BAIL_ON_NO_MEMORY(samr_names);
 
     DCERPC_CALL(_SamrLookupNames(b, domain_h, num_names, samr_names, &r, &t));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (r.count != t.count)
     {
@@ -71,10 +71,10 @@ SamrLookupNames(
     }
 
     status = SamrAllocateIds(&out_rids, &r);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrAllocateIds(&out_types, &t);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (rids_count != NULL)
     {

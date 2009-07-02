@@ -54,16 +54,16 @@ static LWMsgTypeSpec gNtlmSecHandle[] =
     // ULONG_PTR       dwUpper;
 
     LWMSG_STRUCT_BEGIN(SecHandle),
-    LWMSG_MEMBER_POINTER(SecHandle, dwLower, LWMSG_INT64(long)), //LWMSG_ATTR_NOT_NULL,
-    LWMSG_MEMBER_POINTER(SecHandle, dwUpper, LWMSG_INT64(long)), //LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_POINTER(SecHandle, dwLower, LWMSG_INT64(ULONG_PTR)), //LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_POINTER(SecHandle, dwUpper, LWMSG_INT64(ULONG_PTR)), //LWMSG_ATTR_NOT_NULL,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
 static LWMsgTypeSpec gNtlmSecBuffer[] =
 {
-    // ULONG cbBuffer;
-    // ULONG BufferType;
+    // DWORD cbBuffer;
+    // DWORD BufferType;
     // PVOID pvBuffer;
 
     LWMSG_STRUCT_BEGIN(SecBuffer),
@@ -77,12 +77,13 @@ static LWMsgTypeSpec gNtlmSecBuffer[] =
 
 static LWMsgTypeSpec gNtlmSecBufferDesc[] =
 {
-    // ULONG      ulVersion;
-    // ULONG      cBuffers;
+    // For now, I don't believe we need this version information
+    // DWORD      ulVersion;
+    // DWORD      cBuffers;
     // PSecBuffer pBuffers;
 
     LWMSG_STRUCT_BEGIN(SecBufferDesc),
-    LWMSG_MEMBER_UINT32(SecBufferDesc, ulVersion),
+    //LWMSG_MEMBER_UINT32(SecBufferDesc, ulVersion),
     LWMSG_MEMBER_UINT32(SecBufferDesc, cBuffers),
     LWMSG_MEMBER_POINTER_BEGIN(SecBufferDesc, pBuffers),
     LWMSG_TYPESPEC(gNtlmSecBuffer),
@@ -95,7 +96,7 @@ static LWMsgTypeSpec gNtlmSecBufferDesc[] =
 static LWMsgTypeSpec gNtlmLuid[] =
 {
     // DWORD LowPart;
-    // LONG  HighPart;
+    // INT  HighPart;
 
     LWMSG_STRUCT_BEGIN(LUID),
     LWMSG_MEMBER_UINT32(LUID, LowPart),
@@ -107,12 +108,12 @@ static LWMsgTypeSpec gNtlmLuid[] =
 static LWMsgTypeSpec gNtlmSecWinntAuthId[] =
 {
     // USHORT *User;
-    // ULONG UserLength;
+    // DWORD UserLength;
     // USHORT *Domain;
-    // ULONG DomainLength;
+    // DWORD DomainLength;
     // USHORT *Password;
-    // ULONG PasswordLength;
-    // ULONG Flags;
+    // DWORD PasswordLength;
+    // DWORD Flags;
 
     LWMSG_STRUCT_BEGIN(SEC_WINNT_AUTH_IDENTITY),
 
@@ -171,8 +172,8 @@ static LWMsgTypeSpec gNtlmAcceptSecCtxt[] =
     // PCredHandle phCredential;
     // PCtxtHandle phContext;
     // PSecBufferDesc pInput;
-    // ULONG fContextReq;
-    // ULONG TargetDataRep;
+    // DWORD fContextReq;
+    // DWORD TargetDataRep;
     // PCtxtHandle phNewContext;
     // PSecBufferDesc pOutput;
 
@@ -261,7 +262,7 @@ static LWMsgTypeSpec gNtlmDecryptMsg[] =
 static LWMsgTypeSpec gNtlmEncryptMsg[] =
 {
     // PCtxtHandle phContext;
-    // ULONG fQoP;
+    // BOOL bEncrypt;
     // PSecBufferDesc pMessage;
     // ULONG MessageSeqNo;
 
@@ -271,7 +272,7 @@ static LWMsgTypeSpec gNtlmEncryptMsg[] =
     LWMSG_TYPESPEC(gNtlmSecHandle),
     LWMSG_POINTER_END,
 
-    LWMSG_MEMBER_UINT32(NTLM_IPC_ENCRYPT_MSG_REQ, fQoP),
+    LWMSG_MEMBER_UINT32(NTLM_IPC_ENCRYPT_MSG_REQ, bEncrypt),
 
     LWMSG_MEMBER_POINTER_BEGIN(NTLM_IPC_ENCRYPT_MSG_REQ, pMessage),
     LWMSG_TYPESPEC(gNtlmSecBufferDesc),
@@ -396,7 +397,7 @@ static LWMsgTypeSpec gNtlmInitSecCtxt[] =
 static LWMsgTypeSpec gNtlmMakeSign[] =
 {
     // PCtxtHandle phContext;
-    // ULONG fQoP;
+    // DWORD bEncrypt;
     // PSecBufferDesc pMessage;
     // ULONG MessageSeqNo;
 
@@ -406,7 +407,7 @@ static LWMsgTypeSpec gNtlmMakeSign[] =
     LWMSG_TYPESPEC(gNtlmSecHandle),
     LWMSG_POINTER_END,
 
-    LWMSG_MEMBER_UINT32(NTLM_IPC_MAKE_SIGN_REQ, fQoP),
+    LWMSG_MEMBER_UINT32(NTLM_IPC_MAKE_SIGN_REQ, bEncrypt),
 
     LWMSG_MEMBER_POINTER_BEGIN(NTLM_IPC_MAKE_SIGN_REQ, pMessage),
     LWMSG_TYPESPEC(gNtlmSecBufferDesc),
@@ -531,22 +532,26 @@ NtlmMapLwmsgStatus(
     switch (status)
     {
     default:
-        return NTLM_ERROR_INTERNAL;
+        return LSA_ERROR_INTERNAL;
     case LWMSG_STATUS_SUCCESS:
-        return NTLM_ERROR_SUCCESS;
+        return LSA_ERROR_SUCCESS;
     case LWMSG_STATUS_ERROR:
+        return LSA_ERROR_INTERNAL;
     case LWMSG_STATUS_MEMORY:
+        return LSA_ERROR_OUT_OF_MEMORY;
     case LWMSG_STATUS_MALFORMED:
     case LWMSG_STATUS_OVERFLOW:
     case LWMSG_STATUS_UNDERFLOW:
     case LWMSG_STATUS_EOF:
-    case LWMSG_STATUS_UNIMPLEMENTED:
-    case LWMSG_STATUS_SYSTEM:
-        return NTLM_ERROR_INTERNAL;
+        return LSA_ERROR_INVALID_MESSAGE;
     case LWMSG_STATUS_INVALID_PARAMETER:
         return EINVAL;
     case LWMSG_STATUS_INVALID_STATE:
         return EINVAL;
+    case LWMSG_STATUS_UNIMPLEMENTED:
+        return LSA_ERROR_NOT_IMPLEMENTED;
+    case LWMSG_STATUS_SYSTEM:
+        return LSA_ERROR_INTERNAL;
     case LWMSG_STATUS_SECURITY:
         return EACCES;
     case LWMSG_STATUS_CANCELLED:

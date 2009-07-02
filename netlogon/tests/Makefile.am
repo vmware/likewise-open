@@ -1,3 +1,1 @@
-
-SUBDIRS = get_domain_controller
-
+SUBDIRS=

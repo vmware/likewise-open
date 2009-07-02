@@ -49,39 +49,37 @@ DsrGetDcName(handle_t b,
     DsrDcNameInfo *info = NULL;
     DsrDcNameInfo *dc_info = NULL;
 
-    goto_if_invalid_param_winerr(b, cleanup);
-    goto_if_invalid_param_winerr(server_name, cleanup);
-    goto_if_invalid_param_winerr(domain_name, cleanup);
-    goto_if_invalid_param_winerr(out_info, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server_name);
+    BAIL_ON_INVALID_PTR(domain_name);
+    BAIL_ON_INVALID_PTR(out_info);
 
     server = wc16sdup(server_name);
-    goto_if_no_memory_winerr(server, cleanup);
+    BAIL_ON_NO_MEMORY(server);
 
     domain = wc16sdup(domain_name);
-    goto_if_no_memory_winerr(server, cleanup);
+    BAIL_ON_NO_MEMORY(domain);
 
     if (domain_guid) {
         status = NetrAllocateMemory((void**)&d_guid, sizeof(*d_guid), NULL);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         memcpy(d_guid, domain_guid, sizeof(*d_guid));
     }
 
     if (site_guid) {
         status = NetrAllocateMemory((void**)&s_guid, sizeof(*s_guid), NULL);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         memcpy(s_guid, site_guid, sizeof(*s_guid));
     }
 
     DCERPC_CALL(err, _DsrGetDcName(b, server, domain, d_guid, s_guid,
                                    get_dc_flags, &info));
+    if (err) goto error;
 
     status = NetrAllocateDcNameInfo(&dc_info, info);
-    if (status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
-        goto error;
-    }
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_info = dc_info;
 
@@ -99,6 +97,11 @@ cleanup:
 
     if (info) {
         NetrFreeStubDcNameInfo(info);
+    }
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
     }
 
     return err;

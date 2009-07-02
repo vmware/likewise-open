@@ -50,7 +50,7 @@
 DWORD
 NtlmClientQueryContextAttributes(
     IN PCtxtHandle phContext,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {

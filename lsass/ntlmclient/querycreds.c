@@ -50,7 +50,7 @@
 DWORD
 NtlmClientQueryCredentialsAttributes(
     IN PCredHandle phCredential,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
 {

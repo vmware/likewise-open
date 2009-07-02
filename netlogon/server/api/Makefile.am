@@ -13,10 +13,9 @@ liblwnetserverapi_la_SOURCES = \
        lwnet-server-cfg.c \
        lwnet-ldap.c       \
        lwnet-krb5.c       \
-       lwnet-cache.c      \
        lwnet-cachedb.c    \
        lwnet-pstore.c     \
-       lwnet-prefdc.c     \
+       lwnet-plugin.c     \
        dcinfo.c           \
        event.c            \
        lwnet.c            \
@@ -40,11 +39,9 @@ noinst_HEADERS = \
 		eventdlapi.h           \
 		event_p.h              \
 		evtstruct.h            \
-		externs_p.h            \
 		lwnet-cachedbcreate.h  \
 		lwnet-cachedb.h        \
 		lwnet-cachedb_p.h      \
-		lwnet-cache.h          \
 		lwnet-krb5_p.h         \
 		lwnet-ldap_p.h         \
 		lwnet_p.h              \

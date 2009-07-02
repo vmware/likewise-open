@@ -1,4 +1,5 @@
 SUBDIRS = \
+	test_headers \
 	lsaclient \
 	test_getgrgid \
 	test_getpwuid \

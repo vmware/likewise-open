@@ -95,11 +95,7 @@
         }                                        \
         DCETHREAD_CATCH_ALL(dceexc)              \
         {                                        \
-            /* TODO:                             \
-               Implement DCE/RPC exc -> NTSTATUS \
-               mapping logic as soon as we have  \
-               more information about it */      \
-            err = dceexc->match.value;           \
+            status = LwRpcStatusToNtStatus(dceexc->match.value); \
         }                                        \
         DCETHREAD_ENDTRY;                        \
     } while (0);

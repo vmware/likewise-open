@@ -36,127 +36,153 @@
 
 #include "includes.h"
 
+
 RPCSTATUS
 InitLsaBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    OUT handle_t *phBinding,
+    IN  PCSTR pszHostname,
+    IN  PIO_ACCESS_TOKEN pIoAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    char *prot_seq = (char*)LSA_DEFAULT_PROT_SEQ;
-    char *endpoint = (char*)LSA_DEFAULT_ENDPOINT;
-    char *uuid = NULL;
-    char *options = NULL;
-    handle_t b = NULL;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    PSTR pszProtSeq = (PSTR)LSA_DEFAULT_PROT_SEQ;
+    PSTR pszEndpoint = (PSTR)LSA_DEFAULT_ENDPOINT;
+    PSTR pszUuid = NULL;
+    PSTR pszOptions = NULL;
+    handle_t hBinding = NULL;
 
-    rpcstatus = InitLsaBindingFull(&b, prot_seq, hostname, endpoint,
-                                   uuid, options, access_token);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpcStatus = InitLsaBindingFull(
+                    &hBinding,
+                    pszProtSeq,
+                    pszHostname,
+                    pszEndpoint,
+                    pszUuid,
+                    pszOptions,
+                    pIoAccessToken);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    *binding = b;
+    *phBinding = hBinding;
+
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
-    *binding = NULL;
+    *phBinding = NULL;
     goto cleanup;
 }
 
 
 RPCSTATUS
 InitLsaBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phBinding,
+    PCSTR pszProtSeq,
+    PCSTR pszHostname,
+    PCSTR pszEndpoint,
+    PCSTR pszUuid,
+    PCSTR pszOptions,
+    PIO_ACCESS_TOKEN IoAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    RPCSTATUS st = RPC_S_OK;
-    unsigned char *binding_string = NULL;
-    unsigned char *ps   = NULL;
-    unsigned char *ep   = NULL;
-    unsigned char *u    = NULL;
-    unsigned char *opts = NULL;
-    unsigned char *addr = NULL;
-    handle_t b = NULL;
-    rpc_transport_info_handle_t info = NULL;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    RPCSTATUS rpcStatus2 = RPC_S_OK;
+    PBYTE pbBindingString = NULL;
+    PBYTE pbProtSeq = NULL;
+    PBYTE pbEndpoint = NULL;
+    PBYTE pbUuid = NULL;
+    PBYTE pbOpts = NULL;
+    PBYTE pbAddr = NULL;
+    handle_t hBinding = NULL;
+    rpc_transport_info_handle_t Info = NULL;
 
-    goto_if_invalid_param_rpcstatus(binding, cleanup);
-    goto_if_invalid_param_rpcstatus(hostname, cleanup);
-    goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(phBinding, rpcStatus);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(pszHostname, rpcStatus);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
 
-    ps = (unsigned char*) strdup(prot_seq);
-    goto_if_no_memory_rpcstatus(ps, error);
+    pbProtSeq = (PBYTE)strdup(pszProtSeq);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(pbProtSeq, rpcStatus);
 
-    if (endpoint != NULL) {
-        ep = (unsigned char*) strdup(endpoint);
-        goto_if_no_memory_rpcstatus(ep, error);
+    if (pszEndpoint != NULL) {
+        pbEndpoint = (PBYTE) strdup(pszEndpoint);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbEndpoint, rpcStatus);
     }
 
-    if (uuid != NULL) {
-        u = (unsigned char*) strdup(uuid);
-        goto_if_no_memory_rpcstatus(u, error);
+    if (pszUuid != NULL) {
+        pbUuid = (PBYTE)strdup(pszUuid);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbUuid, rpcStatus);
     }
 
-    if (options != NULL) {
-        opts = (unsigned char*) strdup(options);
-        goto_if_no_memory_rpcstatus(opts, error);
+    if (pszOptions != NULL) {
+        pbOpts = (PBYTE)strdup(pszOptions);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(pbOpts, rpcStatus);
     }
 
-    addr = (unsigned char*) strdup(hostname);
-    goto_if_no_memory_rpcstatus(addr, error);
+    pbAddr = (PBYTE)strdup(pszHostname);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(pbAddr, rpcStatus);
 
-    rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
-                               &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_string_binding_compose(
+        pbUuid,
+        pbProtSeq,
+        pbAddr,
+        pbEndpoint,
+        pbOpts,
+        &pbBindingString,
+        &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_binding_from_string_binding(
+        pbBindingString,
+        &hBinding,
+        &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(access_token, FALSE, &info, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_smb_transport_info_from_lwio_token(
+        IoAccessToken,
+        FALSE,
+        &Info,
+        &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_binding_set_transport_info(b, info, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_binding_set_transport_info(
+        hBinding,
+        Info,
+        &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    info = NULL;
+    Info = NULL;
 
-    rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    rpc_mgmt_set_com_timeout(hBinding, 6, &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
     
-    *binding = b;
+    *phBinding = hBinding;
 
 cleanup:
-    SAFE_FREE(ps);
-    SAFE_FREE(ep);
-    SAFE_FREE(u);
-    SAFE_FREE(opts);
-    SAFE_FREE(addr);
+    SAFE_FREE(pbProtSeq);
+    SAFE_FREE(pbEndpoint);
+    SAFE_FREE(pbUuid);
+    SAFE_FREE(pbOpts);
+    SAFE_FREE(pbAddr);
 
-    if (binding_string) {
-        rpc_string_free(&binding_string, &st);
-    }
-
-    if (rpcstatus == RPC_S_OK &&
-        st != RPC_S_OK) {
-        rpcstatus = st;
-    }
-
-    if (info)
+    if (pbBindingString)
     {
-        rpc_smb_transport_info_free(info);
+        rpc_string_free(&pbBindingString, &rpcStatus2);
     }
 
-    return rpcstatus;
+    if ((rpcStatus == RPC_S_OK) && (rpcStatus2 != RPC_S_OK))
+    {
+        rpcStatus = rpcStatus2;
+    }
+
+    if (Info)
+    {
+        rpc_smb_transport_info_free(Info);
+    }
+
+    return rpcStatus;
 
 error:
-    if (b) {
-        rpc_binding_free(&b, &st);
+    if (hBinding)
+    {
+        rpc_binding_free(&hBinding, &rpcStatus2);
     }
 
     goto cleanup;
@@ -165,19 +191,24 @@ error:
 
 RPCSTATUS
 FreeLsaBinding(
-    handle_t *binding
+    handle_t *phBinding
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
 
     /* Free the binding itself */
-    if (binding && *binding) {
-	    rpc_binding_free(binding, &rpcstatus);
-        goto_if_rpcstatus_not_success(rpcstatus, done);
+
+    if (phBinding && *phBinding)
+    {
+	    rpc_binding_free(phBinding, &rpcStatus);
+        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
     }
 
-done:
-    return rpcstatus;
+cleanup:
+    return rpcStatus;
+
+error:
+    goto cleanup;
 }
 
 

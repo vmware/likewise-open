@@ -59,25 +59,25 @@ NetUserChangePassword(
     memset((void*)ntpassbuf, 0, sizeof(ntpassbuf));
     memset((void*)ntverhash, 0, sizeof(ntverhash));
 
-    goto_if_invalid_param_winerr(domain, cleanup);
-    goto_if_invalid_param_winerr(user, cleanup);
-    goto_if_invalid_param_winerr(oldpassword, cleanup);
-    goto_if_invalid_param_winerr(newpassword, cleanup);
+    BAIL_ON_INVALID_PTR(domain);
+    BAIL_ON_INVALID_PTR(user);
+    BAIL_ON_INVALID_PTR(oldpassword);
+    BAIL_ON_INVALID_PTR(newpassword);
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
 
     hostname = awc16stombs(domain);
-    goto_if_no_memory_ntstatus(hostname, error);
+    BAIL_ON_NO_MEMORY(hostname);
 
     domainname = wc16sdup(domain);
-    goto_if_no_memory_ntstatus(domainname, error);
+    BAIL_ON_NO_MEMORY(domainname);
 
     username = wc16sdup(user);
-    goto_if_no_memory_ntstatus(username, error);
+    BAIL_ON_NO_MEMORY(username);
 
     status = InitSamrBindingDefault(&samr_b, hostname, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     oldlen = wc16slen(oldpassword);
     newlen = wc16slen(newpassword);
@@ -96,7 +96,7 @@ NetUserChangePassword(
 
     status = SamrChangePasswordUser2(samr_b, domainname, username, ntpassbuf,
                                      ntverhash, 0, NULL, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (samr_b) {

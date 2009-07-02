@@ -2,7 +2,8 @@
 lwnetincludedir = $(includedir)
 
 lwnetinclude_HEADERS = \
-    lwnet.h
+    lwnet.h \
+    lwnet-plugin.h
 
 noinst_HEADERS =         \
 	lwnet-def.h      \

@@ -40,31 +40,26 @@
 
 NTSTATUS
 LsaRpcAllocateMemory(
-    void **ptr,
-    size_t len,
-    void *dep
+    OUT PVOID *ppOut,
+    IN  size_t Size,
+    IN  PVOID  pDependent
     );
 
 NTSTATUS
 LsaRpcFreeMemory(
-    void *ptr
-    );
-
-NTSTATUS
-LsaRpcSafeFreeMemory(
-    void **ptr
+    IN PVOID pBuffer
     );
 
 NTSTATUS
 LsaRpcAddDepMemory(
-    void *ptr,
-    void *dep
+    IN PVOID pBuffer,
+    IN PVOID pDependent
     );
 
 NTSTATUS
 LsaAllocateTranslatedSids(
-    TranslatedSid **out,
-    TranslatedSidArray *in
+    OUT TranslatedSid **ppOut,
+    IN  TranslatedSidArray *pIn
     );
 
 NTSTATUS
@@ -74,67 +69,36 @@ LsaAllocateTranslatedSids2(
     );
 
 NTSTATUS
+LsaAllocateTranslatedSids2(
+    OUT TranslatedSid2 **ppOut,
+    IN  TranslatedSidArray2 *pIn
+    );
+
+NTSTATUS
 LsaAllocateTranslatedSids3(
-    TranslatedSid3 **out,
-    TranslatedSidArray3 *in
-    );
-
-void
-LsaFreeTranslatedSid(
-    TranslatedSid *ptr
-    );
-
-NTSTATUS
-LsaAllocateTranslatedSid2(
-    TranslatedSid2 **out,
-    TranslatedSid2 *in
-    );
-
-void
-LsaFreeTranslatedSid2(
-    TranslatedSid2 *ptr
-    );
-
-NTSTATUS
-LsaAllocateTranslatedSidArray(
-    TranslatedSidArray **out,
-    TranslatedSidArray *in
-    );
-
-void
-LsaFreeTranslatedSidArray(
-    TranslatedSidArray *ptr
-    );
-
-NTSTATUS
-LsaAllocateTranslatedSidArray2(
-    TranslatedSidArray2 **out,
-    TranslatedSidArray2 *in
-    );
-
-void
-LsaFreeTranslatedSidArray2(
-    TranslatedSidArray2 *ptr
+    OUT TranslatedSid3 **ppOut,
+    IN  TranslatedSidArray3 *pIn
     );
 
 NTSTATUS
 LsaAllocateRefDomainList(
-    RefDomainList **out,
-    RefDomainList *in
+    OUT RefDomainList **ppOut,
+    IN  RefDomainList *pIn
     );
 
 NTSTATUS
 LsaAllocateTranslatedNames(
-    TranslatedName **out,
-    TranslatedNameArray *in
+    OUT TranslatedName **ppOut,
+    IN  TranslatedNameArray *pIn
     );
 
 NTSTATUS
 LsaAllocatePolicyInformation(
-   LsaPolicyInformation **out,
-   LsaPolicyInformation *in,
-   uint32 level
-   );
+    OUT LsaPolicyInformation **pOut,
+    IN  LsaPolicyInformation *pIn,
+    IN  UINT32 Level
+    );
+
 
 #endif /* _LSA_MEMORY_H_ */
 

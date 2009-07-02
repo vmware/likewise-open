@@ -45,25 +45,213 @@
  *          Marc Guy (mguy@likewisesoftware.com
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerInitializeSecurityContext(
     PCredHandle phCredential,
     PCtxtHandle phContext,
     SEC_CHAR * pszTargetName,
-    ULONG fContextReq,
-    ULONG Reserved1,
-    ULONG TargetDataRep,
+    DWORD fContextReq,
+    DWORD Reserved1,
+    DWORD TargetDataRep,
     PSecBufferDesc pInput,
-    ULONG Reserved2,
+    DWORD Reserved2,
     PCtxtHandle phNewContext,
     PSecBufferDesc pOutput,
-    PULONG pfContextAttr,
+    PDWORD pfContextAttr,
     PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PNTLM_CONTEXT pNtlmContext = NULL;
+    PNTLM_CONTEXT pNtlmContextIn;
+    BOOLEAN bInLock = FALSE;
 
+    if(!phCredential)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    if(!phContext)
+    {
+        dwError = NtlmInitContext(&pNtlmContext);
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+    else
+    {
+        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+            dwError = NtlmFindContext(phContext, &pNtlmContext);
+        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    if(!pNtlmContext)
+    {
+        // If we start with a blank context, upgrade it to a negotiate
+        // message
+        dwError = NtlmCreateNegotiateContext(&pNtlmContext);
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+    else
+    {
+        //... create a new response message
+        dwError = NtlmCreateContextFromSecBufferDesc(
+            pInput,
+            NtlmStateChallenge,
+            &pNtlmContextIn
+            );
+
+        dwError = NtlmCreateResponseContext(pNtlmContextIn, &pNtlmContext);
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+    //
+        dwError = NtlmInsertContext(
+            pNtlmContext
+            );
+    //
+    LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+
+    pNtlmContext->CredHandle = *phCredential;
+
+    *phNewContext = pNtlmContext->ContextHandle;
+
+    //copy message to the output parameter
+
+
+cleanup:
     return(dwError);
+error:
+    if( pNtlmContext->ContextHandle.dwLower ||
+        pNtlmContext->ContextHandle.dwUpper )
+    {
+        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+            NtlmRemoveContext(&(pNtlmContext->ContextHandle));
+        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+    }
+    memset(phNewContext, 0, sizeof(CtxtHandle));
+    goto cleanup;
 }
+
+DWORD
+NtlmCreateNegotiateContext(
+    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    CHAR HostName[HOST_NAME_MAX + 1];
+    PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg = NULL;
+
+    if(!ppNtlmContext)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    // if we have a NULL context, try to create a new one.
+    if(!(*ppNtlmContext))
+    {
+        // We must not have any message in the context, we should only be
+        // creating a new context or replacing a blank... blanks have no message
+        if((*ppNtlmContext)->pMessage)
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+
+        dwError = LsaAllocateMemory(
+            sizeof(NTLM_CONTEXT),
+            (PVOID*)ppNtlmContext
+            );
+
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    gethostname(HostName, HOST_NAME_MAX);
+
+    dwError = NtlmCreateNegotiateMessage(
+        0,
+        NULL,
+        HostName,
+        NULL,
+        &pNtlmNegMsg
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    (*ppNtlmContext)->pMessage = (PVOID)pNtlmNegMsg;
+    (*ppNtlmContext)->NtlmState = NtlmStateNegotiate;
+
+cleanup:
+    return dwError;
+error:
+    // Don't worry about freeing the context... the caller will have to handle
+    // that
+    if(pNtlmNegMsg)
+    {
+        LsaFreeMemory(pNtlmNegMsg);
+
+        if((*ppNtlmContext) && (*ppNtlmContext)->pMessage)
+        {
+            (*ppNtlmContext)->pMessage = NULL;
+        }
+    }
+    goto cleanup;
+}
+
+DWORD
+NtlmCreateResponseContext(
+    PNTLM_CONTEXT pChlngCtxt,
+    OUT PNTLM_CONTEXT *ppNtlmContext
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
+    PNTLM_CREDENTIALS pNtlmCreds = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    if(!pChlngCtxt)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    ENTER_NTLM_CREDS_LIST_READER_LOCK(bInLock)
+        dwError = NtlmFindCredentials(&(pChlngCtxt->CredHandle), &pNtlmCreds);
+    LEAVE_NTLM_CREDS_LIST_READER_LOCK(bInLock)
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+        sizeof(NTLM_CONTEXT),
+        (PVOID*)ppNtlmContext
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    dwError = NtlmCreateResponseMessage(
+        pChlngCtxt->pMessage,
+        NTLM_RESPONSE_TYPE_NTLM,
+        pNtlmCreds->pPassword,
+        &pRespMsg
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    (*ppNtlmContext)->pMessage = (PVOID)pRespMsg;
+    (*ppNtlmContext)->NtlmState = NtlmStateResponse;
+
+cleanup:
+    if(pNtlmCreds)
+    {
+        NtlmFreeCredentials(pNtlmCreds);
+    }
+    return dwError;
+error:
+    goto cleanup;
+}
+

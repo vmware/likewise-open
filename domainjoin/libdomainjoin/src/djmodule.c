@@ -47,6 +47,19 @@
 
 //Make sure all modules are included in both lists, even if the module
 //doesn't apply to start or stop
+#if defined(MINIMAL_JOIN)
+const JoinModule *startList[] = {
+    &DJDoJoinModule,
+    &DJKrb5Module,
+    &DJDoLeaveModule,
+    NULL };
+
+const JoinModule *stopList[] = {
+    &DJDoLeaveModule,
+    &DJKrb5Module,
+    &DJDoJoinModule,
+    NULL };
+#else
 const JoinModule *startList[] = {
     &DJDaemonStopModule,
     &DJSetHostname,
@@ -86,6 +99,7 @@ const JoinModule *stopList[] = {
     &DJSetHostname,
     &DJDDNSModule,
     NULL };
+#endif
 
 void DJZeroJoinProcessOptions(JoinProcessOptions *options)
 {

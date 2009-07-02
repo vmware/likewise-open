@@ -52,10 +52,10 @@
         {                                                   \
             (dst) = wc16sdup(null_string);                  \
         }                                                   \
-        goto_if_no_memory_ntstatus((dst), error);           \
+        BAIL_ON_NO_MEMORY((dst));                           \
                                                             \
         status = NetAddDepMemory((dst), (dep));             \
-        goto_if_ntstatus_not_success(status, error);        \
+        BAIL_ON_NTSTATUS_ERROR(status);                     \
     } while (0)
 
 
@@ -64,11 +64,11 @@
     if ((netinfo_field) != NULL) {                                      \
         status  = InitUnicodeString(&(info_ptr)->samrinfo_field,        \
                                     (netinfo_field));                   \
-        goto_if_ntstatus_not_success(status, error);                    \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
                                                                         \
         status = NetAddDepMemory((info_ptr)->samrinfo_field.string,     \
                                  (dep));                                \
-        goto_if_ntstatus_not_success(status, error);                    \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
                                                                         \
         (info_ptr)->fields_present |= (field_flag);                     \
     }
@@ -76,10 +76,10 @@
 #define PUSH_UNICODE_STRING_ALIASINFO(samrinfo_field, netinfo_field, dep) \
     if ((netinfo_field) != NULL) {                                      \
         status  = InitUnicodeString(&(samrinfo_field), (netinfo_field)); \
-        goto_if_ntstatus_not_success(status, error);                    \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
                                                                         \
         status = NetAddDepMemory((samrinfo_field).string, (dep));       \
-        goto_if_ntstatus_not_success(status, error);                    \
+        BAIL_ON_NTSTATUS_ERROR(status);                                 \
     }
 
 

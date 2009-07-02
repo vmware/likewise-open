@@ -39,12 +39,12 @@ SamrClose(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(handle);
 
     DCERPC_CALL(_SamrClose(b, handle));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     return status;

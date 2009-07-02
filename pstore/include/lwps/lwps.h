@@ -120,6 +120,12 @@ LwpsGetPasswordByHostName(
     );
 
 DWORD
+LwpsGetPasswordByCurrentHostName(
+    HANDLE hStore,
+    PLWPS_PASSWORD_INFO* ppInfo
+    );
+
+DWORD
 LwpsGetPasswordByDomainName(
     HANDLE hStore,
     PCSTR  pszDomainName,

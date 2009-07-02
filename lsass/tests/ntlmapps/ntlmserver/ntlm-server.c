@@ -28,22 +28,21 @@ main(
     IN PCHAR* argv
     )
 {
-    DWORD dwError = NTLM_ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     INT nListenSocket = INVALID_SOCKET;
     INT nAcceptSocket = INVALID_SOCKET;
-    USHORT usVersionRequired = 0x0101;
     USHORT usPort = 4444;
     INT nOnce = 0;
     PCHAR pServiceName = NULL;
     PCHAR pServicePassword = NULL;
     PCHAR pServiceRealm = NULL;
-    WSADATA SocketData;
     CredHandle ServerCreds;
     INT nServerCredsAcquired = 0;
-    INT nSocketsStarted = 0;
-    DWORD AscFlags = ASC_REQ_ALLOCATE_MEMORY | ASC_REQ_MUTUAL_AUTH;
+    DWORD AscFlags = 0; //ASC_REQ_ALLOCATE_MEMORY | ASC_REQ_MUTUAL_AUTH;
     PCHAR pSecPkgName = "NTLM";
+    BOOL bFound = FALSE;
 
+    /*
     FLAGMAPPING FlagMappings[] = {
         DUPE( CONFIDENTIALITY ),
         DUPE( DELEGATE ),
@@ -52,8 +51,8 @@ main(
         DUPE( REPLAY_DETECT ),
         DUPE( SEQUENCE_DETECT )
     };
+    */
 
-    memset(&SocketData, 0, sizeof(WSADATA));
     memset(&ServerCreds, 0, sizeof(CredHandle));
 
     argc--; argv++;
@@ -66,7 +65,7 @@ main(
             if(!argc)
             {
                 dwError = Usage();
-                BAIL_ON_ERROR(dwError);
+                BAIL_ON_NTLM_ERROR(dwError);
             }
             usPort = (u_short)atoi(*argv);
         }
@@ -76,9 +75,7 @@ main(
         }
         else
         {
-            int i;
-            BOOL bFound = FALSE;
-
+            /*
             for(i = 0; i < (sizeof(FlagMappings)/sizeof(FLAGMAPPING)); i++)
             {
                 if(_strcmpi( *argv, FlagMappings[ i ].name ) == 0)
@@ -88,6 +85,7 @@ main(
                     break;
                 }
             }
+            */
 
             if(!bFound)
             {
@@ -100,13 +98,13 @@ main(
     if(argc != 3)
     {
         dwError = Usage();
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     if((*argv)[0] == '-')
     {
         dwError = Usage();
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     pServiceName = *argv;
@@ -123,32 +121,23 @@ main(
         &ServerCreds
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     nServerCredsAcquired = 1;
 
-    dwError = WSAStartup(usVersionRequired, &SocketData);
-    if(0 != dwError)
-    {
-        dwError = WSAGetLastError();
-        BAIL_ON_ERROR(dwError);
-    }
-
-    nSocketsStarted = 1;
-
     dwError = CreateSocket(usPort, &nListenSocket);
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     do
     {
         /* Accept a TCP connection */
-        nAcceptSocket = (int)accept(nListenSocket, NULL, 0);
+        nAcceptSocket = accept(nListenSocket, NULL, 0);
 
         if(INVALID_SOCKET == nAcceptSocket)
         {
-            dwError = WSAGetLastError();
-            BAIL_ON_ERROR(dwError);
+            dwError = errno;
+            BAIL_ON_NTLM_ERROR(dwError);
         }
 
         dwError = SignServer(
@@ -157,36 +146,30 @@ main(
             AscFlags
             );
 
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_NTLM_ERROR(dwError);
 
-        closesocket(nAcceptSocket);
+        close(nAcceptSocket);
 
     } while (!nOnce);
 
-    closesocket(nListenSocket);
+    close(nListenSocket);
 
-    FreeCredentialsHandle(&ServerCreds);
-
-    WSACleanup();
+    NtlmClientFreeCredentialsHandle(&ServerCreds);
 
 finish:
     return dwError;
 error:
     if(nServerCredsAcquired)
     {
-        FreeCredentialsHandle(&ServerCreds);
+        NtlmClientFreeCredentialsHandle(&ServerCreds);
     }
     if(INVALID_SOCKET != nListenSocket)
     {
-        closesocket(nListenSocket);
+        close(nListenSocket);
     }
     if(INVALID_SOCKET != nAcceptSocket)
     {
-        closesocket(nAcceptSocket);
-    }
-    if(nSocketsStarted)
-    {
-        WSACleanup();
+        close(nAcceptSocket);
     }
     goto finish;
 }
@@ -197,7 +180,7 @@ Usage(VOID)
     fprintf(stderr, "Usage: sspi-server [-port port] [-k]\n");
     fprintf(stderr, "       [service_name] [service_password] [service_realm]\n");
 
-    return ERROR_INVALID_PARAMETER;
+    return LSA_ERROR_INVALID_PARAMETER;
 }
 
 DWORD
@@ -209,40 +192,40 @@ ServerAcquireCreds(
     OUT CredHandle *pServerCreds
     )
 {
-    DWORD dwError = SEC_E_OK;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     TimeStamp Expiry;
     WCHAR wcPassword[100] = {0};
     WCHAR wcRealm[100] = {0};
-    SEC_WINNT_AUTH_IDENTITY_W AuthIdentity;
+
+    // This is defined as if it were Wide...
+    SEC_WINNT_AUTH_IDENTITY AuthIdentity;
 
     memset(&Expiry, 0, sizeof(TimeStamp));
-    memset(&AuthIdentity, 0, sizeof(SEC_WINNT_AUTH_IDENTITY_W));
+    memset(&AuthIdentity, 0, sizeof(SEC_WINNT_AUTH_IDENTITY));
 
     memset(pServerCreds, 0, sizeof(CredHandle));
 
-    mbstowcs(wcPassword, pServicePassword, sizeof(wcPassword) / sizeof(wchar_t));
+    mbstowc16s(wcPassword, pServicePassword, sizeof(wcPassword) / sizeof(WCHAR));
     AuthIdentity.Password = wcPassword;
-    AuthIdentity.PasswordLength = (DWORD)wcslen(wcPassword);
+    AuthIdentity.PasswordLength = (DWORD)wc16slen(wcPassword);
 
-    mbstowcs(wcRealm, pServiceRealm, sizeof(wcRealm) / sizeof(wchar_t));
+    mbstowc16s(wcRealm, pServiceRealm, sizeof(wcRealm) / sizeof(WCHAR));
     AuthIdentity.Domain = wcRealm;
-    AuthIdentity.DomainLength = (DWORD)wcslen(wcRealm);
-    AuthIdentity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
+    AuthIdentity.DomainLength = (DWORD)wc16slen(wcRealm);
+    //AuthIdentity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
 
 
-    dwError = AcquireCredentialsHandle(
+    dwError = NtlmClientAcquireCredentialsHandle(
         pServiceName,
         pSecPkgName,
-        SECPKG_CRED_INBOUND,
+        0,//SECPKG_CRED_INBOUND,
         NULL,                       // no logon id
-        &AuthIdentity,             // no auth data
-        NULL,                       // no get key fn
-        NULL,                       // no get key arg
+        &AuthIdentity,              // auth data
         pServerCreds,
         &Expiry
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
 error:
     return dwError;
@@ -254,7 +237,7 @@ CreateSocket(
     OUT PINT pSocket
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     struct sockaddr_in sAddr;
     INT nOn = 1;
 
@@ -265,12 +248,12 @@ CreateSocket(
     sAddr.sin_port = htons(uPort);
     sAddr.sin_addr.s_addr = INADDR_ANY;
 
-    *pSocket = (int)socket(AF_INET, SOCK_STREAM, 0);
+    *pSocket = (int)socket(PF_INET, SOCK_STREAM, 0);
 
     if(INVALID_SOCKET == *pSocket)
     {
-        dwError = WSAGetLastError();
-        BAIL_ON_ERROR(dwError);
+        dwError = errno;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     /* Let the socket be reused right away */
@@ -285,12 +268,11 @@ CreateSocket(
 
     if(dwError != 0)
     {
-        dwError = WSAGetLastError();
-        BAIL_ON_ERROR(dwError);
+        dwError = errno;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = bind
-        (
+    dwError = bind(
         *pSocket,
         (struct sockaddr *) &sAddr,
         sizeof(sAddr)
@@ -298,16 +280,16 @@ CreateSocket(
 
     if(SOCKET_ERROR == dwError)
     {
-        dwError = WSAGetLastError();
-        BAIL_ON_ERROR(dwError);
+        dwError = errno;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     dwError = listen(*pSocket, 5);
 
     if(SOCKET_ERROR == dwError)
     {
-        dwError = WSAGetLastError();
-        BAIL_ON_ERROR(dwError);
+        dwError = errno;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
 finish:
@@ -315,7 +297,7 @@ finish:
 error:
     if(*pSocket != INVALID_SOCKET)
     {
-        closesocket(*pSocket);
+        close(*pSocket);
         *pSocket = INVALID_SOCKET;
     }
 
@@ -329,22 +311,21 @@ SignServer(
     IN DWORD AscFlags
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
-    DWORD ulQop = 0;
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BOOL bEncrypted = 0;
     INT nContextAcquired = 0;
     SecBuffer TransmitBuffer;
     SecBuffer MsgBuffer;
-    SecBuffer WrapBuffers[2] = {0};
+    SecBuffer WrapBuffers[2];
     SecBufferDesc WrapBufferDesc;
     CtxtHandle Context;
-    SecPkgContext_Names Names;
     SecPkgContext_Sizes Sizes;
 
     memset(&TransmitBuffer, 0, sizeof(SecBuffer));
     memset(&MsgBuffer, 0, sizeof(SecBuffer));
+    memset(WrapBuffers, 0, sizeof(SecBuffer) * 2);
     memset(&WrapBufferDesc, 0, sizeof(SecBufferDesc));
     memset(&Context, 0, sizeof(CtxtHandle));
-    memset(&Names, 0, sizeof(SecPkgContext_Names));
     memset(&Sizes, 0, sizeof(SecPkgContext_Sizes));
 
     /* Establish a context with the client */
@@ -355,40 +336,27 @@ SignServer(
         AscFlags
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     // for clean up... once we've established a context, we must clean it up on
     // future failures.
     nContextAcquired = 1;
 
-    dwError = QueryContextAttributes
-        (
-        &Context,
-        SECPKG_ATTR_NAMES,
-        &Names
-        );
-
-    BAIL_ON_ERROR(dwError);
-
-    dwError = FreeContextBuffer(Names.sUserName);
-    BAIL_ON_ERROR(dwError);
-
-    dwError = QueryContextAttributes
-        (
+    dwError = NtlmClientQueryContextAttributes(
         &Context,
         SECPKG_ATTR_SIZES,
         &Sizes
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     /* Receive the sealed message token */
     dwError = RecvToken(nSocket, &TransmitBuffer);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     WrapBufferDesc.cBuffers = 2;
     WrapBufferDesc.pBuffers = WrapBuffers;
-    WrapBufferDesc.ulVersion = SECBUFFER_VERSION;
+    //WrapBufferDesc.ulVersion = SECBUFFER_VERSION;
     WrapBuffers[0].BufferType = SECBUFFER_STREAM;
     WrapBuffers[0].pvBuffer = TransmitBuffer.pvBuffer;
     WrapBuffers[0].cbBuffer = TransmitBuffer.cbBuffer;
@@ -396,14 +364,14 @@ SignServer(
     WrapBuffers[1].cbBuffer = 0;
     WrapBuffers[1].pvBuffer = NULL;
 
-    dwError = DecryptMessage(
+    dwError = NtlmClientDecryptMessage(
         &Context,
         &WrapBufferDesc,
         0,                  // no sequence number
-        &ulQop
+        &bEncrypted
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     MsgBuffer = WrapBuffers[1];
 
@@ -417,18 +385,18 @@ SignServer(
 
     if(WrapBuffers[1].pvBuffer == NULL)
     {
-        dwError = ERROR_NOT_ENOUGH_MEMORY;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = MakeSignature(
+    dwError = NtlmClientMakeSignature(
         &Context,
-        0,
+        FALSE,
         &WrapBufferDesc,
         0
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     free(TransmitBuffer.pvBuffer);
 
@@ -439,7 +407,7 @@ SignServer(
     /* Send the signature block to the client */
 
     dwError = SendToken(nSocket, &TransmitBuffer);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     free(TransmitBuffer.pvBuffer);
     TransmitBuffer.pvBuffer = NULL;
@@ -447,16 +415,12 @@ SignServer(
 
     /* Delete context */
 
-    dwError = DeleteSecurityContext( &Context );
-    BAIL_ON_ERROR(dwError);
+    dwError = NtlmClientDeleteSecurityContext( &Context );
+    BAIL_ON_NTLM_ERROR(dwError);
 
 finish:
     return dwError;
 error:
-    if(Names.sUserName)
-    {
-        FreeContextBuffer(Names.sUserName);
-    }
     if(TransmitBuffer.pvBuffer)
     {
         free(TransmitBuffer.pvBuffer);
@@ -471,9 +435,23 @@ error:
     }
     if(nContextAcquired)
     {
-        DeleteSecurityContext(&Context);
+        NtlmClientDeleteSecurityContext(&Context);
     }
     goto finish;
+}
+
+DWORD
+FreeContextBuffer(
+    IN PVOID pBuffer
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    if(pBuffer)
+    {
+        free(pBuffer);
+    }
+
+    return dwError;
 }
 
 DWORD
@@ -484,9 +462,9 @@ ServerEstablishContext(
     IN DWORD AscFlags
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
-    DWORD dwLoopError = ERROR_SUCCESS;
-    INT nRetFlags = 0;
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwLoopError = LSA_ERROR_SUCCESS;
+    DWORD nRetFlags = 0;
     SecBufferDesc InputDesc;
     SecBufferDesc OutputDesc;
     SecBuffer SendTokenBuffer;
@@ -504,17 +482,17 @@ ServerEstablishContext(
     memset(pContext, 0, sizeof(CtxtHandle));
 
     InputDesc.cBuffers = 1;
-    InputDesc.ulVersion = SECBUFFER_VERSION;
+    //InputDesc.ulVersion = SECBUFFER_VERSION;
     InputDesc.pBuffers = &RecvTokenBuffer;
 
     OutputDesc.cBuffers = 1;
-    OutputDesc.ulVersion = SECBUFFER_VERSION;
+    //OutputDesc.ulVersion = SECBUFFER_VERSION;
     OutputDesc.pBuffers = &SendTokenBuffer;
 
     do
     {
         dwError = RecvToken(nSocket, &RecvTokenBuffer);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_NTLM_ERROR(dwError);
 
         RecvTokenBuffer.BufferType = SECBUFFER_TOKEN;
         SendTokenBuffer.cbBuffer = 0;
@@ -525,22 +503,22 @@ ServerEstablishContext(
         // back a "continue" command.  In those cases, we still
         // need dwError to be used and set seperatly based on other
         // calls.
-        dwLoopError = AcceptSecurityContext(
+        dwLoopError = NtlmClientAcceptSecurityContext(
             pServerCreds,
             pContextHandle,
             &InputDesc,
             AscFlags,
-            SECURITY_NATIVE_DREP,
+            0, //SECURITY_NATIVE_DREP,
             pContext,
             &OutputDesc,
             &nRetFlags,
             &Expiry
             );
 
-        if(SEC_E_OK != dwLoopError && SEC_I_CONTINUE_NEEDED != dwLoopError)
+        if(LSA_ERROR_SUCCESS != dwLoopError && LSA_WARNING_CONTINUE_NEEDED != dwLoopError)
         {
             dwError = dwLoopError;
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_NTLM_ERROR(dwError);
         }
 
         nContextAcquired = 1;
@@ -552,13 +530,13 @@ ServerEstablishContext(
         if(SendTokenBuffer.cbBuffer != 0)
         {
             dwError = SendToken(nSocket, &SendTokenBuffer);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_NTLM_ERROR(dwError);
 
             FreeContextBuffer(SendTokenBuffer.pvBuffer);
             SendTokenBuffer.pvBuffer = NULL;
         }
 
-    } while(dwLoopError == SEC_I_CONTINUE_NEEDED);
+    } while(dwLoopError == LSA_WARNING_CONTINUE_NEEDED);
 
 finish:
     return dwError;
@@ -576,7 +554,7 @@ error:
     }
     if(nContextAcquired)
     {
-        DeleteSecurityContext(pContext);
+        NtlmClientDeleteSecurityContext(pContext);
     }
     goto finish;
 }
@@ -587,7 +565,7 @@ SendToken(
     IN PSecBuffer pToken
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     DWORD dwLen = 0;
     INT nBytesWritten = 0;
 
@@ -600,12 +578,12 @@ SendToken(
         &nBytesWritten
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     if(4 != nBytesWritten)
     {
-        dwError = ERROR_INCORRECT_SIZE;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     dwError = WriteAll(
@@ -615,12 +593,12 @@ SendToken(
         &nBytesWritten
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     if(nBytesWritten != pToken->cbBuffer)
     {
-        dwError = ERROR_INCORRECT_SIZE;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
 error:
@@ -635,7 +613,7 @@ WriteAll(
     OUT PINT nBytesWritten
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     INT nReturn = 0;
     PCHAR pTrav = NULL;
 
@@ -647,8 +625,8 @@ WriteAll(
 
         if(nReturn < 0)
         {
-            dwError = GetLastError();
-            BAIL_ON_ERROR(dwError);
+            dwError = errno;
+            BAIL_ON_NTLM_ERROR(dwError);
         }
 
         if(nReturn == 0)
@@ -669,7 +647,7 @@ RecvToken(
     OUT PSecBuffer pToken
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     INT nBytesRead = 0;
 
     memset(pToken, 0, sizeof(SecBuffer));
@@ -681,12 +659,12 @@ RecvToken(
         &nBytesRead
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     if(4 != nBytesRead)
     {
-        dwError = ERROR_INCORRECT_SIZE;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     pToken->cbBuffer = ntohl(pToken->cbBuffer);
@@ -694,8 +672,8 @@ RecvToken(
 
     if(pToken->pvBuffer == NULL)
     {
-        dwError = ERROR_NOT_ENOUGH_MEMORY;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
     dwError = ReadAll(
@@ -705,12 +683,12 @@ RecvToken(
         &nBytesRead
         );
 
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     if(nBytesRead != pToken->cbBuffer)
     {
-        dwError = ERROR_INCORRECT_SIZE;
-        BAIL_ON_ERROR(dwError);
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
     }
 
 finish:
@@ -731,7 +709,7 @@ ReadAll(
     OUT PINT nBytesRead
     )
 {
-    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwError = LSA_ERROR_SUCCESS;
     INT nReturn = 0;
     PCHAR pTrav = NULL;
 
@@ -744,8 +722,8 @@ ReadAll(
 
         if(nReturn < 0)
         {
-            dwError = GetLastError();
-            BAIL_ON_ERROR(dwError);
+            dwError = errno;
+            BAIL_ON_NTLM_ERROR(dwError);
         }
 
         if(nReturn == 0)

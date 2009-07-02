@@ -42,13 +42,13 @@ SamrOpenAlias(
     NTSTATUS status = STATUS_SUCCESS;
     PolicyHandle h = {0};
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(alias_h, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(alias_h);
 
     DCERPC_CALL(_SamrOpenAlias(b, domain_h, access_mask, rid, &h));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *alias_h = h;
 

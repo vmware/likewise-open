@@ -71,6 +71,7 @@ typedef struct _LWStackFrame
 typedef struct _LWException
 {
     CENTERROR code;
+    CENTERROR subcode;
     char* shortMsg;
     char* longMsg;
     LWStackFrame stack;

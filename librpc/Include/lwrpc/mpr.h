@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -49,14 +49,16 @@ typedef struct
     wchar16_t* Provider;
 } NETRESOURCE;
 
-int
+
+WINERR
 WNetAddConnection2(
     NETRESOURCE* netResource,
     const wchar16_t* password16,
     const wchar16_t* username16
     );
 
-int
+
+WINERR
 WNetCancelConnection2(
     wchar16_t *name,
     uint16 flags,

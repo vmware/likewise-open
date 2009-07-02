@@ -57,34 +57,34 @@ NetrSamLogonEx(
     uint8 authoritative = 0;
     uint32 flags = 0;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(server, cleanup);
-    goto_if_invalid_param_ntstatus(domain, cleanup);
-    goto_if_invalid_param_ntstatus(computer, cleanup);
-    goto_if_invalid_param_ntstatus(username, cleanup);
-    goto_if_invalid_param_ntstatus(password, cleanup);
-    goto_if_invalid_param_ntstatus(out_info, cleanup);
-    goto_if_invalid_param_ntstatus(out_authoritative, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(domain);
+    BAIL_ON_INVALID_PTR(computer);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(password);
+    BAIL_ON_INVALID_PTR(out_info);
+    BAIL_ON_INVALID_PTR(out_authoritative);
 
     status = NetrAllocateUniString(&srv, server, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateUniString(&comp, computer, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateLogonInfo(&logon_info, logon_level, domain, computer,
                                    username, password);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(status, _NetrLogonSamLogonEx(b, srv, comp,
                                              logon_level, logon_info,
                                              validation_level, &validation,
                                              &authoritative, &flags));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateValidationInfo(&validation_info, &validation,
                                         validation_level);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_info          = validation_info;
     *out_authoritative = authoritative;

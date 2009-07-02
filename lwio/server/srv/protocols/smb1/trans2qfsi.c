@@ -46,15 +46,6 @@ typedef struct _SMB_FS_INFO_VOLUME_HEADER
 
 } __attribute__((__packed__)) SMB_FS_INFO_VOLUME_HEADER, *PSMB_FS_INFO_VOLUME_HEADER;
 
-typedef struct _SMB_FS_VOLUME_INFO_HEADER
-{
-    LONG64  llVolumeCreationTime;
-    ULONG   ulVolumeSerialNumber;
-    ULONG   ulVolumeLabelLength;
-    BOOLEAN bSupportsObjects;
-    UCHAR   pad;
-} __attribute__((__packed__)) SMB_FS_VOLUME_INFO_HEADER, *PSMB_FS_VOLUME_INFO_HEADER;
-
 static
 NTSTATUS
 SrvBuildFSAllocationInfoResponse(

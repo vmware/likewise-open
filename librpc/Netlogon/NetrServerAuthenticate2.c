@@ -56,30 +56,30 @@ NetrServerAuthenticate2(
 
     memset((void*)&creds, 0, sizeof(creds));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(server, cleanup);
-    goto_if_invalid_param_ntstatus(account, cleanup);
-    goto_if_invalid_param_ntstatus(computer, cleanup);
-    goto_if_invalid_param_ntstatus(cli_creds, cleanup);
-    goto_if_invalid_param_ntstatus(srv_creds, cleanup);
-    goto_if_invalid_param_ntstatus(neg_flags, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(account);
+    BAIL_ON_INVALID_PTR(computer);
+    BAIL_ON_INVALID_PTR(cli_creds);
+    BAIL_ON_INVALID_PTR(srv_creds);
+    BAIL_ON_INVALID_PTR(neg_flags);
 
     memcpy(creds.data, cli_creds, sizeof(creds.data));
 
     srv = wc16sdup(server);
-    goto_if_no_memory_ntstatus(srv, error);
+    BAIL_ON_NO_MEMORY(srv);
 
     acc = wc16sdup(account);
-    goto_if_no_memory_ntstatus(acc, error);
+    BAIL_ON_NO_MEMORY(acc);
 
     comp = wc16sdup(computer);
-    goto_if_no_memory_ntstatus(comp, error);
+    BAIL_ON_NO_MEMORY(comp);
 
     flags = *neg_flags;
 
     DCERPC_CALL(status, _NetrServerAuthenticate2(b, srv, acc, sec_chan_type,
                                                  comp, &creds, &flags));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy(srv_creds, creds.data, sizeof(creds.data));
 

@@ -44,6 +44,7 @@
 #include <lw/atomic.h>
 #include <lw/ntstatus.h>
 #include <lw/errno.h>
+#include <lw/rpcstatus.h>
 #include <lw/rtlmemory.h>
 #include <lw/rtlstring.h>
 #include <lw/rbtree.h>

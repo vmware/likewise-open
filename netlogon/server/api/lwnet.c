@@ -588,7 +588,7 @@ LWNetSrvGetDCNameDiscover(
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
-                  &LWNetGetPreferredDCList,
+                  LWNetGetPreferredDcList,
                   ppDcInfo,
                   ppServerArray,
                   pdwServerCount);
@@ -605,7 +605,7 @@ LWNetSrvGetDCNameDiscover(
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
-                  &LWNetDnsSrvQuery,
+                  LWNetDnsSrvQuery,
                   ppDcInfo,
                   ppServerArray,
                   pdwServerCount);

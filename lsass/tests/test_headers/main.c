@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +14,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -25,7 +24,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,45 +32,25 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        main.c
  *
  * Abstract:
  *
- *        Likewise Netlogon
- * 
- *        Active Directory Site API - External Variables
+ *        Header test.
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern pthread_rwlock_t g_SiteMgrLock;
+#include "test.h"
 
-#define ENTER_LWNETMGR_READER_LOCK(bInLock)        \
-        if (!bInLock) {                           \
-           pthread_rwlock_rdlock(&g_SiteMgrLock); \
-           bInLock = TRUE;                        \
-        }
-
-#define LEAVE_LWNETMGR_READER_LOCK(bInLock)        \
-        if (bInLock) {                            \
-           pthread_rwlock_unlock(&g_SiteMgrLock); \
-           bInLock = FALSE;                       \
-        }
-
-#define ENTER_LWNETMGR_WRITER_LOCK(bInLock)        \
-        if (!bInLock) {                           \
-           pthread_rwlock_wrlock(&g_SiteMgrLock); \
-           bInLock = TRUE;                        \
-        }
-
-#define LEAVE_LWNETMGR_WRITER_LOCK(bReleaseLock)   \
-        if (bInLock) {                            \
-           pthread_rwlock_unlock(&g_SiteMgrLock); \
-           bInLock = FALSE;                       \
-        }
-
-#endif /* __EXTERNS_H__ */
+int
+main(
+    int argc,
+    char* argv[]
+    )
+{
+    TestBefore();
+    TestAfter();
+    return 0;
+}

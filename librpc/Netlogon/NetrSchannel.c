@@ -69,7 +69,7 @@ NetrOpenSchannel(
                                     pwszComputer,
                                     cli_chal,
                                     srv_chal);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     NetrCredentialsInit(pCreds,
                         cli_chal,
@@ -85,7 +85,7 @@ NetrOpenSchannel(
                                      pCreds->cli_chal.data,
                                      srv_cred,
                                      &pCreds->negotiate_flags);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (!NetrCredentialsCorrect(pCreds, srv_cred)) {
         status = STATUS_ACCESS_DENIED;
@@ -97,23 +97,23 @@ NetrOpenSchannel(
     schnauth_info.machine_name = (unsigned char*) awc16stombs(pwszComputer);
     schnauth_info.sender_flags = rpc_schn_initiator_flags;
 
-    goto_if_no_memory_ntstatus(schnauth_info.domain_name, error);
-    goto_if_no_memory_ntstatus(schnauth_info.machine_name, error);
+    BAIL_ON_NO_MEMORY(schnauth_info.domain_name);
+    BAIL_ON_NO_MEMORY(schnauth_info.machine_name);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     hostname_size = wc16slen(pwszHostname) + 1;
     status = NetrAllocateMemory((void**)&pszHostname,
                                 hostname_size * sizeof(char),
                                 NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     wc16stombs(pszHostname, pwszHostname, hostname_size);
 
     rpcstatus = InitNetlogonBindingDefault(&schn_b, pszHostname, access_token,
                                            TRUE);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     rpc_binding_set_auth_info(schn_b,
                               NULL,
@@ -128,7 +128,7 @@ NetrOpenSchannel(
                               (rpc_auth_identity_handle_t)&schnauth_info,
                               rpc_c_authz_name, /* authz_protocol */
                               &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
+    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
 
     *schannel_b = schn_b;
 

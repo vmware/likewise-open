@@ -147,6 +147,31 @@ typedef struct __SMB2_TREE_DISCONNECT_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_TREE_DISCONNECT_RESPONSE_HEADER,
                              *PSMB2_TREE_DISCONNECT_RESPONSE_HEADER;
 
+typedef struct __SMB2_CREATE_CONTEXT
+{
+    ULONG  ulNextContextOffset;
+    USHORT usNameOffset;
+    USHORT usNameLength;
+    USHORT usReserved;
+    USHORT usDataOffset;
+    ULONG  ulDataLength;
+
+    /* ANSI Name */
+    /* Optional padding to 8 byte boundary */
+    /* Data */
+
+} __attribute__((__packed__)) SMB2_CREATE_CONTEXT,
+                             *PSMB2_CREATE_CONTEXT;
+
+typedef struct __SRV_CREATE_CONTEXT
+{
+    SMB2_CONTEXT_ITEM_TYPE contextItemType;
+    PCSTR                  pszName;
+    USHORT                 usNameLen;
+    ULONG                  ulDataLength;
+    PBYTE                  pData;
+} SRV_CREATE_CONTEXT, *PSRV_CREATE_CONTEXT;
+
 typedef struct __SMB2_CREATE_REQUEST_HEADER
 {
     USHORT  usLength;
@@ -262,6 +287,15 @@ typedef struct __SMB2_GET_INFO_REQUEST_HEADER
 
 } __attribute__((__packed__)) SMB2_GET_INFO_REQUEST_HEADER,
                              *PSMB2_GET_INFO_REQUEST_HEADER;
+
+typedef struct __SMB2_GET_INFO_RESPONSE_HEADER
+{
+    USHORT usLength;
+    USHORT usOutBufferOffset;
+    ULONG  ulOutBufferLength;
+
+} __attribute__((__packed__)) SMB2_GET_INFO_RESPONSE_HEADER,
+                             *PSMB2_GET_INFO_RESPONSE_HEADER;;
 
 typedef struct __SMB2_WRITE_REQUEST_HEADER
 {
@@ -434,6 +468,17 @@ typedef struct __SMB2_FIND_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_FIND_REQUEST_HEADER,
                              *PSMB2_FIND_REQUEST_HEADER;
 
+typedef struct __SMB2_FIND_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usOutBufferOffset;
+    ULONG    ulOutBufferLength;
+
+    /* File name/Search results follow */
+
+} __attribute__((__packed__)) SMB2_FIND_RESPONSE_HEADER,
+                             *PSMB2_FIND_RESPONSE_HEADER;
+
 typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;
@@ -441,5 +486,24 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
     ULONG  ulStatus;
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
+
+typedef struct __SMB2_MESSAGE
+{
+    PSMB2_HEADER pHeader;
+    ULONG        ulSize;
+
+} SMB2_MESSAGE, *PSMB2_MESSAGE;
+
+typedef struct __SMB2_REQUEST
+{
+    PLWIO_SRV_CONNECTION  pConnection;
+
+    PSMB_PACKET   pRequest;
+    ULONG         ulNumChainedRequests;
+    PSMB2_MESSAGE pChainedRequests;
+
+    PSMB_PACKET   pResponse;
+
+} SMB2_REQUEST, *PSMB2_REQUEST;
 
 #endif /* __STRUCTS_H__ */

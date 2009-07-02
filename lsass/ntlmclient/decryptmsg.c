@@ -51,14 +51,14 @@ DWORD
 NtlmClientDecryptMessage(
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
-    OUT PULONG pfQoP
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;
     HANDLE hServer = INVALID_HANDLE;
 
-    *pfQoP = 0;
+    *pbEncrypted = 0;
 
     dwError = NtlmOpenServer(&hServer);
     BAIL_ON_NTLM_ERROR(dwError);
@@ -68,7 +68,7 @@ NtlmClientDecryptMessage(
         phContext,
         pMessage,
         MessageSeqNo,
-        pfQoP
+        pbEncrypted
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
@@ -82,6 +82,6 @@ cleanup:
 error:
     // we may not want to clear the IN OUT params on error
     //memset(pMessage, 0, sizeof(SecBufferDesc));
-    *pfQoP = 0;
+    *pbEncrypted = 0;
     goto cleanup;
 }

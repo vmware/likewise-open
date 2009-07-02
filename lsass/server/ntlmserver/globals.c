@@ -44,13 +44,14 @@
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  */
-#include "ntlmsrvipc.h"
+#include "ntlmsrvapi.h"
 
-static LWMsgDispatchSpec gNtlmMessageHandlers[] =
+LWMsgDispatchSpec gNtlmMessageHandlers[] =
 {
     LWMSG_DISPATCH(NTLM_Q_ACCEPT_SEC_CTXT, NtlmSrvIpcAcceptSecurityContext),
     LWMSG_DISPATCH(NTLM_Q_ACQUIRE_CREDS, NtlmSrvIpcAcquireCredentialsHandle),
     LWMSG_DISPATCH(NTLM_Q_DECRYPT_MSG, NtlmSrvIpcDecryptMessage),
+    LWMSG_DISPATCH(NTLM_Q_DELETE_SEC_CTXT, NtlmSrvIpcDeleteSecurityContext),
     LWMSG_DISPATCH(NTLM_Q_ENCRYPT_MSG, NtlmSrvIpcEncryptMessage),
     LWMSG_DISPATCH(NTLM_Q_EXPORT_SEC_CTXT, NtlmSrvIpcExportSecurityContext),
     LWMSG_DISPATCH(NTLM_Q_FREE_CREDS, NtlmSrvIpcFreeCredentialsHandle),
@@ -63,13 +64,13 @@ static LWMsgDispatchSpec gNtlmMessageHandlers[] =
     LWMSG_DISPATCH_END
 };
 
-LWMsgDispatchSpec*
-NtlmSrvGetDispatchSpec(
-    void
-    )
-{
-    return gNtlmMessageHandlers;
-}
-
-
 pthread_t gRpcSrvWorker;
+
+PNTLM_CONTEXT gpNtlmContextList = NULL;
+pthread_rwlock_t gpNtlmContextList_rwlock;
+
+PNTLM_CONTEXT gpNtlmCredsList = NULL;
+pthread_rwlock_t gpNtlmCredsList_rwlock;
+
+
+WIN_VERSION_INFO gXpSpoof = {5, 1, 0x280a, 0xf};

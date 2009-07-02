@@ -663,6 +663,8 @@ lwmsg_server_task_perform_close(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
+    lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.incoming);
+    lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.outgoing);
     status = lwmsg_assoc_close((*task)->info.call.assoc);
 
     switch (status)
@@ -813,15 +815,17 @@ lwmsg_server_task_finish_call(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgBool completed = LWMSG_FALSE;
+    LWMsgBool cancelled = LWMSG_FALSE;
 
     pthread_mutex_lock(&(*task)->info.call.lock);
     completed = ((*task)->info.call.state & SERVER_CALL_COMPLETED) ? LWMSG_TRUE : LWMSG_FALSE;
+    cancelled = ((*task)->info.call.state & SERVER_CALL_CANCELLED) ? LWMSG_TRUE : LWMSG_FALSE;
     status = (*task)->info.call.status;
     pthread_mutex_unlock(&(*task)->info.call.lock);
 
     if (!completed)
     {
-        if (shutdown)
+        if (shutdown && !cancelled)
         {
             /* Interrupt call so we can shut down */
             lwmsg_call_cancel(LWMSG_CALL(&(*task)->info.call));
@@ -829,26 +833,25 @@ lwmsg_server_task_finish_call(
         }
         else if (!(*task)->blocked)
         {
-            /* Check for interrupt/close from peer.
-               This is done within the call lock
-               to serialize access to the association */
-            pthread_mutex_lock(&(*task)->info.call.lock);
+            /* Check for activity on association */
             status = lwmsg_assoc_finish((*task)->info.call.assoc);
-            pthread_mutex_unlock(&(*task)->info.call.lock);
 
             switch (status)
             {
             case LWMSG_STATUS_SUCCESS:
-                /* Spuriously unblocked, go back to sleep */
-                (*task)->blocked = LWMSG_TRUE;
+                /* Spuriously unblocked, nothing to do */
                 break;
             default:
-                /* Interrupt dispatch and go back to sleep waiting for completion */
-                lwmsg_call_cancel(LWMSG_CALL(&(*task)->info.call));
-                (*task)->blocked = LWMSG_TRUE;
+                /* Association dead, cancel call */
+                if (!cancelled)
+                {
+                    lwmsg_call_cancel(LWMSG_CALL(&(*task)->info.call));
+                }
                 break;
             }
 
+            /* Go back to sleep */
+            (*task)->blocked = LWMSG_TRUE;
             status = LWMSG_STATUS_SUCCESS;
         }
     }
@@ -858,7 +861,14 @@ lwmsg_server_task_finish_call(
         {
         case LWMSG_STATUS_SUCCESS:
             (*task)->blocked = LWMSG_FALSE;
-            (*task)->type = SERVER_TASK_BEGIN_SEND;
+            if (cancelled)
+            {
+                (*task)->type = SERVER_TASK_BEGIN_CLOSE;
+            }
+            else
+            {
+                (*task)->type = SERVER_TASK_BEGIN_SEND;
+            }
             lwmsg_assoc_destroy_message((*task)->info.call.assoc, &(*task)->info.call.incoming);
             break;
         default:
@@ -1099,10 +1109,8 @@ lwmsg_server_task_create_local_socket(
         BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
     }
 
-    if (chmod(sockaddr.sun_path, task->info.listen.perms) < 0)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_SYSTEM);
-    }
+    // ignore errors
+    chmod(sockaddr.sun_path, task->info.listen.perms);
 
     task->fd = sock;
     sock = -1;

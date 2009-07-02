@@ -45,12 +45,12 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerExportSecurityContext(
     PCtxtHandle phContext,
-    ULONG fFlags,
+    DWORD fFlags,
     PSecBuffer pPackedContext,
     HANDLE *pToken
     )

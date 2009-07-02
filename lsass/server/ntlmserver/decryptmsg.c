@@ -45,14 +45,14 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerDecryptMessage(
     PCtxtHandle phContext,
     PSecBufferDesc pMessage,
-    ULONG MessageSeqNo,
-    PULONG pfQoP
+    DWORD MessageSeqNo,
+    PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;

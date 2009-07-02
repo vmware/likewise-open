@@ -100,8 +100,8 @@ static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
     NTSTATUS status = STATUS_SUCCESS;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    goto_if_invalid_param_ntstatus(list, error);
+    goto_if_invalid_param_ntstatus(node, error);
 
     PTR_LIST_LOCK(list);
 
@@ -172,7 +172,7 @@ NTSTATUS MemPtrListInit(PtrList **out)
     NTSTATUS status = STATUS_SUCCESS;
     PtrList *list = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    goto_if_invalid_param_ntstatus(out, error);
 
     list = (PtrList*) malloc(sizeof(PtrList));
     goto_if_no_memory_ntstatus(list, error);
@@ -236,7 +236,7 @@ NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    goto_if_invalid_param_ntstatus(out, error);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));
@@ -283,7 +283,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     PtrNode *node = NULL;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    goto_if_invalid_param_ntstatus(ptr, error);
 
     PTR_LIST_LOCK(list);
 
@@ -298,7 +298,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
             node   = node->next;
 
             status = MemPtrNodeRemove(list, rmnode);
-            goto_if_ntstatus_not_success(status, done);
+            goto_if_ntstatus_not_success(status, error);
 
             free(rmnode->ptr);
             free(rmnode);
@@ -322,7 +322,7 @@ NTSTATUS MemPtrAddDependant(PtrList *list, void *ptr, void *dep)
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    goto_if_invalid_param_ntstatus(ptr, error);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));

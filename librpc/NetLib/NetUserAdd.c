@@ -68,12 +68,12 @@ NetUserAdd(
     UserInfo *sinfo = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(buffer, cleanup);
-    goto_if_invalid_param_winerr(parm_err, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(parm_err);
 
     status = PushUserInfoAdd(&sinfo, &samr_infolevel, buffer, level,
                              &out_parm_err);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwIoGetThreadAccessToken(&access_token);
     BAIL_ON_NT_STATUS(status);
@@ -89,7 +89,7 @@ NetUserAdd(
 
     status = SamrCreateUser(samr_b, &domain_h, user_name, user_access,
                             &user_h, &rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* If there was password specified do an extra samr call to set it */
     if (ninfo->password) {
@@ -105,17 +105,17 @@ NetUserAdd(
         info26->password_len = wc16slen(ninfo->password);
         status = EncPasswordEx(info26->password.data, ninfo->password,
                                info26->password_len, conn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = SamrSetUserInfo(samr_b, &user_h, 26, &pwinfo);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = SamrSetUserInfo(samr_b, &user_h, samr_infolevel, sinfo);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrClose(samr_b, &user_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (parm_err) {

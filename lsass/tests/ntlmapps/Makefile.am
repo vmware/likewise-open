@@ -1,5 +1,6 @@
 compat_subdirs = \
-    ntlmclient
+    ntlmclient   \
+    ntlmserver
 
 full_subdirs= \
 	$(compat_subdirs)

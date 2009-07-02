@@ -48,21 +48,21 @@ SamrCreateUser2(
     uint32 access = 0;
     uint32 rid = 0;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(account_name, cleanup);
-    goto_if_invalid_param_ntstatus(account_h, cleanup);
-    goto_if_invalid_param_ntstatus(out_access_granted, cleanup);
-    goto_if_invalid_param_ntstatus(out_rid, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(account_name);
+    BAIL_ON_INVALID_PTR(account_h);
+    BAIL_ON_INVALID_PTR(out_access_granted);
+    BAIL_ON_INVALID_PTR(out_rid);
 
     status = InitUnicodeStringEx(&acct_name, account_name);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(_SamrCreateUser2(b, domain_h, &acct_name,
                                  account_flags, account_mask,
                                  account_h, &access, &rid));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *out_access_granted = access;
     *out_rid            = rid;

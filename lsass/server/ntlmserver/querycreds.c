@@ -45,12 +45,12 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlm/ntlm.h>
+#include <ntlmsrvapi.h>
 
 DWORD
 NtlmServerQueryCredentialsAttributes(
     PCredHandle phCredential,
-    ULONG ulAttribute,
+    DWORD ulAttribute,
     PVOID pBuffer
     )
 {

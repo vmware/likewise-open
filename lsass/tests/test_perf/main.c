@@ -124,8 +124,8 @@ void RunTests(
     size_t testIndex;
     BOOL passed;
     PVOID runArg;
-    struct timespec startTime;
-    struct timespec endTime;
+    struct timespec startTime = {0};
+    struct timespec endTime = {0};
     int result;
     int runNum;
 

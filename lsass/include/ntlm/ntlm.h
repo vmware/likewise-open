@@ -49,21 +49,24 @@
 #ifndef __NTLM_H__
 #define __NTLM_H__
 
+#include <config.h>
 #include <lw/types.h>
 #include <lw/attrs.h>
+#include <lwmsg/lwmsg.h>
+#include <lsasystem.h>
+#include <lsa/lsa.h>
+#include <lsa/lwerror.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
 
-#define BAIL_ON_NTLM_ERROR(dwError) \
-    if (dwError)               \
-    {                          \
-        goto error;            \
-    }
+//******************************************************************************
+//
+// S T R U C T S
+//
 
-#define BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
-           dwError = NTLM_ERROR_INTERNAL; \
-           BAIL_ON_NTLM_ERROR(dwError);            \
-        }
-
+// Under windows this is either 32 bit or 64 bit based on the arch.  Here we're
+// just going to always convert it to 64 bit.
+//
 typedef struct _SecHandle
 {
     ULONG_PTR       dwLower;
@@ -78,38 +81,50 @@ typedef PSecHandle   PCtxtHandle;
 
 typedef CHAR SEC_CHAR;
 
+// Again, under windows, these are ULONG values, which would be equivalent to
+// DWORD values here.  Just noting the structure "change".
 typedef struct _SecBuffer
 {
-    ULONG cbBuffer;
-    ULONG BufferType;
+    DWORD cbBuffer;
+    DWORD BufferType;
     PVOID pvBuffer;
 }SecBuffer, *PSecBuffer;
 
 typedef struct _SecBufferDesc
 {
-    ULONG      ulVersion;
-    ULONG      cBuffers;
+    // At this point, we do not require version information
+    // DWORD      ulVersion;
+    DWORD      cBuffers;
     PSecBuffer pBuffers;
 }SecBufferDesc, *PSecBufferDesc;
 
+typedef struct _SecPkgContext_Sizes
+{
+  DWORD cbMaxToken;
+  DWORD cbMaxSignature;
+  DWORD cbBlockSize;
+  DWORD cbSecurityTrailer;
+}SecPkgContext_Sizes, *PSecPkgContext_Sizes;
+
+// Again, under windows, HighPart would be a long which is 32 bit; here we have
+// to adjust the size accordingly.
 typedef struct _LUID
 {
     DWORD LowPart;
-    LONG  HighPart;
+    INT  HighPart;
 }LUID, *PLUID;
 
+// Again... windows... 32 bits
 typedef struct _SEC_WINNT_AUTH_IDENTITY
 {
   USHORT *User;
-  ULONG UserLength;
+  DWORD UserLength;
   USHORT *Domain;
-  ULONG DomainLength;
+  DWORD DomainLength;
   USHORT *Password;
-  ULONG PasswordLength;
-  ULONG Flags;
+  DWORD PasswordLength;
+  DWORD Flags;
 }SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
-
-#define INVALID_HANDLE  ((HANDLE)~0)
 
 typedef INT64 SECURITY_INTEGER, *PSECURITY_INTEGER;
 //typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
@@ -133,6 +148,341 @@ typedef struct _SECURITY_STRING
     USHORT      MaximumLength;
     PUSHORT     Buffer;
 } SECURITY_STRING, * PSECURITY_STRING;
+
+typedef struct _NTLM_SEC_BUFFER
+{
+    USHORT usLength;
+    USHORT usMaxLength;
+    DWORD  dwOffset;
+} NTLM_SEC_BUFFER, *PNTLM_SEC_BUFFER;
+
+typedef struct _WIN_VERSION_INFO
+{
+    BYTE    bMajor;
+    BYTE    bMinor;
+    SHORT   sBuild;
+    DWORD   dwReserved;
+} WIN_VERSION_INFO, *PWIN_VERSION_INFO;
+
+//******************************************************************************
+//
+// D E F I N E S
+//
+
+#define BAIL_ON_NTLM_ERROR(dwError) \
+    if (dwError)                    \
+    {                               \
+        goto error;                 \
+    }
+
+#define BAIL_ON_NTLM_INVALID_POINTER(p) \
+    if (NULL == p)                      \
+    {                                   \
+       dwError = LSA_ERROR_INTERNAL;   \
+       BAIL_ON_NTLM_ERROR(dwError);     \
+    }
+
+#define INVALID_HANDLE  ((HANDLE)~0)
+
+#define SECPKG_ATTR_SIZES           0
+
+#define SECBUFFER_DATA    0
+#define SECBUFFER_PADDING 1
+#define SECBUFFER_TOKEN   2
+#define SECBUFFER_STREAM  3
+
+//  NTLM FLAGS
+//
+#define NTLM_FLAG_UNICODE               0x00000001  /* unicode charset */
+#define NTLM_FLAG_OEM                   0x00000002  /* oem charset */
+#define NTLM_FLAG_REQUEST_TARGET        0x00000004  /* ret trgt in challenge */
+#define NTLM_FLAG_SIGN                  0x00000010  /* sign requested */
+#define NTLM_FLAG_SEAL                  0x00000020  /* encryption requested */
+#define NTLM_FLAG_DATAGRAM              0x00000040  /* udp message */
+#define NTLM_FLAG_LM_KEY                0x00000080  /* use LM key for crypto */
+#define NTLM_FLAG_NETWARE               0x00000100  /* netware - unsupported */
+#define NTLM_FLAG_NTLM                  0x00000200  /* use NTLM auth */
+#define NTLM_FLAG_DOMAIN                0x00001000  /* domain supplied */
+#define NTLM_FLAG_WORKSTATION           0x00002000  /* wks supplied */
+#define NTLM_FLAG_LOCAL_CALL            0x00004000  /* loopback auth */
+#define NTLM_FLAG_ALWAYS_SIGN           0x00008000  /* use dummy sig */
+#define NTLM_FLAG_TYPE_DOMAIN           0x00010000  /* domain authenticator */
+#define NTLM_FLAG_TYPE_SERVER           0x00020000  /* server authenticator */
+#define NTLM_FLAG_TYPE_SHARE            0x00040000  /* share authenticator */
+#define NTLM_FLAG_NTLM2                 0x00080000  /* use NTLMv2 key */
+#define NTLM_FLAG_INIT_RESPONSE         0x00100000  /* unknown */
+#define NTLM_FLAG_ACCEPT_RESPONSE       0x00200000  /* unknown */
+#define NTLM_FLAG_NON_NT_SESSION_KEY    0x00400000  /* unknown */
+#define NTLM_FLAG_TARGET_INFO           0x00800000  /* target info used */
+#define NTLM_FLAG_UNKNOWN_02000000      0x02000000  /* needed, for what? */
+#define NTLM_FLAG_128                   0x20000000  /* 128-bit encryption */
+#define NTLM_FLAG_KEY_EXCH              0x40000000  /* perform key exchange */
+#define NTLM_FLAG_56                    0x80000000  /* 56-bit encryption */
+
+#define NTLM_FLAG_CLI_DEFAULT ( \
+    NTLM_FLAG_UNICODE         | \
+    NTLM_FLAG_OEM             | \
+    NTLM_FLAG_REQUEST_TARGET  | \
+    NTLM_FLAG_NTLM            | \
+    NTLM_FLAG_WORKSTATION     | \
+    NTLM_FLAG_NTLM2           | \
+    NTLM_FLAG_128             | \
+    NTLM_FLAG_56              )
+
+#define NTLM_FLAG_SRV_SUPPORTS ( \
+    NTLM_FLAG_UNICODE          | \
+    NTLM_FLAG_OEM              | \
+    NTLM_FLAG_REQUEST_TARGET   | \
+    NTLM_FLAG_NTLM             | \
+    NTLM_FLAG_LOCAL_CALL       | \
+    NTLM_FLAG_ALWAYS_SIGN      | \
+    NTLM_FLAG_WORKSTATION      | \
+    NTLM_FLAG_NTLM2            | \
+    NTLM_FLAG_TARGET_INFO      | \
+    NTLM_FLAG_128              | \
+    NTLM_FLAG_56               )
+
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
+//******************************************************************************
+//
+// E X T E R N S
+//
+
+//******************************************************************************
+//
+// P R O T O T Y P E S
+//
+
+DWORD
+NtlmClientAcceptSecurityContext(
+    IN PCredHandle phCredential,
+    IN OUT PCtxtHandle phContext,
+    IN PSecBufferDesc pInput,
+    IN DWORD fContextReq,
+    IN DWORD TargetDataRep,
+    IN OUT PCtxtHandle phNewContext,
+    IN OUT PSecBufferDesc pOutput,
+    OUT PDWORD  pfContextAttr,
+    OUT PTimeStamp ptsTimeStamp
+    );
+
+DWORD
+NtlmClientAcquireCredentialsHandle(
+    IN SEC_CHAR *pszPrincipal,
+    IN SEC_CHAR *pszPackage,
+    IN DWORD fCredentialUse,
+    IN PLUID pvLogonID,
+    IN PVOID pAuthData,
+    // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT USED BY NTLM - IN PVOID pvGetKeyArgument,
+    OUT PCredHandle phCredential,
+    OUT PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmClientDecryptMessage(
+    IN PCtxtHandle phContext,
+    IN OUT PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
+    );
+
+DWORD
+NtlmClientDeleteSecurityContext(
+    IN PCtxtHandle phContext
+    );
+
+DWORD
+NtlmClientEncryptMessage(
+    IN PCtxtHandle phContext,
+    IN BOOL bEncrypt,
+    IN OUT PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo
+    );
+
+DWORD
+NtlmClientExportSecurityContext(
+    IN PCtxtHandle phContext,
+    IN DWORD fFlags,
+    OUT PSecBuffer pPackedContext,
+    OUT OPTIONAL HANDLE *pToken
+    );
+
+DWORD
+NtlmClientFreeCredentialsHandle(
+    IN PCredHandle phCredential
+    );
+
+DWORD
+NtlmClientImportSecurityContext(
+    IN PSECURITY_STRING *pszPackage,
+    IN PSecBuffer pPackedContext,
+    IN OPTIONAL HANDLE pToken,
+    OUT PCtxtHandle phContext
+    );
+
+DWORD
+NtlmClientInitializeSecurityContext(
+    IN OPTIONAL PCredHandle phCredential,
+    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN DWORD fContextReq,
+    IN DWORD Reserved1,
+    IN DWORD TargetDataRep,
+    IN OPTIONAL PSecBufferDesc pInput,
+    IN DWORD Reserved2,
+    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PDWORD pfContextAttr,
+    OUT OPTIONAL PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmClientMakeSignature(
+    IN PCtxtHandle phContext,
+    IN BOOL bEncrypt,
+    IN OUT PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo
+    );
+
+DWORD
+NtlmClientQueryCredentialsAttributes(
+    IN PCredHandle phCredential,
+    IN DWORD ulAttribute,
+    OUT PVOID pBuffer
+    );
+
+DWORD
+NtlmClientQueryContextAttributes(
+    IN PCtxtHandle phContext,
+    IN DWORD ulAttribute,
+    OUT PVOID pBuffer
+    );
+
+DWORD
+NtlmClientVerifySignature(
+    IN PCtxtHandle phContext,
+    IN PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncryted
+    );
+
+DWORD
+NtlmServerAcceptSecurityContext(
+    PCredHandle phCredential,
+    PCtxtHandle phContext,
+    PSecBufferDesc pInput,
+    DWORD fContextReq,
+    DWORD TargetDataRep,
+    PCtxtHandle phNewContext,
+    PSecBufferDesc pOutput,
+    PDWORD pfContextAttr,
+    PTimeStamp ptsTimeStamp
+    );
+
+DWORD
+NtlmServerAcquireCredentialsHandle(
+    SEC_CHAR *pszPrincipal,
+    SEC_CHAR *pszPackage,
+    DWORD fCredentialUse,
+    PLUID pvLogonID,
+    PVOID pAuthData,
+    // NOT NEEDED BY NTLM - SEC_GET_KEY_FN pGetKeyFn,
+    // NOT NEEDED BY NTLM - PVOID pvGetKeyArgument,
+    PCredHandle phCredential,
+    PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmServerDecryptMessage(
+    PCtxtHandle phContext,
+    PSecBufferDesc pMessage,
+    DWORD MessageSeqNo,
+    PBOOL pbEncrypted
+    );
+
+DWORD
+NtlmServerDeleteSecurityContext(
+    PCtxtHandle phContext
+    );
+
+DWORD
+NtlmServerEncryptMessage(
+    PCtxtHandle phContext,
+    BOOL bEncrypt,
+    PSecBufferDesc pMessage,
+    DWORD MessageSeqNo
+    );
+
+DWORD
+NtlmServerExportSecurityContext(
+    PCtxtHandle phContext,
+    DWORD fFlags,
+    PSecBuffer pPackedContext,
+    HANDLE *pToken
+    );
+
+DWORD
+NtlmServerFreeCredentialsHandle(
+    PCredHandle phCredential
+    );
+
+DWORD
+NtlmServerImportSecurityContext(
+    PSECURITY_STRING *pszPackage,
+    PSecBuffer pPackedContext,
+    HANDLE pToken,
+    PCtxtHandle phContext
+    );
+
+DWORD
+NtlmServerInitializeSecurityContext(
+    PCredHandle phCredential,
+    PCtxtHandle phContext,
+    SEC_CHAR * pszTargetName,
+    DWORD fContextReq,
+    DWORD Reserved1,
+    DWORD TargetDataRep,
+    PSecBufferDesc pInput,
+    DWORD Reserved2,
+    PCtxtHandle phNewContext,
+    PSecBufferDesc pOutput,
+    PDWORD pfContextAttr,
+    PTimeStamp ptsExpiry
+    );
+
+DWORD
+NtlmServerMakeSignature(
+    PCtxtHandle phContext,
+    BOOL bEncrypt,
+    PSecBufferDesc pMessage,
+    DWORD MessageSeqNo
+    );
+
+DWORD
+NtlmServerQueryCredentialsAttributes(
+    PCredHandle phCredential,
+    DWORD ulAttribute,
+    PVOID pBuffer
+    );
+
+DWORD
+NtlmServerQueryContextAttributes(
+    PCtxtHandle phContext,
+    DWORD ulAttribute,
+    PVOID pBuffer
+    );
+
+DWORD
+NtlmServerVerifySignature(
+    PCtxtHandle phContext,
+    PSecBufferDesc pMessage,
+    DWORD MessageSeqNo,
+    PBOOL pbEncrypted
+    );
 
 /*
 local variables:

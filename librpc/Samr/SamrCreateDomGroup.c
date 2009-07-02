@@ -45,19 +45,19 @@ SamrCreateDomGroup(
     UnicodeString group_name = {0};
     PolicyHandle handle = {0};
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(group, cleanup);
-    goto_if_invalid_param_ntstatus(group_h, cleanup);
-    goto_if_invalid_param_ntstatus(rid, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(group);
+    BAIL_ON_INVALID_PTR(group_h);
+    BAIL_ON_INVALID_PTR(rid);
 
     status = InitUnicodeString(&group_name, group);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(_SamrCreateDomGroup(b, domain_h, &group_name,
                                     access_mask, &handle, rid));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *group_h = handle;
 

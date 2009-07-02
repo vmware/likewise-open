@@ -49,6 +49,16 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SMB2UnmarshalCreateContexts(
+    PBYTE                pBuffer,
+    ULONG                ulOffset,
+    ULONG                ulPacketSize,
+    PSRV_CREATE_CONTEXT* ppCreateContexts,
+    PULONG               pulNumContexts
+    );
+
 NTSTATUS
 SMB2MarshalHeader(
     PSMB_PACKET pSmbPacket,
@@ -525,7 +535,9 @@ NTSTATUS
 SMB2UnmarshalCreateRequest(
     PSMB_PACKET                  pPacket,
     PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
-    PUNICODE_STRING              pwszFileName
+    PUNICODE_STRING              pwszFileName,
+    PSRV_CREATE_CONTEXT*         ppCreateContexts,
+    PULONG                       pulNumContexts
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -535,6 +547,8 @@ SMB2UnmarshalCreateRequest(
     ULONG ulBytesAvailable = pPacket->bufferLen - pPacket->bufferUsed;
     PSMB2_CREATE_REQUEST_HEADER pHeader = NULL; // Do not free
     UNICODE_STRING wszFileName = {0}; // Do not free
+    PSRV_CREATE_CONTEXT pCreateContexts = NULL;
+    ULONG               ulNumContexts = 0;
 
     if (ulBytesAvailable < sizeof(SMB2_CREATE_REQUEST_HEADER))
     {
@@ -561,16 +575,37 @@ SMB2UnmarshalCreateRequest(
 
         wszFileName.Buffer = (PWSTR)((PBYTE)pPacket->pSMB2Header + pHeader->usNameOffset);
         wszFileName.Length = wszFileName.MaximumLength = pHeader->usNameLength;
+
+        ulOffset = pHeader->usNameOffset + pHeader->usNameLength;
     }
 
-    if (!wszFileName.Length)
+    if (pHeader->ulCreateContextOffset && pHeader->ulCreateContextLength)
     {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        PBYTE pCreateContextBuffer = NULL;
+
+        if ((pHeader->ulCreateContextOffset < ulOffset) ||
+            ((pHeader->ulCreateContextOffset + pHeader->ulCreateContextLength) > ulPacketSize))
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pCreateContextBuffer = (PBYTE)pPacket->pSMB2Header +
+                               pHeader->ulCreateContextOffset;
+
+        ntStatus = SMB2UnmarshalCreateContexts(
+                        pCreateContextBuffer,
+                        pHeader->ulCreateContextOffset,
+                        ulPacketSize,
+                        &pCreateContexts,
+                        &ulNumContexts);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppCreateRequestHeader = pHeader;
     *pwszFileName = wszFileName;
+    *ppCreateContexts = pCreateContexts;
+    *pulNumContexts = ulNumContexts;
 
 cleanup:
 
@@ -579,6 +614,118 @@ cleanup:
 error:
 
     *ppCreateRequestHeader = NULL;
+    memset(pwszFileName, 0, sizeof(UNICODE_STRING));
+    *ppCreateContexts = NULL;
+    *pulNumContexts = 0;
+
+    SRV_SAFE_FREE_MEMORY(pCreateContexts);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SMB2UnmarshalCreateContexts(
+    PBYTE                pBuffer,
+    ULONG                ulOffset,
+    ULONG                ulPacketSize,
+    PSRV_CREATE_CONTEXT* ppCreateContexts,
+    PULONG               pulNumContexts
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG    iContext = 0;
+    ULONG    ulNumContexts = 0;
+    ULONG    ulCurrentOffset = ulOffset;
+    PSMB2_CREATE_CONTEXT pCContext = (PSMB2_CREATE_CONTEXT)pBuffer;
+    PSRV_CREATE_CONTEXT pCreateContexts = NULL;
+
+    while (pCContext)
+    {
+        ULONG ulNextOffset = 0;
+
+        ulNumContexts++;
+
+        ulNextOffset = pCContext->ulNextContextOffset;
+
+        if (!ulNextOffset)
+        {
+            pCContext = NULL;
+        }
+        else
+        {
+            if ((ulCurrentOffset + ulNextOffset) > ulPacketSize)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pCContext = (PSMB2_CREATE_CONTEXT)((PBYTE)pCContext + ulNextOffset);
+            ulCurrentOffset += ulNextOffset;
+        }
+    }
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_CREATE_CONTEXT) * ulNumContexts,
+                    (PVOID*)&pCreateContexts);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCContext = (PSMB2_CREATE_CONTEXT)pBuffer;
+    for (iContext = 0; iContext < ulNumContexts; iContext++)
+    {
+        PSRV_CREATE_CONTEXT pSrvCContext = &pCreateContexts[iContext];
+
+        pSrvCContext->pszName = (PCSTR)((PBYTE)pCContext +
+                                        pCContext->usNameOffset);
+        pSrvCContext->usNameLen = pCContext->usNameLength;
+
+        pSrvCContext->pData = (PBYTE)pCContext + pCContext->usDataOffset;
+        pSrvCContext->ulDataLength = pCContext->ulDataLength;
+
+        pSrvCContext->contextItemType = SMB2_CONTEXT_ITEM_TYPE_UNKNOWN;
+
+        if (pSrvCContext->usNameLen)
+        {
+            if (!strncmp(pSrvCContext->pszName,
+                         SMB2_CONTEXT_NAME_DURABLE_HANDLE,
+                         sizeof(SMB2_CONTEXT_NAME_DURABLE_HANDLE) - 1))
+            {
+                pSrvCContext->contextItemType =
+                                SMB2_CONTEXT_ITEM_TYPE_DURABLE_HANDLE;
+            }
+            else if (!strncmp(pSrvCContext->pszName,
+                              SMB2_CONTEXT_NAME_MAX_ACCESS,
+                              sizeof(SMB2_CONTEXT_NAME_MAX_ACCESS) - 1))
+            {
+                pSrvCContext->contextItemType =
+                                SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS;
+            }
+            else if (!strncmp(pSrvCContext->pszName,
+                            SMB2_CONTEXT_NAME_QUERY_DISK_ID,
+                            sizeof(SMB2_CONTEXT_NAME_QUERY_DISK_ID) - 1))
+            {
+                pSrvCContext->contextItemType =
+                                SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID;
+            }
+        }
+
+        pCContext = (PSMB2_CREATE_CONTEXT)((PBYTE)pCContext +
+                                           pCContext->ulNextContextOffset);
+    }
+
+    *ppCreateContexts = pCreateContexts;
+    *pulNumContexts   = ulNumContexts;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppCreateContexts = NULL;
+    *pulNumContexts   = 0;
+
+    SRV_SAFE_FREE_MEMORY(pCreateContexts);
 
     goto cleanup;
 }

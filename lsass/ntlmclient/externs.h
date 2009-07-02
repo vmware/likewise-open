@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,37 +33,16 @@
  *
  * Module Name:
  *
- *        lwnet-prefdc.c
+ *        externs.h
  *
  * Abstract:
  *
- *        Likewise Site Manager
  *
- *        GetPreferredDCList stub
+ * Authors:
  *
- * Authors: Getald Carter <gcarter@likewise.com>
  */
 
-#include "includes.h"
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-DWORD
-LWNetGetPreferredDCList(
-    IN PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszSiteName,
-    IN DWORD dwDsFlags,
-    OUT PDNS_SERVER_INFO* ppServerArray,
-    OUT PDWORD pdwServerCount
-    )
-{
-    return LWNET_ERROR_FAILED_FIND_DC;
-}
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* __EXTERNS_H__ */

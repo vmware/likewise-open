@@ -51,7 +51,8 @@ DWORD
 NtlmClientVerifySignature(
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo,
+    PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;
@@ -66,7 +67,8 @@ NtlmClientVerifySignature(
         hServer,
         phContext,
         pMessage,
-        MessageSeqNo
+        MessageSeqNo,
+        pbEncrypted
         );
 
 cleanup:

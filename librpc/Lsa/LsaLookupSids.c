@@ -31,73 +31,81 @@
 #include "includes.h"
 
 
-NTSTATUS LsaLookupSids(handle_t b, PolicyHandle *handle, SidArray *sids,
-                       RefDomainList **domains, TranslatedName **names,
-                       uint16 level, uint32 *count)
+NTSTATUS
+LsaLookupSids(
+    IN  handle_t hBinding,
+    IN  PolicyHandle *phPolicy,
+    IN  SidArray *pSids,
+    OUT RefDomainList **ppRefDomList,
+    OUT TranslatedName **ppTransNames,
+    IN  UINT16 Level,
+    IN OUT UINT32 *Count
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS ret_status = STATUS_SUCCESS;
-    TranslatedNameArray name_array = {0};
-    RefDomainList *ref_domains = NULL;
-    TranslatedName *out_names = NULL;
-    RefDomainList *out_domains = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntRetStatus = STATUS_SUCCESS;
+    TranslatedNameArray NameArray = {0};
+    RefDomainList *pRefDomains = NULL;
+    TranslatedName *pOutNames = NULL;
+    RefDomainList *pOutDomains = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(handle, cleanup);
-    goto_if_invalid_param_ntstatus(sids, cleanup);
-    goto_if_invalid_param_ntstatus(domains, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(pSids, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRefDomList, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTransNames, ntStatus);
+    BAIL_ON_INVALID_PTR(Count, ntStatus);
 
-    /* windows allows level to be in range 1-6 */
+    /* windows allows Level to be in range 1-6 */
 
-    *count = 0;
+    *Count = 0;
 
-    DCERPC_CALL(_LsaLookupSids(b, handle, sids, &ref_domains, &name_array,
-                               level, count));
-    ret_status = status;
+    DCERPC_CALL(ntStatus, _LsaLookupSids(
+                              hBinding,
+                              phPolicy,
+                              pSids,
+                              &pRefDomains,
+                              &NameArray,
+                              Level,
+                              Count));
+    ntRetStatus = ntStatus;
 
     /* Status other than success doesn't have to mean failure here */
-    if (ret_status != STATUS_SUCCESS &&
-        ret_status != STATUS_SOME_UNMAPPED) goto error;
+    if (ntRetStatus != STATUS_SUCCESS &&
+        ntRetStatus != STATUS_SOME_UNMAPPED) goto error;
 
-    status = LsaAllocateTranslatedNames(&out_names, &name_array);
-    goto_if_ntstatus_not_success(status, error);
+    ntStatus = LsaAllocateTranslatedNames(&pOutNames, &NameArray);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = LsaAllocateRefDomainList(&out_domains, ref_domains);
-    goto_if_ntstatus_not_success(status, error);
+    ntStatus = LsaAllocateRefDomainList(&pOutDomains, pRefDomains);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *names   = out_names;
-    *domains = out_domains;
+    *ppTransNames = pOutNames;
+    *ppRefDomList = pOutDomains;
 
 cleanup:
 
     /* Free pointers returned from stub */
-    if (ref_domains) {
-        LsaFreeStubRefDomainList(ref_domains);
+    if (pRefDomains) {
+        LsaFreeStubRefDomainList(pRefDomains);
     }
 
-    LsaCleanStubTranslatedNameArray(&name_array);
+    LsaCleanStubTranslatedNameArray(&NameArray);
 
-    if (status == STATUS_SUCCESS &&
-        (ret_status == STATUS_SUCCESS ||
-         ret_status == STATUS_SOME_UNMAPPED)) {
-        status = ret_status;
+    if (ntStatus == STATUS_SUCCESS &&
+        (ntRetStatus == STATUS_SUCCESS ||
+         ntRetStatus == STATUS_SOME_UNMAPPED)) {
+        ntStatus = ntRetStatus;
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_names) {
-        LsaRpcFreeMemory((void*)out_names);
-    }
+    LsaRpcFreeMemory((PVOID)pOutNames);
+    LsaRpcFreeMemory((PVOID)pOutDomains);
 
-    if (out_domains) {
-        LsaRpcFreeMemory((void*)out_domains);
-    }
-
-    *names   = NULL;
-    *domains = NULL;
+    *ppTransNames = NULL;
+    *ppRefDomList = NULL;
 
     goto cleanup;
 }

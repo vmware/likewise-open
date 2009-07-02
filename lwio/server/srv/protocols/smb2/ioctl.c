@@ -105,6 +105,8 @@ SrvProcessIOCTL_SMB_V2(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    // TODO: Should we just allocate 64 * 1024 bytes in this buffer?
+
     ntStatus = SMBPacketBufferAllocate(
                     pConnection->hPacketAllocator,
                     pRequestHeader->ulMaxOutLength,

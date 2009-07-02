@@ -131,6 +131,18 @@ LsaAdProviderLogConfigReloadEvent(
     );
 
 static
+VOID
+LsaAdProviderLogRequireMembershipOfChangeEvent(
+    HANDLE hProvider
+    );
+
+static
+VOID
+LsaAdProviderLogEventLogEnableChangeEvent(
+    VOID
+    );
+
+static
 DWORD
 AD_SetUserCanonicalNameToAlias(
     PCSTR pszCurrentNetBIOSDomainName,
@@ -212,6 +224,8 @@ LsaInitializeProvider(
 
         dwError = AD_SetConfigFilePath(pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
+
+        LsaAdProviderLogConfigReloadEvent();
     }
 
     dwError = ADInitMachinePasswordSync();
@@ -3238,9 +3252,13 @@ AD_RefreshConfiguration(
                         &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
                         &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
         BAIL_ON_LSA_ERROR(dwError);
-    }
 
-    LsaAdProviderLogConfigReloadEvent();
+        LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+        LsaAdProviderLogConfigReloadEvent();
+        LsaAdProviderLogRequireMembershipOfChangeEvent(hProvider);
+        LsaAdProviderLogEventLogEnableChangeEvent();
+    }
 
 cleanup:
 
@@ -4055,6 +4073,26 @@ LsaAdProviderLogConfigReloadEvent(
 {
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
+    PSTR pszMemberList = NULL;
+    PDLINKEDLIST pIter = NULL;
+
+    for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
+         pIter;
+         pIter = pIter->pNext)
+    {
+        PSTR pszNewMemberList = NULL;
+
+        dwError = LsaAllocateStringPrintf(
+                     &pszNewMemberList,
+                     "%s        %s\r\n",
+                     pszMemberList ? pszMemberList : "",
+                     LSA_SAFE_LOG_STRING((PSTR)pIter->pItem));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_SAFE_FREE_STRING(pszMemberList);
+        pszMemberList = pszNewMemberList;
+        pszNewMemberList = NULL;
+    }
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
@@ -4066,6 +4104,7 @@ LsaAdProviderLogConfigReloadEvent(
                  "     Space replacement character:       '%c'\r\n" \
                  "     Domain separator character:        '%c'\r\n" \
                  "     Enable event log:                  %s\r\n" \
+                 "     Logon membership requirements:     \r\n%s" \
                  "     Log network connection events:     %s\r\n" \
                  "     Create K5Login file:               %s\r\n" \
                  "     Create home directory:             %s\r\n" \
@@ -4092,6 +4131,7 @@ LsaAdProviderLogConfigReloadEvent(
                  gpLsaAdProviderState->config.chSpaceReplacement,
                  gpLsaAdProviderState->config.chDomainSeparator,
                  gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false",
+                 pszMemberList ? pszMemberList : "        <No login restrictions specified>\r\n",
                  gpLsaAdProviderState->config.bShouldLogNetworkConnectionEvents ? "true" : "false",
                  gpLsaAdProviderState->config.bCreateK5Login ? "true" : "false",
                  gpLsaAdProviderState->config.bCreateHomeDir ? "true" : "false",
@@ -4119,6 +4159,122 @@ LsaAdProviderLogConfigReloadEvent(
 
     LsaSrvLogServiceSuccessEvent(
              LSASS_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszMemberList);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaAdProviderLogRequireMembershipOfChangeEvent(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY *pHashEntry = NULL;
+    PSTR pszMemberList = NULL;
+    DWORD i = 0;
+
+    dwError = AD_ResolveConfiguredLists(
+                  hProvider,
+                  &pAllowedMemberList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pAllowedMemberList != NULL)
+    {
+        dwError = LsaHashGetIterator(pAllowedMemberList, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
+        {
+            PSTR pszNewMemberList = NULL;
+
+            dwError = LsaAllocateStringPrintf(
+                         &pszNewMemberList,
+                         "%s        %s\r\n",
+                         pszMemberList ? pszMemberList : "",
+                         LSA_SAFE_LOG_STRING(pHashEntry->pValue));
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LSA_SAFE_FREE_STRING(pszMemberList);
+            pszMemberList = pszNewMemberList;
+            pszNewMemberList = NULL;
+        }
+    }
+    else
+    {
+            dwError = LsaAllocateStringPrintf(
+                         &pszMemberList,
+                         "        <No login restrictions specified>\r\n");
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider login restriction settings have been reloaded.\r\n\r\n" \
+                 "     Authentication provider:           %s\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     require-membership-of:\r\n%s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 LSA_SAFE_LOG_STRING(pszMemberList));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             LSASS_EVENT_INFO_REQUIRE_MEMBERSHIP_OF_UPDATED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszMemberList);
+    LsaHashSafeFree(&pAllowedMemberList);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaAdProviderLogEventLogEnableChangeEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider auditing settings have been updated.\r\n\r\n" \
+                 "     Authentication provider:           %s\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     Enable event log:                  %s\r\n",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             gpLsaAdProviderState->config.bEnableEventLog ?
+                 LSASS_EVENT_INFO_AUDITING_CONFIGURATION_ENABLED :
+                 LSASS_EVENT_INFO_AUDITING_CONFIGURATION_DISABLED,
              SERVICE_EVENT_CATEGORY,
              pszDescription,
              NULL);

@@ -50,9 +50,9 @@
 DWORD
 NtlmClientMakeSignature(
     IN PCtxtHandle phContext,
-    IN ULONG fQoP,
+    IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo
     )
 {
     DWORD dwError = 0;
@@ -66,7 +66,7 @@ NtlmClientMakeSignature(
     dwError = NtlmTransactMakeSignature(
         hServer,
         phContext,
-        fQoP,
+        bEncrypt,
         pMessage,
         MessageSeqNo
         );

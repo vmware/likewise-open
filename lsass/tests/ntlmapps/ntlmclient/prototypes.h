@@ -31,7 +31,7 @@ CallServer(
     IN PCHAR pHost,
     IN USHORT usPort,
     IN PCHAR pServiceName,
-    IN OM_uint32 DelegFlag,
+    IN DWORD DelegFlag,
     IN PCHAR pMsg,
     IN PCHAR pSecPkgName,
     IN INT nSignOnly
@@ -48,10 +48,15 @@ DWORD
 ClientEstablishContext(
     IN INT nSocket,
     IN PCHAR pServiceName,
-    IN OM_uint32 DelegFlag,
+    IN DWORD DelegFlag,
     OUT CtxtHandle *pSspiContext,
     IN PCHAR pSecPkgName,
-    OUT OM_uint32 *pRetFlags
+    OUT DWORD *pRetFlags
+    );
+
+DWORD
+FreeContextBuffer(
+    IN PVOID pBuffer
     );
 
 DWORD

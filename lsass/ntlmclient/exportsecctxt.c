@@ -50,7 +50,7 @@
 DWORD
 NtlmClientExportSecurityContext(
     IN PCtxtHandle phContext,
-    IN ULONG fFlags,
+    IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
     )

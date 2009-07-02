@@ -53,21 +53,21 @@ SamrConnect5(
     memset(&handle, 0, sizeof(handle));
     memset(&info, 0, sizeof(info));
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(sysname, cleanup);
-    goto_if_invalid_param_ntstatus(info_in, cleanup);
-    goto_if_invalid_param_ntstatus(level_out, cleanup);
-    goto_if_invalid_param_ntstatus(info_out, cleanup);
-    goto_if_invalid_param_ntstatus(conn_handle, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(sysname);
+    BAIL_ON_INVALID_PTR(info_in);
+    BAIL_ON_INVALID_PTR(level_out);
+    BAIL_ON_INVALID_PTR(info_out);
+    BAIL_ON_INVALID_PTR(conn_handle);
 
     system_name = wc16sdup(sysname);
-    goto_if_no_memory_ntstatus(system_name, error);
+    BAIL_ON_NO_MEMORY(system_name);
 
     system_name_len = wc16slen(system_name) + 1;
 
     DCERPC_CALL(_SamrConnect5(b, system_name_len, system_name, access_mask,
 			      level_in, info_in, &level, &info, &handle));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *level_out   = level;
     *info_out    = info;

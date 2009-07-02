@@ -7,6 +7,7 @@ lib_LTLIBRARIES = liblwbase_nothr.la liblwbase.la libsecdesc.la
 liblwbase_nothr_la_SOURCES = \
 	errno.c \
 	ntstatus.c \
+	rpcstatus.c \
         rtlmemory.c \
         rtlstring.c \
         rtlstring_cstring.c \

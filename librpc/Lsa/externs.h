@@ -38,40 +38,11 @@
 #define _EXTERNS_H_
 
 
-extern void *lsa_ptr_list;
+extern PVOID pLsaMemoryList;
 
-extern pthread_mutex_t g_lsa_data_mutex;
+extern pthread_mutex_t gLsaDataMutex;
 
 extern int bLsaInitialised;
-
-
-#define GLOBAL_DATA_LOCK(locked)                      \
-    do {                                              \
-        int ret = 0;                                  \
-        ret = pthread_mutex_lock(&g_lsa_data_mutex);  \
-        if (ret) {                                    \
-            status = STATUS_UNSUCCESSFUL;		      \
-            goto done;                                \
-                                                      \
-        } else {                                      \
-            locked = 1;                               \
-        }                                             \
-    } while (0);
-
-
-#define GLOBAL_DATA_UNLOCK(locked)                    \
-    do {                                              \
-        int ret = 0;                                  \
-        if (!locked) break;                           \
-        ret = pthread_mutex_unlock(&g_lsa_data_mutex);\
-        if (ret && status == STATUS_SUCCESS) {        \
-            status = STATUS_UNSUCCESSFUL;             \
-                                                      \
-        } else {                                      \
-            locked = 0;                               \
-        }                                             \
-    } while (0);
-
 
 #endif /* _EXTERN_H_ */
 

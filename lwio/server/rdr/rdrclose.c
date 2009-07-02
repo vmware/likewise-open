@@ -108,5 +108,9 @@ cleanup:
 
 error:
 
+    /* We discard any errors on close and proceed to
+       release all local resources */
+    ntStatus = STATUS_SUCCESS;
+
     goto cleanup;
 }

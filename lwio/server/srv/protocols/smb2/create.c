@@ -81,15 +81,20 @@ SrvProcessCreate_SMB_V2(
     PIO_ECP_LIST        pEcpList = NULL;
     BOOLEAN             bRemoveFileFromTree = FALSE;
     PWSTR               pwszFilename = NULL;
+    wchar16_t           wszEmpty[] = {0};
     PIO_ASYNC_CONTROL_BLOCK     pAsyncControlBlock = NULL;
     PSMB2_CREATE_REQUEST_HEADER pCreateRequestHeader = NULL;// Do not free
     UNICODE_STRING              wszFileName = {0}; // Do not free
+    PSRV_CREATE_CONTEXT         pCreateContexts = NULL;
+    ULONG                       ulNumContexts = 0;
     PSMB_PACKET                 pSmbResponse = NULL;
 
     ntStatus = SMB2UnmarshalCreateRequest(
                     pSmbRequest,
                     &pCreateRequestHeader,
-                    &wszFileName);
+                    &wszFileName,
+                    &pCreateContexts,
+                    &ulNumContexts);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvConnection2FindSession(
@@ -104,12 +109,24 @@ SrvProcessCreate_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (!wszFileName.Length)
+    {
+        wszFileName.Buffer = &wszEmpty[0];
+        wszFileName.Length = 0;
+        wszFileName.MaximumLength = sizeof(wszEmpty);
+    }
+
     ntStatus = SrvAllocateMemory(
                     wszFileName.Length + sizeof(wchar16_t),
                     (PVOID*)&pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy((PBYTE)pwszFilename, (PBYTE)wszFileName.Buffer, wszFileName.Length);
+    if (wszFileName.Length)
+    {
+        memcpy((PBYTE)pwszFilename,
+               (PBYTE)wszFileName.Buffer,
+               wszFileName.Length);
+    }
 
     ntStatus = SrvAllocateMemory(
                     sizeof(IO_FILE_NAME),
@@ -183,6 +200,8 @@ SrvProcessCreate_SMB_V2(
 
     bRemoveFileFromTree = TRUE;
 
+    // TODO: Execute create contexts and add results
+
     ntStatus = SrvBuildCreateResponse_SMB_V2(
                     pConnection,
                     pSmbRequest,
@@ -217,6 +236,7 @@ cleanup:
     }
 
     SRV_SAFE_FREE_MEMORY(pwszFilename);
+    SRV_SAFE_FREE_MEMORY(pCreateContexts);
 
     return ntStatus;
 

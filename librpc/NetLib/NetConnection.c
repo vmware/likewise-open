@@ -47,7 +47,7 @@ NetConnListInit(
     if (conn_list) goto cleanup;
 
     status = NetAllocateMemory((void**)&list, sizeof(NetConnList), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     list->conn = NULL;
 
@@ -88,7 +88,7 @@ NetConnListDestroy(
     list = conn_list;
 
     status = NetDisconnectAll();
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     ret = pthread_mutex_destroy(&list->mutex);
     if (ret) {
@@ -122,7 +122,7 @@ NetConnAdd(
     NetConn *last = NULL;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(c, done);
+    BAIL_ON_INVALID_PTR(c);
 
     CONN_LIST_LOCK(conn_list);
 
@@ -160,7 +160,7 @@ NetConnDelete(
     NetConn *prev = NULL;
     int locked = 0;
 
-    goto_if_invalid_param_ntstatus(c, done);
+    BAIL_ON_INVALID_PTR(c);
 
     CONN_LIST_LOCK(conn_list);
 
@@ -202,7 +202,7 @@ FindNetConn(
     int locked = 0;
     NetConn *c = NULL;
 
-    goto_if_invalid_param_ntstatus(name, cleanup);
+    BAIL_ON_INVALID_PTR(name);
 
     CONN_LIST_LOCK(conn_list);
 
@@ -271,10 +271,10 @@ NetConnectSamr(
     unsigned char *sess_key = NULL;
     unsigned16 sess_key_len = 0;
 
-    goto_if_invalid_param_ntstatus(conn, cleanup);
+    BAIL_ON_INVALID_PTR(conn);
 
     status = NetConnListInit();
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     cnlist = conn_list;
 
@@ -302,7 +302,7 @@ NetConnectSamr(
     if (lookup == NULL) {
         /* create a new connection */
         status = NetAllocateMemory((void**)&cn, sizeof(NetConn), cnlist);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
     } else {
         cn = lookup;
@@ -313,15 +313,15 @@ NetConnectSamr(
         conn_access = conn_flags;
 
         host = awc16stombs(hostname);
-        goto_if_no_memory_ntstatus(host, error);
+        BAIL_ON_NO_MEMORY(host);
 
         rpcstatus = InitSamrBindingDefault(&samr_b, host, access_token);
         if (rpcstatus != 0) {
-            goto_if_ntstatus_not_success(STATUS_UNSUCCESSFUL, error);
+            BAIL_ON_NTSTATUS_ERROR(STATUS_UNSUCCESSFUL);
         }
 
         status = SamrConnect2(samr_b, hostname, conn_access, &conn_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn->samr.conn_access = conn_access;
         cn->samr.bind        = samr_b;
@@ -333,7 +333,7 @@ NetConnectSamr(
         rpc_binding_inq_transport_info(samr_b, &trans_info, &rpcstatus);
         if (rpcstatus)
         {
-            goto_if_ntstatus_not_success(STATUS_CONNECTION_INVALID, error);
+            BAIL_ON_NTSTATUS_ERROR(STATUS_CONNECTION_INVALID);
         }
 
         rpc_smb_transport_info_inq_session_key(trans_info, &sess_key,
@@ -357,7 +357,7 @@ NetConnectSamr(
         (cn->samr.btin_dom_access & req_btin_dom_flags) != req_btin_dom_flags) {
 
         status = SamrClose(samr_b, &cn->samr.btin_dom_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         memset(&cn->samr.btin_dom_handle, 0, sizeof(cn->samr.btin_dom_handle));
         cn->samr.btin_dom_access = 0;
@@ -368,11 +368,11 @@ NetConnectSamr(
         conn_handle = cn->samr.conn_handle;
 
         status = RtlAllocateSidFromCString(&btin_dom_sid, SID_BUILTIN_DOMAIN);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = SamrOpenDomain(samr_b, &conn_handle, btin_dom_access,
                                 btin_dom_sid, &btin_dom_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn->samr.btin_dom_handle = btin_dom_handle;
         cn->samr.btin_dom_access = btin_dom_access;
@@ -388,7 +388,7 @@ NetConnectSamr(
         (cn->samr.dom_access & req_dom_flags) != req_dom_flags) {
 
         status = SamrClose(samr_b, &cn->samr.dom_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         memset(&cn->samr.dom_handle, 0, sizeof(cn->samr.dom_handle));
         cn->samr.dom_access = 0;
@@ -417,7 +417,7 @@ NetConnectSamr(
                 /* pick up first domain name that is not a builtin domain */
                 if (strcasecmp(n, builtin)) {
                     dom_name = wc16sdup(dom_names[i]);
-                    goto_if_no_memory_ntstatus(dom_name, error);
+                    BAIL_ON_NO_MEMORY(dom_name);
 
                     SamrFreeMemory((void*)dom_names);
                     dom_names = NULL;
@@ -434,24 +434,24 @@ NetConnectSamr(
         
 domain_name_found:
         status = SamrLookupDomain(samr_b, &conn_handle, dom_name, &dom_sid);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         dom_access = dom_flags | req_dom_flags;
 
         status = SamrOpenDomain(samr_b, &conn_handle, dom_access, dom_sid,
                                 &dom_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn->samr.dom_handle = dom_handle;
         cn->samr.dom_access = dom_access;
         cn->samr.dom_name   = wc16sdup(dom_name);
 
         status = NetAddDepMemory(cn->samr.dom_name, cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         if (dom_sid) {
             MsRpcDuplicateSid(&cn->samr.dom_sid, dom_sid);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
         } else {
             status = STATUS_INVALID_SID;
@@ -462,16 +462,16 @@ domain_name_found:
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        goto_if_no_memory_ntstatus(cn->hostname, error);
+        BAIL_ON_NO_MEMORY(cn->hostname);
 
         status = NetAddDepMemory(cn->hostname, cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* add newly created connection */
     if (cn != lookup) {
         status = NetConnAdd(cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* return initialised connection and status code */
@@ -530,10 +530,10 @@ NetConnectLsa(
     uint32 lsa_access = 0;
     wchar16_t localhost_addr[10] = {0};
 
-    goto_if_invalid_param_ntstatus(conn, cleanup);
+    BAIL_ON_INVALID_PTR(conn);
 
     status = NetConnListInit();
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     cnlist = conn_list;
 
@@ -557,7 +557,7 @@ NetConnectLsa(
     if (lookup == NULL) {
         /* create a new connection */
         status = NetAllocateMemory((void**)&cn, sizeof(NetConn), cnlist);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
     } else {
         cn = lookup;
@@ -566,7 +566,7 @@ NetConnectLsa(
     if (!(cn->lsa.lsa_access & req_lsa_flags) &&
         cn->lsa.bind) {
         status = LsaClose(lsa_b, &cn->lsa.policy_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         memset(&cn->lsa.policy_handle, 0, sizeof(cn->lsa.policy_handle));
         cn->lsa.lsa_access = 0;
@@ -577,7 +577,7 @@ NetConnectLsa(
         lsa_access = lsa_flags | req_lsa_flags;
 
         host = awc16stombs(hostname);
-        goto_if_no_memory_ntstatus(host, error);
+        BAIL_ON_NO_MEMORY(host);
 
         rpcstatus = InitLsaBindingDefault(&lsa_b, host, access_token);
         if (rpcstatus != 0) {
@@ -587,7 +587,7 @@ NetConnectLsa(
 
         status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access,
                                 &policy_handle);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn->lsa.bind          = lsa_b;
         cn->lsa.policy_handle = policy_handle;
@@ -597,16 +597,16 @@ NetConnectLsa(
     /* set the host name if it's completely new connection */
     if (cn->hostname == NULL) {
         cn->hostname = wc16sdup(hostname);
-        goto_if_no_memory_ntstatus(cn->hostname, error);
+        BAIL_ON_NO_MEMORY(cn->hostname);
 
         status = NetAddDepMemory(cn->hostname, cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* add newly created connection (if it is in fact new) */
     if (cn != lookup) {
         status = NetConnAdd(cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* return initialised connection and status code */
@@ -638,12 +638,12 @@ NetDisconnectSamr(
     WINERR err = ERROR_SUCCESS;
     handle_t samr_b = NULL;
 
-    goto_if_invalid_param_ntstatus(cn, cleanup);
+    BAIL_ON_INVALID_PTR(cn);
 
     samr_b = cn->samr.bind;
     
     status = SamrClose(samr_b, &cn->samr.dom_handle);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memset(&cn->samr.dom_handle, 0, sizeof(cn->samr.dom_handle));
     cn->samr.dom_access = 0;
@@ -657,13 +657,13 @@ NetDisconnectSamr(
     }
 
     status = SamrClose(samr_b, &cn->samr.btin_dom_handle);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memset(&cn->samr.btin_dom_handle, 0, sizeof(cn->samr.btin_dom_handle));
     cn->samr.btin_dom_access = 0;
 
     status = SamrClose(samr_b, &cn->samr.conn_handle);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memset(&cn->samr.conn_handle, 0, sizeof(cn->samr.conn_handle));
     cn->samr.conn_access = 0;
@@ -673,10 +673,10 @@ NetDisconnectSamr(
 
     if (cn->lsa.bind == NULL) {
         status = NetConnDelete(cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = NetFreeMemory((void*)cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn = NULL;
     }
@@ -698,12 +698,12 @@ NetDisconnectLsa(
     WINERR err = ERROR_SUCCESS;
     handle_t lsa_b = NULL;
 
-    goto_if_invalid_param_ntstatus(cn, cleanup);
+    BAIL_ON_INVALID_PTR(cn);
 
     lsa_b = cn->lsa.bind;
 
     status = LsaClose(lsa_b, &cn->lsa.policy_handle);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memset(&cn->lsa.policy_handle, 0, sizeof(cn->lsa.policy_handle));
     cn->lsa.lsa_access = 0;
@@ -713,10 +713,10 @@ NetDisconnectLsa(
 
     if (cn->samr.bind == NULL) {
         status = NetConnDelete(cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = NetFreeMemory((void*)cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         cn = NULL;
     }
@@ -742,11 +742,11 @@ NetDisconnectAll(
     cn = conn_list->conn;
     while (cn) {
         status = NetDisconnectSamr(cn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         if (cn) {
             status = NetDisconnectLsa(cn);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
 
         cn = conn_list->conn;

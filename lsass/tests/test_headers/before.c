@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +14,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -25,7 +24,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -33,34 +32,24 @@
  *
  * Module Name:
  *
- *        cache.h
+ *        before.c
  *
  * Abstract:
  *
- *        Likewise Netlogon (LWNET)
- * 
- *        Cache Maintenance
+ *        Header test.
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
+ * Authors: Danilo Almeida (dalmeida@likewise.com)
+ *
  */
-#ifndef __CACHE_H__
-#define __CACHE_H__
 
-DWORD
-LWNetInitCacheReaper(
-    VOID
-    );
+// Include Likewise headers BEFORE conflict header
+#include "test.h"
+#include "conflict.h"
 
-PVOID
-LWNetReapCache(
-    PVOID pData
-    );
-
-DWORD
-LWNetShutdownCacheReaper(
-    VOID
-    );
-
-#endif /* __CACHE_H__ */
+LW_BOOLEAN
+TestBefore(
+    LW_VOID
+    )
+{
+    return LW_TRUE;
+}

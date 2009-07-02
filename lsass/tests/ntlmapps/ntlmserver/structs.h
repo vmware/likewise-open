@@ -20,14 +20,14 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef _SSPI_SERVER_STRUCTS_H_
-#define _SSPI_SERVER_STRUCTS_H_
+#ifndef _NTLM_SERVER_STRUCTS_H_
+#define _NTLM_SERVER_STRUCTS_H_
 
 typedef struct
 {
-   PCHAR     name;
+   PCHAR name;
    DWORD value;
-   PCHAR     realname;
+   PCHAR realname;
 } FLAGMAPPING, *PFLAGMAPPING;
 
-#endif  //_SSPI_SERVER_STRUCTS_H_
+#endif  //_NTLM_SERVER_STRUCTS_H_

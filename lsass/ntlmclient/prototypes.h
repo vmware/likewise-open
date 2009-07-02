@@ -49,62 +49,75 @@
 #define __PROTOTYPES_H__
 
 DWORD
-NtlmClientAcceptSecurityContext(
+NtlmTransactAcceptSecurityContext(
+    IN HANDLE hServer,
     IN PCredHandle phCredential,
     IN OUT PCtxtHandle phContext,
     IN PSecBufferDesc pInput,
-    IN ULONG fContextReq,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD TargetDataRep,
     IN OUT PCtxtHandle phNewContext,
     IN OUT PSecBufferDesc pOutput,
-    OUT PULONG  pfContextAttr,
+    OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     );
 
 DWORD
-NtlmClientAcquireCredentialsHandle(
+NtlmTransactAcquireCredentialsHandle(
+    IN HANDLE hServer,
     IN SEC_CHAR *pszPrincipal,
     IN SEC_CHAR *pszPackage,
-    IN ULONG fCredentialUse,
+    IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    // NOT USED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
-    // NOT USED BY NTLM - IN PVOID pvGetKeyArgument,
+    // NOT NEEDED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
+    // NOT NEEDED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     );
 
 DWORD
-NtlmClientDecryptMessage(
+NtlmTransactDecryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo,
-    OUT PULONG pfQoP
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypt
     );
 
 DWORD
-NtlmClientEncryptMessage(
-    IN PCtxtHandle phContext,
-    IN ULONG fQoP,
-    IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+NtlmTransactDeleteSecurityContext(
+    IN HANDLE hServer,
+    IN OUT PCtxtHandle phContext
     );
 
 DWORD
-NtlmClientExportSecurityContext(
+NtlmTransactEncryptMessage(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG fFlags,
+    IN BOOL bEncrypt,
+    IN OUT PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo
+    );
+
+DWORD
+NtlmTransactExportSecurityContext(
+    IN HANDLE hServer,
+    IN PCtxtHandle phContext,
+    IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
     );
 
 DWORD
-NtlmClientFreeCredentialsHandle(
+NtlmTransactFreeCredentialsHandle(
+    IN HANDLE hServer,
     IN PCredHandle phCredential
     );
 
 DWORD
-NtlmClientImportSecurityContext(
+NtlmTransactImportSecurityContext(
+    IN HANDLE hServer,
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
@@ -112,48 +125,54 @@ NtlmClientImportSecurityContext(
     );
 
 DWORD
-NtlmClientInitializeSecurityContext(
+NtlmTransactInitializeSecurityContext(
+    IN HANDLE hServer,
     IN OPTIONAL PCredHandle phCredential,
     IN OPTIONAL PCtxtHandle phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
-    IN ULONG fContextReq,
-    IN ULONG Reserved1,
-    IN ULONG TargetDataRep,
+    IN DWORD fContextReq,
+    IN DWORD Reserverd1,
+    IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
-    IN ULONG Reserved2,
+    IN DWORD Reserved2,
     IN OUT OPTIONAL PCtxtHandle phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
-    OUT PULONG pfContextAttr,
+    OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     );
 
 DWORD
-NtlmClientMakeSignature(
+NtlmTransactMakeSignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG fQoP,
+    IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo
     );
 
 DWORD
-NtlmClientQueryCredentialsAttributes(
+NtlmTransactQueryCredentialsAttributes(
+    IN HANDLE hServer,
     IN PCredHandle phCredential,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmClientQueryContextAttributes(
+NtlmTransactQueryContextAttributes(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
-    IN ULONG ulAttribute,
+    IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
-NtlmClientVerifySignature(
+NtlmTransactVerifySignature(
+    IN HANDLE hServer,
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
-    IN ULONG MessageSeqNo
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
     );
 
 #endif // __PROTOTYPES_H__

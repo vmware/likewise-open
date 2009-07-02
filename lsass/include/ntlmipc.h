@@ -50,9 +50,6 @@
 
 #include <lwmsg/lwmsg.h>
 
-#define NTLM_ERROR_SUCCESS                                   0x0000
-#define NTLM_ERROR_INTERNAL                                  0x8000 // 32768
-
 #define NTLM_CLIENT_PATH_FORMAT "/var/tmp/.ntlmclient_%05ld"
 #define NTLM_SERVER_FILENAME    ".ntlmsd"
 
@@ -67,6 +64,9 @@ typedef enum __NTLM_IPC_TAG
     NTLM_Q_DECRYPT_MSG,
     NTLM_R_DECRYPT_MSG_SUCCESS,
     NTLM_R_DECRYPT_MSG_FAILURE,
+    NTLM_Q_DELETE_SEC_CTXT,
+    NTLM_R_DELETE_SEC_CTXT_SUCCESS,
+    NTLM_R_DELETE_SEC_CTXT_FAILURE,
     NTLM_Q_ENCRYPT_MSG,
     NTLM_R_ENCRYPT_MSG_SUCCESS,
     NTLM_R_ENCRYPT_MSG_FAILURE,
@@ -110,8 +110,8 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
     PCredHandle phCredential;
     PCtxtHandle phContext;
     PSecBufferDesc pInput;
-    ULONG fContextReq;
-    ULONG TargetDataRep;
+    DWORD fContextReq;
+    DWORD TargetDataRep;
     PCtxtHandle phNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_ACCEPT_SEC_CTXT_REQ, *PNTLM_IPC_ACCEPT_SEC_CTXT_REQ;
@@ -127,7 +127,7 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_REQ
 {
     SEC_CHAR *pszPrincipal;
     SEC_CHAR *pszPackage;
-    ULONG fCredentialUse;
+    DWORD fCredentialUse;
     PLUID pvLogonID;
     PVOID pAuthData;
     // NOT USED BY NTLM - SEC_GET_KEY_FN pGetKeyFn;
@@ -145,7 +145,7 @@ typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 {
     PCtxtHandle phContext;
     PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
+    DWORD MessageSeqNo;
 } NTLM_IPC_DECRYPT_MSG_REQ, *PNTLM_IPC_DECRYPT_MSG_REQ;
 
 typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
@@ -155,12 +155,24 @@ typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
 
 /******************************************************************************/
 
+typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
+{
+    PCtxtHandle phContext;
+} NTLM_IPC_DELETE_SEC_CTXT_REQ, *PNTLM_IPC_DELETE_SEC_CTXT_REQ;
+
+typedef struct __NTLM_IPC_DELETE_SEC_CTXT_RESPONSE
+{
+    DWORD dwError;
+} NTLM_IPC_DELETE_SEC_CTXT_RESPONSE, *PNTLM_IPC_DELETE_SEC_CTXT_RESPONSE;
+
+/******************************************************************************/
+
 typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
 {
     PCtxtHandle phContext;
-    ULONG fQoP;
+    BOOL bEncrypt;
     PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
+    DWORD MessageSeqNo;
 } NTLM_IPC_ENCRYPT_MSG_REQ, *PNTLM_IPC_ENCRYPT_MSG_REQ;
 
 typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
@@ -173,7 +185,7 @@ typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
 typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_REQ
 {
     PCtxtHandle phContext;
-    ULONG fFlags;
+    DWORD fFlags;
     PSecBuffer pPackedContext;
     HANDLE *pToken;
 } NTLM_IPC_EXPORT_SEC_CTXT_REQ, *PNTLM_IPC_EXPORT_SEC_CTXT_REQ;
@@ -217,11 +229,11 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
     PCredHandle phCredential;
     PCtxtHandle phContext;
     SEC_CHAR * pszTargetName;
-    ULONG fContextReq;
-    ULONG Reserved1;
-    ULONG TargetDataRep;
+    DWORD fContextReq;
+    DWORD Reserved1;
+    DWORD TargetDataRep;
     PSecBufferDesc pInput;
-    ULONG Reserved2;
+    DWORD Reserved2;
     PCtxtHandle phNewContext;
     PSecBufferDesc pOutput;
 } NTLM_IPC_INIT_SEC_CTXT_REQ, *PNTLM_IPC_INIT_SEC_CTXT_REQ;
@@ -236,9 +248,9 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 {
     PCtxtHandle phContext;
-    ULONG fQoP;
+    BOOL bEncrypt;
     PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
+    DWORD MessageSeqNo;
 } NTLM_IPC_MAKE_SIGN_REQ, *PNTLM_IPC_MAKE_SIGN_REQ;
 
 typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
@@ -251,7 +263,7 @@ typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
 typedef struct __NTLM_IPC_QUERY_CREDS_REQ
 {
     PCredHandle phCredential;
-    ULONG ulAttribute;
+    DWORD ulAttribute;
 } NTLM_IPC_QUERY_CREDS_REQ, *PNTLM_IPC_QUERY_CREDS_REQ;
 
 typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
@@ -264,7 +276,7 @@ typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
 typedef struct __NTLM_IPC_QUERY_CTXT_REQ
 {
     PCtxtHandle phContext;
-    ULONG ulAttribute;
+    DWORD ulAttribute;
 } NTLM_IPC_QUERY_CTXT_REQ, *PNTLM_IPC_QUERY_CTXT_REQ;
 
 typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
@@ -278,7 +290,7 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 {
     PCtxtHandle phContext;
     PSecBufferDesc pMessage;
-    ULONG MessageSeqNo;
+    DWORD MessageSeqNo;
 } NTLM_IPC_VERIFY_SIGN_REQ, *PNTLM_IPC_VERIFY_SIGN_REQ;
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
@@ -288,7 +300,7 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 
 /******************************************************************************/
 
-#define MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
+#define NTLM_MAP_LWMSG_ERROR(_e_) (NtlmMapLwmsgStatus(_e_))
 #define MAP_NTLM_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 LWMsgProtocolSpec*
@@ -322,6 +334,116 @@ NtlmReadData(
 DWORD
 NtlmMapLwmsgStatus(
     LWMsgStatus status
+    );
+
+DWORD
+NtlmSrvIpcCreateError(
+    DWORD dwErrorCode,
+    PNTLM_IPC_ERROR* ppError
+    );
+
+LWMsgStatus
+NtlmSrvIpcAcceptSecurityContext(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcAcquireCredentialsHandle(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcDecryptMessage(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcDeleteSecurityContext(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcEncryptMessage(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcExportSecurityContext(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcFreeCredentialsHandle(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcImportSecurityContext(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcInitializeSecurityContext(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcMakeSignature(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcQueryCredentialsAttributes(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcQueryContextAttributes(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    );
+
+LWMsgStatus
+NtlmSrvIpcVerifySignature(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
     );
 
 #endif /*__NTLMIPC_H__*/

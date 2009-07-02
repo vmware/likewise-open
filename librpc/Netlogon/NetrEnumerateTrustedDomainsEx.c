@@ -44,21 +44,21 @@ NetrEnumerateTrustedDomainsEx(
     NetrDomainTrustList tlist = {0};
     NetrDomainTrust *t = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(server_name, cleanup);
-    goto_if_invalid_param_ntstatus(trusts, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(server_name);
+    BAIL_ON_INVALID_PTR(trusts);
+    BAIL_ON_INVALID_PTR(count);
 
     name = wc16sdup(server_name);
-    goto_if_no_memory_ntstatus(name, cleanup);
+    BAIL_ON_NO_MEMORY(name);
 
     DCERPC_CALL(status, _NetrEnumerateTrustedDomainsEx(b, name, &tlist));
-    goto_if_ntstatus_not_success(status, cleanup);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *count  = tlist.count;
 
     status = NetrAllocateDomainTrusts(&t, &tlist);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *trusts = t;
 

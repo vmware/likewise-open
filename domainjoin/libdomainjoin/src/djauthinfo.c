@@ -105,10 +105,12 @@ LWRaiseLsassError(
         }
 
         LWRaiseEx(dest, err, file, line, "Lsass Error", buffer);
+        (*dest)->subcode = code;
         goto cleanup;
     }
 
     LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code %X has occurred, but an error string cannot be retrieved", code);
+    (*dest)->subcode = code;
 
 cleanup:
     CT_SAFE_FREE_STRING(buffer);
@@ -900,6 +902,7 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
     BOOLEAN systemDcedExists = FALSE;
     LWException *innerExc = NULL;
 
+#ifndef MINIMAL_JOIN
     if (geteuid() == 0)
     {
         LW_TRY(exc, DJManageDaemon("netlogond", TRUE,
@@ -936,6 +939,7 @@ void DJNetInitialize(BOOLEAN bEnableDcerpcd, LWException **exc)
 #if 0
         LW_TRY(exc, DJManageDaemon("srvsvcd", TRUE,
                     92, 12, &LW_EXC));
+#endif
 #endif
 
         LW_CLEANUP_LSERR(exc, LsaNetJoinInitialize());

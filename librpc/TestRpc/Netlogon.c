@@ -130,7 +130,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
 
     status = NetrOpenSchannel(netr_b, machine_acct, hostname, server, domain,
                               computer, machpass, creds, &schn_b);
-    goto_if_ntstatus_not_success(status, done);
+    goto_if_ntstatus_not_success(status, error);
 
     if (!NetrCredentialsCorrect(creds, srv_cred)) {
         status = STATUS_ACCESS_DENIED;

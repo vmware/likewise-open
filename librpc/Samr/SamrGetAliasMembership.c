@@ -47,17 +47,17 @@ SamrGetAliasMembership(
     Ids r = {0};
     uint32 *out_rids = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(sids, cleanup);
-    goto_if_invalid_param_ntstatus(rids, cleanup);
-    goto_if_invalid_param_ntstatus(count, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(sids);
+    BAIL_ON_INVALID_PTR(rids);
+    BAIL_ON_INVALID_PTR(count);
 
     s.num_sids = num_sids;
     status = SamrAllocateMemory((void**)&s.sids,
                                 sizeof(SidPtr) * num_sids,
                                 NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num_sids; i++) {
         s.sids[i].sid = &(sids[i]);
@@ -66,10 +66,10 @@ SamrGetAliasMembership(
 
     DCERPC_CALL(_SamrGetAliasMembership(b, domain_h, &s, &r));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrAllocateIds(&out_rids, &r);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *rids  = out_rids;
     *count = r.count;

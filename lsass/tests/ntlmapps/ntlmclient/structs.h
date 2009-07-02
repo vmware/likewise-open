@@ -25,9 +25,9 @@
 
 typedef struct _FLAGMAPPING
 {
-    PCHAR     name;
-    OM_uint32 value;
-    PCHAR     realname;
+    PCHAR name;
+    DWORD value;
+    PCHAR realname;
 } FLAGMAPPING, *PFLAGMAPPING;
 
 #endif  //_NTLM_CLIENT_STRUCTS_H_

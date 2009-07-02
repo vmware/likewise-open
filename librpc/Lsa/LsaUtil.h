@@ -42,70 +42,113 @@
 #include <compat/rpcstatus.h>
 
 
-#define goto_if_ntstatus_not_success(s, lbl) \
-    if ((s) != STATUS_SUCCESS) {             \
-        status = (s);                        \
-        goto lbl;                            \
-    }
-
-#define goto_if_err_not_success(e, lbl)      \
-    if ((e) != ERROR_SUCCESS) {              \
-        err = (e);                           \
-        goto lbl;                            \
-    }
-
-#define goto_if_rpcstatus_not_success(s, lbl) \
-    if ((s) != RPC_S_OK) {                    \
-        rpcstatus = (s);                      \
-        goto lbl;                             \
-    }
-
-#define goto_if_no_memory_ntstatus(p, lbl)   \
-    if ((p) == NULL) {                       \
-        status = STATUS_NO_MEMORY;           \
-        goto lbl;                            \
-    }
-
-#define goto_if_invalid_param_ntstatus(p, lbl) \
-    if ((p) == NULL) {                         \
-        status = STATUS_INVALID_PARAMETER;     \
-        goto lbl;                              \
-    }
-
-#define goto_if_no_memory_rpcstatus(p, lbl)  \
-    if ((p) == NULL) {                       \
-        rpcstatus = RPC_S_OUT_OF_MEMORY;     \
-        goto lbl;                            \
-    }
-#define goto_if_invalid_param_rpcstatus(p, lbl) \
+#define BAIL_ON_NO_MEMORY_RPCSTATUS(p, status)  \
     if ((p) == NULL) {                          \
-        rpcstatus = RPC_S_INVALID_ARG;          \
-        goto lbl;                               \
+        status = RPC_S_OUT_OF_MEMORY;           \
+        goto error;                             \
     }
 
+#define BAIL_ON_INVALID_PTR_RPCSTATUS(p, status)    \
+    if ((p) == NULL) {                              \
+        status = RPC_S_INVALID_ARG;                 \
+        goto error;                                 \
+    }
 
-#define DCERPC_CALL(fn_call)                     \
-    do {                                         \
-        dcethread_exc *dceexc;                   \
-                                                 \
-        DCETHREAD_TRY                            \
-        {                                        \
-            dceexc = NULL;                       \
-            status = fn_call;                    \
-        }                                        \
-        DCETHREAD_CATCH_ALL(dceexc)              \
-        {                                        \
-            /* TODO:                             \
-               Implement DCE/RPC exc -> NTSTATUS \
-               mapping logic as soon as we have  \
-               more information about it */      \
-            status = dceexc->match.value;        \
-        }                                        \
-        DCETHREAD_ENDTRY;                        \
+#define BAIL_ON_RPCSTATUS_ERROR(s)               \
+    if ((s) != RPC_S_OK) {                       \
+        goto error;                              \
+    }
+
+#define BAIL_ON_NULL_PTR(p, status)              \
+    if ((p) == NULL) {                           \
+        status = STATUS_INSUFFICIENT_RESOURCES;  \
+        goto error;                              \
+    }
+
+#define BAIL_ON_INVALID_PTR(p, status)           \
+    if ((p) == NULL) {                           \
+        status = STATUS_INVALID_PARAMETER;       \
+        goto error;                              \
+    }
+
+#define BAIL_ON_NT_STATUS(err)     \
+    if ((err) != STATUS_SUCCESS) { \
+        goto error;                \
+    }
+
+#define DCERPC_CALL(status, fn_call)                             \
+    do {                                                         \
+        dcethread_exc *dceexc;                                   \
+                                                                 \
+        DCETHREAD_TRY                                            \
+        {                                                        \
+            dceexc = NULL;                                       \
+            status = fn_call;                                    \
+        }                                                        \
+        DCETHREAD_CATCH_ALL(dceexc)                              \
+        {                                                        \
+            status = LwRpcStatusToNtStatus(dceexc->match.value); \
+        }                                                        \
+        DCETHREAD_ENDTRY;                                        \
     } while (0);
+
+#ifndef IN
+#define IN
+#endif
+
+#ifndef OUT
+#define OUT
+#endif
+
+#define LIBRPC_LOCK_MUTEX(bInLock, pMutex)           \
+    if (!bInLock) {                                  \
+        int thr_err = pthread_mutex_lock(pMutex);    \
+        if (thr_err) {                               \
+            abort();                                 \
+        }                                            \
+        bInLock = TRUE;                              \
+    }
+
+#define LIBRPC_UNLOCK_MUTEX(bInLock, pMutex)        \
+    if (bInLock) {                                   \
+        int thr_err = pthread_mutex_unlock(pMutex);  \
+        if (thr_err) {                               \
+            abort();                                 \
+        }                                            \
+        bInLock = FALSE;                             \
+    }
+
+#define LIBRPC_LOCK_RWMUTEX_SHARED(bInLock, pMutex) \
+    if (!bInLock) {                                 \
+        int thr_err = pthread_rwlock_rdlock(mutex); \
+        if (thr_err) {                              \
+            abort();                                \
+        }                                           \
+        bInLock = TRUE;                             \
+    }
+
+#define LIBRPC_LOCK_RWMUTEX_EXCLUSIVE(bInLock, pMutex)  \
+    if (!bInLock) {                                     \
+        int thr_err = pthread_rwlock_wrlock(pMutex);    \
+        if (thr_err) {                                  \
+            abort();                                    \
+        }                                               \
+        bInLock = TRUE;                                 \
+    }
+
+#define LIBRPC_UNLOCK_RWMUTEX(bInLock, pMutex)       \
+    if (bInLock) {                                   \
+        int thr_err = pthread_rwlock_unlock(pMutex); \
+        if (thr_err) {                               \
+            abort();                                 \
+        }                                            \
+        bInLock = FALSE;                             \
+    }
+
 
 
 #endif /* _LSA_UTIL_H_ */
+
 
 /*
 local variables:

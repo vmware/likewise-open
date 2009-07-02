@@ -38,11 +38,11 @@
 
 /* This is a pointer to list of allocated pointers.
    The list enables freeing a pointer and dependant pointers */
-void *lsa_ptr_list = NULL;
+PVOID pLsaMemoryList = NULL;
 
 
 /* Library initialisation guard */
-pthread_mutex_t g_lsa_data_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int bLsaInitialised = 0;
 

@@ -39,12 +39,12 @@ SamrDeleteUser(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(user_h, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(user_h);
 
     DCERPC_CALL(_SamrDeleteUser(b, user_h));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     return status;

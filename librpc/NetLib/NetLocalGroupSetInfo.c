@@ -52,21 +52,21 @@ NetLocalGroupSetInfo(
     uint32 slevel = 0;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(aliasname, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(aliasname);
+    BAIL_ON_INVALID_PTR(buffer);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
     status = NetOpenAlias(conn, aliasname, alias_access, &alias_h,
                           &alias_rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
     case 0:
@@ -85,13 +85,13 @@ NetLocalGroupSetInfo(
         err = ERROR_INVALID_LEVEL;
         goto error;
     }
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSetAliasInfo(samr_b, &alias_h, slevel, info);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrClose(samr_b, &alias_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (info) {

@@ -280,8 +280,8 @@ typedef struct user_info26 {
 
 
 typedef struct samr_pw_info {
-  uint16 min_password_length;
-  uint32 password_properties;
+    uint16 min_password_length;
+    uint32 password_properties;
 } PwInfo;
 
 

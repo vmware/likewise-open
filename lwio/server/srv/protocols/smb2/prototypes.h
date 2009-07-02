@@ -251,7 +251,9 @@ NTSTATUS
 SMB2UnmarshalCreateRequest(
     PSMB_PACKET                  pPacket,
     PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
-    PUNICODE_STRING              pwszFileName
+    PUNICODE_STRING              pwszFileName,
+    PSRV_CREATE_CONTEXT*         ppCreateContexts,
+    PULONG                       pulNumContexts
     );
 
 NTSTATUS

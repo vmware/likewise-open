@@ -907,6 +907,7 @@ AC_CONFIG_FILES([Makefile
                  etc/lsassd.conf
                  include/Makefile
                  tests/Makefile
+                 tests/test_headers/Makefile
                  tests/lsaclient/Makefile
                  tests/test_getgrgid/Makefile
                  tests/test_getpwuid/Makefile
@@ -929,6 +930,9 @@ AC_CONFIG_FILES([Makefile
                  tests/test_session/Makefile
                  tests/test_checkuserinlist/Makefile
                  tests/test_openldap/Makefile
+                 tests/ntlmapps/Makefile
+                 tests/ntlmapps/ntlmclient/Makefile
+                 tests/ntlmapps/ntlmserver/Makefile
                  scripts/Makefile
                  docs/Makefile
                  docs/Doxyfile])

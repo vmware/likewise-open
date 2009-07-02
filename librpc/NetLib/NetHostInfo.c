@@ -48,7 +48,7 @@ NetGetHostInfo(
     if (gethostname(szBuffer, sizeof(szBuffer)) != 0)
     {
         err = ErrnoToWin32Error(errno);
-        goto_if_winerr_not_success(err, done);
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     len = strlen(szBuffer);
@@ -71,7 +71,7 @@ NetGetHostInfo(
 
     len = strlen(szBuffer) + 1;
     status = NetAllocateMemory((void**)&pszHostname, len, NULL);
-    goto_if_ntstatus_not_success(status, done);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     memcpy((void *)pszHostname, szBuffer, len);
 
@@ -81,7 +81,7 @@ NetGetHostInfo(
         pszHostname = NULL;
     }
 
-done:
+cleanup:
 
     if (pszHostname)
     {
@@ -94,6 +94,9 @@ done:
     }
 
     return status;
+
+error:
+    goto cleanup;
 }
 
 /*

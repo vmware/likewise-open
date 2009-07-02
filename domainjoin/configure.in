@@ -260,6 +260,15 @@ AC_ARG_WITH([lsass-libs],
 AC_SUBST(LSASS_INCLUDES)
 AC_SUBST(LSASS_LDFLAGS)
 
+# minimal
+
+AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal domain join])])
+AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
+if test x"$enable_MINIMAL" = x"yes"
+then
+        AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal domain join])
+fi
+
 
 AC_CHECK_LIB(iconv, iconv)
 

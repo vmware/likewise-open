@@ -54,23 +54,23 @@ NetrSamLogoff(
     NetrAuth *ret_auth = NULL;
     NetrLogonInfo *logon_info = NULL;
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(creds, cleanup);
-    goto_if_invalid_param_ntstatus(server, cleanup);
-    goto_if_invalid_param_ntstatus(domain, cleanup);
-    goto_if_invalid_param_ntstatus(computer, cleanup);
-    goto_if_invalid_param_ntstatus(username, cleanup);
-    goto_if_invalid_param_ntstatus(password, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(creds);
+    BAIL_ON_INVALID_PTR(server);
+    BAIL_ON_INVALID_PTR(domain);
+    BAIL_ON_INVALID_PTR(computer);
+    BAIL_ON_INVALID_PTR(username);
+    BAIL_ON_INVALID_PTR(password);
 
     status = NetrAllocateUniString(&srv, server, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateUniString(&comp, computer, NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* Create authenticator info with credentials chain */
     status = NetrAllocateMemory((void**)&auth, sizeof(NetrAuth), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     creds->sequence += 2;
     NetrCredentialsCliStep(creds);
@@ -80,15 +80,15 @@ NetrSamLogoff(
 
     /* Allocate returned authenticator */
     status = NetrAllocateMemory((void**)&ret_auth, sizeof(NetrAuth), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetrAllocateLogonInfo(&logon_info, logon_level, domain, computer,
                                    username, password);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(status, _NetrLogonSamLogoff(b, srv, comp, auth, ret_auth,
                                             logon_level, logon_info));
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     if (srv) {

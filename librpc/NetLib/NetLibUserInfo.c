@@ -40,19 +40,24 @@
 /* not covered UF flags: UF_SCRIPT, UF_LOCKOUT, UF_PASSWD_CANT_CHANGE,
    UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION */
 
-NTSTATUS PullUserInfo0(void **buffer, wchar16_t **names, uint32 num)
+NTSTATUS
+PullUserInfo0(
+    void **buffer,
+    wchar16_t **names,
+    uint32 num
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     USER_INFO_0 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(names, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(names);
 
     status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_1) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         if (names[i]) {
@@ -61,16 +66,21 @@ NTSTATUS PullUserInfo0(void **buffer, wchar16_t **names, uint32 num)
         } else {
             info[i].usri0_name = wc16sdup(null_string);
         }
-        goto_if_no_memory_ntstatus(info[i].usri0_name, error);
+        BAIL_ON_NO_MEMORY(info[i].usri0_name);
 
         status = NetAddDepMemory(info[i].usri0_name,
                                  info);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     *buffer = info;
 
 cleanup:
+    if (status == STATUS_SUCCESS &&
+        err != ERROR_SUCCESS) {
+        status = Win32ErrorToNtStatus(err);
+    }
+
     return status;
 
 error:
@@ -82,19 +92,24 @@ error:
 }
 
 
-NTSTATUS PullUserInfo1(void **buffer, UserInfo21 *ui, uint32 num)
+NTSTATUS
+PullUserInfo1(
+    void **buffer,
+    UserInfo21 *ui,
+    uint32 num
+    )
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     USER_INFO_1 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(ui, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(ui);
 
     status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_1) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         PULL_UNICODE_STRING(info[i].usri1_name, ui[i].account_name, info);
@@ -110,6 +125,11 @@ NTSTATUS PullUserInfo1(void **buffer, UserInfo21 *ui, uint32 num)
     *buffer = info;
 
 cleanup:
+    if (status == STATUS_SUCCESS &&
+        err != ERROR_SUCCESS) {
+        status = Win32ErrorToNtStatus(err);
+    }
+
     return status;
 
 error:
@@ -128,12 +148,12 @@ NTSTATUS PullUserInfo2(void **buffer, UserInfo21 *ui, uint32 num)
     USER_INFO_2 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(ui, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(ui);
 
     status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_2) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         PULL_UNICODE_STRING(info[i].usri2_name, ui[i].account_name, info);
@@ -184,12 +204,12 @@ NTSTATUS PullUserInfo20(void **buffer, UserInfo21 *ui, uint32 num)
     USER_INFO_20 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(ui, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(ui);
 
     status = NetAllocateMemory((void**)&info, sizeof(USER_INFO_20) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         PULL_UNICODE_STRING(info[i].usri20_name, ui[i].account_name, info);
@@ -218,12 +238,13 @@ NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
 {
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    struct md5context ctx;
+    MD5_CTX ctx;
+    RC4_KEY rc4_key;
     uint8 initval[16], digested_sess_key[16];
 
-    goto_if_invalid_param_ntstatus(pwbuf, cleanup);
-    goto_if_invalid_param_ntstatus(password, cleanup);
-    goto_if_invalid_param_ntstatus(conn, cleanup);
+    BAIL_ON_INVALID_PTR(pwbuf);
+    BAIL_ON_INVALID_PTR(password);
+    BAIL_ON_INVALID_PTR(conn);
 
     memset(&ctx, 0, sizeof(ctx));
     memset(initval, 0, sizeof(initval));
@@ -233,16 +254,20 @@ NTSTATUS EncPasswordEx(uint8 pwbuf[532], wchar16_t *password,
 
     get_random_buffer((unsigned char*)initval, sizeof(initval));
 
-    md5init(&ctx);
-    md5update(&ctx, initval, 16);
-    md5update(&ctx, conn->sess_key, conn->sess_key_len);
-    md5final(&ctx, digested_sess_key);
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, initval, 16);
+    MD5_Update(&ctx, conn->sess_key, conn->sess_key_len);
+    MD5_Final(digested_sess_key, &ctx);
 
-    rc4(pwbuf, 532, digested_sess_key, 16);
+    RC4_set_key(&rc4_key, 16, (unsigned char*)digested_sess_key);
+    RC4(&rc4_key, 516, (unsigned char*)pwbuf, (unsigned char*)pwbuf);
     memcpy((void*)&pwbuf[516], initval, 16);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 
@@ -255,9 +280,9 @@ NTSTATUS PushUserInfoAdd(UserInfo **sinfo, uint32 *slevel, void *ptr,
     UserInfo21 *info21 = NULL;
     USER_INFO_X *ninfo = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ptr, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ptr);
     /* parm_err is optional and can be NULL */
 
     if (nlevel < 1 || nlevel > 4) {
@@ -273,7 +298,7 @@ NTSTATUS PushUserInfoAdd(UserInfo **sinfo, uint32 *slevel, void *ptr,
 
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21  = &info->info21;
@@ -326,12 +351,12 @@ NTSTATUS PushUserInfo0(UserInfo **sinfo, uint32 *slevel, USER_INFO_0 *ninfo)
     UserInfo *info = NULL;
     UserInfo21 *info21 = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21 = &info->info21;
@@ -364,12 +389,12 @@ NTSTATUS PushUserInfo1(UserInfo **sinfo, uint32 *slevel, USER_INFO_1 *ninfo)
     UserInfo *info = NULL;
     UserInfo21 *info21 = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21 = &info->info21;
@@ -414,23 +439,23 @@ NTSTATUS PushUserInfo1003(UserInfo **sinfo, uint32 *slevel, USER_INFO_1003 *ninf
     wchar16_t *password = NULL;
     size_t password_len = 0;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
-    goto_if_invalid_param_ntstatus(conn, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
+    BAIL_ON_INVALID_PTR(conn);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 25;
     info25 = &info->info25;
 
     password = wc16sdup(ninfo->usri1003_password);
-    goto_if_no_memory_ntstatus(password, error);
+    BAIL_ON_NO_MEMORY(password);
 
     password_len = wc16slen(password);
     status = EncPasswordEx(info25->password.data, password, password_len, conn);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     info25->info.fields_present = SAMR_FIELD_PASSWORD;
 
@@ -458,12 +483,12 @@ NTSTATUS PushUserInfo1007(UserInfo **sinfo, uint32 *slevel, USER_INFO_1007 *ninf
     UserInfo *info = NULL;
     UserInfo21 *info21 = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21 = &info->info21;
@@ -496,12 +521,12 @@ NTSTATUS PushUserInfo1008(UserInfo **sinfo, uint32 *slevel, USER_INFO_1008 *ninf
     UserInfo *info = NULL;
     UserInfo21 *info21 = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21 = &info->info21;
@@ -534,12 +559,12 @@ NTSTATUS PushUserInfo1011(UserInfo **sinfo, uint32 *slevel, USER_INFO_1011 *ninf
     UserInfo *info = NULL;
     UserInfo21 *info21 = NULL;
 
-    goto_if_invalid_param_ntstatus(sinfo, cleanup);
-    goto_if_invalid_param_ntstatus(slevel, cleanup);
-    goto_if_invalid_param_ntstatus(ninfo, cleanup);
+    BAIL_ON_INVALID_PTR(sinfo);
+    BAIL_ON_INVALID_PTR(slevel);
+    BAIL_ON_INVALID_PTR(ninfo);
 
     status = NetAllocateMemory((void**)&info, sizeof(UserInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     *slevel = 21;
     info21 = &info->info21;

@@ -44,19 +44,19 @@ SamrCreateUser(
     NTSTATUS status = STATUS_SUCCESS;
     UnicodeString acct_name = {0};
 
-    goto_if_invalid_param_ntstatus(b, cleanup);
-    goto_if_invalid_param_ntstatus(domain_h, cleanup);
-    goto_if_invalid_param_ntstatus(account_name, cleanup);
-    goto_if_invalid_param_ntstatus(user_h, cleanup);
-    goto_if_invalid_param_ntstatus(rid, cleanup);
+    BAIL_ON_INVALID_PTR(b);
+    BAIL_ON_INVALID_PTR(domain_h);
+    BAIL_ON_INVALID_PTR(account_name);
+    BAIL_ON_INVALID_PTR(user_h);
+    BAIL_ON_INVALID_PTR(rid);
 
     status = InitUnicodeString(&acct_name, account_name);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     DCERPC_CALL(_SamrCreateUser(b, domain_h, &acct_name,
                                 access_mask, user_h, rid));
 
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
     FreeUnicodeString(&acct_name);
