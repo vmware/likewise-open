@@ -33,19 +33,21 @@
 
 NTSTATUS
 LsaClose(
-    handle_t b,
-    PolicyHandle *handle
+    handle_t hBinding,
+    PolicyHandle *phPolicy
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(handle);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
 
-    DCERPC_CALL(_LsaClose(b, handle));
+    DCERPC_CALL(ntStatus, _LsaClose(
+                              hBinding,
+                              phPolicy));
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

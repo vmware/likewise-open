@@ -37,84 +37,95 @@
 
 NTSTATUS
 LsaLookupNames3(
-    handle_t b,
-    PolicyHandle *handle,
-    uint32 num_names,
-    wchar16_t *names[],
-    RefDomainList **domains,
-    TranslatedSid3** sids,
-    uint16 level,
-    uint32 *count
+    IN  handle_t hBinding,
+    IN  PolicyHandle *hPolicy,
+    IN  UINT32 NumNames,
+    IN  PWSTR *ppNames,
+    OUT RefDomainList **ppDomList,
+    OUT TranslatedSid3** ppSids,
+    IN  uint16 Level,
+    IN OUT UINT32 *Count
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS ret_status = STATUS_SUCCESS;
-    uint32 unknown1 = 0;
-    uint32 unknown2 = 0;
-    UnicodeStringEx *lsa_names = NULL;
-    RefDomainList *ref_domains = NULL;
-    RefDomainList *out_domains = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntRetStatus = STATUS_SUCCESS;
+    UINT32 unknown1 = 0;
+    UINT32 unknown2 = 0;
+    UnicodeStringEx *pLsaNames = NULL;
+    RefDomainList *pRefDomains = NULL;
+    RefDomainList *pOutDomains = NULL;
     TranslatedSidArray3 sid_array = {0};
-    TranslatedSid3* out_sids = NULL;
+    TranslatedSid3* pOutSids = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(handle);
-    BAIL_ON_INVALID_PTR(names);
-    BAIL_ON_INVALID_PTR(domains);
-    BAIL_ON_INVALID_PTR(sids);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(ppNames, ntStatus);
+    BAIL_ON_INVALID_PTR(ppDomList, ntStatus);
+    BAIL_ON_INVALID_PTR(ppSids, ntStatus);
+    BAIL_ON_INVALID_PTR(Count, ntStatus);
 
-    lsa_names = InitUnicodeStringExArray(names, num_names);
-    BAIL_ON_NO_MEMORY(lsa_names);
+    pLsaNames = InitUnicodeStringExArray(ppNames, NumNames);
+    BAIL_ON_NULL_PTR(pLsaNames, ntStatus);
 
-    *count = 0;
+    *Count = 0;
 
-    DCERPC_CALL(_LsaLookupNames3(b, handle, num_names, lsa_names, &ref_domains,
-                                 &sid_array, level, count, unknown1, unknown2));
-    ret_status = status;
+    DCERPC_CALL(ntStatus, _LsaLookupNames3(
+                              hBinding,
+                              hPolicy,
+                              NumNames,
+                              pLsaNames,
+                              &pRefDomains,
+                              &sid_array,
+                              Level,
+                              Count,
+                              unknown1,
+                              unknown2));
+    ntRetStatus = ntStatus;
 
-    /* Status other than success doesn't have to mean failure here */
-    if (ret_status != STATUS_SUCCESS &&
-        ret_status != STATUS_SOME_UNMAPPED) goto error;
+    /* Status other than success doesn't have
+       to mean failure here */
 
-    status = LsaAllocateTranslatedSids3(&out_sids, &sid_array);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    if (ntRetStatus != STATUS_SUCCESS &&
+        ntRetStatus != STATUS_SOME_UNMAPPED)
+    {
+        BAIL_ON_NT_STATUS(ntRetStatus);
+    }
 
-    status = LsaAllocateRefDomainList(&out_domains, ref_domains);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = LsaAllocateTranslatedSids3(&pOutSids, &sid_array);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *sids    = out_sids;
-    *domains = out_domains;
+    ntStatus = LsaAllocateRefDomainList(&pOutDomains, pRefDomains);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSids    = pOutSids;
+    *ppDomList = pOutDomains;
 
 cleanup:
-    FreeUnicodeStringExArray(lsa_names, num_names);
+    FreeUnicodeStringExArray(pLsaNames, NumNames);
 
     /* Free pointers returned from stub */
     LsaCleanStubTranslatedSidArray3(&sid_array);
 
-    if (ref_domains) {
-        LsaFreeStubRefDomainList(ref_domains);
+    if (pRefDomains)
+    {
+        LsaFreeStubRefDomainList(pRefDomains);
     }
 
-    if (status == STATUS_SUCCESS &&
-        (ret_status == STATUS_SUCCESS ||
-         ret_status == STATUS_SOME_UNMAPPED)) {
-        status = ret_status;
+    if (ntStatus == STATUS_SUCCESS &&
+        (ntRetStatus == STATUS_SUCCESS ||
+         ntRetStatus == STATUS_SOME_UNMAPPED))
+    {
+        ntStatus = ntRetStatus;
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_sids) {
-        LsaRpcFreeMemory((void*)out_sids);
-    }
+    LsaRpcFreeMemory((PVOID)pOutSids);
+    LsaRpcFreeMemory((PVOID)pOutDomains);
 
-    if (out_domains) {
-        LsaRpcFreeMemory((void*)out_domains);
-    }
-
-    *sids    = NULL;
-    *domains = NULL;
+    *ppSids    = NULL;
+    *ppDomList = NULL;
 
     goto cleanup;
 }

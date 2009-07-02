@@ -31,39 +31,49 @@
 #include "includes.h"
 
 
-NTSTATUS LsaQueryInfoPolicy(handle_t b, PolicyHandle *handle,
-                            uint16 level, LsaPolicyInformation **info)
+NTSTATUS
+LsaQueryInfoPolicy(
+    handle_t hBinding,
+    PolicyHandle *phPolicy,
+    UINT16 Level,
+    LsaPolicyInformation **ppInfo
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    LsaPolicyInformation *i = NULL;
-    LsaPolicyInformation *out_info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LsaPolicyInformation *pInfo = NULL;
+    LsaPolicyInformation *pOutInfo = NULL;
     
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(handle);
-    BAIL_ON_INVALID_PTR(info);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    DCERPC_CALL(_LsaQueryInfoPolicy(b, handle, level, &i));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy(
+                              hBinding,
+                              phPolicy,
+                              Level,
+                              &pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = LsaAllocatePolicyInformation(&out_info, i, level);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = LsaAllocatePolicyInformation(
+                   &pOutInfo,
+                   pInfo,
+                   Level);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *info = out_info;
+    *ppInfo = pOutInfo;
 
 cleanup:
     /* Free pointers allocated by dcerpc stub */
-    if (i) {
-        LsaFreeStubPolicyInformation(i, level);
+    if (pInfo) {
+        LsaFreeStubPolicyInformation(pInfo, Level);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_info) {
-        LsaRpcFreeMemory((void*)out_info);
-    }
+    LsaRpcFreeMemory((PVOID)pOutInfo);
 
-    *info = NULL;
+    *ppInfo = NULL;
     goto cleanup;
 }
 

@@ -34,8 +34,8 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _LSA_H_
-#define _LSA_H_
+#ifndef _RPC_LSA_H_
+#define _RPC_LSA_H_
 
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/lsadefs.h>
@@ -43,108 +43,102 @@
 
 NTSTATUS
 LsaOpenPolicy2(
-    handle_t         b,
-    const wchar16_t *sysname,
-    void            *attrib,
-    uint32          access_mask,
-    PolicyHandle    *handle
+    handle_t hBinding,
+    PCWSTR pwszSysname,
+    PVOID attrib,
+    UINT32 AccessMask,
+    PolicyHandle *phPolicy
     );
 
+NTSTATUS
+LsaClose(
+    handle_t hBinding,
+    PolicyHandle *phPolicy
+    );
+
+NTSTATUS
+LsaQueryInfoPolicy(
+    handle_t hBinding,
+    PolicyHandle *phPolicy,
+    UINT16 Level,
+    LsaPolicyInformation **ppInfo
+    );
+
+NTSTATUS
+LsaQueryInfoPolicy2(
+    handle_t hBinding,
+    PolicyHandle *phPolicy,
+    UINT16 Level,
+    LsaPolicyInformation **ppInfo
+    );
 
 NTSTATUS
 LsaLookupNames(
-    handle_t        b,
-    PolicyHandle   *handle,
-    uint32          num_names,
-    wchar16_t      *names[],
-    RefDomainList **domains,
-    TranslatedSid **sids,
-    uint16          level,
-    uint32         *count
-    );
-
-
-NTSTATUS
-LsaLookupNames3(
-    handle_t b,
-    PolicyHandle *handle,
-    uint32 num_names,
-    wchar16_t *names[],
-    RefDomainList **domains,
-    TranslatedSid3** sids,
-    uint16 level,
-    uint32 *count
-    );
-
-
-NTSTATUS
-LsaLookupSids(
-    handle_t         b,
-    PolicyHandle    *handle,
-    SidArray        *sids,
-    RefDomainList  **domains,
-    TranslatedName **names,
-    uint16           level,
-    uint32          *count
+    IN  handle_t hBinding,
+    IN  PolicyHandle *hPolicy,
+    IN  UINT32 NumNames,
+    IN  PWSTR *ppwszNames,
+    OUT RefDomainList **ppDomList,
+    OUT TranslatedSid **ppSids,
+    IN  UINT32 Level,
+    IN OUT UINT32 *Count
     );
 
 NTSTATUS
 LsaLookupNames2(
-    handle_t         binding,
-    PolicyHandle    *handle,
-    uint32           num_names,
-    wchar16_t       *names[],
-    RefDomainList  **domains,
-    TranslatedSid2 **sids,
-    uint16           level,
-    uint32          *count
+    IN  handle_t hBinding,
+    IN  PolicyHandle *hPolicy,
+    IN  UINT32 NumNames,
+    IN  PWSTR *ppNames,
+    OUT RefDomainList **ppDomList,
+    OUT TranslatedSid2** ppSids,
+    IN  uint16 Level,
+    IN OUT UINT32 *Count
     );
 
-
 NTSTATUS
-LsaClose(
-    handle_t      binding,
-    PolicyHandle *handle
+LsaLookupNames3(
+    IN  handle_t hBinding,
+    IN  PolicyHandle *hPolicy,
+    IN  UINT32 NumNames,
+    IN  PWSTR *ppNames,
+    OUT RefDomainList **ppDomList,
+    OUT TranslatedSid3** ppSids,
+    IN  uint16 Level,
+    IN OUT UINT32 *Count
     );
 
-
 NTSTATUS
-LsaQueryInfoPolicy(
-    handle_t               binding,
-    PolicyHandle          *handle,
-    uint16                 level,
-    LsaPolicyInformation **info
-    );
-
-
-NTSTATUS
-LsaQueryInfoPolicy2(
-    handle_t               binding,
-    PolicyHandle          *handle,
-    uint16                 level,
-    LsaPolicyInformation **info
+LsaLookupSids(
+    IN  handle_t hBinding,
+    IN  PolicyHandle *phPolicy,
+    IN  SidArray *pSids,
+    OUT RefDomainList **ppRefDomList,
+    OUT TranslatedName **ppTransNames,
+    IN  UINT16 Level,
+    IN OUT UINT32 *Count
     );
 
 
 NTSTATUS
 LsaRpcInitMemory(
-    void
+    VOID
     );
 
 
 NTSTATUS
 LsaRpcDestroyMemory(
-    void
+    VOID
     );
 
 
 NTSTATUS
 LsaRpcFreeMemory(
-    void *ptr
+    IN PVOID pBuffer
     );
 
 
-#endif /* _LSA_H_ */
+#endif /* _RPC_LSA_H_ */
 
 
 /*

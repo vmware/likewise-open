@@ -37,128 +37,132 @@
 #include "includes.h"
 
 
-void
+VOID
 LsaCleanStubTranslatedSidArray(
-    TranslatedSidArray *r
+    TranslatedSidArray *pArray
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
 
-    rpc_sm_client_free(r->sids, &st);
+    rpc_sm_client_free(pArray->sids, &rpcStatus);
 }
 
 
-void
+VOID
 LsaCleanStubTranslatedSidArray2(
-    TranslatedSidArray2 *r
+    TranslatedSidArray2 *pArray
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
 
-    rpc_sm_client_free(r->sids, &st);
+    rpc_sm_client_free(pArray->sids, &rpcStatus);
 }
 
 
-void
+VOID
 LsaCleanStubTranslatedSidArray3(
-    TranslatedSidArray3 *r
+    TranslatedSidArray3 *pArray
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
     int i = 0;
 
-    for (i = 0; i < r->count; i++) {
-        rpc_sm_client_free(r->sids[i].sid, &st);
+    for (i = 0; i < pArray->count; i++)
+    {
+        rpc_sm_client_free(pArray->sids[i].sid, &rpcStatus);
     }
 
-    rpc_sm_client_free(r->sids, &st);
+    rpc_sm_client_free(pArray->sids, &rpcStatus);
 }
 
 
-void
+VOID
 LsaCleanStubTranslatedNameArray(
-    TranslatedNameArray *r
+    TranslatedNameArray *pArray
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
     int i = 0;
 
-    for (i = 0; i < r->count; i++) {
-        TranslatedName *ptr = &(r->names[i]);
+    for (i = 0; i < pArray->count; i++)
+    {
+        TranslatedName *pName = &(pArray->names[i]);
 
-        rpc_sm_client_free(ptr->name.string, &st);
+        rpc_sm_client_free(pName->name.string, &rpcStatus);
     }
 
-    rpc_sm_client_free(r->names, &st);
+    rpc_sm_client_free(pArray->names, &rpcStatus);
 }
 
 
-void
+VOID
 LsaCleanStubRefDomainList(
-    RefDomainList *r
+    RefDomainList *pRefDomList
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
     int i = 0;
 
-    for (i = 0; i < r->count; i++) {
-        LsaDomainInfo *ptr = &(r->domains[i]);
+    for (i = 0; i < pRefDomList->count; i++)
+    {
+        LsaDomainInfo *pDomInfo = &(pRefDomList->domains[i]);
 
-        rpc_sm_client_free(ptr->name.string, &st);
-        if (ptr->sid) {
-            rpc_sm_client_free(ptr->sid, &st);
+        rpc_sm_client_free(pDomInfo->name.string, &rpcStatus);
+        if (pDomInfo->sid)
+        {
+            rpc_sm_client_free(pDomInfo->sid, &rpcStatus);
         }
     }
 
-    rpc_sm_client_free(r->domains, &st);
+    rpc_sm_client_free(pRefDomList->domains, &rpcStatus);
 }
 
 
-void
+VOID
 LsaFreeStubRefDomainList(
-    RefDomainList *ptr
+    RefDomainList *pRefDomList
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
 
-    LsaCleanStubRefDomainList(ptr);
-    rpc_sm_client_free(ptr, &st);
+    LsaCleanStubRefDomainList(pRefDomList);
+    rpc_sm_client_free(pRefDomList, &rpcStatus);
 }
 
 
-void
+VOID
 LsaCleanStubPolicyInformation(
-    LsaPolicyInformation *r,
-    uint32 level
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
     )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
 
-    switch (level) {
+    switch (Level) {
     case LSA_POLICY_INFO_AUDIT_EVENTS:
-        rpc_sm_client_free(r->audit_events.settings, &st);
+        rpc_sm_client_free(pPolicyInfo->audit_events.settings, &rpcStatus);
         break;
 
     case LSA_POLICY_INFO_DOMAIN:
     case LSA_POLICY_INFO_ACCOUNT_DOMAIN:
-        rpc_sm_client_free(r->domain.name.string, &st);
-        rpc_sm_client_free(r->domain.sid, &st);
+        rpc_sm_client_free(pPolicyInfo->domain.name.string, &rpcStatus);
+        rpc_sm_client_free(pPolicyInfo->domain.sid, &rpcStatus);
         break;
 
     case LSA_POLICY_INFO_PD:
-        rpc_sm_client_free(r->pd.name.string, &st);
+        rpc_sm_client_free(pPolicyInfo->pd.name.string, &rpcStatus);
         break;
 
     case LSA_POLICY_INFO_REPLICA:
-        rpc_sm_client_free(r->replica.source.string, &st);
-        rpc_sm_client_free(r->replica.account.string, &st);
+        rpc_sm_client_free(pPolicyInfo->replica.source.string, &rpcStatus);
+        rpc_sm_client_free(pPolicyInfo->replica.account.string, &rpcStatus);
         break;
 
     case LSA_POLICY_INFO_DNS:
-        rpc_sm_client_free(r->dns.name.string, &st);
-        rpc_sm_client_free(r->dns.dns_domain.string, &st);
-        rpc_sm_client_free(r->dns.dns_forest.string, &st);
-        rpc_sm_client_free(r->dns.sid, &st);
+        rpc_sm_client_free(pPolicyInfo->dns.name.string, &rpcStatus);
+        rpc_sm_client_free(pPolicyInfo->dns.dns_domain.string, &rpcStatus);
+        rpc_sm_client_free(pPolicyInfo->dns.dns_forest.string, &rpcStatus);
+        rpc_sm_client_free(pPolicyInfo->dns.sid, &rpcStatus);
         break;
 
     case LSA_POLICY_INFO_AUDIT_LOG:
@@ -173,15 +177,16 @@ LsaCleanStubPolicyInformation(
 }
 
 
-void
+VOID
 LsaFreeStubPolicyInformation(
-    LsaPolicyInformation *ptr,
-    uint32 level)
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
+    )
 {
-    RPCSTATUS st = 0;
+    RPCSTATUS rpcStatus = 0;
 
-    LsaCleanStubPolicyInformation(ptr, level);
-    rpc_sm_client_free(ptr, &st);
+    LsaCleanStubPolicyInformation(pPolicyInfo, Level);
+    rpc_sm_client_free(pPolicyInfo, &rpcStatus);
 }
 
 

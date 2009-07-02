@@ -42,32 +42,41 @@
 #include <compat/rpcstatus.h>
 
 
-#define BAIL_ON_NTSTATUS_ERROR(s)                \
-    if ((s) != STATUS_SUCCESS) {                 \
-        status = (s);                            \
-        goto error;                              \
+#define BAIL_ON_NO_MEMORY_RPCSTATUS(p, status)  \
+    if ((p) == NULL) {                          \
+        status = RPC_S_OUT_OF_MEMORY;           \
+        goto error;                             \
+    }
+
+#define BAIL_ON_INVALID_PTR_RPCSTATUS(p, status)    \
+    if ((p) == NULL) {                              \
+        status = RPC_S_INVALID_ARG;                 \
+        goto error;                                 \
     }
 
 #define BAIL_ON_RPCSTATUS_ERROR(s)               \
     if ((s) != RPC_S_OK) {                       \
-        rpcstatus = (s);                         \
         goto error;                              \
     }
 
-#define BAIL_ON_NO_MEMORY(p)                     \
+#define BAIL_ON_NULL_PTR(p, status)              \
     if ((p) == NULL) {                           \
-        status = STATUS_NO_MEMORY;               \
+        status = STATUS_INSUFFICIENT_RESOURCES;  \
         goto error;                              \
     }
 
-#define BAIL_ON_INVALID_PTR(p)                   \
+#define BAIL_ON_INVALID_PTR(p, status)           \
     if ((p) == NULL) {                           \
         status = STATUS_INVALID_PARAMETER;       \
         goto error;                              \
     }
 
+#define BAIL_ON_NT_STATUS(err)     \
+    if ((err) != STATUS_SUCCESS) { \
+        goto error;                \
+    }
 
-#define DCERPC_CALL(fn_call)                                     \
+#define DCERPC_CALL(status, fn_call)                             \
     do {                                                         \
         dcethread_exc *dceexc;                                   \
                                                                  \

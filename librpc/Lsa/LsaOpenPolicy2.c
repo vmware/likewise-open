@@ -30,47 +30,58 @@
 
 #include "includes.h"
 
-
-NTSTATUS LsaOpenPolicy2(handle_t b, const wchar16_t *sysname,
-                        void *attrib, uint32 access_mask,
-                        PolicyHandle *lsa_policy)
+NTSTATUS
+LsaOpenPolicy2(
+    handle_t hBinding,
+    PCWSTR pwszSysname,
+    PVOID attrib,
+    UINT32 AccessMask,
+    PolicyHandle *phPolicy
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *system_name = NULL;
-    PolicyHandle handle = {0};
-    SECURITY_QUALITY_OF_SERVICE qos = {0};
-    ObjectAttribute attr = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszSystemName = NULL;
+    PolicyHandle hLsaPolicy = {0};
+    SECURITY_QUALITY_OF_SERVICE SecQos = {0};
+    ObjectAttribute ObjAttribute = {0};
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(sysname);
-    BAIL_ON_INVALID_PTR(lsa_policy);
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSysname, ntStatus);
+    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
 
-    system_name = wc16sdup(sysname);
-    BAIL_ON_NO_MEMORY(system_name);
+    ntStatus = RtlWC16StringDuplicate(&pwszSystemName, pwszSysname);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    /* ObjectAttribute argument is not used, so just pass an empty structure */
-    qos.Length              = 0;
-    qos.ImpersonationLevel  = SecurityImpersonation;
-    qos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
-    qos.EffectiveOnly       = 0;
+    /* ObjectAttribute argument is not used, so just
+       pass an empty structure */
 
-    attr.len          = 0;
-    attr.root_dir     = NULL;
-    attr.object_name  = NULL;
-    attr.attributes   = 0;
-    attr.sec_desc     = NULL;
+    SecQos.Length              = 0;
+    SecQos.ImpersonationLevel  = SecurityImpersonation;
+    SecQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    SecQos.EffectiveOnly       = 0;
+
+    ObjAttribute.len          = 0;
+    ObjAttribute.root_dir     = NULL;
+    ObjAttribute.object_name  = NULL;
+    ObjAttribute.attributes   = 0;
+    ObjAttribute.sec_desc     = NULL;
     // TODO-QOS field in object attributes should probaby be NULL.
-    attr.sec_qos      = &qos;
+    ObjAttribute.sec_qos      = &SecQos;
 
-    DCERPC_CALL(_LsaOpenPolicy2(b, system_name, &attr, access_mask, &handle));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _LsaOpenPolicy2(
+                              hBinding,
+                              pwszSystemName,
+                              &ObjAttribute,
+                              AccessMask,
+                              &hLsaPolicy));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *lsa_policy = handle;
+    *phPolicy = hLsaPolicy;
 
 cleanup:
-    SAFE_FREE(system_name);
+    RtlWC16StringFree(&pwszSystemName);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

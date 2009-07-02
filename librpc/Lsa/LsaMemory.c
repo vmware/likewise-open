@@ -36,35 +36,6 @@
 
 #include "includes.h"
 
-#ifdef BAIL_ON_NULL_PTR
-#undef BAIL_ON_NULL_PTR
-#endif
-
-#define BAIL_ON_NULL_PTR(p, status)              \
-    if ((p) == NULL) {                           \
-        status = STATUS_INSUFFICIENT_RESOURCES;  \
-        goto error;                              \
-    }
-
-#ifdef BAIL_ON_INVALID_PTR
-#undef BAIL_ON_INVALID_PTR
-#endif
-
-#define BAIL_ON_INVALID_PTR(p, status)           \
-    if ((p) == NULL) {                           \
-        status = STATUS_INVALID_PARAMETER;       \
-        goto error;                              \
-    }
-
-#ifdef BAIL_ON_NT_STATUS
-#undef BAIL_ON_NT_STATUS
-#endif
-
-#define BAIL_ON_NT_STATUS(err)     \
-    if ((err) != STATUS_SUCCESS) { \
-        goto error;                \
-    }
-
 
 NTSTATUS
 LsaRpcInitMemory(
@@ -678,10 +649,10 @@ error:
 
 NTSTATUS
 LsaAllocatePolicyInformation(
-   OUT LsaPolicyInformation **pOut,
-   IN  LsaPolicyInformation *pIn,
-   IN  UINT32 level
-   )
+    OUT LsaPolicyInformation **pOut,
+    IN  LsaPolicyInformation *pIn,
+    IN  UINT32 Level
+    )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     LsaPolicyInformation *pPolInfo = NULL;
@@ -700,7 +671,7 @@ LsaAllocatePolicyInformation(
         goto cleanup;
     }
 
-    switch (level) {
+    switch (Level) {
     case LSA_POLICY_INFO_AUDIT_LOG:
         ntStatus = LsaCopyPolInfoField(
                        (PVOID)&pPolInfo->audit_log,

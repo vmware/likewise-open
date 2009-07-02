@@ -38,46 +38,46 @@
 #define _LSA_STUB_MEMORY_H_
 
 
-void
+VOID
 LsaCleanStubTranslatedSidArray(
-    TranslatedSidArray *r
+    TranslatedSidArray *pArray
     );
 
-void
+VOID
 LsaCleanStubTranslatedSidArray2(
-    TranslatedSidArray2 *r
+    TranslatedSidArray2 *pArray
     );
 
-void
+VOID
 LsaCleanStubTranslatedSidArray3(
-    TranslatedSidArray3 *r
+    TranslatedSidArray3 *pArray
     );
 
-void
+VOID
 LsaCleanStubTranslatedNameArray(
-    TranslatedNameArray *r
+    TranslatedNameArray *pArray
     );
 
-void
+VOID
 LsaCleanStubRefDomainList(
-    RefDomainList *r
+    RefDomainList *pRefDomList
     );
 
-void
+VOID
 LsaFreeStubRefDomainList(
-    RefDomainList *ptr
+    RefDomainList *pRefDomList
     );
 
-void
+VOID
 LsaCleanStubPolicyInformation(
-    LsaPolicyInformation *r,
-    uint32 level
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
     );
 
-void
+VOID
 LsaFreeStubPolicyInformation(
-    LsaPolicyInformation *ptr,
-    uint32 level
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
     );
 
 #endif /* _LSA_STUB_MEMORY_H_ */
