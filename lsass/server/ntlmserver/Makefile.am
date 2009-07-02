@@ -22,7 +22,7 @@ libntlmserver2_la_CPPFLAGS =    \
     @LWMSG_INCLUDES@            \
     @CRYPTO_INCLUDES@
 
-liblsass_auth_provider_ad_la_LDFLAGS =  \
+libntlmserver2_la_LDFLAGS =  \
     @CRYPTO_LDFLAGS@
 
 libntlmserver2_la_LIBADD =                  \
