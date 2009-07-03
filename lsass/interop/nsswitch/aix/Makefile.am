@@ -34,7 +34,7 @@ lsass_la_CFLAGS = -shared
 
 lsass_la_LIBADD = \
 	@builddir@/../common/libnsscommon.la \
-	@top_builddir@/interop/auth/common/liblsaauth.la \
+	@top_builddir@/interop/auth/pam/libpam_lsass.la \
 	@top_builddir@/client/liblsaclient.la
 
 lsass_la_LDFLAGS = -shared -module -avoid-version -Wl,-brtl
