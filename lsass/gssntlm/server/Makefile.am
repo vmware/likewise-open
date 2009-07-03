@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libntlmserver.la
+noinst_LTLIBRARIES = libntlmserver.la
 
 libntlmserver_la_SOURCES = \
        auth_ad.c      \
