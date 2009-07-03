@@ -49,6 +49,4 @@
 
 extern BOOLEAN gbLogInitialized;
 
-extern DWORD   gdwLogLevel;
-
 #endif /* __EXTERNS_H__ */
