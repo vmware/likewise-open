@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsakrb5.c
+ *        lwkrb5.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *        
  *        Kerberos 5 API
  *
@@ -51,8 +51,8 @@
 
 DWORD
 LwKrb5Init(
-    IN OPTIONAL LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
-    IN OPTIONAL LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
+    IN OPTIONAL LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
+    IN OPTIONAL LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
     )
 {
     DWORD dwError = 0;
@@ -123,44 +123,32 @@ error:
 
 DWORD
 LwKrb5GetSystemCachePath(
-    Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     )
 {
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
+    krb5_context ctx = NULL;
+    const char *pszKrbDefault = NULL;
+    krb5_error_code ret = 0;
     
-    switch (cacheType)
-    {
-        case KRB5_InMemory_Cache:
-            
-            dwError = LwAllocateString(
-                        "MEMORY:krb5cc_lsass",
-                        &pszCachePath);
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-            
-        case KRB5_File_Cache:
-            
-            dwError = LwAllocateString(
-                        "FILE:/var/lib/likewise/krb5cc_lsass",
-                        &pszCachePath);
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-            
-        default:
-            
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-    }
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    pszKrbDefault = krb5_cc_default_name(ctx);
+
+    dwError = LwAllocateString(
+                pszKrbDefault,
+                &pszCachePath);
+    BAIL_ON_LW_ERROR(dwError);
     
     *ppszCachePath = pszCachePath;
     
 cleanup:
+    if (ctx)
+    {
+        krb5_free_context(ctx);
+    }
 
     return dwError;
     
@@ -368,7 +356,7 @@ LwSetupMachineSession(
     dwError = LwKrb5GetSystemKeytabPath(&pszHostKeytabFile);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(&pszKrb5CcPath);
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = LwAllocateString(pszRealm, &pszRealmCpy);
@@ -426,7 +414,7 @@ LwKrb5CleanupMachineSession(
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
 
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(&pszKrb5CcPath);
     BAIL_ON_LW_ERROR(dwError);
 
     ret = krb5_init_context(&ctx);

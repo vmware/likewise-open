@@ -36,7 +36,7 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *        
  *        Global Variables in Join Interface
  *
@@ -49,4 +49,4 @@
 DWORD gdwClockDriftSecs = 60;
 
 
-LSA_KRB5_STATE gLwKrb5State;
+LW_KRB5_STATE gLwKrb5State;

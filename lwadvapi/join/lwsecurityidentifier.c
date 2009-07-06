@@ -32,7 +32,7 @@
  *
  * Module Name:
  *
- *        lsasecurityidentifier.c
+ *        lwsecurityidentifier.c
  *
  * Abstract:
  *
@@ -798,7 +798,7 @@ LwSidStringToBytes(
         }
     }
 
-    //see comments in lsasecurityidentifier_p.h
+    //see comments in lwsecurityidentifier_p.h
     dwSidBytesLength = 1 + 1 + 6 + 4*(iTailCount);
 
     dwError = LwAllocateMemory(

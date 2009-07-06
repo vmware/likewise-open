@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsamem.c
+ *        lwmem.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) Memory Utilities
+ *        Likewise Advanced API (lwadvapi) Memory Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)

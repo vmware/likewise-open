@@ -36,7 +36,7 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Advanced API (lwadvapi)
  * 
  *        Error Code Mapping API
  *
@@ -525,7 +525,7 @@ static struct
     },
     {
         LW_ERROR_LSA_SERVER_UNREACHABLE,
-        "The LSASS server is not responding."
+        "The LWSS server is not responding."
     },
     {
         LW_ERROR_INVALID_NSS_ARTEFACT_TYPE,
@@ -533,7 +533,7 @@ static struct
     },
     {
         LW_ERROR_INVALID_AGENT_VERSION,
-        "The LSASS Server version is invalid"
+        "The LWSS Server version is invalid"
     },
     {
         LW_ERROR_DOMAIN_IS_OFFLINE,

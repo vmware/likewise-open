@@ -32,18 +32,18 @@
  *
  * Module Name:
  *
- *        lsakrb5_p.h
+ *        lwkrb5_p.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *        
  *        KRB5 API (Private Header)
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#ifndef __LSAKRB5_P_H__
-#define __LSAKRB5_P_H__
+#ifndef __LWKRB5_P_H__
+#define __LWKRB5_P_H__
 
 DWORD
 LwKrb5CopyFromUserCache(
@@ -60,4 +60,4 @@ LwKrb5MoveCCacheToUserPath(
                 gid_t gid
                 );
 
-#endif /* __LSAKRB5_P_H__ */
+#endif /* __LWKRB5_P_H__ */

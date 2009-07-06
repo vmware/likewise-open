@@ -36,7 +36,7 @@
  *
  * Abstract:
  * 
- *        Likewise Security and Authentication Subsystem (Likewise LSASS)
+ *        Likewise Advanced API (lwadvapi)
  * 
  *        Unicode support
  *

@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsakrb5.h
+ *        lwkrb5.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Advanced API (lwadvapi)
  *
  *        Kerberos 5 API
  *
@@ -45,8 +45,8 @@
  *          Rafal Szczesniak <rszczesniak@likewisesoftware.com>
  *
  */
-#ifndef __LSAKRB5_H__
-#define __LSAKRB5_H__
+#ifndef __LWKRB5_H__
+#define __LWKRB5_H__
 
 // TODO: find out if these includes are necessary
 //#include <uuid/uuid.h>
@@ -81,13 +81,13 @@ typedef enum
 
 #endif /* WIN32 */
 
-typedef BOOLEAN (*LSA_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
-typedef VOID (*LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
+typedef BOOLEAN (*LW_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
+typedef VOID (*LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 
 DWORD
 LwKrb5Init(
-    IN OPTIONAL LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
-    IN OPTIONAL LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
+    IN OPTIONAL LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
+    IN OPTIONAL LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
     );
 
 DWORD
@@ -97,7 +97,6 @@ LwKrb5GetDefaultRealm(
 
 DWORD
 LwKrb5GetSystemCachePath(
-    Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     );
 
@@ -120,8 +119,7 @@ LwKrb5SetProcessDefaultCachePath(
     );
 
 DWORD
-LsaSetupMachineSession(
-    PCSTR  pszMachname,
+LwSetupMachineSession(
     PCSTR  pszSamAccountName,
     PCSTR  pszPassword,
     PCSTR  pszRealm,
@@ -177,7 +175,7 @@ LwTranslateKrb5Error(
     DWORD dwLine
     );
 
-#endif /* __LSAKRB5_H__ */
+#endif /* __LWKRB5_H__ */
 
 
 /*

@@ -36,7 +36,7 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Advanced API (lwadvapi)
  * 
  *        Kerberos 5 runtime environment
  *

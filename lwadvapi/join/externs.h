@@ -36,25 +36,25 @@
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *        
  *        Extern Declarations in Join Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LSA_JOIN_EXTERNS_H__
-#define __LSA_JOIN_EXTERNS_H__
+#ifndef __LW_JOIN_EXTERNS_H__
+#define __LW_JOIN_EXTERNS_H__
 
 extern DWORD gdwClockDriftSecs;
 
-typedef struct _LSA_KRB5_STATE {
+typedef struct _LW_KRB5_STATE {
     pthread_mutex_t ExistingClientLock;
     pthread_mutex_t UserCacheMutex;
-    LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback;
-    LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback;
-} LSA_KRB5_STATE, *PLSA_KRB5_STATE;
+    LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback;
+    LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback;
+} LW_KRB5_STATE, *PLW_KRB5_STATE;
 
-extern LSA_KRB5_STATE gLwKrb5State;
+extern LW_KRB5_STATE gLwKrb5State;
 
-#endif /* __LSA_JOIN_EXTERNS_H__ */
+#endif /* __LW_JOIN_EXTERNS_H__ */

@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsastr.c
+ *        lwstr.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) String Utilities
+ *        Likewise Advanced API (lwadvapi) String Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)

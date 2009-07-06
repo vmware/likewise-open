@@ -33,18 +33,18 @@
  *
  * Module Name:
  *
- *        lsadef.h
+ *        lwdef.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) Client/Server common definitions
+ *        Likewise Advanced API (lwadvapi) Client/Server common definitions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  * 
  */
-#ifndef __LSADEF_H__
-#define __LSADEF_H__
+#ifndef __LWDEF_H__
+#define __LWDEF_H__
 
 #if defined(HAVE_SOCKLEN_T) && defined(GETSOCKNAME_TAKES_SOCKLEN_T)
 #    define SOCKLEN_T socklen_t
@@ -88,4 +88,4 @@
 #define LW_LOG_ERROR(...) do { } while(0)
 #define LW_LOG_VERBOSE(...) do { } while(0)
 
-#endif /* __LSADEF_H__ */
+#endif /* __LWDEF_H__ */

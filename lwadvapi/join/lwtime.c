@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsatime.c
+ *        lwtime.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *                    
  *        Time Utilities
  *
@@ -93,17 +93,17 @@ LwParseDateString(
 	        
             case 'm':
             case 'M':
-    	        dwUnitMultiplier = LSA_SECONDS_IN_MINUTE;
+	        dwUnitMultiplier = LW_SECONDS_IN_MINUTE;
     	        break;
 
             case 'h':
             case 'H':
-                dwUnitMultiplier = LSA_SECONDS_IN_HOUR;
+                dwUnitMultiplier = LW_SECONDS_IN_HOUR;
                 break;
 
             case 'd':
             case 'D':
-                dwUnitMultiplier = LSA_SECONDS_IN_DAY;
+                dwUnitMultiplier = LW_SECONDS_IN_DAY;
                 break;
 
             default:

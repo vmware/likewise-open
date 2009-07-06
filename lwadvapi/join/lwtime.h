@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsatime.c
+ *        lwtime.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *                    
  *        Time Utilities
  *
@@ -45,9 +45,9 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#define LSA_SECONDS_IN_HOUR   (60 * LSA_SECONDS_IN_MINUTE)
-#define LSA_SECONDS_IN_DAY    (24 * LSA_SECONDS_IN_HOUR)
-#define LSA_SECONDS_IN_MINUTE (60)
+#define LW_SECONDS_IN_HOUR   (60 * LW_SECONDS_IN_MINUTE)
+#define LW_SECONDS_IN_DAY    (24 * LW_SECONDS_IN_HOUR)
+#define LW_SECONDS_IN_MINUTE (60)
 
 DWORD
 LwParseDateString(

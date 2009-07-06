@@ -32,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsaldap.c
+ *        lwldap.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Advanced API (lwadvapi)
  *
  *        LDAP API
  *
