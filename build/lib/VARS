@@ -11,7 +11,7 @@ LIKEWISE_OPEN_REVISION=`git log | grep '\(.*: r[1-9].*\)' | cut -d: -f2 | sed -e
 __COMP_LIST="krb5 openldap libunistr lwbase \
     lwmapsecurity lwmsg centutils \
     sqlite libtdb pstore \
-    netlogon lwio libkeytab libgss \
+    lwadvapi netlogon lwio libkeytab libgss \
     dcerpc librpc eventlog lsass \
     lwdns domainjoin srvsvc \
 "

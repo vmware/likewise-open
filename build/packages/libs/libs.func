@@ -7,8 +7,8 @@ umask 022
 
 PKG="libs"
 COMPONENTS="krb5 openldap lwbase libunistr \
-            lwmsg centutils lwmapsecurity \
-            libkeytab libgss"
+            lwmsg lwadvapi centutils lwmapsecurity \
+            libkeytab libgss sqlite"
 
 for comp in ${COMPONENTS}; do
     echo "Populating files from $comp..."
