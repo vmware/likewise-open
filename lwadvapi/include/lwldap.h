@@ -80,6 +80,12 @@ typedef struct __LW_SEARCH_COOKIE
 } LW_SEARCH_COOKIE, *PLW_SEARCH_COOKIE;
 
 DWORD
+LwCLdapOpenDirectory(
+    IN PCSTR pszServerName,
+    OUT PHANDLE phDirectory
+    );
+
+DWORD
 LwLdapPingTcp(
     PCSTR pszHostAddress,
     DWORD dwTimeoutSeconds

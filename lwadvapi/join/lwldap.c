@@ -55,6 +55,55 @@
 #endif
 
 DWORD
+LwCLdapOpenDirectory(
+    IN PCSTR pszServerName,
+    OUT PHANDLE phDirectory
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    LDAP * ld = NULL;
+    PLW_LDAP_DIRECTORY_CONTEXT pDirectory = NULL;
+    int rc = LDAP_VERSION3;
+    PSTR pszURL = NULL;
+
+    LW_BAIL_ON_INVALID_STRING(pszServerName);
+
+    dwError = LwAllocateStringPrintf(&pszURL, "cldap://%s",
+                                        pszServerName);
+    BAIL_ON_LW_ERROR(dwError);
+
+    dwError = ldap_initialize(&ld, pszURL);
+    BAIL_ON_LDAP_ERROR(dwError);
+
+    dwError = ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &rc);
+    BAIL_ON_LDAP_ERROR(dwError);
+
+    dwError = ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_OFF);
+    BAIL_ON_LDAP_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*pDirectory), (PVOID *)&pDirectory);
+    BAIL_ON_LW_ERROR(dwError);
+
+    pDirectory->ld = ld;
+
+error:
+    LW_SAFE_FREE_STRING(pszURL);
+    if (dwError)
+    {
+        if (pDirectory)
+        {
+            LwLdapCloseDirectory(pDirectory);
+            pDirectory = NULL;
+        }
+    }
+
+    *phDirectory = (HANDLE)pDirectory;
+
+    return dwError;
+}
+
+
+DWORD
 LwLdapPingTcp(
     PCSTR pszHostAddress,
     DWORD dwTimeoutSeconds
@@ -194,12 +243,8 @@ LwLdapOpenDirectoryServerSingleAttempt(
 
     timeout.tv_sec = dwTimeoutSec;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszServerName) ||
-        LW_IS_NULL_OR_EMPTY_STR(pszServerAddress))
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
+    LW_BAIL_ON_INVALID_STRING(pszServerName);
+    LW_BAIL_ON_INVALID_STRING(pszServerAddress);
 
     if (dwFlags & LW_LDAP_OPT_GLOBAL_CATALOG)
     {
@@ -325,10 +370,8 @@ LwLdapOpenDirectoryServer(
     struct timespec sleepTime;
     DWORD dwTimeoutSec = 15;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszServerName) || LW_IS_NULL_OR_EMPTY_STR(pszServerAddress)) {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
+    LW_BAIL_ON_INVALID_STRING(pszServerName);
+    LW_BAIL_ON_INVALID_STRING(pszServerAddress);
 
     for (dwAttempt = 1; dwAttempt <= 3; dwAttempt++)
     {
@@ -635,52 +678,6 @@ LwLdapCloseDirectory(
         LwFreeMemory(pDirectory);
     }
     return;
-}
-
-DWORD
-LwLdapReadObject(
-    HANDLE hDirectory,
-    PCSTR  pszObjectDN,
-    PSTR*  ppszAttributeList,
-    LDAPMessage** ppMessage
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PLW_LDAP_DIRECTORY_CONTEXT pDirectory = NULL;
-    struct timeval timeout = {0};
-    LDAPMessage* pMessage = NULL;
-
-    timeout.tv_sec = 15;
-    timeout.tv_usec = 0;
-
-    pDirectory = (PLW_LDAP_DIRECTORY_CONTEXT)hDirectory;
-
-    dwError = ldap_search_st(pDirectory->ld,
-                             pszObjectDN,
-                             LDAP_SCOPE_BASE,
-                             "(objectClass=*)",
-                             ppszAttributeList,
-                             0,
-                             &timeout,
-                             &pMessage);
-    BAIL_ON_LDAP_ERROR(dwError);
-
-    *ppMessage = pMessage;
-
-cleanup:
-
-    return(dwError);
-
-error:
-
-    *ppMessage = NULL;
-
-    if (pMessage)
-    {
-        ldap_msgfree(pMessage);
-    }
-
-    goto cleanup;
 }
 
 DWORD
@@ -1410,11 +1407,7 @@ LwLdapParseExtendedDNResult(
     DWORD dwSIDByteCount = 0;
     PLW_SECURITY_IDENTIFIER pSID = NULL;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszCurrExtDnResult))
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LW_ERROR(dwError);
-    }
+    LW_BAIL_ON_INVALID_STRING(pszCurrExtDnResult);
 
     if (strncasecmp(pszCurrExtDnResult, "<GUID=", sizeof("<GUID=")-1))
     {
