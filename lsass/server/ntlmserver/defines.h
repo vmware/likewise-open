@@ -75,31 +75,31 @@
         bReleaseLock = FALSE;                               \
     }
 
-#define ENTER_NTLM_CREDS_LIST_READER_LOCK(bInLock)        \
+#define ENTER_NTLM_CREDS_LIST_READER_LOCK(bInLock)          \
     if (!bInLock)                                           \
     {                                                       \
-        pthread_rwlock_rdlock(&gpNtlmCredsList_rwlock);   \
+        pthread_rwlock_rdlock(&gpNtlmCredsList_rwlock);     \
         bInLock = TRUE;                                     \
     }
 
-#define LEAVE_NTLM_CREDS_LIST_READER_LOCK(bReleaseLock)   \
+#define LEAVE_NTLM_CREDS_LIST_READER_LOCK(bReleaseLock)     \
     if (bReleaseLock)                                       \
     {                                                       \
-        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);   \
+        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);     \
         bReleaseLock = FALSE;                               \
     }
 
-#define ENTER_NTLM_CREDS_LIST_WRITER_LOCK(bInLock)        \
+#define ENTER_NTLM_CREDS_LIST_WRITER_LOCK(bInLock)          \
     if (!bInLock)                                           \
     {                                                       \
-        pthread_rwlock_wrlock(&gpNtlmCredsList_rwlock);   \
+        pthread_rwlock_wrlock(&gpNtlmCredsList_rwlock);     \
         bInLock = TRUE;                                     \
     }
 
-#define LEAVE_NTLM_CREDS_LIST_WRITER_LOCK(bReleaseLock)   \
+#define LEAVE_NTLM_CREDS_LIST_WRITER_LOCK(bReleaseLock)     \
     if (bReleaseLock)                                       \
     {                                                       \
-        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);   \
+        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);     \
         bReleaseLock = FALSE;                               \
     }
 
@@ -129,13 +129,17 @@
 #define NTLM_RESPONSE_TYPE_NTLM2        4
 #define NTLM_RESPONSE_TYPE_ANONYMOUS    5
 
-// Response sizes... NTLM2 is not listed since it is a variable sized response
+// Response sizes... NTLMv2 is not listed since it is a variable sized response
 
 #define NTLM_RESPONSE_SIZE_LM           24
 #define NTLM_RESPONSE_SIZE_LMv2         24
 #define NTLM_RESPONSE_SIZE_NTLM         24
-#define NTLM_RESPONSE_SIZE_NTLMv2       24
-#define NTLM_RESPONSE_SIZE_ANONYMOUS    0
+#define NTLM_RESPONSE_SIZE_NTLM2        24
+#define NTLM_RESPONSE_SIZE_ANONYMOUS    1
+
+#define NTLM_LM_MAX_PASSWORD_SIZE       14
+#define NTLM_LM_HASH_SIZE               16
+#define NTLM_LM_DES_STRING              "KGS!@#$%"
 
 // Name types
 

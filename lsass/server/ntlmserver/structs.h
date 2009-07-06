@@ -77,7 +77,7 @@ typedef struct _NTLM_RESPONSE_MESSAGE
     DWORD               MessageType;
     NTLM_SEC_BUFFER     LmResponse;
     NTLM_SEC_BUFFER     NtResponse;
-    NTLM_SEC_BUFFER     TargetName;
+    NTLM_SEC_BUFFER     AuthTargetName;
     NTLM_SEC_BUFFER     UserName;
     NTLM_SEC_BUFFER     Workstation;
     // Optional Session Key NTLM_SEC_BUFFER
@@ -103,8 +103,8 @@ typedef enum
 
 typedef struct _NTLM_CREDENTIALS
 {
-    PWCHAR                      pUserName;
-    PWCHAR                      pPassword;
+    PCHAR                       pUserName;
+    PCHAR                       pPassword;
     CredHandle                  CredHandle;
     DWORD                       dwRefCount;
     struct _NTLM_CREDENTIALS    *pNext;

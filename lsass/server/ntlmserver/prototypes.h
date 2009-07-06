@@ -143,25 +143,44 @@ NtlmCreateChallengeMessage(
 DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN DWORD dwResponseType,
-    IN PWCHAR pPassword,
+    IN PCHAR pAuthTargetName,
+    IN PCHAR pUserName,
+    IN PCHAR pWorkstation,
+    IN PBYTE pOsVersion,
+    IN PCHAR pPassword,
+    IN DWORD dwNtRespType,
+    IN DWORD dwLmRespType,
     OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg
     );
 
 DWORD
 NtlmValidateResponseMessage(
-    IN PNTLM_RESPONSE_MESSAGE pAuthMsg
+    IN PNTLM_RESPONSE_MESSAGE pRespMsg
+    );
+
+DWORD
+NtlmBuildResponse(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwResponseType,
+    IN DWORD dwBufferSize,
+    OUT PBYTE pBuffer
     );
 
 DWORD
 NtlmBuildLmResponse(
-    VOID
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwLength,
+    OUT PBYTE pResponse
     );
 
 DWORD
 NtlmBuildNtlmResponse(
-    PUSHORT pLength,
-    PBYTE pResponse
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwLength,
+    OUT PBYTE pResponse
     );
 
 DWORD
@@ -185,15 +204,45 @@ NtlmBuildAnonymousResponse(
     );
 
 DWORD
-NtlmCreateNegotiateContext();
+NtlmCreateNegotiateContext(
+    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    );
 
 DWORD
-NtlmCreateChallengeContext();
+NtlmCreateChallengeContext(
+    IN PNTLM_CONTEXT pNtlmNegCtxt,
+    OUT PNTLM_CONTEXT *ppNtlmContext
+    );
 
 DWORD
 NtlmCreateResponseContext();
 
 DWORD
 NtlmValidateResponse();
+
+DWORD
+NtlmCalculateResponseSize(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN DWORD dwResponseType,
+    OUT PDWORD pdwSize
+    );
+
+DWORD
+NtlmCalculateNtlmV2ResponseSize(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    OUT PDWORD pdwSize
+    );
+
+DWORD
+NtlmCreateMD4Digest(
+    PBYTE pBuffer,
+    DWORD dwBufferLen,
+    BYTE MD4Digest[MD4_DIGEST_LENGTH]
+    );
+
+DWORD
+NtlmSetParityBit(
+    PULONG64 pKey
+    );
 
 #endif /* __NTLM_PROTOTYPES_H__ */

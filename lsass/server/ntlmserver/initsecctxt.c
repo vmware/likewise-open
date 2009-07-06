@@ -235,8 +235,13 @@ NtlmCreateResponseContext(
 
     dwError = NtlmCreateResponseMessage(
         pChlngCtxt->pMessage,
-        NTLM_RESPONSE_TYPE_NTLM,
+        NULL,
+        pNtlmCreds->pUserName,
+        NULL,
+        NULL,
         pNtlmCreds->pPassword,
+        NTLM_RESPONSE_TYPE_NTLM,
+        NTLM_RESPONSE_TYPE_LM,
         &pRespMsg
         );
 
