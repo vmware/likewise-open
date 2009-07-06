@@ -476,13 +476,13 @@ ADGetDomainMaxPwdAge(
                 &int64MaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (int64MaxPwdAge >= 0)
+    if (int64MaxPwdAge == 0x8000000000000000LL)
     {
-        *pMaxPwdAge = (UINT64) int64MaxPwdAge;
+        *pMaxPwdAge = 0;
     }
     else
     {
-        *pMaxPwdAge = (UINT64) (0 - int64MaxPwdAge); // Store the abs value of this
+        *pMaxPwdAge = (UINT64) (int64MaxPwdAge < 0 ? -int64MaxPwdAge : int64MaxPwdAge);
     }
 
 cleanup:

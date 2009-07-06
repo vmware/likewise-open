@@ -171,43 +171,66 @@ ADMarshalFromUserCache(
         UINT64 u64current_NTtime = 0;
         int64_t qwNanosecsToPasswordExpiry;
 
-        if (gettimeofday(&current_tv, NULL) < 0)
+        if (pUser->userInfo.bIsAccountInfoKnown)
         {
-            dwError = errno;
+            if (gettimeofday(&current_tv, NULL) < 0)
+            {
+                dwError = errno;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            ADConvertTimeUnix2Nt(current_tv.tv_sec,
+                                 &u64current_NTtime);
+
+            qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
+                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+
+            dwError = AD_UpdateUserObjectFlags(pUser);
             BAIL_ON_LSA_ERROR(dwError);
-        }
-        ADConvertTimeUnix2Nt(current_tv.tv_sec,
-                             &u64current_NTtime);
 
-        qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-            (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+            if (pUser->userInfo.bPasswordNeverExpires ||
+                gpADProviderData->adMaxPwdAge == 0)
+            {
+                //password never expires
+                pUserInfo2->dwDaysToPasswordExpiry = 0LL;
+            }
+            else if (pUser->userInfo.bPasswordExpired)
+            {
+                //password is expired already
+                pUserInfo2->dwDaysToPasswordExpiry = 0LL;
+            }
+            else
+            {
+                pUserInfo2->dwDaysToPasswordExpiry = qwNanosecsToPasswordExpiry /
+                    (10000000LL * 24*60*60);
+            }
 
-        dwError = AD_UpdateUserObjectFlags(pUser);
-        BAIL_ON_LSA_ERROR(dwError);
+            if (gpADProviderData->adMaxPwdAge == 0)
+            {
+                pUserInfo2->bPasswordNeverExpires = TRUE;
+            }
+            else
+            {
+                pUserInfo2->bPasswordNeverExpires = pUser->userInfo.bPasswordNeverExpires;
+            }
 
-        if (pUser->userInfo.bPasswordNeverExpires ||
-            gpADProviderData->adMaxPwdAge == 0)
-        {
-            //password never expires
-            pUserInfo2->dwDaysToPasswordExpiry = 0LL;
-        }
-        else if (pUser->userInfo.bPasswordExpired)
-        {
-            //password is expired already
-            pUserInfo2->dwDaysToPasswordExpiry = 0LL;
+            pUserInfo2->bPasswordExpired = pUser->userInfo.bPasswordExpired;
+            pUserInfo2->bPromptPasswordChange = pUser->userInfo.bPromptPasswordChange;
+            pUserInfo2->bUserCanChangePassword = pUser->userInfo.bUserCanChangePassword;
+            pUserInfo2->bAccountDisabled = pUser->userInfo.bAccountDisabled;
+            pUserInfo2->bAccountExpired = pUser->userInfo.bAccountExpired;
+            pUserInfo2->bAccountLocked = pUser->userInfo.bAccountLocked;
         }
         else
         {
-            pUserInfo2->dwDaysToPasswordExpiry = qwNanosecsToPasswordExpiry /
-                (10000000LL * 24*60*60);
+            pUserInfo2->dwDaysToPasswordExpiry = 0LL;
+            pUserInfo2->bPasswordExpired = FALSE;
+            pUserInfo2->bPasswordNeverExpires = TRUE;
+            pUserInfo2->bPromptPasswordChange = FALSE;
+            pUserInfo2->bUserCanChangePassword = FALSE;
+            pUserInfo2->bAccountDisabled = FALSE;
+            pUserInfo2->bAccountExpired = FALSE;
+            pUserInfo2->bAccountLocked = FALSE;
         }
-        pUserInfo2->bPasswordExpired = pUser->userInfo.bPasswordExpired;
-        pUserInfo2->bPasswordNeverExpires = pUser->userInfo.bPasswordNeverExpires;
-        pUserInfo2->bPromptPasswordChange = pUser->userInfo.bPromptPasswordChange;
-        pUserInfo2->bUserCanChangePassword = pUser->userInfo.bUserCanChangePassword;
-        pUserInfo2->bAccountDisabled = pUser->userInfo.bAccountDisabled;
-        pUserInfo2->bAccountExpired = pUser->userInfo.bAccountExpired;
-        pUserInfo2->bAccountLocked = pUser->userInfo.bAccountLocked;
     }
 
     *ppUserInfo = pUserInfo;

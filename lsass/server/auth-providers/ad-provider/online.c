@@ -4074,21 +4074,25 @@ AD_UpdateUserObjectFlags(
     if (pUser->userInfo.bIsAccountInfoKnown)
     {
         if (pUser->userInfo.qwAccountExpires != 0LL &&
-                pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
-                u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+            pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
+            u64current_NTtime >= pUser->userInfo.qwAccountExpires)
         {
             pUser->userInfo.bAccountExpired = TRUE;
         }
 
-        qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-               (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-
-        if (!pUser->userInfo.bPasswordNeverExpires &&
-               gpADProviderData->adMaxPwdAge != 0 &&
-               qwNanosecsToPasswordExpiry < 0)
+        if (gpADProviderData->adMaxPwdAge != 0)
         {
-            //password is expired already
-            pUser->userInfo.bPasswordExpired = TRUE;
+            qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
+                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+
+            if ((!pUser->userInfo.bPasswordNeverExpires &&
+                 gpADProviderData->adMaxPwdAge != 0 &&
+                 qwNanosecsToPasswordExpiry < 0) ||
+                pUser->userInfo.qwPwdLastSet == 0)
+            {
+                //password is expired already
+                pUser->userInfo.bPasswordExpired = TRUE;
+            }
         }
     }
 
