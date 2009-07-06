@@ -6,7 +6,7 @@ export BUILD_ROOT
 umask 022
 
 PKG="lsass"
-COMPONENTS="libtdb sqlite pstore lsass lwdns"
+COMPONENTS="libtdb pstore lsass lwdns"
 
 for comp in ${COMPONENTS}; do
     echo "Populating files from $comp..."
