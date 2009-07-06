@@ -37,69 +37,12 @@
 #ifndef _DSR_UTIL_H_
 #define _DSR_UTIL_H_
 
-#include <lw/ntstatus.h>
-#include <lwrpc/winerror.h>
-#include <compat/rpcstatus.h>
-
-
-#define BAIL_ON_WINERR_ERROR(err)             \
-    if ((err) != ERROR_SUCCESS) {             \
-        err = (err);                          \
-        goto error;                           \
-    }
-
-#define BAIL_ON_NTSTATUS_ERROR(status)       \
-    if ((status) != STATUS_SUCCESS) {        \
-        status = (status);                   \
-        goto error;                          \
-    }
-
-#define BAIL_ON_RPCSTATUS_ERROR(st)           \
-    if ((st) != RPC_S_OK) {                   \
-        rpcstatus = (st);                     \
-        goto error;                           \
-    }
-
-#define BAIL_ON_NO_MEMORY(ptr)                \
-    if ((ptr) == NULL) {                      \
-        status = STATUS_NO_MEMORY;            \
-        goto error;                           \
-    }
-
-#define BAIL_ON_NO_MEMORY_RPCSTATUS(ptr)         \
-    if ((ptr) == NULL) {                         \
-        rpcstatus = RPC_S_OUT_OF_MEMORY;         \
-        goto error;                              \
-    }
-
-#define BAIL_ON_NULL_PARAM(p)                    \
-    if ((p) == NULL) {                           \
-        status = STATUS_INVALID_PARAMETER;       \
-        goto cleanup;                            \
-    }
 
 #define BAIL_ON_NULL_PARAM_RPCSTATUS(p)          \
     if ((p) == NULL) {                           \
         rpcstatus = RPC_S_INVALID_ARG;           \
         goto cleanup;                            \
     }
-
-#define DCERPC_CALL(fn_call)                     \
-    do {                                         \
-        dcethread_exc *dceexc;                   \
-                                                 \
-        DCETHREAD_TRY                            \
-        {                                        \
-            dceexc = NULL;                       \
-            err = fn_call;                       \
-        }                                        \
-        DCETHREAD_CATCH_ALL(dceexc)              \
-        {                                        \
-            status = LwRpcStatusToNtStatus(dceexc->match.value); \
-        }                                        \
-        DCETHREAD_ENDTRY;                        \
-    } while (0);
-
 
 #endif /* _DSR_UTIL_H_ */
 

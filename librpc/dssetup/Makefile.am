@@ -5,7 +5,6 @@ idl_srcdir=$(top_srcdir)/Idl
 lib_LTLIBRARIES = libdssetup_cs.la libdssetup.la
 
 libdssetup_la_SOURCES = \
-    globals.c \
     dsr_rolegetprimarydomaininfo.c \
     dsr_memory.c \
     dsr_stubmemory.c \
