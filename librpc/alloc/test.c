@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@ MU_TEST(Alloc, basic)
 {
     void* mem = talloc(NULL, 123, NULL);
     unsigned long addr = (unsigned long) mem;
-   
+
     MU_ASSERT(addr % 8 == 0);
 
     memset(mem, 0xFF, 123);
@@ -89,7 +89,7 @@ build_and_destroy_tree_mod(void* parent, int size, void (*destruct) (void*), int
         for (i = 0; i < ply; i++)
         {
             children[i] = tdup(parent, parent, size, destruct);
-            
+
             build_and_destroy_tree_mod(children[i], size, destruct, ply, depth-1, level_mod, child_mod);
         }
 
@@ -141,7 +141,7 @@ MU_TEST(Alloc, unlink_children)
     int freed = 0;
     int** parent = talloc(NULL, sizeof(int*), count_destruct);
     int** child = talloc(parent, sizeof(int*), count_destruct);
-    
+
     *parent = *child = &freed;
 
     tunlink_children(parent);
@@ -151,17 +151,17 @@ MU_TEST(Alloc, unlink_children)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, freed, 1);
 
     tfree(child);
-    
+
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, freed, 2);
 }
-    
+
 MU_TEST(Alloc, link)
 {
     int freed = 0;
 
     int** parent = talloc(NULL, sizeof(int*), count_destruct);
     int** child = talloc(NULL, sizeof(int*), count_destruct);
-    
+
     *parent = *child = &freed;
 
     tlink(parent, child);

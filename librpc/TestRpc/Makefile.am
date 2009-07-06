@@ -1,6 +1,6 @@
 librpc_srcdir=$(top_srcdir)
 libsamr_builddir=$(top_srcdir)/Samr
-liballoc_builddir=$(top_srcdir)/Alloc
+liballoc_builddir=$(top_srcdir)/alloc
 libmsrpc_builddir=$(top_srcdir)/MsRpc
 liblsa_builddir=$(top_srcdir)/lsa
 libnetlogon_builddir=$(top_srcdir)/Netlogon

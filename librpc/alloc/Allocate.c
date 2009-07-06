@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -68,7 +68,7 @@ LinkRemove(Link* link)
 {
     Link* prev = link->prev;
     Link* next = link->next;
-   
+
     link->prev->next = next;
     link->next->prev = prev;
 
@@ -85,7 +85,7 @@ talloc (void* ctx, size_t size, void (*destruct)(void*))
 {
     size_t gapsize = ALIGNMENT_GAP;
     size_t addedsize = size + sizeof(MemHeader) + gapsize;
-    
+
     MemHeader* context = ctx ? MEM_HEADER(ctx) : NULL;
     MemHeader* obj = malloc(addedsize);
 
@@ -103,7 +103,7 @@ talloc (void* ctx, size_t size, void (*destruct)(void*))
 
     if (context)
     {
-        LinkAppend(&context->child, &obj->sibling);      
+        LinkAppend(&context->child, &obj->sibling);
     }
 
     return MEM_CONTENT(obj);
@@ -145,7 +145,7 @@ void
 tfree_children(void* obj)
 {
     MemHeader* hdr = MEM_HEADER(obj);
-    
+
     while (hdr->child.next != &hdr->child)
         tfree(MEM_CONTENT(LINK_STRUCT(hdr->child.next, MemHeader, sibling)));
 }

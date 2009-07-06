@@ -40,7 +40,7 @@ libnetlogon_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libnetlogon_la_LIBADD = \
     -ldcerpc -lunistr -lsecdesc \
     $(top_builddir)/MsRpc/libmsrpc.la \
-    $(top_builddir)/Alloc/liballoc.la \
+    $(top_builddir)/alloc/liballoc.la \
     $(top_builddir)/Error/liberror.la \
     libnetlogon_cs.la
 

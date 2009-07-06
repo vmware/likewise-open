@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS=foreign
 SUBDIRS = \
     Include \
-    Alloc \
+    alloc \
     Error \
     MsRpc \
     Samr \
