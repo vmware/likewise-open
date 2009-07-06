@@ -369,18 +369,24 @@ LWNetSrvGetDCTime(
     dwError = LWNetSrvGetDomainController(pszDomainFQDN, &pszDC);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetCLdapOpenDirectory(pszDC, &hDirectory);
+    dwError = LwCLdapOpenDirectory(pszDC, &hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapBindDirectoryAnonymous(hDirectory);
+    dwError = LwLdapBindDirectoryAnonymous(hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapDirectorySearchEx(hDirectory, "", LDAP_SCOPE_BASE,
-                                         "(objectclass=*)", ppszAttributeList,
-                                         0, &pMessage);
+    dwError = LwLdapDirectorySearchEx(
+                    hDirectory,
+                    "",
+                    LDAP_SCOPE_BASE,
+                    "(objectclass=*)",
+                    ppszAttributeList,
+                    NULL,
+                    0,
+                    &pMessage);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapGetString(hDirectory, pMessage, "currentTime",
+    dwError = LwLdapGetString(hDirectory, pMessage, "currentTime",
                                  &pszDCTime);
     BAIL_ON_LWNET_ERROR(dwError);
     
@@ -434,7 +440,7 @@ error:
 
     if (hDirectory)
     {
-        LWNetLdapCloseDirectory(hDirectory);
+        LwLdapCloseDirectory(hDirectory);
     }
 
     if (pMessage)
