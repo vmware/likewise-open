@@ -76,7 +76,7 @@ LwKrb5GetTgt(
                     &pszUPN);
     BAIL_ON_LW_ERROR(dwError);
 
-    if ((pszRealmIdx = index(pszUPN, '@')) == NULL) {
+    if ((pszRealmIdx = strchr(pszUPN, '@')) == NULL) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
