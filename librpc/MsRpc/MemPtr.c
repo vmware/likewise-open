@@ -37,6 +37,7 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/allocate.h>
 
+#include "macros.h"
 
 /*
  * Status check macros
@@ -61,49 +62,15 @@
     }
 
 
-
-/*
- * Locking macros
- */
-
-#define PTR_LIST_LOCK(list)                         \
-    do {                                            \
-        int ret = 0;                                \
-        ret = pthread_mutex_lock(&(list)->mutex);   \
-        if (ret) {                                  \
-            status = STATUS_UNSUCCESSFUL;           \
-            goto error;                             \
-                                                    \
-        } else {                                    \
-            locked = 1;                             \
-        }                                           \
-    } while (0);
-
-
-#define PTR_LIST_UNLOCK(list)                       \
-    do {                                            \
-        int ret = 0;                                \
-        if (!locked) break;                         \
-        ret = pthread_mutex_unlock(&(list)->mutex); \
-        if (ret && status == STATUS_SUCCESS) {      \
-            status = STATUS_UNSUCCESSFUL;           \
-                                                    \
-        } else {                                    \
-            locked = 0;                             \
-        }                                           \
-    } while (0);
-
-
-
 static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    BOOLEAN bLocked = FALSE;
 
     goto_if_invalid_param_ntstatus(list, error);
     goto_if_invalid_param_ntstatus(node, error);
 
-    PTR_LIST_LOCK(list);
+    LIBRPC_LOCK_MUTEX(bLocked, &list->mutex);
 
     node->next = node->prev = NULL;
 
@@ -120,7 +87,7 @@ static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
     list->count++;
 
 done:
-    PTR_LIST_UNLOCK(list); 
+    LIBRPC_UNLOCK_MUTEX(bLocked, &list->mutex);
     return status;
 
 error:
@@ -281,11 +248,11 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
-    int locked = 0;
+    BOOLEAN bLocked = FALSE;
 
     goto_if_invalid_param_ntstatus(ptr, error);
 
-    PTR_LIST_LOCK(list);
+    LIBRPC_LOCK_MUTEX(bLocked, &list->mutex);
 
     /* Free the pointer and all pointers (nodes) depending on it */
     node = list->head;
@@ -309,7 +276,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     }
 
 done:
-    PTR_LIST_UNLOCK(list);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &list->mutex);
     return status;
 
 error:
