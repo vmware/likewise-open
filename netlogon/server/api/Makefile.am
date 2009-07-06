@@ -1,4 +1,3 @@
-
 noinst_LTLIBRARIES = liblwnetserverapi.la
 
 liblwnetserverapi_la_CPPFLAGS = \
@@ -21,12 +20,11 @@ liblwnetserverapi_la_SOURCES = \
        state.c
 
 liblwnetserverapi_la_LIBADD = \
-		@LIBUNISTR_LIBS@      \
-		@SQLITE_LIBS@         \
-		@PSTORE_LIBS@         \
-		$(LWADVAPI_LIBS)      \
-		@PTHREAD_LIBS@        \
-		@top_builddir@/server/ipc/liblwnetserveripc.la
+	@LIBUNISTR_LIBS@      \
+	@SQLITE_LIBS@         \
+	@PSTORE_LIBS@         \
+	$(LWADVAPI_LIBS)      \
+	@PTHREAD_LIBS@
 
 liblwnetserverapi_la_LDFLAGS = \
         @LIBUNISTR_LDFLAGS@    \
