@@ -30,33 +30,45 @@
 
 #include "includes.h"
 
-void
-FreeUnicodeStringContents(UnicodeStringEx *pStr)
+VOID
+FreeUnicodeStringContents(
+    UnicodeStringEx *pStr
+    )
 {
-    if (pStr->string != NULL)
-    {
-        rpc_ss_client_free(pStr->string);
-        pStr->string = NULL;
-        pStr->len = 0;
-        pStr->size = 0;
+    if (pStr->string == NULL) {
+        return;
     }
+
+    rpc_ss_client_free(pStr->string);
+    pStr->string = NULL;
+    pStr->len = 0;
+    pStr->size = 0;
+
+    return;
 }
 
-void
-FreeRidWithAttributeArrayContents(RidWithAttributeArray *pArr)
+VOID
+FreeRidWithAttributeArrayContents(
+    RidWithAttributeArray *pArr
+    )
 {
-    if (pArr->rids != NULL)
-    {
-        rpc_ss_client_free(pArr->rids);
-        pArr->rids = NULL;
-        pArr->count = 0;
+    if (pArr->rids == NULL) {
+        return;
     }
+
+    rpc_ss_client_free(pArr->rids);
+    pArr->rids = NULL;
+    pArr->count = 0;
+
+    return;
 }
 
-void
-FreeNetrSamBaseInfoContents(NetrSamBaseInfo *pBase)
+VOID
+FreeNetrSamBaseInfoContents(
+    NetrSamBaseInfo *pBase
+    )
 {
-    UnicodeStringEx *ppStrings[] = {
+    UnicodeStringEx *pStringArray[] = {
         &pBase->account_name,
         &pBase->full_name,
         &pBase->logon_script,
@@ -68,24 +80,31 @@ FreeNetrSamBaseInfoContents(NetrSamBaseInfo *pBase)
     };
     int i;
 
-    for (i = 0; i < sizeof(ppStrings)/sizeof(ppStrings[0]); i++)
+    for (i = 0; i < sizeof(pStringArray)/sizeof(pStringArray[0]); i++)
     {
-        FreeUnicodeStringContents(ppStrings[i]);
+        FreeUnicodeStringContents(pStringArray[i]);
     }
 
     FreeRidWithAttributeArrayContents(&pBase->groups);
 
-    if (pBase->domain_sid != NULL)
-    {
-        rpc_ss_client_free(pBase->domain_sid);
-        pBase->domain_sid = NULL;
+    if (pBase->domain_sid == NULL) {
+        return;
     }
+
+    rpc_ss_client_free(pBase->domain_sid);
+    pBase->domain_sid = NULL;
+
+    return;
 }
 
-void
-FreeSidAttrArray(NetrSidAttr *pSids, size_t sCount)
+VOID
+FreeSidAttrArray(
+    NetrSidAttr *pSids,
+    size_t sCount
+    )
 {
     size_t sIndex;
+
     if (pSids == NULL)
     {
         return;
@@ -101,33 +120,54 @@ FreeSidAttrArray(NetrSidAttr *pSids, size_t sCount)
     rpc_ss_client_free(pSids);
 }
 
-void
-FreeNetrSamInfo3Contents(NetrSamInfo3 *pInfo)
+VOID
+FreeNetrSamInfo3Contents(
+    NetrSamInfo3 *pInfo
+    )
 {
     FreeNetrSamBaseInfoContents(&pInfo->base);
-    if (pInfo->sids != NULL)
-    {
-        FreeSidAttrArray(pInfo->sids, pInfo->sidcount);
-        pInfo->sids = NULL;
-        pInfo->sidcount = 0;
+
+    if (pInfo->sids == NULL) {
+        return;
     }
+
+    FreeSidAttrArray(pInfo->sids, pInfo->sidcount);
+    pInfo->sids = NULL;
+    pInfo->sidcount = 0;
+
+    return;
 }
 
-void
+VOID
 FreePacLogonInfo(
     PAC_LOGON_INFO *pInfo)
 {
-    if (pInfo != NULL)
-    {
-        FreeNetrSamInfo3Contents(&pInfo->info3);
-        if (pInfo->res_group_dom_sid != NULL)
-        {
-            rpc_ss_client_free(pInfo->res_group_dom_sid);
-        }
-        FreeRidWithAttributeArrayContents(&pInfo->res_groups);
-        rpc_ss_client_free(pInfo);
+    if (pInfo == NULL) {
+        return;
     }
+
+    FreeNetrSamInfo3Contents(&pInfo->info3);
+
+    if (pInfo->res_group_dom_sid != NULL)
+    {
+        rpc_ss_client_free(pInfo->res_group_dom_sid);
+    }
+
+    FreeRidWithAttributeArrayContents(&pInfo->res_groups);
+    rpc_ss_client_free(pInfo);
+
+    return;
 }
+
+#ifdef BAIL_ON_ERR_STATUS
+#undef BAIL_ON_ERR_STATUS
+#endif
+
+#define BAIL_ON_ERR_STATUS(err)                 \
+    if ((err) != error_status_ok) {             \
+        goto error;                             \
+    }
+
 
 error_status_t
 DecodePacLogonInfo(
@@ -145,29 +185,18 @@ DecodePacLogonInfo(
             sBufferLen,
             &decodingHandle,
             &status);
-    if (status != error_status_ok)
-    {
-        goto error;
-    }
+    BAIL_ON_ERR_STATUS(status);
+
 
     idl_es_set_attrs(decodingHandle, IDL_ES_MIDL_COMPAT, &status);
-    if (status != error_status_ok)
-    {
-        goto error;
-    }
+    BAIL_ON_ERR_STATUS(status);
 
     PAC_LOGON_INFO_Decode(decodingHandle, &pLogonInfo);
-    if (status != error_status_ok)
-    {
-        goto error;
-    }
+    BAIL_ON_ERR_STATUS(status);
 
     idl_es_handle_free(&decodingHandle, &status);
     decodingHandle = NULL;
-    if (status != error_status_ok)
-    {
-        goto error;
-    }
+    BAIL_ON_ERR_STATUS(status);
 
     *ppLogonInfo = pLogonInfo;
 
@@ -186,3 +215,14 @@ error:
     }
     goto cleanup;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
