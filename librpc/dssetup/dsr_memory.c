@@ -211,9 +211,9 @@ error:
 
 NTSTATUS
 DsrAllocateDsRoleInfo(
-    PDS_ROLE_INFO *ppOut,
-    PDS_ROLE_INFO pIn,
-    UINT16 uiLevel
+    OUT PDS_ROLE_INFO *ppOut,
+    IN  PDS_ROLE_INFO pIn,
+    IN  UINT16 uiLevel
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
