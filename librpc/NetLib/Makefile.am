@@ -47,6 +47,9 @@ libnetapi_la_LIBADD = \
 	$(top_builddir)/Netlogon/libnetlogon.la \
 	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Mpr/libmpr.la \
+	$(top_builddir)/Error/liberror.la \
+	$(top_builddir)/Krb5Pac/libkrb5pac.la \
+	$(top_builddir)/dssetup/libdssetup.la \
 	@LWBASE_LIBS@
 
 if HAVE_LIBTDB

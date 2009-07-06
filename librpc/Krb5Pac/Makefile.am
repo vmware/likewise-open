@@ -1,7 +1,7 @@
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libkrb5pac.la
+noinst_LTLIBRARIES = libkrb5pac.la
 
 libkrb5pac_la_SOURCES = \
 	krb5pac_cstub.c \
@@ -15,7 +15,7 @@ FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libkrb5pac_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libkrb5pac_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-libkrb5pac_la_LIBADD=-ldcerpc -lunistr $(top_builddir)/MsRpc/libmsrpc.la
+libkrb5pac_la_LIBADD=-ldcerpc -lunistr
 
 BUILT_SOURCES = krb5pac_h.h
 include_HEADERS = krb5pac_h.h

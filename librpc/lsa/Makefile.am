@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = liblsa_cs.la liblsa.la
+noinst_LTLIBRARIES = liblsa_cs.la liblsa.la
 
 liblsa_la_SOURCES = \
     LsaBinding.c \
@@ -33,8 +33,7 @@ liblsa_cs_la_CFLAGS = \
 liblsa_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 liblsa_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 liblsa_la_LIBADD= \
-    -ldcerpc -lunistr -lsecdesc \
-    $(top_builddir)/MsRpc/libmsrpc.la \
+    -ldcerpc -lunistr -llwbase \
     liblsa_cs.la
 
 CLEANFILES = lsa_h.h lsa_cstub.c lsa_sstub.c

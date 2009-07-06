@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
 LIBRPC_INCDIR = $(librpc_srcdir)/Include
 
-lib_LTLIBRARIES = libmsrpc.la
+noinst_LTLIBRARIES = libmsrpc.la
 
 libmsrpc_la_SOURCES = \
 	UnicodeString.c \

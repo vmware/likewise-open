@@ -122,29 +122,13 @@ AC_ARG_WITH(
 	]
 )
 
-AC_ARG_WITH(
-	keytab-dir,
-	[  --with-secdesc-dir=<prefix>     look for secdesc headers/libraries in <prefix>],
-	[
-	    SECDESC_INCLUDES="-I$withval/include"
-	    SECDESC_LDFLAGS="-L$withval/lib"
-	]
-)
-
-AC_ARG_WITH(
-	secdesc-libdir,
-	[  --with-secdesc-libdir=<prefix>  look for keytab libraries in <libdir>],
-	[
-	    SECDESC_LDFLAGS="-L$withval"	]
-)
-
 # lwbase
 
 AC_ARG_WITH([lwbase],
         [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])],
         [
 		LWBASE_INCLUDES="-I$withval/include"
-        LWBASE_LDFLAGS="-L$withval/lib"
+		LWBASE_LDFLAGS="-L$withval/lib"
         ])
 
 AC_ARG_WITH([lwbase-includes],
@@ -160,12 +144,10 @@ AC_ARG_WITH([lwbase-libs],
         ])
 
 AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
-AC_CHECK_LIB([lwbase_nothr], [LwRtlMemoryAllocate], [LWBASE_NOTHR_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase_nothr])], [$LWBASE_LDFLAGS])
 AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
 
 AC_SUBST(LWBASE_INCLUDES)
 AC_SUBST(LWBASE_LDFLAGS)
-AC_SUBST(LWBASE_NOTHR_LIBS)
 AC_SUBST(LWBASE_LIBS)
 
 AC_SUBST(DCERPC_INCLUDES)
@@ -181,8 +163,6 @@ AC_SUBST(LWNET_INCLUDES)
 AC_SUBST(LWNET_LDFLAGS)
 AC_SUBST(KEYTAB_INCLUDES)
 AC_SUBST(KEYTAB_LDFLAGS)
-AC_SUBST(SECDESC_INCLUDES)
-AC_SUBST(SECDESC_LDFLAGS)
 
 for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do
     j=`echo $i | grep '^-I'`
@@ -216,11 +196,6 @@ CPPFLAGS="$CPPFLAGS $DCERPC_INCLUDES" \
 LDFLAGS="$LDFLAGS $DCERPC_LDFLAGS" \
 AC_CHECK_LIB(dcerpc, rpc__init, [],
      AC_MSG_ERROR([DCERPC library not found]))
-
-CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
-LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \
-AC_CHECK_LIB(lwnetutils, LWNetFreeMemory, [],
-     AC_MSG_ERROR([Netlogon daemon utils library not found]))
 
 CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
 LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \

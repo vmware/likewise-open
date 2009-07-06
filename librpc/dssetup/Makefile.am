@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libdssetup_cs.la libdssetup.la
+noinst_LTLIBRARIES = libdssetup_cs.la libdssetup.la
 
 libdssetup_la_SOURCES = \
     dsr_rolegetprimarydomaininfo.c \
@@ -26,8 +26,7 @@ libdssetup_cs_la_CFLAGS = \
 libdssetup_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libdssetup_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libdssetup_la_LIBADD= \
-    -ldcerpc -lunistr -lsecdesc \
-    $(top_builddir)/MsRpc/libmsrpc.la \
+    -ldcerpc -lunistr -llwbase \
     libdssetup_cs.la
 
 CLEANFILES = dssetup_h.h dssetup_cstub.c dssetup_sstub.c

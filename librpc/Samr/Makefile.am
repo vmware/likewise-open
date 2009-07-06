@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
 idl_srcdir=$(top_srcdir)/Idl
 
-lib_LTLIBRARIES = libsamr_cs.la libsamr.la
+noinst_LTLIBRARIES = libsamr_cs.la libsamr.la
 
 libsamr_la_SOURCES = \
     globals.c \
@@ -62,8 +62,7 @@ libsamr_cs_la_CFLAGS = \
 libsamr_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libsamr_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libsamr_la_LIBADD = \
-    -ldcerpc -lunistr -lsecdesc \
-    $(top_builddir)/MsRpc/libmsrpc.la \
+    -ldcerpc -lunistr -llwbase \
     libsamr_cs.la
 
 CLEANFILES = samr_h.h samr_cstub.c samr_sstub.c
