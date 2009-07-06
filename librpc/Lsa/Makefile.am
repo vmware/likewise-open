@@ -5,7 +5,6 @@ idl_srcdir=$(top_srcdir)/Idl
 lib_LTLIBRARIES = liblsa_cs.la liblsa.la
 
 liblsa_la_SOURCES = \
-    globals.c \
     LsaBinding.c \
     LsaMemory.c \
     LsaStubMemory.c \

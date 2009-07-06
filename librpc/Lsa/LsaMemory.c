@@ -36,6 +36,14 @@
 
 #include "includes.h"
 
+/* File globals */
+
+static PVOID pLsaMemoryList = NULL;
+static pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALIZER;
+static BOOLEAN bLsaInitialised = 0;
+
+
+/* Code */
 
 NTSTATUS
 LsaRpcInitMemory(

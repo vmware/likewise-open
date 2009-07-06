@@ -63,8 +63,6 @@
 #include "LsaStubMemory.h"
 #include "lsa_h.h"
 
-#include "externs.h"
-
 
 /*
 local variables:
