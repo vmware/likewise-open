@@ -2580,6 +2580,7 @@ AD_OnlineEnumGroups(
     DWORD dwInfoCount = 0;
     BOOLEAN bIsEnumerationEnabled = TRUE;
     LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
+    DWORD dwTotalCount = 0;
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
@@ -2612,7 +2613,15 @@ AD_OnlineEnumGroups(
                         ppObjects[dwInfoCount],
                         !pEnumState->bCheckGroupMembersOnline, //if Do not bCheckGroupMembersOnline, then bIsCacheOnlyMode == TRUE
                         pEnumState->dwInfoLevel,
-                        &ppInfoList[dwInfoCount]);
+                        &ppInfoList[dwTotalCount]);
+        if (!dwError)
+        {
+            dwTotalCount++;
+        }
+        else if (LSA_ERROR_OBJECT_NOT_ENABLED == dwError)
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
 
         ADCacheSafeFreeObject(&ppObjects[dwInfoCount]);
@@ -2621,7 +2630,7 @@ AD_OnlineEnumGroups(
 cleanup:
     ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
-    *pdwGroupsFound = dwInfoCount;
+    *pdwGroupsFound = dwTotalCount;
     *pppGroupInfoList = ppInfoList;
 
     return dwError;
