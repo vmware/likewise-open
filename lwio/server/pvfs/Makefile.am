@@ -1,5 +1,12 @@
-
+if ENABLE_STATIC_DRIVERS
+noinst_LTLIBRARIES = libpvfs.sys.la
+DRIVER_CFLAGS =
+DRIVER_LDFLAGS =
+else
 lib_LTLIBRARIES = libpvfs.sys.la
+DRIVER_CFLAGS = -shared
+DRIVER_LDFLAGS = -module -shared -avoid-version
+endif
 
 libpvfs_sys_la_SOURCES = \
     globals.c \
@@ -64,13 +71,13 @@ libpvfs_sys_la_CPPFLAGS = \
     -D_FILE_OFFSET_BITS=64 \
     -DLW_ENABLE_THREADS=1
 
+libpvfs_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+
 libpvfs_sys_la_LIBADD = \
-    @top_builddir@/utils/liblwioutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
     @XATTR_LIBS@
 
-libpvfs_sys_la_LDFLAGS = \
-    -module -avoid-version -export-dynamic
+libpvfs_sys_la_LDFLAGS = $(DRIVER_LDFLAGS)
 

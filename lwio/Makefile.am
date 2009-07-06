@@ -5,7 +5,6 @@ SUBDIRS = \
     etc          \
     utils        \
     logging_r    \
-    smbkrb5      \
     ipc          \
     client       \
     libshareinfo \

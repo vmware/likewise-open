@@ -1,6 +1,18 @@
-lib_LTLIBRARIES = liblwiosmbwire.la
+if ENABLE_STATIC_DRIVERS
+if ENABLE_RDR
+if !ENABLE_SRV
+noinst_LTLIBRARIES = liblwiosmbcommon.la
+else
+lib_LTLIBRARIES = liblwiosmbcommon.la
+endif
+else
+lib_LTLIBRARIES = liblwiosmbcommon.la
+endif
+else
+lib_LTLIBRARIES = liblwiosmbcommon.la
+endif
 
-liblwiosmbwire_la_SOURCES = \
+liblwiosmbcommon_la_SOURCES = \
     wire_close.c         \
     wire_create_dir.c    \
     wire_create_file.c   \
@@ -23,16 +35,16 @@ liblwiosmbwire_la_SOURCES = \
     wire_transaction.c   \
     wire_tree_connect.c  \
     wire_write.c         \
-    wire_writex.c
+    wire_writex.c        \
+    globals.c            \
+    smbkrb5.c
 
-liblwiosmbwire_la_CPPFLAGS =     \
+liblwiosmbcommon_la_CPPFLAGS =    \
     -DAPI                         \
-    -I@top_srcdir@                \
     -I@top_srcdir@/include        \
     -I@top_srcdir@/server/include
 
-liblwiosmbwire_la_LIBADD = \
-	@top_builddir@/smbkrb5/liblwiosmbkrb5.la \
-	@top_builddir@/utils/liblwioutils.la \
+liblwiosmbcommon_la_LIBADD = \
 	@CRYPTO_LIBS@ \
-	@SEM_LIBS@
+	@SEM_LIBS@ \
+	@KRB5_LIBS@

@@ -259,6 +259,51 @@ AC_SUBST(SQLITE_INCLUDES)
 AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
+AC_ARG_WITH([drivers], [AC_HELP_STRING([--with-drivers], [list of drivers to build (npfs pvfs srv rdr)])],
+		       [], [with_drivers="npfs pvfs srv rdr"])
+
+_IFS="${IFS}"
+IFS=" ,"
+for driver in $with_drivers
+do
+	eval "enable_${driver}=yes"
+done
+IFS="${_IFS}"
+
+AM_CONDITIONAL(ENABLE_RDR, test x"$enable_rdr" = x"yes")
+if test x"$enable_rdr" = x"yes"
+then
+	AC_DEFINE([ENABLE_RDR], [], [Define if rdr driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_SRV, test x"$enable_srv" = x"yes")
+if test x"$enable_srv" = x"yes"
+then
+	AC_DEFINE([ENABLE_SRV], [], [Define if srv driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_PVFS, test x"$enable_pvfs" = x"yes")
+if test x"$enable_pvfs" = x"yes"
+then
+	AC_DEFINE([ENABLE_PVFS], [], [Define if pvfs driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_NPFS, test x"$enable_npfs" = x"yes")
+if test x"$enable_npfs" = x"yes"
+then
+	AC_DEFINE([ENABLE_NPFS], [], [Define if npfs driver should be built])
+fi
+
+# Boolean settings
+
+AC_ARG_ENABLE([static-drivers], [AC_HELP_STRING([--enable-static-drivers], [build drivers directly into lwiod])])
+AM_CONDITIONAL(ENABLE_STATIC_DRIVERS, test x"$enable_static_drivers" = x"yes")
+if test x"$enable_static_drivers" = x"yes"
+then
+	AC_DEFINE([ENABLE_STATIC_DRIVERS], [], [Define if drivers should be built directly into lwiod])
+fi
+
+
 #####
 ## Unit tests
 #####
@@ -556,11 +601,10 @@ AC_CONFIG_FILES([Makefile
         logging_r/Makefile
         ipc/Makefile
         ipc/test/Makefile
-        smbkrb5/Makefile
         client/Makefile
         server/Makefile
         server/rdr/Makefile
-        server/smbwire/Makefile
+        server/smbcommon/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
         server/srv/utils/Makefile

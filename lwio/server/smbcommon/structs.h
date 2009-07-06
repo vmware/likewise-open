@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,8 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#ifndef __SMBCOMMON_STRUCTS_H__
+#define __SMBCOMMON_STRUCTS_H__
 
 
 /*

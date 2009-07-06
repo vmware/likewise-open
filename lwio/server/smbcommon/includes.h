@@ -38,15 +38,23 @@
 
 #include "lwiodef.h"
 #include "lwioutils.h"
-#include "smbkrb5.h"
 
 #include <lw/ntstatus.h>
 
 #include "marshal.h"
 #include "smbwire.h"
+#include "smbkrb5.h"
 
 #include "wire_structs.h"
 #include "wire_negotiate.h"
 #include "wire_session_setup.h"
 #include "wire_tree_connect.h"
 
+#include <krb5.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
+
+#include "defs.h"
+#include "structs.h"
+#include "externs.h"

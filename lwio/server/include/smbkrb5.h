@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,10 +28,67 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
+#ifndef __SMBKRB5_H__
+#define __SMBKRB5_H__
 
-extern PCSTR   gpszKrb5CachePath;
-extern BOOLEAN gbKrb5Initialized;
+DWORD
+SMBKrb5Init(
+    PCSTR pszHostname,
+    PCSTR pszDomain
+    );
 
-#endif /* __EXTERNS_H__ */
+DWORD
+SMBKrb5SetDefaultCachePath(
+    PCSTR pszCachePath,
+    PSTR* ppszOrigCachePath
+    );
+
+DWORD
+SMBGSSContextBuild(
+    PCSTR     pszServerName,
+    PHANDLE   phSMBGSSContext
+    );
+
+BOOLEAN
+SMBGSSContextNegotiateComplete(
+    HANDLE hSMBGSSContext
+    );
+
+DWORD
+SMBGSSContextNegotiate(
+    HANDLE hSMBGSSContext,
+    PBYTE  pSecurityInputBlob,
+    DWORD  dwSecurityInputBlobLength,
+    PBYTE* ppSecurityBlob,
+    PDWORD pdwSecurityBlobLength
+    );
+
+DWORD
+SMBGSSContextGetSessionKey(
+    HANDLE hSMBGSSContext,
+    PBYTE* ppSessionKey,
+    PDWORD pdwSessionKeyLength
+    );
+
+VOID
+SMBGSSContextFree(
+    HANDLE hSMBGSSContext
+    );
+
+DWORD
+SMBKrb5Shutdown(
+    VOID
+    );
+
+NTSTATUS
+SMBCredTokenToKrb5CredCache(
+    PIO_ACCESS_TOKEN pCredToken,
+    PSTR* ppszCachePath
+    );
+
+DWORD
+SMBKrb5DestroyCache(
+    PCSTR pszCachePath
+    );
+
+#endif /* __SMBKRB5_H__ */

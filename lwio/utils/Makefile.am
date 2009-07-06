@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = liblwioutils.la
+noinst_LTLIBRARIES = liblwioutils.la
 
 liblwioutils_la_SOURCES = \
     assert.c      \

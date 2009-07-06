@@ -43,7 +43,8 @@ IoCleanup(
 
 NTSTATUS
 IoInitialize(
-    IN PCSTR pszConfigFilePath
+    IN PCSTR pszConfigFilePath,
+    IN PIO_STATIC_DRIVER pStaticDrivers
     )
 {
     NTSTATUS status = 0;
@@ -54,7 +55,7 @@ IoInitialize(
 
     gpIoRoot = pRoot;
 
-    status = IopRootLoadDrivers(pRoot);
+    status = IopRootLoadDrivers(pRoot, pStaticDrivers);
     GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:

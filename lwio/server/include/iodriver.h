@@ -219,6 +219,12 @@ typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
     IN ULONG InterfaceVersion
     );
 
+typedef struct _IO_STATIC_DRIVER
+{
+    PCSTR pszName;
+    PIO_DRIVER_ENTRY pEntry;
+} IO_STATIC_DRIVER, *PIO_STATIC_DRIVER;
+
 #define IO_DRIVER_ENTRY_FUNCTION_NAME "DriverEntry"
 #define IO_DRIVER_ENTRY_INTERFACE_VERSION 1
 
@@ -408,6 +414,15 @@ IoSecurityCreateSecurityContextFromUsername(
 
 #define IO_LOG_LEAVE_STATUS_EE_EX(status, EE, Format, ...) \
     IO_LOG_LEAVE(Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE)
+
+#ifdef ENABLE_STATIC_DRIVERS
+#define IO_DRIVER_ENTRY(name) DriverEntry_##name
+#else
+#define IO_DRIVER_ENTRY(name) DriverEntry
+#endif
+
+#define IO_STATIC_DRIVER_ENTRY(name) {#name, IO_DRIVER_ENTRY(name)}
+#define IO_STATIC_DRIVER_END {NULL, NULL}
 
 #endif /* __IODRIVER_H__ */
 

@@ -81,7 +81,7 @@ SrvShutdown(
     );
 
 NTSTATUS
-DriverEntry(
+IO_DRIVER_ENTRY(srv)(
     IN IO_DRIVER_HANDLE hDriver,
     IN ULONG ulInterfaceVersion
     )

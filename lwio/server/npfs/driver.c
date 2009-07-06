@@ -145,7 +145,7 @@ cleanup:
 }
 
 NTSTATUS
-DriverEntry(
+IO_DRIVER_ENTRY(npfs)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
     )

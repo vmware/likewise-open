@@ -1,4 +1,12 @@
+if ENABLE_STATIC_DRIVERS
+noinst_LTLIBRARIES = libsrv.sys.la
+DRIVER_CFLAGS =
+DRIVER_LDFLAGS =
+else
 lib_LTLIBRARIES = libsrv.sys.la
+DRIVER_CFLAGS = -shared
+DRIVER_LDFLAGS = -module -shared -avoid-version
+endif
 
 libsrv_sys_la_SOURCES = \
     ccb.c          \
@@ -18,6 +26,8 @@ libsrv_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv/include
 
+libsrv_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+
 libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/protocols/api/libsrv.protocols.api.la \
     @top_builddir@/server/srv/transport/api/libsrv.transport.api.la \
@@ -26,10 +36,9 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/utils/libsrvutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/libshareinfo/liblwioshareinfo.la \
-    @top_builddir@/utils/liblwioutils.la \
     @KRB5_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 
-libsrv_sys_la_LDFLAGS = -module -avoid-version -export-dynamic
+libsrv_sys_la_LDFLAGS = $(DRIVER_LDFLAGS)
 
