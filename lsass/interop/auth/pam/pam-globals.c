@@ -60,8 +60,3 @@ struct pam_module _pam_lsass_modstruct {
 };
 #endif
 
-BOOLEAN gbLogInitialized = FALSE;
-
-DWORD   gdwLogLevel      = PAM_LOG_LEVEL_ERROR;
-
-

@@ -966,9 +966,7 @@ lwmsg_connection_begin_connect_local(
             status = LWMSG_STATUS_SUCCESS;
             break;
         case EINPROGRESS:
-            /* We are only supposed to BEGIN the operation, so
-               we don't return LWMSG_STATUS_PENDING */
-            status = LWMSG_STATUS_SUCCESS;
+            status = LWMSG_STATUS_PENDING;
             break;
         case ENOENT:
             status = LWMSG_STATUS_FILE_NOT_FOUND;

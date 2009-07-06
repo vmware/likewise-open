@@ -33,23 +33,21 @@
  *
  * Module Name:
  *
- *        lwnet-ldap_p.h
+ *        globals.c
  *
  * Abstract:
  *
- *        Likewise Site Manager
- *
- *        LDAP API (Private Header)
+ *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        
+ *        Global Variables in Join Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
- *
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LWNETLDAP_P_H__
-#define __LWNETLDAP_P_H__
 
-typedef struct _LWNET_LDAP_DIRECTORY_CONTEXT {
-    LDAP *ld;
-} LWNET_LDAP_DIRECTORY_CONTEXT, *PLWNET_LDAP_DIRECTORY_CONTEXT;
+#include "includes.h"
 
-#endif /* __LWNETLDAP_P_H__ */
+DWORD gdwClockDriftSecs = 60;
+
+
+LSA_KRB5_STATE gLwKrb5State;

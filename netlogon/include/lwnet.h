@@ -252,6 +252,11 @@ typedef struct _LWNET_DC_INFO
     LW_PSTR pszUserName;
 } LWNET_DC_INFO, *PLWNET_DC_INFO;
 
+typedef struct _LWNET_DC_ADDRESS {
+    LW_PSTR pszDomainControllerName;
+    LW_PSTR pszDomainControllerAddress;
+} LWNET_DC_ADDRESS, *PLWNET_DC_ADDRESS;
+
 LWNET_API
 LW_DWORD
 LWNetGetDCName(
@@ -272,6 +277,16 @@ LWNetGetDCNameWithBlacklist(
     LW_IN LW_DWORD dwBlackListCount,
     LW_IN LW_OPTIONAL LW_PSTR* ppszAddressBlackList,
     LW_OUT PLWNET_DC_INFO* ppDCInfo
+    );
+
+LWNET_API
+LW_DWORD
+LWNetGetDCList(
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_IN LW_PCSTR pszSiteName,
+    LW_IN LW_DWORD dwFlags,
+    LW_OUT PLWNET_DC_ADDRESS* ppDcList,
+    LW_OUT LW_PDWORD pdwDcCount
     );
 
 LWNET_API
@@ -304,6 +319,13 @@ LWNET_API
 LW_VOID
 LWNetFreeDCInfo(
     LW_IN LW_OUT PLWNET_DC_INFO pDCInfo
+    );
+
+LWNET_API
+LW_VOID
+LWNetFreeDCList(
+    LW_IN LW_OUT PLWNET_DC_ADDRESS pDcList,
+    LW_IN LW_DWORD dwDcCount
     );
 
 LWNET_API

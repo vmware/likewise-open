@@ -51,6 +51,8 @@
 #include "lwnet-def.h"
 
 #include <lwps/lwps.h>
+#include <lwldap.h>
+#include <lwerror.h>
 
 #include "lwnet.h"
 #include "lwnet-utils.h"
@@ -67,7 +69,6 @@
 #include "lwnet-cachedb.h"
 #include "lwnet-cachedb_p.h"
 #include "lwnet-krb5_p.h"
-#include "lwnet-ldap_p.h"
 #include "lwnet-pstore_p.h"
 #include "lwnet-server-cfg_p.h"
 #include "state_p.h"

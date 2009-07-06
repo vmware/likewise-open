@@ -62,7 +62,6 @@
 
 #include "pam-context.h"
 #include "pam-error.h"
-#include "pam-externs.h"
 #include "pam-passwd.h"
 #include "pam-session.h"
 #include "pam-conv.h"

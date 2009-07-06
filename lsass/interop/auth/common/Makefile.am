@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = liblsaauth.la
+noinst_LTLIBRARIES = liblsaauth.la
 
 liblsaauth_la_SOURCES = \
     globals.c    \

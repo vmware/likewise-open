@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libntlmcommon.la
+noinst_LTLIBRARIES = libntlmcommon.la
 
 libntlmcommon_la_SOURCES = \
        debug.c      \

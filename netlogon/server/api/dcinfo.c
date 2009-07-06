@@ -244,6 +244,66 @@ error:
     return dwError;
 }
 
+DWORD
+LWNetSrvGetDCList(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PLWNET_DC_ADDRESS* ppDcList,
+    OUT PDWORD pdwDcCount
+    )
+{
+    DWORD dwError = 0;
+    PDNS_SERVER_INFO pServerArray = NULL;
+    DWORD dwServerCount = 0;
+    PLWNET_DC_ADDRESS pDcList = NULL;
+    DWORD i = 0;
+
+    dwError = LWNetDnsSrvQuery(
+                    pszDnsDomainName,
+                    pszSiteName,
+                    dwDsFlags,
+                    &pServerArray,
+                    &dwServerCount);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateMemory(
+                    sizeof(pDcList[0]) * dwServerCount,
+                    (PVOID*)&pDcList);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    for (i = 0; i < dwServerCount; i++)
+    {
+        if (pServerArray[i].pszName)
+        {
+            dwError = LWNetAllocateString(pServerArray[i].pszName, &pDcList[i].pszDomainControllerName);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+        if (pServerArray[i].pszAddress)
+        {
+            dwError = LWNetAllocateString(pServerArray[i].pszAddress, &pDcList[i].pszDomainControllerAddress);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
+
+error:
+    if (dwError)
+    {
+        if (pDcList)
+        {
+            LWNetFreeDCList(pDcList, dwServerCount);
+            pDcList = NULL;
+        }
+        dwServerCount = 0;
+    }
+
+    LWNET_SAFE_FREE_MEMORY(pServerArray);
+
+    *ppDcList = pDcList;
+    *pdwDcCount = dwServerCount;
+
+    return dwError;
+}
 
 DWORD
 LWNetSrvGetDomainController(
@@ -309,18 +369,24 @@ LWNetSrvGetDCTime(
     dwError = LWNetSrvGetDomainController(pszDomainFQDN, &pszDC);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetCLdapOpenDirectory(pszDC, &hDirectory);
+    dwError = LwCLdapOpenDirectory(pszDC, &hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapBindDirectoryAnonymous(hDirectory);
+    dwError = LwLdapBindDirectoryAnonymous(hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapDirectorySearchEx(hDirectory, "", LDAP_SCOPE_BASE,
-                                         "(objectclass=*)", ppszAttributeList,
-                                         0, &pMessage);
+    dwError = LwLdapDirectorySearchEx(
+                    hDirectory,
+                    "",
+                    LDAP_SCOPE_BASE,
+                    "(objectclass=*)",
+                    ppszAttributeList,
+                    NULL,
+                    0,
+                    &pMessage);
     BAIL_ON_LWNET_ERROR(dwError);
     
-    dwError = LWNetLdapGetString(hDirectory, pMessage, "currentTime",
+    dwError = LwLdapGetString(hDirectory, pMessage, "currentTime",
                                  &pszDCTime);
     BAIL_ON_LWNET_ERROR(dwError);
     
@@ -374,7 +440,7 @@ error:
 
     if (hDirectory)
     {
-        LWNetLdapCloseDirectory(hDirectory);
+        LwLdapCloseDirectory(hDirectory);
     }
 
     if (pMessage)
