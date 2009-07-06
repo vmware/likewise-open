@@ -806,22 +806,38 @@ LwMapErrnoToLwError(
             return LW_ERROR_ERRNO_ENOMSG;
         case EIDRM:
             return LW_ERROR_ERRNO_EIDRM;
+#ifdef ECHRNG
         case ECHRNG:
             return LW_ERROR_ERRNO_ECHRNG;
+#endif
+#ifdef EL2NSYNC
         case EL2NSYNC:
             return LW_ERROR_ERRNO_EL2NSYNC;
+#endif
+#ifdef EL3HLT
         case EL3HLT:
             return LW_ERROR_ERRNO_EL3HLT;
+#endif
+#ifdef EL3RST
         case EL3RST:
             return LW_ERROR_ERRNO_EL3RST;
+#endif
+#ifdef ELNRNG
         case ELNRNG:
             return LW_ERROR_ERRNO_ELNRNG;
+#endif
+#ifdef EUNATCH
         case EUNATCH:
             return LW_ERROR_ERRNO_EUNATCH;
+#endif
+#ifdef ENOCSI
         case ENOCSI:
             return LW_ERROR_ERRNO_ENOCSI;
+#endif
+#ifdef EL2HLT
         case EL2HLT:
             return LW_ERROR_ERRNO_EL2HLT;
+#endif
 #ifdef EBADE
         case EBADE:
             return LW_ERROR_ERRNO_EBADE;
@@ -850,14 +866,22 @@ LwMapErrnoToLwError(
         case EBFONT:
             return LW_ERROR_ERRNO_EBFONT;
 #endif
+#ifdef ENOSTR
         case ENOSTR:
             return LW_ERROR_ERRNO_ENOSTR;
+#endif
+#ifdef ENODATA
         case ENODATA:
             return LW_ERROR_ERRNO_ENODATA;
+#endif
+#ifdef ETIME
         case ETIME:
             return LW_ERROR_ERRNO_ETIME;
+#endif
+#ifdef ENOSR
         case ENOSR:
             return LW_ERROR_ERRNO_ENOSR;
+#endif
 #ifdef ENONET
         case ENONET:
             return LW_ERROR_ERRNO_ENONET;
@@ -928,8 +952,10 @@ LwMapErrnoToLwError(
 #endif
         case EILSEQ:
             return LW_ERROR_ERRNO_EILSEQ;
+#ifdef ERESTART
         case ERESTART:
             return LW_ERROR_ERRNO_ERESTART;
+#endif
 #ifdef ESTRPIPE
         case ESTRPIPE:
             return LW_ERROR_ERRNO_ESTRPIPE;
