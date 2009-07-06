@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -32,48 +32,81 @@
 
 
 NTSTATUS
-LsaQueryInfoPolicy(
-    handle_t hBinding,
-    PolicyHandle *phPolicy,
-    UINT16 Level,
-    LsaPolicyInformation **ppInfo
+LsaLookupSids(
+    IN  handle_t hBinding,
+    IN  PolicyHandle *phPolicy,
+    IN  SidArray *pSids,
+    OUT RefDomainList **ppRefDomList,
+    OUT TranslatedName **ppTransNames,
+    IN  UINT16 Level,
+    IN OUT UINT32 *Count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LsaPolicyInformation *pInfo = NULL;
-    LsaPolicyInformation *pOutInfo = NULL;
-    
+    NTSTATUS ntRetStatus = STATUS_SUCCESS;
+    TranslatedNameArray NameArray = {0};
+    RefDomainList *pRefDomains = NULL;
+    TranslatedName *pOutNames = NULL;
+    RefDomainList *pOutDomains = NULL;
+
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
-    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
+    BAIL_ON_INVALID_PTR(pSids, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRefDomList, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTransNames, ntStatus);
+    BAIL_ON_INVALID_PTR(Count, ntStatus);
 
-    DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy(
+    /* windows allows Level to be in range 1-6 */
+
+    *Count = 0;
+
+    DCERPC_CALL(ntStatus, _LsaLookupSids(
                               hBinding,
                               phPolicy,
+                              pSids,
+                              &pRefDomains,
+                              &NameArray,
                               Level,
-                              &pInfo));
+                              Count));
+    ntRetStatus = ntStatus;
+
+    /* Status other than success doesn't have to mean failure here */
+    if (ntRetStatus != STATUS_SUCCESS &&
+        ntRetStatus != STATUS_SOME_UNMAPPED) goto error;
+
+    ntStatus = LsaAllocateTranslatedNames(&pOutNames, &NameArray);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LsaAllocatePolicyInformation(
-                   &pOutInfo,
-                   pInfo,
-                   Level);
+    ntStatus = LsaAllocateRefDomainList(&pOutDomains, pRefDomains);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppInfo = pOutInfo;
+    *ppTransNames = pOutNames;
+    *ppRefDomList = pOutDomains;
 
 cleanup:
-    /* Free pointers allocated by dcerpc stub */
-    if (pInfo) {
-        LsaFreeStubPolicyInformation(pInfo, Level);
+
+    /* Free pointers returned from stub */
+    if (pRefDomains) {
+        LsaFreeStubRefDomainList(pRefDomains);
+    }
+
+    LsaCleanStubTranslatedNameArray(&NameArray);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        (ntRetStatus == STATUS_SUCCESS ||
+         ntRetStatus == STATUS_SOME_UNMAPPED)) {
+        ntStatus = ntRetStatus;
     }
 
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutInfo);
+    LsaRpcFreeMemory((PVOID)pOutNames);
+    LsaRpcFreeMemory((PVOID)pOutDomains);
 
-    *ppInfo = NULL;
+    *ppTransNames = NULL;
+    *ppRefDomList = NULL;
+
     goto cleanup;
 }
 

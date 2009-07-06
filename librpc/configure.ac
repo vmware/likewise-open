@@ -271,7 +271,7 @@ AC_OUTPUT(Makefile
           Alloc/Makefile
           MsRpc/Makefile
           Samr/Makefile
-          Lsa/Makefile
+          lsa/Makefile
 	  Krb5Pac/Makefile
           NetLib/Makefile
           Mpr/Makefile

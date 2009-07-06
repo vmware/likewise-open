@@ -5,7 +5,7 @@ SUBDIRS = \
     Error \
     MsRpc \
     Samr \
-    Lsa \
+    lsa \
     Netlogon \
     dssetup \
     Mpr \
