@@ -59,7 +59,7 @@ InitLsaBindingDefault(
                     pszUuid,
                     pszOptions,
                     pIoAccessToken);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phBinding = hBinding;
 
@@ -127,31 +127,31 @@ InitLsaBindingFull(
         pbOpts,
         &pbBindingString,
         &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_from_string_binding(
         pbBindingString,
         &hBinding,
         &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_smb_transport_info_from_lwio_token(
         IoAccessToken,
         FALSE,
         &Info,
         &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_set_transport_info(
         hBinding,
         Info,
         &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     Info = NULL;
 
     rpc_mgmt_set_com_timeout(hBinding, 6, &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
     
     *phBinding = hBinding;
 
@@ -201,7 +201,7 @@ FreeLsaBinding(
     if (phBinding && *phBinding)
     {
 	    rpc_binding_free(phBinding, &rpcStatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
     }
 
 cleanup:

@@ -57,7 +57,8 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
 
-#include "LsaUtil.h"
+#include "macros.h"
+
 #include "LsaMemory.h"
 #include "LsaStubMemory.h"
 #include "lsa_h.h"
