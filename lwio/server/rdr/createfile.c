@@ -220,6 +220,12 @@ ParseSharePath(
     pszIndex = pszPath;
 
     // Skip optional initial decoration
+    if (!strncmp(pszIndex, "//", sizeof("//") - 1) ||
+        !strncmp(pszIndex, "\\\\", sizeof("\\\\") - 1))
+    {
+        pszIndex += 2;
+    }
+    else
     if (!strncmp(pszIndex, "/", sizeof("/") - 1) ||
         !strncmp(pszIndex, "\\", sizeof("\\") - 1))
     {
