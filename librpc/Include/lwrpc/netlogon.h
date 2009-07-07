@@ -44,206 +44,212 @@
 
 NTSTATUS
 NetrOpenSchannel(
-    handle_t binding_handle,
-    const wchar16_t * pwszMachineAccount,
-    const wchar16_t * pwszHostname,
-    const wchar16_t * pwszServer,
-    const wchar16_t * pwszDomain,
-    const wchar16_t * pwszComputer,
-    const wchar16_t * pwszMachinePassword,
-    NetrCredentials *Creds,
-    handle_t *schannel_binding
+    IN  handle_t          hNetrBinding,
+    IN  PCWSTR            pwszMachineAccount,
+    IN  PCWSTR            pwszHostname,
+    IN  PCWSTR            pwszServer,
+    IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszComputer,
+    IN  PCWSTR            pwszMachinePassword,
+    IN  NetrCredentials  *pCreds,
+    OUT handle_t         *phSchannelBinding
     );
 
 
-void
+VOID
 NetrCloseSchannel(
-    handle_t schannel_binding
+    IN  handle_t hSchannelBinding
     );
 
 
-int
+BOOLEAN
 NetrCredentialsCorrect(
-    NetrCredentials *creds,
-    uint8 srv_creds[8]
-);
+    IN  NetrCredentials  *pCreds,
+    IN  BYTE              SrvCreds[8]
+    );
 
 
 NTSTATUS
 NetrServerReqChallenge(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    const wchar16_t *computer,
-    uint8 cli_challenge[8],
-    uint8 srv_challenge[8]
+    IN  handle_t  hNetrBinding,
+    IN  PCWSTR    pwszServer,
+    IN  PCWSTR    pwszComputer,
+    IN  BYTE      CliChal[8],
+    IN  BYTE      SrvChal[8]
     );
 
 
 NTSTATUS
 NetrServerAuthenticate(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    const wchar16_t *account,
-    uint16 sec_chan_type,
-    const wchar16_t *computer,
-    uint8 cli_creds[8],
-    uint8 srv_creds[8]
+    IN  handle_t hNetrBinding,
+    IN  PCWSTR   pwszServer,
+    IN  PCWSTR   pwszAccount,
+    IN  UINT16   SchannelType,
+    IN  PCWSTR   pwszComputer,
+    IN  UINT8    CliCreds[8],
+    IN  UINT8    SrvCreds[8]
     );
 
 
 NTSTATUS
 NetrServerAuthenticate2(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    const wchar16_t *account,
-    uint16 sec_chan_type,
-    const wchar16_t *computer,
-    uint8 cli_credentials[8],
-    uint8 srv_credentials[8],
-    uint32 *neg_flags
+    IN  handle_t    hNetrBinding,
+    IN  PCWSTR      pwszServer,
+    IN  PCWSTR      pwszAccount,
+    IN  UINT16      SchannelType,
+    IN  PCWSTR      pwszComputer,
+    IN  BYTE        CliCreds[8],
+    IN  BYTE        SrvCreds[8],
+    IN OUT PUINT32  pNegFlags
     );
 
 
 NTSTATUS
 NetrServerAuthenticate3(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    const wchar16_t *account,
-    uint16 sec_chan_type,
-    const wchar16_t *computer,
-    uint8 cli_creds[8],
-    uint8 srv_creds[8],
-    uint32 *neg_flags,
-    uint32 *rid
+    IN  handle_t   hNetrBinding,
+    IN  PCWSTR     pwszServer,
+    IN  PCWSTR     pwszAccount,
+    IN  UINT16     SchannelType,
+    IN  PCWSTR     pwszComputer,
+    IN  BYTE       CliCreds[8],
+    IN  BYTE       SrvCreds[8],
+    IN OUT UINT32 *pNegFlags,
+    IN OUT UINT32 *pRid
     );
 
 
 NTSTATUS
 NetrGetDomainInfo(
-    handle_t schannel_binding,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *computer,
-    uint32 level,
-    NetrDomainQuery *query,
-    NetrDomainInfo **out_info
+    IN  handle_t          hNetrBinding,
+    IN  NetrCredentials  *pCreds,
+    IN  PCWSTR            pwszServer,
+    IN  PCWSTR            pwszComputer,
+    IN  UINT32            Level,
+    IN  NetrDomainQuery  *pQuery,
+    OUT NetrDomainInfo  **ppDomainInfo
     );
 
 
-NTSTATUS NetrSamLogonInteractive(
-    handle_t schannel_binding,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    const wchar16_t *password,
-    uint16 logon_level, uint16 validation_level,
-    NetrValidationInfo **out_info,
-    uint8 *out_authoritative
+NTSTATUS
+NetrSamLogonInteractive(
+    IN  handle_t              hNetrBinding,
+    IN  NetrCredentials      *pCreds,
+    IN  PCWSTR                pwszServer,
+    IN  PCWSTR                pwszDomain,
+    IN  PCWSTR                pwszComputer,
+    IN  PCWSTR                pwszUsername,
+    IN  PCWSTR                pwszPassword,
+    IN  UINT16                LogonLevel,
+    IN  UINT16                ValidationLevel,
+    OUT NetrValidationInfo  **ppValidationInfo,
+    OUT PBYTE                 pAuthoritative
     );
 
-NTSTATUS NetrSamLogonNetwork(
-    handle_t schannel_binding,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    uint8 * challenge,
-    uint8 * lm_resp,
-    uint32 lm_resp_len,
-    uint8 * nt_resp,
-    uint32 nt_resp_len,
-    uint16 logon_level,
-    uint16 validation_level,
-    NetrValidationInfo **out_info,
-    uint8 *out_authoritative
+
+NTSTATUS
+NetrSamLogonNetwork(
+    IN  handle_t               hNetrBinding,
+    IN  NetrCredentials       *pCreds,
+    IN  PCWSTR                 pwszServer,
+    IN  PCWSTR                 pwszDomain,
+    IN  PCWSTR                 pwszComputer,
+    IN  PCWSTR                 pwszUsername,
+    IN  PBYTE                  pChallenge,
+    IN  PBYTE                  pLmResp,
+    IN  UINT32                 LmRespLen,
+    IN  PBYTE                  pNtResp,
+    IN  UINT32                 NtRespLen,
+    IN  UINT16                 LogonLevel,
+    IN  UINT16                 ValidationLevel,
+    OUT NetrValidationInfo   **ppValidationInfo,
+    OUT PBYTE                  pAuthoritative
     );
+
 
 NTSTATUS
 NetrSamLogoff(
-    handle_t schannel_binding,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    const wchar16_t *password,
-    uint32 logon_level
+    IN  handle_t          hNetrBinding,
+    IN  NetrCredentials  *pCreds,
+    IN  PCWSTR            pwszServer,
+    IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszComputer,
+    IN  PCWSTR            pwszUsername,
+    IN  PCWSTR            pwszPassword,
+    IN  UINT32            LogonLevel
     );
 
 
-NTSTATUS NetrSamLogonEx(
-    handle_t schannel_binding,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    const wchar16_t *password,
-    uint16 logon_level,
-    uint16 validation_level,
-    NetrValidationInfo **info,
-    uint8 *authoritative
+NTSTATUS
+NetrSamLogonEx(
+    IN  handle_t              hNetrBinding,
+    IN  PCWSTR                pwszServer,
+    IN  PCWSTR                pwszDomain,
+    IN  PCWSTR                pwszComputer,
+    IN  PCWSTR                pwszUsername,
+    IN  PCWSTR                pwszPassword,
+    IN  UINT16                LogonLevel,
+    IN  UINT16                ValidationLevel,
+    OUT NetrValidationInfo  **ppValidationInfo,
+    OUT PBYTE                 pAuthoritative
     );
 
 
 NTSTATUS
 NetrEnumerateTrustedDomainsEx(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    NetrDomainTrust **trusts,
-    uint32 *count
+    IN  handle_t          hNetrBinding,
+    IN  PCWSTR            pwszServerName,
+    OUT NetrDomainTrust **ppTrusts,
+    OUT PUINT32           pCount
     );
 
 
 WINERR
 DsrEnumerateDomainTrusts(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    uint32 flags,
-    NetrDomainTrust **trusts,
-    uint32 *count
+    IN  handle_t           hNetrBinding,
+    IN  PCWSTR             pwszServer,
+    IN  UINT32             Flags,
+    OUT NetrDomainTrust  **ppTrusts,
+    OUT PUINT32            pCount
     );
 
 
 WINERR
 DsrGetDcName(
-    handle_t binding_handle,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const Guid *domain_guid,
-    const Guid *site_guid,
-    uint32 get_dc_flags,
-    DsrDcNameInfo **out_info
+    IN  handle_t hNetrBinding,
+    IN  PCWSTR pwszServerName,
+    IN  PCWSTR pwszDomainName,
+    IN  const Guid *pDomainGuid,
+    IN  const Guid *pSiteGuid,
+    IN  UINT32 GetDcFlags,
+    OUT DsrDcNameInfo **ppInfo
     );
 
 
-void
+VOID
 NetrCredentialsInit(
-    NetrCredentials *creds,
-    uint8 cli_chal[8],
-    uint8 srv_chal[8],
-    uint8 pass_hash[16],
-    uint32 neg_flags
+    OUT NetrCredentials *pCreds,
+    IN  BYTE             CliChal[8],
+    IN  BYTE             SrvChal[8],
+    IN  BYTE             PassHash[16],
+    IN  UINT32           NegFlags
     );
 
 
 NTSTATUS
 NetrInitMemory(
-    void
+    VOID
     );
 
 
 NTSTATUS
 NetrDestroyMemory(
-    void
+    VOID
     );
 
 
 NTSTATUS
 NetrFreeMemory(
-    void *ptr
+    IN  PVOID pBuffer
     );
 
 
