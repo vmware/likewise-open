@@ -98,11 +98,11 @@ NetUserGetLocalGroups(
     sid_ptr.sid = user_sid;
     sids.sids = &sid_ptr;
 
-    status = SamrGetAliasMembership(samr_b, &domain_h, user_sid, 1,
+    status = SamrGetAliasMembership(samr_b, &domain_h, &user_sid, 1,
                                     &user_rids, &rids_count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrGetAliasMembership(samr_b, &btin_domain_h, user_sid, 1,
+    status = SamrGetAliasMembership(samr_b, &btin_domain_h, &user_sid, 1,
                                     &btin_user_rids, &btin_rids_count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
