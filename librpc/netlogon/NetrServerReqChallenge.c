@@ -1,6 +1,5 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,65 +27,61 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
 #include "includes.h"
 
 
-WINERR
-DsrEnumerateDomainTrusts(
-    IN  handle_t           hNetrBinding,
-    IN  PCWSTR             pwszServer,
-    IN  UINT32             Flags,
-    OUT NetrDomainTrust  **ppTrusts,
-    OUT PUINT32            pCount
+NTSTATUS
+NetrServerReqChallenge(
+    IN  handle_t  hNetrBinding,
+    IN  PCWSTR    pwszServer,
+    IN  PCWSTR    pwszComputer,
+    IN  BYTE      CliChal[8],
+    IN  BYTE      SrvChal[8]
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
+    NetrCred Creds;
     PWSTR pwszServerName = NULL;
-    NetrDomainTrustList TrustList;
-    NetrDomainTrust *pTrusts = NULL;
+    PWSTR pwszComputerName = NULL;
 
-    memset((void*)&TrustList, 0, sizeof(TrustList));
+    memset((void*)&Creds, 0, sizeof(Creds));
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
-    BAIL_ON_INVALID_PTR(ppTrusts, ntStatus);
-    BAIL_ON_INVALID_PTR(pCount, ntStatus);
-    
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(CliChal, ntStatus);
+    BAIL_ON_INVALID_PTR(SrvChal, ntStatus);
+
+    memcpy(Creds.data, CliChal, sizeof(Creds.data));
+
     pwszServerName = wc16sdup(pwszServer);
     BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
 
-    DCERPC_CALL(err, _DsrEnumerateDomainTrusts(hNetrBinding,
-                                               pwszServerName,
-                                               Flags,
-                                               &TrustList));
-    BAIL_ON_WINERR(err);
+    pwszComputerName = wc16sdup(pwszComputer);
+    BAIL_ON_NULL_PTR(pwszComputerName, ntStatus);
 
-    ntStatus = NetrAllocateDomainTrusts(&pTrusts,
-                                        &TrustList);
+    DCERPC_CALL(ntStatus, _NetrServerReqChallenge(hNetrBinding,
+                                                  pwszServerName,
+                                                  pwszComputerName,
+                                                  &Creds));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *pCount   = TrustList.count;
-    *ppTrusts = pTrusts;
+    memcpy(SrvChal, Creds.data, sizeof(Creds.data));
 
 cleanup:
+    memset(&Creds, 0, sizeof(Creds));
+
     SAFE_FREE(pwszServerName);
-    NetrCleanStubDomainTrustList(&TrustList);
+    SAFE_FREE(pwszComputerName);
 
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(ntStatus);
-    }
-
-    return err;
+    return ntStatus;
 
 error:
-    if (pTrusts) {
-        NetrFreeMemory((void*)pTrusts);
-    }
-
-    *pCount   = 0;
-    *ppTrusts = NULL;
+    memset(SrvChal, 0, sizeof(Creds.data));
 
     goto cleanup;
 }

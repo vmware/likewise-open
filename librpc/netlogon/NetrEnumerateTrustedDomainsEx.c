@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -31,15 +31,55 @@
 #include "includes.h"
 
 
-/* This is a pointer to list of allocated pointers.
-   The list enables freeing a pointer and dependant pointers */
-void *gNetrMemoryList = NULL;
+NTSTATUS
+NetrEnumerateTrustedDomainsEx(
+    IN  handle_t          hNetrBinding,
+    IN  PCWSTR            pwszServerName,
+    OUT NetrDomainTrust **ppTrusts,
+    OUT PUINT32           pCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszName = NULL;
+    NetrDomainTrustList TrustList = {0};
+    NetrDomainTrust *pTrusts = NULL;
 
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServerName, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTrusts, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-/* Library initialisation guard */
-pthread_mutex_t gNetrDataMutex = PTHREAD_MUTEX_INITIALIZER;
+    pwszName = wc16sdup(pwszServerName);
+    BAIL_ON_NULL_PTR(pwszName, ntStatus);
 
-BOOLEAN bInitialised = FALSE;
+    DCERPC_CALL(ntStatus, _NetrEnumerateTrustedDomainsEx(hNetrBinding,
+                                                         pwszName,
+                                                         &TrustList));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pCount  = TrustList.count;
+
+    ntStatus = NetrAllocateDomainTrusts(&pTrusts,
+                                        &TrustList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppTrusts = pTrusts;
+
+cleanup:
+    SAFE_FREE(pwszName);
+    NetrCleanStubDomainTrustList(&TrustList);
+
+    return ntStatus;
+
+error:
+    if (pTrusts) {
+        NetrFreeMemory((void*)pTrusts);
+    }
+
+    *ppTrusts = NULL;
+
+    goto cleanup;
+}
 
 
 /*

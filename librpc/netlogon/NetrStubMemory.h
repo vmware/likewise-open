@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,57 +28,43 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Netlogon interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef _NETR_STUB_MEMORY_H_
+#define _NETR_STUB_MEMORY_H_
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <iconv.h>
-#include <pthread.h>
 
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <dce/schannel.h>
-#include <wc16str.h>
-#include <wc16printf.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
+void
+NetrCleanStubDomainTrustList(
+    NetrDomainTrustList *r
+    );
 
-#include <lwrpc/types.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/errconv.h>
-#include <lwrpc/netrdefs.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/mpr.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/netlogonbinding.h>
-#include <lwrpc/netrdefs.h>
-#include <lwrpc/netlogon.h>
 
-#include <md4.h>
-#include <md5.h>
-#include <hmac_md5.h>
-#include <des.h>
-#include <crypto.h>
-#include <byteops.h>
-#include <random.h>
+void
+NetrCleanStubValidationInfo(
+    NetrValidationInfo *r,
+    uint16 level
+    );
 
-#include "NetrUtil.h"
-#include "NetrCredentials.h"
-#include "NetrMemory.h"
-#include "NetrStubMemory.h"
-#include "netlogon_h.h"
 
-#include "externs.h"
+void
+NetrCleanStubDomainInfo(
+    NetrDomainInfo *r,
+    uint16 level
+    );
+
+
+void
+NetrCleanStubDcNameInfo(
+    DsrDcNameInfo *r
+    );
+
+
+void
+NetrFreeStubDcNameInfo(
+    DsrDcNameInfo *ptr
+    );
+
+
+#endif /* _NETR_STUB_MEMORY_H */
 
 
 /*

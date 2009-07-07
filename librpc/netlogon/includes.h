@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,20 +28,57 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _EXTERNS_H_
-#define _EXTERNS_H_
+/*
+ * Abstract: Netlogon interface (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
 
-#include "includes.h"
+#include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+#include <ctype.h>
+#include <iconv.h>
+#include <pthread.h>
 
+#include <dce/rpc.h>
+#include <dce/smb.h>
+#include <DceSupport.h>
+#include <compat/rpcstatus.h>
+#include <dce/schannel.h>
+#include <wc16str.h>
+#include <wc16printf.h>
+#include <secdesc/secapi.h>
+#include <lw/ntstatus.h>
 
-extern void *gNetrMemoryList;
+#include <lwrpc/types.h>
+#include <lwrpc/winerror.h>
+#include <lwrpc/errconv.h>
+#include <lwrpc/netrdefs.h>
+#include <lwrpc/allocate.h>
+#include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
+#include <lwrpc/mpr.h>
+#include <lwrpc/unicodestring.h>
+#include <lwrpc/netlogonbinding.h>
+#include <lwrpc/netrdefs.h>
+#include <lwrpc/netlogon.h>
 
-extern pthread_mutex_t gNetrDataMutex;
+#include <md4.h>
+#include <md5.h>
+#include <hmac_md5.h>
+#include <des.h>
+#include <crypto.h>
+#include <byteops.h>
+#include <random.h>
 
-extern BOOLEAN bInitialised;
+#include "NetrUtil.h"
+#include "NetrCredentials.h"
+#include "NetrMemory.h"
+#include "NetrStubMemory.h"
+#include "netlogon_h.h"
 
-
-#endif /* _EXTERN_H_ */
+#include "externs.h"
 
 
 /*

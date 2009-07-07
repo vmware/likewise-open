@@ -6,7 +6,7 @@ SUBDIRS = \
     MsRpc \
     samr \
     lsa \
-    Netlogon \
+    netlogon \
     Mpr \
     Krb5Pac \
     dssetup \

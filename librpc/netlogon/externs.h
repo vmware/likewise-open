@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,43 +28,20 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _NETR_STUB_MEMORY_H_
-#define _NETR_STUB_MEMORY_H_
+#ifndef _EXTERNS_H_
+#define _EXTERNS_H_
+
+#include "includes.h"
 
 
-void
-NetrCleanStubDomainTrustList(
-    NetrDomainTrustList *r
-    );
+extern void *gNetrMemoryList;
+
+extern pthread_mutex_t gNetrDataMutex;
+
+extern BOOLEAN bInitialised;
 
 
-void
-NetrCleanStubValidationInfo(
-    NetrValidationInfo *r,
-    uint16 level
-    );
-
-
-void
-NetrCleanStubDomainInfo(
-    NetrDomainInfo *r,
-    uint16 level
-    );
-
-
-void
-NetrCleanStubDcNameInfo(
-    DsrDcNameInfo *r
-    );
-
-
-void
-NetrFreeStubDcNameInfo(
-    DsrDcNameInfo *ptr
-    );
-
-
-#endif /* _NETR_STUB_MEMORY_H */
+#endif /* _EXTERN_H_ */
 
 
 /*
