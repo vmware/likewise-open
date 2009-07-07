@@ -33,43 +33,49 @@
 
 NTSTATUS
 SamrQueryAliasInfo(
-    handle_t b,
-    PolicyHandle *alias_h,
-    uint16 level,
-    AliasInfo **info)
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phAlias,
+    IN  UINT16         Level,
+    OUT AliasInfo    **ppInfo
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    AliasInfo *i = NULL;
-    AliasInfo *out_info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    AliasInfo *pInfo = NULL;
+    AliasInfo *pOutInfo = NULL;
 
-    BAIL_ON_NO_MEMORY(b);
-    BAIL_ON_NO_MEMORY(alias_h);
-    BAIL_ON_NO_MEMORY(info);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    DCERPC_CALL(_SamrQueryAliasInfo(b, alias_h, level, &i));
+    DCERPC_CALL(ntStatus, _SamrQueryAliasInfo(hSamrBinding,
+                                              phAlias,
+                                              Level,
+                                              &pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    if (i) {
-        status = SamrAllocateAliasInfo(&out_info, i, level);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pInfo) {
+        ntStatus = SamrAllocateAliasInfo(&pOutInfo,
+                                         pInfo,
+                                         Level);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *info = out_info;
+    *ppInfo = pOutInfo;
 
 cleanup:
-    if (i) {
-        SamrFreeStubAliasInfo(i, level);
+    if (pInfo) {
+        SamrFreeStubAliasInfo(pInfo, Level);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_info) {
-        SamrFreeMemory((void*)out_info);
+    if (pOutInfo) {
+        SamrFreeMemory((void*)pOutInfo);
     }
 
-    *info = NULL;
+    *ppInfo = NULL;
+
     goto cleanup;
 }
 

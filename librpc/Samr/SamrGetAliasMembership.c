@@ -33,55 +33,57 @@
 
 NTSTATUS
 SamrGetAliasMembership(
-    handle_t b,
-    PolicyHandle *domain_h,
-    PSID sids,
-    uint32 num_sids,
-    uint32 **rids,
-    uint32 *count
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phDomain,
+    IN  PSID          *ppSids,
+    IN  UINT32         NumSids,
+    OUT UINT32       **ppRids,
+    OUT UINT32        *pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 i = 0;
-    SidArray s = {0};
-    Ids r = {0};
-    uint32 *out_rids = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 iSid = 0;
+    SidArray Sids = {0};
+    Ids Rids = {0};
+    UINT32 *pRids = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(sids);
-    BAIL_ON_INVALID_PTR(rids);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(ppSids, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    s.num_sids = num_sids;
-    status = SamrAllocateMemory((void**)&s.sids,
-                                sizeof(SidPtr) * num_sids,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    Sids.num_sids = NumSids;
+    ntStatus = SamrAllocateMemory((void**)&Sids.sids,
+                                  sizeof(SidPtr) * NumSids,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < num_sids; i++) {
-        s.sids[i].sid = &(sids[i]);
+    for (iSid = 0; iSid < NumSids; iSid++) {
+        Sids.sids[iSid].sid = ppSids[iSid];
     }
 
+    DCERPC_CALL(ntStatus, _SamrGetAliasMembership(hSamrBinding,
+                                                  phDomain,
+                                                  &Sids,
+                                                  &Rids));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrGetAliasMembership(b, domain_h, &s, &r));
+    ntStatus = SamrAllocateIds(&pRids, &Rids);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrAllocateIds(&out_rids, &r);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *rids  = out_rids;
-    *count = r.count;
+    *ppRids  = pRids;
+    *pCount  = Rids.count;
 
 cleanup:
-    SamrCleanStubIds(&r);
+    SamrCleanStubIds(&Rids);
 
-    return status;
+    return ntStatus;
 
 error:
-    *rids  = NULL;
-    *count = 0;
+    *ppRids  = NULL;
+    *pCount  = 0;
+
     goto cleanup;
 }
 

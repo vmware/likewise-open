@@ -33,29 +33,35 @@
 
 NTSTATUS
 SamrOpenAlias(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 access_mask,
-    uint32 rid,
-    PolicyHandle *alias_h)
+    IN  handle_t hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  UINT32 AccessMask,
+    IN  UINT32 Rid,
+    OUT PolicyHandle *phAlias
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PolicyHandle hAlias = {0};
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(alias_h);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
 
-    DCERPC_CALL(_SamrOpenAlias(b, domain_h, access_mask, rid, &h));
+    DCERPC_CALL(ntStatus, _SamrOpenAlias(hSamrBinding,
+                                         phDomain,
+                                         AccessMask,
+                                         Rid,
+                                         &hAlias));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *alias_h = h;
+    *phAlias = hAlias;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
+    memset(phAlias, 0, sizeof(*phAlias));
+
     goto cleanup;
 }
 

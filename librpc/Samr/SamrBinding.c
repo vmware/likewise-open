@@ -36,143 +36,154 @@
 
 #include "includes.h"
 
-#define BAIL_ON_NO_MEMORY_RPCSTATUS(p)     \
-    if ((p) == NULL) {                     \
-        rpcstatus = RPC_S_OUT_OF_MEMORY;   \
-        goto error;                        \
-    }
-
-#define BAIL_ON_INVALID_PTR_RPCSTATUS(p)   \
-    if ((p) == NULL) {                     \
-        rpcstatus = RPC_S_INVALID_ARG;     \
-        goto error;                        \
-    }
-
 
 RPCSTATUS
 InitSamrBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    handle_t         *phSamrBinding,
+    PCSTR             pszHostname,
+    PIO_ACCESS_TOKEN  pAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    char *prot_seq = (char*)SAMR_DEFAULT_PROT_SEQ;
-    char *endpoint = (char*)SAMR_DEFAULT_ENDPOINT;
-    char *uuid = NULL;
-    char *options = NULL;
-    handle_t b = NULL;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    PSTR pszProtSeq = (PSTR)SAMR_DEFAULT_PROT_SEQ;
+    PSTR pszEndpoint = (PSTR)SAMR_DEFAULT_ENDPOINT;
+    PSTR pszUuid = NULL;
+    PSTR pszOptions = NULL;
+    handle_t hSamrBinding = NULL;
 
-    rpcstatus = InitSamrBindingFull(&b, prot_seq, hostname, endpoint,
-                                    uuid, options, access_token);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpcStatus = InitSamrBindingFull(&hSamrBinding,
+                                    pszProtSeq,
+                                    pszHostname,
+                                    pszEndpoint,
+                                    pszUuid,
+                                    pszOptions,
+                                    pAccessToken);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    *binding = b;
+    *phSamrBinding = hSamrBinding;
 
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
-    *binding = NULL;
+    *phSamrBinding = NULL;
+
     goto cleanup;
 }
 
 
 RPCSTATUS
 InitSamrBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phSamrBinding,
+    PCSTR pszProtSeq,
+    PCSTR pszHostname,
+    PCSTR pszEndpoint,
+    PCSTR pszUuid,
+    PCSTR pszOptions,
+    PIO_ACCESS_TOKEN pAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
     RPCSTATUS st = RPC_S_OK;
     unsigned char *binding_string = NULL;
-    unsigned char *ps   = NULL;
-    unsigned char *ep   = NULL;
-    unsigned char *u    = NULL;
-    unsigned char *opts = NULL;
-    unsigned char *addr = NULL;
-    handle_t b = NULL;
+    unsigned char *prot_seq   = NULL;
+    unsigned char *endpoint   = NULL;
+    unsigned char *uuid       = NULL;
+    unsigned char *options    = NULL;
+    unsigned char *address    = NULL;
+    handle_t hSamrBinding = NULL;
     rpc_transport_info_handle_t info;
 
-    BAIL_ON_INVALID_PTR_RPCSTATUS(binding);
-    BAIL_ON_INVALID_PTR_RPCSTATUS(prot_seq);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(phSamrBinding, rpcStatus);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
 
-    ps = (unsigned char*) strdup(prot_seq);
-    BAIL_ON_NO_MEMORY_RPCSTATUS(ps);
+    prot_seq = (unsigned char*) strdup(pszProtSeq);
+    BAIL_ON_NO_MEMORY_RPCSTATUS(prot_seq, rpcStatus);
 
-    if (endpoint != NULL) {
-        ep = (unsigned char*) strdup(endpoint);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(ep);
+    if (pszEndpoint != NULL) {
+        endpoint = (unsigned char*) strdup(pszEndpoint);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(endpoint, rpcStatus);
     }
 
-    if (uuid != NULL) {
-        u = (unsigned char*) strdup(uuid);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(u);
+    if (pszUuid != NULL) {
+        uuid = (unsigned char*) strdup(pszUuid);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(uuid, rpcStatus);
     }
 
-    if (options != NULL) {
-        opts = (unsigned char*) strdup(options);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(opts);
+    if (pszOptions != NULL) {
+        options = (unsigned char*) strdup(pszOptions);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(options, rpcStatus);
     }
 
-    if (hostname != NULL) {
-        addr = (unsigned char*) strdup(hostname);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(addr);
+    if (pszHostname != NULL) {
+        address = (unsigned char*) strdup(pszHostname);
+        BAIL_ON_NO_MEMORY_RPCSTATUS(address, rpcStatus);
     }
 
-    rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
-                               &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_string_binding_compose(uuid,
+                               prot_seq,
+                               address,
+                               endpoint,
+                               options,
+                               &binding_string,
+                               &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_binding_from_string_binding(binding_string,
+                                    &hSamrBinding,
+                                    &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(access_token, FALSE, &info, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_smb_transport_info_from_lwio_token(pAccessToken,
+                                           FALSE,
+                                           &info,
+                                           &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    rpc_binding_set_transport_info(b, info, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_binding_set_transport_info(hSamrBinding,
+                                   info,
+                                   &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
 	info = NULL;
 
-    rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_mgmt_set_com_timeout(hSamrBinding,
+                             6,
+                             &rpcStatus);
+    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
 
-    *binding = b;
+    *phSamrBinding = hSamrBinding;
 
 cleanup:
-    SAFE_FREE(ps);
-    SAFE_FREE(ep);
-    SAFE_FREE(u);
-    SAFE_FREE(opts);
-    SAFE_FREE(addr);
-
-    if (binding_string) {
-        rpc_string_free(&binding_string, &st);
-    }
-
-    if (rpcstatus == RPC_S_OK &&
-        st != RPC_S_OK) {
-        rpcstatus = st;
-    }
+    SAFE_FREE(prot_seq);
+    SAFE_FREE(endpoint);
+    SAFE_FREE(uuid);
+    SAFE_FREE(options);
+    SAFE_FREE(address);
 
     if (info)
     {
         rpc_smb_transport_info_free(info);
     }
 
-    return rpcstatus;
+    if (binding_string)
+    {
+        rpc_string_free(&binding_string, &st);
+    }
+
+    if (rpcStatus == RPC_S_OK &&
+        st != RPC_S_OK) {
+        rpcStatus = st;
+    }
+
+    return rpcStatus;
 
 error:
-    if (b) {
-        rpc_binding_free(&b, &st);
+    if (hSamrBinding) {
+        rpc_binding_free(&hSamrBinding, &rpcStatus);
     }
+
+    *phSamrBinding = NULL;
 
     goto cleanup;
 }
@@ -180,19 +191,19 @@ error:
 
 RPCSTATUS
 FreeSamrBinding(
-    handle_t *binding
+    IN  handle_t *phSamrBinding
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
 
     /* Free the binding itself */
-    if (binding && *binding) {
-        rpc_binding_free(binding, &rpcstatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    if (phSamrBinding && *phSamrBinding) {
+        rpc_binding_free(phSamrBinding, &rpcStatus);
+        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
     }
 
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
     goto cleanup;

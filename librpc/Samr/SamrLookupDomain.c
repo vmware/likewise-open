@@ -33,50 +33,54 @@
 
 NTSTATUS
 SamrLookupDomain(
-    handle_t b,
-    PolicyHandle *conn_h,
-    const wchar16_t *dom_name,
-    PSID* sid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phConn,
+    IN  PCWSTR        pwszDomainName,
+    OUT PSID         *ppSid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString domname = {0};
-    PSID s = NULL;
-    PSID out_sid = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UnicodeString DomainName = {0};
+    PSID pSid = NULL;
+    PSID pRetSid = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(conn_h);
-    BAIL_ON_INVALID_PTR(dom_name);
-    BAIL_ON_INVALID_PTR(sid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phConn, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomainName, ntStatus);
+    BAIL_ON_INVALID_PTR(ppSid, ntStatus);
 
-    status = InitUnicodeString(&domname, dom_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&DomainName, pwszDomainName);
+    BAIL_ON_NT_STATUS(ntStatus);
 	
-    DCERPC_CALL(_SamrLookupDomain(b, conn_h, &domname, &s));
+    DCERPC_CALL(ntStatus, _SamrLookupDomain(hSamrBinding,
+                                            phConn,
+                                            &DomainName,
+                                            &pSid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    if (s) {
-        SamrAllocateDomSid(&out_sid, s, NULL);
+    if (pSid) {
+        ntStatus = SamrAllocateDomSid(&pRetSid, pSid, NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *sid = out_sid;
+    *ppSid = pRetSid;
 
 cleanup:
-    FreeUnicodeString(&domname);
+    FreeUnicodeString(&DomainName);
 
-    if (s) {
-        SamrFreeStubDomSid(s);
+    if (pSid) {
+        SamrFreeStubDomSid(pSid);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_sid) {
-        SamrFreeMemory((void*)out_sid);
+    if (pRetSid) {
+        SamrFreeMemory((void*)pRetSid);
     }
 
-    *sid = NULL;
+    *ppSid = NULL;
+
     goto cleanup;
 }
 

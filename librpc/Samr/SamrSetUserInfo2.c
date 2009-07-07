@@ -33,24 +33,26 @@
 
 NTSTATUS
 SamrSetUserInfo2(
-    handle_t b,
-    PolicyHandle *user_h,
-    uint16 level,
-    UserInfo *info
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phUser,
+    IN  UINT16        Level,
+    IN  UserInfo     *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_NO_MEMORY(b);
-    BAIL_ON_NO_MEMORY(user_h);
-    BAIL_ON_NO_MEMORY(info);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(pInfo, ntStatus);
 
-    DCERPC_CALL(_SamrSetUserInfo2(b, user_h, level, info));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrSetUserInfo2(hSamrBinding,
+                                            phUser,
+                                            Level,
+                                            pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

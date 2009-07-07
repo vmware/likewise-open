@@ -34,9 +34,9 @@
 #include "includes.h"
 
 
-extern void *samr_ptr_list;
+extern void *gSamrMemoryList;
 
-extern pthread_mutex_t g_samr_data_mutex;
+extern pthread_mutex_t gSamrDataMutex;
 
 extern int bSamrInitialised;
 

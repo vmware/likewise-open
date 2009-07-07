@@ -33,52 +33,62 @@
 
 NTSTATUS
 SamrConnect5(
-    handle_t b,
-    const wchar16_t *sysname,
-    uint32 access_mask,
-    uint32 level_in,
-    SamrConnectInfo *info_in,
-    uint32 *level_out,
-    SamrConnectInfo *info_out,
-    PolicyHandle *conn_handle
+    IN  handle_t         hSamrBinding,
+    IN  PCWSTR           pwszSysName,
+    IN  UINT32           AccessMask,
+    IN  UINT32           LevelIn,
+    IN  SamrConnectInfo *pInfoIn,
+    IN  PUINT32          pLevelOut,
+    OUT SamrConnectInfo *pInfoOut,
+    OUT PolicyHandle    *phConn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *system_name = NULL;
-    uint32 system_name_len = 0;
-    PolicyHandle handle;
-    uint32 level = 0;
-    SamrConnectInfo info;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszSystemName = NULL;
+    UINT32 SystemNameLen = 0;
+    PolicyHandle hConn = {0};
+    UINT32 Level = 0;
+    SamrConnectInfo Info;
 
-    memset(&handle, 0, sizeof(handle));
-    memset(&info, 0, sizeof(info));
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSysName, ntStatus);
+    BAIL_ON_INVALID_PTR(pInfoIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pLevelOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pInfoOut, ntStatus);
+    BAIL_ON_INVALID_PTR(phConn, ntStatus);
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(sysname);
-    BAIL_ON_INVALID_PTR(info_in);
-    BAIL_ON_INVALID_PTR(level_out);
-    BAIL_ON_INVALID_PTR(info_out);
-    BAIL_ON_INVALID_PTR(conn_handle);
+    memset(&Info, 0, sizeof(Info));
 
-    system_name = wc16sdup(sysname);
-    BAIL_ON_NO_MEMORY(system_name);
+    pwszSystemName = wc16sdup(pwszSysName);
+    BAIL_ON_NULL_PTR(pwszSystemName, ntStatus);
 
-    system_name_len = wc16slen(system_name) + 1;
+    SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;
 
-    DCERPC_CALL(_SamrConnect5(b, system_name_len, system_name, access_mask,
-			      level_in, info_in, &level, &info, &handle));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrConnect5(hSamrBinding,
+                                        SystemNameLen,
+                                        pwszSystemName,
+                                        AccessMask,
+                                        LevelIn,
+                                        pInfoIn,
+                                        &Level,
+                                        &Info,
+                                        &hConn));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *level_out   = level;
-    *info_out    = info;
-    *conn_handle = handle;
+    *pLevelOut = Level;
+    *pInfoOut  = Info;
+    *phConn    = hConn;
 
 cleanup:
-    SAFE_FREE(system_name);
+    SAFE_FREE(pwszSystemName);
 
-    return status;
+    return ntStatus;
 
 error:
+    memset(pInfoOut, 0, sizeof(*pInfoOut));
+    memset(phConn, 0, sizeof(*phConn));
+   *pLevelOut = 0;
+
     goto cleanup;
 }
 

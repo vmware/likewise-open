@@ -33,29 +33,35 @@
 
 NTSTATUS
 SamrOpenGroup(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 access_mask,
-    uint32 rid,
-    PolicyHandle *group_h)
+    IN  handle_t hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  UINT32 AccessMask,
+    IN  UINT32 Rid,
+    OUT PolicyHandle *phGroup
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PolicyHandle hGroup = {0};
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(group_h);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(phGroup, ntStatus);
 
-    DCERPC_CALL(_SamrOpenGroup(b, domain_h, access_mask, rid, &h));
+    DCERPC_CALL(ntStatus, _SamrOpenGroup(hSamrBinding,
+                                         phDomain,
+                                         AccessMask,
+                                         Rid,
+                                         &hGroup));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *group_h = h;
+    *phGroup = hGroup;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
+    memset(phGroup, 0, sizeof(*phGroup));
+
     goto cleanup;
 }
 

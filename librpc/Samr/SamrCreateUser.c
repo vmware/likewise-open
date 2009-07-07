@@ -33,37 +33,48 @@
 
 NTSTATUS
 SamrCreateUser(
-    handle_t b,
-    PolicyHandle *domain_h,
-    wchar16_t *account_name,
-    uint32 access_mask,
-    PolicyHandle *user_h,
-    uint32 *rid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  PWSTR         pwszAccountName,
+    IN  UINT32        AccessMask,
+    OUT PolicyHandle *phUser,
+    OUT PUINT32       pRid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString acct_name = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UnicodeString AccountName = {0};
+    PolicyHandle hUser = {0};
+    UINT32 Rid = 0;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(account_name);
-    BAIL_ON_INVALID_PTR(user_h);
-    BAIL_ON_INVALID_PTR(rid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccountName, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(pRid, ntStatus);
 
-    status = InitUnicodeString(&acct_name, account_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&AccountName, pwszAccountName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrCreateUser(b, domain_h, &acct_name,
-                                access_mask, user_h, rid));
+    DCERPC_CALL(ntStatus, _SamrCreateUser(hSamrBinding,
+                                          phDomain,
+                                          &AccountName,
+                                          AccessMask,
+                                          &hUser,
+                                          &Rid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    *phUser = hUser;
+    *pRid   = Rid;
 
 cleanup:
-    FreeUnicodeString(&acct_name);
+    FreeUnicodeString(&AccountName);
 
-    return status;
+    return ntStatus;
 
 error:
+    memset(phUser, 0, sizeof(*phUser));
+    *pRid = 0;
+
     goto cleanup;
 }
 

@@ -33,23 +33,24 @@
 
 NTSTATUS
 SamrDeleteAliasMember(
-    handle_t b,
-    PolicyHandle *alias_h,
-    PSID sid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phAlias,
+    IN  PSID          pSid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(alias_h);
-    BAIL_ON_INVALID_PTR(sid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(pSid, ntStatus);
 
-    DCERPC_CALL(_SamrDeleteAliasMember(b, alias_h, sid));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus,_SamrDeleteAliasMember(hSamrBinding,
+                                                phAlias,
+                                                pSid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

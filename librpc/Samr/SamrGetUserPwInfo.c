@@ -33,23 +33,24 @@
 
 NTSTATUS
 SamrGetUserPwInfo(
-    handle_t b,
-    PolicyHandle *user_h,
-    PwInfo *info
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phUser,
+    OUT PwInfo       *pInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(user_h);
-    BAIL_ON_INVALID_PTR(info);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(pInfo, ntStatus);
 
-    DCERPC_CALL(_SamrGetUserPwInfo(b, user_h, info));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrGetUserPwInfo(hSamrBinding,
+                                             phUser,
+                                             pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

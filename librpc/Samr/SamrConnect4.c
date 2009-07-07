@@ -33,43 +33,49 @@
 
 NTSTATUS
 SamrConnect4(
-    handle_t b,
-    const wchar16_t *sysname,
-    uint32 client_version,
-    uint32 access_mask,
-    PolicyHandle *conn_handle
+    IN  handle_t      hSamrBinding,
+    IN  PCWSTR        pwszSysName,
+    IN  UINT32        ClientVersion,
+    IN  UINT32        AccessMask,
+    OUT PolicyHandle *phConn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *system_name = NULL;
-    uint32 system_name_len = 0;
-    PolicyHandle handle = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszSystemName = NULL;
+    UINT32 SystemNameLen = 0;
+    PolicyHandle hConn = {0};
 
-    if (!client_version) {
-        client_version = SAMR_CONNECT_POST_WIN2K;
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSysName, ntStatus);
+    BAIL_ON_INVALID_PTR(phConn, ntStatus);
+
+    if (ClientVersion == 0) {
+        ClientVersion = SAMR_CONNECT_POST_WIN2K;
     }
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(sysname);
-    BAIL_ON_INVALID_PTR(conn_handle);
+    pwszSystemName = wc16sdup(pwszSysName);
+    BAIL_ON_NULL_PTR(pwszSystemName, ntStatus);
 
-    system_name = wc16sdup(sysname);
-    BAIL_ON_NO_MEMORY(system_name);
+    SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;
 
-    system_name_len = wc16slen(system_name) + 1;
+    DCERPC_CALL(ntStatus, _SamrConnect4(hSamrBinding,
+                                        SystemNameLen,
+                                        pwszSystemName,
+                                        ClientVersion,
+                                        AccessMask,
+                                        &hConn));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrConnect4(b, system_name_len, system_name, client_version,
-                              access_mask, &handle));
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *conn_handle = handle;
+    *phConn = hConn;
 
 cleanup:
-    SAFE_FREE(system_name);
+    SAFE_FREE(pwszSystemName);
 
-    return status;
+    return ntStatus;
 
 error:
+    memset(phConn, 0, sizeof(*phConn));
+
     goto cleanup;
 }
 

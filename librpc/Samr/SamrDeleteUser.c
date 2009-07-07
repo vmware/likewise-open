@@ -33,21 +33,21 @@
 
 NTSTATUS
 SamrDeleteUser(
-    handle_t b,
-    PolicyHandle *user_h
+    IN  handle_t hSamrBinding,
+    IN  PolicyHandle *phUser
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(user_h);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
 
-    DCERPC_CALL(_SamrDeleteUser(b, user_h));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrDeleteUser(hSamrBinding,
+                                          phUser));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

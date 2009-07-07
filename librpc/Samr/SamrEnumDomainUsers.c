@@ -33,79 +33,89 @@
 
 NTSTATUS
 SamrEnumDomainUsers(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 *resume,
-    uint32 account_flags,
-    uint32 max_size,
-    wchar16_t ***names,
-    uint32 **rids,
-    uint32 *count
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN OUT UINT32    *pResume,
+    IN  UINT32        AccountFlags,
+    IN  UINT32        MaxSize,
+    OUT PWSTR       **pppwszNames,
+    OUT UINT32      **ppRids,
+    OUT UINT32       *pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS ret_status = STATUS_SUCCESS;
-    uint32 num = 0;
-    uint32 r = 0;
-    RidNameArray *entries = NULL;
-    wchar16_t **out_names = NULL;
-    uint32 *out_rids = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntRetStatus = STATUS_SUCCESS;
+    UINT32 Count = 0;
+    UINT32 Resume = 0;
+    RidNameArray *pEntries = NULL;
+    PWSTR *ppwszNames = NULL;
+    UINT32 *pRids = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(resume);
-    BAIL_ON_INVALID_PTR(names);
-    BAIL_ON_INVALID_PTR(rids);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pResume, ntStatus);
+    BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    r = *resume;
+    Resume = *pResume;
 
-    DCERPC_CALL(_SamrEnumDomainUsers(b, domain_h, &r, account_flags,
-                                     max_size, &entries, &num));
+    DCERPC_CALL(ntStatus, _SamrEnumDomainUsers(hSamrBinding,
+                                               phDomain,
+                                               &Resume,
+                                               AccountFlags,
+                                               MaxSize,
+                                               &pEntries,
+                                               &Count));
 
     /* Preserve returned status code */
-    ret_status = status;
+    ntRetStatus = ntStatus;
 
     /* Status other than success doesn't have to mean failure here */
-    if (ret_status != STATUS_SUCCESS &&
-        ret_status != STATUS_MORE_ENTRIES) goto error;
-
-    if (entries) {
-        status = SamrAllocateNamesAndRids(&out_names, &out_rids, entries);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (ntStatus != STATUS_SUCCESS &&
+        ntStatus != STATUS_MORE_ENTRIES) {
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *resume = r;
-    *count  = num;
-    *names  = out_names;
-    *rids   = out_rids;
+    if (pEntries) {
+        ntStatus = SamrAllocateNamesAndRids(&ppwszNames,
+                                            &pRids,
+                                            pEntries);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pResume     = Resume;
+    *pCount      = Count;
+    *pppwszNames = ppwszNames;
+    *ppRids      = pRids;
 
 cleanup:
-    if (entries) {
-        SamrFreeStubRidNameArray(entries);
+    if (pEntries) {
+        SamrFreeStubRidNameArray(pEntries);
     }
 
-    if (status == STATUS_SUCCESS &&
-        (ret_status == STATUS_SUCCESS ||
-         ret_status == STATUS_MORE_ENTRIES)) {
-        status = ret_status;
+    if (ntStatus == STATUS_SUCCESS &&
+        (ntRetStatus == STATUS_SUCCESS ||
+         ntRetStatus == STATUS_MORE_ENTRIES)) {
+        ntStatus = ntRetStatus;
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_names) {
-        SamrFreeMemory((void*)out_names);
+    if (ppwszNames) {
+        SamrFreeMemory((void*)ppwszNames);
     }
 
-    if (out_rids) {
-        SamrFreeMemory((void*)out_rids);
+    if (pRids) {
+        SamrFreeMemory((void*)pRids);
     }
 
-    *resume = 0;
-    *count  = 0;
-    *names  = NULL;
-    *rids   = NULL;
+    *pResume     = 0;
+    *pCount      = 0;
+    *pppwszNames = NULL;
+    *ppRids      = NULL;
+
     goto cleanup;
 }
 

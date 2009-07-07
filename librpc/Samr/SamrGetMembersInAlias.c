@@ -33,43 +33,45 @@
 
 NTSTATUS
 SamrGetMembersInAlias(
-    handle_t b,
-    PolicyHandle *alias_h,
-    PSID** sids,
-    uint32 *count
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phAlias,
+    OUT PSID         **pppSids,
+    OUT UINT32        *pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    SidArray sid_array = {0};
-    PSID* out_sids = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SidArray Sids = {0};
+    PSID *ppSids = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(alias_h);
-    BAIL_ON_INVALID_PTR(sids);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(pppSids, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    DCERPC_CALL(_SamrGetMembersInAlias(b, alias_h, &sid_array));
+    DCERPC_CALL(ntStatus, _SamrGetMembersInAlias(hSamrBinding,
+                                                 phAlias,
+                                                 &Sids));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateSids(&ppSids, &Sids);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrAllocateSids(&out_sids, &sid_array);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *count = sid_array.num_sids;
-    *sids  = out_sids;
+    *pppSids = ppSids;
+    *pCount  = Sids.num_sids;
 
 cleanup:
-    SamrCleanStubSidArray(&sid_array);
+    SamrCleanStubSidArray(&Sids);
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_sids) {
-        SamrFreeMemory((void*)out_sids);
+    if (ppSids) {
+        SamrFreeMemory((void*)ppSids);
     }
 
-    *sids  = NULL;
-    *count = 0;
+    *pppSids = NULL;
+    *pCount  = 0;
+
     goto cleanup;
 }
 

@@ -33,44 +33,49 @@
 
 NTSTATUS
 SamrGetUserGroups(
-    handle_t b,
-    PolicyHandle *user_h,
-    uint32 **rids,
-    uint32 **attributes,
-    uint32 *count
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phUser,
+    OUT UINT32       **ppRids,
+    OUT UINT32       **ppAttributes,
+    OUT UINT32        *pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 *out_rids = NULL;
-    uint32 *out_attributes = NULL;
-    RidWithAttributeArray *r = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 *pRids = NULL;
+    UINT32 *pAttributes = NULL;
+    RidWithAttributeArray *pRidWithAttr = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(user_h);
-    BAIL_ON_INVALID_PTR(rids);
-    BAIL_ON_INVALID_PTR(attributes);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
+    BAIL_ON_INVALID_PTR(ppAttributes, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    DCERPC_CALL(_SamrGetUserGroups(b, user_h, &r));
+    DCERPC_CALL(ntStatus, _SamrGetUserGroups(hSamrBinding,
+                                             phUser,
+                                             &pRidWithAttr));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateRidsAndAttributes(&pRids,
+                                             &pAttributes,
+                                             pRidWithAttr);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrAllocateRidsAndAttributes(&out_rids, &out_attributes, r);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *rids       = out_rids;
-    *attributes = out_attributes;
-    *count      = r->count;
+    *ppRids       = pRids;
+    *ppAttributes = pAttributes;
+    *pCount       = pRidWithAttr->count;
 
 cleanup:
-    SamrFreeStubRidWithAttributeArray(r);
+    if (pRidWithAttr) {
+        SamrFreeStubRidWithAttributeArray(pRidWithAttr);
+    }
 
-    return status;
+    return ntStatus;
 
 error:
-    *rids       = NULL;
-    *attributes = NULL;
-    *count      = 0;
+    *ppRids       = NULL;
+    *ppAttributes = NULL;
+    *pCount       = 0;
 
     goto cleanup;
 }

@@ -33,30 +33,36 @@
 
 NTSTATUS
 SamrOpenDomain(
-    handle_t b,
-    PolicyHandle *conn_h,
-    uint32 access_mask,
-    PSID sid,
-    PolicyHandle *domain_h)
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phConn,
+    IN  UINT32        AccessMask,
+    IN  PSID          pSid,
+    OUT PolicyHandle *phDomain
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PolicyHandle h = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PolicyHandle hDomain = {0};
 
-    BAIL_ON_NO_MEMORY(b);
-    BAIL_ON_NO_MEMORY(conn_h);
-    BAIL_ON_NO_MEMORY(sid);
-    BAIL_ON_NO_MEMORY(domain_h);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phConn, ntStatus);
+    BAIL_ON_INVALID_PTR(pSid, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
 
-    DCERPC_CALL(_SamrOpenDomain(b, conn_h, access_mask, sid, &h));
-
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrOpenDomain(hSamrBinding,
+                                          phConn,
+                                          AccessMask,
+                                          pSid,
+                                          &hDomain));
+    BAIL_ON_NT_STATUS(ntStatus);
 	
-    *domain_h = h;
+    *phDomain = hDomain;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
+    memset(phDomain, 0, sizeof(*phDomain));
+
     goto cleanup;
 }
 

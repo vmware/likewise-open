@@ -33,48 +33,56 @@
 
 NTSTATUS
 SamrCreateUser2(
-    handle_t b,
-    PolicyHandle *domain_h,
-    wchar16_t *account_name,
-    uint32 account_flags,
-    uint32 account_mask,
-    PolicyHandle *account_h,
-    uint32 *out_access_granted,
-    uint32 *out_rid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  PWSTR         pwszAccountName,
+    IN  UINT32        AccountFlags,
+    IN  UINT32        AccessMask,
+    OUT PolicyHandle *phUser,
+    OUT PUINT32       pAccessGranted,
+    OUT PUINT32       pRid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeStringEx acct_name = {0};
-    uint32 access = 0;
-    uint32 rid = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UnicodeStringEx AccountName = {0};
+    PolicyHandle hUser = {0};
+    UINT32 AccessGranted = 0;
+    UINT32 Rid = 0;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(account_name);
-    BAIL_ON_INVALID_PTR(account_h);
-    BAIL_ON_INVALID_PTR(out_access_granted);
-    BAIL_ON_INVALID_PTR(out_rid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccountName, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(pAccessGranted, ntStatus);
+    BAIL_ON_INVALID_PTR(pRid, ntStatus);
 
-    status = InitUnicodeStringEx(&acct_name, account_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeStringEx(&AccountName, pwszAccountName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrCreateUser2(b, domain_h, &acct_name,
-                                 account_flags, account_mask,
-                                 account_h, &access, &rid));
+    DCERPC_CALL(ntStatus, _SamrCreateUser2(hSamrBinding,
+                                           phDomain,
+                                           &AccountName,
+                                           AccountFlags,
+                                           AccessMask,
+                                           &hUser,
+                                           &AccessGranted,
+                                           &Rid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *out_access_granted = access;
-    *out_rid            = rid;
+    *phUser         = hUser;
+    *pAccessGranted = AccessGranted;
+    *pRid           = Rid;
 
 cleanup:
-    FreeUnicodeStringEx(&acct_name);
+    FreeUnicodeStringEx(&AccountName);
 
-    return status;
+    return ntStatus;
 
 error:
-    *out_access_granted = 0;
-    *out_rid            = 0;
+    memset(phUser, 0, sizeof(*phUser));
+    *pAccessGranted = 0;
+    *pRid           = 0;
+
     goto cleanup;
 }
 

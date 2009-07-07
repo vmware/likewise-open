@@ -33,75 +33,80 @@
 
 NTSTATUS
 SamrLookupRids(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint32 num_rids,
-    uint32 *rids,
-    wchar16_t ***names,
-    uint32 **types
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  UINT32        NumRids,
+    IN  UINT32       *pRids,
+    OUT PWSTR       **pppwszNames,
+    OUT UINT32      **ppTypes
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 i = 0;
-    UnicodeStringArray n = {0};
-    Ids t = {0};
-    wchar16_t **out_names = NULL;
-    uint32 *out_types = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 iRid = 0;
+    UnicodeStringArray Names = {0};
+    Ids Types = {0};
+    PWSTR *ppwszNames = NULL;
+    UINT32 *pTypes = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(rids);
-    BAIL_ON_INVALID_PTR(names);
-    BAIL_ON_INVALID_PTR(types);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pRids, ntStatus);
+    BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTypes, ntStatus);
     
-    DCERPC_CALL(_SamrLookupRids(b, domain_h, num_rids, rids, &n, &t));
-	
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _SamrLookupRids(hSamrBinding,
+                                          phDomain,
+                                          NumRids,
+                                          pRids,
+                                          &Names,
+                                          &Types));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (n.count > 0) {
-        status = SamrAllocateMemory((void**)&out_names,
-                                    sizeof(wchar16_t*) * n.count,
-                                    NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (Names.count > 0) {
+        ntStatus = SamrAllocateMemory((void**)&ppwszNames,
+                                      sizeof(wchar16_t*) * Names.count,
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        status = SamrAllocateMemory((void**)&out_types,
-                                    sizeof(uint32) * n.count,
-                                    NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrAllocateMemory((void**)&pTypes,
+                                      sizeof(UINT32) * Names.count,
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        for (i = 0; i < n.count; i++) {
-            UnicodeString *name = &(n.names[i]);
+        for (iRid = 0; iRid < Names.count; iRid++) {
+            UnicodeString *pName = &(Names.names[iRid]);
 
-            out_names[i] = GetFromUnicodeString(name);
-            BAIL_ON_NO_MEMORY(out_names[i]);
+            ppwszNames[iRid] = GetFromUnicodeString(pName);
+            BAIL_ON_NULL_PTR(ppwszNames[iRid], ntStatus);
 
-            status = SamrAddDepMemory(out_names[i], (void*)out_names);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrAddDepMemory(ppwszNames[iRid],
+                                        (void*)ppwszNames);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-            out_types[i] = t.ids[i];
+            pTypes[iRid] = Types.ids[iRid];
         }
     }
 
-    *names = out_names;
-    *types = out_types;
+    *pppwszNames = ppwszNames;
+    *ppTypes     = pTypes;
 
 cleanup:
-    SamrCleanStubIds(&t);
-    SamrCleanStubUnicodeStringArray(&n);
+    SamrCleanStubIds(&Types);
+    SamrCleanStubUnicodeStringArray(&Names);
     
-    return status;
+    return ntStatus;
 
 error:
-    if (out_names) {
-        SamrFreeMemory((void*)out_names);
+    if (ppwszNames) {
+        SamrFreeMemory((void*)ppwszNames);
     }
 
-    if (out_types) {
-        SamrFreeMemory((void*)out_types);
+    if (pTypes) {
+        SamrFreeMemory((void*)pTypes);
     }
 
-    *names = NULL;
-    *types = NULL;
+    *pppwszNames = NULL;
+    *ppTypes     = NULL;
 
     goto cleanup;
 }

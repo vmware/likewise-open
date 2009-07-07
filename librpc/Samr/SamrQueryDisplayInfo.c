@@ -33,71 +33,79 @@
 
 NTSTATUS
 SamrQueryDisplayInfo(
-    handle_t b,
-    PolicyHandle *domain_h,
-    uint16 level,
-    uint32 start_idx,
-    uint32 max_entries,
-    uint32 buf_size,
-    uint32 *out_total_size,
-    uint32 *out_returned_size,
-    SamrDisplayInfo **out_info
+    IN  handle_t          hSamrBinding,
+    IN  PolicyHandle     *phDomain,
+    IN  UINT16            Level,
+    IN  UINT32            StartIdx,
+    IN  UINT32            MaxEntries,
+    IN  UINT32            BufferSize,
+    OUT UINT32           *pTotalSize,
+    OUT UINT32           *pReturnedSize,
+    OUT SamrDisplayInfo **ppInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NTSTATUS ret_status = STATUS_SUCCESS;
-    uint32 total_size = 0;
-    uint32 returned_size = 0;
-    SamrDisplayInfo info;
-    SamrDisplayInfo *disp_info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntRetStatus = STATUS_SUCCESS;
+    UINT32 TotalSize = 0;
+    UINT32 ReturnedSize = 0;
+    SamrDisplayInfo Info;
+    SamrDisplayInfo *pDispInfo = NULL;
 
-    memset(&info, 0, sizeof(info));
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pTotalSize, ntStatus);
+    BAIL_ON_INVALID_PTR(pReturnedSize, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(out_total_size);
-    BAIL_ON_INVALID_PTR(out_returned_size);
-    BAIL_ON_INVALID_PTR(out_info);
+    memset(&Info, 0, sizeof(Info));
 
-    DCERPC_CALL(_SamrQueryDisplayInfo(b, domain_h, level, start_idx,
-                                      max_entries, buf_size,
-                                      &total_size, &returned_size,
-                                      &info));
+    DCERPC_CALL(ntStatus, _SamrQueryDisplayInfo(hSamrBinding,
+                                                phDomain,
+                                                Level,
+                                                StartIdx,
+                                                MaxEntries,
+                                                BufferSize,
+                                                &TotalSize,
+                                                &ReturnedSize,
+                                                &Info));
     /* Preserve returned status code */
-    ret_status = status;
+    ntRetStatus = ntStatus;
 
     /* Status other than success doesn't have to mean failure here */
-    if (status != STATUS_SUCCESS &&
-        status != STATUS_MORE_ENTRIES) {
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (ntStatus != STATUS_SUCCESS &&
+        ntStatus != STATUS_MORE_ENTRIES) {
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = SamrAllocateDisplayInfo(&disp_info, &info, level);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateDisplayInfo(&pDispInfo,
+                                       &Info,
+                                       Level);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *out_total_size    = total_size;
-    *out_returned_size = returned_size;
-    *out_info          = disp_info;
+    *pTotalSize    = TotalSize;
+    *pReturnedSize = ReturnedSize;
+    *ppInfo        = pDispInfo;
 
 cleanup:
-    SamrCleanStubDisplayInfo(&info, level);
+    SamrCleanStubDisplayInfo(&Info, Level);
 
-    if (status == STATUS_SUCCESS &&
-        (ret_status == STATUS_SUCCESS ||
-         ret_status == STATUS_MORE_ENTRIES)) {
-        status = ret_status;
+    if (ntStatus == STATUS_SUCCESS &&
+        (ntRetStatus == STATUS_SUCCESS ||
+         ntRetStatus == STATUS_MORE_ENTRIES)) {
+        ntStatus = ntRetStatus;
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (disp_info) {
-        SamrFreeMemory((void*)disp_info);
+    if (pDispInfo) {
+        SamrFreeMemory((void*)pDispInfo);
     }
 
-    *out_total_size    = 0;
-    *out_returned_size = 0;
-    *out_info          = NULL;
+    *pTotalSize    = 0;
+    *pReturnedSize = 0;
+    *ppInfo        = NULL;
+
     goto cleanup;
 }
 

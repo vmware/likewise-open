@@ -33,21 +33,22 @@
 
 NTSTATUS
 SamrClose(
-    handle_t b,
-    PolicyHandle *handle
+    IN  handle_t         hSamrBinding,
+    IN OUT PolicyHandle *phContext
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(handle);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phContext, ntStatus);
 
-    DCERPC_CALL(_SamrClose(b, handle));
+    DCERPC_CALL(ntStatus, _SamrClose(hSamrBinding,
+                                     phContext));
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

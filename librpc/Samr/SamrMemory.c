@@ -37,308 +37,368 @@
 #include "includes.h"
 
 
-NTSTATUS SamrInitMemory()
+NTSTATUS
+SamrInitMemory(
+    void
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gSamrDataMutex);
 
-    if (!bSamrInitialised) {
-        status = MemPtrListInit((PtrList**)&samr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (!bSamrInitialised)
+    {
+        ntStatus = MemPtrListInit((PtrList**)&gSamrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bSamrInitialised = 1;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gSamrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
 
-NTSTATUS SamrDestroyMemory()
+NTSTATUS
+SamrDestroyMemory(
+    void
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    int bLocked = 0;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gSamrDataMutex);
 
-    if (bSamrInitialised && samr_ptr_list) {
-        status = MemPtrListDestroy((PtrList**)&samr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (bSamrInitialised && gSamrMemoryList) {
+        ntStatus = MemPtrListDestroy((PtrList**)&gSamrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bSamrInitialised = 0;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gSamrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
 
-NTSTATUS SamrAllocateMemory(void **out, size_t size, void *dep)
+NTSTATUS
+SamrAllocateMemory(
+    OUT PVOID  *ppOut,
+    IN  size_t  Size,
+    IN  PVOID   pDep
+    )
 {
-    return MemPtrAllocate((PtrList*)samr_ptr_list, out, size, dep);
+    return MemPtrAllocate((PtrList*)gSamrMemoryList,
+                          ppOut,
+                          Size,
+                          pDep);
 }
 
 
-NTSTATUS SamrFreeMemory(void *ptr)
+NTSTATUS
+SamrFreeMemory(
+    IN  PVOID pPtr
+    )
 {
-    return MemPtrFree((PtrList*)samr_ptr_list, ptr);
+    return MemPtrFree((PtrList*)gSamrMemoryList,
+                      pPtr);
 }
 
 
-NTSTATUS SamrAddDepMemory(void *ptr, void *dep)
+NTSTATUS
+SamrAddDepMemory(
+    IN  PVOID pPtr,
+    IN  PVOID pDep
+    )
 {
-    return MemPtrAddDependant((PtrList*)samr_ptr_list, ptr, dep);
+    return MemPtrAddDependant((PtrList*)gSamrMemoryList,
+                              pPtr,
+                              pDep);
 }
 
 
-NTSTATUS SamrAllocateNamesAndRids(wchar16_t ***outn, uint32 **outr,
-                                  RidNameArray *in)
+NTSTATUS
+SamrAllocateNamesAndRids(
+    OUT PWSTR        **pppNames,
+    OUT UINT32       **ppRids,
+    IN  RidNameArray  *pIn
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t **ptrn = NULL;
-    uint32 *ptrr = NULL;
-    int i = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR *ppNames = NULL;
+    UINT32 *pRids = NULL;
+    UINT32 iName = 0;
 
-    BAIL_ON_INVALID_PTR(outn);
-    BAIL_ON_INVALID_PTR(outr);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pppNames, ntStatus);
+    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrAllocateMemory((void**)&ptrn,
-                                sizeof(wchar16_t*) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&ppNames,
+                                  sizeof(PWSTR) * pIn->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrAllocateMemory((void**)&ptrr,
-                                sizeof(uint32) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pRids,
+                                  sizeof(UINT32) * pIn->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < in->count; i++) {
-        RidName *rn = &(in->entries[i]);
+    for (iName = 0; iName < pIn->count; iName++) {
+        RidName *pRidName = &(pIn->entries[iName]);
         
-        ptrr[i]  = rn->rid;
-        ptrn[i] = GetFromUnicodeString(&rn->name);
-        BAIL_ON_NO_MEMORY(ptrn[i]);
+        pRids[iName]   = pRidName->rid;
+        ppNames[iName] = GetFromUnicodeString(&pRidName->name);
+        BAIL_ON_NULL_PTR(ppNames[iName], ntStatus);
         
-        status = SamrAddDepMemory((void*)ptrn[i], (void*)ptrn);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrAddDepMemory((void*)ppNames[iName],
+                                    (void*)ppNames);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *outn = ptrn;
-    *outr = ptrr;
+    *pppNames = ppNames;
+    *ppRids   = pRids;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptrn) {
-        SamrFreeMemory((void*)ptrn);
+    if (ppNames) {
+        SamrFreeMemory((void*)ppNames);
     }
 
-    if (ptrr) {
-        SamrFreeMemory((void*)ptrr);
+    if (pRids) {
+        SamrFreeMemory((void*)pRids);
     }
 
-    *outn = NULL;
-    *outr = NULL;
+    *pppNames = NULL;
+    *ppRids = NULL;
+
     goto cleanup;
 }
 
 
-NTSTATUS SamrAllocateNames(wchar16_t ***out, EntryArray *in)
+NTSTATUS
+SamrAllocateNames(
+    OUT PWSTR **pppwszNames,
+    IN  EntryArray *pNamesArray
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t **ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR *ppwszNames = NULL;
+    UINT32 iName = 0;
+
+    BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
+    BAIL_ON_INVALID_PTR(pNamesArray, ntStatus);
+
+    ntStatus = SamrAllocateMemory((void**)&ppwszNames,
+                                  sizeof(PWSTR) * pNamesArray->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (iName = 0; iName < pNamesArray->count; iName++) {
+        Entry *pName = &(pNamesArray->entries[iName]);
+
+        ppwszNames[iName] = GetFromUnicodeString(&pName->name);
+        BAIL_ON_NULL_PTR(ppwszNames[iName], ntStatus);
+
+        ntStatus = SamrAddDepMemory((void*)ppwszNames[iName],
+                                    (void*)ppwszNames);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pppwszNames = ppwszNames;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (ppwszNames) {
+        SamrFreeMemory((void*)ppwszNames);
+    }
+
+    *pppwszNames = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateIds(
+    OUT UINT32 **ppOutIds,
+    IN  Ids *pInIds
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 *pIds = NULL;
+    UINT32 i = 0;
+
+    BAIL_ON_INVALID_PTR(ppOutIds, ntStatus);
+    BAIL_ON_INVALID_PTR(pInIds, ntStatus);
+
+    ntStatus = SamrAllocateMemory((void**)&pIds,
+                                  sizeof(UINT32) * pInIds->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (i = 0; i < pInIds->count; i++) {
+        pIds[i] = pInIds->ids[i];
+    }
+
+    *ppOutIds = pIds;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pIds) {
+        SamrFreeMemory((void*)pIds);
+    }
+
+    *ppOutIds = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateDomSid(
+    OUT PSID *ppOut,
+    IN  PSID  pIn,
+    IN  PVOID pDep
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSID pSid = NULL;
+
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+
+    MsRpcDuplicateSid(&pSid, pIn);
+    BAIL_ON_NULL_PTR(pSid, ntStatus);
+
+    ntStatus = SamrAddDepMemory((void*)pSid, (void*)pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppOut = pSid;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pSid) {
+        SamrFreeMemory((void*)pSid);
+    }
+
+    *ppOut = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateSids(
+    OUT PSID     **pppSids,
+    IN  SidArray  *pSidArray
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSID *ppSids = NULL;
     int i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pppSids, ntStatus);
+    BAIL_ON_INVALID_PTR(pSidArray, ntStatus);
 
-    status = SamrAllocateMemory((void**)&ptr,
-                                sizeof(wchar16_t*) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&ppSids,
+                                  sizeof(PSID) * pSidArray->num_sids,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < in->count; i++) {
-        Entry *e = &(in->entries[i]);
+    for (i = 0; i < pSidArray->num_sids; i++) {
+        PSID pSid = pSidArray->sids[i].sid;
 
-        ptr[i] = GetFromUnicodeString(&e->name);
-        BAIL_ON_NO_MEMORY(ptr[i]);
-
-        status = SamrAddDepMemory((void*)ptr[i], (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrAllocateDomSid(&(ppSids[i]),
+                                      pSid,
+                                      (void*)ppSids);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *pppSids = ppSids;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (ppSids) {
+        SamrFreeMemory((void*)ppSids);
     }
 
-    *out = NULL;
+    *pppSids = NULL;
+
     goto cleanup;
 }
 
 
-NTSTATUS SamrAllocateIds(uint32 **out, Ids *in)
+NTSTATUS
+SamrAllocateRidsAndAttributes(
+    OUT UINT32                **ppRids,
+    OUT UINT32                **ppAttributes,
+    IN  RidWithAttributeArray  *pIn
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 *pRids = NULL;
+    UINT32 *pAttributes = NULL;
     int i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
+    BAIL_ON_INVALID_PTR(ppAttributes, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrAllocateMemory((void**)&ptr,
-                                sizeof(uint32) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pRids,
+                                  sizeof(UINT32) * pIn->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < in->count; i++) {
-        ptr[i] = in->ids[i];
+    ntStatus = SamrAllocateMemory((void**)&pAttributes,
+                                  sizeof(UINT32) * pIn->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (i = 0; i < pIn->count; i++) {
+        RidWithAttribute *pRidAttr = &(pIn->rids[i]);
+
+        pRids[i]       = pRidAttr->rid;
+        pAttributes[i] = pRidAttr->attributes;
     }
 
-    *out = ptr;
+    *ppRids       = pRids;
+    *ppAttributes = pAttributes;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pRids) {
+        SamrFreeMemory((void*)pRids);
     }
 
-    *out = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS SamrAllocateDomSid(PSID* out, PSID in, void *dep)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PSID ptr = NULL;
-
-    BAIL_ON_INVALID_PTR(out);
-
-    MsRpcDuplicateSid(&ptr, in);
-    BAIL_ON_NO_MEMORY(ptr);
-
-    status = SamrAddDepMemory((void*)ptr, (void*)dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *out = ptr;
-
-cleanup:
-    return status;
-
-error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pAttributes) {
+        SamrFreeMemory((void*)pAttributes);
     }
 
-    *out = NULL;
-    goto cleanup;
-}
+    *ppRids       = NULL;
+    *ppAttributes = NULL;
 
-
-NTSTATUS SamrAllocateSids(PSID** out, SidArray *in)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PSID* ptr = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
-
-    status = SamrAllocateMemory((void**)&ptr,
-                                sizeof(PSID) * in->num_sids,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < in->num_sids; i++) {
-        PSID sid = in->sids[i].sid;
-
-        status = SamrAllocateDomSid(&(ptr[i]), sid, (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
-    *out = ptr;
-
-cleanup:
-    return status;
-
-error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
-    }
-
-    *out = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS SamrAllocateRidsAndAttributes(uint32 **out_rids, uint32 **out_attrs,
-                                       RidWithAttributeArray *in)
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 *ptr_rids = NULL;
-    uint32 *ptr_attrs = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(out_rids);
-    BAIL_ON_INVALID_PTR(out_attrs);
-    BAIL_ON_INVALID_PTR(in);
-
-    status = SamrAllocateMemory((void**)&ptr_rids,
-                                sizeof(uint32) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrAllocateMemory((void**)&ptr_attrs,
-                                sizeof(uint32) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < in->count; i++) {
-        RidWithAttribute *ra = &(in->rids[i]);
-
-        ptr_rids[i]  = ra->rid;
-        ptr_attrs[i] = ra->attributes;
-    }
-
-    *out_rids  = ptr_rids;
-    *out_attrs = ptr_attrs;
-
-cleanup:
-    return status;
-
-error:
-    if (ptr_rids) {
-        SamrFreeMemory((void*)ptr_rids);
-    }
-
-    if (ptr_attrs) {
-        SamrFreeMemory((void*)ptr_attrs);
-    }
-
-    *out_rids  = NULL;
-    *out_attrs = NULL;
     goto cleanup;
 }
 
@@ -346,84 +406,97 @@ error:
 static
 NTSTATUS
 SamrCopyUnicodeString(
-    UnicodeString *out,
-    UnicodeString *in,
-    void *dep
+    OUT UnicodeString *pOut,
+    IN  UnicodeString *pIn,
+    IN  PVOID pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = CopyUnicodeString(out, in);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(pOut, pIn);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->string) {
-        status = SamrAddDepMemory((void*)out->string, dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->string) {
+        ntStatus = SamrAddDepMemory((void*)pOut->string,
+                                    pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
 
-NTSTATUS SamrAllocateAliasInfo(AliasInfo **out, AliasInfo *in, uint16 level)
+NTSTATUS
+SamrAllocateAliasInfo(
+    OUT AliasInfo **ppOut,
+    IN  AliasInfo  *pIn,
+    IN  UINT16      Level
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    AliasInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    AliasInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrAllocateMemory((void*)&ptr, sizeof(AliasInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void*)&pInfo,
+                                  sizeof(AliasInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (level) {
+    switch (Level) {
     case ALIAS_INFO_ALL:
-        status = SamrCopyUnicodeString(&ptr->all.name, &in->all.name, (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrCopyUnicodeString(&pInfo->all.name,
+                                         &pIn->all.name,
+                                         (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        status = SamrCopyUnicodeString(&ptr->all.description,
-                                       &in->all.description,
-                                       (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrCopyUnicodeString(&pInfo->all.description,
+                                         &pIn->all.description,
+                                         (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        ptr->all.num_members = in->all.num_members;
+        pInfo->all.num_members = pIn->all.num_members;
         break;
 
     case ALIAS_INFO_NAME:
-        status = SamrCopyUnicodeString(&ptr->name, &in->name, (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrCopyUnicodeString(&pInfo->name,
+                                         &pIn->name,
+                                         (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
 
     case ALIAS_INFO_DESCRIPTION:
-        status = SamrCopyUnicodeString(&ptr->description,
-                                       &in->description,
-                                       (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = SamrCopyUnicodeString(&pInfo->description,
+                                         &pIn->description,
+                                         (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
-        goto error;
+        ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pInfo) {
+        SamrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 
@@ -431,20 +504,20 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo1(
-    DomainInfo1 *out,
-    DomainInfo1 *in,
-    void *dep
+    OUT DomainInfo1 *pOut,
+    IN  DomainInfo1 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    memcpy((void*)out, (void*)in, sizeof(DomainInfo1));
+    memcpy((void*)pOut, (void*)pIn, sizeof(DomainInfo1));
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -454,51 +527,56 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo2(
-    DomainInfo2 *out,
-    DomainInfo2 *in,
-    void *dep
+    OUT DomainInfo2 *pOut,
+    IN  DomainInfo2 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = CopyUnicodeString(&out->comment, &in->comment);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->comment,
+                                 &pIn->comment);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->comment.string) {
-        status = SamrAddDepMemory((void*)out->comment.string, dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->comment.string) {
+        ntStatus = SamrAddDepMemory((void*)pOut->comment.string,
+                                    pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeString(&out->domain_name, &in->domain_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->domain_name, &pIn->domain_name);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->domain_name.string) {
-        status = SamrAddDepMemory((void*)out->domain_name.string, dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->domain_name.string) {
+        ntStatus = SamrAddDepMemory((void*)pOut->domain_name.string,
+                                    pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeString(&out->primary, &in->primary);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->primary,
+                                 &pIn->primary);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->primary.string) {
-        status = SamrAddDepMemory((void*)out->primary.string, dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->primary.string) {
+        ntStatus = SamrAddDepMemory((void*)pOut->primary.string,
+                                    pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    out->force_logoff_time = in->force_logoff_time;
-    out->sequence_num      = in->sequence_num;
-    out->unknown1          = in->unknown1;
-    out->role              = in->role;
-    out->unknown2          = in->unknown2;
-    out->num_users         = in->num_users;
-    out->num_groups        = in->num_groups;
-    out->num_aliases       = in->num_aliases;
+    pOut->force_logoff_time = pIn->force_logoff_time;
+    pOut->sequence_num      = pIn->sequence_num;
+    pOut->unknown1          = pIn->unknown1;
+    pOut->role              = pIn->role;
+    pOut->unknown2          = pIn->unknown2;
+    pOut->num_users         = pIn->num_users;
+    pOut->num_groups        = pIn->num_groups;
+    pOut->num_aliases       = pIn->num_aliases;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -508,20 +586,20 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo3(
-    DomainInfo3 *out,
-    DomainInfo3 *in,
-    void *dep
+    OUT DomainInfo3 *pOut,
+    IN  DomainInfo3 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->force_logoff_time = in->force_logoff_time;
+    pOut->force_logoff_time = pIn->force_logoff_time;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -531,56 +609,62 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo4(
-    DomainInfo4 *out,
-    DomainInfo4 *in,
-    void *dep
+    OUT DomainInfo4 *pOut,
+    IN  DomainInfo4 *pIn,
+    IN  PVOID pDep
     )
 {
-    return SamrCopyUnicodeString(&out->comment, &in->comment, dep);
+    return SamrCopyUnicodeString(&pOut->comment,
+                                 &pIn->comment,
+                                 pDep);
 }
 
 
 static
 NTSTATUS
 SamrCopyDomainInfo5(
-    DomainInfo5 *out,
-    DomainInfo5 *in,
-    void *dep
+    OUT DomainInfo5 *pOut,
+    IN  DomainInfo5 *pIn,
+    IN  PVOID        pDep
     )
 {
-    return SamrCopyUnicodeString(&out->domain_name, &in->domain_name, dep);
+    return SamrCopyUnicodeString(&pOut->domain_name,
+                                 &pIn->domain_name,
+                                 pDep);
 }
 
 
 static
 NTSTATUS
 SamrCopyDomainInfo6(
-    DomainInfo6 *out,
-    DomainInfo6 *in,
-    void *dep
+    OUT DomainInfo6 *pOut,
+    IN  DomainInfo6 *pIn,
+    IN  PVOID        pDep
     )
 {
-    return SamrCopyUnicodeString(&out->primary, &in->primary, dep);
+    return SamrCopyUnicodeString(&pOut->primary,
+                                 &pIn->primary,
+                                 pDep);
 }
 
 
 static
 NTSTATUS
 SamrCopyDomainInfo7(
-    DomainInfo7 *out,
-    DomainInfo7 *in,
-    void *dep
+    OUT DomainInfo7 *pOut,
+    IN  DomainInfo7 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->role = in->role;
+    pOut->role = pIn->role;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -590,21 +674,21 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo8(
-    DomainInfo8 *out,
-    DomainInfo8 *in,
-    void *dep
+    OUT DomainInfo8 *pOut,
+    IN  DomainInfo8 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->sequence_number    = in->sequence_number;
-    out->domain_create_time = in->domain_create_time;
+    pOut->sequence_number    = pIn->sequence_number;
+    pOut->domain_create_time = pIn->domain_create_time;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -614,20 +698,20 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo9(
-    DomainInfo9 *out,
-    DomainInfo9 *in,
-    void *dep
+    OUT DomainInfo9 *pOut,
+    IN  DomainInfo9 *pIn,
+    IN  PVOID        pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->unknown = in->unknown;
+    pOut->unknown = pIn->unknown;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -637,25 +721,27 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo11(
-    DomainInfo11 *out,
-    DomainInfo11 *in,
-    void *dep
+    OUT DomainInfo11 *pOut,
+    IN  DomainInfo11 *pIn,
+    IN  PVOID         pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyDomainInfo2(&out->info2, &in->info2, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyDomainInfo2(&pOut->info2,
+                                   &pIn->info2,
+                                   pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->lockout_duration  = in->lockout_duration;
-    out->lockout_window    = in->lockout_window;
-    out->lockout_threshold = in->lockout_threshold;
+    pOut->lockout_duration  = pIn->lockout_duration;
+    pOut->lockout_window    = pIn->lockout_window;
+    pOut->lockout_threshold = pIn->lockout_threshold;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -665,22 +751,22 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo12(
-    DomainInfo12 *out,
-    DomainInfo12 *in,
-    void *dep
+    OUT DomainInfo12 *pOut,
+    IN  DomainInfo12 *pIn,
+    IN  PVOID         pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->lockout_duration  = in->lockout_duration;
-    out->lockout_window    = in->lockout_window;
-    out->lockout_threshold = in->lockout_threshold;
+    pOut->lockout_duration  = pIn->lockout_duration;
+    pOut->lockout_window    = pIn->lockout_window;
+    pOut->lockout_threshold = pIn->lockout_threshold;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -690,23 +776,23 @@ error:
 static
 NTSTATUS
 SamrCopyDomainInfo13(
-    DomainInfo13 *out,
-    DomainInfo13 *in,
-    void *dep
+    OUT DomainInfo13 *pOut,
+    IN  DomainInfo13 *pIn,
+    IN  PVOID         pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->sequence_number    = in->sequence_number;
-    out->domain_create_time = in->domain_create_time;
-    out->unknown1           = in->unknown1;
-    out->unknown2           = in->unknown2;
+    pOut->sequence_number    = pIn->sequence_number;
+    pOut->domain_create_time = pIn->domain_create_time;
+    pOut->unknown1           = pIn->unknown1;
+    pOut->unknown2           = pIn->unknown2;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -715,102 +801,116 @@ error:
 
 NTSTATUS
 SamrAllocateDomainInfo(
-    DomainInfo **out,
-    DomainInfo *in,
-    uint16 level
+    OUT DomainInfo **ppOut,
+    IN  DomainInfo *pIn,
+    IN  UINT16 Level
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    DomainInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DomainInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrAllocateMemory((void*)&ptr, sizeof(DomainInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void*)&pInfo,
+                                  sizeof(DomainInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in != NULL) {
-        switch (level) {
+    if (pIn != NULL) {
+        switch (Level) {
         case 1:
-            status = SamrCopyDomainInfo1(&ptr->info1, &in->info1, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo1(&pInfo->info1,
+                                           &pIn->info1,
+                                           (void*)pInfo);
             break;
 
         case 2:
-            status = SamrCopyDomainInfo2(&ptr->info2, &in->info2, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo2(&pInfo->info2,
+                                           &pIn->info2,
+                                           (void*)pInfo);
             break;
 
         case 3:
-            status = SamrCopyDomainInfo3(&ptr->info3, &in->info3, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo3(&pInfo->info3,
+                                           &pIn->info3,
+                                           (void*)pInfo);
             break;
 
         case 4:
-            status = SamrCopyDomainInfo4(&ptr->info4, &in->info4, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo4(&pInfo->info4,
+                                           &pIn->info4,
+                                           (void*)pInfo);
             break;
 
         case 5:
-            status = SamrCopyDomainInfo5(&ptr->info5, &in->info5, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo5(&pInfo->info5,
+                                           &pIn->info5,
+                                           (void*)pInfo);
             break;
 
         case 6:
-            status = SamrCopyDomainInfo6(&ptr->info6, &in->info6, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo6(&pInfo->info6,
+                                           &pIn->info6,
+                                           (void*)pInfo);
             break;
 
         case 7:
-            status = SamrCopyDomainInfo7(&ptr->info7, &in->info7, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo7(&pInfo->info7,
+                                           &pIn->info7,
+                                           (void*)pInfo);
             break;
 
         case 8:
-            status = SamrCopyDomainInfo8(&ptr->info8, &in->info8, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo8(&pInfo->info8,
+                                           &pIn->info8,
+                                           (void*)pInfo);
             break;
 
         case 9:
-            status = SamrCopyDomainInfo9(&ptr->info9, &in->info9, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo9(&pInfo->info9,
+                                           &pIn->info9,
+                                           (void*)pInfo);
             break;
 
         case 11:
-            status = SamrCopyDomainInfo11(&ptr->info11, &in->info11,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo11(&pInfo->info11,
+                                            &pIn->info11,
+                                            (void*)pInfo);
             break;
 
         case 12:
-            status = SamrCopyDomainInfo12(&ptr->info12, &in->info12,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo12(&pInfo->info12,
+                                            &pIn->info12,
+                                            (void*)pInfo);
             break;
 
         case 13:
-            status = SamrCopyDomainInfo13(&ptr->info13, &in->info13,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyDomainInfo13(&pInfo->info13,
+                                            &pIn->info13,
+                                            (void*)pInfo);
             break;
 
         default:
-            status = STATUS_INVALID_LEVEL;
+            ntStatus = STATUS_INVALID_LEVEL;
             goto error;
         }
+
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pInfo) {
+        SamrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 
@@ -818,32 +918,40 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo1(
-    UserInfo1 *out,
-    UserInfo1 *in,
-    void *dep
+    OUT UserInfo1 *pOut,
+    IN  UserInfo1 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->comment, &in->comment, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->comment,
+                                     &pIn->comment,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->primary_gid = in->primary_gid;
+    pOut->primary_gid = pIn->primary_gid;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -853,27 +961,31 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo2(
-    UserInfo2 *out,
-    UserInfo2 *in,
-    void *dep
+    OUT UserInfo2 *pOut,
+    IN  UserInfo2 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->comment, &in->comment, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->comment,
+                                     &pIn->comment,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->unknown1, &in->unknown1, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->unknown1,
+                                     &pIn->unknown1,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->country_code = in->country_code;
-    out->code_page    = in->code_page;
+    pOut->country_code = pIn->country_code;
+    pOut->code_page    = pIn->code_page;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -883,26 +995,26 @@ error:
 static
 NTSTATUS
 SamrCopyLogonHours(
-    LogonHours *out,
-    LogonHours *in,
-    void *dep
+    OUT LogonHours *pOut,
+    IN  LogonHours *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
     /* Allocate 1260 bytes and copy units_per_week/8 bytes
        according to samr.idl */
 
-    status = SamrAllocateMemory((void**)&out->units, sizeof(uint8) * 1260, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->units, sizeof(UINT8) * 1260, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy((void*)out->units, (void*)in->units, in->units_per_week/8);
+    memcpy((void*)pOut->units, (void*)pIn->units, pIn->units_per_week/8);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -912,79 +1024,96 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo3(
-    UserInfo3 *out,
-    UserInfo3 *in,
-    void *dep
+    OUT UserInfo3 *pOut,
+    IN  UserInfo3 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->rid         = in->rid;
-    out->primary_gid = in->primary_gid;
+    pOut->rid         = pIn->rid;
+    pOut->primary_gid = pIn->primary_gid;
 
-    status = SamrCopyUnicodeString(&out->home_directory, &in->home_directory, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
+                                     &pIn->home_directory,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_drive, &in->home_drive, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
+                                     &pIn->home_drive,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->logon_script, &in->logon_script, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
+                                     &pIn->logon_script,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->profile_path, &in->profile_path, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
+                                     &pIn->profile_path,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->workstations, &in->workstations, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
+                                     &pIn->workstations,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->last_logon             = in->last_logon;
-    out->last_logoff            = in->last_logoff;
-    out->last_password_change   = in->last_password_change;
-    out->allow_password_change  = in->allow_password_change;
-    out->force_password_change  = in->force_password_change;
+    pOut->last_logon             = pIn->last_logon;
+    pOut->last_logoff            = pIn->last_logoff;
+    pOut->last_password_change   = pIn->last_password_change;
+    pOut->allow_password_change  = pIn->allow_password_change;
+    pOut->force_password_change  = pIn->force_password_change;
 
-    status = SamrCopyLogonHours(&out->logon_hours, &in->logon_hours, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
+                                  &pIn->logon_hours,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->bad_password_count = in->bad_password_count;
-    out->logon_count        = in->logon_count;
-    out->account_flags      = in->account_flags;
+    pOut->bad_password_count = pIn->bad_password_count;
+    pOut->logon_count        = pIn->logon_count;
+    pOut->account_flags      = pIn->account_flags;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
-
 static
 NTSTATUS
 SamrCopyUserInfo4(
-    UserInfo4 *out,
-    UserInfo4 *in,
-    void *dep
+    OUT UserInfo4 *pOut,
+    IN  UserInfo4 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyLogonHours(&out->logon_hours, &in->logon_hours, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
+                                  &pIn->logon_hours,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -994,57 +1123,75 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo5(
-    UserInfo5 *out,
-    UserInfo5 *in,
-    void *dep
+    OUT UserInfo5 *pOut,
+    IN  UserInfo5 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->rid         = in->rid;
-    out->primary_gid = in->primary_gid;
+    pOut->rid         = pIn->rid;
+    pOut->primary_gid = pIn->primary_gid;
 
-    status = SamrCopyUnicodeString(&out->home_directory, &in->home_directory, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
+                                     &pIn->home_directory,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_drive, &in->home_drive, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
+                                     &pIn->home_drive,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->logon_script, &in->logon_script, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
+                                     &pIn->logon_script,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->profile_path, &in->profile_path, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
+                                     &pIn->profile_path,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->workstations, &in->workstations, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
+                                     &pIn->workstations,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->last_logon   = in->last_logon;
-    out->last_logoff  = in->last_logoff;
+    pOut->last_logon   = pIn->last_logon;
+    pOut->last_logoff  = pIn->last_logoff;
 
-    status = SamrCopyLogonHours(&out->logon_hours, &in->logon_hours, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
+                                  &pIn->logon_hours,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->bad_password_count   = in->bad_password_count;
-    out->logon_count          = in->logon_count;
-    out->last_password_change = in->last_password_change;
-    out->account_expiry       = in->account_expiry;
-    out->account_flags        = in->account_flags;
+    pOut->bad_password_count   = pIn->bad_password_count;
+    pOut->logon_count          = pIn->logon_count;
+    pOut->last_password_change = pIn->last_password_change;
+    pOut->account_expiry       = pIn->account_expiry;
+    pOut->account_flags        = pIn->account_flags;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1054,24 +1201,28 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo6(
-    UserInfo6 *out,
-    UserInfo6 *in,
-    void *dep
+    OUT UserInfo6 *pOut,
+    IN  UserInfo6 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1081,21 +1232,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo7(
-    UserInfo7 *out,
-    UserInfo7 *in,
-    void *dep
+    OUT UserInfo7 *pOut,
+    IN  UserInfo7 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1105,21 +1258,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo8(
-    UserInfo8 *out,
-    UserInfo8 *in,
-    void *dep
+    OUT UserInfo8 *pOut,
+    IN  UserInfo8 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1129,20 +1284,20 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo9(
-    UserInfo9 *out,
-    UserInfo9 *in,
-    void *dep
+    OUT UserInfo9 *pOut,
+    IN  UserInfo9 *pIn,
+    IN  PVOID      pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->primary_gid = in->primary_gid;
+    pOut->primary_gid = pIn->primary_gid;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1152,25 +1307,28 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo10(
-    UserInfo10 *out,
-    UserInfo10 *in,
-    void *dep
+    OUT UserInfo10 *pOut,
+    IN  UserInfo10 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_directory, &in->home_directory,
-                                   dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
+                                     &pIn->home_directory,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_drive, &in->home_drive, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
+                                     &pIn->home_drive,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1180,21 +1338,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo11(
-    UserInfo11 *out,
-    UserInfo11 *in,
-    void *dep
+    OUT UserInfo11 *pOut,
+    IN  UserInfo11 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->logon_script, &in->logon_script, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
+                                     &pIn->logon_script,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1204,21 +1364,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo12(
-    UserInfo12 *out,
-    UserInfo12 *in,
-    void *dep
+    OUT UserInfo12 *pOut,
+    IN  UserInfo12 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->profile_path, &in->profile_path, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
+                                     &pIn->profile_path,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1228,21 +1390,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo13(
-    UserInfo13 *out,
-    UserInfo13 *in,
-    void *dep
+    OUT UserInfo13 *pOut,
+    IN  UserInfo13 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1252,21 +1416,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo14(
-    UserInfo14 *out,
-    UserInfo14 *in,
-    void *dep
+    OUT UserInfo14 *pOut,
+    IN  UserInfo14 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->workstations, &in->workstations, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
+                                     &pIn->workstations,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1276,20 +1442,20 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo16(
-    UserInfo16 *out,
-    UserInfo16 *in,
-    void *dep
+    OUT UserInfo16 *pOut,
+    IN  UserInfo16 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->account_flags = in->account_flags;
+    pOut->account_flags = pIn->account_flags;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1299,20 +1465,20 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo17(
-    UserInfo17 *out,
-    UserInfo17 *in,
-    void *dep
+    OUT UserInfo17 *pOut,
+    IN  UserInfo17 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->account_expiry = in->account_expiry;
+    pOut->account_expiry = pIn->account_expiry;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1322,21 +1488,23 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo20(
-    UserInfo20 *out,
-    UserInfo20 *in,
-    void *dep
+    OUT UserInfo20 *pOut,
+    IN  UserInfo20 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUnicodeString(&out->parameters, &in->parameters, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->parameters,
+                                     &pIn->parameters,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1346,88 +1514,118 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo21(
-    UserInfo21 *out,
-    UserInfo21 *in,
-    void *dep
+    OUT UserInfo21 *pOut,
+    IN  UserInfo21 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->last_logon            = in->last_logon;
-    out->last_logoff           = in->last_logoff;
-    out->last_password_change  = in->last_password_change;
-    out->account_expiry        = in->account_expiry;
-    out->allow_password_change = in->allow_password_change;
-    out->force_password_change = in->force_password_change;
+    pOut->last_logon            = pIn->last_logon;
+    pOut->last_logoff           = pIn->last_logoff;
+    pOut->last_password_change  = pIn->last_password_change;
+    pOut->account_expiry        = pIn->account_expiry;
+    pOut->allow_password_change = pIn->allow_password_change;
+    pOut->force_password_change = pIn->force_password_change;
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_directory, &in->home_directory, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
+                                     &pIn->home_directory,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->home_drive, &in->home_drive, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
+                                     &pIn->home_drive,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->logon_script, &in->logon_script, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
+                                     &pIn->logon_script,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->profile_path, &in->profile_path, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
+                                     &pIn->profile_path,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->workstations, &in->workstations, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
+                                     &pIn->workstations,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->comment, &in->comment, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->comment,
+                                     &pIn->comment,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->parameters, &in->parameters, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->parameters,
+                                     &pIn->parameters,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->unknown1, &in->unknown1, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->unknown1,
+                                     &pIn->unknown1,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->unknown2, &in->unknown2, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->unknown2,
+                                     &pIn->unknown2,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->unknown3, &in->unknown2, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->unknown3,
+                                     &pIn->unknown2,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->buf_count = in->buf_count;
+    pOut->buf_count = pIn->buf_count;
 
-    status = SamrAllocateMemory((void**)&out->buffer, out->buf_count, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->buffer,
+                                  pOut->buf_count,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy((void*)out->buffer, (void*)in->buffer, out->buf_count);
+    memcpy((void*)pOut->buffer, (void*)pIn->buffer, pOut->buf_count);
 
-    out->rid            = in->rid;
-    out->primary_gid    = in->primary_gid;
-    out->account_flags  = in->account_flags;
-    out->fields_present = in->fields_present;
+    pOut->rid            = pIn->rid;
+    pOut->primary_gid    = pIn->primary_gid;
+    pOut->account_flags  = pIn->account_flags;
+    pOut->fields_present = pIn->fields_present;
 
-    status = SamrCopyLogonHours(&out->logon_hours, &in->logon_hours, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
+                                  &pIn->logon_hours,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->bad_password_count = in->bad_password_count;
-    out->logon_count        = in->logon_count;
-    out->country_code       = in->country_code;
-    out->code_page          = in->code_page;
-    out->nt_password_set    = in->nt_password_set;
-    out->lm_password_set    = in->lm_password_set;
-    out->password_expired   = in->password_expired;
-    out->unknown4           = in->unknown4;
+    pOut->bad_password_count = pIn->bad_password_count;
+    pOut->logon_count        = pIn->logon_count;
+    pOut->country_code       = pIn->country_code;
+    pOut->code_page          = pIn->code_page;
+    pOut->nt_password_set    = pIn->nt_password_set;
+    pOut->lm_password_set    = pIn->lm_password_set;
+    pOut->password_expired   = pIn->password_expired;
+    pOut->unknown4           = pIn->unknown4;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1437,20 +1635,20 @@ error:
 static
 NTSTATUS
 SamrCopyCryptPassword(
-    CryptPassword *out,
-    CryptPassword *in,
-    void *dep
+    OUT CryptPassword *pOut,
+    IN  CryptPassword *pIn,
+    IN  PVOID          pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    memcpy((void*)out->data, (void*)in->data, sizeof(out->data));
+    memcpy((void*)pOut->data, (void*)pIn->data, sizeof(pOut->data));
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1460,24 +1658,28 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo23(
-    UserInfo23 *out,
-    UserInfo23 *in,
-    void *dep
+    OUT UserInfo23 *pOut,
+    IN  UserInfo23 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUserInfo21(&out->info, &in->info, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUserInfo21(&pOut->info,
+                                  &pIn->info,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyCryptPassword(&out->password, &in->password, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyCryptPassword(&pOut->password,
+                                     &pIn->password,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1487,23 +1689,25 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo24(
-    UserInfo24 *out,
-    UserInfo24 *in,
-    void *dep
+    OUT UserInfo24 *pOut,
+    IN  UserInfo24 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyCryptPassword(&out->password, &in->password, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyCryptPassword(&pOut->password,
+                                     &pIn->password,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->password_len = in->password_len;
+    pOut->password_len = pIn->password_len;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1513,20 +1717,20 @@ error:
 static
 NTSTATUS
 SamrCopyCryptPasswordEx(
-    CryptPasswordEx *out,
-    CryptPasswordEx *in,
-    void *dep
+    OUT CryptPasswordEx *pOut,
+    IN  CryptPasswordEx *pIn,
+    IN  PVOID            pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    memcpy((void*)&out->data, (void*)&in->data, sizeof(out->data));
+    memcpy((void*)&pOut->data, (void*)&pIn->data, sizeof(pOut->data));
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1536,24 +1740,28 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo25(
-    UserInfo25 *out,
-    UserInfo25 *in,
-    void *dep
+    OUT UserInfo25 *pOut,
+    IN  UserInfo25 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyUserInfo21(&out->info, &in->info, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUserInfo21(&pOut->info,
+                                  &pIn->info,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyCryptPasswordEx(&out->password, &in->password, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyCryptPasswordEx(&pOut->password,
+                                       &pIn->password,
+                                       pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1563,23 +1771,25 @@ error:
 static
 NTSTATUS
 SamrCopyUserInfo26(
-    UserInfo26 *out,
-    UserInfo26 *in,
-    void *dep
+    OUT UserInfo26 *pOut,
+    IN  UserInfo26 *pIn,
+    IN  PVOID       pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrCopyCryptPasswordEx(&out->password, &in->password, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyCryptPasswordEx(&pOut->password,
+                                       &pIn->password,
+                                       pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    out->password_len = in->password_len;
+    pOut->password_len = pIn->password_len;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1588,162 +1798,175 @@ error:
 
 NTSTATUS
 SamrAllocateUserInfo(
-    UserInfo **out,
-    UserInfo *in,
-    uint16 level
+    OUT UserInfo **ppOut,
+    IN  UserInfo *pIn,
+    IN  UINT16    Level
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UserInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UserInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = SamrAllocateMemory((void*)&ptr, sizeof(UserInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void*)&pInfo,
+                                  sizeof(UserInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-
-    if (in != NULL) {
-        switch (level) {
+    if (pIn != NULL) {
+        switch (Level) {
         case 1:
-            status = SamrCopyUserInfo1(&ptr->info1, &in->info1, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo1(&pInfo->info1,
+                                         &pIn->info1,
+                                         (void*)pInfo);
             break;
             
         case 2:
-            status = SamrCopyUserInfo2(&ptr->info2, &in->info2, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo2(&pInfo->info2,
+                                         &pIn->info2,
+                                         (void*)pInfo);
             break;
 
         case 3:
-            status = SamrCopyUserInfo3(&ptr->info3, &in->info3, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo3(&pInfo->info3,
+                                         &pIn->info3,
+                                         (void*)pInfo);
             break;
 
         case 4:
-            status = SamrCopyUserInfo4(&ptr->info4, &in->info4, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo4(&pInfo->info4,
+                                         &pIn->info4,
+                                         (void*)pInfo);
             break;
 
         case 5:
-            status = SamrCopyUserInfo5(&ptr->info5, &in->info5, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo5(&pInfo->info5,
+                                         &pIn->info5,
+                                         (void*)pInfo);
             break;
 
         case 6:
-            status = SamrCopyUserInfo6(&ptr->info6, &in->info6, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo6(&pInfo->info6,
+                                         &pIn->info6,
+                                         (void*)pInfo);
             break;
 
         case 7:
-            status = SamrCopyUserInfo7(&ptr->info7, &in->info7, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo7(&pInfo->info7,
+                                         &pIn->info7,
+                                         (void*)pInfo);
             break;
 
         case 8:
-            status = SamrCopyUserInfo8(&ptr->info8, &in->info8, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo8(&pInfo->info8,
+                                         &pIn->info8,
+                                         (void*)pInfo);
             break;
 
         case 9:
-            status = SamrCopyUserInfo9(&ptr->info9, &in->info9, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo9(&pInfo->info9,
+                                         &pIn->info9,
+                                         (void*)pInfo);
             break;
 
         case 10:
-            status = SamrCopyUserInfo10(&ptr->info10, &in->info10, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo10(&pInfo->info10,
+                                          &pIn->info10,
+                                          (void*)pInfo);
             break;
 
         case 11:
-            status = SamrCopyUserInfo11(&ptr->info11, &in->info11,
-                                        (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo11(&pInfo->info11,
+                                          &pIn->info11,
+                                          (void*)pInfo);
             break;
 
         case 12:
-            status = SamrCopyUserInfo12(&ptr->info12, &in->info12,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo12(&pInfo->info12,
+                                          &pIn->info12,
+                                          (void*)pInfo);
             break;
 
         case 13:
-            status = SamrCopyUserInfo13(&ptr->info13, &in->info13,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo13(&pInfo->info13,
+                                          &pIn->info13,
+                                          (void*)pInfo);
             break;
 
         case 14:
-            status = SamrCopyUserInfo14(&ptr->info14, &in->info14,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo14(&pInfo->info14,
+                                          &pIn->info14,
+                                          (void*)pInfo);
             break;
 
         case 16:
-            status = SamrCopyUserInfo16(&ptr->info16, &in->info16,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo16(&pInfo->info16,
+                                          &pIn->info16,
+                                          (void*)pInfo);
             break;
 
         case 17:
-            status = SamrCopyUserInfo17(&ptr->info17, &in->info17,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo17(&pInfo->info17,
+                                          &pIn->info17,
+                                          (void*)pInfo);
             break;
 
         case 20:
-            status = SamrCopyUserInfo20(&ptr->info20, &in->info20,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo20(&pInfo->info20,
+                                          &pIn->info20,
+                                          (void*)pInfo);
             break;
 
         case 21:
-            status = SamrCopyUserInfo21(&ptr->info21, &in->info21,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo21(&pInfo->info21,
+                                          &pIn->info21,
+                                          (void*)pInfo);
             break;
 
         case 23:
-            status = SamrCopyUserInfo23(&ptr->info23, &in->info23,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo23(&pInfo->info23,
+                                          &pIn->info23,
+                                          (void*)pInfo);
             break;
 
         case 24:
-            status = SamrCopyUserInfo24(&ptr->info24, &in->info24,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo24(&pInfo->info24,
+                                          &pIn->info24,
+                                          (void*)pInfo);
             break;
 
         case 25:
-            status = SamrCopyUserInfo25(&ptr->info25, &in->info25,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo25(&pInfo->info25,
+                                          &pIn->info25,
+                                          (void*)pInfo);
             break;
 
         case 26:
-            status = SamrCopyUserInfo26(&ptr->info26, &in->info26,
-                                          (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = SamrCopyUserInfo26(&pInfo->info26,
+                                          &pIn->info26,
+                                          (void*)pInfo);
             break;
 
         default:
-            status = STATUS_INVALID_LEVEL;
-            goto error;
+            ntStatus = STATUS_INVALID_LEVEL;
         }
+
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pInfo) {
+        SamrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 
@@ -1751,31 +1974,37 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayEntryFull(
-    SamrDisplayEntryFull *out,
-    SamrDisplayEntryFull *in,
-    void *dep
+    OUT SamrDisplayEntryFull *pOut,
+    IN  SamrDisplayEntryFull *pIn,
+    IN  PVOID                 pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->idx           = in->idx;
-    out->rid           = in->rid;
-    out->account_flags = in->account_flags;
+    pOut->idx           = pIn->idx;
+    pOut->rid           = pIn->rid;
+    pOut->account_flags = pIn->account_flags;
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->full_name, &in->full_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
+                                     &pIn->full_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1785,33 +2014,33 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayInfoFull(
-    SamrDisplayInfoFull *out,
-    SamrDisplayInfoFull *in,
-    void *dep
+    OUT SamrDisplayInfoFull *pOut,
+    IN  SamrDisplayInfoFull *pIn,
+    IN  PVOID                pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    uint32 i = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->count = in->count;
+    pOut->count = pIn->count;
 
-    status = SamrAllocateMemory((void**)&out->entries,
-                                sizeof(out->entries[0]) * out->count,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
+                                  sizeof(pOut->entries[0]) * pOut->count,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < out->count; i++) {
-        status = SamrCopyDisplayEntryFull(&(out->entries[i]),
-                                          &(in->entries[i]),
-                                          out->entries);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < pOut->count; i++) {
+        ntStatus = SamrCopyDisplayEntryFull(&(pOut->entries[i]),
+                                            &(pIn->entries[i]),
+                                            pOut->entries);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1821,28 +2050,32 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayEntryGeneral(
-    SamrDisplayEntryGeneral *out,
-    SamrDisplayEntryGeneral *in,
-    void *dep
+    OUT SamrDisplayEntryGeneral *pOut,
+    IN  SamrDisplayEntryGeneral *pIn,
+    IN  PVOID                    pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->idx           = in->idx;
-    out->rid           = in->rid;
-    out->account_flags = in->account_flags;
+    pOut->idx           = pIn->idx;
+    pOut->rid           = pIn->rid;
+    pOut->account_flags = pIn->account_flags;
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1852,33 +2085,33 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayInfoGeneral(
-    SamrDisplayInfoGeneral *out,
-    SamrDisplayInfoGeneral *in,
-    void *dep
+    OUT SamrDisplayInfoGeneral *pOut,
+    IN  SamrDisplayInfoGeneral *pIn,
+    IN  PVOID                   pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     uint32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->count = in->count;
+    pOut->count = pIn->count;
 
-    status = SamrAllocateMemory((void**)&out->entries,
-                                sizeof(out->entries[0]) * out->count,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
+                                  sizeof(pOut->entries[0]) * pOut->count,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < out->count; i++) {
-        status = SamrCopyDisplayEntryGeneral(&(out->entries[i]),
-                                             &(in->entries[i]),
-                                             out->entries);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < pOut->count; i++) {
+        ntStatus = SamrCopyDisplayEntryGeneral(&(pOut->entries[i]),
+                                               &(pIn->entries[i]),
+                                               pOut->entries);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1888,28 +2121,32 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayEntryGeneralGroup(
-    SamrDisplayEntryGeneralGroup *out,
-    SamrDisplayEntryGeneralGroup *in,
-    void *dep
+    OUT SamrDisplayEntryGeneralGroup *pOut,
+    IN  SamrDisplayEntryGeneralGroup *pIn,
+    IN  PVOID                         pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->idx           = in->idx;
-    out->rid           = in->rid;
-    out->account_flags = in->account_flags;
+    pOut->idx           = pIn->idx;
+    pOut->rid           = pIn->rid;
+    pOut->account_flags = pIn->account_flags;
 
-    status = SamrCopyUnicodeString(&out->account_name, &in->account_name, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
+                                     &pIn->account_name,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SamrCopyUnicodeString(&out->description, &in->description, dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrCopyUnicodeString(&pOut->description,
+                                     &pIn->description,
+                                     pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1919,33 +2156,33 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayInfoGeneralGroups(
-    SamrDisplayInfoGeneralGroups *out,
-    SamrDisplayInfoGeneralGroups *in,
-    void *dep
+    OUT SamrDisplayInfoGeneralGroups *pOut,
+    IN  SamrDisplayInfoGeneralGroups *pIn,
+    IN  PVOID                         pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     uint32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->count = in->count;
+    pOut->count = pIn->count;
 
-    status = SamrAllocateMemory((void**)&out->entries,
-                                sizeof(out->entries[0]) * out->count,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
+                                  sizeof(pOut->entries[0]) * pOut->count,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < out->count; i++) {
-        status = SamrCopyDisplayEntryGeneralGroup(&(out->entries[i]),
-                                                  &(in->entries[i]),
-                                                  out->entries);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < pOut->count; i++) {
+        ntStatus = SamrCopyDisplayEntryGeneralGroup(&(pOut->entries[i]),
+                                                    &(pIn->entries[i]),
+                                                    pOut->entries);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1955,31 +2192,31 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayEntryAscii(
-    SamrDisplayEntryAscii *out,
-    SamrDisplayEntryAscii *in,
-    void *dep
+    OUT SamrDisplayEntryAscii *pOut,
+    IN  SamrDisplayEntryAscii *pIn,
+    IN  PVOID                  pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->idx                        = in->idx;
-    out->account_name.Length        = in->account_name.Length;
-    out->account_name.MaximumLength = in->account_name.MaximumLength;
+    pOut->idx                        = pIn->idx;
+    pOut->account_name.Length        = pIn->account_name.Length;
+    pOut->account_name.MaximumLength = pIn->account_name.MaximumLength;
 
-    status = SamrAllocateMemory((void**)&out->account_name.Buffer,
-                                sizeof(CHAR) * out->account_name.MaximumLength,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->account_name.Buffer,
+                                  sizeof(CHAR) * pOut->account_name.MaximumLength,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(out->account_name.Buffer,
-           in->account_name.Buffer,
-           out->account_name.Length);
+    memcpy(pOut->account_name.Buffer,
+           pIn->account_name.Buffer,
+           pOut->account_name.Length);
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -1989,33 +2226,33 @@ error:
 static
 NTSTATUS
 SamrCopyDisplayInfoAscii(
-    SamrDisplayInfoAscii *out,
-    SamrDisplayInfoAscii *in,
-    void *dep
+    OUT SamrDisplayInfoAscii *pOut,
+    IN  SamrDisplayInfoAscii *pIn,
+    IN  PVOID                 pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     uint32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    out->count = in->count;
+    pOut->count = pIn->count;
 
-    status = SamrAllocateMemory((void**)&out->entries,
-                                sizeof(out->entries[0]) * out->count,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
+                                  sizeof(pOut->entries[0]) * pOut->count,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < out->count; i++) {
-        status = SamrCopyDisplayEntryAscii(&(out->entries[i]),
-                                           &(in->entries[i]),
-                                           out->entries);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < pOut->count; i++) {
+        ntStatus = SamrCopyDisplayEntryAscii(&(pOut->entries[i]),
+                                             &(pIn->entries[i]),
+                                             pOut->entries);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -2024,68 +2261,71 @@ error:
 
 NTSTATUS
 SamrAllocateDisplayInfo(
-    SamrDisplayInfo **out,
-    SamrDisplayInfo *in,
-    uint16 level
+    OUT SamrDisplayInfo **ppOut,
+    IN  SamrDisplayInfo  *pIn,
+    IN  UINT16            Level
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    SamrDisplayInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SamrDisplayInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = SamrAllocateMemory((void**)&ptr, sizeof(*ptr),
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrAllocateMemory((void**)&pInfo,
+                                  sizeof(*pInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in == NULL) goto cleanup;
+    if (pIn == NULL) goto cleanup;
 
-    switch (level) {
+    switch (Level) {
     case 1:
-        status = SamrCopyDisplayInfoFull(&ptr->info1,
-                                         &in->info1,
-                                         ptr);
+        ntStatus = SamrCopyDisplayInfoFull(&pInfo->info1,
+                                           &pIn->info1,
+                                           pInfo);
         break;
 
     case 2:
-        status = SamrCopyDisplayInfoGeneral(&ptr->info2,
-                                            &in->info2,
-                                            ptr);
+        ntStatus = SamrCopyDisplayInfoGeneral(&pInfo->info2,
+                                              &pIn->info2,
+                                              pInfo);
         break;
 
     case 3:
-        status = SamrCopyDisplayInfoGeneralGroups(&ptr->info3,
-                                                  &in->info3,
-                                                  ptr);
+        ntStatus = SamrCopyDisplayInfoGeneralGroups(&pInfo->info3,
+                                                    &pIn->info3,
+                                                    pInfo);
         break;
 
     case 4:
-        status = SamrCopyDisplayInfoAscii(&ptr->info4,
-                                          &in->info4,
-                                          ptr);
+        ntStatus = SamrCopyDisplayInfoAscii(&pInfo->info4,
+                                            &pIn->info4,
+                                            pInfo);
         break;
 
     case 5:
-        status = SamrCopyDisplayInfoAscii(&ptr->info5,
-                                          &in->info5,
-                                          ptr);
+        ntStatus = SamrCopyDisplayInfoAscii(&pInfo->info5,
+                                            &pIn->info5,
+                                            pInfo);
 
     default:
-        status = STATUS_INVALID_INFO_CLASS;
-        goto error;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
     }
 
-    *out = ptr;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        SamrFreeMemory((void*)ptr);
+    if (pInfo) {
+        SamrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 

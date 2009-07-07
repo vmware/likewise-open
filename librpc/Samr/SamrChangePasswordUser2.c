@@ -33,65 +33,73 @@
 
 NTSTATUS
 SamrChangePasswordUser2(
-    handle_t b,
-    const wchar16_t *hostname,
-    const wchar16_t *account,
-    uint8 ntpass[516],
-    uint8 ntverify[16],
-    uint8 lm_change,
-    uint8 lmpass[516],
-    uint8 lmverify[16]
+    IN  handle_t hSamrBinding,
+    IN  PCWSTR   pwszHostname,
+    IN  PCWSTR   pwszAccount,
+    IN  BYTE     ntpass[516],
+    IN  BYTE     ntverify[16],
+    IN  BYTE     bLmChange,
+    IN  BYTE     lmpass[516],
+    IN  BYTE     lmverify[16]
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    CryptPassword ntp, lmp;
-    CryptPassword *lmpwd = NULL;
-    HashPassword ntv, lmv;
-    HashPassword *lmver = NULL;
-    UnicodeString srv, acct;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    CryptPassword NtPass;
+    CryptPassword LmPass;
+    CryptPassword *pLmPass = NULL;
+    HashPassword NtVer;
+    HashPassword LmVer;
+    HashPassword *pLmVer = NULL;
+    UnicodeString Server = {0};
+    UnicodeString Account = {0};
 
-    memset((void*)&ntp, 0, sizeof(ntp));
-    memset((void*)&lmp, 0, sizeof(lmp));
-    memset((void*)&ntv, 0, sizeof(ntv));
-    memset((void*)&lmv, 0, sizeof(lmv));
-    memset((void*)&srv, 0, sizeof(srv));
-    memset((void*)&acct, 0, sizeof(acct));
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszHostname, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(ntpass, ntStatus);
+    BAIL_ON_INVALID_PTR(ntverify, ntStatus);
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(account);
-    BAIL_ON_INVALID_PTR(ntpass);
-    BAIL_ON_INVALID_PTR(ntverify);
+    memset(&NtPass, 0, sizeof(NtPass));
+    memset(&LmPass, 0, sizeof(LmPass));
+    memset(&NtVer, 0, sizeof(NtVer));
+    memset(&LmVer, 0, sizeof(LmVer));
 
-    status = InitUnicodeString(&srv, hostname);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&Server, pwszHostname);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = InitUnicodeString(&acct, account);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&Account, pwszAccount);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(ntp.data, ntpass, sizeof(ntp.data));
-    memcpy(ntv.data, ntverify, sizeof(ntv.data));
+    memcpy(NtPass.data, ntpass, sizeof(NtPass.data));
+    memcpy(NtVer.data, ntverify, sizeof(NtVer.data));
 
-    if (lm_change) {
-        memcpy(lmp.data, lmpass, sizeof(lmp.data));
-        memcpy(lmv.data, lmverify, sizeof(lmv.data));
-        lmpwd = &lmp;
-        lmver = &lmv;
+    if (bLmChange) {
+        memcpy(LmPass.data, lmpass, sizeof(LmPass.data));
+        memcpy(LmVer.data, lmverify, sizeof(LmVer.data));
+        pLmPass = &LmPass;
+        pLmVer  = &LmVer;
 
     } else {
-        lmpwd = NULL;
-        lmver = NULL;
+        pLmPass = NULL;
+        pLmVer  = NULL;
     }
 
-    DCERPC_CALL(_SamrChangePasswordUser2(b, &srv, &acct, &ntp, &ntv,
-                                         lm_change, lmpwd, lmver));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus,
+                _SamrChangePasswordUser2(hSamrBinding,
+                                         &Server,
+                                         &Account,
+                                         &NtPass,
+                                         &NtVer,
+                                         bLmChange,
+                                         pLmPass,
+                                         pLmVer));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    FreeUnicodeString(&acct);
-    FreeUnicodeString(&srv);
+    FreeUnicodeString(&Account);
+    FreeUnicodeString(&Server);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

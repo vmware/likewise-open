@@ -33,44 +33,50 @@
 
 NTSTATUS
 SamrQueryUserInfo(
-    handle_t b,
-    PolicyHandle *user_h,
-    uint16 level,
-    UserInfo **info
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phUser,
+    IN  UINT16         Level,
+    OUT UserInfo     **ppInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UserInfo *i = NULL;
-    UserInfo *out_info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UserInfo *pInfo = NULL;
+    UserInfo *pOutInfo = NULL;
 
-    BAIL_ON_NO_MEMORY(b);
-    BAIL_ON_NO_MEMORY(user_h);
-    BAIL_ON_NO_MEMORY(info);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phUser, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 	
-    DCERPC_CALL(_SamrQueryUserInfo(b, user_h, level, &i));
+    DCERPC_CALL(ntStatus, _SamrQueryUserInfo(hSamrBinding,
+                                             phUser,
+                                             Level,
+                                             &pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    if (i) {
-        status = SamrAllocateUserInfo(&out_info, i, level);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pInfo) {
+        ntStatus = SamrAllocateUserInfo(&pOutInfo,
+                                        pInfo,
+                                        Level);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *info = out_info;
+    *ppInfo = pOutInfo;
 
 cleanup:
-    if (i) {
-        SamrFreeStubUserInfo(i, level);
+    if (pInfo) {
+        SamrFreeStubUserInfo(pInfo,
+                             Level);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (out_info) {
-        SamrFreeMemory((void*)out_info);
+    if (pOutInfo) {
+        SamrFreeMemory((void*)pOutInfo);
     }
 
-    *info = NULL;
+    *ppInfo = NULL;
+
     goto cleanup;
 }
 

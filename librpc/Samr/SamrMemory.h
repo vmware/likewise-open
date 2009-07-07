@@ -34,93 +34,93 @@
 
 NTSTATUS
 SamrAllocateMemory(
-    void **out,
-    size_t len,
-    void *dep
+    OUT PVOID  *ppOut,
+    IN  size_t  Size,
+    IN  PVOID   pDep
     );
 
 
 NTSTATUS
 SamrAddDepMemory(
-    void *ptr,
-    void *dep
+    IN  PVOID pPtr,
+    IN  PVOID pDep
     );
 
 
 NTSTATUS
 SamrAllocateNamesAndRids(
-    wchar16_t ***outn,
-    uint32 **outr,
-    RidNameArray *in
+    OUT PWSTR        **pppNames,
+    OUT UINT32       **ppRids,
+    IN  RidNameArray  *pIn
     );
 
 
 NTSTATUS
 SamrAllocateNames(
-    wchar16_t ***out,
-    EntryArray *in
+    OUT PWSTR **pppwszNames,
+    IN  EntryArray *pNamesArray
     );
 
 
 NTSTATUS
 SamrAllocateIds(
-    uint32 **out,
-    Ids *in
+    OUT UINT32 **ppOutIds,
+    IN  Ids *pInIds
     );
 
 
 NTSTATUS
 SamrAllocateDomSid(
-    PSID* out,
-    PSID in,
-    void *dep
+    OUT PSID *ppOut,
+    IN  PSID  pIn,
+    IN  PVOID pDep
     );
 
 
 NTSTATUS
 SamrAllocateSids(
-    PSID** out,
-    SidArray *in
+    OUT PSID     **pppSids,
+    IN  SidArray  *pSidArray
     );
 
 
 NTSTATUS
 SamrAllocateRidsAndAttributes(
-    uint32 **out_rids,
-    uint32 **out_attrs,
-    RidWithAttributeArray *in
+    OUT UINT32                **ppRids,
+    OUT UINT32                **ppAttributes,
+    IN  RidWithAttributeArray  *pIn
     );
 
 
 NTSTATUS
 SamrAllocateAliasInfo(
-    AliasInfo **out,
-    AliasInfo *in,
-    uint16 level
+    OUT AliasInfo **ppOut,
+    IN  AliasInfo  *pIn,
+    IN  UINT16      Level
     );
 
 
 NTSTATUS
 SamrAllocateDomainInfo(
-    DomainInfo **out,
-    DomainInfo *in,
-    uint16 level
+    OUT DomainInfo **ppOut,
+    IN  DomainInfo *pIn,
+    IN  UINT16 Level
     );
 
 
 NTSTATUS
 SamrAllocateUserInfo(
-    UserInfo **out,
-    UserInfo *in,
-    uint16 level
+    OUT UserInfo **ppOut,
+    IN  UserInfo *pIn,
+    IN  UINT16    Level
     );
 
 
 NTSTATUS
 SamrAllocateDisplayInfo(
-    SamrDisplayInfo **out,
-    SamrDisplayInfo *in,
-    uint16 level
+    OUT SamrDisplayInfo **ppOut,
+    IN  SamrDisplayInfo  *pIn,
+    IN  UINT16            Level
     );
 
 

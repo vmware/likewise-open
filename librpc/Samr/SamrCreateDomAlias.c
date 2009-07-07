@@ -33,40 +33,47 @@
 
 NTSTATUS
 SamrCreateDomAlias(
-    handle_t b,
-    PolicyHandle *domain_h,
-    wchar16_t *alias,
-    uint32 access_mask,
-    PolicyHandle *alias_h,
-    uint32 *rid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  PWSTR         pwszAliasName,
+    IN  UINT32        AccessMask,
+    OUT PolicyHandle *phAlias,
+    OUT PUINT32       pRid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString alias_name = {0};
-    PolicyHandle handle = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UnicodeString AliasName = {0};
+    PolicyHandle hAlias = {0};
+    UINT32 Rid = 0;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(alias);
-    BAIL_ON_INVALID_PTR(alias_h);
-    BAIL_ON_INVALID_PTR(rid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAliasName, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(pRid, ntStatus);
 
-    status = InitUnicodeString(&alias_name, alias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&AliasName, pwszAliasName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrCreateDomAlias(b, domain_h, &alias_name,
-                                    access_mask, &handle, rid));
+    DCERPC_CALL(ntStatus, _SamrCreateDomAlias(hSamrBinding,
+                                              phDomain,
+                                              &AliasName,
+                                              AccessMask,
+                                              &hAlias,
+                                              &Rid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *alias_h = handle;
+    *phAlias = hAlias;
+    *pRid    = Rid;
 
 cleanup:
-    FreeUnicodeString(&alias_name);
+    FreeUnicodeString(&AliasName);
 
-    return status;
+    return ntStatus;
 
 error:
+    memset(phAlias, 0, sizeof(*phAlias));
+
     goto cleanup;
 }
 

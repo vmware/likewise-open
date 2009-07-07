@@ -33,40 +33,48 @@
 
 NTSTATUS
 SamrCreateDomGroup(
-    handle_t b,
-    PolicyHandle *domain_h,
-    wchar16_t *group,
-    uint32 access_mask,
-    PolicyHandle *group_h,
-    uint32 *rid
+    IN  handle_t      hSamrBinding,
+    IN  PolicyHandle *phDomain,
+    IN  PWSTR         pwszGroupName,
+    IN  UINT32        AccessMask,
+    OUT PolicyHandle *phGroup,
+    OUT PUINT32       pRid
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    UnicodeString group_name = {0};
-    PolicyHandle handle = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UnicodeString GroupName = {0};
+    PolicyHandle hGroup = {0};
+    UINT32 Rid = 0;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(domain_h);
-    BAIL_ON_INVALID_PTR(group);
-    BAIL_ON_INVALID_PTR(group_h);
-    BAIL_ON_INVALID_PTR(rid);
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszGroupName, ntStatus);
+    BAIL_ON_INVALID_PTR(phGroup, ntStatus);
+    BAIL_ON_INVALID_PTR(pRid, ntStatus);
 
-    status = InitUnicodeString(&group_name, group);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&GroupName, pwszGroupName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(_SamrCreateDomGroup(b, domain_h, &group_name,
-                                    access_mask, &handle, rid));
+    DCERPC_CALL(ntStatus, _SamrCreateDomGroup(hSamrBinding,
+                                              phDomain,
+                                              &GroupName,
+                                              AccessMask,
+                                              &hGroup,
+                                              &Rid));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    *group_h = handle;
+    *phGroup = hGroup;
+    *pRid    = Rid;
 
 cleanup:
-    FreeUnicodeString(&group_name);
+    FreeUnicodeString(&GroupName);
 
-    return status;
+    return ntStatus;
 
 error:
+    memset(phGroup, 0, sizeof(*phGroup));
+    *pRid = 0;
+
     goto cleanup;
 }
 
