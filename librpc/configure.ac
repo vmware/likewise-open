@@ -245,7 +245,7 @@ AC_OUTPUT(Makefile
           Error/Makefile
           alloc/Makefile
           MsRpc/Makefile
-          Samr/Makefile
+          samr/Makefile
           lsa/Makefile
 	  Krb5Pac/Makefile
           NetLib/Makefile
