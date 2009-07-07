@@ -7,11 +7,11 @@ AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
 
 AC_SUBST(AM_CFLAGS)
 
+AC_USE_SYSTEM_EXTENSIONS
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
-
-AC_USE_SYSTEM_EXTENSIONS
 
 # libunistr
 
@@ -147,6 +147,9 @@ AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/types.h>
 #include <sys/socket.h>
 ])
+
+AC_CHECK_SIZEOF(unsigned long)
+AC_CHECK_SIZEOF(long)
 
 AC_MSG_CHECKING([if getsockname takes socklen_t*])
 AC_TRY_COMPILE([

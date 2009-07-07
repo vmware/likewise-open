@@ -1320,7 +1320,11 @@ LwLdapGetUInt64(
 
     if (pszValue)
     {
+#if SIZEOF_UNSIGNED_LONG == 8
+        *pqwValue = strtoul(pszValue, &pszEndPtr, 10);
+#else
         *pqwValue = strtoull(pszValue, &pszEndPtr, 10);
+#endif
         if (pszEndPtr == NULL || pszEndPtr == pszValue || *pszEndPtr != '\0')
         {
             dwError = LW_ERROR_DATA_ERROR;
@@ -1362,7 +1366,11 @@ LwLdapGetInt64(
  
     if (pszValue)
     {     
+#if SIZEOF_LONG == 8
+        *pqwValue = strtol(pszValue, &pszEndPtr, 10);
+#else
         *pqwValue = strtoll(pszValue, &pszEndPtr, 10);
+#endif
         if (pszEndPtr == NULL || pszEndPtr == pszValue || *pszEndPtr != '\0')
         {
             dwError = LW_ERROR_DATA_ERROR;
