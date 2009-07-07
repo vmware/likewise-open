@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,7 +32,7 @@
  *
  * Module Name:
  *
- *        lsasecurityidentifier.c
+ *        lwsecurityidentifier.c
  *
  * Abstract:
  *
@@ -799,7 +798,7 @@ LwSidStringToBytes(
         }
     }
 
-    //see comments in lsasecurityidentifier_p.h
+    //see comments in lwsecurityidentifier_p.h
     dwSidBytesLength = 1 + 1 + 6 + 4*(iTailCount);
 
     dwError = LwAllocateMemory(

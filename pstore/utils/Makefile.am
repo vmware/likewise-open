@@ -1,4 +1,4 @@
-lib_LTLIBRARIES=liblwps-utils.la
+noinst_LTLIBRARIES=liblwps-utils.la
 
 liblwps_utils_la_SOURCES = \
        lwps-futils.c   \

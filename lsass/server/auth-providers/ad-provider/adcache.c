@@ -465,6 +465,9 @@ ADCacheFreePasswordVerifier(
     IN OUT PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
+    LSA_SAFE_FREE_STRING(pVerifier->pszObjectSid);
+    LSA_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
+    LSA_SAFE_FREE_MEMORY(pVerifier);
 }
 
 DWORD

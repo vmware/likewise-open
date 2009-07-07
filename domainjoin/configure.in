@@ -320,28 +320,28 @@ AC_SUBST(LIBUNISTR_LDFLAGS)
 AC_SUBST(LIBUNISTR_LIBS)
 
 PSTORE_LIBS=""
-AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi -llwps-utils"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS -llwps-utils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(PSTORE_INCLUDE)
 AC_SUBST(PSTORE_LDFLAGS)
 AC_SUBST(PSTORE_LIBS)
 
 NETLOGON_LIBS=""
-AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi -llwnetipc -llwnetutils"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS -llwnetipc -llwnetutils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(NETLOGON_INCLUDE)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
 
 DCERPC_LIBS=""
-AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc -ldcethread"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS -ldcethread $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(DCERPC_INCLUDE)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
 LIBRPC_LIBS=""
-AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi -lmsrpc -lsamr -llsa -lmpr"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS -lmsrpc -lsamr -llsa -lmpr $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(LIBRPC_INCLUDE)
 AC_SUBST(LIBRPC_LDFLAGS)

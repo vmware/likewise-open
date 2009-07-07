@@ -3,26 +3,25 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
  * your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
@@ -33,11 +32,11 @@
  *
  * Module Name:
  *
- *        join.c
+ *        error.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Likewise Advanced API (lwadvapi)
  * 
  *        Error Code Mapping API
  *
@@ -526,7 +525,7 @@ static struct
     },
     {
         LW_ERROR_LSA_SERVER_UNREACHABLE,
-        "The LSASS server is not responding."
+        "The LWSS server is not responding."
     },
     {
         LW_ERROR_INVALID_NSS_ARTEFACT_TYPE,
@@ -534,7 +533,7 @@ static struct
     },
     {
         LW_ERROR_INVALID_AGENT_VERSION,
-        "The LSASS Server version is invalid"
+        "The LWSS Server version is invalid"
     },
     {
         LW_ERROR_DOMAIN_IS_OFFLINE,
@@ -806,22 +805,38 @@ LwMapErrnoToLwError(
             return LW_ERROR_ERRNO_ENOMSG;
         case EIDRM:
             return LW_ERROR_ERRNO_EIDRM;
+#ifdef ECHRNG
         case ECHRNG:
             return LW_ERROR_ERRNO_ECHRNG;
+#endif
+#ifdef EL2NSYNC
         case EL2NSYNC:
             return LW_ERROR_ERRNO_EL2NSYNC;
+#endif
+#ifdef EL3HLT
         case EL3HLT:
             return LW_ERROR_ERRNO_EL3HLT;
+#endif
+#ifdef EL3RST
         case EL3RST:
             return LW_ERROR_ERRNO_EL3RST;
+#endif
+#ifdef ELNRNG
         case ELNRNG:
             return LW_ERROR_ERRNO_ELNRNG;
+#endif
+#ifdef EUNATCH
         case EUNATCH:
             return LW_ERROR_ERRNO_EUNATCH;
+#endif
+#ifdef ENOCSI
         case ENOCSI:
             return LW_ERROR_ERRNO_ENOCSI;
+#endif
+#ifdef EL2HLT
         case EL2HLT:
             return LW_ERROR_ERRNO_EL2HLT;
+#endif
 #ifdef EBADE
         case EBADE:
             return LW_ERROR_ERRNO_EBADE;
@@ -850,14 +865,22 @@ LwMapErrnoToLwError(
         case EBFONT:
             return LW_ERROR_ERRNO_EBFONT;
 #endif
+#ifdef ENOSTR
         case ENOSTR:
             return LW_ERROR_ERRNO_ENOSTR;
+#endif
+#ifdef ENODATA
         case ENODATA:
             return LW_ERROR_ERRNO_ENODATA;
+#endif
+#ifdef ETIME
         case ETIME:
             return LW_ERROR_ERRNO_ETIME;
+#endif
+#ifdef ENOSR
         case ENOSR:
             return LW_ERROR_ERRNO_ENOSR;
+#endif
 #ifdef ENONET
         case ENONET:
             return LW_ERROR_ERRNO_ENONET;
@@ -928,8 +951,10 @@ LwMapErrnoToLwError(
 #endif
         case EILSEQ:
             return LW_ERROR_ERRNO_EILSEQ;
+#ifdef ERESTART
         case ERESTART:
             return LW_ERROR_ERRNO_ERESTART;
+#endif
 #ifdef ESTRPIPE
         case ESTRPIPE:
             return LW_ERROR_ERRNO_ESTRPIPE;

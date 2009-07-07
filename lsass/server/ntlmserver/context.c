@@ -876,13 +876,26 @@ error:
 DWORD
 NtlmCreateResponseMessage(
     IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
-    IN DWORD dwResponseType,
-    IN PWCHAR pPassword,
+    IN PCHAR pAuthTargetName,
+    IN PCHAR pUserName,
+    IN PCHAR pWorkstation,
+    IN PBYTE pOsVersion,
+    IN PCHAR pPassword,
+    IN DWORD dwNtRespType,
+    IN DWORD dwLmRespType,
     OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
+    PBYTE pBuffer = NULL;
+    PNTLM_SEC_BUFFER pSessionKey = NULL;
+    DWORD dwNtMsgSize = 0;
+    DWORD dwLmMsgSize = 0;
     DWORD dwSize = 0;
+    DWORD dwAuthTrgtNameSize = 0;
+    DWORD dwUserNameSize = 0;
+    DWORD dwWorkstationSize = 0;
+    PBYTE pTrav = NULL;
 
     // sanity checks
     if(!pChlngMsg || !ppRespMsg)
@@ -893,54 +906,50 @@ NtlmCreateResponseMessage(
 
     *ppRespMsg = NULL;
 
-    // calculate the repsonse... we need to get the size first
-    switch(dwResponseType)
+    dwAuthTrgtNameSize = strlen(pAuthTargetName);
+    dwUserNameSize = strlen(pUserName);
+    dwWorkstationSize = strlen(pWorkstation);
+
+    dwSize += dwAuthTrgtNameSize +
+              dwUserNameSize +
+              dwWorkstationSize;
+
+    if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
     {
-    case NTLM_RESPONSE_TYPE_LM:
-        {
-            dwError = NtlmBuildLmResponse();
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_LMv2:
-        {
-            dwError = NtlmBuildLmV2Response();
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_NTLM:
-        {
-            dwError = NtlmBuildNtlmResponse(
-                (PUSHORT)&dwSize,
-                NULL
-                );
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_NTLMv2:
-        {
-            dwError = NtlmBuildNtlmV2Response();
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_NTLM2:
-        {
-            // this is the only variable sized response
-            dwError = NtlmBuildNtlm2Response();
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    case NTLM_RESPONSE_TYPE_ANONYMOUS:
-        {
-            dwError = NtlmBuildAnonymousResponse();
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
-        break;
-    default:
-        {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
+        dwSize *= sizeof(WCHAR);
+    }
+
+    dwSize += sizeof(NTLM_RESPONSE_MESSAGE);
+
+    // calculate the response size...
+    dwError = NtlmCalculateResponseSize(
+        pChlngMsg,
+        dwNtRespType,
+        &dwNtMsgSize
+        );
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    dwSize += dwNtMsgSize;
+
+    dwError = NtlmCalculateResponseSize(
+        pChlngMsg,
+        dwLmRespType,
+        &dwLmMsgSize
+        );
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    dwSize += dwLmMsgSize;
+
+    // we're just going to send an empty session key for now... we may support
+    // this option later
+    dwSize += sizeof(NTLM_SEC_BUFFER);
+
+    // we're going to send our flags as well
+    dwSize += sizeof(pChlngMsg->NtlmFlags);
+
+    if(pOsVersion)
+    {
+        dwSize += NTLM_WIN_SPOOF_SIZE;
     }
 
     dwError = LsaAllocateMemory(dwSize, (PVOID*)(ppRespMsg));
@@ -951,10 +960,135 @@ NtlmCreateResponseMessage(
     // Data is checked and memory is allocated; fill in the structure
     //
     memcpy(&((*ppRespMsg)->NtlmSignature), NTLM_SIGNATURE, NTLM_SIGNATURE_SIZE);
+
     (*ppRespMsg)->MessageType = NTLM_RESPONSE_MSG;
 
-    // I don't believe we will be calculating/supporting LM auth... skip this
-    memset(&((*ppRespMsg)->LmResponse), 0, sizeof(NTLM_SEC_BUFFER));
+    (*ppRespMsg)->LmResponse.usLength = dwNtMsgSize;
+    (*ppRespMsg)->LmResponse.usMaxLength = (*ppRespMsg)->LmResponse.usLength;
+
+    (*ppRespMsg)->NtResponse.usLength = dwNtMsgSize;
+    (*ppRespMsg)->NtResponse.usMaxLength = (*ppRespMsg)->NtResponse.usLength;
+
+    if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+    {
+        (*ppRespMsg)->AuthTargetName.usLength =
+            dwAuthTrgtNameSize * sizeof(WCHAR);
+        (*ppRespMsg)->AuthTargetName.usMaxLength =
+            (*ppRespMsg)->AuthTargetName.usLength;
+
+        (*ppRespMsg)->UserName.usLength =
+            dwUserNameSize * sizeof(WCHAR);
+        (*ppRespMsg)->UserName.usMaxLength =
+            (*ppRespMsg)->UserName.usLength;
+
+        (*ppRespMsg)->Workstation.usLength =
+            dwWorkstationSize * sizeof(WCHAR);
+        (*ppRespMsg)->Workstation.usMaxLength =
+            (*ppRespMsg)->Workstation.usLength;
+    }
+    else
+    {
+        (*ppRespMsg)->AuthTargetName.usLength = dwAuthTrgtNameSize;
+        (*ppRespMsg)->AuthTargetName.usMaxLength =
+            (*ppRespMsg)->AuthTargetName.usLength;
+
+        (*ppRespMsg)->UserName.usLength = dwUserNameSize;
+        (*ppRespMsg)->UserName.usMaxLength =
+            (*ppRespMsg)->UserName.usLength;
+
+        (*ppRespMsg)->Workstation.usLength = dwWorkstationSize;
+        (*ppRespMsg)->Workstation.usMaxLength =
+            (*ppRespMsg)->Workstation.usLength;
+    }
+
+    // We've filled in the main structure, now add optional data at the end
+    pBuffer = (PBYTE)(*ppRespMsg) + sizeof(NTLM_RESPONSE_MESSAGE);
+
+    pSessionKey = (PNTLM_SEC_BUFFER)pBuffer;
+
+    pSessionKey->usLength = 0;
+    pSessionKey->usMaxLength = pSessionKey->usLength;
+
+    pBuffer += sizeof(NTLM_SEC_BUFFER);
+
+    memcpy(pBuffer, &(pChlngMsg->NtlmFlags), sizeof(pChlngMsg->NtlmFlags));
+
+    pBuffer += sizeof(pChlngMsg->NtlmFlags);
+
+    if(pOsVersion)
+    {
+        memcpy(pBuffer, pOsVersion, NTLM_WIN_SPOOF_SIZE);
+        pBuffer += NTLM_WIN_SPOOF_SIZE;
+    }
+
+    (*ppRespMsg)->LmResponse.dwOffset = pBuffer - (PBYTE)(*ppRespMsg);
+
+    dwError = NtlmBuildResponse(
+        pChlngMsg,
+        pPassword,
+        dwLmRespType,
+        dwLmMsgSize,
+        pBuffer
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    pBuffer += (*ppRespMsg)->LmResponse.usLength;
+
+    (*ppRespMsg)->NtResponse.dwOffset = pBuffer - (PBYTE)(*ppRespMsg);
+
+    dwError = NtlmBuildResponse(
+        pChlngMsg,
+        pPassword,
+        dwNtRespType,
+        dwNtMsgSize,
+        pBuffer
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    pBuffer += (*ppRespMsg)->NtResponse.usLength;
+
+    (*ppRespMsg)->AuthTargetName.dwOffset = pBuffer - (PBYTE)(*ppRespMsg);
+    pTrav = (PBYTE)pAuthTargetName;
+    while(*pTrav)
+    {
+        *pBuffer = *pTrav;
+        pBuffer++;
+        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        {
+            pBuffer++;
+        }
+        pTrav++;
+    }
+
+    (*ppRespMsg)->UserName.dwOffset = pBuffer - (PBYTE)(*ppRespMsg);
+    pTrav = (PBYTE)pUserName;
+    while(*pTrav)
+    {
+        *pBuffer = *pTrav;
+        pBuffer++;
+        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        {
+            pBuffer++;
+        }
+        pTrav++;
+    }
+
+    (*ppRespMsg)->Workstation.dwOffset = pBuffer - (PBYTE)(*ppRespMsg);
+    pTrav = (PBYTE)pWorkstation;
+    while(*pTrav)
+    {
+        *pBuffer = *pTrav;
+        pBuffer++;
+        if(pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+        {
+            pBuffer++;
+        }
+        pTrav++;
+    }
+
+    pSessionKey->dwOffset = pBuffer - (PBYTE)(*ppRespMsg);;
 
 cleanup:
     return dwError;
@@ -980,39 +1114,268 @@ NtlmValidatResponseMessage(
 
 /******************************************************************************/
 DWORD
-NtlmBuildLmResponse()
-{
-    // I don't believe we plan to support this particular authentication.
-    return LSA_ERROR_NOT_SUPPORTED;
-}
-
-/******************************************************************************/
-DWORD
-NtlmBuildNtlmResponse(
-    PUSHORT pLength,
-    PBYTE pResponse
+NtlmBuildResponse(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwResponseType,
+    IN DWORD dwBufferSize,
+    OUT PBYTE pBuffer
     )
 {
     DWORD dwError = LSA_ERROR_SUCCESS;
 
-    if(!pLength)
+    if(!pChlngMsg)
     {
         dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    // if an output buffer is not supplied or if it is too small,
-    // error out, but report the size we would need.
-    if(!pResponse || *pLength < NTLM_RESPONSE_SIZE_NTLM)
+    switch(dwResponseType)
     {
-        dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
-        *pLength = NTLM_RESPONSE_SIZE_NTLM;
+    case NTLM_RESPONSE_TYPE_LM:
+        {
+            dwError = NtlmBuildLmResponse(
+                pChlngMsg,
+                pPassword,
+                dwBufferSize,
+                pBuffer
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_LMv2:
+        {
+            dwError = NtlmBuildLmV2Response();
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_NTLM:
+        {
+            dwError = NtlmBuildNtlmResponse(
+                pChlngMsg,
+                pPassword,
+                dwBufferSize,
+                pBuffer
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_NTLMv2:
+        {
+            dwError = NtlmBuildNtlmV2Response();
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_NTLM2:
+        {
+            dwError = NtlmBuildNtlm2Response();
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_ANONYMOUS:
+        {
+            dwError = NtlmBuildAnonymousResponse();
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+        break;
+    default:
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmBuildLmResponse(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwLength,
+    OUT PBYTE pResponse
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwIndex = 0;
+    DWORD dwPasswordLen = 0;
+    BYTE LmHash[NTLM_LM_HASH_SIZE] = {0};
+    ULONG64 ulKey1 = 0;
+    ULONG64 ulKey2 = 0;
+    ULONG64 ulKey3 = 0;
+    DES_key_schedule DesKeySchedule;
+
+    if(dwLength != NTLM_RESPONSE_SIZE_LM)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
+    dwPasswordLen = strlen(pPassword);
 
+    // if password is less than 15 characters, create LM hash, otherwise, the
+    // hash is set to zero.
+    if(dwPasswordLen <= NTLM_LM_MAX_PASSWORD_SIZE)
+    {
+        // convert the password to upper case
+        for(dwIndex = 0; dwIndex < NTLM_LM_MAX_PASSWORD_SIZE; dwIndex++)
+        {
+            LmHash[0] = toupper(pPassword[dwIndex]);
+
+            if(!pPassword[dwIndex])
+            {
+                break;
+            }
+        }
+
+        memcpy(&ulKey1, &LmHash[0], 7);
+        memcpy(&ulKey2, &LmHash[7], 7);
+
+        NtlmSetParityBit(&ulKey1);
+        NtlmSetParityBit(&ulKey2);
+
+        DES_set_key_unchecked((const_DES_cblock*)&ulKey1, &DesKeySchedule);
+        DES_ecb_encrypt(
+            (const_DES_cblock *)NTLM_LM_DES_STRING,
+            (DES_cblock*)&LmHash[0],
+            &DesKeySchedule,
+            DES_ENCRYPT
+            );
+
+        DES_set_key_unchecked((const_DES_cblock*)&ulKey2, &DesKeySchedule);
+        DES_ecb_encrypt(
+            (const_DES_cblock *)NTLM_LM_DES_STRING,
+            (DES_cblock*)&LmHash[8],
+            &DesKeySchedule,
+            DES_ENCRYPT
+            );
+    }
+
+    memcpy(&ulKey1, &LmHash[0],  7);
+    memcpy(&ulKey2, &LmHash[7],  7);
+    memcpy(&ulKey3, &LmHash[14], 2);
+
+    NtlmSetParityBit(&ulKey1);
+    NtlmSetParityBit(&ulKey2);
+    NtlmSetParityBit(&ulKey3);
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey1, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[0],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey2, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[8],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey3, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[16],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
 
 cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmBuildNtlmResponse(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN PCHAR pPassword,
+    IN DWORD dwLength,
+    OUT PBYTE pResponse
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    BYTE MD4Digest[MD4_DIGEST_LENGTH];
+    ULONG64 ulKey1 = 0;
+    ULONG64 ulKey2 = 0;
+    ULONG64 ulKey3 = 0;
+    DES_key_schedule DesKeySchedule;
+    DWORD dwTempPassSize = strlen(pPassword) * sizeof(WCHAR);
+    PWCHAR pwcTempPass = NULL;
+
+    memset(&DesKeySchedule, 0, sizeof(DES_key_schedule));
+
+    if(dwLength != NTLM_RESPONSE_SIZE_NTLM)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateMemory(dwTempPassSize, (PVOID*)&pwcTempPass);
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    while(*pPassword)
+    {
+        *pwcTempPass = *pPassword;
+        pwcTempPass++;
+        pPassword++;
+    }
+
+    pwcTempPass = (PWCHAR)((PBYTE)pwcTempPass - dwTempPassSize);
+
+    dwError = NtlmCreateMD4Digest(
+        (PBYTE)pwcTempPass,
+        dwTempPassSize,
+        MD4Digest
+        );
+
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    memcpy(&ulKey1, &MD4Digest[0], 7);
+    memcpy(&ulKey2, &MD4Digest[7], 7);
+    memcpy(&ulKey3, &MD4Digest[14], 2);
+
+    NtlmSetParityBit(&ulKey1);
+    NtlmSetParityBit(&ulKey2);
+    NtlmSetParityBit(&ulKey3);
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey1, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[0],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey2, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[8],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey3, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)pChlngMsg->Challenge,
+        (DES_cblock*)&pResponse[16],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+cleanup:
+    if(pwcTempPass)
+    {
+        LsaFreeMemory(pwcTempPass);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -1048,4 +1411,127 @@ NtlmBuildAnonymousResponse()
 {
     DWORD dwError = LSA_ERROR_NOT_SUPPORTED;
     return dwError;
+}
+
+/******************************************************************************/
+DWORD
+NtlmCalculateResponseSize(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    IN DWORD dwResponseType,
+    OUT PDWORD pdwSize
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+
+    if(!pChlngMsg)
+    {
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    *pdwSize = 0;
+
+    switch(dwResponseType)
+    {
+    case NTLM_RESPONSE_TYPE_LM:
+    case NTLM_RESPONSE_TYPE_LMv2:
+    case NTLM_RESPONSE_TYPE_NTLM2:
+    case NTLM_RESPONSE_TYPE_NTLM:
+        {
+            // All 4 of these messages are the same size as an NTLM message
+            *pdwSize = NTLM_RESPONSE_SIZE_NTLM;
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_ANONYMOUS:
+        {
+            *pdwSize = NTLM_RESPONSE_SIZE_ANONYMOUS;
+        }
+        break;
+    case NTLM_RESPONSE_TYPE_NTLMv2:
+        {
+            // This is the only one that needs to be calculated out
+            dwError = NtlmCalculateNtlmV2ResponseSize(pChlngMsg, pdwSize);
+        }
+        break;
+    default:
+        {
+            dwError = LSA_ERROR_INVALID_PARAMETER;
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    return dwError;
+error:
+    *pdwSize = 0;
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmCalculateNtlmV2ResponseSize(
+    IN PNTLM_CHALLENGE_MESSAGE pChlngMsg,
+    OUT PDWORD pdwSize
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    return dwError;
+}
+
+/******************************************************************************/
+DWORD
+NtlmCreateMD4Digest(
+    PBYTE pBuffer,
+    DWORD dwBufferLen,
+    BYTE MD4Digest[MD4_DIGEST_LENGTH]
+    )
+{
+    DWORD dwError = LSA_ERROR_SUCCESS;
+    MD4_CTX Md4Ctx;
+
+    dwError = MD4_Init(&Md4Ctx);
+
+    if(dwError != 1)
+    {
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    dwError = MD4_Update(&Md4Ctx, pBuffer, dwBufferLen);
+
+    if(dwError != 1)
+    {
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    dwError = MD4_Final(MD4Digest, &Md4Ctx);
+
+    if(dwError != 1)
+    {
+        dwError = LSA_ERROR_INTERNAL;
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+}
+
+/******************************************************************************/
+DWORD
+NtlmSetParityBit(PULONG64 pKey)
+{
+    *pKey = (*pKey & 0xFFFFFFFFFFFFFF00) | ((*pKey & ((ULONG64)7 <<  8)) >> 7);
+    *pKey = (*pKey & 0xFFFFFFFFFFFF00FF) | ((*pKey & ((ULONG64)7 << 15)) >> 6);
+    *pKey = (*pKey & 0xFFFFFFFFFF00FFFF) | ((*pKey & ((ULONG64)7 << 22)) >> 5);
+    *pKey = (*pKey & 0xFFFFFFFF00FFFFFF) | ((*pKey & ((ULONG64)7 << 29)) >> 4);
+    *pKey = (*pKey & 0xFFFFFF00FFFFFFFF) | ((*pKey & ((ULONG64)7 << 36)) >> 3);
+    *pKey = (*pKey & 0xFFFF00FFFFFFFFFF) | ((*pKey & ((ULONG64)7 << 43)) >> 2);
+    *pKey = (*pKey & 0xFF00FFFFFFFFFFFF) | ((*pKey & ((ULONG64)7 << 50)) >> 1);
+
+    DES_set_odd_parity((DES_cblock*)pKey);
+
+    return LSA_ERROR_SUCCESS;
 }

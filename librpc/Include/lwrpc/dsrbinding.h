@@ -56,28 +56,38 @@
 
 RPCSTATUS
 InitDsrBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phBinding,
+    PCSTR pszHostname,
+    PIO_ACCESS_TOKEN pIoAccessToken
     );
-
 
 RPCSTATUS
 InitDsrBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phBinding,
+    PCSTR pszProtSeq,
+    PCSTR pszHostname,
+    PCSTR pszEndpoint,
+    PCSTR pszUuid,
+    PCSTR pszOptions,
+    PIO_ACCESS_TOKEN pIoAccessToken
     );
 
 
 RPCSTATUS
 FreeDsrBinding(
-    handle_t *binding
+    handle_t *phBinding
     );
 
 
 #endif /* _DSRBINDING_H_ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -73,7 +73,7 @@ PvfsDriverInitialize(
   **********************************************************/
 
 NTSTATUS
-DriverEntry(
+IO_DRIVER_ENTRY(pvfs)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
     )

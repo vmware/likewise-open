@@ -3,26 +3,25 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
  * your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
- * <http://www.gnu.org/licenses/>.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
@@ -33,11 +32,11 @@
  *
  * Module Name:
  *
- *        lsakrb5.c
+ *        lwkrb5.c
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS) 
+ *        Likewise Advanced API (lwadvapi)
  *        
  *        Kerberos 5 API
  *
@@ -52,8 +51,8 @@
 
 DWORD
 LwKrb5Init(
-    IN OPTIONAL LSA_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
-    IN OPTIONAL LSA_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
+    IN OPTIONAL LW_KRB5_REALM_IS_OFFLINE_CALLBACK pfIsOfflineCallback,
+    IN OPTIONAL LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK pfTransitionOfflineCallback
     )
 {
     DWORD dwError = 0;
@@ -124,44 +123,32 @@ error:
 
 DWORD
 LwKrb5GetSystemCachePath(
-    Krb5CacheType cacheType,
     PSTR*         ppszCachePath
     )
 {
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
+    krb5_context ctx = NULL;
+    const char *pszKrbDefault = NULL;
+    krb5_error_code ret = 0;
     
-    switch (cacheType)
-    {
-        case KRB5_InMemory_Cache:
-            
-            dwError = LwAllocateString(
-                        "MEMORY:krb5cc_lsass",
-                        &pszCachePath);
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-            
-        case KRB5_File_Cache:
-            
-            dwError = LwAllocateString(
-                        "FILE:/var/lib/likewise/krb5cc_lsass",
-                        &pszCachePath);
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-            
-        default:
-            
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LW_ERROR(dwError);
-            
-            break;
-    }
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
+
+    pszKrbDefault = krb5_cc_default_name(ctx);
+
+    dwError = LwAllocateString(
+                pszKrbDefault,
+                &pszCachePath);
+    BAIL_ON_LW_ERROR(dwError);
     
     *ppszCachePath = pszCachePath;
     
 cleanup:
+    if (ctx)
+    {
+        krb5_free_context(ctx);
+    }
 
     return dwError;
     
@@ -369,7 +356,7 @@ LwSetupMachineSession(
     dwError = LwKrb5GetSystemKeytabPath(&pszHostKeytabFile);
     BAIL_ON_LW_ERROR(dwError);
 
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(&pszKrb5CcPath);
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = LwAllocateString(pszRealm, &pszRealmCpy);
@@ -427,7 +414,7 @@ LwKrb5CleanupMachineSession(
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
 
-    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(&pszKrb5CcPath);
     BAIL_ON_LW_ERROR(dwError);
 
     ret = krb5_init_context(&ctx);

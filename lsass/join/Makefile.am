@@ -22,7 +22,6 @@ liblsajoin_la_CPPFLAGS =              \
 	@PSTORE_INCLUDES@             \
 	@NETAPI_INCLUDES@      \
 	@KRB5_INCLUDES@ \
-	@KRB5PAC_INCLUDES@ \
 	@LWIO_INCLUDES@
 
 
@@ -34,7 +33,6 @@ liblsajoin_la_LIBADD = \
 	@top_builddir@/lsaunistr/liblsaunistr.la \
     @top_builddir@/logging_r/liblsalog_r.la \
 	@KRB5_LIBS@ \
-	@KRB5PAC_LIBS@ \
 	@LWIO_LIBS@ \
 	-llber
 
@@ -44,5 +42,4 @@ liblsajoin_la_LDFLAGS = \
 	@NETAPI_LDFLAGS@ \
 	@OPENLDAP_LDFLAGS@ \
 	@KRB5_LDFLAGS@ \
-	@KRB5PAC_LDFLAGS@ \
 	@LWIO_LDFLAGS@

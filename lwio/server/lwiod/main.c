@@ -171,6 +171,32 @@ SMBSrvGetBlockedSignalsSansInterrupt(
     sigset_t* pBlockedSignals
     );
 
+#ifdef ENABLE_STATIC_DRIVERS
+
+extern NTSTATUS IO_DRIVER_ENTRY(rdr)(IO_DRIVER_HANDLE, ULONG);
+extern NTSTATUS IO_DRIVER_ENTRY(srv)(IO_DRIVER_HANDLE, ULONG);
+extern NTSTATUS IO_DRIVER_ENTRY(npfs)(IO_DRIVER_HANDLE, ULONG);
+extern NTSTATUS IO_DRIVER_ENTRY(pvfs)(IO_DRIVER_HANDLE, ULONG);
+
+static IO_STATIC_DRIVER gStaticDrivers[] =
+{
+#ifdef ENABLE_RDR
+    IO_STATIC_DRIVER_ENTRY(rdr),
+#endif
+#ifdef ENABLE_SRV
+    IO_STATIC_DRIVER_ENTRY(srv),
+#endif
+#ifdef ENABLE_PVFS
+    IO_STATIC_DRIVER_ENTRY(pvfs),
+#endif
+#ifdef ENABLE_NPFS
+    IO_STATIC_DRIVER_ENTRY(npfs),
+#endif
+    IO_STATIC_DRIVER_END
+};
+
+#endif
+
 int
 main(
     int argc,
@@ -511,7 +537,11 @@ SMBSrvInitialize(
     dwError = SMBInitCacheFolders();
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = IoInitialize(pszConfigPath);
+#ifdef ENABLE_STATIC_DRIVERS
+    dwError = IoInitialize(pszConfigPath, gStaticDrivers);
+#else
+    dwError = IoInitialize(pszConfigPath, NULL);
+#endif
     BAIL_ON_LWIO_ERROR(dwError);
 
 error:

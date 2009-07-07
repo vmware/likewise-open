@@ -49,124 +49,172 @@
 
 RPCSTATUS
 InitDsrBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phBinding,
+    PCSTR pszHostname,
+    PIO_ACCESS_TOKEN pIoAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
-    char *prot_seq = (char*)DSR_DEFAULT_PROT_SEQ;
-    char *endpoint = (char*)DSR_DEFAULT_ENDPOINT;
-    char *uuid = NULL;
-    char *options = NULL;
-    handle_t b = NULL;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    PSTR pszProtSeq = (PSTR)DSR_DEFAULT_PROT_SEQ;
+    PSTR pszEndpoint = (PSTR)DSR_DEFAULT_ENDPOINT;
+    PSTR pszUuid = NULL;
+    PSTR pszOptions = NULL;
+    handle_t hBinding = NULL;
 
-    rpcstatus = InitDsrBindingFull(&b, prot_seq, hostname, endpoint,
-                                   uuid, options, access_token);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpcStatus = InitDsrBindingFull(
+                    &hBinding,
+                    pszProtSeq,
+                    pszHostname,
+                    pszEndpoint,
+                    pszUuid,
+                    pszOptions,
+                    pIoAccessToken);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    *binding = b;
+    *phBinding = hBinding;
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
-    *binding = NULL;
+    *phBinding = NULL;
     goto cleanup;
 }
 
 
 RPCSTATUS
 InitDsrBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phBinding,
+    PCSTR pszProtSeq,
+    PCSTR pszHostname,
+    PCSTR pszEndpoint,
+    PCSTR pszUuid,
+    PCSTR pszOptions,
+    PIO_ACCESS_TOKEN pIoAccessToken
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
     RPCSTATUS st = RPC_S_OK;
-    unsigned char *binding_string = NULL;
-    unsigned char *ps   = NULL;
-    unsigned char *ep   = NULL;
-    unsigned char *u    = NULL;
-    unsigned char *opts = NULL;
-    unsigned char *addr = NULL;
-    handle_t b = NULL;
-    rpc_transport_info_handle_t info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pbBindingString = NULL;
+    PBYTE pbProtSeq   = NULL;
+    PBYTE pbEndpoint   = NULL;
+    PBYTE pbUuid    = NULL;
+    PBYTE pbOptions = NULL;
+    PBYTE pbAddress = NULL;
+    handle_t hBinding = NULL;
+    rpc_transport_info_handle_t hTransportInfo = NULL;
 
-    BAIL_ON_NULL_PARAM_RPCSTATUS(binding);
-    BAIL_ON_NULL_PARAM_RPCSTATUS(prot_seq);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(phBinding, rpcStatus);
+    BAIL_ON_INVALID_PTR_RPCSTATUS(pszProtSeq, rpcStatus);
 
-    ps = (unsigned char*) strdup(prot_seq);
-    BAIL_ON_NO_MEMORY_RPCSTATUS(ps);
+    ntStatus = RtlCStringDuplicate((PSTR*)&pbProtSeq, pszProtSeq);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (endpoint != NULL) {
-        ep = (unsigned char*) strdup(endpoint);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(ep);
+    if (pszEndpoint != NULL)
+    {
+        ntStatus = RtlCStringDuplicate((PSTR*)&pbEndpoint, pszEndpoint);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (uuid != NULL) {
-        u = (unsigned char*) strdup(uuid);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(u);
+    if (pszUuid != NULL)
+    {
+        ntStatus = RtlCStringDuplicate((PSTR*)&pbUuid, pszUuid);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (options != NULL) {
-        opts = (unsigned char*) strdup(options);
-        BAIL_ON_NO_MEMORY_RPCSTATUS(opts);
+    if (pszOptions != NULL)
+    {
+        ntStatus = RtlCStringDuplicate((PSTR*)&pbOptions, pszOptions);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    addr = (unsigned char*) strdup(hostname);
-    BAIL_ON_NO_MEMORY_RPCSTATUS(addr);
+    ntStatus = RtlCStringDuplicate((PSTR*)&pbAddress, pszHostname);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    rpc_string_binding_compose(u, ps, addr, ep, opts, &binding_string,
-                               &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_string_binding_compose(
+        pbUuid,
+        pbProtSeq,
+        pbAddress,
+        pbEndpoint,
+        pbOptions,
+        &pbBindingString,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_binding_from_string_binding(
+        pbBindingString,
+        &hBinding,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_smb_transport_info_from_lwio_token(access_token, FALSE, &info, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_smb_transport_info_from_lwio_token(
+        pIoAccessToken,
+        FALSE,
+        &hTransportInfo,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    rpc_binding_set_transport_info(b, info, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_binding_set_transport_info(
+        hBinding,
+        hTransportInfo,
+        &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    info = NULL;
+    hTransportInfo = NULL;
 
-    rpc_mgmt_set_com_timeout(b, 6, &rpcstatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    rpc_mgmt_set_com_timeout(hBinding, 6, &rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
-    *binding = b;
+    *phBinding = hBinding;
 
 cleanup:
-    SAFE_FREE(ps);
-    SAFE_FREE(ep);
-    SAFE_FREE(u);
-    SAFE_FREE(opts);
-    SAFE_FREE(addr);
+    RtlCStringFree((PSTR*)&pbProtSeq);
+    RtlCStringFree((PSTR*)&pbEndpoint);
+    RtlCStringFree((PSTR*)&pbUuid);
+    RtlCStringFree((PSTR*)&pbOptions);
+    RtlCStringFree((PSTR*)&pbAddress);
 
-    if (binding_string) {
-        rpc_string_free(&binding_string, &st);
-    }
-
-    if (rpcstatus == RPC_S_OK &&
-        st != RPC_S_OK) {
-        rpcstatus = st;
-    }
-
-    if (info)
+    if (pbBindingString)
     {
-        rpc_smb_transport_info_free(info);
+        rpc_string_free(&pbBindingString, &st);
     }
 
-    return rpcstatus;
+    if ((rpcStatus == RPC_S_OK) && (st != RPC_S_OK))
+    {
+        rpcStatus = st;
+    }
+
+    if (hTransportInfo)
+    {
+        rpc_smb_transport_info_free(hTransportInfo);
+    }
+
+    return rpcStatus;
 
 error:
-    if (b) {
-        rpc_binding_free(&b, &st);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        /* We really need an NTSTATUS -> RPCSTATUS conversion
+           function here, but since the only NTSTATUS that can
+           occur is a memory related one, weare ok for the moment */
+
+        switch(ntStatus)
+        {
+        case STATUS_INVALID_PARAMETER:
+            rpcStatus = RPC_S_INVALID_ARG;
+            break;
+        case STATUS_INSUFFICIENT_RESOURCES:
+            rpcStatus = RPC_S_OUT_OF_MEMORY;
+            break;
+        default:
+            rpcStatus = RPC_S_UNKNOWN_STATUS_CODE;
+            break;
+        }
+    }
+
+    if (hBinding)
+    {
+        rpc_binding_free(&hBinding, &st);
     }
 
     goto cleanup;
@@ -175,19 +223,20 @@ error:
 
 RPCSTATUS
 FreeDsrBinding(
-    handle_t *binding
+    handle_t *phBinding
     )
 {
-    RPCSTATUS rpcstatus = RPC_S_OK;
+    RPCSTATUS rpcStatus = RPC_S_OK;
 
     /* Free the binding itself */
-    if (binding && *binding) {
-	    rpc_binding_free(binding, &rpcstatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcstatus);
+    if (phBinding && *phBinding)
+    {
+	    rpc_binding_free(phBinding, &rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
     }
 
 cleanup:
-    return rpcstatus;
+    return rpcStatus;
 
 error:
     goto cleanup;

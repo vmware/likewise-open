@@ -58,23 +58,31 @@ DsrRoleGetPrimaryDomainInformation(
     PDS_ROLE_INFO *ppInfo
     );
 
-
 NTSTATUS
 DsrInitMemory(
-    void
+    VOID
     );
-
 
 NTSTATUS
 DsrDestroyMemory(
-    void
+    VOID
     );
 
-
-void
+VOID
 DsrFreeMemory(
-    void *pBuffer
+    IN OUT PVOID pBuffer
     );
 
 
 #endif /* _DSSETUP_H_ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

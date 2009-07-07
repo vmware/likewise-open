@@ -326,10 +326,10 @@ ParseArgs(
         ShowUsage();
         exit(0);
     }
-    else if ((strcmp(pszArg, "--src") == 0) || (strcmp(pszArg, "-s") == 0))
+    else
     {
         status = SMBAllocateString(
-                    argv[iArg++],
+                    pszArg,
                     &pszSourcePath);
         BAIL_ON_NT_STATUS(status);
 
@@ -345,10 +345,10 @@ ParseArgs(
         ShowUsage();
         exit(0);
     }
-    else if ((strcmp(pszArg, "--target") == 0) || (strcmp(pszArg, "-t") == 0))
+    else
     {
         status = SMBAllocateString(
-                    argv[iArg++],
+                    pszArg,
                     &pszTargetPath);
         BAIL_ON_NT_STATUS(status);
 
@@ -414,6 +414,7 @@ GetDirectionToCopy(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszSlash = NULL;
+    PSTR pszStart = NULL;
     PSTR pszLast = NULL;
     PSTR pszTmpPath = NULL;
     PSTR pszHostname = NULL;
@@ -425,10 +426,25 @@ GetDirectionToCopy(
                     &pszTmpPath);
     BAIL_ON_NT_STATUS(status);
 
+    pszStart = pszTmpPath;
+
+    // Skip optional initial decoration
+    if (!strncmp(pszStart, "//", sizeof("//") - 1) ||
+        !strncmp(pszStart, "\\\\", sizeof("\\\\") - 1))
+    {
+        pszStart += 2;
+    }
+    else
+    if (!strncmp(pszStart, "/", sizeof("/") - 1) ||
+        !strncmp(pszStart, "\\", sizeof("\\") - 1))
+    {
+        pszStart += 1;
+    }
+
     status = GetSystemName(&pszHostname);
     BAIL_ON_NT_STATUS(status);
 
-    pszSlash = (char*)strtok_r (pszTmpPath,"/",&pszLast);
+    pszSlash = (char*)strtok_r (pszStart,"/",&pszLast);
 
     if(pszSlash)
     {
@@ -504,14 +520,12 @@ error:
 void
 ShowUsage()
 {
-    printf("Usage: lwio-copy --file|dir --setkrb <cache path> --src <source path> --dest <target path>\n");
+    printf("Usage: lwio-copy --file|dir --setkrb <cache path> <source path> <target path>\n");
     printf("\t--help      | -h    Show help\n");
     printf("\t--file      | -f    Operate file\n");
     printf("\t--dir       | -d    Operate directory\n");
     printf("\t--setkrb    | -k    Set KRB5CCNAME env \n");
-    printf("\t--src       | -s    Set source path \n");
-    printf("\t--target    | -t    Set target path \n");
-    printf("<source path>/<dest path> should be of the form '/<hostname>/<Sharename>/<path>'\n");
+    printf("Remote <source path>/<dest path> should be of the form '/<hostname>/<Sharename>/<path>'\n");
 }
 
 DWORD

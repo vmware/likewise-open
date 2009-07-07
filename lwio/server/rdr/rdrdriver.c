@@ -161,7 +161,7 @@ RdrDriverDispatch(
 }
 
 NTSTATUS
-DriverEntry(
+IO_DRIVER_ENTRY(rdr)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
     )

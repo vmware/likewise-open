@@ -3750,7 +3750,22 @@ LsaAdBatchProcessPseudoObjectDefaultSchema(
     {
         PLSA_AD_BATCH_ITEM pItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        LSA_ASSERT(pItem->pszQueryMatchTerm);
+        if (!pItem->pszQueryMatchTerm)
+        {
+            // There are two possible cases here:
+            //
+            // 1) This is a linked cell case where we are searching
+            //    linked cells since we keep using the main batch
+            //    item list (though this case should go away in the
+            //    future as we just keep an unresolved batch items list).
+            //
+            // 2) This is an item for which we did not find a real object.
+            //    This case might be eliminated in the future by removing
+            //    unresolvable objects from the batch items list.
+            continue;
+        }
+
+
 
         if (!strcasecmp(pItem->pszQueryMatchTerm, pszCompare))
         {

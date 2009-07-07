@@ -2580,6 +2580,7 @@ AD_OnlineEnumGroups(
     DWORD dwInfoCount = 0;
     BOOLEAN bIsEnumerationEnabled = TRUE;
     LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
+    DWORD dwTotalCount = 0;
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
@@ -2612,7 +2613,15 @@ AD_OnlineEnumGroups(
                         ppObjects[dwInfoCount],
                         !pEnumState->bCheckGroupMembersOnline, //if Do not bCheckGroupMembersOnline, then bIsCacheOnlyMode == TRUE
                         pEnumState->dwInfoLevel,
-                        &ppInfoList[dwInfoCount]);
+                        &ppInfoList[dwTotalCount]);
+        if (!dwError)
+        {
+            dwTotalCount++;
+        }
+        else if (LSA_ERROR_OBJECT_NOT_ENABLED == dwError)
+        {
+            dwError = 0;
+        }
         BAIL_ON_LSA_ERROR(dwError);
 
         ADCacheSafeFreeObject(&ppObjects[dwInfoCount]);
@@ -2621,7 +2630,7 @@ AD_OnlineEnumGroups(
 cleanup:
     ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
-    *pdwGroupsFound = dwInfoCount;
+    *pdwGroupsFound = dwTotalCount;
     *pppGroupInfoList = ppInfoList;
 
     return dwError;
@@ -4074,21 +4083,25 @@ AD_UpdateUserObjectFlags(
     if (pUser->userInfo.bIsAccountInfoKnown)
     {
         if (pUser->userInfo.qwAccountExpires != 0LL &&
-                pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
-                u64current_NTtime >= pUser->userInfo.qwAccountExpires)
+            pUser->userInfo.qwAccountExpires != 9223372036854775807LL &&
+            u64current_NTtime >= pUser->userInfo.qwAccountExpires)
         {
             pUser->userInfo.bAccountExpired = TRUE;
         }
 
-        qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-               (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-
-        if (!pUser->userInfo.bPasswordNeverExpires &&
-               gpADProviderData->adMaxPwdAge != 0 &&
-               qwNanosecsToPasswordExpiry < 0)
+        if (gpADProviderData->adMaxPwdAge != 0)
         {
-            //password is expired already
-            pUser->userInfo.bPasswordExpired = TRUE;
+            qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
+                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
+
+            if ((!pUser->userInfo.bPasswordNeverExpires &&
+                 gpADProviderData->adMaxPwdAge != 0 &&
+                 qwNanosecsToPasswordExpiry < 0) ||
+                pUser->userInfo.qwPwdLastSet == 0)
+            {
+                //password is expired already
+                pUser->userInfo.bPasswordExpired = TRUE;
+            }
         }
     }
 
