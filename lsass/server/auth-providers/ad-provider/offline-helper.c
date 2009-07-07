@@ -347,12 +347,20 @@ AD_GroupExpansionDataAddExpansionResults(
 
         if (pCurrentMember->type == AccountType_User)
         {
-            dwError = LsaHashSetValue(
-                        pExpansionData->pUsers,
-                        ppMembers[sMembersCount-1],
-                        (PVOID)(size_t)dwExpandedGroupDepth);
-            BAIL_ON_LSA_ERROR(dwError);
-            ppMembers[sMembersCount-1] = NULL;
+            if (!LsaHashExists(pExpansionData->pUsers,
+                               ppMembers[sMembersCount-1]))
+            {
+                dwError = LsaHashSetValue(
+                    pExpansionData->pUsers,
+                    ppMembers[sMembersCount-1],
+                    (PVOID)(size_t)dwExpandedGroupDepth);
+                BAIL_ON_LSA_ERROR(dwError);
+                ppMembers[sMembersCount-1] = NULL;
+            }
+            else
+            {
+                ADCacheSafeFreeObject(&ppMembers[sMembersCount-1]);
+            }
         }
         else if (pCurrentMember->type == AccountType_Group)
         {
