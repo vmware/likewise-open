@@ -4,7 +4,7 @@ SUBDIRS = \
     alloc \
     Error \
     MsRpc \
-    Samr \
+    samr \
     lsa \
     Netlogon \
     Mpr \
