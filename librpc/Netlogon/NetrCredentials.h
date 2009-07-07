@@ -38,32 +38,15 @@
 #define _NETR_CREDENTIALS_H_
 
 
-void
-NetrCredentialsInit(
-    NetrCredentials *creds,
-    uint8 cli_chal[8],
-    uint8 srv_chal[8],
-    uint8 pass_hash[16],
-    uint32 neg_flags
-    );
-
-
-int
-NetrCredentialsCorrect(
-    NetrCredentials *creds,
-    uint8 srv_creds[8]
-    );
-
-
-void
+VOID
 NetrCredentialsCliStep(
-    NetrCredentials *creds
+    IN OUT NetrCredentials *pCreds
     );
 
 
-void
+VOID
 NetrCredentialsSrvStep(
-    NetrCredentials *creds
+    IN OUT NetrCredentials *pCreds
     );
 
 

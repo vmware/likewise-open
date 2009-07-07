@@ -37,58 +37,62 @@
 
 NTSTATUS
 NetrServerAuthenticate(
-    handle_t b,
-    const wchar16_t *server,
-    const wchar16_t *account,
-    uint16 sec_chan_type,
-    const wchar16_t *computer,
-    uint8 cli_creds[8],
-    uint8 srv_creds[8]
+    IN  handle_t hNetrBinding,
+    IN  PCWSTR   pwszServer,
+    IN  PCWSTR   pwszAccount,
+    IN  UINT16   SchannelType,
+    IN  PCWSTR   pwszComputer,
+    IN  UINT8    CliCreds[8],
+    IN  UINT8    SrvCreds[8]
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrCred creds;
-    wchar16_t *srv = NULL;
-    wchar16_t *acc = NULL;
-    wchar16_t *comp = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrCred Creds;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszAccountName = NULL;
+    PWSTR pwszComputerName = NULL;
 
-    memset((void*)&creds, 0, sizeof(creds));
+    memset((void*)&Creds, 0, sizeof(Creds));
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(account);
-    BAIL_ON_INVALID_PTR(computer);
-    BAIL_ON_INVALID_PTR(cli_creds);
-    BAIL_ON_INVALID_PTR(srv_creds);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(CliCreds, ntStatus);
+    BAIL_ON_INVALID_PTR(SrvCreds, ntStatus);
 
-    memcpy(creds.data, cli_creds, sizeof(creds.data));
+    memcpy(Creds.data, CliCreds, sizeof(Creds.data));
 
-    srv = wc16sdup(server);
-    BAIL_ON_NO_MEMORY(srv);
+    pwszServerName = wc16sdup(pwszServer);
+    BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
 
-    acc = wc16sdup(account);
-    BAIL_ON_NO_MEMORY(acc);
+    pwszAccountName = wc16sdup(pwszAccount);
+    BAIL_ON_NULL_PTR(pwszAccountName, ntStatus);
 
-    comp = wc16sdup(computer);
-    BAIL_ON_NO_MEMORY(comp);
+    pwszComputerName = wc16sdup(pwszComputer);
+    BAIL_ON_NULL_PTR(pwszComputerName, ntStatus);
 
-    DCERPC_CALL(status, _NetrServerAuthenticate(b, srv, acc, sec_chan_type,
-                                                comp, &creds));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _NetrServerAuthenticate(hNetrBinding,
+                                                  pwszServerName,
+                                                  pwszAccountName,
+                                                  SchannelType,
+                                                  pwszComputerName,
+                                                  &Creds));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(srv_creds, creds.data, sizeof(creds.data));
+    memcpy(SrvCreds, Creds.data, sizeof(Creds.data));
 
 cleanup:
-    memset(&creds, 0, sizeof(creds));
+    memset(&Creds, 0, sizeof(Creds));
 
-    SAFE_FREE(srv);
-    SAFE_FREE(acc);
-    SAFE_FREE(comp);
+    SAFE_FREE(pwszServerName);
+    SAFE_FREE(pwszAccountName);
+    SAFE_FREE(pwszComputerName);
 
-    return status;
+    return ntStatus;
 
 error:
-    memset(srv_creds, 0, sizeof(creds.data));
+    memset(SrvCreds, 0, sizeof(Creds.data));
 
     goto cleanup;
 }

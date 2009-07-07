@@ -33,47 +33,51 @@
 
 NTSTATUS
 NetrEnumerateTrustedDomainsEx(
-    handle_t b,
-    const wchar16_t *server_name,
-    NetrDomainTrust **trusts,
-    uint32 *count
+    IN  handle_t          hNetrBinding,
+    IN  PCWSTR            pwszServerName,
+    OUT NetrDomainTrust **ppTrusts,
+    OUT PUINT32           pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *name = NULL;
-    NetrDomainTrustList tlist = {0};
-    NetrDomainTrust *t = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszName = NULL;
+    NetrDomainTrustList TrustList = {0};
+    NetrDomainTrust *pTrusts = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server_name);
-    BAIL_ON_INVALID_PTR(trusts);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServerName, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTrusts, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    name = wc16sdup(server_name);
-    BAIL_ON_NO_MEMORY(name);
+    pwszName = wc16sdup(pwszServerName);
+    BAIL_ON_NULL_PTR(pwszName, ntStatus);
 
-    DCERPC_CALL(status, _NetrEnumerateTrustedDomainsEx(b, name, &tlist));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _NetrEnumerateTrustedDomainsEx(hNetrBinding,
+                                                         pwszName,
+                                                         &TrustList));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *count  = tlist.count;
+    *pCount  = TrustList.count;
 
-    status = NetrAllocateDomainTrusts(&t, &tlist);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateDomainTrusts(&pTrusts,
+                                        &TrustList);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *trusts = t;
+    *ppTrusts = pTrusts;
 
 cleanup:
-    SAFE_FREE(name);
-    NetrCleanStubDomainTrustList(&tlist);
+    SAFE_FREE(pwszName);
+    NetrCleanStubDomainTrustList(&TrustList);
 
-    return status;
+    return ntStatus;
 
 error:
-    if (t) {
-        NetrFreeMemory((void*)t);
+    if (pTrusts) {
+        NetrFreeMemory((void*)pTrusts);
     }
 
-    *trusts = NULL;
+    *ppTrusts = NULL;
+
     goto cleanup;
 }
 

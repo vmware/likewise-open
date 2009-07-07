@@ -32,91 +32,108 @@
 
 
 WINERR
-DsrGetDcName(handle_t b,
-             const wchar16_t *server_name,
-             const wchar16_t *domain_name,
-             const Guid *domain_guid,
-             const Guid *site_guid,
-             uint32 get_dc_flags,
-             DsrDcNameInfo **out_info)
+DsrGetDcName(
+    IN  handle_t hNetrBinding,
+    IN  PCWSTR pwszServerName,
+    IN  PCWSTR pwszDomainName,
+    IN  const Guid *pDomainGuid,
+    IN  const Guid *pSiteGuid,
+    IN  UINT32 GetDcFlags,
+    OUT DsrDcNameInfo **ppInfo
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    wchar16_t *server = NULL;
-    wchar16_t *domain = NULL;
-    Guid *d_guid = NULL;
-    Guid *s_guid = NULL;
-    DsrDcNameInfo *info = NULL;
-    DsrDcNameInfo *dc_info = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszDomain = NULL;
+    Guid *pDomainGuidCopy = NULL;
+    Guid *pSiteGuidCopy = NULL;
+    DsrDcNameInfo *pDcInfo = NULL;
+    DsrDcNameInfo *pDcRetInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server_name);
-    BAIL_ON_INVALID_PTR(domain_name);
-    BAIL_ON_INVALID_PTR(out_info);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServerName, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomainName, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    server = wc16sdup(server_name);
-    BAIL_ON_NO_MEMORY(server);
+    pwszServer = wc16sdup(pwszServerName);
+    BAIL_ON_NULL_PTR(pwszServer, ntStatus);
 
-    domain = wc16sdup(domain_name);
-    BAIL_ON_NO_MEMORY(domain);
+    pwszDomain = wc16sdup(pwszDomainName);
+    BAIL_ON_NULL_PTR(pwszDomain, ntStatus);
 
-    if (domain_guid) {
-        status = NetrAllocateMemory((void**)&d_guid, sizeof(*d_guid), NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pDomainGuid) {
+        ntStatus = NetrAllocateMemory((void**)&pDomainGuidCopy,
+                                      sizeof(*pDomainGuidCopy),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        memcpy(d_guid, domain_guid, sizeof(*d_guid));
+        memcpy(pDomainGuidCopy,
+               pDomainGuid,
+               sizeof(*pDomainGuidCopy));
     }
 
-    if (site_guid) {
-        status = NetrAllocateMemory((void**)&s_guid, sizeof(*s_guid), NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pSiteGuid) {
+        ntStatus = NetrAllocateMemory((void**)&pSiteGuidCopy,
+                                      sizeof(*pSiteGuidCopy),
+                                      NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        memcpy(s_guid, site_guid, sizeof(*s_guid));
+        memcpy(pSiteGuidCopy,
+               pSiteGuid,
+               sizeof(*pSiteGuid));
     }
 
-    DCERPC_CALL(err, _DsrGetDcName(b, server, domain, d_guid, s_guid,
-                                   get_dc_flags, &info));
+    DCERPC_CALL(err, _DsrGetDcName(hNetrBinding,
+                                   pwszServer,
+                                   pwszDomain,
+                                   pDomainGuidCopy,
+                                   pSiteGuidCopy,
+                                   GetDcFlags,
+                                   &pDcInfo));
     if (err) goto error;
 
-    status = NetrAllocateDcNameInfo(&dc_info, info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateDcNameInfo(&pDcRetInfo,
+                                      pDcInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *out_info = dc_info;
+    *ppInfo = pDcRetInfo;
 
 cleanup:
-    SAFE_FREE(server);
-    SAFE_FREE(domain);
+    SAFE_FREE(pwszServer);
+    SAFE_FREE(pwszDomain);
 
-    if (d_guid) {
-        NetrFreeMemory(d_guid);
+    if (pDomainGuidCopy) {
+        NetrFreeMemory(pDomainGuidCopy);
     }
 
-    if (s_guid) {
-        NetrFreeMemory(s_guid);
+    if (pSiteGuidCopy) {
+        NetrFreeMemory(pSiteGuidCopy);
     }
 
-    if (info) {
-        NetrFreeStubDcNameInfo(info);
+    if (pDcInfo) {
+        NetrFreeStubDcNameInfo(pDcInfo);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
     return err;
 
 error:
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
-    if (dc_info) {
-        NetrFreeMemory(dc_info);
+    if (pDcRetInfo) {
+        NetrFreeMemory(pDcRetInfo);
     }
 
-    *out_info = NULL;
+    *ppInfo = NULL;
+
     goto cleanup;
 }
 

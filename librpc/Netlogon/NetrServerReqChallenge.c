@@ -34,50 +34,54 @@
 #include "includes.h"
 
 
-NTSTATUS NetrServerReqChallenge(
-    handle_t b,
-    const wchar16_t *server,
-    const wchar16_t *computer,
-    uint8 cli_challenge[8],
-    uint8 srv_challenge[8]
+NTSTATUS
+NetrServerReqChallenge(
+    IN  handle_t  hNetrBinding,
+    IN  PCWSTR    pwszServer,
+    IN  PCWSTR    pwszComputer,
+    IN  BYTE      CliChal[8],
+    IN  BYTE      SrvChal[8]
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrCred creds;
-    wchar16_t *srv = NULL;
-    wchar16_t *comp = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrCred Creds;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
 
-    memset((void*)&creds, 0, sizeof(creds));
+    memset((void*)&Creds, 0, sizeof(Creds));
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(computer);
-    BAIL_ON_INVALID_PTR(cli_challenge);
-    BAIL_ON_INVALID_PTR(srv_challenge);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(CliChal, ntStatus);
+    BAIL_ON_INVALID_PTR(SrvChal, ntStatus);
 
-    memcpy(creds.data, cli_challenge, sizeof(creds.data));
+    memcpy(Creds.data, CliChal, sizeof(Creds.data));
 
-    srv = wc16sdup(server);
-    BAIL_ON_NO_MEMORY(srv);
+    pwszServerName = wc16sdup(pwszServer);
+    BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
 
-    comp = wc16sdup(computer);
-    BAIL_ON_NO_MEMORY(comp);
+    pwszComputerName = wc16sdup(pwszComputer);
+    BAIL_ON_NULL_PTR(pwszComputerName, ntStatus);
 
-    DCERPC_CALL(status, _NetrServerReqChallenge(b, srv, comp, &creds));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _NetrServerReqChallenge(hNetrBinding,
+                                                  pwszServerName,
+                                                  pwszComputerName,
+                                                  &Creds));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    memcpy(srv_challenge, creds.data, sizeof(creds.data));
+    memcpy(SrvChal, Creds.data, sizeof(Creds.data));
 
 cleanup:
-    memset(&creds, 0, sizeof(creds));
+    memset(&Creds, 0, sizeof(Creds));
 
-    SAFE_FREE(srv);
-    SAFE_FREE(comp);
+    SAFE_FREE(pwszServerName);
+    SAFE_FREE(pwszComputerName);
 
-    return status;
+    return ntStatus;
 
 error:
-    memset(srv_challenge, 0, sizeof(creds.data));
+    memset(SrvChal, 0, sizeof(Creds.data));
 
     goto cleanup;
 }

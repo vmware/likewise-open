@@ -36,72 +36,94 @@
 
 #include "includes.h"
 
-extern void *netr_ptr_list;
 
-
-NTSTATUS NetrInitMemory()
+NTSTATUS
+NetrInitMemory(
+    VOID
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gNetrDataMutex);
 
     if (!bInitialised) {
-        status = MemPtrListInit((PtrList**)&netr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = MemPtrListInit((PtrList**)&gNetrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        bInitialised = 1;
+        bInitialised = TRUE;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gNetrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
 
-NTSTATUS NetrDestroyMemory()
+NTSTATUS
+NetrDestroyMemory(
+    VOID
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gNetrDataMutex);
 
-    if (bInitialised && netr_ptr_list) {
-        status = MemPtrListDestroy((PtrList**)&netr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (bInitialised && gNetrMemoryList) {
+        ntStatus = MemPtrListDestroy((PtrList**)&gNetrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        bInitialised = 0;
+        bInitialised = FALSE;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gNetrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
 
-NTSTATUS NetrAllocateMemory(void **out, size_t size, void *dep)
+NTSTATUS
+NetrAllocateMemory(
+    OUT PVOID *pOut,
+    IN  size_t Size,
+    IN  PVOID  pDep
+    )
 {
-    return MemPtrAllocate((PtrList*)netr_ptr_list, out, size, dep);
+    return MemPtrAllocate((PtrList*)gNetrMemoryList,
+                          pOut,
+                          Size,
+                          pDep);
 }
 
 
-NTSTATUS NetrFreeMemory(void *ptr)
+NTSTATUS
+NetrFreeMemory(
+    IN  PVOID pBuffer
+    )
 {
-    return MemPtrFree((PtrList*)netr_ptr_list, ptr);
+    return MemPtrFree((PtrList*)gNetrMemoryList,
+                      pBuffer);
 }
 
 
-NTSTATUS NetrAddDepMemory(void *ptr, void *dep)
+NTSTATUS
+NetrAddDepMemory(
+    IN  PVOID pPtr,
+    IN  PVOID pDep
+    )
 {
-    return MemPtrAddDependant((PtrList*)netr_ptr_list, ptr, dep);
+    return MemPtrAddDependant((PtrList*)gNetrMemoryList,
+                              pPtr,
+                              pDep);
 }
 
 
@@ -111,176 +133,198 @@ NTSTATUS NetrAddDepMemory(void *ptr, void *dep)
 
 NTSTATUS
 NetrAllocateUniString(
-    wchar16_t **out,
-    const wchar16_t *in,
-    void *dep
+    OUT  PWSTR  *ppwszOut,
+    IN   PCWSTR  pwszIn,
+    IN   PVOID   pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    size_t len = 0;
-    wchar16_t *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    size_t Len = 0;
+    PWSTR pwszOut = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppwszOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszIn, ntStatus);
 
-    len = wc16slen(in);
+    Len = wc16slen(pwszIn);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(wchar16_t) * (len + 1),
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pwszOut, sizeof(WCHAR) * (Len + 1),
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    wc16sncpy(ptr, in, len);
+    wc16sncpy(pwszOut, pwszIn, Len);
 
-    *out = ptr;
+    *ppwszOut = pwszOut;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pwszOut) {
+        NetrFreeMemory((void*)pwszOut);
     }
 
-    *out = NULL;
+    *ppwszOut = NULL;
 
     goto cleanup;
 }
 
 
-NTSTATUS NetrAllocateDomainTrusts(NetrDomainTrust **out,
-                                  NetrDomainTrustList *in)
+NTSTATUS
+NetrAllocateDomainTrusts(
+    OUT NetrDomainTrust     **ppOut,
+    IN  NetrDomainTrustList  *pIn
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrDomainTrust *ptr = NULL;
-    int i = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrDomainTrust *pOut = NULL;
+    UINT32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr,
-                                sizeof(NetrDomainTrust) * in->count,
-                                NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pOut,
+                                  sizeof(NetrDomainTrust) * pIn->count,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < in->count; i++) {
-        NetrDomainTrust *tout = &ptr[i];
-        NetrDomainTrust *tin  = &in->array[i];
+    for (i = 0; i < pIn->count; i++) {
+        NetrDomainTrust *pTrustOut = &pOut[i];
+        NetrDomainTrust *pTrustIn  = &pIn->array[i];
 
-        tout->trust_flags  = tin->trust_flags;
-        tout->parent_index = tin->parent_index;
-        tout->trust_type   = tin->trust_type;
-        tout->trust_attrs  = tin->trust_attrs;
+        pTrustOut->trust_flags  = pTrustIn->trust_flags;
+        pTrustOut->parent_index = pTrustIn->parent_index;
+        pTrustOut->trust_type   = pTrustIn->trust_type;
+        pTrustOut->trust_attrs  = pTrustIn->trust_attrs;
 
-        if (tin->netbios_name) {
-            tout->netbios_name = wc16sdup(tin->netbios_name);
-            BAIL_ON_NO_MEMORY(tout->netbios_name);
+        if (pTrustIn->netbios_name) {
+            pTrustOut->netbios_name = wc16sdup(pTrustIn->netbios_name);
+            BAIL_ON_NULL_PTR(pTrustOut->netbios_name, ntStatus);
 
-            status = NetrAddDepMemory((void*)tout->netbios_name, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = NetrAddDepMemory((void*)pTrustOut->netbios_name,
+                                        (void*)pOut);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        if (tin->dns_name) {
-            tout->dns_name = wc16sdup(tin->dns_name);
-            BAIL_ON_NO_MEMORY(tout->dns_name);
+        if (pTrustIn->dns_name) {
+            pTrustOut->dns_name = wc16sdup(pTrustIn->dns_name);
+            BAIL_ON_NULL_PTR(pTrustOut->dns_name, ntStatus);
 
-            status = NetrAddDepMemory((void*)tout->dns_name, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = NetrAddDepMemory((void*)pTrustOut->dns_name,
+                                        (void*)pOut);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        if (tin->sid)
+        if (pTrustIn->sid)
         {
-            MsRpcDuplicateSid(&tout->sid, tin->sid);
-            BAIL_ON_NO_MEMORY(tout->sid);
+            MsRpcDuplicateSid(&pTrustOut->sid, pTrustIn->sid);
+            BAIL_ON_NULL_PTR(pTrustOut->sid, ntStatus);
 
-            status = NetrAddDepMemory((void*)tout->sid, (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = NetrAddDepMemory((void*)pTrustOut->sid,
+                                        (void*)pOut);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        tout->guid = tin->guid;
+        pTrustOut->guid = pTrustIn->guid;
     }
 
 cleanup:
-    *out = ptr;
+    *ppOut = pOut;
 
-    return status;
+    return ntStatus;
 
 error:
-    NetrFreeMemory((void*)ptr);
-    ptr = NULL;
+    if (pOut) {
+        NetrFreeMemory((void*)pOut);
+    }
+
+    *ppOut = NULL;
+
     goto cleanup;
 }
 
 
-NTSTATUS NetrInitIdentityInfo(NetrIdentityInfo *ptr, void *dep,
-                              const wchar16_t *domain,
-                              const wchar16_t *workstation,
-                              const wchar16_t *account, uint32 param_control,
-                              uint32 logon_id_low, uint32 logon_id_high)
+NTSTATUS
+NetrInitIdentityInfo(
+    OUT NetrIdentityInfo *pIdentity,
+    IN  PVOID pDep,
+    IN  PCWSTR pwszDomain,
+    IN  PCWSTR pwszWorkstation,
+    IN  PCWSTR pwszAccount,
+    IN  UINT32 ParamControl,
+    IN  UINT32 LogonIdLow,
+    IN  UINT32 LogonIdHigh
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *nbt_workstation = NULL;
-    size_t nbt_workstation_len = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszNbtWorkstation = NULL;
+    size_t NbtWorkstationLen = 0;
 
-    BAIL_ON_INVALID_PTR(ptr);
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(account);
-    BAIL_ON_INVALID_PTR(workstation);
+    BAIL_ON_INVALID_PTR(pIdentity, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
 
-    nbt_workstation_len = wc16slen(workstation);
-    status = NetrAllocateMemory((void**)&nbt_workstation,
-                                (nbt_workstation_len + 3) * sizeof(wchar16_t),
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    NbtWorkstationLen = wc16slen(pwszWorkstation);
+    ntStatus = NetrAllocateMemory((void**)&pwszNbtWorkstation,
+                                  (NbtWorkstationLen  + 3) * sizeof(WCHAR),
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (sw16printfw(
-            nbt_workstation,
-            nbt_workstation_len + 3,
+            pwszNbtWorkstation,
+            NbtWorkstationLen + 3,
             L"\\\\%ws",
-            workstation) < 0)
+            pwszWorkstation) < 0)
     {
-        status = ErrnoToNtStatus(errno);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = ErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = InitUnicodeString(&ptr->domain_name, domain);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&pIdentity->domain_name,
+                                 pwszDomain);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->domain_name.string) {
-        status = NetrAddDepMemory((void*)ptr->domain_name.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pIdentity->domain_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pIdentity->domain_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = InitUnicodeString(&ptr->account_name, account);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&pIdentity->account_name,
+                                 pwszAccount);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->account_name.string) {
-        status = NetrAddDepMemory((void*)ptr->account_name.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pIdentity->account_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pIdentity->account_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = InitUnicodeString(&ptr->workstation, nbt_workstation);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitUnicodeString(&pIdentity->workstation,
+                                 pwszNbtWorkstation);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->workstation.string) {
-        status = NetrAddDepMemory((void*)ptr->workstation.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pIdentity->workstation.string) {
+        ntStatus = NetrAddDepMemory((void*)pIdentity->workstation.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ptr->param_control = param_control;
-    ptr->logon_id_low  = logon_id_low;
-    ptr->logon_id_high = logon_id_high;
+    pIdentity->param_control = ParamControl;
+    pIdentity->logon_id_low  = LogonIdLow;
+    pIdentity->logon_id_high = LogonIdHigh;
 
 cleanup:
-    if (nbt_workstation) {
-        NetrFreeMemory((void*)nbt_workstation);
+    if (pwszNbtWorkstation) {
+        NetrFreeMemory((void*)pwszNbtWorkstation);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    FreeUnicodeString(&ptr->domain_name);
-    FreeUnicodeString(&ptr->account_name);
-    FreeUnicodeString(&ptr->workstation);
+    FreeUnicodeString(&pIdentity->domain_name);
+    FreeUnicodeString(&pIdentity->account_name);
+    FreeUnicodeString(&pIdentity->workstation);
 
     goto cleanup;
 }
@@ -288,487 +332,593 @@ error:
 /*
  * Compatibility wrapper
  */
-NTSTATUS NetrAllocateLogonInfo(
-    NetrLogonInfo **out, uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const wchar16_t *password
+NTSTATUS
+NetrAllocateLogonInfo(
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PCWSTR          pwszPassword
     )
 {
-    return NetrAllocateLogonInfoHash(out, level, domain, workstation, account, password);
+    return NetrAllocateLogonInfoHash(ppOut,
+                                     Level,
+                                     pwszDomain,
+                                     pwszWorkstation,
+                                     pwszAccount,
+                                     pwszPassword);
 }
 
 
-NTSTATUS NetrAllocateLogonInfoHash(
-    NetrLogonInfo **out, uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const wchar16_t *password
+NTSTATUS
+NetrAllocateLogonInfoHash(
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PCWSTR          pwszPassword
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrLogonInfo *ptr = NULL;
-    NetrPasswordInfo *pass = NULL;
-    uint8 lm_hash[16] = {0};
-    uint8 nt_hash[16] = {0};
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrLogonInfo *pLogonInfo = NULL;
+    NetrPasswordInfo *pPassword = NULL;
+    BYTE LmHash[16] = {0};
+    BYTE NtHash[16] = {0};
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(account);
-    BAIL_ON_INVALID_PTR(workstation);
-    BAIL_ON_INVALID_PTR(password);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pLogonInfo,
+                                  sizeof(NetrLogonInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 
-    switch (level)
+    switch (Level)
     {
     case 1:
     case 3:
     case 5:
         /* Create password hashes (NT and LM) */
-        deshash(lm_hash, password);
-        md4hash(nt_hash, password);
+        deshash(LmHash, pwszPassword);
+        md4hash(NtHash, pwszPassword);
 
-        status = NetrAllocateMemory((void**)&pass, sizeof(NetrPasswordInfo),
-                                    (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAllocateMemory((void**)&pPassword,
+                                      sizeof(*pPassword),
+                                      (void*)pLogonInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        status = NetrInitIdentityInfo(&pass->identity, (void*)pass,
-                                      domain, workstation, account, 0, 0, 0);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrInitIdentityInfo(&pPassword->identity,
+                                        (void*)pPassword,
+                                        pwszDomain,
+                                        pwszWorkstation,
+                                        pwszAccount,
+                                        0,
+                                        0,
+                                        0);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         /* Copy the password hashes */
-        memcpy((void*)pass->lmpassword.data, (void*)lm_hash,
-               sizeof(pass->lmpassword.data));
-        memcpy((void*)pass->ntpassword.data, (void*)nt_hash,
-               sizeof(pass->ntpassword.data));
+        memcpy((void*)pPassword->lmpassword.data,
+               (void*)LmHash,
+               sizeof(pPassword->lmpassword.data));
+        memcpy((void*)pPassword->ntpassword.data,
+               (void*)NtHash,
+               sizeof(pPassword->ntpassword.data));
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_LEVEL;
         goto error;
     }
 
-    switch (level) {
+    switch (Level) {
     case 1:
-        ptr->password1 = pass;
+        pLogonInfo->password1 = pPassword;
         break;
     case 3:
-        ptr->password3 = pass;
+        pLogonInfo->password3 = pPassword;
         break;
     case 5:
-        ptr->password5 = pass;
+        pLogonInfo->password5 = pPassword;
         break;
     }
 
 cleanup:
-    *out = ptr;
+    *ppOut = pLogonInfo;
 
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pLogonInfo) {
+        NetrFreeMemory((void*)pLogonInfo);
     }
 
-    ptr = NULL;
+    pLogonInfo = NULL;
+
     goto cleanup;
 }
 
 NTSTATUS
 NetrAllocateLogonInfoNet(
-    NetrLogonInfo **out,
-    uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const uint8_t *challenge,
-    const uint8_t *lm_resp,
-    uint32 lm_resp_len,
-    const uint8_t *nt_resp,
-    uint32 nt_resp_len
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PBYTE           pChallenge,
+    IN  PBYTE           pLmResp,
+    IN  UINT32          LmRespLen,
+    IN  PBYTE           pNtResp,
+    IN  UINT32          NtRespLen
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrLogonInfo *ptr = NULL;
-    NetrNetworkInfo *net = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrLogonInfo *pLogonInfo = NULL;
+    NetrNetworkInfo *pNetworkInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(account);
-    BAIL_ON_INVALID_PTR(workstation);
-    BAIL_ON_INVALID_PTR(challenge);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
+    BAIL_ON_INVALID_PTR(pChallenge, ntStatus);
     /* LanMan Response can be NULL */
-    BAIL_ON_INVALID_PTR(nt_resp);
+    BAIL_ON_INVALID_PTR(pNtResp, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrLogonInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pLogonInfo,
+                                  sizeof(NetrLogonInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (level)
+    switch (Level)
     {
     case 2:
     case 6:
-        status = NetrAllocateMemory((void**)&net, sizeof(NetrNetworkInfo),
-                                    (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAllocateMemory((void**)&pNetworkInfo,
+                                      sizeof(NetrNetworkInfo),
+                                      (void*)pLogonInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        status = NetrInitIdentityInfo(&net->identity, (void*)ptr,
-                                      domain, workstation, account, 0, 0, 0);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrInitIdentityInfo(&pNetworkInfo->identity,
+                                        (void*)pLogonInfo,
+                                        pwszDomain,
+                                        pwszWorkstation,
+                                        pwszAccount,
+                                        0,
+                                        0,
+                                        0);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        memcpy(net->challenge, challenge, sizeof(net->challenge));
+        memcpy(pNetworkInfo->challenge,
+               pChallenge,
+               sizeof(pNetworkInfo->challenge));
 
         /* Allocate challenge structures */
-        if ((lm_resp != NULL) && (lm_resp_len != 0))
+        if ((pLmResp != NULL) && (LmRespLen != 0))
         {
-            status = NetrAllocateMemory((void**)&net->lm.data,
-                                        lm_resp_len,
-                                        (void*)ptr);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            ntStatus = NetrAllocateMemory((void**)&pNetworkInfo->lm.data,
+                                          LmRespLen,
+                                          (void*)pLogonInfo);
+            BAIL_ON_NT_STATUS(ntStatus);
 
-            net->lm.length = lm_resp_len;
-            net->lm.size   = lm_resp_len;
-            memcpy(net->lm.data, lm_resp, net->lm.size);
+            pNetworkInfo->lm.length = LmRespLen;
+            pNetworkInfo->lm.size   = LmRespLen;
+            memcpy(pNetworkInfo->lm.data, pLmResp, pNetworkInfo->lm.size);
         }
 
         /* Always have NT Response */
 
-        status = NetrAllocateMemory((void**)&net->nt.data,
-                                    nt_resp_len,
-                                    (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAllocateMemory((void**)&pNetworkInfo->nt.data,
+                                      NtRespLen,
+                                      (void*)pLogonInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        net->nt.length = nt_resp_len;
-        net->nt.size   = nt_resp_len;
-        memcpy(net->nt.data, nt_resp, net->nt.size);
+        pNetworkInfo->nt.length = NtRespLen;
+        pNetworkInfo->nt.size   = NtRespLen;
+        memcpy(pNetworkInfo->nt.data, pNtResp, pNetworkInfo->nt.size);
 
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_LEVEL;
         goto error;
     }
 
-    switch (level) {
+    switch (Level) {
     case 2:
-        ptr->network2  = net;
+        pLogonInfo->network2  = pNetworkInfo;
         break;
+
     case 6:
-        ptr->network6  = net;
+        pLogonInfo->network6  = pNetworkInfo;
         break;
     }
+
+    *ppOut = pLogonInfo;
 
 cleanup:
-    *out = ptr;
-
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pLogonInfo) {
+        NetrFreeMemory((void*)pLogonInfo);
     }
 
-    ptr = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 
 
-static NTSTATUS NetrInitSamBaseInfo(NetrSamBaseInfo *ptr,
-                                    NetrSamBaseInfo *in, void *dep)
+static
+NTSTATUS
+NetrInitSamBaseInfo(
+    OUT NetrSamBaseInfo *pOut,
+    IN  NetrSamBaseInfo *pIn,
+    IN  PVOID            pDep)
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     int i = 0;
 
-    BAIL_ON_INVALID_PTR(ptr);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    ptr->last_logon            = in->last_logon;
-    ptr->last_logoff           = in->last_logoff;
-    ptr->acct_expiry           = in->acct_expiry;
-    ptr->last_password_change  = in->last_password_change;
-    ptr->allow_password_change = in->allow_password_change;
-    ptr->force_password_change = in->force_password_change;
+    pOut->last_logon            = pIn->last_logon;
+    pOut->last_logoff           = pIn->last_logoff;
+    pOut->acct_expiry           = pIn->acct_expiry;
+    pOut->last_password_change  = pIn->last_password_change;
+    pOut->allow_password_change = pIn->allow_password_change;
+    pOut->force_password_change = pIn->force_password_change;
 
-    status = CopyUnicodeStringEx(&ptr->account_name, &in->account_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->account_name,
+                                   &pIn->account_name);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->account_name.string) {
-        status = NetrAddDepMemory((void*)ptr->account_name.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->account_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->account_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->full_name, &in->full_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->full_name,
+                                   &pIn->full_name);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->full_name.string) {
-        status = NetrAddDepMemory((void*)ptr->full_name.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->full_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->full_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->logon_script, &in->logon_script);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->logon_script,
+                                   &pIn->logon_script);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->logon_script.string) {
-        status = NetrAddDepMemory((void*)ptr->logon_script.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->logon_script.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->logon_script.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->profile_path, &in->profile_path);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->profile_path,
+                                   &pIn->profile_path);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->profile_path.string) {
-        status = NetrAddDepMemory((void*)ptr->profile_path.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->profile_path.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->profile_path.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->home_directory, &in->home_directory);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->home_directory,
+                                   &pIn->home_directory);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->home_directory.string) {
-        status = NetrAddDepMemory((void*)ptr->home_directory.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->home_directory.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->home_directory.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->home_drive, &in->home_drive);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->home_drive,
+                                   &pIn->home_drive);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->home_drive.string) {
-        status = NetrAddDepMemory((void*)ptr->home_drive.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->home_drive.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->home_drive.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ptr->logon_count = in->logon_count;
-    ptr->bad_password_count = in->bad_password_count;
-    ptr->rid = in->rid;
-    ptr->primary_gid = in->primary_gid;
+    pOut->logon_count        = pIn->logon_count;
+    pOut->bad_password_count = pIn->bad_password_count;
+    pOut->rid                = pIn->rid;
+    pOut->primary_gid        = pIn->primary_gid;
 
-    ptr->groups.count = in->groups.count;
-    status = NetrAllocateMemory((void*)&ptr->groups.rids,
-                                sizeof(RidWithAttribute) * ptr->groups.count,
-                                (void*)dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    pOut->groups.count       = pIn->groups.count;
+    ntStatus = NetrAllocateMemory((void*)&pOut->groups.rids,
+                                sizeof(RidWithAttribute) * pOut->groups.count,
+                                (void*)pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < ptr->groups.count; i++) {
-        RidWithAttribute *ptr_ra = &(ptr->groups.rids[i]);
-        RidWithAttribute *in_ra = &(in->groups.rids[i]);
+    for (i = 0; i < pOut->groups.count; i++) {
+        RidWithAttribute *pRidAttrOut = &(pOut->groups.rids[i]);
+        RidWithAttribute *pRidAttrIn  = &(pIn->groups.rids[i]);
 
-        ptr_ra->rid        = in_ra->rid;
-        ptr_ra->attributes = in_ra->attributes;
+        pRidAttrOut->rid        = pRidAttrIn->rid;
+        pRidAttrOut->attributes = pRidAttrIn->attributes;
     }
 
-    ptr->user_flags = in->user_flags;
+    pOut->user_flags = pIn->user_flags;
 
-    memcpy((void*)ptr->key.key, (void*)in->key.key, sizeof(ptr->key.key));
+    memcpy((void*)pOut->key.key,
+           (void*)pIn->key.key,
+           sizeof(pOut->key.key));
 
-    status = CopyUnicodeStringEx(&ptr->logon_server, &in->logon_server);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->logon_server,
+                                   &pIn->logon_server);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->logon_server.string) {
-        status = NetrAddDepMemory((void*)ptr->logon_server.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->logon_server.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->logon_server.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeStringEx(&ptr->domain, &in->domain);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeStringEx(&pOut->domain,
+                                   &pIn->domain);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ptr->domain.string) {
-        status = NetrAddDepMemory((void*)ptr->domain.string, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->domain.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->domain.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (in->domain_sid) {
-        MsRpcDuplicateSid(&ptr->domain_sid, in->domain_sid);
-        BAIL_ON_NO_MEMORY(ptr->domain_sid);
+    if (pIn->domain_sid) {
+        MsRpcDuplicateSid(&pOut->domain_sid, pIn->domain_sid);
+        BAIL_ON_NULL_PTR(pOut->domain_sid, ntStatus);
 
-        status = NetrAddDepMemory((void*)ptr->domain_sid, (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory((void*)pOut->domain_sid,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
 
     } else {
-        ptr->domain_sid = NULL;
+        pOut->domain_sid = NULL;
     }
 
-    memcpy((void*)ptr->lmkey.key, (void*)in->lmkey.key,
-           sizeof(ptr->lmkey.key));
+    memcpy((void*)pOut->lmkey.key, (void*)pIn->lmkey.key,
+           sizeof(pOut->lmkey.key));
 
-    ptr->acct_flags = in->acct_flags;
+    pOut->acct_flags = pIn->acct_flags;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    FreeUnicodeStringEx(&ptr->account_name);
-    FreeUnicodeStringEx(&ptr->full_name);
-    FreeUnicodeStringEx(&ptr->logon_script);
-    FreeUnicodeStringEx(&ptr->profile_path);
-    FreeUnicodeStringEx(&ptr->home_directory);
-    FreeUnicodeStringEx(&ptr->home_drive);
-    FreeUnicodeStringEx(&ptr->logon_server);
-    FreeUnicodeStringEx(&ptr->domain);
+    FreeUnicodeStringEx(&pOut->account_name);
+    FreeUnicodeStringEx(&pOut->full_name);
+    FreeUnicodeStringEx(&pOut->logon_script);
+    FreeUnicodeStringEx(&pOut->profile_path);
+    FreeUnicodeStringEx(&pOut->home_directory);
+    FreeUnicodeStringEx(&pOut->home_drive);
+    FreeUnicodeStringEx(&pOut->logon_server);
+    FreeUnicodeStringEx(&pOut->domain);
 
-    if (ptr->groups.rids) {
-        NetrFreeMemory((void*)ptr->groups.rids);
+    if (pOut->groups.rids) {
+        NetrFreeMemory((void*)pOut->groups.rids);
     }
 
-    if (ptr->domain_sid) {
-        MsRpcFreeSid(ptr->domain_sid);
+    if (pOut->domain_sid) {
+        MsRpcFreeSid(pOut->domain_sid);
     }
 
     goto cleanup;
 }
 
 
-static NTSTATUS NetrAllocateSamInfo2(NetrSamInfo2 **out, NetrSamInfo2 *in,
-                                     void *dep)
+static
+NTSTATUS
+NetrAllocateSamInfo2(
+    OUT NetrSamInfo2 **ppOut,
+    IN  NetrSamInfo2  *pIn,
+    IN  PVOID          pDep
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrSamInfo2 *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrSamInfo2 *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = NetrAllocateMemory((void*)&ptr, sizeof(NetrSamInfo2), dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void*)&pInfo,
+                                  sizeof(NetrSamInfo2),
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in) {
-        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pIn) {
+        ntStatus = NetrInitSamBaseInfo(&pInfo->base,
+                                       &pIn->base,
+                                       (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pInfo) {
+        NetrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
 
     goto cleanup;
 }
 
 
-static NTSTATUS NetrAllocateSamInfo3(NetrSamInfo3 **out, NetrSamInfo3 *in,
-                                      void *dep)
+static
+NTSTATUS
+NetrAllocateSamInfo3(
+    OUT NetrSamInfo3 **ppOut,
+    IN  NetrSamInfo3  *pIn,
+    IN  PVOID          pDep)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrSamInfo3 *ptr = NULL;
-    int i = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrSamInfo3 *pInfo = NULL;
+    UINT32 i = 0;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = NetrAllocateMemory((void*)&ptr, sizeof(NetrSamInfo3), dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void*)&pInfo,
+                                  sizeof(NetrSamInfo3),
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in) {
-        status = NetrInitSamBaseInfo(&ptr->base, &in->base, (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pIn) {
+        ntStatus = NetrInitSamBaseInfo(&pInfo->base,
+                                       &pIn->base,
+                                       (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        ptr->sidcount = in->sidcount;
+        pInfo->sidcount = pIn->sidcount;
 
-        status = NetrAllocateMemory((void*)&ptr->sids,
-                                    sizeof(NetrSidAttr) * ptr->sidcount,
-                                    (void*)ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAllocateMemory((void*)&pInfo->sids,
+                                      sizeof(NetrSidAttr) * pInfo->sidcount,
+                                      (void*)pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        for (i = 0; i<ptr->sidcount; i++) {
-            NetrSidAttr *ptr_sa = &(ptr->sids[i]);
-            NetrSidAttr *in_sa = &(in->sids[i]);
+        for (i = 0; i < pInfo->sidcount; i++) {
+            NetrSidAttr *pSidAttrOut = &(pInfo->sids[i]);
+            NetrSidAttr *pSidAttrIn  = &(pIn->sids[i]);
 
-            if (in_sa->sid) {
-                MsRpcDuplicateSid(&ptr_sa->sid, in_sa->sid);
-                BAIL_ON_NO_MEMORY(ptr_sa->sid);
+            if (pSidAttrIn->sid) {
+                MsRpcDuplicateSid(&pSidAttrOut->sid, pSidAttrIn->sid);
+                BAIL_ON_NULL_PTR(pSidAttrOut->sid, ntStatus);
 
-                status = NetrAddDepMemory((void*)ptr_sa->sid, (void*)ptr);
-                BAIL_ON_NTSTATUS_ERROR(status);
+                ntStatus = NetrAddDepMemory((void*)pSidAttrOut->sid,
+                                            (void*)pInfo);
+                BAIL_ON_NT_STATUS(ntStatus);
 
             } else {
-                ptr_sa->sid = NULL;
+                pSidAttrOut->sid = NULL;
             }
 
-            ptr_sa->attribute = in_sa->attribute;
+            pSidAttrOut->attribute = pSidAttrIn->attribute;
         }
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pInfo) {
+        NetrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
 
     goto cleanup;
 }
 
 
-static NTSTATUS NetrAllocatePacInfo(NetrPacInfo **out, NetrPacInfo *in,
-                                    void *dep)
+static
+NTSTATUS
+NetrAllocatePacInfo(
+    OUT NetrPacInfo **ppOut,
+    IN  NetrPacInfo  *pIn,
+    IN  PVOID         pDep
+    )
 {
     return STATUS_NOT_IMPLEMENTED;
 }
 
 
-static NTSTATUS NetrAllocateSamInfo6(NetrSamInfo6 **out, NetrSamInfo6 *in,
-                                    void *dep)
+static
+NTSTATUS
+NetrAllocateSamInfo6(
+    OUT NetrSamInfo6 **ppOut,
+    IN  NetrSamInfo6  *pIn,
+    IN  PVOID          pDep
+    )
 {
     return STATUS_NOT_IMPLEMENTED;
 }
 
 
-NTSTATUS NetrAllocateValidationInfo(NetrValidationInfo **out,
-                                    NetrValidationInfo *in, uint16 level)
+NTSTATUS
+NetrAllocateValidationInfo(
+    OUT NetrValidationInfo **ppOut,
+    IN  NetrValidationInfo  *pIn,
+    IN  UINT16               Level
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrValidationInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrValidationInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrValidationInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pInfo,
+                                  sizeof(NetrValidationInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (level) {
+    switch (Level) {
     case 2:
-        status = NetrAllocateSamInfo2(&ptr->sam2, in->sam2, (void*)ptr);
+        ntStatus = NetrAllocateSamInfo2(&pInfo->sam2,
+                                        pIn->sam2,
+                                        (void*)pInfo);
         break;
+
     case 3:
-        status = NetrAllocateSamInfo3(&ptr->sam3, in->sam3, (void*)ptr);
+        ntStatus = NetrAllocateSamInfo3(&pInfo->sam3,
+                                        pIn->sam3,
+                                        (void*)pInfo);
         break;
+
     case 4:
-        status = NetrAllocatePacInfo(&ptr->pac4, in->pac4, (void*)ptr);
+        ntStatus = NetrAllocatePacInfo(&pInfo->pac4,
+                                       pIn->pac4,
+                                       (void*)pInfo);
         break;
+
     case 5:
-        status = NetrAllocatePacInfo(&ptr->pac5, in->pac5, (void*)ptr);
+        ntStatus = NetrAllocatePacInfo(&pInfo->pac5,
+                                       pIn->pac5,
+                                       (void*)pInfo);
         break;
+
     case 6:
-        status = NetrAllocateSamInfo6(&ptr->sam6, in->sam6, (void*)ptr);
+        ntStatus = NetrAllocateSamInfo6(&pInfo->sam6,
+                                        pIn->sam6,
+                                        (void*)pInfo);
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_LEVEL;
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
 
-    *out = ptr;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pInfo) {
+        NetrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
 
     goto cleanup;
 }
@@ -777,59 +927,61 @@ error:
 static
 NTSTATUS
 NetrCopyDomainTrustInfo(
-    NetrDomainTrustInfo *out,
-    NetrDomainTrustInfo *in,
-    void *dep
+    OUT NetrDomainTrustInfo *pOut,
+    IN  NetrDomainTrustInfo *pIn,
+    IN  PVOID                pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(in);
+    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
-    status = CopyUnicodeString(&out->domain_name, &in->domain_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->domain_name,
+                                 &pIn->domain_name);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->domain_name.string) {
-        status = NetrAddDepMemory((void*)out->domain_name.string,
-                                  (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->domain_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->domain_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeString(&out->full_domain_name,
-                               &in->full_domain_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->full_domain_name,
+                                 &pIn->full_domain_name);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->full_domain_name.string) {
-        status = NetrAddDepMemory((void*)out->full_domain_name.string,
-                                  (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->full_domain_name.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->full_domain_name.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    status = CopyUnicodeString(&out->forest, &in->forest);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = CopyUnicodeString(&pOut->forest,
+                                 &pIn->forest);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (out->forest.string) {
-        status = NetrAddDepMemory((void*)out->forest.string,
-                                  (void*)dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (pOut->forest.string) {
+        ntStatus = NetrAddDepMemory((void*)pOut->forest.string,
+                                    (void*)pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memcpy(&out->guid, &in->guid, sizeof(out->guid));
+    memcpy(&pOut->guid, &pIn->guid, sizeof(pOut->guid));
 
-    if (in->sid) {
-        MsRpcDuplicateSid(&out->sid, in->sid);
-        BAIL_ON_NO_MEMORY(out->sid);
+    if (pIn->sid) {
+        MsRpcDuplicateSid(&pOut->sid, pIn->sid);
+        BAIL_ON_NULL_PTR(pOut->sid, ntStatus);
 
-        status = NetrAddDepMemory((void*)out->sid, dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory((void*)pOut->sid, pDep);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    memset(out, 0, sizeof(*out));
+    memset(pOut, 0, sizeof(*pOut));
     goto cleanup;
 }
 
@@ -837,91 +989,105 @@ error:
 static
 NTSTATUS
 NetrAllocateDomainInfo1(
-    NetrDomainInfo1 **out,
-    NetrDomainInfo1 *in,
-    void *dep
+    OUT NetrDomainInfo1 **ppOut,
+    IN  NetrDomainInfo1  *pIn,
+    IN  PVOID             pDep
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrDomainInfo1 *ptr = NULL;
-    int i = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrDomainInfo1 *pInfo = NULL;
+    UINT32 i = 0;
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo1), dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pInfo,
+                                  sizeof(NetrDomainInfo1),
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in == NULL) goto cleanup;
+    if (pIn == NULL) goto cleanup;
 
-    status = NetrCopyDomainTrustInfo(&ptr->domain_info, &in->domain_info,
-                                     dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrCopyDomainTrustInfo(&pInfo->domain_info,
+                                       &pInfo->domain_info,
+                                       pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    ptr->num_trusts = in->num_trusts;
+    pInfo->num_trusts = pIn->num_trusts;
 
-    status = NetrAllocateMemory((void**)&ptr->trusts,
-                                sizeof(NetrDomainTrustInfo) * ptr->num_trusts,
-                                dep);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pInfo->trusts,
+                                  sizeof(NetrDomainTrustInfo) * pInfo->num_trusts,
+                                  pDep);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    for (i = 0; i < ptr->num_trusts; i++) {
-        status = NetrCopyDomainTrustInfo(&ptr->trusts[i], &in->trusts[i],
-                                         ptr->trusts);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < pInfo->num_trusts; i++) {
+        ntStatus = NetrCopyDomainTrustInfo(&pInfo->trusts[i],
+                                           &pIn->trusts[i],
+                                           pInfo->trusts);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory(ptr);
+    if (pInfo) {
+        NetrFreeMemory(pInfo);
     }
 
-    goto error;
+    *ppOut = NULL;
+
+    goto cleanup;
 }
 
 
 NTSTATUS
 NetrAllocateDomainInfo(
-    NetrDomainInfo **out,
-    NetrDomainInfo *in,
-    uint32 level
+    OUT NetrDomainInfo **ppOut,
+    IN  NetrDomainInfo  *pIn,
+    IN  UINT32           Level
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NetrDomainInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NetrDomainInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(NetrDomainInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pInfo,
+                                  sizeof(NetrDomainInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in == NULL) goto cleanup;
+    if (pIn == NULL) goto cleanup;
 
-    switch (level) {
+    switch (Level) {
     case 1:
-        status = NetrAllocateDomainInfo1(&ptr->info1, in->info1, (void*)ptr);
+        ntStatus = NetrAllocateDomainInfo1(&pInfo->info1,
+                                           pIn->info1,
+                                           (void*)pInfo);
         break;
 
     case 2:
-        status = NetrAllocateDomainInfo1(&ptr->info2, in->info2, (void*)ptr);
+        ntStatus = NetrAllocateDomainInfo1(&pInfo->info2,
+                                           pIn->info2,
+                                           (void*)pInfo);
         break;
 
     default:
-        status = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_LEVEL;
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pInfo) {
+        NetrFreeMemory((void*)pInfo);
     }
+
+    *ppOut = NULL;
 
     goto cleanup;
 }
@@ -929,85 +1095,91 @@ error:
 
 NTSTATUS
 NetrAllocateDcNameInfo(
-    DsrDcNameInfo **out,
-    DsrDcNameInfo *in
+    OUT DsrDcNameInfo **ppOut,
+    IN  DsrDcNameInfo  *pIn
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    DsrDcNameInfo *ptr = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DsrDcNameInfo *pInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
+    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
 
-    status = NetrAllocateMemory((void**)&ptr, sizeof(DsrDcNameInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pInfo,
+                                  sizeof(DsrDcNameInfo),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (in == NULL) goto cleanup;
+    if (pIn == NULL) goto cleanup;
 
-    if (in->dc_name) {
-        ptr->dc_name = wc16sdup(in->dc_name);
-        BAIL_ON_NO_MEMORY(ptr->dc_name);
+    if (pIn->dc_name) {
+        pInfo->dc_name = wc16sdup(pIn->dc_name);
+        BAIL_ON_NULL_PTR(pInfo->dc_name, ntStatus);
 
-        status = NetrAddDepMemory(ptr->dc_name, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->dc_name, pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (in->dc_address) {
-        ptr->dc_address = wc16sdup(in->dc_address);
-        BAIL_ON_NO_MEMORY(ptr->dc_address);
+    if (pIn->dc_address) {
+        pInfo->dc_address = wc16sdup(pIn->dc_address);
+        BAIL_ON_NULL_PTR(pInfo->dc_address, ntStatus);
 
-        status = NetrAddDepMemory(ptr->dc_address, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->dc_address, pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ptr->address_type = in->address_type;
+    pInfo->address_type = pIn->address_type;
+    pInfo->flags        = pIn->flags;
 
-    ptr->flags = in->flags;
+    memcpy(&pInfo->domain_guid, &pIn->domain_guid, sizeof(pInfo->domain_guid));
 
-    memcpy(&ptr->domain_guid, &in->domain_guid, sizeof(ptr->domain_guid));
+    if (pIn->domain_name) {
+        pInfo->domain_name = wc16sdup(pIn->domain_name);
+        BAIL_ON_NULL_PTR(pInfo->domain_name, ntStatus);
 
-    if (in->domain_name) {
-        ptr->domain_name = wc16sdup(in->domain_name);
-        BAIL_ON_NO_MEMORY(ptr->domain_name);
-
-        status = NetrAddDepMemory(ptr->domain_name, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->domain_name,
+                                    pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (in->forest_name) {
-        ptr->forest_name = wc16sdup(in->forest_name);
-        BAIL_ON_NO_MEMORY(ptr->forest_name);
+    if (pIn->forest_name) {
+        pInfo->forest_name = wc16sdup(pIn->forest_name);
+        BAIL_ON_NULL_PTR(pInfo->forest_name, ntStatus);
 
-        status = NetrAddDepMemory(ptr->forest_name, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->forest_name,
+                                    pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (in->dc_site_name) {
-        ptr->dc_site_name = wc16sdup(in->dc_site_name);
-        BAIL_ON_NO_MEMORY(ptr->dc_site_name);
+    if (pIn->dc_site_name) {
+        pInfo->dc_site_name = wc16sdup(pIn->dc_site_name);
+        BAIL_ON_NULL_PTR(pInfo->dc_site_name, ntStatus);
 
-        status = NetrAddDepMemory(ptr->dc_site_name, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->dc_site_name,
+                                    pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (in->cli_site_name) {
-        ptr->cli_site_name = wc16sdup(in->cli_site_name);
-        BAIL_ON_NO_MEMORY(ptr->cli_site_name);
+    if (pIn->cli_site_name) {
+        pInfo->cli_site_name = wc16sdup(pIn->cli_site_name);
+        BAIL_ON_NULL_PTR(pInfo->cli_site_name, ntStatus);
 
-        status = NetrAddDepMemory(ptr->cli_site_name, ptr);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = NetrAddDepMemory(pInfo->cli_site_name,
+                                    pInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *out = ptr;
+    *ppOut = pInfo;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (ptr) {
-        NetrFreeMemory((void*)ptr);
+    if (pInfo) {
+        NetrFreeMemory((void*)pInfo);
     }
 
-    *out = NULL;
+    *ppOut = NULL;
+
     goto cleanup;
 }
 

@@ -40,85 +40,87 @@
 
 NTSTATUS
 NetrAllocateMemory(
-    void **ptr,
-    size_t len,
-    void *dep
+    OUT PVOID *pOut,
+    IN  size_t Size,
+    IN  PVOID  pDep
     );
 
 NTSTATUS
 NetrAddDepMemory(
-    void *ptr,
-    void *dep
+    IN  PVOID pPtr,
+    IN  PVOID pDep
     );
 
 NTSTATUS
 NetrFreeMemory(
-    void *ptr
+    IN  PVOID pPtr
     );
 
-NTSTATUS NetrAllocateUniString(
-    wchar16_t **out,
-    const wchar16_t *in,
-    void *dep
+NTSTATUS
+NetrAllocateUniString(
+    OUT  PWSTR  *ppwszOut,
+    IN   PCWSTR  pwszIn,
+    IN   PVOID   pDep
     );
 
 NTSTATUS
 NetrAllocateDomainTrusts(
-    NetrDomainTrust **out,
-    NetrDomainTrustList *in
+    OUT NetrDomainTrust     **ppOut,
+    IN  NetrDomainTrustList  *pIn
     );
 
-NTSTATUS NetrAllocateLogonInfoNet(
-    NetrLogonInfo **out,
-    uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const uint8_t *challenge,
-    const uint8_t *lm_resp,
-    uint32 lm_resp_len,
-    const uint8_t *nt_resp,
-    uint32 nt_resp_len
+NTSTATUS
+NetrAllocateLogonInfoNet(
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PBYTE           pChallenge,
+    IN  PBYTE           pLmResp,
+    IN  UINT32          LmRespLen,
+    IN  PBYTE           pNtResp,
+    IN  UINT32          NtRespLen
     );
 
-NTSTATUS NetrAllocateLogonInfoHash(
-    NetrLogonInfo **out,
-    uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const wchar16_t *password
+NTSTATUS
+NetrAllocateLogonInfoHash(
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PCWSTR          pwszPassword
     );
 
-NTSTATUS NetrAllocateLogonInfo(
-    NetrLogonInfo **out,
-    uint16 level,
-    const wchar16_t *domain,
-    const wchar16_t *workstation,
-    const wchar16_t *account,
-    const wchar16_t *password
+NTSTATUS
+NetrAllocateLogonInfo(
+    OUT NetrLogonInfo **ppOut,
+    IN  UINT16          Level,
+    IN  PCWSTR          pwszDomain,
+    IN  PCWSTR          pwszWorkstation,
+    IN  PCWSTR          pwszAccount,
+    IN  PCWSTR          pwszPassword
     );
 
 NTSTATUS
 NetrAllocateValidationInfo(
-    NetrValidationInfo **out,
-    NetrValidationInfo *in,
-    uint16 level
+    OUT NetrValidationInfo **ppOut,
+    IN  NetrValidationInfo  *pIn,
+    IN  UINT16               Level
     );
-
 
 NTSTATUS
 NetrAllocateDomainInfo(
-    NetrDomainInfo **out,
-    NetrDomainInfo *in,
-    uint32 level
+    OUT NetrDomainInfo **ppOut,
+    IN  NetrDomainInfo  *pIn,
+    IN  UINT32           Level
     );
-
 
 NTSTATUS
 NetrAllocateDcNameInfo(
-    DsrDcNameInfo **out,
-    DsrDcNameInfo *in
+    OUT DsrDcNameInfo **ppOut,
+    IN  DsrDcNameInfo  *pIn
     );
 
 

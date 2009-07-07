@@ -37,83 +37,102 @@
 
 NTSTATUS
 NetrGetDomainInfo(
-    handle_t b,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *computer,
-    uint32 level,
-    NetrDomainQuery *query,
-    NetrDomainInfo **out_info
+    IN  handle_t          hNetrBinding,
+    IN  NetrCredentials  *pCreds,
+    IN  PCWSTR            pwszServer,
+    IN  PCWSTR            pwszComputer,
+    IN  UINT32            Level,
+    IN  NetrDomainQuery  *pQuery,
+    OUT NetrDomainInfo  **ppDomainInfo
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *srv = NULL;
-    wchar16_t *comp = NULL;
-    NetrAuth *auth = NULL;
-    NetrAuth *ret_auth = NULL;
-    NetrDomainInfo *domain_info = NULL;
-    NetrDomainInfo info;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
+    NetrAuth *pAuth = NULL;
+    NetrAuth *pReturnedAuth = NULL;
+    NetrDomainInfo *pDomainInfo = NULL;
+    NetrDomainInfo DomainInfo;
 
-    memset((void*)&info, 0, sizeof(info));
+    memset((void*)&DomainInfo, 0, sizeof(DomainInfo));
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(creds);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(computer);
-    BAIL_ON_INVALID_PTR(query);
-    BAIL_ON_INVALID_PTR(out_info);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pCreds, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(pQuery, ntStatus);
+    BAIL_ON_INVALID_PTR(ppDomainInfo, ntStatus);
 
-    status = NetrAllocateUniString(&srv, server, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszServerName,
+                                     pwszServer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateUniString(&comp, computer, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszComputerName,
+                                     pwszComputer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* Create authenticator info with credentials chain */
-    status = NetrAllocateMemory((void**)&auth, sizeof(NetrAuth), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pAuth,
+                                  sizeof(NetrAuth),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    creds->sequence += 2;
-    NetrCredentialsCliStep(creds);
+    pCreds->sequence += 2;
+    NetrCredentialsCliStep(pCreds);
 
-    auth->timestamp = creds->sequence;
-    memcpy(auth->cred.data, creds->cli_chal.data, sizeof(auth->cred.data));
+    pAuth->timestamp = pCreds->sequence;
+    memcpy(pAuth->cred.data,
+           pCreds->cli_chal.data,
+           sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    status = NetrAllocateMemory((void**)&ret_auth, sizeof(NetrAuth), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pReturnedAuth,
+                                  sizeof(NetrAuth),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(status, _NetrLogonGetDomainInfo(b, srv, comp, auth, ret_auth,
-                                                level, query, &info));
+    DCERPC_CALL(ntStatus, _NetrLogonGetDomainInfo(hNetrBinding,
+                                                  pwszServerName,
+                                                  pwszComputerName,
+                                                  pAuth,
+                                                  pReturnedAuth,
+                                                  Level,
+                                                  pQuery,
+                                                  &DomainInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateDomainInfo(&domain_info, &info, level);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateDomainInfo(&pDomainInfo,
+                                      &DomainInfo,
+                                      Level);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *out_info = domain_info;
+    *ppDomainInfo = pDomainInfo;
 
 cleanup:
-    NetrCleanStubDomainInfo(&info, level);
+    NetrCleanStubDomainInfo(&DomainInfo, Level);
 
-    if (srv) {
-        NetrFreeMemory((void*)srv);
+    if (pwszServerName) {
+        NetrFreeMemory((void*)pwszServerName);
     }
 
-    if (comp) {
-        NetrFreeMemory((void*)comp);
+    if (pwszComputerName) {
+        NetrFreeMemory((void*)pwszComputerName);
     }
 
-    if (auth) {
-        NetrFreeMemory((void*)auth);
+    if (pAuth) {
+        NetrFreeMemory((void*)pAuth);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (domain_info) {
-        NetrFreeMemory((void*)domain_info);
+    if (pDomainInfo) {
+        NetrFreeMemory((void*)pDomainInfo);
     }
 
-    *out_info = NULL;
+    *ppDomainInfo = NULL;
     goto cleanup;
 }
 

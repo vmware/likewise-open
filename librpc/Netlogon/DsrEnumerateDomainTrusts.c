@@ -33,56 +33,61 @@
 
 WINERR
 DsrEnumerateDomainTrusts(
-    handle_t b,
-    const wchar16_t *server,
-    uint32 flags,
-    NetrDomainTrust **trusts,
-    uint32 *count
+    IN  handle_t           hNetrBinding,
+    IN  PCWSTR             pwszServer,
+    IN  UINT32             Flags,
+    OUT NetrDomainTrust  **ppTrusts,
+    OUT PUINT32            pCount
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    wchar16_t *srv = NULL;
-    NetrDomainTrustList tlist;
-    NetrDomainTrust *t = NULL;
+    PWSTR pwszServerName = NULL;
+    NetrDomainTrustList TrustList;
+    NetrDomainTrust *pTrusts = NULL;
 
-    memset((void*)&tlist, 0, sizeof(tlist));
+    memset((void*)&TrustList, 0, sizeof(TrustList));
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(trusts);
-    BAIL_ON_INVALID_PTR(count);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(ppTrusts, ntStatus);
+    BAIL_ON_INVALID_PTR(pCount, ntStatus);
     
-    srv = wc16sdup(server);
-    BAIL_ON_NO_MEMORY(srv);
+    pwszServerName = wc16sdup(pwszServer);
+    BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
 
-    DCERPC_CALL(err, _DsrEnumerateDomainTrusts(b, srv, flags, &tlist));
-    if (err) goto error;
+    DCERPC_CALL(err, _DsrEnumerateDomainTrusts(hNetrBinding,
+                                               pwszServerName,
+                                               Flags,
+                                               &TrustList));
+    BAIL_ON_WINERR(err);
 
-    status = NetrAllocateDomainTrusts(&t, &tlist);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateDomainTrusts(&pTrusts,
+                                        &TrustList);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *count  = tlist.count;
-    *trusts = t;
+    *pCount   = TrustList.count;
+    *ppTrusts = pTrusts;
 
 cleanup:
-    SAFE_FREE(srv);
-    NetrCleanStubDomainTrustList(&tlist);
+    SAFE_FREE(pwszServerName);
+    NetrCleanStubDomainTrustList(&TrustList);
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
     return err;
 
 error:
-    if (t) {
-        NetrFreeMemory((void*)t);
+    if (pTrusts) {
+        NetrFreeMemory((void*)pTrusts);
     }
 
-    *count  = 0;
-    *trusts = NULL;
+    *pCount   = 0;
+    *ppTrusts = NULL;
+
     goto cleanup;
 }
 

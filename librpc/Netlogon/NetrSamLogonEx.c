@@ -37,82 +37,98 @@
 
 NTSTATUS
 NetrSamLogonEx(
-    handle_t b,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    const wchar16_t *password,
-    uint16 logon_level,
-    uint16 validation_level,
-    NetrValidationInfo **out_info,
-    uint8 *out_authoritative)
+    IN  handle_t              hNetrBinding,
+    IN  PCWSTR                pwszServer,
+    IN  PCWSTR                pwszDomain,
+    IN  PCWSTR                pwszComputer,
+    IN  PCWSTR                pwszUsername,
+    IN  PCWSTR                pwszPassword,
+    IN  UINT16                LogonLevel,
+    IN  UINT16                ValidationLevel,
+    OUT NetrValidationInfo  **ppValidationInfo,
+    OUT PBYTE                 pAuthoritative
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *srv = NULL;
-    wchar16_t *comp = NULL;
-    NetrLogonInfo *logon_info = NULL;
-    NetrValidationInfo validation = {0};
-    NetrValidationInfo *validation_info = NULL;
-    uint8 authoritative = 0;
-    uint32 flags = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
+    NetrLogonInfo *pLogonInfo = NULL;
+    NetrValidationInfo ValidationInfo = {0};
+    NetrValidationInfo *pValidationInfo = NULL;
+    BYTE Authoritative = 0;
+    UINT32 Flags = 0;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(computer);
-    BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(password);
-    BAIL_ON_INVALID_PTR(out_info);
-    BAIL_ON_INVALID_PTR(out_authoritative);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
+    BAIL_ON_INVALID_PTR(ppValidationInfo, ntStatus);
+    BAIL_ON_INVALID_PTR(pAuthoritative, ntStatus);
 
-    status = NetrAllocateUniString(&srv, server, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszServerName,
+                                     pwszServer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateUniString(&comp, computer, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszComputerName,
+                                     pwszComputer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateLogonInfo(&logon_info, logon_level, domain, computer,
-                                   username, password);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateLogonInfo(&pLogonInfo,
+                                     LogonLevel,
+                                     pwszDomain,
+                                     pwszComputer,
+                                     pwszUsername,
+                                     pwszPassword);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(status, _NetrLogonSamLogonEx(b, srv, comp,
-                                             logon_level, logon_info,
-                                             validation_level, &validation,
-                                             &authoritative, &flags));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _NetrLogonSamLogonEx(hNetrBinding,
+                                               pwszServerName,
+                                               pwszComputerName,
+                                               LogonLevel,
+                                               pLogonInfo,
+                                               ValidationLevel,
+                                               &ValidationInfo,
+                                               &Authoritative,
+                                               &Flags));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateValidationInfo(&validation_info, &validation,
-                                        validation_level);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateValidationInfo(&pValidationInfo,
+                                          &ValidationInfo,
+                                          ValidationLevel);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *out_info          = validation_info;
-    *out_authoritative = authoritative;
+    *ppValidationInfo = pValidationInfo;
+    *pAuthoritative   = Authoritative;
 
 cleanup:
-    NetrCleanStubValidationInfo(&validation, validation_level);
+    NetrCleanStubValidationInfo(&ValidationInfo,
+                                ValidationLevel);
 
-    if (srv) {
-        NetrFreeMemory((void*)srv);
+    if (pwszServerName) {
+        NetrFreeMemory((void*)pwszServerName);
     }
 
-    if (comp) {
-        NetrFreeMemory((void*)comp);
+    if (pwszComputerName) {
+        NetrFreeMemory((void*)pwszComputerName);
     }
 
-    if (logon_info) {
-        NetrFreeMemory((void*)logon_info);
+    if (pLogonInfo) {
+        NetrFreeMemory((void*)pLogonInfo);
     }
 
-    return status;
+    return ntStatus;
 
 error:
-    if (validation_info) {
-        NetrFreeMemory((void*)validation_info);
+    if (pValidationInfo) {
+        NetrFreeMemory((void*)pValidationInfo);
     }
 
-    *out_info          = NULL;
-    *out_authoritative = 0;
+    *ppValidationInfo = NULL;
+    *pAuthoritative   = 0;
 
     goto cleanup;
 }

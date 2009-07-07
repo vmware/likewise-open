@@ -34,39 +34,11 @@
 #include "includes.h"
 
 
-extern void *netr_ptr_list;
+extern void *gNetrMemoryList;
 
-extern pthread_mutex_t g_data_mutex;
+extern pthread_mutex_t gNetrDataMutex;
 
-extern int bInitialised;
-
-
-#define GLOBAL_DATA_LOCK(locked)                  \
-    do {                                          \
-        int ret = 0;                              \
-        ret = pthread_mutex_lock(&g_data_mutex);  \
-        if (ret) {                                \
-            status = STATUS_UNSUCCESSFUL;         \
-            goto error;                           \
-                                                  \
-        } else {                                  \
-            locked = 1;                           \
-        }                                         \
-    } while (0);
-
-
-#define GLOBAL_DATA_UNLOCK(locked)                  \
-    do {                                            \
-        int ret = 0;                                \
-        if (!locked) break;                         \
-        ret = pthread_mutex_unlock(&g_data_mutex);  \
-        if (ret && status == STATUS_SUCCESS) {      \
-            status = STATUS_UNSUCCESSFUL;           \
-                                                    \
-        } else {                                    \
-            locked = 0;                             \
-        }                                           \
-    } while (0);
+extern BOOLEAN bInitialised;
 
 
 #endif /* _EXTERN_H_ */

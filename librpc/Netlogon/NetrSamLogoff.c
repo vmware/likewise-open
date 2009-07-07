@@ -37,77 +37,94 @@
 
 NTSTATUS
 NetrSamLogoff(
-    handle_t b,
-    NetrCredentials *creds,
-    const wchar16_t *server,
-    const wchar16_t *domain,
-    const wchar16_t *computer,
-    const wchar16_t *username,
-    const wchar16_t *password,
-    uint32 logon_level
+    IN  handle_t          hNetrBinding,
+    IN  NetrCredentials  *pCreds,
+    IN  PCWSTR            pwszServer,
+    IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszComputer,
+    IN  PCWSTR            pwszUsername,
+    IN  PCWSTR            pwszPassword,
+    IN  UINT32            LogonLevel
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    wchar16_t *srv = NULL;
-    wchar16_t *comp = NULL;
-    NetrAuth *auth = NULL;
-    NetrAuth *ret_auth = NULL;
-    NetrLogonInfo *logon_info = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
+    NetrAuth *pAuth = NULL;
+    NetrAuth *pReturnedAuth = NULL;
+    NetrLogonInfo *pLogonInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(b);
-    BAIL_ON_INVALID_PTR(creds);
-    BAIL_ON_INVALID_PTR(server);
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(computer);
-    BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(password);
+    BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pCreds, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
 
-    status = NetrAllocateUniString(&srv, server, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszServerName,
+                                     pwszServer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateUniString(&comp, computer, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateUniString(&pwszComputerName,
+                                     pwszComputer,
+                                     NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* Create authenticator info with credentials chain */
-    status = NetrAllocateMemory((void**)&auth, sizeof(NetrAuth), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pAuth,
+                                  sizeof(NetrAuth),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    creds->sequence += 2;
-    NetrCredentialsCliStep(creds);
+    pCreds->sequence += 2;
+    NetrCredentialsCliStep(pCreds);
 
-    auth->timestamp = creds->sequence;
-    memcpy(auth->cred.data, creds->cli_chal.data, sizeof(auth->cred.data));
+    pAuth->timestamp = pCreds->sequence;
+    memcpy(pAuth->cred.data, pCreds->cli_chal.data, sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    status = NetrAllocateMemory((void**)&ret_auth, sizeof(NetrAuth), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateMemory((void**)&pReturnedAuth,
+                                  sizeof(NetrAuth),
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrAllocateLogonInfo(&logon_info, logon_level, domain, computer,
-                                   username, password);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetrAllocateLogonInfo(&pLogonInfo,
+                                     LogonLevel,
+                                     pwszDomain,
+                                     pwszComputerName,
+                                     pwszUsername,
+                                     pwszPassword);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(status, _NetrLogonSamLogoff(b, srv, comp, auth, ret_auth,
-                                            logon_level, logon_info));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    DCERPC_CALL(ntStatus, _NetrLogonSamLogoff(hNetrBinding,
+                                              pwszServerName,
+                                              pwszComputerName,
+                                              pAuth,
+                                              pReturnedAuth,
+                                              LogonLevel,
+                                              pLogonInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (srv) {
-        NetrFreeMemory((void*)srv);
+    if (pwszServerName) {
+        NetrFreeMemory((void*)pwszServerName);
     }
 
-    if (comp) {
-        NetrFreeMemory((void*)comp);
+    if (pwszComputerName) {
+        NetrFreeMemory((void*)pwszComputerName);
     }
 
-    if (auth) {
-        NetrFreeMemory((void*)auth);
+    if (pAuth) {
+        NetrFreeMemory((void*)pAuth);
     }
 
-    if (logon_info) {
-        NetrFreeMemory((void*)logon_info);
+    if (pLogonInfo) {
+        NetrFreeMemory((void*)pLogonInfo);
     }
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;

@@ -35,160 +35,217 @@
 #include "includes.h"
 
 
-void NetrCleanStubDomainTrustList(NetrDomainTrustList *r)
+VOID
+NetrCleanStubDomainTrustList(
+    NetrDomainTrustList *pTrustList
+    )
 {
-    int i = 0;
+    UINT32 i = 0;
 
-    for (i = 0; i < r->count; i++) {
-        NetrDomainTrust *trust = &r->array[i];
+    for (i = 0; i < pTrustList->count; i++) {
+        NetrDomainTrust *pTrust = &pTrustList->array[i];
 
-        SAFE_FREE(trust->netbios_name);
-        SAFE_FREE(trust->dns_name);
-        if (trust->sid) MsRpcFreeSid(trust->sid);
+        SAFE_FREE(pTrust->netbios_name);
+        SAFE_FREE(pTrust->dns_name);
+        if (pTrust->sid) {
+            MsRpcFreeSid(pTrust->sid);
+        }
     }
 
-    free(r->array);
+    free(pTrustList->array);
 }
 
 
-static void NetrCleanSamBaseInfo(NetrSamBaseInfo *r)
+static
+VOID
+NetrCleanSamBaseInfo(
+    NetrSamBaseInfo *pInfo
+    )
 {
-    FreeUnicodeStringEx(&r->account_name);
-    FreeUnicodeStringEx(&r->full_name);
-    FreeUnicodeStringEx(&r->logon_script);
-    FreeUnicodeStringEx(&r->profile_path);
-    FreeUnicodeStringEx(&r->home_directory);
-    FreeUnicodeStringEx(&r->home_drive);
+    FreeUnicodeStringEx(&pInfo->account_name);
+    FreeUnicodeStringEx(&pInfo->full_name);
+    FreeUnicodeStringEx(&pInfo->logon_script);
+    FreeUnicodeStringEx(&pInfo->profile_path);
+    FreeUnicodeStringEx(&pInfo->home_directory);
+    FreeUnicodeStringEx(&pInfo->home_drive);
 
-    r->groups.count = 0;
-    SAFE_FREE(r->groups.rids);
+    pInfo->groups.count = 0;
+    SAFE_FREE(pInfo->groups.rids);
 
-    FreeUnicodeStringEx(&r->logon_server);
-    FreeUnicodeStringEx(&r->domain);
+    FreeUnicodeStringEx(&pInfo->logon_server);
+    FreeUnicodeStringEx(&pInfo->domain);
 
-    if (r->domain_sid) {
-        MsRpcFreeSid(r->domain_sid);
-        r->domain_sid = NULL;
+    if (pInfo->domain_sid) {
+        MsRpcFreeSid(pInfo->domain_sid);
+        pInfo->domain_sid = NULL;
     }
 }
 
 
-static void NetrCleanSamInfo2(NetrSamInfo2 *r)
+static
+VOID
+NetrCleanSamInfo2(
+    NetrSamInfo2 *pInfo
+    )
 {
-    NetrCleanSamBaseInfo(&r->base);
+    NetrCleanSamBaseInfo(&pInfo->base);
 }
 
 
-static void NetrFreeSamInfo2(NetrSamInfo2 *ptr)
+static
+VOID
+NetrFreeSamInfo2(
+    NetrSamInfo2 *pInfo
+    )
 {
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanSamInfo2(ptr);
-    free(ptr);
+    NetrCleanSamInfo2(pInfo);
+    free(pInfo);
 }
 
 
-static void NetrCleanSidAttr(NetrSidAttr *r, uint32 count)
+static
+VOID
+NetrCleanSidAttr(
+    NetrSidAttr *pSidAttr,
+    UINT32 Count
+    )
 {
-    int i = 0;
+    UINT32 i = 0;
 
-    for (i = 0; r && i < count; i++) {
-        if (r[i].sid) {
-            MsRpcFreeSid(r[i].sid);
-            r[i].sid = NULL;
+    for (i = 0; pSidAttr && i < Count; i++) {
+        if (pSidAttr[i].sid) {
+            MsRpcFreeSid(pSidAttr[i].sid);
+            pSidAttr[i].sid = NULL;
         }
     }
 }
 
 
-static void NetrFreeSidAttr(NetrSidAttr *ptr, uint32 count)
+static
+void
+NetrFreeSidAttr(
+    NetrSidAttr *pSidAttr,
+    UINT32 Count)
 {
-    NetrCleanSidAttr(ptr, count);
-    free(ptr);
+    NetrCleanSidAttr(pSidAttr, Count);
+    free(pSidAttr);
 }
 
-static void NetrCleanSamInfo3(NetrSamInfo3 *r)
-{
-    NetrCleanSamBaseInfo(&r->base);
 
-    if (r->sids) {
-        NetrFreeSidAttr(r->sids, r->sidcount);
+static
+VOID
+NetrCleanSamInfo3(
+    NetrSamInfo3 *pInfo
+    )
+{
+    NetrCleanSamBaseInfo(&pInfo->base);
+
+    if (pInfo->sids) {
+        NetrFreeSidAttr(pInfo->sids,
+                        pInfo->sidcount);
     }
 }
 
 
-static void NetrFreeSamInfo3(NetrSamInfo3 *ptr)
+static
+VOID
+NetrFreeSamInfo3(
+    NetrSamInfo3 *pInfo
+    )
 {
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanSamInfo3(ptr);
-    free(ptr);
+    NetrCleanSamInfo3(pInfo);
+    free(pInfo);
 }
 
 
-static void NetrCleanSamInfo6(NetrSamInfo6 *r)
+static
+VOID
+NetrCleanSamInfo6(
+    NetrSamInfo6 *pInfo
+    )
 {
-    NetrCleanSamBaseInfo(&r->base);
+    NetrCleanSamBaseInfo(&pInfo->base);
 
-    if (r->sids) {
-        NetrFreeSidAttr(r->sids, r->sidcount);
+    if (pInfo->sids) {
+        NetrFreeSidAttr(pInfo->sids,
+                        pInfo->sidcount);
     }
 
-    FreeUnicodeString(&r->forest);
-    FreeUnicodeString(&r->principal);
+    FreeUnicodeString(&pInfo->forest);
+    FreeUnicodeString(&pInfo->principal);
 }
 
 
-static void NetrFreeSamInfo6(NetrSamInfo6 *ptr)
+static
+VOID
+NetrFreeSamInfo6(
+    NetrSamInfo6 *pInfo
+    )
 {
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanSamInfo6(ptr);
-    free(ptr);
+    NetrCleanSamInfo6(pInfo);
+    free(pInfo);
 }
 
 
-static void NetrCleanPacInfo(NetrPacInfo *r)
+static
+VOID
+NetrCleanPacInfo(
+    NetrPacInfo *pInfo
+    )
 {
-    SAFE_FREE(r->pac);
-    SAFE_FREE(r->auth);
+    SAFE_FREE(pInfo->pac);
+    SAFE_FREE(pInfo->auth);
 
-    FreeUnicodeString(&r->logon_domain);
-    FreeUnicodeString(&r->logon_server);
-    FreeUnicodeString(&r->principal_name);
-    FreeUnicodeString(&r->unknown1);
-    FreeUnicodeString(&r->unknown2);
-    FreeUnicodeString(&r->unknown3);
-    FreeUnicodeString(&r->unknown4);
+    FreeUnicodeString(&pInfo->logon_domain);
+    FreeUnicodeString(&pInfo->logon_server);
+    FreeUnicodeString(&pInfo->principal_name);
+    FreeUnicodeString(&pInfo->unknown1);
+    FreeUnicodeString(&pInfo->unknown2);
+    FreeUnicodeString(&pInfo->unknown3);
+    FreeUnicodeString(&pInfo->unknown4);
 }
 
 
-static void NetrFreePacInfo(NetrPacInfo *ptr)
+static
+VOID
+NetrFreePacInfo(
+    NetrPacInfo *pInfo
+    )
 {
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanPacInfo(ptr);
-    free(ptr);
+    NetrCleanPacInfo(pInfo);
+    free(pInfo);
 }
 
 
-void NetrCleanStubValidationInfo(NetrValidationInfo *r, uint16 level)
+VOID
+NetrCleanStubValidationInfo(
+    NetrValidationInfo *pInfo,
+    UINT16 Level
+    )
 {
-    switch (level) {
+    switch (Level) {
     case 2:
-        NetrFreeSamInfo2(r->sam2);
+        NetrFreeSamInfo2(pInfo->sam2);
         break;
     case 3:
-        NetrFreeSamInfo3(r->sam3);
+        NetrFreeSamInfo3(pInfo->sam3);
         break;
     case 4:
-        NetrFreePacInfo(r->pac4);
+        NetrFreePacInfo(pInfo->pac4);
         break;
     case 5:
-        NetrFreePacInfo(r->pac5);
+        NetrFreePacInfo(pInfo->pac5);
         break;
     case 6:
-        NetrFreeSamInfo6(r->sam6);
+        NetrFreeSamInfo6(pInfo->sam6);
         break;
     default:
         break;
@@ -196,88 +253,93 @@ void NetrCleanStubValidationInfo(NetrValidationInfo *r, uint16 level)
 }
 
 
-static void
+static
+VOID
 NetrCleanDomainTrustInfo(
-    NetrDomainTrustInfo *r
+    NetrDomainTrustInfo *pInfo
     )
 {
-    int i = 0;
+    UINT32 i = 0;
 
-    if (r == NULL) return;
+    if (pInfo == NULL) return;
 
-    FreeUnicodeString(&r->domain_name);
-    FreeUnicodeString(&r->full_domain_name);
-    FreeUnicodeString(&r->forest);
-    MsRpcFreeSid(r->sid);
+    FreeUnicodeString(&pInfo->domain_name);
+    FreeUnicodeString(&pInfo->full_domain_name);
+    FreeUnicodeString(&pInfo->forest);
+    MsRpcFreeSid(pInfo->sid);
 
-    for (i = 0; i < sizeof(r->unknown1)/sizeof(r->unknown1[0]); i++) {
-        FreeUnicodeString(&r->unknown1[i]);
+    for (i = 0;
+         i < sizeof(pInfo->unknown1)/sizeof(pInfo->unknown1[0]);
+         i++)
+    {
+        FreeUnicodeString(&pInfo->unknown1[i]);
     }
 }
 
 
-static void
+static
+VOID
 NetrFreeDomainInfo1(
-    NetrDomainInfo1 *ptr
+    NetrDomainInfo1 *pInfo
     )
 {
-    int i = 0;
+    UINT32 i = 0;
 
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanDomainTrustInfo(&ptr->domain_info);
+    NetrCleanDomainTrustInfo(&pInfo->domain_info);
 
-    for (i = 0; i < ptr->num_trusts; i++) {
-        NetrCleanDomainTrustInfo(&ptr->trusts[i]);
+    for (i = 0; i < pInfo->num_trusts; i++) {
+        NetrCleanDomainTrustInfo(&pInfo->trusts[i]);
     }
 
-    free(ptr->trusts);
-    free(ptr);
+    free(pInfo->trusts);
+    free(pInfo);
 }
 
 
-void
+VOID
 NetrCleanStubDomainInfo(
-    NetrDomainInfo *r,
-    uint16 level
+    NetrDomainInfo *pInfo,
+    UINT16 Level
     )
 {
-    if (r == NULL) return;
+    if (pInfo == NULL) return;
 
-    switch (level) {
+    switch (Level) {
     case 1:
-        NetrFreeDomainInfo1(r->info1);
+        NetrFreeDomainInfo1(pInfo->info1);
         break;
     case 2:
-        NetrFreeDomainInfo1(r->info2);
+        NetrFreeDomainInfo1(pInfo->info2);
         break;
     }
 }
 
 
-void
+VOID
 NetrCleanStubDcNameInfo(
-    DsrDcNameInfo *r
+    DsrDcNameInfo *pInfo
     )
 {
-    SAFE_FREE(r->dc_name);
-    SAFE_FREE(r->dc_address);
-    SAFE_FREE(r->domain_name);
-    SAFE_FREE(r->forest_name);
-    SAFE_FREE(r->dc_site_name);
-    SAFE_FREE(r->cli_site_name);
+    SAFE_FREE(pInfo->dc_name);
+    SAFE_FREE(pInfo->dc_address);
+    SAFE_FREE(pInfo->domain_name);
+    SAFE_FREE(pInfo->forest_name);
+    SAFE_FREE(pInfo->dc_site_name);
+    SAFE_FREE(pInfo->cli_site_name);
 }
 
 
-void
+VOID
 NetrFreeStubDcNameInfo(
-    DsrDcNameInfo *ptr
+    DsrDcNameInfo *pInfo
     )
 {
-    if (ptr == NULL) return;
+    if (pInfo == NULL) return;
 
-    NetrCleanStubDcNameInfo(ptr);
-    SAFE_FREE(ptr);
+    NetrCleanStubDcNameInfo(pInfo);
+    SAFE_FREE(pInfo);
 }
 
 

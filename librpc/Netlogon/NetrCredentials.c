@@ -35,113 +35,165 @@
 #include "includes.h"
 
 
-void
+VOID
 NetrCredentialsInit(
-    NetrCredentials *creds,
-    uint8 cli_chal[8],
-    uint8 srv_chal[8],
-    uint8 pass_hash[16],
-    uint32 neg_flags
+    OUT NetrCredentials *pCreds,
+    IN  BYTE             CliChal[8],
+    IN  BYTE             SrvChal[8],
+    IN  BYTE             PassHash[16],
+    IN  UINT32           NegFlags
     )
 {
     struct md5context md5ctx;
     hmac_md5_ctx hmacmd5ctx;
 
-    if (creds == NULL) return;
+    if (pCreds == NULL) return;
 
     memset((void*)&md5ctx, 0, sizeof(md5ctx));
     memset((void*)&hmacmd5ctx, 0, sizeof(hmacmd5ctx));
 
-    creds->negotiate_flags = neg_flags;
-    creds->channel_type    = SCHANNEL_WKSTA;  /* default schannel type */
-    creds->sequence        = time(NULL);
+    pCreds->negotiate_flags = NegFlags;
+    pCreds->channel_type    = SCHANNEL_WKSTA;  /* default schannel type */
+    pCreds->sequence        = time(NULL);
 
-    memcpy(creds->pass_hash, pass_hash, sizeof(creds->pass_hash));
-    memset(creds->session_key, 0, sizeof(creds->session_key));
+    memcpy(pCreds->pass_hash, PassHash, sizeof(pCreds->pass_hash));
+    memset(pCreds->session_key, 0, sizeof(pCreds->session_key));
 
-    if (creds->negotiate_flags & NETLOGON_NEG_128BIT) {
-        uint8 zero[4] = {0};
-        uint8 dig[16];
+    if (pCreds->negotiate_flags & NETLOGON_NEG_128BIT) {
+        BYTE Zero[4] = {0};
+        BYTE Digest[16];
 
-        hmac_md5_init(&hmacmd5ctx, creds->pass_hash, sizeof(creds->pass_hash));
+        hmac_md5_init(&hmacmd5ctx,
+                      pCreds->pass_hash,
+                      sizeof(pCreds->pass_hash));
+
         md5init(&md5ctx);
-        md5update(&md5ctx, zero, sizeof(zero));
-        md5update(&md5ctx, cli_chal, 8);
-        md5update(&md5ctx, srv_chal, 8);
-        md5final(&md5ctx, dig);
+        md5update(&md5ctx, Zero, sizeof(Zero));
+        md5update(&md5ctx, CliChal, 8);
+        md5update(&md5ctx, SrvChal, 8);
+        md5final(&md5ctx, Digest);
 
-        hmac_md5_update(&hmacmd5ctx, dig, sizeof(dig));
-        hmac_md5_final(&hmacmd5ctx, creds->session_key);
+        hmac_md5_update(&hmacmd5ctx,
+                        Digest,
+                        sizeof(Digest));
+        hmac_md5_final(&hmacmd5ctx,
+                       pCreds->session_key);
 
-        des112(creds->cli_chal.data, cli_chal, creds->session_key);
-        des112(creds->srv_chal.data, srv_chal, creds->session_key);
+        des112(pCreds->cli_chal.data,
+               CliChal,
+               pCreds->session_key);
+        des112(pCreds->srv_chal.data,
+               SrvChal,
+               pCreds->session_key);
 
-        memcpy(creds->seed.data, creds->cli_chal.data, sizeof(creds->seed.data));
+        memcpy(pCreds->seed.data,
+               pCreds->cli_chal.data,
+               sizeof(pCreds->seed.data));
     
     } else {
-        uint32 sum1[2];
-        uint8 sum2[8];
+        UINT32 Sum1[2];
+        BYTE Sum2[8];
 
-        sum1[0] = GETUINT32(cli_chal, 0) +
-                  GETUINT32(srv_chal, 0);
-        sum1[1] = GETUINT32(cli_chal, 4) +
-                  GETUINT32(srv_chal, 4);
+        Sum1[0] = GETUINT32(CliChal, 0) +
+                  GETUINT32(SrvChal, 0);
+        Sum1[1] = GETUINT32(CliChal, 4) +
+                  GETUINT32(SrvChal, 4);
 
-        SETUINT32(sum2, 0, sum1[0]);
-        SETUINT32(sum2, 4, sum1[1]);
+        SETUINT32(Sum2, 0, Sum1[0]);
+        SETUINT32(Sum2, 4, Sum1[1]);
 
-        memset(creds->session_key, 0, sizeof(creds->session_key));
-        des128(creds->session_key, sum2, creds->pass_hash);
-        des112(creds->cli_chal.data, cli_chal, creds->session_key);
-        des112(creds->srv_chal.data, srv_chal, creds->session_key);
+        memset(pCreds->session_key,
+               0,
+               sizeof(pCreds->session_key));
 
-        memcpy(creds->seed.data, creds->cli_chal.data, sizeof(creds->seed.data));
+        des128(pCreds->session_key,
+               Sum2,
+               pCreds->pass_hash);
+        des112(pCreds->cli_chal.data,
+               CliChal,
+               pCreds->session_key);
+        des112(pCreds->srv_chal.data,
+               SrvChal,
+               pCreds->session_key);
+
+        memcpy(pCreds->seed.data,
+               pCreds->cli_chal.data,
+               sizeof(pCreds->seed.data));
     }
 }
 
 
-int
+BOOLEAN
 NetrCredentialsCorrect(
-    NetrCredentials *creds,
-    uint8 srv_creds[8]
+    IN  NetrCredentials  *pCreds,
+    IN  BYTE              SrvCreds[8]
     )
 {
-    int ret = 0;
+    BOOLEAN bCorrect = FALSE;
 
-    if (creds == NULL) return 0;
+    if (pCreds == NULL) goto error;
 
-    ret = memcmp(creds->srv_chal.data,
-                 srv_creds, sizeof(creds->srv_chal.data));
-    return (ret == 0) ? 1 : 0;
+    if (memcmp(pCreds->srv_chal.data,
+               SrvCreds,
+               sizeof(pCreds->srv_chal.data)) == 0)
+    {
+        bCorrect = TRUE;
+    }
+
+cleanup:
+    return bCorrect;
+
+error:
+    goto cleanup;
 }
 
 
-void
+VOID
 NetrCredentialsCliStep(
-    NetrCredentials *creds
+    IN OUT NetrCredentials *pCreds
     )
 {
-    NetrCred chal;
+    NetrCred Chal;
 
-    memset((void*)&chal, 0, sizeof(chal));
+    memset((void*)&Chal, 0, sizeof(Chal));
 
-    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
-    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence);
-    des112(creds->cli_chal.data, chal.data, creds->session_key);
+    memcpy(Chal.data,
+           pCreds->seed.data,
+           sizeof(Chal.data));
+    SETUINT32(Chal.data,
+              0,
+              GETUINT32(pCreds->seed.data, 0) + pCreds->sequence);
+    des112(pCreds->cli_chal.data,
+           Chal.data,
+           pCreds->session_key);
 
-    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
-    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence + 1);
-    des112(creds->srv_chal.data, chal.data, creds->session_key);
+
+    memcpy(Chal.data,
+           pCreds->seed.data,
+           sizeof(Chal.data));
+    SETUINT32(Chal.data,
+              0,
+              GETUINT32(pCreds->seed.data, 0) + pCreds->sequence + 1);
+    des112(pCreds->srv_chal.data,
+           Chal.data,
+           pCreds->session_key);
 
     /* reseed */
-    memcpy(chal.data, creds->seed.data, sizeof(chal.data));
-    SETUINT32(chal.data, 0, GETUINT32(creds->seed.data, 0) + creds->sequence + 1);
+    memcpy(Chal.data,
+           pCreds->seed.data,
+           sizeof(Chal.data));
+    SETUINT32(Chal.data,
+              0,
+              GETUINT32(pCreds->seed.data, 0) + pCreds->sequence + 1);
 
-    creds->seed = chal;
+    pCreds->seed = Chal;
 }
 
 
-void NetrCredentialsSrvStep(NetrCredentials *creds)
+VOID
+NetrCredentialsSrvStep(
+    IN OUT NetrCredentials *pCreds
+    )
 {
 }
 
