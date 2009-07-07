@@ -1811,7 +1811,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     status = MsRpcAllocateSidAppendRid(&user_sid, sid, user_rid);
     if (status != 0) rpc_fail(status);
 
-    status = SamrGetAliasMembership(samr_binding, &dom_handle, user_sid, 1,
+    status = SamrGetAliasMembership(samr_binding, &dom_handle, &user_sid, 1,
                                     &rids, &num_rids);
     if (status != 0) rpc_fail(status);
 
@@ -1947,7 +1947,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                 /* there's actually no need to check status code here */
                 status = SamrGetAliasMembership(samr_binding,
                                                 &builtin_dom_handle,
-                                                alias_sid, 1, &member_rids,
+                                                &alias_sid, 1, &member_rids,
                                                 &count);
                 SAFE_FREE(alias_sid);
 
@@ -3552,7 +3552,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &btin_h, usr_sid, sids_count,
+    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &btin_h, &usr_sid, sids_count,
                                                &btin_rids, &btin_rids_count));
 
     OUTPUT_ARG_PTR(&btin_rids);
@@ -3566,7 +3566,7 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &domain_h, usr_sid,
+    CALL_MSRPC(status = SamrGetAliasMembership(samr_b, &domain_h, &usr_sid,
                                                sids_count, &dom_rids,
                                                &dom_rids_count));
 
