@@ -136,7 +136,7 @@ main(
 
     if (argc < 4)
     {
-        printf("Usage: test_npclient2 <pipename> <number of connections>\n");
+        printf("Usage: test_npclient2 <pipename> <number of connections> <number of iterations>\n");
         exit(1);
     }
 
