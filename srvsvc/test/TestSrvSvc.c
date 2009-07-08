@@ -37,6 +37,8 @@
 #include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
+#include <lwio/lwio.h>
+#include <lw/ntstatus.h>
 
 #include <srvsvc/types.h>
 
@@ -120,46 +122,40 @@ int StartTest(struct test *t, const wchar16_t *hostname,
 
 void display_usage()
 {
-    printf("Usage: testrpc -h hostname [-u username] [-p password] [-o options] testname\n");
+    printf("Usage: testrpc [-v] -h hostname [-k] [-u username] [-p password]\n"
+           "               [-d domain] [-w workstation] [-r principal] [-c creds cache]\n"
+           "               [-o options] testname\n");
     printf("\thostname - host to connect when performing a test\n");
-    printf("\tusername - user name to use when connecting the host (leave blank to use\n"
-	   "\t           kerberos credentials or anonynous session if available)\n");
-    printf("\tpassword - user name to use when connecting the host (leave blank to use\n"
-	   "\t           kerberos credentials or anonynous session if available)\n");
 }
 
+
+UserCreds *pCreds = NULL;
 
 extern char *optarg;
 int verbose_mode;
 
-/* a little trick to allow use "unicoded" version of main in windows */
-
-#ifdef _WIN32
-int wmain(int argc, wchar_t *argv[])
-#elif __GNUC__
 int main(int argc, char *argv[])
-#endif
 {
     int i, opt, ret;
-    char *testname, *host, *optional_args, *user, *pass;
-    struct test *tests, *runtest;
-    wchar16_t *hostname, *username, *password;
-    struct parameter *params;
-    int params_len;
-
-    host          = NULL;
-    user          = NULL;
-    pass          = NULL;
-    tests         = NULL;
-    runtest       = NULL;
-    optional_args = NULL;
-    hostname      = NULL;
-    username      = NULL;
-    password      = NULL;
+    char *testname = NULL;
+    char *host = NULL;
+    char *optional_args = NULL;
+    char *user = NULL;
+    char *pass = NULL;
+    char *dom = NULL;
+    char *wks = NULL;
+    char *princ = NULL;
+    char *cache = NULL;
+    int krb5_auth = 1;
+    struct test *tests = NULL;
+    struct test *runtest = NULL;
+    wchar16_t *hostname = NULL;
+    struct parameter *params = NULL;
+    int params_len = 0;
 
     verbose_mode = false;
 
-    while ((opt = getopt(argc, argv, "h:o:vu:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:o:vu:p:d:w:r:c:k")) != -1) {
         switch (opt) {
         case 'h':
             host = optarg;
@@ -173,12 +169,32 @@ int main(int argc, char *argv[])
             verbose_mode = true;
             break;
 
+        case 'd':
+            dom = optarg;
+            break;
+
+        case 'w':
+            wks = optarg;
+            break;
+
         case 'u':
             user = optarg;
             break;
 
         case 'p':
             pass = optarg;
+            break;
+
+        case 'r':
+            princ = optarg;
+            break;
+
+        case 'c':
+            cache = optarg;
+            break;
+
+        case 'k':
+            krb5_auth = 1;
             break;
 
         default:
@@ -209,17 +225,75 @@ int main(int argc, char *argv[])
         goto done;
     }
 
-    username = ambstowc16s(user);
-    if (user && username == NULL) {
-        printf("Failed to allocate username\n");
+    pCreds = malloc(sizeof(UserCreds));
+    if (pCreds == NULL) {
+        printf("Failed to allocate UserCreds\n");
         goto done;
     }
 
-    password = ambstowc16s(pass);
-    if (pass && password == NULL) {
-        printf("Failed to allocate password\n");
-        goto done;
+    memset(pCreds, 0, sizeof(*pCreds));
+
+    if (user) {
+        pCreds->username = malloc(strlen(user) + 1);
+        if (pCreds->username == NULL) {
+            printf("Failed to allocate username for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->username, user);
     }
+
+    if (pass) {
+        pCreds->password = malloc(strlen(pass) + 1);
+        if (pCreds->password == NULL) {
+            printf("Failed to allocate password for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->password, pass);
+    }
+
+    if (dom) {
+        pCreds->domain = malloc(strlen(dom) + 1);
+        if (pCreds->domain == NULL) {
+            printf("Failed to allocate domain for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->domain, dom);
+    }
+
+    if (wks) {
+        pCreds->workstation = malloc(strlen(wks) + 1);
+        if (pCreds->workstation == NULL) {
+            printf("Failed to allocate workstation for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->workstation, wks);
+    }
+
+    if (princ) {
+        pCreds->principal = malloc(strlen(princ) + 1);
+        if (pCreds->principal == NULL) {
+            printf("Failed to allocate principal for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->principal, princ);
+    }
+
+    if (cache) {
+        pCreds->ccache = malloc(strlen(cache) + 1);
+        if (pCreds->ccache == NULL) {
+            printf("Failed to allocate credentials cache for user credentials\n");
+            goto done;
+        }
+
+        strcpy(pCreds->ccache, cache);
+    }
+
+    pCreds->use_kerberos = krb5_auth;
 
     params = get_optional_params(optional_args, &params_len);
     if ((params != NULL && params_len == 0) ||
@@ -235,7 +309,8 @@ int main(int argc, char *argv[])
         runtest = FindTest(tests, testname);
 
         if (runtest) {
-            ret = StartTest(runtest, hostname, username, password,
+            ret = StartTest(runtest, hostname,
+                            pCreds->username, pCreds->password,
                             params, params_len);
             goto done;
         }
@@ -256,12 +331,33 @@ done:
     if (hostname) {
         free(hostname);
     }
-    if (username) {
-        free(username);
+
+    if (pCreds->username) {
+        free(pCreds->username);
     }
 
-    if (password) {
-        free(password);
+    if (pCreds->password) {
+        free(pCreds->password);
+    }
+
+    if (pCreds->domain) {
+        free(pCreds->domain);
+    }
+
+    if (pCreds->workstation) {
+        free(pCreds->workstation);
+    }
+
+    if (pCreds->principal) {
+        free(pCreds->principal);
+    }
+
+    if (pCreds->ccache) {
+        free(pCreds->ccache);
+    }
+
+    if (pCreds) {
+        free(pCreds);
     }
 
     return 0;
