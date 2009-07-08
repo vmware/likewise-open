@@ -1,4 +1,8 @@
+if PLATFORM_AIX
+lib_LTLIBRARIES = liblsaauth.la
+else
 noinst_LTLIBRARIES = liblsaauth.la
+endif
 
 liblsaauth_la_SOURCES = \
     globals.c    \
