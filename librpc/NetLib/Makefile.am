@@ -42,9 +42,9 @@ libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 
 libnetapi_la_LIBADD = \
 	-lunistr -lldap_r -lktkrb5 -llwioclient -lcrypto \
-	$(top_builddir)/Samr/libsamr.la \
+	$(top_builddir)/samr/libsamr.la \
 	$(top_builddir)/lsa/liblsa.la \
-	$(top_builddir)/Netlogon/libnetlogon.la \
+	$(top_builddir)/netlogon/libnetlogon.la \
 	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Mpr/libmpr.la \
 	$(top_builddir)/Error/liberror.la \

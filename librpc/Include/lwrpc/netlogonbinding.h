@@ -40,28 +40,29 @@
 
 RPCSTATUS
 InitNetlogonBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
+    OUT handle_t            *phNetrBinding,
+    IN  PCSTR                pszHostname,
+    IN  LW_PIO_ACCESS_TOKEN  pAccessToken,
+    IN  BOOLEAN              bIsSchannel
     );
 
 
-RPCSTATUS InitNetlogonBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    LW_PIO_ACCESS_TOKEN access_token,
-    BOOL is_schannel
+RPCSTATUS
+InitNetlogonBindingFull(
+    OUT handle_t             *phNetrBinding,
+    IN  PCSTR                 pszProtSeq,
+    IN  PCSTR                 pszHostname,
+    IN  PCSTR                 pszEndpoint,
+    IN  PCSTR                 pszUuid,
+    IN  PCSTR                 pszOptions,
+    IN  LW_PIO_ACCESS_TOKEN   pAccessToken,
+    IN  BOOLEAN               bIsSchannel
     );
 
 
 RPCSTATUS
 FreeNetlogonBinding(
-    handle_t *binding
+    IN OUT handle_t *phNetrBinding
     );
 
 

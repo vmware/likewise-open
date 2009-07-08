@@ -3,9 +3,13 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
 
-AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
+AM_CFLAGS="$AM_CFLAGS -Wall -Werror"
 
 AC_SUBST(AM_CFLAGS)
+
+AC_USE_SYSTEM_EXTENSIONS
+
+AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 
 # Checks for programs.
 AC_PROG_CC
@@ -146,6 +150,9 @@ AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/socket.h>
 ])
 
+AC_CHECK_SIZEOF(unsigned long)
+AC_CHECK_SIZEOF(long)
+
 AC_MSG_CHECKING([if getsockname takes socklen_t*])
 AC_TRY_COMPILE([
 #include <sys/types.h> 
@@ -174,6 +181,7 @@ AC_SUBST(LIBUUID_LIBS)
 AC_SUBST(RT_LIBS)
 
 AC_CHECK_FUNCS([strndup strncasecmp])
+AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
 
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"

@@ -2223,6 +2223,10 @@ AD_GetGroupsForUser(
     for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
     {
         ppUserMembership[i] = pHashEntry->pValue;
+        /* It is safe to remove the entry just returned by
+           LsaHashNext() from the hash table because the
+           iterator already points to the next item */
+        LsaHashRemoveKey(pUserMemberships, pHashEntry->pKey);
     }
 
     if (AD_ShouldAssumeDefaultDomain())
@@ -2245,6 +2249,7 @@ AD_GetGroupsForUser(
     *pppGroupInfoList  = ppUserMembership;
 
 cleanup:
+
     if (hLsaConnection)
     {
         LsaCloseServer(hLsaConnection);
@@ -2275,6 +2280,14 @@ cleanup:
 
     if (pUserMemberships)
     {
+        dwError = LsaHashGetIterator(pUserMemberships, &hashIterator);
+        assert(dwError == LSA_ERROR_SUCCESS);
+
+        while ((pHashEntry = LsaHashNext(&hashIterator)) != NULL)
+        {
+            LsaFreeGroupInfo(dwGroupInfoLevel, pHashEntry->pValue);
+        }
+
         LsaHashSafeFree(&pUserMemberships);
     }
 

@@ -46,27 +46,27 @@
 
 RPCSTATUS
 InitSamrBindingDefault(
-    handle_t *binding,
-    const char *hostname,
-    PIO_ACCESS_TOKEN access_token
+    handle_t         *phSamrBinding,
+    PCSTR             pszHostname,
+    PIO_ACCESS_TOKEN  pAccessToken
     );
 
 
 RPCSTATUS
 InitSamrBindingFull(
-    handle_t *binding,
-    const char *prot_seq,
-    const char *hostname,
-    const char *endpoint,
-    const char *uuid,
-    const char *options,
-    PIO_ACCESS_TOKEN access_token
+    handle_t *phSamrBinding,
+    PCSTR pszProtSeq,
+    PCSTR pszHostname,
+    PCSTR pszEndpoint,
+    PCSTR pszUuid,
+    PCSTR pszOptions,
+    PIO_ACCESS_TOKEN pAccessToken
     );
 
 
 RPCSTATUS
 FreeSamrBinding(
-    handle_t *binding
+    IN  handle_t *phSamrBinding
     );
 
 

@@ -28,4 +28,5 @@
  * license@likewisesoftware.com
  */
 
-#include "lwrpc/winerror.h"
+#include <lw/ntstatus.h>
+#include <lwrpc/winerror.h>

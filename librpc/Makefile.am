@@ -4,9 +4,9 @@ SUBDIRS = \
     alloc \
     Error \
     MsRpc \
-    Samr \
+    samr \
     lsa \
-    Netlogon \
+    netlogon \
     Mpr \
     Krb5Pac \
     dssetup \

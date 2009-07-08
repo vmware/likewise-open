@@ -54,7 +54,7 @@ LwAllocateMemory(
 
     pMemory = malloc(dwSize);
     if (!pMemory){
-        dwError = ENOMEM;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         *ppMemory = NULL;
     }else {
         memset(pMemory,0, dwSize);
@@ -81,7 +81,7 @@ LwReallocMemory(
        pNewMemory = realloc(pMemory, dwSize);
     }
     if (!pNewMemory){
-       dwError = ENOMEM;
+       dwError = LW_ERROR_OUT_OF_MEMORY;
        *ppNewMemory = NULL;
     }else {
        *ppNewMemory = pNewMemory;

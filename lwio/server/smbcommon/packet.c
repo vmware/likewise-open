@@ -598,6 +598,7 @@ SMBPacketDecodeHeader(
     )
 {
     NTSTATUS ntStatus = 0;
+    uint32_t packetStatus = 0;
 
     if (bVerifySignature)
     {
@@ -610,6 +611,13 @@ SMBPacketDecodeHeader(
     }
 
     SMBPacketLTOHSmbHeader(pPacket->pSMBHeader);
+
+    packetStatus = pPacket->pSMBHeader->error;
+    if (!LW_NT_SUCCESS_OR_NOT(packetStatus) && STATUS_PENDING != packetStatus)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 error:
     return ntStatus;
