@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,43 +29,71 @@
  */
 
 /*
- * Abstract: Samr interface (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        samr_queryaliasinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        SamrQueryAliasInfo function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+#include "includes.h"
 
-#include <lwio/lwio.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <DceSupport.h>
-#include <compat/rpcstatus.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/domaininfo.h>
-#include <lwrpc/userinfo.h>
-#include <lwrpc/aliasinfo.h>
-#include <lwrpc/displayinfo.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/rid.h>
-#include <lwrpc/samr.h>
+NTSTATUS
+SamrQueryAliasInfo(
+    IN  handle_t       hSamrBinding,
+    IN  PolicyHandle  *phAlias,
+    IN  UINT16         Level,
+    OUT AliasInfo    **ppInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    AliasInfo *pInfo = NULL;
+    AliasInfo *pOutInfo = NULL;
 
-#include "samr_util.h"
-#include "samr_memory.h"
-#include "samr_stubmemory.h"
-#include "samr_h.h"
+    BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phAlias, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-#include "externs.h"
+    DCERPC_CALL(ntStatus, _SamrQueryAliasInfo(hSamrBinding,
+                                              phAlias,
+                                              Level,
+                                              &pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pInfo) {
+        ntStatus = SamrAllocateAliasInfo(&pOutInfo,
+                                         pInfo,
+                                         Level);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppInfo = pOutInfo;
+
+cleanup:
+    if (pInfo) {
+        SamrFreeStubAliasInfo(pInfo, Level);
+    }
+
+    return ntStatus;
+
+error:
+    if (pOutInfo) {
+        SamrFreeMemory((void*)pOutInfo);
+    }
+
+    *ppInfo = NULL;
+
+    goto cleanup;
+}
 
 
 /*
