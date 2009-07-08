@@ -150,6 +150,8 @@ int main(int argc, char *argv[])
     struct test *tests = NULL;
     struct test *runtest = NULL;
     wchar16_t *hostname = NULL;
+    wchar16_t *username = NULL;
+    wchar16_t *password = NULL;
     struct parameter *params = NULL;
     int params_len = 0;
 
@@ -310,7 +312,7 @@ int main(int argc, char *argv[])
 
         if (runtest) {
             ret = StartTest(runtest, hostname,
-                            pCreds->username, pCreds->password,
+                            username, password,
                             params, params_len);
             goto done;
         }
