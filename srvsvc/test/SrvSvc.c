@@ -90,9 +90,10 @@ static const char *Win32ErrorToName(NET_API_STATUS err)
 
 handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
 {
-    RPCSTATUS status;
-    size_t hostname_size;
-    unsigned char *hostname;
+    RPCSTATUS status = RPC_S_OK;
+    size_t hostname_size = 0;
+    unsigned char *hostname = NULL;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
 
     if (binding == NULL || host == NULL) return NULL;
 
@@ -101,7 +102,12 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
     if (hostname == NULL) return NULL;
     wc16stombs(hostname, host, hostname_size);
 
-    status = InitSrvSvcBindingDefault(binding, hostname);
+    if (LwIoGetThreadAccessToken(&pAccessToken) != STATUS_SUCCESS)
+    {
+        return NULL;
+    }
+
+    status = InitSrvSvcBindingDefault(binding, hostname, pAccessToken);
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
@@ -114,6 +120,11 @@ handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host)
         }
 
         return NULL;
+    }
+
+    if (pAccessToken)
+    {
+        LwIoDeleteAccessToken(pAccessToken);
     }
 
     free(hostname);
@@ -133,6 +144,8 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
     uint32 resume_handle = 0;
 
     TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -268,7 +281,7 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -287,11 +300,10 @@ int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
     uint32 entriesread = 0;
     uint32 totalentries = 0;
     uint32 resume_handle = 0;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -451,7 +463,7 @@ int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -473,11 +485,10 @@ int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
     uint32 resume_handle = 0;
     FILE_INFO_2 *fi2_enum = NULL;
     uint32 i;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -585,7 +596,7 @@ int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -600,11 +611,10 @@ int TestNetFileClose(struct test *t, const wchar16_t *hostname,
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     handle_t srvsvc_binding;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -622,7 +632,7 @@ int TestNetFileClose(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -643,11 +653,10 @@ int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
     uint32 resume_handle = 0;
     const uint32 levels[5] = { 0, 1, 2, 10, 502 };
     uint32 i;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -739,7 +748,7 @@ int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -801,6 +810,8 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
     perr = fetch_value(options, optcount, "type", pt_uint32, &type,
                        &def_type);
     if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -870,6 +881,8 @@ int TestNetShareAdd(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
+    RELEASE_SESSION_CREDS;
+
     SrvSvcDestroyMemory();
 
     return true;
@@ -895,6 +908,8 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
+    SET_SESSION_CREDS(pCreds);
+
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
 
@@ -913,7 +928,7 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
                                        hostname,/*servername*/
                                        level,/*level*/
                                        &bufptr,/*bufptr*/
-                                       0,/*prefmaxlen*/
+                                       -1,/*prefmaxlen*/
                                        &entriesread,/*entriesread*/
                                        &totalentries,/*totalentries*/
                                        &resume_handle /*resume_handle*/
@@ -961,6 +976,8 @@ int TestNetShareEnum(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
+    RELEASE_SESSION_CREDS;
+
     SrvSvcDestroyMemory();
     return true;
 done:
@@ -988,6 +1005,8 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
     wchar16_t *sharename = NULL;
 
     TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(pCreds);
 
     perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
                        &def_infolevel);
@@ -1048,6 +1067,8 @@ int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
     }
 
     FreeSrvSvcBinding(&srvsvc_binding);
+
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -1112,6 +1133,8 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
     perr = fetch_value(options, optcount, "type", pt_uint32, &type,
                        &def_type);
     if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1183,6 +1206,8 @@ int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
+    RELEASE_SESSION_CREDS;
+
     SrvSvcDestroyMemory();
     return true;
 done:
@@ -1208,6 +1233,8 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
                        &sharename, &def_sharename);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
+    SET_SESSION_CREDS(pCreds);
+
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
 
@@ -1221,6 +1248,8 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
                                   0/*reserved*/
                                   ));
     FreeSrvSvcBinding(&srvsvc_binding);
+
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -1240,11 +1269,10 @@ int TestNetServerGetInfo(struct test *t, const wchar16_t *hostname,
     uint8 *bufptr = NULL;
     uint32 i;
     uint32 levels[] = { 100, 101, 102, 502, 503 };
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -1285,7 +1313,7 @@ int TestNetServerGetInfo(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -1363,11 +1391,10 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
     SERVER_INFO_1554 info1554;
     SERVER_INFO_1555 info1555;
     SERVER_INFO_1556 info1556;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -2190,7 +2217,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
@@ -2206,11 +2233,10 @@ int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
     NET_API_STATUS err = ERROR_SUCCESS;
     handle_t srvsvc_binding;
     uint8 *bufptr = NULL;
-//    NETRESOURCE nr = {0};
 
     TESTINFO(t, hostname, user, pass);
 
-//    SET_SESSION_CREDS(nr, hostname, user, pass);
+    SET_SESSION_CREDS(pCreds);
 
     srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
     if (srvsvc_binding == NULL) goto done;
@@ -2230,7 +2256,7 @@ int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
 
     FreeSrvSvcBinding(&srvsvc_binding);
 
-//    RELEASE_SESSION_CREDS(nr);
+    RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
     return true;
