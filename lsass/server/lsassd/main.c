@@ -45,14 +45,34 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#include "lsassd.h"
 #include "config.h"
+#include "lsassd.h"
 #include "lwnet.h"
 #include "eventlog.h"
 #include "lsasrvutils.h"
 
 /* Needed for dcethread_fork() */
 #include <dce/dcethread.h>
+
+#ifdef ENABLE_STATIC_PROVIDERS
+
+extern DWORD LSA_INITIALIZE_PROVIDER(ad)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LSA_SHUTDOWN_PROVIDER(ad)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
+extern DWORD LSA_INITIALIZE_PROVIDER(local)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LSA_SHUTDOWN_PROVIDER(local)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
+
+static LSA_STATIC_PROVIDER gStaticProviders[] =
+{
+#ifdef ENABLE_AD
+    LSA_STATIC_PROVIDER_ENTRY(ad, lsa-activedirectory-provider),
+#endif
+#ifdef ENABLE_LOCAL
+    LSA_STATIC_PROVIDER_ENTRY(local, lsa-local-provider),
+#endif
+    LSA_STATIC_PROVIDER_END
+};
+
+#endif
 
 int
 main(
@@ -609,7 +629,11 @@ LsaSrvInitialize(
     dwError = LsaInitCacheFolders();
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvApiInit(pszConfigFilePath);
+#ifdef ENABLE_STATIC_PROVIDERS
+    dwError = LsaSrvApiInit(pszConfigFilePath, gStaticProviders);
+#else
+    dwError = LsaSrvApiInit(pszConfigFilePath, NULL);
+#endif
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

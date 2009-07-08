@@ -172,7 +172,7 @@ InitADCacheFunctionTable(
     );
 
 DWORD
-LsaInitializeProvider(
+LSA_INITIALIZE_PROVIDER(ad)(
     PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
@@ -385,7 +385,7 @@ error:
 }
 
 DWORD
-LsaShutdownProvider(
+LSA_SHUTDOWN_PROVIDER(ad)(
     PSTR pszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
@@ -424,7 +424,7 @@ LsaShutdownProvider(
 
     AD_FreeAllowedSIDs_InLock();
 
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
 
     // This will clean up media sense too.
     LsaAdProviderStateDestroy(gpLsaAdProviderState);

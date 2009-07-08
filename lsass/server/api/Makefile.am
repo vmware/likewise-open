@@ -1,3 +1,11 @@
+if ENABLE_MINIMAL
+ADDITIONAL_CPPFLAGS = "-DMINIMAL_LSASS=1"
+ADDITIONAL_LIBS =
+else
+ADDITIONAL_CPPFLAGS =
+ADDITIONAL_LIBS = @EVENTLOG_LIBS@
+endif
+
 lib_LTLIBRARIES = liblsaserverapi.la
 
 liblsaserverapi_la_SOURCES = \
@@ -40,12 +48,13 @@ liblsaserverapi_la_SOURCES = \
 
 liblsaserverapi_la_CPPFLAGS =         \
 	-DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include
+	-I@top_srcdir@/server/include \
+	$(ADDITIONAL_CPPFLAGS)
 
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
         @top_builddir@/gssntlm/server/libntlmserver.la \
 	@UUID_LIBS@ \
 	@PTHREAD_LIBS@\
-	@EVENTLOG_LIBS@ \
+	$(ADDITIONAL_LIBS) \
 	@RT_LIBS@

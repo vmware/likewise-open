@@ -1444,9 +1444,9 @@ AD_SetConfigFilePath(
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
 
-    gpszConfigFilePath = pszConfigFilePathLocal;
+    gpszADConfigFilePath = pszConfigFilePathLocal;
 
 cleanup:
 
@@ -1472,10 +1472,10 @@ AD_GetConfigFilePath(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpszConfigFilePath))
+    if (!IsNullOrEmptyString(gpszADConfigFilePath))
     {
         dwError = LsaAllocateString(
-                        gpszConfigFilePath,
+                        gpszADConfigFilePath,
                         &pszConfigFilePath
                         );
         BAIL_ON_LSA_ERROR(dwError);

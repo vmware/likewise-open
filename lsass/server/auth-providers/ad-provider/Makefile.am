@@ -1,4 +1,12 @@
+if ENABLE_STATIC_PROVIDERS
+noinst_LTLIBRARIES = liblsass_auth_provider_ad.la
+PROVIDER_CFLAGS =
+PROVIDER_LDFLAGS =
+else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
+PROVIDER_CFLAGS = -shared
+PROVIDER_LDFLAGS = -shared -module -avoid-version
+endif
 
 liblsass_auth_provider_ad_la_SOURCES = \
        adcache.c                 \
@@ -45,9 +53,10 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 	@NETLOGON_INCLUDES@           \
 	@SQLITE_INCLUDES@
 
+liblsass_auth_provider_ad_la_CFLAGS = $(PROVIDER_CFLAGS)
+
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
-	@top_builddir@/logging_r/liblsalog_r.la \
 	@top_builddir@/join/liblsajoin.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/ipc/liblsaipc.la \
@@ -63,7 +72,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic \
+	$(PROVIDER_LDFLAGS)
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \

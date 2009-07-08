@@ -87,12 +87,14 @@ LsaSrvValidateProvider(
 DWORD
 LsaSrvInitAuthProvider(
     PCSTR pszConfigFilePath,
-    PLSA_AUTH_PROVIDER pProvider
+    PLSA_AUTH_PROVIDER pProvider,
+    PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD
 LsaSrvInitAuthProviders(
-    PCSTR pszConfigFilePath
+    PCSTR pszConfigFilePath,
+    PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD

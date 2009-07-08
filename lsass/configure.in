@@ -477,6 +477,15 @@ AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
+# minimal
+
+AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal lsass])])
+AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
+if test x"$enable_minimal" = x"yes"
+then
+        AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal lsass])
+fi
+
 # compat
 
 ENABLE_COMPAT=false
@@ -509,6 +518,38 @@ AC_ARG_ENABLE([testgssprovider],
         ])
 
 AM_CONDITIONAL(ENABLE_TESTGSSPROVIDER, [$ENABLE_TESTGSSPROVIDER])
+
+AC_ARG_WITH([providers], [AC_HELP_STRING([--with-providers], [list of providers to build (ad local)])],
+		       [], [with_providers="ad local"])
+
+_IFS="${IFS}"
+IFS=" ,"
+for provider in $with_providers
+do
+	eval "enable_${provider}=yes"
+done
+IFS="${_IFS}"
+
+AM_CONDITIONAL(ENABLE_AD, test x"$enable_ad" = x"yes")
+if test x"$enable_ad" = x"yes"
+then
+	AC_DEFINE([ENABLE_AD], [], [Define if AD provider should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_LOCAL, test x"$enable_local" = x"yes")
+if test x"$enable_local" = x"yes"
+then
+	AC_DEFINE([ENABLE_LOCAL], [], [Define if local provider should be built])
+fi
+
+# Boolean settings
+
+AC_ARG_ENABLE([static-providers], [AC_HELP_STRING([--enable-static-providers], [build providers directly into lsassd])])
+AM_CONDITIONAL(ENABLE_STATIC_PROVIDERS, test x"$enable_static_providers" = x"yes")
+if test x"$enable_static_providers" = x"yes"
+then
+	AC_DEFINE([ENABLE_STATIC_PROVIDERS], [], [Define if providers should be built directly into lsassd])
+fi
 
 # debugging
 

@@ -47,9 +47,12 @@
 #ifndef __LSASRVAPI_H__
 #define __LSASRVAPI_H__
 
+#include "lsaprovider.h"
+
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath
+    PCSTR pszConfigFilePath,
+    PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD

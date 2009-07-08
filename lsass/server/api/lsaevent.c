@@ -52,6 +52,9 @@ LsaSrvOpenEventLog(
     PHANDLE phEventLog
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     return LWIOpenEventLogEx(
                   NULL,             // Server name (defaults to local computer eventlogd)
                   pszCategoryType,  // Table Category ID (Security, System, ...)
@@ -60,6 +63,7 @@ LsaSrvOpenEventLog(
                   "SYSTEM",         // User
                   NULL,             // Computer (defaults to assigning local hostname)
                   phEventLog);
+#endif
 }
 
 DWORD
@@ -67,7 +71,11 @@ LsaSrvCloseEventLog(
     HANDLE hEventLog
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     return LWICloseEventLog(hEventLog);
+#endif
 }
 
 DWORD
@@ -80,6 +88,9 @@ LsaSrvLogInformationEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -97,6 +108,7 @@ LsaSrvLogInformationEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -109,6 +121,9 @@ LsaSrvLogWarningEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -126,6 +141,7 @@ LsaSrvLogWarningEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -138,6 +154,9 @@ LsaSrvLogErrorEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -155,6 +174,7 @@ LsaSrvLogErrorEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -167,6 +187,9 @@ LsaSrvLogSuccessAuditEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -184,6 +207,7 @@ LsaSrvLogSuccessAuditEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -196,6 +220,9 @@ LsaSrvLogFailureAuditEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_LSASS)
+    return LSA_ERROR_SUCCESS;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -213,6 +240,7 @@ LsaSrvLogFailureAuditEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 VOID

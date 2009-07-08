@@ -77,7 +77,7 @@ extern pthread_rwlock_t gADGlobalDataLock;
 
 extern PSTR    gpszADProviderName;
 
-extern PSTR    gpszConfigFilePath;
+extern PSTR    gpszADConfigFilePath;
 
 extern BOOLEAN gbShutdownProvider;
 

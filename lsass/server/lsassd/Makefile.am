@@ -14,10 +14,18 @@ lsassd_LDADD = \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/gssntlm/server/libntlmserver.la \
 	@top_builddir@/client/liblsaclient.la \
-	@top_builddir@/logging_r/liblsalog_r.la \
 	@SOCKET_LIBS@ \
 	@NETLOGON_LIBS@ \
 	@LWIO_LIBS@
+
+if ENABLE_STATIC_PROVIDERS
+if ENABLE_AD
+lsassd_LDADD += $(top_builddir)/server/auth-providers/ad-provider/liblsass_auth_provider_ad.la
+endif
+if ENABLE_LOCAL
+lsassd_LDADD += $(top_builddir)/server/auth-providers/local-provider/liblsass_auth_provider_local.la
+endif
+endif
 
 lsassd_LDFLAGS = \
 	@NETLOGON_LDFLAGS@ \
