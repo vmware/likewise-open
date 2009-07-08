@@ -613,7 +613,7 @@ SMBPacketDecodeHeader(
     SMBPacketLTOHSmbHeader(pPacket->pSMBHeader);
 
     packetStatus = pPacket->pSMBHeader->error;
-    if (LW_NT_SUCCESS_OR_NOT(packetStatus) || STATUS_PENDING == packetStatus)
+    if (!LW_NT_SUCCESS_OR_NOT(packetStatus) && STATUS_PENDING != packetStatus)
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
