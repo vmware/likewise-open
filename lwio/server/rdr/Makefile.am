@@ -56,7 +56,7 @@ librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include
 
-librdr_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+librdr_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 librdr_sys_la_LIBADD = \
     @top_builddir@/server/iomgr2/libiomgr2.la \
