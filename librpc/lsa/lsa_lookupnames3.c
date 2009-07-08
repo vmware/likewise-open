@@ -29,20 +29,32 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_lookupnames3.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        LsaLookupNames3 function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
 
 
 NTSTATUS
-LsaLookupNames2(
+LsaLookupNames3(
     IN  handle_t hBinding,
     IN  PolicyHandle *hPolicy,
     IN  UINT32 NumNames,
     IN  PWSTR *ppNames,
     OUT RefDomainList **ppDomList,
-    OUT TranslatedSid2** ppSids,
+    OUT TranslatedSid3** ppSids,
     IN  uint16 Level,
     IN OUT UINT32 *Count
     )
@@ -53,9 +65,9 @@ LsaLookupNames2(
     UINT32 unknown2 = 0;
     UnicodeStringEx *pLsaNames = NULL;
     RefDomainList *pRefDomains = NULL;
-    RefDomainList *pOutDomList = NULL;
-    TranslatedSidArray2 sid_array = {0};
-    TranslatedSid2* pOutSids = NULL;
+    RefDomainList *pOutDomains = NULL;
+    TranslatedSidArray3 sid_array = {0};
+    TranslatedSid3* pOutSids = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
@@ -69,7 +81,7 @@ LsaLookupNames2(
 
     *Count = 0;
 
-    DCERPC_CALL(ntStatus, _LsaLookupNames2(
+    DCERPC_CALL(ntStatus, _LsaLookupNames3(
                               hBinding,
                               hPolicy,
                               NumNames,
@@ -82,27 +94,29 @@ LsaLookupNames2(
                               unknown2));
     ntRetStatus = ntStatus;
 
-    /* Status other than success doesn't have to mean failure here */
+    /* Status other than success doesn't have
+       to mean failure here */
+
     if (ntRetStatus != STATUS_SUCCESS &&
         ntRetStatus != STATUS_SOME_UNMAPPED)
     {
         BAIL_ON_NT_STATUS(ntRetStatus);
     }
 
-    ntStatus = LsaAllocateTranslatedSids2(&pOutSids, &sid_array);
+    ntStatus = LsaAllocateTranslatedSids3(&pOutSids, &sid_array);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LsaAllocateRefDomainList(&pOutDomList, pRefDomains);
+    ntStatus = LsaAllocateRefDomainList(&pOutDomains, pRefDomains);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSids    = pOutSids;
-    *ppDomList = pOutDomList;
+    *ppDomList = pOutDomains;
 
 cleanup:
     FreeUnicodeStringExArray(pLsaNames, NumNames);
 
     /* Free pointers returned from stub */
-    LsaCleanStubTranslatedSidArray2(&sid_array);
+    LsaCleanStubTranslatedSidArray3(&sid_array);
 
     if (pRefDomains)
     {
@@ -120,7 +134,7 @@ cleanup:
 
 error:
     LsaRpcFreeMemory((PVOID)pOutSids);
-    LsaRpcFreeMemory((PVOID)pOutDomList);
+    LsaRpcFreeMemory((PVOID)pOutDomains);
 
     *ppSids    = NULL;
     *ppDomList = NULL;

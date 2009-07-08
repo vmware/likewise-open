@@ -29,10 +29,21 @@
  */
 
 /*
- * Abstract: Lsa rpc stub memory cleanup routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_stubmemory.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Lsa rpc DCE/RPC stub memory cleanup functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 

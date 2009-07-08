@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -29,58 +29,69 @@
  */
 
 /*
- * Abstract: Lsa rpc stub memory cleanup routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_queryinfopolicy.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        LsaQueryInfoPolicy function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _LSA_STUB_MEMORY_H_
-#define _LSA_STUB_MEMORY_H_
+#include "includes.h"
 
 
-VOID
-LsaCleanStubTranslatedSidArray(
-    TranslatedSidArray *pArray
-    );
+NTSTATUS
+LsaQueryInfoPolicy(
+    IN  handle_t               hBinding,
+    IN  PolicyHandle          *phPolicy,
+    IN  UINT16                 Level,
+    OUT LsaPolicyInformation **ppInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LsaPolicyInformation *pInfo = NULL;
+    LsaPolicyInformation *pOutInfo = NULL;
 
-VOID
-LsaCleanStubTranslatedSidArray2(
-    TranslatedSidArray2 *pArray
-    );
+    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
+    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-VOID
-LsaCleanStubTranslatedSidArray3(
-    TranslatedSidArray3 *pArray
-    );
+    DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy(
+                              hBinding,
+                              phPolicy,
+                              Level,
+                              &pInfo));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-VOID
-LsaCleanStubTranslatedNameArray(
-    TranslatedNameArray *pArray
-    );
+    ntStatus = LsaAllocatePolicyInformation(
+                   &pOutInfo,
+                   pInfo,
+                   Level);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-VOID
-LsaCleanStubRefDomainList(
-    RefDomainList *pRefDomList
-    );
+    *ppInfo = pOutInfo;
 
-VOID
-LsaFreeStubRefDomainList(
-    RefDomainList *pRefDomList
-    );
+cleanup:
+    /* Free pointers allocated by dcerpc stub */
+    if (pInfo) {
+        LsaFreeStubPolicyInformation(pInfo, Level);
+    }
 
-VOID
-LsaCleanStubPolicyInformation(
-    LsaPolicyInformation *pPolicyInfo,
-    UINT32 Level
-    );
+    return ntStatus;
 
-VOID
-LsaFreeStubPolicyInformation(
-    LsaPolicyInformation *pPolicyInfo,
-    UINT32 Level
-    );
+error:
+    LsaRpcFreeMemory((PVOID)pOutInfo);
 
-#endif /* _LSA_STUB_MEMORY_H_ */
+    *ppInfo = NULL;
+    goto cleanup;
+}
 
 
 /*

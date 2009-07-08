@@ -1,9 +1,9 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,25 +28,75 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_openpolicy2.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        LsaOpenPolicy2 function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
-
 NTSTATUS
-LsaClose(
-    handle_t hBinding,
-    PolicyHandle *phPolicy
+LsaOpenPolicy2(
+    IN  handle_t       hBinding,
+    IN  PCWSTR         pwszSysname,
+    IN  PVOID          attrib,
+    IN  UINT32         AccessMask,
+    OUT PolicyHandle  *phPolicy
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PWSTR pwszSystemName = NULL;
+    PolicyHandle hLsaPolicy = {0};
+    SECURITY_QUALITY_OF_SERVICE SecQos = {0};
+    ObjectAttribute ObjAttribute = {0};
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSysname, ntStatus);
     BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
 
-    DCERPC_CALL(ntStatus, _LsaClose(
+    ntStatus = RtlWC16StringDuplicate(&pwszSystemName, pwszSysname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* ObjectAttribute argument is not used, so just
+       pass an empty structure */
+
+    SecQos.Length              = 0;
+    SecQos.ImpersonationLevel  = SecurityImpersonation;
+    SecQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    SecQos.EffectiveOnly       = 0;
+
+    ObjAttribute.len          = 0;
+    ObjAttribute.root_dir     = NULL;
+    ObjAttribute.object_name  = NULL;
+    ObjAttribute.attributes   = 0;
+    ObjAttribute.sec_desc     = NULL;
+    // TODO-QOS field in object attributes should probaby be NULL.
+    ObjAttribute.sec_qos      = &SecQos;
+
+    DCERPC_CALL(ntStatus, _LsaOpenPolicy2(
                               hBinding,
-                              phPolicy));
+                              pwszSystemName,
+                              &ObjAttribute,
+                              AccessMask,
+                              &hLsaPolicy));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *phPolicy = hLsaPolicy;
 
 cleanup:
+    RtlWC16StringFree(&pwszSystemName);
+
     return ntStatus;
 
 error:

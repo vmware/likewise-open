@@ -29,79 +29,92 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_lookupnames2.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        LsaLookupNames2 function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
 
 
 NTSTATUS
-LsaLookupNames(
+LsaLookupNames2(
     IN  handle_t hBinding,
     IN  PolicyHandle *hPolicy,
     IN  UINT32 NumNames,
-    IN  PWSTR *ppwszNames,
+    IN  PWSTR *ppNames,
     OUT RefDomainList **ppDomList,
-    OUT TranslatedSid **ppSids,
-    IN  UINT32 Level,
+    OUT TranslatedSid2** ppSids,
+    IN  uint16 Level,
     IN OUT UINT32 *Count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     NTSTATUS ntRetStatus = STATUS_SUCCESS;
-    UnicodeString *pLsaNames = NULL;
+    UINT32 unknown1 = 0;
+    UINT32 unknown2 = 0;
+    UnicodeStringEx *pLsaNames = NULL;
     RefDomainList *pRefDomains = NULL;
     RefDomainList *pOutDomList = NULL;
-    TranslatedSidArray pSidArray = {0};
-    TranslatedSid *pOutSidArray = NULL;
+    TranslatedSidArray2 sid_array = {0};
+    TranslatedSid2* pOutSids = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
-    BAIL_ON_INVALID_PTR(ppwszNames, ntStatus);
+    BAIL_ON_INVALID_PTR(ppNames, ntStatus);
     BAIL_ON_INVALID_PTR(ppDomList, ntStatus);
     BAIL_ON_INVALID_PTR(ppSids, ntStatus);
     BAIL_ON_INVALID_PTR(Count, ntStatus);
 
-    pLsaNames = InitUnicodeStringArray(ppwszNames, NumNames);
+    pLsaNames = InitUnicodeStringExArray(ppNames, NumNames);
     BAIL_ON_NULL_PTR(pLsaNames, ntStatus);
 
     *Count = 0;
 
-    DCERPC_CALL(ntStatus, _LsaLookupNames(
+    DCERPC_CALL(ntStatus, _LsaLookupNames2(
                               hBinding,
                               hPolicy,
                               NumNames,
                               pLsaNames,
                               &pRefDomains,
-                              &pSidArray,
+                              &sid_array,
                               Level,
-                              Count));
+                              Count,
+                              unknown1,
+                              unknown2));
     ntRetStatus = ntStatus;
 
-    /* Status other than success doesn't have to mean
-       failure here */
-
+    /* Status other than success doesn't have to mean failure here */
     if (ntRetStatus != STATUS_SUCCESS &&
         ntRetStatus != STATUS_SOME_UNMAPPED)
     {
         BAIL_ON_NT_STATUS(ntRetStatus);
     }
 
-
-    ntStatus = LsaAllocateTranslatedSids(&pOutSidArray, &pSidArray);
+    ntStatus = LsaAllocateTranslatedSids2(&pOutSids, &sid_array);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LsaAllocateRefDomainList(&pOutDomList, pRefDomains);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppSids    = pOutSidArray;
+    *ppSids    = pOutSids;
     *ppDomList = pOutDomList;
 
 cleanup:
-    FreeUnicodeStringArray(pLsaNames, NumNames);
+    FreeUnicodeStringExArray(pLsaNames, NumNames);
 
     /* Free pointers returned from stub */
-    LsaCleanStubTranslatedSidArray(&pSidArray);
+    LsaCleanStubTranslatedSidArray2(&sid_array);
 
     if (pRefDomains)
     {
@@ -118,7 +131,7 @@ cleanup:
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutSidArray);
+    LsaRpcFreeMemory((PVOID)pOutSids);
     LsaRpcFreeMemory((PVOID)pOutDomList);
 
     *ppSids    = NULL;

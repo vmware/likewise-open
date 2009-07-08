@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,55 +28,89 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_memory.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Lsa rpc memory management functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef _LSA_MEMORY_H_
+#define _LSA_MEMORY_H_
 
 
 NTSTATUS
-LsaQueryInfoPolicy(
-    handle_t hBinding,
-    PolicyHandle *phPolicy,
-    UINT16 Level,
-    LsaPolicyInformation **ppInfo
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    LsaPolicyInformation *pInfo = NULL;
-    LsaPolicyInformation *pOutInfo = NULL;
+LsaRpcAllocateMemory(
+    OUT PVOID *ppOut,
+    IN  size_t Size,
+    IN  PVOID  pDependent
+    );
 
-    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
-    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
+NTSTATUS
+LsaRpcFreeMemory(
+    IN PVOID pBuffer
+    );
 
-    DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy(
-                              hBinding,
-                              phPolicy,
-                              Level,
-                              &pInfo));
-    BAIL_ON_NT_STATUS(ntStatus);
+NTSTATUS
+LsaRpcAddDepMemory(
+    IN PVOID pBuffer,
+    IN PVOID pDependent
+    );
 
-    ntStatus = LsaAllocatePolicyInformation(
-                   &pOutInfo,
-                   pInfo,
-                   Level);
-    BAIL_ON_NT_STATUS(ntStatus);
+NTSTATUS
+LsaAllocateTranslatedSids(
+    OUT TranslatedSid **ppOut,
+    IN  TranslatedSidArray *pIn
+    );
 
-    *ppInfo = pOutInfo;
+NTSTATUS
+LsaAllocateTranslatedSids2(
+    TranslatedSid2 **out,
+    TranslatedSidArray2 *in
+    );
 
-cleanup:
-    /* Free pointers allocated by dcerpc stub */
-    if (pInfo) {
-        LsaFreeStubPolicyInformation(pInfo, Level);
-    }
+NTSTATUS
+LsaAllocateTranslatedSids2(
+    OUT TranslatedSid2 **ppOut,
+    IN  TranslatedSidArray2 *pIn
+    );
 
-    return ntStatus;
+NTSTATUS
+LsaAllocateTranslatedSids3(
+    OUT TranslatedSid3 **ppOut,
+    IN  TranslatedSidArray3 *pIn
+    );
 
-error:
-    LsaRpcFreeMemory((PVOID)pOutInfo);
+NTSTATUS
+LsaAllocateRefDomainList(
+    OUT RefDomainList **ppOut,
+    IN  RefDomainList *pIn
+    );
 
-    *ppInfo = NULL;
-    goto cleanup;
-}
+NTSTATUS
+LsaAllocateTranslatedNames(
+    OUT TranslatedName **ppOut,
+    IN  TranslatedNameArray *pIn
+    );
 
+NTSTATUS
+LsaAllocatePolicyInformation(
+    OUT LsaPolicyInformation **pOut,
+    IN  LsaPolicyInformation *pIn,
+    IN  UINT32 Level
+    );
+
+
+#endif /* _LSA_MEMORY_H_ */
 
 /*
 local variables:

@@ -28,12 +28,6 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Lsa interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
@@ -59,8 +53,8 @@
 
 #include "macros.h"
 
-#include "LsaMemory.h"
-#include "LsaStubMemory.h"
+#include "lsa_memory.h"
+#include "lsa_stubmemory.h"
 #include "lsa_h.h"
 
 

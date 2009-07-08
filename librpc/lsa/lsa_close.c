@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,54 +28,44 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_close.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        LsaClose function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NTSTATUS
-LsaQueryInfoPolicy2(
+LsaClose(
     handle_t hBinding,
-    PolicyHandle *phPolicy,
-    UINT16 Level,
-    LsaPolicyInformation **ppInfo
+    PolicyHandle *phPolicy
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LsaPolicyInformation *pInfo = NULL;
-    LsaPolicyInformation *pOutInfo = NULL;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(phPolicy, ntStatus);
-    BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    *ppInfo = NULL;
-
-    DCERPC_CALL(ntStatus, _LsaQueryInfoPolicy2(
+    DCERPC_CALL(ntStatus, _LsaClose(
                               hBinding,
-                              phPolicy,
-                              Level,
-                              &pInfo));
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LsaAllocatePolicyInformation(
-                   &pOutInfo,
-                   pInfo,
-                   Level);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppInfo = pOutInfo;
+                              phPolicy));
 
 cleanup:
-    /* Free pointers allocated by dcerpc stub */
-    if (pInfo) {
-        LsaFreeStubPolicyInformation(pInfo, Level);
-    }
-
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutInfo);
-
-    *ppInfo = NULL;
     goto cleanup;
 }
 

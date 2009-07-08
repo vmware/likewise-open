@@ -29,78 +29,69 @@
  */
 
 /*
- * Abstract: Lsa memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_stubmemory.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Lsa rpc DCE/RPC stub memory cleanup functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _LSA_MEMORY_H_
-#define _LSA_MEMORY_H_
+#ifndef _LSA_STUB_MEMORY_H_
+#define _LSA_STUB_MEMORY_H_
 
 
-NTSTATUS
-LsaRpcAllocateMemory(
-    OUT PVOID *ppOut,
-    IN  size_t Size,
-    IN  PVOID  pDependent
+VOID
+LsaCleanStubTranslatedSidArray(
+    TranslatedSidArray *pArray
     );
 
-NTSTATUS
-LsaRpcFreeMemory(
-    IN PVOID pBuffer
+VOID
+LsaCleanStubTranslatedSidArray2(
+    TranslatedSidArray2 *pArray
     );
 
-NTSTATUS
-LsaRpcAddDepMemory(
-    IN PVOID pBuffer,
-    IN PVOID pDependent
+VOID
+LsaCleanStubTranslatedSidArray3(
+    TranslatedSidArray3 *pArray
     );
 
-NTSTATUS
-LsaAllocateTranslatedSids(
-    OUT TranslatedSid **ppOut,
-    IN  TranslatedSidArray *pIn
+VOID
+LsaCleanStubTranslatedNameArray(
+    TranslatedNameArray *pArray
     );
 
-NTSTATUS
-LsaAllocateTranslatedSids2(
-    TranslatedSid2 **out,
-    TranslatedSidArray2 *in
+VOID
+LsaCleanStubRefDomainList(
+    RefDomainList *pRefDomList
     );
 
-NTSTATUS
-LsaAllocateTranslatedSids2(
-    OUT TranslatedSid2 **ppOut,
-    IN  TranslatedSidArray2 *pIn
+VOID
+LsaFreeStubRefDomainList(
+    RefDomainList *pRefDomList
     );
 
-NTSTATUS
-LsaAllocateTranslatedSids3(
-    OUT TranslatedSid3 **ppOut,
-    IN  TranslatedSidArray3 *pIn
+VOID
+LsaCleanStubPolicyInformation(
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
     );
 
-NTSTATUS
-LsaAllocateRefDomainList(
-    OUT RefDomainList **ppOut,
-    IN  RefDomainList *pIn
+VOID
+LsaFreeStubPolicyInformation(
+    LsaPolicyInformation *pPolicyInfo,
+    UINT32 Level
     );
 
-NTSTATUS
-LsaAllocateTranslatedNames(
-    OUT TranslatedName **ppOut,
-    IN  TranslatedNameArray *pIn
-    );
+#endif /* _LSA_STUB_MEMORY_H_ */
 
-NTSTATUS
-LsaAllocatePolicyInformation(
-    OUT LsaPolicyInformation **pOut,
-    IN  LsaPolicyInformation *pIn,
-    IN  UINT32 Level
-    );
-
-
-#endif /* _LSA_MEMORY_H_ */
 
 /*
 local variables:
