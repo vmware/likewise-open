@@ -1147,6 +1147,9 @@ DJOpenEventLog(
     PHANDLE phEventLog
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     return LWIOpenEventLogEx(
                   NULL,             // Server name (defaults to local computer eventlogd)
                   pszCategoryType,  // Table Category ID (Security, System, ...)
@@ -1155,6 +1158,7 @@ DJOpenEventLog(
                   "SYSTEM",         // User
                   NULL,             // Computer (defaults to assigning local hostname)
                   phEventLog);
+#endif
 }
 
 DWORD
@@ -1162,7 +1166,11 @@ DJCloseEventLog(
     HANDLE hEventLog
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     return LWICloseEventLog(hEventLog);
+#endif
 }
 
 DWORD
@@ -1175,6 +1183,9 @@ DJLogInformationEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1192,6 +1203,7 @@ DJLogInformationEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -1204,6 +1216,9 @@ DJLogWarningEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1221,6 +1236,7 @@ DJLogWarningEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -1233,6 +1249,9 @@ DJLogErrorEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1250,6 +1269,7 @@ DJLogErrorEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 VOID
