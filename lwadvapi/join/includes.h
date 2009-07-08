@@ -69,4 +69,12 @@
 #include "lwtime.h"
 #include "lwsecurityidentifier.h"
 
+#if !defined(HAVE_STRTOLL) && defined(HAVE___STRTOLL)
+#define strtoll __strtoll
+#endif
+
+#if !defined(HAVE_STRTOULL) && defined(HAVE___STRTOULL)
+#define strtoull __strtoull
+#endif
+
 #endif /* __INCLUDES_H__ */

@@ -3,11 +3,13 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
 
-AM_CFLAGS="$AM_CFLAGS -Wall -Werror -fno-strict-aliasing"
+AM_CFLAGS="$AM_CFLAGS -Wall -Werror"
 
 AC_SUBST(AM_CFLAGS)
 
 AC_USE_SYSTEM_EXTENSIONS
+
+AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 
 # Checks for programs.
 AC_PROG_CC
@@ -179,6 +181,7 @@ AC_SUBST(LIBUUID_LIBS)
 AC_SUBST(RT_LIBS)
 
 AC_CHECK_FUNCS([strndup strncasecmp])
+AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
 
 old_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS $RT_LIBS"
