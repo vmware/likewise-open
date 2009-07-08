@@ -80,7 +80,7 @@ LwCLdapOpenDirectory(
     dwError = ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_OFF);
     BAIL_ON_LDAP_ERROR(dwError);
 
-    dwError = LwAllocateMemory(sizeof(*pDirectory), (PVOID *)&pDirectory);
+    dwError = LwAllocateMemory(sizeof(*pDirectory), OUT_PPVOID(&pDirectory));
     BAIL_ON_LW_ERROR(dwError);
 
     pDirectory->ld = ld;
@@ -312,7 +312,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         BAIL_ON_LDAP_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(sizeof(*pDirectory), (PVOID *)&pDirectory);
+    dwError = LwAllocateMemory(sizeof(*pDirectory), OUT_PPVOID(&pDirectory));
     BAIL_ON_LW_ERROR(dwError);
 
     pDirectory->ld = ld;
@@ -906,7 +906,7 @@ LwLdapEnablePageControlOption(
 
     dwError = ldap_set_option(pDirectory->ld,
                               LDAP_OPT_SERVER_CONTROLS,
-                              (PVOID *)&ppServerPageCtrls);
+                              OUT_PPVOID(&ppServerPageCtrls));
     BAIL_ON_LDAP_ERROR(dwError);
 
 cleanup:
@@ -929,7 +929,7 @@ LwLdapDisablePageControlOption(
 
     dwError = ldap_set_option(pDirectory->ld,
                               LDAP_OPT_SERVER_CONTROLS,
-                              (PVOID *)&ppServerPageCtrls);
+                              OUT_PPVOID(&ppServerPageCtrls));
     BAIL_ON_LDAP_ERROR(dwError);
 
 cleanup:
@@ -1124,7 +1124,7 @@ LwLdapGetBytes(
         if (ppszValues[0]->bv_len != 0){
             dwError = LwAllocateMemory(
                         sizeof(BYTE) * ppszValues[0]->bv_len,
-                        (PVOID *)&pszByteValue);
+                        OUT_PPVOID(&pszByteValue));
             BAIL_ON_LW_ERROR(dwError);
             memcpy (pszByteValue, ppszValues[0]->bv_val, ppszValues[0]->bv_len * sizeof (BYTE));
             szByteLen = ppszValues[0]->bv_len;
@@ -1553,7 +1553,7 @@ LwLdapGetStringsWithExtDnResult(
         }
         else if (iNum > 0)
         {
-            dwError = LwAllocateMemory((iNum+1)*sizeof(PSTR), (PVOID*)&ppszValues);
+            dwError = LwAllocateMemory((iNum+1)*sizeof(PSTR), OUT_PPVOID(&ppszValues));
             BAIL_ON_LW_ERROR(dwError);
 
             dwNumValues = 0;
@@ -1627,7 +1627,7 @@ LwLdapEscapeString(
         }
     }
 
-    dwError = LwAllocateMemory(iOutputPos + 1, (PVOID*)&pszResult);
+    dwError = LwAllocateMemory(iOutputPos + 1, OUT_PPVOID(&pszResult));
     iOutputPos = 0;
     for(iInputPos = 0; pszInput[iInputPos]; iInputPos++)
     {
@@ -1698,7 +1698,7 @@ LwLdapConvertDomainToDN(
     dwError = LwAllocateMemory(
                     sizeof(CHAR) * (dwRequiredDomainDNLen +
                                     nDomainParts),
-                    (PVOID*)&pszDomainDN);
+                    OUT_PPVOID(&pszDomainDN));
     BAIL_ON_LW_ERROR(dwError);
 
     // Write out the Domain DN
@@ -1766,7 +1766,7 @@ LwLdapConvertDNToDomain(
     }
 
     dwError = LwAllocateMemory(strlen(pszDcLocation)*sizeof(CHAR),
-                                (PVOID*)&pszDomainName);
+                                OUT_PPVOID(&pszDomainName));
     BAIL_ON_LW_ERROR(dwError);
 
     pszCurrent = pszDomainName;

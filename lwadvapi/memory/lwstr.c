@@ -72,7 +72,7 @@ LwAllocateString(
 
     dwLen = strlen(pszInputString);
 
-    dwError = LwAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
+    dwError = LwAllocateMemory(dwLen+1, OUT_PPVOID(&pszOutputString));
     BAIL_ON_LW_ERROR(dwError);
 
     if (dwLen) {
@@ -147,7 +147,7 @@ LwAllocateStringPrintfV(
     {
         dwError = LwAllocateMemory(
                         dwBufsize, 
-                        (PVOID*) &pszSmallBuffer);
+                        OUT_PPVOID(&pszSmallBuffer));
         BAIL_ON_LW_ERROR(dwError);
         
         requiredLength = vsnprintf(
@@ -172,7 +172,7 @@ LwAllocateStringPrintfV(
 
     dwError = LwAllocateMemory(
                     requiredLength + 2,
-                    (PVOID*)&pszOutputString);
+                    OUT_PPVOID(&pszOutputString));
     BAIL_ON_LW_ERROR(dwError);
 
     dwNewRequiredLength = vsnprintf(
@@ -406,7 +406,7 @@ LwEscapeString(
          * We are going to escape each single quote and enclose it in two other
          * single-quotes
          */
-        dwError = LwAllocateMemory( strlen(pszOrig)+3*nQuotes+1, (PVOID*)&pszNew );
+        dwError = LwAllocateMemory( strlen(pszOrig)+3*nQuotes+1, OUT_PPVOID(&pszNew));
         BAIL_ON_LW_ERROR(dwError);
 
         pszTmp = pszOrig;
@@ -463,7 +463,7 @@ LwStrndup(
     if (copylen > size)
         copylen = size;
 
-    dwError = LwAllocateMemory(copylen+1, (PVOID *)&pszOutputString);
+    dwError = LwAllocateMemory(copylen+1, OUT_PPVOID(&pszOutputString));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pszOutputString, pszInputString, copylen);
@@ -627,7 +627,7 @@ LwHexStrToByteArray(
 
     dwError = LwAllocateMemory(
                   sizeof(UCHAR)*(dwByteArrayLength),
-                  (PVOID*)&pucByteArray
+                  OUT_PPVOID(&pucByteArray)
                   );
     BAIL_ON_LW_ERROR(dwError);
 
