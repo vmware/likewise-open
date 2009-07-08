@@ -71,7 +71,7 @@ libpvfs_sys_la_CPPFLAGS = \
     -D_FILE_OFFSET_BITS=64 \
     -DLW_ENABLE_THREADS=1
 
-libpvfs_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+libpvfs_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libpvfs_sys_la_LIBADD = \
     @top_builddir@/server/iomgr2/libiomgr2.la \

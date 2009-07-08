@@ -37,7 +37,7 @@ libnpfs_sys_la_CPPFLAGS = \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include
 
-libnpfs_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+libnpfs_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libnpfs_sys_la_LIBADD = \
     @top_builddir@/utils/liblwioutils.la \
