@@ -93,7 +93,7 @@ void __RPC_USER midl_user_free(void __RPC_FAR * p);
 #endif
 
 #define RPC_STRING_BINDING_COMPOSE(protocol, hostname, endpoint, pBindingString, pStatus) \
-    *pStatus = RpcStringBindingCompose(NULL, (RPC_CSTR)(protocol), (RPC_CSTR)(hostname), endpoint, NULL, (RPC_CSTR*)(pBindingString))
+    *pStatus = RpcStringBindingCompose(NULL, (RPC_CSTR)(protocol), (RPC_CSTR)(hostname), (RPC_CSTR)endpoint, NULL, (RPC_CSTR*)(pBindingString))
 
 #define RPC_BINDING_FROM_STRING_BINDING(bindingString, pBindingHandle, pStatus) \
     *pStatus = RpcBindingFromStringBinding((RPC_CSTR)(bindingString), (pBindingHandle))
