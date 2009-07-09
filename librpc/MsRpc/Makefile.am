@@ -1,6 +1,6 @@
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/Idl
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 
 noinst_LTLIBRARIES = libmsrpc.la
 

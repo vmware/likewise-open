@@ -19,7 +19,7 @@ liblsa_la_SOURCES =         \
 
 liblsa_cs_la_SOURCES = lsa_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 

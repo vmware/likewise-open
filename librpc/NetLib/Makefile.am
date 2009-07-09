@@ -1,5 +1,4 @@
 librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/Idl
 error_srcdir=$(top_srcdir)/Error
 
 lib_LTLIBRARIES = libnetapi.la
@@ -57,7 +56,7 @@ libnetapi_la_LIBADD += -ltdb
 endif
 
 DCERPC_INCLUDES = $(dcerpc_srcdir)/include
-LIBRPC_INCLUDES = $(librpc_srcdir)/Include
+LIBRPC_INCLUDES = $(librpc_srcdir)/include
 UNISTR_INCDIR = $(libunistr_srcdir)/include
 LIBTDB_INCDIR = $(libtdb_srcdir)/include
 INCLUDES = -I$(DCERPC_INCLUDES) -I$(LIBRPC_INCLUDES) -I$(UNISTR_INCDIR) \

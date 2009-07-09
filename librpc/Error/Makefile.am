@@ -5,4 +5,4 @@ noinst_LTLIBRARIES = liberror.la
 liberror_la_SOURCES = Status.c
 liberror_la_CFLAGS = $(AM_CFLAGS)
 
-INCLUDES=-I$(librpc_srcdir)/Include
+INCLUDES=-I$(librpc_srcdir)/include

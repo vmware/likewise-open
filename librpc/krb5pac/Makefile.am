@@ -5,9 +5,9 @@ noinst_LTLIBRARIES = libkrb5pac.la
 
 libkrb5pac_la_SOURCES = \
 	krb5pac_cstub.c \
-	Krb5Pac.c
+	krb5pac.c
 
-LIBRPC_INCDIR=$(librpc_srcdir)/Include
+LIBRPC_INCDIR=$(librpc_srcdir)/include
 LIBRPC_INCLUDES=-I$(LIBRPC_INCDIR)
 INCLUDES=$(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 

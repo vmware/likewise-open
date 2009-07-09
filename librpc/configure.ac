@@ -241,7 +241,7 @@ AC_SUBST(LIB_moonunit)
 AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 AC_OUTPUT(Makefile
-          Include/Makefile
+          include/Makefile
           Error/Makefile
           alloc/Makefile
           MsRpc/Makefile
