@@ -55,7 +55,7 @@ NtlmClientImportSecurityContext(
     OUT PCtxtHandle phContext
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     memset(phContext, 0, sizeof(CtxtHandle));

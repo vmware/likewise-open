@@ -51,22 +51,37 @@ NtlmOpenServer(
     PHANDLE phConnection
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext = NULL;
     static LWMsgTime connectTimeout = {2, 0};
 
     BAIL_ON_NTLM_INVALID_POINTER(phConnection);
 
-    dwError = LsaAllocateMemory(sizeof(NTLM_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
+    dwError = LwAllocateMemory(
+        sizeof(NTLM_CLIENT_CONNECTION_CONTEXT),
+        (PVOID*)(PVOID)&pContext
+        );
+
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
+    dwError = NTLM_MAP_LWMSG_ERROR(
+        lwmsg_protocol_new(NULL, &pContext->pProtocol)
+        );
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, NtlmIpcGetProtocolSpec()));
+    dwError = NTLM_MAP_LWMSG_ERROR(
+        lwmsg_protocol_add_protocol_spec(
+            pContext->pProtocol,
+            NtlmIpcGetProtocolSpec()
+            )
+        );
+
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
+    dwError = NTLM_MAP_LWMSG_ERROR(
+        lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc)
+        );
+
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
@@ -97,7 +112,7 @@ NtlmOpenServer(
                                   LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
+    if(getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
            is unresponsive (e.g. it's being traced in a debugger) */
@@ -115,28 +130,23 @@ NtlmOpenServer(
 
 cleanup:
     return dwError;
-
 error:
-    if (pContext)
+    if(pContext)
     {
-        if (pContext->pAssoc)
+        if(pContext->pAssoc)
         {
             lwmsg_assoc_delete(pContext->pAssoc);
         }
-
-        if (pContext->pProtocol)
+        if(pContext->pProtocol)
         {
             lwmsg_protocol_delete(pContext->pProtocol);
         }
-
-        LsaFreeMemory(pContext);
+        LwFreeMemory(pContext);
     }
-
-    if (phConnection)
+    if(phConnection)
     {
-        *phConnection = (HANDLE)NULL;
+        *phConnection = (HANDLE)INVALID_HANDLE;
     }
-
     goto cleanup;
 }
 
@@ -145,22 +155,22 @@ NtlmCloseServer(
     HANDLE hConnection
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PNTLM_CLIENT_CONNECTION_CONTEXT)hConnection;
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hConnection;
 
-    if (pContext->pAssoc)
+    if(pContext->pAssoc)
     {
         lwmsg_assoc_close(pContext->pAssoc);
         lwmsg_assoc_delete(pContext->pAssoc);
     }
 
-    if (pContext->pProtocol)
+    if(pContext->pProtocol)
     {
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LsaFreeMemory(pContext);
+    LwFreeMemory(pContext);
 
     return dwError;
 }
@@ -179,10 +189,14 @@ NtlmTransactAcceptSecurityContext(
     OUT PTimeStamp ptsTimeStamp
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
     NTLM_IPC_ACCEPT_SEC_CTXT_REQ AcceptSecCtxtReq;
+
+    memset(&AcceptSecCtxtReq, 0, sizeof(NTLM_IPC_ACCEPT_SEC_CTXT_REQ));
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
@@ -209,7 +223,7 @@ NtlmTransactAcceptSecurityContext(
                               &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    switch (response.tag)
+    switch(response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ERROR)response.object;
@@ -225,15 +239,12 @@ NtlmTransactAcceptSecurityContext(
     }
 
 cleanup:
-    if (response.object)
+    if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-
     return dwError;
-
 error:
-
     goto cleanup;
 }
 
@@ -251,11 +262,58 @@ NtlmTransactAcquireCredentialsHandle(
     OUT PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_ACQUIRE_CREDS_REQ AcquireCredsReq;
+
+    memset(&AcquireCredsReq, 0, sizeof(NTLM_IPC_ACQUIRE_CREDS_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    AcquireCredsReq.pszPrincipal = pszPrincipal;
+    AcquireCredsReq.pszPackage = pszPackage;
+    AcquireCredsReq.fCredentialUse = fCredentialUse;
+    AcquireCredsReq.pvLogonID = pvLogonID;
+    AcquireCredsReq.pAuthData = pAuthData;
+
+    request.tag = NTLM_Q_ACQUIRE_CREDS;
+    request.object = &AcquireCredsReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_ACQUIRE_CREDS_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_ACQUIRE_CREDS_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -270,11 +328,56 @@ NtlmTransactDecryptMessage(
     OUT PBOOL pbEncrypted
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_DECRYPT_MSG_REQ DecryptMsgReq;
+
+    memset(&DecryptMsgReq, 0, sizeof(NTLM_IPC_DECRYPT_MSG_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    DecryptMsgReq.phContext = phContext;
+    DecryptMsgReq.pMessage = pMessage;
+    DecryptMsgReq.MessageSeqNo = MessageSeqNo;
+
+    request.tag = NTLM_Q_DECRYPT_MSG;
+    request.object = &DecryptMsgReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_DECRYPT_MSG_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_DECRYPT_MSG_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -286,10 +389,14 @@ NtlmTransactDeleteSecurityContext(
     IN PCtxtHandle phContext
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
-    NTLM_IPC_DELETE_SEC_CTXT_REQ AcceptSecCtxtReq;
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_DELETE_SEC_CTXT_REQ DeleteSecCtxtReq;
+
+    memset(&DeleteSecCtxtReq, 0, sizeof(NTLM_IPC_DELETE_SEC_CTXT_REQ));
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
@@ -299,10 +406,10 @@ NtlmTransactDeleteSecurityContext(
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
-    AcceptSecCtxtReq.phContext = phContext;
+    DeleteSecCtxtReq.phContext = phContext;
 
     request.tag = NTLM_Q_DELETE_SEC_CTXT;
-    request.object = &AcceptSecCtxtReq;
+    request.object = &DeleteSecCtxtReq;
 
     dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
@@ -310,7 +417,7 @@ NtlmTransactDeleteSecurityContext(
                               &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    switch (response.tag)
+    switch(response.tag)
     {
         case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ERROR)response.object;
@@ -326,15 +433,12 @@ NtlmTransactDeleteSecurityContext(
     }
 
 cleanup:
-    if (response.object)
+    if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
-
     return dwError;
-
 error:
-
     goto cleanup;
 }
 
@@ -347,11 +451,57 @@ NtlmTransactEncryptMessage(
     IN DWORD MessageSeqNo
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_ENCRYPT_MSG_REQ EncryptMsgReq;
+
+    memset(&EncryptMsgReq, 0, sizeof(NTLM_IPC_ENCRYPT_MSG_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    EncryptMsgReq.phContext = phContext;
+    EncryptMsgReq.bEncrypt = bEncrypt;
+    EncryptMsgReq.pMessage = pMessage;
+    EncryptMsgReq.MessageSeqNo = MessageSeqNo;
+
+    request.tag = NTLM_Q_ENCRYPT_MSG;
+    request.object = &EncryptMsgReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_ENCRYPT_MSG_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_ENCRYPT_MSG_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -366,11 +516,55 @@ NtlmTransactExportSecurityContext(
     OUT OPTIONAL HANDLE *pToken
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_EXPORT_SEC_CTXT_REQ ExportSecCtxtReq;
+
+    memset(&ExportSecCtxtReq, 0, sizeof(NTLM_IPC_EXPORT_SEC_CTXT_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    ExportSecCtxtReq.phContext = phContext;
+    ExportSecCtxtReq.fFlags = fFlags;
+
+    request.tag = NTLM_Q_EXPORT_SEC_CTXT;
+    request.object = &ExportSecCtxtReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_EXPORT_SEC_CTXT_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_EXPORT_SEC_CTXT_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -382,11 +576,54 @@ NtlmTransactFreeCredentialsHandle(
     IN PCredHandle phCredential
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_FREE_CREDS_REQ FreeCredsReq;
+
+    memset(&FreeCredsReq, 0, sizeof(NTLM_IPC_FREE_CREDS_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    FreeCredsReq.phCredential = phCredential;
+
+    request.tag = NTLM_Q_FREE_CREDS;
+    request.object = &FreeCredsReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_FREE_CREDS_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_FREE_CREDS_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -401,11 +638,56 @@ NtlmTransactImportSecurityContext(
     OUT PCtxtHandle phContext
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_IMPORT_SEC_CTXT_REQ ImportSecCtxtReq;
+
+    memset(&ImportSecCtxtReq, 0, sizeof(NTLM_IPC_IMPORT_SEC_CTXT_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    ImportSecCtxtReq.pszPackage = pszPackage;
+    ImportSecCtxtReq.pPackedContext = pPackedContext;
+    ImportSecCtxtReq.pToken = pToken;
+
+    request.tag = NTLM_Q_IMPORT_SEC_CTXT;
+    request.object = &ImportSecCtxtReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_IMPORT_SEC_CTXT_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -428,10 +710,14 @@ NtlmTransactInitializeSecurityContext(
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
+
     PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
                      (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
     NTLM_IPC_INIT_SEC_CTXT_REQ InitSecCtxtReq;
+
+    memset(&InitSecCtxtReq, 0, sizeof(NTLM_IPC_INIT_SEC_CTXT_REQ));
 
     // Do not free pResult and pError
     // change this one to the corret results list when ready
@@ -462,7 +748,7 @@ NtlmTransactInitializeSecurityContext(
                               &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
-    switch (response.tag)
+    switch(response.tag)
     {
         case NTLM_R_INIT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_ERROR)response.object;
@@ -478,7 +764,7 @@ NtlmTransactInitializeSecurityContext(
     }
 
 cleanup:
-    if (response.object)
+    if(response.object)
     {
         lwmsg_assoc_free_message(pContext->pAssoc, &response);
     }
@@ -502,11 +788,57 @@ NtlmTransactMakeSignature(
     IN DWORD MessageSeqNo
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_MAKE_SIGN_REQ MakeSignReq;
+
+    memset(&MakeSignReq, 0, sizeof(NTLM_IPC_MAKE_SIGN_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    MakeSignReq.phContext = phContext;
+    MakeSignReq.bEncrypt = bEncrypt;
+    MakeSignReq.pMessage = pMessage;
+    MakeSignReq.MessageSeqNo = MessageSeqNo;
+
+    request.tag = NTLM_Q_MAKE_SIGN;
+    request.object = &MakeSignReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_MAKE_SIGN_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_MAKE_SIGN_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -520,11 +852,55 @@ NtlmTransactQueryContextAttributes(
     OUT PVOID pBuffer
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_QUERY_CTXT_REQ QueryCtxtReq;
+
+    memset(&QueryCtxtReq, 0, sizeof(NTLM_IPC_QUERY_CTXT_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    QueryCtxtReq.phContext = phContext;
+    QueryCtxtReq.ulAttribute = ulAttribute;
+
+    request.tag = NTLM_Q_QUERY_CTXT;
+    request.object = &QueryCtxtReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_QUERY_CTXT_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_QUERY_CTXT_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -538,29 +914,55 @@ NtlmTransactQueryCredentialsAttributes(
     OUT PVOID pBuffer
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_QUERY_CREDS_REQ QueryCredsReq;
+
+    memset(&QueryCredsReq, 0, sizeof(NTLM_IPC_QUERY_CREDS_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    QueryCredsReq.phCredential = phCredential;
+    QueryCredsReq.ulAttribute = ulAttribute;
+
+    request.tag = NTLM_Q_QUERY_CREDS;
+    request.object = &QueryCredsReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
-}
-
-DWORD
-NtlmTransactQuerySecurityContextAttributes(
-    IN HANDLE hServer,
-    IN PCtxtHandle phContext,
-    IN DWORD ulAttribute,
-    OUT PVOID pBuffer
-    )
-{
-    DWORD dwError = 0;
-
-    BAIL_ON_NTLM_ERROR(dwError);
+    switch(response.tag)
+    {
+        case NTLM_R_QUERY_CREDS_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_QUERY_CREDS_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
 
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;
@@ -575,11 +977,56 @@ NtlmTransactVerifySignature(
     OUT PBOOL pbEncrypted
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
+    PNTLM_CLIENT_CONNECTION_CONTEXT pContext =
+        (PNTLM_CLIENT_CONNECTION_CONTEXT)hServer;
+
+    NTLM_IPC_VERIFY_SIGN_REQ VerifySignReq;
+
+    memset(&VerifySignReq, 0, sizeof(NTLM_IPC_VERIFY_SIGN_REQ));
+
+    // Do not free pResult and pError
+    // Change this to the correct result list when ready.
+    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    VerifySignReq.phContext = phContext;
+    VerifySignReq.pMessage = pMessage;
+    VerifySignReq.MessageSeqNo = MessageSeqNo;
+
+    request.tag = NTLM_Q_VERIFY_SIGN;
+    request.object = &VerifySignReq;
+
+    dwError = NTLM_MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
     BAIL_ON_NTLM_ERROR(dwError);
 
+    switch(response.tag)
+    {
+        case NTLM_R_VERIFY_SIGN_SUCCESS:
+            pResultList = (PNTLM_IPC_ERROR)response.object;
+            break;
+        case NTLM_R_VERIFY_SIGN_FAILURE:
+            pError = (PNTLM_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_NTLM_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_NTLM_ERROR(dwError);
+    }
+
 cleanup:
+    if(response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
     return dwError;
 error:
     goto cleanup;

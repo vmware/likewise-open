@@ -1,9 +1,10 @@
-lib_LTLIBRARIES = libntlmserver2.la
+lib_LTLIBRARIES = libntlmserver.la
 
-libntlmserver2_la_SOURCES = \
+libntlmserver_la_SOURCES =  \
     acceptsecctxt.c         \
     acquirecreds.c          \
     context.c               \
+    credentials.c           \
     decryptmsg.c            \
     delsecctxt.c            \
     encryptmsg.c            \
@@ -18,16 +19,20 @@ libntlmserver2_la_SOURCES = \
     ntlmsrvipc.c            \
     verifysign.c
 
-libntlmserver2_la_CPPFLAGS =    \
-    @LWMSG_INCLUDES@            \
+libntlmserver_la_CFLAGS =   \
+    $(AM_CFLAGS)            \
+    $(LWADVAPI_INCLUDES)    \
+    @LWMSG_INCLUDES@        \
     @CRYPTO_INCLUDES@
 
-libntlmserver2_la_LDFLAGS =  \
+libntlmserver_la_LDFLAGS =  \
+    $(AM_LDFLAGS)           \
+    $(LWADVAPI_LDFLAGS)     \
     @CRYPTO_LDFLAGS@
 
-libntlmserver2_la_LIBADD =                  \
+libntlmserver_la_LIBADD =                   \
     @top_builddir@/ntlmipc/libntlmipc.la    \
-    @top_builddir@/utils/liblsautils.la     \
+    $(LWADVAPI_LIBS)                        \
     @LWMSG_NOTHR_LIBS@                      \
     @CRYPTO_LIBS@                           \
     @SOCKET_LIBS@

@@ -69,7 +69,7 @@ pthread_t gRpcSrvWorker;
 PNTLM_CONTEXT gpNtlmContextList = NULL;
 pthread_rwlock_t gpNtlmContextList_rwlock;
 
-PNTLM_CONTEXT gpNtlmCredsList = NULL;
+PNTLM_CREDENTIALS gpNtlmCredsList = NULL;
 pthread_rwlock_t gpNtlmCredsList_rwlock;
 
 

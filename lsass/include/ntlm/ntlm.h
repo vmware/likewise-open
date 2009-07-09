@@ -54,10 +54,10 @@
 #include <lw/attrs.h>
 #include <lwmsg/lwmsg.h>
 #include <lsasystem.h>
-#include <lsa/lsa.h>
-#include <lsa/lwerror.h>
+#include <lwdef.h>
+#include <lwerror.h>
+#include <lwmem.h>
 #include <lwsecurityidentifier.h>
-#include <lsautils.h>
 
 //******************************************************************************
 //
@@ -178,7 +178,7 @@ typedef struct _WIN_VERSION_INFO
 #define BAIL_ON_NTLM_INVALID_POINTER(p) \
     if (NULL == p)                      \
     {                                   \
-       dwError = LSA_ERROR_INTERNAL;   \
+       dwError = LW_ERROR_INTERNAL;   \
        BAIL_ON_NTLM_ERROR(dwError);     \
     }
 

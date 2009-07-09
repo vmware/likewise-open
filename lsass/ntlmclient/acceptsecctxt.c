@@ -60,7 +60,7 @@ NtlmClientAcceptSecurityContext(
     OUT PTimeStamp ptsTimeStamp
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     memset(ptsTimeStamp, 0, sizeof(TimeStamp));

@@ -50,7 +50,7 @@ extern pthread_rwlock_t gpNtlmContextList_rwlock;
 extern PNTLM_CONTEXT gpNtlmContextList;
 
 extern pthread_rwlock_t gpNtlmCredsList_rwlock;
-extern PNTLM_CONTEXT gpNtlmCredsList;
+extern PNTLM_CREDENTIALS gpNtlmCredsList;
 
 extern WIN_VERSION_INFO gXpSpoof;
 

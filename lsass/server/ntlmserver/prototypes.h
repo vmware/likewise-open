@@ -215,7 +215,10 @@ NtlmCreateChallengeContext(
     );
 
 DWORD
-NtlmCreateResponseContext();
+NtlmCreateResponseContext(
+    IN PNTLM_CONTEXT pChlngCtxt,
+    OUT PNTLM_CONTEXT *ppNtlmContext
+    );
 
 DWORD
 NtlmValidateResponse();
