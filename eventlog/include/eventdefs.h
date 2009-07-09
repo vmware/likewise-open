@@ -80,8 +80,20 @@ void __RPC_USER midl_user_free(void __RPC_FAR * p);
 
 #define RPC_SS_FREE(node)       RpcSsFree(node)
 
-#define RPC_STRING_BINDING_COMPOSE(protocol, hostname, pBindingString, pStatus) \
-    *pStatus = RpcStringBindingCompose(NULL, (RPC_CSTR)(protocol), (RPC_CSTR)(hostname), NULL, NULL, (RPC_CSTR*)(pBindingString))
+#else
+
+#define RPC_SS_ALLOCATE(dwSize) rpc_ss_allocate(dwSize)
+
+#define RPC_SS_FREE(node)       rpc_ss_free(node)
+
+#endif
+
+#ifndef RPC_CSTR
+#define RPC_CSTR UCHAR*
+#endif
+
+#define RPC_STRING_BINDING_COMPOSE(protocol, hostname, endpoint, pBindingString, pStatus) \
+    *pStatus = RpcStringBindingCompose(NULL, (RPC_CSTR)(protocol), (RPC_CSTR)(hostname), endpoint, NULL, (RPC_CSTR*)(pBindingString))
 
 #define RPC_BINDING_FROM_STRING_BINDING(bindingString, pBindingHandle, pStatus) \
     *pStatus = RpcBindingFromStringBinding((RPC_CSTR)(bindingString), (pBindingHandle))
@@ -91,31 +103,6 @@ void __RPC_USER midl_user_free(void __RPC_FAR * p);
 
 #define RPC_BINDING_FREE(pBindingHandle, pStatus) \
     *pStatus = RpcBindingFree(pBindingHandle)
-
-#else
-
-#define RPC_SS_ALLOCATE(dwSzie) rpc_ss_allocate(dwSize)
-
-#define RPC_SS_FREE(node)       rpc_ss_free(node)
-
-#define RPC_STRING_BINDING_COMPOSE(protocol, hostname, endpoint, pBindingString, pStatus) \
-    rpc_string_binding_compose(NULL, (unsigned_char_p_t)(protocol), (unsigned_char_p_t)(hostname), (idl_char*)(endpoint), NULL, (unsigned_char_p_t*)(pBindingString), (unsigned32*)pStatus)
-
-#define RPC_BINDING_FROM_STRING_BINDING(bindingString, pBindingHandle, pStatus) \
-    rpc_binding_from_string_binding((unsigned_char_p_t)(bindingString), (pBindingHandle), (unsigned32*)pStatus)
-
-#define RPC_BINDING_SET_AUTH_INFO(BindingHandle, srv_principal, prot_level, \
-                  auth_mech, IdHandle, auth_svc, pStatus) \
-    rpc_binding_set_auth_info((BindingHandle), (srv_principal), (prot_level), \
-                  (auth_mech), (IdHandle), (auth_svc), ((unsigned32*)pStatus));
-
-#define RPC_STRING_FREE(pString, pStatus) \
-    rpc_string_free((unsigned_char_p_t*)(pString), ((unsigned32*)pStatus))
-
-#define RPC_BINDING_FREE(pBindingHandle, pStatus) \
-    rpc_binding_free((pBindingHandle), ((unsigned32*)pStatus))
-
-#endif
 
 #define EVT_SAFE_FREE_MEMORY(mem) \
         do {                      \

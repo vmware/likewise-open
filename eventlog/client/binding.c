@@ -119,7 +119,7 @@ LWICreateEventLogRpcBinding(
     handle_t *   event_binding
     )
 {
-    unsigned int rpcstatus = 0;
+    DWORD winerror = 0;
     DWORD dwError = 0;
     const char * protocol;
     const char * endpoint;
@@ -147,8 +147,8 @@ LWICreateEventLogRpcBinding(
     EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() hostname=%s, *event_binding=%.16X\n",
                     hostname, *event_binding);
 
-    RPC_STRING_BINDING_COMPOSE((char*) protocol, (char*) hostname, (char*) endpoint, &pszBindingString, &rpcstatus);
-    BAIL_ON_DCE_ERROR(dwError, rpcstatus);
+    RPC_STRING_BINDING_COMPOSE((char*) protocol, (char*) hostname, (char*) endpoint, &pszBindingString, &winerror);
+    BAIL_ON_DCE_ERROR(dwError, winerror);
 
     if (pszBindingString == NULL || *pszBindingString == '\0') {
         BAIL_ON_DCE_ERROR(dwError, RPC_S_INVALID_STRING_BINDING);
@@ -157,8 +157,8 @@ LWICreateEventLogRpcBinding(
     EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() pszBindingString=%s, running rbfsb\n",
                     pszBindingString);
 
-    RPC_BINDING_FROM_STRING_BINDING(pszBindingString, &eventBinding_local, &rpcstatus);
-    BAIL_ON_DCE_ERROR(dwError, rpcstatus);
+    RPC_BINDING_FROM_STRING_BINDING(pszBindingString, &eventBinding_local, &winerror);
+    BAIL_ON_DCE_ERROR(dwError, winerror);
 
     EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() eventBinding_local=%.16X, finished rbfsb\n",
                     eventBinding_local);
@@ -180,24 +180,22 @@ LWICreateEventLogRpcBinding(
         EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() using host principal [%s]\n",
                         hostPrincipal);
         
-        RPC_BINDING_SET_AUTH_INFO(eventBinding_local,
+        winerror = RpcBindingSetAuthInfo(eventBinding_local,
                                   (unsigned char*)hostPrincipal,
                                   rpc_c_protect_level_pkt_privacy,
                                   rpc_c_authn_gss_negotiate,
                                   NULL,
-                                  rpc_c_authz_name,
-                                  &rpcstatus);
-        BAIL_ON_DCE_ERROR(dwError, rpcstatus);
+                                  rpc_c_authz_name);
+        BAIL_ON_DCE_ERROR(dwError, winerror);
         
         EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() eventBinding_local=%.16X, auth info set"
-                        "rpcstatus=0x%08x\n", eventBinding_local, rpcstatus);
+                        "winerror=0x%08x\n", eventBinding_local, winerror);
         
     }
 
     *event_binding = eventBinding_local;
 
-    EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() finished successfully\n",
-                    rpcstatus);
+    EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() finished successfully\n");
 
 cleanup:
     if (hostPrincipal)
@@ -214,8 +212,8 @@ cleanup:
     return dwError;
 
 error:
-    EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() label error: rpcstatus=%d\n",
-                    rpcstatus);
+    EVT_LOG_VERBOSE("client::eventlogbinding.c: CreateEventLogRpcBinding() label error: winerror=%d\n",
+                    winerror);
 
     goto cleanup;
 }
