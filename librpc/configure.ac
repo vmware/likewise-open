@@ -1,6 +1,6 @@
 AC_INIT(idl/samr.idl)
 AM_INIT_AUTOMAKE(librpc,0.1)
-AC_CONFIG_HEADER([Include/config.h])
+AC_CONFIG_HEADER([include/config.h])
 
 # Checks for programs.
 AC_PROG_CC
