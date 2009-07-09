@@ -174,7 +174,7 @@ NetGetAccountName(
         }
         if (offset == 10)
         {
-            err = ERROR_DUPLICATE_NAME;
+            err = ERROR_DUP_NAME;
             goto error;
         }
     }
