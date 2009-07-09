@@ -1,6 +1,6 @@
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libdssetup_cs.la libdssetup.la
 

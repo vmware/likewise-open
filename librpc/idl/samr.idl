@@ -131,7 +131,7 @@ cpp_quote("#endif")
         [in] uint16 level,
         [out,switch_is(level)] DomainInfo **info
         );
-	
+
     NTSTATUS samr_Function09();
 
     /* function 0x0a */
@@ -144,7 +144,7 @@ cpp_quote("#endif")
         );
 
     NTSTATUS samr_Function0b();
-  
+
     /* function 0x0c */
     NTSTATUS _SamrCreateUser(
         [in,ref] PolicyHandle *domain_handle,
@@ -181,7 +181,7 @@ cpp_quote("#endif")
         [out] RidNameArray **names,
         [out] uint32 *num_entries
         );
-	
+
     /* function 0x10 */
     NTSTATUS _SamrGetAliasMembership(
         [in,ref] PolicyHandle *domain_handle,
@@ -227,7 +227,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function18();
     NTSTATUS samr_Function19();
     NTSTATUS samr_Function1a();
-	
+
     /* function 0x1b */
     NTSTATUS _SamrOpenAlias(
         [in,ref] PolicyHandle *domain_handle,

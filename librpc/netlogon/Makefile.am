@@ -1,5 +1,5 @@
 librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 

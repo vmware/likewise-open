@@ -181,7 +181,7 @@ cpp_quote("#endif")
         [in,out,ref] uint32 *flags
         );
 
-  
+
 	/* function 0x28 */
 	WINERR _DsrEnumerateDomainTrusts(
         [in,unique,string] wchar16_t *server_name,

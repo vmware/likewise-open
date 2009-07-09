@@ -1,5 +1,5 @@
 librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libkrb5pac.la
 
