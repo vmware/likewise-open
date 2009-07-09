@@ -36,7 +36,6 @@
 #include <lwio/lwio.h>
 
 #include <DceSupport.h>
-#include <compat/rpcstatus.h>
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <wc16str.h>

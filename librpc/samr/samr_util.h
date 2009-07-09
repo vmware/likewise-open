@@ -49,7 +49,6 @@
 
 #include <lw/ntstatus.h>
 #include <lwrpc/winerror.h>
-#include <compat/rpcstatus.h>
 
 
 #define BAIL_ON_NO_MEMORY_RPCSTATUS(p, status)   \
