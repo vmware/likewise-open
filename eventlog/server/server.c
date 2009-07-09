@@ -463,7 +463,7 @@ bind_server(
     {
         if (!pEndPoints[i].endpoint)
         {
-            rpc_server_use_protseq((unsigned char*) pEndPoints[i].protocol, 
+            rpc_server_use_protseq((char *)pEndPoints[i].protocol,
                                    rpc_c_protseq_max_calls_default,
                                    (unsigned32*)&dwRpcStatus);
             BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
@@ -477,9 +477,9 @@ bind_server(
                 BAIL_ON_EVT_ERROR(dwError);
             }
 
-            rpc_server_use_protseq_ep((unsigned char*) pEndPoints[i].protocol,
+            rpc_server_use_protseq_ep((char *)pEndPoints[i].protocol,
                                       rpc_c_protseq_max_calls_default,
-                                      (unsigned char*) pEndPoints[i].endpoint,
+                                      (char *)pEndPoints[i].endpoint,
                                       (unsigned32*)&dwRpcStatus);
             BAIL_ON_DCE_ERROR(dwError, dwRpcStatus);
         }
