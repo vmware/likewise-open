@@ -1,4 +1,4 @@
-AC_INIT(Idl/samr.idl)
+AC_INIT(idl/samr.idl)
 AM_INIT_AUTOMAKE(librpc,0.1)
 AC_CONFIG_HEADER([Include/config.h])
 
