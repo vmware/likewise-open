@@ -8,7 +8,7 @@ SUBDIRS = \
     lsa \
     netlogon \
     Mpr \
-    Krb5Pac \
+    krb5pac \
     dssetup \
     NetLib \
     TestRpc
