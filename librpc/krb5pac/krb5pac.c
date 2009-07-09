@@ -28,6 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        krb5pac.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Kerberos 5 PAC decoding functions
+ *
+ * Authors: Kyle Stemen (kstemen@likewise.com)
+ */
+
 #include "includes.h"
 
 VOID
