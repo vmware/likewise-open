@@ -2,11 +2,6 @@
 #ifndef _MSWRAPPERS_H_
 #define _MSWRAPPERS_H_
 
-#if defined(IDLBASE_H) && !defined(IDL_CHAR_IS_CHAR)
-#error Include mswrappers.h before including dce/idlbase.h
-#endif
-#define IDL_CHAR_IS_CHAR
-
 #include <lw/base.h>
 #include <dce/idlbase.h>
 #include <dce/rpc.h>
