@@ -199,8 +199,8 @@ LWICheckSecurity(
 {
     DWORD dwError = EVT_ERROR_SUCCESS;
     volatile unsigned32 rpcError;
-    char* pszStringBinding = NULL;
-    char* pszProtocol = NULL;
+    unsigned char* pszStringBinding = NULL;
+    unsigned char* pszProtocol = NULL;
     DWORD dwAuthnProtocol = 0;
     PVOID pMechCtx = NULL;
 
