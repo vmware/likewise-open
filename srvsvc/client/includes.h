@@ -47,7 +47,7 @@
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <wc16str.h>
 #include <lwio/io-types.h>
 

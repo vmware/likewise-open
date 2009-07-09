@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
 #include <lwio/lwio.h>

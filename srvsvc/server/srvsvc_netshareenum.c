@@ -95,8 +95,12 @@ SrvSvcNetShareEnum(
     srvsvc_NetShareCtr2 *ctr2 = NULL;
     srvsvc_NetShareCtr501 *ctr501 = NULL;
     srvsvc_NetShareCtr502 *ctr502 = NULL;
+    static int nextStatus = 1;
 
     EnumParamsIn.dwInfoLevel = *level;
+    dwError = nextStatus++;
+    SRVSVC_LOG_ERROR("Returning code %d for sniffing", dwError);
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = LwShareInfoMarshalEnumParameters(
                         &EnumParamsIn,
