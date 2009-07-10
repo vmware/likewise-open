@@ -56,7 +56,7 @@ ADInitMachinePasswordSync(
     DWORD dwError = 0;
     
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &ghPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
     

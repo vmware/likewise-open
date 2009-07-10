@@ -591,7 +591,12 @@ AC_SUBST(lsassconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lsassconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-lsasscachedir="$localstatedir/lib/likewise"
+
+if test x"$localstatedir" = x"/var"; then
+    lsasscachedir="$localstatedir/lib/likewise"
+else
+    lsasscachedir="$localstatedir"
+fi
 AC_SUBST(lsasscachedir)
 AS_AC_EXPAND(CACHEDIR, $lsasscachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])

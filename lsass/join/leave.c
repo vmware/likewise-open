@@ -70,7 +70,7 @@ LsaNetLeaveDomain(
     dwError = LsaDnsGetHostInfo(&pszHostname);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB, &hStore);
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwpsGetPasswordByHostName(
