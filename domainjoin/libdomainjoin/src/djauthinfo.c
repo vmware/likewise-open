@@ -153,7 +153,8 @@ DJRemoveCacheFiles()
     PSTR pszSudoersPath = NULL;
     int i = 0;
     PSTR file = NULL;
-    PSTR pszCachePath = NULL;;
+    PSTR pszCachePath = NULL;
+    PSTR lsassFilePaths[3] = { NULL, NULL, NULL };
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -161,8 +162,6 @@ DJRemoveCacheFiles()
         "/var/lib/lwidentity/netsamlogon_cache.tdb",
         "/var/lib/lwidentity/winbindd_cache.tdb",
         /* Likewise 5.0 cache location files... */
-        LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
-        LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
 
@@ -174,6 +173,32 @@ DJRemoveCacheFiles()
 	BAIL_ON_CENTERIS_ERROR(ceError);
 	
 	if (bFileExists) 
+	{
+	    DJ_LOG_VERBOSE("Removing cache file %s", file);
+	    ceError = CTRemoveFile(file);
+	    BAIL_ON_CENTERIS_ERROR(ceError);
+	}
+    }
+
+    if (strcmp(LOCALSTATEDIR,"/var"))
+    {
+        lsassFilePaths[0] = LOCALSTATEDIR "/db/lsass-adcache.db";
+        lsassFilePaths[1] = LOCALSTATEDIR "/db/lsass-adstate.db";
+    }
+    else
+    {
+        lsassFilePaths[0] = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
+        lsassFilePaths[1] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db";
+    }
+
+    for (i = 0; lsassFilePaths[i] != NULL; i++)
+    {
+	file = lsassFilePaths[i];
+
+	ceError = CTCheckFileExists(file, &bFileExists);
+	BAIL_ON_CENTERIS_ERROR(ceError);
+
+	if (bFileExists)
 	{
 	    DJ_LOG_VERBOSE("Removing cache file %s", file);
 	    ceError = CTRemoveFile(file);
