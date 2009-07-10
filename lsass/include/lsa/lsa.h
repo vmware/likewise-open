@@ -195,6 +195,17 @@ typedef LW_DWORD LSA_FIND_FLAGS, *PLSA_FIND_FLAGS;
 
 #define LSA_FIND_FLAGS_NSS 0x00000001
 
+typedef struct __LW_LSA_DATA_BLOB
+{
+    LW_DWORD dwLen;
+    LW_PBYTE pData;
+} LW_LSA_DATA_BLOB, *PLW_LSA_DATA_BLOB;
+
+#ifndef LW_STRICT_NAMESPACE
+typedef LW_LSA_DATA_BLOB LSA_DATA_BLOB;
+typedef PLW_LSA_DATA_BLOB PLSA_DATA_BLOB;
+#endif
+
 /*
  * Tracing support
  */
@@ -407,11 +418,16 @@ typedef struct __LSA_USER_MOD_INFO
         LW_BOOLEAN bAddToGroups;
         LW_BOOLEAN bRemoveFromGroups;
         LW_BOOLEAN bSetAccountExpiryDate;
+        LW_BOOLEAN bSetNtPasswordHash;
+        LW_BOOLEAN bSetLmPasswordHash;
     } actions;
 
-    LW_PSTR pszAddToGroups;
-    LW_PSTR pszRemoveFromGroups;
-    LW_PSTR pszExpiryDate;
+    LW_PSTR           pszAddToGroups;
+    LW_PSTR           pszRemoveFromGroups;
+    LW_PSTR           pszExpiryDate;
+    PLW_LSA_DATA_BLOB pNtPasswordHash;
+    PLW_LSA_DATA_BLOB pLmPasswordHash;
+
 } LSA_USER_MOD_INFO, *PLSA_USER_MOD_INFO;
 
 typedef struct __LSA_GROUP_INFO_0
@@ -663,17 +679,6 @@ typedef struct __LSA_AUTH_CLEARTEXT_PARAM
 {
     LW_PSTR pszPassword;
 } LSA_AUTH_CLEARTEXT_PARAM, *PLSA_AUTH_CLEARTEXT_PARAM;
-
-typedef struct __LW_LSA_DATA_BLOB
-{
-    LW_DWORD dwLen;
-    LW_PBYTE pData;
-} LW_LSA_DATA_BLOB, *PLW_LSA_DATA_BLOB;
-
-#ifndef LW_STRICT_NAMESPACE
-typedef LW_LSA_DATA_BLOB LSA_DATA_BLOB;
-typedef PLW_LSA_DATA_BLOB PLSA_DATA_BLOB;
-#endif
 
 typedef struct __LSA_AUTH_CHAP_PARAM
 {
