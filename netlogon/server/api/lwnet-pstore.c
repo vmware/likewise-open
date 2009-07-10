@@ -63,7 +63,7 @@ LWNetSrvGetCurrentDomain(
     BAIL_ON_LWNET_ERROR(dwError);
     
     dwError = LwpsOpenPasswordStore(
-                LWPS_PASSWORD_STORE_SQLDB,
+                LWPS_PASSWORD_STORE_DEFAULT,
                 &hStore);
     BAIL_ON_LWNET_ERROR(dwError);
     

@@ -203,7 +203,11 @@ AC_DEFINE_UNQUOTED([PREFIXDIR], ["$prefix"], [Prefix directory])
 AS_AC_EXPAND(netlogonconfdir, ["$sysconfdir"])
 AC_DEFINE_UNQUOTED([LWNET_CONFIG_DIR], ["$netlogonconfdir"], [Location of netlogon configuration files])
 
-AS_AC_EXPAND(netlogoncachedir, ["$localstatedir/lib/likewise"])
+if test x"$localstatedir" = x"/var"; then
+    netlogoncachedir="$localstatedir/lib/likewise"
+else
+    netlogoncachedir="$localstatedir"
+fi
 AC_DEFINE_UNQUOTED([LWNET_CACHE_DIR], ["$netlogoncachedir"], [Location of netlogon cache files])
 
 # Checks for programs.
