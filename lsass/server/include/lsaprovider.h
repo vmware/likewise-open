@@ -335,6 +335,27 @@ typedef DWORD (*PFNSHUTDOWNPROVIDER)(
                     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
                     );
 
+typedef struct _LSA_STATIC_PROVIDER
+{
+    PCSTR pszId;
+    PFNINITIALIZEPROVIDER pInitialize;
+    PFNSHUTDOWNPROVIDER pShutdown;
+} LSA_STATIC_PROVIDER, *PLSA_STATIC_PROVIDER;
+
+#ifdef ENABLE_STATIC_PROVIDERS
+#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider_##name
+#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider_##name
+#else
+#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider
+#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider
+#endif
+
+#define LSA_STATIC_PROVIDER_ENTRY(name, id) \
+    { #id, LSA_INITIALIZE_PROVIDER(name), LSA_SHUTDOWN_PROVIDER(name) }
+
+#define LSA_STATIC_PROVIDER_END \
+    { NULL, NULL, NULL }
+
 #endif /* __LSAPROVIDER_H__ */
 
 

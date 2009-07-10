@@ -26,7 +26,7 @@ libsrv_sys_la_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/srv/include
 
-libsrv_sys_la_CFLAGS = $(DRIVER_CFLAGS)
+libsrv_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/protocols/api/libsrv.protocols.api.la \

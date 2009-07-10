@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = liblsalocalipc.la
+noinst_LTLIBRARIES = liblsalocalipc.la
 
 liblsalocalipc_la_SOURCES =    \
        ipc_protocol.c

@@ -1,25 +1,25 @@
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = liblsa_cs.la liblsa.la
 
-liblsa_la_SOURCES = \
-    LsaBinding.c \
-    LsaMemory.c \
-    LsaStubMemory.c \
-    LsaOpenPolicy2.c \
-    LsaClose.c \
-    LsaLookupNames.c \
-    LsaLookupNames2.c \
-    LsaLookupNames3.c \
-    LsaLookupSids.c \
-    LsaQueryInfoPolicy.c \
-    LsaQueryInfoPolicy2.c
+liblsa_la_SOURCES =         \
+    lsa_binding.c           \
+    lsa_memory.c            \
+    lsa_stubmemory.c        \
+    lsa_openpolicy2.c       \
+    lsa_close.c             \
+    lsa_lookupnames.c       \
+    lsa_lookupnames2.c      \
+    lsa_lookupnames3.c      \
+    lsa_lookupsids.c        \
+    lsa_queryinfopolicy.c   \
+    lsa_queryinfopolicy2.c
 
 liblsa_cs_la_SOURCES = lsa_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 

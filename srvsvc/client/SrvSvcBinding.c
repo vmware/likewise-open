@@ -39,8 +39,9 @@
 
 RPCSTATUS
 InitSrvSvcBindingDefault(
-    handle_t *binding,
-    const char *hostname
+    handle_t         *phSrvSvcBinding,
+    PCSTR             pszHostname,
+    PIO_ACCESS_TOKEN  pAccessToken
     )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
@@ -48,30 +49,35 @@ InitSrvSvcBindingDefault(
     char *endpoint = (char*)SRVSVC_DEFAULT_ENDPOINT;
     char *uuid = NULL;
     char *options = NULL;
-    handle_t b = NULL;
+    handle_t hSrvSvcBinding = NULL;
 
-    rpcstatus = InitSrvSvcBindingFull(&b, prot_seq, hostname, endpoint,
-                                      uuid, options);
+    rpcstatus = InitSrvSvcBindingFull(&hSrvSvcBinding,
+                                      prot_seq, pszHostname, endpoint,
+                                      uuid, options, pAccessToken);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
-    *binding = b;
+    *phSrvSvcBinding = hSrvSvcBinding;
+
 cleanup:
     return rpcstatus;
 
 error:
-    *binding = NULL;
+    *phSrvSvcBinding = NULL;
+
     goto cleanup;
 }
 
 
 RPCSTATUS
 InitSrvSvcBindingFull(
-    handle_t *binding,
+    handle_t *phSrvSvcBinding,
     const char *prot_seq,
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options)
+    const char *options,
+    PIO_ACCESS_TOKEN pAccessToken
+    )
 {
     RPCSTATUS rpcstatus = RPC_S_OK;
     RPCSTATUS st = RPC_S_OK;
@@ -81,9 +87,10 @@ InitSrvSvcBindingFull(
     unsigned char *u    = NULL;
     unsigned char *opts = NULL;
     unsigned char *addr = NULL;
-    handle_t b = NULL;
+    handle_t hSrvSvcBinding = NULL;
+    rpc_transport_info_handle_t info;
 
-    goto_if_invalid_param_rpcstatus(binding, cleanup);
+    goto_if_invalid_param_rpcstatus(phSrvSvcBinding, cleanup);
     goto_if_invalid_param_rpcstatus(hostname, cleanup);
     goto_if_invalid_param_rpcstatus(prot_seq, cleanup);
 
@@ -112,13 +119,27 @@ InitSrvSvcBindingFull(
                                &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
-    rpc_binding_from_string_binding(binding_string, &b, &rpcstatus);
-    goto_if_rpcstatus_not_success(rpcstatus, error);
-    
-    rpc_ep_resolve_binding(b, srvsvc_v3_0_c_ifspec, &rpcstatus);
+    rpc_binding_from_string_binding(binding_string, &hSrvSvcBinding,
+                                    &rpcstatus);
     goto_if_rpcstatus_not_success(rpcstatus, error);
 
-    *binding = b;
+    rpc_smb_transport_info_from_lwio_token(pAccessToken,
+                                           FALSE,
+                                           &info,
+                                           &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+    
+    rpc_binding_set_transport_info(hSrvSvcBinding,
+                                   info,
+                                   &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+	info = NULL;
+
+    rpc_ep_resolve_binding(hSrvSvcBinding, srvsvc_v3_0_c_ifspec, &rpcstatus);
+    goto_if_rpcstatus_not_success(rpcstatus, error);
+
+    *phSrvSvcBinding = hSrvSvcBinding;
 
 cleanup:
     SAFE_FREE(ps);
@@ -139,9 +160,11 @@ cleanup:
     return rpcstatus;
 
 error:
-    if (b) {
-        rpc_binding_free(&b, &st);
+    if (hSrvSvcBinding) {
+        rpc_binding_free(&hSrvSvcBinding, &st);
     }
+
+    *phSrvSvcBinding = NULL;
 
     goto cleanup;
 }

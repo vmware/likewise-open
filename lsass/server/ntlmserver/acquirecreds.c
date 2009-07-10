@@ -70,7 +70,7 @@ NtlmServerAcquireCredentialsHandle(
 
     if(strcmp("NTLM", pszPackage))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 

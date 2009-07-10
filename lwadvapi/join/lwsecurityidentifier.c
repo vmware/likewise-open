@@ -60,12 +60,12 @@ LwAllocSecurityIdentifierFromBinary(
 
     dwError = LwAllocateMemory(
                    sizeof(LW_SECURITY_IDENTIFIER),
-                  (PVOID*)&pSID);
+                  OUT_PPVOID(&pSID));
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = LwAllocateMemory(
                   dwSidBytesLength * sizeof(UCHAR),
-                  (PVOID*)&(pSID->pucSidBytes));
+                  OUT_PPVOID(&pSID->pucSidBytes));
     BAIL_ON_LW_ERROR(dwError);
 
     pSID->dwByteLength = dwSidBytesLength;
@@ -100,7 +100,7 @@ LwAllocSecurityIdentifierFromString(
 
     dwError = LwAllocateMemory(
                    sizeof(LW_SECURITY_IDENTIFIER),
-                   (PVOID*)&pSID);
+                   OUT_PPVOID(&pSID));
     BAIL_ON_LW_ERROR(dwError);
 
 
@@ -251,7 +251,7 @@ LwReplaceSidRid(
 
     dwError = LwAllocateMemory(
                     sizeof(*pSid),
-                    (PVOID*)&pSid);
+                    OUT_PPVOID(&pSid));
     BAIL_ON_LW_ERROR(dwError);
 
     dwError = LwSidStringToBytes(
@@ -339,7 +339,7 @@ LwHashSecurityIdentifierToId(
 
     dwError = LwAllocateMemory(
               dwAuthorityCount * sizeof(DWORD),
-              (PVOID*)&pdwAuthorities);
+              OUT_PPVOID(&pdwAuthorities));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy((PVOID)pdwAuthorities,
@@ -417,7 +417,7 @@ LwGetSecurityIdentifierBinary(
 
     dwError = LwAllocateMemory(
                     pSecurityIdentifier->dwByteLength * sizeof(UCHAR),
-                    (PVOID*)&pucSidBytes);
+                    OUT_PPVOID(&pucSidBytes));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pucSidBytes,
@@ -499,7 +499,7 @@ LwGetDomainSecurityIdentifier(
     dwDomainSIDByteLength = pSecurityIdentifier->dwByteLength - sizeof(DWORD);
     dwError = LwAllocateMemory(
                 dwDomainSIDByteLength,
-                (PVOID*)&pucDomainSID);
+                OUT_PPVOID(&pucDomainSID));
     BAIL_ON_LW_ERROR(dwError);
 
     memcpy(pucDomainSID,
@@ -547,7 +547,7 @@ LwByteArrayToHexStr(
 
     dwError = LwAllocateMemory(
                 (dwByteArrayLength*2 + 1) * sizeof(CHAR),
-                (PVOID*)&pszHexString);
+                OUT_PPVOID(&pszHexString));
     BAIL_ON_LW_ERROR(dwError);
 
     for (i = 0; i < dwByteArrayLength; i++)
@@ -581,7 +581,7 @@ LwByteArrayToLdapFormatHexStr(
 
     dwError = LwAllocateMemory(
                 (dwByteArrayLength*3 + 1) * sizeof(CHAR),
-                (PVOID*)&pszHexString);
+                OUT_PPVOID(&pszHexString));
     BAIL_ON_LW_ERROR(dwError);
 
     for (i = 0; i < dwByteArrayLength; i++)
@@ -729,7 +729,7 @@ LwSidStringToBytes(
 
     dwError = LwAllocateMemory(
                    iTailCount * sizeof(DWORD),
-                   (PVOID*)&pdwTail);
+                   OUT_PPVOID(&pdwTail));
     BAIL_ON_LW_ERROR(dwError);
 
     pszToken = strtok_r(pszSidCopy, pszDelim, &pszStrTokState);
@@ -803,7 +803,7 @@ LwSidStringToBytes(
 
     dwError = LwAllocateMemory(
                     dwSidBytesLength * sizeof(UCHAR),
-                    (PVOID*)&pucSidBytes);
+                    OUT_PPVOID(&pucSidBytes));
     BAIL_ON_LW_ERROR(dwError);
 
     pucSidBytes[0] = (UCHAR)dwRevision;
@@ -962,7 +962,7 @@ LwBuildSIDString(
 
     dwError = LwAllocateMemory(
                 dwSidStringMemory,
-                (PVOID*)&pszSidString);
+                OUT_PPVOID(&pszSidString));
     BAIL_ON_LW_ERROR(dwError);
 
 
@@ -1004,7 +1004,7 @@ LwBuildSIDString(
 
             dwError = LwReallocMemory(
                 (PVOID)pszSidString,
-                (PVOID*)&pszSidString,
+                OUT_PPVOID(&pszSidString),
                 dwSidStringMemory);
             BAIL_ON_LW_ERROR(dwError);
         }

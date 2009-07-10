@@ -50,8 +50,11 @@
 
 #include <lwmsg/lwmsg.h>
 
-#define NTLM_CLIENT_PATH_FORMAT "/var/tmp/.ntlmclient_%05ld"
-#define NTLM_SERVER_FILENAME    ".ntlmsd"
+#define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
+#define LSA_SERVER_FILENAME    ".lsasd"
+
+#define NTLM_CLIENT_PATH_FORMAT LSA_CLIENT_PATH_FORMAT //"/var/tmp/.ntlmclient_%05ld"
+#define NTLM_SERVER_FILENAME LSA_SERVER_FILENAME //".ntlmsd"
 
 typedef enum __NTLM_IPC_TAG
 {
@@ -306,6 +309,11 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 LWMsgProtocolSpec*
 NtlmIpcGetProtocolSpec(
     void
+    );
+
+LWMsgDispatchSpec*
+NtlmSrvGetDispatchSpec(
+    VOID
     );
 
 DWORD

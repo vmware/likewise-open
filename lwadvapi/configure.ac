@@ -153,6 +153,9 @@ AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 AC_CHECK_SIZEOF(unsigned long)
 AC_CHECK_SIZEOF(long)
 
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wall -Werror"
+
 AC_MSG_CHECKING([if getsockname takes socklen_t*])
 AC_TRY_COMPILE([
 #include <sys/types.h> 
@@ -168,6 +171,8 @@ AC_MSG_RESULT([yes])
 AC_DEFINE([GETSOCKNAME_TAKES_SOCKLEN_T], [], [Define if getsockname takes socklen_t as its third argument])],[
 AC_MSG_RESULT([no])
 ])
+
+CFLAGS="$saved_CFLAGS"
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])

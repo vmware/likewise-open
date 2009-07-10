@@ -49,15 +49,17 @@
 #define _SRVSVC_BINDING_H_
 
 #include <srvsvc/types.h>
+#include <lwio/lwio.h>
 
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
+#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_ip_tcp"
+#define SRVSVC_DEFAULT_ENDPOINT   ""
 
 
 RPCSTATUS
 InitSrvSvcBindingDefault(
-    handle_t *binding,
-    const char *hostname
+    handle_t         *phSrvSvcBinding,
+    PCSTR             pszHostname,
+    PIO_ACCESS_TOKEN  pAccessToken
     );
 
 
@@ -68,7 +70,8 @@ InitSrvSvcBindingFull(
     const char *hostname,
     const char *endpoint,
     const char *uuid,
-    const char *options
+    const char *options,
+    PIO_ACCESS_TOKEN pAccessToken
     );
 
 

@@ -20,7 +20,7 @@ testrpc_SOURCES = \
         dssetup.c \
 	Mpr.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 INCLUDES = -I$(LIBRPC_INCDIR) -I$(librpc_srcdir)
 
 testrpc_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@

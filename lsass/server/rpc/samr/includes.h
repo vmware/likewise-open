@@ -43,7 +43,7 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/base.h>

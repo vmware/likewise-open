@@ -13,4 +13,4 @@ libmpr_la_LDFLAGS = $(UNISTR_LDFLAGS)
 libmpr_la_CFLAGS = $(AM_CFLAGS)
 
 INCLUDES = $(UNISTR_INCLUDES) \
-	   -I$(librpc_srcdir)/Include -I$(liberror_srcdir)
+	   -I$(librpc_srcdir)/include -I$(liberror_srcdir)

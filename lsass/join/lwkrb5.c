@@ -144,7 +144,7 @@ LwKrb5GetSystemCachePath(
         case KRB5_File_Cache:
 
             dwError = LsaAllocateString(
-                        "FILE:/var/lib/likewise/krb5cc_lsass",
+                        "FILE:" CACHEDIR "/krb5cc_lsass",
                         &pszCachePath);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -1485,7 +1485,7 @@ LwKrb5GetMachineCreds(
     HANDLE hPasswordStore = (HANDLE)NULL;
 
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &hPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
 

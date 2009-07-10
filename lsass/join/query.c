@@ -197,7 +197,7 @@ LsaGetDnsDomainName(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwpsOpenPasswordStore(
-                LWPS_PASSWORD_STORE_SQLDB,
+                LWPS_PASSWORD_STORE_DEFAULT,
                 &hStore);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -293,7 +293,7 @@ LsaGetComputerDN(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &hStore);
     BAIL_ON_LSA_ERROR(dwError);
 

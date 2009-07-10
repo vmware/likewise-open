@@ -30,6 +30,6 @@
 
 #include "includes.h"
 
-LSA_NSS_STATE gNssState;
+LSA_NSS_STATE gNssState = {0};
 
 HANDLE hLsaConnection = (HANDLE)NULL;

@@ -54,7 +54,7 @@ NtlmClientQueryContextAttributes(
     OUT PVOID pBuffer
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     dwError = NtlmOpenServer(

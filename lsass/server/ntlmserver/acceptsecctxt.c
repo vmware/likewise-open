@@ -60,7 +60,7 @@ NtlmServerAcceptSecurityContext(
     PTimeStamp ptsTimeStamp
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pNtlmCtxtOut = NULL;
     PNTLM_CONTEXT pNtlmCtxtIn = NULL;
     PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
@@ -123,7 +123,7 @@ NtlmServerAcceptSecurityContext(
         }
         break;
     default:
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -143,7 +143,7 @@ NtlmServerAcceptSecurityContext(
 
         *phNewContext = pNtlmCtxtOut->ContextHandle;
 
-        dwError = LSA_WARNING_CONTINUE_NEEDED;
+        dwError = LW_WARNING_CONTINUE_NEEDED;
     }
 
 
@@ -172,12 +172,12 @@ NtlmCreateChallengeContext(
     OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CHALLENGE_MESSAGE pChlngMsg = NULL;
 
     if(!ppNtlmContext)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -212,5 +212,5 @@ NtlmValidateResponse(
     PNTLM_CONTEXT pChlngCtxt
     )
 {
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }

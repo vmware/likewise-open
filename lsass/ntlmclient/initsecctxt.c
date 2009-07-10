@@ -63,7 +63,7 @@ NtlmClientInitializeSecurityContext(
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     dwError = NtlmOpenServer(&hServer);

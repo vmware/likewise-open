@@ -43,7 +43,6 @@
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <DceSupport.h>
-#include <compat/rpcstatus.h>
 #include <wc16str.h>
 #include <secdesc/secapi.h>
 #include <lw/ntstatus.h>
@@ -60,9 +59,9 @@
 #include <lwrpc/rid.h>
 #include <lwrpc/samr.h>
 
-#include "SamrUtil.h"
-#include "SamrMemory.h"
-#include "SamrStubMemory.h"
+#include "samr_util.h"
+#include "samr_memory.h"
+#include "samr_stubmemory.h"
 #include "samr_h.h"
 
 #include "externs.h"

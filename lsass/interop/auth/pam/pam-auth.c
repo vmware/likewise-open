@@ -182,6 +182,21 @@ pam_sm_authenticate(
         }
 
 #if defined(__LWI_SOLARIS__)
+        /*
+         * DTLOGIN tests for home directory existence before
+         * pam_sm_open_session() is called, and puts up a failure dialog
+         * to create the home directory. Unfortunately, afterwards, the user is
+         * logged into a fail-safe session. These LsaOpenSession() /
+         * LsaCloseSession() calls force the creation of the home directory after
+         * successful authentication, making DTLOGIN happy.
+         */
+        dwError = LsaOpenSession(hLsaConnection,
+                                 pszLoginId);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaCloseSession(hLsaConnection,
+                                  pszLoginId);
+        BAIL_ON_LSA_ERROR(dwError);
+
         /* On Solaris, we must save the user's password in
            a custom location so that we can pull it out later
            for password changes */

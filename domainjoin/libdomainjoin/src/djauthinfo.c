@@ -104,12 +104,12 @@ LWRaiseLsassError(
                 break;
         }
 
-        LWRaiseEx(dest, err, file, line, "Lsass Error", buffer);
+        LWRaiseEx(dest, err, file, line, "Lsass Error", "0x%X - %s", code, buffer);
         (*dest)->subcode = code;
         goto cleanup;
     }
 
-    LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code %X has occurred, but an error string cannot be retrieved", code);
+    LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code 0x%X has occurred, but an error string cannot be retrieved", code);
     (*dest)->subcode = code;
 
 cleanup:
@@ -153,7 +153,8 @@ DJRemoveCacheFiles()
     PSTR pszSudoersPath = NULL;
     int i = 0;
     PSTR file = NULL;
-    PSTR pszCachePath = NULL;;
+    PSTR pszCachePath = NULL;
+    PSTR lsassFilePaths[3] = { NULL, NULL, NULL };
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -161,8 +162,6 @@ DJRemoveCacheFiles()
         "/var/lib/lwidentity/netsamlogon_cache.tdb",
         "/var/lib/lwidentity/winbindd_cache.tdb",
         /* Likewise 5.0 cache location files... */
-        LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db",
-        LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db",
         NULL
     };
 
@@ -174,6 +173,32 @@ DJRemoveCacheFiles()
 	BAIL_ON_CENTERIS_ERROR(ceError);
 	
 	if (bFileExists) 
+	{
+	    DJ_LOG_VERBOSE("Removing cache file %s", file);
+	    ceError = CTRemoveFile(file);
+	    BAIL_ON_CENTERIS_ERROR(ceError);
+	}
+    }
+
+    if (strcmp(LOCALSTATEDIR,"/var"))
+    {
+        lsassFilePaths[0] = LOCALSTATEDIR "/db/lsass-adcache.db";
+        lsassFilePaths[1] = LOCALSTATEDIR "/db/lsass-adstate.db";
+    }
+    else
+    {
+        lsassFilePaths[0] = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
+        lsassFilePaths[1] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db";
+    }
+
+    for (i = 0; lsassFilePaths[i] != NULL; i++)
+    {
+	file = lsassFilePaths[i];
+
+	ceError = CTCheckFileExists(file, &bFileExists);
+	BAIL_ON_CENTERIS_ERROR(ceError);
+
+	if (bFileExists)
 	{
 	    DJ_LOG_VERBOSE("Removing cache file %s", file);
 	    ceError = CTRemoveFile(file);
@@ -1147,6 +1172,9 @@ DJOpenEventLog(
     PHANDLE phEventLog
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     return LWIOpenEventLogEx(
                   NULL,             // Server name (defaults to local computer eventlogd)
                   pszCategoryType,  // Table Category ID (Security, System, ...)
@@ -1155,6 +1183,7 @@ DJOpenEventLog(
                   "SYSTEM",         // User
                   NULL,             // Computer (defaults to assigning local hostname)
                   phEventLog);
+#endif
 }
 
 DWORD
@@ -1162,7 +1191,11 @@ DJCloseEventLog(
     HANDLE hEventLog
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     return LWICloseEventLog(hEventLog);
+#endif
 }
 
 DWORD
@@ -1175,6 +1208,9 @@ DJLogInformationEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1192,6 +1228,7 @@ DJLogInformationEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -1204,6 +1241,9 @@ DJLogWarningEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1221,6 +1261,7 @@ DJLogWarningEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 DWORD
@@ -1233,6 +1274,9 @@ DJLogErrorEvent(
     PCSTR  pszData
     )
 {
+#if defined(MINIMAL_JOIN)
+    return 0;
+#else
     EVENT_LOG_RECORD event = {0};
 
     event.dwEventRecordId = 0;
@@ -1250,6 +1294,7 @@ DJLogErrorEvent(
     return LWIWriteEventLogBase(
                    hEventLog,
                    event);
+#endif
 }
 
 VOID

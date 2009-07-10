@@ -51,18 +51,17 @@ NtlmInitCredentials(
     OUT PNTLM_CREDENTIALS *ppNtlmCreds
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    BOOLEAN bInLock = FALSE;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     if(!ppNtlmCreds)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_CREDENTIALS),
-        (PVOID*)ppNtlmCreds
+        (PVOID*)(PVOID)ppNtlmCreds
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
@@ -76,7 +75,7 @@ cleanup:
 error:
     if(*ppNtlmCreds)
     {
-        LsaFreeMemory(*ppNtlmCreds);
+        LwFreeMemory(*ppNtlmCreds);
         *ppNtlmCreds = NULL;
     }
     goto cleanup;
@@ -92,13 +91,13 @@ NtlmInsertCredentials(
     // WARNING: Creds lock must already be acquired
     // WARNING:
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bCollision = FALSE;
     PNTLM_CREDENTIALS pCollisionCred = NULL;
 
     if(!pNtlmCreds)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -110,11 +109,11 @@ NtlmInsertCredentials(
         bCollision = FALSE;
 
         dwError = NtlmGetRandomBuffer(
-            (PBYTE)&(pNtlmCreds->ContextHandle),
+            (PBYTE)&(pNtlmCreds->CredHandle),
             sizeof(CredHandle)
             );
 
-        if(LSA_ERROR_SUCCESS != dwError)
+        if(LW_ERROR_SUCCESS != dwError)
         {
             break;
         }
@@ -124,17 +123,17 @@ NtlmInsertCredentials(
             &pCollisionCred
             );
 
-        if(dwError == LSA_ERROR_SUCCESS)
+        if(dwError == LW_ERROR_SUCCESS)
         {
             bCollision = TRUE;
 
             // This removes the reference we added for the find function
-            NtlmRemoveCredentials(pCollisionCred);
+            NtlmRemoveCredentials(&(pCollisionCred->CredHandle));
         }
 
     } while(bCollision);
 
-    if(LSA_ERROR_INVALID_TOKEN == dwError)
+    if(LW_ERROR_INVALID_TOKEN == dwError)
     {
         pNtlmCreds->pNext = gpNtlmCredsList;
         gpNtlmCredsList = pNtlmCreds;
@@ -157,13 +156,13 @@ NtlmRemoveCredentials(
     // WARNING: Creds lock must already be acquired
     // WARNING:
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIALS pTrav = NULL;
     PNTLM_CREDENTIALS pHold = NULL;
 
     if(!pCredHandle)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -171,7 +170,7 @@ NtlmRemoveCredentials(
 
     if(!pTrav)
     {
-        dwError = LSA_ERROR_INVALID_TOKEN;
+        dwError = LW_ERROR_INVALID_TOKEN;
         BAIL_ON_NTLM_ERROR(dwError);
     }
     else if(pTrav->CredHandle.dwLower == pCredHandle->dwLower &&
@@ -182,7 +181,7 @@ NtlmRemoveCredentials(
         if(pTrav->dwRefCount <= 0)
         {
             gpNtlmCredsList = pTrav->pNext;
-            NtlmFreeContext(pTrav);
+            NtlmFreeCredentials(pTrav);
         }
     }
     else
@@ -199,14 +198,14 @@ NtlmRemoveCredentials(
                     pHold = pTrav->pNext;
                     pTrav->pNext = pHold->pNext;
 
-                    NtlmFreeContext(pHold);
+                    NtlmFreeCredentials(pHold);
                 }
 
                 break;
             }
             pTrav = pTrav->pNext;
         }
-        dwError = LSA_ERROR_INVALID_TOKEN;
+        dwError = LW_ERROR_INVALID_TOKEN;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -229,7 +228,7 @@ NtlmRemoveAllCredentials(
     // WARNING: of the reference count.  Only use this at shutdown.
     // WARNING:
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIALS pTrav = NULL;
 
     while(gpNtlmCredsList)
@@ -258,14 +257,14 @@ NtlmFindCredentials(
     // WARNING: Creds lock must already be acquired
     // WARNING:
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIALS pTrav = NULL;
 
     *ppNtlmCreds = NULL;
 
     if(!pCredHandle)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -286,7 +285,7 @@ NtlmFindCredentials(
 
     if(!(*ppNtlmCreds))
     {
-        dwError = LSA_ERROR_INVALID_TOKEN;
+        dwError = LW_ERROR_INVALID_TOKEN;
     }
 
 cleanup:
@@ -302,25 +301,25 @@ NtlmFreeCredentials(
     PNTLM_CREDENTIALS pNtlmCreds
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     if(!pNtlmCreds)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     if(pNtlmCreds->pUserName)
     {
-        LsaFreeMemory(pNtlmCreds->pUserName);
+        LwFreeMemory(pNtlmCreds->pUserName);
     }
 
-    if(pNtlmCreds->pPassWord)
+    if(pNtlmCreds->pPassword)
     {
-        LsaFreeMemory(pNtlmCreds->pPassWord);
+        LwFreeMemory(pNtlmCreds->pPassword);
     }
 
-    LsaFreeMemory(pNtlmCreds);
+    LwFreeMemory(pNtlmCreds);
 
 cleanup:
     return dwError;

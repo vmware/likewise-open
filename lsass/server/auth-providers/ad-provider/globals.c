@@ -52,7 +52,7 @@ pthread_rwlock_t gADGlobalDataLock;
 
 PSTR gpszADProviderName = "lsa-activedirectory-provider";
 
-PSTR gpszConfigFilePath = NULL;
+PSTR gpszADConfigFilePath = NULL;
 
 BOOLEAN gbShutdownProvider = FALSE;
 

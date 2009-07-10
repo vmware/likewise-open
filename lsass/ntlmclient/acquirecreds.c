@@ -60,7 +60,7 @@ NtlmClientAcquireCredentialsHandle(
     OUT PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     memset(phCredential, 0, sizeof(CredHandle));

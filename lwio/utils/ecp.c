@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -175,26 +175,33 @@ IopRtlEcpListFindNode(
     PLW_LIST_LINKS pLinks = NULL;
     PIO_ECP_NODE pNode = NULL;
 
-    for (pLinks = pEcpList->Head.Next;
-         pLinks != &pEcpList->Head;
-         pLinks = pLinks->Next)
+    if (pEcpList)
     {
-        pNode = LW_STRUCT_FROM_FIELD(pLinks, IO_ECP_NODE, Links);
-        if (LwRtlCStringIsEqual(pszType, pNode->pszType, FALSE))
+        for (pLinks = pEcpList->Head.Next;
+             pLinks != &pEcpList->Head;
+             pLinks = pLinks->Next)
         {
-            break;
+            pNode = LW_STRUCT_FROM_FIELD(pLinks, IO_ECP_NODE, Links);
+            if (LwRtlCStringIsEqual(pszType, pNode->pszType, FALSE))
+            {
+                break;
+            }
         }
-    }
 
-    if (pLinks == &pEcpList->Head)
-    {
-        status = STATUS_NOT_FOUND;
-        pNode = NULL;
+        if (pLinks == &pEcpList->Head)
+        {
+            status = STATUS_NOT_FOUND;
+            pNode = NULL;
+        }
+        else
+        {
+            status = STATUS_SUCCESS;
+            assert(pNode);
+        }
     }
     else
     {
-        status = STATUS_SUCCESS;
-        assert(pNode);
+        status = STATUS_NOT_FOUND;
     }
 
     *ppEcpNode = pNode;
@@ -263,7 +270,7 @@ IoRtlEcpListGetNext(
     nextType = pNode->pszType;
     nextContext = pNode->pContext;
     nextContextSize = pNode->ContextSize;
-    
+
 cleanup:
     *ppszNextType = nextType;
     if (ppNextContext)

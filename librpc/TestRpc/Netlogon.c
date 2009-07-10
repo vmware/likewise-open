@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <compat/rpcstatus.h>
 #include <dce/rpc.h>
 #include <dce/dce_error.h>
 #include <dce/schannel.h>

@@ -41,7 +41,7 @@
 
 #include <dce/rpc.h>
 #include <compat/dcerpc.h>
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
 #include <lwio/lwio.h>

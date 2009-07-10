@@ -55,7 +55,7 @@ NtlmClientExportSecurityContext(
     OUT OPTIONAL HANDLE *pToken
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     // We don't want to zero out the SecBuffers, but we may want to initialize

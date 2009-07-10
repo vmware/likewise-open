@@ -63,23 +63,18 @@ NtlmServerInitializeSecurityContext(
     PTimeStamp ptsExpiry
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pNtlmContext = NULL;
-    PNTLM_CONTEXT pNtlmContextIn;
+    PNTLM_CONTEXT pNtlmContextIn = NULL;
     BOOLEAN bInLock = FALSE;
 
     if(!phCredential)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    if(!phContext)
-    {
-        dwError = NtlmInitContext(&pNtlmContext);
-        BAIL_ON_NTLM_ERROR(dwError);
-    }
-    else
+    if(phContext)
     {
         ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
             dwError = NtlmFindContext(phContext, &pNtlmContext);
@@ -90,8 +85,7 @@ NtlmServerInitializeSecurityContext(
 
     if(!pNtlmContext)
     {
-        // If we start with a blank context, upgrade it to a negotiate
-        // message
+        // If we start with a NULL context, create a negotiate message
         dwError = NtlmCreateNegotiateContext(&pNtlmContext);
         BAIL_ON_NTLM_ERROR(dwError);
     }
@@ -116,6 +110,8 @@ NtlmServerInitializeSecurityContext(
     //
     LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
 
+    BAIL_ON_NTLM_ERROR(dwError);
+
     pNtlmContext->CredHandle = *phCredential;
 
     *phNewContext = pNtlmContext->ContextHandle;
@@ -139,39 +135,28 @@ error:
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     CHAR HostName[HOST_NAME_MAX + 1];
     PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg = NULL;
 
-    if(!ppNtlmContext)
+    // this is paranoid, but we should make sure we're not writing over an
+    // existing context (or at the very least, this is a check that we've
+    // initialized our vars in a previous function.
+    if(*ppNtlmContext != NULL)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    // if we have a NULL context, try to create a new one.
-    if(!(*ppNtlmContext))
-    {
-        // We must not have any message in the context, we should only be
-        // creating a new context or replacing a blank... blanks have no message
-        if((*ppNtlmContext)->pMessage)
-        {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
-            BAIL_ON_NTLM_ERROR(dwError);
-        }
+    dwError = NtlmInitContext(ppNtlmContext);
+    BAIL_ON_NTLM_ERROR(dwError);
 
-        dwError = LsaAllocateMemory(
-            sizeof(NTLM_CONTEXT),
-            (PVOID*)ppNtlmContext
-            );
-
-        BAIL_ON_NTLM_ERROR(dwError);
-    }
-
-    gethostname(HostName, HOST_NAME_MAX);
+    dwError = gethostname(HostName, HOST_NAME_MAX);
+    dwError = LwMapErrnoToLwError(dwError);
+    BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = NtlmCreateNegotiateMessage(
         0,
@@ -189,34 +174,31 @@ NtlmCreateNegotiateContext(
 cleanup:
     return dwError;
 error:
-    // Don't worry about freeing the context... the caller will have to handle
-    // that
     if(pNtlmNegMsg)
     {
-        LsaFreeMemory(pNtlmNegMsg);
-
-        if((*ppNtlmContext) && (*ppNtlmContext)->pMessage)
-        {
-            (*ppNtlmContext)->pMessage = NULL;
-        }
+        LwFreeMemory(pNtlmNegMsg);
+    }
+    if((*ppNtlmContext) && (*ppNtlmContext)->pMessage)
+    {
+        (*ppNtlmContext)->pMessage = NULL;
     }
     goto cleanup;
 }
 
 DWORD
 NtlmCreateResponseContext(
-    PNTLM_CONTEXT pChlngCtxt,
+    IN PNTLM_CONTEXT pChlngCtxt,
     OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
     PNTLM_CREDENTIALS pNtlmCreds = NULL;
     BOOLEAN bInLock = FALSE;
 
     if(!pChlngCtxt)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -226,9 +208,9 @@ NtlmCreateResponseContext(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
+    dwError = LwAllocateMemory(
         sizeof(NTLM_CONTEXT),
-        (PVOID*)ppNtlmContext
+        (PVOID*)(PVOID)ppNtlmContext
         );
 
     BAIL_ON_NTLM_ERROR(dwError);

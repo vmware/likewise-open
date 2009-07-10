@@ -49,7 +49,7 @@
 #include "includes.h"
 
 DWORD
-LsaInitializeProvider(
+LSA_INITIALIZE_PROVIDER(local)(
     PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable)
@@ -1707,7 +1707,7 @@ error:
 
 
 DWORD
-LsaShutdownProvider(
+LSA_SHUTDOWN_PROVIDER(local)(
     PSTR pszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )

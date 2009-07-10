@@ -52,9 +52,6 @@
 #include "lwps-utils.h"
 #include "lwps-def.h"
 #include "lwps/lwps.h"
-#include "lwps-provider.h"
-#include "provider-main_p.h"
-#include "db_p.h"
 
 
 /***************************************************
@@ -153,49 +150,95 @@ main(
     )
 {
     DWORD dwError = 0;
-
-    PSTR  pszDomainDnsName;
-    HANDLE hDB = 0;
-    PMACHINE_ACCT_INFO pAcct = NULL;
+    PSTR  pszReqDomainName;
+    PSTR  pszDomainName = NULL;
+    PSTR  pszDomainSID = NULL;
+    PSTR  pszMachineAccount = NULL;
+    PSTR  pszMachinePassword = NULL;
+    PSTR  pszDomainDnsName = NULL;
+    PSTR  pszHostName = NULL;
+    PSTR  pszHostDnsDomain = NULL;
+    PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
+    HANDLE hPasswordStore = (HANDLE)NULL;
 
     lwps_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
 
-    dwError = ParseArgs(argc, argv, &pszDomainDnsName);
+    dwError = ParseArgs(argc, argv, &pszReqDomainName);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = SqlDBDbInitGlobals();
+    dwError = LwpsOpenPasswordStore(
+                    LWPS_PASSWORD_STORE_DEFAULT,
+                    &hPasswordStore);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = SqlDBOpen(&hDB);
+    dwError = LwpsGetPasswordByDomainName(
+                    hPasswordStore,
+                    pszReqDomainName,
+                    &pMachineAcctInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = SqlDBGetPwdEntryByDomainDnsName(
-                 hDB,
-                 pszDomainDnsName,
-                 &pAcct);
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszDomainName,
+                    &pszDomainName);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszSID,
+                    &pszDomainSID);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszMachineAccount,
+                    &pszMachineAccount);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszMachinePassword,
+                    &pszMachinePassword);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszDnsDomainName,
+                    &pszDomainDnsName);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszHostname,
+                    &pszHostName);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsWc16sToMbs(
+                    pMachineAcctInfo->pwszHostDnsDomain,
+                    &pszHostDnsDomain);
     BAIL_ON_LWPS_ERROR(dwError);
 
     printf("\n");
-    printf("DomainSID                = %s\n", pAcct->pszDomainSID);
-    printf("DomainName               = %s\n", pAcct->pszDomainName);
-    printf("Domain DNS Name          = %s\n", pAcct->pszDomainDnsName);
-    printf("HostName                 = %s\n", pAcct->pszHostName);
-    printf("HostName DNS Domain      = %s\n", pAcct->pszHostDnsDomain);
-    printf("Machine Account Name     = %s\n", pAcct->pszMachineAccountName);
-    printf("Machine Account Password = %s\n", pAcct->pszMachineAccountPassword);
+    printf("DomainSID                = %s\n", pszDomainSID);
+    printf("DomainName               = %s\n", pszDomainName);
+    printf("Domain DNS Name          = %s\n", pszDomainDnsName);
+    printf("HostName                 = %s\n", pszHostName);
+    printf("HostName DNS Domain      = %s\n", pszHostDnsDomain);
+    printf("Machine Account Name     = %s\n", pszMachineAccount);
+    printf("Machine Account Password = %s\n", pszMachinePassword);
     printf("\n");
 
 cleanup:
 
-    if (hDB != (HANDLE)NULL) {
-       SqlDBClose(hDB);
+    LWPS_SAFE_FREE_STRING(pszReqDomainName);
+    LWPS_SAFE_FREE_STRING(pszDomainSID);
+    LWPS_SAFE_FREE_STRING(pszDomainName);
+    LWPS_SAFE_FREE_STRING(pszDomainDnsName);
+    LWPS_SAFE_FREE_STRING(pszHostName);
+    LWPS_SAFE_FREE_STRING(pszHostDnsDomain);
+    LWPS_SAFE_FREE_STRING(pszMachineAccount);
+    LWPS_SAFE_FREE_STRING(pszMachinePassword);
+
+    if (pMachineAcctInfo) {
+        LwpsFreePasswordInfo(hPasswordStore, pMachineAcctInfo);
     }
 
-    LWPS_SAFE_FREE_STRING(pszDomainDnsName);
-
-    if (pAcct)
-    {
-        SqlDBFreeMachineAcctInfo(pAcct);
+    if (hPasswordStore != (HANDLE)NULL) {
+       LwpsClosePasswordStore(hPasswordStore);
     }
 
     lwps_close_log();

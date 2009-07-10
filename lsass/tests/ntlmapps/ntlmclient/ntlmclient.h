@@ -26,7 +26,6 @@
 #include "config.h"
 
 #include <lw/base.h>
-#include <lsa/lwerror.h>
 #include <ntlm/ntlm.h>
 
 #include <stdio.h>

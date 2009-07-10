@@ -1516,7 +1516,7 @@ AD_NetlogonAuthenticationUserEx(
 
     /* Grab the machine password and account info */
 
-    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB,
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT,
                                     &hPwdDb);
     BAIL_ON_LSA_ERROR(dwError);
 

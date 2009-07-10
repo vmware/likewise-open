@@ -1,5 +1,5 @@
 librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 
@@ -24,7 +24,7 @@ libnetlogon_la_SOURCES = \
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 

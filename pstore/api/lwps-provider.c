@@ -52,6 +52,31 @@
 
 #define LWPS_CONFIG_PATH LWPS_CONFIG_DIR "/pstore.conf"
 
+#ifdef ENABLE_STATIC_PROVIDERS
+
+extern DWORD LWPS_INITIALIZE_PROVIDER(sqldb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TABLE*);
+extern DWORD LWPS_SHUTDOWN_PROVIDER(sqldb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
+extern DWORD LWPS_INITIALIZE_PROVIDER(tdb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TABLE*);
+extern DWORD LWPS_SHUTDOWN_PROVIDER(tdb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
+extern DWORD LWPS_INITIALIZE_PROVIDER(filedb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TABLE*);
+extern DWORD LWPS_SHUTDOWN_PROVIDER(filedb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
+
+static LWPS_STATIC_PROVIDER gStaticProviders[] =
+{
+#ifdef ENABLE_FILEDB
+    LWPS_STATIC_PROVIDER_ENTRY(filedb, filedb),
+#endif
+#ifdef ENABLE_SQLDB
+    LWPS_STATIC_PROVIDER_ENTRY(sqldb, sqldb),
+#endif
+#ifdef ENABLE_TDB
+    LWPS_STATIC_PROVIDER_ENTRY(tdb, tdb),
+#endif
+    LWPS_STATIC_PROVIDER_END
+};
+
+#endif
+
 DWORD
 LwpsOpenProvider(
     LwpsPasswordStoreType storeType,
@@ -385,6 +410,8 @@ LwpsConfigNameValuePair(
            pProvider->storeType = LWPS_PASSWORD_STORE_SQLDB;
        } else if (!strcasecmp(pszValue, "tdb")) {
            pProvider->storeType = LWPS_PASSWORD_STORE_TDB;
+       } else if (!strcasecmp(pszValue, "filedb")) {
+           pProvider->storeType = LWPS_PASSWORD_STORE_FILEDB;
        } else {
            pProvider->storeType = LWPS_PASSWORD_STORE_UNKNOWN;
        }
@@ -439,44 +466,65 @@ LwpsInitProvider(
     PFNLWPS_INITIALIZE_PROVIDER pfnInitProvider = NULL;
     PCSTR pszError = NULL;
 
-    if (IsNullOrEmptyString(pProvider->pszLibPath)) {
-       dwError = ENOENT;
-       BAIL_ON_LWPS_ERROR(dwError);
+#ifdef ENABLE_STATIC_PROVIDERS
+    {
+        int i = 0;
+
+        /* First look for a static provider entry with the given name */
+        for (i = 0; gStaticProviders[i].pszId; i++)
+        {
+            if (!strcmp(gStaticProviders[i].pszId, pProvider->pszId))
+            {
+                pfnInitProvider = gStaticProviders[i].pInitialize;
+                pProvider->pFnShutdown = gStaticProviders[i].pShutdown;
+                LWPS_LOG_DEBUG("Provider %s loaded from static list", pProvider->pszId);
+                break;
+            }
+        }
     }
+#endif
 
-    dlerror();
+    if (!pfnInitProvider)
+    {
+        if (IsNullOrEmptyString(pProvider->pszLibPath)) {
+           dwError = ENOENT;
+           BAIL_ON_LWPS_ERROR(dwError);
+        }
 
-    pProvider->pLibHandle = dlopen(pProvider->pszLibPath,
-                                   RTLD_NOW | RTLD_GLOBAL);
-    if (pProvider->pLibHandle == NULL) {
-       pszError = dlerror();
+        dlerror();
 
-       if (!IsNullOrEmptyString(pszError)) {
-           LWPS_LOG_ERROR("%s", pszError);
-       }
+        pProvider->pLibHandle = dlopen(pProvider->pszLibPath,
+                                       RTLD_NOW | RTLD_GLOBAL);
+        if (pProvider->pLibHandle == NULL) {
+           pszError = dlerror();
 
-       dwError = LWPS_ERROR_INVALID_PROVIDER;
-       BAIL_ON_LWPS_ERROR(dwError);
+           if (!IsNullOrEmptyString(pszError)) {
+               LWPS_LOG_ERROR("%s", pszError);
+           }
 
-    }
+           dwError = LWPS_ERROR_INVALID_PROVIDER;
+           BAIL_ON_LWPS_ERROR(dwError);
 
-    dlerror();
+        }
 
-    pfnInitProvider = (PFNLWPS_INITIALIZE_PROVIDER)dlsym(
+        dlerror();
+
+        pfnInitProvider = (PFNLWPS_INITIALIZE_PROVIDER)dlsym(
                                   pProvider->pLibHandle,
                                   LWPS_SYMBOL_STORAGE_PROVIDER_INITIALIZE);
-    if (pfnInitProvider == NULL) {
-        dwError =  LWPS_ERROR_INVALID_PROVIDER;
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
+        if (pfnInitProvider == NULL) {
+            dwError =  LWPS_ERROR_INVALID_PROVIDER;
+            BAIL_ON_LWPS_ERROR(dwError);
+        }
 
-    dlerror();
-    pProvider->pFnShutdown = (PFNLWPS_SHUTDOWN_PROVIDER)dlsym(
-                                   pProvider->pLibHandle,
-                                   LWPS_SYMBOL_STORAGE_PROVIDER_SHUTDOWN);
-    if (pProvider->pFnShutdown == NULL) {
-        dwError =  LWPS_ERROR_INVALID_PROVIDER;
-        BAIL_ON_LWPS_ERROR(dwError);
+        dlerror();
+        pProvider->pFnShutdown = (PFNLWPS_SHUTDOWN_PROVIDER)dlsym(
+                                     pProvider->pLibHandle,
+                                     LWPS_SYMBOL_STORAGE_PROVIDER_SHUTDOWN);
+        if (pProvider->pFnShutdown == NULL) {
+            dwError =  LWPS_ERROR_INVALID_PROVIDER;
+            BAIL_ON_LWPS_ERROR(dwError);
+        }
     }
 
     dwError = pfnInitProvider(

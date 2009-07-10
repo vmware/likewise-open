@@ -52,7 +52,7 @@ NtlmClientFreeCredentialsHandle(
     IN PCredHandle phCredential
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
     dwError = NtlmOpenServer(

@@ -1,6 +1,6 @@
-AC_INIT(Idl/samr.idl)
+AC_INIT(idl/samr.idl)
 AM_INIT_AUTOMAKE(librpc,0.1)
-AC_CONFIG_HEADER([Include/config.h])
+AC_CONFIG_HEADER([include/config.h])
 
 # Checks for programs.
 AC_PROG_CC
@@ -241,15 +241,15 @@ AC_SUBST(LIB_moonunit)
 AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 AC_OUTPUT(Makefile
-          Include/Makefile
+          include/Makefile
           Error/Makefile
           alloc/Makefile
           MsRpc/Makefile
           samr/Makefile
           lsa/Makefile
-	  Krb5Pac/Makefile
+          krb5pac/Makefile
           NetLib/Makefile
           Mpr/Makefile
           netlogon/Makefile
           dssetup/Makefile
-	  TestRpc/Makefile)
+          TestRpc/Makefile)

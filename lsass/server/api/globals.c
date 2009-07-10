@@ -63,7 +63,8 @@ LSA_SRV_API_CONFIG gAPIConfig = {0};
 
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath
+    PCSTR pszConfigFilePath,
+    PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
     DWORD dwError = 0;
@@ -90,7 +91,7 @@ LsaSrvApiInit(
                     &gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvInitAuthProviders(pszConfigFilePath);
+    dwError = LsaSrvInitAuthProviders(pszConfigFilePath, pStaticProviders);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaInitRpcServers(pszConfigFilePath);

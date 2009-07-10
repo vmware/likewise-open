@@ -122,5 +122,26 @@ typedef DWORD (*PFNLWPS_SHUTDOWN_PROVIDER)(
                   PLWPS_PROVIDER_FUNC_TABLE pFnTable
                   );
 
+typedef struct _LWPS_STATIC_PROVIDER
+{
+    PCSTR pszId;
+    PFNLWPS_INITIALIZE_PROVIDER pInitialize;
+    PFNLWPS_SHUTDOWN_PROVIDER pShutdown;
+} LWPS_STATIC_PROVIDER, *PLWPS_STATIC_PROVIDER;
+
+#ifdef ENABLE_STATIC_PROVIDERS
+#define LWPS_INITIALIZE_PROVIDER(name) LwpsInitializeProvider_##name
+#define LWPS_SHUTDOWN_PROVIDER(name) LwpsShutdownProvider_##name
+#else
+#define LWPS_INITIALIZE_PROVIDER(name) LwpsInitializeProvider
+#define LWPS_SHUTDOWN_PROVIDER(name) LwpsShutdownProvider
+#endif
+
+#define LWPS_STATIC_PROVIDER_ENTRY(name, id) \
+    { #id, LWPS_INITIALIZE_PROVIDER(name), LWPS_SHUTDOWN_PROVIDER(name) }
+
+#define LWPS_STATIC_PROVIDER_END \
+    { NULL, NULL, NULL }
+
 #endif /* __LWPS_PROVIDER_H__ */
 

@@ -1,54 +1,54 @@
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libsamr_cs.la libsamr.la
 
-libsamr_la_SOURCES = \
-    globals.c \
-    SamrBinding.c \
-    SamrMemory.c \
-    SamrStubMemory.c \
-    SamrClose.c \
-    SamrConnect2.c \
-    SamrEnumDomains.c \
-    SamrEnumDomainUsers.c \
-    SamrLookupDomain.c \
-    SamrLookupNames.c \
-    SamrOpenDomain.c \
-    SamrOpenUser.c \
-    SamrQueryUserInfo.c \
-    SamrSetUserInfo.c \
-    SamrSetUserInfo2.c \
-    SamrCreateUser.c \
-    SamrDeleteUser.c \
-    SamrCreateDomAlias.c \
-    SamrDeleteDomAlias.c \
-    SamrGetAliasMembership.c \
-    SamrCreateDomGroup.c \
-    SamrDeleteDomGroup.c \
-    SamrOpenGroup.c \
-    SamrLookupRids.c \
-    SamrQueryAliasInfo.c \
-    SamrSetAliasInfo.c \
-    SamrAddAliasMember.c \
-    SamrDeleteAliasMember.c \
-    SamrGetMembersInAlias.c \
-    SamrQueryDomainInfo.c \
-    SamrEnumDomainAliases.c \
-    SamrOpenAlias.c \
-    SamrConnect3.c \
-    SamrConnect4.c \
-    SamrConnect5.c \
-    SamrCreateUser2.c \
-    SamrGetUserPwInfo.c \
-    SamrChangePasswordUser2.c \
-    SamrGetUserGroups.c \
-    SamrQueryDisplayInfo.c
+libsamr_la_SOURCES =             \
+    globals.c                    \
+    samr_binding.c               \
+    samr_memory.c                \
+    samr_stubmemory.c            \
+    samr_close.c                 \
+    samr_connect2.c              \
+    samr_enumdomains.c           \
+    samr_enumdomainusers.c       \
+    samr_lookupdomain.c          \
+    samr_lookupnames.c           \
+    samr_opendomain.c            \
+    samr_openuser.c              \
+    samr_queryuserinfo.c         \
+    samr_setuserinfo.c           \
+    samr_setuserinfo2.c          \
+    samr_createuser.c            \
+    samr_deleteuser.c            \
+    samr_createdomalias.c        \
+    samr_deletedomalias.c        \
+    samr_getaliasmembership.c    \
+    samr_createdomgroup.c        \
+    samr_deletedomgroup.c        \
+    samr_opengroup.c             \
+    samr_lookuprids.c            \
+    samr_queryaliasinfo.c        \
+    samr_setaliasinfo.c          \
+    samr_addaliasmember.c        \
+    samr_deletealiasmember.c     \
+    samr_getmembersinalias.c     \
+    samr_querydomaininfo.c       \
+    samr_enumdomainaliases.c     \
+    samr_openalias.c             \
+    samr_connect3.c              \
+    samr_connect4.c              \
+    samr_connect5.c              \
+    samr_createuser2.c           \
+    samr_getuserpwinfo.c         \
+    samr_changepassworduser2.c   \
+    samr_getusergroups.c         \
+    samr_querydisplayinfo.c
 
 libsamr_cs_la_SOURCES = samr_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 

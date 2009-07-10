@@ -273,7 +273,7 @@ LwKrb5GetSystemKeytabPath(
         LW_SAFE_FREE_STRING(pszPath);
 
         size *= 2;
-        dwError = LwAllocateMemory(size, (PVOID*)&pszPath);
+        dwError = LwAllocateMemory(size, OUT_PPVOID(&pszPath));
         BAIL_ON_LW_ERROR(dwError);
 
         ret = krb5_kt_default_name(ctx, pszPath, size);

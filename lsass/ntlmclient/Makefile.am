@@ -16,11 +16,17 @@ libntlmclient_la_SOURCES =  \
        queryctxt.c          \
        verifysign.c
 
-libntlmclient_la_CPPFLAGS = \
+libntlmclient_la_CFLAGS =   \
+    $(AM_CFLAGS)            \
+    $(LWADVAPI_INCLUDES)    \
     @LWMSG_INCLUDES@
+
+libntlmclient_la_LDFLAGS =  \
+    $(AM_LDFLAGS)           \
+    $(LWADVAPI_LDFLAGS)
 
 libntlmclient_la_LIBADD =                   \
     @top_builddir@/ntlmipc/libntlmipc.la    \
-    @top_builddir@/utils/liblsautils.la     \
+    $(LWADVAPI_LIBS)                        \
     @LWMSG_NOTHR_LIBS@                      \
     @SOCKET_LIBS@

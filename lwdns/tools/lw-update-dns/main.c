@@ -100,7 +100,7 @@ main(
     BAIL_ON_LWDNS_ERROR(dwError);
 
     dwError = LwpsOpenPasswordStore(
-                  LWPS_PASSWORD_STORE_SQLDB,
+                  LWPS_PASSWORD_STORE_DEFAULT,
                   &hPasswordStore);
     BAIL_ON_LWDNS_ERROR(dwError);
 
