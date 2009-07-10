@@ -344,7 +344,7 @@ error:
  ************************************************************/
 
 DWORD
-LwpsInitializeProvider(
+LWPS_INITIALIZE_PROVIDER(tdb)(
     PCSTR pszConfigFilePath,
     PSTR* ppszName,
     PLWPS_PROVIDER_FUNC_TABLE* ppFnTable
@@ -617,7 +617,7 @@ error:
  ************************************************************/
 
 DWORD
-LwpsShutdownProvider(
+LWPS_SHUTDOWN_PROVIDER(tdb)(
     PSTR pszName,
     PLWPS_PROVIDER_FUNC_TABLE pFnTable
     )

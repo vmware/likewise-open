@@ -101,7 +101,9 @@ const char* gLwpsErrorMessages[] =
     //  LWPS_ERROR_INVALID_HANDLE                                 : 16407
     "The handle does not represent a currently open database instance"
     //  LWPS_ERROR_DB_RECORD_NOT_FOUND                            : 16408
-    "The requested database record was not found"
+    "The requested database record was not found",
+    //  LWPS_ERROR_INVALID_MESSAGE                                : 16409
+    "The Inter Process message is invalid"
 };
 
 
