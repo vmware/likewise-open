@@ -5,7 +5,7 @@ PROVIDER_LDFLAGS =
 else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
 PROVIDER_CFLAGS = -shared
-PROVIDER_LDFLAGS = -shared -module -avoid-version
+PROVIDER_LDFLAGS = -export-dynamic -module -avoid-version
 endif
 
 liblsass_auth_provider_ad_la_SOURCES = \
@@ -72,7 +72,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
-	$(PROVIDER_LDFLAGS)
+	$(PROVIDER_LDFLAGS) \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \
