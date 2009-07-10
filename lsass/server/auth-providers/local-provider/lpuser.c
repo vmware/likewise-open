@@ -2440,16 +2440,22 @@ LocalDirModifyUser(
         { 0, NULL }
     };
 
-    wchar16_t wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
-    wchar16_t wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
+    WCHAR wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
+    WCHAR wszAttrNameNtHash [] = LOCAL_DIR_ATTR_NT_HASH;
+    WCHAR wszAttrNameLmHash [] = LOCAL_DIR_ATTR_LM_HASH;
     ATTRIBUTE_VALUE avUserInfoFlags = {0};
     ATTRIBUTE_VALUE avAccountExpiry = {0};
-    DWORD   dwNumMods = 0;
+    ATTRIBUTE_VALUE avNtHash = {0};
+    ATTRIBUTE_VALUE avLmHash = {0};
+    DWORD             dwNumMods = 0;
     DWORD             dwGroupInfoLevel = 0;
     PWSTR             pwszGroupDN_remove = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo_remove = NULL;
     PWSTR             pwszGroupDN_add   = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
+    OCTET_STRING NtHashBlob = {0};
+    OCTET_STRING LmHashBlob = {0};
 
     dwError = LocalDirFindUserById(
                     hProvider,
@@ -2523,6 +2529,34 @@ LocalDirModifyUser(
         avAccountExpiry.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
         avAccountExpiry.data.llValue = LocalGetNTTime(mktime(&tmbuf));
         mods[dwNumMods].pAttrValues = &avAccountExpiry;
+
+        dwNumMods++;
+    }
+
+    if (pUserModInfo->actions.bSetNtPasswordHash)
+    {
+        NtHashBlob.ulNumBytes = pUserModInfo->pNtPasswordHash->dwLen;
+        NtHashBlob.pBytes     = pUserModInfo->pNtPasswordHash->pData;
+
+        mods[dwNumMods].pwszAttrName = &wszAttrNameNtHash[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avNtHash.Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+        avNtHash.data.pOctetString = &NtHashBlob;
+        mods[dwNumMods].pAttrValues = &avNtHash;
+
+        dwNumMods++;
+    }
+
+    if (pUserModInfo->actions.bSetLmPasswordHash)
+    {
+        LmHashBlob.ulNumBytes = pUserModInfo->pLmPasswordHash->dwLen;
+        LmHashBlob.pBytes     = pUserModInfo->pLmPasswordHash->pData;
+
+        mods[dwNumMods].pwszAttrName = &wszAttrNameLmHash[0];
+        mods[dwNumMods].ulNumValues = 1;
+        avLmHash.Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+        avLmHash.data.pOctetString = &LmHashBlob;
+        mods[dwNumMods].pAttrValues = &avLmHash;
 
         dwNumMods++;
     }
