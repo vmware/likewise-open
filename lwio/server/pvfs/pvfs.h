@@ -112,6 +112,11 @@ PvfsCreate(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+VOID
+PvfsFreeCreateContext(
+    PPVFS_PENDING_CREATE *ppCreate
+    );
+
 NTSTATUS
 PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext

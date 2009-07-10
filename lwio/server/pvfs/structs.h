@@ -115,6 +115,7 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
+typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
@@ -154,9 +155,29 @@ typedef struct _PVFS_PENDING_LOCK
 
 } PVFS_PENDING_LOCK, *PPVFS_PENDING_LOCK;
 
+
+typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
+
+#define PVFS_SET_PROP_NONE      0x00000000
+#define PVFS_SET_PROP_OWNER     0x00000001
+#define PVFS_SET_PROP_ATTRIB    0x00000002
+
+typedef struct _PVFS_PENDING_CREATE
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PSTR pszOriginalFilename;
+    PSTR pszDiskFilename;
+    PPVFS_CCB pCcb;
+    PPVFS_FCB pFcb;
+    ACCESS_MASK GrantedAccess;
+    BOOLEAN bFileExisted;
+    PVFS_SET_FILE_PROPERTY_FLAGS SetPropertyFlags;
+
+} PVFS_PENDING_CREATE, *PPVFS_PENDING_CREATE;
+
 #define PVFS_FCB_MAX_PENDING_LOCKS   50
 
-typedef struct _PVFS_FCB
+struct _PVFS_FCB
 {
     LONG RefCount;
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
@@ -173,11 +194,13 @@ typedef struct _PVFS_FCB
     PVFS_LOCK_ENTRY LastFailedLock;
     PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used to match pointer */
 
+    /* File Object state information */
+
     PLWRTL_QUEUE pPendingLockQueue;
-
     PPVFS_OPLOCK_RECORD pOplockList;
+    PLWRTL_QUEUE pPendingCreateQueue;
 
-} PVFS_FCB, *PPVFS_FCB;
+};
 
 typedef struct _PVFS_LOCK_LIST
 {

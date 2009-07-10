@@ -82,6 +82,7 @@ PvfsFreeFCB(
     pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
     LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
+    LwRtlQueueDestroy(&pFcb->pPendingCreateQueue);
 
     if (pFcb->pOplockList) {
         if (pFcb->pOplockList->pIrpContext) {
@@ -109,15 +110,22 @@ PvfsFreePendingLock(
     PVOID *ppData
     )
 {
-    if (ppData && *ppData) {
-        PVFS_FREE(ppData);
+    if (!ppData || !*ppData) {
+        return;
     }
+
+    PVFS_FREE(ppData);
 
     return;
 }
 
-/***********************************************************
- **********************************************************/
+static VOID
+PvfsFreePendingCreate(
+    PVOID *ppData
+    )
+{
+    PvfsFreeCreateContext((PPVFS_PENDING_CREATE*)ppData);
+}
 
 NTSTATUS
 PvfsAllocateFCB(
@@ -138,6 +146,13 @@ PvfsAllocateFCB(
     ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
                              PVFS_FCB_MAX_PENDING_LOCKS,
                              PvfsFreePendingLock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Pending create queue */
+
+    ntError = LwRtlQueueInit(&pFcb->pPendingCreateQueue,
+                             0,
+                             PvfsFreePendingCreate);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Initialize mutexes and refcounts */
