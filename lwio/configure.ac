@@ -360,7 +360,11 @@ AC_SUBST(lwioconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lwioconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-lwiocachedir="$localstatedir/lib/likewise"
+if test x"$localstatedir" = x"/var"; then
+    lwiocachedir="$localstatedir/lib/likewise"
+else
+    lwiocachedir="$localstatedir"
+fi
 AC_SUBST(lwiocachedir)
 AS_AC_EXPAND(CACHEDIR, $lwiocachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
