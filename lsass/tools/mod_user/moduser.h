@@ -60,7 +60,9 @@ typedef enum
     UserModTask_SetPasswordNeverExpires,
     UserModTask_SetPasswordMustExpire,
     UserModTask_AddToGroups,
-    UserModTask_RemoveFromGroups
+    UserModTask_RemoveFromGroups,
+    UserModTask_SetNtPasswordHash,
+    UserModTask_SetLmPasswordHash
 } UserModificationTaskType;
 
 typedef struct __USER_MOD_TASK
