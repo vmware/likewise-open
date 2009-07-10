@@ -733,6 +733,7 @@ WireMarshallTransactionSetupData(
     uint32_t  alignment = 0;
     uint32_t  wstrlen = 0;
     uint16_t *pByteCount = NULL;
+    uint16_t  byteCount = 0;
 
     if (setupLen && bufferUsed + setupLen <= bufferLen)
         memcpy(pBuffer, pSetup, setupLen);
@@ -781,9 +782,11 @@ WireMarshallTransactionSetupData(
     else
     {
         /* Fill in the byte count */
-        *pByteCount = (uint16_t) (pBuffer + bufferUsed -
-            ((uint8_t *) pByteCount) - sizeof(*pByteCount));
+        byteCount = (uint16_t) (pBuffer + bufferUsed - ((uint8_t *) pByteCount) - sizeof(*pByteCount));
+
+        memcpy(pByteCount, &byteCount, sizeof(byteCount));
     }
+
     *pBufferUsed = bufferUsed;
 
     return ntStatus;
@@ -984,7 +987,7 @@ WireMarshallTransaction2Response(
         usNumPackageBytesUsed += usDataLen;
     }
 
-    *pByteCount = usNumBytesUsed;
+    memcpy(pByteCount, &usNumBytesUsed, sizeof(usNumBytesUsed));
 
     *pusDataOffset = pResponseHeader->dataOffset;
     *pusParameterOffset = pResponseHeader->parameterOffset;
