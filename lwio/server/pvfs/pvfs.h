@@ -112,9 +112,15 @@ PvfsCreate(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
+NTSTATUS
+PvfsAllocateCreateContext(
+    OUT PPVFS_PENDING_CREATE *ppCreate,
+    IN  PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 VOID
 PvfsFreeCreateContext(
-    PPVFS_PENDING_CREATE *ppCreate
+    IN OUT PPVFS_PENDING_CREATE *ppCreate
     );
 
 NTSTATUS
@@ -354,12 +360,17 @@ PvfsOplockRequest(
     );
 
 NTSTATUS
-PvfsOplockAckBreak(
+PvfsOplockBreakAck(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PVOID InputBuffer,
     IN  ULONG InputBufferLength,
     OUT PVOID OutputBuffer,
     IN  ULONG OutputBufferLength
+    );
+
+NTSTATUS
+PvfsOplockBreakIfLocked(
+    PPVFS_FCB pFcb
     );
 
 
