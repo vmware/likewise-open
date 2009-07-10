@@ -5,7 +5,7 @@ PROVIDER_LDFLAGS =
 else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
 PROVIDER_CFLAGS = -shared
-PROVIDER_LDFLAGS = -export-dynamic -module -avoid-version
+PROVIDER_LDFLAGS = -shared -module -avoid-version
 endif
 
 liblsass_auth_provider_ad_la_SOURCES = \
