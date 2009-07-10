@@ -64,14 +64,9 @@ PvfsCreateFileOpenOrOverwrite(
     );
 
 static NTSTATUS
-PvfsCreateFileOpenIf(
+PvfsCreateFileOpenOrOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
     );
-
-static NTSTATUS
-PvfsCreateFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext
-	);
 
 static NTSTATUS
 PvfsCreateFileDoSysOpen(
@@ -116,12 +111,9 @@ PvfsCreateFile(
         ntError = PvfsCreateFileOpenOrOverwrite(pIrpContext);
         break;
 
-    case FILE_OPEN_IF:
-        ntError = PvfsCreateFileOpenIf(pIrpContext);
-        break;
-
     case FILE_OVERWRITE_IF:
-        ntError = PvfsCreateFileOverwriteIf(pIrpContext);
+    case FILE_OPEN_IF:
+        ntError = PvfsCreateFileOpenOrOverwriteIf(pIrpContext);
         break;
 
     default:
@@ -521,7 +513,7 @@ error:
  ****************************************************************************/
 
 static NTSTATUS
-PvfsCreateFileOpenIf(
+PvfsCreateFileOpenOrOverwriteIf(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -580,8 +572,6 @@ PvfsCreateFileOpenIf(
 
         pCreateCtx->GrantedAccess = FILE_ALL_ACCESS;
 
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
-
         ntError = RtlCStringAllocatePrintf(
                       &pCreateCtx->pszDiskFilename,
                       "%s/%s",
@@ -602,117 +592,25 @@ PvfsCreateFileOpenIf(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (!pCreateCtx->bFileExisted ||
+        (Args.CreateDisposition == FILE_OVERWRITE_IF))
+    {
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
+                                       PVFS_SET_PROP_ATTRIB;
+    }
+
     ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    CreateResult = pCreateCtx->bFileExisted ? FILE_OPENED : FILE_CREATED;
-
-cleanup:
-    pIrpContext->pIrp->IoStatusBlock.CreateResult = CreateResult;
-
-    PvfsFreeCreateContext(&pCreateCtx);
-
-    RtlCStringFree(&pszDirname);
-    RtlCStringFree(&pszRelativeFilename);
-    RtlCStringFree(&pszDiskDirname);
-
-    return ntError;
-
-error:
-    CreateResult = (ntError == STATUS_OBJECT_NAME_COLLISION) ?
-                   FILE_EXISTS : FILE_DOES_NOT_EXIST;
-
-    goto cleanup;
-}
-
-/*****************************************************************************
- ****************************************************************************/
-
-static NTSTATUS
-PvfsCreateFileOverwriteIf(
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
-    FILE_CREATE_RESULT CreateResult = 0;
-    PSTR pszDirname = NULL;
-    PSTR pszRelativeFilename = NULL;
-    PSTR pszDiskDirname = NULL;
-    PPVFS_PENDING_CREATE pCreateCtx = NULL;
-
-    ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsFileSplitPath(
-                  &pszDirname,
-                  &pszRelativeFilename,
-                  pCreateCtx->pszOriginalFilename);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Check for file existence */
-
-    ntError = PvfsLookupFile(
-                  &pCreateCtx->pszDiskFilename,
-                  pszDiskDirname,
-                  pszRelativeFilename,
-                  FALSE);
-    pCreateCtx->bFileExisted = TRUE;
-    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
+    if (!pCreateCtx->bFileExisted)
     {
-        pCreateCtx->bFileExisted = FALSE;
-        ntError = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (pCreateCtx->bFileExisted)
-    {
-        ntError = PvfsAccessCheckFile(
-                      pCreateCtx->pCcb->pUserToken,
-                      pCreateCtx->pszDiskFilename,
-                      Args.DesiredAccess,
-                      &pCreateCtx->GrantedAccess);
-        BAIL_ON_NT_STATUS(ntError);
+        CreateResult = FILE_CREATED;
     }
     else
     {
-        ntError = RtlCStringAllocatePrintf(
-                      &pCreateCtx->pszDiskFilename,
-                      "%s/%s",
-                      pszDiskDirname,
-                      pszRelativeFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsAccessCheckDir(
-                      pCreateCtx->pCcb->pUserToken,
-                      pszDiskDirname,
-                      Args.DesiredAccess,
-                      &pCreateCtx->GrantedAccess);
-        BAIL_ON_NT_STATUS(ntError);
-
-        pCreateCtx->GrantedAccess = FILE_ALL_ACCESS;
+        CreateResult = (Args.CreateDisposition == FILE_OPEN_IF) ?
+            FILE_OPENED : FILE_OVERWRITTEN;
     }
-
-    ntError = PvfsCheckReadOnlyDeleteOnClose(
-                  Args,
-                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsCheckShareMode(
-                  pCreateCtx->pszDiskFilename,
-                  Args.ShareAccess,
-                  Args.DesiredAccess,
-                  &pCreateCtx->pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
-    ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-    BAIL_ON_NT_STATUS(ntError);
-
-    CreateResult = pCreateCtx->bFileExisted ? FILE_OVERWRITTEN : FILE_CREATED;
 
 cleanup:
     pIrpContext->pIrp->IoStatusBlock.CreateResult = CreateResult;
