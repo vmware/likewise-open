@@ -69,11 +69,6 @@ PvfsCreateFileOpenOrOverwriteIf(
     );
 
 static NTSTATUS
-PvfsCreateFileDoSysOpen(
-    IN PPVFS_PENDING_CREATE pCreateContext
-    );
-
-static NTSTATUS
 PvfsCheckReadOnlyDeleteOnClose(
     IN IRP_ARGS_CREATE CreateArgs,
     IN PSTR pszFilename
@@ -254,7 +249,9 @@ PvfsCreateFileSupersede(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
@@ -266,8 +263,11 @@ PvfsCreateFileSupersede(
         break;
 
     case STATUS_PENDING:
-        /* If we have a pending break, then add the CreateContext
-           to the pending open queue on the FCB */
+        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
+        BAIL_ON_NT_STATUS(ntError);
+        if (ntError == STATUS_SUCCESS) {
+            ntError = STATUS_PENDING;
+        }
         break;
 
     default:
@@ -430,7 +430,9 @@ PvfsCreateFileOpenOrOverwrite(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
@@ -442,8 +444,11 @@ PvfsCreateFileOpenOrOverwrite(
         break;
 
     case STATUS_PENDING:
-        /* If we have a pending break, then add the CreateContext
-           to the pending open queue on the FCB */
+        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
+        BAIL_ON_NT_STATUS(ntError);
+        if (ntError == STATUS_SUCCESS) {
+            ntError = STATUS_PENDING;
+        }
         break;
 
     default:
@@ -554,7 +559,9 @@ PvfsCreateFileOpenOrOverwriteIf(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
@@ -566,8 +573,11 @@ PvfsCreateFileOpenOrOverwriteIf(
         break;
 
     case STATUS_PENDING:
-        /* If we have a pending break, then add the CreateContext
-           to the pending open queue on the FCB */
+        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
+        BAIL_ON_NT_STATUS(ntError);
+        if (ntError == STATUS_SUCCESS) {
+            ntError = STATUS_PENDING;
+        }
         break;
 
     default:
@@ -596,7 +606,7 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
-static NTSTATUS
+NTSTATUS
 PvfsCreateFileDoSysOpen(
     IN PPVFS_PENDING_CREATE pCreateContext
     )

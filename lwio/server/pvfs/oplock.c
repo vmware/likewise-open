@@ -101,7 +101,9 @@ PvfsOplockRequest(
     switch(pOplockRequest->OplockRequestType) {
     case IO_OPLOCK_REQUEST_BATCH_OPLOCK:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
+        break;
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
+        ntError = STATUS_NOT_SUPPORTED;
         break;
     default:
         ntError = STATUS_INVALID_PARAMETER;
@@ -151,7 +153,71 @@ PvfsOplockBreakAck(
     IN  ULONG OutputBufferLength
     )
 {
-    return STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = NULL;
+    PPVFS_CCB pCcb = NULL;
+    PPVFS_FCB pFcb = NULL;
+    PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVOID pData = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    /* Sanity checks */
+
+    ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (!pCcb->bOplockBreakInProgress) {
+        ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Process pending opens */
+
+    pFcb = pCcb->pFcb;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    while (!LwRtlQueueIsEmpty(pFcb->pPendingCreateQueue))
+    {
+        ntError = LwRtlQueueRemoveItem(
+                      pFcb->pPendingCreateQueue,
+                      &pData);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pCreateCtx = (PPVFS_PENDING_CREATE)pData;
+        pIrp = pCreateCtx->pIrpContext->pIrp;
+
+        if (!pCreateCtx->pIrpContext->bIsCancelled) {
+            ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+        } else {
+            ntError = STATUS_CANCELLED;
+        }
+
+        pIrp->IoStatusBlock.Status = ntError;
+
+        IoIrpComplete(pIrp);
+        PvfsFreeIrpContext(&pCreateCtx->pIrpContext);
+
+        PvfsFreeCreateContext(&pCreateCtx);
+    }
+
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
@@ -160,10 +226,29 @@ PvfsOplockBreakAck(
 
 NTSTATUS
 PvfsOplockBreakIfLocked(
-    PPVFS_FCB pFcb
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_FCB pFcb
     )
 {
-    return STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+
+    if (pFcb->pOplockList)
+    {
+        pIrpCtx = pFcb->pOplockList->pIrpContext;
+
+        /* TODO: Fill in the OuputBuffer with the BREAK_TO_XXX status */
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+
+        PVFS_FREE(&pFcb->pOplockList);
+
+        pCcb->bOplockBreakInProgress = TRUE;
+
+        ntError = STATUS_PENDING;
+    }
+
+    return ntError;
 }
 
 /*****************************************************************************

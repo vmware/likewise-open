@@ -75,6 +75,8 @@ PvfsAllocateCCB(
 
     pCCB->RefCount = 0;
 
+    pCCB->bOplockBreakInProgress = FALSE;
+
     /* Add initial ref count */
 
     InterlockedIncrement(&pCCB->RefCount);

@@ -124,6 +124,11 @@ PvfsFreeCreateContext(
     );
 
 NTSTATUS
+PvfsCreateFileDoSysOpen(
+    IN PPVFS_PENDING_CREATE pCreateContext
+    );
+
+NTSTATUS
 PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
@@ -370,9 +375,9 @@ PvfsOplockBreakAck(
 
 NTSTATUS
 PvfsOplockBreakIfLocked(
-    PPVFS_FCB pFcb
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_FCB pFcb
     );
-
 
 #endif /* __PVFS_H__ */
 

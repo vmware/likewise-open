@@ -114,6 +114,13 @@ PvfsPreviousCCBFromList(
     PPVFS_CCB_LIST_NODE pCurrent
     );
 
+NTSTATUS
+PvfsAddPendingCreate(
+    PPVFS_FCB Pfcb,
+    PPVFS_PENDING_CREATE pCreateCtx
+    );
+
+
 #endif   /* _PVFS_FCB_H */
 
 /*

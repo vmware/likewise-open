@@ -189,12 +189,14 @@ PvfsRemoveFCB(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bLocked = FALSE;
 
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
 
-    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
     ntError = LwRtlRBTreeRemove(gFcbTable.pFcbTree,
                                (PVOID)pFcb->pszFilename);
-    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
+
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
     BAIL_ON_NT_STATUS(ntError);
 
@@ -369,10 +371,13 @@ PvfsFindFCB(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bLocked = FALSE;
 
-    ENTER_READER_RW_LOCK(&gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &gFcbTable.rwLock);
+
     ntError = _PvfsFindFCB(ppFcb, pszFilename);
-    LEAVE_READER_RW_LOCK(&gFcbTable.rwLock);
+
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
 
     return ntError;
 }
@@ -590,6 +595,39 @@ PvfsPreviousCCBFromList(
 
     return pCurrent->pPrevious;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsAddPendingCreate(
+    PPVFS_FCB pFcb,
+    PPVFS_PENDING_CREATE pCreateCtx
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bLocked = FALSE;
+
+    BAIL_ON_INVALID_PTR(pFcb, ntError);
+    BAIL_ON_INVALID_PTR(pCreateCtx, ntError);
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    ntError = LwRtlQueueAddItem(pFcb->pPendingCreateQueue,
+                                (PVOID)pCreateCtx);
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 /*
 local variables:

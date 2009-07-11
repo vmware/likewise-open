@@ -246,6 +246,8 @@ struct _PVFS_CCB
 
     PVFS_LOCK_TABLE LockTable;
 
+    BOOLEAN bOplockBreakInProgress;
+
 };
 
 typedef NTSTATUS (*PPVFS_WORK_CALLBACK)(
