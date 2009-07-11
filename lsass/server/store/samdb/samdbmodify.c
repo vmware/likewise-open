@@ -468,7 +468,7 @@ SamDbUpdateBuildColumnValueList(
                         &pColumnValue->pAttrMap);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        for (; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
+        for (iMap = 0; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
         {
             PSAMDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
 

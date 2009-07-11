@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -1199,6 +1199,18 @@ LsaModifyUser_SetAccountExpiryDate(
     PCSTR pszDate
     );
 
+DWORD
+LsaModifyUser_SetNtPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    );
+
+DWORD
+LsaModifyUser_SetLmPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    );
+
 void
 LsaFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
@@ -1598,3 +1610,11 @@ LsaAllocateSidAppendRid(
 #endif /* __LSA_UTILS_H__ */
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

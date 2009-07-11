@@ -221,7 +221,7 @@ typedef struct _PVFS_LOCK_TABLE
 struct _PVFS_CCB
 {
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
-    pthread_mutex_t ControlMutex;   /* Use for CCB SetFileInfo operations */
+    pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
 
     LONG RefCount;
 
@@ -245,6 +245,8 @@ struct _PVFS_CCB
     PPVFS_DIRECTORY_CONTEXT pDirContext;
 
     PVFS_LOCK_TABLE LockTable;
+
+    BOOLEAN bOplockBreakInProgress;
 
 };
 

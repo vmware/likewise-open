@@ -71,9 +71,11 @@ PvfsAllocateCCB(
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pCCB->FileMutex, NULL);
-    pthread_mutex_init(&pCCB->ControlMutex, NULL);
+    pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
     pCCB->RefCount = 0;
+
+    pCCB->bOplockBreakInProgress = FALSE;
 
     /* Add initial ref count */
 
@@ -130,7 +132,7 @@ PvfsFreeCCB(
     PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);
 
     pthread_mutex_destroy(&pCCB->FileMutex);
-    pthread_mutex_destroy(&pCCB->ControlMutex);
+    pthread_mutex_destroy(&pCCB->ControlBlock);
 
     PVFS_FREE(&pCCB);
 

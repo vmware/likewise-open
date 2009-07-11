@@ -38,7 +38,7 @@ LsaNssClearState(
     PVOID pState
     )
 {
-    PLSA_NSS_STATE pNssState = (PLSA_NSS_STATE)pNssState;
+    PLSA_NSS_STATE pNssState = (PLSA_NSS_STATE)pState;
 
     LSA_LOG_PAM_DEBUG("Clearing LAM state");
 

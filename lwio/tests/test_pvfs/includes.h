@@ -54,6 +54,7 @@
 #include <lw/base.h>
 #include "lwiosys.h"
 #include "lwio/lwio.h"
+#include "lwio/lwiofsctl.h"
 #include "lwiodef.h"
 #include "lwioutils.h"
 #include "prototypes.h"

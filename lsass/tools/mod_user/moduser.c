@@ -141,6 +141,8 @@ ParseArgs(
         PARSE_MODE_ADD_TO_GROUPS,
         PARSE_MODE_REMOVE_FROM_GROUPS,
         PARSE_MODE_SET_ACCOUNT_EXPIRY,
+        PARSE_MODE_SET_NT_PASSWORD_HASH,
+        PARSE_MODE_SET_LM_PASSWORD_HASH,
         PARSE_MODE_DONE
     } ParseMode;
 
@@ -249,6 +251,14 @@ ParseArgs(
                 {
                     parseMode = PARSE_MODE_SET_ACCOUNT_EXPIRY;
                 }
+                else if (!strcmp(pArg, "--set-nt-password-hash"))
+                {
+                    parseMode = PARSE_MODE_SET_NT_PASSWORD_HASH;
+                }
+                else if (!strcmp(pArg, "--set-lm-password-hash"))
+                {
+                    parseMode = PARSE_MODE_SET_LM_PASSWORD_HASH;
+                }
                 else
                 {
                     dwError = LsaAllocateString(pArg, &pszLoginId);
@@ -298,20 +308,56 @@ ParseArgs(
 
             case PARSE_MODE_ADD_TO_GROUPS:
             {
-                  dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
-                  BAIL_ON_LSA_ERROR(dwError);
+                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
 
-                  pTask->taskType = UserModTask_AddToGroups;
+                pTask->taskType = UserModTask_AddToGroups;
 
-                  dwError = LsaAllocateString(pArg, &pTask->pszData);
-                  BAIL_ON_LSA_ERROR(dwError);
+                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
 
-                  dwError = LsaDLinkedListAppend(&pTaskList, pTask);
-                  BAIL_ON_LSA_ERROR(dwError);
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
 
-                  parseMode = PARSE_MODE_OPEN;
+                parseMode = PARSE_MODE_OPEN;
 
-                 break;
+                break;
+            }
+
+            case PARSE_MODE_SET_NT_PASSWORD_HASH:
+            {
+                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetNtPasswordHash;
+
+                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+            }
+
+            case PARSE_MODE_SET_LM_PASSWORD_HASH:
+            {
+                dwError = LsaAllocateMemory(sizeof(USER_MOD_TASK), (PVOID*)&pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pTask->taskType = UserModTask_SetLmPasswordHash;
+
+                dwError = LsaAllocateString(pArg, &pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaDLinkedListAppend(&pTaskList, pTask);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
             }
 
             case PARSE_MODE_DONE:
@@ -375,6 +421,8 @@ ValidateArgs(
     BOOLEAN bDisableUser = FALSE;
     BOOLEAN bSetChangePasswordAtNextLogon = FALSE;
     BOOLEAN bSetPasswordNeverExpires = FALSE;
+    PSTR pszNtPasswordHash = NULL;
+    PSTR pszLmPasswordHash = NULL;
 
     for (pListMember = pTaskList; pListMember; pListMember = pListMember->pNext)
     {
@@ -402,6 +450,16 @@ ValidateArgs(
                    bSetChangePasswordAtNextLogon = TRUE;
                    break;
                }
+               case UserModTask_SetNtPasswordHash:
+               {
+                   pszNtPasswordHash = pTask->pszData;
+                   break;
+               }
+               case UserModTask_SetLmPasswordHash:
+               {
+                   pszLmPasswordHash = pTask->pszData;
+                   break;
+               }
                default:
                    break;
            }
@@ -423,6 +481,22 @@ ValidateArgs(
 
     if (IsNullOrEmptyString(pszLoginId)) {
         fprintf(stderr, "Error: A valid user id or user login id must be specified.\n");
+        goto cleanup;
+    }
+
+    if (pszNtPasswordHash &&
+        !(strlen(pszNtPasswordHash) == 32 ||
+          strlen(pszNtPasswordHash) == 0))
+    {
+        fprintf(stderr, "Error: NT password hash must be zero or 32 characters long.\n");
+        goto cleanup;
+    }
+
+    if (pszLmPasswordHash &&
+        !(strlen(pszLmPasswordHash) == 32 ||
+          strlen(pszLmPasswordHash) == 0))
+    {
+        fprintf(stderr, "Error: LM password hash must be zero or 32 characters long.\n");
         goto cleanup;
     }
 
@@ -493,6 +567,8 @@ ShowUsage(
     fprintf(stdout, "{ --password-must-expire }\n");
     fprintf(stdout, "{ --add-to-groups nt4-style-group-name }\n");
     fprintf(stdout, "{ --remove-from-groups nt4-style-group-name }\n");
+    fprintf(stdout, "{ --set-nt-password-hash password-hash-hex }\n");
+    fprintf(stdout, "{ --set-lm-password-hash password-hash-hex }\n");
 
     fprintf(stdout, "\nNotes:\n");
     fprintf(stdout, "a) Set the expiry-date to 0 for an account that must never expire.\n");
@@ -652,6 +728,20 @@ BuildUserModInfo(
                 dwError = LsaModifyUser_SetPasswordMustExpire(pUserModInfo, TRUE);
                 BAIL_ON_LSA_ERROR(dwError);
 
+                break;
+            }
+            case UserModTask_SetNtPasswordHash:
+            {
+                dwError = LsaModifyUser_SetNtPasswordHash(pUserModInfo,
+                                                          pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
+            case UserModTask_SetLmPasswordHash:
+            {
+                dwError = LsaModifyUser_SetLmPasswordHash(pUserModInfo,
+                                                          pTask->pszData);
+                BAIL_ON_LSA_ERROR(dwError);
                 break;
             }
         }

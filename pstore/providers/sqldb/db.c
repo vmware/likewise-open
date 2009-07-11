@@ -53,6 +53,7 @@
 #define MACHINEPWD_DB     MACHINEPWD_DB_DIR "/pstore.db"
 
 static pthread_rwlock_t g_MachinePwdDBLock;
+static BOOLEAN g_MachinePwdDBLockInit = FALSE;
 
 #define ENTER_MACHINEPWD_DB_RW_READER_LOCK(bInLock) \
     if (!bInLock) {                                 \
@@ -97,8 +98,12 @@ DWORD
 SqlDBDbInitGlobals()
 {
     DWORD dwError = 0;
-    
-    pthread_rwlock_init(&g_MachinePwdDBLock, NULL);
+
+    if (!g_MachinePwdDBLockInit)
+    {
+        pthread_rwlock_init(&g_MachinePwdDBLock, NULL);
+        g_MachinePwdDBLockInit = TRUE;
+    }
     
     dwError = SqlDBCreateDb();
     BAIL_ON_LWPS_ERROR(dwError);

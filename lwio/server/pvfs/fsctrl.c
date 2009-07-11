@@ -58,7 +58,7 @@ struct _PVFS_FSCTL_DISPATCH_TABLE
 
 } PvfsFsCtlHandlerTable[] = {
     { IO_FSCTL_OPLOCK_REQUEST,       PvfsOplockRequest },
-    { IO_FSCTL_OPLOCK_ACK_BREAK,     PvfsOplockAckBreak },
+    { IO_FSCTL_OPLOCK_BREAK_ACK,     PvfsOplockBreakAck },
 };
 
 

@@ -101,7 +101,9 @@ PvfsOplockRequest(
     switch(pOplockRequest->OplockRequestType) {
     case IO_OPLOCK_REQUEST_BATCH_OPLOCK:
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1:
+        break;
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
+        ntError = STATUS_NOT_SUPPORTED;
         break;
     default:
         ntError = STATUS_INVALID_PARAMETER;
@@ -139,11 +141,11 @@ error:
     goto cleanup;
 }
 
-/********************************************************
- *******************************************************/
+/*****************************************************************************
+ ****************************************************************************/
 
 NTSTATUS
-PvfsOplockAckBreak(
+PvfsOplockBreakAck(
     IN  PPVFS_IRP_CONTEXT pIrpContext,
     IN  PVOID InputBuffer,
     IN  ULONG InputBufferLength,
@@ -151,12 +153,115 @@ PvfsOplockAckBreak(
     IN  ULONG OutputBufferLength
     )
 {
-    return STATUS_SUCCESS;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = NULL;
+    PPVFS_CCB pCcb = NULL;
+    PPVFS_FCB pFcb = NULL;
+    PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVOID pData = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    /* Sanity checks */
+
+    ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (!pCcb->bOplockBreakInProgress) {
+        ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Process pending opens */
+
+    pFcb = pCcb->pFcb;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    while (!LwRtlQueueIsEmpty(pFcb->pPendingCreateQueue))
+    {
+        ntError = LwRtlQueueRemoveItem(
+                      pFcb->pPendingCreateQueue,
+                      &pData);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pCreateCtx = (PPVFS_PENDING_CREATE)pData;
+        pIrp = pCreateCtx->pIrpContext->pIrp;
+
+        if (!pCreateCtx->pIrpContext->bIsCancelled) {
+            ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+        } else {
+            ntError = STATUS_CANCELLED;
+        }
+
+        pIrp->IoStatusBlock.Status = ntError;
+
+        IoIrpComplete(pIrp);
+        PvfsFreeIrpContext(&pCreateCtx->pIrpContext);
+
+        PvfsFreeCreateContext(&pCreateCtx);
+    }
+
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    if (pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
-/********************************************************
- *******************************************************/
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsOplockBreakIfLocked(
+    IN PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bCcbLocked = FALSE;
+    PPVFS_CCB pCcb = NULL;
+
+    if (pFcb->pOplockList)
+    {
+        pIrpCtx = pFcb->pOplockList->pIrpContext;
+        pCcb = pFcb->pOplockList->pCcb;
+
+        LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+        pCcb->bOplockBreakInProgress = TRUE;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+
+        /* TODO: Fill in the OuputBuffer with the BREAK_TO_XXX status */
+        IoIrpComplete(pIrpCtx->pIrp);
+        PvfsFreeIrpContext(&pIrpCtx);
+
+        PVFS_FREE(&pFcb->pOplockList);
+
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+        ntError = STATUS_PENDING;
+    }
+
+    return ntError;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
 
 static VOID
 PvfsCancelOplockRequestIrp(
@@ -191,6 +296,7 @@ PvfsOplockGrant(
     PPVFS_CCB_LIST_NODE pCursor = NULL;
     PPVFS_FCB pFcb = NULL;
     BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN bFcbControlLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
 
@@ -247,7 +353,10 @@ PvfsOplockGrant(
     pNewOplock->pCcb = pCcb;
     pNewOplock->pIrpContext = pIrpContext;
 
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
     pCcb->pFcb->pOplockList = pNewOplock;
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
     pNewOplock = NULL;
 
     ntError = STATUS_SUCCESS;

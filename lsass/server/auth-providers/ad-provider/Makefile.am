@@ -72,7 +72,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
-	$(PROVIDER_LDFLAGS)
+	$(PROVIDER_LDFLAGS) \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \

@@ -81,7 +81,7 @@ LWMsgTypeSpec gLsaGroupInfo1Spec[] =
     LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_INFO_1, ppszMembers),
     LWMSG_PSTR,
     LWMSG_POINTER_END,
-    LWMSG_ATTR_STRING,
+    LWMSG_ATTR_ZERO_TERMINATED,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -262,6 +262,18 @@ static LWMsgTypeSpec gLsaNssArtefactInfoListSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCDataBlobSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_DATA_BLOB),
+    LWMSG_MEMBER_UINT32(LSA_DATA_BLOB, dwLen),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_DATA_BLOB, pData),
+    LWMSG_UINT8(BYTE),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_DATA_BLOB, dwLen),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_USER_MOD_INFO),
@@ -276,9 +288,17 @@ static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
     LWMSG_MEMBER_INT8(struct _usermod_actions, bAddToGroups),
     LWMSG_MEMBER_INT8(struct _usermod_actions, bRemoveFromGroups),
     LWMSG_MEMBER_INT8(struct _usermod_actions, bSetAccountExpiryDate),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetNtPasswordHash),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetLmPasswordHash),
     LWMSG_STRUCT_END,
     LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszAddToGroups),
     LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszRemoveFromGroups),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pNtPasswordHash),
+    LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
+    LWMSG_POINTER_END,
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pLmPasswordHash),
+    LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -761,7 +781,7 @@ static LWMsgTypeSpec gLsaIPCFindNamesBySidListReqSpec[] =
     LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ, ppszSidList),
     LWMSG_PSTR,
     LWMSG_POINTER_END,
-    LWMSG_ATTR_STRING,
+    LWMSG_ATTR_ZERO_TERMINATED,
     LWMSG_ATTR_LENGTH_MEMBER(LSA_IPC_NAMES_BY_SIDS_REQ, sCount),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -852,18 +872,6 @@ static LWMsgTypeSpec gLsaIPCSetTraceinfoReqSpec[] =
     LWMSG_TYPESPEC(gLsaTraceinfoSpec),
     LWMSG_POINTER_END,
     LWMSG_ATTR_LENGTH_MEMBER(LSA_IPC_SET_TRACE_INFO_REQ, dwNumFlags),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCDataBlobSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_DATA_BLOB),
-    LWMSG_MEMBER_UINT32(LSA_DATA_BLOB, dwLen),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_DATA_BLOB, pData),
-    LWMSG_UINT8(BYTE),
-    LWMSG_POINTER_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_DATA_BLOB, dwLen),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
