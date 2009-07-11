@@ -51,8 +51,8 @@
 #include <srvsvc/types.h>
 #include <lwio/lwio.h>
 
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_ip_tcp"
-#define SRVSVC_DEFAULT_ENDPOINT   ""
+#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
+#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
 
 
 RPCSTATUS
