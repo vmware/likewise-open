@@ -249,9 +249,7 @@ PvfsCreateFileSupersede(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
 
     switch (ntError)
     {
@@ -430,9 +428,7 @@ PvfsCreateFileOpenOrOverwrite(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
 
     switch (ntError)
     {
@@ -559,9 +555,7 @@ PvfsCreateFileOpenOrOverwriteIf(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
 
     switch (ntError)
     {

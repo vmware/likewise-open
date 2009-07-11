@@ -76,6 +76,10 @@ main(
     {
         ntError = CopyFileFromPvfs(argc-2, argv+2);
     }
+    else if (strcmp(argv[1], "-O") == 0)
+    {
+        ntError = RequestOplock(argc-2, argv+2);
+    }
     else if (strcmp(argv[1], "-S") == 0)
     {
         ntError = StatRemoteFile(argv[2]);
@@ -135,9 +139,10 @@ PrintUsage(
     fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
     fprintf(stderr, "    -S <path>         Stat a Pvfs path (directory or file)\n");
     fprintf(stderr, "    -l <dir>          List the files in a directory\n");
-    fprintf(stderr, "    -F <file> <size>   Set the end-of-file\n");
+    fprintf(stderr, "    -F <file> <size>  Set the end-of-file\n");
     fprintf(stderr, "    -D <path>         Delete a file or directory using delete-on-close\n");
-    fprintf(stderr, "    -L <path>         Locking Tests\n");
+    fprintf(stderr, "    -L <filename>     Locking Tests\n");
+    fprintf(stderr, "    -O <filename>     Oplock Test\n");
 
 
     fprintf(stderr, "\n");
@@ -777,6 +782,95 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+RequestOplock(
+    int argc,
+    char *argv[]
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSTR pszFilename = NULL;
+    IO_FILE_NAME Filename = {0};
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
+    IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER OplockInput = {0};
+
+    if (argc != 1)
+    {
+        fprintf(stderr, "Missing parameter. Requires <file>\n");
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pszFilename = argv[0];
+
+    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName, pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Open the remote source file */
+
+    ntError = NtCreateFile(
+                  &hFile,
+                  NULL,
+                  &StatusBlock,
+                  &Filename,
+                  NULL,
+                  NULL,
+                  GENERIC_READ,
+                  0,
+                  FILE_ATTRIBUTE_NORMAL,
+                  FILE_SHARE_READ,
+                  FILE_OPEN,
+                  FILE_NON_DIRECTORY_FILE,
+                  NULL,
+                  0,
+                  NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    OplockInput.OplockRequestType = IO_OPLOCK_REQUEST_BATCH_OPLOCK;
+
+    ntError = NtFsControlFile(
+                  hFile,
+                  NULL,
+                  &StatusBlock,
+                  IO_FSCTL_OPLOCK_REQUEST,
+                  (PVOID)&OplockInput,
+                  sizeof(OplockInput),
+                  NULL,
+                  0);
+    BAIL_ON_NT_STATUS(ntError);
+
+    printf("Oplock broken!\n");
+
+    ntError = NtFsControlFile(
+                  hFile,
+                  NULL,
+                  &StatusBlock,
+                  IO_FSCTL_OPLOCK_BREAK_ACK,
+                  NULL, 0,
+                  NULL, 0);
+    sleep(5);
+
+
+
+cleanup:
+    RtlWC16StringFree(&Filename.FileName);
+
+    if (hFile) {
+        NtCloseFile(hFile);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*

@@ -101,6 +101,13 @@ LockTest(
     char *pszPath
     );
 
+NTSTATUS
+RequestOplock(
+    int argc,
+    char *argv[]
+    );
+
+
 #endif /* _TEST_PVFS_PROTOTYPES_H_ */
 
 

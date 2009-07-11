@@ -375,7 +375,6 @@ PvfsOplockBreakAck(
 
 NTSTATUS
 PvfsOplockBreakIfLocked(
-    IN PPVFS_CCB pCcb,
     IN PPVFS_FCB pFcb
     );
 

@@ -226,16 +226,25 @@ error:
 
 NTSTATUS
 PvfsOplockBreakIfLocked(
-    IN PPVFS_CCB pCcb,
     IN PPVFS_FCB pFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bCcbLocked = FALSE;
+    PPVFS_CCB pCcb = NULL;
 
     if (pFcb->pOplockList)
     {
         pIrpCtx = pFcb->pOplockList->pIrpContext;
+        pCcb = pFcb->pOplockList->pCcb;
+
+        LWIO_LOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
+
+        LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+        pCcb->bOplockBreakInProgress = TRUE;
+        LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
         /* TODO: Fill in the OuputBuffer with the BREAK_TO_XXX status */
         IoIrpComplete(pIrpCtx->pIrp);
@@ -243,7 +252,7 @@ PvfsOplockBreakIfLocked(
 
         PVFS_FREE(&pFcb->pOplockList);
 
-        pCcb->bOplockBreakInProgress = TRUE;
+        LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->ControlBlock);
 
         ntError = STATUS_PENDING;
     }
@@ -287,6 +296,7 @@ PvfsOplockGrant(
     PPVFS_CCB_LIST_NODE pCursor = NULL;
     PPVFS_FCB pFcb = NULL;
     BOOLEAN bFcbReadLocked = FALSE;
+    BOOLEAN bFcbControlLocked = FALSE;
 
     BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
 
@@ -343,7 +353,10 @@ PvfsOplockGrant(
     pNewOplock->pCcb = pCcb;
     pNewOplock->pIrpContext = pIrpContext;
 
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
     pCcb->pFcb->pOplockList = pNewOplock;
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
     pNewOplock = NULL;
 
     ntError = STATUS_SUCCESS;
