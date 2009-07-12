@@ -122,7 +122,7 @@ SrvBuildNegotiateResponse_SMB_V2(
     pNegotiateHeader = (PSMB2_NEGOTIATE_HEADER)pOutBuffer;
 
     ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_HEADER);
-    ulBytesUsed      += sizeof(SMB2_NEGOTIATE_HEADER);
+    ulBytesUsed      = sizeof(SMB2_NEGOTIATE_HEADER);
     pOutBuffer += sizeof(SMB2_NEGOTIATE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_HEADER);
     ulOffset += sizeof(SMB2_NEGOTIATE_HEADER);
@@ -208,7 +208,7 @@ SrvBuildNegotiateResponse_SMB_V2(
     pNegotiateHeader->usLength = ulBytesUsed + 1; /* add one for dynamic part */
 
     ulTotalBytesUsed += ulSessionKeyLength;
-    ulBytesUsed += ulSessionKeyLength;
+    // ulBytesUsed += ulSessionKeyLength;
 
     pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
