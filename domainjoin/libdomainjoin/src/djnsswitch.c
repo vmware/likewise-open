@@ -1179,72 +1179,66 @@ static QueryResult QueryNsswitch(const JoinProcessOptions *options, LWException 
     QueryResult result = FullyConfigured;
     BOOLEAN configured;
     BOOLEAN exists;
-    BOOLEAN hasApparmor;
     BOOLEAN hasBadSeLinux;
     NsswitchConf conf;
     CENTERROR ceError = CENTERROR_SUCCESS;
 
     memset(&conf, 0, sizeof(conf));
 
-    ceError = ReadNsswitchConf(&conf, NULL, FALSE);
-    if(ceError == CENTERROR_INVALID_FILENAME)
+    if (options->joiningDomain)
     {
-        ceError = CENTERROR_SUCCESS;
-        DJ_LOG_WARNING("Warning: Could not find nsswitch file");
-        goto cleanup;
-    }
-    LW_CLEANUP_CTERR(exc, ceError);
-
-    if(options->joiningDomain)
-    {
-        LW_TRY(exc, result = RemoveCompat(&conf, NULL, &LW_EXC));
-        if(result == CannotConfigure || result == NotConfigured)
-            goto cleanup;
-    }
-
-    LW_CLEANUP_CTERR(exc, UpdateNsswitchConf(&conf, options->joiningDomain));
-    if(conf.modified)
-    {
-        LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
-        if(hasBadSeLinux)
-            result = CannotConfigure;
-        else
-            result = NotConfigured;
-        goto cleanup;
-    }
-
-    LW_CLEANUP_CTERR(exc, DJHasMethodsCfg(&exists));
-    if(exists)
-    {
-        LW_CLEANUP_CTERR(exc, DJIsMethodsCfgConfigured(&configured));
-        if((configured != FALSE) != (options->joiningDomain != FALSE))
+        ceError = ReadNsswitchConf(&conf, NULL, FALSE);
+        if(ceError == CENTERROR_INVALID_FILENAME)
         {
-            result = NotConfigured;
+            ceError = CENTERROR_SUCCESS;
+            DJ_LOG_WARNING("Warning: Could not find nsswitch file");
             goto cleanup;
         }
-    }
+        LW_CLEANUP_CTERR(exc, ceError);
 
-    LW_CLEANUP_CTERR(exc, IsApparmorConfigured(&configured));
-    LW_CLEANUP_CTERR(exc, HasApparmor(&hasApparmor));
-    if(options->joiningDomain)
-    {
+        LW_TRY(exc, result = RemoveCompat(&conf, NULL, &LW_EXC));
+        if(result == CannotConfigure || result == NotConfigured)
+        {
+            goto cleanup;
+        }
+
+        LW_CLEANUP_CTERR(exc, UpdateNsswitchConf(&conf, TRUE));
+        if(conf.modified)
+        {
+            LW_CLEANUP_CTERR(exc, UnsuportedSeLinuxEnabled(&hasBadSeLinux));
+            if(hasBadSeLinux)
+                result = CannotConfigure;
+            else
+                result = NotConfigured;
+            goto cleanup;
+        }
+
+        LW_CLEANUP_CTERR(exc, DJHasMethodsCfg(&exists));
+
+        if(exists)
+        {
+            LW_CLEANUP_CTERR(exc, DJIsMethodsCfgConfigured(&configured));
+
+            if(!configured)
+            {
+                result = NotConfigured;
+                goto cleanup;
+            }
+        }
+
+        LW_CLEANUP_CTERR(exc, IsApparmorConfigured(&configured));
+
         if(!configured)
         {
             result = NotConfigured;
             goto cleanup;
         }
     }
-    else
-    {
-        if(hasApparmor && configured)
-        {
-            result = SufficientlyConfigured;
-            goto cleanup;
-        }
-    }
 
 cleanup:
+
     FreeNsswitchConfContents(&conf);
+
     return result;
 }
 
@@ -1365,7 +1359,15 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
 
     LW_TRY(exc, RestartDtloginIfRunning(options, &LW_EXC));
 
+    options->warningCallback(options,
+                             "System restart required",
+                             "Your system has been configured to authenticate to "
+                             "Active Directory for the first time.  It is recommended "
+                             "that you restart your system to ensure that all applications "
+                             "recognize the new settings.");
+
 cleanup:
+
     FreeNsswitchConfContents(&conf);
 }
 

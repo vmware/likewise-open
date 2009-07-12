@@ -236,6 +236,39 @@ AC_SUBST(EVENTLOG_INCLUDES)
 AC_SUBST(EVENTLOG_LDFLAGS)
 AC_SUBST(EVENTLOG_LIBS)
 
+# lsass
+
+AC_ARG_WITH([lsass],
+        [AC_HELP_STRING([--with-lsass=<dir>], [use lsass located in prefix <dir>])],
+        [
+		LSASS_INCLUDES="-I$withval/include"
+                LSASS_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([lsass-includes],
+        [AC_HELP_STRING([--with-lsass-includes=<dir>], [use lsass includes located in <dir>])],
+        [
+		LSASS_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([lsass-libs],
+        [AC_HELP_STRING([--with-lsass-libs=<dir>], [use lsass libs located in <dir>])],
+        [
+		LSASS_LDFLAGS="-L$withval"
+        ])
+
+AC_SUBST(LSASS_INCLUDES)
+AC_SUBST(LSASS_LDFLAGS)
+
+# minimal
+
+AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal domain join])])
+AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
+if test x"$enable_minimal" = x"yes"
+then
+        AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal domain join])
+fi
+
 
 AC_CHECK_LIB(iconv, iconv)
 
@@ -287,28 +320,28 @@ AC_SUBST(LIBUNISTR_LDFLAGS)
 AC_SUBST(LIBUNISTR_LIBS)
 
 PSTORE_LIBS=""
-AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi -llwps-utils"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS -llwps-utils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(PSTORE_INCLUDE)
 AC_SUBST(PSTORE_LDFLAGS)
 AC_SUBST(PSTORE_LIBS)
 
 NETLOGON_LIBS=""
-AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi -llwnetipc -llwnetutils"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS -llwnetipc -llwnetutils $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(NETLOGON_INCLUDE)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
 
 DCERPC_LIBS=""
-AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc -ldcethread"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS -ldcethread $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(DCERPC_INCLUDE)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
 LIBRPC_LIBS=""
-AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi -lmsrpc -lsamr -llsa -lmpr"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS -lmsrpc -lsamr -llsa -lmpr $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
 
 AC_SUBST(LIBRPC_INCLUDE)
 AC_SUBST(LIBRPC_LDFLAGS)
@@ -320,6 +353,10 @@ AC_CHECK_LIB([lwdns], [DNSUpdateSecure], [LWDNS_LIBS="-llwdns"], AC_MSG_ERROR([U
 AC_SUBST(LWDNS_INCLUDE)
 AC_SUBST(LWDNS_LDFLAGS)
 AC_SUBST(LWDNS_LIBS)
+
+AC_CHECK_LIB([lsaclient], [LsaOpenServer], [LSASS_LIBS="-llsaclient"])
+AC_CHECK_LIB([lsajoin], [LsaNetJoinDomain], [LSASS_LIBS="-llsajoin"])
+AC_SUBST(LSASS_LIBS)
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -fPIC"
 LIBVER_MAJOR=1

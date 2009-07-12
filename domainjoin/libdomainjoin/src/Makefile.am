@@ -1,5 +1,15 @@
 ACLOCAL_AMFLAGS = -I m4
 
+if ENABLE_MINIMAL
+ADDITIONAL_CFLAGS = "-DMINIMAL_JOIN=1"
+ADDITIONAL_LIBS =
+else
+ADDITIONAL_CFLAGS =
+ADDITIONAL_LIBS = \
+	@EVENTLOG_LDFLAGS@ \
+	@EVENTLOG_LIBS@
+endif
+
 AM_CFLAGS = $(CPPFLAGS) -Wall -Werror-implicit-function-declaration
 
 AM_CFLAGS += -I$(top_srcdir)/include  \
@@ -9,7 +19,9 @@ AM_CFLAGS += -I$(top_srcdir)/include  \
           @NETLOGON_INCLUDE@     \
           @LWDNS_INCLUDE@        \
           @EVENTLOG_INCLUDES@     \
-          $(LWI_OS_FLAGS)
+          $(LSASS_INCLUDES)     \
+          $(LWI_OS_FLAGS)        \
+          $(ADDITIONAL_CFLAGS)
 
 SCRIPTDIR = $(bindir)
 AM_CPPFLAGS = -DSCRIPTDIR=\"$(SCRIPTDIR)\" -DLIBDIR=\"$(libdir)\" -DSYSCONFDIR=\"$(sysconfdir)\" -DDYNLIBEXT=\"$(DYNLIBEXT)\" $(LWI_OS_FLAGS)
@@ -24,8 +36,9 @@ libdomainjoin_la_LIBADD = \
 	$(LIBXML2_LDFLAGS) \
 	$(LIBXML2_LIBS) \
 	$(LWDNS_LIBS)   \
-	$(EVENTLOG_LDFLAGS) \
-	$(EVENTLOG_LIBS) \
+	$(ADDITIONAL_LIBS) \
+	$(LSASS_LDFLAGS) \
+	$(LSASS_LIBS) \
         @LIB_XNET@
 
 libdomainjoin_la_SOURCES = \

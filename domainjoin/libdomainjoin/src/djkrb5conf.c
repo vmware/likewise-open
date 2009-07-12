@@ -866,6 +866,7 @@ GatherDomainMappings(
     GCE(ceError = CTArrayAppend(mappings, sizeof(add), &add, 1));
     memset(&add, 0, sizeof(add));
 
+#if !defined(MINIMAL_JOIN)
     //This command requires that the computer is joined to the domain, but
     //the auth daemon does not need to be running
     ceError = CTShell("%prefix/bin/lwinet ads trusts >%output 2>&1",
@@ -988,6 +989,7 @@ GatherDomainMappings(
     }
     else
         GCE(ceError);
+#endif
 
 cleanup:
     CT_SAFE_FREE_STRING(commandOutput);

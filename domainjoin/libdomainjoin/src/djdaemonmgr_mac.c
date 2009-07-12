@@ -243,6 +243,10 @@ DJGetDaemonStatus(
         pszDaemonPath = "com.likewisesoftware.gpagentd";
     else if (!strcmp(pszDaemonPath, "lwmgmtd"))
         pszDaemonPath = "com.likewisesoftware.lwmgmtd";
+    else if (!strcmp(pszDaemonPath, "eventfwdd"))
+        pszDaemonPath = "com.likewisesoftware.eventfwdd";
+    else if (!strcmp(pszDaemonPath, "reapsysld"))
+        pszDaemonPath = "com.likewisesoftware.reapsysld";
 
     /* Find the .plist file for the daemon */
     ceError = DJDaemonLabelToConfigFile(&configFile, "/Library/LaunchDaemons", pszDaemonPath);
@@ -718,6 +722,10 @@ DJManageDaemon(
         pszDaemonPath = "com.likewisesoftware.lwmgmtd";
     else if (!strcmp(pszName, "srvsvcd"))
         pszDaemonPath = "com.likewisesoftware.srvsvcd";
+    else if (!strcmp(pszName, "eventfwdd"))
+        pszDaemonPath = "com.likewisesoftware.eventfwdd";
+    else if (!strcmp(pszName, "reapsysld"))
+        pszDaemonPath = "com.likewisesoftware.reapsysld";
     else
         pszDaemonPath = pszName;
 
@@ -799,6 +807,8 @@ struct _DaemonList daemonList[] = {
     { "com.likewisesoftware.lsassd", {NULL}, TRUE, 92, 10 },
     { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 94, 9 },
     { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 95, 8 },
+    //{ "com.likewisesoftware.eventfwdd", {NULL}, FALSE, 96, 7 },
+    //{ "com.likewisesoftware.reapsysld", {NULL}, FALSE, 97, 6 },
     { NULL, {NULL}, FALSE, 0, 0 },
 };
 
