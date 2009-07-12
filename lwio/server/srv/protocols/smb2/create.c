@@ -323,6 +323,7 @@ SrvBuildCreateResponse_SMB_V2(
                     pSmbRequest->pHeader->ullSessionId,
                     STATUS_SUCCESS,
                     TRUE,
+                    NULL,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 

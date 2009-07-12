@@ -103,6 +103,7 @@ SrvProcessTreeDisconnect_SMB_V2(
                     pSession->ullUid,
                     STATUS_SUCCESS,
                     TRUE,
+                    NULL,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 

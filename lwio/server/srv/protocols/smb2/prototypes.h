@@ -188,19 +188,20 @@ SMB2InitPacket(
 
 NTSTATUS
 SMB2MarshalHeader(
-    IN OUT PBYTE       pBuffer,
-    IN     ULONG       ulOffset,
-    IN     ULONG       ulBytesAvailable,
-    IN     USHORT      usCommand,
-    IN     USHORT      usEpoch,
-    IN     USHORT      usCredits,
-    IN     ULONG       ulPid,
-    IN     ULONG64     ullMid,
-    IN     ULONG       ulTid,
-    IN     ULONG64     ullSessionId,
-    IN     NTSTATUS    status,
-    IN     BOOLEAN     bIsResponse,
-    IN OUT PULONG      pulBytesUsed
+    IN OUT          PBYTE         pBuffer,
+    IN              ULONG         ulOffset,
+    IN              ULONG         ulBytesAvailable,
+    IN              USHORT        usCommand,
+    IN              USHORT        usEpoch,
+    IN              USHORT        usCredits,
+    IN              ULONG         ulPid,
+    IN              ULONG64       ullMid,
+    IN              ULONG         ulTid,
+    IN              ULONG64       ullSessionId,
+    IN              NTSTATUS      status,
+    IN              BOOLEAN       bIsResponse,
+    IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
+    IN OUT          PULONG        pulBytesUsed
     );
 
 NTSTATUS

@@ -56,6 +56,7 @@ SrvProcessSessionSetup_SMB_V2(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_HEADER                       pSMB2Header = NULL; // Do not free
     PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
     PBYTE       pSecurityBlob = NULL; // Do not free
     ULONG       ulSecurityBlobLen = 0;
@@ -99,6 +100,7 @@ SrvProcessSessionSetup_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
+                    &pSMB2Header,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -110,7 +112,7 @@ SrvProcessSessionSetup_SMB_V2(
     if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
                                    pConnection->hGssNegotiate))
     {
-        pSmbResponse->pSMB2Header->error = STATUS_MORE_PROCESSING_REQUIRED;
+        pSMB2Header->error = STATUS_MORE_PROCESSING_REQUIRED;
     }
     else
     {
@@ -151,7 +153,7 @@ SrvProcessSessionSetup_SMB_V2(
                        &uniUsername);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pSmbResponse->pSMB2Header->ullSessionId = pSession->ullUid;
+        pSMB2Header->ullSessionId = pSession->ullUid;
 
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }

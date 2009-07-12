@@ -88,19 +88,20 @@ error:
 
 NTSTATUS
 SMB2MarshalHeader(
-    PBYTE       pBuffer,
-    ULONG       ulOffset,
-    ULONG       ulBytesAvailable,
-    USHORT      usCommand,
-    USHORT      usEpoch,
-    USHORT      usCredits,
-    ULONG       ulPid,
-    ULONG64     ullMid,
-    ULONG       ulTid,
-    ULONG64     ullSessionId,
-    NTSTATUS    status,
-    BOOLEAN     bIsResponse,
-    PULONG      pulBytesUsed
+    IN OUT          PBYTE         pBuffer,
+    IN              ULONG         ulOffset,
+    IN              ULONG         ulBytesAvailable,
+    IN              USHORT        usCommand,
+    IN              USHORT        usEpoch,
+    IN              USHORT        usCredits,
+    IN              ULONG         ulPid,
+    IN              ULONG64       ullMid,
+    IN              ULONG         ulTid,
+    IN              ULONG64       ullSessionId,
+    IN              NTSTATUS      status,
+    IN              BOOLEAN       bIsResponse,
+    IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
+    IN OUT          PULONG        pulBytesUsed
     )
 {
     NTSTATUS        ntStatus = STATUS_SUCCESS;
@@ -139,6 +140,10 @@ SMB2MarshalHeader(
     }
 
     *pulBytesUsed = ulBytesUsed;
+    if (ppSMB2Header)
+    {
+        *ppSMB2Header = pSMB2Header;
+    }
 
 cleanup:
 
@@ -147,6 +152,10 @@ cleanup:
 error:
 
     *pulBytesUsed = 0;
+    if (ppSMB2Header)
+    {
+        *ppSMB2Header = NULL;
+    }
 
     if (ulBytesUsed)
     {
