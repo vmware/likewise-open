@@ -108,6 +108,7 @@ CreateException(
 	if (!exc)
 	    return &memExc;
 	exc->code = code;
+        exc->subcode = 0;
 	exc->stack.file = file;
 	exc->stack.line = line;
 	exc->stack.down = NULL;
