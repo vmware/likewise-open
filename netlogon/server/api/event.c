@@ -47,6 +47,45 @@
  */
 #include "includes.h"
 
+static HANDLE ghEventLogItf = NULL;
+static pthread_rwlock_t ghEventLogItf_rwlock;
+
+#define ENTER_EVENTLOG_READER_LOCK(bInLock) \
+    do { \
+        if (!bInLock) \
+        { \
+            pthread_rwlock_rdlock(&ghEventLogItf_rwlock); \
+            bInLock = TRUE; \
+        } \
+    } while (0)
+
+#define LEAVE_EVENTLOG_READER_LOCK(bReleaseLock) \
+    do { \
+        if (bReleaseLock) \
+        { \
+            pthread_rwlock_unlock(&ghEventLogItf_rwlock); \
+            bReleaseLock = FALSE; \
+        } \
+    } while (0)
+
+#define ENTER_EVENTLOG_WRITER_LOCK(bInLock) \
+    do { \
+        if (!bInLock) \
+        { \
+            pthread_rwlock_wrlock(&ghEventLogItf_rwlock); \
+            bInLock = TRUE; \
+        } \
+    } while (0)
+
+#define LEAVE_EVENTLOG_WRITER_LOCK(bReleaseLock) \
+    do { \
+        if (bReleaseLock) \
+        { \
+            pthread_rwlock_unlock(&ghEventLogItf_rwlock); \
+            bReleaseLock = FALSE;                         \
+        } \
+    } while (0)
+
 #define SUCCESS_AUDIT_EVENT_TYPE    "Success Audit"
 #define FAILURE_AUDIT_EVENT_TYPE    "Failure Audit"
 #define INFORMATION_EVENT_TYPE      "Information"
@@ -68,6 +107,8 @@ LWNetSrvInitEventlogInterface(
     BOOLEAN bExists = FALSE;
     PEVENTAPIFUNCTIONTABLE  pFuncTable = NULL;
     BOOLEAN bInLock = FALSE;
+
+    pthread_rwlock_init(&ghEventLogItf_rwlock, NULL);
     
     ENTER_EVENTLOG_WRITER_LOCK(bInLock);
     

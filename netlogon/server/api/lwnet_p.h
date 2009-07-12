@@ -49,8 +49,6 @@
 #ifndef __LWNET_P_H__
 #define __LWNET_P_H__
 
-#include "lwnet-ldap.h"
-
 typedef struct _PACKED_ARRAY
 {
     BYTE *pStart;
@@ -149,15 +147,6 @@ LWNetBuildDCInfo(
     );
 
 DWORD
-LWNetGetLDAPOctetString(
-    IN HANDLE hDirectory,
-    IN LDAPMessage* pMessage,
-    IN PCSTR pszFieldName,
-    OUT PBYTE* ppValue,
-    OUT PDWORD pdwValueSize
-    );
-
-DWORD
 LWNetReadLEDword(
     OUT PDWORD pdwDest,
     IN PACKED_ARRAY* pArray
@@ -182,7 +171,16 @@ LWNetReadString(
     );
 
 DWORD
-LWNetGetPreferredDCList(
+LWNetInitializePlugin(
+    IN PCSTR pszPath
+    );
+
+VOID
+LWNetCleanupPlugin(
+    );
+
+DWORD
+LWNetGetPreferredDcList(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
     IN DWORD dwDsFlags,

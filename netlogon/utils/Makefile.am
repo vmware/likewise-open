@@ -1,5 +1,4 @@
-
-lib_LTLIBRARIES=liblwnetutils.la
+noinst_LTLIBRARIES=liblwnetutils.la
 
 liblwnetutils_la_SOURCES = \
         globals.c           \

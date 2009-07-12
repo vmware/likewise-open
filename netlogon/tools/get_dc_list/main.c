@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -39,9 +39,9 @@
  *
  *        Likewise Site Manager
  *
- *        Client Test Program - LWNetGetDcName
+ *        Client Test Program - LWNetGetDCList
  *
- * Authors: Brian Dunstan (bdunstan@likewisesoftware.com)
+ * Authors: Danilo ALmeida (dalmeida@likewise.com)
  *
  */
 #include "config.h"
@@ -54,11 +54,11 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-get-dc-name <target domain FQDN> [--site <site name>]\n");
+    printf("Usage: lw-get-dc-list <target domain FQDN> [--site <site name>]\n");
     printf("        [--force] [--ds-required] [--gc-required]\n");
     printf("        [--pdc-required] [--background-only] [--kdc-required]\n");
     printf("        [--timeserv-required] [--writeable-required] [--good-timeserv-required]\n");
-    printf("        [--avoid-self]\n\n"); 
+    printf("        [--avoid-self]\n\n");
 }
 
 DWORD
@@ -69,7 +69,7 @@ AddFlag(
 {
     DWORD dwError = 0;
     DWORD dwFlags = *pdwFlags;
-    
+
     if(dwFlags & dwFlag)
     {
         printf("Duplicate flag entered: [0x%.8X]\n", dwFlag);
@@ -81,15 +81,15 @@ AddFlag(
         dwError = LWNET_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LWNET_ERROR(dwError);
-    
+
     dwFlags |= dwFlag;
-    
+
     *pdwFlags = dwFlags;
-    
-    
+
+
 error:
     return dwError;
-    
+
 }
 
 DWORD
@@ -121,11 +121,11 @@ ParseArgs(
         {
             break;
         }
-        
+
         switch (parseMode)
         {
             case PARSE_MODE_OPEN:
-        
+
                 if ((strcmp(pszArg, "--help") == 0) ||
                     (strcmp(pszArg, "-h") == 0))
                 {
@@ -136,7 +136,7 @@ ParseArgs(
                 {
                     dwError = LWNetAllocateString(pszArg, &pszTargetFQDN);
                     BAIL_ON_LWNET_ERROR(dwError);
-        
+
                     parseMode = PARSE_MODE_OPTIONS;
                 }
                 break;
@@ -196,7 +196,7 @@ ParseArgs(
                     dwError = AddFlag(DS_AVOID_SELF, &dwFlags);
                     BAIL_ON_LWNET_ERROR(dwError);
                 }
-                else 
+                else
                 {
                     LWNET_LOG_ERROR("Invalid argument: %s", pszArg);
                     dwError = LWNET_ERROR_INVALID_PARAMETER;
@@ -204,30 +204,30 @@ ParseArgs(
                 }
                 break;
             case PARSE_MODE_SITENAME:
-                
+
                 if(!IsNullOrEmptyString(pszSiteName))
                 {
                     LWNET_LOG_ERROR("Invalid argument: %s", pszArg);
                     dwError = LWNET_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LWNET_ERROR(dwError);
                 }
-                
+
                 dwError = LWNetAllocateString(pszArg, &pszSiteName);
                 BAIL_ON_LWNET_ERROR(dwError);
-                
+
                 parseMode = PARSE_MODE_OPTIONS;
                 break;
         }
-        
+
     } while (iArg < argc);
 
-    
+
     if(IsNullOrEmptyString(pszTargetFQDN))
     {
         ShowUsage();
         exit(0);
     }
-    
+
 error:
     if (dwError)
     {
@@ -245,7 +245,7 @@ error:
 
 void
 safePrintString(
-    PSTR pszStringName, 
+    PSTR pszStringName,
     PSTR pszStringValue
     )
 {
@@ -277,12 +277,12 @@ main(
 
     PSTR pszTargetFQDN = NULL;
     PSTR pszSiteName = NULL;
-    PLWNET_DC_INFO pDCInfo = NULL;
     DWORD dwFlags = 0;
     CHAR szErrorBuf[1024];
-    
+    PLWNET_DC_ADDRESS pDcList = NULL;
+    DWORD dwDcCount = 0;
     INT i = 0;
-    
+
     dwError = ParseArgs(
                 argc,
                 argv,
@@ -294,47 +294,23 @@ main(
 
     lwnet_init_logging_to_file(LOG_LEVEL_VERBOSE, TRUE, "");
 
-    dwError = LWNetGetDCName(
-                NULL,
+    dwError = LWNetGetDCList(
                 pszTargetFQDN,
                 pszSiteName,
                 dwFlags,
-                &pDCInfo
-                );
-    BAIL_ON_LWNET_ERROR(dwError); 
+                &pDcList,
+                &dwDcCount);
+    BAIL_ON_LWNET_ERROR(dwError);
 
-    printf("Printing LWNET_DC_INFO fields:\n");
-    printf("===============================\n");
-    if(pDCInfo == NULL)
+    printf("Got %u DCs:\n"
+           "===========\n",
+           dwDcCount);
+    for (i = 0; i < dwDcCount; i++)
     {
-        printf("<NULL>");
-    }
-    else
-    {
-        printf("dwDomainControllerAddressType = %u\n", pDCInfo->dwDomainControllerAddressType); 
-        printf("dwFlags = %u\n", pDCInfo->dwFlags); 
-        printf("dwVersion = %u\n", pDCInfo->dwVersion);       
-        printf("wLMToken = %u\n", pDCInfo->wLMToken);  
-        printf("wNTToken = %u\n", pDCInfo->wNTToken);
-        
-        safePrintString("pszDomainControllerName", pDCInfo->pszDomainControllerName);
-        safePrintString("pszDomainControllerAddress", pDCInfo->pszDomainControllerAddress);
-        
-        printf("pucDomainGUID(hex) = ");
-        for(i = 0; i < LWNET_GUID_SIZE; i++)
-        {
-            printf("%.2X ", pDCInfo->pucDomainGUID[i]);
-        }
-        printf("\n");
-        
-        safePrintString("pszNetBIOSDomainName", pDCInfo->pszNetBIOSDomainName);    
-        safePrintString("pszFullyQualifiedDomainName", pDCInfo->pszFullyQualifiedDomainName);     
-        safePrintString("pszDnsForestName", pDCInfo->pszDnsForestName);       
-        safePrintString("pszDCSiteName", pDCInfo->pszDCSiteName);      
-        safePrintString("pszClientSiteName", pDCInfo->pszClientSiteName); 
-        safePrintString("pszNetBIOSHostName", pDCInfo->pszNetBIOSHostName);   
-        safePrintString("pszUserName", pDCInfo->pszUserName);     
-        
+        printf("DC %u: Name = '%s', Address = '%s'\n",
+               i + 1,
+               pDcList[i].pszDomainControllerName,
+               pDcList[i].pszDomainControllerAddress);
     }
 
 error:
@@ -343,7 +319,10 @@ error:
         LWNetGetErrorString(dwError, szErrorBuf, 1024);
         LWNET_LOG_ERROR("Error: [%s] [code=%u]", szErrorBuf, dwError);
     }
-    LWNET_SAFE_FREE_DC_INFO(pDCInfo);
+    if (pDcList)
+    {
+        LWNetFreeDCList(pDcList, dwDcCount);
+    }
     LWNET_SAFE_FREE_STRING(pszTargetFQDN);
     LWNET_SAFE_FREE_STRING(pszSiteName);
     return dwError;

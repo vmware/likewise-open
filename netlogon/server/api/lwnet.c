@@ -73,28 +73,36 @@ LWNetSrvPingCLdap(
                                         pszDnsDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCLdapOpenDirectory(pszAddress, &hDirectory);
+    dwError = LwCLdapOpenDirectory(pszAddress, &hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetLdapBindDirectoryAnonymous(hDirectory);
+    dwError = LwLdapBindDirectoryAnonymous(hDirectory);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetGetSystemTimeInMs(&startTime);
     BAIL_ON_LWNET_ERROR(dwError);
 
     /* TODO: May need to do retries with shorter timeout if UDP does not retry */
-    dwError = LWNetLdapDirectorySearchEx(hDirectory, "", LDAP_SCOPE_BASE,
-                                         pszQuery, szAttributeList, 0,
-                                         &pMessage);
+    dwError = LwLdapDirectorySearchEx(
+                    hDirectory,
+                    "",
+                    LDAP_SCOPE_BASE,
+                    pszQuery,
+                    szAttributeList,
+                    NULL,
+                    0,
+                    &pMessage);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetGetSystemTimeInMs(&stopTime);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetGetLDAPOctetString(hDirectory, pMessage,
-                                      NETLOGON_LDAP_ATTRIBUTE_NAME,
-                                      &pNetlogonAttributeValue,
-                                      &dwNetlogonAttributeSize);
+    dwError = LwLdapGetBytes(
+                    hDirectory,
+                    pMessage,
+                    NETLOGON_LDAP_ATTRIBUTE_NAME,
+                    &pNetlogonAttributeValue,
+                    &dwNetlogonAttributeSize);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetBuildDCInfo(pNetlogonAttributeValue,
@@ -119,7 +127,7 @@ error:
 
     if (hDirectory)
     {
-        LWNetLdapCloseDirectory(hDirectory);
+        LwLdapCloseDirectory(hDirectory);
     }
 
     LWNET_SAFE_FREE_MEMORY(pNetlogonAttributeValue);
@@ -588,7 +596,7 @@ LWNetSrvGetDCNameDiscover(
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
-                  &LWNetGetPreferredDCList,
+                  LWNetGetPreferredDcList,
                   ppDcInfo,
                   ppServerArray,
                   pdwServerCount);
@@ -605,7 +613,7 @@ LWNetSrvGetDCNameDiscover(
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
-                  &LWNetDnsSrvQuery,
+                  LWNetDnsSrvQuery,
                   ppDcInfo,
                   ppServerArray,
                   pdwServerCount);
@@ -821,55 +829,6 @@ error:
     }
 
     *ppDCInfo = pDCInfo;
-
-    return dwError;
-}
-
-DWORD
-LWNetGetLDAPOctetString(
-    IN HANDLE hDirectory,
-    IN LDAPMessage* pMessage,
-    IN PCSTR pszFieldName,
-    OUT PBYTE* ppValue,
-    OUT PDWORD pdwValueSize
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PAD_DIRECTORY_CONTEXT pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
-    struct berval** pBerArray = NULL;
-    PBYTE pValue = NULL;
-    DWORD dwValueSize = 0;
-
-    /* TODO: Either we abstract the LDAP handle, or we don't. */
-    pBerArray = (struct berval **) ldap_get_values_len(pDirectory->ld,
-                                                       pMessage,
-                                                       pszFieldName);
-    if (!pBerArray || !pBerArray[0])
-    {
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwValueSize = pBerArray[0]->bv_len;
-
-    dwError = LWNetAllocateMemory(dwValueSize, (PVOID*)&pValue);
-    BAIL_ON_LWNET_ERROR(dwError);
-    
-    memcpy(pValue, pBerArray[0]->bv_val, dwValueSize);
-
-error:
-    if (pBerArray)
-    {
-        ldap_value_free_len(pBerArray);
-    }
-    if (dwError)
-    {
-        LWNET_SAFE_FREE_MEMORY(pValue);
-        dwValueSize = 0;
-    }
-
-    *ppValue = pValue;
-    *pdwValueSize = dwValueSize;
 
     return dwError;
 }

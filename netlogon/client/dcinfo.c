@@ -216,10 +216,68 @@ error:
 }
 
 LWNET_API
+LW_DWORD
+LWNetGetDCList(
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_IN LW_PCSTR pszSiteName,
+    LW_IN LW_DWORD dwFlags,
+    LW_OUT PLWNET_DC_ADDRESS* ppDcList,
+    LW_OUT LW_PDWORD pdwDcCount
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_DC_ADDRESS pDcList = NULL;
+    DWORD dwDcCount = 0;
+
+    PLWNET_DC_INFO pDCInfo = NULL;
+    HANDLE hServer = 0;
+
+    dwError = LWNetOpenServer(&hServer);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetTransactGetDCList(
+                    hServer,
+                    pszDomainFQDN,
+                    pszSiteName,
+                    dwFlags,
+                    &pDcList,
+                    &dwDcCount);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    *ppDcList = pDcList;
+    *pdwDcCount = dwDcCount;
+
+cleanup:
+
+    if (hServer)
+    {
+        DWORD dwErrorLocal = 0;
+        dwErrorLocal = LWNetCloseServer(hServer);
+        if (!dwError)
+        {
+            dwError = dwErrorLocal;
+        }
+    }
+
+    return dwError;
+
+error:
+    if (pDCInfo)
+    {
+        LWNetFreeDCList(pDcList, dwDcCount);
+    }
+
+    *ppDcList = NULL;
+    *pdwDcCount = 0;
+
+    goto cleanup;
+}
+
+LWNET_API
 DWORD
 LWNetGetDCTime(
     PCSTR pszDomainFQDN,
-    PUNIX_TIME_T pDCTime
+    PLWNET_UNIX_TIME_T pDCTime
     )
 {
     DWORD dwError = 0;

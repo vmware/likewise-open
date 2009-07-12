@@ -67,7 +67,7 @@ LWNetOpenServer(
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, LWNetIPCGetProtocolSpec()));
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(pContext->pProtocol, &pContext->pAssoc));
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
@@ -161,8 +161,8 @@ LWNetTransactGetDCName(
     LWNET_IPC_DCNAME_REQ dcReq;
     PLWNET_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcReq.pszServerFQDN = pszServerFQDN;
     dcReq.pszDomainFQDN = pszDomainFQDN;
@@ -215,10 +215,80 @@ error:
 }
 
 DWORD
+LWNetTransactGetDCList(
+    IN HANDLE hConnection,
+    IN PCSTR pszDomainFQDN,
+    IN PCSTR pszSiteName,
+    IN DWORD dwFlags,
+    OUT PLWNET_DC_ADDRESS* ppDcList,
+    OUT LW_PDWORD pdwDcCount
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    LWNET_IPC_DCNAME_REQ dcReq = { 0 };
+    PLWNET_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    dcReq.pszDomainFQDN = pszDomainFQDN;
+    dcReq.pszSiteName = pszSiteName;
+    dcReq.dwFlags = dwFlags;
+
+    request.tag = LWNET_Q_DCLIST;
+    request.object = &dcReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                                  pContext->pAssoc,
+                                  &request,
+                                  &response));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LWNET_R_DCLIST_SUCCESS:
+    {
+        PLWNET_IPC_DCLIST_RES pResult = (PLWNET_IPC_DCLIST_RES) response.object;
+        *ppDcList = pResult->pDcList;
+        pResult->pDcList = NULL;
+        *pdwDcCount = pResult->dwDcCount;
+        break;
+    }
+    case LWNET_R_DCLIST_FAILURE:
+        pError = (PLWNET_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LWNET_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+
+    *ppDcList = NULL;
+    *pdwDcCount = 0;
+
+    goto cleanup;
+
+}
+
+DWORD
 LWNetTransactGetDCTime(
     HANDLE hConnection,
     PCSTR pszDomainFQDN,
-    PUNIX_TIME_T pDCTime
+    PLWNET_UNIX_TIME_T pDCTime
     )
 {
     DWORD dwError = 0;
@@ -226,8 +296,8 @@ LWNetTransactGetDCTime(
                      (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
     PLWNET_IPC_ERROR pError = NULL;
     LWNET_IPC_DCTIME_REQ dcTimeReq;
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcTimeReq.pszDomainFQDN = pszDomainFQDN;
     request.tag = LWNET_Q_DCTIME;
@@ -281,8 +351,8 @@ LWNetTransactGetDomainController(
     PLWNET_IPC_ERROR pError = NULL;
     LWNET_IPC_DC_REQ dcReq;
     PLWNET_IPC_DC_RES dcRes = NULL;
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     dcReq.pszDomainFQDN = pszDomainFQDN;
     request.tag = LWNET_Q_DC;
@@ -338,8 +408,8 @@ LWNetTransactGetCurrentDomain(
     PLWNET_IPC_ERROR pError = NULL;
     PLWNET_IPC_CURRENT_RES pCurRes = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LWNET_Q_CURRENT_DOMAIN;
     request.object = NULL;

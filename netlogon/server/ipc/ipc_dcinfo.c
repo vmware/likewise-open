@@ -124,6 +124,63 @@ error:
     goto cleanup;
 }
 
+LWMsgStatus
+LWNetSrvIpcGetDCList(
+    LWMsgAssoc* assoc,
+    const LWMsgMessage* pRequest,
+    LWMsgMessage* pResponse,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLWNET_DC_ADDRESS pDcList = NULL;
+    DWORD dwDcCount = 0;
+    PLWNET_IPC_DCNAME_REQ pReq = pRequest->object;
+
+    dwError = LWNetSrvGetDCList(
+                    pReq->pszDomainFQDN,
+                    pReq->pszSiteName,
+                    pReq->dwFlags,
+                    &pDcList,
+                    &dwDcCount);
+    if (!dwError)
+    {
+        PLWNET_IPC_DCLIST_RES pRes = NULL;
+
+        dwError = LWNetAllocateMemory(sizeof(*pRes), (PVOID*)&pRes);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        pResponse->tag = LWNET_R_DCLIST_SUCCESS;
+        pResponse->object = pRes;
+        pRes->pDcList = pDcList;
+        pDcList = NULL;
+        pRes->dwDcCount = dwDcCount;
+    }
+    else
+    {
+        PLWNET_IPC_ERROR pError = NULL;
+
+        dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        pResponse->tag = LWNET_R_DCLIST_FAILURE;;
+        pResponse->object = pError;
+    }
+
+cleanup:
+
+    return MAP_LWNET_ERROR(dwError);
+
+error:
+
+    if (pDcList)
+    {
+        LWNetFreeDCList(pDcList, dwDcCount);
+    }
+
+    goto cleanup;
+}
+
 DWORD
 LWNetSrvIpcGetDCTime(
     LWMsgAssoc* assoc,

@@ -239,6 +239,10 @@ LWNetSrvParseArgs(
             pArg = argv[++iArg];
             strcpy(pLWNetServerInfo->szLogFilePath, pArg);
         }
+        else if (strcmp(pArg, "--syslog") == 0)
+        {
+            pLWNetServerInfo->bLogToSyslog = TRUE;
+        }
         else if (strcmp(pArg, "--loglevel") == 0)
         {
             if (iArg + 1 >= argc)
@@ -329,6 +333,7 @@ ShowUsage(
            "  Options:\n"
            "\n"
            "    --start-as-daemon         start in daemon mode\n"
+           "    --syslog                  log to syslog\n"
            "    --logfile <logFilePath>   log to specified file\n"
            "    --loglevel <logLevel>     log at the specified detail level, which\n"
            "                              can be one of:\n"
@@ -690,7 +695,9 @@ LWNetSrvInitLogging(
 
     LWNET_LOCK_SERVERINFO(bInLock);
 
-    if (gpServerInfo->dwStartAsDaemon && gpServerInfo->szLogFilePath[0] == '\0')
+    if ((gpServerInfo->dwStartAsDaemon &&
+            gpServerInfo->szLogFilePath[0] == '\0') ||
+            gpServerInfo->bLogToSyslog)
     {
       
       dwError = lwnet_init_logging_to_syslog(gpServerInfo->dwLogLevel,

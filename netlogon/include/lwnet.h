@@ -55,13 +55,14 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 
-#ifndef UNIX_TIME_T_DEFINED
+#ifndef LWNET_UNIX_TIME_T_DEFINED
 // This standardizes the time width to 64 bits.  This is useful for
 // writing to files and such w/o worrying about any different sized time_t.
 // It is seconds (or milliseconds, microseconds, nanoseconds) since
 // the "Unix epoch" (Jan 1, 1970).  Note that negative values represent
 // times before the "Unix epoch".
-typedef int64_t UNIX_TIME_T, *PUNIX_TIME_T;
+typedef LW_INT64 LWNET_UNIX_TIME_T, *PLWNET_UNIX_TIME_T;
+#define LWNET_UNIX_TIME_T_DEFINED
 #endif
 
 #endif
@@ -130,7 +131,7 @@ typedef int64_t UNIX_TIME_T, *PUNIX_TIME_T;
 #define LWNET_ERROR_PREFIX                 0xA000 // 40960
 #define LWNET_ERROR_MASK(_e_)             (_e_ & LWNET_ERROR_PREFIX)
 
-#define LWNET_KRB5_CONF_DIRNAME "/var/lib/likewise"
+#define LWNET_KRB5_CONF_DIRNAME LWNET_CACHE_DIR
 #define LWNET_KRB5_CONF_BASENAME "krb5-affinity.conf"
 #define LWNET_KRB5_CONF_PATH LWNET_KRB5_CONF_DIRNAME "/" LWNET_KRB5_CONF_BASENAME
 
@@ -233,90 +234,112 @@ typedef int64_t UNIX_TIME_T, *PUNIX_TIME_T;
 
 typedef struct _LWNET_DC_INFO
 {
-    DWORD dwPingTime;
-    DWORD dwDomainControllerAddressType;
-    DWORD dwFlags;
-    DWORD dwVersion;
-    WORD wLMToken;
-    WORD wNTToken;
-    PSTR pszDomainControllerName;
-    PSTR pszDomainControllerAddress;
-    UCHAR pucDomainGUID[LWNET_GUID_SIZE];
-    PSTR pszNetBIOSDomainName;
-    PSTR pszFullyQualifiedDomainName;
-    PSTR pszDnsForestName;
-    PSTR pszDCSiteName;
-    PSTR pszClientSiteName;
-    PSTR pszNetBIOSHostName;
-    PSTR pszUserName;
+    LW_DWORD dwPingTime;
+    LW_DWORD dwDomainControllerAddressType;
+    LW_DWORD dwFlags;
+    LW_DWORD dwVersion;
+    LW_WORD wLMToken;
+    LW_WORD wNTToken;
+    LW_PSTR pszDomainControllerName;
+    LW_PSTR pszDomainControllerAddress;
+    LW_UCHAR pucDomainGUID[LWNET_GUID_SIZE];
+    LW_PSTR pszNetBIOSDomainName;
+    LW_PSTR pszFullyQualifiedDomainName;
+    LW_PSTR pszDnsForestName;
+    LW_PSTR pszDCSiteName;
+    LW_PSTR pszClientSiteName;
+    LW_PSTR pszNetBIOSHostName;
+    LW_PSTR pszUserName;
 } LWNET_DC_INFO, *PLWNET_DC_INFO;
 
+typedef struct _LWNET_DC_ADDRESS {
+    LW_PSTR pszDomainControllerName;
+    LW_PSTR pszDomainControllerAddress;
+} LWNET_DC_ADDRESS, *PLWNET_DC_ADDRESS;
+
 LWNET_API
-DWORD
+LW_DWORD
 LWNetGetDCName(
-    PCSTR pszServerFQDN,
-    PCSTR pszDomainFQDN,
-    PCSTR pszSiteName,
-    DWORD dwFlags,
-    PLWNET_DC_INFO* ppDCInfo
+    LW_IN LW_PCSTR pszServerFQDN,
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_IN LW_PCSTR pszSiteName,
+    LW_IN LW_DWORD dwFlags,
+    LW_OUT PLWNET_DC_INFO* ppDCInfo
     );
 
 LWNET_API
-DWORD
+LW_DWORD
 LWNetGetDCNameWithBlacklist(
-    IN PCSTR pszServerFQDN,
-    IN PCSTR pszDomainFQDN,
-    IN PCSTR pszSiteName,
-    IN DWORD dwFlags,
-    IN DWORD dwBlackListCount,
-    IN OPTIONAL PSTR* ppszAddressBlackList,
-    OUT PLWNET_DC_INFO* ppDCInfo
+    LW_IN LW_PCSTR pszServerFQDN,
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_IN LW_PCSTR pszSiteName,
+    LW_IN LW_DWORD dwFlags,
+    LW_IN LW_DWORD dwBlackListCount,
+    LW_IN LW_OPTIONAL LW_PSTR* ppszAddressBlackList,
+    LW_OUT PLWNET_DC_INFO* ppDCInfo
     );
 
 LWNET_API
-DWORD
+LW_DWORD
+LWNetGetDCList(
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_IN LW_PCSTR pszSiteName,
+    LW_IN LW_DWORD dwFlags,
+    LW_OUT PLWNET_DC_ADDRESS* ppDcList,
+    LW_OUT LW_PDWORD pdwDcCount
+    );
+
+LWNET_API
+LW_DWORD
 LWNetGetDomainController(
-    PCSTR pszDomainFQDN,
-    PSTR* ppszDomainControllerFQDN
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_OUT LW_PSTR* ppszDomainControllerFQDN
     );
 
 LWNET_API
-DWORD
+LW_DWORD
 LWNetGetDCTime(
-    PCSTR pszDomainFQDN,
-    PUNIX_TIME_T pDCTime
+    LW_IN LW_PCSTR pszDomainFQDN,
+    LW_OUT PLWNET_UNIX_TIME_T pDCTime
     );
 
 LWNET_API
-DWORD
+LW_DWORD
 LWNetGetCurrentDomain(
-    PSTR* ppszDomainFQDN
+    LW_OUT LW_PSTR* ppszDomainFQDN
     );
 
 LWNET_API
-DWORD
+LW_DWORD
 LWNetExtendEnvironmentForKrb5Affinity(
-    BOOLEAN bNoDefault
+    LW_IN LW_BOOLEAN bNoDefault
     );
 
 LWNET_API
-VOID
+LW_VOID
 LWNetFreeDCInfo(
-    PLWNET_DC_INFO pDCInfo
+    LW_IN LW_OUT PLWNET_DC_INFO pDCInfo
     );
 
 LWNET_API
-VOID
+LW_VOID
+LWNetFreeDCList(
+    LW_IN LW_OUT PLWNET_DC_ADDRESS pDcList,
+    LW_IN LW_DWORD dwDcCount
+    );
+
+LWNET_API
+LW_VOID
 LWNetFreeString(
-    PSTR pszString
+    LW_IN LW_OUT LW_PSTR pszString
     );
 
 LWNET_API
 size_t
 LWNetGetErrorString(
-    DWORD  dwErrorCode,
-    PSTR   pszBuffer,
-    size_t stBufSize
+    LW_IN LW_DWORD dwErrorCode,
+    LW_OUT LW_PSTR pszBuffer,
+    LW_IN size_t stBufSize
     );
 
 #endif /* __LWNET_H__ */

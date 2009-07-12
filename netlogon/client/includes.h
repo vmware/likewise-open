@@ -55,6 +55,5 @@
 
 #include "lwnet-utils.h"
 #include "lwnet-ipc.h"
-#include "lwnet-client.h"
 
 #include "ipc_client_p.h"

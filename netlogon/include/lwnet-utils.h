@@ -80,7 +80,10 @@ typedef struct __LWNET_STACK
 
 // This is in seconds (or milliseconds, microseconds, nanoseconds) since
 // Jan 1, 1970.
+#ifndef LWNET_UNIX_TIME_T_DEFINED
 typedef int64_t LWNET_UNIX_TIME_T, *PLWNET_UNIX_TIME_T;
+#define LWNET_UNIX_TIME_T_DEFINED
+#endif
 typedef int64_t LWNET_UNIX_MS_TIME_T, *PLWNET_UNIX_MS_TIME_T;
 typedef int64_t LWNET_UNIX_US_TIME_T, *PLWNET_UNIX_US_TIME_T;
 typedef int64_t LWNET_UNIX_NS_TIME_T, *PLWNET_UNIX_NS_TIME_T;

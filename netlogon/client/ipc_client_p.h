@@ -81,10 +81,20 @@ LWNetTransactGetDCName(
     );
 
 DWORD
+LWNetTransactGetDCList(
+    IN HANDLE hConnection,
+    IN PCSTR pszDomainFQDN,
+    IN PCSTR pszSiteName,
+    IN DWORD dwFlags,
+    OUT PLWNET_DC_ADDRESS* ppDcList,
+    OUT LW_PDWORD pdwDcCount
+    );
+
+DWORD
 LWNetTransactGetDCTime(
     HANDLE hConnection,
     PCSTR pszDomainFQDN,
-    PUNIX_TIME_T pDCTime
+    PLWNET_UNIX_TIME_T pDCTime
     );
 
 DWORD

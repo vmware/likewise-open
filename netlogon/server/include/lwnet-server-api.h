@@ -85,9 +85,18 @@ LWNetSrvGetDCName(
     );
 
 DWORD
+LWNetSrvGetDCList(
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN DWORD dwDsFlags,
+    OUT PLWNET_DC_ADDRESS* ppDcList,
+    OUT PDWORD pdwDcCount
+    );
+
+DWORD
 LWNetSrvGetDCTime(
     IN PCSTR pszDomainFQDN,
-    OUT PUNIX_TIME_T pDCTime
+    OUT PLWNET_UNIX_TIME_T pDCTime
     );
 
 DWORD

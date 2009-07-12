@@ -45,6 +45,9 @@
  */
 #include "includes.h"
 
+#define LWNET_CACHE_DB_RETRY_WRITE_ATTEMPTS 20
+#define LWNET_CACHE_DB_RETRY_WRITE_WAIT_MILLISECONDS 500
+
 struct _LWNET_CACHE_DB_HANDLE_DATA {
     sqlite3* SqlHandle;
     // This RW lock helps us to ensure that we don't stomp
@@ -1183,7 +1186,7 @@ LWNetCacheDbExecWithRetry(
     DWORD dwRetry = 0;
     BOOLEAN isAcquired = FALSE;
 
-    for (dwRetry = 0; dwRetry < gdwLWNetCacheWriteRetryAttempts; dwRetry++)
+    for (dwRetry = 0; dwRetry < LWNET_CACHE_DB_RETRY_WRITE_ATTEMPTS; dwRetry++)
     {
         RW_LOCK_ACQUIRE_WRITE(DbHandle->pLock);
         isAcquired = TRUE;
@@ -1216,7 +1219,7 @@ LWNetCacheDbExecWithRetry(
             RW_LOCK_RELEASE_WRITE(DbHandle->pLock);
             isAcquired = FALSE;
 
-            dwError = LWNetSleepInMs(gdwLWNetCacheWriteRetryIntervalMilliseconds);
+            dwError = LWNetSleepInMs(LWNET_CACHE_DB_RETRY_WRITE_WAIT_MILLISECONDS);
             BAIL_ON_LWNET_ERROR(dwError);
 
             continue;

@@ -9,4 +9,3 @@ SUBDIRS=utils   \
         tests   \
         tools   \
         scripts
-
