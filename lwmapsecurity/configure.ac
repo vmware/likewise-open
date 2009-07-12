@@ -2,6 +2,7 @@ AC_INIT(lwmapsecurity, 0.1, support@likewisesoftware.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CANONICAL_HOST
 
 AM_CPPFLAGS=""
 AM_CFLAGS="-Wall -Werror -Wmissing-prototypes"
