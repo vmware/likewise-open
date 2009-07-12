@@ -109,7 +109,7 @@ SMBIPCMapLWMsgStatus(
                 dwError = EACCES;
                 break;
 
-        case LWMSG_STATUS_INTERRUPT:
+        case LWMSG_STATUS_CANCELLED:
 
                 dwError = EINTR;
                 break;

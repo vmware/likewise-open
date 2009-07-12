@@ -72,7 +72,6 @@ PvfsAllocateCCB(
 
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlMutex, NULL);
-    pthread_rwlock_init(&pCCB->LockTable.rwLock, NULL);
 
     pCCB->RefCount = 0;
 
@@ -107,9 +106,18 @@ PvfsFreeCCB(
         RtlCStringFree(&pCCB->pszFilename);
     }
 
-    if (pCCB->pFcb) {
+    /* When can we have a NULL FCB? */
+
+    if (pCCB->pFcb)
+    {
+        /* Release all byte range locks to ensure proper
+           processing of pending locks */
+
+        PvfsUnlockFile(pCCB, TRUE, 0, 0, 0);
+
         PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
         PvfsReleaseFCB(pCCB->pFcb);
+
         pCCB->pFcb = NULL;
     }
 
@@ -121,7 +129,6 @@ PvfsFreeCCB(
     PVFS_FREE(&pCCB->LockTable.ExclusiveLocks.pLocks);
     PVFS_FREE(&pCCB->LockTable.SharedLocks.pLocks);
 
-    pthread_rwlock_destroy(&pCCB->LockTable.rwLock);
     pthread_mutex_destroy(&pCCB->FileMutex);
     pthread_mutex_destroy(&pCCB->ControlMutex);
 

@@ -142,8 +142,14 @@ typedef struct
     time_t volatile lastActiveTime;
 
     SMB_SOCKET *pSocket;        /* Back pointer to parent socket */
-    uint16_t uid;
-    PSTR pszPrincipal;          /* Client principal name, for hashing */
+
+    USHORT uid;
+
+    struct _RDR_SESSION_KEY
+    {
+        uid_t uid;
+        PSTR pszPrincipal;
+    } key;
 
     SMB_HASH_TABLE *pTreeHashByPath;    /* Storage for dependent trees */
     SMB_HASH_TABLE *pTreeHashByTID;     /* Storage for dependent trees */
@@ -218,10 +224,6 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
     pthread_mutex_t     mutex;
     pthread_mutex_t*    pMutex;
 
-    /* FIXME: what are these doing in here? */
-    PSTR      pszPrincipal;
-    PSTR      pszCachePath;
-
     PWSTR     pwszPath;
 
     PSMB_TREE pTree;
@@ -261,6 +263,7 @@ typedef struct _RDR_GLOBAL_RUNTIME
     pthread_t reaperThread;
     time_t expirationTime;
     time_t volatile nextWakeupTime;
+    pid_t SysPid;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

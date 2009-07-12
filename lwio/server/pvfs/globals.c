@@ -55,6 +55,8 @@ GENERIC_MAPPING gPvfsFileGenericMapping = {
     FILE_ALL_ACCESS
 };
 
+PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
+
 
 /*
 local variables:

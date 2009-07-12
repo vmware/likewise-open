@@ -49,64 +49,16 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-PvfsQuerySecurityFile(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
-static NTSTATUS
-PvfsSetSecurityFile(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
 
 /* File Globals */
 
 
-
 /* Code */
-
 
 /****************************************************************
  ***************************************************************/
 
 NTSTATUS
-PvfsQuerySetSecurityFile(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-
-    switch(RequestType)
-    {
-    case PVFS_SET:
-        ntError = PvfsSetSecurityFile(pIrpContext);
-        break;
-
-    case PVFS_QUERY:
-        ntError = PvfsQuerySecurityFile(pIrpContext);
-        break;
-
-    default:
-        ntError = STATUS_INVALID_PARAMETER;
-        break;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-cleanup:
-    return ntError;
-
-error:
-    goto cleanup;
-}
-
-
-/****************************************************************
- ***************************************************************/
-
-static NTSTATUS
 PvfsQuerySecurityFile(
     PPVFS_IRP_CONTEXT pIrpContext
     )
@@ -158,7 +110,7 @@ error:
 /****************************************************************
  ***************************************************************/
 
-static NTSTATUS
+NTSTATUS
 PvfsSetSecurityFile(
     PPVFS_IRP_CONTEXT pIrpContext
     )

@@ -28,37 +28,87 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        driver.c
+ *        deviceio.c
  *
  * Abstract:
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Device I/O Function
+ *        Device I/O Control handler
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
 
+struct _PVFS_DEVICECTL_DISPATCH_TABLE
+{
+    ULONG DeviceCtlCode;
+    NTSTATUS (*fn)(
+        IN PPVFS_IRP_CONTEXT pIrpContext,
+        IN PVOID InputBuffer,
+        IN ULONG InputBufferLength,
+        OUT PVOID OutputBuffer,
+        IN ULONG OutputBufferLength);
+
+} PvfsDeviceCtlHandlerTable[] = {
+    { 0,       NULL },
+
+};
+
+
+
 NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE DriverHandle,
+PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IRP_ARGS_IO_FS_CONTROL Args = pIrpContext->pIrp->Args.IoFsControl;
+    ULONG DeviceCtlCode = Args.ControlCode;
+    ULONG i = 0;
+    ULONG TableSize = sizeof(PvfsDeviceCtlHandlerTable) /
+                      sizeof(struct _PVFS_DEVICECTL_DISPATCH_TABLE);
+
+    /* Loop through the dispatch table.  Levels included in the table
+       but having a NULL handler get NOT_IMPLEMENTED while those not in
+       the table at all get NOT_SUPPORTED. */
+
+    for (i=0; i<TableSize; i++)
+    {
+        if (PvfsDeviceCtlHandlerTable[i].DeviceCtlCode == DeviceCtlCode)
+        {
+            if (PvfsDeviceCtlHandlerTable[i].fn == NULL)
+            {
+                ntError = STATUS_NOT_IMPLEMENTED;
+                break;
+            }
+
+            ntError = PvfsDeviceCtlHandlerTable[i].fn(pIrpContext,
+                                                      Args.InputBuffer,
+                                                      Args.InputBufferLength,
+                                                      Args.OutputBuffer,
+                                                      Args.OutputBufferLength);
+            break;
+        }
+    }
+
+    if (i == TableSize) {
+        ntError = STATUS_NOT_SUPPORTED;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
-
-
 
 
 /*

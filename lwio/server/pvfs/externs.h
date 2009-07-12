@@ -31,8 +31,9 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern PSTR           gpszPVFSProviderName;
-extern GENERIC_MAPPING gPvfsFileGenericMapping;
+extern PSTR             gpszPVFSProviderName;
+extern GENERIC_MAPPING  gPvfsFileGenericMapping;
+extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 
 
 #endif /* __EXTERNS_H__ */

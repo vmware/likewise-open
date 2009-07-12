@@ -74,6 +74,7 @@ RdrTransactCreateFile(
 NTSTATUS
 RdrCreateFileEx(
     PIO_ACCESS_TOKEN pSecurityToken,
+    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcessInfo,
     PCWSTR pwszPath,
     ACCESS_MASK desiredAccess,
     LONG64 llAllocationSize,
@@ -90,9 +91,10 @@ RdrCreateFileEx(
     PSTR   pszFilename = NULL;
     PWSTR  pwszFilename = NULL;
     PSMB_CLIENT_FILE_HANDLE pFile = NULL;
+    PSTR   pszCachePath = NULL;
+    PSTR   pszPrincipal = NULL;
 
-    if (!pSecurityToken ||
-        pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5)
+    if (!pSecurityToken || pSecurityToken->type != IO_ACCESS_TOKEN_TYPE_KRB5_TGT)
     {
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -115,29 +117,26 @@ RdrCreateFileEx(
         &pszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBWc16sToMbs(
-        pSecurityToken->payload.krb5.pwszPrincipal,
-        &pFile->pszPrincipal);
+    ntStatus = SMBCredTokenToKrb5CredCache(
+        pSecurityToken,
+        &pszCachePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBWc16sToMbs(
-                    pSecurityToken->payload.krb5.pwszCachePath,
-                    &pFile->pszCachePath);
+        pSecurityToken->payload.krb5Tgt.pwszClientPrincipal,
+        &pszPrincipal);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOG_DEBUG("Principal [%s] Cache Path [%s]",
-                  SMB_SAFE_LOG_STRING(pFile->pszPrincipal),
-                  SMB_SAFE_LOG_STRING(pFile->pszCachePath));
 
     ntStatus = SMBKrb5SetDefaultCachePath(
-                    pFile->pszCachePath,
-                    NULL);
+        pszCachePath,
+        NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBSrvClientTreeOpen(
                     pszServer,
-                    pFile->pszPrincipal,
+                    pszPrincipal,
                     pszShare,
+                    pProcessInfo->Uid,
                     &pFile->pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -169,6 +168,13 @@ cleanup:
     LWIO_SAFE_FREE_STRING(pszShare);
     LWIO_SAFE_FREE_STRING(pszFilename);
     LWIO_SAFE_FREE_MEMORY(pwszFilename);
+    LWIO_SAFE_FREE_MEMORY(pszPrincipal);
+
+    if (pszCachePath)
+    {
+        SMBKrb5DestroyCache(pszCachePath);
+        LWIO_SAFE_FREE_MEMORY(pszCachePath);
+    }
 
     return ntStatus;
 
@@ -374,7 +380,7 @@ RdrTransactCreateFile(
                 0,
                 0,
                 pTree->tid,
-                0,
+                gRdrRuntime.SysPid,
                 pTree->pSession->uid,
                 usMid,
                 TRUE,

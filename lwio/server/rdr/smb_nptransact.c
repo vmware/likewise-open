@@ -97,7 +97,7 @@ NPTransact(
                 0,
                 0,
                 pTree->tid,
-                0,
+                gRdrRuntime.SysPid,
                 pTree->pSession->uid,
                 wMid,
                 TRUE,
@@ -218,9 +218,9 @@ NPTransact(
                     0,
                     0,
                     pTree->tid,
-                    wMid,
+                    gRdrRuntime.SysPid,
                     pTree->pSession->uid,
-                    0,
+                    wMid,
                     TRUE,
                     &packet);
         BAIL_ON_NT_STATUS(ntStatus);

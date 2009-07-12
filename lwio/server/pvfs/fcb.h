@@ -49,6 +49,11 @@
 
 #include "pvfs.h"
 
+VOID
+PvfsFreePendingLock(
+    PVOID *ppData
+    );
+
 NTSTATUS
 PvfsAllocateFCB(
     PPVFS_FCB *ppFcb

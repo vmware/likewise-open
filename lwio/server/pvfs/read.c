@@ -58,7 +58,6 @@
 
 NTSTATUS
 PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -66,7 +65,7 @@ PvfsRead(
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
+    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     PPVFS_CCB pCcb = NULL;
     size_t totalBytesRead = 0;
     LONG64 Offset = 0;
@@ -91,21 +90,29 @@ PvfsRead(
     }
 #endif
 
-    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_READ_DATA|FILE_EXECUTE);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
     BAIL_ON_NT_STATUS(ntError);
-
-    /* Simple loop to fill the buffer */
-
-    if (bUseOffset) {
-        Offset = *pIrp->Args.ReadWrite.ByteOffset;
-    }
 
     /* Enter critical region - ReadFile() needs to fill
        the buffer atomically while it may take several read()
        calls */
 
-    ENTER_MUTEX(&pCcb->FileMutex);
-    bMutexLocked = TRUE;
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+
+    if (pIrp->Args.ReadWrite.ByteOffset) {
+        Offset = *pIrp->Args.ReadWrite.ByteOffset;
+    } else {
+        off_t offset = 0;
+
+        ntError = PvfsSysLseek(pCcb->fd, 0, SEEK_CUR, &offset);
+        BAIL_ON_NT_STATUS(ntError);
+
+        Offset = offset;
+    }
+
+    ntError = PvfsCheckLockedRegion(pCcb, PVFS_OPERATION_READ,
+                                    Key, Offset, bufLen);
+    BAIL_ON_NT_STATUS(ntError);
 
     while (totalBytesRead < bufLen)
     {
@@ -114,7 +121,7 @@ PvfsRead(
         ntError = PvfsSysRead(pCcb,
                               pBuffer + totalBytesRead,
                               bufLen - totalBytesRead,
-                              bUseOffset ? &Offset : NULL,
+                              &Offset,
                               &bytesRead);
         if (ntError == STATUS_PENDING) {
             continue;
@@ -140,9 +147,7 @@ PvfsRead(
         STATUS_END_OF_FILE;
 
 cleanup:
-    if (bMutexLocked) {
-        LEAVE_MUTEX(&pCcb->FileMutex);
-    }
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);

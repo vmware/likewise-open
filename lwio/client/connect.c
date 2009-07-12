@@ -46,6 +46,7 @@ LwIoOpenContext(
 
     Status = NtIpcLWMsgStatusToNtStatus(
         lwmsg_connection_new(
+            NULL,
             gpLwIoProtocol,
             &pContext->pAssoc));
     BAIL_ON_NT_STATUS(Status);

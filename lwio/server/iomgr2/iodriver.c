@@ -74,7 +74,8 @@ NTSTATUS
 IopDriverLoad(
     OUT PIO_DRIVER_OBJECT* ppDriverObject,
     IN PIOP_ROOT_STATE pRoot,
-    IN PIOP_DRIVER_CONFIG pDriverConfig
+    IN PIOP_DRIVER_CONFIG pDriverConfig,
+    IN PIO_STATIC_DRIVER pStaticDrivers
     )
 {
     NTSTATUS status = 0;
@@ -83,6 +84,7 @@ IopDriverLoad(
     PIO_DRIVER_OBJECT pDriverObject = NULL;
     PCSTR pszPath = pDriverConfig->pszPath;
     PCSTR pszName = pDriverConfig->pszName;
+    int i = 0;
 
     LWIO_LOG_DEBUG("Loading driver '%s'", pszName);
 
@@ -95,31 +97,50 @@ IopDriverLoad(
     pDriverObject->Root = pRoot;
     pDriverObject->Config = pDriverConfig;
 
-    dlerror();
-
-    pDriverObject->LibraryHandle = dlopen(pszPath, RTLD_NOW | RTLD_GLOBAL);
-    if (!pDriverObject->LibraryHandle)
+    if (pStaticDrivers)
     {
-        pszError = dlerror();
-
-        LWIO_LOG_ERROR("Failed to load driver '%s' from '%s' (%s)",
-                      pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
-
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+        /* First, look for driver in static list */
+        for (i = 0; pStaticDrivers[i].pszName != NULL; i++)
+        {
+            if (!strcmp(pStaticDrivers[i].pszName, pszName))
+            {
+                pDriverObject->DriverEntry = pStaticDrivers[i].pEntry;
+                LWIO_LOG_DEBUG("Driver '%s' found in static list", pszName);
+                break;
+            }
+        }
     }
 
-    dlerror();
-    pDriverObject->DriverEntry = (PIO_DRIVER_ENTRY)dlsym(pDriverObject->LibraryHandle, IO_DRIVER_ENTRY_FUNCTION_NAME);
     if (!pDriverObject->DriverEntry)
     {
-        pszError = dlerror();
+        /* We didn't find the driver in the static list, so
+           try to load it dynamically */
+        dlerror();
 
-        LWIO_LOG_ERROR("Failed to load " IO_DRIVER_ENTRY_FUNCTION_NAME " function for driver %s from %s (%s)",
-                      pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
+        pDriverObject->LibraryHandle = dlopen(pszPath, RTLD_NOW | RTLD_GLOBAL);
+        if (!pDriverObject->LibraryHandle)
+        {
+            pszError = dlerror();
 
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+            LWIO_LOG_ERROR("Failed to load driver '%s' from '%s' (%s)",
+                           pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
+
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        dlerror();
+        pDriverObject->DriverEntry = (PIO_DRIVER_ENTRY)dlsym(pDriverObject->LibraryHandle, IO_DRIVER_ENTRY_FUNCTION_NAME);
+        if (!pDriverObject->DriverEntry)
+        {
+            pszError = dlerror();
+
+            LWIO_LOG_ERROR("Failed to load " IO_DRIVER_ENTRY_FUNCTION_NAME " function for driver %s from %s (%s)",
+                           pszName, pszPath, SMB_SAFE_LOG_STRING(pszError));
+
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_EE(EE);
+        }
     }
 
     status = pDriverObject->DriverEntry(pDriverObject, IO_DRIVER_ENTRY_INTERFACE_VERSION);

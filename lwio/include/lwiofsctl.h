@@ -36,6 +36,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Brian Koropoff (bkoropoff@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
 
 #ifndef __LW_IO_FSCTL_H__
@@ -48,4 +49,36 @@
 #define IO_FSCTL_SMB_GET_PEER_PRINCIPAL     0x03
 #define IO_FSCTL_SMB_GET_PEER_ADDRESS       0x04
 
+/* Oplock FsIoControl codes - possibly should be moved
+   to a public header file at some point */
+
+#define IO_FSCTL_OPLOCK_REQUEST             0x00000100
+#define IO_FSCTL_OPLOCK_ACK_BREAK           0x00000101
+
+#define IO_FSCTL_PIPE_TRANSCEIVE            0x0011C017
+
+
+/* Oplock Request Input Buffer */
+
+#define IO_OPLOCK_REQUEST_BATCH_OPLOCK      0x01
+#define IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1    0x02
+#define IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2    0x03
+
+typedef struct _IO_FSCTL_REQUEST_OPLOCK_INPUT_BUFFER
+{
+    ULONG OplockRequestType;
+
+} IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER, *PIO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER;
+
+
 #endif
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

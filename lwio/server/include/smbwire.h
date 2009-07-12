@@ -115,6 +115,108 @@ typedef enum
     COM_WRITE_BULK_DATA         = 0xDA
 } COMMAND;
 
+typedef enum
+{
+	COM2_NEGOTIATE       = 0x00,
+	COM2_SESSION_SETUP   = 0x01,
+	COM2_LOGOFF          = 0x02,
+	COM2_TREE_CONNECT    = 0x03,
+	COM2_TREE_DISCONNECT = 0x04,
+	COM2_CREATE          = 0x05,
+	COM2_CLOSE           = 0x06,
+	COM2_FLUSH           = 0x07,
+	COM2_READ            = 0x08,
+	COM2_WRITE           = 0x09,
+	COM2_LOCK            = 0x0A,
+	COM2_IOCTL           = 0x0B,
+	COM2_CANCEL          = 0x0C,
+	COM2_ECHO            = 0x0D,
+	COM2_FIND            = 0x0E,
+	COM2_NOTIFY          = 0x0F,
+	COM2_GETINFO         = 0x10,
+	COM2_SETINFO         = 0x11,
+	COM2_BREAK           = 0x12
+} SMB2_COMMAND;
+
+typedef ULONG SMB2_FLAGS;
+
+#define SMB2_FLAGS_SERVER_TO_REDIR   0x00000001
+#define SMB2_FLAGS_ASYNC_COMMAND     0x00000002
+#define SMB2_FLAGS_RELATED_OPERATION 0x00000004
+#define SMB2_FLAGS_SIGNED            0x00000008
+#define SMB2_FLAGS_DFS_OPERATIONS    0x08000000
+
+typedef USHORT SMB2_SESSION_FLAGS;
+
+#define SMB2_SESSION_FLAGS_IS_GUEST_USER 0x0001
+#define SMB2_SESSION_FLAGS_IS_NULL_USER  0x0002
+
+typedef UCHAR SMB2_INFO_TYPE;
+
+#define SMB2_INFO_TYPE_FILE        0x01
+#define SMB2_INFO_TYPE_FILE_SYSTEM 0x02
+#define SMB2_INFO_TYPE_SECURITY    0x03
+
+typedef UCHAR SMB2_FILE_INFO_CLASS;
+
+#define SMB2_FILE_INFO_CLASS_BOTH_DIR       0x03
+#define SMB2_FILE_INFO_CLASS_BASIC          0x04
+#define SMB2_FILE_INFO_CLASS_STANDARD       0x05
+#define SMB2_FILE_INFO_CLASS_INTERNAL       0x06
+#define SMB2_FILE_INFO_CLASS_EA             0x07
+#define SMB2_FILE_INFO_CLASS_ACCESS         0x08
+#define SMB2_FILE_INFO_CLASS_POSITION       0x0E
+#define SMB2_FILE_INFO_FULL_EA              0x0F
+#define SMB2_FILE_INFO_CLASS_MODE           0x10
+#define SMB2_FILE_INFO_CLASS_ALIGNMENT      0x11
+#define SMB2_FILE_INFO_CLASS_ALL            0x12
+#define SMB2_FILE_INFO_CLASS_ALTERNATE_NAME 0x15
+#define SMB2_FILE_INFO_CLASS_STREAM         0x16
+#define SMB2_FILE_INFO_CLASS_COMPRESSION    0x1C
+#define SMB2_FILE_INFO_CLASS_NETWORK_OPEN   0x22
+#define SMB2_FILE_INFO_CLASS_ATTRIBUTE_TAG  0x23
+
+typedef UCHAR SMB2_FS_INFO_CLASS;
+
+#define SMB2_FS_INFO_CLASS_VOLUME    0x01
+#define SMB2_FS_INFO_CLASS_SIZE      0x03
+#define SMB2_FS_INFO_CLASS_DEVICE    0x04
+#define SMB2_FS_INFO_CLASS_ATTRIBUTE 0x05
+#define SMB2_FS_INFO_CLASS_QUOTA     0x06
+#define SMB2_FS_INFO_CLASS_FULL_SIZE 0x07
+#define SMB_FS_INFO_CLASS_OBJECTID   0x08
+
+typedef UCHAR SMB2_SEC_INFO_CLASS;
+
+#define SMB2_SEC_INFO_CLASS_BASIC    0x00
+
+typedef ULONG SMB2_LOCK_FLAGS;
+
+#define SMB2_LOCK_FLAGS_SHARED_LOCK      0x00000001
+#define SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK   0x00000002
+#define SMB2_LOCK_FLAGS_UNLOCK           0x00000004
+#define SMB2_LOCK_FLAGS_FAIL_IMMEDIATELY 0x00000010
+
+typedef UCHAR SMB2_SEARCH_FLAGS;
+
+#define SMB2_SEARCH_FLAGS_RESTART_SCAN        0x01
+#define SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY 0x02
+#define SMB2_SEARCH_FLAGS_INDEX_SPECIFIED     0x03
+#define SMB2_SEARCH_FLAGS_REOPEN              0x10
+
+#define SMB2_CONTEXT_NAME_DURABLE_HANDLE      "DHnQ"
+#define SMB2_CONTEXT_NAME_MAX_ACCESS          "MxAc"
+#define SMB2_CONTEXT_NAME_QUERY_DISK_ID       "QFid"
+
+typedef enum
+{
+    SMB2_CONTEXT_ITEM_TYPE_UNKNOWN = 0,
+    SMB2_CONTEXT_ITEM_TYPE_DURABLE_HANDLE,
+    SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS,
+    SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID
+
+} SMB2_CONTEXT_ITEM_TYPE;
+
 typedef USHORT SMB_SUB_COMMAND, *PSMB_SUB_COMMAND;
 
 #define SMB_SUB_COMMAND_TRANS_SET_NAMED_PIPE_HANDLE_STATE   0x01
@@ -317,7 +419,7 @@ typedef UCHAR SMB_BUFFER_FORMAT;
 
 typedef struct
 {
-    uchar8_t        smb[4];     /* Contains 0xFF, 'SMB' */
+    uchar8_t        smb[4];     /* Contains 0xFF 'SMB' */
     uint8_t         command;    /* Command code */
     uint32_t        error;      /* Error code */
     uint8_t         flags;      /* Flags */
@@ -342,6 +444,23 @@ typedef struct
 
 typedef struct
 {
+	uchar8_t        smb[4];     /* Contains 0xFE 'SMB' */
+	uint16_t        usHeaderLen;
+	uint16_t        usEpoch;
+	uint32_t        error;
+	uint16_t        command;
+	uint16_t        usCredits;
+	uint32_t        ulFlags;
+	uint32_t        ulChainOffset;
+	uint64_t        ullCommandSequence;
+	uint32_t        ulPid;
+	uint32_t        ulTid;
+	uint64_t        ullSessionId;
+	uchar8_t        signature[16];
+} __attribute__((__packed__)) SMB2_HEADER, *PSMB2_HEADER;
+
+typedef struct
+{
     uint8_t     andXCommand;    /* Secondary (X) command; 0xFF = none */
     uint8_t     andXReserved;   /* Reserved (must be 0) */
     uint16_t    andXOffset;     /* Offset to next command wordCount */
@@ -356,10 +475,23 @@ typedef struct
     /* SMB packet immediately follows */
 }  __attribute__((__packed__))  NETBIOS_HEADER;
 
+typedef enum
+{
+	SMB_PROTOCOL_VERSION_1 = 0,
+	SMB_PROTOCOL_VERSION_2
+} SMB_PROTOCOL_VERSION;
+
 typedef struct
 {
     NETBIOS_HEADER *pNetBIOSHeader;
-    SMB_HEADER     *pSMBHeader;
+
+    SMB_PROTOCOL_VERSION protocolVer;
+    union
+    {
+	PSMB_HEADER  pSMBHeader;
+	PSMB2_HEADER pSMB2Header;
+    };
+
     ANDX_HEADER    *pAndXHeader; /* If NULL, no AndX */
 
     uint8_t        *pParams;     /* Pointer to start of message specific
@@ -1303,7 +1435,6 @@ typedef struct _SMB_DELETE_RESPONSE_HEADER {
 
 typedef struct _SMB_CREATE_DIRECTORY_REQUEST_HEADER
 {
-    USHORT usSearchAttributes;
     USHORT ByteCount;
 
     /* UCHAR ucBufferFormat; */
@@ -1318,6 +1449,23 @@ typedef struct _SMB_CREATE_DIRECTORY_RESPONSE_HEADER {
 
 } __attribute__((__packed__)) SMB_CREATE_DIRECTORY_RESPONSE_HEADER,
                              *PSMB_CREATE_DIRECTORY_RESPONSE_HEADER;
+
+typedef struct _SMB_CHECK_DIRECTORY_REQUEST_HEADER {
+
+    USHORT usByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszDirectoryPath */
+
+} __attribute__((__packed__)) SMB_CHECK_DIRECTORY_REQUEST_HEADER,
+                             *PSMB_CHECK_DIRECTORY_REQUEST_HEADER;
+
+typedef struct _SMB_CHECK_DIRECTORY_RESPONSE_HEADER {
+
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) SMB_CHECK_DIRECTORY_RESPONSE_HEADER,
+                             *PSMB_CHECK_DIRECTORY_RESPONSE_HEADER;
 
 
 typedef struct _FLUSH_REQUEST_HEADER
@@ -1898,6 +2046,24 @@ WireMarshallCreateDirectoryResponse(
     );
 
 NTSTATUS
+WireUnmarshallCheckDirectoryRequest(
+    const PBYTE                       pParams,
+    ULONG                             ulBytesAvailable,
+    ULONG                             ulOffset,
+    PSMB_CHECK_DIRECTORY_REQUEST_HEADER*  ppRequestHeader,
+    PWSTR*                            ppwszDirectoryPath
+    );
+
+NTSTATUS
+WireMarshallCheckDirectoryResponse(
+    PBYTE   pParams,
+    ULONG   ulBytesAvailable,
+    ULONG   ulOffset,
+    PSMB_CHECK_DIRECTORY_RESPONSE_HEADER* ppResponseHeader,
+    PUSHORT pusPackageBytesUsed
+    );
+
+NTSTATUS
 WireUnmarshallLockingAndXRequest(
     PBYTE                             pParams,
     ULONG                             ulBytesAvailable,
@@ -2052,6 +2218,13 @@ SMBPacketVerifySignature(
     );
 
 NTSTATUS
+SMB2PacketVerifySignature(
+    PSMB_PACKET pPacket,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    );
+
+NTSTATUS
 SMBPacketDecodeHeader(
     IN OUT PSMB_PACKET pPacket,
     IN BOOLEAN bVerifySignature,
@@ -2064,6 +2237,13 @@ NTSTATUS
 SMBPacketSign(
     PSMB_PACKET pPacket,
     ULONG       ulSequence,
+    PBYTE       pSessionKey,
+    ULONG       ulSessionKeyLength
+    );
+
+NTSTATUS
+SMB2PacketSign(
+    PSMB_PACKET pPacket,
     PBYTE       pSessionKey,
     ULONG       ulSessionKeyLength
     );

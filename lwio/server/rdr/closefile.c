@@ -41,8 +41,6 @@ RdrReleaseFile(
         pthread_mutex_destroy(pFile->pMutex);
     }
 
-    RTL_FREE(&pFile->pszCachePath);
-    RTL_FREE(&pFile->pszPrincipal);
     RTL_FREE(&pFile->pwszPath);
     RTL_FREE(&pFile->find.pBuffer);
 
@@ -81,7 +79,7 @@ RdrTransactCloseFile(
         0,
         0,
         pTree->tid,
-        0,
+        gRdrRuntime.SysPid,
         pTree->pSession->uid,
         usMid,
         TRUE,

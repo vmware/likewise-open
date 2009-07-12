@@ -252,6 +252,9 @@ PrintLogInfo(
         case LWIO_LOG_LEVEL_DEBUG:
             fprintf(stdout, "%s\n", "debug");
             break;
+        case LWIO_LOG_LEVEL_TRACE:
+            fprintf(stdout, "%s\n", "trace");
+            break;
         default:
             dwError = EINVAL;
             BAIL_ON_LWIO_ERROR(dwError);

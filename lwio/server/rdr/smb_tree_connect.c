@@ -79,7 +79,7 @@ TreeConnect(
                     0,
                     0,
                     0,
-                    0,
+                    gRdrRuntime.SysPid,
                     pSession->uid,
                     0,
                     TRUE,

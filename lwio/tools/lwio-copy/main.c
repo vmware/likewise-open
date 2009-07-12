@@ -47,27 +47,56 @@
 
 #define _POSIX_PTHREAD_SEMANTICS 1
 
-#include "config.h"
-#include "lwiosys.h"
-#include "lwio/lwio.h"
-#include "lwiodef.h"
-#include "lwioutils.h"
-#include "lwio/ntfileapi.h"
+#include "lwiocopy.h"
 
-DWORD
+#define ACTION_NONE 0
+#define ACTION_FILE 1
+#define ACTION_DIR 2
+
+#define COPY_FROM_NT 1
+#define COPY_TO_NT   2
+
+#define MAX_ARGS	7
+
+NTSTATUS
 ParseArgs(
     int    argc,
     char*  argv[],
+    PDWORD pdwFileOrDir,
+    PDWORD pdwToRFromNt,
+    PSTR*  ppszCachePath,
     PSTR*  ppszSourcePath,
     PSTR*  ppszTargetPath
     );
+
 
 VOID
 ShowUsage();
 
 DWORD
 MapErrorCode(
-    DWORD dwError
+    DWORD status
+    );
+
+BOOLEAN
+Krb5TicketHasExpired(
+    VOID
+    );
+
+NTSTATUS
+GetSystemName(
+    PSTR* ppszHostName
+    );
+
+NTSTATUS
+GetDirectionToCopy(
+    PSTR pszSrcPath,
+    PDWORD pdwToRFromNt
+    );
+
+NTSTATUS
+GetCurrentDomain(
+    PSTR* ppszDomain
     );
 
 int
@@ -76,46 +105,117 @@ main(
     char* argv[]
     )
 {
-    DWORD dwError = 0;
-    DWORD dwErrorBufferSize = 0;
+    NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bPrintOrigError = TRUE;
+    DWORD dwErrorBufferSize = 0;
     PSTR pszSourcePath = NULL;
     PSTR pszTargetPath = NULL;
+    PSTR pszCachePath = NULL;
+    PSTR pszEnvString = NULL;
 
-    dwError = ParseArgs(
+    DWORD dwFileOrDir = ACTION_NONE;
+    DWORD dwToRFromNt = 0;
+    BOOLEAN bExists = 0;
+
+    status = ParseArgs(
                 argc,
                 argv,
+                &dwFileOrDir,
+                &dwToRFromNt,
+                &pszCachePath,
                 &pszSourcePath,
                 &pszTargetPath);
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = LwIoInitialize();
-    BAIL_ON_LWIO_ERROR(dwError);
+    if(pszCachePath)
+    {
+        status = LwRtlCStringAllocatePrintf(
+                    &pszEnvString,
+                    "KRB5CCNAME=%s",
+                    pszCachePath);
+        BAIL_ON_NT_STATUS(status);
 
-    // TODO:
-    // Call CreateFile to open the file
-    // Call ReadFile to read contents from the file
-    // Write to local file which is the target path
+        if (putenv(pszEnvString) < 0)
+        {
+            status = UnixErrnoToNtStatus(errno);
+        }
+        BAIL_ON_NT_STATUS(status);
+
+        // The string is owned by the environ variable, and cannot be
+        // deleted.
+        pszEnvString = NULL;
+    }
+
+    if(dwToRFromNt == COPY_FROM_NT)
+    {
+        if(dwFileOrDir == ACTION_FILE)
+        {
+            status = LwioCopyFileFromRemote(
+                            pszSourcePath,
+                            pszTargetPath);
+            BAIL_ON_NT_STATUS(status);
+        }
+        else if(dwFileOrDir == ACTION_DIR)
+        {
+            status = LwioCopyDirFromRemote(
+                            pszSourcePath,
+                            pszTargetPath);
+            BAIL_ON_NT_STATUS(status);
+        }
+    }
+    else if(dwToRFromNt == COPY_TO_NT)
+    {
+        if(dwFileOrDir == ACTION_FILE)
+        {
+            status = LwioCheckFileExists(
+                            pszSourcePath,
+                            &bExists);
+            BAIL_ON_NT_STATUS(status);
+            if(!bExists)
+            {
+                printf("Source file doesn't exists, please check the path %s\n", pszSourcePath);
+                goto error;
+            }
+
+            status = LwioCopyFileToRemote(
+                            pszSourcePath,
+                            pszTargetPath);
+            BAIL_ON_NT_STATUS(status);
+        }
+        else if(dwFileOrDir == ACTION_DIR)
+        {
+            status = LwioCheckDirectoryExists(
+                            pszSourcePath,
+                            &bExists);
+            BAIL_ON_NT_STATUS(status);
+            if(!bExists)
+            {
+                printf("Source directory doesn't exists, please check the path %s\n", pszSourcePath);
+                goto error;
+            }
+
+            status = LwioCopyDirToRemote(
+                            pszSourcePath,
+                            pszTargetPath);
+            BAIL_ON_NT_STATUS(status);
+        }
+    }
+
+
 cleanup:
 
-    LwIoShutdown();
+    LWIO_SAFE_FREE_STRING(pszTargetPath);
+    LWIO_SAFE_FREE_STRING(pszSourcePath);
+    LWIO_SAFE_FREE_STRING(pszCachePath);
+    LWIO_SAFE_FREE_STRING(pszEnvString);
 
-    if (pszSourcePath)
-    {
-        SMBFreeString(pszSourcePath);
-    }
-    if (pszTargetPath)
-    {
-        SMBFreeString(pszTargetPath);
-    }
-
-    return (dwError);
+    return (status);
 
 error:
 
-    dwError = MapErrorCode(dwError);
+    status = MapErrorCode(status);
 
-    dwErrorBufferSize = SMBStrError(dwError, NULL, 0);
+    dwErrorBufferSize = SMBStrError(status, NULL, 0);
 
     if (dwErrorBufferSize > 0)
     {
@@ -128,7 +228,7 @@ error:
 
         if (!dwError2)
         {
-            DWORD dwLen = SMBStrError(dwError, pszErrorBuffer, dwErrorBufferSize);
+            DWORD dwLen = SMBStrError(status, pszErrorBuffer, dwErrorBufferSize);
 
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
@@ -140,96 +240,279 @@ error:
         LWIO_SAFE_FREE_STRING(pszErrorBuffer);
     }
 
-    if (bPrintOrigError)
-    {
-        fprintf(stderr, "Failed to query status from SMB service. Error code [%d]\n", dwError);
-    }
-
     goto cleanup;
 }
 
-DWORD
+
+NTSTATUS
 ParseArgs(
     int    argc,
     char*  argv[],
+    PDWORD pdwFileOrDir,
+    PDWORD pdwToRFromNt,
+    PSTR*  ppszCachePath,
     PSTR*  ppszSourcePath,
     PSTR*  ppszTargetPath
     )
 {
-    typedef enum {
-        PARSE_MODE_OPEN = 0
-    } ParseMode;
-
-    DWORD dwError = 0;
+    NTSTATUS status = STATUS_SUCCESS;
     int iArg = 1;
+    DWORD dwMaxIndex = argc - 1;
     PSTR pszArg = NULL;
-    ParseMode parseMode = PARSE_MODE_OPEN;
     PSTR pszSourcePath = NULL;
+    PSTR pszSrcPath = NULL;
     PSTR pszTargetPath = NULL;
+    PSTR pszDestPath = NULL;
+    PSTR pszCachePath = NULL;
+    DWORD dwFileOrDir = ACTION_NONE;
+    DWORD dwToRFromNt = 0;
+    PSTR pszSlash = NULL;
+    PSTR pszLast = NULL;
 
-    do {
-        pszArg = argv[iArg++];
-        if (pszArg == NULL || *pszArg == '\0')
-        {
-            break;
-        }
+    if( dwMaxIndex > MAX_ARGS)
+    {
+        ShowUsage();
+        exit(0);
+    }
 
-        switch (parseMode)
-        {
-            case PARSE_MODE_OPEN:
+    pszArg = argv[iArg++];
+    if (pszArg == NULL || *pszArg == '\0')
+    {
+        ShowUsage();
+        exit(0);
+    }
+    else if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0))
+    {
+        ShowUsage();
+        exit(0);
+    }
+    else if ((strcmp(pszArg, "--file") == 0)|| (strcmp(pszArg, "-f") == 0))
+    {
+        dwFileOrDir = ACTION_FILE;
+    }
+    else if ((strcmp(pszArg, "--dir") == 0)|| (strcmp(pszArg, "-d") == 0))
+    {
+        dwFileOrDir = ACTION_DIR;
+    }
+    else
+    {
+        ShowUsage();
+        exit(0);
+    }
 
-                if ((strcmp(pszArg, "--help") == 0) ||
-                    (strcmp(pszArg, "-h") == 0))
-                {
-                    ShowUsage();
-                    exit(0);
-                }
+    pszArg = argv[iArg++];
+    if (pszArg == NULL || *pszArg == '\0')
+    {
+        ShowUsage();
+        exit(0);
+    }
+    else if ((strcmp(pszArg, "--krb") == 0) || (strcmp(pszArg, "-k") == 0))
+    {
+        status = SMBAllocateString(
+                    argv[iArg++],
+                    &pszCachePath);
+        BAIL_ON_NT_STATUS(status);
 
-                if (!pszSourcePath)
-                {
-                    dwError = SMBAllocateString(
-                                pszArg,
-                                &pszSourcePath);
-                    BAIL_ON_LWIO_ERROR(dwError);
-                }
-                else if (!pszTargetPath)
-                {
-                    dwError = SMBAllocateString(
-                                pszArg,
-                                &pszTargetPath);
-                    BAIL_ON_LWIO_ERROR(dwError);
-                }
-                else
-                {
-                    ShowUsage();
-                    exit(1);
-                }
+        *ppszCachePath = pszCachePath;
+    }
+    else
+    {
+        iArg--;
+    }
 
-                break;
-        }
+    pszArg = argv[iArg++];
+    if (pszArg == NULL || *pszArg == '\0')
+    {
+        ShowUsage();
+        exit(0);
+    }
+    else
+    {
+        status = SMBAllocateString(
+                    pszArg,
+                    &pszSourcePath);
+        BAIL_ON_NT_STATUS(status);
 
-    } while (iArg < argc);
+        status = GetDirectionToCopy(
+                    pszSourcePath,
+                    &dwToRFromNt);
+        BAIL_ON_NT_STATUS(status);
+    }
 
-    *ppszSourcePath = pszSourcePath;
-    *ppszTargetPath = pszTargetPath;
+    pszArg = argv[iArg++];
+    if (pszArg == NULL || *pszArg == '\0')
+    {
+        ShowUsage();
+        exit(0);
+    }
+    else
+    {
+        status = SMBAllocateString(
+                    pszArg,
+                    &pszTargetPath);
+        BAIL_ON_NT_STATUS(status);
+
+    }
+
+    //strip the hostname for the local host
+    if(dwToRFromNt == COPY_FROM_NT)
+    {
+        pszSlash = (char*)strtok_r (pszTargetPath,"/",&pszLast);
+        status = LwRtlCStringAllocatePrintf(
+                    &pszDestPath,
+                    "/%s",
+                    pszLast);
+        BAIL_ON_NT_STATUS(status);
+
+        *ppszSourcePath = pszSourcePath;
+        *ppszTargetPath = pszDestPath;
+
+        LWIO_SAFE_FREE_STRING(pszTargetPath);
+    }
+    else
+    {
+        pszSlash = (char*)strtok_r (pszSourcePath,"/",&pszLast);
+        status = LwRtlCStringAllocatePrintf(
+                    &pszSrcPath,
+                    "/%s",
+                    pszLast);
+        BAIL_ON_NT_STATUS(status);
+
+        *ppszSourcePath = pszSrcPath;
+        *ppszTargetPath = pszTargetPath;
+
+        LWIO_SAFE_FREE_STRING(pszSourcePath);
+    }
+
+    *pdwFileOrDir = dwFileOrDir;
+    *pdwToRFromNt = dwToRFromNt;
 
 cleanup:
 
-    return dwError;
+    return status;
 
 error:
 
+    *ppszCachePath = NULL;
     *ppszSourcePath = NULL;
     *ppszTargetPath = NULL;
 
-    if (pszSourcePath)
+    LWIO_SAFE_FREE_STRING(pszTargetPath);
+    LWIO_SAFE_FREE_STRING(pszSourcePath);
+    LWIO_SAFE_FREE_STRING(pszCachePath);
+    LWIO_SAFE_FREE_STRING(pszSrcPath);
+    LWIO_SAFE_FREE_STRING(pszDestPath);
+
+    goto cleanup;
+}
+
+NTSTATUS
+GetDirectionToCopy(
+    PSTR pszSrcPath,
+    PDWORD pdwToRFromNt
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR pszSlash = NULL;
+    PSTR pszStart = NULL;
+    PSTR pszLast = NULL;
+    PSTR pszTmpPath = NULL;
+    PSTR pszHostname = NULL;
+
+    *pdwToRFromNt = 0;
+
+    status = SMBAllocateString(
+                    pszSrcPath,
+                    &pszTmpPath);
+    BAIL_ON_NT_STATUS(status);
+
+    pszStart = pszTmpPath;
+
+    // Skip optional initial decoration
+    if (!strncmp(pszStart, "//", sizeof("//") - 1) ||
+        !strncmp(pszStart, "\\\\", sizeof("\\\\") - 1))
     {
-        SMBFreeString(pszSourcePath);
+        pszStart += 2;
     }
-    if (pszTargetPath)
+    else
+    if (!strncmp(pszStart, "/", sizeof("/") - 1) ||
+        !strncmp(pszStart, "\\", sizeof("\\") - 1))
     {
-        SMBFreeString(pszTargetPath);
+        pszStart += 1;
     }
+
+    status = GetSystemName(&pszHostname);
+    BAIL_ON_NT_STATUS(status);
+
+    pszSlash = (char*)strtok_r (pszStart,"/",&pszLast);
+
+    if(pszSlash)
+    {
+        if(!strcmp(pszHostname,pszSlash))
+            *pdwToRFromNt = COPY_TO_NT;
+        else
+            *pdwToRFromNt = COPY_FROM_NT;
+    }
+
+
+error:
+
+    LWIO_SAFE_FREE_STRING(pszTmpPath);
+    LWIO_SAFE_FREE_STRING(pszHostname);
+
+    return status ;
+}
+
+NTSTATUS
+GetSystemName(
+    PSTR* ppszHostName
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    CHAR buffer[256];
+    PSTR pszLocal = NULL;
+    PSTR pszDot = NULL;
+    PSTR pszHostname = NULL;
+    int len = 0;
+
+    if ( gethostname(buffer, sizeof(buffer)) != 0 )
+    {
+        printf("gethostname failed\n");
+        status = LW_STATUS_UNSUCCESSFUL;
+        goto error;
+    }
+
+    len = strlen(buffer);
+    if ( len > strlen(".local") )
+    {
+        pszLocal = &buffer[len - strlen(".local")];
+        if ( !strcasecmp( pszLocal, ".local" ) )
+        {
+            pszLocal[0] = '\0';
+        }
+    }
+
+    pszDot = strchr(buffer, '.');
+    if ( pszDot )
+    {
+        pszDot[0] = '\0';
+    }
+
+    status = LwRtlCStringAllocatePrintf(
+                &pszHostname,
+                "%s",
+                buffer);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppszHostName = pszHostname;
+
+cleanup:
+
+    return status;
+
+error:
+
+    LWIO_SAFE_FREE_STRING(pszHostname);
 
     goto cleanup;
 }
@@ -237,17 +520,22 @@ error:
 void
 ShowUsage()
 {
-    printf("Usage: lwio-copy <source path> <target path>\n");
+    printf("Usage: lwio-copy --file|dir --setkrb <cache path> <source path> <target path>\n");
+    printf("\t--help      | -h    Show help\n");
+    printf("\t--file      | -f    Operate file\n");
+    printf("\t--dir       | -d    Operate directory\n");
+    printf("\t--setkrb    | -k    Set KRB5CCNAME env \n");
+    printf("Remote <source path>/<dest path> should be of the form '/<hostname>/<Sharename>/<path>'\n");
 }
 
 DWORD
 MapErrorCode(
-    DWORD dwError
+    DWORD status
     )
 {
-    DWORD dwError2 = dwError;
+    DWORD dwError2 = status;
 
-    switch (dwError)
+    switch (status)
     {
         case ECONNREFUSED:
         case ENETUNREACH:
@@ -264,3 +552,4 @@ MapErrorCode(
 
     return dwError2;
 }
+

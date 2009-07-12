@@ -41,8 +41,7 @@
  *
  *        Service Entry API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #ifndef __PVFS_H__
@@ -61,6 +60,7 @@
 
 
 #include "lwiosys.h"
+#include "lwiofsctl.h"
 
 #include <lw/base.h>
 #include <lw/security-types.h>
@@ -69,6 +69,8 @@
 #include "lwioutils.h"
 
 #include "structs.h"
+#include "async_handler.h"
+#include "threads.h"
 #include "externs.h"
 #include "macros.h"
 #include "fileinfo_p.h"
@@ -98,79 +100,101 @@
 #  include <attr/xattr.h>
 #endif
 
+/* Driver defines */
+
+#define PVFS_NUMBER_WORKER_THREADS      2
+
+
 /* Top level APi functions */
 
 NTSTATUS
 PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsDeviceIo(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsAllocateCreateContext(
+    OUT PPVFS_PENDING_CREATE *ppCreate,
+    IN  PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsFreeCreateContext(
+    IN OUT PPVFS_PENDING_CREATE *ppCreate
+    );
+
+NTSTATUS
+PvfsDeviceIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsFsCtrl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsDispatchFsIoControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsRead(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsClose(
-    IO_DEVICE_HANDLE DeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsQuerySetInformation(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsSetInformationFile(
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQueryDirInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
 PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
+PvfsSetVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsLockControl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
 NTSTATUS
 PvfsFlushBuffers(
-    IO_DEVICE_HANDLE DeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     );
 
 NTSTATUS
-PvfsQuerySetSecurityFile(
-    PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
+PvfsQuerySecurityFile(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsSetSecurityFile(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
@@ -298,8 +322,9 @@ PvfsEnforceShareMode(
 
 NTSTATUS
 PvfsLockFile(
+    PPVFS_IRP_CONTEXT pIrpCtx,
     PPVFS_CCB pCcb,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length,
     PVFS_LOCK_FLAGS Flags
@@ -309,19 +334,45 @@ NTSTATUS
 PvfsUnlockFile(
     PPVFS_CCB pCcb,
     BOOLEAN bUnlockAll,
-    PULONG pKey,
+    ULONG Key,
     LONG64 Offset,
     LONG64 Length
     );
 
 NTSTATUS
-PvfsCanReadWriteFile(
-    PPVFS_CCB pCcb,
-    PULONG pKey,
-    LONG64 Offset,
-    LONG64 Length,
-    PVFS_LOCK_FLAGS Flags
+PvfsCheckLockedRegion(
+    IN PPVFS_CCB pCcb,
+    IN PVFS_OPERATION_TYPE Operation,
+    IN ULONG Key,
+    IN LONG64 Offset,
+    IN ULONG Length
     );
+
+/* From oplock.c */
+
+NTSTATUS
+PvfsOplockRequest(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
+NTSTATUS
+PvfsOplockBreakAck(
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID InputBuffer,
+    IN  ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN  ULONG OutputBufferLength
+    );
+
+NTSTATUS
+PvfsOplockBreakIfLocked(
+    PPVFS_FCB pFcb
+    );
+
 
 #endif /* __PVFS_H__ */
 

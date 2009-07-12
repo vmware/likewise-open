@@ -57,8 +57,25 @@
  *************************************************************/
 
 NTSTATUS
+PvfsDispatchLockControl(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    /* If the request is marked as FailImmediately, then
+       it must be synchronous */
+
+    if (pIrpContext->pIrp->Args.LockControl.FailImmediately) {
+        return PvfsLockControl(pIrpContext);
+    }
+
+    return PvfsAsyncLockControl(pIrpContext);
+}
+
+/**************************************************************
+ *************************************************************/
+
+NTSTATUS
 PvfsLockControl(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
@@ -98,19 +115,19 @@ PvfsLockControl(
 
     switch(Args.LockControl) {
     case IO_LOCK_CONTROL_LOCK:
-        ntError = PvfsLockFile(pCcb, &Key, Offset, Length, Flags);
+        ntError = PvfsLockFile(pIrpContext, pCcb, Key, Offset, Length, Flags);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK:
-        ntError = PvfsUnlockFile(pCcb, FALSE, NULL, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, FALSE, Key, Offset, Length);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY:
-        ntError = PvfsUnlockFile(pCcb, TRUE, &Key, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, TRUE, Key, Offset, Length);
         break;
 
     case IO_LOCK_CONTROL_UNLOCK_ALL:
-        ntError = PvfsUnlockFile(pCcb, TRUE, NULL, Offset, Length);
+        ntError = PvfsUnlockFile(pCcb, TRUE, 0, Offset, Length);
         break;
 
     default:
@@ -121,7 +138,9 @@ PvfsLockControl(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (pCcb) {
+    /* Release the CCB unless this is a pending lock */
+
+    if (ntError != STATUS_PENDING && pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
