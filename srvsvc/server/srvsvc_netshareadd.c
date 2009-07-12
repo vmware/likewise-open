@@ -70,12 +70,12 @@ SrvSvcNetShareAdd(
     DWORD dwFlagsAndAttributes = 0;
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 4096;
-    HANDLE hDevice = (HANDLE)NULL;
+    HANDLE hDevice = NULL;
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
     DWORD dwParmError = 0;
     IO_FILE_HANDLE FileHandle = NULL;
-    IO_STATUS_BLOCK IoStatusBlock;
+    IO_STATUS_BLOCK IoStatusBlock = { 0 };
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
     FILE_ATTRIBUTES FileAttributes = 0;
@@ -84,11 +84,8 @@ SrvSvcNetShareAdd(
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ADD_SHARE;
     PSTR smbpath = NULL;
-    IO_FILE_NAME filename;
-    IO_STATUS_BLOCK io_status;
-    SHARE_INFO_ADD_PARAMS AddParams;
-
-    memset((void*)&AddParams, 0, sizeof(AddParams));
+    IO_FILE_NAME filename = { 0 };
+    SHARE_INFO_ADD_PARAMS AddParams = { 0 };
 
     AddParams.dwInfoLevel = level;
     switch (AddParams.dwInfoLevel) {
@@ -136,9 +133,6 @@ SrvSvcNetShareAdd(
                     "\\srv"
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    filename.RootFileHandle = NULL;
-    filename.IoNameOptions = 0;
 
     ntStatus = LwRtlWC16StringAllocateFromCString(
                         &filename.FileName,
@@ -189,6 +183,9 @@ error:
     if (pOutBuffer) {
         SrvSvcFreeMemory(pOutBuffer);
     }
+
+    RTL_FREE(&smbpath);
+    RTL_FREE(&filename.FileName);
 
     return dwError;
 }

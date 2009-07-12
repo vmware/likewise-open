@@ -73,13 +73,12 @@ SrvSvcNetShareEnum(
     PBYTE pOutBuffer = NULL;
     DWORD dwOutLength = 4096;
     DWORD dwBytesReturned = 0;
-    HANDLE hDevice = (HANDLE)NULL;
+    HANDLE hDevice = NULL;
     BOOLEAN bRet = FALSE;
     DWORD dwReturnCode = 0;
     DWORD dwParmError = 0;
-    IO_FILE_HANDLE FileHandle;
-    IO_STATUS_BLOCK IoStatusBlock;
-    PIO_FILE_NAME FileName = NULL;
+    IO_FILE_HANDLE FileHandle = NULL;
+    IO_STATUS_BLOCK IoStatusBlock = { 0 };
     ACCESS_MASK DesiredAccess = 0;
     LONG64 AllocationSize = 0;
     FILE_ATTRIBUTES FileAttributes = 0;
@@ -88,19 +87,20 @@ SrvSvcNetShareEnum(
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
     PSTR smbpath = NULL;
-    IO_FILE_NAME filename;
-    IO_STATUS_BLOCK io_status;
-    SHARE_INFO_ENUM_PARAMS EnumParamsIn;
+    IO_FILE_NAME filename = { 0 };
+    SHARE_INFO_ENUM_PARAMS EnumParamsIn = { 0 };
     PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
     srvsvc_NetShareCtr0 *ctr0 = NULL;
     srvsvc_NetShareCtr1 *ctr1 = NULL;
     srvsvc_NetShareCtr2 *ctr2 = NULL;
     srvsvc_NetShareCtr501 *ctr501 = NULL;
     srvsvc_NetShareCtr502 *ctr502 = NULL;
-
-    memset((void*)&EnumParamsIn, 0, sizeof(EnumParamsIn));
+    static int nextStatus = 1;
 
     EnumParamsIn.dwInfoLevel = *level;
+    dwError = nextStatus++;
+    SRVSVC_LOG_ERROR("Returning code %d for sniffing", dwError);
+    BAIL_ON_ERROR(dwError);
 
     ntStatus = LwShareInfoMarshalEnumParameters(
                         &EnumParamsIn,
@@ -114,9 +114,6 @@ SrvSvcNetShareEnum(
                     "\\srv"
                     );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    filename.RootFileHandle = NULL;
-    filename.IoNameOptions = 0;
 
     ntStatus = LwRtlWC16StringAllocateFromCString(
                         &filename.FileName,
@@ -279,6 +276,9 @@ cleanup:
     if (pEnumParamsOut) {
         SrvSvcFreeMemory(pEnumParamsOut);
     }
+
+    RTL_FREE(&smbpath);
+    RTL_FREE(&filename.FileName);
 
     return dwError;
 
