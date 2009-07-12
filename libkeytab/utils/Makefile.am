@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libktutils.la
+noinst_LTLIBRARIES = libktutils.la
 
 libktutils_la_CFLAGS = \
        $(AM_CFLAGS) \
