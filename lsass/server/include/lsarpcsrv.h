@@ -47,6 +47,9 @@
 #ifndef __LSARPCSRV_H__
 #define __LSARPCSRV_H__
 
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 
 

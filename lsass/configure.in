@@ -26,6 +26,8 @@ AC_DEFINE(__LW_MOTD_MAX_SIZE__, 4096, [The maximum number of bytes which will be
 
 AC_USE_SYSTEM_EXTENSIONS
 
+PLATFORM_AIX="false"
+
 case "$host_os:$host_cpu" in
 	linux*:i?86)
 		nss_libdir="/lib"
@@ -63,7 +65,6 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="yes"
                 CF_FRAMEWORK_LDFLAGS="-framework CoreFoundation"
                 SC_FRAMEWORK_LDFLAGS="-framework SystemConfiguration"
-		# MACCLIENT_DIR="macclient"
 		AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
 		;;
 	freebsd*:*)
@@ -103,11 +104,13 @@ case "$host_os:$host_cpu" in
 		AC_SUBST(NSS_SHR_EXT)
 		AC_DEFINE([__LWI_AIX__], [], [Define if OS is AIX])
                 AC_DEFINE([_LINUX_SOURCE_COMPAT], [], [Enable Linux source compatibility on AIX])
+		PLATFORM_AIX="true"
 		;;
 esac
 
+AM_CONDITIONAL(PLATFORM_AIX, [$PLATFORM_AIX])
+
 AC_SUBST(NSS_SUBDIR)
-AC_SUBST(MACCLIENT_DIR)
 AC_SUBST(MOD_EXT)
 AC_SUBST(CF_FRAMEWORK_LDFLAGS)
 AC_SUBST(SC_FRAMEWORK_LDFLAGS)
@@ -214,20 +217,11 @@ AC_ARG_WITH([netapi-libs],
 		NETAPI_LDFLAGS="-L$withval"
         ])
 
-NETAPI_LIBS="-lnetapi -lnetlogon -lalloc"
-
-KRB5PAC_INCLUDES="$NETAPI_INCLUDES"
-KRB5PAC_LDFLAGS="$NETAPI_LDFLAGS"
-KRB5PAC_LIBS="-lkrb5pac"
-
+NETAPI_LIBS="-lnetapi"
 
 AC_SUBST(NETAPI_INCLUDES)
 AC_SUBST(NETAPI_LDFLAGS)
 AC_SUBST(NETAPI_LIBS)
-
-AC_SUBST(KRB5PAC_INCLUDES)
-AC_SUBST(KRB5PAC_LDFLAGS)
-AC_SUBST(KRB5PAC_LIBS)
 
 # libunistr
 
@@ -488,34 +482,14 @@ AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
-# secdesc
+# minimal
 
-AC_ARG_WITH([libsecdesc],
-        [AC_HELP_STRING([--with-libsecdesc=<dir>], [use libsecdesc located in prefix <dir>])],
-        [
-		LIBSECDESC_INCLUDES="-I$withval/include"
-                LIBSECDESC_LDFLAGS="-L$withval/lib"
-                LIBSECDESC_PATH="$withval/bin"
-        ])
-
-AC_ARG_WITH([libsecdesc-includes],
-        [AC_HELP_STRING([--with-libsecdesc-includes=<dir>], [use libsecdesc includes located in <dir>])],
-        [
-		LIBSECDESC_INCLUDES="-I$withval"
-        ])
-
-AC_ARG_WITH([libsecdesc-libs],
-        [AC_HELP_STRING([--with-libsecdesc-libs=<dir>], [use libsecdesc libs located in <dir>])],
-        [
-		LIBSECDESC_LDFLAGS="-L$withval"
-        ])
-
-LIBSECDESC_LIBS="-lsecdesc"
-
-AC_SUBST(LIBSECDESC_INCLUDES)
-AC_SUBST(LIBSECDESC_LDFLAGS)
-AC_SUBST(LIBSECDESC_LIBS)
-
+AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal lsass])])
+AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
+if test x"$enable_minimal" = x"yes"
+then
+        AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal lsass])
+fi
 
 # compat
 
@@ -549,6 +523,38 @@ AC_ARG_ENABLE([testgssprovider],
         ])
 
 AM_CONDITIONAL(ENABLE_TESTGSSPROVIDER, [$ENABLE_TESTGSSPROVIDER])
+
+AC_ARG_WITH([providers], [AC_HELP_STRING([--with-providers], [list of providers to build (ad local)])],
+		       [], [with_providers="ad local"])
+
+_IFS="${IFS}"
+IFS=" ,"
+for provider in $with_providers
+do
+	eval "enable_${provider}=yes"
+done
+IFS="${_IFS}"
+
+AM_CONDITIONAL(ENABLE_AD, test x"$enable_ad" = x"yes")
+if test x"$enable_ad" = x"yes"
+then
+	AC_DEFINE([ENABLE_AD], [], [Define if AD provider should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_LOCAL, test x"$enable_local" = x"yes")
+if test x"$enable_local" = x"yes"
+then
+	AC_DEFINE([ENABLE_LOCAL], [], [Define if local provider should be built])
+fi
+
+# Boolean settings
+
+AC_ARG_ENABLE([static-providers], [AC_HELP_STRING([--enable-static-providers], [build providers directly into lsassd])])
+AM_CONDITIONAL(ENABLE_STATIC_PROVIDERS, test x"$enable_static_providers" = x"yes")
+if test x"$enable_static_providers" = x"yes"
+then
+	AC_DEFINE([ENABLE_STATIC_PROVIDERS], [], [Define if providers should be built directly into lsassd])
+fi
 
 # debugging
 
@@ -585,7 +591,12 @@ AC_SUBST(lsassconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lsassconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-lsasscachedir="$localstatedir/lib/likewise"
+
+if test x"$localstatedir" = x"/var"; then
+    lsasscachedir="$localstatedir/lib/likewise"
+else
+    lsasscachedir="$localstatedir"
+fi
 AC_SUBST(lsasscachedir)
 AS_AC_EXPAND(CACHEDIR, $lsasscachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
@@ -829,63 +840,63 @@ AC_CONFIG_FILES([Makefile
                  utils/Makefile
                  logging_r/Makefile
                  lsaunistr/Makefile
+                 join/Makefile
                  ipc/Makefile
                  client/Makefile
                  provider/Makefile
                  provider/ad-provider/Makefile
                  provider/ad-provider/ipc/Makefile
                  provider/ad-provider/client/Makefile
-                 macclient/Makefile
-		 nsswitch/Makefile
-		 nsswitch/common/Makefile
-		 nsswitch/linux/Makefile
-		 nsswitch/freebsd/Makefile
-		 nsswitch/aix/Makefile
-		 nsswitch/hpux/Makefile
-		 nsswitch/solaris/Makefile
-		 nsswitch/mac/Makefile
-		 lwmapsecurity/Makefile
-		 gssntlm/Makefile
+                 provider/local-provider/Makefile
+                 provider/local-provider/ipc/Makefile
+                 provider/local-provider/client/Makefile
+                 interop/Makefile
+                 interop/nsswitch/Makefile
+                 interop/nsswitch/common/Makefile
+                 interop/nsswitch/linux/Makefile
+                 interop/nsswitch/freebsd/Makefile
+                 interop/nsswitch/aix/Makefile
+                 interop/nsswitch/hpux/Makefile
+                 interop/nsswitch/solaris/Makefile
+                 interop/nsswitch/mac/Makefile
+                 interop/lwmapsecurity/Makefile
+                 gssntlm/Makefile
                  gssntlm/client/Makefile
-		 gssntlm/common/Makefile
-		 gssntlm/server/Makefile
-		 gssntlm/test/Makefile
-		 gssntlm/test/serverapi/Makefile
-		 gssntlm/test/gss/Makefile
-		 gssntlm/include/Makefile
+                 gssntlm/common/Makefile
+                 gssntlm/server/Makefile
+                 gssntlm/test/Makefile
+                 gssntlm/test/serverapi/Makefile
+                 gssntlm/test/gss/Makefile
+                 gssntlm/include/Makefile
+                 ntlmclient/Makefile
+                 ntlmipc/Makefile
                  server/Makefile
-                 server/krb5/Makefile
-                 server/ldap/Makefile
-                 server/srvutils/Makefile
                  server/api/Makefile
-                 server/join/Makefile
+                 server/ntlmserver/Makefile
                  server/auth-providers/Makefile
                  server/auth-providers/ad-provider/Makefile
                  server/auth-providers/local-provider/Makefile
-                 server/ipc/Makefile
                  server/lsassd/Makefile
-                 server/db/Makefile
-                 server/sqlite/Makefile
                  server/rpc/Makefile
-                 server/rpc/rpcctl/Makefile
                  server/rpc/lsa/Makefile
                  server/rpc/samr/Makefile
                  server/rpc/dssetup/Makefile
                  server/store/Makefile
-		 server/store/samdb/Makefile
-		 server/store/dsapi/Makefile
-		 server/store/dsapi/dirdefs.h
-                 access/Makefile
-                 auth/Makefile
-                 auth/common/Makefile
-                 auth/pam/Makefile
-                 wbclient/Makefile
-                 lwicompat/Makefile
+                 server/store/samdb/Makefile
+                 server/store/dsapi/Makefile
+                 server/store/dsapi/dirdefs.h
+                 interop/access/Makefile
+                 interop/auth/Makefile
+                 interop/auth/common/Makefile
+                 interop/auth/pam/Makefile
+                 interop/wbclient/Makefile
+                 interop/lwicompat/Makefile
                  tools/Makefile
                  tools/add_user/Makefile
-		 tools/mod_user/Makefile
+                 tools/mod_user/Makefile
                  tools/del_user/Makefile
                  tools/add_group/Makefile
+                 tools/mod_group/Makefile
                  tools/del_group/Makefile
                  tools/enum_groups/Makefile
                  tools/lw-ypcat/Makefile
@@ -905,21 +916,22 @@ AC_CONFIG_FILES([Makefile
                  tools/refresh_configuration/Makefile
                  tools/trace_info/Makefile
                  tools/ad_cache/Makefile
-		 etc/Makefile
-		 etc/lsassd.conf
+                 etc/Makefile
+                 etc/lsassd.conf
                  include/Makefile
                  tests/Makefile
-		 tests/lsaclient/Makefile
-		 tests/test_getgrgid/Makefile
-		 tests/test_getpwuid/Makefile
-		 tests/test_LsaGetNamesBySidList/Makefile
-		 tests/test_getgrnam/Makefile
-		 tests/test_LsaAllocSecurityIdentifierFromBinary/Makefile
-		 tests/test_LsaGetSecurityIdentifierHashedRid/Makefile
-		 tests/test_LsaAllocSecurityIdentifierFromString/Makefile
-		 tests/test_LsaParseConfigFile/Makefile
-		 tests/test_getpwent/Makefile
-		 tests/test_getpwnam/Makefile
+                 tests/test_headers/Makefile
+                 tests/lsaclient/Makefile
+                 tests/test_getgrgid/Makefile
+                 tests/test_getpwuid/Makefile
+                 tests/test_LsaGetNamesBySidList/Makefile
+                 tests/test_getgrnam/Makefile
+                 tests/test_LsaAllocSecurityIdentifierFromBinary/Makefile
+                 tests/test_LsaGetSecurityIdentifierHashedRid/Makefile
+                 tests/test_LsaAllocSecurityIdentifierFromString/Makefile
+                 tests/test_LsaParseConfigFile/Makefile
+                 tests/test_getpwent/Makefile
+                 tests/test_getpwnam/Makefile
                  tests/test_stress_ad_provider/Makefile
                  tests/test_bitvector/Makefile
                  tests/test_memcache/Makefile
@@ -931,8 +943,11 @@ AC_CONFIG_FILES([Makefile
                  tests/test_session/Makefile
                  tests/test_checkuserinlist/Makefile
                  tests/test_openldap/Makefile
+                 tests/ntlmapps/Makefile
+                 tests/ntlmapps/ntlmclient/Makefile
+                 tests/ntlmapps/ntlmserver/Makefile
                  scripts/Makefile
-		 docs/Makefile
-		 docs/Doxyfile])
+                 docs/Makefile
+                 docs/Doxyfile])
 
 AC_OUTPUT

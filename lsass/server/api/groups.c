@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -204,7 +204,8 @@ error:
 DWORD
 LsaSrvGetGroupsForUser(
     IN HANDLE hServer,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     OUT PDWORD pdwGroupsFound,
@@ -231,25 +232,33 @@ LsaSrvGetGroupsForUser(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pProvider->pFnTable->pfnGetGroupsForUser == NULL)
+        {
             dwError = LSA_ERROR_NOT_HANDLED;
+        }
         else
         {
             dwError = pProvider->pFnTable->pfnGetGroupsForUser(
                                                 hProvider,
+                                                pszUserName,
                                                 uid,
                                                 FindFlags,
                                                 dwGroupInfoLevel,
                                                 pdwGroupsFound,
                                                 pppGroupInfoList);
         }
-        if (!dwError && *pppGroupInfoList != NULL) {
+
+        if (!dwError && *pppGroupInfoList != NULL)
+        {
             break;
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        }
+        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
+                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        {
 
             dwError = 0;
         }
-
         BAIL_ON_LSA_ERROR(dwError);
+
         LsaSrvCloseProvider(pProvider, hProvider);
         hProvider = (HANDLE)NULL;
     }
@@ -351,6 +360,73 @@ cleanup:
 
 error:
 
+    goto cleanup;
+}
+
+DWORD
+LsaSrvModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    BOOLEAN bInLock = FALSE;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (pServerState->peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LSA_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable->pfnModifyGroup(
+                                        hProvider,
+                                        pGroupModInfo);
+        if (!dwError)
+        {
+            break;
+        }
+        else if ((dwError = LSA_ERROR_NOT_HANDLED) ||
+                 (dwError = LSA_ERROR_NO_SUCH_GROUP))
+        {
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+
+            continue;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+    if (hProvider != (HANDLE)NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return dwError;
+
+error:
     goto cleanup;
 }
 
@@ -581,3 +657,12 @@ LsaSrvEndEnumGroups(
     return dwError;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

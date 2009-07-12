@@ -35,8 +35,11 @@ liblsautils_la_SOURCES =       \
        lsaxnet.c               \
        lsaauthex.c             \
        lsalist.c               \
-       sid.c
+       sid.c                   \
+       lwmem.c                 \
+       lwstr.c                 \
+       lwsecurityidentifier.c
 
 liblsautils_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 
-liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@ @LWBASE_LIBS@
+liblsautils_la_LIBADD = @RESOLV_LIBS@ @NSL_LIBS@ @LWBASE_NOTHR_LIBS@ @LWMSG_NOTHR_LIBS@

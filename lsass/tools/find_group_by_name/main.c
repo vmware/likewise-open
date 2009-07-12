@@ -328,7 +328,7 @@ ShowUsage()
            "\n"
            "  Examples:\n"
            "\n"
-           "    %s DOMAIN\\groupname\n"
+           "    %s DOMAIN\\\\groupname\n"
            "    %s --level 1 groupalias\n"
            "\n",
            pszProgramName,

@@ -1,3 +1,52 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samdbadd.c
+ *
+ * Abstract:
+ *
+ *
+ *      Likewise SAM Database Provider
+ *
+ *      SAM objects creation routines
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
+ */
 
 #include "includes.h"
 
@@ -288,7 +337,7 @@ SamDbInsertObjectToDatabase(
                     &pColumnValueList);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -296,7 +345,7 @@ SamDbInsertObjectToDatabase(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
@@ -318,7 +367,7 @@ SamDbInsertObjectToDatabase(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 
@@ -336,7 +385,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDN)
     {
@@ -393,7 +442,11 @@ SamDbBuildAddObjectQuery(
     //
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
-        if (pIter->pAttrMap->bIsRowId) continue;
+        if (pIter->pAttrMap->bIsRowId ||
+            pIter->pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)
+        {
+            continue;
+        }
 
         if (dwColNamesLen)
         {
@@ -407,16 +460,9 @@ SamDbBuildAddObjectQuery(
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR) - 1;
         }
 
-        if (pIter->pAttrMap->bIsRowId)
-        {
-            dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
-        }
-        else
-        {
-            sprintf(szBuf, "\?%d", ++iCol);
+        sprintf(szBuf, "\?%d", ++iCol);
 
-            dwColValuesLen += strlen(szBuf);
-        }
+        dwColValuesLen += strlen(szBuf);
     }
 
     dwQueryLen = sizeof(SAMDB_ADD_OBJECT_QUERY_PREFIX) - 1;
@@ -449,7 +495,11 @@ SamDbBuildAddObjectQuery(
 
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
-        if (pIter->pAttrMap->bIsRowId) continue;
+        if (pIter->pAttrMap->bIsRowId ||
+            pIter->pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)
+        {
+            continue;
+        }
 
         if (dwColNamesLen)
         {
@@ -478,25 +528,13 @@ SamDbBuildAddObjectQuery(
             dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_SEPARATOR)  - 1;
         }
 
-        if (pIter->pAttrMap->bIsRowId)
-        {
-            pszCursor = SAMDB_ADD_OBJECT_QUERY_ROWID;
-            while (pszCursor && *pszCursor)
-            {
-                *pszQueryValuesCursor++ = *pszCursor++;
-            }
-            dwColValuesLen += sizeof(SAMDB_ADD_OBJECT_QUERY_ROWID) - 1;
-        }
-        else
-        {
-            sprintf(szBuf, "\?%d", ++iCol);
+        sprintf(szBuf, "\?%d", ++iCol);
 
-            pszCursor = &szBuf[0];
-            while (pszCursor && *pszCursor)
-            {
-                *pszQueryValuesCursor++ = *pszCursor++;
-                dwColValuesLen++;
-            }
+        pszCursor = &szBuf[0];
+        while (pszCursor && *pszCursor)
+        {
+            *pszQueryValuesCursor++ = *pszCursor++;
+            dwColValuesLen++;
         }
     }
 
@@ -1100,7 +1138,7 @@ SamDbAddGeneratePrimaryGroup(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     pAttrValue->Type = DIRECTORY_ATTR_TYPE_INTEGER;
-    pAttrValue->data.ulValue = DOMAIN_ALIAS_RID_USERS;
+    pAttrValue->data.ulValue = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS);
 
     *ppAttrValues = pAttrValue;
     *pdwNumValues = 1;
@@ -1358,7 +1396,7 @@ SamDbAddBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -1382,7 +1420,7 @@ SamDbAddBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -1403,7 +1441,7 @@ SamDbAddBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -1434,7 +1472,7 @@ SamDbAddBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -1553,3 +1591,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

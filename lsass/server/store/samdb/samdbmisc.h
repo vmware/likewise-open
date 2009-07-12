@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -27,8 +27,6 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.
@@ -59,7 +57,7 @@ SamDbComputeLMHash(
 
 DWORD
 SamDbComputeNTHash(
-    PCSTR pszPassword,
+    PCWSTR pwszPassword,
     PBYTE pHash,
     DWORD dwHashByteLen
     );
@@ -118,6 +116,22 @@ SamDbGetObjectRecordInfo_inlock(
     SAMDB_OBJECT_CLASS*    pObjectClass
     );
 
+DWORD
+SamDbGetObjectRecordInfoBySID(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
+DWORD
+SamDbGetObjectRecordInfoBySID_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    );
+
 LONG64
 SamDbGetNTTime(
     time_t timeVal
@@ -125,3 +139,12 @@ SamDbGetNTTime(
 
 #endif /* __SAMDB_MISC_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

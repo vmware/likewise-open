@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -42,7 +40,7 @@
  *
  *      Likewise SAM Database Provider
  *
- *      SamDbInitUserTable
+ *      SAM User Specific Management Methods
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *
@@ -79,14 +77,14 @@ SamDbSetPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbSetPassword_inlock(
                     hBindHandle,
                     pwszUserDN,
                     pwszPassword);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 }
@@ -106,8 +104,8 @@ SamDbSetPassword_inlock(
     LONG64 llCurTime = 0;
     PCSTR pszQueryTemplate = "UPDATE " SAM_DB_OBJECTS_TABLE \
                              "   SET " SAM_DB_COL_LM_HASH " = ?1," \
-                             "   SET " SAM_DB_COL_NT_HASH " = ?2," \
-                             "   SET " SAM_DB_COL_PASSWORD_LAST_SET " = ?3"  \
+                                       SAM_DB_COL_NT_HASH " = ?2," \
+                                       SAM_DB_COL_PASSWORD_LAST_SET " = ?3"  \
                              " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?4" \
                              "   AND " SAM_DB_COL_OBJECT_CLASS " = ?5";
     sqlite3_stmt* pSqlStatement = NULL;
@@ -133,7 +131,7 @@ SamDbSetPassword_inlock(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     memset(&lmHash[0], 0, sizeof(lmHash));
     memset(&ntHash[0], 0, sizeof(ntHash));
@@ -145,7 +143,7 @@ SamDbSetPassword_inlock(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbComputeNTHash(
-                pszPassword,
+                pwszPassword,
                 &ntHash[0],
                 sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -158,7 +156,7 @@ SamDbSetPassword_inlock(
                     &lmHash[0],
                     sizeof(lmHash),
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_blob(
                     pSqlStatement,
@@ -166,13 +164,13 @@ SamDbSetPassword_inlock(
                     &ntHash[0],
                     sizeof(ntHash),
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     3,
                     llCurTime);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -180,20 +178,20 @@ SamDbSetPassword_inlock(
                     pszUserDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     5,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (!sqlite3_changes(pDirectoryContext->pDbContext->pDbHandle))
     {
@@ -232,7 +230,7 @@ SamDbChangePassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbVerifyPassword_inlock(
                     hBindHandle,
@@ -248,7 +246,7 @@ SamDbChangePassword(
 
 cleanup:
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 
@@ -270,14 +268,14 @@ SamDbVerifyPassword(
 
     pDirectoryContext = (PSAM_DIRECTORY_CONTEXT)hBindHandle;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbVerifyPassword_inlock(
                     hBindHandle,
                     pwszUserDN,
                     pwszPassword);
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 }
@@ -331,7 +329,7 @@ SamDbVerifyPassword_inlock(
     BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbComputeNTHash(
-                pszPassword,
+                pwszPassword,
                 &ntHash[0],
                 sizeof(ntHash));
     BAIL_ON_SAMDB_ERROR(dwError);
@@ -342,7 +340,7 @@ SamDbVerifyPassword_inlock(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -350,13 +348,13 @@ SamDbVerifyPassword_inlock(
                     pszUserDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     2,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_DONE)
     {
@@ -386,7 +384,7 @@ SamDbVerifyPassword_inlock(
             {
                 PCVOID pData = sqlite3_column_blob(pSqlStatement, 0);
 
-                memcpy(&lmHash[0], pData, dwNumBytes);
+                memcpy(&lmHashDbValue[0], pData, dwNumBytes);
             }
         }
 
@@ -402,10 +400,13 @@ SamDbVerifyPassword_inlock(
             {
                 PCVOID pData = sqlite3_column_blob(pSqlStatement, 1);
 
-                memcpy(&ntHash[0], pData, dwNumBytes);
+                memcpy(&ntHashDbValue[0], pData, dwNumBytes);
             }
         }
+
+        dwError = LSA_ERROR_SUCCESS;
     }
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (memcmp(&lmHash[0], &lmHashDbValue[0], sizeof(lmHash)) ||
         memcmp(&ntHash[0], &ntHashDbValue[0], sizeof(ntHash)))
@@ -443,3 +444,12 @@ SamDbGetUserCount(
                 pdwNumUsers);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

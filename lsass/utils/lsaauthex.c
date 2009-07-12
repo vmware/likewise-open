@@ -39,7 +39,7 @@
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Gerald Carter <gcarter@likewisesoftware.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  *
  */
 
@@ -47,80 +47,93 @@
 
 DWORD
 LsaFreeAuthUserInfo(
-	PLSA_AUTH_USER_INFO *ppAuthUserInfo
-	)
+    PLSA_AUTH_USER_INFO *ppAuthUserInfo
+    )
 {
-	PLSA_AUTH_USER_INFO p = NULL;
+    PLSA_AUTH_USER_INFO p = NULL;
 
-	if (!ppAuthUserInfo || !*ppAuthUserInfo)
-	{
-		return LSA_ERROR_SUCCESS;
-	}
+    if (!ppAuthUserInfo || !*ppAuthUserInfo)
+    {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	p = *ppAuthUserInfo;
+    p = *ppAuthUserInfo;
 
-	LSA_SAFE_FREE_MEMORY(p->pszAccount);
-	LSA_SAFE_FREE_MEMORY(p->pszUserPrincipalName);
-	LSA_SAFE_FREE_MEMORY(p->pszFullName);
-	LSA_SAFE_FREE_MEMORY(p->pszDomain);
-	LSA_SAFE_FREE_MEMORY(p->pszDnsDomain);
+    LSA_SAFE_FREE_MEMORY(p->pszAccount);
+    LSA_SAFE_FREE_MEMORY(p->pszUserPrincipalName);
+    LSA_SAFE_FREE_MEMORY(p->pszFullName);
+    LSA_SAFE_FREE_MEMORY(p->pszDomain);
+    LSA_SAFE_FREE_MEMORY(p->pszDnsDomain);
 
-	LsaDataBlobFree(&p->pSessionKey);
-	LsaDataBlobFree(&p->pLmSessionKey);
+    if (p->pSessionKey) {
+        LsaDataBlobFree(&p->pSessionKey);
+    }
 
-	LSA_SAFE_FREE_MEMORY(p->pszLogonServer);
-	LSA_SAFE_FREE_MEMORY(p->pszLogonScript);
-	LSA_SAFE_FREE_MEMORY(p->pszProfilePath);
-	LSA_SAFE_FREE_MEMORY(p->pszHomeDirectory);
-	LSA_SAFE_FREE_MEMORY(p->pszHomeDrive);
+    if (p->pLmSessionKey) {
+        LsaDataBlobFree(&p->pLmSessionKey);
+    }
 
-	LSA_SAFE_FREE_MEMORY(p->pRidAttribList);
-	LSA_SAFE_FREE_MEMORY(p->pSidAttribList);
+    LSA_SAFE_FREE_MEMORY(p->pszLogonServer);
+    LSA_SAFE_FREE_MEMORY(p->pszLogonScript);
+    LSA_SAFE_FREE_MEMORY(p->pszProfilePath);
+    LSA_SAFE_FREE_MEMORY(p->pszHomeDirectory);
+    LSA_SAFE_FREE_MEMORY(p->pszHomeDrive);
+
+    LSA_SAFE_FREE_MEMORY(p->pRidAttribList);
+    LSA_SAFE_FREE_MEMORY(p->pSidAttribList);
 
 
-	LSA_SAFE_FREE_MEMORY(p);
+    LSA_SAFE_FREE_MEMORY(p);
 
-	*ppAuthUserInfo = NULL;
+    *ppAuthUserInfo = NULL;
 
-	return LSA_ERROR_SUCCESS;
+    return LSA_ERROR_SUCCESS;
 }
 
 
 DWORD
 LsaFreeAuthUserParams(
-	PLSA_AUTH_USER_PARAMS *ppAuthUserParams
-	)
+    PLSA_AUTH_USER_PARAMS *ppAuthUserParams
+    )
 {
-	PLSA_AUTH_USER_PARAMS p = NULL;
+    PLSA_AUTH_USER_PARAMS p = NULL;
 
-	if (!ppAuthUserParams || !*ppAuthUserParams)
-	{
-		return LSA_ERROR_SUCCESS;
-	}
+    if (!ppAuthUserParams || !*ppAuthUserParams)
+    {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	p = *ppAuthUserParams;
+    p = *ppAuthUserParams;
 
-	LSA_SAFE_FREE_MEMORY(p->pszAccountName);
-	LSA_SAFE_FREE_MEMORY(p->pszDomain);
-	LSA_SAFE_FREE_MEMORY(p->pszWorkstation);
+    LSA_SAFE_FREE_MEMORY(p->pszAccountName);
+    LSA_SAFE_FREE_MEMORY(p->pszDomain);
+    LSA_SAFE_FREE_MEMORY(p->pszWorkstation);
 
-	switch (p->AuthType)
-	{
-	case LSA_AUTH_PLAINTEXT:
-		LSA_SAFE_FREE_MEMORY(p->pass.clear.pszPassword);
-		break;
-	case LSA_AUTH_CHAP:
-		LsaDataBlobFree(&p->pass.chap.pChallenge);
-		LsaDataBlobFree(&p->pass.chap.pNT_resp);
-		LsaDataBlobFree(&p->pass.chap.pLM_resp);
-		break;
-	}
+    switch (p->AuthType)
+    {
+    case LSA_AUTH_PLAINTEXT:
+        LSA_SAFE_FREE_MEMORY(p->pass.clear.pszPassword);
+        break;
+    case LSA_AUTH_CHAP:
+        LsaDataBlobFree(&p->pass.chap.pChallenge);
+        LsaDataBlobFree(&p->pass.chap.pNT_resp);
+        LsaDataBlobFree(&p->pass.chap.pLM_resp);
+        break;
+    }
 
-	LSA_SAFE_FREE_MEMORY(p);
+    LSA_SAFE_FREE_MEMORY(p);
 
-	*ppAuthUserParams = NULL;
+    *ppAuthUserParams = NULL;
 
-	return LSA_ERROR_SUCCESS;
+    return LSA_ERROR_SUCCESS;
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

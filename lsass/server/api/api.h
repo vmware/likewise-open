@@ -49,13 +49,20 @@
 
 #include "lsasystem.h"
 #include <lsa/lsa.h>
+#include <lwmsg/lwmsg.h>
 
-#include <uuid/uuid.h>
+#include <dce/rpc.h>
+#include <dce/dcethread.h>
+#include <compat/winerror.h>
+#include <lw/ntstatus.h>
+
 
 #include <eventlog.h>
 
 #include "lsadef.h"
-
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsalog_r.h"
@@ -82,6 +89,39 @@
 #include "lsasrvapi.h"
 
 
+
+
+#include "lsaipc.h"
+
+#include "ipc_error_p.h"
+#include "ipc_auth_p.h"
+#include "ipc_group_p.h"
+#include "ipc_artefact_p.h"
+#include "ipc_gss_p.h"
+#include "ipc_session_p.h"
+#include "ipc_user_p.h"
+#include "ipc_log_p.h"
+#include "ipc_tracing_p.h"
+#include "ipc_metrics_p.h"
+#include "ipc_status_p.h"
+#include "ipc_config_p.h"
+#include "ipc_provider_p.h"
+#include "externs_p.h"
+
+#include <lsarpcsrv.h>
+
+#include "rpcctl-register.h"
+#include "externs.h"
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 /*
 local variables:
 mode: c

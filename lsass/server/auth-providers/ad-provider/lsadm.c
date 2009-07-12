@@ -603,7 +603,7 @@ LsaDmLdapDirectorySearch(
     while (TRUE)
     {
         hDirectory = LsaDmpGetLdapHandle(pConn);
-        dwError = LsaLdapDirectorySearch(
+        dwError = LwLdapDirectorySearch(
                     hDirectory,
                     pszObjectDN,
                     scope,
@@ -659,7 +659,7 @@ LsaDmLdapDirectoryExtendedDNSearch(
     while (TRUE)
     {
         hDirectory = LsaDmpGetLdapHandle(pConn);
-        dwError = LsaLdapDirectoryExtendedDNSearch(
+        dwError = LwLdapDirectoryExtendedDNSearch(
                         hDirectory,
                         pszObjectDN,
                         pszQuery,
@@ -717,7 +717,7 @@ LsaDmLdapDirectoryOnePagedSearch(
     while (TRUE)
     {
         hDirectory = LsaDmpGetLdapHandle(pConn);
-        dwError = LsaLdapDirectoryOnePagedSearch(
+        dwError = LwLdapDirectoryOnePagedSearch(
                         hDirectory,
                         pszObjectDN,
                         pszQuery,

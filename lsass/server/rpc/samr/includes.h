@@ -43,7 +43,7 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <lw/base.h>
@@ -58,6 +58,9 @@
 #include <lwrpc/samrconn.h>
 
 #include <lsa/lsa.h>
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include <lsautils.h>
 #include <lsaunistr.h>
 #include <lsarpcsrv.h>

@@ -207,7 +207,7 @@ AD_FreeEnumState(
 {
     if (pState)
     {
-        LsaFreeCookieContents(&pState->Cookie);
+        LwFreeCookieContents(&pState->Cookie);
 
         LSA_SAFE_FREE_STRING(pState->pszMapName);
 

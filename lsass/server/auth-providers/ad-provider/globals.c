@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -52,7 +52,7 @@ pthread_rwlock_t gADGlobalDataLock;
 
 PSTR gpszADProviderName = "lsa-activedirectory-provider";
 
-PSTR gpszConfigFilePath = NULL;
+PSTR gpszADConfigFilePath = NULL;
 
 BOOLEAN gbShutdownProvider = FALSE;
 
@@ -72,8 +72,6 @@ pthread_t       gMachinePasswordSyncThread;
 pthread_mutex_t gMachinePasswordSyncThreadLock       = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  gMachinePasswordSyncThreadCondition  = PTHREAD_COND_INITIALIZER;
 pthread_t*      gpMachinePasswordSyncThread          = NULL;
-
-DWORD gdwClockDriftSecs = 60;
 
 HANDLE ghPasswordStore = (HANDLE)NULL;
 
@@ -97,15 +95,17 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_EndEnumUsers,
             &AD_FindGroupByName,
             &AD_FindGroupById,
-            &AD_GetUserGroupMembership,
+            &AD_GetGroupsForUser,
             &AD_BeginEnumGroups,
             &AD_EnumGroups,
             &AD_EndEnumGroups,
             &AD_ChangePassword,
+            &AD_SetPassword,
             &AD_AddUser,
             &AD_ModifyUser,
             &AD_DeleteUser,
             &AD_AddGroup,
+            &AD_ModifyGroup,
             &AD_DeleteGroup,
             &AD_OpenSession,
             &AD_CloseSession,
@@ -125,3 +125,17 @@ PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 // please put all new globals in the following structure:
 PLSA_AD_PROVIDER_STATE gpLsaAdProviderState = NULL;
 
+
+ADCACHE_PROVIDER_FUNCTION_TABLE ADCacheTable;
+
+PADCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider = &ADCacheTable;
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

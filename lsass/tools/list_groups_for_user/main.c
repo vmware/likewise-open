@@ -59,7 +59,12 @@ static
 void
 ShowUsage()
 {
-    printf("Usage: lw-list-groups <user name>\n");
+    printf("Usage: lw-list-groups [options] <user name>\n"
+           "   or: lw-list-groups [options] --uid <uid>\n"
+           "\n"
+           "  where options are:\n"
+           "\n"
+           "    --show-sid  -- Show SIDs\n");
 }
 
 DWORD
@@ -68,97 +73,168 @@ MapErrorCode(
     );
 
 static
+BOOLEAN
+IsAllDigits(
+    IN PCSTR pszString
+    )
+{
+    const char* pChar = NULL;
+    BOOLEAN bIsAllDigits = TRUE;
+
+    for (pChar = pszString; *pChar; pChar++)
+    {
+        if (!isdigit((int)*pChar))
+        {
+            bIsAllDigits = FALSE;
+            break;
+        }
+    }
+
+    return bIsAllDigits;
+}
+
 DWORD
-ParseArgs(
-    int argc,
-    char* argv[],
-    PSTR* ppszUserName
+StringToId(
+    IN PCSTR pszString,
+    OUT PDWORD pValue
     )
 {
     DWORD dwError = 0;
-    int iArg = 1;
-    PSTR pszArg = NULL;
-    PSTR pszUserName = NULL;
-    size_t dwErrorBufferSize = 0;
-    BOOLEAN bPrintOrigError = TRUE;
+    long long int result = 0;
 
-    if (argc != 2)
+    errno = 0;
+    result = strtoll(pszString, NULL, 10);
+    if (errno)
+    {
+        perror("Cannot convert to id");
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    if (result < 0 || result > MAXDWORD)
+    {
+        printf("Argument out of range\n");
+        dwError = LSA_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    *pValue = (DWORD) result;
+    return dwError;
+
+error:
+    result = 0;
+    goto cleanup;
+}
+
+static
+VOID
+ParseArgs(
+    IN int argc,
+    IN char* argv[],
+    OUT PCSTR* ppszUserName,
+    OUT PDWORD pdwId,
+    OUT PBOOLEAN pbShowSid
+    )
+{
+    DWORD dwError = 0;
+    int iArg = 0;
+    PSTR pszArg = NULL;
+    BOOLEAN bIsId = FALSE;
+    PSTR pszUserName = NULL;
+    DWORD dwId = 0;
+    BOOLEAN bShowSid = FALSE;
+
+    if (argc < 2)
     {
         ShowUsage();
         exit(1);
     }
 
-    do {
-        pszArg = argv[iArg++];
-        if (pszArg == NULL || *pszArg == '\0')
-        {
-            break;
-        }
+    // First, get any options.
+    for (iArg = 1; iArg < argc; iArg++)
+    {
+        pszArg = argv[iArg];
 
-        if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0))
+        if (!strcmp(pszArg, "--help") || !strcmp(pszArg, "-h"))
         {
             ShowUsage();
             exit(0);
         }
-        else
+        else if (!strcmp(pszArg, "--uid") || !strcmp(pszArg, "-u"))
         {
-            dwError = LsaAllocateString(pszArg, &pszUserName);
-            BAIL_ON_LSA_ERROR(dwError);
+            PCSTR pszUid = NULL;
+
+            bIsId = TRUE;
+
+            if ((iArg + 1) >= argc)
+            {
+                fprintf(stderr, "Missing argument for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+
+            pszUid = argv[iArg + 1];
+            iArg++;
+
+            if (!IsAllDigits(pszUid))
+            {
+                fprintf(stderr, "Non-numeric argument for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+
+            dwError = StringToId(pszUid, &dwId);
+            if (dwError)
+            {
+                fprintf(stderr, "Invalid range for %s option.\n", pszArg);
+                ShowUsage();
+                exit(1);
+            }
+
+            // There can be no options following this one.
+            iArg++;
             break;
         }
-    } while (iArg < argc);
+        else if (!strcmp(pszArg, "--show-sid"))
+        {
+            bShowSid = TRUE;
+        }
+        else
+        {
+            break;
+        }
+    }
 
-    if (IsNullOrEmptyString(pszUserName)) {
-       fprintf(stderr, "Please specify a user name to query for.\n");
-       ShowUsage();
-       exit(1);
+    // Now get positional arguments.
+    if ((argc - iArg) >= 1)
+    {
+        pszUserName = argv[iArg++];
+        if (IsNullOrEmptyString(pszUserName))
+        {
+           fprintf(stderr, "Please specify a non-empty user name to query for.\n");
+           ShowUsage();
+           exit(1);
+        }
+    }
+
+    // Now verify arguments.
+    if (argc > iArg)
+    {
+        fprintf(stderr, "Too many arguments.\n");
+        ShowUsage();
+        exit(1);
+    }
+
+    if (bIsId && pszUserName)
+    {
+        fprintf(stderr, "Please specify either a uid or user name.\n");
+        ShowUsage();
+        exit(1);
     }
 
     *ppszUserName = pszUserName;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *ppszUserName = NULL;
-
-    LSA_SAFE_FREE_STRING(pszUserName);
-
-    dwError = MapErrorCode(dwError);
-
-    dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
-
-    if (dwErrorBufferSize > 0)
-    {
-        DWORD dwError2 = 0;
-        PSTR   pszErrorBuffer = NULL;
-
-        dwError2 = LsaAllocateMemory(
-                    dwErrorBufferSize,
-                    (PVOID*)&pszErrorBuffer);
-
-        if (!dwError2)
-        {
-            DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
-
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
-            {
-                fprintf(stderr, "Failed to list groups for user.  %s\n", pszErrorBuffer);
-                bPrintOrigError = FALSE;
-            }
-        }
-
-        LSA_SAFE_FREE_STRING(pszErrorBuffer);
-    }
-
-    if (bPrintOrigError)
-    {
-        fprintf(stderr, "Failed to list groups for user. Error code [%d]\n", dwError);
-    }
-
-    goto cleanup;
+    *pdwId = dwId;
+    *pbShowSid = bShowSid;
 }
 
 int
@@ -169,41 +245,57 @@ main(
 {
     DWORD dwError = 0;
     HANDLE hLsaConnection = (HANDLE)NULL;
-    PSTR   pszUserName = NULL;
+    PCSTR pszUserName = NULL;
     DWORD  dwNumGroups = 0;
     DWORD  iGroup = 0;
     LSA_FIND_FLAGS FindFlags = 0;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
-    DWORD dwUserInfoLevel = 0;
     DWORD dwGroupInfoLevel = 0;
     PVOID* ppGroupInfoList = NULL;
+    DWORD dwId = 0;
+    BOOLEAN bShowSid = FALSE;
 
-    dwError = ParseArgs(argc, argv, &pszUserName);
-    BAIL_ON_LSA_ERROR(dwError);
+    ParseArgs(argc, argv, &pszUserName, &dwId, &bShowSid);
+
+    if (pszUserName)
+    {
+        dwError = LsaValidateUserName(pszUserName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaValidateUserName(pszUserName);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszUserName)
+    {
+        dwError = LsaGetGroupsForUserByName(
+                        hLsaConnection,
+                        pszUserName,
+                        FindFlags,
+                        dwGroupInfoLevel,
+                        &dwNumGroups,
+                        &ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaGetGroupsForUserById(
+                        hLsaConnection,
+                        dwId,
+                        FindFlags,
+                        dwGroupInfoLevel,
+                        &dwNumGroups,
+                        &ppGroupInfoList);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    dwError = LsaFindUserByName(
-                  hLsaConnection,
-                  pszUserName,
-                  dwUserInfoLevel,
-                  (PVOID*)&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaGetGroupsForUserById(
-                hLsaConnection,
-                pUserInfo->uid,
-                FindFlags,
-                dwGroupInfoLevel,
-                &dwNumGroups,
-                &ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    printf("Number of groups found for user [%s] : %d\n", pszUserName, dwNumGroups);
+    if (pszUserName)
+    {
+        printf("Number of groups found for user '%s' : %d\n", pszUserName, dwNumGroups);
+    }
+    else
+    {
+        printf("Number of groups found for uid %u : %d\n", dwId, dwNumGroups);
+    }
 
     switch(dwGroupInfoLevel)
     {
@@ -213,12 +305,25 @@ main(
             {
                 PLSA_GROUP_INFO_0* pGroupInfoList = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
 
-                fprintf(stdout,
-                        "Group[%d of %d] name = %s (gid = %u)\n",
-                        iGroup+1,
-                        dwNumGroups,
-                        pGroupInfoList[iGroup]->pszName,
-                        (unsigned int) pGroupInfoList[iGroup]->gid);
+                if (bShowSid)
+                {
+                    fprintf(stdout,
+                            "Group[%d of %d] name = %s (gid = %u, sid = %s)\n",
+                            iGroup+1,
+                            dwNumGroups,
+                            pGroupInfoList[iGroup]->pszName,
+                            (unsigned int) pGroupInfoList[iGroup]->gid,
+                            pGroupInfoList[iGroup]->pszSid);
+                }
+                else
+                {
+                    fprintf(stdout,
+                            "Group[%d of %d] name = %s (gid = %u)\n",
+                            iGroup+1,
+                            dwNumGroups,
+                            pGroupInfoList[iGroup]->pszName,
+                            (unsigned int) pGroupInfoList[iGroup]->gid);
+                }
             }
 
             break;
@@ -230,13 +335,6 @@ main(
     }
 
 cleanup:
-
-    LSA_SAFE_FREE_STRING(pszUserName);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
-    }
 
     if (ppGroupInfoList)
     {
@@ -251,11 +349,20 @@ cleanup:
     return (dwError);
 
 error:
-
-    fprintf(stderr,
-            "Failed to find groups for user (%s). Error code: %d\n",
-            IsNullOrEmptyString(pszUserName) ? "<null>" : pszUserName,
-            dwError);
+    if (pszUserName)
+    {
+        fprintf(stderr,
+                "Failed to find groups for user '%s'.  Error code: %d\n",
+                pszUserName,
+                dwError);
+    }
+    else
+    {
+        fprintf(stderr,
+                "Failed to find groups for uid %u.  Error code: %d\n",
+                dwId,
+                dwError);
+    }
 
     goto cleanup;
 }

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -27,8 +27,6 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
-
-
 
 /*
  * Copyright (C) Likewise Software. All rights reserved.
@@ -77,7 +75,7 @@ error:
 
 DWORD
 SamDbComputeNTHash(
-    PCSTR pszPassword,
+    PCWSTR pwszPassword,
     PBYTE pHash,
     DWORD dwHashByteLen
     )
@@ -92,9 +90,11 @@ SamDbComputeNTHash(
 
     memset(pHash, 0, dwHashByteLen);
 
-    if (pszPassword)
+    if (pwszPassword)
     {
-        MD4((PBYTE)pszPassword, strlen(pszPassword), pHash);
+        MD4((PBYTE)pwszPassword,
+            wc16slen(pwszPassword)*sizeof(WCHAR),
+            pHash);
     }
 
 cleanup:
@@ -144,7 +144,8 @@ SamDbGetObjectClass(
                 case SAMDB_OBJECT_CLASS_DOMAIN:
                 case SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN:
                 case SAMDB_OBJECT_CLASS_CONTAINER:
-                case SAMDB_OBJECT_CLASS_GROUP:
+                case SAMDB_OBJECT_CLASS_LOCAL_GROUP:
+                case SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER:
                 case SAMDB_OBJECT_CLASS_USER:
 
                     objectClass = pAttrValue->data.ulValue;
@@ -289,24 +290,32 @@ SamDbGetObjectCount(
     sqlite3_stmt* pSqlStatement = NULL;
     BOOLEAN bInLock = FALSE;
     DWORD   dwNumObjects = 0;
-    PCSTR pszQueryTemplate = "SELECT count(*) FROM " SAM_DB_OBJECTS_TABLE \
-                             " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1";
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
-    dwError = sqlite3_prepare_v2(
-                    pDirectoryContext->pDbContext->pDbHandle,
-                    pszQueryTemplate,
-                    -1,
-                    &pSqlStatement,
-                    NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!pDirectoryContext->pDbContext->pQueryObjectCountStmt)
+    {
+        PCSTR pszQueryTemplate = "SELECT count(*) FROM " SAM_DB_OBJECTS_TABLE \
+                                     " WHERE " SAM_DB_COL_OBJECT_CLASS " = ?1";
+
+        dwError = sqlite3_prepare_v2(
+                        pDirectoryContext->pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDirectoryContext->pDbContext->pQueryObjectCountStmt,
+                        NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
+                        dwError,
+                        pDirectoryContext->pDbContext->pDbHandle);
+    }
+
+    pSqlStatement = pDirectoryContext->pDbContext->pQueryObjectCountStmt;
 
     dwError = sqlite3_bind_int(
                     pSqlStatement,
                     1,
                     objectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
     {
@@ -322,18 +331,18 @@ SamDbGetObjectCount(
 
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *pdwNumObjects = dwNumObjects;
 
 cleanup:
 
-    if (pSqlStatement)
+    if (pDirectoryContext->pDbContext->pQueryObjectCountStmt)
     {
-        sqlite3_finalize(pSqlStatement);
+        sqlite3_reset(pDirectoryContext->pDbContext->pQueryObjectCountStmt);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     return dwError;
 
@@ -355,7 +364,7 @@ SamDbGetObjectRecordInfo(
     LONG64  llObjectRecordId = 0;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -364,7 +373,7 @@ SamDbGetObjectRecordInfo(
                     &objectClass);
 
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     *pllObjectRecordId = llObjectRecordId;
     *pObjectClass = objectClass;
@@ -384,20 +393,28 @@ SamDbGetObjectRecordInfo_inlock(
     sqlite3_stmt* pSqlStatement = NULL;
     LONG64   llObjectRecordId = 0;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
-    PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_RECORD_ID "," \
-                                       SAM_DB_COL_OBJECT_CLASS  \
-                             "  FROM " SAM_DB_OBJECTS_TABLE     \
-                             " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1";
 
     BAIL_ON_INVALID_POINTER(pszObjectDN);
 
-    dwError = sqlite3_prepare_v2(
-                    pDirectoryContext->pDbContext->pDbHandle,
-                    pszQueryTemplate,
-                    -1,
-                    &pSqlStatement,
-                    NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    if (!pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt)
+    {
+        PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_RECORD_ID "," \
+                                           SAM_DB_COL_OBJECT_CLASS  \
+                                 "  FROM " SAM_DB_OBJECTS_TABLE     \
+                                 " WHERE " SAM_DB_COL_DISTINGUISHED_NAME " = ?1";
+
+        dwError = sqlite3_prepare_v2(
+                        pDirectoryContext->pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt,
+                        NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
+                        dwError,
+                        pDirectoryContext->pDbContext->pDbHandle);
+    }
+
+    pSqlStatement = pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt;
 
     dwError = sqlite3_bind_text(
                     pSqlStatement,
@@ -405,7 +422,7 @@ SamDbGetObjectRecordInfo_inlock(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
     {
@@ -429,16 +446,133 @@ SamDbGetObjectRecordInfo_inlock(
     {
         dwError = LSA_ERROR_NO_SUCH_OBJECT;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *pllObjectRecordId = llObjectRecordId;
     *pObjectClass = objectClass;
 
 cleanup:
 
-    if (pSqlStatement)
+    if (pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt)
     {
-        sqlite3_finalize(pSqlStatement);
+        sqlite3_reset(pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt);
+    }
+
+    return dwError;
+
+error:
+
+    *pllObjectRecordId = 0;
+    *pObjectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+
+    goto cleanup;
+}
+
+DWORD
+SamDbGetObjectRecordInfoBySID(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    )
+{
+    DWORD   dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    LONG64  llObjectRecordId = 0;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
+
+    dwError = SamDbGetObjectRecordInfoBySID_inlock(
+                    pDirectoryContext,
+                    pszObjectSID,
+                    &llObjectRecordId,
+                    &objectClass);
+
+
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
+
+    *pllObjectRecordId = llObjectRecordId;
+    *pObjectClass = objectClass;
+
+    return dwError;
+}
+
+DWORD
+SamDbGetObjectRecordInfoBySID_inlock(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PCSTR                  pszObjectSID,
+    PLONG64                pllObjectRecordId,
+    SAMDB_OBJECT_CLASS*    pObjectClass
+    )
+{
+    DWORD dwError = 0;
+    sqlite3_stmt* pSqlStatement = NULL;
+    LONG64   llObjectRecordId = 0;
+    SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
+
+    BAIL_ON_INVALID_POINTER(pszObjectSID);
+
+    if (!pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt)
+    {
+        PCSTR pszQueryTemplate = "SELECT " SAM_DB_COL_RECORD_ID "," \
+                                           SAM_DB_COL_OBJECT_CLASS  \
+                                 "  FROM " SAM_DB_OBJECTS_TABLE     \
+                                 " WHERE " SAM_DB_COL_OBJECT_SID " = ?1";
+
+        dwError = sqlite3_prepare_v2(
+                        pDirectoryContext->pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt,
+                        NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(
+                        dwError,
+                        pDirectoryContext->pDbContext->pDbHandle);
+    }
+
+    pSqlStatement = pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt;
+
+    dwError = sqlite3_bind_text(
+                    pSqlStatement,
+                    1,
+                    pszObjectSID,
+                    -1,
+                    SQLITE_TRANSIENT);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+    if ((dwError = sqlite3_step(pSqlStatement) == SQLITE_ROW))
+    {
+        if (sqlite3_column_count(pSqlStatement) != 2)
+        {
+            dwError = LSA_ERROR_DATA_ERROR;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        llObjectRecordId = sqlite3_column_int64(
+                                pSqlStatement,
+                                0);
+
+        objectClass = sqlite3_column_int(
+                                pSqlStatement,
+                                1);
+
+        dwError = LSA_ERROR_SUCCESS;
+    }
+    else if (dwError == SQLITE_DONE)
+    {
+        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+    }
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+    *pllObjectRecordId = llObjectRecordId;
+    *pObjectClass = objectClass;
+
+cleanup:
+
+    if (pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt)
+    {
+        sqlite3_reset(pDirectoryContext->pDbContext->pQueryObjectRecordInfoStmt);
     }
 
     return dwError;
@@ -459,3 +593,12 @@ SamDbGetNTTime(
     return (timeVal + 11644473600LL) * 10000000LL;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

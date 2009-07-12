@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -91,13 +91,13 @@ AD_MachineCredentialsCacheIsInitialized(
 
 static
 BOOLEAN
-LsaAdProviderLsaKrb5IsOfflineCallback(
+LsaAdProviderLwKrb5IsOfflineCallback(
     IN PCSTR pszRealm
     );
 
 static
 VOID
-LsaAdProviderLsaKrb5TransitionOfflineCallback(
+LsaAdProviderLwKrb5TransitionOfflineCallback(
     IN PCSTR pszRealm
     );
 
@@ -131,6 +131,18 @@ LsaAdProviderLogConfigReloadEvent(
     );
 
 static
+VOID
+LsaAdProviderLogRequireMembershipOfChangeEvent(
+    HANDLE hProvider
+    );
+
+static
+VOID
+LsaAdProviderLogEventLogEnableChangeEvent(
+    VOID
+    );
+
+static
 DWORD
 AD_SetUserCanonicalNameToAlias(
     PCSTR pszCurrentNetBIOSDomainName,
@@ -153,8 +165,14 @@ AD_SetCanonicalNameToAlias(
     PSTR  pszCanonicalName
     );
 
+
+void
+InitADCacheFunctionTable(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
+    );
+
 DWORD
-LsaInitializeProvider(
+LSA_INITIALIZE_PROVIDER(ad)(
     PCSTR pszConfigFilePath,
     PSTR* ppszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
@@ -172,12 +190,14 @@ LsaInitializeProvider(
 
     pthread_rwlock_init(&gADGlobalDataLock, NULL);
 
+    InitADCacheFunctionTable(gpCacheProvider);
+
     dwError = LsaAdProviderStateCreate(&gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5Init(
-                LsaAdProviderLsaKrb5IsOfflineCallback,
-                LsaAdProviderLsaKrb5TransitionOfflineCallback);
+    dwError = LwKrb5Init(
+                LsaAdProviderLwKrb5IsOfflineCallback,
+                LsaAdProviderLwKrb5TransitionOfflineCallback);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_NetInitMemory();
@@ -204,6 +224,8 @@ LsaInitializeProvider(
 
         dwError = AD_SetConfigFilePath(pszConfigFilePath);
         BAIL_ON_LSA_ERROR(dwError);
+
+        LsaAdProviderLogConfigReloadEvent();
     }
 
     dwError = ADInitMachinePasswordSync();
@@ -214,7 +236,7 @@ LsaInitializeProvider(
 
     LsaStrToUpper(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -259,17 +281,17 @@ LsaInitializeProvider(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
+    dwError = LwKrb5GetSystemCachePath(KRB5_File_Cache, &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
+    dwError = LwKrb5SetProcessDefaultCachePath(pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADState_OpenDb(
                 &gpLsaAdProviderState->hStateConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbOpen(
+    dwError = ADCacheOpen(
                 LSASS_AD_CACHE,
                 &gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -363,7 +385,7 @@ error:
 }
 
 DWORD
-LsaShutdownProvider(
+LSA_SHUTDOWN_PROVIDER(ad)(
     PSTR pszProviderName,
     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
     )
@@ -393,7 +415,7 @@ LsaShutdownProvider(
         gpADProviderData = NULL;
     }
 
-    dwError = LsaKrb5Shutdown();
+    dwError = LwKrb5Shutdown();
     if (dwError)
     {
         LSA_LOG_DEBUG("AD Provider Shutdown: Failed to shutdown krb5 (error = %d)", dwError);
@@ -402,7 +424,7 @@ LsaShutdownProvider(
 
     AD_FreeAllowedSIDs_InLock();
 
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
 
     // This will clean up media sense too.
     LsaAdProviderStateDestroy(gpLsaAdProviderState);
@@ -528,36 +550,29 @@ DWORD
 AD_AuthenticateUserEx(
     HANDLE hProvider,
     PLSA_AUTH_USER_PARAMS pUserParams,
-    PLSA_AUTH_USER_INFO *ppUSerInfo
+    PLSA_AUTH_USER_INFO *ppUserInfo
     )
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
-    PSTR pszDnsDomain = NULL;
-    PSTR pszNetbiosDomain = NULL;
 
-    /* The NTLM pass-through authentication gives us the NT4
-       style name.  We need the DNS domain for the LsaDmConnectDomain() */
-
-    dwError = LsaDmEngineGetDomainNameWithDiscovery(
-                    pUserParams->pszDomain,
-                    &pszDnsDomain,
-                    &pszNetbiosDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    /* Authenticate (passing through the proper server affinity calls) */
-
-    dwError = LsaDmWrapAuthenticateUserEx(pszDnsDomain,
-					  pUserParams,
-					  ppUSerInfo);
+    dwError = LsaDmWrapAuthenticateUserEx(
+                      gpADProviderData->szDomain,
+                      pUserParams,
+                      ppUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LSA_SAFE_FREE_MEMORY(pszDnsDomain);
-    LSA_SAFE_FREE_MEMORY(pszNetbiosDomain);
 
     return dwError;
 
 error:
+    /* On this one, it is a good idea to fallback to
+       the local provider */
+
+    if (dwError == LSA_ERROR_RPC_NETLOGON_FAILED) {
+        dwError = LSA_ERROR_NOT_HANDLED;
+    }
+
     goto cleanup;
 }
 
@@ -594,7 +609,7 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     if (pLoginInfo)
     {
@@ -618,8 +633,7 @@ AD_CheckUserInList(
     DWORD  dwError = 0;
     size_t  sNumGroupsFound = 0;
     PLSA_SECURITY_OBJECT* ppGroupList = NULL;
-    DWORD  dwUserInfoLevel  = 0;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
     size_t  iGroup = 0;
     PLSA_HASH_TABLE pAllowedMemberList = NULL;
 
@@ -633,14 +647,10 @@ AD_CheckUserInList(
         goto cleanup;
     }
 
-    dwError = AD_FindUserByName(
-                    hProvider,
-                    pszUserName,
-                    dwUserInfoLevel,
-                    (PVOID*)&pUserInfo);
+    dwError = AD_FindUserObjectByName(hProvider, pszUserName, &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (AD_IsMemberAllowed(pUserInfo->pszSid,
+    if (AD_IsMemberAllowed(pUserInfo->pszObjectSid,
                            pAllowedMemberList))
     {
         goto cleanup;
@@ -648,7 +658,7 @@ AD_CheckUserInList(
 
     dwError = AD_GetUserGroupObjectMembership(
                     hProvider,
-                    pUserInfo->uid,
+                    pUserInfo,
                     FALSE,
                     &sNumGroupsFound,
                     &ppGroupList);
@@ -668,12 +678,8 @@ AD_CheckUserInList(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
+    ADCacheSafeFreeObjectList(sNumGroupsFound, &ppGroupList);
+    ADCacheSafeFreeObject(&pUserInfo);
     LsaHashSafeFree(&pAllowedMemberList);
 
     return dwError;
@@ -729,7 +735,7 @@ AD_FindUserByName(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -782,7 +788,7 @@ AD_FindUserById(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -858,7 +864,7 @@ AD_BeginEnumUsers(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaInitCookie(&pEnumState->Cookie);
+    LwInitCookie(&pEnumState->Cookie);
 
     *phResume = (HANDLE)pEnumState;
 
@@ -974,6 +980,7 @@ AD_EnumUsersFromCache(
     PVOID                 pBlob = NULL;
     size_t                BlobSize = 0;
     LWMsgContext*         context = NULL;
+    LWMsgDataContext*      pDataContext = NULL;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response;
     LSA_USER_INFO_LIST    result;
@@ -988,18 +995,21 @@ AD_EnumUsersFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                              pDataContext,
                               LsaAdIPCGetEnumUsersFromCacheReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbEnumUsersCache(
+    dwError = ADCacheEnumUsersCache(
                   gpLsaAdProviderState->hCacheConnection,
                   request->dwMaxNumUsers,
                   request->pszResume,
@@ -1035,7 +1045,7 @@ AD_EnumUsersFromCache(
                           &ppUserInfoList[dwInfoCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaDbSafeFreeObject(&ppUserObjectList[dwInfoCount]);
+            ADCacheSafeFreeObject(&ppUserObjectList[dwInfoCount]);
         }
 
         if (AD_ShouldAssumeDefaultDomain())
@@ -1082,8 +1092,8 @@ AD_EnumUsersFromCache(
     }
     response.pUserInfoList = &result;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataContext,
                               LsaAdIPCGetEnumUsersFromCacheRespSpec(),
                               &response,
                               &pBlob,
@@ -1095,7 +1105,7 @@ AD_EnumUsersFromCache(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
+    ADCacheSafeFreeObjectList(dwObjectCount, &ppUserObjectList);
 
     if (ppUserInfoList)
     {
@@ -1109,11 +1119,12 @@ cleanup:
 
     if ( request )
     {
-        lwmsg_context_free_graph(
-            context,
+        lwmsg_data_free_graph(
+            pDataContext,
             LsaAdIPCGetEnumUsersFromCacheReqSpec(),
             request);
     }
+
     if ( context )
     {
         lwmsg_context_delete(context);
@@ -1236,14 +1247,14 @@ AD_RemoveUserByIdFromCache(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveUserBySid(
+    dwError = ADCacheRemoveUserBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pUserInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -1328,7 +1339,7 @@ AD_FindGroupByNameWithCacheMode(
 
 cleanup:
 
-    LsaDbSafeFreeObject(&pInObjectForm);
+    ADCacheSafeFreeObject(&pInObjectForm);
 
     return dwError;
 
@@ -1431,7 +1442,7 @@ AD_GetExpandedGroupUsersEx(
 
 cleanup:
     AD_GroupExpansionDataDestroy(pExpansionData);
-    LsaDbSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
+    ADCacheSafeFreeObjectList(sGroupMembersCount, &ppGroupMembers);
 
     if (pbIsFullyExpanded)
     {
@@ -1444,7 +1455,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
+    ADCacheSafeFreeObjectList(sExpandedUsersCount, &ppExpandedUsers);
     sExpandedUsersCount = 0;
     bIsFullyExpanded = FALSE;
     goto cleanup;
@@ -1588,6 +1599,7 @@ AD_EnumGroupsFromCache(
     PVOID                 pBlob;
     size_t                BlobSize;
     LWMsgContext*         context = NULL;
+    LWMsgDataContext*      pDataContext = NULL;
     PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request = NULL;
     LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response;
     LSA_GROUP_INFO_LIST   result;
@@ -1602,18 +1614,21 @@ AD_EnumGroupsFromCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                              pDataContext,
                               LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
                               pInputBuffer,
                               dwInputBufferSize,
                               (PVOID*)&request));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbEnumGroupsCache(
+    dwError = ADCacheEnumGroupsCache(
                   gpLsaAdProviderState->hCacheConnection,
                   request->dwMaxNumGroups,
                   request->pszResume,
@@ -1651,7 +1666,7 @@ AD_EnumGroupsFromCache(
                           &ppGroupInfoList[dwInfoCount]);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaDbSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
+            ADCacheSafeFreeObject(&ppGroupObjectList[dwInfoCount]);
         }
 
         if (AD_ShouldAssumeDefaultDomain())
@@ -1694,8 +1709,8 @@ AD_EnumGroupsFromCache(
     }
     response.pGroupInfoList = &result;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
-                              context,
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataContext,
                               LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
                               &response,
                               &pBlob,
@@ -1707,7 +1722,7 @@ AD_EnumGroupsFromCache(
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
+    ADCacheSafeFreeObjectList(dwObjectCount, &ppGroupObjectList);
 
     if (ppGroupInfoList)
     {
@@ -1721,11 +1736,17 @@ cleanup:
 
     if ( request )
     {
-        lwmsg_context_free_graph(
-            context,
+        lwmsg_data_free_graph(
+            pDataContext,
             LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
             request);
     }
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+
     if ( context )
     {
         lwmsg_context_delete(context);
@@ -1780,7 +1801,7 @@ AD_RemoveGroupByNameFromCache(
                   &pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveGroupBySid(
+    dwError = ADCacheRemoveGroupBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pGroupInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1788,7 +1809,7 @@ AD_RemoveGroupByNameFromCache(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszFreeGroupName);
-    LsaDbSafeFreeObject(&pGroupInfo);
+    ADCacheSafeFreeObject(&pGroupInfo);
 
     return dwError;
 
@@ -1825,7 +1846,7 @@ AD_RemoveGroupByIdFromCache(
                   (PVOID*)&pGroupInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveGroupBySid(
+    dwError = ADCacheRemoveGroupBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pGroupInfo->pszSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1849,7 +1870,7 @@ error:
 DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppResult
@@ -1865,7 +1886,7 @@ AD_GetUserGroupObjectMembership(
     {
         dwError = AD_OnlineGetUserGroupObjectMembership(
             hProvider,
-            uid,
+            pUserInfo,
             bIsCacheOnlyMode,
             psNumGroupsFound,
             pppResult);
@@ -1875,7 +1896,7 @@ AD_GetUserGroupObjectMembership(
     {
         dwError = AD_OfflineGetUserGroupObjectMembership(
             hProvider,
-            uid,
+            pUserInfo,
             psNumGroupsFound,
             pppResult);
     }
@@ -1942,7 +1963,7 @@ AD_GroupObjectToGroupInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    LsaDbSafeFreeObjectList(sMembers, &ppMembers);
+    ADCacheSafeFreeObjectList(sMembers, &ppMembers);
     LSA_SAFE_FREE_STRING(pszFullDomainName);
 
     return dwError;
@@ -1955,9 +1976,10 @@ error:
 
 
 DWORD
-AD_GetUserGroupMembership(
+AD_GetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwNumGroupsFound,
@@ -1971,29 +1993,113 @@ AD_GetUserGroupMembership(
     size_t sIndex = 0;
     size_t sEnabledCount = 0;
     BOOLEAN bIsCacheOnlyMode = FALSE;
+    HANDLE hLsaConnection = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+    PSTR pszUserSID = NULL;
+    PSTR pszUserDN = NULL;
+    PSTR pszGroupSID = NULL;
+    PSTR pszGroupDN = NULL;
+    DWORD dwGroupsCount = 0;
+    DWORD i = 0;
+    PVOID *ppUserMembershipInfo = NULL;
+    PVOID *ppGroupMembershipInfo = NULL;
+    PLSA_HASH_TABLE pUserMemberships = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    PVOID pMemberInfo = NULL;
+    LSA_HASH_ENTRY *pHashEntry = NULL;
+    DWORD dwUserMembershipCount = 0;
+    PVOID *ppUserMembership = NULL;
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
         bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
     }
 
+    dwError = LsaHashCreate(
+                    13,
+                    LsaHashCaselessStringCompare,
+                    LsaHashCaselessString,
+                    NULL,
+                    NULL,
+                    &pUserMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszUserName)
+    {
+        dwError = AD_FindUserObjectByName(
+                        hProvider,
+                        pszUserName,
+                        &pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = AD_FindUserObjectById(
+                        hProvider,
+                        uid,
+                        &pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = AD_GetUserGroupObjectMembership(
                 hProvider,
-                uid,
+                pUserInfo,
                 bIsCacheOnlyMode,
                 &sGroupObjectsCount,
                 &ppGroupObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //
-    // Convert the group objects into group info.
-    //
+    dwError = LsaOpenServer(&hLsaConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pszUserSID = pUserInfo->pszObjectSid;
+    pszUserDN  = pUserInfo->pszDN;
+
+    /* Get all local groups the user is member of */
+    dwError = LsaLocalGetGroupMembership(
+                hLsaConnection,
+                pszUserSID,
+                pszUserDN,
+                dwGroupInfoLevel,
+                &dwGroupsCount,
+                (PVOID**)&ppUserMembershipInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Store membership list in a hash table */
+    for (i = 0; i < dwGroupsCount; i++)
+    {
+        pszGroupSID = ((PLSA_GROUP_INFO_0)ppUserMembershipInfo[i])->pszSid;
+
+        dwError = LsaHashGetValue(
+                    pUserMemberships,
+                    (PCVOID)pszGroupSID,
+                    &pMemberInfo);
+        if (dwError == ENOENT) {
+            dwError = LsaAllocateGroupInfo(
+                        &pMemberInfo,
+                        dwGroupInfoLevel,
+                        ppUserMembershipInfo[i]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(
+                        pUserMemberships,
+                        (PVOID)pszGroupSID,
+                        pMemberInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pMemberInfo = NULL;
+        }
+    }
+
+    /*
+     * Check all domain groups the user is member of and
+     * convert the group objects into group info.
+     */
 
     dwError = LsaAllocateMemory(
                 sizeof(*ppGroupInfoList) * sGroupObjectsCount,
                 (PVOID*)&ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
-
     for (sIndex = 0; sIndex < sGroupObjectsCount; sIndex++)
     {
         if (ppGroupObjects[sIndex]->type != AccountType_Group)
@@ -2016,8 +2122,71 @@ AD_GetUserGroupMembership(
             dwError = LSA_ERROR_SUCCESS;
             continue;
         }
-
         BAIL_ON_LSA_ERROR(dwError);
+
+        pszGroupSID = ((PLSA_GROUP_INFO_0)ppGroupInfoList[sEnabledCount])->pszSid;
+
+        /* Store current group in the hash table */
+        dwError = LsaHashGetValue(
+                    pUserMemberships,
+                    (PCVOID)pszGroupSID,
+                    &pMemberInfo);
+        if (dwError == ENOENT) {
+            dwError = LsaAllocateGroupInfo(
+                        &pMemberInfo,
+                        dwGroupInfoLevel,
+                        ppGroupInfoList[sEnabledCount]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(
+                        pUserMemberships,
+                        (PVOID)pszGroupSID,
+                        pMemberInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pMemberInfo = NULL;
+        }
+
+        pszGroupDN  = ppGroupObjects[sIndex]->pszDN;
+        pszGroupSID = ppGroupObjects[sIndex]->pszObjectSid;
+
+        /* Get all local groups that current group is member of. This resolves
+           nested memberships of domain groups */
+        dwError = LsaLocalGetGroupMembership(
+                    hLsaConnection,
+                    pszGroupSID,
+                    pszGroupDN,
+                    dwGroupInfoLevel,
+                    &dwGroupsCount,
+                    (PVOID**)&ppGroupMembershipInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        /* Store returned local groups in the hash table */
+        for (i = 0; i < dwGroupsCount; i++)
+        {
+            pszGroupSID = ((PLSA_GROUP_INFO_0)ppGroupMembershipInfo[i])->pszSid;
+
+            dwError = LsaHashGetValue(
+                        pUserMemberships,
+                        (PCVOID)pszGroupSID,
+                        &pMemberInfo);
+            if (dwError == ENOENT) {
+                dwError = LsaAllocateGroupInfo(
+                            &pMemberInfo,
+                            dwGroupInfoLevel,
+                            ppGroupMembershipInfo[i]);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaHashSetValue(
+                            pUserMemberships,
+                            (PVOID)pszGroupSID,
+                            pMemberInfo);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                pMemberInfo = NULL;
+            }
+        }
+
         sEnabledCount++;
 
         if (sEnabledCount == DWORD_MAX)
@@ -2025,6 +2194,39 @@ AD_GetUserGroupMembership(
             dwError = ERANGE;
             BAIL_ON_LSA_ERROR(dwError);
         }
+
+        if (ppGroupMembershipInfo)
+        {
+            LsaFreeGroupInfoList(dwGroupInfoLevel,
+                                 (PVOID*)ppGroupMembershipInfo,
+                                 dwGroupsCount);
+            ppGroupMembershipInfo = NULL;
+        }
+    }
+
+    dwError = LsaHashGetIterator(pUserMemberships,
+                                 &hashIterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (LsaHashNext(&hashIterator)) {
+        dwUserMembershipCount++;
+    }
+
+    dwError = LsaAllocateMemory(
+                 sizeof(ppUserMembership[0]) * dwUserMembershipCount,
+                 (PVOID*)&ppUserMembership);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashGetIterator(pUserMemberships, &hashIterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
+    {
+        ppUserMembership[i] = pHashEntry->pValue;
+        /* It is safe to remove the entry just returned by
+           LsaHashNext() from the hash table because the
+           iterator already points to the next item */
+        LsaHashRemoveKey(pUserMemberships, pHashEntry->pKey);
     }
 
     if (AD_ShouldAssumeDefaultDomain())
@@ -2033,7 +2235,7 @@ AD_GetUserGroupMembership(
 
         for (iGroup = 0; iGroup < (DWORD)sEnabledCount; iGroup++)
         {
-            PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
+            PVOID pGroupInfo = *(ppUserMembership + iGroup);
 
             dwError = AD_SetGroupCanonicalNamesToAliases(
                             gpADProviderData->szShortDomain,
@@ -2043,21 +2245,62 @@ AD_GetUserGroupMembership(
         }
     }
 
-    *pdwNumGroupsFound = (DWORD)sEnabledCount;
-    *pppGroupInfoList = ppGroupInfoList;
+    *pdwNumGroupsFound = dwUserMembershipCount;
+    *pppGroupInfoList  = ppUserMembership;
 
 cleanup:
 
-    LsaDbSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+    if (hLsaConnection)
+    {
+        LsaCloseServer(hLsaConnection);
+    }
+
+    ADCacheSafeFreeObject(&pUserInfo);
+
+    if (ppUserMembershipInfo)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel,
+                             (PVOID*)ppUserMembershipInfo,
+                             dwGroupsCount);
+    }
+
+    if (ppGroupInfoList)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel,
+                             ppGroupInfoList,
+                             sGroupObjectsCount);
+    }
+
+    if (ppGroupMembershipInfo)
+    {
+        LsaFreeGroupInfoList(dwGroupInfoLevel,
+                             (PVOID*)ppGroupMembershipInfo,
+                             dwGroupsCount);
+    }
+
+    if (pUserMemberships)
+    {
+        dwError = LsaHashGetIterator(pUserMemberships, &hashIterator);
+        assert(dwError == LSA_ERROR_SUCCESS);
+
+        while ((pHashEntry = LsaHashNext(&hashIterator)) != NULL)
+        {
+            LsaFreeGroupInfo(dwGroupInfoLevel, pHashEntry->pValue);
+        }
+
+        LsaHashSafeFree(&pUserMemberships);
+    }
+
+    ADCacheSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
     return dwError;
 
 error:
 
-    if (ppGroupInfoList != NULL)
+    if (ppUserMembership != NULL)
     {
         LsaFreeGroupInfoList(
             dwGroupInfoLevel,
-            ppGroupInfoList,
+            ppUserMembership,
             (DWORD)sEnabledCount);
     }
 
@@ -2086,7 +2329,7 @@ AD_BeginEnumGroups(
                         &pEnumState);
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaInitCookie(&pEnumState->Cookie);
+    LwInitCookie(&pEnumState->Cookie);
 
     *phResume = (HANDLE)pEnumState;
 
@@ -2210,6 +2453,17 @@ AD_ChangePassword(
 }
 
 DWORD
+AD_SetPassword(
+    HANDLE hProvider,
+    PCSTR pszLoginId,
+    PCSTR pszPassword
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
+
+DWORD
 AD_AddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
@@ -2248,6 +2502,15 @@ AD_AddGroup(
 }
 
 DWORD
+AD_ModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    return LSA_ERROR_NOT_HANDLED;
+}
+
+DWORD
 AD_DeleteGroup(
     HANDLE hProvider,
     gid_t  gid
@@ -2272,7 +2535,7 @@ AD_EmptyCache(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaDbEmptyCache(
+    dwError = ADCacheEmptyCache(
                   gpLsaAdProviderState->hCacheConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2468,7 +2731,7 @@ AD_BeginEnumNSSArtefacts(
                                 &pEnumState);
             BAIL_ON_LSA_ERROR(dwError);
 
-            LsaInitCookie(&pEnumState->Cookie);
+            LwInitCookie(&pEnumState->Cookie);
 
             break;
 
@@ -3002,9 +3265,13 @@ AD_RefreshConfiguration(
                         &gpLsaAdProviderState->config.DomainManager.dwCheckDomainOnlineSeconds,
                         &gpLsaAdProviderState->config.DomainManager.dwUnknownDomainCacheTimeoutSeconds);
         BAIL_ON_LSA_ERROR(dwError);
-    }
 
-    LsaAdProviderLogConfigReloadEvent();
+        LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+        LsaAdProviderLogConfigReloadEvent();
+        LsaAdProviderLogRequireMembershipOfChangeEvent(hProvider);
+        LsaAdProviderLogEventLogEnableChangeEvent();
+    }
 
 cleanup:
 
@@ -3214,7 +3481,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3291,7 +3558,7 @@ error:
 
     *ppResult = NULL;
 
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3320,7 +3587,7 @@ AD_RemoveUserByNameFromCacheInternal(
                   &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaDbRemoveUserBySid(
+    dwError = ADCacheRemoveUserBySid(
                   gpLsaAdProviderState->hCacheConnection,
                   pUserInfo->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3328,7 +3595,7 @@ AD_RemoveUserByNameFromCacheInternal(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszFreeLoginId);
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
 
     return dwError;
 
@@ -3385,7 +3652,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3462,7 +3729,7 @@ error:
 
     *ppResult = NULL;
 
-    LsaDbSafeFreeObject(&pResult);
+    ADCacheSafeFreeObject(&pResult);
 
     goto cleanup;
 }
@@ -3550,6 +3817,8 @@ LsaAdProviderStateCreate(
     dwError = AD_InitializeConfig(&pState->config);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pState->dwMaxAllowedClockDriftSeconds = AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS;
+
     *ppState = pState;
 
 cleanup:
@@ -3569,7 +3838,7 @@ LsaAdProviderStateDestroy(
 {
     if (pState)
     {
-        LsaDbSafeClose(&pState->hCacheConnection);
+        ADCacheSafeClose(&pState->hCacheConnection);
         ADState_SafeCloseDb(&pState->hStateConnection);
 
         MediaSenseStop(&pState->MediaSenseHandle);
@@ -3587,7 +3856,7 @@ static
 DWORD
 AD_MachineCredentialsCacheClear()
 {
-    return LsaKrb5CleanupMachineSession();
+    return LwKrb5CleanupMachineSession();
 }
 
 static
@@ -3631,7 +3900,7 @@ AD_MachineCredentialsCacheInitialize(
     LsaStrToUpper(pszHostname);
 
     // Read password info before acquiring the lock.
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -3689,7 +3958,7 @@ error:
 
 static
 BOOLEAN
-LsaAdProviderLsaKrb5IsOfflineCallback(
+LsaAdProviderLwKrb5IsOfflineCallback(
     IN PCSTR pszRealm
     )
 {
@@ -3698,7 +3967,7 @@ LsaAdProviderLsaKrb5IsOfflineCallback(
 
 static
 VOID
-LsaAdProviderLsaKrb5TransitionOfflineCallback(
+LsaAdProviderLwKrb5TransitionOfflineCallback(
     IN PCSTR pszRealm
     )
 {
@@ -3817,6 +4086,26 @@ LsaAdProviderLogConfigReloadEvent(
 {
     DWORD dwError = 0;
     PSTR pszDescription = NULL;
+    PSTR pszMemberList = NULL;
+    PDLINKEDLIST pIter = NULL;
+
+    for (pIter = gpLsaAdProviderState->config.pUnresolvedMemberList;
+         pIter;
+         pIter = pIter->pNext)
+    {
+        PSTR pszNewMemberList = NULL;
+
+        dwError = LsaAllocateStringPrintf(
+                     &pszNewMemberList,
+                     "%s        %s\r\n",
+                     pszMemberList ? pszMemberList : "",
+                     LSA_SAFE_LOG_STRING((PSTR)pIter->pItem));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LSA_SAFE_FREE_STRING(pszMemberList);
+        pszMemberList = pszNewMemberList;
+        pszNewMemberList = NULL;
+    }
 
     dwError = LsaAllocateStringPrintf(
                  &pszDescription,
@@ -3828,6 +4117,7 @@ LsaAdProviderLogConfigReloadEvent(
                  "     Space replacement character:       '%c'\r\n" \
                  "     Domain separator character:        '%c'\r\n" \
                  "     Enable event log:                  %s\r\n" \
+                 "     Logon membership requirements:     \r\n%s" \
                  "     Log network connection events:     %s\r\n" \
                  "     Create K5Login file:               %s\r\n" \
                  "     Create home directory:             %s\r\n" \
@@ -3854,6 +4144,7 @@ LsaAdProviderLogConfigReloadEvent(
                  gpLsaAdProviderState->config.chSpaceReplacement,
                  gpLsaAdProviderState->config.chDomainSeparator,
                  gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false",
+                 pszMemberList ? pszMemberList : "        <No login restrictions specified>\r\n",
                  gpLsaAdProviderState->config.bShouldLogNetworkConnectionEvents ? "true" : "false",
                  gpLsaAdProviderState->config.bCreateK5Login ? "true" : "false",
                  gpLsaAdProviderState->config.bCreateHomeDir ? "true" : "false",
@@ -3881,6 +4172,122 @@ LsaAdProviderLogConfigReloadEvent(
 
     LsaSrvLogServiceSuccessEvent(
              LSASS_EVENT_INFO_SERVICE_CONFIGURATION_CHANGED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszMemberList);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaAdProviderLogRequireMembershipOfChangeEvent(
+    HANDLE hProvider
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+    PLSA_HASH_TABLE pAllowedMemberList = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY *pHashEntry = NULL;
+    PSTR pszMemberList = NULL;
+    DWORD i = 0;
+
+    dwError = AD_ResolveConfiguredLists(
+                  hProvider,
+                  &pAllowedMemberList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pAllowedMemberList != NULL)
+    {
+        dwError = LsaHashGetIterator(pAllowedMemberList, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; i++)
+        {
+            PSTR pszNewMemberList = NULL;
+
+            dwError = LsaAllocateStringPrintf(
+                         &pszNewMemberList,
+                         "%s        %s\r\n",
+                         pszMemberList ? pszMemberList : "",
+                         LSA_SAFE_LOG_STRING(pHashEntry->pValue));
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LSA_SAFE_FREE_STRING(pszMemberList);
+            pszMemberList = pszNewMemberList;
+            pszNewMemberList = NULL;
+        }
+    }
+    else
+    {
+            dwError = LsaAllocateStringPrintf(
+                         &pszMemberList,
+                         "        <No login restrictions specified>\r\n");
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider login restriction settings have been reloaded.\r\n\r\n" \
+                 "     Authentication provider:           %s\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     require-membership-of:\r\n%s",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 LSA_SAFE_LOG_STRING(pszMemberList));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             LSASS_EVENT_INFO_REQUIRE_MEMBERSHIP_OF_UPDATED,
+             SERVICE_EVENT_CATEGORY,
+             pszDescription,
+             NULL);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(pszDescription);
+    LSA_SAFE_FREE_STRING(pszMemberList);
+    LsaHashSafeFree(&pAllowedMemberList);
+
+    return;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaAdProviderLogEventLogEnableChangeEvent(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszDescription = NULL;
+
+    dwError = LsaAllocateStringPrintf(
+                 &pszDescription,
+                 "Likewise authentication service provider auditing settings have been updated.\r\n\r\n" \
+                 "     Authentication provider:           %s\r\n" \
+                 "     Current settings are...\r\n" \
+                 "     Enable event log:                  %s\r\n",
+                 LSA_SAFE_LOG_STRING(gpszADProviderName),
+                 gpLsaAdProviderState->config.bEnableEventLog ? "true" : "false");
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LsaSrvLogServiceSuccessEvent(
+             gpLsaAdProviderState->config.bEnableEventLog ?
+                 LSASS_EVENT_INFO_AUDITING_CONFIGURATION_ENABLED :
+                 LSASS_EVENT_INFO_AUDITING_CONFIGURATION_DISABLED,
              SERVICE_EVENT_CATEGORY,
              pszDescription,
              NULL);
@@ -3977,7 +4384,7 @@ AD_ResolveConfiguredLists(
             }
             dwError = LSA_ERROR_SUCCESS;
 
-            LsaDbSafeFreeObject(&pGroupInfo);
+            ADCacheSafeFreeObject(&pGroupInfo);
             dwError = AD_FindGroupObjectByName(
                             hProvider,
                             pszMember,
@@ -4019,7 +4426,7 @@ cleanup:
         LsaFreeUserInfo(dwInfoLevel, pUserInfo);
     }
 
-    LsaDbSafeFreeObject(&pGroupInfo);
+    ADCacheSafeFreeObject(&pGroupInfo);
 
     return dwError;
 
@@ -4194,3 +4601,26 @@ error:
     return dwError;
 }
 
+void
+InitADCacheFunctionTable(
+    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
+    )
+{
+    InitializeDbCacheProvider(
+        pCacheProviderTable
+        );
+    return;
+}
+
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

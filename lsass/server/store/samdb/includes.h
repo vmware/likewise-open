@@ -40,6 +40,9 @@
 #include "lsa/lsa.h"
 
 #include "lsadef.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
 
@@ -52,7 +55,6 @@
 #include "samdb.h"
 #include "samdbdn.h"
 #include "samdbmisc.h"
-#include "samdblock.h"
 #include "samdbcontext.h"
 #include "samdbcounter.h"
 #include "samdbtrans.h"

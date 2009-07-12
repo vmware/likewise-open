@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -61,6 +61,19 @@ LsaAddGroup(
             pGroupInfo,
             dwGroupInfoLevel);
 }
+
+LSASS_API
+DWORD
+LsaModifyGroup(
+    HANDLE hLsaConnection,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    return LsaTransactModifyGroup(
+            hLsaConnection,
+            pGroupModInfo);
+}
+
 
 LSASS_API
 DWORD
@@ -370,6 +383,39 @@ error:
 
 LSASS_API
 DWORD
+LsaGetGroupsForUserByName(
+    IN HANDLE hLsaConnection,
+    IN PCSTR pszUserName,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaTransactGetGroupsForUser(
+                    hLsaConnection,
+                    pszUserName,
+                    0,
+                    FindFlags,
+                    dwGroupInfoLevel,
+                    pdwGroupsFound,
+                    pppGroupInfoList);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    return dwError;
+
+error:
+    *pdwGroupsFound = 0;
+    *pppGroupInfoList = NULL;
+
+   goto cleanup;
+}
+
+LSASS_API
+DWORD
 LsaGetGroupsForUserById(
     HANDLE  hLsaConnection,
     uid_t   uid,
@@ -381,8 +427,9 @@ LsaGetGroupsForUserById(
 {
     DWORD dwError = 0;
 
-    dwError = LsaTransactGetGroupsForUserById(
+    dwError = LsaTransactGetGroupsForUser(
                hLsaConnection,
+               NULL,
                uid,
                FindFlags,
                dwGroupInfoLevel,
@@ -408,3 +455,13 @@ LsaFreeEnumObjectsInfo(
     LSA_SAFE_FREE_STRING(pInfo->pszGUID);
     LsaFreeMemory(pInfo);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

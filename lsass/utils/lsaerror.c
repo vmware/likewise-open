@@ -354,6 +354,10 @@ const char* gLsaErrorMessages[] =
     "An invalid attribute value was specified",
     // LSA_ERROR_NO_ATTRIBUTE_VALUE                              : 32918
     "No attribute value was found"
+    // LSA_ERROR_MEMBER_IN_LOCAL_GROUP                           : 32919
+    "Member is in local group"
+    // LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP                       : 32920
+    "No such member in local group"
 };
 
 size_t

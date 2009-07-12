@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -76,16 +74,26 @@ SamDbGetUserMemberships(
 
 DWORD
 SamDbAddToGroup(
-    HANDLE hBindHandle,
-    PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD
 SamDbRemoveFromGroup(
-    HANDLE hBindHandle,
-    PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    HANDLE            hBindHandle,
+    PWSTR             pwszGroupDN,
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 #endif /* __SAM_DB_GROUP_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

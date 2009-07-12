@@ -188,6 +188,13 @@ LocalDirChangePassword(
     );
 
 DWORD
+LocalDirSetPassword(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN,
+    PWSTR  pwszNewPassword
+    );
+
+DWORD
 LocalCreateHomeDirectory(
     PLSA_USER_INFO_0 pUserInfo
     );
@@ -202,6 +209,25 @@ LocalProvisionHomeDir(
 DWORD
 LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
+    );
+
+DWORD
+LocalUpdateUserLoginTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    );
+
+DWORD
+LocalUpdateUserLogoffTime(
+    HANDLE hProvider,
+    PWSTR  pwszUserDN
+    );
+
+DWORD
+LocalDirCheckIfAdministrator(
+    HANDLE   hProvider,
+    uid_t    uid,
+    PBOOLEAN pbIsAdmin
     );
 
 #endif /* __LP_USER_H__ */

@@ -56,7 +56,7 @@ ADInitMachinePasswordSync(
     DWORD dwError = 0;
     
     dwError = LwpsOpenPasswordStore(
-                    LWPS_PASSWORD_STORE_SQLDB,
+                    LWPS_PASSWORD_STORE_DEFAULT,
                     &ghPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
     
@@ -183,7 +183,7 @@ ADSyncMachinePasswords(
         
         if (bRefreshTGT)
         {
-        	dwError = LsaKrb5RefreshMachineTGT(&dwGoodUntilTime);
+		dwError = LwKrb5RefreshMachineTGT(&dwGoodUntilTime);
         	if (dwError)
         	{
                     if (AD_EventlogEnabled())
@@ -269,7 +269,7 @@ ADSyncTimeToDC(
     )
 {
     DWORD dwError = 0;
-    UNIX_TIME_T dcTime = 0;
+    LWNET_UNIX_TIME_T dcTime = 0;
     time_t ttDcTime = 0;
 
     if ( !AD_ShouldSyncSystemTime() )

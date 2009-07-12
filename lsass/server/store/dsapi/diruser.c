@@ -193,7 +193,7 @@ DWORD
 DirectoryAddToGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     )
 {
     DWORD dwError = 0;
@@ -208,7 +208,7 @@ DirectoryAddToGroup(
     dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryAddToGroup(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    pwszMemberDN);
+                    pDirectoryEntries);
 
 error:
 
@@ -219,7 +219,7 @@ DWORD
 DirectoryRemoveFromGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     )
 {
     DWORD dwError = 0;
@@ -234,7 +234,7 @@ DirectoryRemoveFromGroup(
     dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryRemoveFromGroup(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    pwszMemberDN);
+                    pDirectoryEntries);
 
 error:
 

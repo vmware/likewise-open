@@ -1,3 +1,53 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        directory.h
+ *
+ * Abstract:
+ *
+ *
+ *      Likewise Directory Wrapper Interface
+ *
+ *      Directory Interface API
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
+ */
+
 #ifndef __DIRECTORY_H__
 #define __DIRECTORY_H__
 
@@ -10,28 +60,6 @@ typedef ULONG DIRECTORY_ATTR_TYPE;
 #define DIRECTORY_ATTR_TYPE_OCTET_STREAM            5
 #define DIRECTORY_ATTR_TYPE_UNICODE_STRING          6
 #define DIRECTORY_ATTR_TYPE_ANSI_STRING             7
-
-#define DIRECTORY_ATTR_TAG_DN                    "dn"
-#define DIRECTORY_ATTR_TAG_USER_NAME             "user-name"
-#define DIRECTORY_ATTR_TAG_USER_FULLNAME         "user-full-name"
-#define DIRECTORY_ATTR_TAG_UID                   "uid"
-#define DIRECTORY_ATTR_TAG_USER_SID              "user-sid"
-#define DIRECTORY_ATTR_TAG_USER_PASSWORD         "user-password"
-#define DIRECTORY_ATTR_TAG_GECOS                 "user-gecos"
-#define DIRECTORY_ATTR_TAG_USER_PRIMARY_GROUP_DN "user-primary-group-dn"
-#define DIRECTORY_ATTR_TAG_HOMEDIR               "user-home-directory"
-#define DIRECTORY_ATTR_TAG_SHELL                 "user-shell"
-#define DIRECTORY_ATTR_TAG_PASSWORD_CHANGE_TIME  "user-password-change-time"
-#define DIRECTORY_ATTR_TAG_ACCOUNT_EXPIRY        "user-account-expiry"
-#define DIRECTORY_ATTR_TAG_USER_INFO_FLAGS       "user-info-flags"
-#define DIRECTORY_ATTR_TAG_GROUP_NAME            "group-name"
-#define DIRECTORY_ATTR_TAG_GID                   "gid"
-#define DIRECTORY_ATTR_TAG_GROUP_SID             "group-sid"
-#define DIRECTORY_ATTR_TAG_GROUP_PASSWORD        "group-password"
-#define DIRECTORY_ATTR_TAG_GROUP_MEMBERS         "group-members"
-#define DIRECTORY_ATTR_TAG_DOMAIN_NAME           "domain-name"
-#define DIRECTORY_ATTR_TAG_DOMAIN_SID            "domain-sid"
-#define DIRECTORY_ATTR_TAG_DOMAIN_NETBIOS_NAME   "domain-netbios-name"
 
 typedef struct _OCTET_STRING {
     ULONG ulNumBytes;
@@ -63,18 +91,18 @@ typedef struct _DIRECTORY_ATTRIBUTE
 
 } DIRECTORY_ATTRIBUTE, *PDIRECTORY_ATTRIBUTE;
 
+typedef struct _DIRECTORY_ENTRY
+{
+    ULONG                ulNumAttributes;
+    PDIRECTORY_ATTRIBUTE pAttributes;
+
+} DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
+
 typedef ULONG DIR_MOD_FLAGS;
 
 #define DIR_MOD_FLAGS_ADD     0x0
 #define DIR_MOD_FLAGS_REPLACE 0x1
 #define DIR_MOD_FLAGS_DELETE  0x2
-
-typedef ULONG DIR_ACCOUNT_INFO_FLAG;
-
-#define DIR_ACCOUNT_INFO_FLAG_DISABLED               0x00000001
-#define DIR_ACCOUNT_INFO_FLAG_CANNOT_CHANGE_PASSWORD 0x00000002
-#define DIR_ACCOUNT_INFO_FLAG_CANNOT_EXPIRE          0x00000004
-#define DIR_ACCOUNT_INFO_FLAG_LOCKED_OUT             0x00000008
 
 typedef struct _DIRECTORY_MOD
 {
@@ -84,13 +112,6 @@ typedef struct _DIRECTORY_MOD
     PATTRIBUTE_VALUE pAttrValues;
 
 } DIRECTORY_MOD, *PDIRECTORY_MOD;
-
-typedef struct _DIRECTORY_ENTRY
-{
-    ULONG                ulNumAttributes;
-    PDIRECTORY_ATTRIBUTE pAttributes;
-
-} DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 
 #define ENTRY(i, ppDirectoryEntry) = *(ppDirectoryEntry + i)
 #define ATTRIBUTE(i, ppDirectoryAttributes) = *(ppDirectoryAttributes + i)
@@ -208,14 +229,14 @@ DWORD
 DirectoryAddToGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD
 DirectoryRemoveFromGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PWSTR             pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntries
     );
 
 DWORD
@@ -351,3 +372,12 @@ DirectoryFreeStringArray(
 
 #endif /* __DIRECTORY_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

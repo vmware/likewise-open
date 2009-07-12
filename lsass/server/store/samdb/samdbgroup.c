@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -79,7 +77,7 @@ SamDbGetGroupCount(
 {
     return SamDbGetObjectCount(
                 hBindHandle,
-                SAMDB_OBJECT_CLASS_GROUP,
+                SAMDB_OBJECT_CLASS_LOCAL_GROUP,
                 pdwNumGroups);
 }
 
@@ -116,7 +114,7 @@ SamDbGetGroupMembers(
                     &pszGroupDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -125,7 +123,7 @@ SamDbGetGroupMembers(
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (objectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (objectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -158,7 +156,7 @@ cleanup:
         SamDbFreeColumnValueList(pColumnValueList);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     LSA_SAFE_FREE_STRING(pszGroupDN);
     LSA_SAFE_FREE_STRING(pszSqlQuery);
@@ -211,7 +209,7 @@ SamDbGetUserMemberships(
                     &pszUserDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_SHARED(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -220,7 +218,8 @@ SamDbGetUserMemberships(
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (objectClass != SAMDB_OBJECT_CLASS_USER)
+    if (objectClass != SAMDB_OBJECT_CLASS_USER &&
+        objectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER)
     {
         dwError = LSA_ERROR_NO_SUCH_USER;
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -253,7 +252,7 @@ cleanup:
         SamDbFreeColumnValueList(pColumnValueList);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     LSA_SAFE_FREE_STRING(pszUserDN);
     LSA_SAFE_FREE_STRING(pszSqlQuery);
@@ -437,13 +436,13 @@ SamDbGroupSearchExecute(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     dwError = sqlite3_bind_int64(
                     pSqlStatement,
                     1,
                     llObjectRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     while ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_ROW)
     {
@@ -468,7 +467,7 @@ SamDbGroupSearchExecute(
 
             dwEntriesAvailable = dwNewEntryCount - dwTotalEntries;
 
-            memset(pDirectoryEntries+(dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
+            memset((PBYTE)pDirectoryEntries + (dwTotalEntries * sizeof(DIRECTORY_ENTRY)),
                    0,
                    dwEntriesAvailable * sizeof(DIRECTORY_ENTRY));
 
@@ -649,7 +648,7 @@ SamDbGroupSearchExecute(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     *ppDirectoryEntries = pDirectoryEntries;
     *pdwNumEntries = dwNumEntries;
@@ -680,16 +679,23 @@ DWORD
 SamDbAddToGroup(
     HANDLE hBindHandle,
     PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntry
     )
 {
     DWORD dwError = 0;
+    DWORD iEntry = 0;
+    PDIRECTORY_ENTRY pEntry = NULL;
     sqlite3_stmt* pSqlStatement = NULL;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     LONG64 llGroupRecordId  = 0;
     LONG64 llMemberRecordId = 0;
+    WCHAR   wszAttrNameDistinguishedName[] = SAM_DB_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR   wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
     PSTR   pszGroupDN  = NULL;
+    PWSTR  pwszMemberDN = NULL;
     PSTR   pszMemberDN = NULL;
+    PWSTR  pwszMemberSID = NULL;
+    PSTR   pszMemberSID = NULL;
     SAMDB_OBJECT_CLASS groupObjectClass  = SAMDB_OBJECT_CLASS_UNKNOWN;
     SAMDB_OBJECT_CLASS memberObjectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
     PCSTR  pszQueryTemplate = "INSERT INTO " SAM_DB_MEMBERS_TABLE            \
@@ -705,15 +711,7 @@ SamDbAddToGroup(
                     &pszGroupDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaWc16sToMbs(
-                    pwszMemberDN,
-                    &pszMemberDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    //
-    // TODO: Check for nested groups
-    //
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -722,61 +720,101 @@ SamDbAddToGroup(
                     &groupObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (groupObjectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwError = SamDbGetObjectRecordInfo_inlock(
-                    pDirectoryContext,
-                    pszMemberDN,
-                    &llMemberRecordId,
-                    &memberObjectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    while (pDirectoryEntry[iEntry].ulNumAttributes &&
+           pDirectoryEntry[iEntry].pAttributes) {
 
-    if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
-        (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
-    {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        pEntry = &(pDirectoryEntry[iEntry++]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pEntry,
+                        wszAttrNameDistinguishedName,
+                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                        &pwszMemberDN);
         BAIL_ON_SAMDB_ERROR(dwError);
+
+        if (pwszMemberDN) {
+            dwError = LsaWc16sToMbs(
+                            pwszMemberDN,
+                            &pszMemberDN);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = SamDbGetObjectRecordInfo_inlock(
+                            pDirectoryContext,
+                            pszMemberDN,
+                            &llMemberRecordId,
+                            &memberObjectClass);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+        } else {
+            dwError = DirectoryGetEntryAttrValueByName(
+                            pEntry,
+                            wszAttrNameObjectSID,
+                            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                            &pwszMemberSID);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = LsaWc16sToMbs(
+                            pwszMemberSID,
+                            &pszMemberSID);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = SamDbGetObjectRecordInfo_inlock(
+                            pDirectoryContext,
+                            pszMemberSID,
+                            &llMemberRecordId,
+                            &memberObjectClass);
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        if ((memberObjectClass != SAMDB_OBJECT_CLASS_USER) &&
+            (memberObjectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER))
+        {
+            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwError = sqlite3_prepare_v2(
+                        pDirectoryContext->pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pSqlStatement,
+                        NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError,
+                                      pDirectoryContext->pDbContext->pDbHandle);
+
+        dwError = sqlite3_bind_int64(
+                        pSqlStatement,
+                        1,
+                        llGroupRecordId);
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+        dwError = sqlite3_bind_int64(
+                        pSqlStatement,
+                        2,
+                        llMemberRecordId);
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+        dwError = sqlite3_step(pSqlStatement);
+        if (dwError == SQLITE_DONE)
+        {
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
     }
-
-    dwError = sqlite3_prepare_v2(
-                    pDirectoryContext->pDbContext->pDbHandle,
-                    pszQueryTemplate,
-                    -1,
-                    &pSqlStatement,
-                    NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_bind_int64(
-                    pSqlStatement,
-                    1,
-                    llGroupRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_bind_int64(
-                    pSqlStatement,
-                    2,
-                    llMemberRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_step(pSqlStatement);
-    if (dwError == SQLITE_DONE)
-    {
-        dwError = LSA_ERROR_SUCCESS;
-    }
-    BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
-
     if (pSqlStatement)
     {
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     DIRECTORY_FREE_STRING(pszGroupDN);
     DIRECTORY_FREE_STRING(pszMemberDN);
@@ -792,15 +830,22 @@ DWORD
 SamDbRemoveFromGroup(
     HANDLE hBindHandle,
     PWSTR  pwszGroupDN,
-    PWSTR  pwszMemberDN
+    PDIRECTORY_ENTRY  pDirectoryEntry
     )
 {
     DWORD dwError = 0;
+    DWORD iEntry = 0;
+    PDIRECTORY_ENTRY pEntry = NULL;
     sqlite3_stmt* pSqlStatement = NULL;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = NULL;
     LONG64 llGroupRecordId  = 0;
     LONG64 llMemberRecordId = 0;
+    WCHAR   wszAttrNameDistinguishedName[] = SAM_DB_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR   wszAttrNameObjectSID[] = SAM_DB_DIR_ATTR_OBJECT_SID;
     PSTR   pszGroupDN  = NULL;
+    PWSTR  pwszMemberSID = NULL;
+    PSTR   pszMemberSID = NULL;
+    PWSTR  pwszMemberDN = NULL;
     PSTR   pszMemberDN = NULL;
     SAMDB_OBJECT_CLASS groupObjectClass  = SAMDB_OBJECT_CLASS_UNKNOWN;
     SAMDB_OBJECT_CLASS memberObjectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
@@ -816,12 +861,7 @@ SamDbRemoveFromGroup(
                     &pszGroupDN);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    dwError = LsaWc16sToMbs(
-                    pwszMemberDN,
-                    &pszMemberDN);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = SamDbGetObjectRecordInfo_inlock(
                     pDirectoryContext,
@@ -830,61 +870,100 @@ SamDbRemoveFromGroup(
                     &groupObjectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    if (groupObjectClass != SAMDB_OBJECT_CLASS_GROUP)
+    if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
         dwError = LSA_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
-    dwError = SamDbGetObjectRecordInfo_inlock(
-                    pDirectoryContext,
-                    pszMemberDN,
-                    &llMemberRecordId,
-                    &memberObjectClass);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    while (pDirectoryEntry[iEntry].ulNumAttributes &&
+           pDirectoryEntry[iEntry].pAttributes) {
 
-    if ((memberObjectClass != SAMDB_OBJECT_CLASS_GROUP) &&
-        (memberObjectClass != SAMDB_OBJECT_CLASS_USER))
-    {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        pEntry = &(pDirectoryEntry[iEntry++]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pEntry,
+                        wszAttrNameDistinguishedName,
+                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                        &pwszMemberDN);
         BAIL_ON_SAMDB_ERROR(dwError);
+
+        if (pwszMemberDN) {
+            dwError = LsaWc16sToMbs(
+                            pwszMemberDN,
+                            &pszMemberDN);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = SamDbGetObjectRecordInfo_inlock(
+                            pDirectoryContext,
+                            pszMemberDN,
+                            &llMemberRecordId,
+                            &memberObjectClass);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+        } else {
+            dwError = DirectoryGetEntryAttrValueByName(
+                            pEntry,
+                            wszAttrNameObjectSID,
+                            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                            &pwszMemberSID);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = LsaWc16sToMbs(
+                            pwszMemberSID,
+                            &pszMemberSID);
+            BAIL_ON_SAMDB_ERROR(dwError);
+
+            dwError = SamDbGetObjectRecordInfo_inlock(
+                            pDirectoryContext,
+                            pszMemberSID,
+                            &llMemberRecordId,
+                            &memberObjectClass);
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        if ((memberObjectClass != SAMDB_OBJECT_CLASS_USER) &&
+            (memberObjectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER))
+        {
+            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+            BAIL_ON_SAMDB_ERROR(dwError);
+        }
+
+        dwError = sqlite3_prepare_v2(
+                        pDirectoryContext->pDbContext->pDbHandle,
+                        pszQueryTemplate,
+                        -1,
+                        &pSqlStatement,
+                        NULL);
+        BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
+
+        dwError = sqlite3_bind_int64(
+                        pSqlStatement,
+                        1,
+                        llGroupRecordId);
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+        dwError = sqlite3_bind_int64(
+                        pSqlStatement,
+                        2,
+                        llMemberRecordId);
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
+
+        dwError = sqlite3_step(pSqlStatement);
+        if (dwError == SQLITE_DONE)
+        {
+            dwError = LSA_ERROR_SUCCESS;
+        }
+        BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
     }
-
-    dwError = sqlite3_prepare_v2(
-                    pDirectoryContext->pDbContext->pDbHandle,
-                    pszQueryTemplate,
-                    -1,
-                    &pSqlStatement,
-                    NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_bind_int64(
-                    pSqlStatement,
-                    1,
-                    llGroupRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_bind_int64(
-                    pSqlStatement,
-                    2,
-                    llMemberRecordId);
-    BAIL_ON_SAMDB_ERROR(dwError);
-
-    dwError = sqlite3_step(pSqlStatement);
-    if (dwError == SQLITE_DONE)
-    {
-        dwError = LSA_ERROR_SUCCESS;
-    }
-    BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
-
     if (pSqlStatement)
     {
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     DIRECTORY_FREE_STRING(pszGroupDN);
     DIRECTORY_FREE_STRING(pszMemberDN);
@@ -896,3 +975,12 @@ error:
     goto cleanup;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -48,6 +48,33 @@
  */
 #include "includes.h"
 
+
+static
+void
+LsaFreeUserInfoContents_0(
+    PLSA_USER_INFO_0 pUserInfo
+    );
+
+static
+void
+LsaFreeUserInfoContents_1(
+    PLSA_USER_INFO_1 pUserInfo
+    );
+
+static
+void
+LsaFreeUserInfoContents_2(
+    PLSA_USER_INFO_2 pUserInfo
+    );
+
+static
+DWORD
+LsaModifyUser_SetPasswordHash(
+    PLW_LSA_DATA_BLOB *ppHashBlob,
+    PCSTR pszHash
+    );
+
+
 static
 void
 LsaFreeUserInfoContents_0(
@@ -69,6 +96,7 @@ LsaFreeUserInfoContents_1(
     )
 {
     LsaFreeUserInfoContents_0(&pUserInfo->info0);
+    LSA_SAFE_FREE_STRING(pUserInfo->pszDN);
     LSA_SAFE_FREE_STRING(pUserInfo->pszUPN);
     LSA_SAFE_FREE_MEMORY(pUserInfo->pLMHash);
     LSA_SAFE_FREE_MEMORY(pUserInfo->pNTHash);
@@ -378,6 +406,8 @@ LsaModifyUser_RemoveFromGroups(
                    pszGroupList,
                    &pUserModInfo->pszRemoveFromGroups);
        BAIL_ON_LSA_ERROR(dwError);
+
+       pUserModInfo->actions.bRemoveFromGroups = TRUE;
     }
 
 cleanup:
@@ -487,6 +517,112 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaModifyUser_SetNtPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaModifyUser_SetPasswordHash(
+                   &pUserModInfo->pNtPasswordHash,
+                   pszHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserModInfo->actions.bSetNtPasswordHash = TRUE;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+LsaModifyUser_SetLmPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaModifyUser_SetPasswordHash(
+                   &pUserModInfo->pLmPasswordHash,
+                   pszHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pUserModInfo->actions.bSetLmPasswordHash = TRUE;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+LsaModifyUser_SetPasswordHash(
+    PLW_LSA_DATA_BLOB *ppHashBlob,
+    PCSTR pszHash
+    )
+{
+    DWORD dwError = 0;
+    BYTE Hash[16] = {0};
+    PCSTR pszHashCursor = NULL;
+    DWORD i = 0;
+    int ret = 0;
+    PLW_LSA_DATA_BLOB pHashBlob = NULL;
+
+    BAIL_ON_INVALID_POINTER(ppHashBlob);
+    BAIL_ON_INVALID_POINTER(pszHash);
+
+    if (!IsNullOrEmptyString(pszHash)) {
+        for (i = 0, pszHashCursor = pszHash;
+             pszHashCursor[0] && pszHashCursor[1] && i < sizeof(Hash);
+             i++, pszHashCursor += 2)
+        {
+            ret = sscanf(pszHashCursor, "%02hhx", &Hash[i]);
+            if (ret == 0) {
+                dwError = LSA_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    dwError = LsaAllocateMemory(sizeof(*pHashBlob),
+                                (PVOID*)&pHashBlob);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pHashBlob->dwLen = sizeof(Hash);
+
+    dwError = LsaAllocateMemory(pHashBlob->dwLen,
+                                (PVOID*)&pHashBlob->pData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pHashBlob->pData, Hash, pHashBlob->dwLen);
+
+    *ppHashBlob = pHashBlob;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pHashBlob &&
+        pHashBlob->pData) {
+        LSA_SAFE_FREE_MEMORY(pHashBlob->pData);
+    }
+
+    if (pHashBlob) {
+        LSA_SAFE_FREE_MEMORY(pHashBlob);
+    }
+
+    *ppHashBlob = NULL;
+
+    goto cleanup;
+}
+
 void
 LsaFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
@@ -495,6 +631,17 @@ LsaFreeUserModInfo(
     LSA_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
     LSA_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
     LSA_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
+
+    if (pUserModInfo->pNtPasswordHash) {
+        LSA_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);
+    }
+    LSA_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash);
+
+    if (pUserModInfo->pLmPasswordHash) {
+        LSA_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash->pData);
+    }
+    LSA_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash);
+
     LsaFreeMemory(pUserModInfo);
 }
 
@@ -668,3 +815,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

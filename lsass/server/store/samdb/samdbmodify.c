@@ -1,3 +1,53 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samdbmodify.c
+ *
+ * Abstract:
+ *
+ *
+ *      Likewise SAM Database Provider
+ *
+ *      SAM objects modification routines
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
+ */
+
 #include "includes.h"
 
 static
@@ -46,11 +96,20 @@ SamDbModifyObject(
     )
 {
     DWORD dwError = 0;
+    LONG64 llObjectRecordId = 0;
+    PSTR   pszObjectDN = NULL;
     PSAM_DIRECTORY_CONTEXT pDirectoryContext = hBindHandle;
     SAMDB_OBJECT_CLASS objectClass = SAMDB_OBJECT_CLASS_UNKNOWN;
 
-    dwError = SamDbGetObjectClass(
-                    modifications,
+    dwError = LsaWc16sToMbs(
+                    pwszObjectDN,
+                    &pszObjectDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = SamDbGetObjectRecordInfo(
+                    pDirectoryContext,
+                    pszObjectDN,
+                    &llObjectRecordId,
                     &objectClass);
     BAIL_ON_SAMDB_ERROR(dwError);
 
@@ -68,6 +127,8 @@ SamDbModifyObject(
     BAIL_ON_SAMDB_ERROR(dwError);
 
 cleanup:
+
+    DIRECTORY_FREE_STRING(pszObjectDN);
 
    return dwError;
 
@@ -127,7 +188,7 @@ SamDbUpdateObjectInDatabase(
                     &pColumnValueList);
     BAIL_ON_SAMDB_ERROR(dwError);
 
-    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSamGlobals.rwLock);
 
     dwError = sqlite3_prepare_v2(
                     pDirectoryContext->pDbContext->pDbHandle,
@@ -135,7 +196,7 @@ SamDbUpdateObjectInDatabase(
                     -1,
                     &pSqlStatement,
                     NULL);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDirectoryContext->pDbContext->pDbHandle);
 
     SAM_DB_BEGIN_TRANSACTION(bTxStarted, pDirectoryContext);
 
@@ -151,7 +212,7 @@ SamDbUpdateObjectInDatabase(
     {
         dwError = LSA_ERROR_SUCCESS;
     }
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 
@@ -169,7 +230,7 @@ cleanup:
         sqlite3_finalize(pSqlStatement);
     }
 
-    SAMDB_UNLOCK_RWMUTEX(bInLock, &pDirectoryContext->rwLock);
+    SAMDB_UNLOCK_RWMUTEX(bInLock, &gSamGlobals.rwLock);
 
     if (pDN)
     {
@@ -224,7 +285,7 @@ SamDbUpdateBuildObjectQuery(
     // We are building a query which will look like
     // UPDATE samdbobjects
     //    SET col1 = ?1,
-    //    SET col2 = ?2
+    //        col2 = ?2
     //  WHERE DistinguishedName = ?3;
     for (pIter = pColumnValueList; pIter; pIter = pIter->pNext)
     {
@@ -232,8 +293,10 @@ SamDbUpdateBuildObjectQuery(
         {
             dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR) - 1;
         }
-
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET) - 1;
+        else
+        {
+            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET) - 1;
+        }
 
         dwColNamesLen += strlen(&pIter->pAttrMap->szDbColumnName[0]);
 
@@ -246,7 +309,7 @@ SamDbUpdateBuildObjectQuery(
 
     dwQueryLen = sizeof(SAMDB_UPDATE_OBJECT_QUERY_PREFIX) - 1;
     dwQueryLen += dwColNamesLen;
-    dwQueryLen = sizeof(SAMDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
+    dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_WHERE) - 1;
 
     dwQueryLen += sizeof(SAM_DB_COL_DISTINGUISHED_NAME) - 1;
     dwQueryLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_EQUALS) - 1;
@@ -281,13 +344,15 @@ SamDbUpdateBuildObjectQuery(
             }
             dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_FIELD_SEPARATOR)  - 1;
         }
-
-        pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SET;
-        while (pszCursor && *pszCursor)
+        else
         {
-            *pszQueryCursor++ = *pszCursor++;
+            pszCursor = SAMDB_UPDATE_OBJECT_QUERY_SET;
+            while (pszCursor && *pszCursor)
+            {
+                *pszQueryCursor++ = *pszCursor++;
+            }
+            dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET)  - 1;
         }
-        dwColNamesLen += sizeof(SAMDB_UPDATE_OBJECT_QUERY_SET)  - 1;
 
         pszCursor = &pIter->pAttrMap->szDbColumnName[0];
         while (pszCursor && *pszCursor)
@@ -403,7 +468,7 @@ SamDbUpdateBuildColumnValueList(
                         &pColumnValue->pAttrMap);
         BAIL_ON_SAMDB_ERROR(dwError);
 
-        for (; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
+        for (iMap = 0; iMap < pObjectClassMapInfo->dwNumMaps; iMap++)
         {
             PSAMDB_ATTRIBUTE_MAP_INFO pMapInfo = NULL;
 
@@ -508,7 +573,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -532,7 +597,7 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.ulValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -553,7 +618,7 @@ SamDbUpdateBindValues(
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
 
@@ -584,7 +649,7 @@ SamDbUpdateBindValues(
                 {
                     dwError = sqlite3_bind_null(pSqlStatement, ++iParam);
                 }
-                BAIL_ON_SAMDB_ERROR(dwError);
+                BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
                 break;
             }
@@ -602,7 +667,7 @@ SamDbUpdateBindValues(
                     pszObjectDN,
                     -1,
                     SQLITE_TRANSIENT);
-    BAIL_ON_SAMDB_ERROR(dwError);
+    BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
 
@@ -612,3 +677,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

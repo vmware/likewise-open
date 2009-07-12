@@ -106,7 +106,7 @@ ADGetLDAPUPNString(
 
     if (hDirectory && pMessage)
     {
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         ppszValues = (PSTR*)ldap_get_values(pLd, pMessage, AD_LDAP_UPN_TAG);
         if (ppszValues && ppszValues[0])
@@ -206,7 +206,7 @@ ADGetUserPrimaryGroupSid(
                     &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -217,7 +217,7 @@ ADGetUserPrimaryGroupSid(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapGetUInt32(
+    dwError = LwLdapGetUInt32(
                 hDirectory,
                 pMessage,
                 AD_LDAP_PRIMEGID_TAG,
@@ -277,10 +277,10 @@ ADFindComputerDN(
     PSTR pszEscapedUpperSamAccountName = NULL;
     HANDLE hDirectory = NULL;
 
-    dwError = LsaLdapConvertDomainToDN(pszDomainName, &pszDirectoryRoot);
+    dwError = LwLdapConvertDomainToDN(pszDomainName, &pszDirectoryRoot);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                 &pszEscapedUpperSamAccountName,
                 pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -302,7 +302,7 @@ ADFindComputerDN(
                     &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                 pLd,
@@ -317,7 +317,7 @@ ADFindComputerDN(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetDN(
+    dwError = LwLdapGetDN(
                     hDirectory,
                     pMessage,
                     &pszComputerDN);
@@ -375,7 +375,7 @@ ADGetCellInformation(
                     &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                 pLd,
@@ -390,7 +390,7 @@ ADGetCellInformation(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapGetDN(
+    dwError = LwLdapGetDN(
                     hDirectory,
                     pMessage,
                     &pszCellDN);
@@ -438,7 +438,7 @@ ADGetDomainMaxPwdAge(
     int64_t int64MaxPwdAge = 0;
     HANDLE hDirectory = NULL;
 
-    dwError = LsaLdapConvertDomainToDN(
+    dwError = LwLdapConvertDomainToDN(
                     pszDomainName,
                     &pszDirectoryRoot);
     BAIL_ON_LSA_ERROR(dwError);
@@ -453,7 +453,7 @@ ADGetDomainMaxPwdAge(
                     &pMessage);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                 pLd,
@@ -469,20 +469,20 @@ ADGetDomainMaxPwdAge(
     BAIL_ON_LSA_ERROR(dwError);
 
     //process "maxPwdAge"
-    dwError = LsaLdapGetInt64(
+    dwError = LwLdapGetInt64(
                 hDirectory,
                 pMessage,
                 AD_LDAP_MAX_PWDAGE_TAG,
                 &int64MaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (int64MaxPwdAge >= 0)
+    if (int64MaxPwdAge == 0x8000000000000000LL)
     {
-        *pMaxPwdAge = (UINT64) int64MaxPwdAge;
+        *pMaxPwdAge = 0;
     }
     else
     {
-        *pMaxPwdAge = (UINT64) (0 - int64MaxPwdAge); // Store the abs value of this
+        *pMaxPwdAge = (UINT64) (int64MaxPwdAge < 0 ? -int64MaxPwdAge : int64MaxPwdAge);
     }
 
 cleanup:
@@ -534,7 +534,7 @@ ADGetConfigurationMode(
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                 pLd,
@@ -548,7 +548,7 @@ ADGetConfigurationMode(
         dwError = LSA_ERROR_INTERNAL;
     }
 
-    dwError = LsaLdapGetStrings(
+    dwError = LwLdapGetStrings(
                     hDirectory,
                     pMessage,
                     AD_LDAP_DESCRIPTION_TAG,
@@ -1370,9 +1370,9 @@ ADLdap_GetAttributeValuesList(
                             &pMessage);
             BAIL_ON_LSA_ERROR(dwError);
         }
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
-        dwError = LsaLdapGetStringsWithExtDnResult(
+        dwError = LwLdapGetStringsWithExtDnResult(
                         hDirectory,
                         pMessage,
                         pszAttributeName,
@@ -1447,7 +1447,7 @@ ADLdap_GetAttributeValuesList(
             bIsEnd = TRUE;
         }
 
-        dwError = LsaLdapGetStringsWithExtDnResult(
+        dwError = LwLdapGetStringsWithExtDnResult(
                         hDirectory,
                         pMessage,
                         pszRetrievedRangeAttr,
@@ -1603,7 +1603,7 @@ ADLdap_GetGroupMembers(
     *pppResults = ppResults;
 
 cleanup:
-    LsaDbSafeFreeObject(&pGroupObj);
+    ADCacheSafeFreeObject(&pGroupObj);
     LsaFreeStringArray(ppszLDAPValues, dwSidCount);
     LsaDmLdapClose(pConn);
 
@@ -1616,7 +1616,7 @@ error:
     LSA_LOG_ERROR("Failed to find group's members of objectSid=%s. [error code:%d]",
                   LSA_SAFE_LOG_STRING(pszSid), dwError);
 
-    LsaDbSafeFreeObjectList((DWORD)sFoundCount, &ppResults);
+    ADCacheSafeFreeObjectList((DWORD)sFoundCount, &ppResults);
     goto cleanup;
 }
 
@@ -1648,7 +1648,7 @@ ADLdap_GetUserGroupMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapConvertDNToDomain(
+    dwError = LwLdapConvertDNToDomain(
                  pUserInfo->pszDN,
                  &pszFullDomainName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1734,7 +1734,7 @@ error:
                       pUserInfo->userInfo.uid, dwError);
     }
 
-    LsaDbSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
+    ADCacheSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);
 
     goto cleanup;
 }
@@ -1808,7 +1808,7 @@ ADLdap_GetObjectSid(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaLdapGetBytes(
+    dwError = LwLdapGetBytes(
                 hDirectory,
                 pMessage,
                 AD_LDAP_OBJECTSID_TAG,
@@ -1852,7 +1852,7 @@ ADLdap_GetAccountType(
 
     // Determine whether this object is user or group.
 
-    dwError = LsaLdapGetStrings(
+    dwError = LwLdapGetStrings(
                     hDirectory,
                     pMessage,
                     AD_LDAP_OBJECTCLASS_TAG,

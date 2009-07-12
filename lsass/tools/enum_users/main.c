@@ -61,7 +61,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PDWORD pdwInfoLevel,
-    PDWORD pdwBatchSize
+    PDWORD pdwBatchSize,
+    PBOOLEAN pbCheckUserInList
     );
 
 BOOLEAN
@@ -75,18 +76,21 @@ ShowUsage();
 VOID
 PrintUserInfo_0(
     PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     );
 
 VOID
 PrintUserInfo_1(
     PLSA_USER_INFO_1 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     );
 
 VOID
 PrintUserInfo_2(
     PLSA_USER_INFO_2 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     );
 
@@ -111,8 +115,9 @@ main(
     DWORD  dwTotalUsersFound = 0;
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
+    BOOLEAN bCheckUserInList = FALSE;
 
-    dwError = ParseArgs(argc, argv, &dwUserInfoLevel, &dwBatchSize);
+    dwError = ParseArgs(argc, argv, &dwUserInfoLevel, &dwBatchSize, &bCheckUserInList);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaOpenServer(&hLsaConnection);
@@ -152,27 +157,34 @@ main(
         {
             BOOLEAN bAllowedLogon = TRUE;
             PVOID pUserInfo = *(ppUserInfoList + iUser);
-            dwError = LsaCheckUserInList(
-                          hLsaConnection,
-                          ((PLSA_USER_INFO_0)pUserInfo)->pszName,
-                          NULL);
-            if (dwError)
+
+            if (bCheckUserInList)
             {
-                bAllowedLogon = FALSE;
+                dwError = LsaCheckUserInList(
+                                          hLsaConnection,
+                                          ((PLSA_USER_INFO_0)pUserInfo)->pszName,
+                                          NULL);
+                if (dwError)
+                {
+                    bAllowedLogon = FALSE;
+                }
             }
 
             switch(dwUserInfoLevel)
             {
                 case 0:
                     PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo,
+                                    bCheckUserInList,
                                     bAllowedLogon);
                     break;
                 case 1:
                     PrintUserInfo_1((PLSA_USER_INFO_1)pUserInfo,
+                                    bCheckUserInList,
                                     bAllowedLogon);
                     break;
                 case 2:
                     PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo,
+                                    bCheckUserInList,
                                     bAllowedLogon);
                     break;
                 default:
@@ -246,7 +258,8 @@ ParseArgs(
     int    argc,
     char*  argv[],
     PDWORD pdwInfoLevel,
-    PDWORD pdwBatchSize
+    PDWORD pdwBatchSize,
+    PBOOLEAN pbCheckUserInList
     )
 {
     typedef enum {
@@ -262,6 +275,7 @@ ParseArgs(
     ParseMode parseMode = PARSE_MODE_OPEN;
     DWORD dwInfoLevel = 0;
     DWORD dwBatchSize = 10;
+    BOOLEAN bCheckUserInList = FALSE;
 
     do {
         pszArg = argv[iArg++];
@@ -285,6 +299,9 @@ ParseArgs(
                 }
                 else if (!strcmp(pszArg, "--batchsize")) {
                     parseMode = PARSE_MODE_BATCHSIZE;
+                }
+                else if (!strcmp(pszArg, "--checkUserinList") || !strcmp(pszArg, "-c") || !strcmp(pszArg, "-C")) {
+                    bCheckUserInList = TRUE;
                 }
                 else
                 {
@@ -345,6 +362,7 @@ ParseArgs(
 
     *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
+    *pbCheckUserInList = bCheckUserInList;
 
     return dwError;
 }
@@ -352,12 +370,13 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-enum-users {--level [0, 1, 2]} {--batchsize [1..1000]}\n");
+    printf("Usage: lw-enum-users {--level [0, 1, 2]} {--batchsize [1..1000]} {--checkUserinList || -c} \n");
 }
 
 VOID
 PrintUserInfo_0(
     PLSA_USER_INFO_0 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     )
 {
@@ -373,14 +392,17 @@ PrintUserInfo_0(
             IsNullOrEmptyString(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
     fprintf(stdout, "Home dir:          %s\n",
             IsNullOrEmptyString(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "Logon restriction: %s\n",
-            bAllowedLogon ? "NO" : "YES");
+    if (bCheckUserInList)
+    {
+        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+    }
     fprintf(stdout, "\n\n");
 }
 
 VOID
 PrintUserInfo_1(
     PLSA_USER_INFO_1 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     )
 {
@@ -402,14 +424,17 @@ PrintUserInfo_1(
     fprintf(stdout, "LMHash length:     %d\n", pUserInfo->dwLMHashLen);
     fprintf(stdout, "NTHash length:     %d\n", pUserInfo->dwNTHashLen);
     fprintf(stdout, "Local User:        %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
-    fprintf(stdout, "Logon restriction: %s\n",
-            bAllowedLogon ? "NO" : "YES");
+    if (bCheckUserInList)
+    {
+        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+    }
     fprintf(stdout, "\n\n");
 }
 
 VOID
 PrintUserInfo_2(
     PLSA_USER_INFO_2 pUserInfo,
+    BOOLEAN bCheckUserInList,
     BOOLEAN bAllowedLogon
     )
 {
@@ -447,8 +472,10 @@ PrintUserInfo_2(
             pUserInfo->bUserCanChangePassword ? "YES" : "NO");
     fprintf(stdout, "Days till password expires: %d\n",
             pUserInfo->dwDaysToPasswordExpiry);
-    fprintf(stdout, "Logon restriction:          %s\n",
-            bAllowedLogon ? "NO" : "YES");
+    if (bCheckUserInList)
+    {
+        fprintf(stdout, "Logon restriction: %s\n", bAllowedLogon ? "NO" : "YES");
+    }
     fprintf(stdout, "\n\n");
 }
 

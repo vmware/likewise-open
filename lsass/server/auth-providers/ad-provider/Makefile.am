@@ -1,6 +1,15 @@
+if ENABLE_STATIC_PROVIDERS
+noinst_LTLIBRARIES = liblsass_auth_provider_ad.la
+PROVIDER_CFLAGS =
+PROVIDER_LDFLAGS =
+else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
+PROVIDER_CFLAGS = -shared
+PROVIDER_LDFLAGS = -shared -module -avoid-version
+endif
 
 liblsass_auth_provider_ad_la_SOURCES = \
+       adcache.c                 \
        adcfg.c                   \
        adldap.c                  \
        ad_marshal_user.c         \
@@ -10,6 +19,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        state_store.c             \
        cache.c                   \
        cellldap.c                \
+       sqlcache.c                \
        defldap.c                 \
        enumstate.c               \
        globals.c                 \
@@ -23,6 +33,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadm_p.c                 \
        lsadmengine.c             \
        lsadmwrap.c               \
+       lsasqlite.c               \
        media-sense.c             \
        batch.c                   \
        lsaum.c                   \
@@ -42,29 +53,30 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 	@NETLOGON_INCLUDES@           \
 	@SQLITE_INCLUDES@
 
+liblsass_auth_provider_ad_la_CFLAGS = $(PROVIDER_CFLAGS)
+
 liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/utils/liblsautils.la \
-	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/server/krb5/liblsakrb5.la \
-	@top_builddir@/server/ldap/liblsaldap.la \
-	@top_builddir@/server/srvutils/liblsasrvutils.la \
-	@top_builddir@/server/db/liblsadb.la \
-	@top_builddir@/server/sqlite/liblsasqlite.la \
+	@top_builddir@/join/liblsajoin.la \
+	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/ipc/liblsaipc.la \
 	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \
+	@top_builddir@/provider/local-provider/client/liblsalocalclient.la \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \
 	@PROC_LIBS@ \
 	@KVM_LIBS@  \
 	@UUID_LIBS@ \
+        @SQLITE_LIBS@ \
 	@CRYPTO_LIBS@
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic \
+	$(PROVIDER_LDFLAGS) \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \
 	@CF_FRAMEWORK_LDFLAGS@ \
 	@SC_FRAMEWORK_LDFLAGS@ \
-	@CRYPTO_LDFLAGS@
+	@CRYPTO_LDFLAGS@  \
+        @SQLITE_LDFLAGS@

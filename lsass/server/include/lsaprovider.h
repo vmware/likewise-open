@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -113,12 +113,13 @@ typedef DWORD (*PFNLOOKUPGROUPBYID)(
                         );
 
 typedef DWORD (*PFNGETGROUPSFORUSER)(
-                        HANDLE  hProvider,
-                        uid_t   uid,
-                        LSA_FIND_FLAGS FindFlags,
-                        DWORD   dwGroupInfoLevel,
-                        PDWORD  pdwGroupsFound,
-                        PVOID** pppGroupInfoList
+                        IN HANDLE hProvider,
+                        IN OPTIONAL PCSTR pszUserName,
+                        IN OPTIONAL uid_t uid,
+                        IN LSA_FIND_FLAGS FindFlags,
+                        IN DWORD dwGroupInfoLevel,
+                        IN PDWORD pdwGroupsFound,
+                        IN PVOID** pppGroupInfoList
                         );
 
 typedef DWORD (*PFNBEGIN_ENUM_USERS)(
@@ -169,6 +170,12 @@ typedef DWORD (*PFNCHANGEPASSWORD) (
                         PCSTR  pszOldPassword
                         );
 
+typedef DWORD (*PFNSETPASSWORD) (
+                        HANDLE hProvider,
+                        PCSTR  pszLoginId,
+                        PCSTR  pszPassword
+                        );
+
 typedef DWORD (*PFNADDUSER) (
                         HANDLE hProvider,
                         DWORD  dwUserInfoLevel,
@@ -189,6 +196,11 @@ typedef DWORD (*PFNADDGROUP) (
                         HANDLE hProvider,
                         DWORD  dwGroupInfoLevel,
                         PVOID  pGroupInfo
+                        );
+
+typedef DWORD (*PFNMODIFYGROUP) (
+                        HANDLE hProvider,
+                        PLSA_GROUP_MOD_INFO pGroupModInfo
                         );
 
 typedef DWORD (*PFNDELETEGROUP) (
@@ -288,10 +300,12 @@ typedef struct __LSA_PROVIDER_FUNCTION_TABLE
     PFNENUMGROUPS                  pfnEnumGroups;
     PFNEND_ENUM_GROUPS             pfnEndEnumGroups;
     PFNCHANGEPASSWORD              pfnChangePassword;
+    PFNSETPASSWORD                 pfnSetPassword;
     PFNADDUSER                     pfnAddUser;
     PFNMODIFYUSER                  pfnModifyUser;
     PFNDELETEUSER                  pfnDeleteUser;
     PFNADDGROUP                    pfnAddGroup;
+    PFNMODIFYGROUP                 pfnModifyGroup;
     PFNDELETEGROUP                 pfnDeleteGroup;
     PFNOPENSESSION                 pfnOpenSession;
     PFNCLOSESESSION                pfnCloseSession;
@@ -321,5 +335,35 @@ typedef DWORD (*PFNSHUTDOWNPROVIDER)(
                     PLSA_PROVIDER_FUNCTION_TABLE pFnTable
                     );
 
+typedef struct _LSA_STATIC_PROVIDER
+{
+    PCSTR pszId;
+    PFNINITIALIZEPROVIDER pInitialize;
+    PFNSHUTDOWNPROVIDER pShutdown;
+} LSA_STATIC_PROVIDER, *PLSA_STATIC_PROVIDER;
+
+#ifdef ENABLE_STATIC_PROVIDERS
+#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider_##name
+#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider_##name
+#else
+#define LSA_INITIALIZE_PROVIDER(name) LsaInitializeProvider
+#define LSA_SHUTDOWN_PROVIDER(name) LsaShutdownProvider
+#endif
+
+#define LSA_STATIC_PROVIDER_ENTRY(name, id) \
+    { #id, LSA_INITIALIZE_PROVIDER(name), LSA_SHUTDOWN_PROVIDER(name) }
+
+#define LSA_STATIC_PROVIDER_END \
+    { NULL, NULL, NULL }
+
 #endif /* __LSAPROVIDER_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

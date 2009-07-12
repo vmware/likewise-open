@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -90,6 +90,17 @@
 			      __FILE__, __LINE__, dwError);		\
 		goto error;						\
 	}
+
+#ifndef BAIL_ON_NT_STATUS
+#define BAIL_ON_NT_STATUS(err) \
+    do { \
+        if ((err) != STATUS_SUCCESS) { \
+            LSA_LOG_DEBUG("Error at %s:%d [code: %d]", \
+                            __FILE__, __LINE__, dwError); \
+		    goto error; \
+	    } \
+    } while (0);
+#endif
 
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
@@ -346,14 +357,14 @@ typedef struct _DNS_FQDN
 //S-<revision>-<authority>-<domain_computer_id>-<relative ID>
 //example: S-1-5-32-546 (Guests)
 //See http://support.microsoft.com/kb/243330
-
+/*
 #define WELLKNOWN_SID_DOMAIN_USER_GROUP_RID 513
 
 typedef struct __LSA_SECURITY_IDENTIFIER {
     UCHAR* pucSidBytes;  //byte representation of multi-byte Security Identification Descriptor
     DWORD dwByteLength;
 } LSA_SECURITY_IDENTIFIER, *PLSA_SECURITY_IDENTIFIER;
-
+*/
 /*
  * Config parsing callbacks
  */
@@ -1122,6 +1133,13 @@ LsaFreeNameInfo(
     );
 
 DWORD
+LsaAllocateGroupInfo(
+    PVOID *ppDstGroupInfo,
+    DWORD dwLevel,
+    PVOID pSrcGroupInfo
+    );
+
+DWORD
 LsaBuildUserModInfo(
     uid_t uid,
     PLSA_USER_MOD_INFO* ppUserModInfo
@@ -1181,9 +1199,69 @@ LsaModifyUser_SetAccountExpiryDate(
     PCSTR pszDate
     );
 
+DWORD
+LsaModifyUser_SetNtPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    );
+
+DWORD
+LsaModifyUser_SetLmPasswordHash(
+    PLSA_USER_MOD_INFO pUserModInfo,
+    PCSTR pszHash
+    );
+
 void
 LsaFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
+    );
+
+DWORD
+LsaBuildGroupModInfo(
+    gid_t gid,
+    PLSA_GROUP_MOD_INFO *ppGroupModInfo
+    );
+
+DWORD
+LsaModifyGroup_AddMembers(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PVOID pData
+    );
+
+DWORD
+LsaModifyGroup_RemoveMembers(
+    PLSA_GROUP_MOD_INFO pGroupModInfo,
+    PVOID pData
+    );
+
+void
+LsaFreeGroupModInfo(
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+void
+LsaFreeIpcNameSidsList(
+    PLSA_FIND_NAMES_BY_SIDS pNameSidsList
+    );
+
+void
+LsaFreeIpcUserInfoList(
+    PLSA_USER_INFO_LIST pUserIpcInfoList
+    );
+
+VOID
+LsaSrvFreeIpcMetriPack(
+    PLSA_METRIC_PACK pMetricPack
+    );
+
+void
+LsaFreeIpcGroupInfoList(
+    PLSA_GROUP_INFO_LIST pGroupIpcInfoList
+    );
+
+void
+LsaFreeIpcNssArtefactInfoList(
+    PLSA_NSS_ARTEFACT_INFO_LIST pNssArtefactIpcInfoList
     );
 
 DWORD
@@ -1532,3 +1610,11 @@ LsaAllocateSidAppendRid(
 #endif /* __LSA_UTILS_H__ */
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -77,7 +77,7 @@ extern pthread_rwlock_t gADGlobalDataLock;
 
 extern PSTR    gpszADProviderName;
 
-extern PSTR    gpszConfigFilePath;
+extern PSTR    gpszADConfigFilePath;
 
 extern BOOLEAN gbShutdownProvider;
 
@@ -95,8 +95,6 @@ extern pthread_mutex_t gMachinePasswordSyncThreadLock;
 extern pthread_cond_t  gMachinePasswordSyncThreadCondition;
 extern pthread_t*      gpMachinePasswordSyncThread;
 
-extern DWORD gdwClockDriftSecs;
-
 extern HANDLE ghPasswordStore;
 
 extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;
@@ -109,6 +107,8 @@ extern PLSA_HASH_TABLE gpAllowedSIDs;
 
 // please put all new globals in the following structure:
 extern PLSA_AD_PROVIDER_STATE gpLsaAdProviderState;
+
+extern PADCACHE_PROVIDER_FUNCTION_TABLE gpCacheProvider;
 
 #endif /* __EXTERNS_H__ */
 

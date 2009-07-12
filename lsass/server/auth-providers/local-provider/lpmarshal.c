@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -317,11 +317,15 @@ LocalMarshalEntryToUserInfo_1(
                     pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+                    &wszAttrNameDN[0],
+                    &pUserInfo->pszDN);
+    BAIL_ON_LSA_ERROR(dwError);
     if (ppwszUserDN)
     {
-        dwError = LocalMarshalAttrToUnicodeString(
-                        pEntry,
-                        &wszAttrNameDN[0],
+        dwError = LsaMbsToWc16s(
+                        pUserInfo->pszDN,
                         &pwszUserDN);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -331,11 +335,11 @@ LocalMarshalEntryToUserInfo_1(
         dwError = LsaAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
-                        pUserInfo->pszName,
+                        pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pUserInfo->pszName) + 1);
+        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
@@ -393,7 +397,7 @@ LocalMarshalEntryToUserInfo_2(
     wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_USER_INFO_FLAGS;
+    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
@@ -520,6 +524,10 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameNTHash[0],
                         &pUserInfo->pNTHash,
                         &pUserInfo->dwNTHashLen);
+    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToOctetStream(
@@ -527,6 +535,10 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameLMHash[0],
                         &pUserInfo->pLMHash,
                         &pUserInfo->dwLMHashLen);
+    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    {
+        dwError = 0;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     if (ppwszUserDN)
@@ -543,11 +555,11 @@ LocalMarshalEntryToUserInfo_2(
         dwError = LsaAllocateStringPrintf(
                         &pUserInfo->pszUPN,
                         "%s@%s",
-                        pUserInfo->pszName,
+                        pszName,
                         pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaStrToUpper(pUserInfo->pszUPN + strlen(pUserInfo->pszName) + 1);
+        LsaStrToUpper(pUserInfo->pszUPN + strlen(pszName) + 1);
 
         pUserInfo->bIsGeneratedUPN = TRUE;
     }
@@ -836,6 +848,12 @@ LocalMarshalEntryToGroupInfo_1(
                     pEntry,
                     &wszAttrNameSamAccountName[0],
                     &pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+                    pEntry,
+		    &wszAttrNameDN[0],
+		    &pGroupInfo->pszDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalMarshalAttrToANSIFromUnicodeString(
@@ -1405,3 +1423,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

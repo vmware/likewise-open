@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -66,7 +66,7 @@ LsaOpenServer(
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, LsaIPCGetProtocolSpec()));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(pContext->pProtocol, &pContext->pAssoc));
+    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
@@ -182,8 +182,8 @@ LsaTransactFindGroupByName(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByNameReq.FindFlags = FindFlags;
     findObjectByNameReq.dwInfoLevel = dwGroupInfoLevel;
@@ -267,8 +267,8 @@ LsaTransactFindGroupById(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByIdReq.FindFlags = FindFlags;
     findObjectByIdReq.dwInfoLevel = dwGroupInfoLevel;
@@ -345,8 +345,8 @@ LsaTransactBeginEnumGroups(
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
@@ -408,8 +408,8 @@ LsaTransactEnumGroups(
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_GROUPS;
     request.object = hResume;
@@ -478,8 +478,8 @@ LsaTransactEndEnumGroups(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_END_ENUM_GROUPS;
     request.object = hResume;
@@ -534,8 +534,8 @@ LsaTransactAddGroup(
     PLSA_IPC_ERROR pError = NULL;
     LSA_GROUP_INFO_LIST addGroupInfoReq;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     addGroupInfoReq.dwGroupInfoLevel = dwGroupInfoLevel;
     addGroupInfoReq.dwNumGroups = 1;
@@ -600,8 +600,8 @@ LsaTransactDeleteGroupById(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_DELETE_GROUP;
     request.object = &gid;
@@ -640,30 +640,41 @@ error:
 }
 
 DWORD
-LsaTransactGetGroupsForUserById(
-    HANDLE  hServer,
-    uid_t   uid,
-    LSA_FIND_FLAGS FindFlags,
-    DWORD   dwGroupInfoLevel,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
+LsaTransactGetGroupsForUser(
+    IN HANDLE hServer,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwGroupInfoLevel,
+    OUT PDWORD pdwGroupsFound,
+    OUT PVOID** pppGroupInfoList
     )
 {
     DWORD dwError = 0;
     PLSA_CLIENT_CONNECTION_CONTEXT pContext =
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
 
-    LSA_IPC_FIND_OBJECT_BY_ID_REQ userGroupsReq;
+    LSA_IPC_FIND_OBJECT_REQ userGroupsReq;
     // Do not free pResultList and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     userGroupsReq.FindFlags = FindFlags;
     userGroupsReq.dwInfoLevel = dwGroupInfoLevel;
-    userGroupsReq.id = uid;
+
+    if (pszUserName)
+    {
+        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_NAME;
+        userGroupsReq.ByData.pszName = pszUserName;
+    }
+    else
+    {
+        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_ID;
+        userGroupsReq.ByData.dwId = uid;
+    }
 
     request.tag = LSA_Q_GROUPS_FOR_USER;
     request.object = &userGroupsReq;
@@ -737,8 +748,8 @@ LsaTransactFindUserByName(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByNameReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByNameReq.pszName = pszName;
@@ -826,8 +837,8 @@ LsaTransactFindUserById(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     findObjectByIdReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByIdReq.id = uid;
@@ -914,8 +925,8 @@ LsaTransactBeginEnumUsers(
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
     beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
@@ -976,8 +987,8 @@ LsaTransactEnumUsers(
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_ENUM_USERS;
     request.object = hResume;
@@ -1051,8 +1062,8 @@ LsaTransactEndEnumUsers(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_END_ENUM_USERS;
     request.object = hResume;
@@ -1107,8 +1118,8 @@ LsaTransactAddUser(
     LSA_USER_INFO_LIST addUserInfoReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     addUserInfoReq.dwUserInfoLevel = dwUserInfoLevel;
     addUserInfoReq.dwNumUsers = 1;
@@ -1176,8 +1187,8 @@ LsaTransactDeleteUserById(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_DELETE_USER;
     request.object = &uid;
@@ -1228,8 +1239,8 @@ LsaTransactAuthenticateUser(
     LSA_IPC_AUTH_USER_REQ authUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     authUserReq.pszLoginName = pszLoginName;
     authUserReq.pszPassword = pszPassword;
@@ -1283,8 +1294,8 @@ LsaTransactAuthenticateUserEx(
     LSA_AUTH_USER_PARAMS authUserExReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     authUserExReq.AuthType = pParams->AuthType;
     authUserExReq.pass = pParams->pass;
@@ -1342,8 +1353,8 @@ LsaTransactValidateUser(
     LSA_IPC_AUTH_USER_REQ validateUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     validateUserReq.pszLoginName = pszLoginName;
     validateUserReq.pszPassword = pszPassword;
@@ -1398,8 +1409,8 @@ LsaTransactChangePassword(
     LSA_IPC_CHANGE_PASSWORD_REQ changePasswordReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     changePasswordReq.pszLoginName = pszLoginName;
     changePasswordReq.pszOldPassword = pszOldPassword;
@@ -1442,6 +1453,61 @@ error:
 }
 
 DWORD
+LsaTransactSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginName,
+    PCSTR  pszNewPassword
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    LSA_IPC_SET_PASSWORD_REQ setPasswordReq;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    setPasswordReq.pszLoginName   = pszLoginName;
+    setPasswordReq.pszNewPassword = pszNewPassword;
+
+    request.tag    = LSA_Q_SET_PASSWORD;
+    request.object = &setPasswordReq;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+        case LSA_R_SET_PASSWORD_SUCCESS:
+            break;
+
+        case LSA_R_SET_PASSWORD_FAILURE:
+            pError = (PLSA_IPC_ERROR) response.object;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = EINVAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LsaTransactModifyUser(
     HANDLE hServer,
     PLSA_USER_MOD_INFO pUserModInfo
@@ -1452,8 +1518,8 @@ LsaTransactModifyUser(
                      (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     request.tag = LSA_Q_MODIFY_USER;
     request.object = pUserModInfo;
@@ -1507,8 +1573,8 @@ LsaTransactGetNamesBySidList(
     PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     getNamesBySidsReq.sCount = sCount;
     getNamesBySidsReq.ppszSidList = ppszSidList;
@@ -1556,6 +1622,54 @@ error:
 }
 
 DWORD
+LsaTransactModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    request.tag    = LSA_Q_MODIFY_GROUP;
+    request.object = pGroupModInfo;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag) {
+    case LSA_R_MODIFY_GROUP_SUCCESS:
+        break;
+
+    case LSA_R_MODIFY_GROUP_FAILURE:
+        pError = (PLSA_IPC_ERROR)response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    if (response.object) {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    goto cleanup;
+}
+
+DWORD
 LsaTransactProviderIoControl(
     IN HANDLE  hServer,
     IN PCSTR   pszProvider,
@@ -1574,8 +1688,8 @@ LsaTransactProviderIoControl(
     PLSA_DATA_BLOB pResultBuffer = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = { -1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     providerIoControlReq.pszProvider = pszProvider;
     providerIoControlReq.dwIoControlCode = dwIoControlCode;
@@ -1631,3 +1745,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

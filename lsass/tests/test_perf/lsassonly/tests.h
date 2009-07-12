@@ -54,6 +54,9 @@
 #include <sys/types.h>
 #endif
 #include <lsa/lsa.h>
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include <lsautils.h>
 
 BOOL

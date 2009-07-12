@@ -1,13 +1,6 @@
 SUBDIRS = \
-         krb5           \
-         ldap           \
-         srvutils       \
          store          \
-         join           \
-         rpc            \
          api            \
-         sqlite         \
-         db             \
+         rpc            \
          auth-providers \
-         ipc            \
          lsassd

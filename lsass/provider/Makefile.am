@@ -1,2 +1,3 @@
 SUBDIRS = \
-         ad-provider
+         ad-provider \
+         local-provider

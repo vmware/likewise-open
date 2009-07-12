@@ -47,9 +47,12 @@
 #ifndef __LSASRVAPI_H__
 #define __LSASRVAPI_H__
 
+#include "lsaprovider.h"
+
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath
+    PCSTR pszConfigFilePath,
+    PLSA_STATIC_PROVIDER pStaticProviders
     );
 
 DWORD
@@ -123,6 +126,13 @@ LsaSrvChangePassword(
     );
 
 DWORD
+LsaSrvSetPassword(
+    HANDLE hServer,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    );
+
+DWORD
 LsaSrvFindGroupByName(
     IN HANDLE hServer,
     IN PCSTR pszGroup,
@@ -143,7 +153,8 @@ LsaSrvFindGroupById(
 DWORD
 LsaSrvGetGroupsForUser(
     IN HANDLE hServer,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     OUT PDWORD pdwGroupsFound,
@@ -163,6 +174,12 @@ LsaSrvAddGroup(
     HANDLE hServer,
     DWORD  dwGroupInfoLevel,
     PVOID  pGroupInfo
+    );
+
+DWORD
+LsaSrvModifyGroup(
+    HANDLE hServer,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
 DWORD
