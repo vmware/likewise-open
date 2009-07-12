@@ -58,9 +58,6 @@ SrvBuildNegotiateResponse_SMB_V2(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_PACKET pSmbResponse = NULL;
     PSMB2_NEGOTIATE_HEADER pNegotiateHeader = NULL;
-    ULONG  ulBytesUsed = 0;
-    ULONG  ulBytesAvailable = 0;
-    ULONG  ulOffset = 0;
     USHORT usAlign = 0;
     PBYTE  pDataCursor = NULL;
     PBYTE  pSessionKey = NULL;
@@ -68,6 +65,12 @@ SrvBuildNegotiateResponse_SMB_V2(
     LONG64 llCurTime = 0LL;
     time_t curTime = 0;
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
+    PBYTE pOutBufferRef = NULL;
+    PBYTE pOutBuffer = NULL;
+    ULONG ulBytesAvailable = 0;
+    ULONG ulOffset    = 0;
+    ULONG ulBytesUsed = 0;
+    ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -81,8 +84,18 @@ SrvBuildNegotiateResponse_SMB_V2(
                     &pSmbResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMB2InitPacket(pSmbResponse, FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    pOutBuffer = pOutBufferRef;
+    ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ulOffset = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+
     ntStatus = SMB2MarshalHeader(
-                pSmbResponse,
+                pOutBuffer,
+                ulOffset,
+                ulBytesAvailable,
                 COM2_NEGOTIATE,
                 0, /* usEpoch      */
                 1, /* usCredits    */
@@ -92,10 +105,13 @@ SrvBuildNegotiateResponse_SMB_V2(
                 0, /* ullSessionId */
                 0, /* status       */
                 FALSE, /* do not sign */
-                TRUE);
+                &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
 
     if (ulBytesAvailable < sizeof(SMB2_NEGOTIATE_HEADER))
     {
@@ -103,11 +119,11 @@ SrvBuildNegotiateResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pNegotiateHeader = (PSMB2_NEGOTIATE_HEADER)(pSmbResponse->pParams);
+    pNegotiateHeader = (PSMB2_NEGOTIATE_HEADER)pOutBuffer;
 
-    ulOffset = (PBYTE)pSmbResponse->pParams - (PBYTE)pSmbResponse->pSMB2Header;
-
-    ulBytesUsed += sizeof(SMB2_NEGOTIATE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_HEADER);
+    ulBytesUsed      += sizeof(SMB2_NEGOTIATE_HEADER);
+    pOutBuffer += sizeof(SMB2_NEGOTIATE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_HEADER);
     ulOffset += sizeof(SMB2_NEGOTIATE_HEADER);
 
@@ -171,6 +187,8 @@ SrvBuildNegotiateResponse_SMB_V2(
     }
 
     ulOffset += usAlign;
+    pOutBuffer += usAlign;
+    ulTotalBytesUsed += usAlign;
     ulBytesUsed += usAlign;
     ulBytesAvailable -= usAlign;
 
@@ -183,15 +201,16 @@ SrvBuildNegotiateResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pDataCursor = (PBYTE)pSmbResponse->pSMB2Header + ulOffset;
+    pDataCursor = pOutBufferRef + ulOffset;
 
     memcpy(pDataCursor, pSessionKey, ulSessionKeyLength);
 
     pNegotiateHeader->usLength = ulBytesUsed + 1; /* add one for dynamic part */
 
+    ulTotalBytesUsed += ulSessionKeyLength;
     ulBytesUsed += ulSessionKeyLength;
 
-    pSmbResponse->bufferUsed += ulBytesUsed;
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
     ntStatus = SMB2MarshalFooter(pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);

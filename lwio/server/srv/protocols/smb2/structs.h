@@ -504,6 +504,9 @@ typedef struct __SMB2_REQUEST
 
     PSMB_PACKET   pResponse;
 
+    ULONG         ulNumChainedResponses;
+    PSMB2_MESSAGE pChainedResponses;
+
 } SMB2_REQUEST, *PSMB2_REQUEST;
 
 #endif /* __STRUCTS_H__ */

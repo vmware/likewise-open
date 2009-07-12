@@ -55,16 +55,16 @@ static
 NTSTATUS
 SrvBuildCloseResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
+    PSMB2_MESSAGE        pSmbRequest,
     PLWIO_SRV_FILE_2     pFile,
-    PSMB_PACKET*         ppSmbResponse
+    PSMB_PACKET          pSmbResponse
     );
 
 NTSTATUS
 SrvProcessClose_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PSMB2_MESSAGE        pSmbRequest,
+    IN OUT PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -72,17 +72,16 @@ SrvProcessClose_SMB_V2(
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PLWIO_SRV_TREE_2    pTree = NULL;
     PLWIO_SRV_FILE_2    pFile = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree(
                     pSession,
-                    pSmbRequest->pSMB2Header->ulTid,
+                    pSmbRequest->pHeader->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -106,10 +105,8 @@ SrvProcessClose_SMB_V2(
                     pConnection,
                     pSmbRequest,
                     pFile,
-                    &pSmbResponse);
+                    pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -132,13 +129,6 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
     goto cleanup;
 }
 
@@ -146,9 +136,9 @@ static
 NTSTATUS
 SrvBuildCloseResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
+    PSMB2_MESSAGE        pSmbRequest,
     PLWIO_SRV_FILE_2     pFile,
-    PSMB_PACKET*         ppSmbResponse
+    PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -156,9 +146,12 @@ SrvBuildCloseResponse_SMB_V2(
     FILE_STANDARD_INFORMATION   fileStdInfo = {0};
     IO_STATUS_BLOCK             ioStatusBlock = {0};
     PSMB2_CLOSE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
-    ULONG       ulBytesUsed = 0;
-    ULONG       ulBytesAvailable = 0;
-    PSMB_PACKET pSmbResponse = NULL;
+    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer = pOutBufferRef;
+    ULONG ulOffset = 0;
+    ULONG ulTotalBytesUsed = 0;
+    ULONG ulBytesUsed = 0;
+    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
 
     ntStatus = IoQueryInformationFile(
                     pFile->hFile,
@@ -178,33 +171,26 @@ SrvBuildCloseResponse_SMB_V2(
                     FileStandardInformation);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SMB2MarshalHeader(
-                    pSmbResponse,
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
                     COM2_CLOSE,
                     0,
                     1,
-                    pSmbRequest->pSMB2Header->ulPid,
-                    pSmbRequest->pSMB2Header->ullCommandSequence,
-                    pSmbRequest->pSMB2Header->ulTid,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->ullSessionId,
                     STATUS_SUCCESS,
                     TRUE,
-                    TRUE);
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
 
     if (ulBytesAvailable < sizeof(SMB2_CLOSE_RESPONSE_HEADER))
     {
@@ -212,8 +198,11 @@ SrvBuildCloseResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pResponseHeader = (PSMB2_CLOSE_RESPONSE_HEADER)pSmbResponse->pParams;
-    ulBytesUsed += sizeof(SMB2_CLOSE_RESPONSE_HEADER);
+    pResponseHeader = (PSMB2_CLOSE_RESPONSE_HEADER)pOutBuffer;
+
+    ulBytesAvailable -= sizeof(SMB2_CLOSE_RESPONSE_HEADER);
+    pOutBuffer += sizeof(SMB2_CLOSE_RESPONSE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_CLOSE_RESPONSE_HEADER);
 
     pResponseHeader->ullCreationTime = fileBasicInfo.CreationTime;
     pResponseHeader->ullLastAccessTime = fileBasicInfo.LastAccessTime;
@@ -224,12 +213,7 @@ SrvBuildCloseResponse_SMB_V2(
     pResponseHeader->ullEndOfFile = fileStdInfo.EndOfFile;
     pResponseHeader->usLength = sizeof(SMB2_CLOSE_RESPONSE_HEADER);
 
-    pSmbResponse->bufferUsed += ulBytesUsed;
-
-    ntStatus = SMB2MarshalFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
 cleanup:
 
@@ -237,11 +221,9 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
     }
 
     goto cleanup;

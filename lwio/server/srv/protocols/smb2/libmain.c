@@ -76,6 +76,7 @@ SrvProtocolExecute_SMB_V2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB2_REQUEST request = {0};
+    ULONG        iRequest = 0;
 
     ntStatus = SrvBuildRequestChain_SMB_V2(
                     pConnection,
@@ -83,174 +84,232 @@ SrvProtocolExecute_SMB_V2(
                     &request);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (pSmbRequest->pSMB2Header->command)
+    ntStatus = SMBPacketAllocate(
+                    pConnection->hPacketAllocator,
+                    &request.pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    64 * 1024,
+                    &request.pResponse->pRawBuffer,
+                    &request.pResponse->bufferLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2InitPacket(request.pResponse, TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (; iRequest < request.ulNumChainedRequests; iRequest++)
     {
-        case COM2_NEGOTIATE:
+        PSMB2_MESSAGE pRequest = &request.pChainedRequests[iRequest];
+        PSMB2_MESSAGE pResponse = &request.pChainedResponses[iRequest];
+        PSMB2_MESSAGE pPrevResponse = (iRequest > 0 ? &request.pChainedResponses[iRequest] : NULL);
+        ULONG         ulResponseSize_starting = request.pResponse->bufferUsed;
+        ULONG         ulResponseSize_ending = request.pResponse->bufferUsed;
 
-            // Handled at a higher layer
-            ntStatus = STATUS_INTERNAL_ERROR;
+        if (pPrevResponse && (pPrevResponse->ulSize % 8))
+        {
+            ULONG ulBytesAvailable = 0;
+            USHORT usAlign = 8 - (pPrevResponse->ulSize % 8);
 
-            break;
+            ulBytesAvailable = request.pResponse->bufferLen -
+                               request.pResponse->bufferUsed;
 
-        case COM2_ECHO:
-        case COM2_SESSION_SETUP:
-
+            if (ulBytesAvailable < usAlign)
             {
-                LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                break;
+            }
+            else
+            {
+                request.pResponse->bufferUsed += usAlign;
+                pPrevResponse->ulSize += usAlign;
+            }
+        }
 
-                if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
-                    (connState != LWIO_SRV_CONN_STATE_READY))
+        pResponse->pHeader = (PSMB2_HEADER)request.pResponse->pRawBuffer +
+                                         request.pResponse->bufferUsed;
+
+        switch (pRequest->pHeader->command)
+        {
+            case COM2_NEGOTIATE:
+
+                // Handled at a higher layer
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+
+            case COM2_ECHO:
+            case COM2_SESSION_SETUP:
+
+                {
+                    LWIO_SRV_CONN_STATE connState = SrvConnectionGetState(pConnection);
+
+                    if ((connState != LWIO_SRV_CONN_STATE_NEGOTIATE) &&
+                        (connState != LWIO_SRV_CONN_STATE_READY))
+                    {
+                        ntStatus = STATUS_INVALID_SERVER_STATE;
+                    }
+                }
+
+                break;
+
+            default:
+
+                if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
                 {
                     ntStatus = STATUS_INVALID_SERVER_STATE;
                 }
-            }
 
-            break;
+                break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        default:
+        switch (pRequest->pHeader->command)
+        {
+            case COM2_SESSION_SETUP:
 
-            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
+                ntStatus = SrvProcessSessionSetup_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_LOGOFF:
+
+                ntStatus = SrvProcessLogoff_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_TREE_CONNECT:
+
+                ntStatus = SrvProcessTreeConnect_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_TREE_DISCONNECT:
+
+                ntStatus = SrvProcessTreeDisconnect_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_CREATE:
+
+                ntStatus = SrvProcessCreate_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_CLOSE:
+
+                ntStatus = SrvProcessClose_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_FLUSH:
+
+                ntStatus = SrvProcessFlush_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_READ:
+
+                ntStatus = SrvProcessRead_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_WRITE:
+
+                ntStatus = SrvProcessWrite_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_LOCK:
+
+                ntStatus = SrvProcessLock_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_IOCTL:
+
+                ntStatus = SrvProcessIOCTL_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_ECHO:
+
+                ntStatus = SrvProcessEcho_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_FIND:
+
+                ntStatus = SrvProcessFind_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            case COM2_GETINFO:
+
+                ntStatus = SrvProcessGetInfo_SMB_V2(
+                                pConnection,
+                                pRequest,
+                                request.pResponse);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_NOT_IMPLEMENTED;
+
+                break;
+        }
+
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            ulResponseSize_ending = request.pResponse->bufferUsed;
+            pResponse->ulSize = ulResponseSize_ending - ulResponseSize_starting;
+
+            if (pPrevResponse)
             {
-                ntStatus = STATUS_INVALID_SERVER_STATE;
+                pPrevResponse->pHeader->ulChainOffset = pPrevResponse->ulSize;
             }
-
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (pSmbRequest->pSMB2Header->command)
-    {
-        case COM2_SESSION_SETUP:
-
-            ntStatus = SrvProcessSessionSetup_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_LOGOFF:
-
-            ntStatus = SrvProcessLogoff_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_TREE_CONNECT:
-
-            ntStatus = SrvProcessTreeConnect_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_TREE_DISCONNECT:
-
-            ntStatus = SrvProcessTreeDisconnect_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_CREATE:
-
-            ntStatus = SrvProcessCreate_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_CLOSE:
-
-            ntStatus = SrvProcessClose_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_FLUSH:
-
-            ntStatus = SrvProcessFlush_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_READ:
-
-            ntStatus = SrvProcessRead_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_WRITE:
-
-            ntStatus = SrvProcessWrite_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_LOCK:
-
-            ntStatus = SrvProcessLock_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_IOCTL:
-
-            ntStatus = SrvProcessIOCTL_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_ECHO:
-
-            ntStatus = SrvProcessEcho_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_FIND:
-
-            ntStatus = SrvProcessFind_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        case COM2_GETINFO:
-
-            ntStatus = SrvProcessGetInfo_SMB_V2(
-                            pConnection,
-                            pSmbRequest,
-                            &request.pResponse);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_NOT_IMPLEMENTED;
-
-            break;
+        }
     }
 
     if (ntStatus)
@@ -259,7 +318,12 @@ SrvProtocolExecute_SMB_V2(
                         pConnection,
                         pSmbRequest->pSMB2Header,
                         ntStatus,
-                        &request.pResponse);
+                        request.pResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = SMB2MarshalFooter(request.pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -269,6 +333,7 @@ SrvProtocolExecute_SMB_V2(
 cleanup:
 
     SRV_SAFE_FREE_MEMORY(request.pChainedRequests);
+    SRV_SAFE_FREE_MEMORY(request.pChainedResponses);
 
     if (request.pResponse)
     {
@@ -299,7 +364,8 @@ SrvBuildRequestChain_SMB_V2(
     ULONG    ulPacketSize = pSmbRequest->bufferLen - sizeof(NETBIOS_HEADER);
     PSMB2_HEADER pHeader = NULL;
     PSMB2_HEADER pPrevHeader = NULL;
-    PSMB2_MESSAGE pMessages = NULL;
+    PSMB2_MESSAGE pRequestMessages = NULL;
+    PSMB2_MESSAGE pResponseMessages = NULL;
     UCHAR         smb2magic[4] = {0xFE, 'S','M','B'};
 
     pHeader = pSmbRequest->pSMB2Header;
@@ -346,14 +412,19 @@ SrvBuildRequestChain_SMB_V2(
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SMB2_MESSAGE) * ulNumChainedRequests,
-                    (PVOID*)&pMessages);
+                    (PVOID*)&pRequestMessages);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SMB2_MESSAGE) * ulNumChainedRequests,
+                    (PVOID*)&pResponseMessages);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPrevHeader = NULL;
 
     for (; iRequest < ulNumChainedRequests; iRequest++)
     {
-        PSMB2_MESSAGE pMessage = &pMessages[iRequest];
+        PSMB2_MESSAGE pMessage = &pRequestMessages[iRequest];
 
         if (!pPrevHeader)
         {
@@ -391,8 +462,10 @@ SrvBuildRequestChain_SMB_V2(
 
     pRequest->pConnection = pConnection;
     pRequest->pRequest    = pSmbRequest;
-    pRequest->pChainedRequests = pMessages;
+    pRequest->pChainedRequests = pRequestMessages;
     pRequest->ulNumChainedRequests = ulNumChainedRequests;
+    pRequest->pChainedResponses = pResponseMessages;
+    pRequest->ulNumChainedResponses = ulNumChainedRequests;
 
 cleanup:
 
@@ -404,8 +477,11 @@ error:
     pRequest->pRequest    = NULL;
     pRequest->pChainedRequests = NULL;
     pRequest->ulNumChainedRequests = 0;
+    pRequest->pChainedResponses = NULL;
+    pRequest->ulNumChainedResponses = 0;
 
-    SRV_SAFE_FREE_MEMORY(pMessages);
+    SRV_SAFE_FREE_MEMORY(pRequestMessages);
+    SRV_SAFE_FREE_MEMORY(pResponseMessages);
 
     goto cleanup;
 }

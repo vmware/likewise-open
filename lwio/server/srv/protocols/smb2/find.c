@@ -55,17 +55,17 @@ static
 NTSTATUS
 SrvFindBothDirInformation(
     PLWIO_SRV_CONNECTION      pConnection,
-    PSMB_PACKET               pSmbRequest,
+    PSMB2_MESSAGE             pSmbRequest,
     PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
-    PSMB_PACKET*              ppSmbResponse
+    PSMB_PACKET               pSmbResponse
     );
 
 NTSTATUS
 SrvProcessFind_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PSMB2_MESSAGE        pSmbRequest,
+    IN OUT PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -74,17 +74,16 @@ SrvProcessFind_SMB_V2(
     PLWIO_SRV_FILE_2    pFile = NULL;
     PSMB2_FIND_REQUEST_HEADER pRequestHeader = NULL; // Do not free
     UNICODE_STRING            wszFilename = {0};
-    PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree(
                     pSession,
-                    pSmbRequest->pSMB2Header->ulTid,
+                    pSmbRequest->pHeader->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -109,7 +108,7 @@ SrvProcessFind_SMB_V2(
                             pSmbRequest,
                             pFile,
                             pRequestHeader,
-                            &pSmbResponse);
+                            pSmbResponse);
 
             break;
 
@@ -120,8 +119,6 @@ SrvProcessFind_SMB_V2(
             break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -144,13 +141,6 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
     goto cleanup;
 }
 
@@ -158,32 +148,11 @@ static
 NTSTATUS
 SrvFindBothDirInformation(
     PLWIO_SRV_CONNECTION      pConnection,
-    PSMB_PACKET               pSmbRequest,
+    PSMB2_MESSAGE             pSmbRequest,
     PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
-    PSMB_PACKET*              ppSmbResponse
+    PSMB_PACKET               pSmbResponse
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    ntStatus = STATUS_NOT_IMPLEMENTED;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
-    goto cleanup;
+    return STATUS_NOT_IMPLEMENTED;
 }
