@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,46 +26,51 @@
 /*
  * Module Name:
  *
- *        type-verify.c
+ *        call-private.h
  *
  * Abstract:
  *
- *        Data verification functions for built-in types
+ *        Call handle interface (private)
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include "type-private.h"
-#include "util-private.h"
-#include "convert.h"
 
-LWMsgStatus
-lwmsg_type_verify_range(
-    LWMsgContext* context,
-    LWMsgTypeIter* iter,
-    void* object,
-    size_t object_size
-    )
+#ifndef __LWMSG_CALL_PRIVATE_H__
+#define __LWMSG_CALL_PRIVATE_H__
+
+#include <lwmsg/call.h>
+#include <stdlib.h>
+
+typedef struct LWMsgCallClass
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    size_t value;
+    void (*release)(
+        LWMsgCall* call
+        );
+    LWMsgStatus (*transact)(
+        LWMsgCall* call,
+        LWMsgCompleteFunction complete,
+        void* data
+        );
+    LWMsgStatus (*pend)(
+        LWMsgCall* call,
+        LWMsgCancelFunction cancel,
+        void* data
+        );
+    LWMsgStatus (*complete)(
+        LWMsgCall* call,
+        LWMsgStatus status
+        );
+    LWMsgStatus (*cancel)(
+        LWMsgCall* call
+        );
+} LWMsgCallClass;
 
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      object,
-                      object_size,
-                      LWMSG_NATIVE_ENDIAN,
-                      &value,
-                      sizeof(value),
-                      LWMSG_NATIVE_ENDIAN,
-                      iter->info.kind_integer.sign));
+struct LWMsgCall
+{
+    LWMsgCallClass* vtbl;
+};
 
-    if (value < iter->attrs.range_low || value > iter->attrs.range_high)
-    {
-        RAISE_ERROR(context, status = LWMSG_STATUS_MALFORMED,
-                    "Integer value did not fall within specified range");
-    }
+#define LWMSG_CALL(obj) ((LWMsgCall*) (obj))
 
-error:
-
-    return status;
-}
+#endif

@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,23 +26,28 @@
 /*
  * Module Name:
  *
- *        unmarshal-private.h
+ *        message.c
  *
  * Abstract:
  *
- *        Unmarshalling API (private header)
+ *        Message structure
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_UNMARSHAL_PRIVATE_H__
-#define __LWMSG_UNMARSHAL_PRIVATE_H__
 
-#include "type-private.h"
+#include <config.h>
+#include <lwmsg/message.h>
+#include "util-private.h"
 
-typedef struct LWMsgUnmarshalState
+void
+lwmsg_message_init(
+    LWMsgMessage* message
+    )
 {
-    unsigned char* dominating_object;
-} LWMsgUnmarshalState;
-
-#endif
+    message->status = LWMSG_STATUS_SUCCESS;
+    message->tag = LWMSG_TAG_INVALID;
+    message->id = 0;
+    message->data = NULL;
+    message->reserved1 = 0;
+}

@@ -35,8 +35,6 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include <lwmsg/marshal.h>
-#include <lwmsg/unmarshal.h>
 
 #include "protocol-private.h"
 #include "util-private.h"
@@ -57,8 +55,6 @@ lwmsg_protocol_new(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    lwmsg_context_setup(&my_prot->context, context);
-
     *prot = my_prot;
 
 done:
@@ -78,24 +74,47 @@ error:
 void
 lwmsg_protocol_delete(LWMsgProtocol* prot)
 {
-    lwmsg_context_cleanup(&prot->context);
     free(prot->types);
     free(prot);
 }
 
 LWMsgStatus
-lwmsg_protocol_get_message_type(LWMsgProtocol* prot, unsigned int type, LWMsgTypeSpec** out_type)
+lwmsg_protocol_get_message_type(LWMsgProtocol* prot, unsigned int tag, LWMsgTypeSpec** out_type)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    if (type >= prot->num_types)
+    if (tag >= prot->num_types)
     {
-        RAISE_ERROR(&prot->context, status = LWMSG_STATUS_NOT_FOUND,
+        RAISE_ERROR(prot, status = LWMSG_STATUS_NOT_FOUND,
                     "Unknown message type");
     }
     else
     {
-        *out_type = prot->types[type];
+        *out_type = prot->types[tag]->type;
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_protocol_get_message_name(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    const char** name
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    if (tag >= prot->num_types)
+    {
+        RAISE_ERROR(prot, status = LWMSG_STATUS_NOT_FOUND,
+                    "Unknown message type");
+    }
+    else
+    {
+        *name = prot->types[tag]->tag_name;
     }
 
 error:
@@ -107,7 +126,7 @@ LWMsgStatus
 lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeSpec** new_types = NULL;
+    LWMsgProtocolSpec** new_types = NULL;
     size_t num_types = 0;
     size_t i;
 
@@ -137,7 +156,7 @@ lwmsg_protocol_add_protocol_spec(LWMsgProtocol* prot, LWMsgProtocolSpec* spec)
     for (i = 0; spec[i].tag != -1; i++)
     {
         /* A NULL typespec indicates a message with an empty payload */
-        prot->types[spec[i].tag] = spec[i].type;
+        prot->types[spec[i].tag] = &spec[i];
     }
 
 error:
@@ -152,64 +171,5 @@ lwmsg_protocol_get_error_message(
     LWMsgStatus status
     )
 {
-    return lwmsg_context_get_error_message(&prot->context, status);
-}
-
-LWMsgStatus
-lwmsg_protocol_marshal(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    void* object,
-    LWMsgBuffer* buffer
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeSpec* mtype = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
-
-    BAIL_ON_ERROR(status = lwmsg_marshal(&prot->context, mtype, object, buffer));
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_protocol_unmarshal(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    LWMsgBuffer* buffer,
-    void** out_object
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeSpec* mtype = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
-
-    BAIL_ON_ERROR(status = lwmsg_unmarshal(&prot->context, mtype, buffer, out_object));
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_protocol_free_graph(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    void* root
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeSpec* mtype = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(prot, tag, &mtype));
-
-    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&prot->context, mtype, root));
-
-error:
-
-    return status;
+    return lwmsg_error_message(status, &prot->error);
 }

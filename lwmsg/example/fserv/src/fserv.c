@@ -61,6 +61,13 @@ fserv_connect(
         goto error;
     }
 
+    /* Establish session */
+    status = lwmsg_assoc_establish(fserv->assoc);
+    if (status)
+    {
+        ret = -1;
+        goto error;
+    }
 
     *out_fserv = fserv;
 

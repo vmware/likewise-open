@@ -99,37 +99,33 @@ lwmsg_context_default_realloc (
 }
 
 void
-lwmsg_context_setup(LWMsgContext* context, LWMsgContext* parent)
+lwmsg_context_setup(
+    LWMsgContext* context,
+    const LWMsgContext* parent
+    )
 {
     context->parent = parent;
-
-    if (!parent)
-    {
-        lwmsg_context_set_memory_functions(
-            context,
-            lwmsg_context_default_alloc,
-            lwmsg_context_default_free,
-            lwmsg_context_default_realloc,
-            NULL);
-    }
 }
 
 LWMsgStatus
-lwmsg_context_new(LWMsgContext** out_context)
+lwmsg_context_new(
+    const LWMsgContext* parent,
+    LWMsgContext** context
+    )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgContext* context = NULL;
+    LWMsgContext* my_context = NULL;
 
-    context = calloc(1, sizeof(*context));
+    my_context = calloc(1, sizeof(*my_context));
 
-    if (context == NULL)
+    if (my_context == NULL)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-    lwmsg_context_setup(context, NULL);
+    lwmsg_context_setup(my_context, parent);
 
-    *out_context = context;
+    *context = my_context;
 
 error:
 
@@ -165,59 +161,64 @@ lwmsg_context_set_memory_functions(
 }
 
 const char*
-lwmsg_context_get_error_message(LWMsgContext* context, LWMsgStatus status)
+lwmsg_context_get_error_message(
+    LWMsgContext* context,
+    LWMsgStatus status
+    )
 {
     return lwmsg_error_message(status, &context->error);
 }
 
-LWMsgAllocFunction
-lwmsg_context_get_alloc(LWMsgContext* context)
+void
+lwmsg_context_get_memory_functions(
+    const LWMsgContext* context,
+    LWMsgAllocFunction* alloc,
+    LWMsgFreeFunction* free,
+    LWMsgReallocFunction* realloc,
+    void** data
+    )
 {
-    if (context->alloc)
+    if (!context)
     {
-        return context->alloc;
+        if (alloc)
+        {
+            *alloc = lwmsg_context_default_alloc;
+        }
+        if (free)
+        {
+            *free = lwmsg_context_default_free;
+        }
+        if (realloc)
+        {
+            *realloc = lwmsg_context_default_realloc;
+        }
+        if (data)
+        {
+            *data = NULL;
+        }
     }
-    else if (context->parent)
+    else if (context->alloc)
     {
-        return lwmsg_context_get_alloc(context->parent);
+        if (alloc)
+        {
+            *alloc = context->alloc;
+        }
+        if (free)
+        {
+            *free = context->free;
+        }
+        if (realloc)
+        {
+            *realloc = context->realloc;
+        }
+        if (data)
+        {
+            *data = context->memdata;
+        }
     }
     else
     {
-        return NULL;
-    }
-}
-
-LWMsgFreeFunction
-lwmsg_context_get_free(LWMsgContext* context)
-{
-    if (context->free)
-    {
-        return context->free;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_free(context->parent);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-LWMsgReallocFunction
-lwmsg_context_get_realloc(LWMsgContext* context)
-{
-    if (context->realloc)
-    {
-        return context->realloc;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_realloc(context->parent);
-    }
-    else
-    {
-        return NULL;
+        lwmsg_context_get_memory_functions(context->parent, alloc, free, realloc, data);
     }
 }
 
@@ -232,116 +233,44 @@ lwmsg_context_set_data_function(
     context->datafndata = data;
 }
 
-void*
-lwmsg_context_get_memdata(LWMsgContext* context)
-{
-    if (context->memdata)
-    {
-        return context->memdata;
-    }
-    else if (context->parent)
-    {
-        return lwmsg_context_get_memdata(context->parent);
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-typedef struct freeinfo
-{
-    LWMsgContext* context;
-    LWMsgFreeFunction free;
-    void* data;
-} freeinfo;
-
-static
-LWMsgStatus
-lwmsg_context_free_graph_visit(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
+void
+lwmsg_context_set_log_function(
+    LWMsgContext* context,
+    LWMsgLogFunction logfn,
     void* data
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    freeinfo* info = (freeinfo*) data;
+    context->logfn = logfn;
+    context->logfndata = data;
+}
 
-    switch(iter->kind)
+static
+void
+lwmsg_context_get_log_function(
+    const LWMsgContext* context,
+    LWMsgLogFunction* logfn,
+    void** logfndata
+    )
+{
+    if (!context)
     {
-    case LWMSG_KIND_CUSTOM:
-        if (iter->info.kind_custom.typeclass->free)
-        {
-            iter->info.kind_custom.typeclass->free(
-                info->context,
-                iter->size,
-                &iter->attrs,
-                object,
-                iter->info.kind_custom.typedata);
-        }
-        break;
-    case LWMSG_KIND_POINTER:
-        BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
-                          iter,
-                          object,
-                          lwmsg_context_free_graph_visit,
-                          data));
-        info->free(*(void **) object, info->data);
-        break;
-    default:
-        BAIL_ON_ERROR(status = lwmsg_type_visit_graph_children(
-                              iter,
-                              object,
-                              lwmsg_context_free_graph_visit,
-                              data));
-        break;
+        *logfn = NULL;
+        *logfndata = NULL;
     }
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_context_free_graph_internal(
-    LWMsgContext* context,
-    LWMsgTypeIter* iter,
-    unsigned char* object)
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    freeinfo info;
-
-    info.free = lwmsg_context_get_free(context);
-    info.data = lwmsg_context_get_memdata(context);
-    info.context = context;
-
-    BAIL_ON_ERROR(status = lwmsg_type_visit_graph(
-                      iter,
-                      object,
-                      lwmsg_context_free_graph_visit,
-                      &info));
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_context_free_graph(
-    LWMsgContext* context,
-    LWMsgTypeSpec* type,
-    void* root)
-{
-    LWMsgTypeIter iter;
-
-    lwmsg_type_iterate_promoted(type, &iter);
-
-    return lwmsg_context_free_graph_internal(context, &iter, (unsigned char*) &root);
+    else if (context->logfn)
+    {
+        *logfn = context->logfn;
+        *logfndata = context->logfndata;
+    }
+    else
+    {
+        lwmsg_context_get_log_function(context->parent, logfn, logfndata);
+    }
 }
 
 LWMsgStatus
 lwmsg_context_get_data(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     const char* key,
     void** out_data
     )
@@ -366,4 +295,171 @@ lwmsg_context_get_data(
 error:
 
     return status;
+}
+
+void
+lwmsg_context_log(
+    const LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        logfn(level, message, filename, line, logfndata);
+    }
+}
+
+void
+lwmsg_context_log_printf(
+    const LWMsgContext* context,
+    LWMsgLogLevel level,
+    const char* filename,
+    unsigned int line,
+    const char* format,
+    ...
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+    char* message = NULL;
+    va_list ap;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        va_start(ap, format);
+        message = lwmsg_formatv(format, ap);
+        va_end(ap);
+
+        if (message)
+        {
+            logfn(level, message, filename, line, logfndata);
+            free(message);
+        }
+    }
+}
+
+LWMsgStatus
+lwmsg_context_alloc(
+    const LWMsgContext* context,
+    size_t size,
+    void** object
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAllocFunction fn_alloc = NULL;
+    LWMsgReallocFunction fn_realloc = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, &fn_alloc, NULL, &fn_realloc, &data);
+
+    if (fn_alloc)
+    {
+        BAIL_ON_ERROR(status = fn_alloc(size, object, data));
+    }
+    else if (fn_realloc)
+    {
+        BAIL_ON_ERROR(status = fn_realloc(NULL, 0, size, object, data));
+    }
+    else
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *object = NULL;
+
+    goto cleanup;
+}
+
+void
+lwmsg_context_free(
+    const LWMsgContext* context,
+    void* object
+    )
+{
+    LWMsgFreeFunction fn_free = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, NULL, &fn_free, NULL, &data);
+
+    fn_free(object, data);
+}
+
+LWMsgStatus
+lwmsg_context_realloc(
+    const LWMsgContext* context,
+    void* old_object,
+    size_t old_size,
+    size_t new_size,
+    void** new_object
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgAllocFunction fn_alloc = NULL;
+    LWMsgFreeFunction fn_free = NULL;
+    LWMsgReallocFunction fn_realloc = NULL;
+    void* data = NULL;
+
+    lwmsg_context_get_memory_functions(context, &fn_alloc, &fn_free, &fn_realloc, &data);
+
+    if (fn_realloc)
+    {
+        BAIL_ON_ERROR(status = fn_realloc(old_object, old_size, new_size, new_object, data));
+    }
+    else if (fn_alloc && fn_free)
+    {
+        BAIL_ON_ERROR(status = fn_alloc(new_size, new_object, data));
+        memcpy(*new_object, old_object, new_size < old_size ? new_size : old_size);
+        fn_free(old_object, data);
+    }
+    else
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
+    }
+
+cleanup:
+
+    return status;
+
+error:
+
+    *new_object = NULL;
+
+    goto cleanup;
+}
+
+LWMsgBool
+lwmsg_context_would_log(
+    const LWMsgContext* context,
+    LWMsgLogLevel level
+    )
+{
+    LWMsgLogFunction logfn = NULL;
+    void* logfndata = NULL;
+
+    lwmsg_context_get_log_function(context, &logfn, &logfndata);
+
+    if (logfn)
+    {
+        return logfn(level, NULL, NULL, 0, logfndata);
+    }
+    else
+    {
+        return LWMSG_FALSE;
+    }
 }

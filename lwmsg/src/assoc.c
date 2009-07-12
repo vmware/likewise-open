@@ -38,6 +38,7 @@
  */
 #include <config.h>
 #include <string.h>
+#include <lwmsg/data.h>
 #include "assoc-private.h"
 #include "util-private.h"
 #include "protocol-private.h"
@@ -64,13 +65,14 @@
                     goto retry;                                         \
                 }                                                       \
             case LWMSG_ASSOC_ACTION_RESET_AND_RETRY:                    \
-                BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));       \
                 if (retries > MAX_RETRIES)                              \
                 {                                                       \
                     BAIL_ON_ERROR(status = __s__);                      \
                 }                                                       \
                 else                                                    \
                 {                                                       \
+                    BAIL_ON_ERROR(status = lwmsg_assoc_reset(__a__));   \
+                    BAIL_ON_ERROR(status = lwmsg_assoc_establish(__a__)); \
                     retries++;                                          \
                     goto retry;                                         \
                 }                                                       \
@@ -227,6 +229,7 @@ lwmsg_assoc_context_get_data(
 
 LWMsgStatus
 lwmsg_assoc_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssocClass* aclass,
     LWMsgAssoc** out_assoc
@@ -244,7 +247,7 @@ lwmsg_assoc_new(
     assoc->prot = prot;
     assoc->aclass = aclass;
 
-    lwmsg_context_setup(&assoc->context, &prot->context);
+    lwmsg_context_setup(&assoc->context, context);
 
     lwmsg_context_set_data_function(&assoc->context, lwmsg_assoc_context_get_data, assoc);
 
@@ -375,13 +378,13 @@ error:
 LWMsgStatus
 lwmsg_assoc_recv_message_transact(
     LWMsgAssoc* assoc,
-    LWMsgDispatchFunction dispatch,
+    LWMsgAssocDispatchFunction dispatch,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMessage recv_message = {-1, NULL};
-    LWMsgMessage send_message = {-1, NULL};
+    LWMsgMessage recv_message = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage send_message = LWMSG_MESSAGE_INITIALIZER;
     int retries = 0;
 
 retry:
@@ -392,31 +395,53 @@ retry:
 
 error:
     
-    if (recv_message.tag != -1 && recv_message.object)
+    if (recv_message.tag != -1 && recv_message.data)
     {
-        lwmsg_assoc_free_message(assoc, &recv_message);
+        lwmsg_assoc_destroy_message(assoc, &recv_message);
     }
 
-    if (send_message.tag != -1 && send_message.object)
+    if (send_message.tag != -1 && send_message.data)
     {
-        lwmsg_assoc_free_message(assoc, &send_message);
+        lwmsg_assoc_destroy_message(assoc, &send_message);
     }
 
     return status;
 }
 
+LWMsgStatus
+lwmsg_assoc_send(
+    LWMsgAssoc* assoc,
+    LWMsgTag type,
+    void* object
+    );
+
+LWMsgStatus
+lwmsg_assoc_recv(
+    LWMsgAssoc* assoc,
+    LWMsgTag* out_type,
+    void** out_object
+    );
+
+LWMsgStatus
+lwmsg_assoc_send_transact(
+    LWMsgAssoc* assoc,
+    LWMsgTag in_type,
+    void* in_object,
+    LWMsgTag* out_type,
+    void** out_object
+    );
 
 LWMsgStatus
 lwmsg_assoc_send(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag type,
+    LWMsgTag type,
     void* object
     )
 {
     LWMsgMessage message;
 
     message.tag = type;
-    message.object = object;
+    message.data = object;
 
     return lwmsg_assoc_send_message(assoc, &message);
 }
@@ -424,7 +449,7 @@ lwmsg_assoc_send(
 LWMsgStatus
 lwmsg_assoc_recv(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag* out_type,
+    LWMsgTag* out_type,
     void** out_object
     )
 {
@@ -434,7 +459,7 @@ lwmsg_assoc_recv(
     BAIL_ON_ERROR(status = lwmsg_assoc_recv_message(assoc, &message));
 
     *out_type = message.tag;
-    *out_object = message.object;
+    *out_object = message.data;
 
 error:
 
@@ -445,9 +470,9 @@ error:
 LWMsgStatus
 lwmsg_assoc_send_transact(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag in_type,
+    LWMsgTag in_type,
     void* in_object,
-    LWMsgMessageTag* out_type,
+    LWMsgTag* out_type,
     void** out_object
     )
 {
@@ -456,12 +481,12 @@ lwmsg_assoc_send_transact(
     LWMsgMessage out_message;
 
     in_message.tag = in_type;
-    in_message.object = in_object;
+    in_message.data = in_object;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_send_message_transact(assoc, &in_message, &out_message));
 
     *out_type = out_message.tag;
-    *out_object = out_message.object;
+    *out_object = out_message.data;
 
 error:
 
@@ -505,6 +530,15 @@ error:
 }
 
 LWMsgStatus
+lwmsg_assoc_get_session(
+    LWMsgAssoc* assoc,
+    LWMsgSession** session
+    )
+{
+    return assoc->aclass->get_session(assoc, session);
+}
+
+LWMsgStatus
 lwmsg_assoc_close(
     LWMsgAssoc* assoc
     )
@@ -533,37 +567,68 @@ error:
 }
 
 LWMsgStatus
-lwmsg_assoc_free_message(
+lwmsg_assoc_destroy_message(
     LWMsgAssoc* assoc,
     LWMsgMessage* message
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeSpec* type = NULL;
+    LWMsgDataContext* context = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
-    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, message->object));
+    if (message->tag != -1)
+    {
+        BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
+
+        if (type != NULL)
+        {
+            BAIL_ON_ERROR(status = lwmsg_data_context_new(&assoc->context, &context));
+            BAIL_ON_ERROR(status = lwmsg_data_free_graph(context, type, message->data));
+        }
+
+        message->tag = -1;
+        message->data = NULL;
+    }
 
 error:
 
+    if (context)
+    {
+        lwmsg_data_context_delete(context);
+    }
+
     return status;
 }
+
+LWMsgStatus
+lwmsg_assoc_free_graph(
+    LWMsgAssoc* assoc,
+    LWMsgTag mtype,
+    void* object
+    );
 
 
 LWMsgStatus
 lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag mtype,
+    LWMsgTag mtype,
     void* object
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeSpec* type = NULL;
+    LWMsgDataContext* context = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type)); 
-    BAIL_ON_ERROR(status = lwmsg_context_free_graph(&assoc->context, type, object));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, mtype, &type));
+    BAIL_ON_ERROR(status = lwmsg_data_context_new(&assoc->context, &context));
+    BAIL_ON_ERROR(status = lwmsg_data_free_graph(context, type, object));
 
 error:
+
+    if (context)
+    {
+        lwmsg_data_context_delete(context);
+    }
 
     return status;
 }
@@ -647,32 +712,6 @@ error:
 }
 
 LWMsgStatus
-lwmsg_assoc_set_session_data(
-    LWMsgAssoc* assoc,
-    void* data,
-    LWMsgSessionDataCleanupFunction cleanup
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgSessionManager* manager = NULL;
-    LWMsgSession* session = NULL;
-
-    /* In order to set the session data, we first need a session */
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
-
-    BAIL_ON_ERROR(status = lwmsg_session_manager_set_session_data(
-                      manager,
-                      session,
-                      data,
-                      cleanup));
-
-error:
-
-    return status;
-}
-
-LWMsgStatus
 lwmsg_assoc_get_session_data(
     LWMsgAssoc* assoc,
     void** data
@@ -713,6 +752,105 @@ lwmsg_assoc_establish(
     LWMsgAssoc* assoc
     )
 {
-    return assoc->aclass->establish(assoc);
+    return assoc->aclass->establish(
+        assoc,
+        assoc->construct,
+        assoc->destruct,
+        assoc->construct_data);
 }
 
+LWMsgStatus
+lwmsg_assoc_finish(
+    LWMsgAssoc* assoc
+    )
+{
+    return assoc->aclass->finish(assoc);
+}
+
+LWMsgStatus
+lwmsg_assoc_set_nonblock(
+    LWMsgAssoc* assoc,
+    LWMsgBool nonblock
+    )
+{
+    return assoc->aclass->set_nonblock(assoc, nonblock);
+}
+
+LWMsgStatus
+lwmsg_assoc_set_session_functions(
+    LWMsgAssoc* assoc,
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    assoc->construct = construct;
+    assoc->destruct = destruct;
+    assoc->construct_data = data;
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_assoc_print_message_alloc(
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message,
+    char** result
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgDataContext* context = NULL;
+    LWMsgTypeSpec* type = NULL;
+    char* payload_result = NULL;
+    char* my_result = NULL;
+    const char* tag_name = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_data_context_new(&assoc->context, &context));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_name(assoc->prot, message->tag, &tag_name));
+    BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(assoc->prot, message->tag, &type));
+
+    if (type)
+    {
+        BAIL_ON_ERROR(status = lwmsg_data_print_graph_alloc(context, type, message->data, &payload_result));
+
+        my_result = lwmsg_format("%s: %s", tag_name, payload_result);
+    }
+    else
+    {
+        my_result = lwmsg_format("%s: <null>", tag_name);
+    }
+
+    if (!my_result)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    *result = my_result;
+
+cleanup:
+
+    if (context)
+    {
+        lwmsg_data_context_delete(context);
+    }
+
+    if (payload_result)
+    {
+        lwmsg_context_free(&assoc->context, payload_result);
+    }
+
+    return status;
+
+error:
+
+    *result = NULL;
+
+    if (my_result)
+    {
+        lwmsg_context_free(&assoc->context, my_result);
+    }
+
+    goto cleanup;
+}

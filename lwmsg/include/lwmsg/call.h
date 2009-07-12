@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,35 +26,66 @@
 /*
  * Module Name:
  *
- *        client-private.h
+ *        call.h
  *
  * Abstract:
  *
- *        Multi-threaded client API (private header)
+ *        Call handle interface
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include <lwmsg/client.h>
-#include <lwmsg/protocol.h>
-#include <pthread.h>
 
-#include "context-private.h"
+#ifndef __LWMSG_CALL_H__
+#define __LWMSG_CALL_H__
 
-struct LWMsgClient
-{
-    LWMsgConnectionMode mode;
-    char* endpoint;
-    LWMsgProtocol* protocol;
-    LWMsgSessionManager* manager;
-    LWMsgAssoc** assoc_pool;
-    size_t volatile assoc_pool_capacity;
-    size_t volatile assoc_pool_created;
-    size_t volatile assoc_pool_available;
+#include <lwmsg/message.h>
+#include <lwmsg/status.h>
+#include <lwmsg/context.h>
 
-    pthread_mutex_t lock;
-    pthread_cond_t event;
+typedef struct LWMsgCall LWMsgCall;
 
-    const LWMsgContext* context;
-    LWMsgErrorContext error;
-};
+typedef void
+(*LWMsgCompleteFunction) (
+    LWMsgCall* call,
+    LWMsgStatus status,
+    void* data
+    );
+
+typedef void
+(*LWMsgCancelFunction) (
+    LWMsgCall* call,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_call_transact(
+    LWMsgCall* call,
+    LWMsgCompleteFunction complete,
+    void* data
+    );
+
+void
+lwmsg_call_pend(
+    LWMsgCall* call,
+    LWMsgCancelFunction cancel,
+    void* data
+    );
+
+void
+lwmsg_call_complete(
+    LWMsgCall* call,
+    LWMsgStatus status
+    );
+
+void
+lwmsg_call_cancel(
+    LWMsgCall* call
+    );
+
+void
+lwmsg_call_release(
+    LWMsgCall* call
+    );
+
+#endif

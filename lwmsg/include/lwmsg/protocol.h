@@ -110,6 +110,8 @@ typedef struct LWMsgProtocolSpec
 {
     unsigned int tag;
     LWMsgTypeSpec* type;
+    const char* tag_name;
+
 }
 #endif
 const LWMsgProtocolSpec;
@@ -134,6 +136,13 @@ lwmsg_protocol_get_message_type(
     LWMsgProtocol* prot,
     unsigned int tag,
     LWMsgTypeSpec** out_type
+    );
+
+LWMsgStatus
+lwmsg_protocol_get_message_name(
+    LWMsgProtocol* prot,
+    unsigned int tag,
+    const char** name
     );
 
 /**
@@ -205,73 +214,6 @@ lwmsg_protocol_get_error_message(
     LWMsgProtocol* prot,
     LWMsgStatus status
     );
-/**
- * @brief Marshal a protocol message
- * 
- * Marshals a message of the given tag and payload object into the specified
- * marshalling buffer.
- *
- * @param prot the protocol object
- * @param tag the message tag
- * @param object the message paylaod
- * @param buffer the marshalling buffer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, the specified message tag is unknown}
- * @lwmsg_code{MALFORMED, the message payload was malformed in some way}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_protocol_marshal(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    void* object,
-    LWMsgBuffer* buffer
-    );
-
-/**
- * @brief Unmarshal a protocol message
- * 
- * Unmarshals a message of the given tag from a marshalling buffer.
- *
- * @param prot the protocol object
- * @param tag the message tag
- * @param buffer the marshalling buffer
- * @param out_object the unmarshalled message payload
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, the specified message tag is unknown}
- * @lwmsg_code{MALFORMED, the message was malformed in some way}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_protocol_unmarshal(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    LWMsgBuffer* buffer,
-    void** out_object
-    );
-
-/**
- * @brief Free a message object graph
- *
- * Frees an object graph for the specified message tag
- *
- * @param prot the protocol object
- * @param tag the message tag
- * @param root the root of the object graph
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, the specified message tag is unknown}
- * @lwmsg_etc{an error returned by the memory manager}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_protocol_free_graph(
-    LWMsgProtocol* prot,
-    unsigned int tag,
-    void* root
-    );
 
 /**
  * @ingroup protocol
@@ -287,7 +229,7 @@ lwmsg_protocol_free_graph(
  * @hideinitializer
  */
 #define LWMSG_MESSAGE(tag, spec) \
-    { (tag), (spec) }
+    { (tag), (spec), #tag }
 
 /**
  * @ingroup protocol

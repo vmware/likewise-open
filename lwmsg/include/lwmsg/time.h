@@ -41,12 +41,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <lwmsg/status.h>
+#include <lwmsg/common.h>
 
 typedef struct LWMsgTime
 {
     ssize_t seconds;
     ssize_t microseconds;
 } LWMsgTime;
+
+typedef struct LWMsgClock
+{
+    LWMsgTime last_time;
+    LWMsgTime adjust;
+} LWMsgClock;
 
 typedef enum LWMsgTimeComparison
 {
@@ -82,6 +89,28 @@ lwmsg_time_compare(
 
 void
 lwmsg_time_normalize(
+    LWMsgTime* time
+    );
+
+LWMsgBool
+lwmsg_time_is_positive(
+    LWMsgTime* time
+    );
+
+void
+lwmsg_clock_init(
+    LWMsgClock* clock
+    );
+
+LWMsgStatus
+lwmsg_clock_get_wall_time(
+    LWMsgClock* clock,
+    LWMsgTime* time
+    );
+
+LWMsgStatus
+lwmsg_clock_get_monotonic_time(
+    LWMsgClock* clock,
     LWMsgTime* time
     );
 

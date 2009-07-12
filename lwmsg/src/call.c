@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,26 +26,61 @@
 /*
  * Module Name:
  *
- *        marshal-private.h
+ *        call.c
  *
  * Abstract:
  *
- *        Marshalling API (private header)
+ *        Call handle API
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#ifndef __LWMSG_MARSHAL_PRIVATE_H__
-#define __LWMSG_MARSHAL_PRIVATE_H__
 
-#include <lwmsg/marshal.h>
-#include "type-private.h"
+#include <config.h>
+#include "call-private.h"
+#include "util-private.h"
 
-typedef struct LWMsgMarshalState
+LWMsgStatus
+lwmsg_call_transact(
+    LWMsgCall* call,
+    LWMsgCompleteFunction complete,
+    void* data
+    )
 {
-    unsigned char* dominating_object;
-} LWMsgMarshalState;
+    return call->vtbl->transact(call, complete, data);
+}
 
-#define MAX_INTEGER_SIZE (16)
+void
+lwmsg_call_pend(
+    LWMsgCall* call,
+    LWMsgCancelFunction cancel,
+    void* data
+    )
+{
+    call->vtbl->pend(call, cancel, data);
+}
 
-#endif
+void
+lwmsg_call_complete(
+    LWMsgCall* call,
+    LWMsgStatus status
+    )
+{
+    call->vtbl->complete(call, status);
+}
+
+void
+lwmsg_call_cancel(
+    LWMsgCall* call
+    )
+{
+    call->vtbl->cancel(call);
+}
+
+void
+lwmsg_call_release(
+    LWMsgCall* call
+    )
+{
+    call->vtbl->release(call);
+}

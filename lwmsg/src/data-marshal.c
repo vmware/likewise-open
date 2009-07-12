@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -26,7 +26,7 @@
 /*
  * Module Name:
  *
- *        marshal.c
+ *        data-marshal.c
  *
  * Abstract:
  *
@@ -35,7 +35,7 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
-#include "marshal-private.h"
+#include "data-private.h"
 #include "util-private.h"
 #include "type-private.h"
 #include "convert.h"
@@ -44,8 +44,8 @@
 #include <string.h>
 
 static LWMsgStatus
-lwmsg_marshal_internal(
-    LWMsgContext* context,
+lwmsg_data_marshal_internal(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -73,8 +73,8 @@ lwmsg_object_is_zero(LWMsgMarshalState* state, LWMsgTypeIter* iter, unsigned cha
 }
 
 static LWMsgStatus
-lwmsg_marshal_indirect_prologue(
-    LWMsgContext* context,
+lwmsg_data_marshal_indirect_prologue(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -96,7 +96,7 @@ lwmsg_marshal_indirect_prologue(
         break;
     case LWMSG_TERM_MEMBER:
         /* Extract the length out of the field of the actual structure */
-        BAIL_ON_ERROR(status = lwmsg_type_extract_length(
+        BAIL_ON_ERROR(status = lwmsg_data_extract_length(
                           iter,
                           state->dominating_object,
                           count));
@@ -130,7 +130,7 @@ lwmsg_marshal_indirect_prologue(
                           LWMSG_NATIVE_ENDIAN,
                           implicit_length,
                           4,
-                          LWMSG_BIG_ENDIAN,
+                          context->byte_order,
                           LWMSG_UNSIGNED));
 
         BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, implicit_length, 4));
@@ -143,8 +143,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_indirect(
-    LWMsgContext* context,
+lwmsg_data_marshal_indirect(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -156,7 +156,7 @@ lwmsg_marshal_indirect(
     unsigned char* element = NULL;
     LWMsgTypeIter inner_iter;
 
-    BAIL_ON_ERROR(status = lwmsg_marshal_indirect_prologue(
+    BAIL_ON_ERROR(status = lwmsg_data_marshal_indirect_prologue(
                       context,
                       state,
                       iter,
@@ -164,7 +164,7 @@ lwmsg_marshal_indirect(
                       buffer,
                       &inner_iter,
                       &count));
-    
+
     if (inner_iter.kind == LWMSG_KIND_INTEGER &&
         inner_iter.info.kind_integer.width == 1 &&
         inner_iter.size == 1)
@@ -173,8 +173,8 @@ lwmsg_marshal_indirect(
            packed and unpacked, we can write the entire array directly into
            the output.  This is important for character strings */
         BAIL_ON_ERROR(status = lwmsg_buffer_write(
-                          buffer, 
-                          object, 
+                          buffer,
+                          object,
                           count));
     }
     else if (count)
@@ -184,11 +184,11 @@ lwmsg_marshal_indirect(
 
         for (i = 0; i < count; i++)
         {
-            BAIL_ON_ERROR(status = lwmsg_marshal_internal(
+            BAIL_ON_ERROR(status = lwmsg_data_marshal_internal(
                               context,
                               state,
-                              &inner_iter, 
-                              element, 
+                              &inner_iter,
+                              element,
                               buffer));
             element += inner_iter.size;
         }
@@ -200,8 +200,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_integer(
-    LWMsgContext* context, 
+lwmsg_data_marshal_integer(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -219,8 +219,8 @@ lwmsg_marshal_integer(
     /* If a valid range is defined, check value against it */
     if (iter->attrs.range_low < iter->attrs.range_high)
     {
-        BAIL_ON_ERROR(status = lwmsg_type_verify_range(
-                          context,
+        BAIL_ON_ERROR(status = lwmsg_data_verify_range(
+                          &context->error,
                           iter,
                           object,
                           in_size));
@@ -231,9 +231,9 @@ lwmsg_marshal_integer(
                                                  LWMSG_NATIVE_ENDIAN,
                                                  out,
                                                  out_size,
-                                                 LWMSG_BIG_ENDIAN,
+                                                 context->byte_order,
                                                  iter->info.kind_integer.sign));
-    
+
     BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, out, out_size));
 
 
@@ -243,8 +243,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_custom(
-    LWMsgContext* context, 
+lwmsg_data_marshal_custom(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -266,8 +266,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_struct_member(
-    LWMsgContext* context, 
+lwmsg_data_marshal_struct_member(
+    LWMsgDataContext* context,
     LWMsgTypeIter* struct_iter,
     LWMsgTypeIter* member_iter,
     unsigned char* object,
@@ -275,11 +275,11 @@ lwmsg_marshal_struct_member(
 {
     LWMsgMarshalState my_state;
     unsigned char* member_object = object + member_iter->offset;
-    
+
     my_state.dominating_object = object;
 
-    return lwmsg_marshal_internal(
-        context, 
+    return lwmsg_data_marshal_internal(
+        context,
         &my_state,
         member_iter,
         member_object,
@@ -287,7 +287,7 @@ lwmsg_marshal_struct_member(
 }
 
 static LWMsgStatus
-lwmsg_marshal_struct(LWMsgContext* context, LWMsgTypeIter* iter, unsigned char* object, LWMsgBuffer* buffer)
+lwmsg_data_marshal_struct(LWMsgDataContext* context, LWMsgTypeIter* iter, unsigned char* object, LWMsgBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeIter member;
@@ -298,7 +298,7 @@ lwmsg_marshal_struct(LWMsgContext* context, LWMsgTypeIter* iter, unsigned char* 
          lwmsg_type_valid(&member);
          lwmsg_type_next(&member))
     {
-        BAIL_ON_ERROR(status = lwmsg_marshal_struct_member(
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_struct_member(
                           context,
                           iter,
                           &member,
@@ -312,19 +312,19 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_union(LWMsgContext* context, LWMsgMarshalState* state, LWMsgTypeIter* iter, unsigned char* object, LWMsgBuffer* buffer)
+lwmsg_data_marshal_union(LWMsgDataContext* context, LWMsgMarshalState* state, LWMsgTypeIter* iter, unsigned char* object, LWMsgBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgTypeIter arm;
 
     /* Find the active arm */
-    BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
+    BAIL_ON_ERROR(status = lwmsg_data_extract_active_arm(
                       iter,
                       state->dominating_object,
                       &arm));
 
     /* Simply marshal the active arm */
-    BAIL_ON_ERROR(status = lwmsg_marshal_internal(
+    BAIL_ON_ERROR(status = lwmsg_data_marshal_internal(
                       context,
                       state,
                       &arm,
@@ -337,8 +337,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_pointer(
-    LWMsgContext* context,
+lwmsg_data_marshal_pointer(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -365,7 +365,7 @@ lwmsg_marshal_pointer(
     if (ptr_flag)
     {
         /* Pointer is present, so also write pointee */
-        BAIL_ON_ERROR(status = lwmsg_marshal_indirect(
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_indirect(
                           context,
                           state,
                           iter,
@@ -379,8 +379,8 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_marshal_internal(
-    LWMsgContext* context,
+lwmsg_data_marshal_internal(
+    LWMsgDataContext* context,
     LWMsgMarshalState* state,
     LWMsgTypeIter* iter,
     unsigned char* object,
@@ -399,22 +399,22 @@ lwmsg_marshal_internal(
         /* Nothing to marshal */
         break;
     case LWMSG_KIND_INTEGER:
-        BAIL_ON_ERROR(status = lwmsg_marshal_integer(context, state, iter, object, buffer));
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_integer(context, state, iter, object, buffer));
         break;
     case LWMSG_KIND_CUSTOM:
-        BAIL_ON_ERROR(status = lwmsg_marshal_custom(context, state, iter, object, buffer));
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_custom(context, state, iter, object, buffer));
         break;
     case LWMSG_KIND_STRUCT:
-        BAIL_ON_ERROR(status = lwmsg_marshal_struct(context, iter, object, buffer));
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_struct(context, iter, object, buffer));
         break;
     case LWMSG_KIND_UNION:
-        BAIL_ON_ERROR(status = lwmsg_marshal_union(context, state, iter, object, buffer));
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_union(context, state, iter, object, buffer));
         break;
     case LWMSG_KIND_POINTER:
-        BAIL_ON_ERROR(status = lwmsg_marshal_pointer(context, state, iter, object, buffer));
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_pointer(context, state, iter, object, buffer));
         break;
     case LWMSG_KIND_ARRAY:
-        BAIL_ON_ERROR(status = lwmsg_marshal_indirect(
+        BAIL_ON_ERROR(status = lwmsg_data_marshal_indirect(
                           context,
                           state,
                           iter,
@@ -432,7 +432,7 @@ error:
 }
 
 LWMsgStatus
-lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuffer* buffer)
+lwmsg_data_marshal(LWMsgDataContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgMarshalState state = {NULL};
@@ -440,7 +440,7 @@ lwmsg_marshal(LWMsgContext* context, LWMsgTypeSpec* type, void* object, LWMsgBuf
 
     lwmsg_type_iterate_promoted(type, &iter);
 
-    BAIL_ON_ERROR(status = lwmsg_marshal_internal(context, &state, &iter, (unsigned char*) &object, buffer));
+    BAIL_ON_ERROR(status = lwmsg_data_marshal_internal(context, &state, &iter, (unsigned char*) &object, buffer));
 
     if (buffer->wrap)
     {
@@ -453,8 +453,8 @@ error:
 }
 
 LWMsgStatus
-lwmsg_marshal_simple(
-    LWMsgContext* context,
+lwmsg_data_marshal_flat(
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     void* buffer,
@@ -468,31 +468,24 @@ lwmsg_marshal_simple(
     mbuf.cursor = buffer;
     mbuf.wrap = NULL;
 
-    return lwmsg_marshal(context, type, object, &mbuf);
+    return lwmsg_data_marshal(context, type, object, &mbuf);
 }
-
-typedef struct
-{
-    LWMsgReallocFunction realloc;
-    LWMsgFreeFunction free;
-    void* data;
-} AllocInfo;
 
 static
 LWMsgStatus
-lwmsg_marshal_alloc_wrap(
+lwmsg_data_marshal_alloc_wrap(
     LWMsgBuffer* buffer,
     size_t needed
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    AllocInfo* info = buffer->data;
+    LWMsgDataContext* context = buffer->data;
     size_t oldlen = buffer->end - buffer->base;
     size_t newlen = oldlen == 0 ? 256 : oldlen * 2;
     void* newmem = NULL;
     size_t offset = 0;
 
-    BAIL_ON_ERROR(status = info->realloc(buffer->base, oldlen, newlen, &newmem, info->data));
+    BAIL_ON_ERROR(status = lwmsg_context_realloc(context->context, buffer->base, oldlen, newlen, &newmem));
 
     offset = buffer->cursor - buffer->base;
     buffer->base = newmem;
@@ -505,8 +498,8 @@ error:
 }
 
 LWMsgStatus
-lwmsg_marshal_alloc(
-    LWMsgContext* context,
+lwmsg_data_marshal_flat_alloc(
+    LWMsgDataContext* context,
     LWMsgTypeSpec* type,
     void* object,
     void** buffer,
@@ -514,20 +507,15 @@ lwmsg_marshal_alloc(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    AllocInfo info;
-    LWMsgBuffer mbuf;
-
-    info.realloc = lwmsg_context_get_realloc(context);
-    info.free = lwmsg_context_get_free(context);
-    info.data = lwmsg_context_get_memdata(context);
+    LWMsgBuffer mbuf = {0};
 
     mbuf.base = NULL;
     mbuf.cursor = NULL;
     mbuf.end = NULL;
-    mbuf.wrap = lwmsg_marshal_alloc_wrap;
-    mbuf.data = &info;
+    mbuf.wrap = lwmsg_data_marshal_alloc_wrap;
+    mbuf.data = context;
 
-    BAIL_ON_ERROR(status = lwmsg_marshal(context, type, object, &mbuf));
+    BAIL_ON_ERROR(status = lwmsg_data_marshal(context, type, object, &mbuf));
 
     *buffer = mbuf.base;
     *length = (mbuf.cursor - mbuf.base);
@@ -540,7 +528,7 @@ error:
 
     if (mbuf.base)
     {
-        info.free(mbuf.base, info.data);
+        lwmsg_context_free(context->context, mbuf.base);
     }
 
     *buffer = NULL;
