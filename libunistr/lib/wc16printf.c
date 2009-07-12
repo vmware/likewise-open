@@ -992,17 +992,15 @@ error:
 }
 
 wchar16_t *
-asw16printfw(const wchar_t *format, ...)
+asw16printfwv(const wchar_t *format, va_list args)
 {
     int bFreeFormat = 0;
     wchar16_t *pwszFormat = NULL;
     wchar16_t *pwszOut = NULL;
     ssize_t sLen = 0;
-    va_list ap, ap2;
+    va_list args2;
 
-    va_start(ap, format);
-
-    va_copy(ap2, ap);
+    va_copy(args2, args);
 
     pwszFormat = awcstowc16s(
                         format,
@@ -1017,7 +1015,7 @@ asw16printfw(const wchar_t *format, ...)
                     NULL,
                     0,
                     pwszFormat,
-                    ap);
+                    args);
     if (sLen < 0)
     {
         goto error;
@@ -1029,7 +1027,7 @@ asw16printfw(const wchar_t *format, ...)
                     pwszOut,
                     sLen + 1,
                     pwszFormat,
-                    ap2);
+                    args2);
     if (sLen < 0)
     {
         goto error;
@@ -1040,8 +1038,7 @@ cleanup:
     {
         free(pwszFormat);
     }
-    va_end(ap);
-    va_end(ap2);
+    va_end(args2);
 
     return pwszOut;
 
@@ -1052,6 +1049,19 @@ error:
         pwszOut = NULL;
     }
     goto cleanup;
+}
+
+wchar16_t *
+asw16printfw(const wchar_t *format, ...)
+{
+    va_list ap;
+    wchar16_t *result = NULL;
+
+    va_start(ap, format);
+    result = asw16printfwv(format, ap);
+    va_end(ap);
+
+    return result;
 }
 
 typedef struct _FILE_PRINTF_BUFFER

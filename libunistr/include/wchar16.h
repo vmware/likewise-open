@@ -45,7 +45,7 @@ typedef wchar_t             wchar16_t;
 
 #endif /* WCHAR16_T_DEFINED */
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifdef LIBUNISTR_EXPORTS
 #define LIBUNISTR_API __declspec(dllexport)
 #else
