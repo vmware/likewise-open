@@ -53,7 +53,7 @@
 #include "db_p.h"
 
 DWORD
-LwpsInitializeProvider(
+LWPS_INITIALIZE_PROVIDER(sqldb)(
     PCSTR pszConfigFilePath,
     PSTR* ppszName,
     PLWPS_PROVIDER_FUNC_TABLE* ppFnTable
@@ -697,7 +697,7 @@ SqlDB_FreePassword(
 }
 
 DWORD
-LwpsShutdownProvider(
+LWPS_SHUTDOWN_PROVIDER(sqldb)(
     PSTR pszName,
     PLWPS_PROVIDER_FUNC_TABLE pFnTable
     )

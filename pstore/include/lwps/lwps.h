@@ -80,7 +80,8 @@
 #define LWPS_ERROR_INVALID_ACCOUNT           0x4016 // 16406
 #define LWPS_ERROR_INVALID_HANDLE            0x4017 // 16407
 #define LWPS_ERROR_DB_RECORD_NOT_FOUND       0x4018 // 16408
-#define LWPS_ERROR_SENTINEL                  0x4019 // 16409
+#define LWPS_ERROR_INVALID_MESSAGE           0x4019 // 16409
+#define LWPS_ERROR_SENTINEL                  0x401A // 16410
 
 #define LWPS_ERROR_MASK(_e_)             (_e_ & 0x4000)
 
@@ -103,7 +104,8 @@ typedef enum
     LWPS_PASSWORD_STORE_UNKNOWN = 0,
     LWPS_PASSWORD_STORE_DEFAULT,
     LWPS_PASSWORD_STORE_SQLDB,
-    LWPS_PASSWORD_STORE_TDB
+    LWPS_PASSWORD_STORE_TDB,
+    LWPS_PASSWORD_STORE_FILEDB
 } LwpsPasswordStoreType;
 
 DWORD
@@ -116,6 +118,12 @@ DWORD
 LwpsGetPasswordByHostName(
     HANDLE hStore,
     PCSTR  pszHostname,
+    PLWPS_PASSWORD_INFO* ppInfo
+    );
+
+DWORD
+LwpsGetPasswordByCurrentHostName(
+    HANDLE hStore,
     PLWPS_PASSWORD_INFO* ppInfo
     );
 
