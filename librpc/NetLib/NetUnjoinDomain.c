@@ -56,23 +56,23 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     wchar16_t *machine_name = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(machine, cleanup);
-    goto_if_invalid_param_winerr(domain, cleanup);
+    BAIL_ON_INVALID_PTR(machine);
+    BAIL_ON_INVALID_PTR(domain);
 
     machine_name = wc16sdup(machine);
-    goto_if_no_memory_ntstatus(machine_name, error);
+    BAIL_ON_NO_MEMORY(machine_name);
 
     err = NetGetHostInfo(&localname);
-    goto_if_winerr_not_success(err, error);
+    BAIL_ON_WINERR_ERROR(err);
 
     status = NetpGetDcName(domain, FALSE, &domain_controller_name);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = LwpsGetPasswordByHostName(hStore, localname, &pi);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* zero the machine password */
     memset((void*)pi->pwszMachinePassword, 0,
@@ -80,29 +80,29 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     pi->last_change_time = time(NULL);
 
     status = LwpsWritePasswordToAllStores(pi);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     /* disable the account only if requested */
     if (options & NETSETUP_ACCT_DELETE) {
         if (account && password)
         {
             status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
         else
         {
             status = LwIoGetThreadAccessToken(&access_token);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
         }
 
         status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = DisableWksAccount(conn, pi->pwszMachineAccount, &account_h);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = NetDisconnectSamr(conn);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:
@@ -161,24 +161,24 @@ NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
         wchar16_t host[MAXHOSTNAMELEN];
 
         err = NetGetHostInfo(&localname);
-        goto_if_winerr_not_success(err, error);
+        BAIL_ON_WINERR_ERROR(err);
 
         mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
 
         status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         status = LwpsGetPasswordByHostName(hStore, localname, &pi);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         domain = pi->pwszDnsDomainName;
         err = NetUnjoinDomainLocal(host, domain, account, password, options);
-        goto_if_winerr_not_success(err, error);
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     if (hStore != (HANDLE)NULL) {
        status = LwpsClosePasswordStore(hStore);
-       goto_if_ntstatus_not_success(status, error);
+       BAIL_ON_NTSTATUS_ERROR(status);
     }
 
 cleanup:

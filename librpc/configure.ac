@@ -1,6 +1,6 @@
-AC_INIT(Idl/samr.idl)
+AC_INIT(idl/samr.idl)
 AM_INIT_AUTOMAKE(librpc,0.1)
-AC_CONFIG_HEADER([Include/config.h])
+AC_CONFIG_HEADER([include/config.h])
 
 # Checks for programs.
 AC_PROG_CC
@@ -122,29 +122,13 @@ AC_ARG_WITH(
 	]
 )
 
-AC_ARG_WITH(
-	keytab-dir,
-	[  --with-secdesc-dir=<prefix>     look for secdesc headers/libraries in <prefix>],
-	[
-	    SECDESC_INCLUDES="-I$withval/include"
-	    SECDESC_LDFLAGS="-L$withval/lib"
-	]
-)
-
-AC_ARG_WITH(
-	secdesc-libdir,
-	[  --with-secdesc-libdir=<prefix>  look for keytab libraries in <libdir>],
-	[
-	    SECDESC_LDFLAGS="-L$withval"	]
-)
-
 # lwbase
 
 AC_ARG_WITH([lwbase],
         [AC_HELP_STRING([--with-lwbase=<dir>], [use lwbase located in prefix <dir>])],
         [
 		LWBASE_INCLUDES="-I$withval/include"
-        LWBASE_LDFLAGS="-L$withval/lib"
+		LWBASE_LDFLAGS="-L$withval/lib"
         ])
 
 AC_ARG_WITH([lwbase-includes],
@@ -160,12 +144,10 @@ AC_ARG_WITH([lwbase-libs],
         ])
 
 AC_CHECK_HEADER([lw/base.h],,[AC_MSG_ERROR([Could not find lwbase headers])])
-AC_CHECK_LIB([lwbase_nothr], [LwRtlMemoryAllocate], [LWBASE_NOTHR_LIBS="-llwbase_nothr"], [AC_MSG_ERROR([Could not find liblwbase_nothr])], [$LWBASE_LDFLAGS])
 AC_CHECK_LIB([lwbase], [LwInterlockedIncrement], [LWBASE_LIBS="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])], [$LWBASE_LDFLAGS])
 
 AC_SUBST(LWBASE_INCLUDES)
 AC_SUBST(LWBASE_LDFLAGS)
-AC_SUBST(LWBASE_NOTHR_LIBS)
 AC_SUBST(LWBASE_LIBS)
 
 AC_SUBST(DCERPC_INCLUDES)
@@ -181,8 +163,6 @@ AC_SUBST(LWNET_INCLUDES)
 AC_SUBST(LWNET_LDFLAGS)
 AC_SUBST(KEYTAB_INCLUDES)
 AC_SUBST(KEYTAB_LDFLAGS)
-AC_SUBST(SECDESC_INCLUDES)
-AC_SUBST(SECDESC_LDFLAGS)
 
 for i in $CPPFLAGS ${DCERPC_INCLUDES} ${UNISTR_INCLUDES}; do
     j=`echo $i | grep '^-I'`
@@ -219,11 +199,6 @@ AC_CHECK_LIB(dcerpc, rpc__init, [],
 
 CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
 LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \
-AC_CHECK_LIB(lwnetutils, LWNetFreeMemory, [],
-     AC_MSG_ERROR([Netlogon daemon utils library not found]))
-
-CPPFLAGS="$CPPFLAGS $LWNET_INCLUDES" \
-LDFLAGS="$LDFLAGS $LWNET_LDFLAGS" \
 AC_CHECK_LIB(lwnetclientapi, LWNetGetDCName, [],
      AC_MSG_ERROR([Netlogon daemon client library not found]))
 
@@ -234,7 +209,7 @@ AC_CHECK_LIB(tdb, tdb_fetch, [
 		[have_libtdb=false])
 AM_CONDITIONAL([HAVE_LIBTDB], [test x$have_libtdb = xtrue])
 
-AC_CHECK_LIB(lwioclient_nothr, LwIoInitialize, [], AC_MSG_ERROR([liblwioclient_nothr not found]))
+AC_CHECK_LIB(lwioclient, LwIoGetThreadAccessToken, [], AC_MSG_ERROR([liblwioclient not found]))
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -266,15 +241,15 @@ AC_SUBST(LIB_moonunit)
 AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 AC_OUTPUT(Makefile
-          Include/Makefile
+          include/Makefile
           Error/Makefile
-          Alloc/Makefile
+          alloc/Makefile
           MsRpc/Makefile
-          Samr/Makefile
-          Lsa/Makefile
-	  Krb5Pac/Makefile
+          samr/Makefile
+          lsa/Makefile
+          krb5pac/Makefile
           NetLib/Makefile
           Mpr/Makefile
-          Netlogon/Makefile
+          netlogon/Makefile
           dssetup/Makefile
-	  TestRpc/Makefile)
+          TestRpc/Makefile)

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,21 +28,16 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 
-#include <lwrpc/types.h>
-#include <lw/ntstatus.h>
-#include <wc16str.h>
-
-#include <lwrpc/mpr.h>
+#include "includes.h"
 
 
-int WNetAddConnection2(NETRESOURCE* netResource,
-                       const wchar16_t* password16,
-                       const wchar16_t* username16)
+WINERR
+WNetAddConnection2(
+    NETRESOURCE* netResource,
+    const wchar16_t* password16,
+    const wchar16_t* username16
+    )
 {
     /* ! ! ! FIXME-LSMB ! ! !
        Set lsmb impersonation context here

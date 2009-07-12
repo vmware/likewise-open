@@ -1,11 +1,10 @@
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/MsRpc
-idl_srcdir=$(top_srcdir)/Idl
+idl_srcdir=$(top_srcdir)/idl
 
-lib_LTLIBRARIES = libdssetup_cs.la libdssetup.la
+noinst_LTLIBRARIES = libdssetup_cs.la libdssetup.la
 
 libdssetup_la_SOURCES = \
-    globals.c \
     dsr_rolegetprimarydomaininfo.c \
     dsr_memory.c \
     dsr_stubmemory.c \
@@ -13,7 +12,7 @@ libdssetup_la_SOURCES = \
 
 libdssetup_cs_la_SOURCES = dssetup_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/Include
+LIBRPC_INCDIR = $(librpc_srcdir)/include
 LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
 INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
@@ -27,13 +26,12 @@ libdssetup_cs_la_CFLAGS = \
 libdssetup_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
 libdssetup_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
 libdssetup_la_LIBADD= \
-    -ldcerpc -lunistr -lsecdesc \
-    $(top_builddir)/MsRpc/libmsrpc.la \
+    -ldcerpc -lunistr -llwbase \
     libdssetup_cs.la
 
 CLEANFILES = dssetup_h.h dssetup_cstub.c dssetup_sstub.c
 
-BUILT_SOURCES = dssetup_cstub.c dssetup_h.h
+BUILT_SOURCES = dssetup_h.h
 
 dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(idl_srcdir) \

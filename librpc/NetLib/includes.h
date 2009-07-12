@@ -54,6 +54,8 @@
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <lw/ntstatus.h>
+#include <openssl/md5.h>
+#include <openssl/rc4.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/winerror.h>

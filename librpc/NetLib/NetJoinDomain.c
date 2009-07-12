@@ -115,18 +115,18 @@ NetGetAccountName(
     if ( wc16slen(machname) < 16 )
     {
         samacct = wc16sdup(machname);
-        goto_if_no_memory_winerr(samacct, error);
+        BAIL_ON_NO_MEMORY(samacct);
     }
 
     /* look for an existing account using the dns_host_name attribute */
     if ( !samacct )
     {
         machname_lc = wc16sdup(machname);
-        goto_if_no_memory_winerr(machname_lc, error);
+        BAIL_ON_NO_MEMORY(machname_lc);
         wc16slower(machname_lc);
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        goto_if_winerr_not_success(err, error);
+        BAIL_ON_WINERR_ERROR(err);
 
         err = MachDnsNameSearch(ld, machname_lc, base_dn, dns_domain_name, &samacct);
         if ( err == ERROR_SUCCESS )
@@ -153,7 +153,7 @@ NetGetAccountName(
         for (offset = 0 ; offset < 100 ; offset++)
         {
             hashstr = NetHashToWc16s(hash + offset);
-            goto_if_no_memory_winerr(hashstr, error);
+            BAIL_ON_NO_MEMORY(hashstr);
             hashstrlen = wc16slen(hashstr);
 
             wc16sncpy( newname, machname, 15 - hashstrlen);
@@ -167,14 +167,14 @@ NetGetAccountName(
                 err = ERROR_SUCCESS;
 
                 samacct = wc16sdup(newname);
-                goto_if_no_memory_winerr(samacct, error);
+                BAIL_ON_NO_MEMORY(samacct);
 
                 break;
             }
         }
         if (offset == 10)
         {
-            err = ERROR_DUPLICATE_NAME;
+            err = ERROR_DUP_NAME;
             goto error;
         }
     }
@@ -202,6 +202,7 @@ error:
 
     goto cleanup;
 }
+
 
 static
 NET_API_STATUS
@@ -266,59 +267,66 @@ NetJoinDomainLocalInternal(
     LW_PIO_ACCESS_TOKEN access_token = NULL;
 
     machname = wc16sdup(machine);
-    goto_if_no_memory_winerr(machname, error);
+    BAIL_ON_NO_MEMORY(machname);
     wc16supper(machname);
 
     status = NetpGetDcName(domain, is_retry, &domain_controller_name);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (account && password)
     {
         status = LwIoCreatePlainAccessTokenW(account, password, &access_token);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
     else
     {
         status = LwIoGetThreadAccessToken(&access_token);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = NetConnectLsa(&lsa_conn, domain_controller_name, lsa_access, access_token);
-    goto_if_ntstatus_not_success(status, close);
+    status = NetConnectLsa(&lsa_conn,
+                           domain_controller_name,
+                           lsa_access,
+                           access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     lsa_b = lsa_conn->lsa.bind;
 
     status = LsaQueryInfoPolicy2(lsa_b, &lsa_conn->lsa.policy_handle,
                                  LSA_POLICY_INFO_DNS, &lsa_policy_info);
-    goto_if_ntstatus_not_success(status, disconn_lsa);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     dns_domain_name = GetFromUnicodeStringEx(&lsa_policy_info->dns.dns_domain);
-    goto_if_no_memory_winerr(dns_domain_name, disconn_lsa);
+    BAIL_ON_NO_MEMORY(dns_domain_name);
 
     err = NetGetAccountName(
         machname,
         domain_controller_name,
         machine_dns_domain ? machine_dns_domain : dns_domain_name,
         &machacct_name);
-    goto_if_winerr_not_success(err, disconn_lsa);
+    BAIL_ON_WINERR_ERROR(err);
 
     /* If account_ou is specified pre-create disabled machine
        account object in given branch of directory. It will
        be reset afterwards by means of rpc calls */
     if (account_ou) {
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        goto_if_winerr_not_success(err, disconn_lsa);
+        BAIL_ON_WINERR_ERROR(err);
 
         err = MachAcctCreate(ld, machacct_name, account_ou,
                              (options & NETSETUP_DOMAIN_JOIN_IF_JOINED));
-        goto_if_winerr_not_success(err, disconn_lsa);
+        BAIL_ON_WINERR_ERROR(err);
 
         err = DirectoryDisconnect(ld);
-        goto_if_winerr_not_success(err, disconn_lsa);
+        BAIL_ON_WINERR_ERROR(err);
     }
 
-    status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, access_token);
-    goto_if_ntstatus_not_success(status, disconn_lsa);
+    status = NetConnectSamr(&conn,
+                            domain_controller_name,
+                            domain_access,
+                            0,
+                            access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b = conn->samr.bind;
 
@@ -327,7 +335,7 @@ NetJoinDomainLocalInternal(
     /* create account$ name */
     account_name_cch = wc16slen(machacct_name) + 2;
     account_name = (wchar16_t*) malloc(sizeof(wchar16_t) * account_name_cch);
-    goto_if_no_memory_winerr(account_name, disconn_samr);
+    BAIL_ON_NO_MEMORY(account_name);
 
     if (sw16printfw(
                 account_name,
@@ -336,7 +344,7 @@ NetJoinDomainLocalInternal(
                 machacct_name) < 0)
     {
         status = ErrnoToNtStatus(errno);
-        goto_if_ntstatus_not_success(status, disconn_samr);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     /* for start, let's assume the account already exists */
@@ -344,46 +352,43 @@ NetJoinDomainLocalInternal(
 
     status = NetOpenUser(conn, account_name, user_access, &account_handle, &rid);
     if (status == STATUS_NONE_MAPPED) {
-        if (!(options & NETSETUP_ACCT_CREATE)) goto disconn_samr;
+        if (!(options & NETSETUP_ACCT_CREATE)) goto error;
 
         status = CreateWksAccount(conn, machacct_name, &account_handle);
-        goto_if_ntstatus_not_success(status, disconn_samr);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         if (machine_pass[0] == '\0') {
-            status = STATUS_INTERNAL_ERROR;
-            goto_if_ntstatus_not_success(status, disconn_samr);
+            BAIL_ON_NTSTATUS_ERROR(STATUS_INTERNAL_ERROR);
         }
 
         newacct = true;
 
     } else if (status == STATUS_SUCCESS &&
                !(options & NETSETUP_DOMAIN_JOIN_IF_JOINED)) {
-        err = NERR_SetupAlreadyJoined;
-        goto disconn_samr;
+        BAIL_ON_WINERR_ERROR(NERR_SetupAlreadyJoined);
     }
     else
     {
-        goto_if_ntstatus_not_success(status, disconn_samr);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = ResetWksAccount(conn, machacct_name, &account_handle);
-    goto_if_ntstatus_not_success(status, disconn_samr);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SetMachinePassword(conn, &account_handle, newacct, machname,
                                 machine_pass);
-    goto_if_ntstatus_not_success(status, disconn_samr);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrClose(samr_b, &account_handle);
-    goto_if_ntstatus_not_success(status, disconn_samr);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
-
         close_status = DisableWksAccount(conn, machname, &account_handle);
-        goto_if_ntstatus_not_success(close_status, close);
+        BAIL_ON_NTSTATUS_ERROR(close_status);
 
-        goto disconn_samr;
+        err = NtStatusToWin32Error(status);
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     err = SaveMachinePassword(
@@ -397,9 +402,9 @@ NetJoinDomainLocalInternal(
               machine_pass);
     if (err != ERROR_SUCCESS) {
         close_status = DisableWksAccount(conn, machacct_name, &account_handle);
-        goto_if_ntstatus_not_success(close_status, close);
+        BAIL_ON_NTSTATUS_ERROR(close_status);
 
-        goto disconn_samr;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
     /* 
@@ -409,10 +414,10 @@ NetJoinDomainLocalInternal(
         osname || osver) {
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        goto_if_winerr_not_success(err, disconn_samr);
+        BAIL_ON_WINERR_ERROR(err);
 
         err = MachAcctSearch(ld, machacct_name, base_dn, &dn);
-        goto_if_winerr_not_success(err, disconn_samr);
+        BAIL_ON_WINERR_ERROR(err);
 
         /*
          * Set SPN and DnsHostName attributes unless this part is to be deferred
@@ -421,7 +426,7 @@ NetJoinDomainLocalInternal(
             wchar16_t *dnshostname;
 
             machname_lc = wc16sdup(machname);
-            goto_if_no_memory_winerr(machname_lc, disconn_samr);
+            BAIL_ON_NO_MEMORY(machname_lc);
             wc16slower(machname_lc);
 
             dns_attr_name   = ambstowc16s("dNSHostName");
@@ -436,7 +441,7 @@ NetJoinDomainLocalInternal(
             err = MachAcctSetAttribute(ld, dn,
                                        dns_attr_name,
                                        (const wchar16_t**)dns_attr_val, 0);
-            goto_if_winerr_not_success(err, disconn_samr);
+            BAIL_ON_WINERR_ERROR(err);
 
             spn_attr_name   = ambstowc16s("servicePrincipalName");
             spn_attr_val[0] = LdapAttrValSvcPrincipalName(dnshostname);
@@ -445,7 +450,7 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn, spn_attr_name,
                                        (const wchar16_t**)spn_attr_val, 0);
-            goto_if_winerr_not_success(err, disconn_samr);
+            BAIL_ON_WINERR_ERROR(err);
         }
 
         if ( wc16scmp(machname, machacct_name) )
@@ -460,7 +465,7 @@ NetJoinDomainLocalInternal(
                       desc_attr_name,
                       (const wchar16_t**)desc_attr_val,
                       0);
-            goto_if_winerr_not_success(err, disconn_samr);
+            BAIL_ON_WINERR_ERROR(err);
         }
 
         /*
@@ -482,7 +487,10 @@ NetJoinDomainLocalInternal(
                  */
                 err = ERROR_SUCCESS;
             }
-            goto_if_winerr_not_success(err, disconn_samr);
+            else
+            {
+                BAIL_ON_WINERR_ERROR(err);
+            }
 
             osver_attr_name = ambstowc16s("operatingSystemVersion");
             osver_attr_val[0] = wc16sdup(osver);
@@ -496,7 +504,10 @@ NetJoinDomainLocalInternal(
             {
                 err = ERROR_SUCCESS;
             }
-            goto_if_winerr_not_success(err, disconn_samr);
+            else
+            {
+                BAIL_ON_WINERR_ERROR(err);
+            }
 
             ospack_attr_name = ambstowc16s("operatingSystemServicePack");
             ospack_attr_val[0] = wc16sdup(ospack);
@@ -510,34 +521,43 @@ NetJoinDomainLocalInternal(
             {
                 err = ERROR_SUCCESS;
             }
-            goto_if_winerr_not_success(err, disconn_samr);
+            else
+            {
+                BAIL_ON_WINERR_ERROR(err);
+            }
         }
 
         err = DirectoryDisconnect(ld);
-        goto_if_winerr_not_success(err, disconn_samr);
+        BAIL_ON_WINERR_ERROR(err);
     }
-
-disconn_samr:
-
-    close_status = NetDisconnectSamr(conn);
-    if (status == STATUS_SUCCESS &&
-        close_status != STATUS_SUCCESS) {
-        return NtStatusToWin32Error(close_status);
-    }
-
-disconn_lsa:
-
-    close_status = NetDisconnectLsa(lsa_conn);
-    if (status == STATUS_SUCCESS &&
-        close_status != STATUS_SUCCESS) {
-        return NtStatusToWin32Error(close_status);
-    }
-
-close:
 
 cleanup:
-    if (lsa_policy_info) {
+    if (conn) {
+        close_status = NetDisconnectSamr(conn);
+        if (status == STATUS_SUCCESS &&
+            close_status != STATUS_SUCCESS)
+        {
+            status = close_status;
+        }
+    }
+
+    if (lsa_conn) {
+        close_status = NetDisconnectLsa(lsa_conn);
+        if (status == STATUS_SUCCESS &&
+            close_status != STATUS_SUCCESS)
+        {
+            status = close_status;
+        }
+    }
+
+    if (lsa_policy_info)
+    {
         LsaRpcFreeMemory((void*)lsa_policy_info);
+    }
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
     }
 
     RTL_FREE(&sid_str);
@@ -561,11 +581,6 @@ cleanup:
     SAFE_FREE(ospack_attr_val[0]);
     SAFE_FREE(domain_controller_name);
 
-    if (access_token)
-    {
-        LwIoDeleteAccessToken(access_token);
-    }
-
     if (err && !is_retry)
     {
         err = NetJoinDomainLocalInternal(machine, machine_dns_domain,
@@ -584,6 +599,7 @@ cleanup:
 error:
     goto cleanup;
 }
+
 
 NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
                                   const wchar16_t *machine_dns_domain,

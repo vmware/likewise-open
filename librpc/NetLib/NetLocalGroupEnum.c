@@ -72,17 +72,17 @@ NetLocalGroupEnum(
     UnicodeString *desc = NULL;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
-    goto_if_invalid_param_winerr(out_entries, cleanup);
-    goto_if_invalid_param_winerr(out_total, cleanup);
-    goto_if_invalid_param_winerr(out_resume, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(out_entries);
+    BAIL_ON_INVALID_PTR(out_total);
+    BAIL_ON_INVALID_PTR(out_resume);
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     samr_b         = conn->samr.bind;
     domain_h       = conn->samr.dom_handle;
@@ -94,13 +94,13 @@ NetLocalGroupEnum(
     if (prefmaxlen == MAX_PREFERRED_LENGTH) {
         status = SamrQueryDomainInfo(samr_b, &domain_h, dominfo_level,
                                      &dominfo);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         entries += dominfo->info2.num_aliases;
 
         status = SamrQueryDomainInfo(samr_b, &btin_domain_h,
                                      dominfo_level, &btin_dominfo);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         entries += dominfo->info2.num_aliases;
 
@@ -119,7 +119,7 @@ NetLocalGroupEnum(
     status = NetAllocateMemory((void**)&info,
                                sizeof(LOCALGROUP_INFO_1) * entries,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     info_idx = 0;
     res_idx  = *out_resume;
@@ -142,37 +142,37 @@ NetLocalGroupEnum(
             }
 
             grp_name = wc16sdup(names[i]);
-            goto_if_no_memory_ntstatus(grp_name, error);
+            BAIL_ON_NO_MEMORY(grp_name);
 
             info[info_idx].lgrpi1_name = grp_name;
             status = NetAddDepMemory(grp_name, info);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrOpenAlias(samr_b, &domain_h,
                                    alias_access, rids[i],
                                    &alias_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrQueryAliasInfo(samr_b, &alias_h,
                                         ALIAS_INFO_DESCRIPTION,
                                         &aliasinfo);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo->description.len > 0) {
                 desc = &aliasinfo->description;
                 grp_desc = wc16sndup(desc->string, desc->len/2);
-                goto_if_no_memory_ntstatus(grp_desc, error);
+                BAIL_ON_NO_MEMORY(grp_desc);
 
                 info[info_idx].lgrpi1_comment = grp_desc;
                 status = NetAddDepMemory(grp_desc, info);
-                goto_if_ntstatus_not_success(status, error);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
             } else {
                 info[info_idx].lgrpi1_comment = 0;
             }
 
             status = SamrClose(samr_b, &alias_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo) {
                 SamrFreeMemory((void*)aliasinfo);
@@ -203,7 +203,7 @@ NetLocalGroupEnum(
         status = SamrEnumDomainAliases(samr_b, &btin_domain_h,
                                        &res, account_flags, &names,
                                        &rids, &num_entries);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
         for (i = 0; i < num_entries; i++) {
             if (i + num_btin_aliases + num_dom_aliases < res_idx ||
@@ -212,37 +212,37 @@ NetLocalGroupEnum(
             }
 
             grp_name = wc16sdup(names[i]);
-            goto_if_no_memory_ntstatus(grp_name, error);
+            BAIL_ON_NO_MEMORY(grp_name);
 
             info[info_idx].lgrpi1_name = grp_name;
             status = NetAddDepMemory(grp_name, info);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrOpenAlias(samr_b, &btin_domain_h,
                                    alias_access, rids[i],
                                    &alias_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             status = SamrQueryAliasInfo(samr_b, &alias_h,
                                         ALIAS_INFO_DESCRIPTION,
                                         &aliasinfo);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo->description.len > 0) {
                 desc = &aliasinfo->description;
                 grp_desc = wc16sndup(desc->string, desc->len/2);
-                goto_if_no_memory_ntstatus(grp_desc, error);
+                BAIL_ON_NO_MEMORY(grp_desc);
 
                 info[info_idx].lgrpi1_comment = grp_desc;
                 status = NetAddDepMemory(grp_desc, info);
-                goto_if_ntstatus_not_success(status, error);
+                BAIL_ON_NTSTATUS_ERROR(status);
 
             } else {
                 info[info_idx].lgrpi1_comment = 0;
             }
 
             status = SamrClose(samr_b, &alias_h);
-            goto_if_ntstatus_not_success(status, error);
+            BAIL_ON_NTSTATUS_ERROR(status);
 
             if (aliasinfo) {
                 SamrFreeMemory((void*)aliasinfo);

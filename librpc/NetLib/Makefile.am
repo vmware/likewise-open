@@ -1,5 +1,4 @@
 librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/Idl
 error_srcdir=$(top_srcdir)/Error
 
 lib_LTLIBRARIES = libnetapi.la
@@ -41,12 +40,15 @@ libnetapi_la_SOURCES = \
 libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 
 libnetapi_la_LIBADD = \
-	-lunistr -lldap_r -lktkrb5 -llwioclient \
-	$(top_builddir)/Samr/libsamr.la \
-	$(top_builddir)/Lsa/liblsa.la \
-	$(top_builddir)/Netlogon/libnetlogon.la \
+	-lunistr -lldap_r -lktkrb5 -llwioclient -lcrypto \
+	$(top_builddir)/samr/libsamr.la \
+	$(top_builddir)/lsa/liblsa.la \
+	$(top_builddir)/netlogon/libnetlogon.la \
 	$(top_builddir)/MsRpc/libmsrpc.la \
 	$(top_builddir)/Mpr/libmpr.la \
+	$(top_builddir)/Error/liberror.la \
+	$(top_builddir)/krb5pac/libkrb5pac.la \
+	$(top_builddir)/dssetup/libdssetup.la \
 	@LWBASE_LIBS@
 
 if HAVE_LIBTDB
@@ -54,7 +56,7 @@ libnetapi_la_LIBADD += -ltdb
 endif
 
 DCERPC_INCLUDES = $(dcerpc_srcdir)/include
-LIBRPC_INCLUDES = $(librpc_srcdir)/Include
+LIBRPC_INCLUDES = $(librpc_srcdir)/include
 UNISTR_INCDIR = $(libunistr_srcdir)/include
 LIBTDB_INCDIR = $(libtdb_srcdir)/include
 INCLUDES = -I$(DCERPC_INCLUDES) -I$(LIBRPC_INCLUDES) -I$(UNISTR_INCDIR) \

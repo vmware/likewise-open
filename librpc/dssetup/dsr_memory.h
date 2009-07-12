@@ -40,30 +40,22 @@
 
 NTSTATUS
 DsrAllocateMemory(
-    void **ptr,
-    size_t len,
-    void *dep
+    OUT PVOID *ppOutBuffer,
+    IN  size_t Size,
+    IN  PVOID pDependent
     );
-
-
-NTSTATUS
-DsrSafeFreeMemory(
-    void **ptr
-    );
-
 
 NTSTATUS
 DsrAddDepMemory(
-    void *ptr,
-    void *dep
+    IN PVOID pBuffer,
+    IN PVOID pDependent
     );
-
 
 NTSTATUS
 DsrAllocateDsRoleInfo(
-    PDS_ROLE_INFO *ppOut,
-    PDS_ROLE_INFO pIn,
-    UINT16 uiLevel
+    OUT PDS_ROLE_INFO *ppOut,
+    IN  PDS_ROLE_INFO pIn,
+    IN  UINT16 uiLevel
     );
 
 

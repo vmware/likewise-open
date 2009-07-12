@@ -56,8 +56,8 @@ NetLocalGroupAdd(
     AliasInfo info;
     PIO_ACCESS_TOKEN access_token = NULL;
 
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(buffer);
 
     memset(&info, 0, sizeof(info));
 
@@ -74,10 +74,10 @@ NetLocalGroupAdd(
     }
 
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&conn, hostname, dom_access, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
     case 0:
@@ -97,18 +97,18 @@ NetLocalGroupAdd(
 
     status = SamrCreateDomAlias(samr_b, &domain_h, alias_name, alias_access,
                                 &alias_h, &rid);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     if (comment) {
         InitUnicodeString(&info.description, comment);
 
         status = SamrSetAliasInfo(samr_b, &alias_h,
                                   ALIAS_INFO_DESCRIPTION, &info);
-        goto_if_ntstatus_not_success(status, error);
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
     status = SamrClose(samr_b, &alias_h);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
     *parm_err = 0;
 
