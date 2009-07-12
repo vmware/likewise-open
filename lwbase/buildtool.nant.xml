@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<project>
+  <target name="local.build">
+    <cl outputdir="${build.meta.current}/">
+      <includedirs>
+        <include name="include"/>
+        <include name="include\lw"/>
+        <include name="include\win32"/>
+        <include name="..\libunistr\include"/>
+      </includedirs>
+      <sources>
+	<include name="src/rtlmemory.c"/>
+	<include name="src/rtlstring*.c"/>
+      </sources>
+    </cl>
+    <link output="${build.meta.current}/lwbase.dll" options="/dll">
+      <sources basedir="${build.meta.current}/">
+	<include name="*.obj"/>
+	<include name="${build.meta.current}\..\libunistr\libunistr.lib"/>
+      </sources>
+      <arg value="/DEF:lwbase.def"/>
+    </link>
+    <copy todir="${build.dist.os}">
+      <fileset basedir="${build.meta.current}">
+	<include name="*.dll"/>
+	<include name="*.exe"/>
+      </fileset>
+    </copy>
+  </target>
+</project>

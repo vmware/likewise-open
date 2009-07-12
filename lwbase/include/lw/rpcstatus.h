@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -23,34 +23,31 @@
  * license@likewisesoftware.com
  */
 
-#include <config.h>
+/*
+ * Module Name:
+ *
+ *        rpcstatus.h
+ *
+ * Abstract:
+ *
+ *        Rpc status helper functions
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
-#include <lw/base.h>
+#ifndef __LWBASE_RPCSTATUS_H__
+#define __LWBASE_RPCSTATUS_H__
 
-#ifdef HAVE_PTHREAD_H
-#include <pthread.h>
+#include <lw/types.h>
+
+LW_NTSTATUS
+LwRpcStatusToNtStatus(
+    LW_IN LW_DWORD status
+    );
+
+#ifndef LW_STRICT_NAMESPACE
+#define RpcStatusToNtStatus(code)    LwRpcStatusToNtStatus(code)
+#endif /* LW_STRICT_NAMESPACE */
+
 #endif
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
-#include <assert.h>
-
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#ifdef HAVE_SYS_VARARGS_H
-#include <sys/varargs.h>
-#endif
-
-#include <wc16str.h>
-#ifdef HAVE_UUID_UUID_H
-#include <uuid/uuid.h>
-#endif
-
-#include <secdesc/secapi.h>
-#include "secdesc_p.h"
-
-#include "compat.h"

@@ -97,16 +97,16 @@ LwRtlCStringIsEqual(
 
 LW_NTSTATUS
 LwRtlCStringAllocatePrintf(
-    LW_OUT PSTR* ppszString,
-    LW_IN PCSTR pszFormat,
+    LW_OUT LW_PSTR* ppszString,
+    LW_IN LW_PCSTR pszFormat,
     LW_IN ...
     );
 
-NTSTATUS
+LW_NTSTATUS
 LwRtlCStringAllocatePrintfV(
-    OUT PSTR* ppszString,
-    IN PCSTR pszFormat,
-    IN va_list Args
+    LW_OUT LW_PSTR* ppszString,
+    LW_IN LW_PCSTR pszFormat,
+    LW_IN va_list Args
     );
 
 LW_NTSTATUS
@@ -145,6 +145,20 @@ LwRtlWC16StringIsEqual(
     LW_IN LW_PCWSTR pString1,
     LW_IN LW_PCWSTR pString2,
     LW_IN LW_BOOLEAN bIsCaseSensitive
+    );
+
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfWV(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN va_list Args
+    );
+
+LW_NTSTATUS
+LwRtlWC16StringAllocatePrintfW(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN ...
     );
 
 // UNICODE_STRING strings
@@ -207,9 +221,9 @@ LwRtlUnicodeStringIsPrefix(
 
 LW_NTSTATUS
 LwRtlUnicodeStringParseULONG(
-    OUT LW_PULONG pResult,
-    IN LW_PUNICODE_STRING pString,
-    OUT LW_PUNICODE_STRING pRemainingString
+    LW_OUT LW_PULONG pResult,
+    LW_IN LW_PUNICODE_STRING pString,
+    LW_OUT LW_PUNICODE_STRING pRemainingString
     );
 
 // ANSI strings
@@ -260,9 +274,9 @@ LwRtlAnsiStringIsPrefix(
 
 LW_NTSTATUS
 LwRtlAnsiStringParseULONG(
-    OUT PULONG pResult,
-    IN PANSI_STRING pString,
-    OUT PANSI_STRING pRemainingString
+    LW_OUT LW_PULONG pResult,
+    LW_IN LW_PANSI_STRING pString,
+    LW_OUT LW_PANSI_STRING pRemainingString
     );
 
 #ifndef LW_STRICT_NAMESPACE

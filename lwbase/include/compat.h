@@ -1,3 +1,7 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
  * Copyright (c) Likewise Software.  All rights Reserved.
  *
@@ -20,13 +24,35 @@
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
-#include <config.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        compat.h
+ *
+ * Abstract:
+ *
+ *        Base win32 and unix compatibility header
+ *
+ *        This private header renames renames unix functions to their win32
+ *        equivalent.
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
-#include <lw/base.h>
-#include <secdesc/secapi.h>
-#include <string.h>
-#include <uuid/uuid.h>
-#include "secdesc_p.h"
+#ifndef __COMPAT_H__
+#define __COMPAT_H__
+
+#ifdef _WIN32
+
+#define strncasecmp	strnicmp
+#define va_copy(dest, src)  memcpy(&dest, &src, sizeof(va_list))
+
+#endif /* _WIN32 */
+
+#endif /* __COMPAT_H__ */

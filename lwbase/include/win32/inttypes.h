@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -23,34 +23,32 @@
  * license@likewisesoftware.com
  */
 
-#include <config.h>
+/*
+ * Module Name:
+ *
+ *        inttypes.h
+ *
+ * Abstract:
+ *
+ *        WIN32 version of the Unix inttypes.h
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
-#include <lw/base.h>
+#ifndef __INTTYPES_H__
+#define __INTTYPES_H__
 
-#ifdef HAVE_PTHREAD_H
-#include <pthread.h>
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+typedef signed __int64 int64_t;
+
+typedef intptr_t ssize_t;
+
 #endif
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
-#include <assert.h>
-
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#ifdef HAVE_SYS_VARARGS_H
-#include <sys/varargs.h>
-#endif
-
-#include <wc16str.h>
-#ifdef HAVE_UUID_UUID_H
-#include <uuid/uuid.h>
-#endif
-
-#include <secdesc/secapi.h>
-#include "secdesc_p.h"
-
-#include "compat.h"

@@ -72,12 +72,12 @@
 // STATUS_PENDING.
 //
 
-typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
+typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 // Determine whether this is a failure code.  Only warning and
 // error codes are considered failure.
 #define LW_NT_SUCCESS(status) \
-    (((LONG)(status)) >= 0)
+    (((LW_LONG)(status)) >= 0)
 
 // Determines whether NTSTATUS is 0 or !NT_SUCCESS(status).
 // This helps check for non-zero success code from APIs.
@@ -549,6 +549,7 @@ typedef LONG LW_NTSTATUS, *LW_PNTSTATUS;
 #define LW_STATUS_DUPLICATE_OBJECTID                              ((LW_NTSTATUS) 0xc000022a)
 #define LW_STATUS_OBJECTID_EXISTS                                 ((LW_NTSTATUS) 0xc000022b)
 #define LW_STATUS_CONVERT_TO_LARGE                                ((LW_NTSTATUS) 0xc000022c)
+#define LW_STATUS_RETRY                                           ((LW_NTSTATUS) 0xc000022d)
 #define LW_STATUS_FOUND_OUT_OF_SCOPE                              ((LW_NTSTATUS) 0xc000022e)
 #define LW_STATUS_ALLOCATE_BUCKET                                 ((LW_NTSTATUS) 0xc000022f)
 #define LW_STATUS_PROPSET_NOT_FOUND                               ((LW_NTSTATUS) 0xc0000230)
@@ -1179,6 +1180,7 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #define STATUS_DUPLICATE_OBJECTID                          LW_STATUS_DUPLICATE_OBJECTID
 #define STATUS_OBJECTID_EXISTS                             LW_STATUS_OBJECTID_EXISTS
 #define STATUS_CONVERT_TO_LARGE                            LW_STATUS_CONVERT_TO_LARGE
+#define STATUS_RETRY                                       LW_STATUS_RETRY
 #define STATUS_FOUND_OUT_OF_SCOPE                          LW_STATUS_FOUND_OUT_OF_SCOPE
 #define STATUS_ALLOCATE_BUCKET                             LW_STATUS_ALLOCATE_BUCKET
 #define STATUS_PROPSET_NOT_FOUND                           LW_STATUS_PROPSET_NOT_FOUND

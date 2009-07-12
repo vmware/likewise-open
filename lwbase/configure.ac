@@ -95,10 +95,15 @@ AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUI
 
 AC_SUBST(LIB_PTHREAD)
 
-AC_CHECK_FUNCS([strndup])
+AC_CHECK_FUNCS([strndup strncasecmp])
 
 # Checks for header files.
-AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
+AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h pthread.h])
+
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS:$LIBUUID_INCLUDES"
+AC_CHECK_HEADERS([uuid/uuid.h])
+CFLAGS="$old_CFLAGSS"
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
