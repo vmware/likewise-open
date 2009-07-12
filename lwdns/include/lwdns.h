@@ -218,13 +218,19 @@ DNSOpen(
     );
 
 DWORD
+DNSUpdatePtrSecure(
+    PSOCKADDR_IN pAddr,
+    PCSTR  pszHostNameFQDN
+    );
+
+DWORD
 DNSUpdateSecure(
     HANDLE hDNSServer,
     PCSTR  pszServerName,
     PCSTR  pszDomainName,
     PCSTR  pszHostname,
-    PSOCKADDR_IN pAddrArray,
-    DWORD  dwNumAddrs
+    DWORD  dwNumAddrs,
+    PSOCKADDR_IN pAddrArray
     );
 
 DWORD

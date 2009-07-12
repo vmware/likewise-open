@@ -65,7 +65,6 @@ typedef struct _DNS_RR_HEADER {
 	WORD wClass;
 	DWORD dwTTL;
 	WORD  wRDataSize;
-	PBYTE pRData;
 }DNS_RR_HEADER, *PDNS_RR_HEADER;
 
 
@@ -104,7 +103,9 @@ typedef struct _DNS_RR_RECORD {
 		DNS_TKEY_OFFSETS TKey;
 		DNS_TSIG_OFFSETS TSig;
 	}Offsets;
+	// either pRData or pRDataDomain may be set
 	PBYTE pRData;
+	PDNS_DOMAIN_NAME pRDataDomain;
 }DNS_RR_RECORD, *PDNS_RR_RECORD;
 
 
@@ -123,11 +124,28 @@ typedef struct _DNS_REQUEST {
 
 
 typedef struct _DNS_UPDATE_REQUEST {
+	// Called Transaction ID in wireshark
+	// Called ID in RFC2136
+	// This is a number randomly chosen by the client to identify which
+	// reply belongs to the request incase the request was sent over UDP.
 	WORD wIdentification;
+	// Composed of QR, Opcode, Z, and RCODE in RFC2136
+	// Called Flags in wireshark
 	WORD wParameter;
+	// Called ZOCOUNT in RFC2136
+	// Number of number zones in the update request (ppZoneRRSet)
+	// The only value that makes sense is 1
 	WORD wZones;
+	// Called PRCOUNT in RFC2136
+	// Number of prerequisites in update request (ppPRRRSet)
 	WORD wPRs;
+	// Called UPCOUNT in RFC2136
+	// Number of updates (adds or deletes) in update request
+	// (ppUpdateRRSet)
 	WORD wUpdates;
+	// Called ADCOUNT in RFC2136
+	// Number of additional records (only a signature record is used here)
+	// in update request (ppAdditionalRRSet)
 	WORD wAdditionals;
 	PDNS_ZONE_RECORD * ppZoneRRSet;
 	PDNS_RR_RECORD * ppPRRRSet;
