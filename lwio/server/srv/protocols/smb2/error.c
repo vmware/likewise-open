@@ -83,7 +83,7 @@ SrvBuildErrorResponse_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulTotalBytesUsed += ulBytesUsed;
-    pOutBufferRef += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
     ulOffset += ulBytesUsed;
     ulBytesAvailable -= ulBytesUsed;
 
@@ -96,7 +96,7 @@ SrvBuildErrorResponse_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ulTotalBytesUsed += ulBytesUsed;
-    // pOutBufferRef += ulBytesUsed;
+    // pOutBuffer += ulBytesUsed;
     // ulOffset += ulBytesUsed;
     // ulBytesAvailable -= ulBytesUsed;
 
