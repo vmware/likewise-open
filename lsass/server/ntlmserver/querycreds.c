@@ -49,9 +49,9 @@
 
 DWORD
 NtlmServerQueryCredentialsAttributes(
-    PCredHandle phCredential,
-    DWORD ulAttribute,
-    PVOID pBuffer
+    IN PCredHandle phCredential,
+    IN DWORD ulAttribute,
+    OUT PVOID pBuffer
     )
 {
     DWORD dwError = 0;

@@ -49,10 +49,10 @@
 
 DWORD
 NtlmServerDecryptMessage(
-    PCtxtHandle phContext,
-    PSecBufferDesc pMessage,
-    DWORD MessageSeqNo,
-    PBOOL pbEncrypted
+    IN PCtxtHandle phContext,
+    IN OUT PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;

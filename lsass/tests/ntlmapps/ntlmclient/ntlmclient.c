@@ -36,28 +36,13 @@ main(
     PCHAR pSecPkgName = "NTLM";
     USHORT usPort = 4444;
     INT nSignOnly = 0;
-    //INT  nIndex = 0;
 
     // These are the negotiation flags... we'll update these later
     //
-    DWORD DelegFlag = 0;
-
-    /*
-    DWORD DelegFlag = ( ISC_REQ_MUTUAL_AUTH |
-        ISC_REQ_ALLOCATE_MEMORY |
-        ISC_REQ_CONFIDENTIALITY |
-        ISC_REQ_REPLAY_DETECT);
-
-    FLAGMAPPING FlagMappings[] = {
-        DUPE( CONFIDENTIALITY ),
-        DUPE( DELEGATE ),
-        DUPE( INTEGRITY ),
-        DUPE( USE_SESSION_KEY ),
-        DUPE( REPLAY_DETECT ),
-        DUPE( SEQUENCE_DETECT ),
-        DUPE( MUTUAL_AUTH )
-    };
-    */
+    DWORD DelegFlag =
+        NTLM_FLAG_NEGOTIATE_DEFAULT |
+        NTLM_FLAG_SIGN              |
+        NTLM_FLAG_SEAL;
 
     /* Parse arguments. */
     argc--; argv++;
@@ -80,32 +65,16 @@ main(
         {
             nSignOnly = TRUE;
         }
-        else if(strcmp(*argv, "-d") == 0)
-        {
-            // Change flag when we point to the negotiation flags defined
-            // elsewhere
-            DelegFlag |= 0;  //ISC_REQ_DELEGATE;
-        }
         else
         {
-            BOOL bFound = FALSE;
+            fprintf(
+                stderr,
+                "Invalid parameter: %s\n",
+                *argv
+                );
 
-            /*
-            for(nIndex = 0; nIndex < (sizeof(FlagMappings)/sizeof(FLAGMAPPING)); nIndex++)
-            {
-                if(_strcmpi( *argv, FlagMappings[nIndex].name ) == 0)
-                {
-                    bFound = TRUE;
-                    DelegFlag |= FlagMappings[nIndex].value ;
-                    break;
-                }
-            }
-            */
-
-            if(!bFound)
-            {
-                break;
-            }
+            dwError = Usage();
+            BAIL_ON_LW_ERROR(dwError);
         }
         argc--; argv++;
     }
@@ -116,18 +85,9 @@ main(
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    /*
-    for(nIndex = 0; nIndex < (sizeof(FlagMappings)/sizeof(FLAGMAPPING)); nIndex++)
-    {
-        if(DelegFlag & FlagMappings[nIndex].value)
-        {
-            printf("Context flag: %s\n", FlagMappings[nIndex].realname);
-        }
-    }
-    */
-
     if(nSignOnly)
     {
+        DelegFlag &= ~NTLM_FLAG_SEAL;
         printf("No encryption - sign only\n");
     }
 
@@ -156,7 +116,7 @@ Usage(VOID)
 {
     fprintf(
         stderr,
-        "Usage: ntlm-client [-port port] [-sign] [-d] host service msg\n"
+        "Usage: ntlm-client [-port port] [-sign] host service msg\n"
         );
 
     return LW_ERROR_INVALID_PARAMETER;
@@ -177,7 +137,8 @@ CallServer(
     SecBuffer WrapBuffers[3];
     INT nSocket = INVALID_SOCKET;
     DWORD RetFlags = 0;
-    DWORD QopState = 0;
+    BOOL bVerified = FALSE;
+    BOOL bEncrypted = FALSE;
     INT nContextAcquired = 0;
 
     CtxtHandle Context;
@@ -330,7 +291,13 @@ CallServer(
     WrapBuffers[1] = OutBuffer;
     WrapBuffers[1].BufferType = SECBUFFER_TOKEN;
 
-    dwError = NtlmClientVerifySignature(&Context, &InBufferDesc, 0, &QopState);
+    dwError = NtlmClientVerifySignature(
+        &Context,
+        &InBufferDesc,
+        0,
+        &bVerified,
+        &bEncrypted
+        );
     BAIL_ON_LW_ERROR(dwError);
 
     free(OutBuffer.pvBuffer);

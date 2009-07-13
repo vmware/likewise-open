@@ -49,7 +49,7 @@
 
 DWORD
 NtlmServerFreeCredentialsHandle(
-    PCredHandle phCredential
+    IN PCredHandle phCredential
     )
 {
     DWORD dwError = 0;

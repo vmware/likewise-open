@@ -52,7 +52,8 @@ NtlmClientVerifySignature(
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
-    PBOOL pbEncrypted
+    OUT PBOOL pbVerified,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -68,6 +69,7 @@ NtlmClientVerifySignature(
         phContext,
         pMessage,
         MessageSeqNo,
+        pbVerified,
         pbEncrypted
         );
 

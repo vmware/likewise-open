@@ -49,10 +49,11 @@
 
 DWORD
 NtlmServerVerifySignature(
-    PCtxtHandle phContext,
-    PSecBufferDesc pMessage,
-    DWORD MessageSeqNo,
-    PBOOL pbEncrypted
+    IN PCtxtHandle phContext,
+    IN PSecBufferDesc pMessage,
+    IN DWORD MessageSeqNo,
+    OUT PBOOL pbVerified,
+    OUT PBOOL pbEncrypted
     )
 {
     DWORD dwError = 0;

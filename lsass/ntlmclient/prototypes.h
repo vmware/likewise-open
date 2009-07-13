@@ -70,8 +70,6 @@ NtlmTransactAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    // NOT NEEDED BY NTLM - IN SEC_GET_KEY_FN pGetKeyFn,
-    // NOT NEEDED BY NTLM - IN PVOID pvGetKeyArgument,
     OUT PCredHandle phCredential,
     OUT PTimeStamp ptsExpiry
     );
@@ -172,6 +170,7 @@ NtlmTransactVerifySignature(
     IN PCtxtHandle phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
+    OUT PBOOL pbVerified,
     OUT PBOOL pbEncrypted
     );
 
