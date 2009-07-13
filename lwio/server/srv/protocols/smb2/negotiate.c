@@ -104,7 +104,7 @@ SrvBuildNegotiateResponse_SMB_V2(
                 0, /* usTid        */
                 0, /* ullSessionId */
                 0, /* status       */
-                FALSE, /* do not sign */
+                TRUE, /* response */
                 NULL,
                 &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
