@@ -91,15 +91,15 @@ LWRaiseLsassError(
     PSTR buffer = NULL;
 
     size_t bufferSize;
-    bufferSize = LsaGetErrorString(code, NULL, 0);
+    bufferSize = LwGetErrorString(code, NULL, 0);
     LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
-    if (LsaGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
+    if (LwGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
     {
         DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
 
         switch (code)
         {
-            case 0x806B: //LSA_ERROR_FAILED_TO_LOOKUP_DC
+            case LW_ERROR_FAILED_TO_LOOKUP_DC:
                 err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
                 break;
         }
@@ -863,7 +863,7 @@ DJGetConfiguredDnsDomain(
         {
             switch(_err)
             {
-                case 0x8049: //LSA_ERROR_NOT_JOINED_TO_AD
+                case LW_ERROR_NOT_JOINED_TO_AD:
                     (*exc)->code = CENTERROR_DOMAINJOIN_DOMAIN_NOT_FOUND;
                     break;
             }
@@ -911,7 +911,7 @@ DJGetComputerDN(PSTR *dn, LWException **exc)
         {
             switch(_err)
             {
-                case 0x804A: //LSA_ERROR_NOT_JOINED_TO_AD
+                case LW_ERROR_NOT_JOINED_TO_AD:
                     (*exc)->code = CENTERROR_DOMAINJOIN_DOMAIN_NOT_FOUND;
                     break;
             }
