@@ -315,7 +315,7 @@ SMB2MarshalSessionSetup(
     pSessionSetupHeader->usBlobOffset = ulOffset;
     pSessionSetupHeader->usBlobLength = ulSecurityBlobLen;
 
-    *pulBytesUsed += ulBytesUsed;
+    *pulBytesUsed = ulBytesUsed;
 
 cleanup:
 
@@ -971,7 +971,7 @@ SMB2MarshalFlushResponse(
 
     pHeader->usLength = ulBytesUsed;
 
-    *pulBytesUsed += ulBytesUsed;
+    *pulBytesUsed = ulBytesUsed;
 
 cleanup:
 
@@ -1056,7 +1056,7 @@ SMB2MarshalEchoResponse(
 
     pHeader->usLength = ulBytesUsed;
 
-    *pulBytesUsed += ulBytesUsed;
+    *pulBytesUsed = ulBytesUsed;
 
 cleanup:
 
@@ -1439,7 +1439,7 @@ SMB2MarshalLockResponse(
 
     pHeader->usLength = ulBytesUsed;
 
-    *pulBytesUsed += ulBytesUsed;
+    *pulBytesUsed = ulBytesUsed;
 
 cleanup:
 
@@ -1582,7 +1582,7 @@ SMB2MarshalIOCTLResponse(
         ulBytesUsed += ulOutLength;
     }
 
-    *pulBytesUsed += ulBytesUsed;
+    *pulBytesUsed = ulBytesUsed;
 
 cleanup:
 
@@ -1590,7 +1590,7 @@ cleanup:
 
 error:
 
-    *pulBytesUsed += 0;
+    *pulBytesUsed = 0;
 
     if (ulBytesUsed)
     {
