@@ -90,7 +90,7 @@ ADSchemaMarshalNSSArtefactInfoList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
+            dwError = LW_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -161,7 +161,7 @@ ADNonSchemaMarshalNSSArtefactInfoList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
+            dwError = LW_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -237,9 +237,9 @@ ADMarshalNSSArtefactInfoList_0(
                     pLd,
                     pMessagePseudo);
     if (nArtefact < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (nArtefact == 0) {
-        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 

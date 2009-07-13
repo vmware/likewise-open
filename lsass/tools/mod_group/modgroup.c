@@ -95,7 +95,7 @@ LsaModGroupMain(
 
      dwError = MapErrorCode(dwError);
 
-     dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
+     dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
 
      if (dwErrorBufferSize > 0)
      {
@@ -108,7 +108,7 @@ LsaModGroupMain(
 
          if (!dwError2)
          {
-             DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
+             DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
              if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
              {
@@ -242,7 +242,7 @@ ParseArgs(
     }
 
     if (!ValidateArgs(pszLoginId, pTaskList)) {
-       dwError = LSA_ERROR_INVALID_PARAMETER;
+       dwError = LW_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -494,7 +494,7 @@ ResolveNames(
                     dwError = LsaAllocateString(pGroupInfo->pszDN, &pszDN);
                     BAIL_ON_LSA_ERROR(dwError);
 
-                } else if (dwError == LSA_ERROR_NO_SUCH_GROUP) {
+                } else if (dwError == LW_ERROR_NO_SUCH_GROUP) {
                     dwError = LsaFindUserByName(hLsaConnection,
                                                 pszName,
                                                 dwUserInfoLevel,
@@ -616,7 +616,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
+            dwError2 = LW_ERROR_LSA_SERVER_UNREACHABLE;
 
             break;
 

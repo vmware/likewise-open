@@ -721,7 +721,7 @@ LwDomainGetLinuxDistroType(
 
             if (regcomp(&rx, distroSearch[i].pszMatchRegex, flags) != 0)
             {
-                dwError = LSA_ERROR_REGEX_COMPILE_FAILED;
+                dwError = LW_ERROR_REGEX_COMPILE_FAILED;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1215,7 +1215,7 @@ LwDomainGetLinuxVersion(
 
             if (regcomp(&rx, distroSearch[i].pszMatchRegex, flags) != 0)
             {
-                dwError = LSA_ERROR_REGEX_COMPILE_FAILED;
+                dwError = LW_ERROR_REGEX_COMPILE_FAILED;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 

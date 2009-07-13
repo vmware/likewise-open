@@ -82,7 +82,7 @@ NTLMInitializeAuthProviders(
     LSA_STRING *configPath
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwCount;
     AUTH_PROVIDER_INITDATA initData;
 

@@ -139,7 +139,7 @@ LsaAllocateGroupInfo(
         break;
 
     default:
-        dwError = LSA_ERROR_INVALID_GROUP_INFO_LEVEL;
+        dwError = LW_ERROR_INVALID_GROUP_INFO_LEVEL;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -461,7 +461,7 @@ LsaValidateGroupInfoLevel(
     DWORD dwGroupInfoLevel
     )
 {
-    return (((dwGroupInfoLevel < 0) || (dwGroupInfoLevel > 1)) ? LSA_ERROR_INVALID_GROUP_INFO_LEVEL : 0);
+    return (((dwGroupInfoLevel < 0) || (dwGroupInfoLevel > 1)) ? LW_ERROR_INVALID_GROUP_INFO_LEVEL : 0);
 }
 
 DWORD
@@ -481,14 +481,14 @@ LsaValidateGroupName(
 
     if (pParsedName->pszName == NULL)
     {
-        dwError = LSA_ERROR_INVALID_GROUP_NAME;
+        dwError = LW_ERROR_INVALID_GROUP_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     sNameLen = strlen(pParsedName->pszName);
     if (sNameLen > LSA_MAX_GROUP_NAME_LENGTH || sNameLen == 0)
     {
-        dwError = LSA_ERROR_INVALID_GROUP_NAME;
+        dwError = LW_ERROR_INVALID_GROUP_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -544,7 +544,7 @@ LsaValidateGroupInfo(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

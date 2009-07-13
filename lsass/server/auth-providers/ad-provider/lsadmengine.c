@@ -86,8 +86,8 @@ LsaDmEnginepAddTrust(
                                     bIsTransitiveOnewayChild,
                                     pszDnsForestName,
                                     NULL);
-    if (dwError == LSA_ERROR_DUPLICATE_DOMAINNAME ||
-        dwError == LSA_ERROR_NO_SUCH_DOMAIN)
+    if (dwError == LW_ERROR_DUPLICATE_DOMAINNAME ||
+        dwError == LW_ERROR_NO_SUCH_DOMAIN)
     {
         // We enumerate at the current domain we are joined to
         // And later we might enumerate at the forest root
@@ -135,7 +135,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
                                                 NETR_TRUST_FLAG_IN_FOREST),
                                                &pTrusts,
                                                &dwTrustCount);
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         LSA_LOG_ERROR("Unable to enumerate trusts for '%s' domain because it is offline",
                       pszDomainName, dwError);
@@ -147,7 +147,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
     {
         LSA_LOG_DEBUG("No entries returned from trust enumeration for '%s'",
                       pszDomainName);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -165,7 +165,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
                 if (pPrimaryTrust)
                 {
                     // multiple primary trusts are not allowed
-                    dwError = LSA_ERROR_INTERNAL;
+                    dwError = LW_ERROR_INTERNAL;
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 pPrimaryTrust = pCurrentTrust;
@@ -174,7 +174,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
         // If we did not find the primary trust info, become sad.
         if (!pPrimaryTrust)
         {
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -185,7 +185,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
         if (strcasecmp(pszDnsDomainName, pszDomainName))
         {
             LSA_LOG_DEBUG("Primary domain mismatch: got '%s', wanted '%s'", pszDnsDomainName, pszDomainName);
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -255,7 +255,7 @@ LsaDmEnginepDiscoverTrustsForDomain(
                 if (pPrimaryTrust)
                 {
                     // multiple primary trusts are not allowed
-                    dwError = LSA_ERROR_INTERNAL;
+                    dwError = LW_ERROR_INTERNAL;
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 pPrimaryTrust = pCurrentTrust;
@@ -422,7 +422,7 @@ LsaDmEnginepDiscoverTrustsInternal(
     IN PCSTR pszDnsPrimaryForestName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR* pTrustedForestRootList = NULL;
     BOOLEAN bIsForestRoot = FALSE;
 
@@ -446,7 +446,7 @@ LsaDmEnginepDiscoverTrustsInternal(
         {
             LSA_LOG_ERROR("Unexpected trusted forest root list when "
                           "enumerating trusts for '%s'", pszDnsPrimaryDomainName);
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -454,7 +454,7 @@ LsaDmEnginepDiscoverTrustsInternal(
                                                       pszDnsPrimaryForestName,
                                                       pszDnsPrimaryForestName,
                                                       &pTrustedForestRootList);
-        if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+        if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
         {
             // If we cannot enumerate our forest's trusts, ignore it.
             dwError = 0;
@@ -473,7 +473,7 @@ LsaDmEnginepDiscoverTrustsInternal(
                                                           pszDnsForestName,
                                                           pszDnsForestName,
                                                           NULL);
-            if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+            if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
             {
                 // If we cannot enumerate a trusted forest's trusts,
                 // ignore it.
@@ -497,7 +497,7 @@ LsaDmEngineDiscoverTrusts(
     IN PCSTR pszDnsPrimaryDomainName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLWNET_DC_INFO pDcInfo = NULL;
 
     // ISSUE-2008/10/09-dalmeida -- Perhaps put this in lsadmwrap.
@@ -508,7 +508,7 @@ LsaDmEngineDiscoverTrusts(
         case LWNET_ERROR_FAILED_FIND_DC:
             // We pinged a DC earlier, so we must have gone offline
             // in the last few seconds.
-            dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+            dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
             break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -565,7 +565,7 @@ LsaDmEnginepGetDomainSidFromObjectSidString(
 
     if (pSid->SubAuthorityCount < 1)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -651,14 +651,14 @@ LsaDmEngineGetDomainNameWithDiscovery(
     if (IsNullOrEmptyString(pszDomainName) ||
         LsaDmEnginepIsSpecialDomainName(pszDomainName))
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaDmWrapGetDomainName(pszDomainName,
                                      &pszDnsDomainName,
                                      &pszNetbiosDomainName);
-    if (LSA_ERROR_NO_SUCH_DOMAIN != dwError)
+    if (LW_ERROR_NO_SUCH_DOMAIN != dwError)
     {
         BAIL_ON_LSA_ERROR(dwError);
         // On success, we are done.
@@ -672,20 +672,20 @@ LsaDmEngineGetDomainNameWithDiscovery(
                  &accountType);
     if (dwError)
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (IsNullOrEmptyString(pszDomainSid))
     {
         LSA_LOG_ERROR("Missing SID for name '%s'", pszDomainName);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (AccountType_Domain != accountType)
     {
         LSA_LOG_ERROR("Non-domain account type %d for name '%s'",
                 accountType, pszDomainName);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -764,7 +764,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     if (IsNullOrEmptyString(pszObjectSid) ||
         LsaDmEnginepIsSpecialSidPrefix(pszObjectSid))
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -773,7 +773,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                     &pszDnsDomainName,
                     &pszNetbiosDomainName,
                     &pszDomainSid);
-    if (LSA_ERROR_NO_SUCH_DOMAIN != dwError)
+    if (LW_ERROR_NO_SUCH_DOMAIN != dwError)
     {
         BAIL_ON_LSA_ERROR(dwError);
         // On success, we are done.
@@ -790,7 +790,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
 
     if (LsaDmIsUnknownDomainSid(pDomainSid))
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -805,31 +805,31 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
                     pszDomainSid,
                     &pszNetbiosDomainName,
                     &accountType);
-    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+    if (LW_ERROR_NO_SUCH_OBJECT == dwError)
     {
         // This domain SID is not resolvable, so cache it.
         dwError = LsaDmCacheUnknownDomainSid(pDomainSid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwError)
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (IsNullOrEmptyString(pszNetbiosDomainName))
     {
         LSA_LOG_ERROR("Missing name for SID '%s'", pszDomainSid);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (AccountType_Domain != accountType)
     {
         LSA_LOG_ERROR("Non-domain account type %d for SID '%s'",
                 accountType, pszDomainSid);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

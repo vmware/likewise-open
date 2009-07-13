@@ -74,7 +74,7 @@ LwLdapPingTcp(
     if (addr.s_addr == INADDR_NONE)
     {
         LSA_LOG_ERROR("Could not convert address'%s' to in_addr", pszHostAddress);
-        dwError = LSA_ERROR_DNS_RESOLUTION_FAILED;
+        dwError = LW_ERROR_DNS_RESOLUTION_FAILED;
         BAIL_ON_LSA_ERROR(dwError)
     }
 
@@ -127,7 +127,7 @@ LwLdapPingTcp(
             // We timed out
             LSA_LOG_DEBUG("Timed out connecting to '%s'", pszHostAddress);
             // ISSUE-2008/09/16-dalmeida -- Technically, not a "domain"...
-            dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+            dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case 1:
@@ -136,7 +136,7 @@ LwLdapPingTcp(
         default:
             // This should never happen.
             LSA_LOG_DEBUG("Unexpected number of file descriptors returned (%d)", sysRet);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -144,7 +144,7 @@ LwLdapPingTcp(
     if (!FD_ISSET(fd, &fds))
     {
         // ISSUE-2008/07/15-dalmeida -- Suitable error code?
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError)
     }
 
@@ -162,7 +162,7 @@ LwLdapPingTcp(
     if (socketErrorLength != sizeof(socketError))
     {
         // ISSUE-2008/07/15-dalmeida -- Suitable error code?
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError)
     }
 
@@ -229,7 +229,7 @@ LwLdapOpenDirectoryWithReaffinity(
     if (dwFlags & LSA_LDAP_OPT_GLOBAL_CATALOG)
     {
         LSA_LOG_DEBUG("Cannot specify GC option unless calling server API directly");
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -332,7 +332,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
     OUT PAD_DIRECTORY_CONTEXT* ppDirectory
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LDAP * ld = NULL;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     int rc = LDAP_VERSION3;
@@ -345,7 +345,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
     if (IsNullOrEmptyString(pszServerName) ||
         IsNullOrEmptyString(pszServerAddress))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -362,7 +362,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed open LDAP connection");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -375,7 +375,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -385,7 +385,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -396,7 +396,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -414,7 +414,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -426,7 +426,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to get errno for failed set LDAP option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -436,7 +436,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
         dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
         LSA_LOG_ERROR("Failed to set LDAP host name option");
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -491,14 +491,14 @@ LwLdapOpenDirectoryServer(
     OUT PHANDLE phDirectory
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     DWORD dwAttempt = 0;
     struct timespec sleepTime;
     DWORD dwTimeoutSec = 15;
 
     if (IsNullOrEmptyString(pszServerName) || IsNullOrEmptyString(pszServerAddress)) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -599,7 +599,7 @@ LwLdapBindDirectory(
     PCSTR pszServerName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwMajorStatus = 0;
     DWORD dwMinorStatus = 0;
     krb5_error_code ret = 0;
@@ -817,7 +817,7 @@ LwLdapReadObject(
     LDAPMessage** ppMessage
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     struct timeval timeout = {0};
     LDAPMessage* pMessage = NULL;
@@ -861,18 +861,18 @@ LwLdapGetParentDN(
     PSTR* ppszParentDN
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszParentDN = NULL;
     PSTR pComma = NULL;
 
     if (!pszObjectDN || !*pszObjectDN) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     pComma = strchr(pszObjectDN,',');
     if (!pComma) {
-        dwError = LSA_ERROR_LDAP_NO_PARENT_DN;
+        dwError = LW_ERROR_LDAP_NO_PARENT_DN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -902,7 +902,7 @@ LwLdapDirectorySearch(
     LDAPMessage** ppMessage
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
     struct timeval timeout = {0};
     LDAPMessage* pMessage = NULL;
@@ -948,19 +948,19 @@ LwLdapDirectorySearch(
        if (dwError == LDAP_SERVER_DOWN)
        {
           LSA_LOG_ERROR("Caught LDAP_SERVER_DOWN Error on ldap search");
-          dwError = LSA_ERROR_LDAP_SERVER_UNAVAILABLE;
+          dwError = LW_ERROR_LDAP_SERVER_UNAVAILABLE;
           goto error;
        }
        if (dwError == LDAP_TIMEOUT)
        {
           LSA_LOG_ERROR("Caught LDAP_TIMEOUT Error on ldap search");
-          dwError = LSA_ERROR_LDAP_SERVER_UNAVAILABLE;
+          dwError = LW_ERROR_LDAP_SERVER_UNAVAILABLE;
           goto error;
        }
        if (dwError == LDAP_CONNECT_ERROR)
        {
           LSA_LOG_ERROR("Caught LDAP_CONNECT_ERROR on ldap search");
-          dwError = LSA_ERROR_LDAP_SERVER_UNAVAILABLE;
+          dwError = LW_ERROR_LDAP_SERVER_UNAVAILABLE;
           goto error;
        }
        LSA_LOG_ERROR("Caught ldap error %d on search [%s]",
@@ -998,7 +998,7 @@ LwLdapDirectorySearchEx(
     LDAPMessage** ppMessage
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
     struct timeval timeout = {0};
     LDAPMessage* pMessage = NULL;
@@ -1066,7 +1066,7 @@ LwLdapEnablePageControlOption(
     HANDLE hDirectory
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     LDAPControl serverControl = {0};
     LDAPControl *ppServerPageCtrls[2] = {NULL, NULL};
@@ -1099,7 +1099,7 @@ LwLdapDisablePageControlOption(
     HANDLE hDirectory
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
     LDAPControl *ppServerPageCtrls[1] = {NULL};
 
@@ -1129,7 +1129,7 @@ LwLdapDirectoryOnePagedSearch(
     LDAPMessage**  ppMessage
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     ber_int_t pageCount = 0;
     CHAR pagingCriticality = 'T';
@@ -1286,7 +1286,7 @@ LwLdapGetBytes(
         PDWORD pszByteLen
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     struct berval **ppszValues = NULL;
     PBYTE pszByteValue = NULL;
@@ -1336,7 +1336,7 @@ LwLdapGetString(
     PSTR* ppszValue
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     PSTR *ppszValues = NULL;
     PSTR pszValue = NULL;
@@ -1371,7 +1371,7 @@ LwLdapGetDN(
     PSTR* ppszValue
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     PSTR pszLdapValue = NULL;
     PSTR pszValue = NULL;
@@ -1381,7 +1381,7 @@ LwLdapGetDN(
     pszLdapValue = ldap_get_dn(pDirectory->ld, pMessage);
     if (IsNullOrEmptyString(pszLdapValue))
     {
-        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1411,7 +1411,7 @@ LwLdapIsValidADEntry(
     PBOOLEAN pbValidADEntry
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszValue = NULL;
 
     dwError = LwLdapGetDN(
@@ -1422,7 +1422,7 @@ LwLdapIsValidADEntry(
 
     if (IsNullOrEmptyString(pszValue))
     {
-        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1459,7 +1459,7 @@ LwLdapGetUInt32(
     if (pszValue) {
         *pdwValue = atoi(pszValue);
     } else {
-        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         // This error occurs very frequently (every time an unenabled user
         // or group is queried in default schema mode). So in order to avoid
         // log noise, BAIL_ON_LSA_ERROR is not used here.
@@ -1499,13 +1499,13 @@ LwLdapGetUInt64(
         *pqwValue = strtoull(pszValue, &pszEndPtr, 10);
         if (pszEndPtr == NULL || pszEndPtr == pszValue || *pszEndPtr != '\0')
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
     else
     {
-        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         // This error occurs very frequently (every time an unenabled user
         // or group is queried in default schema mode). So in order to avoid
         // log noise, BAIL_ON_LSA_ERROR is not used here.
@@ -1541,13 +1541,13 @@ LwLdapGetInt64(
         *pqwValue = strtoll(pszValue, &pszEndPtr, 10);
         if (pszEndPtr == NULL || pszEndPtr == pszValue || *pszEndPtr != '\0')
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
     else
     {
-        dwError = LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+        dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         // This error occurs very frequently (every time an unenabled user
         // or group is queried in default schema mode). So in order to avoid
         // log noise, BAIL_ON_LSA_ERROR is not used here.
@@ -1584,13 +1584,13 @@ LwLdapParseExtendedDNResult(
 
     if (IsNullOrEmptyString(pszCurrExtDnResult))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (strncasecmp(pszCurrExtDnResult, "<GUID=", sizeof("<GUID=")-1))
     {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         LSA_LOG_ERROR("Failed to find extended DN entry '%s' GUID part. [error code:%d]",
                        pszExtDnResult, dwError);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1600,7 +1600,7 @@ LwLdapParseExtendedDNResult(
     {
         if (*pszCurrExtDnResult == '\0')
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
         pszCurrExtDnResult++;
@@ -1619,7 +1619,7 @@ LwLdapParseExtendedDNResult(
     {
         if (*(pszSidHex+dwSidLength) == '\0')
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
         ++dwSidLength;
@@ -1627,7 +1627,7 @@ LwLdapParseExtendedDNResult(
 
     if (*(pszSidHex+dwSidLength+1) != ';')
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1699,7 +1699,7 @@ LwLdapGetStringsWithExtDnResult(
     OUT PDWORD pdwNumValues
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     PSTR *ppszLDAPValues = NULL;
     PSTR *ppszValues = NULL;
@@ -1709,7 +1709,7 @@ LwLdapGetStringsWithExtDnResult(
 
     if (hDirectory == (HANDLE)NULL)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     pDirectory = (PAD_DIRECTORY_CONTEXT)hDirectory;
@@ -1720,7 +1720,7 @@ LwLdapGetStringsWithExtDnResult(
         iNum = ldap_count_values(ppszLDAPValues);
         if (iNum < 0)
         {
-            dwError = LSA_ERROR_LDAP_ERROR;
+            dwError = LW_ERROR_LDAP_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (iNum > 0)
@@ -1774,7 +1774,7 @@ LwLdapEscapeString(
     PCSTR pszInput
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t iOutputPos = 0;
     size_t iInputPos = 0;
     PSTR pszResult = NULL;
@@ -1844,7 +1844,7 @@ LwLdapConvertDomainToDN(
     PSTR* ppszDomainDN
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszDomainDN = NULL;
     PCSTR pszIter = NULL;
     PSTR  pszWriteMark = NULL;
@@ -1914,7 +1914,7 @@ LwLdapConvertDNToDomain(
     PSTR* ppszDomainName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszDomainName = NULL;
     PSTR pszCurrent = NULL;
     PSTR pszDNCopy = NULL;
@@ -1933,7 +1933,7 @@ LwLdapConvertDNToDomain(
     pszDcLocation = strstr(pszDNCopy, DC_PREFIX);
 
     if (IsNullOrEmptyString(pszDcLocation)){
-        dwError = LSA_ERROR_INVALID_LDAP_DN;
+        dwError = LW_ERROR_INVALID_LDAP_DN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1948,7 +1948,7 @@ LwLdapConvertDNToDomain(
         DWORD dwLen = 0;
 
         if (strncmp(pszDomainPart, DC_PREFIX, sizeof(DC_PREFIX)-1)) {
-            dwError = LSA_ERROR_INVALID_LDAP_DN;
+            dwError = LW_ERROR_INVALID_LDAP_DN;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -2026,7 +2026,7 @@ LwLdapDirectoryExtendedDNSearch(
     OUT LDAPMessage** ppMessage
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_DIRECTORY_CONTEXT pDirectory = NULL;
     CHAR ExtDNCriticality = 'T';
     LDAPControl *pExtDNControl = NULL;

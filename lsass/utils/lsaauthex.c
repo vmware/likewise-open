@@ -54,7 +54,7 @@ LsaFreeAuthUserInfo(
 
     if (!ppAuthUserInfo || !*ppAuthUserInfo)
     {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     p = *ppAuthUserInfo;
@@ -87,7 +87,7 @@ LsaFreeAuthUserInfo(
 
     *ppAuthUserInfo = NULL;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 
@@ -100,7 +100,7 @@ LsaFreeAuthUserParams(
 
     if (!ppAuthUserParams || !*ppAuthUserParams)
     {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     p = *ppAuthUserParams;
@@ -125,7 +125,7 @@ LsaFreeAuthUserParams(
 
     *ppAuthUserParams = NULL;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 

@@ -57,7 +57,7 @@ LsaNetGetErrorString(
     size_t bufSize
     )
 {
-    return LsaGetErrorString(
+    return LwGetErrorString(
                 dwErrorCode,
                 pszBuffer,
                 bufSize);

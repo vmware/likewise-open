@@ -258,7 +258,7 @@ LSA_INITIALIZE_PROVIDER(ad)(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaDmWrapLdapPingTcp(pszDomainDnsName);
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         bIsDomainOffline = TRUE;
         dwError = 0;
@@ -268,10 +268,10 @@ LSA_INITIALIZE_PROVIDER(ad)(
     if (!bIsDomainOffline)
     {
         dwError = AD_MachineCredentialsCacheInitialize();
-        if (dwError == LSA_ERROR_CLOCK_SKEW)
+        if (dwError == LW_ERROR_CLOCK_SKEW)
         {
             bIsDomainOffline = TRUE;
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -525,7 +525,7 @@ AD_AuthenticateUser(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -535,7 +535,7 @@ AD_AuthenticateUser(
             pszPassword);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineAuthenticateUser(
             hProvider,
@@ -553,7 +553,7 @@ AD_AuthenticateUserEx(
     PLSA_AUTH_USER_INFO *ppUserInfo
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
 
     dwError = LsaDmWrapAuthenticateUserEx(
                       gpADProviderData->szDomain,
@@ -569,8 +569,8 @@ error:
     /* On this one, it is a good idea to fallback to
        the local provider */
 
-    if (dwError == LSA_ERROR_RPC_NETLOGON_FAILED) {
-        dwError = LSA_ERROR_NOT_HANDLED;
+    if (dwError == LW_ERROR_RPC_NETLOGON_FAILED) {
+        dwError = LW_ERROR_NOT_HANDLED;
     }
 
     goto cleanup;
@@ -594,7 +594,7 @@ AD_ValidateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!AD_ServicesDomain(pLoginInfo->pszDomainNetBiosName)) {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -794,8 +794,8 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_DUPLICATE_USERNAME ||
-         dwError == LSA_ERROR_DUPLICATE_USER_OR_GROUP)
+    if ((dwError == LW_ERROR_DUPLICATE_USERNAME ||
+         dwError == LW_ERROR_DUPLICATE_USER_OR_GROUP)
         && AD_EventlogEnabled())
     {
         LsaSrvLogUserIDConflictEvent(
@@ -825,7 +825,7 @@ AD_FindUserObjectById(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -835,7 +835,7 @@ AD_FindUserObjectById(
                     ppResult);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineFindUserObjectById(
                     hProvider,
@@ -1015,10 +1015,10 @@ AD_EnumUsersFromCache(
                   request->pszResume,
                   &dwObjectCount,
                   &ppUserObjectList);
-    if ( dwError == LSA_ERROR_NOT_HANDLED )
+    if ( dwError == LW_ERROR_NOT_HANDLED )
     {
         // no more results found
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1086,7 +1086,7 @@ AD_EnumUsersFromCache(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1168,14 +1168,14 @@ AD_RemoveUserByNameFromCache(
 
     if (!strcasecmp(pszLoginId, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = AD_RemoveUserByNameFromCacheInternal(
                   hProvider,
                   pszLoginId);
-    if (dwError == LSA_ERROR_NO_SUCH_USER &&
+    if (dwError == LW_ERROR_NO_SUCH_USER &&
         AD_ShouldAssumeDefaultDomain())
     {
         dwError = LsaCrackDomainQualifiedName(
@@ -1199,7 +1199,7 @@ AD_RemoveUserByNameFromCache(
         }
         else
         {
-            dwError = LSA_ERROR_NO_SUCH_USER;
+            dwError = LW_ERROR_NO_SUCH_USER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1260,8 +1260,8 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_DUPLICATE_USERNAME ||
-         dwError == LSA_ERROR_DUPLICATE_USER_OR_GROUP)
+    if ((dwError == LW_ERROR_DUPLICATE_USERNAME ||
+         dwError == LW_ERROR_DUPLICATE_USER_OR_GROUP)
         && AD_EventlogEnabled())
     {
         LsaSrvLogUserIDConflictEvent(
@@ -1369,7 +1369,7 @@ AD_GetExpandedGroupUsersEx(
     OUT PLSA_SECURITY_OBJECT** pppMemberUsers
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bIsFullyExpanded = FALSE;
     PLSA_AD_GROUP_EXPANSION_DATA pExpansionData = NULL;
     PLSA_SECURITY_OBJECT* ppGroupMembers = NULL;
@@ -1473,11 +1473,11 @@ AD_GetExpandedGroupUsers(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -1493,7 +1493,7 @@ AD_GetExpandedGroupUsers(
             pppResults);
     }
 
-    if (dwError == LSA_ERROR_DOMAIN_IS_OFFLINE)
+    if (dwError == LW_ERROR_DOMAIN_IS_OFFLINE)
     {
         dwError = AD_GetExpandedGroupUsersEx(
             hProvider,
@@ -1530,7 +1530,7 @@ AD_FindGroupById(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -1542,7 +1542,7 @@ AD_FindGroupById(
             &pGroupInfo);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineFindGroupById(
             hProvider,
@@ -1634,10 +1634,10 @@ AD_EnumGroupsFromCache(
                   request->pszResume,
                   &dwObjectCount,
                   &ppGroupObjectList);
-    if ( dwError == LSA_ERROR_NOT_HANDLED )
+    if ( dwError == LW_ERROR_NOT_HANDLED )
     {
         // no more results found
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1703,7 +1703,7 @@ AD_EnumGroupsFromCache(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1880,7 +1880,7 @@ AD_GetUserGroupObjectMembership(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -1892,7 +1892,7 @@ AD_GetUserGroupObjectMembership(
             pppResult);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineGetUserGroupObjectMembership(
             hProvider,
@@ -1941,14 +1941,14 @@ AD_GroupObjectToGroupInfo(
                 NULL,
                 &sMembers,
                 &ppMembers);
-            if (dwError == LSA_ERROR_NO_SUCH_OBJECT)
+            if (dwError == LW_ERROR_NO_SUCH_OBJECT)
             {
                 dwError = 0;
             }
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_GROUP_INFO_LEVEL;
+            dwError = LW_ERROR_INVALID_GROUP_INFO_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -2116,10 +2116,10 @@ AD_GetGroupsForUser(
                     bIsCacheOnlyMode,
                     dwGroupInfoLevel,
                     &ppGroupInfoList[sEnabledCount]);
-        if (dwError == LSA_ERROR_OBJECT_NOT_ENABLED)
+        if (dwError == LW_ERROR_OBJECT_NOT_ENABLED)
         {
             // Filter this group from the list
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
             continue;
         }
         BAIL_ON_LSA_ERROR(dwError);
@@ -2281,7 +2281,7 @@ cleanup:
     if (pUserMemberships)
     {
         dwError = LsaHashGetIterator(pUserMemberships, &hashIterator);
-        assert(dwError == LSA_ERROR_SUCCESS);
+        assert(dwError == LW_ERROR_SUCCESS);
 
         while ((pHashEntry = LsaHashNext(&hashIterator)) != NULL)
         {
@@ -2459,7 +2459,7 @@ AD_SetPassword(
     PCSTR pszPassword
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 
@@ -2470,7 +2470,7 @@ AD_AddUser(
     PVOID  pUserInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2479,7 +2479,7 @@ AD_ModifyUser(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2488,7 +2488,7 @@ AD_DeleteUser(
     uid_t  uid
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2498,7 +2498,7 @@ AD_AddGroup(
     PVOID pGroupInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2507,7 +2507,7 @@ AD_ModifyGroup(
     PLSA_GROUP_MOD_INFO pGroupModInfo
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2516,7 +2516,7 @@ AD_DeleteGroup(
     gid_t  gid
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -2714,7 +2714,7 @@ AD_BeginEnumNSSArtefacts(
 
     if (!dwFlags)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2737,7 +2737,7 @@ AD_BeginEnumNSSArtefacts(
 
         case UNPROVISIONED_MODE:
 
-            dwError = LSA_ERROR_NOT_SUPPORTED;
+            dwError = LW_ERROR_NOT_SUPPORTED;
             break;
     }
 
@@ -3370,7 +3370,7 @@ AD_ProviderIoControl(
                           ppOutputBuffer);
             break;
         default:
-            dwError = LSA_ERROR_NOT_HANDLED;
+            dwError = LW_ERROR_NOT_HANDLED;
             break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -3454,7 +3454,7 @@ AD_FindUserObjectByNameInternal(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -3464,7 +3464,7 @@ AD_FindUserObjectByNameInternal(
                         &pResult);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineFindUserObjectByName(
                         hProvider,
@@ -3500,7 +3500,7 @@ AD_FindUserObjectByName(
 
     if (!strcasecmp(pszLoginId, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3508,7 +3508,7 @@ AD_FindUserObjectByName(
                 hProvider,
                 pszLoginId,
                 &pResult);
-    if (dwError == LSA_ERROR_NO_SUCH_USER &&
+    if (dwError == LW_ERROR_NO_SUCH_USER &&
         AD_ShouldAssumeDefaultDomain())
     {
         dwError = LsaCrackDomainQualifiedName(
@@ -3533,7 +3533,7 @@ AD_FindUserObjectByName(
         }
         else
         {
-            dwError = LSA_ERROR_NO_SUCH_USER;
+            dwError = LW_ERROR_NO_SUCH_USER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -3625,7 +3625,7 @@ AD_FindGroupObjectByNameInternal(
 
     if (AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -3635,7 +3635,7 @@ AD_FindGroupObjectByNameInternal(
                         &pResult);
     }
 
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineFindGroupObjectByName(
                         hProvider,
@@ -3671,7 +3671,7 @@ AD_FindGroupObjectByName(
 
     if (!strcasecmp(pszGroupName, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3679,7 +3679,7 @@ AD_FindGroupObjectByName(
                 hProvider,
                 pszGroupName,
                 &pResult);
-    if (dwError == LSA_ERROR_NO_SUCH_GROUP &&
+    if (dwError == LW_ERROR_NO_SUCH_GROUP &&
         AD_ShouldAssumeDefaultDomain())
     {
         dwError = LsaCrackDomainQualifiedName(
@@ -3704,7 +3704,7 @@ AD_FindGroupObjectByName(
         }
         else
         {
-            dwError = LSA_ERROR_NO_SUCH_GROUP;
+            dwError = LW_ERROR_NO_SUCH_GROUP;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -3741,12 +3741,12 @@ AD_InitializeOperatingMode(
     IN BOOLEAN bIsDomainOffline
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_PROVIDER_DATA pProviderData = NULL;
 
     if (bIsDomainOffline || AD_IsOffline())
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     else
     {
@@ -3756,7 +3756,7 @@ AD_InitializeOperatingMode(
                 pszHostName);
     }
     // If we are offline, do the offline case
-    if (LSA_ERROR_DOMAIN_IS_OFFLINE == dwError)
+    if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
         dwError = AD_OfflineInitializeOperatingMode(
                 &pProviderData,
@@ -3910,7 +3910,7 @@ AD_MachineCredentialsCacheInitialize(
 
     if (LsaDmIsDomainOffline(pszDomainDnsName))
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -4367,7 +4367,7 @@ AD_ResolveConfiguredLists(
                             pszMember,
                             dwInfoLevel,
                             (PVOID*)&pUserInfo);
-            if (dwError == LSA_ERROR_SUCCESS)
+            if (dwError == LW_ERROR_SUCCESS)
             {
                 LSA_LOG_VERBOSE("Adding entry to allow login for user [%s]", pszMember);
 
@@ -4382,14 +4382,14 @@ AD_ResolveConfiguredLists(
 
                 continue;
             }
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
 
             ADCacheSafeFreeObject(&pGroupInfo);
             dwError = AD_FindGroupObjectByName(
                             hProvider,
                             pszMember,
                             &pGroupInfo);
-            if (dwError == LSA_ERROR_SUCCESS)
+            if (dwError == LW_ERROR_SUCCESS)
             {
                 LSA_LOG_VERBOSE("Adding entry to allow login for group [%s]", pszMember);
 
@@ -4403,7 +4403,7 @@ AD_ResolveConfiguredLists(
             }
             LSA_LOG_WARNING("Restricted login list - couldn't resolve %s [%u]",
                             pszMember, dwError);
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
     }
 
@@ -4482,7 +4482,7 @@ AD_SetUserCanonicalNameToAlias(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
 
             break;
@@ -4538,7 +4538,7 @@ AD_SetGroupCanonicalNamesToAliases(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
 
             break;

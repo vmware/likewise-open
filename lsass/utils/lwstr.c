@@ -67,7 +67,7 @@ LwAllocateString(
     PSTR  pszOutputString = NULL;
 
     if (!pszInputString) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -507,7 +507,7 @@ LwStrDupOrNull(
     if (pszInputString == NULL)
     {
         *ppszOutputString = NULL;
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
     else
     {

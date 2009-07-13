@@ -53,7 +53,7 @@ LsaSrvOpenEventLog(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     return LWIOpenEventLogEx(
                   NULL,             // Server name (defaults to local computer eventlogd)
@@ -72,7 +72,7 @@ LsaSrvCloseEventLog(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     return LWICloseEventLog(hEventLog);
 #endif
@@ -89,7 +89,7 @@ LsaSrvLogInformationEvent(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     EVENT_LOG_RECORD event = {0};
 
@@ -122,7 +122,7 @@ LsaSrvLogWarningEvent(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     EVENT_LOG_RECORD event = {0};
 
@@ -155,7 +155,7 @@ LsaSrvLogErrorEvent(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     EVENT_LOG_RECORD event = {0};
 
@@ -188,7 +188,7 @@ LsaSrvLogSuccessAuditEvent(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     EVENT_LOG_RECORD event = {0};
 
@@ -221,7 +221,7 @@ LsaSrvLogFailureAuditEvent(
     )
 {
 #if defined(MINIMAL_LSASS)
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 #else
     EVENT_LOG_RECORD event = {0};
 

@@ -142,7 +142,7 @@ NTLMComputeNTLMv1Response(
     ntResponse->length = ntResponse->maxLength = NTLM_V1_RESPONSE_LENGTH;
     ntResponse->buffer = (PBYTE) NTLMAllocateMemory(NTLM_V1_RESPONSE_LENGTH);
     if (!ntResponse->buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     /* get the user's owf */
     dwError = user->provider->getNTOwf(
@@ -396,7 +396,7 @@ NTLMCreateNTLMv2ResponseBlob(
      */
     responseBlob->buffer = NTLMAllocateMemory(dwLen);
     if (!responseBlob->buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     responseBlob->length = responseBlob->maxLength = dwLen;
 
@@ -621,7 +621,7 @@ NTLMParseAuthenticateMessage(
     ZERO_STRUCTP(pAuthMsg);
 
     if (pBuf->length < sizeof(AUTHENTICATE_MESSAGE))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = NTLMParseMessageHeader(
                     pBuf, 
@@ -656,7 +656,7 @@ NTLMParseAuthenticateMessage(
     BAIL_ON_NTLM_ERROR(dwError);
 
     if (ofs + sizeof(ULONG) > pBuf->length)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     pAuthMsg->negotiateFlags = GET_ULONG(pBuf->buffer, ofs);
 
@@ -722,7 +722,7 @@ NTLMGssBuildAuthenticateMessage(
 
         provider = NTLMSelectAuthProvider(&authUser);
         if (!provider)
-            BAIL_WITH_NTLM_ERROR(LSA_ERROR_NO_SUCH_USER);
+            BAIL_WITH_NTLM_ERROR(LW_ERROR_NO_SUCH_USER);
     }
     else
     {
@@ -782,7 +782,7 @@ NTLMGssBuildAuthenticateMessage(
     authenticateMessage = NTLMAllocateMemory(dwMessageSize);
 
     if (!authenticateMessage)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     PUT_BYTES(authenticateMessage, 0, signature, NTLM_SIGNATURE_SIZE);
     ofs += NTLM_SIGNATURE_SIZE;
@@ -853,7 +853,7 @@ NTLMLocalResponseMessageHandler(
     PSEC_BUFFER_S   finalSessionKey
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     SEC_BUFFER expected;
     SEC_BUFFER_S baseSessionKey;
     SEC_BUFFER_S clientChallenge;
@@ -870,7 +870,7 @@ NTLMLocalResponseMessageHandler(
         //
 
         if (ntResponse->length < sizeof(NTLMV2_RESPONSE_BLOB))
-            BAIL_WITH_NTLM_ERROR(LSA_ERROR_LOGON_FAILURE);
+            BAIL_WITH_NTLM_ERROR(LW_ERROR_LOGON_FAILURE);
 
         memcpy(&v2Response, ntResponse->buffer, sizeof(NTLMV2_RESPONSE_BLOB));
         INIT_SEC_BUFFER_S_VAL(&clientChallenge, 8, v2Response.clientChallenge); 
@@ -888,7 +888,7 @@ NTLMLocalResponseMessageHandler(
         if (memcmp(ntResponse->buffer, v2Response.hmac, MD5_DIGEST_LENGTH))
         {
             /*@todo - better logging */
-            BAIL_WITH_NTLM_ERROR(LSA_ERROR_LOGON_FAILURE);
+            BAIL_WITH_NTLM_ERROR(LW_ERROR_LOGON_FAILURE);
         }
         
         /*@todo -verify lmResponse */
@@ -916,7 +916,7 @@ NTLMLocalResponseMessageHandler(
         if (memcmp(expected.buffer, ntResponse->buffer, expected.length)) 
         {
             /* @todo debug */
-            BAIL_WITH_NTLM_ERROR(LSA_ERROR_LOGON_FAILURE);
+            BAIL_WITH_NTLM_ERROR(LW_ERROR_LOGON_FAILURE);
         }
     }
 
@@ -970,7 +970,7 @@ NTLMGssCheckAuthenticateMessage(
     BAIL_ON_NTLM_ERROR(dwError);
 
     if ((negFlags & authenticateMessage.negotiateFlags) != negFlags)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_MESSAGE);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_MESSAGE);
 
     /* 
      * store away user name / domain name 
@@ -990,7 +990,7 @@ NTLMGssCheckAuthenticateMessage(
 
     provider = NTLMSelectAuthProvider(&authUser);
     if (!provider)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_NO_SUCH_USER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_NO_SUCH_USER);
 
     INIT_SEC_BUFFER_S_VAL(
         &msgSessionKey, 

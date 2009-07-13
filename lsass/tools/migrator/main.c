@@ -459,7 +459,7 @@ LsaSrvPopulateGroupMembers(
 
                     if (pszQuery == NULL)
                     {
-                        dwError = LSA_ERROR_OUT_OF_MEMORY;
+                        dwError = LW_ERROR_OUT_OF_MEMORY;
                         BAIL_ON_LSA_ERROR(dwError);
                     }
 

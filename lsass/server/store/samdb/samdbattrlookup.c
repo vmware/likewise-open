@@ -121,7 +121,7 @@ SamDbAttributeLookupByName(
                     (PVOID*)&pAttrMap);
     if (ntStatus == STATUS_NOT_FOUND)
     {
-        dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+        dwError = LW_ERROR_NO_SUCH_ATTRIBUTE;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

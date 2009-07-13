@@ -78,7 +78,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - opendir reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off.");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -183,7 +183,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - pstat_getproc reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off.");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -252,7 +252,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - sysctl reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -265,7 +265,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - sysctl reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -329,7 +329,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - kvm_open reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -382,7 +382,7 @@ LsaUmpIsUserActive(
     {
         LSA_LOG_DEBUG("LSA User Manager - opendir reported %u", errno);
         LSA_LOG_ERROR("LSA User Manager - unable to determine whether users have logged off.");
-        dwError = LSA_ERROR_CANNOT_DETECT_USER_PROCESSES;
+        dwError = LW_ERROR_CANNOT_DETECT_USER_PROCESSES;
     }
     BAIL_ON_LSA_ERROR(dwError);
 

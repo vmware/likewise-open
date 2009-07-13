@@ -113,7 +113,7 @@ NTLMBuildTargetInfo(
 
     targetInfo.buffer = NTLMAllocateMemory(dwSize);
     if (!targetInfo.buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     targetInfo.length = targetInfo.maxLength = dwSize;
     copyTo = targetInfo.buffer;
@@ -185,21 +185,21 @@ NTLMServerValidateNegotiateFlags(
 {
     /* eventually the default should be altered via policy / oids */
     ULONG flags = ( NEGOTIATE_SRV_DEFAULT & negotiateFlags );
-    ULONG dwError = LSA_ERROR_SUCCESS;
+    ULONG dwError = LW_ERROR_SUCCESS;
 
     NTLMDumpNegotiateFlags(D_ERROR, "inbound flags", negotiateFlags);
 
     /* remove flags which we support, but client doesn't want */
     /* right now, only do NTLM, no LM */
     if ((flags & NEGOTIATE_NTLM) == 0)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_UNSUPPORTED_SUBPROTO);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_UNSUPPORTED_SUBPROTO);
 
     /* @todo - we need to eventually support ANSI, or fail here
      * if we aren't provided a UNICODE flags */
     if (flags & NEGOTIATE_UNICODE)
         flags &= ~NEGOTIATE_OEM;
     else
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_UNSUPPORTED_SUBPROTO);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_UNSUPPORTED_SUBPROTO);
 
     /* store these flags in context */
     NTLM_LOCK_CONTEXT(pCtxt);
@@ -229,7 +229,7 @@ NTLMFinalizedMessage(
 
     /* @todo debug */
     /* this message SHOULD NEVER be called */
-    return LSA_ERROR_INVALID_CONTEXT;
+    return LW_ERROR_INVALID_CONTEXT;
 }
 
 ULONG
@@ -263,7 +263,7 @@ NTLMBuildNegotiateMessage(
     negotiateMsg = NTLMAllocateMemory(dwSize);
 
     if (!negotiateMsg)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     PUT_BYTES(negotiateMsg, 0, signature, NTLM_SIGNATURE_SIZE);
     ofs += NTLM_SIGNATURE_SIZE;
@@ -308,7 +308,7 @@ error:
     if (dwError)
         pCtxt->processNextMessage = NTLMFinalizedMessage;
     else
-        dwError = LSA_WARNING_CONTINUE_NEEDED;
+        dwError = LW_WARNING_CONTINUE_NEEDED;
 
     NTLM_SAFE_FREE(negotiateMsg);
     return dwError;
@@ -321,11 +321,11 @@ NTLMParseNegotiateMessage(
     ULONG *negotiateFlags
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     ULONG ofs = 0;
 
     if (pBuf->length < sizeof(NEGOTIATE_MESSAGE))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = NTLMParseMessageHeader(
                     pBuf,
@@ -382,7 +382,7 @@ NTLMProcessNegotiateMessage(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = LSA_WARNING_CONTINUE_NEEDED;
+    dwError = LW_WARNING_CONTINUE_NEEDED;
 
 error:
 
@@ -452,7 +452,7 @@ NTLMBuildChallengeMessage(
 
     challengeMsg->buffer =  NTLMAllocateMemory(dwSize);
     if (!challengeMsg->buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     PUT_BYTES(challengeMsg->buffer, ofs, signature, NTLM_SIGNATURE_SIZE);
     ofs += NTLM_SIGNATURE_SIZE;
@@ -583,7 +583,7 @@ NTLMCheckChallengeNegotiateFlags(
     PSEC_BUFFER targetInfo
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     ULONG cliNegFlags = NTLMContextGetNegotiateFlags(pCtxt);
 
     /*@ todo - dumb down D_ERROR to D_TRACE */
@@ -602,24 +602,24 @@ NTLMCheckChallengeNegotiateFlags(
     /* check various target constructs */
     if ((challengeMessage->negotiateFlags & CHALLENGE_TARGET_INFO) &&
         (targetInfo->length == 0))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_TOKEN);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_TOKEN);
 
     if ((challengeMessage->negotiateFlags & NEGOTIATE_REQUEST_TARGET) &&
         (challengeMessage->target.length == 0))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_TOKEN);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_TOKEN);
 
     /* @todo -hacky - we don't support weak keys, protocols, or ANSI */
     if ((challengeMessage->negotiateFlags & NEGOTIATE_REQUIRED) !=
         NEGOTIATE_REQUIRED)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_NOT_SUPPORTED);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_NOT_SUPPORTED);
 
     if ((challengeMessage->negotiateFlags & NEGOTIATE_VERSION_REQUIRED) == 0)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_NOT_SUPPORTED);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_NOT_SUPPORTED);
 
     /* finally, make sure all flags are accounted for */
     if ((cliNegFlags | NEGOTIATE_VARIATIONS) !=
         (challengeMessage->negotiateFlags | NEGOTIATE_VARIATIONS))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_TOKEN);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_TOKEN);
 
     /* @todo - update client context flags */
 
@@ -650,14 +650,14 @@ NTLMParseChallengeMessage(
     PSEC_BUFFER pTargetInfo
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     ULONG ofs = 0;
 
     ZERO_STRUCTP(pChallengeMsg);
     ZERO_STRUCTP(pTargetInfo);
 
     if (pBuf->length < sizeof(CHALLENGE_MESSAGE))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = NTLMParseMessageHeader(
                     pBuf,
@@ -736,7 +736,7 @@ NTLMProcessChallengeMessage(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    /* ? dwError = LSA_WARNING_CONTINUE_NEEDED; */
+    /* ? dwError = LW_WARNING_CONTINUE_NEEDED; */
     /* should be OK - clients need to continue sending */
 
 error:

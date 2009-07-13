@@ -86,13 +86,13 @@ LsaAdBatchBuilderAppend(
         if (dwNewQueryOffset < dwQueryOffset)
         {
             // overflow
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwNewQueryOffset - 1 >= dwQuerySize)
         {
             // overflow
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         memcpy(pszQuery + dwQueryOffset, pszAppend, dwAppendLength);
@@ -184,7 +184,7 @@ LsaAdBatchBuilderCreateQuery(
             if (dwNewQuerySize < dwQuerySize)
             {
                 // overflow
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             if (dwMaxQuerySize && (dwNewQuerySize > dwMaxQuerySize))
@@ -393,7 +393,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             if (pszValue && !LsaAdBatchHasValidCharsForSid(pszValue))
             {
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -456,7 +456,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -789,7 +789,7 @@ LsaAdBatchBuildQueryForRpc(
             }
             default:
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -876,7 +876,7 @@ LsaAdBatchBuildQueryForRpc(
             }
             default:
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -938,7 +938,7 @@ LsaAdBatchBuildQueryForReal(
             pszAttributeName = AD_LDAP_SAM_NAME_TAG;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1029,7 +1029,7 @@ LsaAdBatchBuildQueryForPseudoInternal(
     if (!pszAttributeName)
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1043,7 +1043,7 @@ LsaAdBatchBuildQueryForPseudoInternal(
     if (!pszPrefix || !pszSuffix)
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

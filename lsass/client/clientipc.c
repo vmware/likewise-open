@@ -205,7 +205,7 @@ LsaTransactFindGroupByName(
 
             if (pResultList->dwNumGroups != 1)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -222,7 +222,7 @@ LsaTransactFindGroupByName(
                     pResultList->dwNumGroups = 0;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -300,7 +300,7 @@ LsaTransactFindGroupById(
                     pResultList->dwNumGroups = 0;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -438,7 +438,7 @@ LsaTransactEnumGroups(
                     pResultList->dwNumGroups = 0;
                     break;
                 default:
-                   dwError = LSA_ERROR_INVALID_PARAMETER;
+                   dwError = LW_ERROR_INVALID_PARAMETER;
                    BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -549,7 +549,7 @@ LsaTransactAddGroup(
             addGroupInfoReq.ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)&pGroupInfo;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -703,7 +703,7 @@ LsaTransactGetGroupsForUser(
                     pResultList->dwNumGroups = 0;
                     break;
                 default:
-                   dwError = LSA_ERROR_INVALID_PARAMETER;
+                   dwError = LW_ERROR_INVALID_PARAMETER;
                    BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -771,7 +771,7 @@ LsaTransactFindUserByName(
 
             if (pResultList->dwNumUsers != 1)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -793,7 +793,7 @@ LsaTransactFindUserByName(
                     pResultList->dwNumUsers = 0;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -859,7 +859,7 @@ LsaTransactFindUserById(
 
             if (pResultList->dwNumUsers != 1)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -881,7 +881,7 @@ LsaTransactFindUserById(
                     pResultList->dwNumUsers = 0;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -1022,7 +1022,7 @@ LsaTransactEnumUsers(
                     pResultList->dwNumUsers = 0;
                     break;
                 default:
-                   dwError = LSA_ERROR_INVALID_PARAMETER;
+                   dwError = LW_ERROR_INVALID_PARAMETER;
                    BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -1136,7 +1136,7 @@ LsaTransactAddUser(
             addUserInfoReq.ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)&pUserInfo;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

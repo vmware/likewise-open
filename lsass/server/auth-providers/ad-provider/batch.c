@@ -120,7 +120,7 @@ LsaAdBatchCheckDomainModeCompatibility(
     {
         // Exclude all the external trusts in default mode to inherit the feature from 4.0
         // To be specific, external trust in default mode is not supported.
-        dwError = LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
+        dwError = LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -148,7 +148,7 @@ LsaAdBatchCheckDomainModeCompatibility(
 
     if (adMode != gpADProviderData->adConfigurationMode)
     {
-        dwError = LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
+        dwError = LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -186,7 +186,7 @@ LsaAdBatchGetDomainEntryType(
                     &dwTrustMode,
                     NULL,
                     NULL);
-    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         dwError = 0;
         bSkip = TRUE;
@@ -234,14 +234,14 @@ LsaAdBatchGetDomainEntryType(
 
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
 
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -249,7 +249,7 @@ LsaAdBatchGetDomainEntryType(
     {
         bIsExternalTrust = (dwTrustMode == LSA_TRUST_MODE_EXTERNAL) ? TRUE : FALSE;
         dwError = LsaAdBatchCheckDomainModeCompatibility(pszDomainName, bIsExternalTrust, pszDomainDN);
-        if (dwError == LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS)
+        if (dwError == LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS)
         {
             dwError = 0;
             bSkip = TRUE;
@@ -283,7 +283,7 @@ LsaAdBatchGetDomainFromNT4Name(
     pszSeparator = strchr(pszNT4Name, LsaGetDomainSeparator());
     if (!pszSeparator)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -394,7 +394,7 @@ LsaAdBatchCreateDomainEntry(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -450,7 +450,7 @@ LsaAdBatchCreateDomainEntry(
             LSA_ASSERT(pEntry->QueryMatch.ByNT4.sDnsDomainNameLength > 0);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -517,7 +517,7 @@ LsaAdBatchCreateBatchItem(
 
     if (!LSA_IS_XOR(!IsNullOrEmptyString(pszString), pdwId))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -533,13 +533,13 @@ LsaAdBatchCreateBatchItem(
         pszQueryString = index(pszQueryString, LsaGetDomainSeparator());
         if (!pszQueryString)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
         pszQueryString++;
         if (IsNullOrEmptyString(pszQueryString))
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -627,7 +627,7 @@ LsaAdBatchGetDomainMatchTerm(
             pszMatchTerm = pszQueryTerm;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -724,7 +724,7 @@ LsaAdBatchMatchDomain(
                 bIsMatch = TRUE;
             }
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -805,7 +805,7 @@ LsaAdBatchConvertQTListToBIList(
     if (!LSA_IS_XOR(ppszQueryList, pdwId))
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -870,7 +870,7 @@ LsaAdBatchSplitBIListToBIListPerDomain(
 
     if (!pBatchItemList)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -924,7 +924,7 @@ LsaAdBatchSplitBIListToBIListPerDomain(
                             &pFoundEntry,
                             LSA_AD_BATCH_QUERY_TYPE_BY_SID,
                             pszMatchTerm);
-            if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+            if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", pBatchItem->pszSid);
                 dwError = 0;
@@ -1010,7 +1010,7 @@ LsaAdBatchSplitQTListToBIListPerDomain(
                             &pFoundEntry,
                             QueryType,
                             pszMatchTerm);
-            if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+            if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
             {
                 LSA_LOG_DEBUG("Domain not found for query item - '%s'", ppszQueryList[i]);
                 dwError = 0;
@@ -1219,7 +1219,7 @@ LsaAdBatchFindObjectsPseudoBeforeReal(
     if (!LSA_IS_XOR(ppszQueryList, pdwId))
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1287,7 +1287,7 @@ LsaAdBatchFindSingleObject(
     if (!LSA_IS_XOR(!IsNullOrEmptyString(pszQueryTerm), pdwId))
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1316,13 +1316,13 @@ LsaAdBatchFindSingleObject(
 
     if (dwCount < 1 || !ppObjects[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwCount > 1)
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1357,7 +1357,7 @@ LsaAdBatchFindObjectsInternal(
     if (!LSA_IS_XOR(ppszQueryList, pdwId))
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1371,7 +1371,7 @@ LsaAdBatchFindObjectsInternal(
             if (pdwId)
             {
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -1380,13 +1380,13 @@ LsaAdBatchFindObjectsInternal(
             if (ppszQueryList)
             {
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1418,7 +1418,7 @@ LsaAdBatchFindObjectsInternal(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1450,7 +1450,7 @@ LsaAdBatchFilterMisTypeObjects(
     if (LSA_AD_BATCH_QUERY_TYPE_BY_UID != QueryType &&
         LSA_AD_BATCH_QUERY_TYPE_BY_GID != QueryType)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1582,7 +1582,7 @@ LsaAdBatchFindObjectsForDomain(
     {
         // This should never happen, this domain should already be skipped.
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1717,7 +1717,7 @@ LsaAdBatchResolveRpcObjects(
                 break;
             default:
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1725,7 +1725,7 @@ LsaAdBatchResolveRpcObjects(
         {
             LSA_LOG_ERROR("Too many results returned (got %u, expected %u)",
                           dwCount, dwQueryCount);
-            dwError = LSA_ERROR_RPC_ERROR;
+            dwError = LW_ERROR_RPC_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwCount == 0)
@@ -1865,7 +1865,7 @@ LsaAdBatchResolveRealObjects(
         {
             LSA_LOG_ERROR("Too many results returned (got %u, expected %u)",
                           dwCount, dwQueryCount);
-            dwError = LSA_ERROR_LDAP_ERROR;
+            dwError = LW_ERROR_LDAP_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwCount == 0)
@@ -1923,7 +1923,7 @@ LsaAdBatchBuildQueryScopeForPseudo(
             {
                 // ASSERT
                 LSA_LOG_ERROR("Schema mode default cell does not need pseudo-objects");
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1942,7 +1942,7 @@ LsaAdBatchBuildQueryScopeForPseudo(
         default:
             // ASSERT
             LSA_LOG_ERROR("Unexpected mode %u", Mode);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1967,7 +1967,7 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
     IN OUT PLSA_LIST_LINKS pBatchItemList
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwTotalFoundCount = 0;
     DWORD dwFoundInDomainCount = 0;
     PSTR* ppszDomainNames = NULL;
@@ -1992,7 +1992,7 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
     }
     else if (dwTotalFoundCount > dwTotalItemCount)
     {
-        dwError = LSA_ERROR_DUPLICATE_USER_OR_GROUP;
+        dwError = LW_ERROR_DUPLICATE_USER_OR_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2023,19 +2023,19 @@ LsaAdBatchResolvePseudoObjectSidsViaGcDefaultMode(
                             &dwTrustMode,
                             NULL,
                             NULL);
-            if (LSA_ERROR_NO_SUCH_DOMAIN == dwError ||
+            if (LW_ERROR_NO_SUCH_DOMAIN == dwError ||
                 LSA_TRUST_DIRECTION_TWO_WAY != dwTrustDirection)
             {
 
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
             }
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         bIsExternalTrust = (dwTrustMode == LSA_TRUST_MODE_EXTERNAL) ? TRUE : FALSE;
         dwError = LsaAdBatchCheckDomainModeCompatibility(ppszDomainNames[i], bIsExternalTrust, NULL);
-        if (dwError == LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS)
+        if (dwError == LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS)
         {
             dwError = 0;
             continue;
@@ -2086,7 +2086,7 @@ LsaAdBatchResolvePseudoObjectsUnprovMode(
     {
         if (!ADUnprovPlugin_SupportsAliases())
         {
-            dwError = LSA_ERROR_NOT_SUPPORTED;
+            dwError = LW_ERROR_NOT_SUPPORTED;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -2102,7 +2102,7 @@ LsaAdBatchResolvePseudoObjectsUnprovMode(
             bIsUser = FALSE;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2147,7 +2147,7 @@ LsaAdBatchResolvePseudoObjectsUnprovMode(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -2271,7 +2271,7 @@ LsaAdBatchResolvePseudoObjects(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2333,7 +2333,7 @@ LsaAdBatchResolvePseudoObjectsWithLinkedCells(
     IN OUT PLSA_LIST_LINKS pBatchItemList
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PDLINKEDLIST pCellNode = NULL;
     DWORD dwTotalFoundCount = 0;
     DWORD dwFoundInCellCount = 0;
@@ -2458,7 +2458,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
 
     if (IsNullOrEmptyString(pszDnsDomainName))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2519,7 +2519,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
         {
             LSA_LOG_ERROR("Too many results returned (got %u, expected %u)",
                           dwCount, dwQueryCount);
-            dwError = LSA_ERROR_LDAP_ERROR;
+            dwError = LW_ERROR_LDAP_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwCount == 0)
@@ -2639,7 +2639,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
 
     if (bDoGCSearch && IsNullOrEmptyString(pszDnsDomainName))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2727,7 +2727,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
         {
             LSA_LOG_ERROR("Too many results returned (got %u, expected %u)",
                           dwCount, dwQueryCount);
-            dwError = LSA_ERROR_LDAP_ERROR;
+            dwError = LW_ERROR_LDAP_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwCount == 0)
@@ -2864,7 +2864,7 @@ LsaAdBatchGetObjectTypeFromRealMessage(
 
     if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2940,13 +2940,13 @@ LsaAdBatchGetObjectTypeFromPseudoMessage(
     if (!keywordsObjectType)
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!LsaAdBatchIsUserOrGroupObjectType(keywordsObjectType))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2987,7 +2987,7 @@ LsaAdBatchGetObjectTypeFromPseudoMessage(
 
     if (!LsaAdBatchIsUserOrGroupObjectType(objectType))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2995,7 +2995,7 @@ LsaAdBatchGetObjectTypeFromPseudoMessage(
     {
         LSA_LOG_DEBUG("Object type mismatch: %u vs %u",
                       keywordsObjectType, objectType);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3103,13 +3103,13 @@ LsaAdBatchGetCompareStringFromRealObject(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszCompare))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3187,13 +3187,13 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszCompare))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3239,7 +3239,7 @@ LsaAdBatchGetCompareStringFromPseudoObject(
                                 AD_LDAP_BACKLINK_PSEUDO_TAG);
             if (IsNullOrEmptyString(pszCompare))
             {
-                dwError = LSA_ERROR_INVALID_SID;
+                dwError = LW_ERROR_INVALID_SID;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -3257,7 +3257,7 @@ LsaAdBatchGetCompareStringFromPseudoObject(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3345,14 +3345,14 @@ LsaAdBatchProcessRpcObject(
             if (!pszFoundSamAccountName)
             {
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             pszFoundSamAccountName++;
             if (!pszFoundSamAccountName[0])
             {
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -3367,7 +3367,7 @@ LsaAdBatchProcessRpcObject(
 
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3381,7 +3381,7 @@ LsaAdBatchProcessRpcObject(
         // We found something else.
         LSA_LOG_DEBUG("Found non-user/non-group object type %d",
                       pTranslatedName->ObjectType);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
 
     desiredObjectType = LsaAdBatchGetObjectTypeFromQueryType(QueryType);
@@ -3392,7 +3392,7 @@ LsaAdBatchProcessRpcObject(
                       objectType, desiredObjectType);
         // This cannot happen because we restrict the type we search on.
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3416,7 +3416,7 @@ LsaAdBatchProcessRpcObject(
         LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
                       pszType, pszCompare);
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3483,7 +3483,7 @@ LsaAdBatchProcessRealObject(
                       pszType, pszCompare, objectType, desiredObjectType);
         // This cannot happen because we restrict the type we search on.
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3511,7 +3511,7 @@ LsaAdBatchProcessRealObject(
         LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
                       pszType, pszCompare);
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3564,7 +3564,7 @@ LsaAdBatchProcessPseudoObject(
 
     if (!bIsValid)
     {
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
+        dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3593,7 +3593,7 @@ LsaAdBatchProcessPseudoObject(
     if (IsNullOrEmptyString(pszCompare))
     {
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3618,7 +3618,7 @@ LsaAdBatchProcessPseudoObject(
                       pszType, pszCompare, objectType, desiredObjectType);
         // This cannot happen because we restrict the type we search on.
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3658,7 +3658,7 @@ LsaAdBatchProcessPseudoObject(
         LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
                       pszType, pszCompare);
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3739,7 +3739,7 @@ LsaAdBatchProcessPseudoObjectDefaultSchema(
                       pszType, pszCompare, objectType, desiredObjectType);
         // This cannot happen because we restrict the type we search on.
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3780,7 +3780,7 @@ LsaAdBatchProcessPseudoObjectDefaultSchema(
         LSA_LOG_DEBUG("Did not find batch item for message for %s '%s'",
                       pszType, pszCompare);
         LSA_ASSERT(FALSE);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3927,7 +3927,7 @@ LsaAdBatchAccountTypeToObjectType(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
     }
 
     *pObjectType = objectType;

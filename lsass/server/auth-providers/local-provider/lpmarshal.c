@@ -114,7 +114,7 @@ LocalMarshalEntryToUserInfo_0(
                     pEntry,
                     &wszAttrNamePassword[0],
                     &pUserInfo->pszPasswd);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -124,7 +124,7 @@ LocalMarshalEntryToUserInfo_0(
                     pEntry,
                     &wszAttrNameGecos[0],
                     &pUserInfo->pszGecos);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -260,7 +260,7 @@ LocalMarshalEntryToUserInfo_1(
                     pEntry,
                     &wszAttrNamePassword[0],
                     &pUserInfo->pszPasswd);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -270,7 +270,7 @@ LocalMarshalEntryToUserInfo_1(
                     pEntry,
                     &wszAttrNameGecos[0],
                     &pUserInfo->pszGecos);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -298,7 +298,7 @@ LocalMarshalEntryToUserInfo_1(
                     pEntry,
                     &wszAttrNameUPN[0],
                     &pUserInfo->pszUPN);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -444,7 +444,7 @@ LocalMarshalEntryToUserInfo_2(
                     pEntry,
                     &wszAttrNamePassword[0],
                     &pUserInfo->pszPasswd);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -454,7 +454,7 @@ LocalMarshalEntryToUserInfo_2(
                     pEntry,
                     &wszAttrNameGecos[0],
                     &pUserInfo->pszGecos);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -482,7 +482,7 @@ LocalMarshalEntryToUserInfo_2(
                     pEntry,
                     &wszAttrNameUPN[0],
                     &pUserInfo->pszUPN);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -524,7 +524,7 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameNTHash[0],
                         &pUserInfo->pNTHash,
                         &pUserInfo->dwNTHashLen);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -535,7 +535,7 @@ LocalMarshalEntryToUserInfo_2(
                         &wszAttrNameLMHash[0],
                         &pUserInfo->pLMHash,
                         &pUserInfo->dwLMHashLen);
-    if (dwError == LSA_ERROR_NO_ATTRIBUTE_VALUE)
+    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
     {
         dwError = 0;
     }
@@ -980,11 +980,11 @@ LocalMarshalAttrToInteger(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -992,7 +992,7 @@ LocalMarshalAttrToInteger(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1031,11 +1031,11 @@ LocalMarshalAttrToLargeInteger(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1043,7 +1043,7 @@ LocalMarshalAttrToLargeInteger(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1083,11 +1083,11 @@ LocalMarshalAttrToANSIString(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1095,11 +1095,11 @@ LocalMarshalAttrToANSIString(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_ANSI_STRING)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
         else if (!pAttrValue->data.pszStringValue)
         {
-            dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1147,11 +1147,11 @@ LocalMarshalAttrToUnicodeString(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1159,11 +1159,11 @@ LocalMarshalAttrToUnicodeString(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
         else if (!pAttrValue->data.pwszStringValue)
         {
-            dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1216,11 +1216,11 @@ LocalMarshalAttrToANSIFromUnicodeString(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1228,11 +1228,11 @@ LocalMarshalAttrToANSIFromUnicodeString(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
         else if (!pAttrValue->data.pwszStringValue)
         {
-            dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1281,11 +1281,11 @@ LocalMarshalAttrToOctetStream(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1293,13 +1293,13 @@ LocalMarshalAttrToOctetStream(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_OCTET_STREAM)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
         else if (!pAttrValue->data.pOctetString ||
                  !pAttrValue->data.pOctetString->pBytes ||
                  !pAttrValue->data.pOctetString->ulNumBytes)
         {
-            dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1351,11 +1351,11 @@ LocalMarshalAttrToBOOLEAN(
 
     if (pAttr->ulNumValues > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     else if (pAttr->ulNumValues == 0)
     {
-        dwError = LSA_ERROR_NO_ATTRIBUTE_VALUE;
+        dwError = LW_ERROR_NO_ATTRIBUTE_VALUE;
     }
     else
     {
@@ -1363,7 +1363,7 @@ LocalMarshalAttrToBOOLEAN(
 
         if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_BOOLEAN)
         {
-            dwError = LSA_ERROR_INVALID_ATTRIBUTE_VALUE;
+            dwError = LW_ERROR_INVALID_ATTRIBUTE_VALUE;
         }
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1407,7 +1407,7 @@ LocalFindAttribute(
 
     if (!pAttr)
     {
-        dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+        dwError = LW_ERROR_NO_SUCH_ATTRIBUTE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

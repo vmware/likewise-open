@@ -153,20 +153,20 @@ LocalGetDomainInfo(
 
     if (!dwNumEntries)
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
     if (dwNumEntries > 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -215,7 +215,7 @@ LocalGetDomainInfo(
         }
         else
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -280,7 +280,7 @@ LocalGetSingleStringAttrValue(
     if ((dwNumAttrs != 1) ||
         (pAttrs[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -320,7 +320,7 @@ LocalGetSingleLargeIntegerAttrValue(
     if ((dwNumAttrs != 1) ||
         (pAttrs[0].Type != DIRECTORY_ATTR_TYPE_LARGE_INTEGER))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

@@ -91,7 +91,7 @@ LsaSrvRefreshConfiguration(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;

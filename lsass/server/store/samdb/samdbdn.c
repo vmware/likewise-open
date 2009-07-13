@@ -78,7 +78,7 @@ SamDbParseDN(
 
     if (!pwszObjectDN || !*pwszObjectDN)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -156,7 +156,7 @@ SamDbGetDNComponents(
 
     if (!pDN || !pDN->pTokenList)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -185,7 +185,7 @@ SamDbGetDNComponents(
 
         if (pToken->tokenType != SAMDB_DN_TOKEN_TYPE_DC)
         {
-            dwError = LSA_ERROR_INVALID_LDAP_DN;
+            dwError = LW_ERROR_INVALID_LDAP_DN;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -349,13 +349,13 @@ SamDbGetDnToken(
     }
     else
     {
-        dwError = LSA_ERROR_INVALID_LDAP_DN;
+        dwError = LW_ERROR_INVALID_LDAP_DN;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
     if (!dwAvailableLen)
     {
-        dwError = LSA_ERROR_INVALID_LDAP_DN;
+        dwError = LW_ERROR_INVALID_LDAP_DN;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

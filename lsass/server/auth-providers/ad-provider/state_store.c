@@ -200,7 +200,7 @@ ADState_FreePreparedStatements(
     )
 {
     int i;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     sqlite3_stmt * * const pppstFreeList[] = {
         &pConn->pstGetProviderData,
         &pConn->pstGetDomainTrustList,
@@ -229,7 +229,7 @@ ADState_SafeCloseDb(
     ADSTATE_CONNECTION_HANDLE* phDb
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     ADSTATE_CONNECTION_HANDLE hDb = NULL;
 
     if (phDb == NULL || *phDb == NULL)
@@ -240,10 +240,10 @@ ADState_SafeCloseDb(
     hDb = *phDb;
 
     dwError = ADState_FreePreparedStatements(hDb);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error freeing prepared statements [%d]", dwError);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
 
     if (hDb->pDb != NULL)
@@ -253,10 +253,10 @@ ADState_SafeCloseDb(
     }
 
     dwError = pthread_rwlock_destroy(&hDb->lock);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error destroying lock [%d]", dwError);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     LSA_SAFE_FREE_MEMORY(hDb);
 
@@ -294,7 +294,7 @@ ADState_GetProviderData(
     }
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -305,7 +305,7 @@ ADState_GetProviderData(
     nGotColumns = sqlite3_column_count(pstQuery);
     if (nGotColumns != nExpectedCols)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -371,12 +371,12 @@ ADState_GetProviderData(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -419,7 +419,7 @@ ADState_StoreProviderData(
     IN PAD_PROVIDER_DATA pProvider
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszSqlCommand = NULL;
     PSTR pszCellCommand = NULL;
     PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
@@ -463,7 +463,7 @@ ADState_StoreProviderData(
 
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -512,12 +512,12 @@ ADState_GetDomainTrustList(
         if (dwError == SQLITE_DONE)
         {
             // No more results
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
             break;
         }
         if (dwError == SQLITE_ROW)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         else
         {
@@ -528,7 +528,7 @@ ADState_GetDomainTrustList(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -651,7 +651,7 @@ ADState_BuildInsertDomainTrust(
 
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -675,7 +675,7 @@ ADState_AddDomainTrust(
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
     PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
@@ -684,7 +684,7 @@ ADState_AddDomainTrust(
         "begin;\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -702,7 +702,7 @@ ADState_AddDomainTrust(
         );
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -729,7 +729,7 @@ ADState_StoreDomainTrustList(
     IN DWORD dwDomainInfoCount
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
     DWORD dwIndex = 0;
@@ -740,7 +740,7 @@ ADState_StoreDomainTrustList(
             "delete from " AD_STATE_TABLE_NAME_TRUSTS ";\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -761,7 +761,7 @@ ADState_StoreDomainTrustList(
         );
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -807,12 +807,12 @@ ADState_GetCellListNoLock(
         if (dwError == SQLITE_DONE)
         {
             // No more results
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
             break;
         }
         if (dwError == SQLITE_ROW)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         else
         {
@@ -823,7 +823,7 @@ ADState_GetCellListNoLock(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -879,7 +879,7 @@ ADState_GetCacheCellListCommand(
     OUT PSTR* ppszCommand
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszOldExpression = NULL;
     PSTR pszSqlCommand = NULL;
     const DLINKEDLIST* pPos = pCellList;
@@ -890,7 +890,7 @@ ADState_GetCacheCellListCommand(
         "delete from " AD_STATE_TABLE_NAME_LINKED_CELLS " ;\n");
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -922,7 +922,7 @@ ADState_GetCacheCellListCommand(
 
         if (pszSqlCommand == NULL)
         {
-            dwError = LSA_ERROR_OUT_OF_MEMORY;
+            dwError = LW_ERROR_OUT_OF_MEMORY;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1007,7 +1007,7 @@ ADState_UnpackDomainTrust(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pResult
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     //Skip the index
     (*piColumnPos)++;
@@ -1112,7 +1112,7 @@ ADState_UnpackLinkedCellInfo(
     IN OUT int *piColumnPos,
     IN OUT PAD_LINKED_CELL_INFO pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     //Skip the index
     (*piColumnPos)++;

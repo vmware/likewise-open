@@ -61,7 +61,7 @@ DirectorySetPassword(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -88,7 +88,7 @@ DirectoryChangePassword(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -115,7 +115,7 @@ DirectoryVerifyPassword(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -143,7 +143,7 @@ DirectoryGetGroupMembers(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -173,7 +173,7 @@ DirectoryGetMemberships(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -201,7 +201,7 @@ DirectoryAddToGroup(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -227,7 +227,7 @@ DirectoryRemoveFromGroup(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -252,7 +252,7 @@ DirectoryGetUserCount(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 

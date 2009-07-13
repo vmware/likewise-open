@@ -82,7 +82,7 @@ LsaSrvIpcSetTraceInfo(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -135,7 +135,7 @@ LsaSrvIpcGetTraceInfo(
 cleanup:
     LSA_SAFE_FREE_MEMORY(pTraceInfo);
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if (pResult)
@@ -187,7 +187,7 @@ LsaSrvIpcEnumTraceInfo(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if (pResult)

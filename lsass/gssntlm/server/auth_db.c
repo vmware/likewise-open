@@ -139,7 +139,7 @@ dbProviderGetUserInfo(
                 
     localUserInfo = (PAUTH_INFO) NTLMAllocateMemory(sizeof(AUTH_INFO));
     if (!localUserInfo) 
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
@@ -156,12 +156,12 @@ dbProviderGetUserInfo(
     if (ui1->pNTHash)
         memcpy(localUserInfo->ntOWF, ui1->pNTHash, 16);
     else
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_PASSWORD);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_PASSWORD);
 
     if (ui1->pLMHash)
         memcpy(localUserInfo->lmOWF, ui1->pLMHash, 16);
     else
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_PASSWORD);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_PASSWORD);
 
     localUserInfo->authUser = user;
 
@@ -215,7 +215,7 @@ dbProviderGetNTOWF(
     if (user->dwFlags & AUTH_USER_PASSWORD_SUPPLIED)
     {
         memcpy(ntOWF, user->ntOWF, 16);
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     dwError = dbProviderGetUserInfo(

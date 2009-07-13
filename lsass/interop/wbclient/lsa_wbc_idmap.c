@@ -53,7 +53,7 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     PSTR pszSidString = NULL;
     PSTR ppszSidList[2];
     CHAR pszAccountName[512] ="";
@@ -86,7 +86,7 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
     /* Make sure we have a user accouint */
 
     if (pNameList[0].accountType != AccountType_User) {
-        dwErr = LSA_ERROR_NO_SUCH_USER;
+        dwErr = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -108,7 +108,7 @@ wbcErr wbcSidToUid(const struct wbcDomainSid *sid,
 
     *puid = pUserInfo->uid;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     if (pNameList) {
@@ -139,7 +139,7 @@ wbcErr wbcUidToSid(uid_t uid,
 {
     LSA_USER_INFO_0 *pUserInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
@@ -179,7 +179,7 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     PSTR pszSidString = NULL;
     PSTR ppszSidList[2];
     CHAR pszAccountName[512] ="";
@@ -212,7 +212,7 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
     /* Make sure we have a user accouint */
 
     if (pNameList[0].accountType != AccountType_Group) {
-        dwErr = LSA_ERROR_NO_SUCH_GROUP;
+        dwErr = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -234,7 +234,7 @@ wbcErr wbcSidToGid(const struct wbcDomainSid *sid,
 
     *pgid = pGroupInfo->gid;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     if (pNameList) {
@@ -264,7 +264,7 @@ wbcErr wbcGidToSid(gid_t gid,
 {
     LSA_GROUP_INFO_1 *pGroupInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);

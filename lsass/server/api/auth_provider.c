@@ -147,7 +147,7 @@ LsaSrvValidateProvider(
         !pProvider->pFnTable->pfnProviderIoControl
         )
     {
-        return LSA_ERROR_INVALID_AUTH_PROVIDER;
+        return LW_ERROR_INVALID_AUTH_PROVIDER;
     }
 
     return 0;
@@ -202,7 +202,7 @@ LsaSrvInitAuthProvider(
                 LSA_LOG_ERROR("%s", pszError);
             }
 
-            dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -218,7 +218,7 @@ LsaSrvInitAuthProvider(
                 LSA_LOG_ERROR("%s", pszError);
             }
 
-            dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -234,7 +234,7 @@ LsaSrvInitAuthProvider(
                 LSA_LOG_ERROR("%s", pszError);
             }
 
-            dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -441,7 +441,7 @@ LsaSrvAuthProviderConfigNameValuePair(
 
     if (!pProvider)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

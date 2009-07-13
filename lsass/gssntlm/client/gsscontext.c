@@ -181,14 +181,14 @@ NTLMCreateContext(
     PNTLM_CONTEXT *ppContextOut
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pCtxt = NULL;
 
     NTLM_LOCK_CONTEXTS();
 
     pCtxt = (PNTLM_CONTEXT) NTLMAllocateMemory(sizeof(NTLM_CONTEXT));
     if (!pCtxt)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     /* we need the credential handle to live alongside of context */
 
@@ -255,21 +255,21 @@ NTLMInitializeContextSystem( void )
     dwError = pthread_mutexattr_init(&attr);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread attr init - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     dwError = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread attr set - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     if (pthread_mutex_init(&g_contextMtx, &attr))
-        return LSA_ERROR_INTERNAL;
+        return LW_ERROR_INTERNAL;
 
     dwInitialized |= NTLM_CONTEXT_MUTEX_INIT;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 error:
 
@@ -299,8 +299,8 @@ NTLMGssInitSecContext(
     DWORD          *pTimeValid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
-    DWORD msgError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD msgError = LW_ERROR_SUCCESS;
     NTLM_CREDENTIAL *pCred = NULL;
     NTLM_CONTEXT *pCtxt = NULL;
     SEC_BUFFER outputToken;
@@ -318,13 +318,13 @@ NTLMGssInitSecContext(
                 );
 
     if (NULL == pCred) {
-        dwError = LSA_ERROR_INVALID_CREDENTIAL;
+        dwError = LW_ERROR_INVALID_CREDENTIAL;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     /* check credential usage */
     if ((pCred->flags & GSS_C_INITIATE) == 0)  {
-        dwError = LSA_ERROR_INVALID_CREDENTIAL;
+        dwError = LW_ERROR_INVALID_CREDENTIAL;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -350,7 +350,7 @@ NTLMGssInitSecContext(
                     );
 
         if (pCtxt == NULL) {
-            dwError = LSA_ERROR_NO_CONTEXT;
+            dwError = LW_ERROR_NO_CONTEXT;
             BAIL_ON_NTLM_ERROR(dwError);
         }
     }
@@ -362,7 +362,7 @@ NTLMGssInitSecContext(
                         &outputToken
                         );
 
-    if (msgError != LSA_WARNING_CONTINUE_NEEDED)
+    if (msgError != LW_WARNING_CONTINUE_NEEDED)
         BAIL_ON_NTLM_ERROR(msgError);
 
 
@@ -385,13 +385,13 @@ NTLMGssInitSecContext(
 
 error:
 
-    if (dwError == LSA_ERROR_SUCCESS && msgError )
+    if (dwError == LW_ERROR_SUCCESS && msgError )
         dwError = msgError;
 
     (*pdwMinorStatus) = dwError;
 
     /* context is invalid after error */
-    if (LSA_ERROR_MASK(dwError))
+    if (dwError != LW_WARNING_CONTINUE_NEEDED)
         NTLMRemoveContext(pCtxt);
 
     NTLMFreeSecBuffer(&outputToken);
@@ -414,7 +414,7 @@ NTLMGssAcceptSecContext(
     )
 {
     DWORD dwError = 0;
-    DWORD msgError = LSA_ERROR_SUCCESS;
+    DWORD msgError = LW_ERROR_SUCCESS;
     NTLM_CREDENTIAL *pCred = NULL;
     NTLM_CONTEXT *pCtxt = NULL;
     SEC_BUFFER outputToken;
@@ -422,7 +422,7 @@ NTLMGssAcceptSecContext(
     ZERO_STRUCT(outputToken);
 
     if (!pContext)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     /* locate, and reference credential handle */
     pCred = NTLMValidateCredential(
@@ -431,13 +431,13 @@ NTLMGssAcceptSecContext(
                 );
 
     if (NULL == pCred) {
-        dwError = LSA_ERROR_INVALID_CREDENTIAL;
+        dwError = LW_ERROR_INVALID_CREDENTIAL;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     /* check credential usage */
     if ((pCred->flags & GSS_C_ACCEPT) == 0) {
-        dwError = LSA_ERROR_INVALID_CREDENTIAL;
+        dwError = LW_ERROR_INVALID_CREDENTIAL;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -467,7 +467,7 @@ NTLMGssAcceptSecContext(
                     );
 
         if (pCtxt == NULL) {
-            dwError = LSA_ERROR_NO_CONTEXT;
+            dwError = LW_ERROR_NO_CONTEXT;
             BAIL_ON_NTLM_ERROR(dwError);
         }
     }
@@ -479,7 +479,7 @@ NTLMGssAcceptSecContext(
                         &outputToken
                         );
 
-    if (msgError != LSA_WARNING_CONTINUE_NEEDED)
+    if (msgError != LW_WARNING_CONTINUE_NEEDED)
         BAIL_ON_NTLM_ERROR(msgError);
 
     if (msgError == GSS_S_COMPLETE)
@@ -499,13 +499,13 @@ NTLMGssAcceptSecContext(
 
 error:
 
-    if (dwError == LSA_ERROR_SUCCESS && msgError)
+    if (dwError == LW_ERROR_SUCCESS && msgError)
         dwError = msgError;
 
     (*pdwMinorStatus) = dwError;
 
     /* context is invalid after hard error */
-    if (LSA_ERROR_MASK(dwError) && pCtxt)
+    if (dwError != LW_WARNING_CONTINUE_NEEDED && pCtxt)
         NTLMRemoveContext(pCtxt);
 
     NTLMFreeSecBuffer(&outputToken);
@@ -577,7 +577,7 @@ NTLMGssExportSecContext(
 
     if (pCtxt == NULL)
     {
-        dwError = LSA_ERROR_NO_CONTEXT;
+        dwError = LW_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -637,7 +637,7 @@ NTLMGssDeleteSecContext(
     )
 {
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pCtxt = NULL;
 
     pCtxt = NTLMLocateContext(
@@ -648,7 +648,7 @@ NTLMGssDeleteSecContext(
 
     if (pCtxt == NULL)
     {
-        dwError = LSA_ERROR_NO_CONTEXT;
+        dwError = LW_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -706,13 +706,13 @@ ntlm_gss_init_sec_context(
     /* @todo - validate parameters */
     if (credHandle == NULL)
     {
-        dwError = LSA_ERROR_NO_CRED;
+        dwError = LW_ERROR_NO_CRED;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     if (contextHandle == NULL)
     {
-        dwError = LSA_ERROR_NO_CONTEXT;
+        dwError = LW_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -750,7 +750,7 @@ ntlm_gss_init_sec_context(
                     (DWORD*)retTime
                     );
 
-    if (LSA_ERROR_MASK(dwError))
+    if (dwError && dwError != LW_WARNING_CONTINUE_NEEDED)
        goto error;
 
     MAKE_GSS_BUFFER(gssOutputToken, &outputToken);
@@ -819,7 +819,7 @@ ntlm_gss_accept_sec_context(
                         (PDWORD) retTime
                         );
 
-    if (LSA_ERROR_MASK(dwError))
+    if (dwError && dwError != LW_WARNING_CONTINUE_NEEDED)
         goto error;
 
     MAKE_GSS_BUFFER(gssOutputToken, &outputToken);
@@ -871,7 +871,7 @@ ntlm_gss_delete_sec_context(
      )
 {
     DWORD dwError;
-    DWORD majorStatus = LSA_ERROR_SUCCESS;
+    DWORD majorStatus = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT gssContext = NULL;
 
     if (contextHandle == NULL)
@@ -879,7 +879,7 @@ ntlm_gss_delete_sec_context(
 
     gssContext = NTLMLocateContext((PNTLM_CONTEXT) contextHandle, NULL, 0);
     if (!gssContext)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_LSA_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     NTLMRemoveContext(gssContext);
 

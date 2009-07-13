@@ -94,7 +94,7 @@ LsaSrvIpcAddUser(
                             pUserInfoList->ppUserInfoList.ppInfoList2[0]);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
     }
 
     if (!dwError)
@@ -112,7 +112,7 @@ LsaSrvIpcAddUser(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -152,7 +152,7 @@ LsaSrvIpcModifyUser(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -215,7 +215,7 @@ LsaSrvIpcFindUserByName(
                 ppUserInfoList = NULL;
                 break;
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -241,7 +241,7 @@ cleanup:
         LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -309,7 +309,7 @@ LsaSrvIpcFindUserById(
                 ppUserInfoList = NULL;
                 break;
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -335,7 +335,7 @@ cleanup:
         LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -397,7 +397,7 @@ LsaSrvIpcBeginEnumUsers(
 
 cleanup:
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
 
@@ -461,7 +461,7 @@ LsaSrvIpcEnumUsers(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -483,7 +483,7 @@ cleanup:
         LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -520,7 +520,7 @@ LsaSrvIpcEndEnumUsers(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -560,7 +560,7 @@ LsaSrvIpcDeleteUser(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -644,7 +644,7 @@ cleanup:
     }
     LSA_SAFE_FREE_MEMORY(pTypes);
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)

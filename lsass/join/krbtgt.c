@@ -58,7 +58,7 @@ LwKrb5GetTgt(
     PDWORD pdwGoodUntilTime
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     krb5_error_code ret = 0;
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
@@ -77,7 +77,7 @@ LwKrb5GetTgt(
     BAIL_ON_LSA_ERROR(dwError);
 
     if ((pszRealmIdx = index(pszUPN, '@')) == NULL) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -85,7 +85,7 @@ LwKrb5GetTgt(
 
     if (LwKrb5RealmIsOffline(pszRealmIdx))
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -197,7 +197,7 @@ error:
     if (KRB5_KDC_UNREACH == ret)
     {
         LwKrb5RealmTransitionOffline(pszRealmIdx);
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
 
     goto cleanup;
@@ -211,7 +211,7 @@ LwKrb5GetTgs(
     PSTR pszCcPath
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     krb5_error_code ret = 0;
     krb5_context ctx = NULL;
     krb5_ccache cc = NULL;
@@ -309,7 +309,7 @@ LwKrb5GetServiceTicketForUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if ((pszRealmIdx = index(pszUPN, '@')) == NULL) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

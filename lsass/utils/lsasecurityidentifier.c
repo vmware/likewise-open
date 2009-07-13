@@ -153,7 +153,7 @@ LsaGetSecurityIdentifierRid(
        !pSecurityIdentifier->pucSidBytes ||
        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -163,14 +163,14 @@ LsaGetSecurityIdentifierRid(
     //verify the SID is version 1.
     if(pucSidBytes[0] != 1)
     {
-        dwError = LSA_ERROR_INVALID_SID_REVISION;
+        dwError = LW_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     //verify the number of bytes is plausible
     if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -206,7 +206,7 @@ LsaSetSecurityIdentifierRid(
        !pSecurityIdentifier->pucSidBytes ||
        pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -216,14 +216,14 @@ LsaSetSecurityIdentifierRid(
     //verify the SID is version 1.
     if(pucSidBytes[0] != 1)
     {
-        dwError = LSA_ERROR_INVALID_SID_REVISION;
+        dwError = LW_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     //verify the number of bytes is plausible
     if((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -312,7 +312,7 @@ LsaHashSecurityIdentifierToId(
         !pSecurityIdentifier->pucSidBytes ||
         pSecurityIdentifier->dwByteLength < SECURITY_IDENTIFIER_MINIMUM_SIZE)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -322,14 +322,14 @@ LsaHashSecurityIdentifierToId(
     // Verify that the SID is version 1.
     if (pucSidBytes[0] != 1)
     {
-        dwError = LSA_ERROR_INVALID_SID_REVISION;
+        dwError = LW_ERROR_INVALID_SID_REVISION;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     // Verify that the number of bytes is plausible.
     if ((dwByteLength - SECURITY_IDENTIFIER_MINIMUM_SIZE) % sizeof(DWORD) != 0)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -411,7 +411,7 @@ LsaGetSecurityIdentifierBinary(
     if (pSecurityIdentifier->dwByteLength <= 0 ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -453,7 +453,7 @@ LsaGetSecurityIdentifierString(
     if (pSecurityIdentifier->dwByteLength < 8 ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
-       dwError = LSA_ERROR_INVALID_SID;
+       dwError = LW_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -492,7 +492,7 @@ LsaGetDomainSecurityIdentifier(
          SECURITY_IDENTIFIER_MINIMUM_SIZE + sizeof(DWORD)) ||
         pSecurityIdentifier->pucSidBytes == NULL)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -562,7 +562,7 @@ LsaHexStrToByteArray(
 
     if ((dwHexChars & 0x00000001) != 0)
     {
-       dwError = LSA_ERROR_INVALID_PARAMETER;
+       dwError = LW_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -734,7 +734,7 @@ LsaHexCharToByte(
     }
     else
     {
-       dwError = LSA_ERROR_INVALID_PARAMETER;
+       dwError = LW_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -812,7 +812,7 @@ LsaSidStringToBytes(
 
     if (IsNullOrEmptyString(pszSidString))
     {
-       dwError = LSA_ERROR_INVALID_SID;
+       dwError = LW_ERROR_INVALID_SID;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -835,7 +835,7 @@ LsaSidStringToBytes(
     }
     if (iTailCount <= 0)
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -861,7 +861,7 @@ LsaSidStringToBytes(
             }
             else
             {
-                dwError = LSA_ERROR_INVALID_SID;
+                dwError = LW_ERROR_INVALID_SID;
             }
             BAIL_ON_LSA_ERROR(dwError);
             break;
@@ -869,7 +869,7 @@ LsaSidStringToBytes(
             dwRevision = (DWORD) strtoll(pszToken, &pszEndPtr, 10);
 
             if (!pszEndPtr || (pszEndPtr == pszToken) || *pszEndPtr) {
-               dwError = LSA_ERROR_DATA_ERROR;
+               dwError = LW_ERROR_DATA_ERROR;
                BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -879,7 +879,7 @@ LsaSidStringToBytes(
             }
             else
             {
-                dwError = LSA_ERROR_INVALID_SID;
+                dwError = LW_ERROR_INVALID_SID;
             }
             BAIL_ON_LSA_ERROR(dwError);
             break;
@@ -887,7 +887,7 @@ LsaSidStringToBytes(
             uiAuth = (DWORD) strtoll(pszToken, &pszEndPtr, 10);
 
             if (!pszEndPtr || (pszEndPtr == pszToken) || *pszEndPtr) {
-               dwError = LSA_ERROR_DATA_ERROR;
+               dwError = LW_ERROR_DATA_ERROR;
                BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -898,14 +898,14 @@ LsaSidStringToBytes(
                    (DWORD) strtoll(pszToken, &pszEndPtr, 10);
 
             if (!pszEndPtr || (pszEndPtr == pszToken) || *pszEndPtr) {
-               dwError = LSA_ERROR_DATA_ERROR;
+               dwError = LW_ERROR_DATA_ERROR;
                BAIL_ON_LSA_ERROR(dwError);
             }
 
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_SID;
+            dwError = LW_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -982,7 +982,7 @@ LsaSidBytesToString(
     if ((pucSidBytes == NULL) ||
         (dwSidBytesLength < 8))
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -993,7 +993,7 @@ LsaSidBytesToString(
     if(dwSidBytesLength !=
         8 + (sizeof(DWORD) * dwWordCount))
     {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

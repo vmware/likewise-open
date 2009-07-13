@@ -65,7 +65,7 @@ typedef enum
     if ((dwMajorStatus!= SEC_E_OK) &&                           \
         (dwMajorStatus != SEC_I_CONTINUE_NEEDED)) {             \
         LSA_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
-        dwError = LSA_ERROR_GSS_CALL_FAILED;                    \
+        dwError = LW_ERROR_GSS_CALL_FAILED;                    \
         goto error;                                             \
     }
 
@@ -75,7 +75,7 @@ typedef enum
     if ((dwMajorStatus!= GSS_S_COMPLETE) &&                     \
         (dwMajorStatus != GSS_S_CONTINUE_NEEDED)) {             \
         LSA_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
-        dwError = LSA_ERROR_GSS_CALL_FAILED;                    \
+        dwError = LW_ERROR_GSS_CALL_FAILED;                    \
         goto error;                                             \
     }
 

@@ -90,7 +90,7 @@ LsaFindNSSArtefactByKey(
 
             if (pResultList->dwNumNssArtefacts != 1)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -103,7 +103,7 @@ LsaFindNSSArtefactByKey(
                     break;
 
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -235,7 +235,7 @@ LsaEnumNSSArtefacts(
                     break;
 
                 default:
-                   dwError = LSA_ERROR_INVALID_PARAMETER;
+                   dwError = LW_ERROR_INVALID_PARAMETER;
                    BAIL_ON_LSA_ERROR(dwError);
             }
             break;
@@ -323,5 +323,5 @@ LsaValidateNSSArtefactInfoLevel(
     DWORD dwNSSArtefactInfoLevel
     )
 {
-    return ((dwNSSArtefactInfoLevel != 0) ? LSA_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL : 0);
+    return ((dwNSSArtefactInfoLevel != 0) ? LW_ERROR_INVALID_NSS_ARTEFACT_INFO_LEVEL : 0);
 }

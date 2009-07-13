@@ -79,7 +79,7 @@ LsaSrvIpcSetLogInfo(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -124,7 +124,7 @@ cleanup:
     {
         LsaFreeLogInfo(pLogInfo);
     }
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;

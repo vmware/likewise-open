@@ -21,7 +21,7 @@ RpcSvcStartWorker(
                          RpcSvcWorkerMain,
                          NULL);
     if (ret) {
-        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        dwError = LW_ERROR_INVALID_RPC_SERVER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -53,7 +53,7 @@ RpcSvcWorkerMain(
         }
 
         if (!dwRpcStatus) {
-            dwError = LSA_ERROR_RPC_SERVER_RUNTIME_ERROR;
+            dwError = LW_ERROR_RPC_SERVER_RUNTIME_ERROR;
         }
     }
     DCETHREAD_ENDTRY;

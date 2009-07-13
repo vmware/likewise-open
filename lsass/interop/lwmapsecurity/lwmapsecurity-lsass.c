@@ -77,9 +77,9 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
 } LSA_MAP_SECURITY_OBJECT_INFO, *PLSA_MAP_SECURITY_OBJECT_INFO;
 
 #define IS_NOT_FOUND_ERROR(lsaError) ( \
-    (LSA_ERROR_NO_SUCH_USER == (lsaError)) || \
-    (LSA_ERROR_NO_SUCH_GROUP == (lsaError)) || \
-    (LSA_ERROR_NO_SUCH_OBJECT == (lsaError)) || \
+    (LW_ERROR_NO_SUCH_USER == (lsaError)) || \
+    (LW_ERROR_NO_SUCH_GROUP == (lsaError)) || \
+    (LW_ERROR_NO_SUCH_OBJECT == (lsaError)) || \
     0 )
 
 static
@@ -90,7 +90,7 @@ LsaMapSecurityOpenConnection(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hConnection = NULL;
 
     dwError = LsaOpenServer(&hConnection);
@@ -113,7 +113,7 @@ LsaMapSecurityCloseConnection(
     if (hConnection)
     {
         NTSTATUS status = STATUS_SUCCESS;
-        DWORD dwError = LSA_ERROR_SUCCESS;
+        DWORD dwError = LW_ERROR_SUCCESS;
 
         dwError = LsaCloseServer(hConnection);
         status = LsaLsaErrorToNtStatus(dwError);
@@ -148,7 +148,7 @@ LsaMapSecurityResolveObjectInfo(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pUserInfo = NULL;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
@@ -191,7 +191,7 @@ LsaMapSecurityResolveObjectInfo(
     }
     else
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
 
     if (IS_NOT_FOUND_ERROR(dwError))
@@ -291,7 +291,7 @@ LsaMapSecurityResolveObjectInfoBySid(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
     PSTR pszSid = NULL;
     PLSA_SID_INFO sidInfoList = NULL;
@@ -643,7 +643,7 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
     ULONG groupInfoCount = 0;
     PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;

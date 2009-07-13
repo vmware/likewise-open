@@ -99,7 +99,7 @@ LsaSrvFlushSystemCache(
     if (!bCacheFlushed)
     {
         LSA_LOG_ERROR("Could not locate cache flush utility");
-        dwError = LSA_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
+        dwError = LW_ERROR_MAC_FLUSH_DS_CACHE_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

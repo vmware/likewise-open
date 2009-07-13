@@ -61,7 +61,7 @@ LsaSrvIpcCheckPermissions(
     if (strcmp(lwmsg_security_token_get_type(token), "local"))
     {
         LSA_LOG_WARNING("Unsupported authentication type");
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -110,7 +110,7 @@ LsaSrvIpcConstructSession(
 
 cleanup:
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
 

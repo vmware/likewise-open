@@ -159,8 +159,8 @@ LsaDmInitialize(
 ///     entries in the unknown domain cache.
 ///
 /// @return LSA status code.
-///  @arg LSA_ERROR_SUCCESS on success
-///  @arg !LSA_ERROR_SUCCESS on failure
+///  @arg LW_ERROR_SUCCESS on success
+///  @arg !LW_ERROR_SUCCESS on failure
 ///
 /// @note This function must be called in a race-free context.
 ///
@@ -360,8 +360,8 @@ LsaDmSetForceOfflineState(
 /// @param[in] bIsSet - Whether to set/unset.
 ///
 /// @return LSA status code.
-///  @arg LSA_ERROR_SUCCESS on success
-///  @arg !LSA_ERROR_SUCCESS on failure
+///  @arg LW_ERROR_SUCCESS on success
+///  @arg !LW_ERROR_SUCCESS on failure
 ///
 
 DWORD

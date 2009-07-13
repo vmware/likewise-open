@@ -50,7 +50,7 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-#define LSA_ERROR_TAG   "ERROR"
+#define LW_ERROR_TAG   "ERROR"
 #define LSA_WARN_TAG    "WARNING"
 #define LSA_INFO_TAG    "INFO"
 #define LSA_VERBOSE_TAG "VERBOSE"

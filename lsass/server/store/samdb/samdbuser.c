@@ -189,13 +189,13 @@ SamDbSetPassword_inlock(
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (!sqlite3_changes(pDirectoryContext->pDbContext->pDbHandle))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -358,7 +358,7 @@ SamDbVerifyPassword_inlock(
 
     if ((dwError = sqlite3_step(pSqlStatement)) == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
     else
@@ -368,7 +368,7 @@ SamDbVerifyPassword_inlock(
 
         if (sqlite3_column_count(pSqlStatement) != 2)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -377,7 +377,7 @@ SamDbVerifyPassword_inlock(
         {
             if (dwNumBytes != sizeof(lmHash))
             {
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
             else
@@ -393,7 +393,7 @@ SamDbVerifyPassword_inlock(
         {
             if (dwNumBytes != sizeof(ntHash))
             {
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
             else
@@ -404,14 +404,14 @@ SamDbVerifyPassword_inlock(
             }
         }
 
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
     if (memcmp(&lmHash[0], &lmHashDbValue[0], sizeof(lmHash)) ||
         memcmp(&ntHash[0], &ntHashDbValue[0], sizeof(ntHash)))
     {
-        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        dwError = LW_ERROR_PASSWORD_MISMATCH;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

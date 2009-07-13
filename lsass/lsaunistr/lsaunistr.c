@@ -42,13 +42,13 @@ LsaMbsToWc16s(
     PWSTR pszOutput = NULL;
     
     if (!pszInput) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
     pszOutput = ambstowc16s(pszInput);
     if (!pszOutput) {
-        dwError = LSA_ERROR_STRING_CONV_FAILED;
+        dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -77,7 +77,7 @@ LsaWc16snToMbs(
     PSTR pszOutput = NULL;
     
     if (!pwszInput) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -89,7 +89,7 @@ LsaWc16snToMbs(
 
     pszOutput = awc16stombs(pwszTruncated);
     if (!pszOutput) {
-        dwError = LSA_ERROR_STRING_CONV_FAILED;
+        dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -117,13 +117,13 @@ LsaWc16sToMbs(
     PSTR pszOutput = NULL;
     
     if (!pwszInput) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
     pszOutput = awc16stombs(pwszInput);
     if (!pszOutput) {
-        dwError = LSA_ERROR_STRING_CONV_FAILED;
+        dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -150,7 +150,7 @@ LsaWc16sLen(
     size_t sLen = 0;
     
     if (!pwszInput) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -364,7 +364,7 @@ LsaInitializeLsaStringW(
     PLSA_STRING lsaStringOut
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     lsaStringOut->length = LSASTR_BYTECOUNT(input);
     lsaStringOut->max = lsaStringOut->length + sizeof(wchar16_t);
@@ -413,7 +413,7 @@ LsaInitializeLsaStringA(
         lsaStringOut->length = 0;
         lsaStringOut->max = 0;
         lsaStringOut->buffer = NULL;
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     cGuess = (strlen(wcString) + 1);
@@ -433,7 +433,7 @@ LsaInitializeLsaStringA(
         if (cConverted == -1) {
             /* @todo - LsaConvertPosixError() */
             if ( errno != E2BIG) {
-                dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
+                dwError = LW_ERROR_INSUFFICIENT_BUFFER;
                 BAIL_ON_LSA_ERROR(cGuess);
             }
 
@@ -465,7 +465,7 @@ LsaWc16ToUpper(
     IN OUT PWSTR pwszString
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     wc16supper(pwszString);
 

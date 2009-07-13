@@ -158,7 +158,7 @@ SamDbUpdateObjectInDatabase(
 
     if (!pDirectoryContext || !pwszObjectDN || !*pwszObjectDN)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -210,7 +210,7 @@ SamDbUpdateObjectInDatabase(
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
@@ -532,14 +532,14 @@ SamDbUpdateBindValues(
         {
             if (pIter->ulNumValues > 1)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
         }
         else if (pIter->pDirMod)
         {
             if (pIter->ulNumValues > 1)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
         }
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -656,7 +656,7 @@ SamDbUpdateBindValues(
 
             default:
 
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
         }
     }

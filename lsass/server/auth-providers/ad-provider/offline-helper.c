@@ -57,7 +57,7 @@ AD_OfflineGetGroupMembers(
     OUT PLSA_SECURITY_OBJECT** pppMemberObjects
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sGroupMembershipsCount = 0;
     PLSA_GROUP_MEMBERSHIP* ppGroupMemberships = NULL;
     size_t sMemberSidsCount = 0;
@@ -127,7 +127,7 @@ AD_OfflineFindObjectsBySidList(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_SECURITY_OBJECT *ppObjects = NULL;
 
     /* 
@@ -167,7 +167,7 @@ AD_GatherSidsFromGroupMemberships(
     // Do not deallocate the memberhips while using the result.
     // Call LSA_SAFE_FREE_MEMORY() on result when done so as to
     // not free up the sids (which reside in the memberships).
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free actual strings, just the array.
     PSTR* ppszSids = NULL;
     size_t sSidsCount = 0;
@@ -332,7 +332,7 @@ AD_GroupExpansionDataAddExpansionResults(
     if (dwExpandedGroupDepth > pExpansionData->dwMaxDepth)
     {
         // This should never happen
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -451,7 +451,7 @@ AD_GroupExpansionDataGetNextGroupToExpand(
         pHashEntry = LsaHashNext(&pExpansionData->GroupsToExpandIterator);
         if (!pHashEntry)
         {
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -537,7 +537,7 @@ AD_GroupExpansionDataGetResults(
 
     if (sUserMembersCount != sHashCount)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

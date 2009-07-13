@@ -526,7 +526,7 @@ LsaDbFreePreparedStatements(
     )
 {
     int i;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     sqlite3_stmt * * const pppstFreeList[] = {
         &pConn->pstFindObjectByNT4,
         &pConn->pstFindObjectByDN,
@@ -582,7 +582,7 @@ LsaDbSafeClose(
 {
     // This function cannot return an error, only log errors that occur
     // along the way
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_CONNECTION pConn = NULL;
 
     if (phDb == NULL)
@@ -598,10 +598,10 @@ LsaDbSafeClose(
     }
 
     dwError = LsaDbFreePreparedStatements(pConn);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error freeing prepared statements [%d]", dwError);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
 
     if (pConn->pDb != NULL)
@@ -611,10 +611,10 @@ LsaDbSafeClose(
     }
 
     dwError = pthread_rwlock_destroy(&pConn->lock);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error destroying lock [%d]", dwError);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     LSA_SAFE_FREE_MEMORY(pConn);
 
@@ -624,7 +624,7 @@ cleanup:
     return;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbFindUserByName(
     LSA_DB_HANDLE hDb,
@@ -695,7 +695,7 @@ LsaDbFindUserByName(
             BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
             break;
        default:
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -704,7 +704,7 @@ LsaDbFindUserByName(
 
     if (pObject->type != AccountType_User)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -721,7 +721,7 @@ error:
     goto cleanup;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbFindUserById(
     LSA_DB_HANDLE hDb,
@@ -751,7 +751,7 @@ LsaDbFindUserById(
 
     if (pObject->type != AccountType_User)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -818,7 +818,7 @@ LsaDbFindGroupByName(
             BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
             break;
        default:
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -827,7 +827,7 @@ LsaDbFindGroupByName(
 
     if (pObject->type != AccountType_Group)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -873,7 +873,7 @@ LsaDbFindGroupById(
 
     if (pObject->type != AccountType_Group)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -896,7 +896,7 @@ LsaDbRemoveUserBySid(
     IN PCSTR pszSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     // Do not free
@@ -910,7 +910,7 @@ LsaDbRemoveUserBySid(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -925,7 +925,7 @@ LsaDbRemoveUserBySid(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -954,7 +954,7 @@ LsaDbRemoveGroupBySid(
     IN PCSTR pszSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bInLock = FALSE;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     // Do not free
@@ -968,7 +968,7 @@ LsaDbRemoveGroupBySid(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -983,7 +983,7 @@ LsaDbRemoveGroupBySid(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1011,7 +1011,7 @@ LsaDbEmptyCache(
     IN LSA_DB_HANDLE hDb
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     PCSTR pszEmptyCache =
         "begin;\n"
@@ -1045,7 +1045,7 @@ LsaDbUnpackCacheInfo(
     int *piColumnPos,
     PLSA_SECURITY_OBJECT_VERSION_INFO pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaSqliteReadInt64(
         pstQuery,
@@ -1072,7 +1072,7 @@ LsaDbUnpackObjectInfo(
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwType = 0;
 
     dwError = LsaSqliteReadString(
@@ -1119,7 +1119,7 @@ LsaDbUnpackObjectInfo(
 
     if (dwType > (UINT8)-1)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1136,16 +1136,16 @@ LsaDbUnpackUserInfo(
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaSqliteReadUInt32(
         pstQuery,
         piColumnPos,
         "Uid",
         (DWORD*)&pResult->userInfo.uid);
-    if (dwError == LSA_ERROR_INVALID_PARAMETER)
+    if (dwError == LW_ERROR_INVALID_PARAMETER)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1293,7 +1293,7 @@ LsaDbUnpackGroupInfo(
     int *piColumnPos,
     PLSA_SECURITY_OBJECT pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaSqliteReadUInt32(
         pstQuery,
@@ -1335,7 +1335,7 @@ LsaDbUnpackGroupMembershipInfo(
     IN OUT PLSA_GROUP_MEMBERSHIP pResult
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaSqliteReadString(
         pstQuery,
@@ -1384,13 +1384,13 @@ LsaDbUnpackGroupMembershipInfo(
         pResult->pszChildSid != NULL &&
         !pResult->bIsInPac && !pResult->bIsInLdap)
     {
-        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
         BAIL_ON_LSA_ERROR(dwError);
     }
     // See the definition of LSA_GROUP_MEMBERSHIP
     if (pResult->bIsInPacOnly && (!pResult->bIsInPac || pResult->bIsInLdap))
     {
-        dwError = LSA_ERROR_UNEXPECTED_DB_RESULT;
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1418,7 +1418,7 @@ LsaDbStoreObjectEntries(
     )
 {
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex = 0;
     //Free with sqlite3_free
     char *pszError = NULL;
@@ -1469,7 +1469,7 @@ LsaDbStoreObjectEntries(
 
             if (pszNewStatement == NULL)
             {
-                dwError = LSA_ERROR_OUT_OF_MEMORY;
+                dwError = LW_ERROR_OUT_OF_MEMORY;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1563,7 +1563,7 @@ LsaDbStoreObjectEntries(
 
         if (pszNewStatement == NULL)
         {
-            dwError = LSA_ERROR_OUT_OF_MEMORY;
+            dwError = LW_ERROR_OUT_OF_MEMORY;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1678,13 +1678,13 @@ LsaDbStoreObjectEntries(
                         );
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
 
             if (pszNewStatement == NULL)
             {
-                dwError = LSA_ERROR_OUT_OF_MEMORY;
+                dwError = LW_ERROR_OUT_OF_MEMORY;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1726,7 +1726,7 @@ LsaDbCreateCacheTag(
     OUT int64_t *pqwCacheId
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free
     sqlite3_stmt *pstQuery = pConn->pstInsertCacheTag;
     int64_t qwDbId;
@@ -1737,7 +1737,7 @@ LsaDbCreateCacheTag(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1750,18 +1750,18 @@ LsaDbCreateCacheTag(
     if (dwError == SQLITE_DONE)
     {
         // The value is missing
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
     if (sqlite3_column_count(pstQuery) != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1771,12 +1771,12 @@ LsaDbCreateCacheTag(
     if (dwError == SQLITE_ROW)
     {
         // Duplicate value
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1806,7 +1806,7 @@ LsaDbUpdateMembership(
     IN PCSTR pszChildSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaSqliteBindInt64(pstQuery, 1, CacheId);
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
@@ -1820,7 +1820,7 @@ LsaDbUpdateMembership(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1852,7 +1852,7 @@ LsaDbAddMembership(
     IN BOOLEAN bIsDomainPrimaryGroup
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free
     sqlite3_stmt *pstQuery = pConn->pstAddMembership;
 
@@ -1880,7 +1880,7 @@ LsaDbAddMembership(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_STMT(dwError, pstQuery);
 
@@ -1906,7 +1906,7 @@ LsaDbStoreGroupMembershipCallback(
     OUT PSTR* ppszError
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_STORE_GROUP_MEMBERSHIP_CONTEXT pArgs = (PLSA_DB_STORE_GROUP_MEMBERSHIP_CONTEXT)pContext;
     PCSTR pszParentSid = pArgs->pszParentSid;
     PLSA_GROUP_MEMBERSHIP* ppMembers = pArgs->ppMembers;
@@ -2023,7 +2023,7 @@ LsaDbStoreGroupMembership(
     IN PLSA_GROUP_MEMBERSHIP* ppMembers
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     size_t iMember;
     LSA_DB_STORE_GROUP_MEMBERSHIP_CONTEXT context = { 0 };
@@ -2046,12 +2046,12 @@ LsaDbStoreGroupMembership(
         if (ppMembers[iMember]->pszParentSid &&
             strcasecmp(ppMembers[iMember]->pszParentSid, pszParentSid))
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
         if (ppMembers[iMember]->bIsInPac)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -2084,7 +2084,7 @@ LsaDbStoreUserMembershipCallback(
     OUT PSTR* ppszError
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_STORE_USER_MEMBERSHIP_CONTEXT pArgs = (PLSA_DB_STORE_USER_MEMBERSHIP_CONTEXT)pContext;
     PCSTR pszChildSid = pArgs->pszChildSid;
     size_t sMemberCount = pArgs->sMemberCount;
@@ -2251,7 +2251,7 @@ LsaDbStoreGroupsForUser(
     IN BOOLEAN bIsPacAuthoritative
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     size_t iMember;
     LSA_DB_STORE_USER_MEMBERSHIP_CONTEXT context = { 0 };
@@ -2269,7 +2269,7 @@ LsaDbStoreGroupsForUser(
         if (ppMembers[iMember]->pszChildSid &&
             strcasecmp(ppMembers[iMember]->pszChildSid, pszChildSid))
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -2311,7 +2311,7 @@ LsaDbGetMemberships(
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
     // do not free
@@ -2345,7 +2345,7 @@ LsaDbGetMemberships(
         nGotColumns = sqlite3_column_count(pstQuery);
         if (nGotColumns != nExpectedCols)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -2403,7 +2403,7 @@ LsaDbGetMemberships(
     if (dwError == SQLITE_DONE)
     {
         // No more results found
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SQLITE3_ERROR_DB(dwError, pConn->pDb);
 
@@ -2475,12 +2475,12 @@ LsaDbQueryObjectMulti(
     if (dwError == SQLITE_DONE)
     {
         // No results found
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -2491,7 +2491,7 @@ LsaDbQueryObjectMulti(
     nGotColumns = sqlite3_column_count(pstQuery);
     if (nGotColumns != nExpectedCols)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2597,9 +2597,9 @@ LsaDbEnumUsersCache(
             break;
         }
     }
-    if ( dwError == LSA_ERROR_NOT_HANDLED && dwUserCount > 0 )
+    if ( dwError == LW_ERROR_NOT_HANDLED && dwUserCount > 0 )
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2679,9 +2679,9 @@ LsaDbEnumGroupsCache(
             break;
         }
     }
-    if ( dwError == LSA_ERROR_NOT_HANDLED && dwGroupCount > 0 )
+    if ( dwError == LW_ERROR_NOT_HANDLED && dwGroupCount > 0 )
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2726,12 +2726,12 @@ LsaDbQueryObject(
     if (dwError == SQLITE_DONE)
     {
         // No results found
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -2742,7 +2742,7 @@ LsaDbQueryObject(
     nGotColumns = sqlite3_column_count(pstQuery);
     if (nGotColumns != nExpectedCols)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2766,13 +2766,13 @@ LsaDbQueryObject(
         dwError = LsaDbUnpackUserInfo(pstQuery,
                 &iColumnPos,
                 pObject);
-        if (dwError == LSA_ERROR_DATA_ERROR)
+        if (dwError == LW_ERROR_DATA_ERROR)
         {
             LSA_LOG_ERROR("The user attributes in the cache data for '%s\\%s' are invalid. The cache database or user data in Active Directory could be corrupt.",
                 LSA_SAFE_LOG_STRING(pObject->pszNetbiosDomainName),
                 LSA_SAFE_LOG_STRING(pObject->pszSamAccountName));
             // Pretend like the whole object is not in the database.
-            dwError = LSA_ERROR_NOT_HANDLED;
+            dwError = LW_ERROR_NOT_HANDLED;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2794,17 +2794,17 @@ LsaDbQueryObject(
     {
         if (pObject->type == AccountType_Group)
         {
-            dwError = LSA_ERROR_DUPLICATE_GROUPNAME;
+            dwError = LW_ERROR_DUPLICATE_GROUPNAME;
         }
         else
         {
-            dwError = LSA_ERROR_DUPLICATE_USERNAME;
+            dwError = LW_ERROR_DUPLICATE_USERNAME;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -2915,7 +2915,7 @@ LsaDbFindObjectsByDNList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
@@ -2930,8 +2930,8 @@ LsaDbFindObjectsByDNList(
             hDb,
             ppszDnList[sIndex],
             &ppResults[sIndex]);
-        if (dwError == LSA_ERROR_NOT_HANDLED)
-            dwError = LSA_ERROR_SUCCESS;
+        if (dwError == LW_ERROR_NOT_HANDLED)
+            dwError = LW_ERROR_SUCCESS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2992,7 +2992,7 @@ LsaDbFindObjectsBySidList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
 
@@ -3007,8 +3007,8 @@ LsaDbFindObjectsBySidList(
             hDb,
             ppszSidList[sIndex],
             &ppResults[sIndex]);
-        if (dwError == LSA_ERROR_NOT_HANDLED)
-            dwError = LSA_ERROR_SUCCESS;
+        if (dwError == LW_ERROR_NOT_HANDLED)
+            dwError = LW_ERROR_SUCCESS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3022,7 +3022,7 @@ error:
     goto cleanup;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,
@@ -3056,12 +3056,12 @@ LsaDbGetPasswordVerifier(
     if (dwError == SQLITE_DONE)
     {
         // No results found
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -3072,7 +3072,7 @@ LsaDbGetPasswordVerifier(
     nGotColumns = sqlite3_column_count(pstQuery);
     if (nGotColumns != nExpectedCols)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3104,12 +3104,12 @@ LsaDbGetPasswordVerifier(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_ROW)
     {
-        dwError = LSA_ERROR_DUPLICATE_USERNAME;
+        dwError = LW_ERROR_DUPLICATE_USERNAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else
     {
@@ -3151,7 +3151,7 @@ LsaDbStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszSqlCommand = NULL;
     PLSA_DB_CONNECTION pConn = (PLSA_DB_CONNECTION)hDb;
 
@@ -3205,7 +3205,7 @@ LsaDbStorePasswordVerifier(
 
     if (pszSqlCommand == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

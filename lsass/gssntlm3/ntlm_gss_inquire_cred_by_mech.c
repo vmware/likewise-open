@@ -245,7 +245,7 @@ NTLMAllocateCredential(
 
     pCred = NTLMAllocateMemory(sizeof(NTLM_CREDENTIAL));
     if (!pCred)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     if (credentials && credentials->length)
     {
@@ -279,7 +279,7 @@ NTLMAcquireCredentialHandle(
     PNTLM_CREDENTIAL *ppCredentialOut
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIAL pCred = NULL;
 
     if (marshaledCredential && marshaledCredential->length)
@@ -298,7 +298,7 @@ NTLMAcquireCredentialHandle(
 
     if (pCred) {
         *ppCredentialOut = pCred;
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     /* create one */
@@ -310,7 +310,7 @@ NTLMAcquireCredentialHandle(
                     );
 
     if (!pCred)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
 
     NTLMInsertCredential(pCred);
@@ -368,25 +368,25 @@ NTLMInitializeCredentialSystem( void )
     dwError = pthread_mutexattr_init(&attr);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread attr init - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     dwError = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread attr set - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     dwError = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread attr set - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     dwError = pthread_mutex_init(&g_CredentialMtx, &attr);
     if (dwError) {
         DBG(D_ERROR, ("Failed pthread init - %d\n", dwError));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INTERNAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INTERNAL);
     }
 
     dwInitialized |= NTLM_CREDENTIAL_MUTEX_INIT;
@@ -396,7 +396,7 @@ NTLMInitializeCredentialSystem( void )
     dwInitialized |= NTLM_CREDENTIAL_USERDB_INIT;
 
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 error:
 
@@ -413,7 +413,7 @@ NTLMGssReleaseCred(
     )
 {
 
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CREDENTIAL cred = NULL;
 
     cred = NTLMValidateCredential(
@@ -422,7 +422,7 @@ NTLMGssReleaseCred(
                 );
 
     if (!cred)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CREDENTIAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CREDENTIAL);
 
     /* remove reference from user mode caller */
     NTLMDereferenceCredentialHandle(cred);
@@ -475,7 +475,7 @@ NTLMGssAcquireSuppliedCred(
      */
     NTLMDereferenceCredential(pCred);
     *pdwMinorStatus = dwError;
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 error:
 
@@ -555,7 +555,7 @@ NTLMBuildSupplementalCredentials(
     SEC_BUFFER creds;
 
     if (!username || !domain || !password) {
-        return LSA_ERROR_INVALID_PARAMETER;
+        return LW_ERROR_INVALID_PARAMETER;
     }
 
     ZERO_STRUCT(lsaUser);
@@ -672,7 +672,7 @@ ntlm_gss_release_cred(
                 );
 
     if (!pCred)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CREDENTIAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CREDENTIAL);
 
     NTLMDereferenceCredentialHandle(pCred);
     NTLMDereferenceCredential(pCred);

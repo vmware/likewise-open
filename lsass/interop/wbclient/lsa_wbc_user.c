@@ -54,7 +54,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
              struct wbcDomainSid **sids)
 {
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     DWORD dwNumGids = 0;
     gid_t *gids = NULL;
@@ -94,7 +94,7 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
     BAIL_ON_LSA_ERR(dwErr);
 
     if (pNameList[0].accountType != AccountType_User) {
-        dwErr = LSA_ERROR_NO_SUCH_USER;
+        dwErr = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -137,14 +137,14 @@ wbcErr wbcLookupUserSids(const struct wbcDomainSid *user_sid,
     *sids = sidList;
     *num_sids = dwNumGids;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     if (pNameList) {
         LsaFreeSIDInfoList(pNameList, 1);
     }
 
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(sidList);
     }
 
@@ -169,7 +169,7 @@ done:
 static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
                 LSA_USER_INFO_0 **ppUserInfo, DWORD userInfoSize)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     char **ppUsers = NULL;
     uint32_t nUsers = 0;
     int i;
@@ -180,7 +180,7 @@ static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
     /* Check for a no-op */
 
     if (!ppUserInfo || (userInfoSize == 0)) {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     ppUsers = *pppUserList;
@@ -210,9 +210,9 @@ static DWORD AddUsersToList(char ***pppUserList, uint32_t *pUserSize,
     *pppUserList = ppUsers;
         *pUserSize = nUsers;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 done:
-    if (dwErr != LSA_ERROR_SUCCESS)  {
+    if (dwErr != LW_ERROR_SUCCESS)  {
         _WBC_FREE(ppUsers);
     }
 
@@ -227,7 +227,7 @@ wbcErr wbcListUsers(const char *domain_name,
     HANDLE hLsa = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
     DWORD dwNumUsers = 0;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     bool bDone = false;
     uint32_t userSize = 0;
@@ -275,7 +275,7 @@ wbcErr wbcListUsers(const char *domain_name,
     *num_users = userSize;
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(userList);
     }
 

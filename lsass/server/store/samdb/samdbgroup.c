@@ -125,7 +125,7 @@ SamDbGetGroupMembers(
 
     if (objectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -221,7 +221,7 @@ SamDbGetUserMemberships(
     if (objectClass != SAMDB_OBJECT_CLASS_USER &&
         objectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -310,7 +310,7 @@ SamDbBuildGroupSearchSqlQuery(
 
         if (!pAttrMap->bIsQueryable)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -451,7 +451,7 @@ SamDbGroupSearchExecute(
         dwNumAttrs = sqlite3_column_count(pSqlStatement);
         if (dwNumAttrs != dwNumCols)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -629,7 +629,7 @@ SamDbGroupSearchExecute(
 
                 default:
 
-                    dwError = LSA_ERROR_INTERNAL;
+                    dwError = LW_ERROR_INTERNAL;
                     BAIL_ON_SAMDB_ERROR(dwError);
             }
         }
@@ -646,7 +646,7 @@ SamDbGroupSearchExecute(
 
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
@@ -722,7 +722,7 @@ SamDbAddToGroup(
 
     if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -775,7 +775,7 @@ SamDbAddToGroup(
         if ((memberObjectClass != SAMDB_OBJECT_CLASS_USER) &&
             (memberObjectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER))
         {
-            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+            dwError = LW_ERROR_NO_SUCH_OBJECT;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -803,7 +803,7 @@ SamDbAddToGroup(
         dwError = sqlite3_step(pSqlStatement);
         if (dwError == SQLITE_DONE)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
     }
@@ -872,7 +872,7 @@ SamDbRemoveFromGroup(
 
     if (groupObjectClass != SAMDB_OBJECT_CLASS_LOCAL_GROUP)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -925,7 +925,7 @@ SamDbRemoveFromGroup(
         if ((memberObjectClass != SAMDB_OBJECT_CLASS_USER) &&
             (memberObjectClass != SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER))
         {
-            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+            dwError = LW_ERROR_NO_SUCH_OBJECT;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -952,7 +952,7 @@ SamDbRemoveFromGroup(
         dwError = sqlite3_step(pSqlStatement);
         if (dwError == SQLITE_DONE)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
     }

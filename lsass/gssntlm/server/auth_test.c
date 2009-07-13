@@ -62,7 +62,7 @@ testProviderUserFromUid(
     )
 {
     memcpy(authUser, &testUser, sizeof(AUTH_USER));
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 void
@@ -85,7 +85,7 @@ testProviderGetUserInfo(
 
     localUserInfo = (PAUTH_INFO) NTLMAllocateMemory(sizeof(AUTH_INFO));
     if (!localUserInfo) 
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     memcpy(&localUserInfo->authUser, &testUser, sizeof(AUTH_USER));
 
@@ -185,7 +185,7 @@ testProviderGetNTOWF(
     else
         memcpy(ntOWF, testUser.ntOWF, 16);
 
-    return (LSA_ERROR_SUCCESS); 
+    return (LW_ERROR_SUCCESS);
 }
 
         

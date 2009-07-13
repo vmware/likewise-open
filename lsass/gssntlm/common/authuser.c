@@ -82,7 +82,7 @@ NTLMCopyAuthUser(
     dest->dwFlags = src->dwFlags;
     dest->provider = src->provider;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 error:
 
@@ -194,7 +194,7 @@ NTLMMarshalAuthUser(
     len += authUser->user.max + authUser->domain.max;
     marshaledData->buffer = NTLMAllocateMemory(len);
     if (!marshaledData->buffer)
-        return LSA_ERROR_OUT_OF_MEMORY;
+        return LW_ERROR_OUT_OF_MEMORY;
 
     marshaledData->length = marshaledData->maxLength = len;
 
@@ -203,7 +203,7 @@ NTLMMarshalAuthUser(
     NTLMPutLsaString(&authUser->user, marshaledData->buffer, &bufofs, &ofs);
     NTLMPutLsaString(&authUser->domain, marshaledData->buffer, &bufofs, &ofs);
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 DWORD
@@ -217,7 +217,7 @@ NTLMUnMarshalAuthUser(
     ULONG ofs = 0;
 
     if (marshaledData->length < sizeof(AUTH_USER))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     memcpy(authUser, marshaledData->buffer, sizeof(AUTH_USER));
 

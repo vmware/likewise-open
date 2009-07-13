@@ -66,25 +66,25 @@ LsaSrvFindNSSArtefactByKey(
 
     if (IsNullOrEmptyString(pszKeyName))
     {
-        dwError = LSA_ERROR_INVALID_NSS_KEY_NAME;
+        dwError = LW_ERROR_INVALID_NSS_KEY_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszMapName))
     {
-        dwError = LSA_ERROR_INVALID_NSS_MAP_NAME;
+        dwError = LW_ERROR_INVALID_NSS_MAP_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!dwFlags)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -101,9 +101,9 @@ LsaSrvFindNSSArtefactByKey(
         if (!dwError) {
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_NSS_KEY) ||
-                   (dwError == LSA_ERROR_NO_SUCH_NSS_MAP)) {
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_NSS_KEY) ||
+                   (dwError == LW_ERROR_NO_SUCH_NSS_MAP)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -219,7 +219,7 @@ LsaSrvEnumNSSArtefacts(
 
 
         if (dwError) {
-           if (dwError != LSA_ERROR_NO_MORE_NSS_ARTEFACTS) {
+           if (dwError != LW_ERROR_NO_MORE_NSS_ARTEFACTS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
@@ -228,7 +228,7 @@ LsaSrvEnumNSSArtefacts(
 
         if (dwNumNSSArtefactsRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
-           if (dwError == LSA_ERROR_NO_MORE_NSS_ARTEFACTS){
+           if (dwError == LW_ERROR_NO_MORE_NSS_ARTEFACTS){
              dwError = 0;
            }
         }

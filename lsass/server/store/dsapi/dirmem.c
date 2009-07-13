@@ -121,7 +121,7 @@ DirectoryAllocateString(
 
     if (!pszInputString)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -167,7 +167,7 @@ DirectoryAllocateStringW(
 
     if (!pwszInputString)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 

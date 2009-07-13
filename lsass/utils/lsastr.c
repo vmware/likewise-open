@@ -460,7 +460,7 @@ LsaStrDupOrNull(
     if (pszInputString == NULL)
     {
         *ppszOutputString = NULL;
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
     else
     {

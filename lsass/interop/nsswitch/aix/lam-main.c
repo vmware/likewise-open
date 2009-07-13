@@ -58,7 +58,7 @@ LsaNssOpen(
     PSTR pszOptions
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_PAM_CONFIG pConfig = NULL;
 
     dwError = LsaPamReadConfigFile(&pConfig);
@@ -91,7 +91,7 @@ cleanup:
         LsaPamFreeConfig(pConfig);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
         return NULL;
@@ -115,7 +115,7 @@ LsaNssGetEntry(
         int iAttrCount
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int iIndex = 0;
 
     LSA_LOG_PAM_DEBUG(
@@ -213,7 +213,7 @@ LsaNssGetEntry(
 cleanup:
 
     LSA_LOG_PAM_DEBUG("Getentry finishing with code %d", dwError);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
         return -1;

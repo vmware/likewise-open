@@ -124,14 +124,14 @@ LsaSetDomainSeparator(
     CHAR chValue
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     if (!ispunct((int)chValue))
     {
         LSA_LOG_ERROR(
                 "Error: the domain separator must be set to a punctuation character; the value provided is '%c'.",
                 chValue);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -498,7 +498,7 @@ LsaModifyUser_SetAccountExpiryDate(
        struct tm timebuf;
 
        if (NULL == strptime(pszDate, "%Y-%m-%d", &timebuf)) {
-          dwError = LSA_ERROR_FAILED_TIME_CONVERSION;
+          dwError = LW_ERROR_FAILED_TIME_CONVERSION;
           BAIL_ON_LSA_ERROR(dwError);
        }
 
@@ -585,7 +585,7 @@ LsaModifyUser_SetPasswordHash(
         {
             ret = sscanf(pszHashCursor, "%02hhx", &Hash[i]);
             if (ret == 0) {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -718,14 +718,14 @@ LsaValidateUserName(
 
     if (pParsedName->pszName == NULL)
     {
-        dwError = LSA_ERROR_INVALID_USER_NAME;
+        dwError = LW_ERROR_INVALID_USER_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     sNameLen = strlen(pParsedName->pszName);
     if (sNameLen > LSA_MAX_USER_NAME_LENGTH || sNameLen == 0)
     {
-        dwError = LSA_ERROR_INVALID_USER_NAME;
+        dwError = LW_ERROR_INVALID_USER_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -748,7 +748,7 @@ LsaValidateUserInfoLevel(
     )
 {
     return ((dwUserInfoLevel >= 0) &&
-            (dwUserInfoLevel <= 2)) ? 0 : LSA_ERROR_INVALID_USER_INFO_LEVEL;
+            (dwUserInfoLevel <= 2)) ? 0 : LW_ERROR_INVALID_USER_INFO_LEVEL;
 }
 
 DWORD
@@ -801,7 +801,7 @@ LsaValidateUserInfo(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
 
             break;

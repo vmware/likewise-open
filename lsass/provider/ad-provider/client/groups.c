@@ -195,7 +195,7 @@ LsaAdEnumGroupsFromCache(
             pResultList->dwNumGroups = 0;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

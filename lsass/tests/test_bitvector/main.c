@@ -115,7 +115,7 @@ main(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaBitVectorSetBit(pBitVector, dwNumBits);
-    if (dwError != LSA_ERROR_INVALID_PARAMETER)
+    if (dwError != LW_ERROR_INVALID_PARAMETER)
     {
        BAIL_ON_LSA_ERROR(dwError);
     }

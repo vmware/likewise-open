@@ -57,7 +57,7 @@
 DWORD
 NTLMInitializeCrypto(void)
 {
-    return (LSA_ERROR_SUCCESS);
+    return (LW_ERROR_SUCCESS);
 }
 
 /*
@@ -75,9 +75,9 @@ NTLMCryptGenRandom(
     )
 {
     if (!RAND_pseudo_bytes((unsigned char*) buf->buffer, buf->length))
-        return LSA_ERROR_INTERNAL;
+        return LW_ERROR_INTERNAL;
     else
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
 }
 
 /* sometimes we don't want to deal w/ secbuffer */
@@ -189,9 +189,9 @@ NTLMComputeNTOWF(
 {
     /* @todo what to do here?  Hash '/0' - I think */
     if (password->length == 0 || password->buffer == NULL)
-        return LSA_ERROR_PASSWORD_MISMATCH;
+        return LW_ERROR_PASSWORD_MISMATCH;
 
     MD4((UCHAR*) password->buffer, password->length, owf);
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 }

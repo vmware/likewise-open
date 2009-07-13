@@ -569,8 +569,8 @@ LsaDmpStateCreate(
 ///     entries in the unknown domain cache.
 ///
 /// @return LSA status code.
-///  @arg LSA_ERROR_SUCCESS on success
-///  @arg !LSA_ERROR_SUCCESS on failure
+///  @arg LW_ERROR_SUCCESS on success
+///  @arg !LW_ERROR_SUCCESS on failure
 ///
 {
     DWORD dwError = 0;
@@ -1098,7 +1098,7 @@ LsaDmpDomainCreate(
         if (!LsaDmpIsValidDnsDomainName(pszDnsDomainName))
         {
             LSA_LOG_ERROR("Invalid DNS domain name: '%s'", pszDnsDomainName);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
         dwError = LsaAllocateString(pszDnsDomainName, &pDomain->pszDnsName);
@@ -1108,7 +1108,7 @@ LsaDmpDomainCreate(
     if (!LsaDmIsValidNetbiosDomainName(pszNetbiosDomainName))
     {
         LSA_LOG_ERROR("Invalid NetBIOS domain name: '%s'", pszNetbiosDomainName);
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1266,7 +1266,7 @@ LsaDmpMustFindDomain(
 /// @param[in] pszDomainName - Name of domain to find in offline state.
 /// @param[in] ppFoundDomain - Found domain (or NULL on failure).
 ///
-/// @return LSA_ERROR_SUCCESS or LSA_ERROR_NO_SUCH_DOMAIN if not found.
+/// @return LW_ERROR_SUCCESS or LW_ERROR_NO_SUCH_DOMAIN if not found.
 ///
 /// @note The state must already be locked.
 ///
@@ -1278,7 +1278,7 @@ LsaDmpMustFindDomain(
     if (!pFoundDomain)
     {
         LSA_LOG_DEBUG("Do not know about domain '%s'", pszDomainName);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
     }
     *ppFoundDomain = pFoundDomain;
     return dwError;
@@ -1352,7 +1352,7 @@ LsaDmpMustFindDomainByObjectSid(
         LSA_LOG_DEBUG("Do not know about domain for object SID '%s'",
                       LSA_SAFE_LOG_STRING(pszSid));
         LSA_SAFE_FREE_STRING(pszSid);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
     }
     *ppFoundDomain = pFoundDomain;
     return dwError;
@@ -1384,7 +1384,7 @@ LsaDmpAddTrustedDomain(
     if (!pDomainSid)
     {
         LSA_LOG_DEBUG("Missing SID for domain '%s'.", pszDnsDomainName);
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1398,7 +1398,7 @@ LsaDmpAddTrustedDomain(
         {
             LSA_LOG_DEBUG("Cannot add non-primary trust %s because it has no trustee.", pszDnsDomainName);
         }
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1412,7 +1412,7 @@ LsaDmpAddTrustedDomain(
         // FUTURE-2008/08/15-dalmeida -- Check for a change in trust info
         LSA_LOG_DEBUG("Duplicate trust found for %s (%s).", pszDnsDomainName, pszNetbiosDomainName);
         // TODO-document this error code.
-        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1433,7 +1433,7 @@ LsaDmpAddTrustedDomain(
         {
             LSA_LOG_DEBUG("Cannot add primary trust %s since a primary trust already exists.", pszDnsDomainName);
         }
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1443,7 +1443,7 @@ LsaDmpAddTrustedDomain(
         if (!LsaDmpIsDomainPresent(Handle, pszTrusteeDnsDomainName))
         {
             LSA_LOG_DEBUG("Trustee %s for domain %s must be added before adding the trusted domain.", pszTrusteeDnsDomainName, pszDnsDomainName);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1723,7 +1723,7 @@ LsaDmpEnumDomainsFilteredCallback(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -1862,7 +1862,7 @@ LsaDmpQueryDomainInfoInternal(
     if ((pszDomainName && pObjectSid) ||
         (!pszDomainName && !pObjectSid))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2235,7 +2235,7 @@ LsaDmpModifyDomainFlagsByName(
 
     if (!pszDomainName)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2672,7 +2672,7 @@ LsaDmpLdapReconnectCallback(
     HANDLE hOld = NULL;
     HANDLE hNew = NULL;
     DWORD dwFlags = 0;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bIsAcquired = FALSE;
     PLSA_DM_DOMAIN_STATE pDomain = NULL;
     BOOLEAN bIsReconnect = FALSE;
@@ -2833,7 +2833,7 @@ LsaDmpLdapOpen(
     // domain goes offline, not when the machine goes globally offline).
     if (LsaDmpIsDomainOffline(Handle, pszDnsDomainName, bUseGc))
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2949,7 +2949,7 @@ cleanup:
     {
         LsaDmpReleaseMutex(Handle->pMutex);
     }
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error %d occurred while putting an ldap connection back in the domain free list.", dwError);
     }
@@ -2973,7 +2973,7 @@ LsaDmpLdapIsRetryError(
     {
         case LDAP_TIMEOUT:
         case LDAP_SERVER_DOWN:
-        case LSA_ERROR_LDAP_SERVER_UNAVAILABLE:
+        case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
             return TRUE;
         default:
             return FALSE;
@@ -3030,7 +3030,7 @@ LsaDmpIsNetworkError(
 
     switch (dwError)
     {
-        case LSA_ERROR_DOMAIN_IS_OFFLINE:
+        case LW_ERROR_DOMAIN_IS_OFFLINE:
         case LWNET_ERROR_INVALID_DNS_RESPONSE:
         case LWNET_ERROR_FAILED_FIND_DC:
             bIsNetworkError = TRUE;
@@ -3115,7 +3115,7 @@ LsaDmpCacheUnknownDomainSid(
     IN PSID pDomainSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     BOOLEAN bIsAcquired = FALSE;
     PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pFoundEntry = NULL;
     PLSA_DM_UNKNOWN_DOMAIN_SID_ENTRY pNewEntry = NULL;

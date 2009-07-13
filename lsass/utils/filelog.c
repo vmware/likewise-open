@@ -61,7 +61,7 @@ LsaOpenFileLog(
     
     if (IsNullOrEmptyString(pszFilePath))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         goto error;
     }
     
@@ -130,7 +130,7 @@ LsaGetFileLogInfo(
     if ((gLogTarget != LSA_LOG_TARGET_FILE) ||
         IsNullOrEmptyString(pFileLog->pszFilePath))
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -204,7 +204,7 @@ LsaLogToFile(
         }
         case LSA_LOG_LEVEL_ERROR:
         {
-            pszEntryType = LSA_ERROR_TAG;
+            pszEntryType = LW_ERROR_TAG;
             break;
         }
 

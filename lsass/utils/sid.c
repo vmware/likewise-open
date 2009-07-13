@@ -54,7 +54,7 @@ LsaAllocateCStringFromSid(
     IN PSID pSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     PSTR pszStringSid = NULL;
     PSTR pszResultStringSid = NULL;
@@ -66,7 +66,7 @@ LsaAllocateCStringFromSid(
     dwError = LsaAllocateString(pszStringSid, &pszResultStringSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
     RTL_FREE(&pszStringSid);
@@ -86,7 +86,7 @@ LsaAllocateSidFromCString(
     IN PCSTR pszStringSid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     PSID pSid = NULL;
     PSID pResultSid = NULL;
@@ -103,7 +103,7 @@ LsaAllocateSidFromCString(
 
     RtlCopyMemory(pResultSid, pSid, size);
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
     RTL_FREE(&pSid);
@@ -124,7 +124,7 @@ LsaAllocateSidAppendRid(
     IN ULONG Rid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     PSID pResultSid = NULL;
     ULONG size = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount + 1);

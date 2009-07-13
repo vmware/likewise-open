@@ -355,7 +355,7 @@ LsaCfgParse(
             }
             default:
             {
-                dwError = LSA_ERROR_INVALID_CONFIG;
+                dwError = LW_ERROR_INVALID_CONFIG;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -372,7 +372,7 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_INVALID_CONFIG)
+    if (dwError == LW_ERROR_INVALID_CONFIG)
     {
         if (pParseState) {
             LSA_LOG_ERROR ("Parse error at line=%d, column=%d of file [%s]",
@@ -476,7 +476,7 @@ LsaCfgParseSections(
             }
             default:
             {
-                dwError = LSA_ERROR_INVALID_CONFIG;
+                dwError = LW_ERROR_INVALID_CONFIG;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -641,7 +641,7 @@ LsaCfgParseSectionHeader(
             }
             default:
             {
-                dwError = LSA_ERROR_INVALID_CONFIG;
+                dwError = LW_ERROR_INVALID_CONFIG;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -688,7 +688,7 @@ LsaCfgParseSectionHeader(
         }
         default:
         {
-            dwError = LSA_ERROR_INVALID_CONFIG;
+            dwError = LW_ERROR_INVALID_CONFIG;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -736,7 +736,7 @@ LsaAssertWhitespaceOnly(
                 DWORD i = 0;
                 for (; i < pToken->dwLen; i++) {
                     if (!isspace((int)pToken->pszToken[i])) {
-                        dwError = LSA_ERROR_INVALID_CONFIG;
+                        dwError = LW_ERROR_INVALID_CONFIG;
                         BAIL_ON_LSA_ERROR(dwError);
                     }
                 }
@@ -756,7 +756,7 @@ LsaAssertWhitespaceOnly(
             }
             default:
             {
-                dwError = LSA_ERROR_INVALID_CONFIG;
+                dwError = LW_ERROR_INVALID_CONFIG;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -803,7 +803,7 @@ LsaCfgParseNameValuePair(
     }
     else
     {
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -821,7 +821,7 @@ LsaCfgParseNameValuePair(
     }
     else
     {
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -869,7 +869,7 @@ LsaCfgParseNameValuePair(
             }
             default:
             {
-                dwError = LSA_ERROR_INVALID_CONFIG;
+                dwError = LW_ERROR_INVALID_CONFIG;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -951,7 +951,7 @@ LsaCfgProcessBeginSection(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (IsNullOrEmptyString(pszSectionName)) {
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1012,7 +1012,7 @@ LsaCfgProcessNameValuePair(
     }
 
     if (IsNullOrEmptyString(pszName)) {
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1022,7 +1022,7 @@ LsaCfgProcessNameValuePair(
     pToken = (PLSA_CFG_TOKEN)LsaStackPop(ppTokenStack);
     if (!pToken || pToken->tokenType != LsaCfgEquals)
     {
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

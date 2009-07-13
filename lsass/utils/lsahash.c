@@ -54,7 +54,7 @@ LsaHashCreate(
         LSA_HASH_TABLE** ppResult)
 {
     LSA_HASH_TABLE *pResult = NULL;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaAllocateMemory(
                     sizeof(*pResult),
@@ -95,7 +95,7 @@ void
 LsaHashSafeFree(
         LSA_HASH_TABLE** ppResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LSA_HASH_ITERATOR iterator;
     LSA_HASH_ENTRY *pEntry = NULL;
 
@@ -132,7 +132,7 @@ LsaHashSetValue(
         PVOID  pKey,
         PVOID  pValue)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     LSA_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     LSA_HASH_ENTRY *pNewEntry = NULL;
@@ -182,7 +182,7 @@ LsaHashGetValue(
         PCVOID  pKey,
         PVOID* ppValue)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sBucket = 0;
     LSA_HASH_ENTRY *pExamine = NULL;
     
@@ -221,7 +221,7 @@ LsaHashExists(
     )
 {
     DWORD dwError = LsaHashGetValue(pTable, pKey, NULL);
-    return (LSA_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
+    return (LW_ERROR_SUCCESS == dwError) ? TRUE : FALSE;
 }
 
 DWORD
@@ -230,7 +230,7 @@ LsaHashCopy(
     OUT LSA_HASH_TABLE **ppResult
     )
 {
-    DWORD             dwError = LSA_ERROR_SUCCESS;
+    DWORD             dwError = LW_ERROR_SUCCESS;
     LSA_HASH_ITERATOR iterator;
     LSA_HASH_ENTRY    EntryCopy;
     LSA_HASH_ENTRY    *pEntry = NULL;
@@ -296,7 +296,7 @@ LsaHashResize(
         LSA_HASH_TABLE *pTable,
         size_t sTableSize)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LSA_HASH_ENTRY **ppEntries;
     LSA_HASH_ITERATOR iterator;
     LSA_HASH_ENTRY *pEntry = NULL;
@@ -346,7 +346,7 @@ LsaHashGetIterator(
         pIterator->pEntryPos = NULL;
     }
     
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 // returns NULL after passing the last entry
@@ -384,7 +384,7 @@ LsaHashRemoveKey(
         LSA_HASH_TABLE *pTable,
         PVOID  pKey)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sBucket = pTable->fnHash(pKey) % pTable->sTableSize;
     LSA_HASH_ENTRY **ppExamine = &pTable->ppEntries[sBucket];
     LSA_HASH_ENTRY *pDelete;

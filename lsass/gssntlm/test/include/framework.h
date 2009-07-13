@@ -62,10 +62,10 @@ extern DWORD g_verbosity;
             ERROR(("  ERROR: %s failed. error=%d (expected %d)\n",  \
                 #e, dwError, n));                                   \
             if (dwError == 0)					    \
-                dwError = LSA_ERROR_INTERNAL;                       \
+                dwError = LW_ERROR_INTERNAL;                       \
                 goto error;                                         \
         }  else {                                                   \
-            dwError = LSA_ERROR_SUCCESS;                            \
+            dwError = LW_ERROR_SUCCESS;                            \
         }                                                           \
     } while (0)                                                     \
 
@@ -81,7 +81,7 @@ extern DWORD g_verbosity;
 #define CHK_BOOL(e)                                                 \
     do {                                                            \
         if (!e) {                                                   \
-            dwError = LSA_ERROR_INTERNAL;                           \
+            dwError = LW_ERROR_INTERNAL;                           \
             ERROR(("  ERROR: %s failed\n", #e));                        \
             goto error;                                             \
         }                                                           \

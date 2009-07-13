@@ -63,13 +63,13 @@ static int FreeStructGroup(void *p)
 
 static DWORD CopyGroupMembers(struct group *gr, LSA_GROUP_INFO_1 *pGroup)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     int i;
 
     /* Easy case is when there are no listed members */
 
     if (pGroup->ppszMembers == NULL) {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     /* Get the number of group members */
@@ -91,7 +91,7 @@ static DWORD CopyGroupMembers(struct group *gr, LSA_GROUP_INFO_1 *pGroup)
         BAIL_ON_NULL_PTR(gr->gr_mem[i], dwErr);
     }
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     return dwErr;
@@ -99,7 +99,7 @@ done:
 
 static DWORD FillStructGroupFromGroupInfo0(struct group **grp, LSA_GROUP_INFO_1 *pGroup)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     struct group *gr = NULL;
 
     gr = _wbc_malloc_zero(sizeof(struct group), FreeStructGroup);
@@ -125,10 +125,10 @@ static DWORD FillStructGroupFromGroupInfo0(struct group **grp, LSA_GROUP_INFO_1 
     BAIL_ON_LSA_ERR(dwErr);
 
     *grp = gr;
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         if (gr) {
             _WBC_FREE(gr);
         }
@@ -141,7 +141,7 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
 {
     LSA_GROUP_INFO_1 *pGroupInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(name, dwErr);
@@ -163,7 +163,7 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
     BAIL_ON_LSA_ERR(dwErr);
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*grp);
     }
 
@@ -186,7 +186,7 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
 {
     LSA_GROUP_INFO_1 *pGroupInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(grp, dwErr);
@@ -207,7 +207,7 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
     BAIL_ON_LSA_ERR(dwErr);
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*grp);
     }
 

@@ -50,7 +50,7 @@
 static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
                  LSA_GROUP_INFO_0 **ppGroupInfo, DWORD groupInfoSize)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     char **ppGroups = NULL;
     uint32_t nGroups = 0;
     int i;
@@ -61,7 +61,7 @@ static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
     /* Check for a no-op */
 
     if (!ppGroupInfo || (groupInfoSize == 0)) {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     ppGroups = *pppGroupList;
@@ -91,9 +91,9 @@ static DWORD AddGroupsToList(char ***pppGroupList, uint32_t *pGroupSize,
     *pppGroupList = ppGroups;
         *pGroupSize = nGroups;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 done:
-    if (dwErr != LSA_ERROR_SUCCESS)  {
+    if (dwErr != LW_ERROR_SUCCESS)  {
         _WBC_FREE(ppGroups);
     }
 
@@ -109,7 +109,7 @@ wbcErr wbcListGroups(const char *domain_name,
     HANDLE hLsa = (HANDLE)NULL;
     HANDLE hResume = (HANDLE)NULL;
     DWORD dwNumGroups = 0;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     bool bDone = false;
     uint32_t groupSize = 0;
@@ -157,7 +157,7 @@ wbcErr wbcListGroups(const char *domain_name,
     *num_groups = groupSize;
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(groupList);
     }
 

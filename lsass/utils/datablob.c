@@ -56,7 +56,7 @@ LsaDataBlobAllocate(
     DWORD dwSize
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
     LSA_DATA_BLOB *pBlob = NULL;
 
     BAIL_ON_INVALID_POINTER(ppBlob);
@@ -97,12 +97,12 @@ LsaDataBlobFree(
     PLSA_DATA_BLOB *ppBlob
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
 
     /* NULL Pointer is automatic success */
 
     if (!ppBlob) {
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     LsaFreeMemory((*ppBlob)->pData);
@@ -123,7 +123,7 @@ LsaDataBlobStore(
     const PBYTE pBuffer
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
 
     BAIL_ON_INVALID_POINTER(ppBlob);
 
@@ -150,7 +150,7 @@ LsaDataBlobCopy(
     PLSA_DATA_BLOB pSrc
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
 
     BAIL_ON_INVALID_POINTER(ppDst);
     BAIL_ON_INVALID_POINTER(pSrc);

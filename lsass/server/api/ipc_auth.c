@@ -82,7 +82,7 @@ LsaSrvIpcAuthenticateUser(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -124,7 +124,7 @@ LsaSrvIpcValidateUser(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -166,7 +166,7 @@ LsaSrvIpcCheckUserInList(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -209,7 +209,7 @@ LsaSrvIpcChangePassword(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -250,7 +250,7 @@ LsaSrvIpcSetPassword(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -298,7 +298,7 @@ LsaSrvIpcAuthenticateUserEx(
     void* data
     )
 {
-    DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+    DWORD dwError = LW_ERROR_NOT_IMPLEMENTED;
     PLSA_AUTH_USER_PARAMS pParams = (PLSA_AUTH_USER_PARAMS) pRequest->object;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     PLSA_IPC_ERROR pError = NULL;
@@ -332,7 +332,7 @@ cleanup:
        FreeAuthUserInfo(&pUserInfo);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
    goto cleanup;

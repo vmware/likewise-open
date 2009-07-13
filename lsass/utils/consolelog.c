@@ -138,7 +138,7 @@ LsaLogToConsole(
         }
         case LSA_LOG_LEVEL_ERROR:
         {
-            pszEntryType = LSA_ERROR_TAG;
+            pszEntryType = LW_ERROR_TAG;
             pTarget = pConsoleLog->fp_err;
             break;
         }

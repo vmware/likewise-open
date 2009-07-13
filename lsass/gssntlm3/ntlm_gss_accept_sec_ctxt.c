@@ -93,7 +93,7 @@ ntlm_gss_accept_sec_context(
                         (PDWORD) retTime
                         );
 
-    if (LSA_ERROR_MASK(dwError))
+    if (LW_ERROR_MASK(dwError))
         goto error;
 
     MAKE_GSS_BUFFER(gssOutputToken, &outputToken);

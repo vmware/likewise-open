@@ -169,7 +169,7 @@ AcquireCredentialsHandleQuickTest(
     if (h1 != h2) {
         TRACE(("Credential handles are *NOT* equal - h1:0x%p h2:0x%p\n", h1,
                 h2));
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CREDENTIAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CREDENTIAL);
     }
 
     TEST_END(tn);
@@ -184,8 +184,8 @@ AcquireCredentialsHandleQuickTest(
     TRACE(("*  Test %i - test cred handle release\n", tn));
     CHK_ERR(NTLMGssReleaseCred(&dwMinor, h1));
     CHK_ERR(NTLMGssReleaseCred(&dwMinor, h2));
-    CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h1), LSA_ERROR_INVALID_CREDENTIAL);
-    CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h2), LSA_ERROR_INVALID_CREDENTIAL);
+    CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h1), LW_ERROR_INVALID_CREDENTIAL);
+    CHK_EXPECTED(NTLMGssReleaseCred(&dwMinor, h2), LW_ERROR_INVALID_CREDENTIAL);
 
     TEST_END(tn);
 
@@ -499,7 +499,7 @@ SimpleGssApi(
                  &negToken,
                  &flags,
                  &timeValid),
-        LSA_WARNING_CONTINUE_NEEDED);
+        LW_WARNING_CONTINUE_NEEDED);
 
 
     NTLMDumpNegotiateMessage(D_ERROR, (PNTLM_CONTEXT) hInitCtxt,
@@ -521,7 +521,7 @@ SimpleGssApi(
                  &challengeToken,
                  &flags,
                  &timeValid),
-        LSA_WARNING_CONTINUE_NEEDED);
+        LW_WARNING_CONTINUE_NEEDED);
 
     /* @todo - validate src name */
     /* @todo - validate mech */

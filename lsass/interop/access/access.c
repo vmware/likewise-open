@@ -199,7 +199,7 @@ LsaAccessCheckData(
 
     if ( !pAccessData )
     {
-        dwError = LSA_ERROR_AUTH_ERROR;
+        dwError = LW_ERROR_AUTH_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -248,7 +248,7 @@ LsaAccessCheckData(
 
     if ( !bUserIsOK )
     {
-        dwError = LSA_ERROR_AUTH_ERROR;
+        dwError = LW_ERROR_AUTH_ERROR;
     }
 
 cleanup:

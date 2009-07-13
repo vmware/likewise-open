@@ -105,8 +105,8 @@ pam_sm_open_session(
 
     dwError = pam_notify_user_logon(
                     pszLoginId);
-    if (dwError == LSA_ERROR_LOAD_LIBRARY_FAILED ||
-        dwError == LSA_ERROR_LOOKUP_SYMBOL_FAILED )
+    if (dwError == LW_ERROR_LOAD_LIBRARY_FAILED ||
+        dwError == LW_ERROR_LOOKUP_SYMBOL_FAILED )
     {
         dwError = 0;
     }
@@ -131,7 +131,7 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_NO_SUCH_USER) || (dwError == LSA_ERROR_NOT_HANDLED))
+    if ((dwError == LW_ERROR_NO_SUCH_USER) || (dwError == LW_ERROR_NOT_HANDLED))
     {
         LSA_LOG_PAM_WARNING("pam_sm_open_session failed [login:%s][error code: %d]",
                             LSA_SAFE_LOG_STRING(pszLoginId),
@@ -201,7 +201,7 @@ cleanup:
 
     LSA_LOG_PAM_DEBUG("LsaPamDisplayMOTD::end");
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 error:
 
@@ -249,7 +249,7 @@ pam_sm_close_session(
 
     if (pszLoginId == NULL)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -263,8 +263,8 @@ pam_sm_close_session(
 
     dwError = pam_notify_user_logoff(
                     pszLoginId);
-    if (dwError == LSA_ERROR_LOAD_LIBRARY_FAILED ||
-        dwError == LSA_ERROR_LOOKUP_SYMBOL_FAILED )
+    if (dwError == LW_ERROR_LOAD_LIBRARY_FAILED ||
+        dwError == LW_ERROR_LOOKUP_SYMBOL_FAILED )
     {
         dwError = 0;
     }
@@ -289,7 +289,7 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_NO_SUCH_USER) || (dwError == LSA_ERROR_NOT_HANDLED))
+    if ((dwError == LW_ERROR_NO_SUCH_USER) || (dwError == LW_ERROR_NOT_HANDLED))
     {
         LSA_LOG_PAM_WARNING("pam_sm_close_session error [error code:%d]", dwError);
     }

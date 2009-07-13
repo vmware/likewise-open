@@ -84,8 +84,8 @@ LsaSrvAuthenticateUser(
             }
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -107,7 +107,7 @@ LsaSrvAuthenticateUser(
 
     if (pProvider == NULL)
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -134,8 +134,8 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NOT_HANDLED ||
-        dwError == LSA_ERROR_NO_SUCH_USER)
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+        dwError == LW_ERROR_NO_SUCH_USER)
     {
         LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
     }
@@ -200,7 +200,7 @@ LsaSrvAuthenticateUserEx(
 	    break;
     default:
 	    /* Bad AuthType */
-	    dwError = LSA_ERROR_INVALID_PARAMETER;
+	    dwError = LW_ERROR_INVALID_PARAMETER;
 	    goto cleanup;
 	    break;
     }
@@ -231,8 +231,8 @@ LsaSrvAuthenticateUserEx(
             }
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
 	{
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -254,7 +254,7 @@ LsaSrvAuthenticateUserEx(
     }
 
     if (pProvider == NULL) {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -282,8 +282,8 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NOT_HANDLED ||
-                   dwError == LSA_ERROR_NO_SUCH_USER)
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+                   dwError == LW_ERROR_NO_SUCH_USER)
     {
         LSA_LOG_VERBOSE("Failed authenticate unknown user [%s]",
 			pUserParams && pUserParams->pszAccountName ?
@@ -316,7 +316,7 @@ LsaSrvValidateUser(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -330,8 +330,8 @@ LsaSrvValidateUser(
         if (!dwError) {
            break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER)) {
            LsaSrvCloseProvider(pProvider, hProvider);
            hProvider = (HANDLE)NULL;
            continue;
@@ -374,7 +374,7 @@ LsaSrvCheckUserInList(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -398,8 +398,8 @@ LsaSrvCheckUserInList(
             }
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
            LsaSrvCloseProvider(pProvider, hProvider);
            hProvider = (HANDLE)NULL;
@@ -455,7 +455,7 @@ LsaSrvChangePassword(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -478,8 +478,8 @@ LsaSrvChangePassword(
             }
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -543,7 +543,7 @@ LsaSrvSetPassword(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -554,8 +554,8 @@ LsaSrvSetPassword(
                                         hProvider,
                                         pszLoginId,
                                         pszPassword);
-        if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-            (dwError == LSA_ERROR_NO_SUCH_USER))
+        if ((dwError == LW_ERROR_NOT_HANDLED) ||
+            (dwError == LW_ERROR_NO_SUCH_USER))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;

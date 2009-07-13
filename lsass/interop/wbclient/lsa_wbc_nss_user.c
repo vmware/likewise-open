@@ -64,7 +64,7 @@ static int FreeStructPasswd(void *p)
 
 static DWORD FillStructPasswdFromUserInfo0(struct passwd **pwd, LSA_USER_INFO_0 *pUser)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     struct passwd *pw = NULL;
 
     pw = _wbc_malloc_zero(sizeof(struct passwd), FreeStructPasswd);
@@ -99,10 +99,10 @@ static DWORD FillStructPasswdFromUserInfo0(struct passwd **pwd, LSA_USER_INFO_0 
     BAIL_ON_NULL_PTR(pw->pw_passwd, dwErr);
 
     *pwd = pw;
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         if (pw) {
             _WBC_FREE(pw);
         }
@@ -115,7 +115,7 @@ wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
 {
     LSA_USER_INFO_0 *pUserInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(name, dwErr);
@@ -137,7 +137,7 @@ wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
     BAIL_ON_LSA_ERR(dwErr);
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*pwd);
     }
 
@@ -161,7 +161,7 @@ wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
 {
     LSA_USER_INFO_0 *pUserInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(pwd, dwErr);
@@ -182,7 +182,7 @@ wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
     BAIL_ON_LSA_ERR(dwErr);
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*pwd);
     }
 
@@ -222,7 +222,7 @@ wbcErr wbcGetGroups(const char *account,
             gid_t **groups)
 {
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     DWORD dwNumGids = 0;
     gid_t *gids = NULL;
@@ -250,10 +250,10 @@ wbcErr wbcGetGroups(const char *account,
     memcpy(*groups, gids, sizeof(gid_t)*dwNumGids);
     *num_groups = dwNumGids;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*groups);
     }
 

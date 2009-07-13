@@ -72,7 +72,7 @@ ADMarshalFromUserCache(
 
     if (pUser->type != AccountType_User)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -103,7 +103,7 @@ ADMarshalFromUserCache(
             pUserInfo2 = (PLSA_USER_INFO_2) pUserInfo;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -256,7 +256,7 @@ ADGetCurrentNtTime(
     OUT UINT64* pqwResult
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     time_t now = 0;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
@@ -370,14 +370,14 @@ ADNonSchemaKeywordGetUInt32(
             if (pszEndPtr == NULL || *pszEndPtr != '\0' || pszEndPtr == pszValue)
             {
                 // Couldn't parse the whole number
-                return LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+                return LW_ERROR_INVALID_LDAP_ATTR_VALUE;
             }
-            return LSA_ERROR_SUCCESS;
+            return LW_ERROR_SUCCESS;
         }
     }
 
     // Couldn't find the attribute
-    return LSA_ERROR_INVALID_LDAP_ATTR_VALUE;
+    return LW_ERROR_INVALID_LDAP_ATTR_VALUE;
 }
 
 DWORD
@@ -474,7 +474,7 @@ AD_BuildHomeDirFromTemplate(
                     dwInsertLength = dwHostNameLength;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
+                    dwError = LW_ERROR_INVALID_HOMEDIR_TEMPLATE;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             LSA_ASSERT(!(bNeedUpper && bNeedLower));

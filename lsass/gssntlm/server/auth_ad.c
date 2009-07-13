@@ -52,7 +52,7 @@ adProviderGetUserInfo(
     PAUTH_INFO *userInfo
     )
 {
-    DWORD dwError = LSA_ERROR_NOT_IMPLEMENTED;
+    DWORD dwError = LW_ERROR_NOT_IMPLEMENTED;
     BAIL_ON_NTLM_ERROR(dwError);
 
 error:

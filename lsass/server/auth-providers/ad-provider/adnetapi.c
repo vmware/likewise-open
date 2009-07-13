@@ -380,11 +380,11 @@ AD_NetLookupObjectSidByName(
                  &bIsNetworkError);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // In case of NOT found, the above function bails out with dwError == LSA_ERROR_RPC_LSA_LOOKUPNAMES_FAILED
+    // In case of NOT found, the above function bails out with dwError == LW_ERROR_RPC_LSA_LOOKUPNAMES_FAILED
     // Double check here again
     if (!ppTranslatedSids || !ppTranslatedSids[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -408,7 +408,7 @@ error:
     LSA_SAFE_FREE_STRING(pszObjectSid);
     *pObjectType = AccountType_NotFound;
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
-    dwError = LSA_ERROR_NO_SUCH_OBJECT;
+    dwError = LW_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }
@@ -460,14 +460,14 @@ AD_NetLookupObjectSidsByNames(
     rpcStatus = InitLsaBindingDefault(&lsa_binding, pszHostname, pAccessToken);
     if (rpcStatus != 0)
     {
-       dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
+       dwError = LW_ERROR_RPC_LSABINDING_FAILED;
        bIsNetworkError = TRUE;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (lsa_binding == NULL)
     {
-        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
+        dwError = LW_ERROR_RPC_LSABINDING_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -493,7 +493,7 @@ AD_NetLookupObjectSidsByNames(
     if (status != 0)
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
-        dwError = LSA_ERROR_RPC_OPENPOLICY_FAILED;
+        dwError = LW_ERROR_RPC_OPENPOLICY_FAILED;
         if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
@@ -523,7 +523,7 @@ AD_NetLookupObjectSidsByNames(
         else
         {
             LSA_LOG_DEBUG("LsaLookupNames2() failed with %d (0x%08x)", status, status);
-            dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+            dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
             if (IsDceRpcConnError(status))
             {
                 bIsNetworkError = TRUE;
@@ -533,17 +533,17 @@ AD_NetLookupObjectSidsByNames(
     }
     if (dwFoundSidsCount == 0)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwFoundSidsCount > dwNamesCount)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FOUND_DUPLICATES;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FOUND_DUPLICATES;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!pSids || !pDomains)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -576,7 +576,7 @@ AD_NetLookupObjectSidsByNames(
 
         if (dwDomainSid_index >= pDomains->count)
         {
-            dwError = LSA_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
+            dwError = LW_ERROR_RPC_LSA_LOOKUPNAME2_FAILED;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -637,7 +637,7 @@ cleanup:
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0)
     {
-        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;
+        dwError = LW_ERROR_RPC_CLOSEPOLICY_FAILED;
     }
     if (lsa_binding)
     {
@@ -696,11 +696,11 @@ AD_NetLookupObjectNameBySid(
                  &bIsNetworkError);
     BAIL_ON_LSA_ERROR(dwError);
 
-    // In case of NOT found, the above function bails out with dwError == LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED
+    // In case of NOT found, the above function bails out with dwError == LW_ERROR_RPC_LSA_LOOKUPSIDS_FAILED
     // Double check here again
     if (!ppTranslatedNames || !ppTranslatedNames[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -727,7 +727,7 @@ error:
 
     LSA_LOG_ERROR("Failed to find user or group. [Error code: %d]", dwError);
 
-    dwError = LSA_ERROR_NO_SUCH_OBJECT;
+    dwError = LW_ERROR_NO_SUCH_OBJECT;
 
     goto cleanup;
 }
@@ -783,14 +783,14 @@ AD_NetLookupObjectNamesBySids(
 
     if (rpcStatus != 0)
     {
-       dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
+       dwError = LW_ERROR_RPC_LSABINDING_FAILED;
        bIsNetworkError = TRUE;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (lsa_binding == NULL)
     {
-        dwError = LSA_ERROR_RPC_LSABINDING_FAILED;
+        dwError = LW_ERROR_RPC_LSABINDING_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -820,7 +820,7 @@ AD_NetLookupObjectNamesBySids(
     if (status != 0)
     {
         LSA_LOG_DEBUG("LsaOpenPolicy2() failed with %d (0x%08x)", status, status);
-        dwError = LSA_ERROR_RPC_OPENPOLICY_FAILED;
+        dwError = LW_ERROR_RPC_OPENPOLICY_FAILED;
         if (IsDceRpcConnError(status))
         {
             bIsNetworkError = TRUE;
@@ -849,7 +849,7 @@ AD_NetLookupObjectNamesBySids(
         {
             LSA_LOG_DEBUG("LsaLookupSids() failed with %d (0x%08x)", status, status);
 
-            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
+            dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_FAILED;
             if (IsDceRpcConnError(status))
             {
                 bIsNetworkError = TRUE;
@@ -859,17 +859,17 @@ AD_NetLookupObjectNamesBySids(
     }
     if (dwFoundNamesCount == 0)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwFoundNamesCount > dwSidsCount)
     {
-        dwError = LSA_ERORR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_FOUND_DUPLICATES;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!name_array || !pDomains)
     {
-        dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+        dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -905,7 +905,7 @@ AD_NetLookupObjectNamesBySids(
         // Check for invalid domain indexing
         if (name_array[i].sid_index >= pDomains->count)
         {
-            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+            dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -930,7 +930,7 @@ AD_NetLookupObjectNamesBySids(
             ((ObjectType != AccountType_Domain) && IsNullOrEmptyString(pszUsername)) ||
             ((ObjectType == AccountType_Domain) && !IsNullOrEmptyString(pszUsername)))
         {
-            dwError = LSA_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
+            dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1004,7 +1004,7 @@ cleanup:
 
     status = LsaClose(lsa_binding, &lsa_policy);
     if (status != 0 && dwError == 0){
-        dwError = LSA_ERROR_RPC_CLOSEPOLICY_FAILED;
+        dwError = LW_ERROR_RPC_CLOSEPOLICY_FAILED;
     }
 
     if (lsa_binding)
@@ -1079,7 +1079,7 @@ AD_DsEnumerateDomainTrusts(
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
                       pszDomainControllerName, status);
-        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        dwError = LW_ERROR_RPC_NETLOGON_FAILED;
         bIsNetworkError = TRUE;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1093,7 +1093,7 @@ AD_DsEnumerateDomainTrusts(
     {
         LSA_LOG_DEBUG("Failed to enumerate trusts at %s (error %d)",
                       pszDomainControllerName, winError);
-        dwError = LSA_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
+        dwError = LW_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
         // ISSUE-2008/08/25-dalmeida -- Bad error propagation.
         if (IsDceRpcConnError(winError))
         {
@@ -1195,7 +1195,7 @@ AD_DsGetDcName(
     {
         LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
                        pszServerName, status);
-        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        dwError = LW_ERROR_RPC_NETLOGON_FAILED;
         bIsNetworkError = TRUE;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1216,7 +1216,7 @@ AD_DsGetDcName(
                       pszDomainName,
                       pszServerName,
                       winError);
-        dwError = LSA_ERROR_GET_DC_NAME_FAILED;
+        dwError = LW_ERROR_GET_DC_NAME_FAILED;
         if (IsDceRpcConnError(winError))
         {
             bIsNetworkError = TRUE;
@@ -1281,7 +1281,7 @@ AD_MapNetApiError(
         case 1325:
             // There is no RPC error code for this at present.
 
-            dwError = LSA_ERROR_PASSWORD_RESTRICTION;
+            dwError = LW_ERROR_PASSWORD_RESTRICTION;
             break;
         default:
             dwError = dwADError;
@@ -1339,7 +1339,7 @@ LsaCopyNetrUserInfo3(
     IN NetrValidationInfo *pNetrUserInfo3
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
     NetrSamBaseInfo *pBase = NULL;
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
@@ -1469,7 +1469,7 @@ LsaCopyNetrUserInfo3(
 
     /* All done */
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
     return dwError;
@@ -1486,7 +1486,7 @@ AD_NetlogonAuthenticationUserEx(
     OUT PBOOLEAN pbIsNetworkError
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
     PWSTR pwszDomainController = NULL;
     PWSTR pwszServerName = NULL;
     PWSTR pwszShortDomain = NULL;
@@ -1568,7 +1568,7 @@ AD_NetlogonAuthenticationUserEx(
         {
             LSA_LOG_DEBUG("Failed to bind to %s (error %d)",
                           pszDomainController, status);
-            dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+            dwError = LW_ERROR_RPC_NETLOGON_FAILED;
             bIsNetworkError = TRUE;
             BAIL_ON_LSA_ERROR(dwError);
         }
@@ -1587,7 +1587,7 @@ AD_NetlogonAuthenticationUserEx(
 
         if (nt_status != STATUS_SUCCESS)
         {
-            dwError = LSA_ERROR_RPC_ERROR;
+            dwError = LW_ERROR_RPC_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1631,7 +1631,7 @@ AD_NetlogonAuthenticationUserEx(
 
     if (nt_status != STATUS_SUCCESS)
     {
-        dwError = LSA_ERROR_RPC_NETLOGON_FAILED;
+        dwError = LW_ERROR_RPC_NETLOGON_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

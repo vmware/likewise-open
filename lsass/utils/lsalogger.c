@@ -87,7 +87,7 @@ LsaInitLogging(
 
             if (IsNullOrEmptyString(pszPath))
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -101,7 +101,7 @@ LsaInitLogging(
 
         default:
 
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -155,7 +155,7 @@ LsaLogGetInfo(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -257,7 +257,7 @@ LsaSetupLogging(
 	if ((hLog == (HANDLE)NULL) ||
 		!pfnLogger)
 	{
-		dwError = LSA_ERROR_INVALID_PARAMETER;
+		dwError = LW_ERROR_INVALID_PARAMETER;
 		goto error;
 	}
 
@@ -316,7 +316,7 @@ LsaValidateLogLevel(
             dwError = 0;
             break;
         default:
-            dwError = LSA_ERROR_INVALID_LOG_LEVEL;
+            dwError = LW_ERROR_INVALID_LOG_LEVEL;
             break;
     }
 
@@ -406,7 +406,7 @@ LsaTraceSetFlag(
 
     if (!gpTraceFlags)
     {
-        dwError = LSA_ERROR_TRACE_NOT_INITIALIZED;
+        dwError = LW_ERROR_TRACE_NOT_INITIALIZED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -428,7 +428,7 @@ LsaTraceUnsetFlag(
 
     if (!gpTraceFlags)
     {
-        dwError = LSA_ERROR_TRACE_NOT_INITIALIZED;
+        dwError = LW_ERROR_TRACE_NOT_INITIALIZED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

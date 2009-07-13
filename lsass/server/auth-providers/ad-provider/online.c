@@ -57,7 +57,7 @@ AD_OnlineFindCellDN(
     OUT PSTR* ppszCellDN
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR  pszParentDN = NULL;
     PSTR  pszCellDN = NULL;
     PSTR  pszTmpDN = NULL;
@@ -71,7 +71,7 @@ AD_OnlineFindCellDN(
     for (;;)
     {
         dwError = ADGetCellInformation(pConn, pszParentDN, &pszCellDN);
-        if (dwError == LSA_ERROR_NO_SUCH_CELL)
+        if (dwError == LW_ERROR_NO_SUCH_CELL)
         {
             dwError = 0;
         }
@@ -144,7 +144,7 @@ AD_OnlineInitializeDomainTrustsInfo(
                      pDomain->pszNetbiosDomainName,
                      &pszSid,
                      NULL);
-        if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+        if (LW_ERROR_NO_SUCH_OBJECT == dwError)
         {
             pPos = pPos->pNext;
             dwError = 0;
@@ -351,7 +351,7 @@ AD_GetLinkedCellInfo(
     OUT PDLINKEDLIST* ppCellList
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LDAP *pLd = NULL;
     LDAPMessage *pCellMessage1 = NULL;
     LDAPMessage *pCellMessage2 = NULL;
@@ -396,11 +396,11 @@ AD_GetLinkedCellInfo(
                       pLd,
                       pCellMessage1);
     if (dwCount < 0) {
-       dwError = LSA_ERROR_LDAP_ERROR;
+       dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-       dwError = LSA_ERROR_NO_SUCH_CELL;
+       dwError = LW_ERROR_NO_SUCH_CELL;
     } else if (dwCount > 1) {
-       dwError = LSA_ERROR_DUPLICATE_CELLNAME;
+       dwError = LW_ERROR_DUPLICATE_CELLNAME;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -412,7 +412,7 @@ AD_GetLinkedCellInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!bValidADEntry){
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
+        dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -481,11 +481,11 @@ AD_GetLinkedCellInfo(
                               pGCLd,
                               pCellMessage2);
             if (dwCount < 0) {
-               dwError = LSA_ERROR_LDAP_ERROR;
+               dwError = LW_ERROR_LDAP_ERROR;
             } else if (dwCount == 0) {
-               dwError = LSA_ERROR_NO_SUCH_CELL;
+               dwError = LW_ERROR_NO_SUCH_CELL;
             } else if (dwCount > 1) {
-               dwError = LSA_ERROR_DUPLICATE_CELLNAME;
+               dwError = LW_ERROR_DUPLICATE_CELLNAME;
             }
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -591,7 +591,7 @@ AD_DetermineTrustModeandDomainName(
         IsNullOrEmptyString(gpADProviderData->szDomain) ||
         IsNullOrEmptyString(gpADProviderData->szShortDomain))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -633,7 +633,7 @@ AD_DetermineTrustModeandDomainName(
                                    NULL,
                                    NULL,
                                    NULL);
-    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         LSA_LOG_WARNING("Domain '%s' is unknown.", pszDomain);
     }
@@ -685,7 +685,7 @@ AD_PacRidsToSidStringList(
     {
         if (pRids->count != 0)
         {
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
         // No SIDs here, so return empty list.
@@ -929,7 +929,7 @@ AD_PacMembershipFilterWithLdap(
         dwError = LsaHashGetValue(pMembershipHashTable,
                                   ppLdapGroups[i]->pszObjectSid,
                                   (PVOID*)&pMembership);
-        if (LSA_ERROR_SUCCESS == dwError)
+        if (LW_ERROR_SUCCESS == dwError)
         {
             if ((DWORD)iPrimaryGroupIndex == i)
             {
@@ -939,7 +939,7 @@ AD_PacMembershipFilterWithLdap(
         }
         else if (dwError == ENOENT)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         else
         {
@@ -1202,7 +1202,7 @@ AD_GetCachedPasswordHash(
     PBYTE pbPrehashedVerifier = NULL;
     size_t sPrehashedVerifierLen = 0;
     PBYTE pbHash = NULL;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sConvertedChars = 0;
     size_t sSamAccountCch = mbstrlen(pszSamAccount);
 
@@ -1233,7 +1233,7 @@ AD_GetCachedPasswordHash(
             sSamAccountCch + 1);
     if (sConvertedChars != sSamAccountCch)
     {
-        dwError = LSA_ERROR_STRING_CONV_FAILED;
+        dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1346,7 +1346,7 @@ AD_ServicesDomainWithDiscovery(
         {
             bFoundDomain = TRUE;
         }
-        else if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+        else if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
             goto cleanup;
@@ -1404,7 +1404,7 @@ AD_OnlineAuthenticateUser(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!bFoundDomain) {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1488,7 +1488,7 @@ AD_OnlineAuthenticateUser(
                     pszServicePassword,
                     &pPac,
                     &dwGoodUntilTime);
-    if (dwError == LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
+    if (dwError == LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
     {
         LSA_SAFE_FREE_STRING(pszServicePrincipal);
 
@@ -1576,7 +1576,7 @@ AD_CheckExpiredObject(
     IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     time_t now = 0;
     time_t expirationDate;
 
@@ -1595,7 +1595,7 @@ AD_CheckExpiredObject(
 
         //Pretend like the object couldn't be found in the cache
         ADCacheSafeFreeObject(ppCachedUser);
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
     }
     else
     {
@@ -1614,7 +1614,7 @@ AD_StoreAsExpiredObject(
     IN OUT PLSA_SECURITY_OBJECT* ppCachedUser
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     // Set the last update value so low that the next read will force a refresh.
     (*ppCachedUser)->version.tLastUpdated = 0;
@@ -2025,7 +2025,7 @@ AD_CombineCacheObjectsRemoveDuplicates(
 
     if (i != sCombinedObjectsCount)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2095,7 +2095,7 @@ AD_OnlineFindUserObjectById(
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
 
     if (uid == 0) {
-    	dwError = LSA_ERROR_NO_SUCH_USER;
+	dwError = LW_ERROR_NO_SUCH_USER;
     	BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2103,13 +2103,13 @@ AD_OnlineFindUserObjectById(
                     gpLsaAdProviderState->hCacheConnection,
                     uid,
                     &pCachedUser);
-    if (dwError == LSA_ERROR_SUCCESS)
+    if (dwError == LW_ERROR_SUCCESS)
     {
         // Frees object if it is expired
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
 
-    if (dwError == LSA_ERROR_NOT_HANDLED)
+    if (dwError == LW_ERROR_NOT_HANDLED)
     {
         dwError = AD_FindObjectByIdTypeNoCache(
                     hProvider,
@@ -2147,7 +2147,7 @@ AD_OnlineGetUserGroupObjectMembership(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sMembershipCount = 0;
     PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
@@ -2322,7 +2322,7 @@ error:
     *psCount = 0;
     *pppResults = NULL;
 
-    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
     {
         LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
                       pUserInfo->pszNetbiosDomainName,
@@ -2361,7 +2361,7 @@ AD_OnlineEnumUsers(
 
     if (!bIsEnumerationEnabled)
     {
-        dwError = LSA_ERROR_NO_MORE_USERS;
+        dwError = LW_ERROR_NO_MORE_USERS;
         goto cleanup;
     }
 
@@ -2437,7 +2437,7 @@ AD_OnlineFindGroupObjectByName(
     if ((pGroupNameInfo->nameType == NameType_Alias) &&
     	!strcasecmp(pGroupNameInfo->pszName, "root"))
     {
-    	dwError = LSA_ERROR_NO_SUCH_GROUP;
+	dwError = LW_ERROR_NO_SUCH_GROUP;
     	BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2445,7 +2445,7 @@ AD_OnlineFindGroupObjectByName(
                     gpLsaAdProviderState->hCacheConnection,
                     pGroupNameInfo,
                     &pCachedGroup);
-    if (dwError == LSA_ERROR_SUCCESS)
+    if (dwError == LW_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
     }
@@ -2455,7 +2455,7 @@ AD_OnlineFindGroupObjectByName(
         goto cleanup;
     }
 
-    if (dwError != LSA_ERROR_NOT_HANDLED){
+    if (dwError != LW_ERROR_NOT_HANDLED){
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2508,7 +2508,7 @@ AD_OnlineFindGroupById(
 
     if (gid == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2516,12 +2516,12 @@ AD_OnlineFindGroupById(
                     gpLsaAdProviderState->hCacheConnection,
                     gid,
                     &pCachedGroup);
-    if (dwError == LSA_ERROR_SUCCESS)
+    if (dwError == LW_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedGroup);
     }
 
-    if (dwError == LSA_ERROR_NOT_HANDLED)
+    if (dwError == LW_ERROR_NOT_HANDLED)
     {
         // It wasn't in the cache, or it is expired.
         dwError = AD_FindObjectByIdTypeNoCache(
@@ -2589,7 +2589,7 @@ AD_OnlineEnumGroups(
 
     if (!bIsEnumerationEnabled)
     {
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        dwError = LW_ERROR_NO_MORE_GROUPS;
         goto cleanup;
     }
 
@@ -2618,7 +2618,7 @@ AD_OnlineEnumGroups(
         {
             dwTotalCount++;
         }
-        else if (LSA_ERROR_OBJECT_NOT_ENABLED == dwError)
+        else if (LW_ERROR_OBJECT_NOT_ENABLED == dwError)
         {
             dwError = 0;
         }
@@ -2678,7 +2678,7 @@ AD_OnlineChangePassword(
 
     if (!bFoundDomain)
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2704,22 +2704,22 @@ AD_OnlineChangePassword(
     }*/
 
     if (!pUserInfo->bUserCanChangePassword) {
-        dwError = LSA_ERROR_USER_CANNOT_CHANGE_PASSWD;
+        dwError = LW_ERROR_USER_CANNOT_CHANGE_PASSWD;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->bAccountDisabled) {
-        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        dwError = LW_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->bAccountExpired) {
-        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        dwError = LW_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->bAccountLocked) {
-        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        dwError = LW_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2796,7 +2796,7 @@ AD_CreateHomeDirectory(
     BOOLEAN bExists = FALSE;
 
     if (IsNullOrEmptyString(pUserInfo->pszHomedir)) {
-        dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
+        dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2817,7 +2817,7 @@ cleanup:
 error:
 
     LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", IsNullOrEmptyString(pUserInfo->pszName) ? "" : pUserInfo->pszName, dwError);
-    dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
+    dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
 }
@@ -2871,7 +2871,7 @@ error:
     }
 
     LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", pUserInfo->pszName, dwError);
-    dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
+    dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
 }
@@ -3128,7 +3128,7 @@ AD_OnlineGetGroupMembers(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sMembershipCount = 0;
     PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
     BOOLEAN bExpired = FALSE;
@@ -3409,7 +3409,7 @@ AD_FindObjectByNameTypeNoCache(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3439,14 +3439,14 @@ AD_FindObjectByNameTypeNoCache(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
     // Check whether the object we find is correct type or not
     if (AccountType != pObject->type)
     {
-        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3456,9 +3456,9 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+    if (LW_ERROR_NO_SUCH_OBJECT == dwError)
     {
-        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
     }
     ADCacheSafeFreeObject(&pObject);
     goto cleanup;
@@ -3500,14 +3500,14 @@ AD_FindObjectByIdTypeNoCache(
 
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
     // Check whether the object we find is correct type or not
     if (AccountType != pObject->type)
     {
-        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3517,9 +3517,9 @@ cleanup:
     return dwError;
 
 error:
-    if (LSA_ERROR_NO_SUCH_OBJECT == dwError)
+    if (LW_ERROR_NO_SUCH_OBJECT == dwError)
     {
-        dwError = bIsUser ? LSA_ERROR_NO_SUCH_USER : LSA_ERROR_NO_SUCH_GROUP;
+        dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
     }
     ADCacheSafeFreeObject(&pObject);
     goto cleanup;
@@ -3550,7 +3550,7 @@ AD_FindObjectBySid(
     OUT PLSA_SECURITY_OBJECT* ppResult
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_SECURITY_OBJECT* ppResultArray = NULL;
 
     dwError = AD_FindObjectsBySidList(
@@ -3563,7 +3563,7 @@ AD_FindObjectBySid(
 
     if (ppResultArray && !ppResultArray[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3590,7 +3590,7 @@ AD_FindObjectsByList(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
     size_t sResultsCount = 0;
     size_t sFoundInCache = 0;
@@ -3646,7 +3646,7 @@ AD_FindObjectsByList(
 
                 default:
                     LSA_ASSERT(FALSE);
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             ADCacheSafeFreeObject(&ppResults[sIndex]);
@@ -3772,7 +3772,7 @@ AD_OnlineGetNamesBySidList(
     PSTR**          pppszSamAccounts,
     ADAccountType** ppTypes)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR* ppszDomainNames = NULL;
     PSTR* ppszSamAccounts = NULL;
     ADAccountType* pTypes = NULL;
@@ -3886,7 +3886,7 @@ AD_OnlineFindUserObjectByName(
                     gpLsaAdProviderState->hCacheConnection,
                     pUserNameInfo,
                     &pCachedUser);
-    if (dwError == LSA_ERROR_SUCCESS)
+    if (dwError == LW_ERROR_SUCCESS)
     {
         dwError = AD_CheckExpiredObject(&pCachedUser);
     }
@@ -3895,7 +3895,7 @@ AD_OnlineFindUserObjectByName(
         goto cleanup;
     }
 
-    if (dwError != LSA_ERROR_NOT_HANDLED){
+    if (dwError != LW_ERROR_NOT_HANDLED){
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3981,7 +3981,7 @@ AD_OnlineFindNSSArtefactByKey(
 
     case UNPROVISIONED_MODE:
 
-        dwError = LSA_ERROR_NOT_SUPPORTED;
+        dwError = LW_ERROR_NOT_SUPPORTED;
         break;
     }
 
@@ -4044,7 +4044,7 @@ AD_OnlineEnumNSSArtefacts(
 
     case UNPROVISIONED_MODE:
 
-        dwError = LSA_ERROR_NOT_SUPPORTED;
+        dwError = LW_ERROR_NOT_SUPPORTED;
         break;
     }
 
@@ -4067,7 +4067,7 @@ AD_UpdateUserObjectFlags(
     IN OUT PLSA_SECURITY_OBJECT pUser
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
     int64_t qwNanosecsToPasswordExpiry = 0;
@@ -4126,22 +4126,22 @@ AD_VerifyUserAccountCanLogin(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pUserInfo->userInfo.bAccountDisabled) {
-        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        dwError = LW_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->userInfo.bAccountLocked) {
-        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        dwError = LW_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->userInfo.bAccountExpired) {
-        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        dwError = LW_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->userInfo.bPasswordExpired) {
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

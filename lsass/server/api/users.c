@@ -85,8 +85,8 @@ LsaSrvFindUserByName(
 
             break;
 
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -102,7 +102,7 @@ LsaSrvFindUserByName(
 
     if (pProvider == NULL)
     {
-       dwError = LSA_ERROR_NO_SUCH_USER;
+       dwError = LW_ERROR_NO_SUCH_USER;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -132,8 +132,8 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NOT_HANDLED ||
-                   dwError == LSA_ERROR_NO_SUCH_USER) {
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+                   dwError == LW_ERROR_NO_SUCH_USER) {
         LSA_LOG_VERBOSE("Find user by name: [%s] is unknown", IsNullOrEmptyString(pszLoginId) ? "" : pszLoginId);
     }
     else {
@@ -179,8 +179,8 @@ LsaSrvFindUserById(
 
             break;
 
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -196,7 +196,7 @@ LsaSrvFindUserById(
 
     if (pProvider == NULL)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -223,8 +223,8 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NOT_HANDLED ||
-                   dwError == LSA_ERROR_NO_SUCH_USER) {
+    if (dwError == LW_ERROR_NOT_HANDLED ||
+                   dwError == LW_ERROR_NO_SUCH_USER) {
         LSA_LOG_VERBOSE("Find user by id: [%ld] is unknown", (long)uid);
     }
     else {
@@ -259,7 +259,7 @@ LsaSrvAddUser(
     }
 
     if (dwUserInfoLevel != 0) {
-        dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+        dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -270,7 +270,7 @@ LsaSrvAddUser(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -288,7 +288,7 @@ LsaSrvAddUser(
             break;
 
         }
-        else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        else if (dwError == LW_ERROR_NOT_HANDLED) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -342,7 +342,7 @@ LsaSrvModifyUser(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -357,8 +357,8 @@ LsaSrvModifyUser(
         if (!dwError) {
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                (dwError == LW_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -412,7 +412,7 @@ LsaSrvDeleteUser(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -426,8 +426,8 @@ LsaSrvDeleteUser(
                                         uid);
         if (!dwError) {
             break;
-        } if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-              (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        } if ((dwError == LW_ERROR_NOT_HANDLED) ||
+              (dwError == LW_ERROR_NO_SUCH_USER)) {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
 
@@ -532,7 +532,7 @@ LsaSrvEnumUsers(
                         &ppUserInfoList);
 
         if (dwError) {
-           if (dwError != LSA_ERROR_NO_MORE_USERS) {
+           if (dwError != LW_ERROR_NO_MORE_USERS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
@@ -541,7 +541,7 @@ LsaSrvEnumUsers(
 
         if (dwNumUsersRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
-           if (dwError == LSA_ERROR_NO_MORE_USERS){
+           if (dwError == LW_ERROR_NO_MORE_USERS){
                dwError = 0;
             }
         }
@@ -672,7 +672,7 @@ LsaSrvGetNamesBySidList(
             &ppszTempSamAccounts,
             &pTempTypes);
 
-        if (dwError != LSA_ERROR_NOT_HANDLED)
+        if (dwError != LW_ERROR_NOT_HANDLED)
         {
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -691,7 +691,7 @@ LsaSrvGetNamesBySidList(
         else
         {
             /* Absorb the error */
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
 
         LsaSrvCloseProvider(pProvider, hProvider);

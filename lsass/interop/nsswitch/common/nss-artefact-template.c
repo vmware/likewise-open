@@ -153,7 +153,7 @@ LsaNssWriteFooInfo(
     memset(pResultFoo, 0, sizeof(struct group));
 
     if ((dwNSSArtefactInfoLevel != 0) && (dwNSSArtefactInfoLevel != 1)) {
-        dwError = LSA_ERROR_UNSUPPORTED_NSS_ARTEFACT_LEVEL;
+        dwError = LW_ERROR_UNSUPPORTED_NSS_ARTEFACT_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -164,7 +164,7 @@ LsaNssWriteFooInfo(
     dwAlignBytes = (dwNumMembers ? ((((HANDLE)pszMarker) % sizeof(ULONG)) * sizeof(ULONG)) : 0);
 
     if (LsaNssComputeFooStringLength(dwAlignBytes, pNSSArtefactInfo_1) > bufLen) {
-       dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
+       dwError = LW_ERROR_INSUFFICIENT_BUFFER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -278,7 +278,7 @@ LsaNssCommonFooGetgrent(
 
     if (pEnumFoosState->hLsaConnection == (HANDLE)NULL)
     {
-        ret = MAP_LSA_ERROR(pErrorNumber, LSA_ERROR_INVALID_LSA_CONNECTION);
+        ret = MAP_LSA_ERROR(pErrorNumber, LW_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
 

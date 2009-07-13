@@ -120,11 +120,11 @@ NTLMGetSecBuffer(
     ULONG *ofs
     )
 {
-    ULONG dwError = LSA_ERROR_SUCCESS;
+    ULONG dwError = LW_ERROR_SUCCESS;
     ULONG bufofs;
 
     if ((*ofs) + sizeof(SEC_BUFFER) > src->length) 
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dst->length = GET_USHORT(src->buffer, (*ofs));
     (*ofs) += sizeof(USHORT);
@@ -136,11 +136,11 @@ NTLMGetSecBuffer(
     (*ofs) += sizeof(ULONG);
         
     if ((bufofs + dst->length) > src->length) 
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dst->buffer = NTLMAllocateMemory(dst->length);
     if (!dst->buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     GET_BYTES(dst->buffer, bufofs, src->buffer, dst->length); 
 
@@ -157,7 +157,7 @@ NTLMGetSecBufferAlloc(
 {
     dst->buffer = NTLMAllocateMemory(src->maxLength);
     if (!dst->buffer)
-        return LSA_ERROR_INSUFFICIENT_BUFFER;
+        return LW_ERROR_INSUFFICIENT_BUFFER;
 
     dst->length = src->length;
     dst->maxLength = src->maxLength;
@@ -192,21 +192,21 @@ NTLMParseMessageHeader(
     DWORD expectedMsg
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     UCHAR cmp[NTLM_SIGNATURE_SIZE] = NTLM_SIGNATURE;
     UCHAR tmp[NTLM_SIGNATURE_SIZE];
 
     if ((*ofs) + sizeof(ULONG) + NTLM_SIGNATURE_SIZE >= pbuf->length)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INSUFFICIENT_BUFFER);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INSUFFICIENT_BUFFER);
 
     GET_BYTES(tmp, (*ofs), pbuf->buffer, NTLM_SIGNATURE_SIZE);
     *ofs += NTLM_SIGNATURE_SIZE;
 
     if (memcmp(tmp, cmp, NTLM_SIGNATURE_SIZE))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_MESSAGE);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_MESSAGE);
 
     if (expectedMsg != GET_ULONG(pbuf->buffer, (*ofs)))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_MESSAGE);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_MESSAGE);
 
     (*ofs) += sizeof(ULONG);
 

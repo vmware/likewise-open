@@ -192,7 +192,7 @@ LsaGetTraceFlag(
             pResult = (PLSA_TRACE_INFO_LIST) response.object;
             if (pResult->dwNumFlags != 1)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             *ppTraceFlag = pResult->pTraceInfoArray;

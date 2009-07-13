@@ -99,7 +99,7 @@ LsaAppendAndFreePtrs(
     IN OUT PVOID** pppAppendPtrArray
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwCurrentCount = *pdwDestCount;
     DWORD dwAppendSize = *pdwAppendCount * sizeof(PVOID);
     DWORD dwNewSize = dwCurrentCount * sizeof(PVOID) + dwAppendSize;
@@ -175,7 +175,7 @@ LsaAllocateString(
     PSTR  pszOutputString = NULL;
     
     if (!pszInputString) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -255,7 +255,7 @@ LsaInitializeStringBuffer(
         LSA_STRING_BUFFER *pBuffer,
         size_t sCapacity)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszBuffer = NULL;
 
     pBuffer->sLen = 0;
@@ -263,7 +263,7 @@ LsaInitializeStringBuffer(
 
     if (sCapacity > DWORD_MAX - 1)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -289,7 +289,7 @@ LsaAppendStringBuffer(
         LSA_STRING_BUFFER *pBuffer,
         PCSTR pszAppend)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sAppendLen = 0;
     size_t sNewCapacity = 0;
     
@@ -303,13 +303,13 @@ LsaAppendStringBuffer(
 
         if (sNewCapacity > DWORD_MAX - 1)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
         if (sNewCapacity < pBuffer->sCapacity)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 

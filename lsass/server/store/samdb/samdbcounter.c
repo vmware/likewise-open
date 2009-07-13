@@ -90,7 +90,7 @@ SamDbInitConfig(
 
     if (pszQuery == NULL)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -252,7 +252,7 @@ SamDbGetNextAvailableId(
 
     if (!nRows || (nCols != 1))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

@@ -145,7 +145,7 @@ LocalDirFindGroupByName(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
 
             break;
     }
@@ -217,18 +217,18 @@ LocalDirFindGroupByName_0(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -340,18 +340,18 @@ LocalDirFindGroupByName_1(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -437,7 +437,7 @@ LocalDirFindGroupById(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
 
             break;
     }
@@ -506,18 +506,18 @@ LocalDirFindGroupById_0(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -625,18 +625,18 @@ LocalDirFindGroupById_1(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -725,7 +725,7 @@ LocalDirGetGroupsForUser(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
 
             break;
     }
@@ -943,7 +943,7 @@ LocalDirBeginEnumGroups(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -1153,7 +1153,7 @@ LocalDirEnumGroups(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
 
             break;
     }
@@ -1184,7 +1184,7 @@ LocalDirEnumGroups_0(
 
     if (pEnumState->dwInfoLevel != 0)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1194,7 +1194,7 @@ LocalDirEnumGroups_0(
 
     if (!dwNumGroupsFound)
     {
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        dwError = LW_ERROR_NO_MORE_GROUPS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1266,7 +1266,7 @@ LocalDirEnumGroups_1(
 
     if (pEnumState->dwInfoLevel != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1276,7 +1276,7 @@ LocalDirEnumGroups_1(
 
     if (!dwNumGroupsFound)
     {
-        dwError = LSA_ERROR_NO_MORE_GROUPS;
+        dwError = LW_ERROR_NO_MORE_GROUPS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1605,7 +1605,7 @@ LocalDirGetGroupMembersInternal(
                                     &wszAttrNameNetbiosName[0],
                                     &pGroupMember->pszNetbiosDomain);
                     if (dwError != 0&&
-                        dwError != LSA_ERROR_NO_ATTRIBUTE_VALUE) {
+                        dwError != LW_ERROR_NO_ATTRIBUTE_VALUE) {
                         BAIL_ON_LSA_ERROR(dwError);
                     }
 
@@ -1614,7 +1614,7 @@ LocalDirGetGroupMembersInternal(
                                     &wszAttrNameSamAccountName[0],
                                     &pGroupMember->pszSamAccountName);
                     if (dwError != 0&&
-                        dwError != LSA_ERROR_NO_ATTRIBUTE_VALUE) {
+                        dwError != LW_ERROR_NO_ATTRIBUTE_VALUE) {
                         BAIL_ON_LSA_ERROR(dwError);
                     }
 
@@ -1632,7 +1632,7 @@ LocalDirGetGroupMembersInternal(
 
             default:
 
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
 
                 break;
@@ -1689,7 +1689,7 @@ LocalDirAddGroup(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
 
             break;
     }
@@ -1818,7 +1818,7 @@ LocalDirAddGroup_0(
 
     if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2011,7 +2011,7 @@ LocalDirAddGroup_1(
 
     if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2105,7 +2105,7 @@ LocalDirValidateGID(
 
     /* Check whether group gid is within permitted range */
     if (gid < LOWEST_GID) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2372,11 +2372,11 @@ LocalDirModifyGroup(
             BAIL_ON_LSA_ERROR(dwError);
 
             if (dwNumEntries == 0) {
-                dwError = LSA_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
+                dwError = LW_ERROR_MEMBER_NOT_IN_LOCAL_GROUP;
                 BAIL_ON_LSA_ERROR(dwError);
 
             } else if (dwNumEntries > 1) {
-                dwError = LSA_ERROR_SAM_DATABASE_ERROR;
+                dwError = LW_ERROR_SAM_DATABASE_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 

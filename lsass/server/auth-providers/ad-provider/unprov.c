@@ -86,7 +86,7 @@ ADUnprovPlugin_QueryByIdWithDomainName(
                                    NULL,
                                    NULL,
                                    NULL);
-    if (LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LW_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         LSA_LOG_WARNING("Domain '%s' is unknown.", pszDnsDomainName);
     }
@@ -163,7 +163,7 @@ ADUnprovPlugin_QueryByAliasWithDomainName(
     if ((bIsUser && (AccountType_User != accountType)) ||
         (!bIsUser && (AccountType_Group != accountType)))
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -190,7 +190,7 @@ ADUnprovPlugin_Initialize(
     VOID
     )
 {
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 VOID
@@ -251,7 +251,7 @@ ADUnprovPlugin_QueryByReal(
         if ((bIsUser && (AccountType_User != accountType)) ||
             (!bIsUser && (AccountType_Group != accountType)))
         {
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -303,7 +303,7 @@ ADUnprovPlugin_QueryByAlias(
     OUT PDWORD pdwId
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR* ppszDomainNames = NULL;
     DWORD dwDomainCount = 0;
     DWORD i = 0;
@@ -316,8 +316,8 @@ ADUnprovPlugin_QueryByAlias(
                     gpADProviderData->szDomain,
                     ppszSid,
                     pdwId);
-    if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
-        LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LW_ERROR_NO_SUCH_OBJECT == dwError ||
+        LW_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         dwError = 0;
     }
@@ -338,8 +338,8 @@ ADUnprovPlugin_QueryByAlias(
                         ppszDomainNames[i],
                         ppszSid,
                         pdwId);
-        if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
-            LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+        if (LW_ERROR_NO_SUCH_OBJECT == dwError ||
+            LW_ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
             continue;
@@ -374,7 +374,7 @@ ADUnprovPlugin_QueryById(
     OUT PSTR* ppszAlias
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR* ppszDomainNames = NULL;
     DWORD dwDomainCount = 0;
     DWORD i = 0;
@@ -387,8 +387,8 @@ ADUnprovPlugin_QueryById(
                     gpADProviderData->szDomain,
                     ppszSid,
                     ppszAlias);
-    if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
-        LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+    if (LW_ERROR_NO_SUCH_OBJECT == dwError ||
+        LW_ERROR_NO_SUCH_DOMAIN == dwError)
     {
         dwError = 0;
     }
@@ -409,8 +409,8 @@ ADUnprovPlugin_QueryById(
                         ppszDomainNames[i],
                         ppszSid,
                         ppszAlias);
-        if (LSA_ERROR_NO_SUCH_OBJECT == dwError ||
-            LSA_ERROR_NO_SUCH_DOMAIN == dwError)
+        if (LW_ERROR_NO_SUCH_OBJECT == dwError ||
+            LW_ERROR_NO_SUCH_DOMAIN == dwError)
         {
             dwError = 0;
             continue;

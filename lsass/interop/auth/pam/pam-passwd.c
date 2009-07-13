@@ -93,7 +93,7 @@ pam_sm_chauthtok(
         dwError = LsaPamCheckCurrentPassword(
                             pamh,
                             pPamContext);
-        if ( dwError == LSA_ERROR_PASSWORD_EXPIRED )
+        if ( dwError == LW_ERROR_PASSWORD_EXPIRED )
         {
             /*
              * We must return success, so that PAM will
@@ -300,7 +300,7 @@ LsaPamUpdatePassword(
     if (pPamContext->bPasswordChangeFailed)
     {
         LSA_LOG_PAM_DEBUG("Password change already failed");
-        dwError = LSA_ERROR_USER_CANNOT_CHANGE_PASSWD;
+        dwError = LW_ERROR_USER_CANNOT_CHANGE_PASSWD;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (pPamContext->bPasswordChangeSuceeded)
@@ -371,7 +371,7 @@ cleanup:
 
     if (pPamContext->pamOptions.bRememberChPass)
     {
-        if (dwError == LSA_ERROR_SUCCESS)
+        if (dwError == LW_ERROR_SUCCESS)
         {
             pPamContext->bPasswordChangeSuceeded = TRUE;
         }
@@ -387,7 +387,7 @@ cleanup:
 
 error:
 
-    if ( dwError == LSA_ERROR_PASSWORD_RESTRICTION )
+    if ( dwError == LW_ERROR_PASSWORD_RESTRICTION )
     {
         LsaPamConverse(
             pamh,
@@ -535,7 +535,7 @@ LsaPamGetOldPassword(
             if (pPamOptions->bUseFirstPass)
             {
                 bPrompt = FALSE;
-                dwError = LSA_ERROR_INVALID_PASSWORD;
+                dwError = LW_ERROR_INVALID_PASSWORD;
                 BAIL_ON_LSA_ERROR(dwError);
             }
             else if (pPamOptions->bTryFirstPass)

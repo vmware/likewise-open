@@ -170,7 +170,7 @@ DirectoryLoadProvider(
           DIRECTORY_LOG_ERROR("%s", pszError);
         }
 
-        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -191,7 +191,7 @@ DirectoryLoadProvider(
           DIRECTORY_LOG_ERROR("%s", pszError);
         }
 
-        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -212,7 +212,7 @@ DirectoryLoadProvider(
             DIRECTORY_LOG_ERROR("%s", pszError);
         }
 
-        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
@@ -270,7 +270,7 @@ DirectoryValidateProvider(
         !pProvider->pProviderFnTbl->pfnDirectoryGetUserCount ||
         !pProvider->pProviderFnTbl->pfnDirectoryGetGroupCount)
     {
-        dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
     }
 
     return dwError;

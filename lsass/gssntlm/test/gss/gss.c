@@ -454,7 +454,7 @@ SendBytes(
     int   cbRemaining = cbBuf;
 
     if (0 == cbBuf)
-        return(LSA_ERROR_SUCCESS);
+        return(LW_ERROR_SUCCESS);
 
     while (cbRemaining) 
     {
@@ -475,7 +475,7 @@ SendBytes(
         cbRemaining -= cbSent;
     }
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 DWORD
@@ -515,7 +515,7 @@ ReceiveBytes(
 
     *pcbRead = cbBuf - cbRemaining;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }  
 
 
@@ -528,7 +528,7 @@ SendMsg(
 {
     DWORD dwError;
     if (0 == cbBuf)
-        return(LSA_ERROR_SUCCESS);
+        return(LW_ERROR_SUCCESS);
 
     /* Send the size of the message. */
     dwError = SendBytes(s, (PBYTE)&cbBuf, sizeof (cbBuf));
@@ -580,7 +580,7 @@ ReceiveMsg(
         return dwError;
     }
     if (sizeof(cbData) != cbRead || cbData > cbBuf)
-        return(LSA_ERROR_INSUFFICIENT_BUFFER);
+        return(LW_ERROR_INSUFFICIENT_BUFFER);
 
     dwError = ReceiveBytes(
                 s, 
@@ -595,10 +595,10 @@ ReceiveMsg(
     }
 
     if (cbRead != cbData)
-        return(LSA_ERROR_INSUFFICIENT_BUFFER);
+        return(LW_ERROR_INSUFFICIENT_BUFFER);
 
     *pcbRead = cbRead;
-    return(LSA_ERROR_SUCCESS);
+    return(LW_ERROR_SUCCESS);
 }  
 
 
@@ -621,7 +621,7 @@ ConnectToServer(
         pHost = gethostbyname (server);
         if (NULL == pHost) 
         {
-            return LSA_ERROR_INTERNAL;
+            return LW_ERROR_INTERNAL;
         }
         memcpy((char*)&ulAddress, pHost->h_addr, pHost->h_length);
     }
@@ -649,7 +649,7 @@ ConnectToServer(
     if(connect(*s, (struct sockaddr*) &sin, sizeof (sin)) == 0)
     {
         printf("connected - %s\n", server);
-        return(LSA_ERROR_SUCCESS);
+        return(LW_ERROR_SUCCESS);
     }
         
     dwError = errno;
@@ -670,7 +670,7 @@ GSSClientSignTest(
 
     OM_uint32 status;
     OM_uint32 minorStatus;
-    DWORD sockStatus = LSA_ERROR_SUCCESS;
+    DWORD sockStatus = LW_ERROR_SUCCESS;
 
     int confState;
     int confRet;
@@ -759,7 +759,7 @@ GSSClientAuthenticate(
     char *password
 )
 {
-    DWORD sockStatus = LSA_ERROR_SUCCESS;
+    DWORD sockStatus = LW_ERROR_SUCCESS;
     OM_uint32 majorStatus;
     OM_uint32 minorStatus;
     OM_uint32 retTime;
@@ -921,7 +921,7 @@ ClientAuthenticate(
         )
 {
     DWORD status;
-    DWORD sockStatus = LSA_ERROR_SUCCESS;
+    DWORD sockStatus = LW_ERROR_SUCCESS;
     DWORD dwMinor;
     PVOID hCred = NULL;
     PVOID hInitCtxt = NULL;
@@ -941,7 +941,7 @@ ClientAuthenticate(
     input.buffer = NTLMAllocateMemory(MAX_TOKEN);
     if (!input.buffer)
     {
-        status = LSA_ERROR_OUT_OF_MEMORY;
+        status = LW_ERROR_OUT_OF_MEMORY;
         goto out;
     }
 
@@ -949,7 +949,7 @@ ClientAuthenticate(
     output.buffer = NTLMAllocateMemory(MAX_TOKEN);
     if (!output.buffer)
     {
-        status = LSA_ERROR_OUT_OF_MEMORY;
+        status = LW_ERROR_OUT_OF_MEMORY;
         goto out;
     }
 
@@ -995,8 +995,8 @@ ClientAuthenticate(
                     ); 
 
 
-        if (status != LSA_ERROR_SUCCESS &&
-            status != LSA_WARNING_CONTINUE_NEEDED)
+        if (status != LW_ERROR_SUCCESS &&
+            status != LW_WARNING_CONTINUE_NEEDED)
         {
             /* failure */
             printf("ISC failed - 0x%x\n", status);
@@ -1024,7 +1024,7 @@ ClientAuthenticate(
         }
 
         /* final blob sent - nothing expected in return */
-        allDone = (status == LSA_ERROR_SUCCESS);
+        allDone = (status == LW_ERROR_SUCCESS);
 
         /* get response from server - this is input for next pass */
         input.length = MAX_TOKEN;
@@ -1058,7 +1058,7 @@ out:
     NTLMGssDeleteSecContext(&dwMinor, hInitCtxt);
 
     if (sockStatus) 
-        status = LSA_ERROR_INTERNAL;
+        status = LW_ERROR_INTERNAL;
 
     return(status);
 }
@@ -1070,7 +1070,7 @@ AcceptClientConnection(
    int *s
    )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int sListener;
     int sClient;
     struct sockaddr_in sIn;
@@ -1139,7 +1139,7 @@ GSSServerAuthenticate(
    ULONG capabilities
    )
 {
-    DWORD sockStatus = LSA_ERROR_SUCCESS;
+    DWORD sockStatus = LW_ERROR_SUCCESS;
     OM_uint32 majorStatus;
     OM_uint32 minorStatus;
     OM_uint32 retTime;
@@ -1299,8 +1299,8 @@ ServerAuthenticate(
    ULONG capabilities
    )
 {
-    DWORD sockStatus = LSA_ERROR_SUCCESS;
-    DWORD status = LSA_ERROR_SUCCESS;
+    DWORD sockStatus = LW_ERROR_SUCCESS;
+    DWORD status = LW_ERROR_SUCCESS;
     BOOLEAN  firstPass = TRUE;
     DWORD dwMinor;
     PVOID hCred = NULL;
@@ -1319,7 +1319,7 @@ ServerAuthenticate(
     input.buffer = NTLMAllocateMemory(MAX_TOKEN);
     if (!input.buffer)
     {
-        status = LSA_ERROR_OUT_OF_MEMORY;
+        status = LW_ERROR_OUT_OF_MEMORY;
         goto out;
     }
 
@@ -1366,8 +1366,8 @@ ServerAuthenticate(
                     &timeValid
                     ); 
 
-        if (status != LSA_ERROR_SUCCESS &&
-            status != LSA_WARNING_CONTINUE_NEEDED)
+        if (status != LW_ERROR_SUCCESS &&
+            status != LW_WARNING_CONTINUE_NEEDED)
         {
             /* failure */
             printf("ASC failed - 0x%x\n", status);
@@ -1399,7 +1399,7 @@ ServerAuthenticate(
         }
 
         /* final blob sent - nothing expected in return */
-        if (status == LSA_ERROR_SUCCESS)
+        if (status == LW_ERROR_SUCCESS)
             break;
 
         /* get response from client - this is input for next pass */
@@ -1432,7 +1432,7 @@ out:
     NTLMGssDeleteSecContext(&dwMinor, hAcceptCtxt);
 
     if (sockStatus) 
-        status = LSA_ERROR_INTERNAL;
+        status = LW_ERROR_INTERNAL;
 
     return(status);
 }

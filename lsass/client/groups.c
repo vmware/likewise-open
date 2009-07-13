@@ -353,7 +353,7 @@ LsaGetGidsForUserByName(
             break;
 
         default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }

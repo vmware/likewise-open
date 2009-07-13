@@ -47,7 +47,7 @@
 DWORD
 NTLMGssTeardownServer(void)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     
     dwError = NTLMTeardownUtilityFunctions();
     BAIL_ON_NTLM_ERROR(dwError);

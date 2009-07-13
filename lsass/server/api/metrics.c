@@ -75,7 +75,7 @@ LsaSrvGetMetrics(
 
         default:
 
-            dwError = LSA_ERROR_INVALID_METRIC_INFO_LEVEL;
+            dwError = LW_ERROR_INVALID_METRIC_INFO_LEVEL;
             break;
     }
     BAIL_ON_LSA_ERROR(dwError);

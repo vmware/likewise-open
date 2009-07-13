@@ -88,7 +88,7 @@ LsaSrvIpcAddGroup(
                             pGroupInfoList->ppGroupInfoList.ppInfoList1[0]);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
     }
 
     if (!dwError)
@@ -106,7 +106,7 @@ LsaSrvIpcAddGroup(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -145,7 +145,7 @@ LsaSrvIpcModifyGroup(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -205,7 +205,7 @@ LsaSrvIpcFindGroupByName(
                 ppGroupInfoList = NULL;
                 break;
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -231,7 +231,7 @@ cleanup:
         LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, 1);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -295,7 +295,7 @@ LsaSrvIpcFindGroupById(
                 ppGroupInfoList = NULL;
                 break;
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -321,7 +321,7 @@ cleanup:
         LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, 1);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -374,7 +374,7 @@ LsaSrvIpcGetGroupsForUser(
                                &ppGroupInfoList);
             break;
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -398,7 +398,7 @@ LsaSrvIpcGetGroupsForUser(
                 ppGroupInfoList = NULL;
                 break;
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -420,7 +420,7 @@ cleanup:
         LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -483,7 +483,7 @@ LsaSrvIpcBeginEnumGroups(
 
 cleanup:
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
 
@@ -542,7 +542,7 @@ LsaSrvIpcEnumGroups(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -564,7 +564,7 @@ cleanup:
         LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -601,7 +601,7 @@ LsaSrvIpcEndEnumGroups(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;
@@ -641,7 +641,7 @@ LsaSrvIpcDeleteGroup(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;

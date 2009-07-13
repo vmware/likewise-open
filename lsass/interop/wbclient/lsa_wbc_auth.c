@@ -55,7 +55,7 @@ wbcErr wbcAuthenticateUser(
     )
 {
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(username, dwErr);
@@ -91,7 +91,7 @@ CopyPlaintextParams(
     const struct wbcAuthUserParams *params
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     PSTR pszPass = NULL;
 
     dwErr = LsaAllocateString(params->password.plaintext, &pszPass);
@@ -112,14 +112,14 @@ CopyChapParams(
     const struct wbcAuthUserParams *params
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
 
     /* make sure we have at least one response */
 
     if ((params->password.response.nt_length == 0) &&
         (params->password.response.lm_length == 0))
     {
-        dwErr = LSA_ERROR_INVALID_PARAMETER;
+        dwErr = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -145,7 +145,7 @@ CopyChapParams(
     BAIL_ON_LSA_ERR(dwErr);
 
 done:
-    if (!LSA_ERROR_IS_OK(dwErr)) {
+    if (!LW_ERROR_IS_OK(dwErr)) {
         LsaDataBlobFree(&pLsaParams->pass.chap.pChallenge);
         LsaDataBlobFree(&pLsaParams->pass.chap.pNT_resp);
         LsaDataBlobFree(&pLsaParams->pass.chap.pLM_resp);
@@ -162,7 +162,7 @@ static DWORD InitLsaAuthParams(
     const struct wbcAuthUserParams *params
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
 
     /* Check the auth level requested to validate input parms */
 
@@ -177,12 +177,12 @@ static DWORD InitLsaAuthParams(
         break;
 
     case WBC_AUTH_USER_LEVEL_HASH:
-        dwErr = LSA_ERROR_NOT_IMPLEMENTED;
+        dwErr = LW_ERROR_NOT_IMPLEMENTED;
         BAIL_ON_LSA_ERR(dwErr);
         break;
 
     default:
-        dwErr = LSA_ERROR_INVALID_PARAMETER;
+        dwErr = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -230,7 +230,7 @@ CopyLsaUserInfoToWbcInfo(
     PLSA_AUTH_USER_INFO pLsaUserInfo
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     int i = 0;
     DWORD dwSidCount = 0;
     struct wbcDomainSid DomainSid = {0};
@@ -383,7 +383,7 @@ CopyLsaUserInfoToWbcInfo(
         BAIL_ON_LSA_ERR(dwErr);
     }
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     return dwErr;
@@ -468,22 +468,22 @@ MapLsaErrorToNtStatus(
 
     switch(LsaError)
     {
-    case LSA_ERROR_SUCCESS:
+    case LW_ERROR_SUCCESS:
         ntStatus = STATUS_SUCCESS;
         break;
-    case LSA_ERROR_LOGON_FAILURE:
+    case LW_ERROR_LOGON_FAILURE:
         ntStatus = STATUS_LOGON_FAILURE;
         break;
-    case LSA_ERROR_PASSWORD_EXPIRED:
+    case LW_ERROR_PASSWORD_EXPIRED:
         ntStatus = STATUS_PASSWORD_EXPIRED;
         break;
-    case LSA_ERROR_ACCOUNT_EXPIRED:
+    case LW_ERROR_ACCOUNT_EXPIRED:
         ntStatus = STATUS_ACCOUNT_EXPIRED;
         break;
-    case LSA_ERROR_ACCOUNT_LOCKED:
+    case LW_ERROR_ACCOUNT_LOCKED:
         ntStatus = STATUS_ACCOUNT_LOCKED_OUT;
         break;
-    case LSA_ERROR_ACCOUNT_DISABLED:
+    case LW_ERROR_ACCOUNT_DISABLED:
         ntStatus = STATUS_ACCOUNT_DISABLED;
         break;
     default:
@@ -499,7 +499,7 @@ FillErrorInfo(
     struct wbcAuthErrorInfo **ppWbcError
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
 
     struct wbcAuthErrorInfo *pError = NULL;
@@ -529,7 +529,7 @@ wbcAuthenticateUserEx(
     )
 {
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     LSA_AUTH_USER_PARAMS *pLsaParams = NULL;
     LSA_AUTH_USER_INFO *pLsaUserInfo = NULL;
@@ -612,7 +612,7 @@ done:
     LsaFreeAuthUserInfo(&pLsaUserInfo);
     LsaFreeAuthUserParams(&pLsaParams);
 
-    if (!LSA_ERROR_IS_OK(dwErr)) {
+    if (!LW_ERROR_IS_OK(dwErr)) {
         _WBC_FREE(pWbcUserInfo);
     }
 

@@ -306,20 +306,20 @@ LocalValidateUser(
      * unknown_ok option is specified for the pam module, this error will be
      * ignored instead of blocking all logins.
      */
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_DEBUG(
                 "Failed to find user '%s' while validating login "
                 "[error code:%d]",
                 pszLoginId,
                 dwError);
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo->bPasswordExpired)
     {
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -342,7 +342,7 @@ LocalCheckUserInList(
     // require-membership-of is currently not supported
     // for the local provider.  So just return success here.
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 DWORD
@@ -428,13 +428,13 @@ LocalFindUserByNameEx(
 
     if (!LocalServicesDomain(pLoginInfo->pszFullDomainName))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!strcasecmp(pLoginInfo->pszName, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -742,13 +742,13 @@ LocalFindGroupByNameEx(
 
     if (!strcasecmp(pLoginInfo->pszName, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1403,7 +1403,7 @@ LocalFindNSSArtefactByKey(
 {
     *ppNSSArtefactInfo = NULL;
 
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 
@@ -1418,7 +1418,7 @@ LocalBeginEnumNSSArtefacts(
 {
     DWORD dwError = 0;
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     *phResume = (HANDLE)NULL;
 
@@ -1436,7 +1436,7 @@ LocalEnumNSSArtefacts(
 {
     DWORD dwError = 0;
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     *pdwNSSArtefactsFound = 0;
     *pppNSSArtefactInfoList = NULL;
@@ -1582,7 +1582,7 @@ LocalIoControl(
         break;
 
     default:
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1651,7 +1651,7 @@ LocalGetGroupMembership(
         Reply.dwGroupInfoLevel = pRequest->dwGroupInfoLevel;
         Reply.Groups.ppInfo0   = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
 
-    } else if (dwError == LSA_ERROR_NO_SUCH_USER) {
+    } else if (dwError == LW_ERROR_NO_SUCH_USER) {
         Reply.dwNumGroups      = 0;
         Reply.dwGroupInfoLevel = pRequest->dwGroupInfoLevel;
         Reply.Groups.ppInfo0   = NULL;

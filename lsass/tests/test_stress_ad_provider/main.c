@@ -496,7 +496,7 @@ LADSInitAuthProvider(
           LSA_LOG_ERROR("%s", pszError);
        }
             
-       dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
         
@@ -512,7 +512,7 @@ LADSInitAuthProvider(
           LSA_LOG_ERROR("%s", pszError);
        }
             
-       dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
         
@@ -528,7 +528,7 @@ LADSInitAuthProvider(
           LSA_LOG_ERROR("%s", pszError);
        }
             
-       dwError = LSA_ERROR_INVALID_AUTH_PROVIDER;
+       dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
        BAIL_ON_LSA_ERROR(dwError);
     }
         
@@ -589,7 +589,7 @@ LADSValidateProvider(
         !pProvider->pFnTable->pfnFreeStatus
         )
     {
-        return LSA_ERROR_INVALID_AUTH_PROVIDER;
+        return LW_ERROR_INVALID_AUTH_PROVIDER;
     }
     
     return 0;
