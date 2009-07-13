@@ -340,7 +340,7 @@ SrvBuildCreateResponse_SMB_V2(
 
     pResponseHeader = (PSMB2_CREATE_RESPONSE_HEADER)pOutBuffer;
     ulTotalBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
-    ulBytesUsed += sizeof(SMB2_CREATE_RESPONSE_HEADER);
+    ulBytesUsed = sizeof(SMB2_CREATE_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_CREATE_RESPONSE_HEADER);
     ulOffset += sizeof(SMB2_CREATE_RESPONSE_HEADER);
 
