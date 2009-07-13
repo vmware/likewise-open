@@ -201,7 +201,7 @@ SrvBuildWriteResponse_SMB_V2(
     // ulOffset += ulBytesUsed;
     // ulBytesAvailable -= ulBytesUsed;
 
-    pSmbResponse->bufferUsed += ulBytesUsed;
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
 cleanup:
 
