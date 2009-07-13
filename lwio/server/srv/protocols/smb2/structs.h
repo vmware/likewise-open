@@ -483,7 +483,8 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
 {
     USHORT usLength;
     USHORT usReserved;
-    ULONG  ulStatus;
+    ULONG  ulByteCount;
+    // Error message follows
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
 

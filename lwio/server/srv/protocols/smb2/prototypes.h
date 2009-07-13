@@ -397,7 +397,6 @@ SMB2MarshalError(
     IN OUT PBYTE    pBuffer,
     IN     ULONG    ulOffset,
     IN     ULONG    ulBytesAvailable,
-    IN     NTSTATUS status,
     IN OUT PULONG   pulBytesUsed
     );
 

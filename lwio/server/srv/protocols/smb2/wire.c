@@ -1677,7 +1677,6 @@ SMB2MarshalError(
     IN OUT PBYTE    pBuffer,
     IN     ULONG    ulOffset,
     IN     ULONG    ulBytesAvailable,
-    IN     NTSTATUS status,
     IN OUT PULONG   pulBytesUsed
     )
 {
@@ -1699,7 +1698,16 @@ SMB2MarshalError(
 
     pHeader->usLength = ulBytesUsed;
 
-    pHeader->ulStatus = status;
+    if (ulBytesAvailable < 1)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesUsed++;
+    pHeader->usLength++;
+
+    pHeader->ulByteCount = 0;
 
     *pulBytesUsed = ulBytesUsed;
 

@@ -94,7 +94,6 @@ SrvBuildErrorResponse_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    errorStatus,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
