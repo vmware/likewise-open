@@ -82,6 +82,8 @@ SMBSrvClientSessionCreate(
                     pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pSession->bParentLink = TRUE;
+
         *ppSocket = NULL;
     }
 
@@ -174,6 +176,8 @@ SMBSrvClientSessionAddTreeById(
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTree->bParentLink = TRUE;
+
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
@@ -231,6 +235,8 @@ SMBSrvClientSessionAddTreeByPath(
                     pTree->pszPath,
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pTree->bParentLink = TRUE;
 
 cleanup:
 
