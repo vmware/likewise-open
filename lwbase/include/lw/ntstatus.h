@@ -49,7 +49,7 @@
 //     <SS|X|R|FFFFFFFFFFFF|CCCCCCCCCCCCCCC>
 //              (12 bits)     (16 bits)
 //
-//   S - severiry level (2 bits):
+//   S - severity level (2 bits):
 //
 //       00 - success
 //       01 - informational
@@ -64,7 +64,10 @@
 //
 //   C - facility's status code (16 bits)
 //
-// The system status codes are facility 0.
+// Defined facility codes:
+// 0 - FACILITY_SYSTEM
+// 2 - FACILITY_RPC_RUNTIME
+// 3 - FACILITY_RPC_STUBS
 //
 // In general, stay away from informational and success codes.
 // That being said, some system facilities require the use of
