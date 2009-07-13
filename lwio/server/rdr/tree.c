@@ -254,11 +254,25 @@ SMBTreeInvalidate(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bInSessionLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pTree->mutex);
 
     pTree->state = RDR_TREE_STATE_ERROR;
     pTree->error = ntStatus;
+
+    LWIO_LOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
+    if (pTree->bParentLink)
+    {
+        SMBHashRemoveKey(
+            pTree->pSession->pTreeHashByPath,
+            pTree->pszPath);
+        SMBHashRemoveKey(
+            pTree->pSession->pTreeHashByTID,
+            &pTree->tid);
+        pTree->bParentLink = FALSE;
+    }
+    LWIO_UNLOCK_MUTEX(bInSessionLock, &pTree->pSession->mutex);
 
     pthread_cond_broadcast(&pTree->event);
 
@@ -282,12 +296,16 @@ SMBTreeRelease(
     {
         if (pTree->state != RDR_TREE_STATE_READY)
         {
-            SMBHashRemoveKey(
-                pTree->pSession->pTreeHashByPath,
-                pTree->pszPath);
-            SMBHashRemoveKey(
-                pTree->pSession->pTreeHashByTID,
-                &pTree->tid);
+            if (pTree->bParentLink)
+            {
+                SMBHashRemoveKey(
+                    pTree->pSession->pTreeHashByPath,
+                    pTree->pszPath);
+                SMBHashRemoveKey(
+                    pTree->pSession->pTreeHashByTID,
+                    &pTree->tid);
+                pTree->bParentLink = FALSE;
+            }
             LWIO_UNLOCK_MUTEX(bInLock, &pTree->pSession->mutex);
             SMBTreeFree(pTree);
         }

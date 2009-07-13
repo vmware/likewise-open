@@ -75,8 +75,9 @@ typedef struct
 
     RDR_SOCKET_STATE volatile state;
     NTSTATUS volatile error;
-    pthread_cond_t event;       /* Signals waiting threads on state change */
-    int32_t volatile refCount;  /* Count of state-change waiters and users */
+    pthread_cond_t event;           /* Signals waiting threads on state change */
+    int32_t volatile refCount;      /* Reference count */
+    BOOLEAN volatile bParentLink;   /* Whether socket is linked to by parent (global socket table) */
 
     time_t  volatile lastActiveTime;     /* Checked by the reaper thread and message
                                             handler threads; set when new data is
@@ -138,6 +139,7 @@ typedef struct
     NTSTATUS volatile error;
     pthread_cond_t event;                /* Signals waiting threads on state change */
     int32_t volatile refCount;           /* Count of state-change waiters and users */
+    BOOLEAN volatile bParentLink;        /* Whether session is linked to by parent (socket) */
 
     time_t volatile lastActiveTime;
 
@@ -189,6 +191,7 @@ typedef struct
     NTSTATUS volatile error;
     pthread_cond_t event;       /* Signals waiting threads on state change */
     int32_t volatile refCount;           /* Count of state-change waiters and users */
+    BOOLEAN volatile bParentLink; /* Whether tree is linked to by parent (session) */
 
     time_t  volatile lastActiveTime;
     SMB_SESSION *pSession;      /* Back pointer to parent session */

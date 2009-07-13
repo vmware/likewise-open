@@ -968,8 +968,18 @@ SMBSocketInvalidate_InLock(
     NTSTATUS ntStatus
     )
 {
+    BOOLEAN bInGlobalLock = FALSE;
     pSocket->state = RDR_SOCKET_STATE_ERROR;
     pSocket->error = ntStatus;
+
+    LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
+    if (pSocket->bParentLink)
+    {
+        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                         pSocket->pszHostname);
+        pSocket->bParentLink = FALSE;
+    }
+    LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
 
     pthread_cond_broadcast(&pSocket->event);
 }
@@ -1130,8 +1140,12 @@ SMBSocketRelease(
     {
         if (pSocket->state != RDR_SOCKET_STATE_READY)
         {
-            SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                             pSocket->pszHostname);
+            if (pSocket->bParentLink)
+            {
+                SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                                 pSocket->pszHostname);
+                pSocket->bParentLink = FALSE;
+            }
             LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
         }

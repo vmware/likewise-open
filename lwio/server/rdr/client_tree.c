@@ -427,6 +427,8 @@ SMBSrvClientTreeCreate(
             pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pTree->bParentLink = TRUE;
+
         *ppSession = NULL;
     }
 
