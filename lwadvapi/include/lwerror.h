@@ -27,42 +27,59 @@
  * license@likewisesoftware.com
  */
 
-#ifndef LW_ERRORS_DEFINED
+#ifndef __LW_ERROR_H__
+#define __LW_ERROR_H__
+
+#include <lw/types.h>
+#include <lw/attrs.h>
 
 #include <lwmsg/status.h>
 
-#define LW_ERRORS_DEFINED 1
-
 #define BAIL_ON_LW_ERROR(dwError) \
-    if (dwError) {\
-       LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-       goto error;                 \
-    }
+    do { \
+        if (dwError) \
+        { \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
 #define BAIL_ON_LDAP_ERROR(dwError) \
-    if (dwError) {\
-       dwError = LwMapLdapErrorToLwError(dwError); \
-       LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-       goto error;                 \
-    }
+    do { \
+        if (dwError) \
+        { \
+            dwError = LwMapLdapErrorToLwError(dwError); \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
-#define LW_BAIL_ON_INVALID_STRING(pszParam)          \
-        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) {      \
+#define LW_BAIL_ON_INVALID_STRING(pszParam) \
+    do { \
+        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) \
+        { \
            dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#define LW_BAIL_ON_INVALID_HANDLE(hParam)            \
-        if (hParam == (HANDLE)NULL) {             \
+#define LW_BAIL_ON_INVALID_HANDLE(hParam) \
+    do { \
+        if (!hParam) \
+        { \
            dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#define LW_BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
+#define LW_BAIL_ON_INVALID_POINTER(p) \
+    do { \
+        if (!p) \
+        { \
            dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
 /** Success */
 #define LW_ERROR_SUCCESS                                   0
@@ -392,24 +409,24 @@
 
 size_t
 LwGetErrorString(
-    LW_DWORD  dwError,
-    LW_PSTR   pszBuffer,
-    size_t stBufSize
+    LW_IN LW_DWORD dwError,
+    LW_OUT LW_PSTR pszBuffer,
+    LW_IN size_t stBufSize
     );
 
 LW_DWORD
 LwMapErrnoToLwError(
-    LW_DWORD dwErrno
+    LW_IN LW_DWORD dwErrno
     );
 
 LW_DWORD
 LwMapLdapErrorToLwError(
-    LW_DWORD dwErrno
+    LW_IN LW_DWORD dwErrno
     );
 
 LW_DWORD
 LwMapLwmsgStatusToLwError(
-    LWMsgStatus status
+    LW_IN LWMsgStatus status
     );
 
-#endif /* LW_ERRORS_DEFINED */
+#endif /* __LW_ERROR_H__ */

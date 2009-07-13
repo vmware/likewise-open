@@ -46,79 +46,85 @@
 #ifndef __LWSTR_H__
 #define __LWSTR_H__
 
+#include <lw/types.h>
+#include <lw/attrs.h>
+
 #define LW_IS_NULL_OR_EMPTY_STR(str) (!(str) || !(*(str)))
 
-#define LW_SAFE_CLEAR_FREE_STRING(str)       \
-        do {                                  \
-           if (str) {                         \
-              if (*str) {                     \
-                 memset(str, 0, strlen(str)); \
-              }                               \
-              LwFreeString(str);             \
-              (str) = NULL;                   \
-           }                                  \
-        } while(0);
+#define LW_SAFE_CLEAR_FREE_STRING(str) \
+    do { \
+       if (str) \
+       { \
+           if (*str) \
+           { \
+               memset(str, 0, strlen(str)); \
+           } \
+           LwFreeString(str); \
+           (str) = NULL; \
+       } \
+    } while(0)
 
 #define LW_SAFE_FREE_STRING(str) \
-        do {                      \
-           if (str) {             \
-              LwFreeString(str);  \
-              (str) = NULL;       \
-           }                      \
-        } while(0);
+    do { \
+        if (str) \
+        { \
+            LwFreeString(str); \
+            (str) = NULL; \
+        } \
+    } while (0)
 
 
-DWORD
+LW_DWORD
 LwAllocateString(
-    PCSTR  pszInputString,
-    PSTR* ppszOutputString
+    LW_PCSTR pszInputString,
+    LW_PSTR* ppszOutputString
     );
 
-void
+LW_VOID
 LwFreeString(
-    PSTR pszString
+    LW_PSTR pszString
     );
 
-DWORD
+LW_DWORD
 LwAllocateStringPrintf(
-    PSTR* ppszOutputString,
-    PCSTR pszFormat,
+    LW_PSTR* ppszOutputString,
+    LW_PCSTR pszFormat,
     ...
     );
 
-DWORD
+LW_DWORD
 LwAllocateStringPrintfV(
-    PSTR*   ppszOutputString,
-    PCSTR   pszFormat,
+    LW_PSTR* ppszOutputString,
+    LW_PCSTR pszFormat,
     va_list args
     );
 
-VOID
+LW_VOID
 LwStripLeadingWhitespace(
-    PSTR pszString
+    LW_PSTR pszString
     );
 
-DWORD
-LwStrIsAllSpace(
-    PCSTR pszString,
-    PBOOLEAN pbIsAllSpace
+LW_DWORD
+LW_LwStrIsAllSpace(
+    LW_PCSTR pszString,
+    LW_PBOOLEAN pbIsAllSpace
     );
 
-VOID
+LW_VOID
 LwStripTrailingWhitespace(
-    PSTR pszString
+    LW_PSTR pszString
     );
 
-VOID
+LW_VOID
 LwStripWhitespace(
-    PSTR pszString,
-    BOOLEAN bLeading,
-    BOOLEAN bTrailing
+    LW_IN LW_OUT LW_PSTR pszString,
+    LW_IN LW_BOOLEAN bLeading,
+    LW_IN LW_BOOLEAN bTrailing
     );
 
-VOID
+LW_VOID
 LwStrToUpper(
-    PSTR pszString
+    LW_IN LW_OUT LW_PSTR pszString
     );
 
 VOID
