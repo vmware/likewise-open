@@ -51,7 +51,7 @@ krb5int_arcfour_string_to_key(const struct krb5_enc_provider *enc,
   }
 
   /* make the string.  start by creating the little endian unicode version of the password*/
-  len = mbstowc16les((wchar16_t *)copystr, string->data, slen);
+  len = krb5_mbstowc16les((wchar16_t *)copystr, string->data, slen);
   if (len == (size_t) -1)
   {
       ret = EINVAL;
