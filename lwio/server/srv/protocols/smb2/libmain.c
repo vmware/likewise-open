@@ -321,11 +321,9 @@ SrvProtocolExecute_SMB_V2(
                         request.pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    else
-    {
-        ntStatus = SMB2MarshalFooter(request.pResponse);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+
+    ntStatus = SMB2MarshalFooter(request.pResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSmbResponse = request.pResponse;
     request.pResponse = NULL;

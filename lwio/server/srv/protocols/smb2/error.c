@@ -58,6 +58,7 @@ SrvBuildErrorResponse_SMB_V2(
     )
 {
     NTSTATUS ntStatus = 0;
+    PSMB2_HEADER pSMB2Header = NULL; // Do not free
     PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
     ULONG ulTotalBytesUsed = 0;
     ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
@@ -78,9 +79,11 @@ SrvBuildErrorResponse_SMB_V2(
                 pSmbRequestHeader->ullSessionId,
                 errorStatus,
                 FALSE,
-                NULL,
+                &pSMB2Header,
                 &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSMB2Header->error = errorStatus;
 
     ulTotalBytesUsed += ulBytesUsed;
     pOutBuffer += ulBytesUsed;
