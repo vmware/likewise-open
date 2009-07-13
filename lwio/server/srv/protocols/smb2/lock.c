@@ -468,6 +468,8 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
                                 pLockRequest->pConnection,
                                 &header,
                                 STATUS_FILE_LOCK_CONFLICT,
+                                NULL,
+                                0,
                                 pSmbResponse);
             }
 

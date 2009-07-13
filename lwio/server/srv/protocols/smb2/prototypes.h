@@ -148,6 +148,8 @@ SrvBuildErrorResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB2_HEADER         pSmbRequestHeader,
     NTSTATUS             errorStatus,
+    PBYTE                pMessage,
+    ULONG                ulMessageLength,
     PSMB_PACKET          pSmbResponse
     );
 
@@ -397,6 +399,8 @@ SMB2MarshalError(
     IN OUT PBYTE    pBuffer,
     IN     ULONG    ulOffset,
     IN     ULONG    ulBytesAvailable,
+    IN     PBYTE    pMessage,
+    IN     ULONG    ulMessageLength,
     IN OUT PULONG   pulBytesUsed
     );
 

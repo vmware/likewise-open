@@ -751,7 +751,7 @@ SrvGetFileNetworkOpenInfo_SMB_V2(
     PSMB_PACKET                   pSmbResponse
     )
 {
-    return STATUS_INVALID_PARAMETER;
+    return STATUS_INVALID_INFO_CLASS;
 }
 
 NTSTATUS

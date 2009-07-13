@@ -318,6 +318,8 @@ SrvProtocolExecute_SMB_V2(
                         pConnection,
                         pSmbRequest->pSMB2Header,
                         ntStatus,
+                        NULL,
+                        0,
                         request.pResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }

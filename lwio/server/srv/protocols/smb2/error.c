@@ -54,6 +54,8 @@ SrvBuildErrorResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB2_HEADER         pSmbRequestHeader,
     NTSTATUS             errorStatus,
+    PBYTE                pMessage,
+    ULONG                ulMessageLength,
     PSMB_PACKET          pSmbResponse
     )
 {
@@ -94,6 +96,8 @@ SrvBuildErrorResponse_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
+                    pMessage,
+                    ulMessageLength,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
