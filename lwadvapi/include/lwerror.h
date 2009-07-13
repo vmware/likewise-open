@@ -46,15 +46,6 @@
        goto error;                 \
     }
 
-#define BAIL_ON_KRB_ERROR(ctx, ret) \
-    do { \
-        if (ret) \
-        { \
-           (dwError) = LwTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
-           goto error; \
-        } \
-    } while (0)
-
 #define LW_BAIL_ON_INVALID_STRING(pszParam)          \
         if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) {      \
            dwError = LW_ERROR_INVALID_PARAMETER; \
@@ -401,22 +392,22 @@
 
 size_t
 LwGetErrorString(
-    DWORD  dwError,
-    PSTR   pszBuffer,
+    LW_DWORD  dwError,
+    LW_PSTR   pszBuffer,
     size_t stBufSize
     );
 
-DWORD
+LW_DWORD
 LwMapErrnoToLwError(
-    DWORD dwErrno
+    LW_DWORD dwErrno
     );
 
-DWORD
+LW_DWORD
 LwMapLdapErrorToLwError(
-    DWORD dwErrno
+    LW_DWORD dwErrno
     );
 
-DWORD
+LW_DWORD
 LwMapLwmsgStatusToLwError(
     LWMsgStatus status
     );

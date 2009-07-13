@@ -81,6 +81,15 @@ typedef enum
 
 #endif /* WIN32 */
 
+#define BAIL_ON_KRB_ERROR(ctx, ret) \
+    do { \
+        if (ret) \
+        { \
+           (dwError) = LwTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
+           goto error; \
+        } \
+    } while (0)
+
 typedef BOOLEAN (*LW_KRB5_REALM_IS_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 typedef VOID (*LW_KRB5_REALM_TRANSITION_OFFLINE_CALLBACK)(IN PCSTR pszRealmName);
 
