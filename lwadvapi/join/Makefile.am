@@ -1,7 +1,6 @@
 noinst_LTLIBRARIES = liblwadvapi_join.la
 
 liblwadvapi_join_la_SOURCES = \
-       error.c    \
        globals.c  \
        krbtgt.c \
        lwkrb5.c \

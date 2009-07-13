@@ -85,6 +85,7 @@
 
 #define LW_LOG_DEBUG(...) do { } while(0)
 #define LW_LOG_INFO(...) do { } while(0)
+#define LW_LOG_WARNING(...) do { } while(0)
 #define LW_LOG_ERROR(...) do { } while(0)
 #define LW_LOG_VERBOSE(...) do { } while(0)
 

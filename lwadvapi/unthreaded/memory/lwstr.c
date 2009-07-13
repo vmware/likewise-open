@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -111,14 +111,14 @@ LwAllocateStringPrintf(
 {
     DWORD dwError = 0;
     va_list args;
-    
+
     va_start(args, pszFormat);
-    
+
     dwError = LwAllocateStringPrintfV(
                       ppszOutputString,
                       pszFormat,
                       args);
-    
+
     va_end(args);
 
     return dwError;
@@ -146,10 +146,10 @@ LwAllocateStringPrintfV(
     do
     {
         dwError = LwAllocateMemory(
-                        dwBufsize, 
+                        dwBufsize,
                         OUT_PPVOID(&pszSmallBuffer));
         BAIL_ON_LW_ERROR(dwError);
-        
+
         requiredLength = vsnprintf(
                               pszSmallBuffer,
                               dwBufsize,
@@ -161,7 +161,7 @@ LwAllocateStringPrintfV(
         }
         LwFreeMemory(pszSmallBuffer);
         pszSmallBuffer = NULL;
-        
+
     } while (requiredLength < 0);
 
     if (requiredLength >= (UINT32_MAX - 1))
@@ -195,19 +195,19 @@ LwAllocateStringPrintfV(
     {
         /* unexpected, ideally should log something -- do not need an error, though */
     }
-    
+
     *ppszOutputString = pszOutputString;
 
 cleanup:
 
     va_end(args2);
-    
+
     return dwError;
-    
+
 error:
 
     LW_SAFE_FREE_MEMORY(pszOutputString);
-    
+
     *ppszOutputString = NULL;
 
     goto cleanup;
@@ -245,9 +245,9 @@ LwStrIsAllSpace(
     DWORD dwError = 0;
     PCSTR pszTmp = NULL;
     BOOLEAN bIsAllSpace = TRUE;
-    
+
     LW_BAIL_ON_INVALID_POINTER(pszString);
-    
+
     for (pszTmp = pszString; *pszTmp; pszTmp++)
     {
         if (!LwIsSpace(*pszTmp))
@@ -256,10 +256,10 @@ LwStrIsAllSpace(
             break;
         }
     }
-    
-    
+
+
     *pbIsAllSpace = bIsAllSpace;
-    
+
 cleanup:
 
     return dwError;
@@ -365,7 +365,7 @@ LwStrnToLower(
     if (!LW_IS_NULL_OR_EMPTY_STR(pszString))
     {
         DWORD iCh = 0;
-    
+
         while (*pszString != '\0' && (iCh++ < dwLen)) {
             *pszString = tolower(*pszString);
             pszString++;
@@ -470,10 +470,10 @@ LwStrndup(
     pszOutputString[copylen] = 0;
 
     *ppszOutputString = pszOutputString;
-    
+
 cleanup:
     return dwError;
-    
+
 error:
     LW_SAFE_FREE_STRING(pszOutputString);
     goto cleanup;
@@ -481,7 +481,7 @@ error:
 
 VOID
 LwStrCharReplace(
-    PSTR pszStr, 
+    PSTR pszStr,
     CHAR oldCh,
     CHAR newCh)
 {
@@ -499,7 +499,7 @@ LwStrCharReplace(
 
 DWORD
 LwStrDupOrNull(
-    PCSTR pszInputString, 
+    PCSTR pszInputString,
     PSTR *ppszOutputString
     )
 {

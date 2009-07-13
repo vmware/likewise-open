@@ -29,6 +29,8 @@
 
 #ifndef LW_ERRORS_DEFINED
 
+#include <lwmsg/status.h>
+
 #define LW_ERRORS_DEFINED 1
 
 #define BAIL_ON_LW_ERROR(dwError) \
@@ -412,6 +414,11 @@ LwMapErrnoToLwError(
 DWORD
 LwMapLdapErrorToLwError(
     DWORD dwErrno
+    );
+
+DWORD
+LwMapLwmsgStatusToLwError(
+    LWMsgStatus status
     );
 
 #endif /* LW_ERRORS_DEFINED */

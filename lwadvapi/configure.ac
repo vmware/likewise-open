@@ -209,8 +209,10 @@ AC_HEADER_STDC
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
-                 memory/Makefile
-                 lwunistr/Makefile
+                 unthreaded/Makefile
+                 unthreaded/memory/Makefile
+                 unthreaded/lwunistr/Makefile
+                 unthreaded/error/Makefile
                  join/Makefile])
 
 AC_OUTPUT

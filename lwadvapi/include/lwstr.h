@@ -196,15 +196,39 @@ LwHexStrToByteArray(
     );
 
 DWORD
+LwWc16sToMbs(
+    PCWSTR pwszInput,
+    PSTR*  ppszOutput
+    );
+
+DWORD
 LwMbsToWc16s(
     PCSTR pszInput,
     PWSTR* ppszOutput
     );
 
 DWORD
-LwWc16sToMbs(
+LwWc16snToMbs(
     PCWSTR pwszInput,
-    PSTR*  ppszOutput
+    PSTR*  ppszOutput,
+    size_t sMaxChars
+    );
+
+DWORD
+LwWc16sLen(
+    PCWSTR  pwszInput,
+    size_t* psLen
+    );
+
+DWORD
+LwSW16printf(
+    PWSTR*  ppwszStrOutput,
+    PCSTR   pszFormat,
+    ...);
+
+DWORD
+LwWc16ToUpper(
+    IN OUT PWSTR pwszString
     );
 
 #endif

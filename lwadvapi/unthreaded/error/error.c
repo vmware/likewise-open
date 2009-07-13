@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- * 
+ *
  *        Error Code Mapping API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -1133,5 +1133,52 @@ LwMapLdapErrorToLwError(
         default:
             LW_LOG_ERROR("Unable to map ldap error %d", dwErr);
             return LW_ERROR_UNKNOWN;
+    }
+}
+
+DWORD
+LwMapLwmsgStatusToLwError(
+    LWMsgStatus status
+    )
+{
+    switch (status)
+    {
+        case LWMSG_STATUS_SUCCESS:
+            return LW_ERROR_SUCCESS;
+        case LWMSG_STATUS_ERROR:
+            return LW_ERROR_INTERNAL;
+        case LWMSG_STATUS_MEMORY:
+            return LW_ERROR_OUT_OF_MEMORY;
+        case LWMSG_STATUS_MALFORMED:
+        case LWMSG_STATUS_OVERFLOW:
+        case LWMSG_STATUS_UNDERFLOW:
+        case LWMSG_STATUS_EOF:
+            return LW_ERROR_INVALID_MESSAGE;
+        case LWMSG_STATUS_INVALID_PARAMETER:
+            return LW_ERROR_INVALID_PARAMETER;
+        case LWMSG_STATUS_INVALID_STATE:
+            return LW_ERROR_INVALID_PARAMETER;
+        case LWMSG_STATUS_UNIMPLEMENTED:
+            return LW_ERROR_NOT_IMPLEMENTED;
+        case LWMSG_STATUS_SYSTEM:
+            return LW_ERROR_INTERNAL;
+        case LWMSG_STATUS_SECURITY:
+            return LW_ERROR_ACCESS_DENIED;
+        case LWMSG_STATUS_CANCELLED:
+            return LW_ERROR_INTERRUPTED;
+        case LWMSG_STATUS_FILE_NOT_FOUND:
+            return LW_ERROR_NO_SUCH_OBJECT;
+        case LWMSG_STATUS_CONNECTION_REFUSED:
+            return LW_ERROR_ERRNO_ECONNREFUSED;
+        case LWMSG_STATUS_PEER_RESET:
+            return LW_ERROR_ERRNO_ECONNRESET;
+        case LWMSG_STATUS_PEER_ABORT:
+            return LW_ERROR_ERRNO_ECONNABORTED;
+        case LWMSG_STATUS_PEER_CLOSE:
+        case LWMSG_STATUS_SESSION_LOST:
+            return LW_ERROR_ERRNO_EPIPE;
+        default:
+            LW_LOG_ERROR("Unable to map lwmsg status %d", status);
+            return LW_ERROR_INTERNAL;
     }
 }

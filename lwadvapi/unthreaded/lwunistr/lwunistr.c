@@ -11,7 +11,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -37,26 +37,26 @@ LwMbsToWc16s(
 {
     DWORD dwError = 0;
     PWSTR pszOutput = NULL;
-    
+
     if (!pszInput) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     pszOutput = ambstowc16s(pszInput);
     if (!pszOutput) {
         dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     *ppszOutput = pszOutput;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
-    
+
     *ppszOutput = NULL;
 
     goto cleanup;
@@ -72,12 +72,12 @@ LwWc16snToMbs(
     DWORD dwError = 0;
     PWSTR pwszTruncated = NULL;
     PSTR pszOutput = NULL;
-    
+
     if (!pwszInput) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     pwszTruncated = _wc16sndup(pwszInput, sMaxChars);
     if (!pwszTruncated) {
         dwError = LwMapErrnoToLwError(errno);
@@ -89,14 +89,14 @@ LwWc16snToMbs(
         dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     *ppszOutput = pszOutput;
-    
+
 cleanup:
     LW_SAFE_FREE_MEMORY(pwszTruncated);
 
     return dwError;
-    
+
 error:
 
     *ppszOutput = NULL;
@@ -112,24 +112,24 @@ LwWc16sToMbs(
 {
     DWORD dwError = 0;
     PSTR pszOutput = NULL;
-    
+
     if (!pwszInput) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     pszOutput = awc16stombs(pwszInput);
     if (!pszOutput) {
         dwError = LW_ERROR_STRING_CONV_FAILED;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     *ppszOutput = pszOutput;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszOutput = NULL;
@@ -145,25 +145,25 @@ LwWc16sLen(
 {
     DWORD dwError = 0;
     size_t sLen = 0;
-    
+
     if (!pwszInput) {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     sLen = wc16slen(pwszInput);
-    
+
     *psLen = sLen;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *psLen = 0;
 
-    goto cleanup;    
+    goto cleanup;
 }
 
 DWORD
@@ -176,32 +176,32 @@ LwSW16printf(
     INT ret = 0;
     PWSTR pwszStrOutput = NULL;
     va_list args;
-    
+
     va_start(args, pszFormat);
-    
+
     ret = sw16printf(
                   pwszStrOutput,
                   pszFormat,
                   args);
-    
+
     if (ret == -1){
         dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     *ppwszStrOutput = pwszStrOutput;
-    
+
 cleanup:
 
-    va_end(args); 
-     
+    va_end(args);
+
     return dwError;
 
 error:
     LW_SAFE_FREE_MEMORY(pwszStrOutput);
-    
+
     goto cleanup;
-    
+
 }
 
 DWORD
@@ -210,10 +210,10 @@ LwWc16ToUpper(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    
+
     wc16supper(pwszString);
-    
-    return dwError;    
+
+    return dwError;
 }
 
 /*
