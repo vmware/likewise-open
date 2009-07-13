@@ -1041,7 +1041,131 @@ SrvGetFileSystemAttributeInfo_SMB_V2(
     PSMB_PACKET                   pSmbResponse
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS                    ntStatus = STATUS_SUCCESS;
+    PBYTE                       pResponseBuffer = NULL;
+    size_t                      sAllocatedSize = 0;
+    ULONG                       ulResponseBufferLen = 0;
+    IO_STATUS_BLOCK             ioStatusBlock = {0};
+    PFILE_FS_ATTRIBUTE_INFORMATION pFSAttrInfo = NULL;
+    PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
+    PSMB_FS_ATTRIBUTE_INFO_HEADER  pFSAttrInfoHeader = NULL;
+    USHORT                         usVolumeLabelLen = 0;
+    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer       = pOutBufferRef;
+    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ULONG ulOffset         = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesUsed      = 0;
+    ULONG ulTotalBytesUsed = 0;
+
+    ntStatus = SMBPacketBufferAllocate(
+                    pConnection->hPacketAllocator,
+                    pRequestHeader->ulOutputBufferLen,
+                    &pResponseBuffer,
+                    &sAllocatedSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulResponseBufferLen = sAllocatedSize;
+
+    ntStatus = IoQueryVolumeInformationFile(
+                            pFile->hFile,
+                            NULL,
+                            &ioStatusBlock,
+                            pResponseBuffer,
+                            ulResponseBufferLen,
+                            FileFsAttributeInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulResponseBufferLen = ioStatusBlock.BytesTransferred;
+
+    ntStatus = SMB2MarshalHeader(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM2_GETINFO,
+                    0,
+                    1,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->ullSessionId,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    NULL,
+                    &ulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
+
+    if (ulBytesAvailable < sizeof(SMB2_GET_INFO_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pGetInfoResponseHeader = (PSMB2_GET_INFO_RESPONSE_HEADER)pOutBuffer;
+
+    ulTotalBytesUsed += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    pOutBuffer += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+    ulOffset += sizeof(SMB2_GET_INFO_RESPONSE_HEADER);
+
+    pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
+    pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
+
+    pFSAttrInfo = (PFILE_FS_ATTRIBUTE_INFORMATION)pResponseBuffer;
+    usVolumeLabelLen = wc16slen(pFSAttrInfo->FileSystemName) * sizeof(wchar16_t);
+
+    pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
+    pGetInfoResponseHeader->ulOutBufferLength += usVolumeLabelLen;
+
+    if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pFSAttrInfoHeader = (PSMB_FS_ATTRIBUTE_INFO_HEADER)pOutBuffer;
+
+    ulTotalBytesUsed += sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
+    ulBytesAvailable -= sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
+    pOutBuffer += sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
+
+    pFSAttrInfoHeader->ulFSAttributes = pFSAttrInfo->FileSystemAttributes;
+    pFSAttrInfoHeader->lMaxFilenameLen = pFSAttrInfo->MaximumComponentNameLength;
+    pFSAttrInfoHeader->ulFileSystemNameLen = usVolumeLabelLen;
+
+    if (usVolumeLabelLen)
+    {
+        memcpy(pOutBuffer, (PBYTE)pFSAttrInfo->FileSystemName, usVolumeLabelLen);
+    }
+
+    ulTotalBytesUsed += pGetInfoResponseHeader->ulOutBufferLength;
+
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+
+cleanup:
+
+    if (pResponseBuffer)
+    {
+        SMBPacketBufferFree(
+                pConnection->hPacketAllocator,
+                pResponseBuffer,
+                sAllocatedSize);
+    }
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+    }
+
+    goto cleanup;
 }
 
 static

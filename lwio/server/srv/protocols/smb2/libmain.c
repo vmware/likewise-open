@@ -103,7 +103,7 @@ SrvProtocolExecute_SMB_V2(
     {
         PSMB2_MESSAGE pRequest = &request.pChainedRequests[iRequest];
         PSMB2_MESSAGE pResponse = &request.pChainedResponses[iRequest];
-        PSMB2_MESSAGE pPrevResponse = (iRequest > 0 ? &request.pChainedResponses[iRequest] : NULL);
+        PSMB2_MESSAGE pPrevResponse = (iRequest > 0 ? &request.pChainedResponses[iRequest-1] : NULL);
         ULONG         ulResponseSize_starting = request.pResponse->bufferUsed;
         ULONG         ulResponseSize_ending = request.pResponse->bufferUsed;
 
@@ -127,8 +127,8 @@ SrvProtocolExecute_SMB_V2(
             }
         }
 
-        pResponse->pHeader = (PSMB2_HEADER)request.pResponse->pRawBuffer +
-                                         request.pResponse->bufferUsed;
+        pResponse->pHeader = (PSMB2_HEADER)(request.pResponse->pRawBuffer +
+                                            request.pResponse->bufferUsed);
 
         switch (pRequest->pHeader->command)
         {
