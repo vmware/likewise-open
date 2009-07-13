@@ -889,7 +889,7 @@ SrvGetFileSystemVolumeInfo_SMB_V2(
     PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
     PBYTE pOutBuffer       = pOutBufferRef;
     ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset         = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
@@ -1053,7 +1053,7 @@ SrvGetFileSystemAttributeInfo_SMB_V2(
     PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
     PBYTE pOutBuffer       = pOutBufferRef;
     ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset         = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
