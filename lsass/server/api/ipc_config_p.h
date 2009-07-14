@@ -43,7 +43,9 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
+
 #ifndef __IPC_CONFIG_P_H__
 #define __IPC_CONFIG_P_H__
 
@@ -54,5 +56,15 @@ LsaSrvIpcRefreshConfiguration(
     LWMsgMessage* pResponse,
     void* data
     );
+
+
+LWMsgStatus
+LsaSrvIpcSetMachineSid(
+    LWMsgAssoc *pAssoc,
+    const LWMsgMessage *pRequest,
+    LWMsgMessage *pResponse,
+    void *data
+    );
+
 
 #endif /* __IPC_CONFIG_P_H__ */

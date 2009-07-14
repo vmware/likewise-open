@@ -55,7 +55,7 @@
 #include <dce/dcethread.h>
 #include <compat/winerror.h>
 #include <lw/ntstatus.h>
-
+#include <lw/base.h>
 
 #include <eventlog.h>
 
@@ -72,6 +72,7 @@
 #include "lsaprovider.h"
 #include "lsarpcsrv.h"
 #include "rpcctl.h"
+#include "directory.h"
 
 #include "structs_p.h"
 #include "auth_p.h"

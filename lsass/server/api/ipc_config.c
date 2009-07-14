@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -43,7 +43,9 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
+
 #include "api.h"
 
 LWMsgStatus
@@ -83,3 +85,54 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+LWMsgStatus
+LsaSrvIpcSetMachineSid(
+    LWMsgAssoc *pAssoc,
+    const LWMsgMessage *pRequest,
+    LWMsgMessage *pResponse,
+    void *data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    PVOID Handle = NULL;
+    PLSA_IPC_SET_MACHINE_SID pReq = pRequest->object;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(
+                                            pAssoc,
+                                            OUT_PPVOID(&Handle)));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvSetMachineSid((HANDLE)Handle, pReq->pszSid);
+    if (!dwError)
+    {
+        pResponse->tag    = LSA_R_SET_MACHINE_SID_SUCCESS;
+        pResponse->object = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pResponse->tag    = LSA_R_SET_MACHINE_SID_FAILURE;
+        pResponse->object = pError;
+    }
+
+cleanup:
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
