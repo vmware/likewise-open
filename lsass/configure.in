@@ -901,7 +901,7 @@ AC_CONFIG_FILES([Makefile
                  gssntlm/include/Makefile
                  server/Makefile
                  server/api/Makefile
-                 server/ntlmserver/Makefile
+                 server/ntlm/Makefile
                  server/auth-providers/Makefile
                  server/auth-providers/ad-provider/Makefile
                  server/auth-providers/local-provider/Makefile
