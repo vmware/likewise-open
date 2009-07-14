@@ -40,7 +40,7 @@ LAYOUT:
     - local (1 shared object)
     - ad (1 shared object)
   + lsassd (1 binary)
-  + ntlmserver (1 shared object – new code, currently unused) [1]
+  + ntlm (1 shared object – new code, currently unused)
   + rpc (currently various shared objects) [2]
     - idl
     - include
@@ -67,13 +67,13 @@ LAYOUT:
   + lwicompat
   + lwmapsecurity (dlopen plugin for lwmapsecurity)
   + access (dlopen by eventlog) [5]
+  + gssntlm (gssapi layer for NTLM)
 - docs
 - etc
 - tools
 - tests?
 - gssntlm [6]
-- gssntlm3 [7]
-- join [8]
+- join [7]
 
 PROBLEM:
 -------
@@ -86,8 +86,6 @@ just be made not to link into any of the client/server binaries.
 
 NOTES:
 -----
-
-[1] ntlmserver should be renamed to ntlm under the server directory.
 
 [2] rpc will need to become a single shared object.
 
@@ -103,10 +101,7 @@ NOTES:
 
 [6] gssntlm is legacy NTLM code that will go away when new NTLM code is used.
 
-[7] gssntlm3 will become interop/gssntlm as it is just a gssapi layer for
-    NTLM.
-
-[8] join is currently 1 shared object used by AD provider and domain join that
+[7] join is currently 1 shared object used by AD provider and domain join that
     contains 3 pieces: (1) LDAP wrapper, (2) KRB5 wrapper, and (3) domain join
     helper code.  It will later be split into advapi and domainjoin components.
 
