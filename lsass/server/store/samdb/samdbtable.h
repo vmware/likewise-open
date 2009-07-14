@@ -832,7 +832,6 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                             \
         SAM_DB_DIR_ATTR_OBJECT_SID,                               \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
-         SAM_DB_ATTR_FLAGS_READONLY  |                            \
          SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)             \
     },                                                            \
     {                                                             \
