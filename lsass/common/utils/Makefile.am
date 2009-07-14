@@ -37,7 +37,6 @@ liblsautils_la_SOURCES =       \
        lsalist.c               \
        sid.c                   \
        lwmem.c                 \
-       lwstr.c                 \
        lwsecurityidentifier.c
 
 liblsautils_la_CPPFLAGS = \
