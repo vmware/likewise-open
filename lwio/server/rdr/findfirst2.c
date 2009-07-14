@@ -61,6 +61,7 @@ RdrTransactFindFirst2(
     ULONG ulOffset = 0;
     PUSHORT pusReplySetup = NULL;
     PUSHORT pusReplyByteCount = NULL;
+    USHORT usReplyByteCount = 0;
     PSMB_FIND_FIRST2_RESPONSE_PARAMETERS pReplyParameters = NULL;
     PBYTE pReplyData = NULL;
     PBYTE pCursor = NULL;
@@ -197,8 +198,24 @@ RdrTransactFindFirst2(
     if (pusEaErrorOffset) *pusEaErrorOffset = SMB_LTOH16(pReplyParameters->usEaErrorOffset);
     if (pusLastNameOffset) *pusLastNameOffset = SMB_LTOH16(pReplyParameters->usLastNameOffset);
 
-    memcpy(pResult, pReplyData, SMB_LTOH16(*pusReplyByteCount));
-    *pulResultLengthUsed = SMB_LTOH16(*pusReplyByteCount);
+    /* Unmarshal reply byte count */
+    ntStatus = UnmarshalUshort((PBYTE*) &pusReplyByteCount, NULL, &usReplyByteCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (usReplyByteCount > (pResponsePacket->bufferUsed - ((PBYTE) pReplyData - (PBYTE) pResponsePacket->pSMBHeader)))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (usReplyByteCount > ulResultLength)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memcpy(pResult, pReplyData, usReplyByteCount);
+    *pulResultLengthUsed = usReplyByteCount;
 
 cleanup:
 
