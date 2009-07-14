@@ -48,4 +48,10 @@ LwIoReleaseContext(
     IN OUT PIO_CONTEXT pConnection
     );
 
+NTSTATUS
+LwIoResolveAccessToken(
+    PIO_ACCESS_TOKEN pBaseToken,
+    PIO_ACCESS_TOKEN* ppResolvedToken
+    );
+
 #endif /* __EXTERNS_H__ */

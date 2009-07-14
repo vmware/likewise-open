@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -109,6 +109,9 @@ typedef enum __LSA_IPC_TAG
     LSA_Q_CHANGE_PASSWORD,
     LSA_R_CHANGE_PASSWORD_SUCCESS,
     LSA_R_CHANGE_PASSWORD_FAILURE,
+    LSA_Q_SET_PASSWORD,
+    LSA_R_SET_PASSWORD_SUCCESS,
+    LSA_R_SET_PASSWORD_FAILURE,
     LSA_Q_OPEN_SESSION,
     LSA_R_OPEN_SESSION_SUCCESS,
     LSA_R_OPEN_SESSION_FAILURE,
@@ -118,6 +121,9 @@ typedef enum __LSA_IPC_TAG
     LSA_Q_MODIFY_USER,
     LSA_R_MODIFY_USER_SUCCESS,
     LSA_R_MODIFY_USER_FAILURE,
+    LSA_Q_MODIFY_GROUP,
+    LSA_R_MODIFY_GROUP_SUCCESS,
+    LSA_R_MODIFY_GROUP_FAILURE,
     LSA_Q_NAMES_BY_SID_LIST,
     LSA_R_NAMES_BY_SID_LIST_SUCCESS,
     LSA_R_NAMES_BY_SID_LIST_FAILURE,
@@ -205,6 +211,25 @@ typedef struct __LSA_IPC_FIND_OBJECT_BY_ID_REQ
     DWORD id;
 } LSA_IPC_FIND_OBJECT_BY_ID_REQ, *PLSA_IPC_FIND_OBJECT_BY_ID_REQ;
 
+typedef UCHAR LSA_IPC_FIND_OBJECT_BY_TYPE;
+
+#define LSA_IPC_FIND_OBJECT_BY_TYPE_NAME    0
+#define LSA_IPC_FIND_OBJECT_BY_TYPE_ID      1
+
+typedef union __LSA_IPC_FIND_OBJECT_BY_DATA
+{
+    PCSTR pszName;
+    DWORD dwId;
+} LSA_IPC_FIND_OBJECT_BY_DATA, *PLSA_IPC_FIND_OBJECT_BY_DATA;
+
+typedef struct __LSA_IPC_FIND_OBJECT_REQ
+{
+    LSA_FIND_FLAGS FindFlags;
+    DWORD dwInfoLevel;
+    LSA_IPC_FIND_OBJECT_BY_TYPE ByType;
+    LSA_IPC_FIND_OBJECT_BY_DATA ByData;
+} LSA_IPC_FIND_OBJECT_REQ, *PLSA_IPC_FIND_OBJECT_REQ;
+
 typedef struct __LSA_IPC_AUTH_USER_REQ
 {
     PCSTR pszLoginName;
@@ -217,6 +242,12 @@ typedef struct __LSA_IPC_CHANGE_PASSWORD_REQ
     PCSTR pszNewPassword;
     PCSTR pszOldPassword;
 } LSA_IPC_CHANGE_PASSWORD_REQ, *PLSA_IPC_CHANGE_PASSWORD_REQ;
+
+typedef struct __LSA_IPC_SET_PASSWORD_REQ
+{
+    PCSTR pszLoginName;
+    PCSTR pszNewPassword;
+} LSA_IPC_SET_PASSWORD_REQ, *PLSA_IPC_SET_PASSWORD_REQ;
 
 typedef struct __LSA_IPC_NAMES_BY_SIDS_REQ
 {
@@ -332,3 +363,13 @@ LsaMapLwmsgStatus(
     );
 
 #endif /*__LSAIPC_H__*/
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

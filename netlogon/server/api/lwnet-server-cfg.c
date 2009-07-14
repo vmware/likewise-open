@@ -48,26 +48,62 @@
  */
 #include "includes.h"
 
+//
+// Internal Module Globals
+//
+
+typedef struct _LWNET_SERVER_CONFIG {
+    PSTR pszPluginPath;
+} LWNET_SERVER_CONFIG, *PLWNET_SERVER_CONFIG;
+
+LWNET_SERVER_CONFIG gLWNetServerConfig;
+
+//
+// Local Prototypes
+//
+
+static
+DWORD
+LWNetSrvCfgStartSection(
+    PCSTR pszSectionName,
+    PVOID pData,
+    PBOOLEAN pbSkipSection,
+    PBOOLEAN pbContinue
+    );
+
+static
+DWORD
+LWNetSrvCfgNameValuePair(
+    PCSTR pszName,
+    PCSTR pszValue,
+    PVOID pData,
+    PBOOLEAN pbContinue
+    );
+
+//
+// Implementation
+//
+
 DWORD
 LWNetSrvParseConfigFile(
     PCSTR pszFilePath
     )
 {
     DWORD dwError = 0;
-    PVOID ptr = NULL;
+
     dwError = LWNetParseConfigFile(
-        pszFilePath,
-                LWNET_CFG_OPTION_STRIP_ALL,
-                &LWNetSrvCfgStartSection,
-                NULL,
-                &LWNetSrvCfgNameValuePair,
-                NULL,
-                &ptr
-            );
+                    pszFilePath,
+                    LWNET_CFG_OPTION_STRIP_ALL,
+                    &LWNetSrvCfgStartSection,
+                    NULL,
+                    &LWNetSrvCfgNameValuePair,
+                    NULL,
+                    NULL);
 
     return dwError;
 }
 
+static
 DWORD
 LWNetSrvCfgStartSection(
     PCSTR pszSectionName,
@@ -78,31 +114,30 @@ LWNetSrvCfgStartSection(
 {
 
     DWORD dwError = 0;
-    BOOLEAN bSkipSection = FALSE;
+    BOOLEAN bSkipSection = TRUE;
     BOOLEAN bContinue = TRUE;
 
     BAIL_ON_INVALID_STRING(pszSectionName);
 
-    if(strcmp(pszSectionName, "cache") != 0)
-    {
-        bSkipSection = TRUE;
-    }
-    else 
+    if (!strcmp(pszSectionName, "netlogond"))
     {
         bSkipSection = FALSE;
     }
     
+cleanup:
     *pbSkipSection = bSkipSection;
     *pbContinue = bContinue;
 
-cleanup:
     return dwError;
 
 error:
-    *pbSkipSection = TRUE;
+    bSkipSection = TRUE;
+    bContinue = TRUE;
+
     goto cleanup;
 }
 
+static
 DWORD
 LWNetSrvCfgNameValuePair(
     PCSTR pszName,
@@ -111,219 +146,35 @@ LWNetSrvCfgNameValuePair(
     PBOOLEAN pbContinue
     )
 {
-
     DWORD dwError = 0;
     BOOLEAN bContinue = TRUE;
-    DWORD dwCacheEntryExpiry = 0;
-    BOOLEAN bCacheEntryExpiryFound = FALSE;
 
     BAIL_ON_INVALID_STRING(pszName);
     BAIL_ON_INVALID_STRING(pszValue);
 
-    if(strcmp(pszName, "cache-entry-expiry") == 0)
+    if (!strcmp(pszName, "plugin-path"))
     {
-        dwError = LWNetParseDateString(
-                        pszValue,
-                        &dwCacheEntryExpiry
-                        );
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        bCacheEntryExpiryFound = TRUE;
+        LWNET_SAFE_FREE_STRING(gLWNetServerConfig.pszPluginPath);
+        if (!IsNullOrEmptyString(pszValue))
+        {
+            dwError = LWNetAllocateString(pszValue, &gLWNetServerConfig.pszPluginPath);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
     }
 
-    if (dwCacheEntryExpiry >= gdwLWNetCacheEntryExpirySecsMinimum &&
-        dwCacheEntryExpiry <= gdwLWNetCacheEntryExpirySecsMaximum &&
-        bCacheEntryExpiryFound)
-    {
-        dwError = LWNetSetCacheEntryExpirySeconds(dwCacheEntryExpiry);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
+cleanup:
     *pbContinue = bContinue;
 
-cleanup:
     return dwError;
 
 error:
     goto cleanup;
 }
 
-DWORD
-LWNetSetCacheReaperTimeoutSecs(
-    DWORD dwCacheReaperTimeoutSecs
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-
-    if (dwCacheReaperTimeoutSecs < gdwLWNetCacheReaperTimeoutSecsMinimum)
-    {
-        LWNET_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Minimum is %u.",
-                        dwCacheReaperTimeoutSecs,
-                        gdwLWNetCacheReaperTimeoutSecsMinimum
-                        );
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
-    }
-
-    if (dwCacheReaperTimeoutSecs > gdwLWNetCacheReaperTimeoutSecsMaximum)
-    {
-        LWNET_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Maximum is %u.",
-                        dwCacheReaperTimeoutSecs,
-                        gdwLWNetCacheReaperTimeoutSecsMaximum
-                        );
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
-    }
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    ENTER_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
- 
-    gdwLWNetCacheReaperTimeoutSecs = dwCacheReaperTimeoutSecs;
-
-cleanup:
-
-    LEAVE_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LWNetGetCacheReaperTimeoutSecs(
+PCSTR
+LWGetPluginPath(
     VOID
     )
 {
-    DWORD dwCacheReaperTimeoutSecs = 0;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    dwCacheReaperTimeoutSecs = gdwLWNetCacheReaperTimeoutSecs;
-    LEAVE_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwCacheReaperTimeoutSecs;
-}
-
-DWORD
-LWNetSetCacheEntryExpirySeconds(
-    DWORD dwExpirySecs
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-
-    if (dwExpirySecs < gdwLWNetCacheEntryExpirySecsMinimum)
-    {
-        LWNET_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Minimum is %u.",
-                        dwExpirySecs,
-                        gdwLWNetCacheEntryExpirySecsMinimum);
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
-    }
-
-    if (dwExpirySecs > gdwLWNetCacheEntryExpirySecsMaximum)
-    {
-        LWNET_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Maximum is %u.",
-                        dwExpirySecs,
-                        gdwLWNetCacheEntryExpirySecsMaximum);
-        dwError = LWNET_ERROR_INVALID_PARAMETER;
-    }
-    BAIL_ON_LWNET_ERROR(dwError);
- 
-    ENTER_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    gdwLWNetCacheEntryExpirySecs = dwExpirySecs;
-
-cleanup:
-
-    LEAVE_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LWNetGetCacheEntryExpirySeconds(
-    VOID
-    )
-{
-    DWORD dwResult = 0;
-    BOOLEAN bInLock = FALSE;
-
-    ENTER_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    dwResult = gdwLWNetCacheEntryExpirySecs;
-
-    LEAVE_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-
-    return dwResult;
-}
-
-DWORD
-LWNetSetCurrentSiteName(
-    PCSTR pszCurrentSiteName
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    PSTR pszNewSiteName = NULL;
-
-    if(!IsNullOrEmptyString(pszCurrentSiteName))
-    {
-        dwError = LWNetAllocateString(
-                    pszCurrentSiteName,
-                    &pszNewSiteName
-                    );
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    ENTER_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    LWNET_SAFE_FREE_STRING(gpszLWNetCurrentSiteName);
-    gpszLWNetCurrentSiteName = pszNewSiteName;
-    
-cleanup:
-
-    LEAVE_LWNET_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LWNetGetCurrentSiteName(
-        PSTR* ppszCurrentSiteName
-        )
-{
-    BOOLEAN bInLock = FALSE;
-    PSTR pszCurrentSiteName = NULL;
-    DWORD dwError = 0;
-    
-    ENTER_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    
-    if(gpszLWNetCurrentSiteName != NULL)
-    {
-        dwError = LWNetAllocateString(
-                    gpszLWNetCurrentSiteName,
-                    &pszCurrentSiteName
-                    );
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    LEAVE_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    
-    *ppszCurrentSiteName = pszCurrentSiteName;
-    
-cleanup:
-    return dwError;
-
-error:
-    LEAVE_LWNET_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    *ppszCurrentSiteName = NULL;
-    goto cleanup;
+    return gLWNetServerConfig.pszPluginPath;
 }

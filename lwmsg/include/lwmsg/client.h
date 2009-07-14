@@ -83,6 +83,7 @@ typedef struct LWMsgClient LWMsgClient;
  * Creates a new client object with no endpoint set
  * and all options set to their default values.
  *
+ * @param[in] context an optional context
  * @param[in] protocol the protocol object describing the protocol spoken by the client
  * @param[out] client the created client object
  * @lwmsg_status
@@ -92,6 +93,7 @@ typedef struct LWMsgClient LWMsgClient;
  */
 LWMsgStatus
 lwmsg_client_new(
+    const LWMsgContext* context,
     LWMsgProtocol* protocol,
     LWMsgClient** client
     );
@@ -256,76 +258,6 @@ lwmsg_client_send_message_transact(
     LWMsgClient* client,
     LWMsgMessage* send_msg,
     LWMsgMessage* recv_msg
-    );
-
-/**
- * @brief Send a message (simple)
- *
- * Sends a message to the server.  This function is equivalent
- * to lwmsg_client_send_message() but does not require use
- * of a full LWMsgMessage structure.
- * 
- * @param client the client object
- * @param type the type of the message to send
- * @param object the payload of the message to send
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_send()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_send(
-    LWMsgClient* client,
-    LWMsgMessageTag type,
-    void* object
-    );
-
-/**
- * @brief Receive a message (simple)
- *
- * Receives a message from the server.  This function is equivalent
- * to lwmsg_client_recv_message() but does not require use
- * of a full LWMsgMessage structure.
- * 
- * @param client the client object
- * @param out_type the type of the received message
- * @param out_object the payload of the received to message
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_recv()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_recv(
-    LWMsgClient* client,
-    LWMsgMessageTag* out_type,
-    void** out_object
-    );
-
-/**
- * @brief Send a message and receive a reply (simple).
- *
- * Sends a message to the server and receives a reply.
- * This function is similar to lwmsg_client_send_message_transact(),
- * but does not require the use of full LWMsgMessage structures.
- * 
- * @param client the client object
- * @param in_type the type of the message to send
- * @param in_object the payload of the message to send
- * @param out_type the type of the received reply
- * @param out_object the payload the the received reply
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_transact()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_send_transact(
-    LWMsgClient* client,
-    LWMsgMessageTag in_type,
-    void* in_object,
-    LWMsgMessageTag* out_type,
-    void** out_object
     );
 
 /**

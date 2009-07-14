@@ -1,8 +1,60 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samdbdefs.c
+ *
+ * Abstract:
+ *
+ *
+ *      Likewise SAM Database Provider
+ *
+ *      Provider macros and definitions
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
+ */
+
 #ifndef __SAMDBDEFS_H__
 #define __SAMDBDEFS_H__
 
 #define SAM_DB_DIR CACHEDIR   "/db"
 #define SAM_DB     SAM_DB_DIR "/sam.db"
+
+#define SAM_DB_CONTEXT_POOL_MAX_ENTRIES 10
 
 #define SAM_DB_DEFAULT_ADMINISTRATOR_SHELL   "/bin/sh"
 #define SAM_DB_DEFAULT_ADMINISTRATOR_HOMEDIR "/"
@@ -18,6 +70,21 @@
 
 #define BAIL_ON_SAMDB_ERROR(dwError) \
     if (dwError) goto error;
+
+#define BAIL_ON_SAMDB_SQLITE_ERROR(dwError, pszError)   \
+    if (dwError) {                                      \
+        SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s", \
+                        dwError,                        \
+                        LSA_SAFE_LOG_STRING(pszError)); \
+        dwError = LSA_ERROR_SAM_DATABASE_ERROR;         \
+        goto error;                                     \
+    }
+
+#define BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, pDb) \
+    BAIL_ON_SAMDB_SQLITE_ERROR(dwError, sqlite3_errmsg(pDb))
+
+#define BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pStatement) \
+    BAIL_ON_SAMDB_SQLITE_ERROR_DB(dwError, sqlite3_db_handle(pStatement))
 
 #define SAMDB_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \

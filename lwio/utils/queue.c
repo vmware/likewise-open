@@ -49,15 +49,15 @@
 #include "includes.h"
 
 DWORD
-SMBQueueCreate(
-    PSMB_QUEUE* ppQueue
+LWIOQueueCreate(
+    PLWIO_QUEUE* ppQueue
     )
 {
     DWORD dwError = 0;
-    PSMB_QUEUE pQueue = NULL;
+    PLWIO_QUEUE pQueue = NULL;
 
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_QUEUE),
+                    sizeof(LWIO_QUEUE),
                     (PVOID*)&pQueue);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -76,15 +76,15 @@ error:
 
 DWORD
 SMBEnqueue(
-    PSMB_QUEUE pQueue,
+    PLWIO_QUEUE pQueue,
     PVOID      pItem
     )
 {
     DWORD dwError = 0;
-    PSMB_QUEUE_ITEM pQueueItem = NULL;
+    PLWIO_QUEUE_ITEM pQueueItem = NULL;
 
     dwError = SMBAllocateMemory(
-                    sizeof(SMB_QUEUE_ITEM),
+                    sizeof(LWIO_QUEUE_ITEM),
                     (PVOID*)&pQueueItem);
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -113,14 +113,14 @@ error:
 
 PVOID
 SMBDequeue(
-    PSMB_QUEUE pQueue
+    PLWIO_QUEUE pQueue
     )
 {
     PVOID pItem = NULL;
 
     if (pQueue->pHead)
     {
-        PSMB_QUEUE_ITEM pQueueItem = pQueue->pHead;
+        PLWIO_QUEUE_ITEM pQueueItem = pQueue->pHead;
 
         pQueue->pHead = pQueue->pHead->pNext;
         if (!pQueue->pHead)
@@ -137,22 +137,22 @@ SMBDequeue(
 }
 
 BOOLEAN
-SMBQueueIsEmpty(
-    PSMB_QUEUE pQueue
+LWIOQueueIsEmpty(
+    PLWIO_QUEUE pQueue
     )
 {
     return (pQueue->pHead == pQueue->pTail);
 }
 
 DWORD
-SMBQueueForeach(
-    PSMB_QUEUE pQueue,
-    PFNSMB_FOREACH_QUEUE_ITEM pfnAction,
+LWIOQueueForeach(
+    PLWIO_QUEUE pQueue,
+    PFNLWIO_FOREACH_QUEUE_ITEM pfnAction,
     PVOID pUserData
     )
 {
     DWORD dwError = 0;
-    PSMB_QUEUE_ITEM pQueueItem = pQueue->pHead;
+    PLWIO_QUEUE_ITEM pQueueItem = pQueue->pHead;
 
     for (; pQueueItem; pQueueItem = pQueueItem->pNext)
     {
@@ -166,8 +166,8 @@ error:
 }
 
 VOID
-SMBQueueFree(
-    PSMB_QUEUE pQueue
+LWIOQueueFree(
+    PLWIO_QUEUE pQueue
     )
 {
     SMBFreeMemory(pQueue);

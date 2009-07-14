@@ -1,6 +1,6 @@
-Locking Rules for LSBMB
+Locking Rules for LWIO
 
-These rules are about locking and referencing/dereferencing objects in LSMB.
+These rules are about locking and referencing/dereferencing objects in LWIO.
 
 Terminology:
 - P = parent object.

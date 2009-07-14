@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -52,13 +50,24 @@
 #define __SAM_DB_TABLE_H__
 
 #define SAM_DB_SCHEMA_VERSION 1
-#define SAM_DB_MIN_UID        1000
-#define SAM_DB_MIN_GID        1000
-#define SAM_DB_MIN_RID        1000
 
-#define SAM_DB_CONFIG_TABLE  "samdbconfig"
-#define SAM_DB_OBJECTS_TABLE "samdbobjects"
-#define SAM_DB_MEMBERS_TABLE "samdbmembers"
+#if !defined(SAM_DB_UID_RID_OFFSET)
+#define SAM_DB_UID_RID_OFFSET     (1000)
+#endif
+#if !defined(SAM_DB_GID_RID_OFFSET)
+#define SAM_DB_GID_RID_OFFSET     SAM_DB_UID_RID_OFFSET
+#endif
+
+#define SAM_DB_UID_FROM_RID(rid)  (SAM_DB_UID_RID_OFFSET + (rid))
+#define SAM_DB_GID_FROM_RID(rid)  (SAM_DB_GID_RID_OFFSET + (rid))
+
+#define SAM_DB_MIN_RID            (1000)
+#define SAM_DB_MIN_UID            SAM_DB_UID_FROM_RID(SAM_DB_MIN_RID)
+#define SAM_DB_MIN_GID            SAM_DB_GID_FROM_RID(SAM_DB_MIN_RID)
+
+#define SAM_DB_CONFIG_TABLE              "samdbconfig"
+#define SAM_DB_OBJECTS_TABLE             "samdbobjects"
+#define SAM_DB_MEMBERS_TABLE             "samdbmembers"
 
 #define SAM_DB_COL_RECORD_ID             "ObjectRecordId"
 #define SAM_DB_COL_GROUP_RECORD_ID       "GroupRecordId"
@@ -185,7 +194,8 @@
             " OR " SAM_DB_COL_OBJECT_CLASS " == 2 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 3 \n"                          \
             " OR " SAM_DB_COL_OBJECT_CLASS " == 4 \n"                          \
-            " OR " SAM_DB_COL_OBJECT_CLASS " == 5)\n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 5 \n"                          \
+            " OR " SAM_DB_COL_OBJECT_CLASS " == 6)\n"                          \
                  ");\n"                                                        \
     "CREATE TABLE " SAM_DB_MEMBERS_TABLE " (\n"                                \
                  SAM_DB_COL_GROUP_RECORD_ID       " INTEGER,\n"                \
@@ -206,12 +216,13 @@
 
 typedef enum
 {
-    SAMDB_OBJECT_CLASS_UNKNOWN        = 0,
-    SAMDB_OBJECT_CLASS_DOMAIN         = 1,
-    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN = 2,
-    SAMDB_OBJECT_CLASS_CONTAINER      = 3,
-    SAMDB_OBJECT_CLASS_GROUP          = 4,
-    SAMDB_OBJECT_CLASS_USER           = 5,
+    SAMDB_OBJECT_CLASS_UNKNOWN         = 0,
+    SAMDB_OBJECT_CLASS_DOMAIN          = 1,
+    SAMDB_OBJECT_CLASS_BUILTIN_DOMAIN  = 2,
+    SAMDB_OBJECT_CLASS_CONTAINER       = 3,
+    SAMDB_OBJECT_CLASS_LOCAL_GROUP     = 4,
+    SAMDB_OBJECT_CLASS_USER            = 5,
+    SAMDB_OBJECT_CLASS_LOCALGRP_MEMBER = 6,
     SAMDB_OBJECT_CLASS_SENTINEL
 
 } SAMDB_OBJECT_CLASS;
@@ -280,9 +291,9 @@ typedef enum
 #define SAM_DB_DIR_ATTR_PASSWORD_LAST_SET \
     {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
 #define SAM_DB_DIR_ATTR_ALLOW_PASSWORD_CHANGE \
- {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+    {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define SAM_DB_DIR_ATTR_FORCE_PASSWORD_CHANGE \
- {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+    {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define SAM_DB_DIR_ATTR_FULL_NAME \
     {'F','u','l','l','N','a','m','e',0}
 #define SAM_DB_DIR_ATTR_ACCOUNT_EXPIRY \
@@ -1001,7 +1012,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
         SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
     }
 
-#define SAMDB_GROUP_ATTRIBUTE_MAP                                \
+#define SAMDB_LOCAL_GROUP_ATTRIBUTE_MAP                          \
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
@@ -1028,6 +1039,47 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                            \
         SAM_DB_DIR_ATTR_FULL_NAME,                               \
         SAM_DB_ATTR_FLAGS_NONE                                   \
+    }
+
+#define SAMDB_LOCALGRP_MEMBER_ATTRIBUTE_MAP                      \
+    {                                                            \
+        SAM_DB_DIR_ATTR_RECORD_ID,                               \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY  |                           \
+         SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)                      \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_DISTINGUISHED_NAME,                      \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY)                             \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_OBJECT_SID,                              \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY)                             \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_OBJECT_CLASS,                            \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY)                             \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_DOMAIN,                                  \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_NETBIOS_NAME,                            \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_CREATED_TIME,                            \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_READONLY  |                           \
+         SAM_DB_ATTR_FLAGS_GENERATED_BY_DB)                      \
+    },                                                           \
+    {                                                            \
+        SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
+        (SAM_DB_ATTR_FLAGS_READONLY)                             \
     }
 
 #define SAMDB_DOMAIN_ATTRIBUTE_MAP                               \

@@ -55,6 +55,7 @@
 #define LWIO_INFO_TAG    "INFO"
 #define LWIO_VERBOSE_TAG "VERBOSE"
 #define LWIO_DEBUG_TAG   "DEBUG"
+#define LWIO_TRACE_TAG   "TRACE"
 
 #define LWIO_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 

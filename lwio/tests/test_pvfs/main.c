@@ -45,22 +45,86 @@
  *
  */
 
-#define _POSIX_PTHREAD_SEMANTICS 1
-
-#include "config.h"
-#include <lw/base.h>
-#include "lwiosys.h"
-#include "lwio/lwio.h"
-#include "lwiodef.h"
-#include "lwioutils.h"
-
-#include <stdio.h>
-#include <errno.h>
+#include "includes.h"
 
 /******************************************************
  *****************************************************/
 
-static void
+int
+main(
+    int argc,
+    char *argv[]
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Check Arg count */
+
+    if (argc <= 2) {
+        PrintUsage(argv[0]);
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Process Args */
+
+    if (strcmp(argv[1], "-c") == 0)
+    {
+        ntError = CopyFileToPvfs(argc-2, argv+2);
+    }
+    else if (strcmp(argv[1], "-C") == 0)
+    {
+        ntError = CopyFileFromPvfs(argc-2, argv+2);
+    }
+    else if (strcmp(argv[1], "-S") == 0)
+    {
+        ntError = StatRemoteFile(argv[2]);
+    }
+    else if (strcmp(argv[1], "-F") == 0)
+    {
+        ntError = SetEndOfFile(argc-2, argv+2);
+    }
+    else if (strcmp(argv[1], "-D") == 0)
+    {
+        ntError = DeletePath(argv[2]);
+    }
+    else if (strcmp(argv[1], "-l") == 0)
+    {
+        char *filter = NULL;
+
+        if ((argc-2) > 1) {
+            filter = argv[3];
+        }
+
+        ntError = ListDirectory(argv[2], filter);
+    }
+    else if (strcmp(argv[1], "-L") == 0)
+    {
+        ntError = LockTest(argv[2]);
+    }
+    else
+    {
+        PrintUsage(argv[0]);
+        ntError = STATUS_INVALID_PARAMETER;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+
+cleanup:
+    printf("Final NTSTATUS was %s (%s)\n",
+           NtStatusToDescription(ntError),
+           NtStatusToSymbolicName(ntError));
+
+    return ntError == STATUS_SUCCESS;
+
+error:
+    goto cleanup;
+}
+
+/******************************************************
+ *****************************************************/
+
+void
 PrintUsage(
     char *pszProgName
     )
@@ -73,6 +137,8 @@ PrintUsage(
     fprintf(stderr, "    -l <dir>          List the files in a directory\n");
     fprintf(stderr, "    -F <file> <size>   Set the end-of-file\n");
     fprintf(stderr, "    -D <path>         Delete a file or directory using delete-on-close\n");
+    fprintf(stderr, "    -L <path>         Locking Tests\n");
+
 
     fprintf(stderr, "\n");
 
@@ -82,14 +148,14 @@ PrintUsage(
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 CopyFileToPvfs(
     int argc,
     char *argv[]
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     IO_FILE_NAME DstFilename = {0};
     PSTR pszSrcPath = NULL;
@@ -108,8 +174,6 @@ CopyFileToPvfs(
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
 
-    DstFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    DstFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&DstFilename.FileName, pszDstPath);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -188,14 +252,14 @@ error:
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 CopyFileFromPvfs(
     int argc,
     char *argv[]
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     IO_FILE_NAME SrcFilename = {0};
     PSTR pszSrcPath = NULL;
@@ -214,8 +278,6 @@ CopyFileFromPvfs(
     pszSrcPath = argv[0];
     pszDstPath = argv[1];
 
-    SrcFilename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    SrcFilename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&SrcFilename.FileName, pszSrcPath);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -296,7 +358,7 @@ error:
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 StatRemoteFile(
     char *pszFilename
     )
@@ -306,11 +368,9 @@ StatRemoteFile(
     FILE_STANDARD_INFORMATION FileStdInfo = {0};
     FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
     IO_FILE_NAME Filename = {0};
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
 
-    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Filename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
                                                pszFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -388,7 +448,7 @@ error:
 /******************************************************
  *****************************************************/
 
-static VOID
+VOID
 PrintFileBothDirInformation(
     PFILE_BOTH_DIR_INFORMATION pFileInfo
     )
@@ -430,7 +490,7 @@ error:
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 ListDirectory(
     char *pszDirectory,
     char *pszPattern
@@ -438,15 +498,13 @@ ListDirectory(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IO_FILE_NAME Dirname = {0};
-    IO_FILE_HANDLE hDir = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hDir = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     PFILE_BOTH_DIR_INFORMATION pFileInfo = NULL;
     PVOID pBuffer =  NULL;
     DWORD dwBufLen = 0;
-    IO_FILE_SPEC FileSpec;
+    IO_MATCH_FILE_SPEC FileSpec = { 0 };
 
-    Dirname.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Dirname.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Dirname.FileName,
                                                pszDirectory);
     BAIL_ON_NT_STATUS(ntError);
@@ -476,7 +534,7 @@ ListDirectory(
     BAIL_ON_NT_STATUS(ntError);
 
     if (pszPattern) {
-        ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.FileName, pszPattern);
+        ntError = LwRtlUnicodeStringAllocateFromCString(&FileSpec.Pattern, pszPattern);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -528,7 +586,7 @@ error:
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 DeletePath(
     char *pszPath
     )
@@ -547,7 +605,7 @@ error:
 /******************************************************
  *****************************************************/
 
-static NTSTATUS
+NTSTATUS
 SetEndOfFile(
     int argc,
     char *argv[]
@@ -559,7 +617,7 @@ SetEndOfFile(
     FILE_INTERNAL_INFORMATION FileInternalInfo = {0};
     FILE_END_OF_FILE_INFORMATION FileEndOfFileInfo = {0};
     IO_FILE_NAME Filename = {0};
-    IO_FILE_HANDLE hFile = (IO_FILE_HANDLE)NULL;
+    IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
     LONG64 EndOfFile = 0;
     PSTR pszFilename = NULL;
@@ -575,8 +633,6 @@ SetEndOfFile(
     pszFilename = argv[0];
     EndOfFile   = strtol(argv[1], &p, 10);
 
-    Filename.RootFileHandle = (IO_FILE_HANDLE)NULL;
-    Filename.IoNameOptions = 0;
     ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
                                                pszFilename);
     BAIL_ON_NT_STATUS(ntError);
@@ -664,69 +720,59 @@ error:
 /******************************************************
  *****************************************************/
 
-int
-main(
-    int argc,
-    char *argv[]
-)
+NTSTATUS
+LockTest(
+    char *pszPath
+    )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IO_FILE_NAME Filename = {0};
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK StatusBlock = {0};
 
-    /* Check Arg count */
-
-    if (argc <= 2) {
-        PrintUsage(argv[0]);
-        ntError = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    /* Process Args */
-
-    if (strcmp(argv[1], "-c") == 0)
-    {
-        ntError = CopyFileToPvfs(argc-2, argv+2);
-    }
-    else if (strcmp(argv[1], "-C") == 0)
-    {
-        ntError = CopyFileFromPvfs(argc-2, argv+2);
-    }
-    else if (strcmp(argv[1], "-S") == 0)
-    {
-        ntError = StatRemoteFile(argv[2]);
-    }
-    else if (strcmp(argv[1], "-F") == 0)
-    {
-        ntError = SetEndOfFile(argc-2, argv+2);
-    }
-    else if (strcmp(argv[1], "-D") == 0)
-    {
-        ntError = DeletePath(argv[2]);
-    }
-    else if (strcmp(argv[1], "-l") == 0)
-    {
-        char *filter = NULL;
-
-        if ((argc-2) > 1) {
-            filter = argv[3];
-        }
-
-        ntError = ListDirectory(argv[2], filter);
-    }
-
-    else
-    {
-        PrintUsage(argv[0]);
-        ntError = STATUS_INVALID_PARAMETER;
-    }
+    ntError = RtlWC16StringAllocateFromCString(&Filename.FileName,
+                                               pszPath);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = NtCreateFile(&hFile,
+                           NULL,
+                           &StatusBlock,
+                           &Filename,
+                           NULL,
+                           NULL,
+                           FILE_ALL_ACCESS,
+                           0,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN_IF,
+                           FILE_NON_DIRECTORY_FILE,
+                           NULL,
+                           0,
+                           NULL);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = NtLockFile(hFile,
+                         NULL,
+                         &StatusBlock,
+                         0, 10, 0,
+                         FALSE,
+                         TRUE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    sleep(5);
+
+    ntError = NtUnlockFile(hFile,
+                           NULL,
+                           &StatusBlock,
+                           0, 10, 0);
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    printf("Final NTSTATUS was %s (%s)\n",
-           NtStatusToDescription(ntError),
-           NtStatusToSymbolicName(ntError));
+    if (hFile) {
+        NtCloseFile(hFile);
+    }
 
-    return ntError == STATUS_SUCCESS;
+    return ntError;
 
 error:
     goto cleanup;

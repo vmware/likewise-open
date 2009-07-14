@@ -106,6 +106,16 @@ error:
 /***********************************************************
  **********************************************************/
 
+struct _SHARE_MODE_ACCESS_COMPATIBILITY
+{
+    FILE_SHARE_FLAGS ShareFlag;
+    ACCESS_MASK Access;
+} ShareModeTable[] = {
+    { FILE_SHARE_READ,   (FILE_READ_DATA|FILE_EXECUTE) },
+    { FILE_SHARE_WRITE,  (FILE_WRITE_DATA|FILE_APPEND_DATA) },
+    { FILE_SHARE_DELETE, (DELETE) }
+};
+
 NTSTATUS
 PvfsEnforceShareMode(
     IN PPVFS_FCB pFcb,
@@ -116,100 +126,64 @@ PvfsEnforceShareMode(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_CCB_LIST_NODE pCursor = NULL;
     BOOLEAN bLocked = FALSE;
-
-    /* If the caller wants exclusive access, fail if we have any
-       open instances already */
-
-    if (ShareAccess == 0) {
-        ntError = pFcb->pCcbList ? STATUS_SUCCESS : STATUS_SHARING_VIOLATION;
-        goto cleanup;
-    }
+    ACCESS_MASK AllRights = (FILE_READ_DATA|
+                             FILE_WRITE_DATA|
+                             FILE_APPEND_DATA|
+                             FILE_EXECUTE|
+                             DELETE);
+    DWORD TableSize = sizeof(ShareModeTable) /
+                      sizeof(struct _SHARE_MODE_ACCESS_COMPATIBILITY);
+    int i = 0;
 
     RtlMapGenericMask(&DesiredAccess, &gPvfsFileGenericMapping);
 
-    ENTER_READER_RW_LOCK(&pFcb->rwLock);
-    bLocked = TRUE;
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwLock);
 
     for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
          pCursor;
          pCursor = PvfsNextCCBFromList(pFcb, pCursor))
     {
-        ACCESS_MASK Mask = pCursor->pCcb->AccessGranted;
-        FILE_SHARE_FLAGS Flags = pCursor->pCcb->ShareFlags;
+        ACCESS_MASK CurAccess = pCursor->pCcb->AccessGranted;
+        FILE_SHARE_FLAGS CurShareMode = pCursor->pCcb->ShareFlags;
 
-        /* File was previously opened for exclusive access */
+        /* Fast Path - If we are not asking for read/write/execute/delete
+           access, then we cannot conflict */
 
-        if (Flags == 0) {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
-        }
-
-        /* Check incoming Desired Access */
-
-        /* If we are not asking for read/write/delete access, then
-           we cannot conflict */
-
-        if ((DesiredAccess & (FILE_READ_DATA|FILE_WRITE_DATA|DELETE)) == 0) {
+        if (((DesiredAccess & AllRights) == 0) ||
+            ((CurAccess & AllRights) == 0))
+        {
             continue;
         }
 
-        if ((DesiredAccess & FILE_READ_DATA) &&
-            ((Mask & FILE_READ_DATA) && !(Flags & FILE_SHARE_READ)))
+        for (i=0; i<TableSize; i++)
         {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
-        }
+            /* Check for a conflict between the request access and
+               an existing share mode */
 
-        if ((DesiredAccess & FILE_WRITE_DATA) &&
-            ((Mask & FILE_WRITE_DATA) && !(Flags & FILE_SHARE_WRITE)))
-        {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
-        }
-
-        if ((DesiredAccess & DELETE) &&
-            ((Mask & DELETE) && !(Flags & FILE_SHARE_DELETE)))
-        {
-            ntError = STATUS_SHARING_VIOLATION;
-            break;
-        }
-
-        /* Check incoming File ShareAccess */
-
-        if (ShareAccess & FILE_SHARE_READ)
-        {
-            if ((Mask & FILE_WRITE_DATA) && !(ShareAccess & FILE_SHARE_WRITE))
+            if ((DesiredAccess & ShareModeTable[i].Access) &&
+                !(CurShareMode & ShareModeTable[i].ShareFlag))
             {
                 ntError = STATUS_SHARING_VIOLATION;
-                break;
+                BAIL_ON_NT_STATUS(ntError);
             }
-        }
 
-        if (ShareAccess & FILE_SHARE_WRITE)
-        {
-            if ((Mask & FILE_READ_DATA) && !(ShareAccess & FILE_SHARE_READ))
+            /* Check for a conflict between the request share mode
+               and an existing granted access mask */
+
+            if ((CurAccess & ShareModeTable[i].Access) &&
+                !(ShareAccess & ShareModeTable[i].ShareFlag))
             {
                 ntError = STATUS_SHARING_VIOLATION;
-                break;
-            }
-        }
-
-        if (ShareAccess & FILE_SHARE_DELETE)
-        {
-            if ((Mask & (FILE_READ_DATA|FILE_WRITE_DATA|DELETE)) &&
-                !(ShareAccess &(FILE_SHARE_READ|FILE_SHARE_WRITE)))
-            {
-                ntError = STATUS_SHARING_VIOLATION;
-                break;
+                BAIL_ON_NT_STATUS(ntError);
             }
         }
     }
-    BAIL_ON_NT_STATUS(ntError);
+
+    /* Success! */
+    ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (bLocked) {
-        LEAVE_READER_RW_LOCK(&pFcb->rwLock);
-    }
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwLock);
 
     return ntError;
 

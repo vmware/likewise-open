@@ -474,7 +474,7 @@ LsaAdBatchBuilderBatchItemGetAttributeValue(
     if (pszValueToEscape)
     {
         LSA_ASSERT(!pszValue);
-        dwError = LsaLdapEscapeString(&pszValue, pszValueToEscape);
+        dwError = LwLdapEscapeString(&pszValue, pszValueToEscape);
         BAIL_ON_LSA_ERROR(dwError);
 
         pszMatchTerm = pszValueToEscape;

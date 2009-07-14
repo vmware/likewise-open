@@ -1,13 +1,28 @@
+if ENABLE_STATIC_PROVIDERS
+noinst_LTLIBRARIES = liblwps-sqldb.la
+PROVIDER_CFLAGS =
+PROVIDER_LDFLAGS =
+PROVIDER_LIBADD =
+else
 provider_LTLIBRARIES = liblwps-sqldb.la
+PROVIDER_CFLAGS = -shared
+PROVIDER_LDFLAGS = -shared -module -avoid-version
+PROVIDER_LIBADD = @top_builddir@/utils/liblwps-utils.la
+endif
 
 liblwps_sqldb_la_SOURCES = \
 	db.c               \
 	globals.c          \
 	provider-main.c
 
-liblwps_sqldb_la_CFLAGS = @LIBUNISTR_INCLUDES@ @SQLITE_INCLUDES@
-liblwps_sqldb_la_LIBADD = @LIBUNISTR_LIBS@ @SQLITE_LIBS@ @top_builddir@/utils/liblwps-utils.la
-liblwps_sqldb_la_LDFLAGS = -module -avoid-version -export-dynamic @LIBUNISTR_LDFLAGS@ @SQLITE_LDFLAGS@
+liblwps_sqldb_la_CFLAGS = \
+	@LIBUNISTR_INCLUDES@ \
+	@SQLITE_INCLUDES@ \
+	$(PROVIDER_CFLAGS)
+
+liblwps_sqldb_la_LIBADD = @LIBUNISTR_LIBS@ @SQLITE_LIBS@ $(PROVIDER_LIBADD)
+
+liblwps_sqldb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @LIBUNISTR_LDFLAGS@ @SQLITE_LDFLAGS@
 
 noinst_HEADERS = \
 	 db_p.h \

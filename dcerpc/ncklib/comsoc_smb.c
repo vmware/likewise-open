@@ -946,7 +946,7 @@ rpc__smb_socket_listen_thread(void* data)
     serr = NtStatusToUnixErrno(
         LwRtlCStringAllocatePrintf(
             &smbpath,
-            "\\npvfs\\%s",
+            "\\npfs\\%s",
             (char*) pipename));
     if (serr)
     {

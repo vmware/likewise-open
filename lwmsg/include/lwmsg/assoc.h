@@ -39,6 +39,7 @@
 #define __LWMSG_ASSOC_H__
 
 #include <lwmsg/status.h>
+#include <lwmsg/message.h>
 #include <lwmsg/protocol.h>
 #include <lwmsg/context.h>
 #include <lwmsg/time.h>
@@ -88,38 +89,6 @@
 
 /**
  * @ingroup assoc
- * @brief The tag of a message
- *
- * A tag which identifies a message
- */
-typedef unsigned int LWMsgMessageTag;
-
-/**
- * @ingroup assoc
- * @brief A Message
- *
- * Contains all information needed to describe a message
- */
-typedef struct LWMsgMessage
-{
-    /** The tag of the message */
-    LWMsgMessageTag tag;
-    /** The unmarshalled message payload */
-    void *object;
-} LWMsgMessage;
-
-/**
- * @brief Callback to clean up a handle
- *
- * A callback used to clean up a handle after it is no longer in use.
- * A cleanup callback can be registered as part of lwmsg_assoc_register_handle().
- *
- * @param[in] handle the handle to clean up
- */
-typedef void (*LWMsgHandleCleanupFunction) (void* handle);
-
-/**
- * @ingroup assoc
  * @brief An association
  *
  * An opaque, abstract structure for message-oriented communication.
@@ -137,20 +106,24 @@ typedef struct LWMsgAssoc LWMsgAssoc;
  */
 typedef enum LWMsgAssocState
 {
-    /** Unspecified state */
+    /** @brief Unspecified state */
     LWMSG_ASSOC_STATE_NONE,
-    /** Association not ready */
-    LWMSG_ASSOC_STATE_NOT_READY,
-    /** Operation is in progress */
-    LWMSG_ASSOC_STATE_IN_PROGRESS,
-    /** Ready to send or receive a message */
-    LWMSG_ASSOC_STATE_READY_SEND_RECV,
-    /** Ready to send a message */
-    LWMSG_ASSOC_STATE_READY_SEND,
-    /** Ready to receive a message */
-    LWMSG_ASSOC_STATE_READY_RECV,
-    /** Association is closed */
-    LWMSG_ASSOC_STATE_CLOSED
+    /** @brief Association is not established */
+    LWMSG_ASSOC_STATE_NOT_ESTABLISHED,
+    /** @brief Association is idle */
+    LWMSG_ASSOC_STATE_IDLE,
+    /** @brief Association is blocked waiting to send */
+    LWMSG_ASSOC_STATE_BLOCKED_SEND,
+    /** @brief Association is blocked waiting to receive */
+    LWMSG_ASSOC_STATE_BLOCKED_RECV,
+    /** @brief Association is blocked waiting to send and/or receive */
+    LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV,
+    /** @brief Association is closed */
+    LWMSG_ASSOC_STATE_CLOSED,
+    /** @brief Association is busy */
+    LWMSG_ASSOC_STATE_BUSY,
+    /** @brief Association experienced an error */
+    LWMSG_ASSOC_STATE_ERROR
 } LWMsgAssocState;
 
 /**
@@ -290,6 +263,8 @@ typedef struct LWMsgAssocClass
      * @lwmsg_endstatus
      */
     LWMsgStatus (*reset)(LWMsgAssoc* assoc);
+    LWMsgStatus (*finish)(LWMsgAssoc* assoc);
+    LWMsgStatus (*set_nonblock)(LWMsgAssoc* assoc, LWMsgBool nonblock);
     /**
      * @ingroup assoc_impl
      * @brief Peer security token access method
@@ -342,7 +317,7 @@ typedef struct LWMsgAssocClass
      * @param[in] value the value of the timeout, or NULL for no timeout
      * @lwmsg_status
      * @lwmsg_success
-     * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+     * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
      * @lwmsg_etc{implementation-specific error}
      * @lwmsg_endstatus
      */
@@ -361,6 +336,9 @@ typedef struct LWMsgAssocClass
      * its peer if it has not already.
      *
      * @param[in] assoc the association
+     * @param[in] construct session constructor function
+     * @param[in] destruct session destructor function
+     * @param[in] data user data pointer to pass to the session constructor
      * @lwmsg_status
      * @lwmsg_success
      * @lwmsg_code{TIMEOUT, the operation timed out}
@@ -370,7 +348,10 @@ typedef struct LWMsgAssocClass
      */
     LWMsgStatus
     (*establish)(
-        LWMsgAssoc* assoc
+        LWMsgAssoc* assoc,
+        LWMsgSessionConstructor construct,
+        LWMsgSessionDestructor destruct,
+        void* data
         );
 } LWMsgAssocClass;
 
@@ -390,7 +371,7 @@ typedef struct LWMsgAssocClass
  * @lwmsg_etc{callback-specific failure}
  * @lwmsg_endstatus
  */
-typedef LWMsgStatus (*LWMsgDispatchFunction) (
+typedef LWMsgStatus (*LWMsgAssocDispatchFunction) (
     LWMsgAssoc* assoc,
     const LWMsgMessage* in,
     LWMsgMessage* out,
@@ -402,6 +383,7 @@ typedef LWMsgStatus (*LWMsgDispatchFunction) (
  *
  * Creates a new association with the specified implementation and protocol.
  * 
+ * @param[in] context an optional context
  * @param[in] prot the protocol understood by the association
  * @param[in] aclass the implementation structure for the new association
  * @param[out] assoc the created association
@@ -413,6 +395,7 @@ typedef LWMsgStatus (*LWMsgDispatchFunction) (
  */
 LWMsgStatus
 lwmsg_assoc_new(
+    const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssocClass* aclass,
     LWMsgAssoc** assoc
@@ -557,7 +540,7 @@ lwmsg_assoc_send_message_transact(
 LWMsgStatus
 lwmsg_assoc_recv_message_transact(
     LWMsgAssoc* assoc,
-    LWMsgDispatchFunction dispatch,
+    LWMsgAssocDispatchFunction dispatch,
     void* data
     );
 
@@ -576,11 +559,12 @@ lwmsg_assoc_recv_message_transact(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_send(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag type,
+    LWMsgTag type,
     void* object
     );
 
@@ -598,11 +582,12 @@ lwmsg_assoc_send(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_recv(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag* type,
+    LWMsgTag* type,
     void** object
     );
 
@@ -623,13 +608,14 @@ lwmsg_assoc_recv(
  * @lwmsg_code{TIMEOUT, operation timed out}
  * @lwmsg_etc{implementation-specific failure}
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_send_transact(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag in_type,
+    LWMsgTag in_type,
     void* in_object,
-    LWMsgMessageTag* out_type,
+    LWMsgTag* out_type,
     void** out_object
     );
 
@@ -691,6 +677,17 @@ lwmsg_assoc_close(
 LWMsgStatus
 lwmsg_assoc_reset(
     LWMsgAssoc* assoc
+    );
+
+LWMsgStatus
+lwmsg_assoc_finish(
+    LWMsgAssoc* assoc
+    );
+
+LWMsgStatus
+lwmsg_assoc_set_nonblock(
+    LWMsgAssoc* assoc,
+    LWMsgBool nonblock
     );
 
 /**
@@ -818,13 +815,12 @@ lwmsg_assoc_get_handle_location(
 
 /**
  * @ingroup assoc
- * @brief Free a message
+ * @brief Destroy a message
  *
- * Frees the object graph of a message using the memory manager and
- * protocol of the specified association.
+ * Destroys a message structure, freeing any data payload it may contain.
  *
  * @param[in] assoc the assocation
- * @param[in] message the message to free
+ * @param[in] message the message to destroy
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{NOT_FOUND, the message tag is not known by the association's protocol}
@@ -832,10 +828,18 @@ lwmsg_assoc_get_handle_location(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_assoc_free_message(
+lwmsg_assoc_destroy_message(
     LWMsgAssoc* assoc,
     LWMsgMessage* message
     );
+
+/**
+ * @brief Alias for #lwmsg_assoc_destroy_message()
+ * @deprecated
+ * @hideinitializer
+ */
+#define lwmsg_assoc_free_message(assoc, message) \
+    lwmsg_assoc_destroy_message(assoc, message)
 
 /**
  * @ingroup assoc
@@ -851,11 +855,12 @@ lwmsg_assoc_free_message(
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
+ * @deprecated
  */
 LWMsgStatus
 lwmsg_assoc_free_graph(
     LWMsgAssoc* assoc,
-    LWMsgMessageTag tag,
+    LWMsgTag tag,
     void* root
     );
 
@@ -957,6 +962,12 @@ lwmsg_assoc_get_session_manager(
     LWMsgSessionManager** manager
     );
 
+LWMsgStatus
+lwmsg_assoc_get_session(
+    LWMsgAssoc* assoc,
+    LWMsgSession** session
+    );
+
 /**
  * @ingroup assoc
  * @brief Get association state
@@ -1005,30 +1016,6 @@ lwmsg_assoc_set_action(
 
 /**
  * @ingroup assoc
- * @brief Set user data for session
- *
- * Sets a user data pointer for the session which the specified association is
- * part of.  If a cleanup function is provided, it will be called when the
- * session is destroyed.
- *
- * @param[in] assoc the association
- * @param[in] data the user data pointer
- * @param[in] cleanup a cleanup function for the data pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, no session was established}
- * @lwmsg_etc{implementation-specific failure}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_set_session_data(
-    LWMsgAssoc* assoc,
-    void* data,
-    LWMsgSessionDataCleanupFunction cleanup
-    );
-
-/**
- * @ingroup assoc
  * @brief Get user data for session
  *
  * Gets a user data pointer for the session which the specified assocation
@@ -1058,7 +1045,7 @@ lwmsg_assoc_get_session_data(
  * @param[in] value the value of the timeout, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_SUPPORTED, the association does not support the specified timeout type}
+ * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
  * @lwmsg_etc{implementation-specific error}
  * @lwmsg_endstatus
  */
@@ -1088,6 +1075,20 @@ lwmsg_assoc_establish(
     LWMsgAssoc* assoc
     );
 
+LWMsgStatus
+lwmsg_assoc_set_session_functions(
+    LWMsgAssoc* assoc,
+    LWMsgSessionConstructor construct,
+    LWMsgSessionDestructor destruct,
+    void* data
+    );
+
+LWMsgStatus
+lwmsg_assoc_print_message_alloc(
+    LWMsgAssoc* assoc,
+    LWMsgMessage* message,
+    char** result
+    );
 
 #ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_handle_type_class;

@@ -58,4 +58,14 @@ LocalFindObjectByName(
     PWSTR* ppwszObjectDN
     );
 
+DWORD
+LocalDirGetNamesBySidList(
+    HANDLE          hProvider,
+    size_t          sCount,
+    PSTR*           ppszSidList,
+    PSTR**          pppszDomainNames,
+    PSTR**          pppszSamAccounts,
+    ADAccountType** ppTypes
+    );
+
 #endif /* __LP_OBJECT_H__ */

@@ -380,7 +380,7 @@ LsaDmWrappLdapPingTcpCallback(
 {
     DWORD dwError = 0;
 
-    dwError = LsaLdapPingTcp(pDcInfo->pszDomainControllerAddress, 5);
+    dwError = LwLdapPingTcp(pDcInfo->pszDomainControllerAddress, 5);
     *pbIsNetworkError = dwError ? TRUE : FALSE;
     return dwError;
 }

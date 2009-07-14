@@ -74,6 +74,7 @@
 #define LOCAL_OBJECT_CLASS_DOMAIN          1
 #define LOCAL_OBJECT_CLASS_GROUP           4
 #define LOCAL_OBJECT_CLASS_USER            5
+#define LOCAL_OBJECT_CLASS_GROUP_MEMBER    6
 
 #define LOCAL_DB_DIR_ATTR_OBJECT_CLASS         "ObjectClass"
 #define LOCAL_DB_DIR_ATTR_OBJECT_SID           "ObjectSID"
@@ -88,7 +89,7 @@
 #define LOCAL_DB_DIR_ATTR_PASSWORD             "Password"
 #define LOCAL_DB_DIR_ATTR_LM_HASH              "LMHash"
 #define LOCAL_DB_DIR_ATTR_NT_HASH              "NTHash"
-#define LOCAL_DB_DIR_ATTR_USER_INFO_FLAGS      "UserInfoFlags"
+#define LOCAL_DB_DIR_ATTR_ACCOUNT_FLAGS        "AccountFlags"
 #define LOCAL_DB_DIR_ATTR_PASSWORD_LAST_SET    "PasswordLastSet"
 #define LOCAL_DB_DIR_ATTR_FULL_NAME            "FullName"
 #define LOCAL_DB_DIR_ATTR_ACCOUNT_EXPIRY       "AccountExpiry"
@@ -124,8 +125,8 @@
     {'L','M','H','a','s','h',0}
 #define LOCAL_DIR_ATTR_NT_HASH \
     {'N','T','H','a','s','h',0}
-#define LOCAL_DIR_ATTR_USER_INFO_FLAGS \
-    {'U','s','e','r','I','n','f','o','F','l','a','g','s',0}
+#define LOCAL_DIR_ATTR_ACCOUNT_FLAGS \
+    {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define LOCAL_DIR_ATTR_PASSWORD_LAST_SET \
     {'P','a','s','s','w','o','r','d','L','a','s','t','S','e','t',0}
 #define LOCAL_DIR_ATTR_FULL_NAME \
@@ -144,6 +145,10 @@
     {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
 #define LOCAL_DIR_ATTR_PRIMARY_GROUP \
     {'P','r','i','m','a','r','y','G','r','o','u','p',0}
+#define LOCAL_DIR_ATTR_LAST_LOGON \
+    {'L','a','s','t','L','o','g','o','n',0}
+#define LOCAL_DIR_ATTR_LAST_LOGOFF \
+    {'L','a','s','t','L','o','g','o','f','f',0}
 
 #define LOCAL_DIR_CN_PREFIX_ANSI  "CN="
 #define LOCAL_DIR_OU_PREFIX_ANSI  "OU="
@@ -157,14 +162,6 @@
     {'O','U','=',0}
 #define LOCAL_DIR_DC_PREFIX \
     {'D','C','=',0}
-
-typedef DWORD LOCAL_ACCESS_FLAG;
-
-#define LOCAL_ACCESS_FLAG_ALLOW_NONE   0x00000000
-#define LOCAL_ACCESS_FLAG_ALLOW_QUERY  0x00000001
-#define LOCAL_ACCESS_FLAG_ALLOW_ADD    0x00000002
-#define LOCAL_ACCESS_FLAG_ALLOW_DELETE 0x00000004
-#define LOCAL_ACCESS_FLAG_ALLOW_MODIFY 0x00000008
 
 typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 
@@ -187,6 +184,10 @@ typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 #define LOCAL_ACB_DONT_REQUIRE_PREAUTH     (0x00010000)
 #define LOCAL_ACB_PW_EXPIRED               (0x00020000)
 #define LOCAL_ACB_NO_AUTH_DATA_REQD        (0x00080000)
+
+#define LOWEST_UID   (1000)
+#define LOWEST_GID   (1000)
+
 
 #endif /* __LPDEFS_H__ */
 

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -65,12 +65,22 @@ typedef struct __LOCAL_PROVIDER_ENUM_STATE
 
 } LOCAL_PROVIDER_ENUM_STATE, *PLOCAL_PROVIDER_ENUM_STATE;
 
+typedef enum
+{
+    LOCAL_ADMIN_STATE_NOT_DETERMINED = 0,
+    LOCAL_ADMIN_STATE_IS_ADMIN,
+    LOCAL_ADMIN_STATE_IS_NOT_ADMIN
+} LOCAL_ADMIN_STATE;
+
 typedef struct __LOCAL_PROVIDER_CONTEXT
 {
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
     uid_t uid;
     gid_t gid;
 
-    LOCAL_ACCESS_FLAG accessFlags;
+    LOCAL_ADMIN_STATE localAdminState;
 
     HANDLE hDirectory;
 
@@ -97,6 +107,7 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     PSTR            pszConfigFilePath;
     PSTR            pszLocalDomain;
     PSTR            pszNetBIOSName;
+    PSID            pLocalDomainSID;
 
     LONG64          llMaxPwdAge;
     LONG64          llPwdChangeTime;
@@ -115,3 +126,12 @@ typedef struct _LOCAL_PROVIDER_GROUP_MEMBER
 
 #endif /* __LPSTRUCTS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

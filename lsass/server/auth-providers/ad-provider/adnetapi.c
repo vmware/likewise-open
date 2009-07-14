@@ -76,7 +76,7 @@ AD_GetSystemAccessToken(
 
     LsaStrToUpper(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                     pszHostname,
                     &pszUsername,
                     &pszPassword,
@@ -91,7 +91,7 @@ AD_GetSystemAccessToken(
                     pszDomainDnsName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaKrb5GetSystemCachePath(
+    dwError = LwKrb5GetSystemCachePath(
                     KRB5_File_Cache,
                     &pszKrb5CcPath);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1334,32 +1334,6 @@ WinTimeToInt64(
 }
 
 static DWORD
-LsaCopyDomainSid(
-    PLSA_SID pLsaSid,
-    PSID pNetrSid
-    )
-{
-    DWORD dwError = LSA_ERROR_INTERNAL;
-
-    BAIL_ON_INVALID_POINTER(pLsaSid);
-    BAIL_ON_INVALID_POINTER(pNetrSid);
-
-    pLsaSid->Revision     = pNetrSid->Revision;
-    pLsaSid->NumSubAuths  = pNetrSid->SubAuthorityCount;
-
-    memcpy(pLsaSid->AuthId, &pNetrSid->IdentifierAuthority, sizeof(pLsaSid->AuthId));
-    memcpy(pLsaSid->SubAuths, pNetrSid->SubAuthority, sizeof(UINT32)*pLsaSid->NumSubAuths);
-
-    dwError = LSA_ERROR_SUCCESS;
-
-cleanup:
-    return dwError;
-
-error:
-    goto cleanup;
-}
-
-static DWORD
 LsaCopyNetrUserInfo3(
     OUT PLSA_AUTH_USER_INFO pUserInfo,
     IN NetrValidationInfo *pNetrUserInfo3
@@ -1367,6 +1341,7 @@ LsaCopyNetrUserInfo3(
 {
     DWORD dwError = LSA_ERROR_INTERNAL;
     NetrSamBaseInfo *pBase = NULL;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
     BAIL_ON_INVALID_POINTER(pUserInfo);
     BAIL_ON_INVALID_POINTER(pNetrUserInfo3);
@@ -1448,8 +1423,8 @@ LsaCopyNetrUserInfo3(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LsaCopyDomainSid(&pUserInfo->DomainSid, pBase->domain_sid);
-    BAIL_ON_LSA_ERROR(dwError);
+    ntError = RtlAllocateCStringFromSid(&pUserInfo->pszDomainSid, pBase->domain_sid);
+    BAIL_ON_NT_STATUS(dwError);
 
     pUserInfo->dwUserRid         = pBase->rid;
     pUserInfo->dwPrimaryGroupRid = pBase->primary_gid;
@@ -1486,9 +1461,9 @@ LsaCopyNetrUserInfo3(
 
             pSidAttrib->dwAttrib = pNetrUserInfo3->sam3->sids[i].attribute;
 
-            dwError = LsaCopyDomainSid(&pSidAttrib->Sid,
-                                       pNetrUserInfo3->sam3->sids[i].sid);
-            BAIL_ON_LSA_ERROR(dwError);
+            ntError = RtlAllocateCStringFromSid(&pSidAttrib->pszSid,
+                                                pNetrUserInfo3->sam3->sids[i].sid);
+            BAIL_ON_NT_STATUS(dwError);
         }
     }
 
@@ -1515,10 +1490,9 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszDomainController = NULL;
     PWSTR pwszServerName = NULL;
     PWSTR pwszShortDomain = NULL;
+    PWSTR pwszPrimaryShortDomain = NULL;
     PWSTR pwszUsername = NULL;
     PSTR pszHostname = NULL;
-    PWSTR pwszCcachePath = NULL;
-    PSTR pszCcachePath = NULL;
     HANDLE hPwdDb = (HANDLE)NULL;
     RPCSTATUS status = 0;
     handle_t netr_b = NULL;
@@ -1531,7 +1505,9 @@ AD_NetlogonAuthenticationUserEx(
     DWORD dwDCNameLen = 0;
     PBYTE pChal = NULL;
     PBYTE pLMResp = NULL;
+    DWORD LMRespLen = 0;
     PBYTE pNTResp = NULL;
+    DWORD NTRespLen = 0;
     LW_PIO_ACCESS_TOKEN pAccessToken = NULL;
     LW_PIO_ACCESS_TOKEN pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
@@ -1540,7 +1516,7 @@ AD_NetlogonAuthenticationUserEx(
 
     /* Grab the machine password and account info */
 
-    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_SQLDB,
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT,
                                     &hPwdDb);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1565,20 +1541,18 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pszServerName, &pwszServerName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaKrb5GetSystemCachePath(KRB5_File_Cache, &pszCcachePath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(pszCcachePath, &pwszCcachePath);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!ghSchannelBinding)
     {
+        dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMbsToWc16s(gpADProviderData->szShortDomain,
+                                &pwszPrimaryShortDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+
         /* Establish the initial bind to \NETLOGON */
 
         dwError = AD_SetSystemAccess(&pOldToken);
@@ -1605,7 +1579,7 @@ AD_NetlogonAuthenticationUserEx(
                                      pMachAcctInfo->pwszMachineAccount,
                                      pwszDomainController,
                                      pwszServerName,
-                                     pwszShortDomain,
+                                     pwszPrimaryShortDomain,
                                      pMachAcctInfo->pwszHostname,
                                      pMachAcctInfo->pwszMachinePassword,
                                      &gSchannelCreds,
@@ -1631,11 +1605,15 @@ AD_NetlogonAuthenticationUserEx(
     if (pUserParams->pass.chap.pChallenge)
         pChal = LsaDataBlobBuffer(pUserParams->pass.chap.pChallenge);
 
-    if (pUserParams->pass.chap.pLM_resp)
+    if (pUserParams->pass.chap.pLM_resp) {
         pLMResp = LsaDataBlobBuffer(pUserParams->pass.chap.pLM_resp);
+        LMRespLen = LsaDataBlobLength(pUserParams->pass.chap.pLM_resp);
+    }
 
-    if (pUserParams->pass.chap.pNT_resp)
+    if (pUserParams->pass.chap.pNT_resp) {
         pNTResp = LsaDataBlobBuffer(pUserParams->pass.chap.pNT_resp);
+        NTRespLen = LsaDataBlobLength(pUserParams->pass.chap.pNT_resp);
+    }
 
     nt_status = NetrSamLogonNetwork(ghSchannelBinding,
                                     &gSchannelCreds,
@@ -1644,8 +1622,8 @@ AD_NetlogonAuthenticationUserEx(
                                     pMachAcctInfo->pwszHostname,
                                     pwszUsername,
                                     pChal,
-                                    pLMResp,
-                                    pNTResp,
+                                    pLMResp, LMRespLen,
+                                    pNTResp, NTRespLen,
                                     2,                /* Network login */
                                     3,                /* Return NetSamInfo3 */
                                     &pValidationInfo,
@@ -1677,8 +1655,6 @@ cleanup:
         hPwdDb = (HANDLE)NULL;
     }
 
-    LSA_SAFE_FREE_MEMORY(pszHostname);
-
     if (netr_b)
     {
         FreeNetlogonBinding(&netr_b);
@@ -1698,12 +1674,18 @@ cleanup:
         LwIoDeleteAccessToken(pAccessToken);
     }
 
+    if (pValidationInfo) {
+        NetrFreeMemory((void*)pValidationInfo);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pszHostname);
+    LSA_SAFE_FREE_MEMORY(pszServerName);
+
+    LSA_SAFE_FREE_MEMORY(pwszUsername);
     LSA_SAFE_FREE_MEMORY(pwszDomainController);
     LSA_SAFE_FREE_MEMORY(pwszServerName);
     LSA_SAFE_FREE_MEMORY(pwszShortDomain);
-    LSA_SAFE_FREE_MEMORY(pszServerName);
-    LSA_SAFE_FREE_MEMORY(pszCcachePath);
-    LSA_SAFE_FREE_MEMORY(pwszCcachePath);
+    LSA_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
 
     pthread_mutex_unlock(&gSchannelLock);
 

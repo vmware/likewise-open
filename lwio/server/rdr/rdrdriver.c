@@ -161,7 +161,7 @@ RdrDriverDispatch(
 }
 
 NTSTATUS
-DriverEntry(
+IO_DRIVER_ENTRY(rdr)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
     )
@@ -206,6 +206,10 @@ RdrInitialize(
     memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
 
     pthread_mutex_init(&gRdrRuntime.socketHashLock, NULL);
+
+    /* Pid used for SMB Header */
+
+    gRdrRuntime.SysPid = getpid();
 
     ntStatus = SMBPacketCreateAllocator(
                     10,

@@ -6,6 +6,7 @@ AM_CPPFLAGS = @LWMSG_CPPFLAGS@
 liblwmsg_nothr_la_SOURCES = \
 	assoc.c \
 	assoc-marshal.c \
+	call.c \
 	convert.c \
 	connection.c \
 	connection-buffer.c \
@@ -13,14 +14,15 @@ liblwmsg_nothr_la_SOURCES = \
 	connection-wire.c \
 	connection-security.c \
 	connection-marshal.c \
+	message.c \
 	protocol.c \
-	marshal.c \
-	unmarshal.c \
+	data-context.c \
+	data-graph.c \
+	data-marshal.c \
+	data-unmarshal.c \
+	data-print.c \
 	type.c \
 	type-iterate.c \
-	type-analyze.c \
-	type-verify.c \
-	type-print.c \
 	status.c \
 	context.c \
 	util.c \
@@ -36,6 +38,10 @@ liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \
 	server.c \
+	server-task.c \
+	server-io.c \
+	server-dispatch.c \
+	server-call.c \
 	client.c \
 	session-shared.c
 

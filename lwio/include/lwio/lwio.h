@@ -35,14 +35,14 @@
  *
  * Module Name:
  *
- *        lsmb.h
+ *        lwio.h
  *
  * Abstract:
  *
- *        Likewise SMB Subsystem (LWIO)
+ *        Likewise I/O Subsystem (LWIO)
  *
  *        Public API
-
+ *
  * Author: Kaya Bekiroglu (kaya@likewisesoftware.com)
  */
 #ifndef __LWIO_H__
@@ -104,7 +104,8 @@ typedef enum
     LWIO_LOG_LEVEL_WARNING,
     LWIO_LOG_LEVEL_INFO,
     LWIO_LOG_LEVEL_VERBOSE,
-    LWIO_LOG_LEVEL_DEBUG
+    LWIO_LOG_LEVEL_DEBUG,
+    LWIO_LOG_LEVEL_TRACE
 } SMBLogLevel;
 
 typedef enum

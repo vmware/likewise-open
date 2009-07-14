@@ -49,6 +49,11 @@
 
 /* Forward declarations */
 
+static NTSTATUS
+PvfsQuerySetInformationFile(
+    PVFS_INFO_TYPE RequestType,
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
 
 
 /* File Globals */
@@ -72,7 +77,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileStandardInformation,          &PvfsFileStandardInfo },
 
     /* Set Levels */
-    { FileAllocationInformation,        NULL },
+    { FileAllocationInformation,        &PvfsFileEndOfFileInfo },
     { FileDispositionInformation,       &PvfsFileDispositionInfo },
     { FileEndOfFileInformation,         &PvfsFileEndOfFileInfo },
     { FileLinkInformation,              NULL },
@@ -88,10 +93,35 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
 
 /* Code */
 
+/********************************************************
+ *******************************************************/
+
 NTSTATUS
-PvfsQuerySetInformation(
+PvfsQueryInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    return PvfsQuerySetInformationFile(PVFS_QUERY, pIrpContext);
+}
+
+/********************************************************
+ *******************************************************/
+
+NTSTATUS
+PvfsSetInformationFile(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    return PvfsQuerySetInformationFile(PVFS_SET, pIrpContext);
+}
+
+
+/********************************************************
+ *******************************************************/
+
+static NTSTATUS
+PvfsQuerySetInformationFile(
     PVFS_INFO_TYPE RequestType,
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

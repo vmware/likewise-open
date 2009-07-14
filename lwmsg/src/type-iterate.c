@@ -210,6 +210,7 @@ lwmsg_type_iterate_inner(
         /* Default termination settings for a pointer */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
+        iter->info.kind_indirect.encoding = NULL;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_ARRAY:
@@ -222,6 +223,7 @@ lwmsg_type_iterate_inner(
         /* Default termination settings for an array */
         iter->info.kind_indirect.term = LWMSG_TERM_STATIC;
         iter->info.kind_indirect.term_info.static_length = 1;
+        iter->info.kind_indirect.encoding = NULL;
         lwmsg_type_find_end(&spec);
         break;
     case LWMSG_CMD_TYPESPEC:
@@ -396,140 +398,4 @@ lwmsg_type_iterate_promoted(
         lwmsg_type_promote(spec, iter);
         break;
     }
-}
-
-LWMsgStatus
-lwmsg_type_visit_graph(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    LWMsgGraphVisitFunction func,
-    void* data
-    )
-{
-    return func(iter, object, data);
-}
-
-static inline
-LWMsgBool
-lwmsg_is_zero(
-    unsigned char* object,
-    size_t size
-    )
-{
-    size_t i;
-
-    for (i = 0; i < size; i++)
-    {
-        if (object[i] != 0)
-        {
-            return LWMSG_FALSE;
-        }
-    }
-
-    return LWMSG_TRUE;
-}
-
-static
-LWMsgStatus
-lwmsg_type_visit_graph_indirect(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    LWMsgGraphVisitFunction func,
-    void* data
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    size_t count = 0;
-    size_t i;
-    void* element;
-    LWMsgTypeIter inner;
-
-    lwmsg_type_enter(iter, &inner);
-
-    switch (iter->info.kind_indirect.term)
-    {
-    case LWMSG_TERM_STATIC:
-        count = iter->info.kind_indirect.term_info.static_length;
-        break;
-    case LWMSG_TERM_MEMBER:
-        BAIL_ON_ERROR(status = lwmsg_type_extract_length(
-                          iter,
-                          iter->dom_object,
-                          &count));
-        break;
-    case LWMSG_TERM_ZERO:
-        count = 1;
-        for (element = object; !lwmsg_is_zero(element, inner.size); element += inner.size)
-        {
-            count++;
-        }
-        break;
-    }
-
-    element = object;
-    for (i = 0; i < count; i++)
-    {
-        BAIL_ON_ERROR(status = func(&inner, element, data));
-        element += inner.size;
-    }
-
-error:
-
-    return status;
-}
-    
-
-LWMsgStatus
-lwmsg_type_visit_graph_children(
-    LWMsgTypeIter* iter,
-    unsigned char* object,
-    LWMsgGraphVisitFunction func,
-    void* data
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgTypeIter inner;
-
-    switch (iter->kind)
-    {
-    case LWMSG_KIND_STRUCT:
-        lwmsg_type_enter(iter, &inner);
-        inner.dom_object = object;
-        for (; lwmsg_type_valid(&inner); lwmsg_type_next(&inner))
-        {
-            BAIL_ON_ERROR(status = func(&inner, object + inner.offset, data));
-        }
-        break;
-    case LWMSG_KIND_UNION:
-        /* Find the active arm */
-        BAIL_ON_ERROR(status = lwmsg_type_extract_active_arm(
-                          iter,
-                          iter->dom_object,
-                          &inner));
-        BAIL_ON_ERROR(status = func(&inner, object, data));
-        break;
-    case LWMSG_KIND_POINTER:
-        if (*(void**) object)
-        {
-            BAIL_ON_ERROR(status = lwmsg_type_visit_graph_indirect(
-                              iter,
-                              *(unsigned char**) object,
-                              func,
-                              data));
-        }
-        break;
-    case LWMSG_KIND_ARRAY:
-        BAIL_ON_ERROR(status = lwmsg_type_visit_graph_indirect(
-                          iter,
-                          object,
-                          func,
-                          data));
-        break;
-    default:
-        break;
-    }
-
-error:
-
-    return status;
 }

@@ -758,7 +758,7 @@ LsaUmpCreateKeys(
 
         LsaStrToLower(pszHostname);
 
-        dwError = LsaKrb5GetMachineCreds(
+        dwError = LwKrb5GetMachineCreds(
                       pszHostname,
                       &pszUsername,
                       &pszServicePassword,
@@ -1506,7 +1506,7 @@ LsaUmpRefreshUserCreds(
 
     LsaStrToLower(pszHostname);
 
-    dwError = LsaKrb5GetMachineCreds(
+    dwError = LwKrb5GetMachineCreds(
                   pszHostname,
                   &pszMachineAccountName,
                   &pszServicePassword,
@@ -1630,7 +1630,7 @@ cleanup:
         FreePacLogonInfo(pPac);
     }
 
-    LsaDbSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeObject(&pUserInfo);
     LSA_SAFE_FREE_STRING(pszHostname);
     LSA_SAFE_FREE_STRING(pszMachineAccountName);
     LSA_SAFE_CLEAR_FREE_STRING(pszServicePassword);

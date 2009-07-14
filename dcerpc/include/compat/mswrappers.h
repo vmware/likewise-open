@@ -2,11 +2,6 @@
 #ifndef _MSWRAPPERS_H_
 #define _MSWRAPPERS_H_
 
-#if defined(IDLBASE_H) && !defined(IDL_CHAR_IS_CHAR)
-#error Include mswrappers.h before including dce/idlbase.h
-#endif
-#define IDL_CHAR_IS_CHAR
-
 #include <lw/base.h>
 #include <dce/idlbase.h>
 #include <dce/rpc.h>
@@ -24,6 +19,7 @@ typedef rpc_if_handle_t RPC_IF_HANDLE;
 typedef uuid_t UUID;
 typedef rpc_mgr_proc_t RPC_MGR_EPV;
 typedef idl_ushort_int *RPC_WSTR;
+typedef rpc_auth_identity_handle_t RPC_AUTH_IDENTITY_HANDLE;
 
 #define RPC_C_PROTSEQ_MAX_REQS_DEFAULT rpc_c_protseq_max_reqs_default
 #define RPC_C_LISTEN_MAX_CALLS_DEFAULT rpc_c_listen_max_calls_default
@@ -31,7 +27,7 @@ typedef idl_ushort_int *RPC_WSTR;
 #define RpcTryExcept	DCETHREAD_TRY
 #define RpcExcept	DCETHREAD_CATCH_EXPR
 #define RpcEndExcept	DCETHREAD_ENDTRY
-#define RpcExceptionCode RpcCompatReturnLater(RpcCompatExceptionToCode(DCETHREAD_EXC_CURRENT))
+#define RpcExceptionCode() RpcCompatExceptionToCode(DCETHREAD_EXC_CURRENT)
 
 RPC_STATUS RpcCompatExceptionToCode(dcethread_exc *exc);
 typedef RPC_STATUS (*RpcCompatReturnCodeFuncPtr)();
@@ -66,6 +62,24 @@ RPC_STATUS RpcBindingFromStringBindingA(
 RPC_STATUS RpcBindingFromStringBindingW(
     /* [in] */ PWSTR string_binding,
     /* [out] */ RPC_BINDING_HANDLE *binding_handle
+);
+
+RPC_STATUS RpcBindingSetAuthInfoA(
+    /* [in] */ RPC_BINDING_HANDLE binding_h,
+    /* [in] */ UCHAR* server_princ_name,
+    /* [in] */ DWORD authn_level,
+    /* [in] */ DWORD authn_protocol,
+    /* [in] */ RPC_AUTH_IDENTITY_HANDLE auth_identity,
+    /* [in] */ DWORD authz_protocol
+);
+
+RPC_STATUS RpcBindingSetAuthInfoW(
+    /* [in] */ RPC_BINDING_HANDLE binding_h,
+    /* [in] */ PWSTR server_princ_name,
+    /* [in] */ DWORD authn_level,
+    /* [in] */ DWORD authn_protocol,
+    /* [in] */ RPC_AUTH_IDENTITY_HANDLE auth_identity,
+    /* [in] */ DWORD authz_protocol
 );
 
 RPC_STATUS RpcStringFreeA(
@@ -105,13 +119,22 @@ RPC_STATUS RpcServerListen(
     unsigned32 dont_wait /*not used*/
 );
 
+RPC_STATUS LwMapDCEStatusToWinerror(
+    RPC_STATUS dceStatus
+);
+
 #define RpcStringBindingCompose RpcStringBindingComposeA
 #define RpcServerUseProtseqEp RpcServerUseProtseqEpA
 #define RpcBindingFromStringBinding RpcBindingFromStringBindingA
 #define RpcStringFree RpcStringFreeA
+#define RpcBindingSetAuthInfo RpcBindingSetAuthInfoA
 #define RpcSsDestroyClientContext(x) rpc_ss_destroy_client_context((rpc_ss_context_t *)x)
 
-#define RPC_S_INVALID_NET_ADDR rpc_s_inval_net_addr
+#define RPC_C_AUTHN_LEVEL_PKT_PRIVACY rpc_c_protect_level_pkt_privacy
+
+#define RPC_C_AUTHN_GSS_NEGOTIATE   rpc_c_authn_gss_negotiate
+
+#define RPC_C_AUTHZ_NAME    rpc_c_authz_name
 
 #ifdef __cplusplus
 } //extern C

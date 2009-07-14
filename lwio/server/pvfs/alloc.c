@@ -123,6 +123,9 @@ PvfsFreeIrpContext(
 
     if (ppIrpContext && *ppIrpContext)
     {
+        pthread_mutex_destroy(&(*ppIrpContext)->Mutex);
+        pthread_cond_destroy(&(*ppIrpContext)->Event);
+
         PVFS_FREE(ppIrpContext);
     }
 
@@ -146,6 +149,11 @@ PvfsAllocateIrpContext(
     ntError = PvfsAllocateMemory((PVOID*)&pIrpContext,
                                  sizeof(PVFS_IRP_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
+
+    pthread_mutex_init(&pIrpContext->Mutex, NULL);
+    pthread_cond_init(&pIrpContext->Event, NULL);
+
+    pIrpContext->bIsCancelled = FALSE;
 
     pIrpContext->pIrp = pIrp;
 

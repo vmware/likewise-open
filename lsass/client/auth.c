@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -88,8 +88,8 @@ LsaCheckUserInList(
     LSA_IPC_CHECK_USER_IN_LIST_REQ checkUserinListReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = {-1, NULL};
-    LWMsgMessage response = {-1, NULL};
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
 
     checkUserinListReq.pszLoginName = pszLoginName;
     checkUserinListReq.pszListName = pszListName;
@@ -148,6 +148,20 @@ LsaChangePassword(
 
 LSASS_API
 DWORD
+LsaSetPassword(
+   HANDLE hLsaConnection,
+   PCSTR  pszLoginName,
+   PCSTR  pszNewPassword
+   )
+{
+    return LsaTransactSetPassword(
+            hLsaConnection,
+            pszLoginName,
+            pszNewPassword);
+}
+
+LSASS_API
+DWORD
 LsaAuthenticateUserEx(
 	IN HANDLE hLsaConnection,
 	IN LSA_AUTH_USER_PARAMS* pParams,
@@ -159,3 +173,13 @@ LsaAuthenticateUserEx(
             pParams,
             ppUserInfo);
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

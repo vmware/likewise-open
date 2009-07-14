@@ -42,7 +42,6 @@
 #include <lwio/lwio.h>
 
 #include <DceSupport.h>
-#include <compat/rpcstatus.h>
 #include <dce/rpc.h>
 #include <dce/smb.h>
 #include <wc16str.h>
@@ -56,13 +55,13 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
 #include <lwrpc/errconv.h>
+#include <lwrpc/winerror.h>
 
-#include "dsr_util.h"
+#include "macros.h"
+
 #include "dsr_memory.h"
 #include "dsr_stubmemory.h"
 #include "dssetup_h.h"
-
-#include "externs.h"
 
 
 /*

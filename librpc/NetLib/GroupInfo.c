@@ -48,8 +48,8 @@ PullLocalGroupInfo0(
 	LOCALGROUP_INFO_0 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(ai, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(ai);
 
     if (num <= 0) {
         status = STATUS_INVALID_PARAMETER;
@@ -58,7 +58,7 @@ PullLocalGroupInfo0(
 
     status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_0) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         PULL_UNICODE_STRING(info[i].lgrpi0_name, ai[i].all.name, info);
@@ -91,8 +91,8 @@ PullLocalGroupInfo1(
 	LOCALGROUP_INFO_1 *info = NULL;
     int i = 0;
 
-    goto_if_invalid_param_ntstatus(buffer, cleanup);
-    goto_if_invalid_param_ntstatus(ai, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(ai);
 
     if (num <= 0) {
         status = STATUS_INVALID_PARAMETER;
@@ -101,7 +101,7 @@ PullLocalGroupInfo1(
 
     status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_1) * num,
                                NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num; i++) {
         PULL_UNICODE_STRING(info[i].lgrpi1_name, ai[i].all.name, info);
@@ -138,7 +138,7 @@ PushLocalGroupInfo0(
 	*slevel = ALIAS_INFO_NAME;
 
     status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
 	PUSH_UNICODE_STRING_ALIASINFO(info->name, ninfo->lgrpi0_name, info);
 
@@ -171,7 +171,7 @@ PushLocalGroupInfo1(
 	*slevel = ALIAS_INFO_ALL;
 
     status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
 	PUSH_UNICODE_STRING_ALIASINFO(info->all.name, ninfo->lgrpi1_name, info);
 	PUSH_UNICODE_STRING_ALIASINFO(info->all.description, ninfo->lgrpi1_comment,
@@ -206,7 +206,7 @@ PushLocalGroupInfo1002(
 	*slevel = ALIAS_INFO_DESCRIPTION;
 
     status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 	
 	PUSH_UNICODE_STRING_ALIASINFO(info->description, ninfo->lgrpi1002_comment,
                                   info);

@@ -114,18 +114,70 @@ typedef struct _PVFS_INTERLOCKED_ULONG
 
 } PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
 
-struct _PVFS_CCB;
+typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
+typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
+typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
+typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
 
-typedef struct _PVFS_CCB_LIST_NODE
+struct _PVFS_CCB_LIST_NODE
 {
-    struct _PVFS_CCB_LIST_NODE  *pNext;
-    struct _PVFS_CCB_LIST_NODE  *pPrevious;
-    struct _PVFS_CCB            *pCcb;
+    PPVFS_CCB_LIST_NODE pNext;
+    PPVFS_CCB_LIST_NODE pPrevious;
+    PPVFS_CCB           pCcb;
+};
 
-} PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
+typedef DWORD PVFS_LOCK_FLAGS;
+
+#define PVFS_LOCK_EXCLUSIVE            0x00000001
+#define PVFS_LOCK_BLOCK                0x00000002
+
+typedef DWORD PVFS_OPERATION_TYPE;
+
+#define PVFS_OPERATION_READ            0x00000001
+#define PVFS_OPERATION_WRITE           0x00000002
+
+typedef struct _PVFS_LOCK_ENTRY
+{
+    BOOLEAN bExclusive;
+    ULONG Key;
+    LONG64 Offset;
+    LONG64 Length;
+
+} PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
+
+typedef struct _PVFS_PENDING_LOCK
+{
+    PVFS_LOCK_ENTRY PendingLock;
+    PPVFS_CCB pCcb;
+    PPVFS_IRP_CONTEXT pIrpContext;
+    BOOLEAN bIsCancelled;
+
+} PVFS_PENDING_LOCK, *PPVFS_PENDING_LOCK;
 
 
-typedef struct _PVFS_FCB
+typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
+
+#define PVFS_SET_PROP_NONE      0x00000000
+#define PVFS_SET_PROP_OWNER     0x00000001
+#define PVFS_SET_PROP_ATTRIB    0x00000002
+
+typedef struct _PVFS_PENDING_CREATE
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PSTR pszOriginalFilename;
+    PSTR pszDiskFilename;
+    PPVFS_CCB pCcb;
+    PPVFS_FCB pFcb;
+    ACCESS_MASK GrantedAccess;
+    BOOLEAN bFileExisted;
+    PVFS_SET_FILE_PROPERTY_FLAGS SetPropertyFlags;
+
+} PVFS_PENDING_CREATE, *PPVFS_PENDING_CREATE;
+
+#define PVFS_FCB_MAX_PENDING_LOCKS   50
+
+struct _PVFS_FCB
 {
     LONG RefCount;
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
@@ -136,24 +188,19 @@ typedef struct _PVFS_FCB
     PSTR pszFilename;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
 
+    LONG CcbCount;
     PPVFS_CCB_LIST_NODE pCcbList;
 
-} PVFS_FCB, *PPVFS_FCB;
+    PVFS_LOCK_ENTRY LastFailedLock;
+    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used to match pointer */
 
+    /* File Object state information */
 
-typedef DWORD PVFS_LOCK_FLAGS;
+    PLWRTL_QUEUE pPendingLockQueue;
+    PPVFS_OPLOCK_RECORD pOplockList;
+    PLWRTL_QUEUE pPendingCreateQueue;
 
-#define PVFS_LOCK_EXCLUSIVE            0x00000001
-#define PVFS_LOCK_BLOCK                0x00000002
-
-typedef struct _PVFS_LOCK_ENTRY
-{
-    BOOLEAN bExclusive;
-    ULONG Key;
-    LONG64 Offset;
-    LONG64 Length;
-
-} PVFS_LOCK_ENTRY, *PPVFS_LOCK_ENTRY;
+};
 
 typedef struct _PVFS_LOCK_LIST
 {
@@ -166,14 +213,12 @@ typedef struct _PVFS_LOCK_LIST
 
 typedef struct _PVFS_LOCK_TABLE
 {
-    pthread_rwlock_t rwLock;
-
     PVFS_LOCK_LIST ExclusiveLocks;
     PVFS_LOCK_LIST SharedLocks;
 
 } PVFS_LOCK_TABLE, *PPVFS_LOCK_TABLE;
 
-typedef struct _PVFS_CCB
+struct _PVFS_CCB
 {
     pthread_mutex_t FileMutex;      /* Use for fd buffer operations */
     pthread_mutex_t ControlMutex;   /* Use for CCB SetFileInfo operations */
@@ -201,13 +246,29 @@ typedef struct _PVFS_CCB
 
     PVFS_LOCK_TABLE LockTable;
 
-} PVFS_CCB, *PPVFS_CCB;
+};
 
-typedef struct _PVFS_IRP_CONTEXT
+typedef NTSTATUS (*PPVFS_WORK_CALLBACK)(
+    IN PPVFS_IRP_CONTEXT pIrpCtx
+    );
+
+struct _PVFS_IRP_CONTEXT
 {
+    pthread_mutex_t Mutex;
+    pthread_cond_t  Event;    /* synchronize point for worker threads */
+
+    BOOLEAN bIsCancelled;
+
     PIRP pIrp;
 
-} PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
+    PPVFS_WORK_CALLBACK pfnWorkCallback;
+
+    /* Used to cancel a pending blocking lock */
+    PPVFS_PENDING_LOCK pPendingLock;
+
+    /* Used to cancel a registered oplock */
+    PPVFS_OPLOCK_RECORD pOplock;
+};
 
 
 /* Used for Query/Set level handlers */
@@ -216,6 +277,22 @@ struct _InfoLevelDispatchEntry {
     FILE_INFORMATION_CLASS Level;
     NTSTATUS (*fn)(PVFS_INFO_TYPE RequestType,
                    PPVFS_IRP_CONTEXT pIrpContext);
+};
+
+/* Registered oplock types
+   TODO -- Add Win 7 oplock types */
+
+#define PVFS_OPLOCK_TYPE_NONE       0x00
+#define PVFS_OPLOCK_TYPE_BATCH      0x01
+#define PVFS_OPLOCK_TYPE_LEVEL_1    0x02
+#define PVFS_OPLOCK_TYPE_LEVEL_2    0x03
+
+struct _PVFS_OPLOCK_RECORD
+{
+    ULONG OplockType;
+    PPVFS_CCB pCcb;
+    PPVFS_IRP_CONTEXT pIrpContext;
+
 };
 
 #endif    /* _PVFS_STRUCTS_H */

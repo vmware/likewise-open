@@ -85,6 +85,10 @@ _sw16printfw(wchar16_t *out, size_t maxchars, const wchar_t *format, ...);
 
 LIBUNISTR_API
 wchar16_t *
+asw16printfwv(const wchar_t *format, va_list args);
+
+LIBUNISTR_API
+wchar16_t *
 asw16printfw(const wchar_t *format, ...);
 
 LIBUNISTR_API

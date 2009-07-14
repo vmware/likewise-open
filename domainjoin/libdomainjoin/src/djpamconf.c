@@ -1307,6 +1307,9 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_succeed_if"))
         return TRUE;
+    // Used on Fedora Core 11. This is a Finger Print reader authentication module, does not prompt for password.
+    if(!strcmp(buffer, "pam_fprintd"))
+        return TRUE;
 
     return FALSE;
 }

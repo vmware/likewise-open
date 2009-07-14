@@ -87,7 +87,8 @@ cleanup:
 
 NTSTATUS
 IopRootLoadDrivers(
-    IN PIOP_ROOT_STATE pRoot
+    IN PIOP_ROOT_STATE pRoot,
+    IN PIO_STATIC_DRIVER pStaticDrivers
     )
 {
     NTSTATUS status = 0;
@@ -101,7 +102,7 @@ IopRootLoadDrivers(
     {
         PIOP_DRIVER_CONFIG pDriverConfig = LW_STRUCT_FROM_FIELD(pLinks, IOP_DRIVER_CONFIG, Links);
 
-        status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig);
+        status = IopDriverLoad(&pDriverObject, pRoot, pDriverConfig, pStaticDrivers);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 

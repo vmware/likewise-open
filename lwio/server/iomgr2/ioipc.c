@@ -143,8 +143,8 @@ IopIpcCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
     PNT_IPC_MESSAGE_CREATE_FILE pMessage = (PNT_IPC_MESSAGE_CREATE_FILE) pRequest->object;
     PNT_IPC_MESSAGE_CREATE_FILE_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -242,7 +242,7 @@ cleanup:
         }
     }
 
-    IoSecurityFreeSecurityContext(&securityContext);
+    IoSecurityDereferenceSecurityContext(&securityContext);
     IoRtlEcpListFree(&pEcpList);
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
@@ -259,8 +259,8 @@ IopIpcCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
 
@@ -291,8 +291,8 @@ IopIpcReadFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_READ_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_READ_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
     PNT_IPC_MESSAGE_READ_FILE pMessage = (PNT_IPC_MESSAGE_READ_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -335,8 +335,8 @@ IopIpcWriteFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
     PNT_IPC_MESSAGE_WRITE_FILE pMessage = (PNT_IPC_MESSAGE_WRITE_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -375,8 +375,8 @@ IopIpcDeviceIoControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -420,8 +420,8 @@ IopIpcFsControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -467,8 +467,8 @@ IopIpcFlushBuffersFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -500,8 +500,8 @@ IopIpcQueryInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
     PNT_IPC_MESSAGE_QUERY_INFORMATION_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_INFORMATION_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -543,8 +543,8 @@ IopIpcSetInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
     PNT_IPC_MESSAGE_SET_INFORMATION_FILE pMessage = (PNT_IPC_MESSAGE_SET_INFORMATION_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -582,8 +582,8 @@ IopIpcQueryDirectoryFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE_RESULT;
     PNT_IPC_MESSAGE_QUERY_DIRECTORY_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_DIRECTORY_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -628,8 +628,8 @@ IopIpcQueryVolumeInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
     PNT_IPC_MESSAGE_QUERY_VOLUME_INFORMATION_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_VOLUME_INFORMATION_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -671,8 +671,8 @@ IopIpcUnlockFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE_RESULT;
     PNT_IPC_MESSAGE_UNLOCK_FILE pMessage = (PNT_IPC_MESSAGE_UNLOCK_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -710,8 +710,8 @@ IopIpcLockFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_LOCK_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_LOCK_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_LOCK_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_LOCK_FILE_RESULT;
     PNT_IPC_MESSAGE_LOCK_FILE pMessage = (PNT_IPC_MESSAGE_LOCK_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -751,8 +751,8 @@ IopIpcQuerySecurityFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
     PNT_IPC_MESSAGE_QUERY_SECURITY_FILE pMessage = (PNT_IPC_MESSAGE_QUERY_SECURITY_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
@@ -794,8 +794,8 @@ IopIpcSetSecurityFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag messageType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
-    const LWMsgMessageTag replyType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
+    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
+    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
     PNT_IPC_MESSAGE_SET_SECURITY_FILE pMessage = (PNT_IPC_MESSAGE_SET_SECURITY_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };

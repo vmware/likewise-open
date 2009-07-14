@@ -1,4 +1,5 @@
 SUBDIRS = \
+	test_headers \
 	lsaclient \
 	test_getgrgid \
 	test_getpwuid \
@@ -18,6 +19,5 @@ SUBDIRS = \
 	test_validate \
 	test_changepasswd \
 	test_session \
-	test_checkuserinlist \
-        test_openldap
+	test_checkuserinlist
 

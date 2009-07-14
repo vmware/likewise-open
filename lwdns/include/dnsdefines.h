@@ -234,6 +234,8 @@ extern PFN_LWDNS_LOG_MESSAGE gpfnLWDNSLogger;
 
 #define QTYPE_SOA              6 // SOA
 
+#define QTYPE_PTR              12 // PTR
+
 #define QTYPE_ANY              255
 
 #define    QTYPE_TKEY              249

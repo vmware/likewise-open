@@ -86,7 +86,7 @@ Negotiate(
                 0, /* error */
                 0, /* is response */
                 0xFFFF, /* tid */
-                0, /* pid */
+                gRdrRuntime.SysPid, /* pid */
                 0, /* uid */
                 0, /* mid */
                 FALSE, /* sign messages */

@@ -712,7 +712,7 @@ error:
 
 
 DWORD
-HexCharToByte(
+LsaHexCharToByte(
     CHAR cHexChar,
     UCHAR* pucByte
     )

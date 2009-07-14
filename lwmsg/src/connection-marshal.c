@@ -37,6 +37,7 @@
  *
  */
 #include <lwmsg/type.h>
+#include <lwmsg/data.h>
 #include "convert.h"
 #include "util-private.h"
 #include "connection-private.h"
@@ -46,7 +47,7 @@
 
 static LWMsgStatus
 lwmsg_connection_marshal_fd(
-    LWMsgContext* context, 
+    LWMsgDataContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -90,7 +91,7 @@ error:
 
 static LWMsgStatus
 lwmsg_connection_unmarshal_fd(
-    LWMsgContext* context,
+    LWMsgDataContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
@@ -131,7 +132,7 @@ error:
 static
 void
 lwmsg_connection_free_fd(
-    LWMsgContext* context,
+    const LWMsgContext* context,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
     void* object,

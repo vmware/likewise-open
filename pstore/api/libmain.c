@@ -126,6 +126,58 @@ error:
 }
 
 DWORD
+LwpsGetPasswordByCurrentHostName(
+    HANDLE hStore,
+    PLWPS_PASSWORD_INFO* ppInfo
+    )
+{
+    DWORD dwError = 0;
+    CHAR szBuffer[256];
+    PSTR pszLocal = NULL;
+    PSTR pszDot = NULL;
+    int len = 0;
+
+    if ( gethostname(szBuffer, sizeof(szBuffer)) != 0 )
+    {
+        dwError = errno;
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+
+    len = strlen(szBuffer);
+    if ( len > strlen(".local") )
+    {
+        pszLocal = &szBuffer[len - strlen(".local")];
+        if ( !strcasecmp( pszLocal, ".local" ) )
+        {
+            pszLocal[0] = '\0';
+        }
+    }
+
+    /* Test to see if the name is still dotted. If so we will chop it down to
+       just the hostname field. */
+    pszDot = strchr(szBuffer, '.');
+    if ( pszDot )
+    {
+        pszDot[0] = '\0';
+    }
+
+    dwError = LwpsGetPasswordByHostName(
+                    hStore,
+                    szBuffer,
+                    ppInfo);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+    *ppInfo = NULL;
+
+    goto cleanup;
+}
+
+DWORD
 LwpsGetPasswordByDomainName(
     HANDLE hStore,
     PCSTR  pszDomainName,

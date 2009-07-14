@@ -15,7 +15,7 @@ lwbase_mu_la_SOURCES = \
 	$(TEST_SOURCES)
 
 lwbase_mu_la_LIBADD = \
-	$(top_builddir)/src/liblwbase_nothr.la  \
+	$(top_builddir)/src/liblwbase.la  \
 	$(LIB_MOONUNIT)
 
 lwbase_mu_la_LDFLAGS = -module -avoid-version

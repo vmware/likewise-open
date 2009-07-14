@@ -50,7 +50,6 @@
 
 NTSTATUS
 PvfsWrite(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
@@ -58,7 +57,7 @@ PvfsWrite(
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    BOOLEAN bUseOffset = pIrp->Args.ReadWrite.ByteOffset != NULL ? TRUE : FALSE;
+    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     PPVFS_CCB pCcb = NULL;
     size_t totalBytesWritten = 0;
     LONG64 Offset = 0;
@@ -83,21 +82,29 @@ PvfsWrite(
     }
 #endif
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_WRITE_DATA|FILE_APPEND_DATA);
     BAIL_ON_NT_STATUS(ntError);
-
-    /* Simple loop to fill the buffer */
-
-    if (bUseOffset) {
-        Offset = *pIrp->Args.ReadWrite.ByteOffset;
-    }
 
     /* Enter critical region - WriteFile() needs to fill
        the buffer atomically while it may take several write()
        calls */
 
-    ENTER_MUTEX(&pCcb->FileMutex);
-    bMutexLocked = TRUE;
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+
+    if (pIrp->Args.ReadWrite.ByteOffset) {
+        Offset = *pIrp->Args.ReadWrite.ByteOffset;
+    } else {
+        off_t offset = 0;
+
+        ntError = PvfsSysLseek(pCcb->fd, 0, SEEK_CUR, &offset);
+        BAIL_ON_NT_STATUS(ntError);
+
+        Offset = offset;
+    }
+
+    ntError = PvfsCheckLockedRegion(pCcb, PVFS_OPERATION_WRITE,
+                                    Key, Offset, bufLen);
+    BAIL_ON_NT_STATUS(ntError);
 
     while (totalBytesWritten < bufLen)
     {
@@ -106,7 +113,7 @@ PvfsWrite(
         ntError = PvfsSysWrite(pCcb,
                                pBuffer + totalBytesWritten,
                                bufLen - totalBytesWritten,
-                               bUseOffset ? &Offset : NULL,
+                               &Offset,
                                &bytesWritten);
         if (ntError == STATUS_PENDING) {
             continue;
@@ -125,9 +132,7 @@ PvfsWrite(
 
 
 cleanup:
-    if (bMutexLocked) {
-        LEAVE_MUTEX(&pCcb->FileMutex);
-    }
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
     if (pCcb) {
         PvfsReleaseCCB(pCcb);

@@ -36,26 +36,36 @@
 
 #include "includes.h"
 
+/* File globals */
+
+static PVOID gpDsrMemoryList = NULL;
+static pthread_mutex_t gDsrDataMutex = PTHREAD_MUTEX_INITIALIZER;
+static BOOLEAN bDsrInitialised = FALSE;
+
+/* Code */
 
 NTSTATUS
-DsrInitMemory()
+DsrInitMemory(
+    VOID
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gDsrDataMutex);
 
-    if (!bDsrInitialised) {
-        status = MemPtrListInit((PtrList**)&dsr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (!bDsrInitialised)
+    {
+        ntStatus = MemPtrListInit((PtrList**)&gpDsrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        bDsrInitialised = 1;
+        bDsrInitialised = TRUE;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gDsrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -63,24 +73,27 @@ error:
 
 
 NTSTATUS
-DsrDestroyMemory()
+DsrDestroyMemory(
+    VOID
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
 
-    GLOBAL_DATA_LOCK(locked);
+    LIBRPC_LOCK_MUTEX(bLocked, &gDsrDataMutex);
 
-    if (bDsrInitialised && dsr_ptr_list) {
-        status = MemPtrListDestroy((PtrList**)&dsr_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
+    if (bDsrInitialised && gpDsrMemoryList)
+    {
+        ntStatus = MemPtrListDestroy((PtrList**)&gpDsrMemoryList);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         bDsrInitialised = 0;
     }
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &gDsrDataMutex);
 
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -89,43 +102,55 @@ error:
 
 NTSTATUS
 DsrAllocateMemory(
-    void **out,
-    size_t size,
-    void *dep
+    OUT PVOID *ppOutBuffer,
+    IN  size_t Size,
+    IN  PVOID pDependent
     )
 {
-    return MemPtrAllocate((PtrList*)dsr_ptr_list, out, size, dep);
+    return MemPtrAllocate(
+               (PtrList*)gpDsrMemoryList,
+               ppOutBuffer,
+               Size,
+               pDependent);
 }
 
 
-void
+VOID
 DsrFreeMemory(
-    void *ptr
+    IN OUT PVOID pBuffer
     )
 {
-    MemPtrFree((PtrList*)dsr_ptr_list, ptr);
+    if (pBuffer == NULL)
+    {
+        return;
+    }
+
+    MemPtrFree((PtrList*)gpDsrMemoryList, pBuffer);
 }
 
 
 NTSTATUS
 DsrAddDepMemory(
-    void *ptr,
-    void *dep
+    IN PVOID pBuffer,
+    IN PVOID pDependent
     )
 {
-    return MemPtrAddDependant((PtrList*)dsr_ptr_list, ptr, dep);
+    return MemPtrAddDependant(
+               (PtrList*)gpDsrMemoryList,
+               pBuffer,
+               pDependent);
 }
 
 
 static
 NTSTATUS
 DsrAllocateDsRoleInfoBasic(
-    PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pOut,
-    PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pIn,
-    void *dep
+    OUT PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pOut,
+    IN  PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pIn,
+    IN  PVOID pDependent
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwDomainLen = 0;
     DWORD dwDnsDomainLen = 0;
     DWORD dwForestLen = 0;
@@ -133,44 +158,51 @@ DsrAllocateDsRoleInfoBasic(
     pOut->uiRole  = pIn->uiRole;
     pOut->uiFlags = pIn->uiFlags;
 
-    if (pIn->pwszDomain) {
-        dwDomainLen = wc16slen(pIn->pwszDomain);
+    if (pIn->pwszDomain)
+    {
+        dwDomainLen = RtlWC16StringNumChars(pIn->pwszDomain);
 
-        status = DsrAllocateMemory((void**)&pOut->pwszDomain,
-                                   (dwDomainLen + 1) * sizeof(WCHAR),
-                                   dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = DsrAllocateMemory(
+                       (PVOID*)&pOut->pwszDomain,
+                       (dwDomainLen + 1) * sizeof(WCHAR),
+                       pDependent);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         wc16sncpy(pOut->pwszDomain, pIn->pwszDomain, dwDomainLen);
     }
 
-    if (pIn->pwszDnsDomain) {
-        dwDnsDomainLen = wc16slen(pIn->pwszDnsDomain);
+    if (pIn->pwszDnsDomain)
+    {
+        dwDnsDomainLen = RtlWC16StringNumChars(pIn->pwszDnsDomain);
 
-        status = DsrAllocateMemory((void**)&pOut->pwszDnsDomain,
-                                   (dwDnsDomainLen + 1) * sizeof(WCHAR),
-                                   dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = DsrAllocateMemory(
+                       (PVOID*)&pOut->pwszDnsDomain,
+                       (dwDnsDomainLen + 1) * sizeof(WCHAR),
+                       pDependent);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         wc16sncpy(pOut->pwszDnsDomain, pIn->pwszDnsDomain, dwDnsDomainLen);
     }
 
-    if (pIn->pwszForest) {
-        dwForestLen = wc16slen(pIn->pwszForest);
+    if (pIn->pwszForest)
+    {
+        dwForestLen = RtlWC16StringNumChars(pIn->pwszForest);
 
-        status = DsrAllocateMemory((void**)&pOut->pwszForest,
-                                   (dwForestLen + 1) * sizeof(WCHAR),
-                                   dep);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        ntStatus = DsrAllocateMemory(
+                       (PVOID*)&pOut->pwszForest,
+                       (dwForestLen + 1) * sizeof(WCHAR),
+                       pDependent);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         wc16sncpy(pOut->pwszForest, pIn->pwszForest, dwForestLen);
     }
 
-    memcpy(&pOut->DomainGuid, &pIn->DomainGuid,
+    memcpy(&pOut->DomainGuid,
+           &pIn->DomainGuid,
            sizeof(pOut->DomainGuid));
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
     goto cleanup;
@@ -179,28 +211,34 @@ error:
 
 NTSTATUS
 DsrAllocateDsRoleInfo(
-    PDS_ROLE_INFO *ppOut,
-    PDS_ROLE_INFO pIn,
-    UINT16 uiLevel
+    OUT PDS_ROLE_INFO *ppOut,
+    IN  PDS_ROLE_INFO pIn,
+    IN  UINT16 uiLevel
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PDS_ROLE_INFO pInfo = NULL;
 
-    BAIL_ON_NULL_PARAM(ppOut);
+    BAIL_ON_NULL_PTR(ppOut, ntStatus);
 
-    status = DsrAllocateMemory((void**)&pInfo,
-                               sizeof(*pInfo),
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = DsrAllocateMemory(
+                   (PVOID*)&pInfo,
+                   sizeof(*pInfo),
+                   NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!pIn) goto cleanup;
+    if (pIn == NULL)
+    {
+        goto cleanup;
+    }
 
-    switch(uiLevel) {
+    switch(uiLevel)
+    {
     case DS_ROLE_BASIC_INFORMATION:
-        status = DsrAllocateDsRoleInfoBasic(&pInfo->basic,
-                                            &pIn->basic,
-                                            pInfo);
+        ntStatus = DsrAllocateDsRoleInfoBasic(
+                       &pInfo->basic,
+                       &pIn->basic,
+                       pInfo);
         break;
 
     case DS_ROLE_UPGRADE_STATUS:
@@ -213,23 +251,23 @@ DsrAllocateDsRoleInfo(
         break;
 
     default:
-        status = STATUS_INVALID_PARAMETER;
+        ntStatus = STATUS_INVALID_PARAMETER;
         break;
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppOut = pInfo;
+    pInfo = NULL;
 
 cleanup:
-    return status;
+    return ntStatus;
 
 error:
-    if (pInfo) {
-        DsrFreeMemory(pInfo);
-    }
+    DsrFreeMemory(pInfo);
 
     *ppOut = NULL;
+
     goto cleanup;
 }
 

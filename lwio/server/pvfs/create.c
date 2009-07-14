@@ -39,10 +39,9 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *       Create Dispatch Routine
+ *        Create Dispatch Routine
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Gerald Carter <gcarter@likewise.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "pvfs.h"
@@ -57,7 +56,6 @@
 
 NTSTATUS
 PvfsCreate(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {

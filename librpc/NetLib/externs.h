@@ -48,7 +48,7 @@ extern int bNetApiInitialised;
         ret = pthread_mutex_lock(&g_netapi_data_mutex);  \
         if (ret) {                                       \
             status = STATUS_UNSUCCESSFUL;                \
-            goto cleanup;                                \
+            goto error;                                  \
 		                                             \
         } else {                                         \
             locked = 1;                                  \

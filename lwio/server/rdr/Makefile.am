@@ -1,4 +1,12 @@
+if ENABLE_STATIC_DRIVERS
+noinst_LTLIBRARIES = librdr.sys.la
+DRIVER_CFLAGS =
+DRIVER_LDFLAGS =
+else
 lib_LTLIBRARIES = librdr.sys.la
+DRIVER_CFLAGS = -shared
+DRIVER_LDFLAGS = -module -shared -avoid-version
+endif
 
 librdr_sys_la_SOURCES =   \
     client_session.c      \
@@ -48,16 +56,13 @@ librdr_sys_la_CPPFLAGS = \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include
 
+librdr_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
+
 librdr_sys_la_LIBADD = \
     @top_builddir@/server/iomgr2/libiomgr2.la \
-    @top_builddir@/server/smbwire/liblwiosmbwire.la \
-    @top_builddir@/smbkrb5/liblwiosmbkrb5.la \
-    @top_builddir@/utils/liblwioutils.la \
+    @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
     @SOCKET_LIBS@
 
-librdr_sys_la_LDFLAGS = \
-    -module -avoid-version -export-dynamic
-
-
+librdr_sys_la_LDFLAGS = $(DRIVER_LDFLAGS)

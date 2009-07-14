@@ -74,12 +74,15 @@
 
 #define LW_ASSERT(x)   assert( (x) )
 
+typedef ULONG KRB5_TIME, KRB5_ENCTYPE, KRB5_FLAGS;
+
 struct __LW_IO_ACCESS_TOKEN
 {
     enum
     {
         IO_ACCESS_TOKEN_TYPE_PLAIN = 0,
-        IO_ACCESS_TOKEN_TYPE_KRB5 = 1
+        IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE = 1,
+        IO_ACCESS_TOKEN_TYPE_KRB5_TGT = 2
     } type;
     union _LW_IO_ACCESS_TOKEN_U
     {
@@ -88,11 +91,26 @@ struct __LW_IO_ACCESS_TOKEN
             PWSTR pwszUsername;
             PWSTR pwszPassword;
         } plain;
-        struct _LW_IO_ACCESS_TOKEN_KRB5
+        struct _LW_IO_ACCESS_TOKEN_KRB5_CCACHE
         {
             PWSTR pwszPrincipal;
             PWSTR pwszCachePath;
-        } krb5;
+        } krb5Ccache;
+        struct _LW_IO_ACCESS_TOKEN_KRB5_TGT
+        {
+            PWSTR pwszClientPrincipal;
+            PWSTR pwszServerPrincipal;
+            KRB5_TIME authTime;
+            KRB5_TIME startTime;
+            KRB5_TIME endTime;
+            KRB5_TIME renewTillTime;
+            KRB5_ENCTYPE keyType;
+            ULONG ulKeySize;
+            PBYTE pKeyData;
+            KRB5_FLAGS tgtFlags;
+            ULONG ulTgtSize;
+            PBYTE pTgtData;
+        } krb5Tgt;
     } payload;
 };
 

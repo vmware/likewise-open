@@ -65,6 +65,19 @@ SMBSocketHashSessionByUID(
     );
 
 static
+int
+SMBSocketHashSessionCompareByKey(
+    PCVOID vp1,
+    PCVOID vp2
+    );
+
+static
+size_t
+SMBSocketHashSessionByKey(
+    PCVOID vp
+    );
+
+static
 void *
 SMBSocketReaderMain(
     void *pData
@@ -127,7 +140,7 @@ SMBSocketCreate(
        changes, such as made by ntpd */
     pSocket->lastActiveTime = time(NULL);
 
-    pSocket->fd = 0;
+    pSocket->fd = -1;
 
     /* Hostname is trusted */
     ntStatus = SMBStrndup(
@@ -147,16 +160,16 @@ SMBSocketCreate(
 
     ntStatus = SMBHashCreate(
                     19,
-                    SMBHashCaselessStringCompare,
-                    SMBHashCaselessString,
+                    SMBSocketHashSessionCompareByKey,
+                    SMBSocketHashSessionByKey,
                     NULL,
                     &pSocket->pSessionHashByPrincipal);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBHashCreate(
                     19,
-                    &SMBSocketHashSessionCompareByUID,
-                    &SMBSocketHashSessionByUID,
+                    SMBSocketHashSessionCompareByUID,
+                    SMBSocketHashSessionByUID,
                     NULL,
                     &pSocket->pSessionHashByUID);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -233,6 +246,31 @@ SMBSocketHashSessionByUID(
     )
 {
    return *((uint16_t *) vp);
+}
+
+static
+int
+SMBSocketHashSessionCompareByKey(
+    PCVOID vp1,
+    PCVOID vp2
+    )
+{
+    const struct _RDR_SESSION_KEY* pKey1 = (struct _RDR_SESSION_KEY*) vp1;
+    const struct _RDR_SESSION_KEY* pKey2 = (struct _RDR_SESSION_KEY*) vp2;
+
+    return !(pKey1->uid == pKey2->uid &&
+             !strcmp(pKey1->pszPrincipal, pKey2->pszPrincipal));
+}
+
+static
+size_t
+SMBSocketHashSessionByKey(
+    PCVOID vp
+    )
+{
+    const struct _RDR_SESSION_KEY* pKey = (struct _RDR_SESSION_KEY*) vp;
+
+    return SMBHashCaselessString(pKey->pszPrincipal) ^ (pKey->uid ^ (pKey->uid << 16));
 }
 
 BOOLEAN
@@ -930,8 +968,18 @@ SMBSocketInvalidate_InLock(
     NTSTATUS ntStatus
     )
 {
+    BOOLEAN bInGlobalLock = FALSE;
     pSocket->state = RDR_SOCKET_STATE_ERROR;
     pSocket->error = ntStatus;
+
+    LWIO_LOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
+    if (pSocket->bParentLink)
+    {
+        SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                         pSocket->pszHostname);
+        pSocket->bParentLink = FALSE;
+    }
+    LWIO_UNLOCK_MUTEX(bInGlobalLock, &gRdrRuntime.socketHashLock);
 
     pthread_cond_broadcast(&pSocket->event);
 }
@@ -1092,8 +1140,12 @@ SMBSocketRelease(
     {
         if (pSocket->state != RDR_SOCKET_STATE_READY)
         {
-            SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
-                             pSocket->pszHostname);
+            if (pSocket->bParentLink)
+            {
+                SMBHashRemoveKey(gRdrRuntime.pSocketHashByName,
+                                 pSocket->pszHostname);
+                pSocket->bParentLink = FALSE;
+            }
             LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
             SMBSocketFree(pSocket);
         }

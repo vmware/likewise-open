@@ -1,7 +1,16 @@
+if ENABLE_STATIC_PROVIDERS
+noinst_LTLIBRARIES = liblsass_auth_provider_local.la
+PROVIDER_CFLAGS =
+PROVIDER_LDFLAGS =
+else
 provider_LTLIBRARIES = liblsass_auth_provider_local.la
+PROVIDER_CFLAGS = -shared
+PROVIDER_LDFLAGS = -shared -module -avoid-version
+endif
 
 liblsass_auth_provider_local_la_SOURCES = \
     lpaccess.c    \
+    lpauthex.c    \
     lpcfg.c       \
     lpdomain.c    \
     lpenumstate.c \
@@ -18,15 +27,18 @@ liblsass_auth_provider_local_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1              \
     -I@top_srcdir@/server/include
 
+liblsass_auth_provider_local_la_CFLAGS = $(PROVIDER_CFLAGS)
+
 #netapi is needed for NTLMv1EncryptChallenge
 liblsass_auth_provider_local_la_LIBADD = \
     @top_builddir@/server/store/dsapi/libdsapi.la \
     @top_builddir@/utils/liblsautils.la \
-    @top_builddir@/logging_r/liblsalog_r.la \
-    @top_builddir@/server/srvutils/liblsasrvutils.la \
+    @top_builddir@/server/api/liblsaserverapi.la \
     @top_builddir@/lsaunistr/liblsaunistr.la \
+    @top_builddir@/provider/local-provider/ipc/liblsalocalipc.la \
     @NETAPI_LIBS@
 
 liblsass_auth_provider_local_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic -export-symbols=lp.sym \
+	$(PROVIDER_LDFLAGS) \
+	-export-symbols=lp.sym \
 	@NETAPI_LDFLAGS@

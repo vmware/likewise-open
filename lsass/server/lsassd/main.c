@@ -45,14 +45,34 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
-#include "lsassd.h"
 #include "config.h"
+#include "lsassd.h"
 #include "lwnet.h"
 #include "eventlog.h"
 #include "lsasrvutils.h"
 
 /* Needed for dcethread_fork() */
 #include <dce/dcethread.h>
+
+#ifdef ENABLE_STATIC_PROVIDERS
+
+extern DWORD LSA_INITIALIZE_PROVIDER(ad)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LSA_SHUTDOWN_PROVIDER(ad)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
+extern DWORD LSA_INITIALIZE_PROVIDER(local)(PCSTR, PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LSA_SHUTDOWN_PROVIDER(local)(PSTR, PLSA_PROVIDER_FUNCTION_TABLE);
+
+static LSA_STATIC_PROVIDER gStaticProviders[] =
+{
+#ifdef ENABLE_AD
+    LSA_STATIC_PROVIDER_ENTRY(ad, lsa-activedirectory-provider),
+#endif
+#ifdef ENABLE_LOCAL
+    LSA_STATIC_PROVIDER_ENTRY(local, lsa-local-provider),
+#endif
+    LSA_STATIC_PROVIDER_END
+};
+
+#endif
 
 int
 main(
@@ -276,7 +296,7 @@ LsaSrvVerifyNetLogonStatus(
     PSTR pszDomain = NULL;
 
     dwError = LWNetGetCurrentDomain(&pszDomain);
-    LSA_LOG_INFO("LsaSrvVerifyNetLogonStatus call to LWNet API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyNetLogonStatus call to LWNet API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -311,13 +331,13 @@ LsaSrvVerifyLwIoStatus(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwIoOpenContext(&pContext);
-    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = SMBGetLogInfo(
                   (HANDLE) pContext,
                   &pLogInfo);
-    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %ld", dwError);
+    LSA_LOG_INFO("LsaSrvVerifyLwIoStatus call to LwIo API returned %d", dwError);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -409,6 +429,11 @@ LsaSrvParseArgs(
                 pLsaServerInfo->logTarget = LSA_LOG_TARGET_SYSLOG;
             }
           }
+          else if (strcmp(pArg, "--syslog") == 0)
+          {
+            bLogTargetSet = TRUE;
+            pLsaServerInfo->logTarget = LSA_LOG_TARGET_SYSLOG;
+          }
           else if (strcmp(pArg, "--loglevel") == 0) {
             parseMode = PARSE_MODE_LOGLEVEL;
           } else {
@@ -467,6 +492,10 @@ LsaSrvParseArgs(
 
             pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
 
+          } else if (!strcasecmp(pArg, "trace")) {
+
+            pLsaServerInfo->maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
+
           } else {
 
             LSA_LOG_ERROR("Error: Invalid log level [%s]", pArg);
@@ -496,7 +525,7 @@ LsaSrvParseArgs(
     }
     else
     {
-        if (pLsaServerInfo->logTarget != LSA_LOG_TARGET_FILE)
+        if (!bLogTargetSet)
         {
             pLsaServerInfo->logTarget = LSA_LOG_TARGET_CONSOLE;
         }
@@ -537,7 +566,8 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
            "          [--logfile logFilePath]\n"
-           "          [--loglevel {error, warning, info, verbose}]\n", pszProgramName);
+           "          [--syslog]\n"
+           "          [--loglevel {error, warning, info, verbose, debug, trace}]\n", pszProgramName);
 }
 
 VOID
@@ -599,7 +629,11 @@ LsaSrvInitialize(
     dwError = LsaInitCacheFolders();
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvApiInit(pszConfigFilePath);
+#ifdef ENABLE_STATIC_PROVIDERS
+    dwError = LsaSrvApiInit(pszConfigFilePath, gStaticProviders);
+#else
+    dwError = LsaSrvApiInit(pszConfigFilePath, NULL);
+#endif
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:

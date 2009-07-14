@@ -49,7 +49,6 @@
 #include "lwnet-def.h"
 #include "lwnet.h"
 #include "lwnet-utils.h"
-#include "lwnet-client.h"
 
 static
 void

@@ -32,6 +32,7 @@
 #include <lwmapsecurity/lwmapsecurity.h>
 
 typedef struct _IO_CREATE_SECURITY_CONTEXT {
+    LONG ReferenceCount;
     IO_SECURITY_CONTEXT_PROCESS_INFORMATION Process;
     PACCESS_TOKEN AccessToken;
     LW_PIO_ACCESS_TOKEN Credentials;
@@ -61,8 +62,9 @@ IoSecurityGetCredentials(
     return SecurityContext->Credentials;
 }
 
+static
 VOID
-IoSecurityFreeSecurityContext(
+IopSecurityFreeSecurityContext(
     IN OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext
     )
 {
@@ -70,8 +72,38 @@ IoSecurityFreeSecurityContext(
 
     if (securityContext)
     {
+        LWIO_ASSERT(0 == LwInterlockedRead(&securityContext->ReferenceCount));
         RtlReleaseAccessToken(&securityContext->AccessToken);
         IO_FREE(&securityContext);
+        *SecurityContext = NULL;
+    }
+}
+
+VOID
+IopSecurityReferenceSecurityContext(
+    IN PIO_CREATE_SECURITY_CONTEXT SecurityContext
+    )
+{
+    LONG count = InterlockedIncrement(&SecurityContext->ReferenceCount);
+    LWIO_ASSERT(count > 1);
+}
+
+VOID
+IoSecurityDereferenceSecurityContext(
+    IN OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext
+    )
+{
+    PIO_CREATE_SECURITY_CONTEXT securityContext = *SecurityContext;
+
+    if (securityContext)
+    {
+        LONG count = InterlockedDecrement(&securityContext->ReferenceCount);
+        LWIO_ASSERT(count >= 0);
+        if (0 == count)
+        {
+            IopSecurityFreeSecurityContext(&securityContext);
+        }
+        *SecurityContext = NULL;
     }
 }
 
@@ -91,6 +123,7 @@ IopSecurityCreateSecurityContext(
     status = RTL_ALLOCATE(&securityContext, IO_CREATE_SECURITY_CONTEXT, sizeof(*securityContext));
     GOTO_CLEANUP_ON_STATUS(status);
 
+    securityContext->ReferenceCount = 1;
     securityContext->Process.Uid = Uid;
     securityContext->Process.Gid = Gid;
     securityContext->AccessToken = AccessToken;
@@ -102,7 +135,7 @@ IopSecurityCreateSecurityContext(
 cleanup:
     if (!NT_SUCCESS(status))
     {
-        IoSecurityFreeSecurityContext(&securityContext);
+        IoSecurityDereferenceSecurityContext(&securityContext);
     }
 
     *SecurityContext = securityContext;
@@ -145,7 +178,7 @@ IoSecurityCreateSecurityContextFromUidGid(
 cleanup:
     if (!NT_SUCCESS(status))
     {
-        IoSecurityFreeSecurityContext(&securityContext);
+        IoSecurityDereferenceSecurityContext(&securityContext);
     }
 
     RtlReleaseAccessToken(&accessToken);
@@ -197,7 +230,7 @@ IoSecurityCreateSecurityContextFromUsername(
 cleanup:
     if (!NT_SUCCESS(status))
     {
-        IoSecurityFreeSecurityContext(&securityContext);
+        IoSecurityDereferenceSecurityContext(&securityContext);
     }
 
     RtlReleaseAccessToken(&accessToken);

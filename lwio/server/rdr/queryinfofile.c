@@ -157,7 +157,7 @@ RdrTransactQueryInfoFile(
         0,
         0,
         pTree->tid,
-        0,
+        gRdrRuntime.SysPid,
         pTree->pSession->uid,
         usMid,
         TRUE,

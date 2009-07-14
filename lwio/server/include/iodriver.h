@@ -69,14 +69,14 @@ typedef ULONG IRP_TYPE;
 // Here, however, two separate IRPs are used.
 #define IRP_TYPE_QUERY_DIRECTORY          12
 #define IRP_TYPE_QUERY_VOLUME_INFORMATION 13
-#define IRP_TYPE_LOCK_CONTROL             14
-#define IRP_TYPE_QUERY_SECURITY           15
-#define IRP_TYPE_SET_SECURITY             16
+#define IRP_TYPE_SET_VOLUME_INFORMATION   14
+#define IRP_TYPE_LOCK_CONTROL             15
+#define IRP_TYPE_QUERY_SECURITY           16
+#define IRP_TYPE_SET_SECURITY             17
 #if 0
-#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  17
-#define IPP_TYPE_QUERY_EA                 18
-#define IPP_TYPE_SET_EA                   19
-#define IRP_TYPE_SET_VOLUME_INFORMATION   20
+#define IRP_TYPE_NOTIFY_CHANGE_DIRECTORY  18
+#define IPP_TYPE_QUERY_EA                 19
+#define IPP_TYPE_SET_EA                   20
 #define IRP_TYPE_QUERY_QUOTA              21
 #define IRP_TYPE_SET_QUOTA                22
 #define IRP_TYPE_QUERY_FULL_ATTRIBUTES    23
@@ -85,12 +85,16 @@ typedef ULONG IRP_TYPE;
 #define IRP_TYPE_UNLINK                   26
 #endif
 
-typedef ULONG FILE_LOCK_CONTROL;
+typedef ULONG IO_LOCK_CONTROL;
 
 #define IO_LOCK_CONTROL_LOCK              1
 #define IO_LOCK_CONTROL_UNLOCK            2
 #define IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY 3
 #define IO_LOCK_CONTROL_UNLOCK_ALL        4
+
+// "Storage" field is so we do not have to allocate
+// extra memory blocks for small optional parameters
+// that are provided via pointers.
 
 typedef struct _IRP_ARGS_CREATE {
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext;
@@ -114,6 +118,10 @@ typedef struct _IRP_ARGS_READ_WRITE {
     IN ULONG Length;
     IN OPTIONAL PLONG64 ByteOffset;
     IN OPTIONAL PULONG Key;
+    struct {
+        LONG64 ByteOffset;
+        ULONG Key;
+    } Storage;
 } IRP_ARGS_READ_WRITE, *PIRP_ARGS_READ_WRITE;
 
 typedef struct _IRP_ARGS_IO_FS_CONTROL {
@@ -135,18 +143,21 @@ typedef struct _IRP_ARGS_QUERY_DIRECTORY {
     IN ULONG Length;
     IN FILE_INFORMATION_CLASS FileInformationClass;
     IN BOOLEAN ReturnSingleEntry;
-    IN OPTIONAL PIO_FILE_SPEC FileSpec;
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec;
     IN BOOLEAN RestartScan;
+    struct {
+        IO_MATCH_FILE_SPEC FileSpec;
+    } Storage;
 } IRP_ARGS_QUERY_DIRECTORY, *PIRP_ARGS_QUERY_DIRECTORY;
 
-typedef struct _IRP_ARGS_QUERY_VOLUME {
-    OUT PVOID FsInformation;
+typedef struct _IRP_ARGS_QUERY_SET_VOLUME_INFORMATION {
+    IN OUT PVOID FsInformation;
     IN ULONG Length;
     IN FS_INFORMATION_CLASS FsInformationClass;
-} IRP_ARGS_QUERY_VOLUME, *PIRP_ARGS_QUERY_VOLUME;
+} IRP_ARGS_QUERY_SET_VOLUME_INFORMATION, *PIRP_ARGS_QUERY_VOLUME_INFORMATION;
 
 typedef struct _IRP_ARGS_LOCK_CONTROL {
-    IN FILE_LOCK_CONTROL LockControl;
+    IN IO_LOCK_CONTROL LockControl;
     IN LONG64 ByteOffset;
     IN LONG64 Length;
     IN ULONG Key;
@@ -178,19 +189,20 @@ typedef struct _IRP {
         // IRP_TYPE_QUERY_DIRECTORY
         IRP_ARGS_QUERY_DIRECTORY QueryDirectory;
         // IRP_TYPE_QUERY_VOLUME
-        IRP_ARGS_QUERY_VOLUME QueryVolume;
+        IRP_ARGS_QUERY_SET_VOLUME_INFORMATION QuerySetVolumeInformation;
         // IRP_TYPE_LOCK_CONTROL
         IRP_ARGS_LOCK_CONTROL LockControl;
         // IRP_TYPE_QUERY_SECURITY, IRP_TYPE_SET_SECURITY
         IRP_ARGS_QUERY_SET_SECURITY QuerySetSecurity;
         // No args for IRP_TYPE_CLOSE, IRP_TYPE_FLUSH
     } Args;
+    // TODO: Rename Args to Params?
     // Internal data at the end...
 } IRP, *PIRP;
 
-typedef NTSTATUS (*PIO_IRP_CALLBACK)(
-    IN PVOID CallbackContext,
-    IN PIRP Irp
+typedef VOID (*PIO_IRP_CALLBACK)(
+    IN PIRP Irp,
+    IN PVOID CallbackContext
     );
 
 typedef VOID (*PIO_DRIVER_SHUTDOWN_CALLBACK)(
@@ -206,6 +218,12 @@ typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
     );
+
+typedef struct _IO_STATIC_DRIVER
+{
+    PCSTR pszName;
+    PIO_DRIVER_ENTRY pEntry;
+} IO_STATIC_DRIVER, *PIO_STATIC_DRIVER;
 
 #define IO_DRIVER_ENTRY_FUNCTION_NAME "DriverEntry"
 #define IO_DRIVER_ENTRY_INTERFACE_VERSION 1
@@ -267,24 +285,33 @@ IoFileGetContext(
 
 // IRP functions for async processing
 
-NTSTATUS
-IoIrpSetCompletionCallback(
-    IN PIRP Irp,
-    IN PIO_IRP_CALLBACK Callback,
-    IN PVOID CallbackContext
+#if 0
+BOOLEAN
+IoIrpIsCancelled(
+    IN PIRP pIrp
+    );
+#endif
+
+VOID
+IoIrpMarkPending(
+    IN PIRP pIrp,
+    IN PIO_IRP_CALLBACK CancelCallback,
+    IN OPTIONAL PVOID CancelCallbackContext
     );
 
-NTSTATUS
-IoIrpSetCancelCallback(
-    IN PIRP Irp,
-    IN PIO_IRP_CALLBACK Callback,
-    IN PVOID CallbackContext
+#if 0
+VOID
+IoIrpSetCancelRoutine(
+    IN PIRP pIrp,
+    IN OPTIONAL PIO_IRP_CALLBACK CancelCallback,
+    IN OPTIONAL PVOID CancelCallbackContext
     );
+#endif
 
 // must have set IO status block in IRP.
-NTSTATUS
+VOID
 IoIrpComplete(
-    IN PIRP Irp
+    IN OUT PIRP Irp
     );
 
 // Drivrer memory
@@ -337,7 +364,7 @@ IoSecurityGetCredentials(
     );
 
 VOID
-IoSecurityFreeSecurityContext(
+IoSecurityDereferenceSecurityContext(
     IN OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext
     );
 
@@ -381,6 +408,21 @@ IoSecurityCreateSecurityContextFromUsername(
 
 #define IO_LOG_ENTER_LEAVE_STATUS_EE_EX(status, EE, Format, ...) \
     IO_LOG_ENTER_LEAVE(Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE)
+
+#define IO_LOG_LEAVE_STATUS_EE(status, EE) \
+    IO_LOG_LEAVE("-> 0x%08x (EE = %d)", status, EE)
+
+#define IO_LOG_LEAVE_STATUS_EE_EX(status, EE, Format, ...) \
+    IO_LOG_LEAVE(Format " -> 0x%08x (EE = %d)", ## __VA_ARGS__, status, EE)
+
+#ifdef ENABLE_STATIC_DRIVERS
+#define IO_DRIVER_ENTRY(name) DriverEntry_##name
+#else
+#define IO_DRIVER_ENTRY(name) DriverEntry
+#endif
+
+#define IO_STATIC_DRIVER_ENTRY(name) {#name, IO_DRIVER_ENTRY(name)}
+#define IO_STATIC_DRIVER_END {NULL, NULL}
 
 #endif /* __IODRIVER_H__ */
 

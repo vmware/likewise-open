@@ -161,6 +161,8 @@ _FindOrCreateSocket(
             pSocket->pszHostname,
             pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pSocket->bParentLink = TRUE;
     }
 
     LWIO_UNLOCK_MUTEX(bInLock, &gRdrRuntime.socketHashLock);
@@ -191,12 +193,13 @@ SMBSrvClientSocketAddSessionByPrincipal(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* @todo: check for race */
     ntStatus = SMBHashSetValue(
-                    pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal,
-                    pSession);
+        pSocket->pSessionHashByPrincipal,
+        &pSession->key,
+        pSession);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSession->bParentLink = TRUE;
 
 cleanup:
 
@@ -222,7 +225,7 @@ SMBSrvClientSocketRemoveSessionByPrincipal(
 
     ntStatus = SMBHashRemoveKey(
                     pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal);
+                    &pSession->key);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -254,6 +257,8 @@ SMBSrvClientSocketAddSessionByUID(
                     &pSession->uid,
                     pSession);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pSession->bParentLink = TRUE;
 
 cleanup:
 

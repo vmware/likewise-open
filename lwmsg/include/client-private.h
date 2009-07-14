@@ -55,5 +55,6 @@ struct LWMsgClient
     pthread_mutex_t lock;
     pthread_cond_t event;
 
-    LWMsgContext context;
+    const LWMsgContext* context;
+    LWMsgErrorContext error;
 };

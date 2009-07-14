@@ -50,6 +50,7 @@ EVTSERVERINFO gServerInfo =
 {
     PTHREAD_MUTEX_INITIALIZER,  /* Lock              */
     0,                          /* Start as daemon   */
+    FALSE,                      /* Log to syslog */
     LOG_LEVEL_ERROR,            /* Max Log Level     */
     "",                         /* Log file path     */
     "",                         /* Config file path  */
@@ -412,6 +413,7 @@ ShowUsage(
     )
 {
     printf("Usage: %s [--start-as-daemon]\n"
+            "          [--syslog]\n"
             "          [--logfile logFilePath]\n"
             "          [--replacedb]\n"
             "          [--loglevel {0, 1, 2, 3, 4, 5}]\n"
@@ -480,6 +482,10 @@ EVTParseArgs(
                 }
                 else if (strcmp(pArg, "--configfile") == 0) {
                     parseMode = PARSE_MODE_CONFIGFILE;
+                }
+                else if (strcmp(pArg, "--syslog") == 0)
+                {
+                    pEVTServerInfo->bLogToSyslog = TRUE;
                 }
                 else if (strcmp(pArg, "--loglevel") == 0) {
                     parseMode = PARSE_MODE_LOGLEVEL;
@@ -763,7 +769,10 @@ EVTInitLogging(
     PSTR pszProgramName
     )
 {
-    if (gServerInfo.dwStartAsDaemon) {
+    if ((gServerInfo.dwStartAsDaemon &&
+            gServerInfo.szLogFilePath[0] == '\0') ||
+            gServerInfo.bLogToSyslog)
+    {
 
         return EVTInitLoggingToSyslog(gServerInfo.dwLogLevel,
                                       pszProgramName,

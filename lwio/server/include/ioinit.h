@@ -41,13 +41,16 @@
 
 #include <lwio/io-types.h>
 
+#include "iodriver.h"
+
 VOID
 IoCleanup(
     );
 
 NTSTATUS
 IoInitialize(
-    IN PCSTR pszConfigFilePath
+    IN PCSTR pszConfigFilePath,
+    IN PIO_STATIC_DRIVER pStaticDrivers
     );
 
 #endif /* __IOINIT_H__ */

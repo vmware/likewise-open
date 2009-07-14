@@ -38,11 +38,10 @@
 #ifndef __LWMSG_H__
 #define __LWMSG_H__
 
+#include <lwmsg/data.h>
 #include <lwmsg/buffer.h>
 #include <lwmsg/context.h>
 #include <lwmsg/protocol.h>
-#include <lwmsg/marshal.h>
-#include <lwmsg/unmarshal.h>
 #include <lwmsg/status.h>
 #include <lwmsg/type.h>
 #include <lwmsg/assoc.h>

@@ -122,11 +122,15 @@ LsaAppendAndFreePtrs(
     }
     else
     {
-        dwError = LsaReallocMemory(
-            ppDestPtrArray,
-            (PVOID*)&ppDestPtrArray,
-            dwNewSize);
-        BAIL_ON_LSA_ERROR(dwError);
+        if (dwNewSize > 0)
+        {
+            dwError = LsaReallocMemory(
+                ppDestPtrArray,
+                (PVOID*)&ppDestPtrArray,
+                dwNewSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         /* The old pointer was freed and now invalid, so the output parameter
          * needs to be assigned here, even if the rest of the function fails. */
         *pppDestPtrArray = ppDestPtrArray;

@@ -10,7 +10,10 @@ libiotest_sys_la_SOURCES = \
     fscontrol.c \
     qsinfo.c \
     namedpipe.c \
-    ccb.c
+    ccb.c \
+    test.c \
+    workqueue.c \
+    irpcontext.c
 
 libiotest_sys_la_CPPFLAGS = \
     -I@top_srcdir@         \

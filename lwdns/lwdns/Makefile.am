@@ -30,8 +30,10 @@ liblwdns_la_LIBADD = \
     @RESOLV_LIBS@    \
     @SOCKET_LIBS@    \
     @NSL_LIBS@       \
-    @PTHREAD_LIBS@
+    @PTHREAD_LIBS@   \
+    $(LWBASE_LIBS)
 
 liblwdns_la_LDFLAGS = \
-    @KRB5_LDFLAGS@
+    @KRB5_LDFLAGS@   \
+    $(LWBASE_LDFLAGS)
 

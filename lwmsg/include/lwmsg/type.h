@@ -118,6 +118,7 @@
 /* @{ */
 
 #ifndef DOXYGEN
+struct LWMsgDataContext;
 struct LWMsgContext;
 
 typedef enum LWMsgKind
@@ -192,7 +193,7 @@ typedef struct LWMsgTypeAttrs
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attrs,
@@ -220,7 +221,7 @@ typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataContext* context,
     LWMsgBuffer* buffer,
     size_t object_size,
     LWMsgTypeAttrs* attrs,
@@ -241,7 +242,7 @@ typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
  * in the type specification
  */
 typedef void (*LWMsgCustomFreeFunction) (
-    struct LWMsgContext* context,
+    const struct LWMsgContext* context,
     size_t object_size,
     LWMsgTypeAttrs* attr,
     void* object,
@@ -251,7 +252,7 @@ typedef void (*LWMsgCustomFreeFunction) (
 /**
  * @brief Print callback function
  *
- * A callback function used to print text by #lwmsg_type_print_graph()
+ * A callback function used to print text by #lwmsg_data_print_graph()
  *
  * @param text the text to print
  * @param length the length of text
@@ -262,7 +263,7 @@ typedef void (*LWMsgCustomFreeFunction) (
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus
-(*LWMsgTypePrintFunction) (
+(*LWMsgDataPrintFunction) (
     const char* text,
     size_t length,
     void* data
@@ -284,12 +285,12 @@ typedef LWMsgStatus
  * @param print_data the user data pointer to pass to the type print callback
  */
 typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
-    struct LWMsgContext* context,
+    const struct LWMsgContext* context,
     size_t object_size,
     void* object,
     LWMsgTypeAttrs* attr,
     void* data,
-    LWMsgTypePrintFunction print,
+    LWMsgDataPrintFunction print,
     void* print_data
     );
 
@@ -332,7 +333,7 @@ typedef struct LWMsgCustomTypeClass
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgVerifyFunction) (
-    struct LWMsgContext* context,
+    struct LWMsgDataContext* context,
     LWMsgBool unmarshalling,
     size_t object_size,
     void* object,
@@ -637,7 +638,7 @@ typedef enum LWMsgTypeDirective
  *
  * Indicates that the immediately previous array or pointer
  * represents text in the specified encoding.  This is used
- * as a hint to #lwmsg_type_print_graph() to aid in debugging
+ * as a hint to #lwmsg_data_print_graph() to aid in debugging
  * and does not affect the behavior of the marshaller.
  * @hideinitializer
  */
@@ -1233,16 +1234,6 @@ typedef enum LWMsgTypeDirective
     LWMSG_MEMBER_ARRAY_BEGIN(type, field),     \
     __VA_ARGS__,                               \
     LWMSG_ARRAY_END
-
-
-LWMsgStatus
-lwmsg_type_print_graph(
-    struct LWMsgContext* context,
-    LWMsgTypeSpec* type,
-    void* object,
-    LWMsgTypePrintFunction print,
-    void* print_data
-    );
 
 /*@}*/
 

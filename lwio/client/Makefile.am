@@ -1,4 +1,6 @@
-lib_LTLIBRARIES = liblwioclient_nothr.la liblwioclient.la
+lib_LTLIBRARIES = liblwioclient.la
+
+noinst_LTLIBRARIES = liblwioclient_nothr.la
 
 liblwioclient_nothr_la_SOURCES = \
     access.c               \
@@ -21,7 +23,8 @@ liblwioclient_nothr_la_CFLAGS = \
     -Wmissing-prototypes
 
 liblwioclient_nothr_la_LIBADD = \
-    @top_builddir@/ipc/liblwioipc.la
+    @top_builddir@/ipc/liblwioipc.la \
+    @top_builddir@/utils/liblwioutils.la
 
 liblwioclient_la_SOURCES = \
     thread.c               \

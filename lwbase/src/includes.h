@@ -27,7 +27,9 @@
 
 #include <lw/base.h>
 
+#ifdef HAVE_PTHREAD_H
 #include <pthread.h>
+#endif
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,4 +46,11 @@
 #endif
 
 #include <wc16str.h>
+#ifdef HAVE_UUID_UUID_H
 #include <uuid/uuid.h>
+#endif
+
+#include <secdesc/secapi.h>
+#include "secdesc_p.h"
+
+#include "compat.h"

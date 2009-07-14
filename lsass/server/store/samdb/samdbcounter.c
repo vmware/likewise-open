@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -114,6 +112,10 @@ cleanup:
     return dwError;
 
 error:
+
+    SAMDB_LOG_DEBUG("Error (code: %d): %s",
+                    dwError,
+                    LSA_SAFE_LOG_STRING(pszError));
 
     if (pszError)
     {
@@ -269,6 +271,10 @@ error:
 
     *pdwId = 0;
 
+    SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s",
+                    dwError,
+                    LSA_SAFE_LOG_STRING(pszError));
+
     if (pszError)
     {
         sqlite3_free(pszError);
@@ -276,3 +282,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -43,6 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Gerald Carter <gcarter@likewise.com>
  */
 
 #include "config.h"
@@ -52,11 +53,16 @@
 
 #include <eventlog.h>
 
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+
 #include "lsautils.h"
 #include "lsasrvutils.h"
 #include "lsaunistr.h"
 
 #include "lsaprovider.h"
+#include "lsalocalprovider.h"
 #include "directory.h"
 
 #include "lpdefs.h"
@@ -64,6 +70,7 @@
 #include "lpenumstate.h"
 #include "lpcfg.h"
 #include "lpmain.h"
+#include "lpauthex.h"
 #include "lpuser.h"
 #include "lpgroup.h"
 #include "lpevent.h"
@@ -76,4 +83,17 @@
 #include "externs.h"
 
 #include <lwrpc/LMcrypt.h>
+#include <lwrpc/samr.h>
 
+#include <openssl/evp.h>
+#include <openssl/md4.h>
+#include <openssl/hmac.h>
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

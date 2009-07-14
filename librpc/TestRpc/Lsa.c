@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <compat/rpcstatus.h>
 #include <dce/dce_error.h>
 #include <wc16str.h>
 #include <secdesc/secapi.h>

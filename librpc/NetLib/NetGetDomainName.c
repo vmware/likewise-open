@@ -44,23 +44,23 @@ NetGetDomainName(
     WINERR err = ERROR_SUCCESS;
     NetConn *cn = NULL;
     wchar16_t *domain_name = NULL;
-
-    goto_if_invalid_param_winerr(hostname, cleanup);
-    goto_if_invalid_param_winerr(domname, cleanup);
     PIO_ACCESS_TOKEN access_token = NULL;
 
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(domname);
+
     status = LwIoGetThreadAccessToken(&access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = NetConnectSamr(&cn, hostname, conn_access, 0, access_token);
-    goto_if_ntstatus_not_success(status, error);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     domain_name = wc16sdup(cn->samr.dom_name);
-    goto_if_no_memory_ntstatus(domain_name, error);
+    BAIL_ON_NO_MEMORY(domain_name);
 
     status = NetDisconnectSamr(cn);
-    goto_if_ntstatus_not_success(status, error);
- 
+    BAIL_ON_NTSTATUS_ERROR(status);
+
     *domname = domain_name;
 
 cleanup:

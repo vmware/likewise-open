@@ -31,7 +31,7 @@
 #ifndef _SRVSVC_UTIL_H_
 #define _SRVSVC_UTIL_H_
 
-#include <compat/rpcstatus.h>
+#include <compat/winerror.h>
 #include <lw/ntstatus.h>
 
 #include <srvsvc/types.h>
@@ -54,10 +54,6 @@
 #define ERROR_INVALID_SECURITY_DESCR 1338
 
 #define NERR_BASE 2100
-#define NERR_DuplicateShare (NERR_BASE+18)
-#define NERR_BufTooSmall (NERR_BASE+23)
-#define NERR_NetNameNotFound (NERR_BASE+210)
-#define NERR_FileIdNotFound (NERR_BASE+214)
 
 #define goto_if_ntstatus_not_success(s, lbl) \
     if ((s) != STATUS_SUCCESS) {             \

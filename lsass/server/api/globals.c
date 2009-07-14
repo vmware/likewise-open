@@ -63,7 +63,8 @@ LSA_SRV_API_CONFIG gAPIConfig = {0};
 
 DWORD
 LsaSrvApiInit(
-    PCSTR pszConfigFilePath
+    PCSTR pszConfigFilePath,
+    PLSA_STATIC_PROVIDER pStaticProviders
     )
 {
     DWORD dwError = 0;
@@ -90,7 +91,7 @@ LsaSrvApiInit(
                     &gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvInitAuthProviders(pszConfigFilePath);
+    dwError = LsaSrvInitAuthProviders(pszConfigFilePath, pStaticProviders);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaInitRpcServers(pszConfigFilePath);
@@ -128,4 +129,65 @@ LsaSrvApiShutdown(
     pthread_mutex_unlock(&gAPIConfigLock);
 
     return 0;
+
+
 }
+
+
+
+static LWMsgDispatchSpec gMessageHandlers[] =
+{
+    LWMSG_DISPATCH(LSA_Q_GROUP_BY_NAME, LsaSrvIpcFindGroupByName),
+    LWMSG_DISPATCH(LSA_Q_GROUP_BY_ID, LsaSrvIpcFindGroupById),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_GROUPS, LsaSrvIpcBeginEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_ENUM_GROUPS, LsaSrvIpcEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_GROUPS, LsaSrvIpcEndEnumGroups),
+    LWMSG_DISPATCH(LSA_Q_USER_BY_NAME, LsaSrvIpcFindUserByName),
+    LWMSG_DISPATCH(LSA_Q_USER_BY_ID, LsaSrvIpcFindUserById),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_USERS, LsaSrvIpcBeginEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_ENUM_USERS, LsaSrvIpcEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_USERS, LsaSrvIpcEndEnumUsers),
+    LWMSG_DISPATCH(LSA_Q_AUTH_USER, LsaSrvIpcAuthenticateUser),
+    LWMSG_DISPATCH(LSA_Q_AUTH_USER_EX, LsaSrvIpcAuthenticateUserEx),
+    LWMSG_DISPATCH(LSA_Q_VALIDATE_USER, LsaSrvIpcValidateUser),
+    LWMSG_DISPATCH(LSA_Q_CHANGE_PASSWORD, LsaSrvIpcChangePassword),
+    LWMSG_DISPATCH(LSA_Q_SET_PASSWORD, LsaSrvIpcSetPassword),
+    LWMSG_DISPATCH(LSA_Q_OPEN_SESSION, LsaSrvIpcOpenSession),
+    LWMSG_DISPATCH(LSA_Q_CLOSE_SESSION, LsaSrvIpcCloseSession),
+    LWMSG_DISPATCH(LSA_Q_MODIFY_USER, LsaSrvIpcModifyUser),
+    LWMSG_DISPATCH(LSA_Q_NAMES_BY_SID_LIST, LsaSrvIpcGetNamesBySidList),
+    LWMSG_DISPATCH(LSA_Q_GSS_MAKE_AUTH_MSG, LsaSrvIpcBuildAuthMessage),
+    LWMSG_DISPATCH(LSA_Q_GSS_CHECK_AUTH_MSG, LsaSrvIpcCheckAuthMessage),
+    LWMSG_DISPATCH(LSA_Q_ADD_GROUP, LsaSrvIpcAddGroup),
+    LWMSG_DISPATCH(LSA_Q_MODIFY_GROUP, LsaSrvIpcModifyGroup),
+    LWMSG_DISPATCH(LSA_Q_DELETE_GROUP, LsaSrvIpcDeleteGroup),
+    LWMSG_DISPATCH(LSA_Q_ADD_USER, LsaSrvIpcAddUser),
+    LWMSG_DISPATCH(LSA_Q_DELETE_USER, LsaSrvIpcDeleteUser),
+    LWMSG_DISPATCH(LSA_Q_GROUPS_FOR_USER, LsaSrvIpcGetGroupsForUser),
+    LWMSG_DISPATCH(LSA_Q_GET_METRICS, LsaSrvIpcGetMetrics),
+    LWMSG_DISPATCH(LSA_Q_SET_LOGINFO, LsaSrvIpcSetLogInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_LOGINFO, LsaSrvIpcGetLogInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_STATUS, LsaSrvIpcGetStatus),
+    LWMSG_DISPATCH(LSA_Q_REFRESH_CONFIGURATION, LsaSrvIpcRefreshConfiguration),
+    LWMSG_DISPATCH(LSA_Q_CHECK_USER_IN_LIST, LsaSrvIpcCheckUserInList),
+    LWMSG_DISPATCH(LSA_Q_BEGIN_ENUM_NSS_ARTEFACTS, LsaSrvIpcBeginEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_ENUM_NSS_ARTEFACTS, LsaSrvIpcEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_END_ENUM_NSS_ARTEFACTS, LsaSrvIpcEndEnumNSSArtefacts),
+    LWMSG_DISPATCH(LSA_Q_FIND_NSS_ARTEFACT_BY_KEY, LsaSrvIpcFindNSSArtefactByKey),
+    LWMSG_DISPATCH(LSA_Q_SET_TRACE_INFO, LsaSrvIpcSetTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_GET_TRACE_INFO, LsaSrvIpcGetTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_ENUM_TRACE_INFO, LsaSrvIpcEnumTraceInfo),
+    LWMSG_DISPATCH(LSA_Q_PROVIDER_IO_CONTROL, LsaSrvIpcProviderIoControl),
+    LWMSG_DISPATCH_END
+};
+
+LWMsgDispatchSpec*
+LsaSrvGetDispatchSpec(
+    void
+    )
+{
+    return gMessageHandlers;
+}
+
+
+pthread_t gRpcSrvWorker;

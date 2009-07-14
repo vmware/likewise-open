@@ -58,7 +58,7 @@ static
 NTSTATUS
 RdrFileSpecToSearchPattern(
     PCWSTR pwszPath,
-    PIO_FILE_SPEC pFileSpec,
+    PIO_MATCH_FILE_SPEC pFileSpec,
     PWSTR* ppwszSearchPattern
     );
 
@@ -218,7 +218,7 @@ static
 NTSTATUS
 RdrFileSpecToSearchPattern(
     PCWSTR pwszPath,
-    PIO_FILE_SPEC pFileSpec,
+    PIO_MATCH_FILE_SPEC pFileSpec,
     PWSTR* ppwszSearchPattern
     )
 {

@@ -1179,6 +1179,10 @@ AD_SetConfig_CellSupport(
     {
         pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
     }
+    else if (!strcasecmp(pszValue, "default-schema"))
+    {
+        pConfig->CellSupport = AD_CELL_SUPPORT_DEFAULT_SCHEMA;
+    }
     else
     {
         LSA_LOG_ERROR("Invalid value for cell-support parameter");
@@ -1440,9 +1444,9 @@ AD_SetConfigFilePath(
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
-    LSA_SAFE_FREE_STRING(gpszConfigFilePath);
+    LSA_SAFE_FREE_STRING(gpszADConfigFilePath);
 
-    gpszConfigFilePath = pszConfigFilePathLocal;
+    gpszADConfigFilePath = pszConfigFilePathLocal;
 
 cleanup:
 
@@ -1468,10 +1472,10 @@ AD_GetConfigFilePath(
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
-    if (!IsNullOrEmptyString(gpszConfigFilePath))
+    if (!IsNullOrEmptyString(gpszADConfigFilePath))
     {
         dwError = LsaAllocateString(
-                        gpszConfigFilePath,
+                        gpszADConfigFilePath,
                         &pszConfigFilePath
                         );
         BAIL_ON_LSA_ERROR(dwError);
@@ -1548,7 +1552,7 @@ AD_GetClockDriftSeconds(
     BOOLEAN bInLock = FALSE;
 
     ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
-    dwClockDriftSecs = gdwClockDriftSecs;
+    dwClockDriftSecs = gpLsaAdProviderState->dwMaxAllowedClockDriftSeconds;
     LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
 
     return dwClockDriftSecs;
@@ -1767,6 +1771,7 @@ AD_AddAllowedMember(
     BOOLEAN bInLock = FALSE;
     PSTR  pszValue = NULL;
     PSTR  pszSIDCopy = NULL;
+    PSTR  pszMemberCopy = NULL;
     PLSA_HASH_TABLE pAllowedMemberList = *ppAllowedMemberList;
 
     ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
@@ -1800,13 +1805,19 @@ AD_AddAllowedMember(
                     &pszSIDCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaAllocateString(
+                    pszMember,
+                    &pszMemberCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaHashSetValue(
                     pAllowedMemberList,
                     pszSIDCopy,
-                    pszSIDCopy);
+                    pszMemberCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
     pszSIDCopy = NULL;
+    pszMemberCopy = NULL;
 
     if ( AD_IsInMembersList_InLock(pszMember) )
     {
@@ -1821,16 +1832,22 @@ AD_AddAllowedMember(
                           &pszSIDCopy);
             BAIL_ON_LSA_ERROR(dwError);
 
+            dwError = LsaAllocateString(
+                          pszMember,
+                          &pszMemberCopy);
+            BAIL_ON_LSA_ERROR(dwError);
+
             dwError = LsaHashSetValue(
                           gpAllowedSIDs,
                           pszSIDCopy,
-                          pszSIDCopy);
+                          pszMemberCopy);
             BAIL_ON_LSA_ERROR(dwError);
 
             pszSIDCopy = NULL;
+            pszMemberCopy = NULL;
         }
 
-        AD_DeleteFromMembersList_InLock( pszMember);
+        AD_DeleteFromMembersList_InLock(pszMember);
     }
 
     *ppAllowedMemberList = pAllowedMemberList;
@@ -1838,6 +1855,7 @@ AD_AddAllowedMember(
 cleanup:
 
     LSA_SAFE_FREE_STRING(pszSIDCopy);
+    LSA_SAFE_FREE_STRING(pszMemberCopy);
 
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 

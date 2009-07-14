@@ -55,6 +55,7 @@
 #define LSA_INFO_TAG    "INFO"
 #define LSA_VERBOSE_TAG "VERBOSE"
 #define LSA_DEBUG_TAG   "DEBUG"
+#define LSA_TRACE_TAG   "TRACE"
 
 #define LSA_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 

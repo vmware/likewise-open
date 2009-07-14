@@ -551,7 +551,7 @@ cleanup:
 error:
     if (pObject)
     {
-        LsaDbSafeFreeObject(&pObject);
+        ADCacheSafeFreeObject(&pObject);
     }
     goto cleanup;
 }

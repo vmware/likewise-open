@@ -1,3 +1,53 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samdbstructs.h
+ *
+ * Abstract:
+ *
+ *
+ *      Likewise SAM Database Provider
+ *
+ *      SAM database structures
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewise.com)
+ *          Sriram Nambakam (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
+ */
+
 #ifndef __SAMDBSTRUCTS_H__
 #define __SAMDBSTRUCTS_H__
 
@@ -9,22 +59,15 @@ typedef struct _SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO
 
 } SAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO, *PSAMDB_OBJECTCLASS_TO_ATTR_MAP_INFO;
 
-typedef struct _SAM_DB_INSTANCE_LOCK
-{
-    LONG refCount;
-
-    pthread_rwlock_t  rwLock;
-    pthread_rwlock_t* pRwLock;
-
-} SAM_DB_INSTANCE_LOCK, *PSAM_DB_INSTANCE_LOCK;
-
 typedef struct _SAM_DB_CONTEXT
 {
-    PSAM_DB_INSTANCE_LOCK pDbLock;
-
     sqlite3* pDbHandle;
 
     sqlite3_stmt* pDelObjectStmt;
+    sqlite3_stmt* pQueryObjectCountStmt;
+    sqlite3_stmt* pQueryObjectRecordInfoStmt;
+
+    struct _SAM_DB_CONTEXT* pNext;
 
 } SAM_DB_CONTEXT, *PSAM_DB_CONTEXT;
 
@@ -36,9 +79,6 @@ typedef struct _SAM_DB_ATTR_LOOKUP
 
 typedef struct _SAM_DIRECTORY_CONTEXT
 {
-    pthread_rwlock_t  rwLock;
-    pthread_rwlock_t* pRwLock;
-
     PWSTR    pwszDistinguishedName;
     PWSTR    pwszCredential;
     ULONG    ulMethod;
@@ -66,7 +106,12 @@ typedef struct _SAM_GLOBALS
 
     DIRECTORY_PROVIDER_FUNCTION_TABLE providerFunctionTable;
 
-    PSAM_DB_INSTANCE_LOCK pDbInstanceLock;
+    pthread_rwlock_t  rwLock;
+    pthread_rwlock_t* pRwLock;
+
+    PSAM_DB_CONTEXT pDbContextList;
+    DWORD           dwNumDbContexts;
+    DWORD           dwNumMaxDbContexts;
 
 } SAM_GLOBALS, *PSAM_GLOBALS;
 
@@ -115,3 +160,12 @@ typedef struct _SAM_DB_COLUMN_VALUE
 
 #endif /* __SAMDBSTRUCTS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

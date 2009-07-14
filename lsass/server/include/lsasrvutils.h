@@ -84,6 +84,7 @@
 #define LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED                     1212 // Similar to Window event id 536
 #define LSASS_EVENT_FAILED_LOGON_UNEXPECTED_ERROR                    1213 // Similar to Window event id 537
 #define LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED                      1214 // Similar to Window event id 539
+#define LSASS_EVENT_FAILED_LOGON_CHECK_USER                          1215
 
 #define LSASS_EVENT_LOGON_PHASE_AUTHENTICATE                         1
 #define LSASS_EVENT_LOGON_PHASE_CREATE_SESSION                       2
@@ -113,6 +114,9 @@
 // Lsass provider events
 #define LSASS_EVENT_SUCCESSFUL_PROVIDER_INITIALIZATION               1500
 #define LSASS_EVENT_FAILED_PROVIDER_INITIALIZATION                   1501
+#define LSASS_EVENT_INFO_REQUIRE_MEMBERSHIP_OF_UPDATED               1502
+#define LSASS_EVENT_INFO_AUDITING_CONFIGURATION_ENABLED              1503
+#define LSASS_EVENT_INFO_AUDITING_CONFIGURATION_DISABLED             1504
 
 // Runtime warnings
 #define LSASS_EVENT_WARNING_CONFIGURATION_ID_CONFLICT                1601

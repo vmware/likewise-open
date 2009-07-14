@@ -73,6 +73,16 @@
     } while(0);
 
 
+#define PVFS_BAIL_ON_CANCELLED_IRP(pIrpCtx, nterr)  \
+    do {                                            \
+        if (pIrpCtx->bIsCancelled) {                \
+            nterr = STATUS_CANCELLED;               \
+            goto error;                             \
+        }                                           \
+    } while(0);
+
+
+
 /* Memory Macros */
 
 #define PVFS_FREE(pp)                           \

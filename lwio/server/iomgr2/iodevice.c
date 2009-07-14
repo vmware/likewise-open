@@ -71,8 +71,6 @@ IoDeviceCreate(
     status = IO_ALLOCATE(&pDeviceObject, IO_DEVICE_OBJECT, sizeof(*pDeviceObject));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    // cannot fail.
-
     pDeviceObject->ReferenceCount = 1;
     pDeviceObject->Driver = DriverHandle;
     pDeviceObject->DeviceName = deviceName;
@@ -84,7 +82,18 @@ IoDeviceCreate(
     IopDriverInsertDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
 
+    status = LwRtlInitializeMutex(&pDeviceObject->CancelMutex, FALSE);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
 cleanup:
+    if (status)
+    {
+        if (pDeviceObject)
+        {
+            IoDeviceDelete(&pDeviceObject);
+        }
+    }
+
     RtlUnicodeStringFree(&deviceName);
 
     IO_LOG_ENTER_LEAVE_STATUS_EE(status, EE);
@@ -107,6 +116,7 @@ IoDeviceDelete(
         IopDriverRemoveDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
         IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
         RtlUnicodeStringFree(&pDeviceObject->DeviceName);
+        LwRtlCleanupMutex(&pDeviceObject->CancelMutex);
         IoMemoryFree(pDeviceObject);
         *pDeviceHandle = NULL;
     }

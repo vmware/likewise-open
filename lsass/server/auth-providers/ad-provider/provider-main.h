@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -212,16 +212,17 @@ AD_FindGroupById(
 DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppResult
     );
 
 DWORD
-AD_GetUserGroupMembership(
+AD_GetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwNumGroupsFound,
@@ -288,6 +289,13 @@ AD_ChangePassword(
     );
 
 DWORD
+AD_SetPassword(
+    HANDLE hProvider,
+    PCSTR pszLoginId,
+    PCSTR pszPassword
+    );
+
+DWORD
 AD_AddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
@@ -311,6 +319,12 @@ AD_AddGroup(
     HANDLE hProvider,
     DWORD dwGroupInfoLevel,
     PVOID pGroupInfo
+    );
+
+DWORD
+AD_ModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
 DWORD
@@ -482,3 +496,13 @@ AD_GroupObjectToGroupInfo(
     );
 
 #endif /* __PROVIDER_MAIN_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

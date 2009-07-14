@@ -46,7 +46,12 @@
 
 #include "test-private.h"
 
-MU_LIBRARY_SETUP
+MU_LIBRARY_DESTRUCT()
+{
+    unlink(TEST_ENDPOINT);
+}
+
+MU_LIBRARY_SETUP()
 {
     signal(SIGPIPE, SIG_IGN);
 }
@@ -66,6 +71,8 @@ lwmsg_test_assoc_thread(
     )
 {
     StartInfo* info = data;
+
+    MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
 
     MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
 
@@ -94,7 +101,7 @@ lwmsg_test_assoc_pair(
         MU_FAILURE("socketpair(): %s", strerror(errno));
     }
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                protocol,
                &s1.assoc));
 
@@ -103,7 +110,7 @@ lwmsg_test_assoc_pair(
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
 
-    MU_TRY(lwmsg_connection_new(
+    MU_TRY(lwmsg_connection_new(NULL,
                protocol,
                &s2.assoc));
 
@@ -125,3 +132,48 @@ lwmsg_test_assoc_pair(
     pthread_join(thread2, NULL);
 }
 
+LWMsgBool
+lwmsg_test_log_function(
+    LWMsgLogLevel level,
+    const char* message,
+    const char* filename,
+    unsigned int line,
+    void* data
+    )
+{
+    MuLogLevel mu_level = 0;
+    LWMsgBool is_error = LWMSG_FALSE;
+
+    if (message)
+    {
+        switch (level)
+        {
+        case LWMSG_LOGLEVEL_ERROR:
+            /* MoonUnit does not have an error loglevel because errors
+               are considered a test failure.  Log a warning
+               instead and change the format of the message */
+            mu_level = MU_LEVEL_WARNING;
+            is_error = LWMSG_TRUE;
+            break;
+        case LWMSG_LOGLEVEL_WARNING:
+            mu_level = MU_LEVEL_WARNING;
+            break;
+        case LWMSG_LOGLEVEL_INFO:
+            mu_level = MU_LEVEL_INFO;
+            break;
+        case LWMSG_LOGLEVEL_VERBOSE:
+            mu_level = MU_LEVEL_VERBOSE;
+            break;
+        case LWMSG_LOGLEVEL_DEBUG:
+        mu_level = MU_LEVEL_DEBUG;
+        break;
+        case LWMSG_LOGLEVEL_TRACE:
+            mu_level = MU_LEVEL_TRACE;
+            break;
+        }
+
+        Mu_Interface_Event(filename, line, mu_level, is_error ? "ERROR: %s" : "%s", message);
+    }
+
+    return LWMSG_TRUE;
+}

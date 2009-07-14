@@ -130,6 +130,7 @@ LsaAdEnumGroupsFromCache(
     PVOID pBlob = NULL;
     size_t BlobSize = 0;
     LWMsgContext* context = NULL;
+    LWMsgDataContext* pDataContext = NULL;
     LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request;
     PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response = NULL;
     PLSA_GROUP_INFO_LIST pResultList = NULL;
@@ -147,15 +148,18 @@ LsaAdEnumGroupsFromCache(
     request.dwInfoLevel = dwInfoLevel;
     request.dwMaxNumGroups = dwMaxNumGroups;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(&context));
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_marshal_alloc(
-                              context,
-                              LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
-                              &request,
-                              &pBlob,
-                              &BlobSize));
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(context, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                                  pDataContext,
+                                  LsaAdIPCGetEnumGroupsFromCacheReqSpec(),
+                                  &request,
+                                  &pBlob,
+                                  &BlobSize));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProviderIoControl(
@@ -168,12 +172,12 @@ LsaAdEnumGroupsFromCache(
                   &pOutputBuffer);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_unmarshal_simple(
-                              context,
-                              LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
-                              pOutputBuffer,
-                              dwOutputBufferSize,
-                              (PVOID*)&response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                                  pDataContext,
+                                  LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
+                                  pOutputBuffer,
+                                  dwOutputBufferSize,
+                                  (PVOID*)&response));
     BAIL_ON_LSA_ERROR(dwError);
 
     pResultList = response->pGroupInfoList;
@@ -207,11 +211,15 @@ cleanup:
 
     if ( response )
     {
-        lwmsg_context_free_graph(
-            context,
+        lwmsg_data_free_graph(
+            pDataContext,
             LsaAdIPCGetEnumGroupsFromCacheRespSpec(),
             response);
+    }
 
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
     }
 
     if ( context )

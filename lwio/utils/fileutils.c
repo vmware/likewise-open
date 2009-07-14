@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -137,7 +137,7 @@ error:
 }
 
 DWORD
-SMBMoveFile(    
+SMBMoveFile(
     PCSTR pszSrcPath,
     PCSTR pszDstPath
     )
@@ -185,16 +185,16 @@ SMBChangeOwner(
 {
     DWORD dwError = 0;
     struct stat statbuf = {0};
-    
+
     if (lstat(pszPath, &statbuf) < 0) {
         dwError = errno;
         BAIL_ON_LWIO_ERROR(dwError);
     }
-    
+
     while (1) {
 
         if (S_ISLNK(statbuf.st_mode)) {
-            
+
             if (lchown(pszPath, uid, gid) < 0) {
                 if (errno == EINTR) {
                     continue;
@@ -204,9 +204,9 @@ SMBChangeOwner(
             } else {
                 break;
             }
-            
+
         } else {
-            
+
             if (chown(pszPath, uid, gid) < 0) {
                 if (errno == EINTR) {
                     continue;
@@ -470,7 +470,7 @@ error:
 
 DWORD
 SMBCreateDirectory(
-    PSTR pszPath,
+    PCSTR pszPath,
     mode_t dwFileMode
     )
 {
@@ -554,7 +554,7 @@ SMBGetOwnerAndPermissions(
     *mode = statbuf.st_mode;
 
 error:
- 
+
     return dwError;
 }
 
@@ -740,22 +740,22 @@ SMBGetSymlinkTarget(
 
        break;
     }
-    
+
     dwError = SMBAllocateString(
                     szBuf,
                     &pszTargetPath);
     BAIL_ON_LWIO_ERROR(dwError);
-    
+
     *ppszTargetPath = pszTargetPath;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszTargetPath = NULL;
-    
+
     LWIO_SAFE_FREE_STRING(pszTargetPath);
 
     goto cleanup;
@@ -785,12 +785,12 @@ SMBCopyDirectory(
     CHAR  szSrcPath[PATH_MAX+1];
     CHAR  szDstPath[PATH_MAX+1];
     PSTR  pszTargetPath = NULL;
-    
+
     if (NULL == (pDir = opendir(pszSourceDirPath))) {
        dwError = errno;
        BAIL_ON_LWIO_ERROR(dwError);
     }
-    
+
     while (NULL != (pDirEntry = readdir(pDir)))
     {
         if (!strcmp(pDirEntry->d_name, ".") ||
@@ -799,61 +799,61 @@ SMBCopyDirectory(
             continue;
 
         memset(&statbuf, 0, sizeof(statbuf));
-        
+
         sprintf(szSrcPath, "%s/%s", pszSourceDirPath, pDirEntry->d_name);
-        
+
         if (lstat(szSrcPath, &statbuf) < 0) {
             dwError = errno;
             BAIL_ON_LWIO_ERROR(dwError);
         }
 
         sprintf(szDstPath, "%s/%s", pszDestDirPath, pDirEntry->d_name);
-        
+
         if (S_ISDIR(statbuf.st_mode)) {
-            
+
             dwError = SMBCreateDirectory(
                             szDstPath,
                             statbuf.st_mode);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
             dwError = SMBCopyDirectory(
                             szSrcPath,
                             ownerUid,
                             ownerGid,
                             szDstPath);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
         } else if (S_ISREG(statbuf.st_mode)) {
-            
+
             dwError = SMBCopyFileWithOriginalPerms(
                             szSrcPath,
                             szDstPath);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
                             ownerGid);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
         } else if (S_ISLNK(statbuf.st_mode)) {
-            
+
             dwError = SMBGetSymlinkTarget(
                             szSrcPath,
                             &pszTargetPath);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
             dwError = SMBCreateSymlink(
                             pszTargetPath,
                             szDstPath);
             BAIL_ON_LWIO_ERROR(dwError);
-            
+
             dwError = SMBChangeOwner(
                             szDstPath,
                             ownerUid,
@@ -861,17 +861,17 @@ SMBCopyDirectory(
             BAIL_ON_LWIO_ERROR(dwError);
         }
     }
-    
+
 cleanup:
 
     if (pDir) {
         closedir(pDir);
     }
-    
+
     LWIO_SAFE_FREE_STRING(pszTargetPath);
 
     return dwError;
-    
+
 error:
 
     goto cleanup;
@@ -933,10 +933,10 @@ SMBGetMatchingFilePathsInFolder(
     while ((pDirEntry = readdir(pDir)) != NULL) {
 
         int copied = snprintf(
-                            szBuf, 
-                            sizeof(szBuf), 
-                            "%s/%s", 
-                            pszDirPath, 
+                            szBuf,
+                            sizeof(szBuf),
+                            "%s/%s",
+                            pszDirPath,
                             pDirEntry->d_name);
         if (copied >= sizeof(szBuf))
         {
@@ -998,7 +998,7 @@ SMBGetMatchingFilePathsInFolder(
 
     *pppszHostFilePaths = ppszHostFilePaths;
     *pdwNPaths = dwNPaths;
-    
+
 cleanup:
 
     if (pPathNode) {

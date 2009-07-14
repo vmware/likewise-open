@@ -231,7 +231,7 @@ ADMarshalNSSArtefactInfoList_0(
         goto done;
     }
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     nArtefact = ldap_count_entries(
                     pLd,
@@ -260,7 +260,7 @@ ADMarshalNSSArtefactInfoList_0(
                         (PVOID*)&pArtefactInfo);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaLdapGetString(
+        dwError = LwLdapGetString(
                         hDirectory,
                         pArtefactMessage,
                         "name",
@@ -274,7 +274,7 @@ ADMarshalNSSArtefactInfoList_0(
                 ppszValues = NULL;
             }
 
-            dwError = LsaLdapGetStrings(
+            dwError = LwLdapGetStrings(
                             hDirectory,
                             pArtefactMessage,
                             AD_LDAP_KEYWORDS_TAG,

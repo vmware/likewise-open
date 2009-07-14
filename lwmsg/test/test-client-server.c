@@ -35,17 +35,18 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
+#define LWMSG_SPEC_META
+
+#include <config.h>
 #include <lwmsg/lwmsg.h>
 #include <moonunit/moonunit.h>
-#include <config.h>
 #include <pthread.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "util-private.h"
 #include "test-private.h"
 
 typedef struct CounterHandle
@@ -128,48 +129,31 @@ LWMsgProtocolSpec counterprotocol_spec[] =
 };
 
 static LWMsgStatus
-counter_srv_connect(
-    LWMsgServer* server,
-    LWMsgAssoc* assoc,
-    void* data
-    )
-{
-    LWMsgSecurityToken* token = NULL;
-    uid_t uid;
-
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_peer_security_token(assoc, &token));
-    MU_TRY(lwmsg_local_token_get_eid(token, &uid, NULL));
-
-    MU_VERBOSE("Connection on association %p from uid %lu", assoc, (unsigned long) uid);
-
-    return LWMSG_STATUS_SUCCESS;
-}
-
-static LWMsgStatus
-counter_srv_open(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
+counter_srv_open(LWMsgCall* call, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     CounterHandle* handle = malloc(sizeof(*handle));
-    CounterRequest* request = request_msg->object;
+    CounterRequest* request = request_msg->data;
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
 
     pthread_mutex_init(&handle->lock, NULL);
 
     handle->counter = request->counter;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "CounterHandle", handle, free));
+    MU_TRY(lwmsg_session_register_handle(session, "CounterHandle", handle, free));
 
     reply_msg->tag = COUNTER_OPEN_SUCCESS;
-    reply_msg->object = handle;
+    reply_msg->data = handle;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_retain_handle(assoc, handle));
+    MU_TRY(lwmsg_session_retain_handle(session, handle));
 
     return status;
 }
 static LWMsgStatus
-counter_srv_add(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
+counter_srv_add(LWMsgCall* call, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    CounterAdd* add = request_msg->object;
+    CounterAdd* add = request_msg->data;
     CounterHandle* handle = add->handle;
     CounterReply* reply = malloc(sizeof(*reply));
 
@@ -179,16 +163,16 @@ counter_srv_add(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage
     pthread_mutex_unlock(&handle->lock);
 
     reply_msg->tag = COUNTER_ADD_SUCCESS;
-    reply_msg->object = reply;
+    reply_msg->data = reply;
 
     return status;
 }
 
 static LWMsgStatus
-counter_srv_read(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
+counter_srv_read(LWMsgCall* call, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    CounterHandle* handle = request_msg->object;
+    CounterHandle* handle = request_msg->data;
     CounterReply* reply = malloc(sizeof(*reply));
 
     pthread_mutex_lock(&handle->lock);
@@ -196,37 +180,38 @@ counter_srv_read(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessag
     pthread_mutex_unlock(&handle->lock);
 
     reply_msg->tag = COUNTER_READ_SUCCESS;
-    reply_msg->object = reply;
+    reply_msg->data = reply;
 
     return status;
 }
 
 static LWMsgStatus
-counter_srv_close(LWMsgAssoc* assoc, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
+counter_srv_close(LWMsgCall* call, const LWMsgMessage* request_msg, LWMsgMessage* reply_msg, void* data)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    CounterHandle* handle = request_msg->object;
+    CounterHandle* handle = request_msg->data;
     CounterReply* reply = malloc(sizeof(*reply));
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
 
     pthread_mutex_lock(&handle->lock);
     reply->counter = handle->counter;
     pthread_mutex_unlock(&handle->lock);
     
     pthread_mutex_destroy(&handle->lock);
-    lwmsg_assoc_release_handle(assoc, handle);
+    lwmsg_session_unregister_handle(session, handle);
 
     reply_msg->tag = COUNTER_CLOSE_SUCCESS;
-    reply_msg->object = reply;
+    reply_msg->data = reply;
 
     return status;
 }
 
 LWMsgDispatchSpec counter_dispatch[] =
 {
-    LWMSG_DISPATCH(COUNTER_OPEN, counter_srv_open),
-    LWMSG_DISPATCH(COUNTER_ADD, counter_srv_add),
-    LWMSG_DISPATCH(COUNTER_READ, counter_srv_read),
-    LWMSG_DISPATCH(COUNTER_CLOSE, counter_srv_close),
+    LWMSG_DISPATCH_BLOCK(COUNTER_OPEN, counter_srv_open),
+    LWMSG_DISPATCH_BLOCK(COUNTER_ADD, counter_srv_add),
+    LWMSG_DISPATCH_BLOCK(COUNTER_READ, counter_srv_read),
+    LWMSG_DISPATCH_BLOCK(COUNTER_CLOSE, counter_srv_close),
     LWMSG_DISPATCH_END
 };
 
@@ -247,8 +232,8 @@ add_thread(void* _data)
     int i;
     LWMsgAssoc* assoc = NULL;
     CounterAdd add;
-    LWMsgMessageTag reply_type;
-    void* reply_object;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&data->lock);
     while (!data->go)
@@ -264,15 +249,17 @@ add_thread(void* _data)
 
     for (i = 0; i < data->iters; i++)
     {
-        MU_TRY_ASSOC(assoc, lwmsg_assoc_send_transact(assoc, COUNTER_ADD, &add, &reply_type, &reply_object));
+        request_msg.tag = COUNTER_ADD;
+        request_msg.data = &add;
 
-        MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_type, COUNTER_ADD_SUCCESS);
+        MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message_transact(assoc, &request_msg, &reply_msg));
+        MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, COUNTER_ADD_SUCCESS);
 
         MU_VERBOSE("(0x%lx) counter: %i -> %i",
                    (unsigned long) (pthread_self()), 
-                   ((CounterReply*) reply_object)->counter,
-                   ((CounterReply*) reply_object)->counter+1);
-        free(reply_object);
+                   ((CounterReply*) reply_msg.data)->counter,
+                   ((CounterReply*) reply_msg.data)->counter+1);
+        lwmsg_assoc_destroy_message(assoc, &reply_msg);
     }
 
     MU_TRY(lwmsg_client_release_assoc(data->client, assoc));
@@ -280,18 +267,17 @@ add_thread(void* _data)
     return NULL;
 }
 
-#define MAX_CLIENTS 8
+#define MAX_CLIENTS 16
 #define MAX_DISPATCH 4
 #define NUM_THREADS 16
 #define NUM_ITERS 10
-
-#define ENDPOINT "/tmp/.counter_test_socket"
 
 MU_TEST(client_server, parallel)
 {
     Data data;
     pthread_t threads[NUM_THREADS];
     int i;
+    LWMsgContext* context = NULL;
     LWMsgProtocol* protocol = NULL;
     LWMsgClient* client = NULL;
     LWMsgServer* server = NULL;
@@ -301,25 +287,27 @@ MU_TEST(client_server, parallel)
     LWMsgMessage reply_msg;
     LWMsgTime timeout = {1, 0};
 
-    MU_TRY(lwmsg_protocol_new(NULL, &protocol));
+    MU_TRY(lwmsg_context_new(NULL, &context));
+    lwmsg_context_set_log_function(context, lwmsg_test_log_function, NULL);
+
+    MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
 
-    MU_TRY(lwmsg_server_new(protocol, &server));
+    MU_TRY(lwmsg_server_new(context, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT, 0600));
+    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
     MU_TRY(lwmsg_server_set_max_dispatch(server, MAX_DISPATCH));
     MU_TRY(lwmsg_server_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
-    MU_TRY(lwmsg_server_set_connect_callback(server, counter_srv_connect));
     MU_TRY(lwmsg_server_start(server));
 
-    MU_TRY(lwmsg_client_new(protocol, &client));
+    MU_TRY(lwmsg_client_new(context, protocol, &client));
     MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, ENDPOINT));
+    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request.counter = 0;
     request_msg.tag = COUNTER_OPEN;
-    request_msg.object = &request;
+    request_msg.data = &request;
 
     MU_TRY(lwmsg_client_send_message_transact(
                client,
@@ -329,7 +317,7 @@ MU_TEST(client_server, parallel)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, COUNTER_OPEN_SUCCESS);
 
     data.client = client;
-    data.handle = reply_msg.object;
+    data.handle = reply_msg.data;
     data.iters = NUM_ITERS;
     data.go = 0;
     
@@ -351,7 +339,7 @@ MU_TEST(client_server, parallel)
     }
 
     request_msg.tag = COUNTER_READ;
-    request_msg.object = data.handle;
+    request_msg.data = data.handle;
 
     MU_TRY(lwmsg_client_send_message_transact(
                client,
@@ -360,14 +348,14 @@ MU_TEST(client_server, parallel)
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, COUNTER_READ_SUCCESS);
 
-    reply = reply_msg.object;
+    reply = reply_msg.data;
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply->counter, NUM_THREADS * NUM_ITERS);
 
     free(reply);
 
     request_msg.tag = COUNTER_CLOSE;
-    request_msg.object = data.handle;
+    request_msg.data = data.handle;
 
     MU_TRY(lwmsg_client_send_message_transact(
                client,
@@ -376,7 +364,7 @@ MU_TEST(client_server, parallel)
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, COUNTER_CLOSE_SUCCESS);
 
-    free(reply_msg.object);
+    free(reply_msg.data);
 
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);

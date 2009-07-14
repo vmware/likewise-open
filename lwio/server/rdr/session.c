@@ -211,12 +211,16 @@ SMBSessionRelease(
     {
         if (pSession->state != RDR_SESSION_STATE_READY)
         {
-            SMBHashRemoveKey(
-                pSession->pSocket->pSessionHashByPrincipal,
-                pSession->pszPrincipal);
-            SMBHashRemoveKey(
-                pSession->pSocket->pSessionHashByUID,
-                &pSession->uid);
+            if (pSession->bParentLink)
+            {
+                SMBHashRemoveKey(
+                    pSession->pSocket->pSessionHashByPrincipal,
+                    &pSession->key);
+                SMBHashRemoveKey(
+                    pSession->pSocket->pSessionHashByUID,
+                    &pSession->uid);
+                pSession->bParentLink = FALSE;
+            }
             LWIO_UNLOCK_MUTEX(bInLock, &pSession->pSocket->mutex);
             SMBSessionFree(pSession);
         }
@@ -251,7 +255,7 @@ SMBSessionFree(
     pthread_mutex_destroy(&pSession->mutex);
 
     LWIO_SAFE_FREE_MEMORY(pSession->pSessionKey);
-    LWIO_SAFE_FREE_MEMORY(pSession->pszPrincipal);
+    LWIO_SAFE_FREE_MEMORY(pSession->key.pszPrincipal);
 
     if (pSession->pSocket)
     {
@@ -269,11 +273,25 @@ SMBSessionInvalidate(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bInSocketLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pSession->mutex);
 
     pSession->state = RDR_SESSION_STATE_ERROR;
     pSession->error = ntStatus;
+
+    LWIO_LOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
+    if (pSession->bParentLink)
+    {
+        SMBHashRemoveKey(
+            pSession->pSocket->pSessionHashByPrincipal,
+            &pSession->key);
+        SMBHashRemoveKey(
+            pSession->pSocket->pSessionHashByUID,
+            &pSession->uid);
+        pSession->bParentLink = FALSE;
+    }
+    LWIO_UNLOCK_MUTEX(bInSocketLock, &pSession->pSocket->mutex);
 
     pthread_cond_broadcast(&pSession->event);
 

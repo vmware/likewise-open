@@ -48,7 +48,7 @@ static
 VOID
 NtpCtxFreeResponse(
     IN PIO_CONTEXT pConnection,
-    IN LWMsgMessageTag ReponseType,
+    IN LWMsgTag ReponseType,
     IN PVOID pResponse
     )
 {
@@ -62,15 +62,15 @@ static
 NTSTATUS
 NtpCtxCall(
     IN PIO_CONTEXT pConnection,
-    IN LWMsgMessageTag RequestType,
+    IN LWMsgTag RequestType,
     IN PVOID pRequest,
-    IN LWMsgMessageTag ResponseType,
+    IN LWMsgTag ResponseType,
     OUT PVOID* ppResponse
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
-    LWMsgMessageTag actualResponseType = (LWMsgMessageTag) -1;
+    LWMsgTag actualResponseType = (LWMsgTag) -1;
     PVOID pResponse = NULL;
 
     status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_send_transact(
@@ -150,7 +150,7 @@ LwNtCtxCreateNamedPipeFile(
     IN PIO_CONTEXT pConnection,
     IN LW_PIO_ACCESS_TOKEN pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
@@ -232,7 +232,7 @@ LwNtCtxCreateFile(
     IN PIO_CONTEXT pConnection,
     IN LW_PIO_ACCESS_TOKEN pSecurityToken,
     OUT PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     IN OPTIONAL PVOID SecurityDescriptor, // TBD
@@ -250,15 +250,25 @@ LwNtCtxCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
     NT_IPC_MESSAGE_CREATE_FILE request = { 0 };
     PNT_IPC_MESSAGE_CREATE_FILE_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_FILE_HANDLE fileHandle = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_ACCESS_TOKEN pResolvedSecurityToken = NULL;
 
-    request.pSecurityToken = (PIO_ACCESS_TOKEN) pSecurityToken;
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = LwIoResolveAccessToken(pSecurityToken, &pResolvedSecurityToken);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    request.pSecurityToken = pResolvedSecurityToken;
     request.FileName = *FileName;
     request.DesiredAccess = DesiredAccess;
     request.AllocationSize = AllocationSize;
@@ -318,6 +328,11 @@ LwNtCtxCreateFile(
     pResponse->FileHandle = NULL;
 
 cleanup:
+    if (pResolvedSecurityToken)
+    {
+        LwIoDeleteAccessToken(pResolvedSecurityToken);
+    }
+
     if (status)
     {
         // TODO !!!! -- ASK BRIAN ABOUT FileHandle and failures...
@@ -332,6 +347,7 @@ cleanup:
     *IoStatusBlock = ioStatusBlock;
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
+
     return status;
 }
 
@@ -343,8 +359,8 @@ LwNtCtxCloseFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
     NT_IPC_MESSAGE_GENERIC_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
@@ -380,7 +396,7 @@ NTSTATUS
 LwNtCtxReadFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -390,12 +406,18 @@ LwNtCtxReadFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_READ_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_READ_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
     NT_IPC_MESSAGE_READ_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.Length = Length;
@@ -428,7 +450,7 @@ NTSTATUS
 LwNtCtxWriteFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length,
@@ -438,12 +460,18 @@ LwNtCtxWriteFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_WRITE_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_WRITE_FILE_RESULT;
     NT_IPC_MESSAGE_WRITE_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.Buffer = Buffer;
@@ -478,7 +506,7 @@ NTSTATUS
 LwNtCtxDeviceIoControlFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG IoControlCode,
     IN PVOID InputBuffer,
@@ -489,12 +517,18 @@ LwNtCtxDeviceIoControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE_RESULT;
     NT_IPC_MESSAGE_GENERIC_CONTROL_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.ControlCode = IoControlCode;
@@ -528,7 +562,7 @@ NTSTATUS
 LwNtCtxFsControlFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN ULONG FsControlCode,
     IN PVOID InputBuffer,
@@ -539,12 +573,18 @@ LwNtCtxFsControlFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
     NT_IPC_MESSAGE_GENERIC_CONTROL_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.ControlCode = FsControlCode;
@@ -578,18 +618,24 @@ NTSTATUS
 LwNtCtxFlushBuffersFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE_RESULT;
     NT_IPC_MESSAGE_GENERIC_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
 
@@ -619,7 +665,7 @@ NTSTATUS
 LwNtCtxQueryInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
@@ -628,12 +674,18 @@ LwNtCtxQueryInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE_RESULT;
     NT_IPC_MESSAGE_QUERY_INFORMATION_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.Length = Length;
@@ -665,7 +717,7 @@ NTSTATUS
 LwNtCtxSetInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FileInformation,
     IN ULONG Length,
@@ -674,12 +726,18 @@ LwNtCtxSetInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE_RESULT;
     NT_IPC_MESSAGE_SET_INFORMATION_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.FileInformation = FileInformation;
@@ -712,37 +770,45 @@ cleanup:
 // Additional Operations
 //
 
+#if 0
 NTSTATUS
 LwNtCtxQueryFullAttributesFile(
     IN PIO_CONTEXT pConnection,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName,
     OUT PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
+#endif
 
 NTSTATUS 
 LwNtCtxQueryDirectoryFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FileInformation,
     IN ULONG Length,
     IN FILE_INFORMATION_CLASS FileInformationClass,
     IN BOOLEAN ReturnSingleEntry,
-    IN OPTIONAL PIO_FILE_SPEC FileSpec,
+    IN OPTIONAL PIO_MATCH_FILE_SPEC FileSpec,
     IN BOOLEAN RestartScan
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_DIRECTORY_FILE_RESULT;
     NT_IPC_MESSAGE_QUERY_DIRECTORY_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.Length = Length;
@@ -778,7 +844,7 @@ NTSTATUS
 LwNtCtxQueryVolumeInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID FsInformation,
     IN ULONG Length,
@@ -787,12 +853,18 @@ LwNtCtxQueryVolumeInformationFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_VOLUME_INFORMATION_FILE_RESULT;
     NT_IPC_MESSAGE_QUERY_VOLUME_INFORMATION_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = FileHandle;
     request.Length = Length;
@@ -824,7 +896,7 @@ NTSTATUS
 LwNtCtxSetVolumeInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID FsInformation,
     IN ULONG Length,
@@ -835,25 +907,113 @@ NTSTATUS
 LwNtCtxLockFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
     IN ULONG Key,
     IN BOOLEAN FailImmediately,
     IN BOOLEAN ExclusiveLock
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_LOCK_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_LOCK_FILE_RESULT;
+    NT_IPC_MESSAGE_LOCK_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    request.FileHandle = FileHandle;
+    request.ByteOffset = ByteOffset,
+    request.Length = Length;
+    request.Key = Key;
+    request.FailImmediately = FailImmediately;
+    request.ExclusiveLock = ExclusiveLock;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+}
+
 
 NTSTATUS 
 LwNtCtxUnlockFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN LONG64 ByteOffset,
     IN LONG64 Length,
     IN ULONG Key
-    );
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_UNLOCK_FILE_RESULT;
+    NT_IPC_MESSAGE_UNLOCK_FILE request = { 0 };
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
+    PVOID pReply = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    request.FileHandle = FileHandle;
+    request.ByteOffset = ByteOffset,
+    request.Length = Length;
+    request.Key = Key;
+
+    status = NtpCtxCall(pConnection,
+                        requestType,
+                        &request,
+                        responseType,
+                        &pReply);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pResponse = (PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT) pReply;
+
+    status = NtpCtxGetIoResult(&ioStatusBlock, pResponse);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+cleanup:
+    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    *IoStatusBlock = ioStatusBlock;
+
+    LOG_LEAVE_IF_STATUS_EE(status, EE);
+    return status;
+
+}
 
 //
 // Namespace Operations
@@ -861,27 +1021,36 @@ LwNtCtxUnlockFile(
 // These are in flux due NT vs POSIX issues.
 //
 
+#if 0
 NTSTATUS
 LwNtCtxRemoveDirectoryFile(
     IN PIO_CONTEXT pConnection,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
-    );
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
 
 NTSTATUS
 LwNtCtxDeleteFile(
     IN PIO_CONTEXT pConnection,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FileName
-    );
+    )
+{
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    return status;
+}
 
 NTSTATUS
 LwNtCtxLinkFile(
     IN PIO_CONTEXT pConnection,
     IN PIO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME LinkName
     );
@@ -889,11 +1058,12 @@ LwNtCtxLinkFile(
 NTSTATUS
 LwNtCtxRenameFile(
     IN PIO_CONTEXT pConnection,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_FILE_NAME FromName,
     IN PIO_FILE_NAME ToName
     );
+#endif
 
 //
 // Advanced Operations
@@ -903,7 +1073,7 @@ NTSTATUS
 LwNtCtxQueryQuotaInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     OUT PVOID Buffer,
     IN ULONG Length,
@@ -918,7 +1088,7 @@ NTSTATUS
 LwNtCtxSetQuotaInformationFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE FileHandle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PVOID Buffer,
     IN ULONG Length
@@ -928,7 +1098,7 @@ NTSTATUS
 LwNtCtxQuerySecurityFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -937,12 +1107,18 @@ LwNtCtxQuerySecurityFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_QUERY_SECURITY_FILE_RESULT;
     NT_IPC_MESSAGE_QUERY_SECURITY_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = Handle;
     request.SecurityInformation = SecurityInformation;
@@ -974,7 +1150,7 @@ NTSTATUS
 LwNtCtxSetSecurityFile(
     IN PIO_CONTEXT pConnection,
     IN IO_FILE_HANDLE Handle,
-    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN SECURITY_INFORMATION SecurityInformation,
     IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
@@ -983,12 +1159,18 @@ LwNtCtxSetSecurityFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgMessageTag requestType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
-    const LWMsgMessageTag responseType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
+    const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE;
+    const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_SET_SECURITY_FILE_RESULT;
     NT_IPC_MESSAGE_SET_SECURITY_FILE request = { 0 };
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+
+    if (AsyncControlBlock)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
 
     request.FileHandle = Handle;
     request.SecurityInformation = SecurityInformation;

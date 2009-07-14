@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -200,6 +200,11 @@ ADMarshalFromGroupCache(
                                 &pGroupInfo1->pszSid);
             BAIL_ON_LSA_ERROR(dwError);
 
+            dwError = LsaAllocateString(
+                                pGroup->pszDN,
+                                &pGroupInfo1->pszDN);
+            BAIL_ON_LSA_ERROR(dwError);
+
             for (sIndex = 0; sIndex < sMembers; sIndex++)
             {
                 if (ppMembers[sIndex]->enabled)
@@ -258,6 +263,7 @@ error:
     
     goto cleanup;
 }
+
 
 /*
 local variables:

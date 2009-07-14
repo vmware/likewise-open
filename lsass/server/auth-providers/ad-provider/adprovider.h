@@ -54,21 +54,28 @@
 #include <openssl/rand.h>
 #include <openssl/des.h>
 #include <sqlite3.h>
+#include <uuid/uuid.h>
 #include <eventlog.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
 #include <lwio/lwio.h>
 
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"
 #include "lsaipc.h"
 #include "lsaprovider.h"
 #include "lsaadprovider.h"
+#include "lsalocalclient.h"
 
 #include "lsasrvutils.h"
 #include "lsakrb5.h"
-#include "lsaldap.h"
-#include "lsadb.h"
+#include "lwldap.h"
+//#include "lsadb.h"
+#include "adcache.h"
+#include "adcachespi.h"
 
 #include "addef.h"
 #include "media-sense.h"
@@ -103,5 +110,10 @@
 #include "provider-main.h"
 #include "offline-helper.h"
 #include "lsasqlite.h"
+#include "lsasqlite_p.h"
 
 #include "externs.h"
+
+#include "sqlcache_create.h"
+#include "sqlcache_p.h"
+#include "lsasqlite.h"

@@ -42,7 +42,7 @@
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
 
-#define LWMSG_SPEC_DEBUG
+#define LWMSG_SPEC_META
 
 #include "includes.h"
 #include "ntipcmsg.h"
@@ -409,11 +409,13 @@ NtIpcLWMsgStatusToNtStatus(
     case LWMSG_STATUS_UNSUPPORTED:
         status = STATUS_NOT_SUPPORTED;
         break;
+    case LWMSG_STATUS_CANCELLED:
+        status = STATUS_CANCELLED;
+        break;
         // TODO -- map these lwmsg status codes:
     case LWMSG_STATUS_AGAIN:
     case LWMSG_STATUS_MALFORMED:
     case LWMSG_STATUS_SYSTEM:
-    case LWMSG_STATUS_INTERRUPT:
     case LWMSG_STATUS_CONNECTION_REFUSED:
     case LWMSG_STATUS_INVALID_STATE:
     case LWMSG_STATUS_PEER_RESET:

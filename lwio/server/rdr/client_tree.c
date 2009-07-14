@@ -50,6 +50,7 @@ NTSTATUS
 RdrAcquireEstablishedSession(
     IN OUT PSMB_SOCKET* ppSocket,
     PCSTR pszPrincipal,
+    uid_t uid,
     OUT PSMB_SESSION* ppSession
     );
 
@@ -66,6 +67,7 @@ SMBSrvClientTreeOpen(
     PCSTR pszHostname,
     PCSTR pszPrincipal,
     PCSTR pszSharename,
+    uid_t uid,
     PSMB_TREE* ppTree
     )
 {
@@ -82,6 +84,7 @@ SMBSrvClientTreeOpen(
     ntStatus = RdrAcquireEstablishedSession(
         &pSocket,
         pszPrincipal,
+        uid,
         &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -181,6 +184,7 @@ NTSTATUS
 RdrAcquireEstablishedSession(
     PSMB_SOCKET* ppSocket,
     PCSTR pszPrincipal,
+    uid_t uid,
     OUT PSMB_SESSION* ppSession
     )
 {
@@ -193,6 +197,7 @@ RdrAcquireEstablishedSession(
     ntStatus = SMBSrvClientSessionCreate(
         ppSocket,
         pszPrincipal,
+        uid,
         &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -421,6 +426,8 @@ SMBSrvClientTreeCreate(
             pTree->pszPath,
             pTree);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pTree->bParentLink = TRUE;
 
         *ppSession = NULL;
     }

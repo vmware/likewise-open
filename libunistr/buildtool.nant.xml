@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<project>
+  <target name="local.build">
+    <cl outputdir="${build.meta.current}/">
+      <includedirs>
+        <include name="include"/>
+      </includedirs>
+      <defines>
+        <define name="LIBUNISTR_EXPORTS"/>
+      </defines>
+      <sources>
+	<include name="lib/*.c"/>
+      </sources>
+    </cl>
+    <link output="${build.meta.current}/libunistr.dll" options="/dll">
+      <sources basedir="${build.meta.current}/">
+        <include name="*.obj"/>
+      </sources>
+    </link>
+    <copy todir="${build.dist.os}">
+      <fileset basedir="${build.meta.current}">
+	<include name="*.dll"/>
+	<include name="*.exe"/>
+      </fileset>
+    </copy>
+  </target>
+</project>

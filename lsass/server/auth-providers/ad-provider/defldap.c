@@ -163,7 +163,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
                     pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                    &pszEscapedDN,
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -196,7 +196,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
                    &pMessagePseudo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -291,7 +291,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
                     pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                    &pszEscapedDN,
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -324,7 +324,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
                    &pMessagePseudo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                       pLd,
@@ -488,7 +488,7 @@ DefaultModeSchemaEnumNSSArtefacts(
                     pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                    &pszEscapedDN,
                    pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -511,7 +511,7 @@ DefaultModeSchemaEnumNSSArtefacts(
 
     BAIL_ON_LSA_ERROR(dwError);
 
-    pLd = LsaLdapGetSession(hDirectory);
+    pLd = LwLdapGetSession(hDirectory);
 
     dwCount = ldap_count_entries(
                           pLd,
@@ -610,7 +610,7 @@ DefaultModeNonSchemaEnumNSSArtefacts(
                     pszCellDN);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapEscapeString(
+    dwError = LwLdapEscapeString(
                     &pszEscapedDN,
                     pszDN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -634,7 +634,7 @@ DefaultModeNonSchemaEnumNSSArtefacts(
                        &pMessagePseudo);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(
                           pLd,

@@ -259,6 +259,51 @@ AC_SUBST(SQLITE_INCLUDES)
 AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
+AC_ARG_WITH([drivers], [AC_HELP_STRING([--with-drivers], [list of drivers to build (npfs pvfs srv rdr)])],
+		       [], [with_drivers="npfs pvfs srv rdr"])
+
+_IFS="${IFS}"
+IFS=" ,"
+for driver in $with_drivers
+do
+	eval "enable_${driver}=yes"
+done
+IFS="${_IFS}"
+
+AM_CONDITIONAL(ENABLE_RDR, test x"$enable_rdr" = x"yes")
+if test x"$enable_rdr" = x"yes"
+then
+	AC_DEFINE([ENABLE_RDR], [], [Define if rdr driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_SRV, test x"$enable_srv" = x"yes")
+if test x"$enable_srv" = x"yes"
+then
+	AC_DEFINE([ENABLE_SRV], [], [Define if srv driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_PVFS, test x"$enable_pvfs" = x"yes")
+if test x"$enable_pvfs" = x"yes"
+then
+	AC_DEFINE([ENABLE_PVFS], [], [Define if pvfs driver should be built])
+fi
+
+AM_CONDITIONAL(ENABLE_NPFS, test x"$enable_npfs" = x"yes")
+if test x"$enable_npfs" = x"yes"
+then
+	AC_DEFINE([ENABLE_NPFS], [], [Define if npfs driver should be built])
+fi
+
+# Boolean settings
+
+AC_ARG_ENABLE([static-drivers], [AC_HELP_STRING([--enable-static-drivers], [build drivers directly into lwiod])])
+AM_CONDITIONAL(ENABLE_STATIC_DRIVERS, test x"$enable_static_drivers" = x"yes")
+if test x"$enable_static_drivers" = x"yes"
+then
+	AC_DEFINE([ENABLE_STATIC_DRIVERS], [], [Define if drivers should be built directly into lwiod])
+fi
+
+
 #####
 ## Unit tests
 #####
@@ -315,7 +360,11 @@ AC_SUBST(lwioconfdir)
 AS_AC_EXPAND(CONFIGDIR, $lwioconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-lwiocachedir="$localstatedir/lib/likewise"
+if test x"$localstatedir" = x"/var"; then
+    lwiocachedir="$localstatedir/lib/likewise"
+else
+    lwiocachedir="$localstatedir"
+fi
 AC_SUBST(lwiocachedir)
 AS_AC_EXPAND(CACHEDIR, $lwiocachedir)
 AC_DEFINE_UNQUOTED(CACHEDIR, "$CACHEDIR", [Cache directory])
@@ -401,6 +450,46 @@ AC_CHECK_FUNCS([strtoll __strtoll strtoull __strtoull strtol strtoul])
 AC_CHECK_FUNCS([stpncpy strnlen])
 AC_CHECK_FUNCS([atexit localtime_r memset strchr strerror strerror_r vsyslog])
 AC_CHECK_FUNCS([rpl_realloc rpl_malloc])
+
+TRANSPORT_FOUND=false
+HAVE_EPOLL=false
+HAVE_KQUEUE=false
+HAVE_POLL=false
+HAVE_SELECT=false
+TRANSPORT_METHOD_DEFINES=
+
+#AC_CHECK_FUNC([epoll_ctl],
+#              [HAVE_EPOLL=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_EPOLL],
+#              [HAVE_EPOLL=false])
+AM_CONDITIONAL(HAVE_EPOLL, [$HAVE_EPOLL])
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([kqueue],
+#              [HAVE_KQUEUE=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_KQUEUE],
+#              [HAVE_KQUEUE=false])
+#fi
+#
+AM_CONDITIONAL(HAVE_KQUEUE, [$HAVE_KQUEUE])
+#
+#if test x"$TRANSPORT_FOUND" = x"false"
+#then
+#AC_CHECK_FUNC([poll],
+#              [HAVE_POLL=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_POLL],
+#              [HAVE_POLL=false])
+#fi
+#
+AM_CONDITIONAL(HAVE_POLL, [$HAVE_POLL])
+#
+if test x"$TRANSPORT_FOUND" = x"false"
+then
+AC_CHECK_FUNC([select],
+              [HAVE_SELECT=true;TRANSPORT_FOUND=true;TRANSPORT_METHOD_DEFINES=-DLW_USE_SELECT],
+              [HAVE_SELECT=false])
+fi
+
+AM_CONDITIONAL(HAVE_SELECT, [$HAVE_SELECT])
+AC_SUBST(TRANSPORT_METHOD_DEFINES)
 
 AC_CHECK_HEADERS([sys/vfs.h])
 AC_CHECK_FUNCS([dirfd fstatfs fdatasync fsync])
@@ -516,14 +605,28 @@ AC_CONFIG_FILES([Makefile
         logging_r/Makefile
         ipc/Makefile
         ipc/test/Makefile
-        smbkrb5/Makefile
         client/Makefile
         server/Makefile
         server/rdr/Makefile
-        server/smbwire/Makefile
+        server/smbcommon/Makefile
         server/iomgr2/Makefile
         server/srv/Makefile
-        server/npvfs/Makefile
+        server/srv/utils/Makefile
+        server/srv/shares/Makefile
+        server/srv/shares/lwshare/Makefile
+        server/srv/shares/api/Makefile
+        server/srv/elements/Makefile
+        server/srv/protocols/Makefile
+        server/srv/protocols/api/Makefile
+        server/srv/protocols/smb1/Makefile
+        server/srv/protocols/smb2/Makefile
+        server/srv/transport/Makefile
+        server/srv/transport/api/Makefile
+        server/srv/transport/lwepoll/Makefile
+        server/srv/transport/lwpoll/Makefile
+        server/srv/transport/lwselect/Makefile
+        server/srv/driver/Makefile
+        server/npfs/Makefile
         server/pvfs/Makefile
         server/lwiod/Makefile
         drivers/Makefile

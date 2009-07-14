@@ -43,6 +43,7 @@
  */
 
 #include "includes.h"
+#include "iotestctl.h"
 
 NTSTATUS
 ItDispatchDeviceIoControl(
@@ -50,6 +51,22 @@ ItDispatchDeviceIoControl(
     )
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    int EE = 0;
+
+    switch (pIrp->Args.IoFsControl.ControlCode)
+    {
+        case IOTEST_IOCTL_TEST_SYNC_CREATE:
+            status = ItTestSyncCreate();
+            break;
+        case IOTEST_IOCTL_TEST_ASYNC_CREATE:
+            status = ItTestAsyncCreate(TRUE, FALSE);
+            break;
+        default:
+            status = STATUS_INVALID_PARAMETER;
+            GOTO_CLEANUP_EE(EE);
+    }
+
+cleanup:
     pIrp->IoStatusBlock.Status = status;
     return status;
 }

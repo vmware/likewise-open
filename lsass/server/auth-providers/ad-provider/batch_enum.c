@@ -74,7 +74,7 @@ LsaAdBatchFreeCellCookie(
 
     if (pData != NULL)
     {
-        LsaFreeCookieContents(&pData->LdapCookie);
+        LwFreeCookieContents(&pData->LdapCookie);
         LsaDmLdapClose(pData->pLdapConn);
         LsaHashSafeFree(&pData->pEnumeratedSids);
 
@@ -121,7 +121,7 @@ LsaAdBatchEnumGetScopeRoot(
 
     if (bIsByRealObject)
     {
-        dwError = LsaLdapConvertDomainToDN(pszDnsDomainName, &pszScopeRoot);
+        dwError = LwLdapConvertDomainToDN(pszDnsDomainName, &pszScopeRoot);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
@@ -272,7 +272,7 @@ LsaAdBatchEnumProcessRealMessages(
 {
     DWORD dwError = 0;
     LDAPMessage* pCurrentMessage = NULL;
-    LDAP* pLd = LsaLdapGetSession(hDirectory);
+    LDAP* pLd = LwLdapGetSession(hDirectory);
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
 
@@ -316,7 +316,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -337,7 +337,7 @@ LsaAdBatchEnumProcessPseudoMessages(
 {
     DWORD dwError = 0;
     LDAPMessage* pCurrentMessage = NULL;
-    LDAP* pLd = LsaLdapGetSession(hDirectory);
+    LDAP* pLd = LwLdapGetSession(hDirectory);
     PSTR* ppszSids = NULL;
     DWORD dwSidsCount = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
@@ -355,7 +355,7 @@ LsaAdBatchEnumProcessPseudoMessages(
     {
         PCSTR pszSidFromKeywords = NULL;
 
-        dwError = LsaLdapGetStrings(
+        dwError = LwLdapGetStrings(
                         hDirectory,
                         pCurrentMessage,
                         AD_LDAP_KEYWORDS_TAG,
@@ -411,7 +411,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -434,7 +434,7 @@ LsaAdBatchEnumProcessMessages(
 {
     DWORD dwError = 0;
     DWORD dwCount = 0;
-    LDAP* pLd = LsaLdapGetSession(hDirectory);
+    LDAP* pLd = LwLdapGetSession(hDirectory);
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
 
@@ -493,7 +493,7 @@ cleanup:
 
 error:
     // set OUT params out cleanup.
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
 
     goto cleanup;
@@ -641,7 +641,7 @@ cleanup:
     {
         ldap_msgfree(pMessage);
     }
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     *pdwObjectsCount = dwTotalObjectsCount;
     *pppObjects = ppTotalObjects;
@@ -650,7 +650,7 @@ cleanup:
 
 error:
     // set OUT params in cleanup.
-    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    ADCacheSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
 
     goto cleanup;
@@ -729,7 +729,7 @@ LsaAdBatchEnumObjectsInLinkedCells(
         if (pCookieData->LdapCookie.bSearchFinished)
         {
             pCookieData->pCurrentCell = pCookieData->pCurrentCell->pNext;
-            LsaFreeCookieContents(&pCookieData->LdapCookie);
+            LwFreeCookieContents(&pCookieData->LdapCookie);
             LsaDmLdapClose(pCookieData->pLdapConn);
             pCookieData->pLdapConn = NULL;
         }
@@ -744,13 +744,13 @@ cleanup:
     *pdwObjectsCount = dwObjectsCount;
     *pppObjects = ppObjects;
 
-    LsaDbSafeFreeObjectList(dwObjectsCountInOneCell, &ppObjectsInOneCell);
+    ADCacheSafeFreeObjectList(dwObjectsCountInOneCell, &ppObjectsInOneCell);
 
     return dwError;
 
 error:
    // set OUT params in cleanup...
-   LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+   ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
    dwObjectsCount = 0;
 
    goto cleanup;
@@ -855,7 +855,7 @@ LsaAdBatchEnumObjects(
 
             if (pCookieData->LdapCookie.bSearchFinished)
             {
-                LsaFreeCookieContents(&pCookieData->LdapCookie);
+                LwFreeCookieContents(&pCookieData->LdapCookie);
                 LsaDmLdapClose(pCookieData->pLdapConn);
                 pCookieData->pLdapConn = NULL;
                 pCookieData->pCurrentCell = gpADProviderData->pCellList;
@@ -895,7 +895,7 @@ LsaAdBatchEnumObjects(
                 if (dwError == LSA_ERROR_SUCCESS)
                 {
                     // The object is already in the hash
-                    LsaDbSafeFreeObject(&ppTotalObjects[dwInput]);
+                    ADCacheSafeFreeObject(&ppTotalObjects[dwInput]);
                 }
                 else if (dwError == ENOENT)
                 {
@@ -947,9 +947,9 @@ cleanup:
 
 error:
     // set OUT params in cleanup...
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     dwObjectsCount = 0;
-    LsaDbSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
+    ADCacheSafeFreeObjectList(dwTotalObjectsCount, &ppTotalObjects);
     dwTotalObjectsCount = 0;
     goto cleanup;
 }

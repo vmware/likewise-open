@@ -35,6 +35,7 @@ NTSTATUS
 SMBSrvClientSessionCreate(
     IN OUT PSMB_SOCKET* ppSocket,
     IN PCSTR pszPrincipal,
+    uid_t uid,
     OUT PSMB_SESSION* ppSession
     )
 {
@@ -42,13 +43,17 @@ SMBSrvClientSessionCreate(
     PSMB_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
     PSMB_SOCKET pSocket = *ppSocket;
+    struct _RDR_SESSION_KEY key;
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
+    key.pszPrincipal = (PSTR) pszPrincipal;
+    key.uid = uid;
+
     ntStatus = SMBHashGetValue(
                     pSocket->pSessionHashByPrincipal,
-                    pszPrincipal,
-                    (PVOID *) &pSession);
+                    &key,
+                    OUT_PPVOID(&pSession));
 
     if (!ntStatus)
     {
@@ -63,18 +68,21 @@ SMBSrvClientSessionCreate(
 
         pSession->pSocket = pSocket;
 
-        /* Principal is trusted */
         ntStatus = SMBStrndup(
             pszPrincipal,
             strlen(pszPrincipal) + 1,
-            &pSession->pszPrincipal);
+            &pSession->key.pszPrincipal);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pSession->key.uid = uid;
 
         ntStatus = SMBHashSetValue(
                     pSocket->pSessionHashByPrincipal,
-                    pSession->pszPrincipal,
+                    &pSession->key,
                     pSession);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        pSession->bParentLink = TRUE;
 
         *ppSocket = NULL;
     }
@@ -168,6 +176,8 @@ SMBSrvClientSessionAddTreeById(
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTree->bParentLink = TRUE;
+
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSession->mutex);
@@ -225,6 +235,8 @@ SMBSrvClientSessionAddTreeByPath(
                     pTree->pszPath,
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pTree->bParentLink = TRUE;
 
 cleanup:
 

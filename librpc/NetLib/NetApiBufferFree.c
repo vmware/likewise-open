@@ -39,12 +39,15 @@ NetApiBufferFree(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
 
-    goto_if_invalid_param_winerr(buffer, cleanup);
+    BAIL_ON_INVALID_PTR(buffer);
 
     NetFreeMemory(buffer);
 
 cleanup:
     return status;
+
+error:
+    goto cleanup;
 }
 
 

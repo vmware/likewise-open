@@ -54,50 +54,9 @@ LWNetSrvParseConfigFile(
     PCSTR pszFilePath
     );
 
-DWORD
-LWNetSrvCfgStartSection(
-    PCSTR pszSectionName,
-    PVOID pData,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LWNetSrvCfgNameValuePair(
-    PCSTR pszName,
-    PCSTR pszValue,
-    PVOID pData,
-    PBOOLEAN pbContinue
-    );
-
-DWORD
-LWNetSetCacheReaperTimeoutSecs(
-    DWORD dwCacheReaperTimeoutSecs
-    );
-
-DWORD 
-LWNetGetCacheReaperTimeoutSecs(
+PCSTR
+LWGetPluginPath(
     VOID
     );
-
-DWORD
-LWNetSetCacheEntryExpirySeconds(
-    DWORD dwExpirySecs
-    ); 
-
-DWORD
-LWNetGetCacheEntryExpirySeconds(
-    VOID
-    );
-
-DWORD
-LWNetSetCurrentSiteName(
-    PCSTR pszCurrentSiteName
-    );
-
-DWORD
-LWNetGetCurrentSiteName(
-        PSTR* ppszCurrentSiteName
-        );
 
 #endif /* __LWNET_SERVER_CFG_H__ */

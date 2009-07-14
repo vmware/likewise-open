@@ -111,16 +111,16 @@ LwIoCreateDefaultKrb5AccessToken(
     Status = LwIoAllocateMemory(sizeof(*pAccessToken), OUT_PPVOID(&pAccessToken));
     BAIL_ON_NT_STATUS(Status);
 
-    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5;
+    pAccessToken->type = IO_ACCESS_TOKEN_TYPE_KRB5_CCACHE;
 
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5.pwszPrincipal,
+        &pAccessToken->payload.krb5Ccache.pwszPrincipal,
         pszPrincipalName
         );
     BAIL_ON_NT_STATUS(Status);
     
     Status = LwRtlWC16StringAllocateFromCString(
-        &pAccessToken->payload.krb5.pwszCachePath,
+        &pAccessToken->payload.krb5Ccache.pwszCachePath,
         pszCredCachePath
         );
     BAIL_ON_NT_STATUS(Status);
@@ -189,7 +189,7 @@ __LwIoThreadInit(
 
     LwIoInitialize();
 
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(gpLwIoProtocol, &gpClient));
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(NULL, gpLwIoProtocol, &gpClient));
     BAIL_ON_NT_STATUS(Status);
 
     Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_endpoint(

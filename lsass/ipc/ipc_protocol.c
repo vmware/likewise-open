@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -47,6 +47,8 @@
  *
  */
 
+#define LWMSG_SPEC_META
+
 #include "ipc.h"
 
 static LWMsgTypeSpec gLsaIPCErrorSpec[] =
@@ -58,7 +60,7 @@ static LWMsgTypeSpec gLsaIPCErrorSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaGroupInfo0Spec[] =
+LWMsgTypeSpec gLsaGroupInfo0Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_INFO_0),
     LWMSG_MEMBER_UINT32(LSA_GROUP_INFO_0, gid),
@@ -68,12 +70,13 @@ static LWMsgTypeSpec gLsaGroupInfo0Spec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaGroupInfo1Spec[] =
+LWMsgTypeSpec gLsaGroupInfo1Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_INFO_1),
     LWMSG_MEMBER_UINT32(LSA_GROUP_INFO_1, gid),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszName),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszSid),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszDN),
     LWMSG_MEMBER_PSTR(LSA_GROUP_INFO_1, pszPasswd),
     LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_INFO_1, ppszMembers),
     LWMSG_PSTR,
@@ -138,6 +141,7 @@ static LWMsgTypeSpec gLsaUserInfo1Spec[] =
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszShell),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszHomedir),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszSid),
+    LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszDN),
     LWMSG_MEMBER_PSTR(LSA_USER_INFO_1, pszUPN),
     LWMSG_MEMBER_UINT32(LSA_USER_INFO_1, bIsGeneratedUPN),
     LWMSG_MEMBER_UINT32(LSA_USER_INFO_1, bIsLocalUser),
@@ -258,25 +262,76 @@ static LWMsgTypeSpec gLsaNssArtefactInfoListSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCDataBlobSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_DATA_BLOB),
+    LWMSG_MEMBER_UINT32(LSA_DATA_BLOB, dwLen),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_DATA_BLOB, pData),
+    LWMSG_UINT8(BYTE),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_DATA_BLOB, dwLen),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_USER_MOD_INFO),
     LWMSG_MEMBER_UINT32(LSA_USER_MOD_INFO, uid),
     LWMSG_MEMBER_STRUCT_BEGIN(LSA_USER_MOD_INFO, actions),
-    LWMSG_MEMBER_INT8(struct _actions, bEnableUser),
-    LWMSG_MEMBER_INT8(struct _actions, bDisableUser),
-    LWMSG_MEMBER_INT8(struct _actions, bUnlockUser),
-    LWMSG_MEMBER_INT8(struct _actions, bSetChangePasswordOnNextLogon),
-    LWMSG_MEMBER_INT8(struct _actions, bSetPasswordNeverExpires),
-    LWMSG_MEMBER_INT8(struct _actions, bSetPasswordMustExpire),
-    LWMSG_MEMBER_INT8(struct _actions, bAddToGroups),
-    LWMSG_MEMBER_INT8(struct _actions, bRemoveFromGroups),
-    LWMSG_MEMBER_INT8(struct _actions, bSetAccountExpiryDate),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bEnableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bDisableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bUnlockUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetChangePasswordOnNextLogon),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordNeverExpires),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordMustExpire),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bAddToGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bRemoveFromGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetAccountExpiryDate),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetNtPasswordHash),
+    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetLmPasswordHash),
     LWMSG_STRUCT_END,
     LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszAddToGroups),
     LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszRemoveFromGroups),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszExpiryDate),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pNtPasswordHash),
+    LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
+    LWMSG_POINTER_END,
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pLmPasswordHash),
+    LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
+static LWMsgTypeSpec gLsaIPCGroupMemberInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_MEMBER_INFO),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBER_INFO, pszDN),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBER_INFO, pszSid),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCGroupModInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_MOD_INFO),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, gid),
+    LWMSG_MEMBER_STRUCT_BEGIN(LSA_GROUP_MOD_INFO, actions),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bAddMembers),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions, bRemoveMembers),
+    LWMSG_STRUCT_END,
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwAddMembersNum),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pAddMembers),
+    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwAddMembersNum),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pRemoveMembers),
+    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_POINTER_END,
+    LWMSG_STRUCT_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
     LWMSG_TYPE_END
 };
 
@@ -597,6 +652,23 @@ static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCFindObjectReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_REQ),
+    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_REQ, FindFlags),
+    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_REQ, dwInfoLevel),
+    LWMSG_MEMBER_UINT8(LSA_IPC_FIND_OBJECT_REQ, ByType),
+    LWMSG_MEMBER_UNION_BEGIN(LSA_IPC_FIND_OBJECT_REQ, ByData),
+    LWMSG_MEMBER_PSTR(LSA_IPC_FIND_OBJECT_BY_DATA, pszName),
+    LWMSG_ATTR_TAG(LSA_IPC_FIND_OBJECT_BY_TYPE_NAME),
+    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_DATA, dwId),
+    LWMSG_ATTR_TAG(LSA_IPC_FIND_OBJECT_BY_TYPE_ID),
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(LSA_IPC_FIND_OBJECT_REQ, ByType),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_USERS_REQ),
@@ -671,6 +743,15 @@ static LWMsgTypeSpec gLsaIPCChangePasswordReqSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaIPCSetPasswordReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_IPC_SET_PASSWORD_REQ),
+    LWMSG_MEMBER_PSTR(LSA_IPC_SET_PASSWORD_REQ, pszLoginName),
+    LWMSG_MEMBER_PSTR(LSA_IPC_SET_PASSWORD_REQ, pszNewPassword),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaIPCOpenOrCloseSessionReqSpec[] =
 {
     LWMSG_PSTR,
@@ -681,6 +762,14 @@ static LWMsgTypeSpec gLsaIPCModUserInfoReqSpec[] =
 {
     LWMSG_POINTER_BEGIN,
     LWMSG_TYPESPEC(gLsaIPCUserModInfoSpec),
+    LWMSG_POINTER_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaIPCModGroupInfoReqSpec[] =
+{
+    LWMSG_POINTER_BEGIN,
+    LWMSG_TYPESPEC(gLsaIPCGroupModInfoSpec),
     LWMSG_POINTER_END,
     LWMSG_TYPE_END
 };
@@ -787,18 +876,6 @@ static LWMsgTypeSpec gLsaIPCSetTraceinfoReqSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCDataBlobSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_DATA_BLOB),
-    LWMSG_MEMBER_UINT32(LSA_DATA_BLOB, dwLen),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_DATA_BLOB, pData),
-    LWMSG_UINT8(BYTE),
-    LWMSG_POINTER_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_DATA_BLOB, dwLen),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gLsaIPCAuthClearTextParamSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_AUTH_CLEARTEXT_PARAM),
@@ -849,35 +926,6 @@ static LWMsgTypeSpec gLsaIPCAuthUserExReqSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCLsaSidSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_SID),
-
-    LWMSG_MEMBER_UINT8(LSA_SID, Revision),
-    LWMSG_MEMBER_UINT8(LSA_SID, NumSubAuths),
-
-    LWMSG_MEMBER_ARRAY_BEGIN(LSA_SID, AuthId),
-    LWMSG_UINT8(BYTE),
-    LWMSG_ARRAY_END,
-    LWMSG_ATTR_LENGTH_STATIC(6),
-
-    LWMSG_MEMBER_ARRAY_BEGIN(LSA_SID, SubAuths),
-    LWMSG_UINT32(UINT32),
-    LWMSG_ARRAY_END,
-    LWMSG_ATTR_LENGTH_STATIC(LSA_MAX_SID_SUB_AUTHORITIES),
-
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCLsaSidPtrSpec[] =
-{
-    LWMSG_POINTER_BEGIN,
-    LWMSG_TYPESPEC(gLsaIPCLsaSidSpec),
-    LWMSG_POINTER_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gLsaIPCLsaRidAttribSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_RID_ATTRIB),
@@ -898,7 +946,7 @@ static LWMsgTypeSpec gLsaIPCLsaRidAttribPtrSpec[] =
 static LWMsgTypeSpec gLsaIPCLsaSidAttribSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SID_ATTRIB),
-    LWMSG_MEMBER_TYPESPEC(LSA_SID_ATTRIB, Sid, gLsaIPCLsaSidSpec),
+    LWMSG_MEMBER_PSTR(LSA_SID_ATTRIB, pszSid),
     LWMSG_MEMBER_UINT32(LSA_SID_ATTRIB, dwAttrib),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -950,7 +998,7 @@ static LWMsgTypeSpec gLsaAuthUserInfoSpec[] =
     LWMSG_MEMBER_PSTR(LSA_AUTH_USER_INFO, pszHomeDirectory),
     LWMSG_MEMBER_PSTR(LSA_AUTH_USER_INFO, pszHomeDrive),
 
-    LWMSG_MEMBER_TYPESPEC(LSA_AUTH_USER_INFO, DomainSid, gLsaIPCLsaSidSpec),
+    LWMSG_MEMBER_PSTR(LSA_AUTH_USER_INFO, pszDomainSid),
     LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwUserRid),
     LWMSG_MEMBER_UINT32(LSA_AUTH_USER_INFO, dwPrimaryGroupRid),
 
@@ -1043,6 +1091,9 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_ADD_GROUP, gLsaIPCAddGroupInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_ADD_GROUP_FAILURE, gLsaIPCErrorSpec),
+    LWMSG_MESSAGE(LSA_Q_MODIFY_GROUP, gLsaIPCModGroupInfoReqSpec),
+    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_SUCCESS, NULL),
+    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_DELETE_GROUP, gLsaIPCDelObjectInfoReqSpec),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_DELETE_GROUP_FAILURE, gLsaIPCErrorSpec),
@@ -1055,6 +1106,9 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_CHANGE_PASSWORD, gLsaIPCChangePasswordReqSpec),
     LWMSG_MESSAGE(LSA_R_CHANGE_PASSWORD_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_CHANGE_PASSWORD_FAILURE, gLsaIPCErrorSpec),
+    LWMSG_MESSAGE(LSA_Q_SET_PASSWORD, gLsaIPCSetPasswordReqSpec),
+    LWMSG_MESSAGE(LSA_R_SET_PASSWORD_SUCCESS, NULL),
+    LWMSG_MESSAGE(LSA_R_SET_PASSWORD_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_OPEN_SESSION, gLsaIPCOpenOrCloseSessionReqSpec),
     LWMSG_MESSAGE(LSA_R_OPEN_SESSION_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_OPEN_SESSION_FAILURE, gLsaIPCErrorSpec),
@@ -1076,7 +1130,7 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_GSS_CHECK_AUTH_MSG, gLsaIPCCheckAuthMsgReqSpec),
     LWMSG_MESSAGE(LSA_R_GSS_CHECK_AUTH_MSG_SUCCESS, gLsaIPCCheckAuthMsgReplySpec),
     LWMSG_MESSAGE(LSA_R_GSS_CHECK_AUTH_MSG_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_GROUPS_FOR_USER, gLsaIPCFindObjectByIdReqSpec),
+    LWMSG_MESSAGE(LSA_Q_GROUPS_FOR_USER, gLsaIPCFindObjectReqSpec),
     LWMSG_MESSAGE(LSA_R_GROUPS_FOR_USER_SUCCESS, gLsaGroupInfoListSpec),
     LWMSG_MESSAGE(LSA_R_GROUPS_FOR_USER_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_SET_LOGINFO, gLsaIPCSetLoginfoReqSpec),
@@ -1160,7 +1214,7 @@ LsaMapLwmsgStatus(
         return LSA_ERROR_INTERNAL;
     case LWMSG_STATUS_SECURITY:
         return EACCES;
-    case LWMSG_STATUS_INTERRUPT:
+    case LWMSG_STATUS_CANCELLED:
         return EINTR;
     case LWMSG_STATUS_FILE_NOT_FOUND:
         return ENOENT;
@@ -1176,3 +1230,13 @@ LsaMapLwmsgStatus(
         return EPIPE;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

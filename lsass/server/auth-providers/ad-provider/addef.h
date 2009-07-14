@@ -113,6 +113,8 @@
 
 #define AD_SPACE_REPLACEMENT_DEFAULT         '^'
 
+#define AD_MAX_ALLOWED_CLOCK_DRIFT_SECONDS 60
+
 #define AD_STR_IS_SID(str) \
     (!IsNullOrEmptyString(str) && !strncasecmp(str, "s-", sizeof("s-")-1))
 
@@ -131,8 +133,9 @@ typedef enum
 {
     AD_CELL_SUPPORT_UNINITIALIZED = 0, //not used
     AD_CELL_SUPPORT_FULL          = 1, //default
-    AD_CELL_SUPPORT_FILE          = 2,
+    AD_CELL_SUPPORT_FILE          = 2, // unused
     AD_CELL_SUPPORT_UNPROVISIONED = 3,
+    AD_CELL_SUPPORT_DEFAULT_SCHEMA = 4,
 } AD_CELL_SUPPORT;
 
 #define LSASS_DB_DIR CACHEDIR "/db"

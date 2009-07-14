@@ -88,7 +88,7 @@ LWNetSrvStartListenThread(
     BAIL_ON_LWNET_ERROR(dwError);
 
     /* Set up IPC server object */
-    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(gpProtocol, &gpServer));
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_new(NULL, gpProtocol, &gpServer));
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_server_add_dispatch_spec(

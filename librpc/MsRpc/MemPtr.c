@@ -37,6 +37,7 @@
 #include <lwrpc/memptr.h>
 #include <lwrpc/allocate.h>
 
+#include "macros.h"
 
 /*
  * Status check macros
@@ -61,68 +62,32 @@
     }
 
 
-
-/*
- * Locking macros
- */
-
-#define PTR_LIST_LOCK(list)                         \
-    do {                                            \
-        int ret = 0;                                \
-        ret = pthread_mutex_lock(&(list)->mutex);   \
-        if (ret) {                                  \
-            status = STATUS_UNSUCCESSFUL;           \
-            goto error;                             \
-                                                    \
-        } else {                                    \
-            locked = 1;                             \
-        }                                           \
-    } while (0);
-
-
-#define PTR_LIST_UNLOCK(list)                       \
-    do {                                            \
-        int ret = 0;                                \
-        if (!locked) break;                         \
-        ret = pthread_mutex_unlock(&(list)->mutex); \
-        if (ret && status == STATUS_SUCCESS) {      \
-            status = STATUS_UNSUCCESSFUL;           \
-                                                    \
-        } else {                                    \
-            locked = 0;                             \
-        }                                           \
-    } while (0);
-
-
-
 static NTSTATUS MemPtrNodeAppend(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PtrNode *last = NULL;
-    int locked = 0;
+    BOOLEAN bLocked = FALSE;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    goto_if_invalid_param_ntstatus(list, error);
+    goto_if_invalid_param_ntstatus(node, error);
 
-    PTR_LIST_LOCK(list);
+    LIBRPC_LOCK_MUTEX(bLocked, &list->mutex);
 
-    /* Find the last node */
-    last = list->p;
-    while (last && last->next) last = last->next;
+    node->next = node->prev = NULL;
 
-    if (last == NULL) {
+    if (list->head == NULL) {
         /* This is the very first node */
-        list->p = node;
-
+        list->head = node;
+        list->tail = node;
     } else {
         /* Append the new node */
-        last->next = node;
+        list->tail->next = node;
+        node->prev = list->tail;
+        list->tail = node;
     }
-
-    node->next = NULL;
+    list->count++;
 
 done:
-    PTR_LIST_UNLOCK(list); 
+    LIBRPC_UNLOCK_MUTEX(bLocked, &list->mutex);
     return status;
 
 error:
@@ -133,31 +98,33 @@ error:
 static NTSTATUS MemPtrNodeRemove(PtrList *list, PtrNode *node)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PtrNode *prev = NULL;
 
-    goto_if_invalid_param_ntstatus(list, done);
-    goto_if_invalid_param_ntstatus(node, done);
+    goto_if_invalid_param_ntstatus(list, error);
+    goto_if_invalid_param_ntstatus(node, error);
 
     /* We're assuming the list has already been locked */
 
-    /* Simple case - this happens to be the first node */
-    if (node == list->p) {
-        list->p = node->next;
-        goto done;
+    if ((node == list->head) && (node == list->tail))
+    {
+        list->head = list->tail = NULL;
     }
-
-    /* Find node that is previous to the requested one */
-    prev = list->p;
-    while (prev && prev->next != node) {
-        prev = prev->next;
+    else if (node == list->head)
+    {
+        list->head = node->next;
+        list->head->prev = NULL;
     }
-
-    if (prev == NULL) {
-        status = STATUS_INVALID_PARAMETER;
-        goto error;
+    else if (node == list->tail)
+    {
+        list->tail = node->prev;
+        list->tail->next = NULL;
     }
+    else
+    {
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+    list->count--;
 
-    prev->next = node->next;
 
 done:
     return status;
@@ -172,12 +139,14 @@ NTSTATUS MemPtrListInit(PtrList **out)
     NTSTATUS status = STATUS_SUCCESS;
     PtrList *list = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    goto_if_invalid_param_ntstatus(out, error);
 
     list = (PtrList*) malloc(sizeof(PtrList));
     goto_if_no_memory_ntstatus(list, error);
 
-    list->p = NULL;
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
 
     /* According to pthread_mutex_init(3) documentation
        the function call always succeeds */
@@ -206,7 +175,7 @@ NTSTATUS MemPtrListDestroy(PtrList **out)
 
     list = *out;
 
-    node = list->p;
+    node = list->head;
     while (node) {
         PtrNode *rmnode = NULL;
 
@@ -234,7 +203,7 @@ NTSTATUS MemPtrAllocate(PtrList *list, void **out, size_t size, void *dep)
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(out, done);
+    goto_if_invalid_param_ntstatus(out, error);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));
@@ -279,14 +248,14 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
-    int locked = 0;
+    BOOLEAN bLocked = FALSE;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    goto_if_invalid_param_ntstatus(ptr, error);
 
-    PTR_LIST_LOCK(list);
+    LIBRPC_LOCK_MUTEX(bLocked, &list->mutex);
 
     /* Free the pointer and all pointers (nodes) depending on it */
-    node = list->p;
+    node = list->head;
     while (node) {
         if (node->dep == ptr || node->ptr == ptr) {
             PtrNode *rmnode = NULL;
@@ -296,7 +265,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
             node   = node->next;
 
             status = MemPtrNodeRemove(list, rmnode);
-            goto_if_ntstatus_not_success(status, done);
+            goto_if_ntstatus_not_success(status, error);
 
             free(rmnode->ptr);
             free(rmnode);
@@ -307,7 +276,7 @@ NTSTATUS MemPtrFree(PtrList *list, void *ptr)
     }
 
 done:
-    PTR_LIST_UNLOCK(list);
+    LIBRPC_UNLOCK_MUTEX(bLocked, &list->mutex);
     return status;
 
 error:
@@ -320,7 +289,7 @@ NTSTATUS MemPtrAddDependant(PtrList *list, void *ptr, void *dep)
     NTSTATUS status = STATUS_SUCCESS;
     PtrNode *node = NULL;
 
-    goto_if_invalid_param_ntstatus(ptr, done);
+    goto_if_invalid_param_ntstatus(ptr, error);
 
     /* Allocate new node */
     node = (PtrNode*) malloc(sizeof(PtrNode));

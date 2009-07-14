@@ -101,6 +101,7 @@ DoTestFileApiCreateFile(
                     pEaBuffer,
                     EaLength,
                     pEcpList);
+    LWIO_ASSERT(IS_BOTH_OR_NEITHER(NT_SUCCESS(status), fileHandle));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     LWIO_LOG_ALWAYS("Opened file '%s'", pszPath);

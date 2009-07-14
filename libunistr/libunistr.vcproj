@@ -116,7 +116,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBUNISTRVCPROJ_EXPORTS"
+				AdditionalIncludeDirectories="include"
+				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;LIBUNISTRVCPROJ_EXPORTS;LIBUNISTR_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

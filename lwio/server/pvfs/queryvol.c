@@ -53,9 +53,9 @@
 /* File Globals */
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
-    { FileFsAttributeInformation,     &PvfsFileFsAttribInfo },
-    { FileFsSizeInformation,          &PvfsFileFsSizeInfo },
-    { FileFsVolumeInformation,        &PvfsFileFsVolInfo }
+    { (FILE_INFORMATION_CLASS)FileFsAttributeInformation, &PvfsFileFsAttribInfo },
+    { (FILE_INFORMATION_CLASS)FileFsSizeInformation,      &PvfsFileFsSizeInfo },
+    { (FILE_INFORMATION_CLASS)FileFsVolumeInformation,    &PvfsFileFsVolInfo }
 };
 
 
@@ -63,18 +63,17 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
 
 NTSTATUS
 PvfsQueryVolumeInformation(
-    IO_DEVICE_HANDLE IoDeviceHandle,
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    FILE_INFORMATION_CLASS InfoLevel = 0;
+    FS_INFORMATION_CLASS InfoLevel = 0;
     int i = 0;
     size_t sizeTable = sizeof(InfoLevelDispatchTable) /
                        sizeof(struct _InfoLevelDispatchEntry);
 
-    InfoLevel = pIrp->Args.QueryDirectory.FileInformationClass;
+    InfoLevel = pIrp->Args.QuerySetVolumeInformation.FsInformationClass;
 
     /* Loop through the dispatch table.  Levels included in the table
        but having a NULL handler get NOT_IMPLEMENTED while those not in
@@ -106,6 +105,14 @@ error:
     goto cleanup;
 }
 
+
+NTSTATUS
+PvfsSetVolumeInformation(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 /*
 local variables:

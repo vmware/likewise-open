@@ -477,7 +477,7 @@ cleanup:
                         );
                     SMBHashRemoveKey(
                         pSocket->pSessionHashByPrincipal,
-                        pSession->pszPrincipal
+                        &pSession->key
                     );
                 }
                 else

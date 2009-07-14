@@ -126,7 +126,7 @@ LsaAdBatchCheckDomainModeCompatibility(
 
     if (!pszDomainDnToUse)
     {
-        dwError = LsaLdapConvertDomainToDN(pszDnsDomainName,
+        dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
                                            &pszLocalDomainDn);
         BAIL_ON_LSA_ERROR(dwError);
         pszDomainDnToUse = pszLocalDomainDn;
@@ -357,7 +357,7 @@ LsaAdBatchCreateDomainEntry(
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
-            dwError = LsaLdapConvertDNToDomain(pszMatchTerm,
+            dwError = LwLdapConvertDNToDomain(pszMatchTerm,
                                                &pszDnsDomainName);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -1147,7 +1147,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1193,7 +1193,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1267,7 +1267,7 @@ error:
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     goto cleanup;
 }
 
@@ -1330,14 +1330,14 @@ LsaAdBatchFindSingleObject(
     ppObjects[0] = NULL;
 
 cleanup:
-    LsaDbSafeFreeObjectList(dwCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwCount, &ppObjects);
 
     *ppObject = pObject;
 
     return dwError;
 
 error:
-    LsaDbSafeFreeObject(&pObject);
+    ADCacheSafeFreeObject(&pObject);
     goto cleanup;
 }
 
@@ -1485,12 +1485,12 @@ LsaAdBatchFilterMisTypeObjects(
     *pppObjects = ppRemainingObjects;
 
 cleanup:
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
 
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
+    ADCacheSafeFreeObjectList(dwRemainingObjectsCount, &ppRemainingObjects);
     *pdwRemainingObjectsCount = 0;
     *ppRemainingObjects = NULL;
 
@@ -1539,7 +1539,7 @@ cleanup:
     return dwError;
 
 error:
-    LsaDbSafeFreeObjectList(dwObjectsCount, &ppObjects);
+    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
     *pdwObjectsCount = 0;
     *pppObjects = NULL;
 
@@ -1812,7 +1812,7 @@ LsaAdBatchResolveRealObjects(
     DWORD dwMaxQuerySize = LsaAdBatchGetMaxQuerySize();
     DWORD dwMaxQueryCount = LsaAdBatchGetMaxQueryCount();
 
-    dwError = LsaLdapConvertDomainToDN(
+    dwError = LwLdapConvertDomainToDN(
                        pszDnsDomainName,
                        &pszScopeDn);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1858,7 +1858,7 @@ LsaAdBatchResolveRealObjects(
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(pLd, pMessage);
         if (dwCount > dwQueryCount)
@@ -1927,7 +1927,7 @@ LsaAdBatchBuildQueryScopeForPseudo(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            dwError = LsaLdapConvertDomainToDN(pszDnsDomainName, &pszDcPart);
+            dwError = LwLdapConvertDomainToDN(pszDnsDomainName, &pszDcPart);
             BAIL_ON_LSA_ERROR(dwError);
 
             dwError = LsaAllocateStringPrintf(&pszScopeDn, "CN=$LikewiseIdentityCell,%s", pszDcPart);
@@ -2298,7 +2298,7 @@ LsaAdBatchIsDefaultCell(
     PSTR pszDefaultCellDN = NULL;
     BOOLEAN bIsDefaultCell = FALSE;
 
-    dwError = LsaLdapConvertDomainToDN(gpADProviderData->szDomain, &pszRootDN);
+    dwError = LwLdapConvertDomainToDN(gpADProviderData->szDomain, &pszRootDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaAllocateStringPrintf(
@@ -2465,7 +2465,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
     dwError = LsaDmLdapOpenDc(pszDnsDomainName, &pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaLdapConvertDomainToDN(pszDnsDomainName,
+    dwError = LwLdapConvertDomainToDN(pszDnsDomainName,
                                        &pszDomainDN);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2512,7 +2512,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultSchema(
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(pLd, pMessage);
         if (dwCount > dwQueryCount)
@@ -2664,7 +2664,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
         // Need to do this because the pseudo-object domain
         // could be different from the real object's domain
         // (e.g., non-default cell).
-        dwError = LsaLdapConvertDNToDomain(
+        dwError = LwLdapConvertDNToDomain(
                            pszScopeDn,
                            &pszDomainName);
         BAIL_ON_LSA_ERROR(dwError);
@@ -2717,7 +2717,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
                         &pMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pLd = LsaLdapGetSession(hDirectory);
+        pLd = LwLdapGetSession(hDirectory);
 
         dwCount = ldap_count_entries(pLd, pMessage);
         // In Default Non-schema mode, we might get entries in non-default cells due to the GC search
@@ -2745,7 +2745,7 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
             {
                 LSA_SAFE_FREE_STRING(pUserPseudoDN);
 
-                dwError = LsaLdapGetDN(
+                dwError = LwLdapGetDN(
                              hDirectory,
                              pCurrentMessage,
                              &pUserPseudoDN);
@@ -2840,7 +2840,7 @@ LsaAdBatchGetObjectTypeFromRealMessage(
     DWORD dwValuesCount = 0;
     DWORD i = 0;
 
-    dwError = LsaLdapGetStrings(
+    dwError = LwLdapGetStrings(
                     hDirectory,
                     pMessage,
                     AD_LDAP_OBJECTCLASS_TAG,
@@ -2952,7 +2952,7 @@ LsaAdBatchGetObjectTypeFromPseudoMessage(
 
     // double-check against the object class.
 
-    dwError = LsaLdapGetStrings(
+    dwError = LwLdapGetStrings(
                     hDirectory,
                     pMessage,
                     AD_LDAP_OBJECTCLASS_TAG,
@@ -3086,7 +3086,7 @@ LsaAdBatchGetCompareStringFromRealObject(
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
-            dwError = LsaLdapGetDN(hDirectory, pMessage, &pszCompare);
+            dwError = LwLdapGetDN(hDirectory, pMessage, &pszCompare);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
@@ -3094,7 +3094,7 @@ LsaAdBatchGetCompareStringFromRealObject(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_SAM_NAME_TAG,
@@ -3138,7 +3138,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
     switch (QueryType)
     {
         case LSA_AD_BATCH_QUERY_TYPE_BY_DN:
-            dwError = LsaLdapGetDN(hDirectory, pMessage, &pszCompare);
+            dwError = LwLdapGetDN(hDirectory, pMessage, &pszCompare);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_SID:
@@ -3146,7 +3146,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_NT4:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_SAM_NAME_TAG,
@@ -3154,7 +3154,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_USER_ALIAS:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_ALIAS_TAG,
@@ -3162,7 +3162,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_GROUP_ALIAS:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_DISPLAY_NAME_TAG,
@@ -3170,7 +3170,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_UID_TAG,
@@ -3178,7 +3178,7 @@ LsaAdBatchGetCompareStringFromPseudoObjectDefaultSchema(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_AD_BATCH_QUERY_TYPE_BY_GID:
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             AD_LDAP_GID_TAG,
@@ -3265,7 +3265,7 @@ LsaAdBatchGetCompareStringFromPseudoObject(
     {
         if (bIsSchemaMode)
         {
-            dwError = LsaLdapGetString(
+            dwError = LwLdapGetString(
                             hDirectory,
                             pMessage,
                             pszAttributeName,
@@ -3556,7 +3556,7 @@ LsaAdBatchProcessPseudoObject(
     PLSA_LIST_LINKS pLinks = NULL;
     PLSA_AD_BATCH_ITEM pFoundItem = NULL;
 
-    dwError = LsaLdapIsValidADEntry(
+    dwError = LwLdapIsValidADEntry(
                     hDirectory,
                     pMessage,
                     &bIsValid);
@@ -3570,7 +3570,7 @@ LsaAdBatchProcessPseudoObject(
 
     if (!LsaAdBatchIsDefaultSchemaMode())
     {
-        dwError = LsaLdapGetStrings(
+        dwError = LwLdapGetStrings(
                         hDirectory,
                         pMessage,
                         AD_LDAP_KEYWORDS_TAG,
@@ -3750,7 +3750,22 @@ LsaAdBatchProcessPseudoObjectDefaultSchema(
     {
         PLSA_AD_BATCH_ITEM pItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
 
-        LSA_ASSERT(pItem->pszQueryMatchTerm);
+        if (!pItem->pszQueryMatchTerm)
+        {
+            // There are two possible cases here:
+            //
+            // 1) This is a linked cell case where we are searching
+            //    linked cells since we keep using the main batch
+            //    item list (though this case should go away in the
+            //    future as we just keep an unresolved batch items list).
+            //
+            // 2) This is an item for which we did not find a real object.
+            //    This case might be eliminated in the future by removing
+            //    unresolvable objects from the batch items list.
+            continue;
+        }
+
+
 
         if (!strcasecmp(pItem->pszQueryMatchTerm, pszCompare))
         {

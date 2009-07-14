@@ -10,6 +10,24 @@ DOXYGEN_PDF_TARGET=
 DOXYGEN_PDF_INSTALL_TARGET=
 endif
 
+DOXYGEN_HEADER_DEPS = \
+	$(top_srcdir)/include/lwmsg/call.h \
+	$(top_srcdir)/include/lwmsg/assoc.h \
+	$(top_srcdir)/include/lwmsg/buffer.h \
+	$(top_srcdir)/include/lwmsg/client.h \
+	$(top_srcdir)/include/lwmsg/common.h \
+	$(top_srcdir)/include/lwmsg/connection.h \
+	$(top_srcdir)/include/lwmsg/context.h \
+	$(top_srcdir)/include/lwmsg/data.h \
+	$(top_srcdir)/include/lwmsg/lwmsg.h \
+	$(top_srcdir)/include/lwmsg/protocol.h \
+	$(top_srcdir)/include/lwmsg/security.h \
+	$(top_srcdir)/include/lwmsg/server.h \
+	$(top_srcdir)/include/lwmsg/session.h \
+	$(top_srcdir)/include/lwmsg/status.h \
+	$(top_srcdir)/include/lwmsg/time.h \
+	$(top_srcdir)/include/lwmsg/type.h
+
 DOXYGEN_DEPS = \
 	Doxyfile.in \
 	main.doxy \
@@ -19,7 +37,8 @@ DOXYGEN_DEPS = \
 	example.doxy \
 	example_fserv.doxy \
 	example_fserv_layout.doxy \
-	example_fserv_source.doxy
+	example_fserv_source.doxy \
+	$(DOXYGEN_HEADER_DEPS)
 
 doxygen-html: $(DOXYGEN_DEPS)
 	$(MKDIR_P) doxygen-html

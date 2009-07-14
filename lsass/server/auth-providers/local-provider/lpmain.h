@@ -180,7 +180,8 @@ LocalFindGroupById(
 DWORD
 LocalGetGroupsForUser(
     IN HANDLE hProvider,
-    IN uid_t uid,
+    IN OPTIONAL PCSTR pszUserName,
+    IN OPTIONAL uid_t uid,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwGroupInfoLevel,
     IN PDWORD pdwGroupsFound,
@@ -220,6 +221,13 @@ LocalChangePassword(
     );
 
 DWORD
+LocalSetPassword(
+    HANDLE hProvider,
+    PCSTR  pszLoginId,
+    PCSTR  pszPassword
+    );
+
+DWORD
 LocalAddUser(
     HANDLE hProvider,
     DWORD  dwUserInfoLevel,
@@ -243,6 +251,12 @@ LocalAddGroup(
     HANDLE hProvider,
     DWORD  dwGroupInfoLevel,
     PVOID  pGroupInfo
+    );
+
+DWORD
+LocalModifyGroup(
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO pGroupModInfo
     );
 
 DWORD
@@ -340,4 +354,25 @@ LocalIoControl(
     OUT PVOID* ppOutputBuffer
     );
 
+DWORD
+LocalGetGroupMembership(
+    HANDLE hProvider,
+    uid_t  peerUID,
+    gid_t  peerGID,
+    DWORD  dwInputBufferSize,
+    PVOID  pInputBuffer,
+    PDWORD pdwOutputBufferSize,
+    PVOID *ppOutputBuffer
+    );
+
 #endif /* __PROVIDER_MAIN_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -41,7 +41,7 @@
  *
  *        Data Blob data structure
  *
- * Authors: Gerald Carter <gcarter@likewisesoftware.com>
+ * Authors: Gerald Carter <gcarter@likewise.com>
  *
  */
 
@@ -52,41 +52,41 @@
 
 DWORD
 LsaDataBlobAllocate(
-	PLSA_DATA_BLOB *ppBlob,
-	DWORD dwSize
-	)
+    PLSA_DATA_BLOB *ppBlob,
+    DWORD dwSize
+    )
 {
-	DWORD dwError = LSA_ERROR_INTERNAL;
-	LSA_DATA_BLOB *pBlob = NULL;	
+    DWORD dwError = LSA_ERROR_INTERNAL;
+    LSA_DATA_BLOB *pBlob = NULL;
 
-	BAIL_ON_INVALID_POINTER(ppBlob);
+    BAIL_ON_INVALID_POINTER(ppBlob);
 
-	dwError = LsaAllocateMemory(sizeof(LSA_DATA_BLOB),
-				    (PVOID*)&pBlob);
-	BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaAllocateMemory(sizeof(LSA_DATA_BLOB),
+                                (PVOID*)&pBlob);
+    BAIL_ON_LSA_ERROR(dwError);
 
-	pBlob->dwLen = dwSize;
-	pBlob->pData = NULL;
+    pBlob->dwLen = dwSize;
+    pBlob->pData = NULL;
 
-	if (pBlob->dwLen > 0) {
-		dwError = LsaAllocateMemory(pBlob->dwLen,
-					    (PVOID*)&pBlob->pData);
-		BAIL_ON_LSA_ERROR(dwError);
+    if (pBlob->dwLen > 0) {
+        dwError = LsaAllocateMemory(pBlob->dwLen,
+                        (PVOID*)&pBlob->pData);
+        BAIL_ON_LSA_ERROR(dwError);
 
-		memset(pBlob->pData, 0x0, pBlob->dwLen);		
-	}
+        memset(pBlob->pData, 0x0, pBlob->dwLen);
+    }
 
-	*ppBlob = pBlob;
-	
+    *ppBlob = pBlob;
+
 cleanup:
-	return dwError;
-	
+    return dwError;
+
 error:
-	if (pBlob) {
-		LsaFreeMemory(pBlob);
-	}
-	
-	goto cleanup;	
+    if (pBlob) {
+        LsaFreeMemory(pBlob);
+    }
+
+    goto cleanup;
 }
 
 /**************************************************************
@@ -94,22 +94,23 @@ error:
 
 DWORD
 LsaDataBlobFree(
-	PLSA_DATA_BLOB *ppBlob
-	)
+    PLSA_DATA_BLOB *ppBlob
+    )
 {
-	DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LSA_ERROR_INTERNAL;
 
-	/* NULL Pointer is automatic success */
+    /* NULL Pointer is automatic success */
 
-	if (!ppBlob)
-		return LSA_ERROR_SUCCESS;
+    if (!ppBlob) {
+        return LSA_ERROR_SUCCESS;
+    }
 
-	LsaFreeMemory((*ppBlob)->pData);
-	LsaFreeMemory(*ppBlob);
-	
-	*ppBlob = NULL;
-	
-	return dwError;
+    LsaFreeMemory((*ppBlob)->pData);
+    LsaFreeMemory(*ppBlob);
+
+    *ppBlob = NULL;
+
+    return dwError;
 }
 
 /**************************************************************
@@ -117,27 +118,27 @@ LsaDataBlobFree(
 
 DWORD
 LsaDataBlobStore(
-	PLSA_DATA_BLOB *ppBlob,
-	DWORD dwSize,
-	const PBYTE pBuffer
-	)
+    PLSA_DATA_BLOB *ppBlob,
+    DWORD dwSize,
+    const PBYTE pBuffer
+    )
 {
-	DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LSA_ERROR_INTERNAL;
 
-	BAIL_ON_INVALID_POINTER(ppBlob);
+    BAIL_ON_INVALID_POINTER(ppBlob);
 
-	dwError = LsaDataBlobAllocate(ppBlob, dwSize);
-	BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaDataBlobAllocate(ppBlob, dwSize);
+    BAIL_ON_LSA_ERROR(dwError);
 
-	if (dwSize > 0) {		
-		memcpy((*ppBlob)->pData, pBuffer, dwSize);
-	}
-	
+    if (dwSize > 0) {
+        memcpy((*ppBlob)->pData, pBuffer, dwSize);
+    }
+
 cleanup:
-	return dwError;
-	
+    return dwError;
+
 error:
-	goto cleanup;	
+    goto cleanup;
 }
 
 /**************************************************************
@@ -145,25 +146,25 @@ error:
 
 DWORD
 LsaDataBlobCopy(
-	PLSA_DATA_BLOB *ppDst,
-	PLSA_DATA_BLOB pSrc
-	)
+    PLSA_DATA_BLOB *ppDst,
+    PLSA_DATA_BLOB pSrc
+    )
 {
-	DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LSA_ERROR_INTERNAL;
 
-	BAIL_ON_INVALID_POINTER(ppDst);
-	BAIL_ON_INVALID_POINTER(pSrc);
+    BAIL_ON_INVALID_POINTER(ppDst);
+    BAIL_ON_INVALID_POINTER(pSrc);
 
-	dwError = LsaDataBlobStore(ppDst,
-				   pSrc->dwLen,
-				   pSrc->pData);
-	BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaDataBlobStore(ppDst,
+                               pSrc->dwLen,
+                               pSrc->pData);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-	return dwError;
-	
+    return dwError;
+
 error:
-	goto cleanup;	
+    goto cleanup;
 }
 
 /**************************************************************
@@ -171,13 +172,10 @@ error:
 
 DWORD
 LsaDataBlobLength(
-	PLSA_DATA_BLOB pBlob
-	)
+    PLSA_DATA_BLOB pBlob
+    )
 {
-	if (!pBlob)
-		return 0;
-	
-	return pBlob->dwLen;
+    return (pBlob != NULL) ? pBlob->dwLen : 0;
 }
 
 /**************************************************************
@@ -185,12 +183,18 @@ LsaDataBlobLength(
 
 PBYTE
 LsaDataBlobBuffer(
-	PLSA_DATA_BLOB pBlob
-	)
+    PLSA_DATA_BLOB pBlob
+    )
 {
-	if (!pBlob)
-		return NULL;
-	
-	return pBlob->pData;
+    return (pBlob != NULL) ? pBlob->pData : NULL;
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

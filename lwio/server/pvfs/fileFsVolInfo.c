@@ -133,7 +133,7 @@ PvfsQueryFileFsVolInfo(
     ntError = PvfsUnixToWinTime(&pFileInfo->VolumeCreationTime, time(NULL));
     BAIL_ON_NT_STATUS(ntError);
 
-    pFileInfo->VolumeSerialNumber = 0xDEADBEEF;
+    pFileInfo->VolumeSerialNumber = 0x009a9a03;
     pFileInfo->SupportsObjects = FALSE;
 
     ntError = RtlWC16StringAllocateFromCString(&pwszVolumeName, pszVolName);

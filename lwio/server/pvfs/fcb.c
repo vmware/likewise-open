@@ -64,8 +64,68 @@ static PVFS_FCB_TABLE gFcbTable;
 
 /* Code */
 
+/*******************************************************
+ ******************************************************/
+
+static VOID
+PvfsFreeFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    if (!pFcb) {
+        return;
+    }
+
+    RtlCStringFree(&pFcb->pszFilename);
+    pthread_mutex_destroy(&pFcb->ControlBlock);
+    pthread_rwlock_destroy(&pFcb->rwLock);
+    pthread_rwlock_destroy(&pFcb->rwBrlLock);
+
+    LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
+    LwRtlQueueDestroy(&pFcb->pPendingCreateQueue);
+
+    if (pFcb->pOplockList) {
+        if (pFcb->pOplockList->pIrpContext) {
+            PIRP pIrp = pFcb->pOplockList->pIrpContext->pIrp;
+
+            pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+            IoIrpComplete(pIrp);
+
+            PvfsFreeIrpContext(&pFcb->pOplockList->pIrpContext);
+        }
+
+        PVFS_FREE(&pFcb->pOplockList);
+    }
+
+    PVFS_FREE(&pFcb);
+
+    return;
+}
+
 /***********************************************************
  **********************************************************/
+
+VOID
+PvfsFreePendingLock(
+    PVOID *ppData
+    )
+{
+    if (!ppData || !*ppData) {
+        return;
+    }
+
+    PVFS_FREE(ppData);
+
+    return;
+}
+
+static VOID
+PvfsFreePendingCreate(
+    PVOID *ppData
+    )
+{
+    PvfsFreeCreateContext((PPVFS_PENDING_CREATE*)ppData);
+}
 
 NTSTATUS
 PvfsAllocateFCB(
@@ -81,6 +141,20 @@ PvfsAllocateFCB(
     ntError = PvfsAllocateMemory((PVOID*)&pFcb, sizeof(PVFS_FCB));
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Setup pendlock byte-range lock queue */
+
+    ntError = LwRtlQueueInit(&pFcb->pPendingLockQueue,
+                             PVFS_FCB_MAX_PENDING_LOCKS,
+                             PvfsFreePendingLock);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Pending create queue */
+
+    ntError = LwRtlQueueInit(&pFcb->pPendingCreateQueue,
+                             0,
+                             PvfsFreePendingCreate);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Initialize mutexes and refcounts */
 
     pthread_mutex_init(&pFcb->ControlBlock, NULL);
@@ -93,10 +167,13 @@ PvfsAllocateFCB(
     NewRefCount = InterlockedIncrement(&pFcb->RefCount);
 
     *ppFcb = pFcb;
+    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    PvfsFreeFCB(pFcb);
+
     return ntError;
 
 error:
@@ -127,25 +204,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-/*******************************************************
- ******************************************************/
-
-static NTSTATUS
-PvfsFreeFCB(
-    PPVFS_FCB pFcb
-    )
-{
-    RtlCStringFree(&pFcb->pszFilename);
-    pthread_mutex_destroy(&pFcb->ControlBlock);
-    pthread_rwlock_destroy(&pFcb->rwLock);
-    pthread_rwlock_destroy(&pFcb->rwBrlLock);
-
-    PVFS_FREE(&pFcb);
-
-    return STATUS_SUCCESS;
-}
-
 
 /*******************************************************
  ******************************************************/
@@ -355,8 +413,9 @@ PvfsCreateFCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_FCB pFcb = NULL;
+    BOOLEAN bFcbTableLocked = FALSE;
 
-    ENTER_WRITER_RW_LOCK(&gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbTableLocked, &gFcbTable.rwLock);
 
     /* Protect against adding a duplicate */
 
@@ -390,7 +449,7 @@ PvfsCreateFCB(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LEAVE_WRITER_RW_LOCK(&gFcbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
 
     return ntError;
 
@@ -412,12 +471,13 @@ PvfsAddCCBToFCB(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB_LIST_NODE pCcbNode = NULL;
+    BOOLEAN bFcbWriteLocked = FALSE;
 
     ntError = PvfsAllocateMemory((PVOID*)&pCcbNode,
                                  sizeof(PVFS_CCB_LIST_NODE));
     BAIL_ON_NT_STATUS(ntError);
 
-    ENTER_WRITER_RW_LOCK(&pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwLock);
 
     /* Add to the front of the list */
 
@@ -428,8 +488,9 @@ PvfsAddCCBToFCB(
     }
 
     pFcb->pCcbList  = pCcbNode;
+    pFcb->CcbCount++;
 
-    LEAVE_WRITER_RW_LOCK(&pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwLock);
 
     pCcb->pFcb = pFcb;
 
@@ -454,8 +515,9 @@ PvfsRemoveCCBFromFCB(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_CCB_LIST_NODE pCursor = NULL;
     PPVFS_CCB_LIST_NODE pTmp = NULL;
+    BOOLEAN bFcbWriteLocked = FALSE;
 
-    ENTER_WRITER_RW_LOCK(&pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbWriteLocked, &pFcb->rwLock);
 
     for (pCursor=pFcb->pCcbList; pCursor; pCursor = pCursor->pNext)
     {
@@ -483,12 +545,13 @@ PvfsRemoveCCBFromFCB(
 
     }
 
+    pFcb->CcbCount--;
     PVFS_FREE(&pCursor);
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    LEAVE_WRITER_RW_LOCK(&pFcb->rwLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbWriteLocked, &pFcb->rwLock);
 
     return ntError;
 

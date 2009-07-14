@@ -9,4 +9,4 @@ lw_domain_SOURCES = \
     misc.c
 
 lw_domain_LDFLAGS =
-lw_domain_LDADD = @top_builddir@/server/join/liblsajoin.la
+lw_domain_LDADD = @top_builddir@/join/liblsajoin.la
