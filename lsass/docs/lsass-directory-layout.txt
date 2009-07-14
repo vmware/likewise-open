@@ -26,10 +26,12 @@ LAYOUT:
 
 - include (shared headers)
   - lsa (public client header -- lsa.h)
+- m4 (for autotools)
 - client (1 shared object)
   + api (1 utility library)
   + ad (1 utility library)
   + local (1 utility library)
+  + ntlm (1 utility library)
 - server (1 binary and 3 shared objects + store + rpc + ntlm shared objects)
   + include (shared server-only headers)
   + logging_r (1 utility library)
@@ -40,12 +42,21 @@ LAYOUT:
   + lsassd (1 binary)
   + ntlmserver (1 shared object – new code, currently unused) [1]
   + rpc (currently various shared objects) [2]
+    - idl
+    - include
+    - samr
+    - lsa
+    - dssetup
   + store (2 shared objects used by local provider and rpc)
+    - include
+    - dsapi (1 shared object)
+    - samdb (1 shared object)
 - common (1 utility library used by client & server)
   + ipc
     - api
-    - local
     - ad
+    - local
+    - ntlm
   + utils
   + lsaunistr [3]
   + lwunistr [3]
@@ -60,8 +71,6 @@ LAYOUT:
 - etc
 - tools
 - tests?
-- ntlmclient [1]
-- ntlmipc [1]
 - gssntlm [6]
 - gssntlm3 [7]
 - join [8]
@@ -78,8 +87,7 @@ just be made not to link into any of the client/server binaries.
 NOTES:
 -----
 
-[1] ntlmserver, ntlmclient, and ntlmipc should be renamed ntlm under each of
-    server, client, and common/ipc directories.
+[1] ntlmserver should be renamed to ntlm under the server directory.
 
 [2] rpc will need to become a single shared object.
 
@@ -101,7 +109,6 @@ NOTES:
 [8] join is currently 1 shared object used by AD provider and domain join that
     contains 3 pieces: (1) LDAP wrapper, (2) KRB5 wrapper, and (3) domain join
     helper code.  It will later be split into advapi and domainjoin components.
-
 
 BUILDS FOR EMBEDDED SYSTEMS:
 ---------------------------
