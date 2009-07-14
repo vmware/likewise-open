@@ -383,7 +383,7 @@ static LWMsgTypeSpec string_array_spec[] =
     LWMSG_MEMBER_POINTER_BEGIN(string_array_struct, strings),
     LWMSG_PSTR,
     LWMSG_POINTER_END,
-    LWMSG_ATTR_STRING,
+    LWMSG_ATTR_ZERO_TERMINATED,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
