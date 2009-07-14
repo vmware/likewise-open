@@ -1034,3 +1034,73 @@ error:
 
     goto cleanup;
 }
+
+DWORD
+LWNetReadNextLine(
+    FILE* fp,
+    PSTR *output,
+    PBOOLEAN pbEndOfFile
+    )
+{
+    DWORD dwError = 0;
+    PVOID pBuffer = NULL;
+    DWORD dwSize = 0;
+    DWORD dwMaxSize = 100;
+
+    *pbEndOfFile = 0;
+    *output = NULL;
+
+    dwError = LWNetAllocateMemory(
+                  dwMaxSize,
+                  &pBuffer);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    while(1)
+    {
+        if(fgets(pBuffer + dwSize,
+                dwMaxSize - dwSize, fp) ==  NULL)
+        {
+            if (feof(fp)) {
+                *pbEndOfFile = 1;
+            } else {
+                dwError = errno;
+                BAIL_ON_LWNET_ERROR(dwError);
+            }
+        }
+        dwSize += strlen(pBuffer + dwSize);
+
+        if (*pbEndOfFile)
+        {
+            break;
+        }
+        if (dwSize == dwMaxSize - 1 &&
+                ((char *)pBuffer)[dwSize - 1] != '\n')
+        {
+            dwMaxSize *= 2;
+            dwError = LWNetReallocMemory(
+                          pBuffer,
+                          &pBuffer,
+                          dwMaxSize);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    ((char *)pBuffer)[dwSize] = 0;
+
+    *output = pBuffer;
+    pBuffer = NULL;
+
+cleanup:
+
+    LWNET_SAFE_FREE_MEMORY(pBuffer);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}

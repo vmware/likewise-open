@@ -462,6 +462,12 @@ LWNetGetMatchingFilePathsInFolder(
     PSTR** pppszHostFilePaths,
     PDWORD pdwNPaths
     );
+DWORD
+LWNetReadNextLine(
+    FILE* fp,
+    PSTR *output,
+    PBOOLEAN pbEndOfFile
+    );
 
 DWORD
 LWNetGetPrefixDirPath(
