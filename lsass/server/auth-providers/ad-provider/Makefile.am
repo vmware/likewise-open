@@ -55,13 +55,12 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 
 liblsass_auth_provider_ad_la_CFLAGS = $(PROVIDER_CFLAGS)
 
+# NOTE: Need to remove LSA client dependency.
 liblsass_auth_provider_ad_la_LIBADD = \
-	@top_builddir@/utils/liblsautils.la \
-	@top_builddir@/join/liblsajoin.la \
+	@top_builddir@/common/liblsacommon.la \
+	@top_builddir@/client/liblsaclient.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
-	@top_builddir@/ipc/liblsaipc.la \
-	@top_builddir@/provider/ad-provider/ipc/liblsaadipc.la \
-	@top_builddir@/provider/local-provider/client/liblsalocalclient.la \
+	@top_builddir@/join/liblsajoin.la \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \

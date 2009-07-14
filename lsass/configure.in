@@ -866,19 +866,21 @@ AC_MSG_RESULT([no])
 CFLAGS="$saved_CFLAGS"
 
 AC_CONFIG_FILES([Makefile
-                 utils/Makefile
+                 common/Makefile
+                 common/utils/Makefile
+                 common/ipc/Makefile
+                 common/ipc/api/Makefile
+                 common/ipc/ad/Makefile
+                 common/ipc/local/Makefile
+                 common/ipc/ntlm/Makefile
+                 client/Makefile
+                 client/api/Makefile
+                 client/ad/Makefile
+                 client/local/Makefile
+                 client/ntlm/Makefile
                  logging_r/Makefile
                  lsaunistr/Makefile
                  join/Makefile
-                 ipc/Makefile
-                 client/Makefile
-                 provider/Makefile
-                 provider/ad-provider/Makefile
-                 provider/ad-provider/ipc/Makefile
-                 provider/ad-provider/client/Makefile
-                 provider/local-provider/Makefile
-                 provider/local-provider/ipc/Makefile
-                 provider/local-provider/client/Makefile
                  interop/Makefile
                  interop/nsswitch/Makefile
                  interop/nsswitch/common/Makefile
@@ -897,8 +899,6 @@ AC_CONFIG_FILES([Makefile
                  gssntlm/test/serverapi/Makefile
                  gssntlm/test/gss/Makefile
                  gssntlm/include/Makefile
-                 ntlmclient/Makefile
-                 ntlmipc/Makefile
                  server/Makefile
                  server/api/Makefile
                  server/ntlmserver/Makefile

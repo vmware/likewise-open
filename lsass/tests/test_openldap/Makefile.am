@@ -12,7 +12,7 @@ test_openldap_LDADD = \
 	@top_builddir@/join/liblsajoin.la \
 	@top_builddir@/server/api/liblsaserverapi.la \
 	@top_builddir@/logging_r/liblsalog_r.la \
-	@top_builddir@/utils/liblsautils.la \
+	@top_builddir@/common/liblsacommon.la \
 	@OPENLDAP_LIBS@ \
 	@KRB5_LIBS@ \
 	$(RT_LIBS)

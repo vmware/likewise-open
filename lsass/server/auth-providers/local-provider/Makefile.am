@@ -31,11 +31,10 @@ liblsass_auth_provider_local_la_CFLAGS = $(PROVIDER_CFLAGS)
 
 #netapi is needed for NTLMv1EncryptChallenge
 liblsass_auth_provider_local_la_LIBADD = \
-    @top_builddir@/server/store/dsapi/libdsapi.la \
-    @top_builddir@/utils/liblsautils.la \
+    @top_builddir@/common/liblsacommon.la \
     @top_builddir@/server/api/liblsaserverapi.la \
+    @top_builddir@/server/store/dsapi/libdsapi.la \
     @top_builddir@/lsaunistr/liblsaunistr.la \
-    @top_builddir@/provider/local-provider/ipc/liblsalocalipc.la \
     @NETAPI_LIBS@
 
 liblsass_auth_provider_local_la_LDFLAGS = \

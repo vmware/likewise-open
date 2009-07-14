@@ -12,7 +12,7 @@ test_stress_ad_provider_CPPFLAGS = \
 	@NETLOGON_INCLUDES@
 	
 test_stress_ad_provider_LDADD = \
-	@top_builddir@/utils/liblsautils.la     \
+	@top_builddir@/common/liblsacommon.la     \
 	@top_builddir@/logging_r/liblsalog_r.la \
 	@NETLOGON_LIBS@ \
 	@UUID_LIBS@     \

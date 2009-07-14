@@ -26,7 +26,7 @@ liblsajoin_la_CPPFLAGS =              \
 
 
 liblsajoin_la_LIBADD = \
-	@top_builddir@/utils/liblsautils.la \
+	@top_builddir@/common/liblsacommon.la \
 	@NETLOGON_LIBS@ \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
