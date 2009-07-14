@@ -1,7 +1,8 @@
 SUBDIRS = \
-    ad    \
-    api   \
+    api \
+    ad \
     local
+#    ntlm
 
 noinst_LTLIBRARIES = liblsaipc.la
 
