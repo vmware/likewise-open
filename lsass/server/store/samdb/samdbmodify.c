@@ -525,6 +525,8 @@ SamDbUpdateBindValues(
     DWORD dwError = 0;
     PSAM_DB_COLUMN_VALUE pIter = pColumnValueList;
     DWORD iParam = 0;
+    PSTR pszValue = NULL;
+    PWSTR pwszValue = NULL;
 
     for (; pIter; pIter = pIter->pNext)
     {
@@ -548,16 +550,32 @@ SamDbUpdateBindValues(
         {
             case SAMDB_ATTR_TYPE_TEXT:
             {
-                PSTR pszValue = NULL;
+                PATTRIBUTE_VALUE pAttrValue = NULL;
 
                 if (pIter->pAttrValues)
                 {
-                    pszValue = pIter->pAttrValues[0].data.pszStringValue;
+                    pAttrValue = pIter->pAttrValues;
                 }
-                else
-                if (pIter->pDirMod)
+                else if (pIter->pDirMod)
                 {
-                    pszValue = pIter->pDirMod->pAttrValues[0].data.pszStringValue;
+                    pAttrValue = pIter->pDirMod->pAttrValues;
+                }
+
+                switch (pAttrValue->Type)
+                {
+                case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
+                    pwszValue = pAttrValue->data.pwszStringValue;
+                    break;
+
+                case DIRECTORY_ATTR_TYPE_ANSI_STRING:
+                    pszValue = pAttrValue->data.pszStringValue;
+                    break;
+                }
+
+                if (pwszValue)
+                {
+                    dwError = LsaWc16sToMbs(pwszValue, &pszValue);
+                    BAIL_ON_LSA_ERROR(dwError);
                 }
 
                 if (pszValue)
@@ -575,6 +593,15 @@ SamDbUpdateBindValues(
                 }
                 BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
+                /* If both pointers are set then it means pszValue was
+                   allocated from pwszValue */
+                if (pwszValue && pszValue)
+                {
+                    LSA_SAFE_FREE_STRING(pszValue);
+                }
+
+                pszValue = NULL;
+                pwszValue = NULL;
                 break;
             }
 
@@ -670,6 +697,12 @@ SamDbUpdateBindValues(
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
 cleanup:
+    /* If both pointers are set then it means pszValue was
+       allocated from pwszValue */
+    if (pwszValue && pszValue)
+    {
+        LSA_SAFE_FREE_STRING(pszValue);
+    }
 
     return dwError;
 
