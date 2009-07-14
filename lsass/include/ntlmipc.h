@@ -329,19 +329,6 @@ NtlmCloseServer(
     );
 
 DWORD
-NtlmWriteData(
-    DWORD dwFd,
-    PSTR  pszBuf,
-    DWORD dwLen);
-
-DWORD
-NtlmReadData(
-    DWORD  dwFd,
-    PSTR   pszBuf,
-    DWORD  dwBytesToRead,
-    PDWORD pdwBytesRead);
-
-DWORD
 NtlmMapLwmsgStatus(
     LWMsgStatus status
     );

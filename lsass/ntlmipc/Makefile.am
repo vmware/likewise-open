@@ -1,8 +1,7 @@
 lib_LTLIBRARIES = libntlmipc.la
 
 libntlmipc_la_SOURCES = \
-       ipc_protocol.c   \
-       ipcio.c
+       ipc_protocol.c
 
 libntlmipc_la_CFLAGS =      \
     $(AM_CFLAGS)            \

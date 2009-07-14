@@ -2949,6 +2949,40 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_WriteFileData(
+    int fd,
+    PVOID pBuffer,
+    DWORD dwLen
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwRemaining = dwLen;
+    PSTR pStr = (PSTR) pBuffer;
+
+    while (dwRemaining > 0)
+    {
+        int nWritten = write(fd, pStr, dwRemaining);
+        if (nWritten < 0)
+        {
+            if (errno != EAGAIN && errno != EINTR)
+            {
+                dwError = LwMapErrnoToLwError(errno);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+        else
+        {
+            dwRemaining -= nWritten;
+            pStr += nWritten;
+        }
+    }
+
+error:
+    return dwError;
+}
+
 DWORD
 AD_CreateK5Login(
     PLSA_USER_INFO_1 pUserInfo
@@ -3040,7 +3074,7 @@ AD_CreateK5Login(
 
     bRemoveFile = TRUE;
 
-    dwError = LsaWriteData(
+    dwError = AD_WriteFileData(
                     fd,
                     pszData,
                     strlen(pszData));

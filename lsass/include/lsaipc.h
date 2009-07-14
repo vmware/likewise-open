@@ -345,19 +345,6 @@ LsaCloseServer(
     );
 
 DWORD
-LsaWriteData(
-    DWORD dwFd,
-    PSTR  pszBuf,
-    DWORD dwLen);
-
-DWORD
-LsaReadData(
-    DWORD  dwFd,
-    PSTR   pszBuf,
-    DWORD  dwBytesToRead,
-    PDWORD pdwBytesRead);
-
-DWORD
 LsaMapLwmsgStatus(
     LWMsgStatus status
     );
