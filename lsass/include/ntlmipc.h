@@ -121,7 +121,11 @@ typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_REQ
 
 typedef struct __NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE
 {
-    DWORD dwError;
+    CtxtHandle hContext;
+    CtxtHandle hNewContext;
+    SecBufferDesc Output;
+    DWORD  fContextAttr;
+    TimeStamp tsTimeStamp;
 } NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE, *PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -133,13 +137,12 @@ typedef struct __NTLM_IPC_ACQUIRE_CREDS_REQ
     DWORD fCredentialUse;
     PLUID pvLogonID;
     PVOID pAuthData;
-    // NOT USED BY NTLM - SEC_GET_KEY_FN pGetKeyFn;
-    // NOT USED BY NTLM - PVOID pvGetKeyArgument;
 } NTLM_IPC_ACQUIRE_CREDS_REQ, *PNTLM_IPC_ACQUIRE_CREDS_REQ;
 
 typedef struct __NTLM_IPC_ACQUIRE_CREDS_RESPONSE
 {
-    DWORD dwError;
+    CredHandle hCredential;
+    TimeStamp tsExpiry;
 } NTLM_IPC_ACQUIRE_CREDS_RESPONSE, *PNTLM_IPC_ACQUIRE_CREDS_RESPONSE;
 
 /******************************************************************************/
@@ -153,7 +156,8 @@ typedef struct __NTLM_IPC_DECRYPT_MSG_REQ
 
 typedef struct __NTLM_IPC_DECRYPT_MSG_RESPONSE
 {
-    DWORD dwError;
+    SecBufferDesc Message;
+    BOOL bEncrypted;
 } NTLM_IPC_DECRYPT_MSG_RESPONSE, *PNTLM_IPC_DECRYPT_MSG_RESPONSE;
 
 /******************************************************************************/
@@ -163,10 +167,7 @@ typedef struct __NTLM_IPC_DELETE_SEC_CTXT_REQ
     PCtxtHandle phContext;
 } NTLM_IPC_DELETE_SEC_CTXT_REQ, *PNTLM_IPC_DELETE_SEC_CTXT_REQ;
 
-typedef struct __NTLM_IPC_DELETE_SEC_CTXT_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_DELETE_SEC_CTXT_RESPONSE, *PNTLM_IPC_DELETE_SEC_CTXT_RESPONSE;
+// No Response
 
 /******************************************************************************/
 
@@ -180,7 +181,7 @@ typedef struct __NTLM_IPC_ENCRYPT_MSG_REQ
 
 typedef struct __NTLM_IPC_ENCRYPT_MSG_RESPONSE
 {
-    DWORD dwError;
+    SecBufferDesc Message;
 } NTLM_IPC_ENCRYPT_MSG_RESPONSE, *PNTLM_IPC_ENCRYPT_MSG_RESPONSE;
 
 /******************************************************************************/
@@ -189,13 +190,12 @@ typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_REQ
 {
     PCtxtHandle phContext;
     DWORD fFlags;
-    PSecBuffer pPackedContext;
-    HANDLE *pToken;
 } NTLM_IPC_EXPORT_SEC_CTXT_REQ, *PNTLM_IPC_EXPORT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE
 {
-    DWORD dwError;
+    SecBuffer PackedContext;
+    HANDLE hToken;
 } NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE, *PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -205,10 +205,7 @@ typedef struct __NTLM_IPC_FREE_CREDS_REQ
     PCredHandle phCredential;
 } NTLM_IPC_FREE_CREDS_REQ, *PNTLM_IPC_FREE_CREDS_REQ;
 
-typedef struct __NTLM_IPC_FREE_CREDS_RESPONSE
-{
-    DWORD dwError;
-} NTLM_IPC_FREE_CREDS_RESPONSE, *PNTLM_IPC_FREE_CREDS_RESPONSE;
+// No Response
 
 /******************************************************************************/
 
@@ -217,12 +214,11 @@ typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_REQ
     PSECURITY_STRING *pszPackage;
     PSecBuffer pPackedContext;
     HANDLE pToken;
-    PCtxtHandle phContext;
 } NTLM_IPC_IMPORT_SEC_CTXT_REQ, *PNTLM_IPC_IMPORT_SEC_CTXT_REQ;
 
 typedef struct __NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE
 {
-    DWORD dwError;
+    CtxtHandle hContext;
 } NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE, *PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -243,7 +239,10 @@ typedef struct __NTLM_IPC_INIT_SEC_CTXT_REQ
 
 typedef struct __NTLM_IPC_INIT_SEC_CTXT_RESPONSE
 {
-    DWORD dwError;
+    CtxtHandle hNewContext;
+    SecBufferDesc Output;
+    DWORD fContextAttr;
+    TimeStamp tsExpiry;
 } NTLM_IPC_INIT_SEC_CTXT_RESPONSE, *PNTLM_IPC_INIT_SEC_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -258,7 +257,7 @@ typedef struct __NTLM_IPC_MAKE_SIGN_REQ
 
 typedef struct __NTLM_IPC_MAKE_SIGN_RESPONSE
 {
-    DWORD dwError;
+    SecBufferDesc Message;
 } NTLM_IPC_MAKE_SIGN_RESPONSE, *PNTLM_IPC_MAKE_SIGN_RESPONSE;
 
 /******************************************************************************/
@@ -271,7 +270,8 @@ typedef struct __NTLM_IPC_QUERY_CREDS_REQ
 
 typedef struct __NTLM_IPC_QUERY_CREDS_RESPONSE
 {
-    DWORD dwError;
+    DWORD dwBufferSize;
+    PVOID pBuffer;
 } NTLM_IPC_QUERY_CREDS_RESPONSE, *PNTLM_IPC_QUERY_CREDS_RESPONSE;
 
 /******************************************************************************/
@@ -284,7 +284,8 @@ typedef struct __NTLM_IPC_QUERY_CTXT_REQ
 
 typedef struct __NTLM_IPC_QUERY_CTXT_RESPONSE
 {
-    DWORD dwError;
+    DWORD dwBufferSize;
+    PVOID pBuffer;
 } NTLM_IPC_QUERY_CTXT_RESPONSE, *PNTLM_IPC_QUERY_CTXT_RESPONSE;
 
 /******************************************************************************/
@@ -298,7 +299,8 @@ typedef struct __NTLM_IPC_VERIFY_SIGN_REQ
 
 typedef struct __NTLM_IPC_VERIFY_SIGN_RESPONSE
 {
-    DWORD dwError;
+    BOOL bVerified;
+    BOOL bEncrypted;
 } NTLM_IPC_VERIFY_SIGN_RESPONSE, *PNTLM_IPC_VERIFY_SIGN_RESPONSE;
 
 /******************************************************************************/
@@ -325,19 +327,6 @@ DWORD
 NtlmCloseServer(
     HANDLE hConnection
     );
-
-DWORD
-NtlmWriteData(
-    DWORD dwFd,
-    PSTR  pszBuf,
-    DWORD dwLen);
-
-DWORD
-NtlmReadData(
-    DWORD  dwFd,
-    PSTR   pszBuf,
-    DWORD  dwBytesToRead,
-    PDWORD pdwBytesRead);
 
 DWORD
 NtlmMapLwmsgStatus(

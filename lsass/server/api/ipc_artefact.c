@@ -109,7 +109,7 @@ LsaSrvIpcFindNSSArtefactByKey(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -135,7 +135,7 @@ cleanup:
         LsaFreeNSSArtefactInfoList(pReq->dwInfoLevel, ppNSSArtefactInfo, 1);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -200,7 +200,7 @@ LsaSrvIpcBeginEnumNSSArtefacts(
 cleanup:
     LSA_SAFE_FREE_STRING(pszGUID);
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
 
@@ -254,7 +254,7 @@ LsaSrvIpcEnumNSSArtefacts(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -276,7 +276,7 @@ cleanup:
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)
@@ -313,7 +313,7 @@ LsaSrvIpcEndEnumNSSArtefacts(
     }
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;

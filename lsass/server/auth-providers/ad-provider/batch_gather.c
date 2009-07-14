@@ -62,7 +62,7 @@ LsaAdBatchGatherObjectType(
     if ((ObjectType != LSA_AD_BATCH_OBJECT_TYPE_USER) &&
         (ObjectType != LSA_AD_BATCH_OBJECT_TYPE_GROUP))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
     else if (!pItem->ObjectType)
@@ -71,7 +71,7 @@ LsaAdBatchGatherObjectType(
     }
     else if (pItem->ObjectType != ObjectType)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -130,10 +130,10 @@ LsaAdBatchGatherSchemaModeUser(
                     pMessage,
                     AD_LDAP_UID_TAG,
                     &dwValue);
-    if (LSA_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
+    if (LW_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
     {
         SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -146,7 +146,7 @@ LsaAdBatchGatherSchemaModeUser(
     {
         LSA_LOG_DEBUG("uid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -163,7 +163,7 @@ LsaAdBatchGatherSchemaModeUser(
     {
         LSA_LOG_DEBUG("gid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -227,10 +227,10 @@ LsaAdBatchGatherSchemaModeGroup(
                     pMessage,
                     AD_LDAP_GID_TAG,
                     &dwValue);
-    if (LSA_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
+    if (LW_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
     {
         SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -243,7 +243,7 @@ LsaAdBatchGatherSchemaModeGroup(
     {
         LSA_LOG_DEBUG("gid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -297,7 +297,7 @@ LsaAdBatchGatherSchemaMode(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -324,10 +324,10 @@ LsaAdBatchGatherNonSchemaModeUser(
                     dwKeywordValuesCount,
                     AD_LDAP_UID_TAG,
                     &dwValue);
-    if (LSA_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
+    if (LW_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
     {
         SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -340,7 +340,7 @@ LsaAdBatchGatherNonSchemaModeUser(
     {
         LSA_LOG_DEBUG("uid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -357,7 +357,7 @@ LsaAdBatchGatherNonSchemaModeUser(
     {
         LSA_LOG_DEBUG("gid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -421,10 +421,10 @@ LsaAdBatchGatherNonSchemaModeGroup(
                     dwKeywordValuesCount,
                     AD_LDAP_GID_TAG,
                     &dwValue);
-    if (LSA_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
+    if (LW_ERROR_INVALID_LDAP_ATTR_VALUE == dwError)
     {
         SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -437,7 +437,7 @@ LsaAdBatchGatherNonSchemaModeGroup(
     {
         LSA_LOG_DEBUG("gid must be non-zero for SID '%s'", pItem->pszSid);
         // SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_SKIP);
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -491,7 +491,7 @@ LsaAdBatchGatherNonSchemaMode(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -568,7 +568,7 @@ LsaAdBatchGatherUnprovisionedMode(
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -610,7 +610,7 @@ LsaAdBatchGatherRealUser(
                     pMessage,
                     AD_LDAP_USER_CTRL_TAG,
                     &pItem->UserInfo.UserAccountControl);
-    if (dwError == LSA_ERROR_INVALID_LDAP_ATTR_VALUE)
+    if (dwError == LW_ERROR_INVALID_LDAP_ATTR_VALUE)
     {
         LSA_LOG_ERROR(
                 "User %s has an invalid value for the userAccountControl"
@@ -697,7 +697,7 @@ LsaAdBatchGatherRealObjectInternal(
 
     if (IsNullOrEmptyString(pItem->pszSid))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -711,7 +711,7 @@ LsaAdBatchGatherRealObjectInternal(
     BAIL_ON_LSA_ERROR(dwError);
     if (IsNullOrEmptyString(pItem->pszSamAccountName))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -725,7 +725,7 @@ LsaAdBatchGatherRealObjectInternal(
     BAIL_ON_LSA_ERROR(dwError);
     if (IsNullOrEmptyString(pItem->pszDn))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -800,7 +800,7 @@ LsaAdBatchGatherPseudoObjectDefaultSchema(
 
     if (IsNullOrEmptyString(pItem->pszSid))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -852,7 +852,7 @@ LsaAdBatchGatherPseudoSid(
                                     AD_LDAP_BACKLINK_PSEUDO_TAG);
         if (IsNullOrEmptyString(pszSidFromKeywords))
         {
-            dwError = LSA_ERROR_INVALID_SID;
+            dwError = LW_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
 

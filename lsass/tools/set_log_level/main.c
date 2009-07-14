@@ -134,7 +134,7 @@ error:
 
     dwError = MapErrorCode(dwError);
     
-    dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
+    dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
     
     if (dwErrorBufferSize > 0)
     {
@@ -147,7 +147,7 @@ error:
         
         if (!dwError2)
         {
-            DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
+            DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
             
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
@@ -335,7 +335,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
             
-            dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
+            dwError2 = LW_ERROR_LSA_SERVER_UNREACHABLE;
             
             break;
             

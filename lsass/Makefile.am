@@ -1,11 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
 compat_subdirs = \
-	utils \
+	common \
+        client \
 	logging_r \
-        ipc            \
-        client         \
-        provider       \
 	interop
 
 full_subdirs= \

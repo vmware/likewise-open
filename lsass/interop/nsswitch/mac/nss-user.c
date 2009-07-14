@@ -124,14 +124,14 @@ _nss_lsass_get_principal(
     PSTR* ppszPrincipalName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PVOID pUserInfo = NULL;
     DWORD dwUserInfoLevel = 1;
     char * pszPrincipalName = NULL;
 
     if (!ppszPrincipalName)
     {
-       dwError = LSA_ERROR_INVALID_PARAMETER;
+       dwError = LW_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -199,12 +199,12 @@ _nss_lsass_get_user_groups(
     int *    pNumberOfGroups
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwCountOfGroups = 0;
     gid_t* pGidResults = NULL;
 
     if (!pNumberOfGroups || !ppGroups) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

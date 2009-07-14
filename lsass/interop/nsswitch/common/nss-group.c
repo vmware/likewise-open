@@ -146,7 +146,7 @@ LsaNssWriteGroupInfo(
     memset(pResultGroup, 0, sizeof(struct group));
 
     if ((dwGroupInfoLevel != 0) && (dwGroupInfoLevel != 1)) {
-        dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+        dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -157,7 +157,7 @@ LsaNssWriteGroupInfo(
     dwAlignBytes = (dwNumMembers ? ((((size_t)pszMarker) % sizeof(size_t)) * sizeof(size_t)) : 0);
 
     if (LsaNssComputeGroupStringLength(dwAlignBytes, pGroupInfo_1) > bufLen) {
-       dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
+       dwError = LW_ERROR_INSUFFICIENT_BUFFER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -288,7 +288,7 @@ LsaNssCommonGroupGetgrent(
     if (hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(pErrorNumber,
-                            LSA_ERROR_INVALID_LSA_CONNECTION);
+                            LW_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
 

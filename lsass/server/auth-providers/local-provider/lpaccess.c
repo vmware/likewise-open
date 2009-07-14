@@ -123,7 +123,7 @@ LocalCheckForQueryAccess(
     HANDLE hProvider
     )
 {
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 DWORD

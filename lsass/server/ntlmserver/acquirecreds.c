@@ -49,15 +49,13 @@
 
 DWORD
 NtlmServerAcquireCredentialsHandle(
-    SEC_CHAR *pszPrincipal,
-    SEC_CHAR *pszPackage,
-    DWORD fCredentialUse,
-    PLUID pvLogonID,
-    PVOID pAuthData,
-    // NOT NEEDED BY NTLM - SEC_GET_KEY_FN pGetKeyFn,
-    // NOT NEEDED BY NTLM - PVOID pvGetKeyArgument,
-    PCredHandle phCredential,
-    PTimeStamp ptsExpiry
+    IN SEC_CHAR *pszPrincipal,
+    IN SEC_CHAR *pszPackage,
+    IN DWORD fCredentialUse,
+    IN PLUID pvLogonID,
+    IN PVOID pAuthData,
+    OUT PCredHandle phCredential,
+    OUT PTimeStamp ptsExpiry
     )
 {
     DWORD dwError = 0;

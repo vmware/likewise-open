@@ -51,7 +51,7 @@ ntlm_gss_wrap(
 
     gssContext = NTLMLocateContext((PNTLM_CONTEXT)contextHandle, NULL, CONTEXT_BOTH);
     if (!gssContext)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     dwError = gssContext->sealRoutine(
                             gssContext,
@@ -115,7 +115,7 @@ ntlm_gss_unwrap(
     *qopRet = GSS_C_QOP_DEFAULT;
     gssContext = NTLMLocateContext((PNTLM_CONTEXT)contextHandle, NULL, CONTEXT_BOTH);
     if (!gssContext)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     dwError = gssContext->unsealRoutine(
                             gssContext,

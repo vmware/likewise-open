@@ -49,15 +49,15 @@
 
 DWORD
 NtlmServerAcceptSecurityContext(
-    PCredHandle phCredential,
-    PCtxtHandle phContext,
-    PSecBufferDesc pInput,
-    DWORD fContextReq,
-    DWORD TargetDataRep,
-    PCtxtHandle phNewContext,
-    PSecBufferDesc pOutput,
-    PDWORD pfContextAttr,
-    PTimeStamp ptsTimeStamp
+    IN PCredHandle phCredential,
+    IN OUT PCtxtHandle phContext,
+    IN PSecBufferDesc pInput,
+    IN DWORD fContextReq,
+    IN DWORD TargetDataRep,
+    IN OUT PCtxtHandle phNewContext,
+    IN OUT PSecBufferDesc pOutput,
+    OUT PDWORD  pfContextAttr,
+    OUT PTimeStamp ptsTimeStamp
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -73,11 +73,12 @@ NtlmServerAcceptSecurityContext(
 
     if(!phContext)
     {
-        dwError = NtlmInitContext(&pNtlmCtxtIn);
+        dwError = NtlmCreateContextFromSecBufferDesc(
+            pInput,
+            NtlmStateNegotiate,
+            &pNtlmCtxtIn
+            );
         BAIL_ON_NTLM_ERROR(dwError);
-
-        pNtlmCtxtIn->NtlmState = NtlmStateNegotiate;
-        pNtlmCtxtIn->pMessage = pInput;
     }
     else
     {
@@ -127,10 +128,11 @@ NtlmServerAcceptSecurityContext(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    // TODO - copy message to the output parameter
-
     if(pNtlmCtxtOut)
     {
+        dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
+        BAIL_ON_LW_ERROR(dwError);
+
         ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
         //
             dwError = NtlmInsertContext(
@@ -145,7 +147,6 @@ NtlmServerAcceptSecurityContext(
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
     }
-
 
 cleanup:
     return(dwError);
@@ -173,7 +174,6 @@ NtlmCreateChallengeContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CHALLENGE_MESSAGE pChlngMsg = NULL;
 
     if(!ppNtlmContext)
     {
@@ -192,12 +192,12 @@ NtlmCreateChallengeContext(
         NULL,
         NULL,
         NULL,
-        &pChlngMsg
+        &((*ppNtlmContext)->dwMessageSize),
+        (PNTLM_CHALLENGE_MESSAGE*)&((*ppNtlmContext)->pMessage)
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    (*ppNtlmContext)->pMessage = (PVOID)pChlngMsg;
     (*ppNtlmContext)->NtlmState = NtlmStateChallenge;
 
 cleanup:

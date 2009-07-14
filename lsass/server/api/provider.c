@@ -91,7 +91,7 @@ LsaSrvProviderIoControl(
 
     if (pProvider == NULL)
     {
-       dwError = LSA_ERROR_NOT_HANDLED;
+       dwError = LW_ERROR_NOT_HANDLED;
     }
     BAIL_ON_LSA_ERROR(dwError);
 

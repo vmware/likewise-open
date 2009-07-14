@@ -177,54 +177,54 @@ LsaSrvWriteLoginFailedEvent(
 
     switch(dwErrCode)
     {
-        case LSA_ERROR_NO_SUCH_USER:
-        case LSA_ERROR_INVALID_PASSWORD:
-        case LSA_ERROR_PASSWORD_MISMATCH:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_INVALID_PASSWORD:
+        case LW_ERROR_PASSWORD_MISMATCH:
             dwEventID = LSASS_EVENT_FAILED_LOGON_UNKNOWN_USERNAME_OR_BAD_PASSWORD;
             strcpy(szReason, "Unknown username or bad password");
             break;
 
 /* Not yet supported, MIT Kerberos needs to return a specific error for these conditions ...
-        case LSA_ERROR_XYZ:
+        case LW_ERROR_XYZ:
             dwEventID = LSASS_EVENT_FAILED_LOGON_TIME_RESTRICTION_VIOLATION;
             strcpy(szReason, "Account logon time restriction violation");
             break;
 */
 
-        case LSA_ERROR_ACCOUNT_DISABLED:
+        case LW_ERROR_ACCOUNT_DISABLED:
             dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_DISABLED;
             strcpy(szReason, "Account currently disabled");
             break;
 
-        case LSA_ERROR_ACCOUNT_EXPIRED:
+        case LW_ERROR_ACCOUNT_EXPIRED:
             dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_EXPIRED;
             strcpy(szReason, "The specified user account has expired");
             break;
 
 /* Not yet supported, MIT Kerberos needs to return a specific error for these conditions ...
-        case LSA_ERROR_XYZ:
+        case LW_ERROR_XYZ:
             dwEventID = LSASS_EVENT_FAILED_LOGON_MACHINE_RESTRICTION_VIOLATION;
             strcpy(szReason, "User not allowed to logon at this computer");
             break;
 
-        case LSA_ERROR_XYZ:
+        case LW_ERROR_XYZ:
             dwEventID = LSASS_EVENT_FAILED_LOGON_TYPE_OF_LOGON_NOT_GRANTED;
             strcpy(szReason, "The user has not been granted the requested logon type at this machine");
             break;
 */
 
-        case LSA_ERROR_PASSWORD_EXPIRED:
+        case LW_ERROR_PASSWORD_EXPIRED:
             dwEventID = LSASS_EVENT_FAILED_LOGON_PASSWORD_EXPIRED;
             strcpy(szReason, "The specified account's password has expired");
             break;
 
-        case LSA_ERROR_INVALID_NETLOGON_RESPONSE:
-        case LSA_ERROR_RPC_NETLOGON_FAILED:
+        case LW_ERROR_INVALID_NETLOGON_RESPONSE:
+        case LW_ERROR_RPC_NETLOGON_FAILED:
             dwEventID = LSASS_EVENT_FAILED_LOGON_NETLOGON_FAILED;
             strcpy(szReason, "The NetLogon component is not active");
             break;
 
-        case LSA_ERROR_ACCOUNT_LOCKED:
+        case LW_ERROR_ACCOUNT_LOCKED:
             dwEventID = LSASS_EVENT_FAILED_LOGON_ACCOUNT_LOCKED;
             strcpy(szReason, "Account locked out");
             break;

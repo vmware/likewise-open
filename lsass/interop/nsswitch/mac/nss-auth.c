@@ -56,7 +56,7 @@ _nss_lsass_authenticate(
     bool  bAuthOnly
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hLsaConnection = (HANDLE)NULL;
 
     if (hLsaConnection == (HANDLE)NULL)
@@ -104,7 +104,7 @@ _nss_lsass_change_password(
     PCSTR pszNewPassword
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hLsaConnection = (HANDLE)NULL;
 
     if (hLsaConnection == (HANDLE)NULL)

@@ -51,7 +51,7 @@ LsaSqliteReadUInt64(
     PCSTR name,
     uint64_t *pqwResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -61,7 +61,7 @@ LsaSqliteReadUInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 #endif
@@ -70,7 +70,7 @@ LsaSqliteReadUInt64(
     *pqwResult = strtoull(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -87,7 +87,7 @@ LsaSqliteReadInt64(
     PCSTR name,
     int64_t *pqwResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -97,7 +97,7 @@ LsaSqliteReadInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 #endif
@@ -105,7 +105,7 @@ LsaSqliteReadInt64(
     *pqwResult = strtoll(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -122,7 +122,7 @@ LsaSqliteReadTimeT(
     PCSTR name,
     time_t *pResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     uint64_t qwTemp;
 
     dwError = LsaSqliteReadUInt64(
@@ -145,7 +145,7 @@ LsaSqliteReadUInt32(
     PCSTR name,
     DWORD *pdwResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     uint64_t qwTemp;
     int iColumnPos = *piColumnPos;
 
@@ -176,7 +176,7 @@ LsaSqliteReadBoolean(
     PCSTR name,
     BOOLEAN *pbResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwTemp;
 
     dwError = LsaSqliteReadUInt32(
@@ -199,7 +199,7 @@ LsaSqliteReadString(
     PCSTR name,
     PSTR *ppszResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Do not free
     PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
 
@@ -207,7 +207,7 @@ LsaSqliteReadString(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 #endif
@@ -237,7 +237,7 @@ LsaSqliteReadStringInPlace(
     //Includes NULL
     IN size_t sMaxSize)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Do not free
     PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
     size_t sRequiredSize = 0;
@@ -246,7 +246,7 @@ LsaSqliteReadStringInPlace(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 #endif
@@ -254,7 +254,7 @@ LsaSqliteReadStringInPlace(
     sRequiredSize = strlen(pszColumnValue) + 1;
     if (sRequiredSize > sMaxSize)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -278,7 +278,7 @@ LsaSqliteReadSid(
     IN PCSTR name,
     OUT PSID* ppSid)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszSid = NULL;
     PSID pSid = NULL;
     int iColumnPos = *piColumnPos;
@@ -317,7 +317,7 @@ LsaSqliteReadGuid(
     IN PCSTR name,
     OUT uuid_t** ppGuid)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszGuid = NULL;
     uuid_t *pGuid = NULL;
     int iColumnPos = *piColumnPos;
@@ -339,7 +339,7 @@ LsaSqliteReadGuid(
             *pGuid) < 0)
     {
         // uuid_parse returns -1 on error, but does not set errno
-        dwError = LSA_ERROR_INVALID_OBJECTGUID;
+        dwError = LW_ERROR_INVALID_OBJECTGUID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -405,7 +405,7 @@ LsaSqliteAllocPrintf(
 
     if (!*ppszSqlCommand)
     {
-        dwError = LSA_ERROR_OUT_OF_MEMORY;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
     }
 
     return dwError;
@@ -431,7 +431,7 @@ LsaSqliteExecCallbackWithRetry(
     )
 {
     PSTR pszError = NULL;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwRetry;
     BOOLEAN bInLock = FALSE;
 

@@ -55,7 +55,7 @@ wbcSidCopy(
     struct wbcDomainSid *src
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbcStatus = WBC_ERR_UNKNOWN_FAILURE;
 
 
@@ -64,7 +64,7 @@ wbcSidCopy(
 
     memcpy(dst, src, sizeof(struct wbcDomainSid));
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     wbcStatus = map_error_to_wbc_status(dwErr);
@@ -78,7 +78,7 @@ wbcSidAppendRid(
     DWORD rid
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbcStatus = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
@@ -86,14 +86,14 @@ wbcSidAppendRid(
     /* See if there is room */
 
     if (sid->num_auths >= WBC_MAXSUBAUTHS) {
-        dwErr = LSA_ERROR_INVALID_SID;
+        dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
     sid->sub_auths[sid->num_auths] = rid;
     sid->num_auths++;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     wbcStatus = map_error_to_wbc_status(dwErr);
@@ -110,7 +110,7 @@ wbcErr wbcSidToString(
     CHAR pszSidStr[MAX_SID_STRING_LEN] = "";
     uint32_t dwAuthId = 0;
     int i = 0;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
 
     BAIL_ON_NULL_PTR_PARAM(sid, dwErr);
     BAIL_ON_NULL_PTR_PARAM(sid_string, dwErr);
@@ -136,7 +136,7 @@ wbcErr wbcSidToString(
     *sid_string = _wbc_strdup(pszSidStr);
     BAIL_ON_NULL_PTR(*sid_string, dwErr);
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     wbc_status = map_error_to_wbc_status(dwErr);
@@ -152,7 +152,7 @@ wbcStringToSid(
     )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     const CHAR *pszStrToken = NULL;
     CHAR *pszStrNextToken = NULL;
     DWORD dwX;
@@ -166,7 +166,7 @@ wbcStringToSid(
         || (sid_string[0] != 's' && sid_string[0] != 'S')
         || (sid_string[1] != '-'))
     {
-        dwErr = LSA_ERROR_INVALID_SID;
+        dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -175,7 +175,7 @@ wbcStringToSid(
     pszStrToken = sid_string+2;
     dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
     if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
-        dwErr = LSA_ERROR_INVALID_SID;
+        dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
     }
     sid->sid_rev_num = (uint8_t)dwX;
@@ -185,7 +185,7 @@ wbcStringToSid(
     pszStrToken = pszStrNextToken + 1;
     dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
     if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
-        dwErr = LSA_ERROR_INVALID_SID;
+        dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -218,11 +218,11 @@ wbcStringToSid(
     /* Check for a premature end to the above loop */
 
     if (pszStrNextToken && (pszStrNextToken[0] != '\0')) {
-        dwErr = LSA_ERROR_INVALID_SID;
+        dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     wbc_status = map_error_to_wbc_status(dwErr);
@@ -241,7 +241,7 @@ wbcLookupName(
     LSA_USER_INFO_0 *pUserInfo = NULL;
     LSA_GROUP_INFO_1 *pGroupInfo = NULL;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     CHAR pszQualifiedName[512] = "";
 
@@ -259,7 +259,7 @@ wbcLookupName(
     /* First try to lookup the name as a user */
 
     dwErr = LsaFindUserByName(hLsa, pszQualifiedName, 0, (PVOID*)&pUserInfo);
-    if (dwErr ==  LSA_ERROR_SUCCESS) {
+    if (dwErr ==  LW_ERROR_SUCCESS) {
         if (sid) {
             wbc_status = wbcStringToSid(pUserInfo->pszSid, sid);
             dwErr = map_wbc_to_lsa_error(wbc_status);
@@ -288,7 +288,7 @@ wbcLookupName(
     BAIL_ON_LSA_ERR(dwErr);
     hLsa = (HANDLE)NULL;
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     if ( hLsa) {
@@ -332,7 +332,7 @@ wbcErr wbcLookupSid(
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     PSTR pszSidString = NULL;
     PSTR ppszSidList[2];
     PLSA_SID_INFO pNameList = NULL;
@@ -367,7 +367,7 @@ wbcErr wbcLookupSid(
        passed in as NULL */
 
     if (pNameList[0].accountType == AccountType_NotFound) {
-        dwErr = LSA_ERROR_NOT_MAPPED;
+        dwErr = LW_ERROR_NOT_MAPPED;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -387,7 +387,7 @@ wbcErr wbcLookupSid(
         *name_type = map_lsa_sid_type_to_wbc(pNameList[0].accountType);
     }
 
-    dwErr = LSA_ERROR_SUCCESS;
+    dwErr = LW_ERROR_SUCCESS;
 
 done:
     if (pNameList) {
@@ -403,7 +403,7 @@ done:
         hLsa = (HANDLE)NULL;
     }
 
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         _WBC_FREE(*domain);
         _WBC_FREE(*name);
     }
@@ -423,7 +423,7 @@ wbcErr wbcLookupRids(
     )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     struct wbcDomainSid sid;
     int i;
         char *domain = NULL;
@@ -477,7 +477,7 @@ done:
         wbcFreeMemory(domain);
     }
 
-    if (dwErr != LSA_ERROR_SUCCESS) {
+    if (dwErr != LW_ERROR_SUCCESS) {
         if (types && *types)
             _WBC_FREE(*types);
         if (names && *names)

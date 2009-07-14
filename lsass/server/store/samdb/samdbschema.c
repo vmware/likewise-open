@@ -113,7 +113,7 @@ SamDbSchemaAddValidateDirMods(
                         dwError2 = LsaWc16sToMbs(
                                         &pAttrMapInfo->wszAttributeName[0],
                                         &pszAttrName);
-                        if (dwError2 == LSA_ERROR_SUCCESS)
+                        if (dwError2 == LW_ERROR_SUCCESS)
                         {
                             SAMDB_LOG_ERROR(
                                     "Found multi-valued attribute [%s]."
@@ -121,7 +121,7 @@ SamDbSchemaAddValidateDirMods(
                                     pszAttrName);
                         }
 
-                        dwError = LSA_ERROR_INVALID_PARAMETER;
+                        dwError = LW_ERROR_INVALID_PARAMETER;
                         BAIL_ON_SAMDB_ERROR(dwError);
                     }
 
@@ -146,14 +146,14 @@ SamDbSchemaAddValidateDirMods(
                 dwError2 = LsaWc16sToMbs(
                                 &pAttrMapInfo->wszAttributeName[0],
                                 &pszAttrName);
-                if (dwError2 == LSA_ERROR_SUCCESS)
+                if (dwError2 == LW_ERROR_SUCCESS)
                 {
                     SAMDB_LOG_ERROR(
                             "Mandatory attribute [%s] was not specified.",
                             pszAttrName);
                 }
 
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
@@ -174,7 +174,7 @@ SamDbSchemaAddValidateDirMods(
                     dwError2 = LsaWc16sToMbs(
                                     &pAttrMapInfo->wszAttributeName[0],
                                     &pszAttrName);
-                    if (dwError2 == LSA_ERROR_SUCCESS)
+                    if (dwError2 == LW_ERROR_SUCCESS)
                     {
                         SAMDB_LOG_ERROR(
                                 "Mismatched type specified for attribute [%s]."
@@ -184,7 +184,7 @@ SamDbSchemaAddValidateDirMods(
                                 pAttrMap->attributeType);
                     }
 
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
 
@@ -200,7 +200,7 @@ SamDbSchemaAddValidateDirMods(
                     dwError2 = LsaWc16sToMbs(
                                     &pAttrMapInfo->wszAttributeName[0],
                                     &pszAttrName);
-                    if (dwError2 == LSA_ERROR_SUCCESS)
+                    if (dwError2 == LW_ERROR_SUCCESS)
                     {
                         SAMDB_LOG_ERROR(
                                 "An invalid string value was specified for"
@@ -208,7 +208,7 @@ SamDbSchemaAddValidateDirMods(
                                 pszAttrName);
                     }
 
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
                 }
             }
@@ -270,7 +270,7 @@ SamDbSchemaModifyValidateDirMods(
             (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) ||
             (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 

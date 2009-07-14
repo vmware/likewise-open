@@ -63,7 +63,7 @@ LsaSrvOpenSession(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -87,8 +87,8 @@ LsaSrvOpenSession(
             }
            break;
 
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -151,7 +151,7 @@ LsaSrvCloseSession(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList;
          pProvider;
@@ -175,8 +175,8 @@ LsaSrvCloseSession(
 
            break;
 
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_USER)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_USER)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;

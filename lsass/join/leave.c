@@ -81,7 +81,7 @@ LsaNetLeaveDomain(
     {
         if (dwError == LWPS_ERROR_INVALID_ACCOUNT)
         {
-            dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+            dwError = LW_ERROR_NOT_JOINED_TO_AD;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }

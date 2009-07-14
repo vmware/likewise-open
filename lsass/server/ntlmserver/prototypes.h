@@ -115,6 +115,12 @@ NtlmCreateContextFromSecBufferDesc(
     );
 
 DWORD
+NtlmCopyContextToSecBufferDesc(
+    IN PNTLM_CONTEXT pNtlmContext,
+    IN OUT PSecBufferDesc pSecBufferDesc
+    );
+
+DWORD
 NtlmGetRandomBuffer(
     PBYTE pBuffer,
     DWORD dwLen
@@ -126,6 +132,7 @@ NtlmCreateNegotiateMessage(
     IN PCHAR pDomain,
     IN PCHAR pWorkstation,
     IN PBYTE pOsVersion,
+    OUT PDWORD pdwSize,
     OUT PNTLM_NEGOTIATE_MESSAGE *ppNegMsg
     );
 
@@ -137,6 +144,7 @@ NtlmCreateChallengeMessage(
     IN PCHAR pDnsHostName,
     IN PCHAR pDnsDomainName,
     IN PBYTE  pOsVersion,
+    OUT PDWORD pdwSize,
     OUT PNTLM_CHALLENGE_MESSAGE *ppChlngMsg
     );
 
@@ -150,6 +158,7 @@ NtlmCreateResponseMessage(
     IN PCHAR pPassword,
     IN DWORD dwNtRespType,
     IN DWORD dwLmRespType,
+    OUT PDWORD pdwSize,
     OUT PNTLM_RESPONSE_MESSAGE *ppRespMsg
     );
 

@@ -93,14 +93,14 @@ LsaAdBatchEnumGetNoMoreError(
     switch (ObjectType)
     {
         case LSA_AD_BATCH_OBJECT_TYPE_USER:
-            dwError = LSA_ERROR_NO_MORE_USERS;
+            dwError = LW_ERROR_NO_MORE_USERS;
             break;
         case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
-            dwError = LSA_ERROR_NO_MORE_GROUPS;
+            dwError = LW_ERROR_NO_MORE_GROUPS;
             break;
         default:
             LSA_ASSERT(FALSE);
-            dwError = LSA_ERROR_INTERNAL;
+            dwError = LW_ERROR_INTERNAL;
     }
 
     return dwError;
@@ -137,7 +137,7 @@ LsaAdBatchEnumGetScopeRoot(
                 break;
             default:
                 LSA_ASSERT(FALSE);
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -369,7 +369,7 @@ LsaAdBatchEnumProcessPseudoMessages(
                                     AD_LDAP_BACKLINK_PSEUDO_TAG);
         if (IsNullOrEmptyString(pszSidFromKeywords))
         {
-            dwError = LSA_ERROR_INVALID_SID;
+            dwError = LW_ERROR_INVALID_SID;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -441,7 +441,7 @@ LsaAdBatchEnumProcessMessages(
     dwCount = ldap_count_entries(pLd, pMessages);
     if ((int)dwCount < 0)
     {
-       dwError = LSA_ERROR_LDAP_ERROR;
+       dwError = LW_ERROR_LDAP_ERROR;
        BAIL_ON_LSA_ERROR(dwError);
     }
     else if (dwCount == 0)
@@ -451,7 +451,7 @@ LsaAdBatchEnumProcessMessages(
     }
     else if (dwCount > dwMaxCount)
     {
-       dwError = LSA_ERROR_LDAP_ERROR;
+       dwError = LW_ERROR_LDAP_ERROR;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -615,7 +615,7 @@ LsaAdBatchEnumObjectsInCell(
                         dwRemainingObjectsWanted,
                         &dwObjectsCount,
                         &ppObjects);
-        if (dwError == LSA_ERROR_NO_MORE_USERS || dwError == LSA_ERROR_NO_MORE_GROUPS)
+        if (dwError == LW_ERROR_NO_MORE_USERS || dwError == LW_ERROR_NO_MORE_GROUPS)
         {
             dwError = 0;
         }
@@ -892,7 +892,7 @@ LsaAdBatchEnumObjects(
                             pCookieData->pEnumeratedSids,
                             ppTotalObjects[dwInput]->pszObjectSid,
                             NULL);
-                if (dwError == LSA_ERROR_SUCCESS)
+                if (dwError == LW_ERROR_SUCCESS)
                 {
                     // The object is already in the hash
                     ADCacheSafeFreeObject(&ppTotalObjects[dwInput]);

@@ -99,7 +99,7 @@ void wbcFreeMemory(void* p)
 wbcErr wbcPing(void)
 {
     HANDLE hLsa = (HANDLE)NULL;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     /* Just open and close an LsaServerHandle */
@@ -135,7 +135,7 @@ static int FreeInterfaceDetails(void *p)
 
 wbcErr wbcInterfaceDetails(struct wbcInterfaceDetails **details)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     PSTR pszMyDnsDomain = NULL;
     PLWNET_DC_INFO pDcInfo = NULL;
@@ -187,7 +187,7 @@ done:
 
 wbcErr wbcLibraryDetails(struct wbcLibraryDetails **details)
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
 
     BAIL_ON_NULL_PTR_PARAM(details, dwErr);

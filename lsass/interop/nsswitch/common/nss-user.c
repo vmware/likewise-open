@@ -119,13 +119,13 @@ LsaNssWriteUserInfo(
     DWORD dwLen = 0;
 
     if (dwUserInfoLevel != 0) {
-        dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+        dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if(!ppszBuf)
     {
-        dwError = LSA_ERROR_NULL_BUFFER;
+        dwError = LW_ERROR_NULL_BUFFER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -134,7 +134,7 @@ LsaNssWriteUserInfo(
     pUserInfo_0 = (PLSA_USER_INFO_0)pUserInfo;
 
     if (LsaNssComputeUserStringLength(pUserInfo_0) > bufLen) {
-       dwError = LSA_ERROR_INSUFFICIENT_BUFFER;
+       dwError = LW_ERROR_INSUFFICIENT_BUFFER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -260,7 +260,7 @@ LsaNssCommonPasswdGetpwent(
     if (hLsaConnection == (HANDLE)NULL)
     {
         ret = MAP_LSA_ERROR(pErrorNumber,
-                            LSA_ERROR_INVALID_LSA_CONNECTION);
+                            LW_ERROR_INVALID_LSA_CONNECTION);
         BAIL_ON_NSS_ERROR(ret);
     }
 

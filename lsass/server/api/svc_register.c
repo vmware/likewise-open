@@ -166,7 +166,7 @@ RpcSvcRegisterRpcInterface(
         }
 
         if (!rpcstatus) {
-                dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+                dwError = LW_ERROR_RPC_SERVER_REGISTRATION_ERROR;
         }
     }
     DCETHREAD_ENDTRY;
@@ -204,7 +204,7 @@ RpcSvcBindRpcInterface(
         }
 
         if (!rpcstatus) {
-            dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+            dwError = LW_ERROR_RPC_SERVER_REGISTRATION_ERROR;
         }
     }
     DCETHREAD_ENDTRY;
@@ -227,7 +227,7 @@ RpcSvcBindRpcInterface(
         }
 
         if (!rpcstatus) {
-            dwError = LSA_ERROR_RPC_SERVER_REGISTRATION_ERROR;
+            dwError = LW_ERROR_RPC_SERVER_REGISTRATION_ERROR;
         }
     }
     DCETHREAD_ENDTRY;

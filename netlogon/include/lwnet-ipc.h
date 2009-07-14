@@ -49,6 +49,7 @@
 #define __LWNETIPC_H__
 
 #include <lwmsg/lwmsg.h>
+#include <lwerror.h>
 
 #include "lwnet-utils.h"
 
@@ -122,7 +123,7 @@ LWNetIPCGetProtocolSpec(
     void
     );
 
-#define MAP_LWMSG_ERROR(_e_) ((_e_) ? -1 : 0)
+#define MAP_LWMSG_ERROR(_e_) ((_e_) ? LwMapLwmsgStatusToLwError(_e_) : 0)
 #define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 #endif /*__LWNETIPC_H__*/

@@ -44,31 +44,34 @@
 #ifndef __LWMEM_H__
 #define __LWMEM_H__
 
+#include <lw/types.h>
+#include <lw/attrs.h>
+
 #define LW_SAFE_FREE_MEMORY(mem) \
-        do {                     \
-           if (mem) {            \
-              LwFreeMemory(mem); \
-              (mem) = NULL;      \
-           }                     \
-        } while(0);
+    do { \
+        if (mem) \
+        { \
+            LwFreeMemory(mem); \
+            (mem) = NULL; \
+        } \
+    } while (0)
 
-DWORD
+LW_DWORD
 LwAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
+    LW_IN LW_DWORD dwSize,
+    LW_OUT LW_PVOID* ppMemory
     );
 
-DWORD
+LW_DWORD
 LwReallocMemory(
-    PVOID  pMemory,
-    PVOID * ppNewMemory,
-    DWORD dwSize
+    LW_IN LW_PVOID pMemory,
+    LW_OUT LW_PVOID* ppNewMemory,
+    LW_IN LW_DWORD dwSize
     );
 
-void
+LW_VOID
 LwFreeMemory(
-    PVOID pMemory
+    LW_IN LW_OUT LW_PVOID pMemory
     );
 
 #endif /* __LWMEM_H__ */
-

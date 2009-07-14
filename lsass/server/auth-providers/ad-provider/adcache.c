@@ -88,7 +88,7 @@ ADCacheFindUserByName(
     return dwError;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 ADCacheFindUserById(
     LSA_DB_HANDLE hDb,
@@ -442,7 +442,7 @@ ADCacheFindObjectsBySidList(
 
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 ADCacheGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,

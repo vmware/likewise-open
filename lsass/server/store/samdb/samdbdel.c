@@ -67,7 +67,7 @@ SamDbDeleteObject(
 
     if (!hDirectory || !pwszObjectDN || !*pwszObjectDN)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -91,7 +91,7 @@ SamDbDeleteObject(
 
     if (dwNumDependents)
     {
-        dwError = LSA_ERROR_OBJECT_IN_USE;
+        dwError = LW_ERROR_OBJECT_IN_USE;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -125,7 +125,7 @@ SamDbDeleteObject(
     dwError = sqlite3_step(pDirectoryContext->pDbContext->pDelObjectStmt);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(
                     dwError,

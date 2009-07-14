@@ -257,7 +257,7 @@ SamDbBuildSqlQuery(
 
             if (!pAttrMap->bIsQueryable)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
@@ -503,7 +503,7 @@ SamDbSearchMarshallResultsAttributes(
 
             default:
 
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_SAMDB_ERROR(dwError);
 
                 break;
@@ -572,7 +572,7 @@ SamDbSearchMarshallResultsAttributesValues(
         dwNumAttrs = sqlite3_column_count(pSqlStatement);
         if (dwNumAttrs != dwNumCols)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -750,7 +750,7 @@ SamDbSearchMarshallResultsAttributesValues(
 
                 default:
 
-                    dwError = LSA_ERROR_INTERNAL;
+                    dwError = LW_ERROR_INTERNAL;
                     BAIL_ON_SAMDB_ERROR(dwError);
             }
         }
@@ -767,7 +767,7 @@ SamDbSearchMarshallResultsAttributesValues(
 
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 

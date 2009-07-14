@@ -9,7 +9,7 @@ liblsalog_r_la_CPPFLAGS = \
         -DLW_ENABLE_THREADS=1
 
 liblsalog_r_la_LIBADD = \
-	@top_builddir@/utils/liblsautils.la \
+	@top_builddir@/common/liblsacommon.la \
 	@PTHREAD_LIBS@
 
 noinst_HEADERS =   \

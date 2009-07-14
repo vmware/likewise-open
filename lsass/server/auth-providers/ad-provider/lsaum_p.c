@@ -412,8 +412,8 @@ LsaUmpStateCreate(
 /// @param[out] pHandle - Returns new user manager state object.
 ///
 /// @return LSA status code.
-///  @arg LSA_ERROR_SUCCESS on success
-///  @arg !LSA_ERROR_SUCCESS on failure
+///  @arg LW_ERROR_SUCCESS on success
+///  @arg !LW_ERROR_SUCCESS on failure
 ///
 {
     DWORD         dwError = 0;
@@ -801,7 +801,7 @@ LsaUmpCreateKeys(
         if ( dwError == 0 )
         {
             LSA_LOG_DEBUG("LSA User Manager - failed to create random key");
-            dwError = LSA_ERROR_CREATE_KEY_FAILED;
+            dwError = LW_ERROR_CREATE_KEY_FAILED;
             goto error;
         }
         else
@@ -1566,7 +1566,7 @@ LsaUmpRefreshUserCreds(
                   pszServicePassword,
                   &pPac,
                   &pUserItem->dwTgtEndTime);
-    if (dwError == LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
+    if (dwError == LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN)
     {
         LSA_SAFE_FREE_STRING(pszServicePrincipal);
 
@@ -1645,8 +1645,8 @@ cleanup:
 
 error:
 
-    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE &&
-         dwError != LSA_ERROR_LDAP_SERVER_UNAVAILABLE )
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE &&
+         dwError != LW_ERROR_LDAP_SERVER_UNAVAILABLE )
     {
         pUserItem->dwFailedCount++;
 

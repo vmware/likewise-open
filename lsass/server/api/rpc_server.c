@@ -79,7 +79,7 @@ LsaCheckInvalidRpcServer(
             LSA_LOG_ERROR("%s", pszError);
         }
 
-        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        dwError = LW_ERROR_INVALID_RPC_SERVER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -120,7 +120,7 @@ LsaInitRpcServer(
             LSA_LOG_ERROR("%s", pszError);
         }
 
-        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        dwError = LW_ERROR_INVALID_RPC_SERVER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -334,7 +334,7 @@ LsaValidateRpcServer(
         !pRpc->pfnTable->pfnStart ||
         !pRpc->pfnTable->pfnStop) {
 
-        dwError = LSA_ERROR_INVALID_RPC_SERVER;
+        dwError = LW_ERROR_INVALID_RPC_SERVER;
     }
 
     return dwError;
@@ -423,7 +423,7 @@ LsaRpcServerConfigNameValuePair(
     pRpc = (PLSA_RPC_SERVER) LsaStackPeek(*ppRpcSrvStack);
 
     if (pRpc == NULL) {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

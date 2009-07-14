@@ -68,7 +68,7 @@ inboundProviderUserFromUid(
 
 error:
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 void
@@ -86,7 +86,7 @@ inboundProviderGetUserInfo(
     PAUTH_INFO *userInfo
     )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
+    return LW_ERROR_NOT_IMPLEMENTED;
 }
 
 
@@ -165,7 +165,7 @@ inboundProviderGetNTOWF(
 {
     memcpy(ntOWF, inboundUser.ntOWF, 16);
 
-    return (LSA_ERROR_SUCCESS); 
+    return (LW_ERROR_SUCCESS);
 }
 
 DWORD
@@ -179,7 +179,7 @@ inboundProviderResponseMessageHandler(
     PSEC_BUFFER_S pBaseSessionKey
 )
 {
-    return LSA_ERROR_NOT_IMPLEMENTED;
+    return LW_ERROR_NOT_IMPLEMENTED;
 }
         
 

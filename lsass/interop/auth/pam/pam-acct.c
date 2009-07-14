@@ -90,7 +90,7 @@ pam_sm_acct_mgmt(
         // we detected that the password expired,
         // we handle it here
         pPamContext->bPasswordExpired = FALSE;
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        dwError = LW_ERROR_PASSWORD_EXPIRED;
         LsaPamConverse(
             pamh,
             "Your password has expired",
@@ -172,7 +172,7 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NO_SUCH_USER || dwError == LSA_ERROR_NOT_HANDLED)
+    if (dwError == LW_ERROR_NO_SUCH_USER || dwError == LW_ERROR_NOT_HANDLED)
     {
         LSA_LOG_PAM_WARNING("pam_sm_acct_mgmt failed [login:%s][error code:%d]",
                           LSA_SAFE_LOG_STRING(pszLoginId),

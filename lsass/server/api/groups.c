@@ -68,7 +68,7 @@ LsaSrvFindGroupByName(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -83,8 +83,8 @@ LsaSrvFindGroupByName(
                                             ppGroupInfo);
         if (!dwError) {
             break;
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_GROUP)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_GROUP)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -144,7 +144,7 @@ LsaSrvFindGroupById(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -159,8 +159,8 @@ LsaSrvFindGroupById(
                                             ppGroupInfo);
         if (!dwError) {
             break;
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_GROUP)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_GROUP)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -225,7 +225,7 @@ LsaSrvGetGroupsForUser(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
@@ -233,7 +233,7 @@ LsaSrvGetGroupsForUser(
 
         if (pProvider->pFnTable->pfnGetGroupsForUser == NULL)
         {
-            dwError = LSA_ERROR_NOT_HANDLED;
+            dwError = LW_ERROR_NOT_HANDLED;
         }
         else
         {
@@ -251,8 +251,8 @@ LsaSrvGetGroupsForUser(
         {
             break;
         }
-        else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                 (dwError == LSA_ERROR_NO_SUCH_USER))
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
 
             dwError = 0;
@@ -309,7 +309,7 @@ LsaSrvAddGroup(
     }
 
     if (dwGroupInfoLevel != 1) {
-        dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+        dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -322,7 +322,7 @@ LsaSrvAddGroup(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -335,7 +335,7 @@ LsaSrvAddGroup(
                                         pGroupInfo);
         if (!dwError) {
             break;
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        } else if (dwError == LW_ERROR_NOT_HANDLED) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -386,7 +386,7 @@ LsaSrvModifyGroup(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -400,8 +400,8 @@ LsaSrvModifyGroup(
         {
             break;
         }
-        else if ((dwError = LSA_ERROR_NOT_HANDLED) ||
-                 (dwError = LSA_ERROR_NO_SUCH_GROUP))
+        else if ((dwError = LW_ERROR_NOT_HANDLED) ||
+                 (dwError = LW_ERROR_NO_SUCH_GROUP))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -453,7 +453,7 @@ LsaSrvDeleteGroup(
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
 
     for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
     {
@@ -463,8 +463,8 @@ LsaSrvDeleteGroup(
         dwError = pProvider->pFnTable->pfnDeleteGroup(hProvider, gid);
         if (!dwError) {
             break;
-        } else if ((dwError == LSA_ERROR_NOT_HANDLED) ||
-                   (dwError == LSA_ERROR_NO_SUCH_GROUP)) {
+        } else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                   (dwError == LW_ERROR_NO_SUCH_GROUP)) {
 
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
@@ -574,7 +574,7 @@ LsaSrvEnumGroups(
 
 
         if (dwError) {
-           if (dwError != LSA_ERROR_NO_MORE_GROUPS) {
+           if (dwError != LW_ERROR_NO_MORE_GROUPS) {
               BAIL_ON_LSA_ERROR(dwError);
            }
         }
@@ -583,7 +583,7 @@ LsaSrvEnumGroups(
 
         if (dwNumGroupsRemaining) {
            pEnumState->pCurProviderState = pEnumState->pCurProviderState->pNext;
-           if (dwError == LSA_ERROR_NO_MORE_GROUPS){
+           if (dwError == LW_ERROR_NO_MORE_GROUPS){
              dwError = 0;
            }
         }

@@ -104,7 +104,7 @@ main(
         fprintf(stderr, "Mismatch between original string and output string:\n");
         fprintf(stderr, "Original: %s\n", pszSIDStr);
         fprintf(stderr, "Output:   %s\n", pszSIDStrFeedback);
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
     }
     BAIL_ON_LSA_ERROR(dwError);
 

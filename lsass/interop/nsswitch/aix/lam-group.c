@@ -45,7 +45,7 @@ LsaNssAllocateGroupFromInfo1(
         struct group** ppResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free directly. Free pStartMem instead on error
     struct group* pResult = NULL;
     void *pStartMem = NULL;
@@ -122,7 +122,7 @@ LsaNssAllocateGroupFromInfo0(
         struct group** ppResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free directly. Free pStartMem instead on error
     struct group* pResult = NULL;
     void *pStartMem = NULL;
@@ -176,7 +176,7 @@ error:
 
 struct group *LsaNssGetGrGid(gid_t gid)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_GROUP_INFO_1 pInfo = NULL;
     const DWORD dwInfoLevel = 1;
     struct group *pResult = NULL;
@@ -212,7 +212,7 @@ cleanup:
                 (PVOID)pInfo);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -230,7 +230,7 @@ error:
 
 struct group *LsaNssGetGrNam(PCSTR pszName)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_GROUP_INFO_1 pInfo = NULL;
     const DWORD dwInfoLevel = 1;
     struct group *pResult = NULL;
@@ -266,7 +266,7 @@ cleanup:
                 pInfo);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -288,7 +288,7 @@ LsaNssGetGrAcct(
         int iType
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_GROUP_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct group *pResult = NULL;
@@ -342,7 +342,7 @@ cleanup:
                 pInfo);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -363,7 +363,7 @@ LsaNssGetGrSet(
         PSTR pszName
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwGroupCount = 0;
     gid_t* pGids = NULL;
     char szGidNumBuf[16];
@@ -414,7 +414,7 @@ LsaNssGetGrSet(
 cleanup:
 
     LSA_SAFE_FREE_MEMORY(pGids);
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -438,7 +438,7 @@ LsaNssListGroups(
         attrval_t* pResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwInfoLevel = 0;
     const DWORD dwEnumLimit = 100000;
     DWORD dwIndex = 0;
@@ -535,7 +535,7 @@ LsaNssGetGidList(
         PSTR* ppszList
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwGroupCount = 0;
     PLSA_GROUP_INFO_0* ppGroupList = NULL;
     const DWORD dwGroupInfoLevel = 0;
@@ -614,7 +614,7 @@ LsaNssGetGroupList(
         PSTR* ppszList
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwGroupCount = 0;
     PLSA_GROUP_INFO_0* ppGroupList = NULL;
     const DWORD dwGroupInfoLevel = 0;
@@ -690,7 +690,7 @@ LsaNssFillMemberList(
         PSTR* ppResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sIndex = 0;
     size_t sRequiredMem = 0;
     PSTR pszListStart = NULL;
@@ -747,7 +747,7 @@ LsaNssGetGroupAttr(
         attrval_t* pResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     if (!strcmp(pszAttribute, S_ID))
     {
@@ -794,7 +794,7 @@ LsaNssGetGroupAttr(
 
 cleanup:
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &pResult->attr_flag);
     }
@@ -818,7 +818,7 @@ LsaNssGetGroupAttrs(
         int iAttrCount
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwInfoLevel = 1;
     PLSA_GROUP_INFO_1 pInfo = NULL;
     int iIndex = 0;

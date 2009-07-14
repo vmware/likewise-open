@@ -81,7 +81,7 @@
 
 #define BAIL_ON_LSA_ERR(x)            \
     do {                    \
-        if (x != LSA_ERROR_SUCCESS)    \
+        if (x != LW_ERROR_SUCCESS)    \
             goto done;        \
     } while(0);
 
@@ -95,7 +95,7 @@
 #define BAIL_ON_NULL_PTR(x, y)                \
     do {                        \
         if (x == NULL) {            \
-            y = LSA_ERROR_OUT_OF_MEMORY;    \
+            y = LW_ERROR_OUT_OF_MEMORY;    \
             goto done;            \
         }                    \
     } while(0);
@@ -103,12 +103,12 @@
 #define BAIL_ON_NULL_PTR_PARAM(x, y)                \
     do {                            \
         if (x == NULL) {                \
-            y = LSA_ERROR_INVALID_PARAMETER;    \
+            y = LW_ERROR_INVALID_PARAMETER;    \
             goto done;                \
         }                        \
     } while(0);
 
-#define LSA_ERROR_IS_OK(x)         ((x) == LSA_ERROR_SUCCESS)
+#define LW_ERROR_IS_OK(x)         ((x) == LW_ERROR_SUCCESS)
 
 
 /* local private functions */

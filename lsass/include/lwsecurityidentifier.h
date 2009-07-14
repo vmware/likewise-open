@@ -130,14 +130,6 @@ LwGetDomainSecurityIdentifier(
     );
 
 DWORD
-LwHexStrToByteArray(
-    IN PCSTR pszHexString,
-    IN OPTIONAL DWORD* pdwHexStringLength,
-    OUT UCHAR** ppucByteArray,
-    OUT DWORD*  pdwByteArrayLength
-    );
-
-DWORD
 LwByteArrayToHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,

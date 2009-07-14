@@ -98,7 +98,7 @@ ADGetLDAPUPNString(
     OUT PBOOLEAN pbIsGeneratedUPN
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     LDAP *pLd = NULL;
     PSTR *ppszValues = NULL;
     PSTR pszUPN = NULL;
@@ -116,7 +116,7 @@ ADGetLDAPUPNString(
 
             if (!index(pszUPN, '@'))
             {
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -213,7 +213,7 @@ ADGetUserPrimaryGroupSid(
                       pMessage);
     if (dwCount != 1)
     {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -309,11 +309,11 @@ ADFindComputerDN(
                 pMessage
                 );
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
     } else if (dwCount > 1) {
-        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -325,7 +325,7 @@ ADFindComputerDN(
 
     if (IsNullOrEmptyString(pszComputerDN))
     {
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
+        dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -382,11 +382,11 @@ ADGetCellInformation(
                 pMessage
                 );
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_CELL;
+        dwError = LW_ERROR_NO_SUCH_CELL;
     } else if (dwCount > 1) {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -398,7 +398,7 @@ ADGetCellInformation(
 
     if (IsNullOrEmptyString(pszCellDN))
     {
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
+        dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -460,11 +460,11 @@ ADGetDomainMaxPwdAge(
                 pMessage
                 );
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
     } else if (dwCount > 1) {
-        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -530,7 +530,7 @@ ADGetConfigurationMode(
                     &hDirectory,
                     &pMessage);
     if (dwError == LDAP_NO_SUCH_OBJECT){
-        dwError = LSA_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
+        dwError = LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -541,11 +541,11 @@ ADGetConfigurationMode(
                 pMessage
                 );
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_CELL;
+        dwError = LW_ERROR_NO_SUCH_CELL;
     } else if (dwCount > 1) {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
     }
 
     dwError = LwLdapGetStrings(
@@ -611,7 +611,7 @@ ADGuidStrToHex(
    BAIL_ON_LSA_ERROR(dwError);
 
    if (uuid_parse(pszUUIDStr, uuid) < 0) {
-       dwError = LSA_ERROR_INVALID_OBJECTGUID;
+       dwError = LW_ERROR_INVALID_OBJECTGUID;
        BAIL_ON_LSA_ERROR(dwError);
    }
 
@@ -671,7 +671,7 @@ ADCopyAttributeList(
     PSTR* ppOutputAttributeList = NULL;
 
     if (!szAttributeList){
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -778,7 +778,7 @@ ADGetUserOrGroupRealAttributeList(
                                 &ppRealAttributeList);
             }
             else{
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -801,7 +801,7 @@ ADGetUserOrGroupRealAttributeList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -885,7 +885,7 @@ ADGetUserRealAttributeList(
                                 &ppRealAttributeList);
             }
             else{
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -908,7 +908,7 @@ ADGetUserRealAttributeList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -973,7 +973,7 @@ ADGetUserPseudoAttributeList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1036,7 +1036,7 @@ UnprovisionedModeMakeLocalSID(
     {
         if (dwID >= 1000)
         {
-            dwError = LSA_ERROR_NO_SUCH_OBJECT;
+            dwError = LW_ERROR_NO_SUCH_OBJECT;
             BAIL_ON_LSA_ERROR(dwError);
         }
         else  //dwID < 1000.  Try again using domain for builtin SIDs
@@ -1068,7 +1068,7 @@ UnprovisionedModeMakeLocalSID(
 
             if (dwHashedLocalRID != dwID)
             {
-                dwError = LSA_ERROR_NO_SUCH_OBJECT;
+                dwError = LW_ERROR_NO_SUCH_OBJECT;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -1148,7 +1148,7 @@ ADGetGroupRealAttributeList(
                                 &ppRealAttributeList);
             }
             else{
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -1171,7 +1171,7 @@ ADGetGroupRealAttributeList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1233,7 +1233,7 @@ ADGetGroupPseudoAttributeList(
             break;
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1342,7 +1342,7 @@ ADLdap_GetAttributeValuesList(
 
         if (!bDoExtDnSearch && bDoSidParsing)
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1390,7 +1390,7 @@ ADLdap_GetAttributeValuesList(
                 // We might actually want to allow this to handle
                 // a case where the membership list is trimmed
                 // while we are enumerating.
-                dwError = LSA_ERROR_LDAP_ERROR;
+                dwError = LW_ERROR_LDAP_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1558,7 +1558,7 @@ ADLdap_GetGroupMembers(
     OUT PLSA_SECURITY_OBJECT** pppResults
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwSidCount = 0;
     PLSA_SECURITY_OBJECT pGroupObj = NULL;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
@@ -1574,7 +1574,7 @@ ADLdap_GetGroupMembers(
 
     if (pGroupObj->type != AccountType_Group)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1644,7 +1644,7 @@ ADLdap_GetUserGroupMembership(
     // If we cannot get dn, then we cannot get DN information for this objects, hence BAIL
     if (IsNullOrEmptyString(pUserInfo->pszDN))
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1728,7 +1728,7 @@ error:
     *psNumGroupsFound = 0;
     *piPrimaryGroupIndex = -1;
 
-    if ( dwError != LSA_ERROR_DOMAIN_IS_OFFLINE )
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
     {
         LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
                       pUserInfo->userInfo.uid, dwError);
@@ -1804,7 +1804,7 @@ ADLdap_GetObjectSid(
 
     if (hDirectory == (HANDLE)NULL)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

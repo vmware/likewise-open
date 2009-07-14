@@ -127,7 +127,7 @@ pam_notify_user_logon(
 
     if (pszLoginId == NULL)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -142,7 +142,7 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_NO_SUCH_USER) || (dwError == LSA_ERROR_NOT_HANDLED))
+    if ((dwError == LW_ERROR_NO_SUCH_USER) || (dwError == LW_ERROR_NOT_HANDLED))
     {
         LSA_LOG_PAM_WARNING("pam_notify_user_logon failed [login:%s][error code: %d]",
                             LSA_SAFE_LOG_STRING(pszLoginId),
@@ -170,7 +170,7 @@ pam_notify_user_logoff(
 
     if (pszLoginId == NULL)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -184,7 +184,7 @@ cleanup:
 
 error:
 
-    if ((dwError == LSA_ERROR_NO_SUCH_USER) || (dwError == LSA_ERROR_NOT_HANDLED))
+    if ((dwError == LW_ERROR_NO_SUCH_USER) || (dwError == LW_ERROR_NOT_HANDLED))
     {
         LSA_LOG_PAM_WARNING("pam_notify_user_logoff error [error code:%d]", dwError);
     }
@@ -220,7 +220,7 @@ GPInitLibrary(
     gpGPLibHandle = dlopen(szGPLibPath, RTLD_LAZY);
     if (gpGPLibHandle == NULL)
     {
-        dwError = LSA_ERROR_LOAD_LIBRARY_FAILED;
+        dwError = LW_ERROR_LOAD_LIBRARY_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -228,7 +228,7 @@ GPInitLibrary(
                                                              "gp_pam_process_login");
     if (gpfnGPPamProcessLogin == NULL)
     {
-        dwError = LSA_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = LW_ERROR_LOOKUP_SYMBOL_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -236,7 +236,7 @@ GPInitLibrary(
                                                                "gp_pam_process_logout");
     if (gpfnGPPamProcessLogout == NULL)
     {
-        dwError = LSA_ERROR_LOOKUP_SYMBOL_FAILED;
+        dwError = LW_ERROR_LOOKUP_SYMBOL_FAILED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -309,7 +309,7 @@ GPNotifyLogin(
                                     GPUserMessageCB);
         if (ret != 1)
         {
-            dwError = LSA_ERROR_NOT_HANDLED;
+            dwError = LW_ERROR_NOT_HANDLED;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -343,7 +343,7 @@ GPNotifyLogout(
                                      GPUserMessageCB);
         if (ret != 1)
         {
-            dwError = LSA_ERROR_NOT_HANDLED;
+            dwError = LW_ERROR_NOT_HANDLED;
         }
         BAIL_ON_LSA_ERROR(dwError);
     }

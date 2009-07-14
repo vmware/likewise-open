@@ -108,7 +108,7 @@ LwParseDateString(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
         }
@@ -200,7 +200,7 @@ LwSetSystemTime(
 
     if (!bTimeset)
     {
-        dwError = LSA_ERROR_FAILED_TO_SET_TIME;
+        dwError = LW_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -223,7 +223,7 @@ LwSetSystemTime(
 #endif
 
     if (!bTimeset) {
-        dwError = LSA_ERROR_FAILED_TO_SET_TIME;
+        dwError = LW_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -231,7 +231,7 @@ LwSetSystemTime(
     if (labs(readTime - ttCurTime) > 5)
     {
         LSA_LOG_ERROR("Attempted to set time to %ld, but it is now %ld.", ttCurTime, readTime);
-        dwError = LSA_ERROR_FAILED_TO_SET_TIME;
+        dwError = LW_ERROR_FAILED_TO_SET_TIME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

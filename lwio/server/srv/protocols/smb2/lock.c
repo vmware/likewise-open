@@ -68,7 +68,7 @@ NTSTATUS
 SrvBuildLockRequest_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PLWIO_SRV_FILE_2          pFile,
-    PSMB_PACKET               pSmbRequest,
+    PSMB2_MESSAGE             pSmbRequest,
     PSMB2_LOCK_REQUEST_HEADER pRequestHeader,
     PSRV_SMB2_LOCK_REQUEST*   ppLockRequest
     );
@@ -77,7 +77,7 @@ static
 NTSTATUS
 SrvExecuteLockRequest_SMB_V2(
     PSRV_SMB2_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*           ppSmbResponse
+    PSMB_PACKET            pSmbResponse
     );
 
 static
@@ -114,14 +114,14 @@ static
 NTSTATUS
 SrvBuildLockResponse_SMB_V2(
     PSRV_SMB2_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*           ppSmbResponse
+    PSMB_PACKET            pSmbResponse
     );
 
 NTSTATUS
 SrvProcessLock_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PSMB2_MESSAGE        pSmbRequest,
+    IN OUT PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS                  ntStatus = STATUS_SUCCESS;
@@ -130,17 +130,16 @@ SrvProcessLock_SMB_V2(
     PLWIO_SRV_TREE_2          pTree = NULL;
     PLWIO_SRV_FILE_2          pFile = NULL;
     PSRV_SMB2_LOCK_REQUEST    pLockRequest = NULL;
-    PSMB_PACKET               pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2FindTree(
                     pSession,
-                    pSmbRequest->pSMB2Header->ulTid,
+                    pSmbRequest->pHeader->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -169,7 +168,7 @@ SrvProcessLock_SMB_V2(
                         &pLockRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvExecuteLockRequest_SMB_V2(pLockRequest, &pSmbResponse);
+    ntStatus = SrvExecuteLockRequest_SMB_V2(pLockRequest, pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -198,13 +197,6 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
     goto cleanup;
 }
 
@@ -213,7 +205,7 @@ NTSTATUS
 SrvBuildLockRequest_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PLWIO_SRV_FILE_2          pFile,
-    PSMB_PACKET               pSmbRequest,
+    PSMB2_MESSAGE             pSmbRequest,
     PSMB2_LOCK_REQUEST_HEADER pRequestHeader,
     PSRV_SMB2_LOCK_REQUEST*   ppLockRequest
     )
@@ -240,10 +232,10 @@ SrvBuildLockRequest_SMB_V2(
     pLockRequest->pConnection = pConnection;
     InterlockedIncrement(&pConnection->refCount);
 
-    pLockRequest->ulTid = pSmbRequest->pSMB2Header->ulTid;
-    pLockRequest->ullCommandSequence = pSmbRequest->pSMB2Header->ullCommandSequence;
-    pLockRequest->ullSessionId = pSmbRequest->pSMB2Header->ullSessionId;
-    pLockRequest->ulPid = pSmbRequest->pSMB2Header->ulPid;
+    pLockRequest->ulTid = pSmbRequest->pHeader->ulTid;
+    pLockRequest->ullCommandSequence = pSmbRequest->pHeader->ullCommandSequence;
+    pLockRequest->ullSessionId = pSmbRequest->pHeader->ullSessionId;
+    pLockRequest->ulPid = pSmbRequest->pHeader->ulPid;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_SMB2_LOCK_CONTEXT) * pRequestHeader->usLockCount,
@@ -261,7 +253,7 @@ SrvBuildLockRequest_SMB_V2(
 
         pContext->lockInfo = *pLock;
 
-        pContext->ulKey = pSmbRequest->pSMB2Header->ulPid;
+        pContext->ulKey = pSmbRequest->pHeader->ulPid;
 
         pContext->acb.Callback = &SrvExecuteLockContextAsyncCB_SMB_V2;
         pContext->acb.CallbackContext = pContext;
@@ -334,13 +326,12 @@ static
 NTSTATUS
 SrvExecuteLockRequest_SMB_V2(
     PSRV_SMB2_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*           ppSmbResponse
+    PSMB_PACKET            pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bAsync = FALSE;
     ULONG iLock = 0;
-    PSMB_PACKET pSmbResponse = NULL;
     BOOLEAN bInLock = FALSE;
 
     /*
@@ -398,11 +389,9 @@ SrvExecuteLockRequest_SMB_V2(
 
     if (!bAsync)
     {
-        ntStatus = SrvBuildLockResponse_SMB_V2(pLockRequest, &pSmbResponse);
+        ntStatus = SrvBuildLockResponse_SMB_V2(pLockRequest, pSmbResponse);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -417,15 +406,6 @@ error:
     if (!bAsync)
     {
         SrvClearLocks_SMB_V2(pLockRequest);
-    }
-
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(
-            pLockRequest->pConnection->hPacketAllocator,
-            pSmbResponse);
     }
 
     goto cleanup;
@@ -467,7 +447,7 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
             {
                 ntStatus = SrvBuildLockResponse_SMB_V2(
                                 pLockRequest,
-                                &pSmbResponse);
+                                pSmbResponse);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
@@ -488,7 +468,9 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
                                 pLockRequest->pConnection,
                                 &header,
                                 STATUS_FILE_LOCK_CONFLICT,
-                                &pSmbResponse);
+                                NULL,
+                                0,
+                                pSmbResponse);
             }
 
             ntStatus = SrvTransportSendResponse(
@@ -664,27 +646,21 @@ static
 NTSTATUS
 SrvBuildLockResponse_SMB_V2(
     PSRV_SMB2_LOCK_REQUEST pLockRequest,
-    PSMB_PACKET*           ppSmbResponse
+    PSMB_PACKET            pSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = pLockRequest->pConnection;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer = pOutBufferRef;
+    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesUsed = 0;
+    ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SMB2MarshalHeader(
-                pSmbResponse,
+                pOutBuffer,
+                ulOffset,
+                ulBytesAvailable,
                 COM2_LOCK,
                 0,
                 1,
@@ -694,18 +670,29 @@ SrvBuildLockResponse_SMB_V2(
                 pLockRequest->ullSessionId,
                 STATUS_SUCCESS,
                 TRUE,
-                TRUE);
+                NULL,
+                &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
 
     ntStatus = SMB2MarshalLockResponse(
-                    pSmbResponse,
-                    pLockRequest);
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    pLockRequest,
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    ulTotalBytesUsed += ulBytesUsed;
+    // pOutBuffer += ulBytesUsed;
+    // ulOffset += ulBytesUsed;
+    // ulBytesAvailable -= ulBytesUsed;
 
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
 cleanup:
 
@@ -713,11 +700,9 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
     }
 
     goto cleanup;

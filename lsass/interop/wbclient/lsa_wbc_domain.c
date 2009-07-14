@@ -65,7 +65,7 @@ wbcDomainInfo(
     )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     HANDLE hLsa = (HANDLE)NULL;
     PLSASTATUS pLsaStatus = NULL;
 
@@ -122,7 +122,7 @@ FillDomainInfo(
     PLSASTATUS pStatus
     )
 {
-    DWORD dwErr = LSA_ERROR_INTERNAL;
+    DWORD dwErr = LW_ERROR_INTERNAL;
     PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
     PLSA_TRUSTED_DOMAIN_INFO pLsaDomInfo = NULL;
     struct wbcDomainInfo *pWbcDomInfo = NULL;
@@ -141,7 +141,7 @@ FillDomainInfo(
     }
 
     if (pADProvStatus == NULL) {
-        dwErr = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERR(dwErr);
     }
 
@@ -161,7 +161,7 @@ FillDomainInfo(
     }
 
     if (pLsaDomInfo == NULL) {
-        dwErr = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERR(dwErr);
     }
 

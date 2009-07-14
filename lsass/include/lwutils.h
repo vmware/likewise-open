@@ -84,8 +84,8 @@
 /* Special check for parsing error codes */
 
 #define BAIL_ON_LSA_PARSE_ERROR(dwError) \
-	if ((dwError != LSA_ERROR_SUCCESS) &&				\
-	    (dwError != LSA_ERROR_INSUFFICIENT_BUFFER)) {		\
+	if ((dwError != LW_ERROR_SUCCESS) &&				\
+	    (dwError != LW_ERROR_INSUFFICIENT_BUFFER)) {		\
 		LSA_LOG_DEBUG("Error at %s:%d [code: %d]",		\
 			      __FILE__, __LINE__, dwError);		\
 		goto error;						\
@@ -251,7 +251,7 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
     } while (0)
 #define _LSA_ASSERT_OR_BAIL(Expression, dwError, Action) \
     _LSA_ASSERT(Expression, \
-                (dwError) = LSA_ERROR_INTERNAL; \
+                (dwError) = LW_ERROR_INTERNAL; \
                 Action ; \
                 BAIL_ON_LSA_ERROR(dwError))
 #ifdef NDEBUG
@@ -337,19 +337,19 @@ typedef struct _DNS_FQDN
 
 #define BAIL_ON_INVALID_STRING(pszParam)          \
         if (IsNullOrEmptyString(pszParam)) {      \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
            BAIL_ON_LSA_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_HANDLE(hParam)            \
         if (hParam == (HANDLE)NULL) {             \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
            BAIL_ON_LSA_ERROR(dwError);            \
         }
 
 #define BAIL_ON_INVALID_POINTER(p)                \
         if (NULL == p) {                          \
-           dwError = LSA_ERROR_INVALID_PARAMETER; \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
            BAIL_ON_LSA_ERROR(dwError);            \
         }
 

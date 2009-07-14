@@ -173,7 +173,7 @@ DsrSrvRoleGetPDCInfoBasic(
                                    NULL,
                                    NULL);
     if (rpcstatus) {
-        dwError = LSA_ERROR_RPC_ERROR;
+        dwError = LW_ERROR_RPC_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

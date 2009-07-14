@@ -89,13 +89,13 @@ ntlm_gss_init_sec_context(
     /* @todo - validate parameters */
     if (credHandle == NULL)
     {
-        dwError = LSA_ERROR_NO_CRED;
+        dwError = LW_ERROR_NO_CRED;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
     if (contextHandle == NULL)
     {
-        dwError = LSA_ERROR_NO_CONTEXT;
+        dwError = LW_ERROR_NO_CONTEXT;
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
@@ -133,7 +133,7 @@ ntlm_gss_init_sec_context(
                     (DWORD*)retTime
                     );
 
-    if (LSA_ERROR_MASK(dwError))
+    if (LW_ERROR_MASK(dwError))
        goto error;
 
     MAKE_GSS_BUFFER(gssOutputToken, &outputToken);

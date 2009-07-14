@@ -1,0 +1,14 @@
+noinst_LTLIBRARIES = liblsaclient_ad.la
+
+liblsaclient_ad_la_SOURCES = \
+    cache.c     \
+    groups.c    \
+    users.c
+
+liblsaclient_ad_la_CPPFLAGS = \
+	@LWMSG_INCLUDES@
+
+liblsaclient_ad_la_LIBADD = \
+	@top_builddir@/common/liblsacommon.la \
+	@LWMSG_NOTHR_LIBS@ \
+	@SOCKET_LIBS@

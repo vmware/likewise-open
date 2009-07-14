@@ -53,6 +53,6 @@ typedef wchar_t             wchar16_t;
  *
  * cchn is the maximum number of characters to store in dest (including null).
  */
-size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchn);
+size_t krb5_mbstowc16les(wchar16_t *dest, const char *src, size_t cchn);
 
 #endif /* WCSTR16_H */

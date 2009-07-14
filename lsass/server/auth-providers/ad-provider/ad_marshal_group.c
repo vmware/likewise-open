@@ -55,7 +55,7 @@ ADMarshalGetCanonicalName(
     PLSA_SECURITY_OBJECT     pObject,
     PSTR*                   ppszResult)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR    pszResult = NULL;
 
     if(pObject->type == AccountType_Group &&
@@ -131,7 +131,7 @@ ADMarshalFromGroupCache(
 
     if(pGroup->type != AccountType_Group)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (!pGroup->enabled)
@@ -140,7 +140,7 @@ ADMarshalFromGroupCache(
          * group info format. So when marshalling an unenabled group, pretend
          * like it doesn't exist.
          */
-        dwError = LSA_ERROR_OBJECT_NOT_ENABLED;
+        dwError = LW_ERROR_OBJECT_NOT_ENABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -214,7 +214,7 @@ ADMarshalFromGroupCache(
 
                 if (ppMembers[sIndex]->type != AccountType_User)
                 {
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_LSA_ERROR(dwError);
                 }
             }
@@ -242,7 +242,7 @@ ADMarshalFromGroupCache(
         }
 
         default:
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }

@@ -220,7 +220,7 @@ LsaDbSafeClose(
     PLSA_DB_HANDLE phDb
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbFindUserByName(
     LSA_DB_HANDLE hDb,
@@ -228,7 +228,7 @@ LsaDbFindUserByName(
     PLSA_SECURITY_OBJECT* ppObject
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbFindUserById(
     LSA_DB_HANDLE hDb,
@@ -391,7 +391,7 @@ LsaDbEnumGroupsCache(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 LsaDbGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,

@@ -91,7 +91,7 @@ LsaSrvGetStatus(
     
     pLsaStatus->dwCount = dwProviderCount;
         
-    dwError = LSA_ERROR_NOT_HANDLED;
+    dwError = LW_ERROR_NOT_HANDLED;
     
     for (pProvider = gpAuthProviderList, iCount = 0;
          pProvider;
@@ -112,7 +112,7 @@ LsaSrvGetStatus(
         dwError = pProvider->pFnTable->pfnGetStatus(
                                             hProvider,
                                             &pProviderOwnedStatus);
-        if (dwError == LSA_ERROR_NOT_HANDLED)
+        if (dwError == LW_ERROR_NOT_HANDLED)
         {
             dwError = 0;
         }
@@ -420,7 +420,7 @@ LsaSrvGetVersion(
     
     if (IsNullOrEmptyString(PKG_VERSION))
     {
-        dwError = LSA_ERROR_INVALID_AGENT_VERSION;
+        dwError = LW_ERROR_INVALID_AGENT_VERSION;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -439,7 +439,7 @@ LsaSrvGetVersion(
         {
             if (!isdigit((int)pszVersion[i]))
             {
-                dwError = LSA_ERROR_INVALID_AGENT_VERSION;
+                dwError = LW_ERROR_INVALID_AGENT_VERSION;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -463,7 +463,7 @@ LsaSrvGetVersion(
                 
             default:
                 
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
         }
         
@@ -472,7 +472,7 @@ LsaSrvGetVersion(
     
     if (iVerComp < 3)
     {
-        dwError = LSA_ERROR_INVALID_AGENT_VERSION;
+        dwError = LW_ERROR_INVALID_AGENT_VERSION;
         BAIL_ON_LSA_ERROR(dwError);
     }
     

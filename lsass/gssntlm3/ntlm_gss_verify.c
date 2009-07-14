@@ -49,7 +49,7 @@ ntlm_gss_get_mic(
 
     gssContext = NTLMLocateContext((PNTLM_CONTEXT)contextHandle, NULL, 0);
     if (!gssContext)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_LSA_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     dwError = gssContext->signRoutine(
                             gssContext,
@@ -103,7 +103,7 @@ ntlm_gss_verify_mic(
     *qop = GSS_C_QOP_DEFAULT;
     gssContext = NTLMLocateContext((PNTLM_CONTEXT)contextHandle, NULL, 0);
     if (!gssContext)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_LSA_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     dwError = gssContext->verifyRoutine(
                             gssContext,

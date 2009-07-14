@@ -91,7 +91,7 @@ typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
         { \
             LSA_LOG_DEBUG("Failed to find " ObjectTypeString " " IndexString " " IndexFormatString " (error = %d)", \
                           IndexValue, ErrorVariable); \
-            if ((IsOfflineCode) || (LSA_ERROR_DOMAIN_IS_OFFLINE != (ErrorVariable))) \
+            if ((IsOfflineCode) || (LW_ERROR_DOMAIN_IS_OFFLINE != (ErrorVariable))) \
             { \
                 (ErrorVariable) = (DesiredError); \
             } \
@@ -120,28 +120,28 @@ typedef DWORD (*LSA_AD_LDAP_FIND_OBJECTS_BY_LIST_BATCHED_CALLBACK)(
 #define LSA_REMAP_FIND_USER_BY_ID_ERROR(ErrorVariable, IsOfflineCode, IdValue) \
     _LSA_REMAP_FIND_X_BY_ID_ERROR(ErrorVariable, \
                                   IsOfflineCode, \
-                                  LSA_ERROR_NO_SUCH_USER, \
+                                  LW_ERROR_NO_SUCH_USER, \
                                   "user", \
                                   IdValue)
 
 #define LSA_REMAP_FIND_USER_BY_NAME_ERROR(ErrorVariable, IsOfflineCode, NameValue) \
     _LSA_REMAP_FIND_X_BY_NAME_ERROR(ErrorVariable, \
                                     IsOfflineCode, \
-                                    LSA_ERROR_NO_SUCH_USER, \
+                                    LW_ERROR_NO_SUCH_USER, \
                                     "user", \
                                     NameValue)
 
 #define LSA_REMAP_FIND_GROUP_BY_ID_ERROR(ErrorVariable, IsOfflineCode, IdValue) \
     _LSA_REMAP_FIND_X_BY_ID_ERROR(ErrorVariable, \
                                   IsOfflineCode, \
-                                  LSA_ERROR_NO_SUCH_GROUP, \
+                                  LW_ERROR_NO_SUCH_GROUP, \
                                   "group", \
                                   IdValue)
 
 #define LSA_REMAP_FIND_GROUP_BY_NAME_ERROR(ErrorVariable, IsOfflineCode, NameValue) \
     _LSA_REMAP_FIND_X_BY_NAME_ERROR(ErrorVariable, \
                                     IsOfflineCode, \
-                                    LSA_ERROR_NO_SUCH_GROUP, \
+                                    LW_ERROR_NO_SUCH_GROUP, \
                                     "group", \
                                     NameValue)
 

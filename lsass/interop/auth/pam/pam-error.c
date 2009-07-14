@@ -62,30 +62,30 @@ LsaPamMapErrorCode(
 
     switch(dwError)
     {
-        case LSA_ERROR_NOT_HANDLED:
-        case LSA_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NOT_HANDLED:
+        case LW_ERROR_NO_SUCH_USER:
             if (pPamContext && (pPamContext->pamOptions.bUnknownOK ||
                                 pPamContext->pamOptions.bSetDefaultRepository))
                 ret = PAM_IGNORE;
             else
                 ret = PAM_USER_UNKNOWN;
             break;
-        case LSA_ERROR_ACCOUNT_EXPIRED:
+        case LW_ERROR_ACCOUNT_EXPIRED:
             ret = PAM_ACCT_EXPIRED;
             break;
-        case LSA_ERROR_ACCOUNT_DISABLED:
+        case LW_ERROR_ACCOUNT_DISABLED:
             ret = PAM_PERM_DENIED;
             break;
-        case LSA_ERROR_ACCOUNT_LOCKED:
+        case LW_ERROR_ACCOUNT_LOCKED:
             ret = PAM_PERM_DENIED;
             break;
-        case LSA_ERROR_PASSWORD_EXPIRED:
+        case LW_ERROR_PASSWORD_EXPIRED:
             ret = PAM_NEW_AUTHTOK_REQD;
             break;
-        case LSA_ERROR_USER_CANNOT_CHANGE_PASSWD:
+        case LW_ERROR_USER_CANNOT_CHANGE_PASSWD:
             ret = PAM_PERM_DENIED;
             break;
-        case LSA_ERROR_INTERNAL:
+        case LW_ERROR_INTERNAL:
             ret = PAM_SERVICE_ERR;
             break;
         case ECONNREFUSED:

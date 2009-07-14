@@ -48,7 +48,7 @@ ntlm_gss_release_cred(
                 );
 
     if (!pCred)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_CREDENTIAL);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_CREDENTIAL);
 
     NTLMDereferenceCredentialHandle(pCred);
     NTLMDereferenceCredential(pCred);

@@ -55,39 +55,36 @@ static
 NTSTATUS
 SrvBuildLogoffResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    PSMB2_MESSAGE        pSmbRequest,
+    PSMB_PACKET          pSmbResponse
     );
 
 NTSTATUS
 SrvProcessLogoff_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PSMB2_MESSAGE        pSmbRequest,
+    IN OUT PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION_2 pSession = NULL;
-    PSMB_PACKET pSmbResponse = NULL;
 
     ntStatus = SrvConnection2FindSession(
                     pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvConnection2RemoveSession(
                     pConnection,
-                    pSmbRequest->pSMB2Header->ullSessionId);
+                    pSmbRequest->pHeader->ullSessionId);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvBuildLogoffResponse_SMB_V2(
                     pConnection,
                     pSmbRequest,
-                    &pSmbResponse);
+                    pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
 
 cleanup:
 
@@ -100,13 +97,6 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
-    {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
-    }
-
     goto cleanup;
 }
 
@@ -114,46 +104,53 @@ static
 NTSTATUS
 SrvBuildLogoffResponse_SMB_V2(
     PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pSmbRequest,
-    PSMB_PACKET*         ppSmbResponse
+    PSMB2_MESSAGE        pSmbRequest,
+    PSMB_PACKET          pSmbResponse
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_PACKET pSmbResponse = NULL;
-
-    ntStatus = SMBPacketAllocate(
-                    pConnection->hPacketAllocator,
-                    &pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SMBPacketBufferAllocate(
-                    pConnection->hPacketAllocator,
-                    64 * 1024,
-                    &pSmbResponse->pRawBuffer,
-                    &pSmbResponse->bufferLen);
-    BAIL_ON_NT_STATUS(ntStatus);
+    PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer = pOutBufferRef;
+    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesUsed = 0;
+    ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SMB2MarshalHeader(
-                    pSmbResponse,
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
                     COM2_LOGOFF,
                     0,
                     1,
-                    pSmbRequest->pSMB2Header->ulPid,
-                    pSmbRequest->pSMB2Header->ullCommandSequence,
-                    pSmbRequest->pSMB2Header->ulTid,
-                    pSmbRequest->pSMB2Header->ullSessionId,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->ullSessionId,
                     STATUS_SUCCESS,
                     TRUE,
-                    TRUE);
+                    NULL,
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalLogoffResponse(pSmbResponse);
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
+
+    ntStatus = SMB2MarshalLogoffResponse(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2MarshalFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
+    ulTotalBytesUsed += ulBytesUsed;
+    // pOutBuffer += ulBytesUsed;
+    // ulOffset += ulBytesUsed;
+    // ulBytesAvailable -= ulBytesUsed;
 
-    *ppSmbResponse = pSmbResponse;
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
 cleanup:
 
@@ -161,11 +158,9 @@ cleanup:
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
     }
 
     goto cleanup;

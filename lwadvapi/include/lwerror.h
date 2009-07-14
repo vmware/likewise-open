@@ -27,49 +27,59 @@
  * license@likewisesoftware.com
  */
 
-#ifndef LW_ERRORS_DEFINED
+#ifndef __LW_ERROR_H__
+#define __LW_ERROR_H__
 
-#define LW_ERRORS_DEFINED 1
+#include <lw/types.h>
+#include <lw/attrs.h>
+
+#include <lwmsg/status.h>
 
 #define BAIL_ON_LW_ERROR(dwError) \
-    if (dwError) {\
-       LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-       goto error;                 \
-    }
-
-#define BAIL_ON_LDAP_ERROR(dwError) \
-    if (dwError) {\
-       dwError = LwMapLdapErrorToLwError(dwError); \
-       LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
-       goto error;                 \
-    }
-
-#define BAIL_ON_KRB_ERROR(ctx, ret) \
     do { \
-        if (ret) \
+        if (dwError) \
         { \
-           (dwError) = LwTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
-           goto error; \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
         } \
     } while (0)
 
-#define LW_BAIL_ON_INVALID_STRING(pszParam)          \
-        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) {      \
-           dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+#define BAIL_ON_LDAP_ERROR(dwError) \
+    do { \
+        if (dwError) \
+        { \
+            dwError = LwMapLdapErrorToLwError(dwError); \
+            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            goto error; \
+        } \
+    } while (0)
 
-#define LW_BAIL_ON_INVALID_HANDLE(hParam)            \
-        if (hParam == (HANDLE)NULL) {             \
+#define LW_BAIL_ON_INVALID_STRING(pszParam) \
+    do { \
+        if (LW_IS_NULL_OR_EMPTY_STR(pszParam)) \
+        { \
            dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
-#define LW_BAIL_ON_INVALID_POINTER(p)                \
-        if (NULL == p) {                          \
+#define LW_BAIL_ON_INVALID_HANDLE(hParam) \
+    do { \
+        if (!hParam) \
+        { \
            dwError = LW_ERROR_INVALID_PARAMETER; \
-           BAIL_ON_LW_ERROR(dwError);            \
-        }
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
+
+#define LW_BAIL_ON_INVALID_POINTER(p) \
+    do { \
+        if (!p) \
+        { \
+           dwError = LW_ERROR_INVALID_PARAMETER; \
+           BAIL_ON_LW_ERROR(dwError); \
+        } \
+    } while (0)
 
 /** Success */
 #define LW_ERROR_SUCCESS                                   0
@@ -399,19 +409,24 @@
 
 size_t
 LwGetErrorString(
-    DWORD  dwError,
-    PSTR   pszBuffer,
-    size_t stBufSize
+    LW_IN LW_DWORD dwError,
+    LW_OUT LW_PSTR pszBuffer,
+    LW_IN size_t stBufSize
     );
 
-DWORD
+LW_DWORD
 LwMapErrnoToLwError(
-    DWORD dwErrno
+    LW_IN LW_DWORD dwErrno
     );
 
-DWORD
+LW_DWORD
 LwMapLdapErrorToLwError(
-    DWORD dwErrno
+    LW_IN LW_DWORD dwErrno
     );
 
-#endif /* LW_ERRORS_DEFINED */
+LW_DWORD
+LwMapLwmsgStatusToLwError(
+    LW_IN LWMsgStatus status
+    );
+
+#endif /* __LW_ERROR_H__ */

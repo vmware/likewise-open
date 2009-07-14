@@ -64,7 +64,7 @@ LsaNetGetShortDomainName(
     {
         dwError = LWNetGetCurrentDomain(&pszDefaultDomainFQDN);
         if (dwError != 0) {
-            dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+            dwError = LW_ERROR_NOT_JOINED_TO_AD;
         }
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -85,7 +85,7 @@ LsaNetGetShortDomainName(
 
     if (IsNullOrEmptyString(pDCInfo->pszNetBIOSDomainName))
     {
-        dwError = LSA_ERROR_NO_NETBIOS_NAME;
+        dwError = LW_ERROR_NO_NETBIOS_NAME;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -133,7 +133,7 @@ LsaNetGetDCName(
         dwError = LWNetGetCurrentDomain(&pszDefaultDomainFQDN);
         if (dwError)
         {
-		dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+		dwError = LW_ERROR_NOT_JOINED_TO_AD;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -150,7 +150,7 @@ LsaNetGetDCName(
                              DS_DIRECTORY_SERVICE_REQUIRED,
                              &pDcInfo);
     if (dwError != 0) {
-        dwError = LSA_ERROR_FAILED_TO_LOOKUP_DC;
+        dwError = LW_ERROR_FAILED_TO_LOOKUP_DC;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -189,7 +189,7 @@ LsaGetDnsDomainName(
 
     dwError = LWNetGetCurrentDomain(&pszDomain);
     if (dwError != 0) {
-        dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -208,7 +208,7 @@ LsaGetDnsDomainName(
     if (dwError != LWPS_ERROR_INVALID_ACCOUNT) {
         BAIL_ON_LSA_ERROR(dwError);
     } else {
-        dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -282,7 +282,7 @@ LsaGetComputerDN(
 
     dwError = LWNetGetCurrentDomain(&pszDomain);
     if (dwError != 0) {
-        dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -304,7 +304,7 @@ LsaGetComputerDN(
     if (dwError != LWPS_ERROR_INVALID_ACCOUNT) {
         BAIL_ON_LSA_ERROR(dwError);
     } else {
-        dwError = LSA_ERROR_NOT_JOINED_TO_AD;
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -439,11 +439,11 @@ LsaSrvJoinFindComputerDN(
                 pLd,
                 pMessage);
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
     } else if (dwCount > 1) {
-        dwError = LSA_ERROR_DUPLICATE_DOMAINNAME;
+        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -455,7 +455,7 @@ LsaSrvJoinFindComputerDN(
 
     if (IsNullOrEmptyString(pszComputerDN))
     {
-        dwError = LSA_ERROR_LDAP_FAILED_GETDN;
+        dwError = LW_ERROR_LDAP_FAILED_GETDN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

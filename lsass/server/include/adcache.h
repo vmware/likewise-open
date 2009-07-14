@@ -220,7 +220,7 @@ ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 ADCacheFindUserByName(
     LSA_DB_HANDLE hDb,
@@ -228,7 +228,7 @@ ADCacheFindUserByName(
     PLSA_SECURITY_OBJECT* ppObject
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 ADCacheFindUserById(
     LSA_DB_HANDLE hDb,
@@ -391,7 +391,7 @@ ADCacheEnumGroupsCache(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 ADCacheGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,

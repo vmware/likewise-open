@@ -38,7 +38,7 @@
 #include "eventlog.h"
 
 #include "lwmem.h"
-#include "lwstr.h"
+#include <lwstr.h>
 #include "lwsecurityidentifier.h"
 
 #include "lsautils.h"

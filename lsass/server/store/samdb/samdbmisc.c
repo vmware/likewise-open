@@ -58,7 +58,7 @@ SamDbComputeLMHash(
 
     if (!pHash || (dwHashByteLen != 16))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -84,7 +84,7 @@ SamDbComputeNTHash(
 
     if (!pHash || (dwHashByteLen != 16))
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -127,7 +127,7 @@ SamDbGetObjectClass(
 
             if (Modifications[dwNumMods].ulNumValues != 1)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
@@ -135,7 +135,7 @@ SamDbGetObjectClass(
 
             if (pAttrValue->Type != DIRECTORY_ATTR_TYPE_INTEGER)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
@@ -154,7 +154,7 @@ SamDbGetObjectClass(
 
                 default:
 
-                    dwError = LSA_ERROR_INVALID_PARAMETER;
+                    dwError = LW_ERROR_INVALID_PARAMETER;
                     BAIL_ON_SAMDB_ERROR(dwError);
 
                     break;
@@ -204,7 +204,7 @@ SamDbFindObjectClassMapInfo(
 
     if (!pMapInfo)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -321,7 +321,7 @@ SamDbGetObjectCount(
     {
         if (sqlite3_column_count(pSqlStatement) != 1)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -329,7 +329,7 @@ SamDbGetObjectCount(
                             pSqlStatement,
                             0);
 
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
@@ -428,7 +428,7 @@ SamDbGetObjectRecordInfo_inlock(
     {
         if (sqlite3_column_count(pSqlStatement) != 2)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -440,11 +440,11 @@ SamDbGetObjectRecordInfo_inlock(
                                 pSqlStatement,
                                 1);
 
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
@@ -545,7 +545,7 @@ SamDbGetObjectRecordInfoBySID_inlock(
     {
         if (sqlite3_column_count(pSqlStatement) != 2)
         {
-            dwError = LSA_ERROR_DATA_ERROR;
+            dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -557,11 +557,11 @@ SamDbGetObjectRecordInfoBySID_inlock(
                                 pSqlStatement,
                                 1);
 
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     else if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 

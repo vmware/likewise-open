@@ -48,7 +48,7 @@
 #define WCHAR16_IS_WCHAR 1
 #endif
 
-size_t mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
+size_t krb5_mbstowc16les(wchar16_t *dest, const char *src, size_t cchcopy)
 {
     iconv_t handle = iconv_open("UCS-2LE", "");
     char *inbuf;

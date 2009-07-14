@@ -88,7 +88,7 @@ LocalAuthenticateUserExInternal(
     PLSA_AUTH_USER_INFO*  ppUserInfo
     )
 {
-    DWORD    dwError = LSA_ERROR_INTERNAL;
+    DWORD    dwError = LW_ERROR_INTERNAL;
     PCSTR    pszDomain = NULL;
     DWORD    dwUserInfoLevel = 2;
     PSTR     pszAccountName = NULL;
@@ -114,7 +114,7 @@ LocalAuthenticateUserExInternal(
 
     if (!LocalServicesDomain(pszDomain))
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -202,7 +202,7 @@ AuthenticateNTLMv1(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    DWORD    dwError = LSA_ERROR_INTERNAL;
+    DWORD    dwError = LW_ERROR_INTERNAL;
     BYTE     NTResponse[24] = { 0 };
     PBYTE    pChal = NULL;
     PBYTE    pNTresp = NULL;
@@ -220,7 +220,7 @@ AuthenticateNTLMv1(
                                      NULL,
                                      NTResponse);
     if (ntError != STATUS_SUCCESS) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -229,7 +229,7 @@ AuthenticateNTLMv1(
 
     if (memcmp(pNTresp, NTResponse, 24) != 0)
     {
-        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        dwError = LW_ERROR_PASSWORD_MISMATCH;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -247,7 +247,7 @@ AuthenticateNTLMv1(
 
     /* Done */
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
 
@@ -274,7 +274,7 @@ AuthenticateNTLMv2(
     OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     )
 {
-    DWORD dwError = LSA_ERROR_PASSWORD_MISMATCH;
+    DWORD dwError = LW_ERROR_PASSWORD_MISMATCH;
     PWSTR pwszAccountName = NULL;
     PWSTR pwszDestination = NULL;
     BYTE pNTLMv2Hash[16];
@@ -362,7 +362,7 @@ AuthenticateNTLMv2(
          pNTLMv2Resp, &dwNTLMv2RespLen);
 
     if (memcmp(pNTLMv2Resp, pNTresp, 16) != 0) {
-        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        dwError = LW_ERROR_PASSWORD_MISMATCH;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -383,7 +383,7 @@ AuthenticateNTLMv2(
 
     /* Done */
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 
 cleanup:
@@ -414,7 +414,7 @@ SidSplitString(
     OUT PDWORD pdwRid
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
     PSTR p = NULL;
     PSTR q = NULL;
     DWORD dwRid = 0;
@@ -423,7 +423,7 @@ SidSplitString(
 
     p = strrchr(pszSidString, '-');
     if (p == NULL) {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -432,7 +432,7 @@ SidSplitString(
     p++;
     dwRid = strtol(p, &q, 10);
     if ((dwRid == 0) || (*q != '\0')) {
-        dwError = LSA_ERROR_INVALID_SID;
+        dwError = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -443,7 +443,7 @@ SidSplitString(
     p--;
     *p = '\0';
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
 
@@ -465,7 +465,7 @@ FillAuthUserInfo(
     IN PCSTR pszMachineName
     )
 {
-    DWORD dwError = LSA_ERROR_INTERNAL;
+    DWORD dwError = LW_ERROR_INTERNAL;
     PLSA_GROUP_INFO_0 *ppGroupList0 = NULL;
     PLSA_GROUP_INFO_0 pPrimaryGroup0 = NULL;
     PVOID *ppListBuffer = NULL;
@@ -563,7 +563,7 @@ FillAuthUserInfo(
             LSA_SID_ATTR_GROUP_ENABLED;
     }
 
-    dwError = LSA_ERROR_SUCCESS;
+    dwError = LW_ERROR_SUCCESS;
 
 cleanup:
 

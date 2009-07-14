@@ -98,19 +98,19 @@ NTLMAllocCopySecBuffer(
     if (!src || src->length == 0 || src->buffer == NULL) {
         dst->buffer = NULL;
         dst->length = dst->maxLength = 0;
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
     }
 
     dst->buffer = (PBYTE) NTLMAllocateMemory(src->maxLength);
     if (!dst->buffer) {
-        return LSA_ERROR_OUT_OF_MEMORY;
+        return LW_ERROR_OUT_OF_MEMORY;
     }
 
     SEC_BUFFER_COPY(dst,src);
     dst->length = src->length;
     dst->maxLength = src->maxLength;
     
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 void
@@ -144,7 +144,7 @@ NTLMAllocTransferSecBuffer(
 {
     *dst = (PSEC_BUFFER) NTLMAllocateMemory(sizeof(SEC_BUFFER));
     if (!*dst)
-        return LSA_ERROR_OUT_OF_MEMORY;
+        return LW_ERROR_OUT_OF_MEMORY;
 
     if (!src || src->length == 0 || src->buffer == NULL) {
         (*dst)->buffer = NULL;
@@ -157,7 +157,7 @@ NTLMAllocTransferSecBuffer(
         src->length = src->maxLength = 0;
     }
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 }
 
 
@@ -242,7 +242,7 @@ NTLMInitWorkstationName(
     char host[NTLM_MAX_WORKSTATION_NAME];
 
     if (gethostname(host, NTLM_MAX_WORKSTATION_NAME))
-        return LSA_ERROR_INTERNAL;
+        return LW_ERROR_INTERNAL;
 
     NTLM_GLOBALS_LOCK();
     dwError = LsaInitializeLsaStringA(
@@ -277,7 +277,7 @@ NTLMInitializeGlobals(
     DWORD dwError;
 
     if (pthread_mutex_init(&g_globalsLock, NULL))
-        return LSA_ERROR_INTERNAL;
+        return LW_ERROR_INTERNAL;
 
     dwError = NTLMInitWorkstationName();
     BAIL_ON_NTLM_ERROR(dwError);
@@ -386,7 +386,7 @@ NTLMInitUtilityFunctions(
     DWORD dwError;
 
    if (pthread_mutex_init(&g_globalsLock, NULL))
-        return LSA_ERROR_INTERNAL; 
+        return LW_ERROR_INTERNAL;
 
     dwError = NTLMInitWorkstationName();
     BAIL_ON_NTLM_ERROR(dwError);
@@ -485,7 +485,7 @@ NTLMPackContext(
     tmp.buffer = NTLMAllocateMemory(tmp.length);
 
     if (!tmp.buffer)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     memcpy(tmp.buffer, packedContext, sizeof(NTLM_PACKED_CONTEXT));
 
@@ -514,7 +514,7 @@ NTLMPackContext(
 
 error:
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 }
 

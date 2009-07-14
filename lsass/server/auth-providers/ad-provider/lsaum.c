@@ -66,7 +66,7 @@ LsaUmInitialize(
 
     if (gLsaUmState)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

@@ -146,7 +146,7 @@ NTLMCreateNTLM2Keys(
         context->signKeys.outgoing.key.length = 0;
     }
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 }
 
@@ -199,7 +199,7 @@ NTLMCreateNTLM1Keys(
     context->signRoutine = NTLMSignUnsupported;
     context->verifyRoutine = NTLMVerifyUnsupported;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 }
 
@@ -228,13 +228,13 @@ NTLMSetupKeyState(
 
     /* datagram needs to rekey from master key */
     if (!reKey && (gssKey->flags & NTLM_GSS_KEY_INITIALIZED))
-        return LSA_ERROR_SUCCESS;
+        return LW_ERROR_SUCCESS;
 
     RC4_set_key(&gssKey->keyHandle, gssKey->key.length, gssKey->key.buffer);
     gssKey->seqNum = 0;
     gssKey->flags |= NTLM_GSS_KEY_INITIALIZED;
 
-    return LSA_ERROR_SUCCESS;
+    return LW_ERROR_SUCCESS;
 
 }
 
@@ -311,7 +311,7 @@ NTLMV2Sign(
     sigToken.length = sizeof(NTLM_GSS_SIGNATURE);
     sigToken.value = NTLMAllocateMemory(sigToken.length);
     if (!sigToken.value)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     dwError = NTLMSetupKeyState(
                     context,
@@ -373,7 +373,7 @@ NTLMV2Verify(
         );
 
     if (!memcmp(pSig, &signature, sizeof(NTLM_GSS_SIGNATURE)))
-        return LSA_ERROR_INVALID_MESSAGE;
+        return LW_ERROR_INVALID_MESSAGE;
 
 error:
 
@@ -413,7 +413,7 @@ NTLMV2Seal(
     enc.length = sizeof(NTLM_GSS_SIGNATURE) + data->length;
     enc.value = NTLMAllocateMemory(enc.length);
     if (!enc.value)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     memcpy(enc.value, data->value, data->length);
     tmp = enc.value;
@@ -462,7 +462,7 @@ NTLMV2Unseal(
     PNTLM_GSS_SIGNATURE msgSignature;
 
     if (data->length < sizeof(NTLM_GSS_SIGNATURE))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_MESSAGE);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_MESSAGE);
 
     dwError = NTLMSetupKeyState(
                     context,
@@ -476,7 +476,7 @@ NTLMV2Unseal(
         
     buf.value = NTLMAllocateMemory(buf.length);
     if (!buf.value)
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_OUT_OF_MEMORY);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_OUT_OF_MEMORY);
 
     RC4(
         (RC4_KEY*) &context->sealKeys.incoming.keyHandle, 
@@ -499,7 +499,7 @@ NTLMV2Unseal(
     tmp = data->value;
     msgSignature = (PNTLM_GSS_SIGNATURE) &tmp[buf.length];
     if (memcmp(msgSignature->checksum, signature.checksum, 8))
-        BAIL_WITH_NTLM_ERROR(LSA_ERROR_INVALID_MESSAGE);
+        BAIL_WITH_NTLM_ERROR(LW_ERROR_INVALID_MESSAGE);
 
     (*decData) = buf;
     buf.value = NULL;
@@ -521,7 +521,7 @@ NTLMSealUnsupported(
     gss_buffer_t encData
 )
 {
-    return LSA_ERROR_UNSUPPORTED_CRYPTO_OP;
+    return LW_ERROR_UNSUPPORTED_CRYPTO_OP;
 }
 
 DWORD
@@ -532,7 +532,7 @@ NTLMUnsealUnsupported(
     gss_buffer_t decData
 )
 {
-    return LSA_ERROR_UNSUPPORTED_CRYPTO_OP;
+    return LW_ERROR_UNSUPPORTED_CRYPTO_OP;
 }
 
 DWORD
@@ -543,7 +543,7 @@ NTLMSignUnsupported(
     gss_buffer_t sigToken
 )
 {
-    return LSA_ERROR_UNSUPPORTED_CRYPTO_OP;
+    return LW_ERROR_UNSUPPORTED_CRYPTO_OP;
 }
 
 DWORD
@@ -554,5 +554,5 @@ NTLMVerifyUnsupported(
     gss_buffer_t sigToken
 )
 {
-    return LSA_ERROR_UNSUPPORTED_CRYPTO_OP;
+    return LW_ERROR_UNSUPPORTED_CRYPTO_OP;
 }

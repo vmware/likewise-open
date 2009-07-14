@@ -76,7 +76,7 @@
         SAMDB_LOG_DEBUG("Sqlite3 Error (code: %d): %s", \
                         dwError,                        \
                         LSA_SAFE_LOG_STRING(pszError)); \
-        dwError = LSA_ERROR_SAM_DATABASE_ERROR;         \
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;         \
         goto error;                                     \
     }
 

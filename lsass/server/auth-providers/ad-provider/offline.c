@@ -102,7 +102,7 @@ AD_OfflineAuthenticateUser(
 
     if (strcmp(pszEnteredPasswordVerifier, pVerifier->pszPasswordVerifier))
     {
-        dwError = LSA_ERROR_PASSWORD_MISMATCH;
+        dwError = LW_ERROR_PASSWORD_MISMATCH;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -138,7 +138,7 @@ AD_OfflineFindUserObjectById(
 
     if (uid == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -173,7 +173,7 @@ AD_OfflineEnumUsers(
     PVOID** pppUserInfoList
     )
 {
-    return LSA_ERROR_NO_MORE_USERS;
+    return LW_ERROR_NO_MORE_USERS;
 }
 
 DWORD
@@ -192,7 +192,7 @@ AD_OfflineFindGroupObjectByName(
 
     if (!strcasecmp(pszGroupName, "root"))
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -251,7 +251,7 @@ AD_OfflineFindGroupById(
 
     if (gid == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_GROUP;
+        dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -290,7 +290,7 @@ AD_OfflineGetUserGroupObjectMembership(
     OUT PLSA_SECURITY_OBJECT** pppResult
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     size_t sUserGroupMembershipsCount = 0;
     PLSA_GROUP_MEMBERSHIP* ppUserGroupMemberships = NULL;
     size_t sParentSidsCount = 0;
@@ -370,7 +370,7 @@ AD_OfflineEnumGroups(
     PVOID** pppGroupInfoList
     )
 {
-    return LSA_ERROR_NO_MORE_GROUPS;
+    return LW_ERROR_NO_MORE_GROUPS;
 }
 
 DWORD
@@ -381,7 +381,7 @@ AD_OfflineChangePassword(
     PCSTR pszOldPassword
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -394,7 +394,7 @@ AD_OfflineGetNamesBySidList(
     ADAccountType** ppTypes
     )
 {
-    return LSA_ERROR_NOT_HANDLED;
+    return LW_ERROR_NOT_HANDLED;
 }
 
 DWORD
@@ -409,7 +409,7 @@ AD_OfflineFindNSSArtefactByKey(
 {
     *ppNSSArtefactInfo = NULL;
 
-    return LSA_ERROR_NO_SUCH_NSS_MAP;
+    return LW_ERROR_NO_SUCH_NSS_MAP;
 }
 
 DWORD
@@ -421,7 +421,7 @@ AD_OfflineEnumNSSArtefacts(
     PVOID** pppNSSArtefactInfoList
     )
 {
-    return LSA_ERROR_NO_MORE_GROUPS;
+    return LW_ERROR_NO_MORE_GROUPS;
 }
 
 DWORD
@@ -487,7 +487,7 @@ AD_OfflineInitializeOperatingMode(
     IN PCSTR pszHostName
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PAD_PROVIDER_DATA pProviderData = NULL;
     PDLINKEDLIST pDomains = NULL;
     const DLINKEDLIST* pPos = NULL;

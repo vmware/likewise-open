@@ -62,8 +62,8 @@ LsaNssMapErrorCode(
 
     switch(dwError)
     {
-        case LSA_ERROR_NO_SUCH_USER:
-        case LSA_ERROR_NO_SUCH_GROUP:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NO_SUCH_GROUP:
             {
                 ret = NSS_STATUS_NOTFOUND;
                 if (pErrno) {
@@ -71,7 +71,7 @@ LsaNssMapErrorCode(
                 }
                 break;
             }
-        case LSA_ERROR_INSUFFICIENT_BUFFER:
+        case LW_ERROR_INSUFFICIENT_BUFFER:
             {
                 ret = NSS_STATUS_TRYAGAIN;
                 if (pErrno) {
@@ -79,7 +79,7 @@ LsaNssMapErrorCode(
                 }
                 break;
             }
-        case LSA_ERROR_NULL_BUFFER:
+        case LW_ERROR_NULL_BUFFER:
             {
                 //On some platforms, a NULL buffer is used to signal the caller
                 //does not need the userinfo data, just confirmation the user exists

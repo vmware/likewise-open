@@ -61,7 +61,7 @@ DirectoryBind(
 
     if (!pContext || !pContext->pProvider)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 

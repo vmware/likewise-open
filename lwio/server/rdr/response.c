@@ -114,10 +114,7 @@ SMBResponseFree(
     PSMB_RESPONSE pResponse
     )
 {
-    BOOLEAN bInLock = FALSE;
     BOOLEAN bInTreeLock = FALSE;
-
-    LWIO_LOCK_MUTEX(bInLock, &pResponse->mutex);
 
     pthread_cond_destroy(&pResponse->event);
 

@@ -161,7 +161,7 @@ LocalDirFindUserByName(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -243,18 +243,18 @@ LocalDirFindUserByName_0(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -377,18 +377,18 @@ LocalDirFindUserByName_1(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -522,18 +522,18 @@ LocalDirFindUserByName_2(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -593,7 +593,7 @@ LocalDirFindUserById(
 
     if (uid == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -631,7 +631,7 @@ LocalDirFindUserById(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -712,18 +712,18 @@ LocalDirFindUserById_0(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -846,18 +846,18 @@ LocalDirFindUserById_1(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -998,18 +998,18 @@ LocalDirFindUserById_2(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1114,18 +1114,18 @@ LocalDirGetUserInfoFlags(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_USER;
+        dwError = LW_ERROR_NO_SUCH_USER;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1193,7 +1193,7 @@ LocalDirBeginEnumUsers(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -1536,7 +1536,7 @@ LocalDirEnumUsers(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -1567,7 +1567,7 @@ LocalDirEnumUsers_0(
 
     if (pEnumState->dwInfoLevel != 0)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1577,7 +1577,7 @@ LocalDirEnumUsers_0(
 
     if (!dwNumUsersFound)
     {
-        dwError = LSA_ERROR_NO_MORE_USERS;
+        dwError = LW_ERROR_NO_MORE_USERS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1647,7 +1647,7 @@ LocalDirEnumUsers_1(
 
     if (pEnumState->dwInfoLevel != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1657,7 +1657,7 @@ LocalDirEnumUsers_1(
 
     if (!dwNumUsersFound)
     {
-        dwError = LSA_ERROR_NO_MORE_USERS;
+        dwError = LW_ERROR_NO_MORE_USERS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1728,7 +1728,7 @@ LocalDirEnumUsers_2(
 
     if (pEnumState->dwInfoLevel != 2)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1738,7 +1738,7 @@ LocalDirEnumUsers_2(
 
     if (!dwNumUsersFound)
     {
-        dwError = LSA_ERROR_NO_MORE_USERS;
+        dwError = LW_ERROR_NO_MORE_USERS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1824,7 +1824,7 @@ LocalDirAddUser(
 
         default:
 
-            dwError = LSA_ERROR_UNSUPPORTED_USER_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
 
             break;
     }
@@ -2057,7 +2057,7 @@ LocalDirAddUser_0(
 
     if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
     {
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2079,7 +2079,7 @@ LocalDirAddUser_0(
                         gLPGlobals.pLocalDomainSID,
                         pGroupSID))
         {
-            dwError = LSA_ERROR_INVALID_GROUP;
+            dwError = LW_ERROR_INVALID_GROUP;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -2246,7 +2246,7 @@ LocalDirAddUser_0(
                         gLPGlobals.pLocalDomainSID,
                         pGroupSID))
         {
-            dwError = LSA_ERROR_SAM_DATABASE_ERROR;
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -2340,7 +2340,7 @@ LocalDirAddUser_1(
     PLSA_USER_INFO_1 pUserInfo
     )
 {
-    return LSA_ERROR_NOT_SUPPORTED;
+    return LW_ERROR_NOT_SUPPORTED;
 }
 
 DWORD
@@ -2349,7 +2349,7 @@ LocalDirAddUser_2(
     PLSA_USER_INFO_2 pUserInfo
     )
 {
-    return LSA_ERROR_NOT_SUPPORTED;
+    return LW_ERROR_NOT_SUPPORTED;
 }
 
 static
@@ -2362,7 +2362,7 @@ LocalDirValidateUID(
 
     /* Check whether account uid is within permitted range */
     if (uid < LOWEST_UID) {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2726,7 +2726,7 @@ LocalCreateHomeDirectory(
     {
        LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined",
                      (long)pUserInfo->uid);
-       dwError = LSA_ERROR_FAILED_CREATE_HOMEDIR;
+       dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2853,31 +2853,31 @@ LocalCheckAccountFlags(
     PLSA_USER_INFO_2 pUserInfo2
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     BAIL_ON_INVALID_POINTER(pUserInfo2);
 
     if (pUserInfo2->bAccountDisabled)
     {
-        dwError = LSA_ERROR_ACCOUNT_DISABLED;
+        dwError = LW_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo2->bAccountLocked)
     {
-        dwError = LSA_ERROR_ACCOUNT_LOCKED;
+        dwError = LW_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo2->bAccountExpired)
     {
-        dwError = LSA_ERROR_ACCOUNT_EXPIRED;
+        dwError = LW_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserInfo2->bPasswordExpired)
     {
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3007,9 +3007,9 @@ LocalDirCheckIfAdministrator(
                         dwGroupInfoLevel,
                         &dwNumGroups,
                         (PVOID**)&ppGroupInfoList);
-        if (dwError == LSA_ERROR_NO_SUCH_USER)
+        if (dwError == LW_ERROR_NO_SUCH_USER)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
         }
         BAIL_ON_LSA_ERROR(dwError);
 

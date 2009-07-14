@@ -49,7 +49,7 @@
 
 DWORD
 NtlmServerDeleteSecurityContext(
-    PCtxtHandle phContext
+    IN PCtxtHandle phContext
     )
 {
     DWORD dwError = 0;

@@ -100,7 +100,7 @@ DefaultModeFindNSSArtefactByKey(
                        &pNSSArtefactInfo);
            break;
        case UnknownMode:
-           dwError = LSA_ERROR_NOT_SUPPORTED;
+           dwError = LW_ERROR_NOT_SUPPORTED;
            break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -176,7 +176,7 @@ DefaultModeSchemaFindNSSArtefactByKey(
 
     if (!bMapExists)
     {
-        dwError = LSA_ERROR_NO_SUCH_NSS_MAP;
+        dwError = LW_ERROR_NO_SUCH_NSS_MAP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -202,9 +202,9 @@ DefaultModeSchemaFindNSSArtefactByKey(
                       pLd,
                       pMessagePseudo);
     if (dwCount < 0) {
-       dwError = LSA_ERROR_LDAP_ERROR;
+       dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-       dwError = LSA_ERROR_NO_SUCH_NSS_KEY;
+       dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -244,7 +244,7 @@ error:
 
     if (dwError == LDAP_NO_SUCH_OBJECT)
     {
-        dwError = LSA_ERROR_NO_SUCH_NSS_KEY;
+        dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
 
     goto cleanup;
@@ -304,7 +304,7 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
 
     if (!bMapExists)
     {
-        dwError = LSA_ERROR_NO_SUCH_NSS_MAP;
+        dwError = LW_ERROR_NO_SUCH_NSS_MAP;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -330,9 +330,9 @@ DefaultModeNonSchemaFindNSSArtefactByKey(
                       pLd,
                       pMessagePseudo);
     if (dwCount < 0) {
-       dwError = LSA_ERROR_LDAP_ERROR;
+       dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-       dwError = LSA_ERROR_NO_SUCH_NSS_KEY;
+       dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -372,7 +372,7 @@ error:
 
     if (dwError == LDAP_NO_SUCH_OBJECT)
     {
-        dwError = LSA_ERROR_NO_SUCH_NSS_KEY;
+        dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
 
     goto cleanup;
@@ -427,7 +427,7 @@ DefaultModeEnumNSSArtefacts(
                        );
            break;
        case UnknownMode:
-           dwError = LSA_ERROR_NOT_SUPPORTED;
+           dwError = LW_ERROR_NOT_SUPPORTED;
            break;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -494,7 +494,7 @@ DefaultModeSchemaEnumNSSArtefacts(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pEnumState->Cookie.bSearchFinished){
-        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -518,9 +518,9 @@ DefaultModeSchemaEnumNSSArtefacts(
                           pMessagePseudo
                           );
     if (dwCount < 0) {
-        dwError = LSA_ERROR_LDAP_ERROR;
+        dwError = LW_ERROR_LDAP_ERROR;
     } else if (dwCount == 0) {
-        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -560,7 +560,7 @@ error:
 
     if (dwError == LDAP_NO_SUCH_OBJECT)
     {
-        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
 
     goto cleanup;
@@ -616,7 +616,7 @@ DefaultModeNonSchemaEnumNSSArtefacts(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pEnumState->Cookie.bSearchFinished){
-            dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+            dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -640,9 +640,9 @@ DefaultModeNonSchemaEnumNSSArtefacts(
                           pLd,
                           pMessagePseudo);
         if (dwCount < 0) {
-           dwError = LSA_ERROR_LDAP_ERROR;
+           dwError = LW_ERROR_LDAP_ERROR;
         } else if (dwCount == 0) {
-           dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+           dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
         }
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -697,7 +697,7 @@ error:
 
     if (dwError == LDAP_NO_SUCH_OBJECT)
     {
-        dwError = LSA_ERROR_NO_MORE_NSS_ARTEFACTS;
+        dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
 
     goto cleanup;

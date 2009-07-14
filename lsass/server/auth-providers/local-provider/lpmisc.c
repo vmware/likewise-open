@@ -328,7 +328,7 @@ LocalBuildHomeDirPathFromTemplate(
                     dwInsertLength = dwHostNameLength;
                     break;
                 default:
-                    dwError = LSA_ERROR_INVALID_HOMEDIR_TEMPLATE;
+                    dwError = LW_ERROR_INVALID_HOMEDIR_TEMPLATE;
                     BAIL_ON_LSA_ERROR(dwError);
             }
             LSA_ASSERT(!(bNeedUpper && bNeedLower));

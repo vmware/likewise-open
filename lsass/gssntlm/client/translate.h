@@ -48,7 +48,7 @@
 
 #define MAKE_SECBUFFER(_s_,_g_)     do {(_s_)->length = (_s_)->maxLength = (_g_)->length; (_s_)->buffer = (_g_)->value; } while (0)
 
-#define BAIL_ON_GSS_ERROR(_s_)  do {if ((_s_) && LSA_ERROR_MASK((_s_))) BAIL_ON_NTLM_ERROR((_s_));} while (0)
+#define BAIL_ON_GSS_ERROR(_s_)  do {if ((_s_) && LW_ERROR_MASK((_s_))) BAIL_ON_NTLM_ERROR((_s_));} while (0)
 
 OM_uint32
 NTLMTranslateMajorStatus(

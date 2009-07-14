@@ -310,6 +310,24 @@ typedef struct _SMB_FS_VOLUME_INFO_HEADER
 } __attribute__((__packed__)) SMB_FS_VOLUME_INFO_HEADER,
                              *PSMB_FS_VOLUME_INFO_HEADER;
 
+typedef struct _SMB_FS_ATTRIBUTE_INFO_HEADER
+{
+    ULONG ulFSAttributes;
+    LONG  lMaxFilenameLen;
+    ULONG ulFileSystemNameLen;
+} __attribute__((__packed__)) SMB_FS_ATTRIBUTE_INFO_HEADER,
+                             *PSMB_FS_ATTRIBUTE_INFO_HEADER;
+
+typedef struct _SMB_FS_INFO_VOLUME_HEADER
+{
+    ULONG   ulVolumeSerialNumber;
+    UCHAR   ucNumLabelChars;
+
+    /* PWSTR pwszLabel; */
+
+} __attribute__((__packed__)) SMB_FS_INFO_VOLUME_HEADER,
+                             *PSMB_FS_INFO_VOLUME_HEADER;
+
 NTSTATUS
 SrvElementsInit(
     VOID

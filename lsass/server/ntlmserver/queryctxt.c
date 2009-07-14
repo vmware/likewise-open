@@ -49,9 +49,9 @@
 
 DWORD
 NtlmServerQueryContextAttributes(
-    PCtxtHandle phContext,
-    DWORD ulAttribute,
-    PVOID pBuffer
+    IN PCtxtHandle phContext,
+    IN DWORD ulAttribute,
+    OUT PVOID pBuffer
     )
 {
     DWORD dwError = 0;

@@ -49,10 +49,10 @@
 
 DWORD
 NtlmServerImportSecurityContext(
-    PSECURITY_STRING *pszPackage,
-    PSecBuffer pPackedContext,
-    HANDLE pToken,
-    PCtxtHandle phContext
+    IN PSECURITY_STRING *pszPackage,
+    IN PSecBuffer pPackedContext,
+    IN OPTIONAL HANDLE pToken,
+    OUT PCtxtHandle phContext
     )
 {
     DWORD dwError = 0;

@@ -456,7 +456,7 @@ SamDbAddMachineDomain(
                               &AuthId,
                               ulSubAuthCount);
     if (status != 0) {
-        dwError = LSA_ERROR_SAM_INIT_ERROR;
+        dwError = LW_ERROR_SAM_INIT_ERROR;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -1127,13 +1127,13 @@ SamDbAddLocalAccounts(
 
         status = RtlCopySid(ulAccountSidLength, pAccountSid, pMachineSid);
         if (status != 0) {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            dwError = LW_ERROR_SAM_INIT_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
         status = RtlAppendRidSid(ulAccountSidLength, pAccountSid, dwRid);
         if (status != 0) {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            dwError = LW_ERROR_SAM_INIT_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -1153,7 +1153,7 @@ SamDbAddLocalAccounts(
                         &pwszSID,
                         pAccountSid);
         if (status != 0) {
-            dwError = LSA_ERROR_SAM_INIT_ERROR;
+            dwError = LW_ERROR_SAM_INIT_ERROR;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 

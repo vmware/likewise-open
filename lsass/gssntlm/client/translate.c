@@ -52,35 +52,35 @@ NTLMTranslateMajorStatus(
 
     switch (dwMajor)
     {
-        case LSA_ERROR_SUCCESS:
+        case LW_ERROR_SUCCESS:
             return GSS_S_COMPLETE;
-        case LSA_WARNING_CONTINUE_NEEDED:
+        case LW_WARNING_CONTINUE_NEEDED:
             return GSS_S_CONTINUE_NEEDED;
-        case LSA_ERROR_BAD_MECH:
+        case LW_ERROR_BAD_MECH:
             return GSS_S_BAD_MECH;
-        case LSA_ERROR_BAD_NAMETYPE:
+        case LW_ERROR_BAD_NAMETYPE:
             return GSS_S_BAD_NAMETYPE;
-        case LSA_ERROR_INVALID_CONTEXT:
-        case LSA_ERROR_NO_CONTEXT:
+        case LW_ERROR_INVALID_CONTEXT:
+        case LW_ERROR_NO_CONTEXT:
             return GSS_S_NO_CONTEXT;
-        case LSA_ERROR_INVALID_CREDENTIAL:
-        case LSA_ERROR_NO_CRED:
+        case LW_ERROR_INVALID_CREDENTIAL:
+        case LW_ERROR_NO_CRED:
             return GSS_S_NO_CRED;
-        case LSA_ERROR_INSUFFICIENT_BUFFER:
-        case LSA_ERROR_INVALID_TOKEN:
-        case LSA_ERROR_UNEXPECTED_TOKEN:
+        case LW_ERROR_INSUFFICIENT_BUFFER:
+        case LW_ERROR_INVALID_TOKEN:
+        case LW_ERROR_UNEXPECTED_TOKEN:
             return GSS_S_DEFECTIVE_TOKEN;
-        case LSA_ERROR_UNSUPPORTED_SUBPROTO:
+        case LW_ERROR_UNSUPPORTED_SUBPROTO:
             return GSS_S_UNAVAILABLE;
-        case LSA_ERROR_NO_SUCH_USER:
-        case LSA_ERROR_INVALID_PASSWORD:
-        case LSA_ERROR_ACCOUNT_LOCKED:
-        case LSA_ERROR_ACCOUNT_DISABLED:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_INVALID_PASSWORD:
+        case LW_ERROR_ACCOUNT_LOCKED:
+        case LW_ERROR_ACCOUNT_DISABLED:
             return GSS_S_UNAUTHORIZED;
-        case LSA_ERROR_NOT_IMPLEMENTED:
+        case LW_ERROR_NOT_IMPLEMENTED:
             return GSS_S_UNAVAILABLE;
-        case LSA_ERROR_OUT_OF_MEMORY:
-        case LSA_ERROR_INTERNAL:
+        case LW_ERROR_OUT_OF_MEMORY:
+        case LW_ERROR_INTERNAL:
         default:
             return GSS_S_FAILURE;
     }

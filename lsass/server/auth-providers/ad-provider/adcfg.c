@@ -425,7 +425,7 @@ AD_ParseConfigFile(
     PLSA_AD_CONFIG pConfig
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     dwError = LsaParseConfigFile(
                 pszConfigFilePath,
@@ -450,7 +450,7 @@ AD_ParseConfigFile(
     {
         LSA_LOG_ERROR("Error: space-replacement and domain-separator are set to '%c' in the config file. Their values must be unique.",
                         pConfig->chSpaceReplacement);
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -563,7 +563,7 @@ AD_SetConfig_LoginShellTemplate(
 
     if (access(pszValue, X_OK) != 0)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -628,7 +628,7 @@ AD_CheckPunctuationChar(
     IN BOOLEAN bAllowSpace
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
 
     BAIL_ON_INVALID_STRING(pszValue);
 
@@ -639,7 +639,7 @@ AD_CheckPunctuationChar(
                 pszValue,
                 pszName,
                 pszName);
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -650,7 +650,7 @@ AD_CheckPunctuationChar(
                 pszName,
                 bAllowSpace ? " or space" : "",
                 pszValue);
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -660,7 +660,7 @@ AD_CheckPunctuationChar(
                 "Error: %s may not be set to @; the value provided is '%s'.",
                 pszName,
                 pszValue);
-        dwError = LSA_ERROR_INVALID_CONFIG;
+        dwError = LW_ERROR_INVALID_CONFIG;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -747,7 +747,7 @@ AD_SetConfig_CachePurgeTimeout(
         LSA_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Minimum is %u.",
                       dwCacheReaperTimeoutSecs,
                       AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -756,7 +756,7 @@ AD_SetConfig_CachePurgeTimeout(
         LSA_LOG_ERROR("Failed to set CacheReaperTimeoutSecs to %u.  Maximum is %u.",
                       dwCacheReaperTimeoutSecs,
                       AD_CACHE_REAPER_TIMEOUT_MAXIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -795,7 +795,7 @@ AD_SetConfig_MachinePasswordLifespan(
         LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Minimum is %u.",
                         dwMachinePasswordSyncPwdLifetime,
                         AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -804,7 +804,7 @@ AD_SetConfig_MachinePasswordLifespan(
         LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Maximum is %u.",
                         dwMachinePasswordSyncPwdLifetime,
                         AD_MACHINE_PASSWORD_SYNC_MAXIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -843,7 +843,7 @@ AD_SetConfig_CacheEntryExpiry(
         LSA_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Minimum is %u.",
                         dwExpirySecs,
                         AD_CACHE_ENTRY_EXPIRY_MINIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -852,7 +852,7 @@ AD_SetConfig_CacheEntryExpiry(
         LSA_LOG_ERROR("Failed to set CacheEntryExpiry to %u.  Maximum is %u.",
                         dwExpirySecs,
                         AD_CACHE_ENTRY_EXPIRY_MAXIMUM_SECS);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1080,7 +1080,7 @@ AD_SetConfig_Umask(
 
         if ( dwVal > 7 )
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
         }
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1089,7 +1089,7 @@ AD_SetConfig_Umask(
 
     if ( dwCnt > 4 )
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1097,7 +1097,7 @@ AD_SetConfig_Umask(
     // access to his home directory.
     if ( (dwOct & 0700) == 0700 )
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
     }
     else
     {
@@ -1186,7 +1186,7 @@ AD_SetConfig_CellSupport(
     else
     {
         LSA_LOG_ERROR("Invalid value for cell-support parameter");
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

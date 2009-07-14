@@ -201,7 +201,7 @@ LsaDmWrapGetDomainEnumInfo(
     // Double check here again
     if (!ppDomainInfoList || !ppDomainInfoList[0])
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

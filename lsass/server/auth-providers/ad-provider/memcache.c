@@ -85,7 +85,7 @@ MemCacheFindUserByName(
     return dwError;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 MemCacheFindUserById(
     LSA_DB_HANDLE hDb,
@@ -368,7 +368,7 @@ MemCacheFindObjectsBySidList(
     return dwError;
 }
 
-// returns LSA_ERROR_NOT_HANDLED if the user is not in the database
+// returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 MemCacheGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,

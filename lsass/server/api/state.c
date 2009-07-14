@@ -200,7 +200,7 @@ LsaSrvCreateUserEnumState(
            pProviderStateList = pProviderState;
            pProviderState = NULL;
 
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        } else if (dwError == LW_ERROR_NOT_HANDLED) {
 
            if (pProviderState) {
                LsaSrvFreeProviderStateList(pProviderState);
@@ -310,7 +310,7 @@ LsaSrvCreateGroupEnumState(
            pProviderStateList = pProviderState;
            pProviderState = NULL;
 
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        } else if (dwError == LW_ERROR_NOT_HANDLED) {
 
            if (pProviderState) {
                LsaSrvFreeProviderStateList(pProviderState);
@@ -423,7 +423,7 @@ LsaSrvCreateNSSArtefactEnumState(
            pProviderStateList = pProviderState;
            pProviderState = NULL;
 
-        } else if (dwError == LSA_ERROR_NOT_HANDLED) {
+        } else if (dwError == LW_ERROR_NOT_HANDLED) {
 
            if (pProviderState) {
                LsaSrvFreeProviderStateList(pProviderState);

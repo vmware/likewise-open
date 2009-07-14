@@ -38,7 +38,7 @@ LsaNssNormalizeUsername(
     PSTR pszOutput
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     uint64_t qwConvert = 0;
@@ -114,7 +114,7 @@ cleanup:
                 dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
         return 0;
@@ -143,7 +143,7 @@ LsaNssAuthenticate(
     )
 {
     int iError = 0;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
 
@@ -192,16 +192,16 @@ cleanup:
 
     switch(dwError)
     {
-        case LSA_ERROR_SUCCESS:
+        case LW_ERROR_SUCCESS:
             iError = AUTH_SUCCESS;
             break;
-        case LSA_ERROR_NOT_HANDLED:
-        case LSA_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NOT_HANDLED:
+        case LW_ERROR_NO_SUCH_USER:
             iError = AUTH_NOTFOUND;
             break;
-        case LSA_ERROR_ACCOUNT_EXPIRED:
-        case LSA_ERROR_ACCOUNT_DISABLED:
-        case LSA_ERROR_ACCOUNT_LOCKED:
+        case LW_ERROR_ACCOUNT_EXPIRED:
+        case LW_ERROR_ACCOUNT_DISABLED:
+        case LW_ERROR_ACCOUNT_LOCKED:
             iError = AUTH_FAILURE;
             break;
         default:
@@ -231,7 +231,7 @@ LsaNssIsPasswordExpired(
 {
     PLSA_USER_INFO_2 pInfo = NULL;
     const DWORD dwInfoLevel = 2;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     int iError = 0;
 
     LSA_LOG_PAM_DEBUG("Lsass LAM checking expired password for user [%s]",
@@ -259,7 +259,7 @@ LsaNssIsPasswordExpired(
                 pszUser);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LSA_ERROR_PASSWORD_EXPIRED;
+        dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -283,13 +283,13 @@ cleanup:
     }
     switch(dwError)
     {
-        case LSA_ERROR_SUCCESS:
+        case LW_ERROR_SUCCESS:
             iError = 0;
             break;
-        case LSA_ERROR_PASSWORD_EXPIRED:
+        case LW_ERROR_PASSWORD_EXPIRED:
             iError = 1;
             break;
-        case LSA_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NO_SUCH_USER:
             iError = -1;
             errno = ENOENT;
             break;
@@ -321,7 +321,7 @@ LsaNssChangePassword(
         PSTR pszNewPass,
         PSTR* ppszError)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
 
@@ -355,7 +355,7 @@ cleanup:
                 dwInfoLevel,
                 (PVOID)pInfo);
     }
-    if(dwError != LSA_ERROR_SUCCESS)
+    if(dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
         return -1;

@@ -49,18 +49,18 @@
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    PCredHandle phCredential,
-    PCtxtHandle phContext,
-    SEC_CHAR * pszTargetName,
-    DWORD fContextReq,
-    DWORD Reserved1,
-    DWORD TargetDataRep,
-    PSecBufferDesc pInput,
-    DWORD Reserved2,
-    PCtxtHandle phNewContext,
-    PSecBufferDesc pOutput,
-    PDWORD pfContextAttr,
-    PTimeStamp ptsExpiry
+    IN OPTIONAL PCredHandle phCredential,
+    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL SEC_CHAR * pszTargetName,
+    IN DWORD fContextReq,
+    IN DWORD Reserved1,
+    IN DWORD TargetDataRep,
+    IN OPTIONAL PSecBufferDesc pInput,
+    IN DWORD Reserved2,
+    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PSecBufferDesc pOutput,
+    OUT PDWORD pfContextAttr,
+    OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -140,7 +140,6 @@ NtlmCreateNegotiateContext(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     CHAR HostName[HOST_NAME_MAX + 1];
-    PNTLM_NEGOTIATE_MESSAGE pNtlmNegMsg = NULL;
 
     // this is paranoid, but we should make sure we're not writing over an
     // existing context (or at the very least, this is a check that we've
@@ -163,24 +162,24 @@ NtlmCreateNegotiateContext(
         NULL,
         HostName,
         NULL,
-        &pNtlmNegMsg
+        &((*ppNtlmContext)->dwMessageSize),
+        (PNTLM_NEGOTIATE_MESSAGE*)&((*ppNtlmContext)->pMessage)
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    (*ppNtlmContext)->pMessage = (PVOID)pNtlmNegMsg;
     (*ppNtlmContext)->NtlmState = NtlmStateNegotiate;
 
 cleanup:
     return dwError;
 error:
-    if(pNtlmNegMsg)
+    if(*ppNtlmContext)
     {
-        LwFreeMemory(pNtlmNegMsg);
-    }
-    if((*ppNtlmContext) && (*ppNtlmContext)->pMessage)
-    {
-        (*ppNtlmContext)->pMessage = NULL;
+        if((*ppNtlmContext)->pMessage)
+        {
+            LwFreeMemory((*ppNtlmContext)->pMessage);
+        }
+        LwFreeMemory(*ppNtlmContext);
     }
     goto cleanup;
 }
@@ -192,7 +191,6 @@ NtlmCreateResponseContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_RESPONSE_MESSAGE pRespMsg = NULL;
     PNTLM_CREDENTIALS pNtlmCreds = NULL;
     BOOLEAN bInLock = FALSE;
 
@@ -224,12 +222,12 @@ NtlmCreateResponseContext(
         pNtlmCreds->pPassword,
         NTLM_RESPONSE_TYPE_NTLM,
         NTLM_RESPONSE_TYPE_LM,
-        &pRespMsg
+        &((*ppNtlmContext)->dwMessageSize),
+        (PNTLM_RESPONSE_MESSAGE*)&((*ppNtlmContext)->pMessage)
         );
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    (*ppNtlmContext)->pMessage = (PVOID)pRespMsg;
     (*ppNtlmContext)->NtlmState = NtlmStateResponse;
 
 cleanup:
@@ -239,6 +237,14 @@ cleanup:
     }
     return dwError;
 error:
+    if(*ppNtlmContext)
+    {
+        if((*ppNtlmContext)->pMessage)
+        {
+            LwFreeMemory((*ppNtlmContext)->pMessage);
+        }
+        LwFreeMemory(*ppNtlmContext);
+    }
     goto cleanup;
 }
 

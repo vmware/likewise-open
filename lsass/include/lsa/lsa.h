@@ -86,7 +86,7 @@
 #include <lw/types.h>
 #include <lw/attrs.h>
 
-#include "lwerror.h"
+#include <lwerror.h>
 
 
 typedef LW_DWORD LSA_DS_FLAGS, *PLSA_DS_FLAGS;
@@ -769,7 +769,7 @@ typedef struct __LSA_AUTH_USER_INFO
  * Creates a connection handle to the local LSASS server.
  *
  * @param[out] phConnection the created connection handle
- * @retval LSA_ERROR_SUCCESS success
+ * @retval LW_ERROR_SUCCESS success
  * @retval ECONNREFUSED the connection was refused
  * @retval ENOENT the local domain socket was not present
  */
@@ -839,7 +839,7 @@ LsaGetTraceFlag(
  * @param[in] hLsaConnection the connection handle
  * @param[in] pGroupInfo a group info structure
  * @param[in] dwGroupInfoLevel the info level of the provided group info structure
- * @retval LSA_ERROR_SUCCESS success
+ * @retval LW_ERROR_SUCCESS success
  * @retval EPERM the owner of the current process is not authorized to create groups
  */
 LW_DWORD
@@ -863,9 +863,9 @@ LsaModifyGroup(
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in] gid the group ID of the group to delete
- * @retval LSA_ERROR_SUCCESS success
+ * @retval LW_ERROR_SUCCESS success
  * @retval EPERM the owner of the current process is not authorized to delete groups
- * @retval LSA_ERROR_NO_SUCH_GROUP the specified group ID did not match any local group
+ * @retval LW_ERROR_NO_SUCH_GROUP the specified group ID did not match any local group
  */
 LW_DWORD
 LsaDeleteGroupById(
@@ -881,9 +881,9 @@ LsaDeleteGroupById(
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in] pszName the name of the group to delete
- * @retval LSA_ERROR_SUCCESS success
+ * @retval LW_ERROR_SUCCESS success
  * @retval EPERM the owner of the current process is not authorized to delete groups
- * @retval LSA_ERROR_NO_SUCH_GROUP the specified group name did not match any local group
+ * @retval LW_ERROR_NO_SUCH_GROUP the specified group name did not match any local group
  */
 LW_DWORD
 LsaDeleteGroupByName(
@@ -901,8 +901,8 @@ LsaDeleteGroupByName(
  * @param[in] pszUserName the login name of the user
  * @param[out] pdwGroupFound the number of groups find
  * @param[out] ppGidResults a heap-allocated list of group IDs
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_USER the specified user name did not match any known user
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_USER the specified user name did not match any known user
  */
 LW_DWORD
 LsaGetGidsForUserByName(
@@ -924,8 +924,8 @@ LsaGetGidsForUserByName(
  * @param[in] dwGroupInfoLevel the desired info level for the returned group info structures
  * @param[out] pdwGroupsFound the number of groups find
  * @param[out] pppGroupInfoList a heap-allocated list of group info structures
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_USER the specified user ID did not match any known user
  */
 LW_DWORD
 LsaGetGroupsForUserByName(
@@ -949,8 +949,8 @@ LsaGetGroupsForUserByName(
  * @param[in] dwGroupInfoLevel the desired info level for the returned group info structures
  * @param[out] pdwGroupsFound the number of groups find
  * @param[out] pppGroupInfoList a heap-allocated list of group info structures
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_USER the specified user ID did not match any known user
  */
 LW_DWORD
 LsaGetGroupsForUserById(
@@ -973,8 +973,8 @@ LsaGetGroupsForUserById(
  * @param[in] FindFlags options for the lookup operation
  * @param[in] dwGroupInfoLevel the desired info level for the returned group info structure
  * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_GROUP the specified name did not match any known group
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_GROUP the specified name did not match any known group
  */
 LW_DWORD
 LsaFindGroupByName(
@@ -996,8 +996,8 @@ LsaFindGroupByName(
  * @param[in] FindFlags options for the lookup operation
  * @param[in] dwGroupInfoLevel the desired info level for the returned group info structure
  * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_GROUP the specified group ID did not match any known group
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_GROUP the specified group ID did not match any known group
  */
 LW_DWORD
 LsaFindGroupById(
@@ -1026,7 +1026,7 @@ LsaFindGroupById(
  * return in each subsequent call to #LsaEnumGroups()
  * @param[in] FindFlags options for the lookup operation
  * @param[out] phResume the created enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaBeginEnumGroups(
@@ -1061,7 +1061,7 @@ LsaBeginEnumGroups(
  * consulted, FALSE if only local databases or caches should be searched
  * @param[in] FindFlags options for the lookup operation
  * @param[out] phResume the created enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaBeginEnumGroupsWithCheckOnlineOption(
@@ -1085,7 +1085,7 @@ LsaBeginEnumGroupsWithCheckOnlineOption(
  * @param[out] pppGroupInfoList a heap-allocated list of group info structures
  * of the level specified in the call to #LsaBeginEnumGroups().  It should be
  * freed with #LsaFreeGroupInfoList().
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaEnumGroups(
@@ -1103,7 +1103,7 @@ LsaEnumGroups(
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in,out] hResume the enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaEndEnumGroups(
@@ -1201,8 +1201,8 @@ LsaDeleteUserByName(
  * @param[in] FindFlags options for the lookup operation
  * @param[in] dwUserInfoLevel the desired info level for the returned user info structure
  * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_GROUP the specified name did not match any known group
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_GROUP the specified name did not match any known group
  */
 LW_DWORD
 LsaFindUserByName(
@@ -1223,8 +1223,8 @@ LsaFindUserByName(
  * @param[in] FindFlags options for the lookup operation
  * @param[in] dwUserInfoLevel the desired info level for the returned user info structure
  * @param[out] ppUserInfo a heap-allocated user info structure for the found user
- * @retval LSA_ERROR_SUCCESS success
- * @retval LSA_ERROR_NO_SUCH_USER the specified user ID did not match any known user
+ * @retval LW_ERROR_SUCCESS success
+ * @retval LW_ERROR_NO_SUCH_USER the specified user ID did not match any known user
  */
 LW_DWORD
 LsaFindUserById(
@@ -1272,7 +1272,7 @@ LsaFreeSIDInfo(
  * return in each subsequent call to #LsaEnumUsers()
  * @param[in] FindFlags options for the lookup operation
  * @param[out] phResume the created enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaBeginEnumUsers(
@@ -1291,7 +1291,7 @@ LsaBeginEnumUsers(
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in,out] hResume the enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaEnumUsers(
@@ -1309,7 +1309,7 @@ LsaEnumUsers(
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in,out] hResume the enumeration handle
- * @retval #LSA_ERROR_SUCCESS success
+ * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD
 LsaEndEnumUsers(
@@ -1445,7 +1445,7 @@ LsaFreeStatus(
  * Closes a connection handle opened with #LsaOpenServer().
  *
  * @param[in,out] hConnection the connection handle to close
- * @retval LSA_ERROR_SUCCESS success
+ * @retval LW_ERROR_SUCCESS success
  * @retval EINVAL the handle was invalid
  */
 LW_DWORD
@@ -1469,7 +1469,7 @@ LsaCloseServer(
  * provided buffer
  */
 size_t
-LsaGetErrorString(
+LwGetErrorString(
     LW_DWORD dwError,
     LW_PSTR pszBuffer,
     size_t stBufSize

@@ -86,7 +86,7 @@ cleanup:
     {
         LsaFreeStatus(pLsaStatus);
     }
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     goto cleanup;

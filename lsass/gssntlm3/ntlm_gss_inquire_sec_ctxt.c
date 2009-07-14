@@ -29,7 +29,7 @@ ntlm_gss_delete_sec_context(
      )
 {
     DWORD dwError;
-    DWORD majorStatus = LSA_ERROR_SUCCESS;
+    DWORD majorStatus = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT gssContext = NULL;
 
     if (contextHandle == NULL)
@@ -37,7 +37,7 @@ ntlm_gss_delete_sec_context(
 
     gssContext = NTLMLocateContext((PNTLM_CONTEXT) contextHandle, NULL, 0);
     if (!gssContext)
-        BAIL_WITH_LSA_ERROR(LSA_ERROR_INVALID_CONTEXT);
+        BAIL_WITH_LSA_ERROR(LW_ERROR_INVALID_CONTEXT);
 
     NTLMRemoveContext(gssContext);
 

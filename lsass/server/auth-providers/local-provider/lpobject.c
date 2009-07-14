@@ -115,18 +115,18 @@ LocalFindObjectByName(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -209,9 +209,9 @@ LocalDirGetNamesBySidList(
                         &dwObjectClass,
                         &ppszDomainNames[iSid],
                         &ppszSamAccounts[iSid]);
-        if (dwError == LSA_ERROR_NO_SUCH_OBJECT)
+        if (dwError == LW_ERROR_NO_SUCH_OBJECT)
         {
-            dwError = LSA_ERROR_SUCCESS;
+            dwError = LW_ERROR_SUCCESS;
 
             pTypes[iSid] = AccountType_NotFound;
             continue;
@@ -240,7 +240,7 @@ LocalDirGetNamesBySidList(
 
             default:
 
-                dwError = LSA_ERROR_DATA_ERROR;
+                dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -323,18 +323,18 @@ LocalDirFindObjectBySID(
 
     if (dwNumEntries == 0)
     {
-        dwError = LSA_ERROR_NO_SUCH_OBJECT;
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
     pEntry = &pEntries[0];
     if (pEntry->ulNumAttributes != dwNumAttrs)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

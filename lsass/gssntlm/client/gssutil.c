@@ -151,21 +151,21 @@ OM_uint32
 NTLMTranslateLsaErrorToGssError(DWORD lsaError)
 {
     switch(lsaError) {
-        case LSA_ERROR_SUCCESS:
+        case LW_ERROR_SUCCESS:
             return GSS_S_COMPLETE;
-        case LSA_WARNING_CONTINUE_NEEDED:
+        case LW_WARNING_CONTINUE_NEEDED:
             return GSS_S_CONTINUE_NEEDED;
-        case LSA_ERROR_BAD_MECH:
+        case LW_ERROR_BAD_MECH:
             return GSS_S_BAD_MECH;
-        case LSA_ERROR_BAD_NAME:
+        case LW_ERROR_BAD_NAME:
             return GSS_S_BAD_NAME;
-        case LSA_ERROR_BAD_NAMETYPE:
+        case LW_ERROR_BAD_NAMETYPE:
             return GSS_S_BAD_NAMETYPE;
-        case LSA_ERROR_NO_CONTEXT:
+        case LW_ERROR_NO_CONTEXT:
             return GSS_S_NO_CONTEXT;
-        case LSA_ERROR_NO_CRED:
+        case LW_ERROR_NO_CRED:
             return GSS_S_NO_CRED;
-        case LSA_ERROR_NOT_IMPLEMENTED:
+        case LW_ERROR_NOT_IMPLEMENTED:
             return GSS_S_UNAVAILABLE;
         /* @todo - add others */
         default:

@@ -191,7 +191,7 @@ error:
 
     dwError = MapErrorCode(dwError);
 
-    dwErrorBufferSize = LsaGetErrorString(dwError, NULL, 0);
+    dwErrorBufferSize = LwGetErrorString(dwError, NULL, 0);
 
     if (dwErrorBufferSize > 0)
     {
@@ -204,7 +204,7 @@ error:
 
         if (!dwError2)
         {
-            DWORD dwLen = LsaGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
+            DWORD dwLen = LwGetErrorString(dwError, pszErrorBuffer, dwErrorBufferSize);
 
             if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
             {
@@ -350,7 +350,7 @@ ParseTraceFlagArray(
     if (*pszArg == ',')
     {
         fprintf(stderr, "Error: Invalid argument [%s]\n", pszArg);
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -395,7 +395,7 @@ ParseTraceFlagArray(
                       "Error: Invalid value specified for trace flag [%s]\n",
                       pszFlagAndValue);
 
-              dwError = LSA_ERROR_INVALID_PARAMETER;
+              dwError = LW_ERROR_INVALID_PARAMETER;
               BAIL_ON_LSA_ERROR(dwError);
           }
           else if (pszIndex == pszFlagAndValue)
@@ -404,7 +404,7 @@ ParseTraceFlagArray(
                       "Error: No name specified for trace flag [%s]\n",
                       pszFlagAndValue);
 
-              dwError = LSA_ERROR_INVALID_PARAMETER;
+              dwError = LW_ERROR_INVALID_PARAMETER;
               BAIL_ON_LSA_ERROR(dwError);
           }
           else
@@ -481,7 +481,7 @@ ParseTraceFlag(
     }
     else
     {
-       dwError = LSA_ERROR_INVALID_PARAMETER;
+       dwError = LW_ERROR_INVALID_PARAMETER;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -562,7 +562,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
+            dwError2 = LW_ERROR_LSA_SERVER_UNREACHABLE;
 
             break;
 

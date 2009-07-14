@@ -210,7 +210,7 @@ LsaSrvStartupPreCheck(
 
     if (iter >= STARTUP_PRE_CHECK_WAIT)
     {
-        dwError = LSA_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
         LSA_LOG_ERROR("LSA start up pre-check failed to get updated hostname after %d seconds of waiting [Code:%d]",
                       STARTUP_PRE_CHECK_WAIT*10,
                       dwError);
@@ -236,7 +236,7 @@ LsaSrvStartupPreCheck(
 
     if (iter >= STARTUP_NETLOGON_WAIT)
     {
-        dwError = LSA_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
         LSA_LOG_ERROR("LSA start up pre-check failed to be able to use NetLogonD after %d seconds of waiting [Code:%d]",
                       STARTUP_NETLOGON_WAIT,
                       dwError);
@@ -261,7 +261,7 @@ LsaSrvStartupPreCheck(
 
     if (iter >= STARTUP_LWIO_WAIT)
     {
-        dwError = LSA_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
+        dwError = LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK;
         LSA_LOG_ERROR("LSA start up pre-check failed to be able to use LwIoD after %d seconds of waiting [Code:%d]",
                       STARTUP_LWIO_WAIT,
                       dwError);
@@ -519,7 +519,7 @@ LsaSrvParseArgs(
         {
             LSA_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
 
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -806,7 +806,7 @@ LsaSrvGetCachePath(
     LSA_LOCK_SERVERINFO(bInLock);
 
     if (IsNullOrEmptyString(gpServerInfo->szCachePath)) {
-      dwError = LSA_ERROR_INVALID_CACHE_PATH;
+      dwError = LW_ERROR_INVALID_CACHE_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -842,7 +842,7 @@ LsaSrvGetPrefixPath(
     LSA_LOCK_SERVERINFO(bInLock);
 
     if (IsNullOrEmptyString(gpServerInfo->szPrefixPath)) {
-      dwError = LSA_ERROR_INVALID_PREFIX_PATH;
+      dwError = LW_ERROR_INVALID_PREFIX_PATH;
       BAIL_ON_LSA_ERROR(dwError);
     }
 

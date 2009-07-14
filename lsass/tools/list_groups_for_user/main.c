@@ -107,13 +107,13 @@ StringToId(
     if (errno)
     {
         perror("Cannot convert to id");
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     if (result < 0 || result > MAXDWORD)
     {
         printf("Argument out of range\n");
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -329,7 +329,7 @@ main(
             break;
 
         default:
-            dwError = LSA_ERROR_UNSUPPORTED_GROUP_LEVEL;
+            dwError = LW_ERROR_UNSUPPORTED_GROUP_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
             break;
     }
@@ -380,7 +380,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = LSA_ERROR_LSA_SERVER_UNREACHABLE;
+            dwError2 = LW_ERROR_LSA_SERVER_UNREACHABLE;
 
             break;
 

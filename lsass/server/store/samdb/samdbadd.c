@@ -365,7 +365,7 @@ SamDbInsertObjectToDatabase(
     dwError = sqlite3_step(pSqlStatement);
     if (dwError == SQLITE_DONE)
     {
-        dwError = LSA_ERROR_SUCCESS;
+        dwError = LW_ERROR_SUCCESS;
     }
     BAIL_ON_SAMDB_SQLITE_ERROR_STMT(dwError, pSqlStatement);
 
@@ -622,7 +622,7 @@ SamDbBuildAddColumnValueList(
 
         if (!pColumnValue->pAttrMapInfo)
         {
-            dwError = LSA_ERROR_NO_SUCH_ATTRIBUTE;
+            dwError = LW_ERROR_NO_SUCH_ATTRIBUTE;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -756,7 +756,7 @@ SamDbAddGenerateValues(
 
             if (!pfnValueGenerator)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_SAMDB_ERROR(dwError);
             }
 
@@ -782,7 +782,7 @@ SamDbAddGenerateValues(
         }
         else
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_SAMDB_ERROR(dwError);
         }
 
@@ -916,7 +916,7 @@ SamDbAddGenerateObjectSID(
 
     if (!pwszDomainName || !*pwszDomainName)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -1311,7 +1311,7 @@ SamDbAddConvertUnicodeAttrValues(
 
             default:
 
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
 
         }
@@ -1355,14 +1355,14 @@ SamDbAddBindValues(
         {
             if (pIter->ulNumValues > 1)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
         }
         else if (pIter->pDirMod)
         {
             if (pIter->ulNumValues > 1)
             {
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
             }
         }
         BAIL_ON_SAMDB_ERROR(dwError);
@@ -1479,7 +1479,7 @@ SamDbAddBindValues(
 
             default:
 
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_SAMDB_ERROR(dwError);
         }
     }
@@ -1548,12 +1548,12 @@ SamDbFindDomainSID(
 
     if (!dwNumEntries)
     {
-        dwError = LSA_ERROR_NO_SUCH_DOMAIN;
+        dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
     else if (dwNumEntries != 1)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 
@@ -1561,7 +1561,7 @@ SamDbFindDomainSID(
         !pDirEntries[0].pAttributes[0].ulNumValues ||
         pDirEntries[0].pAttributes[0].pValues[0].Type != DIRECTORY_ATTR_TYPE_UNICODE_STRING)
     {
-        dwError = LSA_ERROR_DATA_ERROR;
+        dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_SAMDB_ERROR(dwError);
     }
 

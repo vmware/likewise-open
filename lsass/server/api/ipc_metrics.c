@@ -90,7 +90,7 @@ LsaSrvIpcGetMetrics(
                 break;
 
             default:
-                dwError = LSA_ERROR_INVALID_PARAMETER;
+                dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -112,7 +112,7 @@ cleanup:
         LSA_SAFE_FREE_MEMORY(pMetricPack);
     }
 
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     if(pResult)

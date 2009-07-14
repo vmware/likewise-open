@@ -93,15 +93,15 @@ pam_sm_authenticate(
             struct pam_repository files = { "files", NULL, 0 };
             if(pam_set_item(pamh, PAM_REPOSITORY, &files) != PAM_SUCCESS)
             {
-                dwError = LSA_ERROR_INTERNAL;
+                dwError = LW_ERROR_INTERNAL;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
 
         /* This gets mapped to PAM_IGNORE */
-        dwError = LSA_ERROR_NOT_HANDLED;
+        dwError = LW_ERROR_NOT_HANDLED;
 #else
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
 #endif
     }
@@ -128,7 +128,7 @@ pam_sm_authenticate(
             hLsaConnection,
             pszLoginId,
             pszPassword);
-        if (dwError == LSA_ERROR_PASSWORD_EXPIRED)
+        if (dwError == LW_ERROR_PASSWORD_EXPIRED)
         {
             // deal with this error in the
             // next call to pam_sm_acct_mgmt
@@ -234,7 +234,7 @@ cleanup:
 
 error:
 
-    if (dwError == LSA_ERROR_NO_SUCH_USER || dwError == LSA_ERROR_NOT_HANDLED)
+    if (dwError == LW_ERROR_NO_SUCH_USER || dwError == LW_ERROR_NOT_HANDLED)
     {
         LSA_LOG_PAM_WARNING("pam_sm_authenticate error [login:%s][error code:%d]",
                           LSA_SAFE_LOG_STRING(pszLoginId),

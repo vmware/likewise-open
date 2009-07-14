@@ -15,6 +15,23 @@ AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+# compat
+
+ENABLE_COMPAT=false
+
+AC_ARG_ENABLE([compat],
+        [AC_HELP_STRING([--enable-compat], [enable compat-only build (default: disabled)])],
+        [
+                if test x"$enableval" = x"yes"
+                then
+			ENABLE_COMPAT=true
+		else
+			ENABLE_COMPAT=false
+                fi
+        ])
+
+AM_CONDITIONAL(ENABLE_COMPAT, [$ENABLE_COMPAT])
+
 # libunistr
 
 AC_ARG_WITH([libunistr],
@@ -209,8 +226,10 @@ AC_HEADER_STDC
 
 AC_CONFIG_FILES([Makefile
                  include/Makefile
-                 memory/Makefile
-                 lwunistr/Makefile
+                 unthreaded/Makefile
+                 unthreaded/memory/Makefile
+                 unthreaded/lwunistr/Makefile
+                 unthreaded/error/Makefile
                  join/Makefile])
 
 AC_OUTPUT

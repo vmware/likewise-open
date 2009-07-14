@@ -132,7 +132,7 @@ DWORD LsaNssAllocateUserFromInfo0(
         struct passwd** ppResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     // Do not free directly. Free pStartMem instead on error
     struct passwd* pResult = NULL;
     void *pStartMem = NULL;
@@ -217,7 +217,7 @@ error:
 
 struct passwd *LsaNssGetPwUid(uid_t uid)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct passwd *pResult = NULL;
@@ -254,7 +254,7 @@ cleanup:
                 (PVOID)pInfo);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -272,7 +272,7 @@ error:
 
 struct passwd *LsaNssGetPwNam(PCSTR pszName)
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_USER_INFO_0 pInfo = NULL;
     const DWORD dwInfoLevel = 0;
     struct passwd *pResult = NULL;
@@ -309,7 +309,7 @@ cleanup:
                 pInfo);
     }
 
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &errno);
     }
@@ -331,7 +331,7 @@ LsaNssListUsers(
         attrval_t* pResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwInfoLevel = 0;
     const DWORD dwEnumLimit = 100000;
     DWORD dwIndex = 0;
@@ -423,7 +423,7 @@ LsaNssGetUserAttr(
         attrval_t* pResult
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwGroupInfoLevel = 0;
     PLSA_GROUP_INFO_0 pGroupInfo = NULL;
 
@@ -533,7 +533,7 @@ cleanup:
 		dwGroupInfoLevel,
                 (PVOID)pGroupInfo);
     }
-    if (dwError != LSA_ERROR_SUCCESS)
+    if (dwError != LW_ERROR_SUCCESS)
     {
         LsaNssMapErrorCode(dwError, &pResult->attr_flag);
     }
@@ -557,7 +557,7 @@ LsaNssGetUserAttrs(
         int iAttrCount
         )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     const DWORD dwInfoLevel = 2;
     PLSA_USER_INFO_2 pInfo = NULL;
     int iIndex = 0;

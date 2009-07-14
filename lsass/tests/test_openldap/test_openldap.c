@@ -91,13 +91,13 @@ GetCurrentTime(
 
     if (now.tv_sec <= 0)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         GOTO_CLEANUP_ON_ERROR(dwError);
     }
 
     if (now.tv_usec <= 0)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         GOTO_CLEANUP_ON_ERROR(dwError);
     }
 

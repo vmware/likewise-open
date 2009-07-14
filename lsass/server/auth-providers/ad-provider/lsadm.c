@@ -78,7 +78,7 @@ LsaDmInitialize(
 
     if (gLsaDmState)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -447,7 +447,7 @@ LsaDmDuplicateConstEnumDomainInfo(
     OUT PLSA_DM_ENUM_DOMAIN_INFO* ppDest
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_DM_ENUM_DOMAIN_INFO pDest = NULL;
 
     dwError = LsaAllocateMemory(sizeof(*pDest), (PVOID*)&pDest);
@@ -831,7 +831,7 @@ LsaDmConnectDomain(
     if ( (!bUseGc && LsaDmIsDomainOffline(pszDnsDomainOrForestName)) ||
          (bUseGc && LsaDmIsForestGcOffline(pszDnsDomainOrForestName)))
     {
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -903,7 +903,7 @@ error:
             LSA_LOG_DEBUG("Error %d transitioning %s offline",
                           dwLocalError, pszDnsDomainOrForestName);
         }
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
     goto cleanup;
 }

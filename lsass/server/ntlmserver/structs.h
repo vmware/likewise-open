@@ -113,6 +113,7 @@ typedef struct _NTLM_CREDENTIALS
 typedef struct _NTLM_CONTEXT
 {
     NTLM_STATE              NtlmState;
+    DWORD                   dwMessageSize;
     PVOID                   pMessage;
     CtxtHandle              ContextHandle;
     CredHandle              CredHandle;

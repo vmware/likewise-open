@@ -134,7 +134,7 @@ typedef void* ACCOUNT_HANDLE;
     do {                                                 \
         if ((err) != 0) {                                \
             switch ((err)) {                             \
-            case LSA_ERROR_SAM_DATABASE_ERROR:           \
+            case LW_ERROR_SAM_DATABASE_ERROR:           \
                 status = STATUS_SAM_INIT_FAILURE;        \
                 break;                                   \
                                                          \

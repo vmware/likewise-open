@@ -101,7 +101,7 @@ LsaSrvIpcBuildAuthMessage(
     pResponse->object = pAuthMsgReply;
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
@@ -147,7 +147,7 @@ LsaSrvIpcCheckAuthMessage(
     pResponse->object = pCheckAuthMsgReply;
 
 cleanup:
-    return MAP_LSA_ERROR_IPC(dwError);
+    return MAP_LW_ERROR_IPC(dwError);
 
 error:
     dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);

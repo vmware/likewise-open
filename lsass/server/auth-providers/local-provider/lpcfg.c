@@ -633,7 +633,7 @@ LocalCfgSetDefaultLoginShell(
 
     if (access(pszValue, X_OK) != 0)
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -774,7 +774,7 @@ LocalCfgSetHomedirUmask(
 
         if ( dwVal > 7 )
         {
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
         }
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -783,7 +783,7 @@ LocalCfgSetHomedirUmask(
 
     if ( dwCnt > 4 )
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -791,7 +791,7 @@ LocalCfgSetHomedirUmask(
     // access to his home directory.
     if ( (dwOct & 0700) == 0700 )
     {
-        dwError = LSA_ERROR_INVALID_PARAMETER;
+        dwError = LW_ERROR_INVALID_PARAMETER;
     }
     else
     {

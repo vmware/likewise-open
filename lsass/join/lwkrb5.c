@@ -92,7 +92,7 @@ LwKrb5GetDefaultRealm(
     krb5_get_default_realm(ctx, &pszKrb5Realm);
 
     if (IsNullOrEmptyString(pszKrb5Realm)) {
-        dwError = LSA_ERROR_NO_DEFAULT_REALM;
+        dwError = LW_ERROR_NO_DEFAULT_REALM;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -152,7 +152,7 @@ LwKrb5GetSystemCachePath(
 
         default:
 
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
 
             break;
@@ -206,7 +206,7 @@ LwKrb5GetUserCachePath(
 
         default:
 
-            dwError = LSA_ERROR_INVALID_PARAMETER;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
 
             break;
@@ -272,7 +272,7 @@ LwKrb5GetSystemKeytabPath(
     PSTR* ppszKeytabPath
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     krb5_error_code ret = 0;
     krb5_context ctx = NULL;
     PSTR pszPath = NULL;
@@ -321,7 +321,7 @@ LwKrb5SetProcessDefaultCachePath(
 
     if (pszSavedEnvironmentEntry)
     {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -358,7 +358,7 @@ LsaSetupMachineSession(
     PDWORD pdwGoodUntilTime
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszHostKeytabFile = NULL;
     PSTR pszKrb5CcPath = NULL;
     PSTR pszDomname = NULL;
@@ -421,7 +421,7 @@ LwKrb5CleanupMachineSession(
     VOID
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszKrb5CcPath = NULL;
     krb5_error_code ret = 0;
     krb5_context ctx = NULL;
@@ -474,7 +474,7 @@ error:
 #define BAIL_ON_DCE_ERROR(dest, status)                   \
     if ((status) != 0) {                    \
         LSA_LOG_ERROR("DCE Error [Code:%d]", (status));   \
-        (dest) = LSA_ERROR_DCE_CALL_FAILED;               \
+        (dest) = LW_ERROR_DCE_CALL_FAILED;               \
         goto error;                                       \
     }
 
@@ -535,7 +535,7 @@ LwKrb5DecodePac(
     krb5_boolean bHasGoodChecksum = FALSE;
     error_status_t dceStatus = 0;
     uint64_t qwNtAuthTime;
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Free with krb5_free_unparsed_name
     PSTR pszClientPrincipal = NULL;
     PSTR pszLogonName = NULL;
@@ -561,7 +561,7 @@ LwKrb5DecodePac(
     // We only know about version 0
     if (pPacData->dwVersion != 0)
     {
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
     // Make sure that the last buffer in the pac data doesn't go out of bounds
@@ -569,7 +569,7 @@ LwKrb5DecodePac(
     if ((void *)&pPacData->buffers[pPacData->dwBufferCount] -
             (void *)pPacData > pPacBerVal->bv_len)
     {
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -586,13 +586,13 @@ LwKrb5DecodePac(
         if (pPacData->buffers[i].qwOffset + pPacData->buffers[i].dwSize <
                 pPacData->buffers[i].qwOffset)
         {
-            dwError = LSA_ERROR_INVALID_MESSAGE;
+            dwError = LW_ERROR_INVALID_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
         }
         if (pPacData->buffers[i].qwOffset + pPacData->buffers[i].dwSize >
                 pPacBerVal->bv_len)
         {
-            dwError = LSA_ERROR_INVALID_MESSAGE;
+            dwError = LW_ERROR_INVALID_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -665,7 +665,7 @@ LwKrb5DecodePac(
                 {
                     // The message is invalid because the terminating null
                     // of the name lands outside of the buffer.
-                    dwError = LSA_ERROR_INVALID_MESSAGE;
+                    dwError = LW_ERROR_INVALID_MESSAGE;
                     BAIL_ON_LSA_ERROR(dwError);
                 }
                 break;
@@ -676,21 +676,21 @@ LwKrb5DecodePac(
 
     if (pServerSig == NULL)
     {
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pLogonName == NULL)
     {
         //We need the logon name to verify the pac is for the right user
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pchLogonInfoStart == NULL)
     {
         /* The buffer we really care about isn't in the pac. */
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -710,7 +710,7 @@ LwKrb5DecodePac(
 
     if (!bHasGoodChecksum)
     {
-        dwError = LSA_ERROR_INVALID_MESSAGE;
+        dwError = LW_ERROR_INVALID_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -720,7 +720,7 @@ LwKrb5DecodePac(
     qwNtAuthTime *= 1000*1000*10;
     if (pLogonName->ticketTime != qwNtAuthTime)
     {
-        dwError = LSA_ERROR_CLOCK_SKEW;
+        dwError = LW_ERROR_CLOCK_SKEW;
         BAIL_ON_LSA_ERROR(dwError);
     }
     ret = krb5_unparse_name(
@@ -744,7 +744,7 @@ LwKrb5DecodePac(
     if (strcasecmp(pszClientPrincipal, pszLogonName))
     {
         // The pac belongs to a different user
-        dwError = LSA_ERROR_INVALID_LOGIN_ID;
+        dwError = LW_ERROR_INVALID_LOGIN_ID;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -783,7 +783,7 @@ LwKrb5FindPac(
     PAC_LOGON_INFO **ppLogonInfo
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     //Do not free
     struct berval bv = {0};
     struct berval contents = {0};
@@ -853,9 +853,9 @@ LwKrb5FindPac(
                         &contents,
                         serviceKey,
                         &pLogonInfo);
-                    if (dwError == LSA_ERROR_INVALID_MESSAGE)
+                    if (dwError == LW_ERROR_INVALID_MESSAGE)
                     {
-                        dwError = LSA_ERROR_SUCCESS;
+                        dwError = LW_ERROR_SUCCESS;
                         continue;
                     }
                     BAIL_ON_LSA_ERROR(dwError);
@@ -902,7 +902,7 @@ LwKrb5CopyFromUserCache(
                 uid_t uid
                 )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR  pszCachePath = NULL;
     krb5_ccache srcCC = NULL;
     krb5_cc_cursor srcPos = NULL;
@@ -1086,7 +1086,7 @@ LwKrb5MoveCCacheToUserPath(
     gid_t gid
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PSTR  pszCachePath = NULL;
     PCSTR  pszCachePathReal = NULL;
 
@@ -1097,7 +1097,7 @@ LwKrb5MoveCCacheToUserPath(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (strncasecmp(pszCachePath, "FILE:", sizeof("FILE:")-1)) {
-        dwError = LSA_ERROR_INTERNAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     } else {
         pszCachePathReal = pszCachePath + sizeof("FILE:") - 1;
@@ -1357,7 +1357,7 @@ LsaSetupUserLoginSession(
                     pszTempCachePath,
                     uid,
                     gid);
-        if (dwError != LSA_ERROR_SUCCESS)
+        if (dwError != LW_ERROR_SUCCESS)
         {
             /* Let the user login, even if we couldn't create the ccache for
              * them. Possible causes are:
@@ -1421,14 +1421,14 @@ cleanup:
     return dwError;
 
 error:
-    if ((LSA_ERROR_KRB5_CALL_FAILED == dwError) &&
+    if ((LW_ERROR_KRB5_CALL_FAILED == dwError) &&
         (KRB5_KDC_UNREACH == ret))
     {
         if (pszUnreachableRealm)
         {
             LwKrb5RealmTransitionOffline(pszUnreachableRealm);
         }
-        dwError = LSA_ERROR_DOMAIN_IS_OFFLINE;
+        dwError = LW_ERROR_DOMAIN_IS_OFFLINE;
     }
 
     if (pLogonInfo != NULL)
@@ -1521,17 +1521,17 @@ LwKrb5GetMachineCreds(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (IsNullOrEmptyString(pszUsername)) {
-        dwError = LSA_ERROR_INVALID_ACCOUNT;
+        dwError = LW_ERROR_INVALID_ACCOUNT;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszPassword)) {
-        dwError = LSA_ERROR_INVALID_PASSWORD;
+        dwError = LW_ERROR_INVALID_PASSWORD;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (IsNullOrEmptyString(pszUsername)) {
-        dwError = LSA_ERROR_INVALID_DOMAIN;
+        dwError = LW_ERROR_INVALID_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1635,7 +1635,7 @@ LsaTranslateKrb5Error(
     DWORD dwLine
     )
 {
-    DWORD dwError = LSA_ERROR_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
     PCSTR pszKrb5Error = NULL;
 
     if (ctx)
@@ -1661,31 +1661,31 @@ LsaTranslateKrb5Error(
     switch (krbError)
     {
         case KRB5KDC_ERR_KEY_EXP:
-            dwError = LSA_ERROR_PASSWORD_EXPIRED;
+            dwError = LW_ERROR_PASSWORD_EXPIRED;
             break;
         case KRB5_LIBOS_BADPWDMATCH:
-            dwError = LSA_ERROR_PASSWORD_MISMATCH;
+            dwError = LW_ERROR_PASSWORD_MISMATCH;
             break;
         case KRB5KRB_AP_ERR_SKEW:
-            dwError = LSA_ERROR_CLOCK_SKEW;
+            dwError = LW_ERROR_CLOCK_SKEW;
             break;
         case KRB5KDC_ERR_CLIENT_REVOKED:
-            dwError = LSA_ERROR_ACCOUNT_DISABLED;
+            dwError = LW_ERROR_ACCOUNT_DISABLED;
             break;
         case ENOENT:
-            dwError = LSA_ERROR_KRB5_NO_KEYS_FOUND;
+            dwError = LW_ERROR_KRB5_NO_KEYS_FOUND;
             break;
         case KRB5KDC_ERR_PREAUTH_FAILED:
-            dwError = LSA_ERROR_PASSWORD_MISMATCH;
+            dwError = LW_ERROR_PASSWORD_MISMATCH;
             break;
         case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
-            dwError = LSA_ERROR_INVALID_ACCOUNT;
+            dwError = LW_ERROR_INVALID_ACCOUNT;
             break;
         case KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN:
-            dwError = LSA_ERROR_KRB5_S_PRINCIPAL_UNKNOWN;
+            dwError = LW_ERROR_KRB5_S_PRINCIPAL_UNKNOWN;
             break;
         default:
-            dwError = LSA_ERROR_KRB5_CALL_FAILED;
+            dwError = LW_ERROR_KRB5_CALL_FAILED;
             break;
     }
 
