@@ -1,6 +1,5 @@
 lwmsg_assoc_new
 lwmsg_assoc_delete
-lwmsg_assoc_get_private
 lwmsg_assoc_get_protocol
 lwmsg_assoc_send_message
 lwmsg_assoc_recv_message

@@ -170,7 +170,7 @@ lwmsg_connection_recv_fragment(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* buffer = &priv->recvbuffer;
     size_t length = 0;
 
@@ -287,7 +287,7 @@ lwmsg_connection_send_fragment(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* buffer = &priv->sendbuffer;
     struct msghdr msghdr = {0};
     struct iovec iovec = {0};
@@ -355,7 +355,7 @@ LWMsgStatus
 lwmsg_connection_queue_fd(LWMsgAssoc* assoc, int fd)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* buffer = &priv->sendbuffer;
 
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_ensure_fd_capacity(buffer, 1));
@@ -371,7 +371,7 @@ LWMsgStatus
 lwmsg_connection_dequeue_fd(LWMsgAssoc* assoc, int* out_fd)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* buffer = &priv->recvbuffer;
 
     if (buffer->fd_length == 0)
@@ -396,7 +396,7 @@ lwmsg_connection_check_timeout(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgTime now;
     LWMsgTime diff;
 
@@ -493,7 +493,7 @@ lwmsg_connection_transceive(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* sendbuffer = &priv->sendbuffer;
     ConnectionBuffer* recvbuffer = &priv->recvbuffer;
     ConnectionFragment* fragment = NULL;
@@ -652,7 +652,7 @@ lwmsg_connection_recv_full_fragment(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionBuffer* buffer = &priv->recvbuffer;
     ConnectionFragment* frag = NULL;
     ConnectionPacket* packet = NULL;
@@ -719,7 +719,7 @@ lwmsg_connection_recv_wrap(LWMsgBuffer* buffer, size_t needed)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = (ConnectionFragment*) buffer->base;
     ConnectionPacket* packet = NULL;
 
@@ -761,7 +761,7 @@ lwmsg_connection_send_wrap(LWMsgBuffer* buffer, size_t needed)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = (LWMsgAssoc*) buffer->data;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = (ConnectionFragment*) buffer->base;
     ConnectionPacket* packet = (ConnectionPacket*) fragment->data;
 
@@ -831,7 +831,7 @@ lwmsg_connection_begin_timeout(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (!priv->is_nonblock)
     {
@@ -863,7 +863,7 @@ lwmsg_connection_flush(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = NULL;
 
     /* When performing a flush, have a packet ready in the
@@ -894,7 +894,7 @@ lwmsg_connection_check(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = NULL;
 
     if (priv->recvbuffer.num_pending == 0)
@@ -926,7 +926,7 @@ lwmsg_connection_begin_connect_local(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     struct sockaddr_un sockaddr;
     long opts = 0;
 
@@ -1006,7 +1006,7 @@ lwmsg_connection_begin_connect(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     switch (priv->mode)
     {
@@ -1032,7 +1032,7 @@ lwmsg_connection_finish_connect(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     long err = 0;
     socklen_t len = 0;
     fd_set readfds;
@@ -1116,7 +1116,7 @@ lwmsg_connection_connect_existing(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     long opts = 0;
 
     BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
@@ -1150,7 +1150,7 @@ lwmsg_connection_begin_send_handshake(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fds[2] = { -1, -1 };
@@ -1265,7 +1265,7 @@ lwmsg_connection_finish_recv_handshake(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fd = -1;
@@ -1381,7 +1381,7 @@ lwmsg_connection_begin_send_message(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgProtocol* prot = lwmsg_assoc_get_protocol(assoc);
     LWMsgTypeSpec* type = NULL;
     ConnectionFragment* fragment = NULL;
@@ -1482,7 +1482,7 @@ lwmsg_connection_begin_recv_message(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     /* Set up timeout */
     BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(
@@ -1500,7 +1500,7 @@ lwmsg_connection_finish_recv_message(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgProtocol* prot = lwmsg_assoc_get_protocol(assoc);
     LWMsgContext* context = &assoc->context;
     LWMsgTypeSpec* type = NULL;
@@ -1605,7 +1605,7 @@ lwmsg_connection_begin_send_shutdown(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPacket* packet = NULL;
     ConnectionFragment* fragment = NULL;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     /* Set up timeout */
     BAIL_ON_ERROR(status = lwmsg_connection_begin_timeout(

@@ -203,7 +203,7 @@ lwmsg_connection_run(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     ConnectionState state = priv->state;
 
     /* Run state machine until there is nothing to do */
@@ -301,7 +301,7 @@ lwmsg_connection_state_start(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     switch (*event)
     {
@@ -737,7 +737,7 @@ lwmsg_connection_state_begin_close(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (priv->fd != -1)
     {
@@ -768,7 +768,7 @@ lwmsg_connection_state_finish_close(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     switch (*event)
     {
@@ -956,7 +956,7 @@ lwmsg_connection_finish_close(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgSessionManager* manager = NULL;
 
     if (priv->fd != -1)

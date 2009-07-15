@@ -44,6 +44,7 @@
 #include <lwmsg/connection.h>
 #include <lwmsg/data.h>
 
+#include "assoc-private.h"
 #include "util-private.h"
 
 #if (defined(HAVE_GETPEEREID) && HAVE_DECL_GETPEEREID) || HAVE_DECL_SO_PEERCRED
@@ -51,6 +52,8 @@
 #endif
 
 #define PACKED __attribute__((packed))
+
+#define CONNECTION_PRIVATE(assoc) ((ConnectionPrivate*) (assoc))
 
 typedef enum ConnectionState
 {
@@ -141,6 +144,7 @@ typedef enum ConnectionPacketType
 
 typedef struct ConnectionPrivate
 {
+    LWMsgAssoc base;
     /* Connection mode */
     LWMsgConnectionMode mode;
     /* Socket file descriptor */

@@ -232,12 +232,13 @@ lwmsg_assoc_new(
     const LWMsgContext* context,
     LWMsgProtocol* prot,
     LWMsgAssocClass* aclass,
+    size_t size,
     LWMsgAssoc** out_assoc
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    LWMsgAssoc* assoc = calloc(1, sizeof(LWMsgAssoc) + aclass->private_size);
+    LWMsgAssoc* assoc = calloc(1, size);
 
     if (!assoc)
     {
@@ -283,14 +284,6 @@ lwmsg_assoc_delete(
     }
 
     free(assoc);
-}
-
-void*
-lwmsg_assoc_get_private(
-    LWMsgAssoc* assoc
-    )
-{
-    return (void*) assoc->private_data;
 }
 
 LWMsgProtocol*
