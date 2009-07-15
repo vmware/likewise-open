@@ -53,7 +53,7 @@ lwmsg_connection_construct(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->recvbuffer));
@@ -75,7 +75,7 @@ lwmsg_connection_destruct(
     LWMsgAssoc* assoc
     )
 {
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgSessionManager* manager = NULL;
 
     lwmsg_connection_buffer_destruct(&priv->sendbuffer);
@@ -158,7 +158,7 @@ lwmsg_connection_send_msg(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     
     priv->params.message = message;
     
@@ -176,7 +176,7 @@ lwmsg_connection_recv_msg(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     
     priv->params.message = message;
 
@@ -208,7 +208,7 @@ lwmsg_connection_set_nonblock(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     switch (lwmsg_assoc_get_state(assoc))
     {
@@ -234,7 +234,7 @@ lwmsg_connection_get_peer_security_token(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     
     if (!priv->sec_token)
     {
@@ -255,7 +255,7 @@ lwmsg_connection_get_session(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     
     if (!priv->session)
     {
@@ -274,7 +274,7 @@ lwmsg_connection_get_state(
     LWMsgAssoc* assoc
     )
 {
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     switch (priv->state)
     {
@@ -310,7 +310,7 @@ lwmsg_connection_set_timeout(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
     LWMsgTime* target = NULL;
 
     if (value != NULL &&
@@ -357,7 +357,7 @@ lwmsg_connection_establish(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (!priv->session)
     {
@@ -375,7 +375,6 @@ error:
 
 static LWMsgAssocClass connection_class =
 {
-    .private_size = sizeof(ConnectionPrivate),
     .construct = lwmsg_connection_construct,
     .destruct = lwmsg_connection_destruct,
     .send_msg = lwmsg_connection_send_msg,
@@ -402,9 +401,9 @@ lwmsg_connection_new(
     LWMsgAssoc* assoc = NULL;
     ConnectionPrivate* priv = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_new(context, prot, &connection_class, &assoc));
+    BAIL_ON_ERROR(status = lwmsg_assoc_new(context, prot, &connection_class, sizeof(*priv), &assoc));
 
-    priv = lwmsg_assoc_get_private(assoc);
+    priv = CONNECTION_PRIVATE(assoc);
     priv->state = CONNECTION_STATE_START;
 
     *out_assoc = assoc;
@@ -425,7 +424,7 @@ lwmsg_connection_set_packet_size(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (priv->session)
     {
@@ -447,7 +446,7 @@ lwmsg_connection_set_fd(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (fd < 0)
     {
@@ -475,7 +474,7 @@ lwmsg_connection_set_endpoint(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = lwmsg_assoc_get_private(assoc);
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
     if (priv->fd != -1 || priv->endpoint != NULL)
     {

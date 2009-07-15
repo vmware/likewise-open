@@ -92,7 +92,7 @@ PvfsWrite(
     }
 
 #if 0xFFFFFFFF > SSIZE_MAX
-    if ((size_t) bufLen > (size_t) SSIZE_MAX) {
+    if ((size_t)pIrp->Args.ReadWrite.Length > (size_t) SSIZE_MAX) {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }

@@ -194,7 +194,7 @@ LwRtlQueueAddItem(
        be fine */
 
     if (LwRtlQueueIsFull(pQueue)) {
-        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -209,6 +209,9 @@ LwRtlQueueAddItem(
     pNode->Next  = pQueue->Head;
     pNode->Prev = NULL;
 
+    if (pQueue->Head != NULL) {
+        pQueue->Head->Prev = pNode;
+    }
     pQueue->Head = pNode;
     pQueue->CurrentSize++;
 
@@ -257,6 +260,7 @@ LwRtlQueueRemoveItem(
     else
     {
         pQueue->Tail = pQueue->Tail->Prev;
+        pQueue->Tail->Next = NULL;
     }
     pQueue->CurrentSize--;
 

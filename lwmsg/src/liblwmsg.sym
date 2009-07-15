@@ -14,6 +14,7 @@ lwmsg_server_set_session_functions
 lwmsg_server_set_dispatch_data
 lwmsg_server_get_dispatch_data
 lwmsg_server_call_get_session
+lwmsg_server_set_exception_function
 lwmsg_client_new
 lwmsg_client_set_endpoint
 lwmsg_client_acquire_assoc

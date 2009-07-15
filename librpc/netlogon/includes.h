@@ -71,10 +71,10 @@
 #include <byteops.h>
 #include <random.h>
 
-#include "NetrUtil.h"
-#include "NetrCredentials.h"
-#include "NetrMemory.h"
-#include "NetrStubMemory.h"
+#include "netr_util.h"
+#include "netr_credentials.h"
+#include "netr_memory.h"
+#include "netr_stubmemory.h"
 #include "netlogon_h.h"
 
 #include "externs.h"

@@ -11,4 +11,4 @@ liblwadvapi_la_LIBADD += \
 	join/liblwadvapi_join.la
 endif
 
-liblwadvapi_la_SOURCES = 
+liblwadvapi_la_SOURCES = dummy.c

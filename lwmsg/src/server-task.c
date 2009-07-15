@@ -485,6 +485,8 @@ lwmsg_server_task_handle_assoc_error(
 
     switch (status)
     {
+    case LWMSG_STATUS_SUCCESS:
+        break;
     case LWMSG_STATUS_CONNECTION_REFUSED:
     case LWMSG_STATUS_PEER_CLOSE:
     case LWMSG_STATUS_PEER_RESET:
@@ -506,7 +508,9 @@ lwmsg_server_task_handle_assoc_error(
         status = LWMSG_STATUS_SUCCESS;
         break;
     default:
+        lwmsg_server_task_drop(server, task);
         BAIL_ON_ERROR(status);
+        break;
     }
 
 error:

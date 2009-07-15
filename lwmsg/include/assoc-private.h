@@ -42,6 +42,189 @@
 #include "session-private.h"
 #include "context-private.h"
 
+/**
+ * @ingroup assoc_impl
+ * @brief Assocation implementation structure
+ *
+ * Describes the concrete implementation of an association.
+ */
+typedef struct LWMsgAssocClass
+{
+    /**
+     * @ingroup assoc_impl
+     * @brief Constructor method
+     *
+     * This method performs initialization of implementation-specific state for a newly-created association.
+     *
+     * @param[in] assoc the association being constructed
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_memory
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*construct)(LWMsgAssoc* assoc);
+    /**
+     * @ingroup assoc_impl
+     * @brief Destructor
+     *
+     * This method performs teardown of private state for an association which is being deleted.
+     *
+     * @param[in] assoc the association being deleted
+     */
+    void (*destruct)(LWMsgAssoc* assoc);
+    /**
+     * @ingroup assoc_impl
+     * @brief Message send method
+     *
+     * This method performs a message send operation.
+     *
+     * @param[in] assoc the association
+     * @param[in] message the message to send
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*send_msg)(LWMsgAssoc* assoc, LWMsgMessage* message);
+    /**
+     * @ingroup assoc_impl
+     * @brief Message receive method
+     *
+     * This method performs a message receive operation.
+     *
+     * @param[in] assoc the association
+     * @param[out] message the received message
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*recv_msg)(LWMsgAssoc* assoc, LWMsgMessage* message);
+    /**
+     * @ingroup assoc_impl
+     * @brief Association close method
+     *
+     * This method performs logic to shut down an association, e.g.
+     * notifying the remote peer.  As opposed to the destructor, this method may
+     * fail or time out without successfully completing.
+     *
+     * @param[in] assoc the association
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*close)(LWMsgAssoc* assoc);
+    /**
+     * @ingroup assoc_impl
+     * @brief Association reset method
+     *
+     * This method performs logic to reset an association, e.g.
+     * notifying the remote peer and resetting internal state.
+     *
+     * @param[in] assoc the association
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, operation timed out}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*reset)(LWMsgAssoc* assoc);
+    LWMsgStatus (*finish)(LWMsgAssoc* assoc);
+    LWMsgStatus (*set_nonblock)(LWMsgAssoc* assoc, LWMsgBool nonblock);
+    /**
+     * @ingroup assoc_impl
+     * @brief Peer security token access method
+     *
+     * This method retrieves a security information token for the peer.
+     *
+     * @param[in] assoc the association
+     * @param[out] token the security token
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{INVALID_STATE, the security token is not available in the current state}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*get_peer_security_token)(LWMsgAssoc* assoc, LWMsgSecurityToken** token);
+    /**
+     * @ingroup assoc_impl
+     * @brief Peer session manager ID access method
+     *
+     * This method retrieves the session handle for the association.
+     *
+     * @param[in] assoc the association
+     * @param[out] session the retrieved session handle
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{INVALID_STATE, the session handle in not available in the current state}
+     * @lwmsg_etc{implementation-specific failure}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus (*get_session)(LWMsgAssoc* assoc, LWMsgSession** session);
+    /**
+     * @ingroup assoc_impl
+     * @brief Get association state
+     *
+     * This method returns the current state of the association.
+     *
+     * @param[in] assoc the association
+     * @return the current state
+     */
+    LWMsgAssocState (*get_state)(LWMsgAssoc* assoc);
+
+    /**
+     * @ingroup assoc_impl
+     * @brief Set timeout
+     *
+     * This method sets a timeout that should be used for subsequent operations
+     *
+     * @param[in] assoc the association
+     * @param[in] type the type of timeout
+     * @param[in] value the value of the timeout, or NULL for no timeout
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{UNSUPPORTED, the association does not support the specified timeout type}
+     * @lwmsg_etc{implementation-specific error}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus
+    (*set_timeout)(
+        LWMsgAssoc* assoc,
+        LWMsgTimeout type,
+        LWMsgTime* value
+        );
+
+    /**
+     * @ingroup assoc_impl
+     * @brief Establish session with peer
+     *
+     * This method causes the association to establish a session with
+     * its peer if it has not already.
+     *
+     * @param[in] assoc the association
+     * @param[in] construct session constructor function
+     * @param[in] destruct session destructor function
+     * @param[in] data user data pointer to pass to the session constructor
+     * @lwmsg_status
+     * @lwmsg_success
+     * @lwmsg_code{TIMEOUT, the operation timed out}
+     * @lwmsg_code{INVALID_STATE, the association cannot establish a session from its current state}
+     * @lwmsg_etc{implementation-specific error}
+     * @lwmsg_endstatus
+     */
+    LWMsgStatus
+    (*establish)(
+        LWMsgAssoc* assoc,
+        LWMsgSessionConstructor construct,
+        LWMsgSessionDestructor destruct,
+        void* data
+        );
+} LWMsgAssocClass;
+
 struct LWMsgAssoc
 {
     LWMsgContext context;
@@ -54,10 +237,33 @@ struct LWMsgAssoc
     void* construct_data;
 
     unsigned manager_is_private:1;
-
-    unsigned char* private_data[] __attribute__((aligned));
 };
 
 #define ASSOC_RAISE_ERROR(_assoc_, ...) RAISE_ERROR(&(_assoc_)->context, __VA_ARGS__)
+
+/**
+ * @ingroup assoc_impl
+ * @brief Create a new association
+ *
+ * Creates a new association with the specified implementation and protocol.
+ *
+ * @param[in] context an optional context
+ * @param[in] prot the protocol understood by the association
+ * @param[in] aclass the implementation structure for the new association
+ * @param[out] assoc the created association
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_etc{implementation-specific failure}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_new(
+    const LWMsgContext* context,
+    LWMsgProtocol* prot,
+    LWMsgAssocClass* aclass,
+    size_t size,
+    LWMsgAssoc** assoc
+    );
 
 #endif

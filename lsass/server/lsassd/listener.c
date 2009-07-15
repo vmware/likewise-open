@@ -110,6 +110,25 @@ LsaSrvLogIpc (
     return result;
 }
 
+static
+void
+LsaSrvHandleIpcException(
+    LWMsgServer* pServer,
+    LWMsgStatus status,
+    void* pData
+    )
+{
+    switch (status)
+    {
+    case LWMSG_STATUS_MEMORY:
+        break;
+    default:
+        LSA_LOG_ERROR("Terminating on fatal IPC exception");
+        kill(getpid(), SIGTERM);
+        break;
+    }
+}
+
 DWORD
 LsaSrvStartListenThread(
     void
@@ -195,6 +214,12 @@ LsaSrvStartListenThread(
                                   gpServer,
                                   LsaSrvIpcConstructSession,
                                   LsaSrvIpcDestructSession,
+                                  NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_server_set_exception_function(
+                                  gpServer,
+                                  LsaSrvHandleIpcException,
                                   NULL));
     BAIL_ON_LSA_ERROR(dwError);
 

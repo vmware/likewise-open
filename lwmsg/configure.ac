@@ -11,7 +11,7 @@ MOD_EXT=".so"
 
 case "$host_os:$host_cpu" in
         linux*:*)
-		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L"
+		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
 		;;
         solaris*:*)
                 LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"
@@ -96,7 +96,8 @@ CFLAGS="$saved_CFLAGS"
 
 # Checks for library functions.
 AC_HEADER_STDC
-AC_CHECK_FUNCS([memset strerror_r])
+AC_CHECK_FUNCS([memset])
+AC_FUNC_STRERROR_R
 
 # Check for eid method
 

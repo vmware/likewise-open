@@ -77,15 +77,6 @@ typedef enum LWMsgDispatchType
 } LWMsgDispatchType;
 #endif
 
-typedef
-LWMsgStatus
-(*LWMsgServerCallFunction) (
-    LWMsgCall* call,
-    LWMsgMessage* request,
-    LWMsgMessage* response,
-    void* data
-    );
-
 LWMsgSession*
 lwmsg_server_call_get_session(
     LWMsgCall* call
@@ -164,6 +155,23 @@ typedef enum LWMsgServerMode
     /** Server should support remote connectiosn (listen on a TCP socket) */
     LWMSG_SERVER_MODE_REMOTE
 } LWMsgServerMode;
+
+typedef
+LWMsgStatus
+(*LWMsgServerCallFunction) (
+    LWMsgCall* call,
+    LWMsgMessage* request,
+    LWMsgMessage* response,
+    void* data
+    );
+
+typedef
+void
+(*LWMsgServerExceptionFunction) (
+    LWMsgServer* server,
+    LWMsgStatus status,
+    void* data
+    );
 
 /**
  * @ingroup server
@@ -456,6 +464,13 @@ lwmsg_server_start(
 LWMsgStatus
 lwmsg_server_stop(
     LWMsgServer* server
+    );
+
+LWMsgStatus
+lwmsg_server_set_exception_function(
+    LWMsgServer* server,
+    LWMsgServerExceptionFunction except,
+    void* except_data
     );
 
 #endif
