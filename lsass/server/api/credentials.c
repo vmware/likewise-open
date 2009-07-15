@@ -80,31 +80,19 @@ LsaAddCredential(
 
 
 DWORD
-LsaDeleteCredentialByUser(
-    PWSTR pszUserName
+LsaReleaseCredential(
+    HANDLE  hCredential
     )
 {
 
 
 
 }
-
-DWORD
-LsaDeleteCredentialByUid(
-    DWORD uid
-    )
-{
-
-
-}
-
 
 
 DWORD
 LsaGetCredential(
     DWORD uid,
-    PWSTR * ppszName,
-    PWSTR * ppszPassword
     HANDLE * phCredential
     )
 {
