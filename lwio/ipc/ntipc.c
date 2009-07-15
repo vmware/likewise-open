@@ -445,14 +445,20 @@ NtIpcNtStatusToLWMsgStatus(
 
     switch (Status)
     {
-        case STATUS_SUCCESS:
-            lwMsgStatus = LWMSG_STATUS_SUCCESS;
-            break;
-        case STATUS_NOT_IMPLEMENTED:
-            lwMsgStatus = LWMSG_STATUS_UNIMPLEMENTED;
-            break;
-        default:
-            lwMsgStatus = LWMSG_STATUS_ERROR;
+    case STATUS_SUCCESS:
+        lwMsgStatus = LWMSG_STATUS_SUCCESS;
+        break;
+    case STATUS_PENDING:
+        lwMsgStatus = LWMSG_STATUS_PENDING;
+        break;
+    case STATUS_CANCELLED:
+        lwMsgStatus = LWMSG_STATUS_CANCELLED;
+        break;
+    case STATUS_NOT_IMPLEMENTED:
+        lwMsgStatus = LWMSG_STATUS_UNIMPLEMENTED;
+        break;
+    default:
+        lwMsgStatus = LWMSG_STATUS_ERROR;
     }
 
     return lwMsgStatus;

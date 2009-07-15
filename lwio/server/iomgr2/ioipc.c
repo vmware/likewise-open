@@ -48,6 +48,94 @@
 #include "ioapi.h"
 #include "ioipc.h"
 
+typedef struct _IO_IPC_CALL_CONTEXT
+{
+    IO_STATUS_BLOCK ioStatusBlock;
+    IO_ASYNC_CONTROL_BLOCK asyncBlock;
+    const LWMsgMessage* pRequestMessage;
+    LWMsgMessage* pResponseMessage;
+    LWMsgCall* pCall;
+} IO_IPC_CALL_CONTEXT, *PIO_IPC_CALL_CONTEXT;
+
+static
+NTSTATUS
+IopIpcCreateCallContext(
+    IN LWMsgCall* pCall,
+    IN const LWMsgMessage* pRequestMessage,
+    IN LWMsgMessage* pResponseMessage,
+    IN PIO_ASYNC_COMPLETE_CALLBACK pfnCallback,
+    OUT PIO_IPC_CALL_CONTEXT* ppContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PIO_IPC_CALL_CONTEXT pContext = NULL;
+
+    status = IO_ALLOCATE(&pContext, IO_IPC_CALL_CONTEXT, sizeof(*pContext));
+    BAIL_ON_NT_STATUS(status);
+
+    pContext->pCall = pCall;
+    pContext->pRequestMessage = pRequestMessage;
+    pContext->pResponseMessage = pResponseMessage;
+    pContext->asyncBlock.Callback = pfnCallback;
+    pContext->asyncBlock.CallbackContext = pContext;
+
+    *ppContext = pContext;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppContext = NULL;
+
+    if (pContext)
+    {
+        IO_FREE(&pContext);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+IopIpcFreeCallContext(
+    PIO_IPC_CALL_CONTEXT pContext
+    )
+{
+    IO_FREE(&pContext);
+}
+
+static
+void
+IopIpcCancelCall(
+    LWMsgCall* pCall,
+    void* pData
+    )
+{
+    PIO_IPC_CALL_CONTEXT pContext = (PIO_IPC_CALL_CONTEXT) pData;
+
+    IoCancelAsyncCancelContext(pContext->asyncBlock.AsyncCancelContext);
+}
+
+static
+VOID
+IopIpcCompleteGenericCall(
+    IN PVOID pData
+    )
+{
+    PIO_IPC_CALL_CONTEXT pContext = (PIO_IPC_CALL_CONTEXT) pData;
+    PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = pContext->pResponseMessage->data;
+
+    pReply->Status = pContext->ioStatusBlock.Status;
+    pReply->BytesTransferred = pContext->ioStatusBlock.BytesTransferred;
+
+    IoDereferenceAsyncCancelContext(&pContext->asyncBlock.AsyncCancelContext);
+    lwmsg_call_complete(pContext->pCall, LWMSG_STATUS_SUCCESS);
+
+    IopIpcFreeCallContext(pContext);
+}
+
 static
 VOID
 IopIpcCleanupFileHandle(
@@ -412,7 +500,7 @@ cleanup:
 
 LWMsgStatus
 IopIpcFsControlFile(
-    IN LWMsgAssoc* pAssoc,
+    IN LWMsgCall* pCall,
     IN const LWMsgMessage* pRequest,
     OUT LWMsgMessage* pResponse,
     IN void* pData
@@ -424,9 +512,12 @@ IopIpcFsControlFile(
     const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE) pRequest->object;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_IPC_CALL_CONTEXT pContext = NULL;
 
     assert(messageType == pRequest->tag);
+
+    status = IopIpcCreateCallContext(pCall, pRequest, pResponse, IopIpcCompleteGenericCall, &pContext);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -435,25 +526,44 @@ IopIpcFsControlFile(
     pResponse->object = pReply;
 
     // TODO--make sure allocate handles 0...
-    if (pMessage->OutputBufferLength){
+    if (pMessage->OutputBufferLength)
+    {
         pReply->Status = IO_ALLOCATE(&pReply->Buffer, VOID, pMessage->OutputBufferLength);
         GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
     }
 
-    pReply->Status = IoFsControlFile(
-                            pMessage->FileHandle,
-                            NULL,
-                            &ioStatusBlock,
-                            pMessage->ControlCode,
-                            pMessage->InputBuffer,
-                            pMessage->InputBufferLength,
-                            pReply->Buffer,
-                            pMessage->OutputBufferLength);
-    pReply->Status = ioStatusBlock.Status;
-    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+    status = IoFsControlFile(
+        pMessage->FileHandle,
+        &pContext->asyncBlock,
+        &pContext->ioStatusBlock,
+        pMessage->ControlCode,
+        pMessage->InputBuffer,
+        pMessage->InputBufferLength,
+        pReply->Buffer,
+        pMessage->OutputBufferLength);
+
+    switch (status)
+    {
+    case STATUS_SUCCESS:
+        pReply->Status = pContext->ioStatusBlock.Status = status;
+        pReply->BytesTransferred = pContext->ioStatusBlock.BytesTransferred;
+        break;
+    case STATUS_PENDING:
+        lwmsg_call_pend(pCall, IopIpcCancelCall, pContext);
+        break;
+    default:
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
 
 cleanup:
+
+    if (pContext && status != STATUS_PENDING)
+    {
+        IopIpcFreeCallContext(pContext);
+    }
+
     LOG_LEAVE_IF_STATUS_EE(status, EE);
+
     return NtIpcNtStatusToLWMsgStatus(status);
 }
 
@@ -831,7 +941,7 @@ LWMsgDispatchSpec gIopIpcDispatchSpec[] =
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_READ_FILE,          IopIpcReadFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_WRITE_FILE,         IopIpcWriteFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE, IopIpcDeviceIoControlFile),
-    LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE,        IopIpcFsControlFile),
+    LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_FS_CONTROL_FILE,  IopIpcFsControlFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_FLUSH_BUFFERS_FILE,     IopIpcFlushBuffersFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_QUERY_INFORMATION_FILE, IopIpcQueryInformationFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_SET_INFORMATION_FILE,   IopIpcSetInformationFile),

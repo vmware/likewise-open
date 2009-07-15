@@ -49,43 +49,17 @@
 
 #include "npfs.h"
 
-NTSTATUS
-NpfsConnectNamedPipe(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PNPFS_IRP_CONTEXT pIrpContext = NULL;
+static
+VOID
+NpfsCancelConnectNamedPipe(
+    IN PIRP pIrp,
+    IN PVOID pCallbackContext
+    );
 
-    ntStatus = NpfsAllocateIrpContext(
-                        pIrp,
-                        &pIrpContext
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = NpfsCommonConnectNamedPipe(
-                        pIrpContext,
-                        pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    if (pIrpContext)
-    {
-        NpfsFreeIrpContext(pIrpContext);
-    }
-
-    goto cleanup;
-}
-
+/*****/
 
 NTSTATUS
-NpfsCommonConnectNamedPipe(
+NpfsAsyncConnectNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
@@ -96,8 +70,7 @@ NpfsCommonConnectNamedPipe(
 
     ntStatus = NpfsGetCCB(
                     pIrpContext->pIrp->FileHandle,
-                    &pSCB
-                    );
+                    &pSCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe = pSCB->pPipe;
@@ -106,7 +79,6 @@ NpfsCommonConnectNamedPipe(
 
     if (pPipe->PipeServerState != PIPE_SERVER_INIT_STATE)
     {
-
         ntStatus = STATUS_INVALID_SERVER_STATE;
 
         pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
@@ -117,19 +89,24 @@ NpfsCommonConnectNamedPipe(
         {
             NpfsReleaseCCB(pSCB);
         }
-        return(ntStatus);
+
+        return (ntStatus);
     }
 
     pPipe->PipeServerState = PIPE_SERVER_WAITING_FOR_CONNECTION;
 
-    while (pPipe->PipeClientState != PIPE_CLIENT_CONNECTED)
+    if (pPipe->PipeClientState != PIPE_CLIENT_CONNECTED)
     {
-        pthread_cond_wait(&pPipe->PipeCondition, &pPipe->PipeMutex);
+        pPipe->pPendingServerConnect = pIrpContext;
+        IoIrpMarkPending(pIrp, NpfsCancelConnectNamedPipe, pIrpContext);
+
+        ntStatus = STATUS_PENDING;
     }
-
-    pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
-
-    pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+    else
+    {
+        pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+        pIrpContext->pIrp->IoStatusBlock.Status = ntStatus;
+    }
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
@@ -141,4 +118,48 @@ NpfsCommonConnectNamedPipe(
 error:
 
     return (ntStatus);
+}
+
+static
+VOID
+NpfsCancelConnectNamedPipe(
+    IN PIRP pIrp,
+    IN PVOID pCallbackContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pSCB = NULL;
+    PNPFS_IRP_CONTEXT pIrpContext = pCallbackContext;
+    BOOLEAN bDoComplete = FALSE;
+
+    ntStatus = NpfsGetCCB(
+                    pIrpContext->pIrp->FileHandle,
+                    &pSCB);
+    if (ntStatus == STATUS_SUCCESS)
+    {
+        LWIO_LOG_DEBUG("ConnectNamedPipe() cancelled");
+
+        pPipe = pSCB->pPipe;
+
+        ENTER_MUTEX(&pPipe->PipeMutex);
+
+        if (pPipe->pPendingServerConnect == pIrpContext)
+        {
+            bDoComplete = TRUE;
+            pPipe->PipeServerState = PIPE_SERVER_INIT_STATE;
+            pPipe->pPendingServerConnect = NULL;
+        }
+
+        LEAVE_MUTEX(&pPipe->PipeMutex);
+
+        NpfsReleaseCCB(pSCB);
+
+        if (bDoComplete)
+        {
+            pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+            IoIrpComplete(pIrpContext->pIrp);
+            IO_FREE(&pIrpContext);
+        }
+    }
 }

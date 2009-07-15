@@ -90,13 +90,11 @@ NpfsAllocateCCB(
     PNPFS_CCB *ppCCB
     );
 
-
 NTSTATUS
 NpfsCommonCreateNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
-
 
 NTSTATUS
 NpfsValidateCreateNamedPipe(
@@ -149,13 +147,7 @@ NpfsSetCCB(
 /* connectnp.c */
 
 NTSTATUS
-NpfsConnectNamedPipe(
-    IO_DEVICE_HANDLE IoDeviceHandle,
-    PIRP pIrp
-    );
-
-NTSTATUS
-NpfsCommonConnectNamedPipe(
+NpfsAsyncConnectNamedPipe(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );

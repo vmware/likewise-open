@@ -97,7 +97,8 @@ NpfsFsCtl(
 
 error:
 
-    if(pIrpContext) {
+    if (pIrpContext && ntStatus != STATUS_PENDING)
+    {
         NpfsFreeIrpContext(pIrpContext);
     }
 
@@ -116,7 +117,7 @@ NpfsCommonFsCtl(
     switch (pIrpContext->pIrp->Args.IoFsControl.ControlCode)
     {
     case IO_NPFS_FSCTL_CONNECT_NAMED_PIPE:
-        ntStatus = NpfsCommonConnectNamedPipe(pIrpContext, pIrp);
+        ntStatus = NpfsAsyncConnectNamedPipe(pIrpContext, pIrp);
         break;
     case IO_FSCTL_SMB_GET_SESSION_KEY:
         ntStatus = NpfsCommonGetSessionKey(pIrpContext, pIrp);

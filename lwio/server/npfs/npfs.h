@@ -57,6 +57,13 @@
 #include "iodriver.h"
 
 #include "lwioutils.h"
+#include "lwlist.h"
+
+typedef struct _NPFS_IRP_CONTEXT
+{
+    LW_LIST_LINKS Link;
+    PIRP pIrp;
+} NPFS_IRP_CONTEXT, *PNPFS_IRP_CONTEXT;
 
 typedef enum _NpfsCcbType
 {
@@ -134,6 +141,8 @@ typedef struct _NPFS_PIPE
     PSTR pszClientPrincipalName;
     ULONG ulClientAddress;
 
+    PNPFS_IRP_CONTEXT pPendingServerConnect;
+
     struct _NPFS_PIPE *pNext;
 
 } NPFS_PIPE, *PNPFS_PIPE;
@@ -155,11 +164,6 @@ typedef struct _NPFS_FCB
 
 }NPFS_FCB, *PNPFS_FCB;
 
-typedef struct _NPFS_IRP_CONTEXT
-{
-    PIRP pIrp;
-} NPFS_IRP_CONTEXT, *PNPFS_IRP_CONTEXT;
-
 typedef enum _PVFS_INFO_TYPE
 {
     NPFS_QUERY = 1,
@@ -177,7 +181,6 @@ NpfsCreateNamedPipe(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
-
 
 NTSTATUS
 NpfsDeviceIo(
