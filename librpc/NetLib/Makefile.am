@@ -5,42 +5,43 @@ lib_LTLIBRARIES = libnetapi.la
 
 libnetapi_la_SOURCES = \
 	globals.c \
-	NetConnection.c \
-	NetMemory.c \
-        NetUserEnum.c \
-	NetUserAdd.c \
-	NetLibUserInfo.c \
-	NetUserDel.c \
-	NetUser.c \
-	NetUserGetInfo.c \
-	NetUserSetInfo.c \
-	GroupInfo.c \
-	NetUserGetLocalGroups.c \
-	NetLocalGroupEnum.c \
-	NetLocalGroupAdd.c \
-	NetLocalGroupDel.c \
-	NetLocalGroupGetInfo.c \
-	NetLocalGroupSetInfo.c \
-	NetLocalGroupMembers.c \
-	NetLocalGroupGetMembers.c \
-	NetJoinDomain.c \
-	JoinLocal.c \
-	NetUnjoinDomain.c \
-	UnjoinLocal.c \
-	NetApiBufferFree.c \
-	NetUserChangePassword.c \
-	NetGetDomainName.c \
-	NetMachineChangePassword.c \
-	LdapUtil.c \
-	NetDebug.c \
-	MachinePassword.c \
-	NetGetDcName.c \
-	NetHostInfo.c
+	net_connection.c              \
+	net_memory.c                  \
+        net_userenum.c                \
+	net_useradd.c                 \
+	net_userinfo.c                \
+	net_userdel.c                 \
+	net_user.c                    \
+	net_usergetinfo.c             \
+	net_usersetinfo.c             \
+	net_groupinfo.c               \
+	net_usergetlocalgroups.c      \
+	net_localgroupenum.c          \
+	net_localgroupadd.c           \
+	net_localgroupdel.c           \
+	net_localgroupgetinfo.c       \
+	net_localgroupsetinfo.c       \
+	net_localgroupmembers.c       \
+	net_localgroupgetmembers.c    \
+	net_joindomain.c              \
+	joinlocal.c                   \
+	net_unjoindomain.c            \
+	unjoinlocal.c                 \
+	net_bufferfree.c              \
+	net_userchangepassword.c      \
+	net_getdomainname.c           \
+	net_machinechangepassword.c   \
+	ldaputil.c                    \
+	net_debug.c                   \
+	machinepassword.c             \
+	net_getdcname.c               \
+	net_hostinfo.c
 
 libnetapi_la_CPPFLAGS = $(AM_CPPFLAGS) @LWBASE_INCLUDES@
 
 libnetapi_la_LIBADD = \
 	-lunistr -lldap_r -lktkrb5 -llwioclient -lcrypto \
+	$(top_builddir)/alloc/liballoc.la \
 	$(top_builddir)/samr/libsamr.la \
 	$(top_builddir)/lsa/liblsa.la \
 	$(top_builddir)/netlogon/libnetlogon.la \
