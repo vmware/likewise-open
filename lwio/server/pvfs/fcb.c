@@ -48,7 +48,6 @@
 
 /* Forward declarations */
 
-
 /* File Globals */
 
 typedef struct _PVFS_FCB_TABLE
@@ -72,6 +71,10 @@ PvfsFreeFCB(
     PPVFS_FCB pFcb
     )
 {
+    PLW_LIST_LINKS pLinks = NULL;
+    PPVFS_OPLOCK_RECORD pOplockRec = NULL;
+    PIRP pIrp = NULL;
+
     if (!pFcb) {
         return;
     }
@@ -82,19 +85,20 @@ PvfsFreeFCB(
     pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
     LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
-    LwRtlQueueDestroy(&pFcb->pPendingCreateQueue);
+    LwRtlQueueDestroy(&pFcb->pOplockPendingOpsQueue);
 
-    if (pFcb->pOplockList) {
-        if (pFcb->pOplockList->pIrpContext) {
-            PIRP pIrp = pFcb->pOplockList->pIrpContext->pIrp;
+    while (!LwListIsEmpty(&pFcb->OplockList))
+    {
+        pLinks = LwListRemoveTail(&pFcb->OplockList);
+        pOplockRec = LW_STRUCT_FROM_FIELD(pLinks, PVFS_OPLOCK_RECORD, Oplocks);
 
-            pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
-            IoIrpComplete(pIrp);
+        pIrp = pOplockRec->pIrpContext->pIrp;
 
-            PvfsFreeIrpContext(&pFcb->pOplockList->pIrpContext);
-        }
+        pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
+        IoIrpComplete(pIrp);
 
-        PVFS_FREE(&pFcb->pOplockList);
+        PvfsFreeIrpContext(&pOplockRec->pIrpContext);
+        PvfsFreeOplockRecord(&pOplockRec);
     }
 
     PVFS_FREE(&pFcb);
@@ -117,14 +121,6 @@ PvfsFreePendingLock(
     PVFS_FREE(ppData);
 
     return;
-}
-
-static VOID
-PvfsFreePendingCreate(
-    PVOID *ppData
-    )
-{
-    PvfsFreeCreateContext((PPVFS_PENDING_CREATE*)ppData);
 }
 
 NTSTATUS
@@ -150,10 +146,12 @@ PvfsAllocateFCB(
 
     /* Pending create queue */
 
-    ntError = LwRtlQueueInit(&pFcb->pPendingCreateQueue,
-                             0,
-                             PvfsFreePendingCreate);
+    ntError = LwRtlQueueInit(&pFcb->pOplockPendingOpsQueue,
+                             PVFS_FCB_MAX_PENDING_OPERATIONS,
+                             PvfsFreeCreateContext);
     BAIL_ON_NT_STATUS(ntError);
+
+    LwListInit(&pFcb->OplockList);
 
     /* Initialize mutexes and refcounts */
 
@@ -601,21 +599,35 @@ PvfsPreviousCCBFromList(
  ****************************************************************************/
 
 NTSTATUS
-PvfsAddPendingCreate(
-    PPVFS_FCB pFcb,
-    PPVFS_PENDING_CREATE pCreateCtx
+PvfsAddItemPendingOplockBreakAck(
+    IN OUT PPVFS_FCB pFcb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree,
+    IN     PVOID pCompletionContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     BOOLEAN bLocked = FALSE;
+    PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
 
     BAIL_ON_INVALID_PTR(pFcb, ntError);
-    BAIL_ON_INVALID_PTR(pCreateCtx, ntError);
+    BAIL_ON_INVALID_PTR(pfnCompletion, ntError);
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pPendingOp,
+                  sizeof(PPVFS_OPLOCK_PENDING_OPERATION));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pPendingOp->pIrpContext = pIrpContext;
+    pPendingOp->pfnCompletion = pfnCompletion;
+    pPendingOp->pfnFree = pfnFree;
+    pPendingOp->pCompletionContext = pCompletionContext;
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
-    ntError = LwRtlQueueAddItem(pFcb->pPendingCreateQueue,
-                                (PVOID)pCreateCtx);
+    ntError = LwRtlQueueAddItem(pFcb->pOplockPendingOpsQueue,
+                                (PVOID)pPendingOp);
 
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
@@ -628,6 +640,161 @@ error:
     goto cleanup;
 }
 
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsFileHasOtherOpens(
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_CCB pCcb
+    )
+{
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    BOOLEAN bNonSelfOpen = FALSE;
+    BOOLEAN bFcbReadLocked = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbReadLocked, &pFcb->rwLock);
+
+    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
+         pCursor;
+         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    {
+        /* We'll deal with ourselves in AddLock() */
+
+        if (pCcb != pCursor->pCcb) {
+            bNonSelfOpen = TRUE;
+            break;
+        }
+    }
+
+    LWIO_UNLOCK_RWMUTEX(bFcbReadLocked, &pFcb->rwLock);
+
+    return bNonSelfOpen;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsFileIsOplocked(
+    IN PPVFS_FCB pFcb
+    )
+{
+    return LwListIsEmpty(&pFcb->OplockList);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsFileIsOplockedExclusive(
+    IN PPVFS_FCB pFcb
+    )
+{
+    BOOLEAN bExclusiveOplock = FALSE;
+    PPVFS_OPLOCK_RECORD pOplockRec = NULL;
+
+    if (LwListIsEmpty(&pFcb->OplockList)) {
+        return FALSE;
+    }
+
+    /* We only need to check the list head since the list itself must
+       be consistent and non-conflicting */
+
+    pOplockRec = LW_STRUCT_FROM_FIELD(
+                     &pFcb->OplockList,
+                     PVFS_OPLOCK_RECORD,
+                     Oplocks);
+
+    if ((pOplockRec->OplockType == IO_OPLOCK_REQUEST_OPLOCK_BATCH) ||
+        (pOplockRec->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1))
+    {
+        bExclusiveOplock = TRUE;
+    }
+
+    return bExclusiveOplock;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsFileIsOplockedShared(
+    IN PPVFS_FCB pFcb
+    )
+{
+    if (LwListIsEmpty(&pFcb->OplockList)) {
+        return FALSE;
+    }
+
+    return !PvfsFileIsOplockedExclusive(pFcb);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsStoreOplockRecord(
+    IN OUT PPVFS_FCB pFcb,
+    IN     PPVFS_OPLOCK_RECORD pOplock
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    LwListInsertTail(&pFcb->OplockList, &pOplock->Oplocks);
+
+    return ntError;
+}
+
+NTSTATUS
+PvfsAddOplockRecord(
+    IN OUT PPVFS_FCB pFcb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
+    IN     ULONG OplockType
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_OPLOCK_RECORD pOplock = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pOplock,
+                  sizeof(PVFS_OPLOCK_RECORD));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pOplock->OplockType = OplockType;
+    pOplock->pCcb = pCcb;
+    pOplock->pIrpContext = pIrpContext;
+
+    ntError = PvfsStoreOplockRecord(pFcb, pOplock);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+VOID
+PvfsFreeOplockRecord(
+    PPVFS_OPLOCK_RECORD *ppOplockRec
+    )
+{
+    if (!ppOplockRec || !*ppOplockRec) {
+        return;
+    }
+
+    PVFS_FREE(ppOplockRec);
+
+    return;
+}
 
 /*
 local variables:

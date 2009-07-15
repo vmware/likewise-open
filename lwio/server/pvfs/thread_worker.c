@@ -78,15 +78,15 @@ PvfsInitWorkerThreads(
     int unixerr = 0;
 
     ntError = PvfsInitWorkQueue(&gpPvfsIoWorkQueue,
-                                1,
+                                PVFS_WORKERS_MAX_WORK_ITEMS,
                                 &FreeWorkItem);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory((PVOID*)&gWorkPool.Workers,
-                                 PVFS_NUMBER_WORKER_THREADS * sizeof(PVFS_WORKER));
+                                 PVFS_WORKERS_NUMBER_THREADS * sizeof(PVFS_WORKER));
     BAIL_ON_NT_STATUS(ntError);
 
-    gWorkPool.PoolSize = PVFS_NUMBER_WORKER_THREADS;
+    gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;
 
     for (i=0; i<gWorkPool.PoolSize; i++)
     {

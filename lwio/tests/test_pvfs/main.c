@@ -323,7 +323,7 @@ CopyFileFromPvfs(
                              &StatusBlock,
                              pBuffer,
                              sizeof(pBuffer),
-                             0, 0);
+                             NULL, NULL);
         BAIL_ON_NT_STATUS(ntError);
 
         if (StatusBlock.BytesTransferred == 0) {
@@ -832,7 +832,7 @@ RequestOplock(
                   NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    OplockInput.OplockRequestType = IO_OPLOCK_REQUEST_BATCH_OPLOCK;
+    OplockInput.OplockRequestType = IO_OPLOCK_REQUEST_OPLOCK_BATCH;
 
     ntError = NtFsControlFile(
                   hFile,

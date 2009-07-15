@@ -48,6 +48,26 @@
 
 #include "pvfs.h"
 
+/*****************************************************************************
+ ****************************************************************************/
+static NTSTATUS
+PvfsWriteFileWithContext(
+    PVOID pContext
+    );
+
+static NTSTATUS
+PvfsCreateWriteContext(
+    OUT PPVFS_PENDING_WRITE *ppWriteCtx,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+static VOID
+PvfsFreeWriteContext(
+    IN OUT PVOID *ppContext
+    );
+
+
 NTSTATUS
 PvfsWrite(
     PPVFS_IRP_CONTEXT  pIrpContext
@@ -56,12 +76,8 @@ PvfsWrite(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
-    ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     PPVFS_CCB pCcb = NULL;
-    size_t totalBytesWritten = 0;
-    LONG64 Offset = 0;
-    BOOLEAN bMutexLocked = FALSE;
+    PPVFS_PENDING_WRITE pWriteCtx = NULL;
 
     /* Sanity checks */
 
@@ -84,6 +100,66 @@ PvfsWrite(
 
     ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_WRITE_DATA|FILE_APPEND_DATA);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCreateWriteContext(&pWriteCtx, pIrpContext, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = PvfsWriteFileWithContext(pWriteCtx);
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pWriteCtx->pCcb->pFcb,
+                      pIrpContext,
+                      PvfsWriteFileWithContext,
+                      PvfsFreeWriteContext,
+                      (PVOID)pWriteCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pWriteCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsFreeWriteContext((PVOID*)&pWriteCtx);
+
+    if ((ntError != STATUS_PENDING) && pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsWriteFileWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_WRITE pReadCtx = (PPVFS_PENDING_WRITE)pContext;
+    PIRP pIrp = pReadCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pReadCtx->pCcb;
+    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
+    size_t totalBytesWritten = 0;
+    LONG64 Offset = 0;
+    BOOLEAN bMutexLocked = FALSE;
+
 
     /* Enter critical region - WriteFile() needs to fill
        the buffer atomically while it may take several write()
@@ -124,25 +200,72 @@ PvfsWrite(
         Offset += bytesWritten;
     }
 
-    /* Can only get here is the loop was completed
-       successfully */
+    /* Can only get here is the loop was completed successfully */
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesWritten;
     ntError = STATUS_SUCCESS;
 
-
 cleanup:
     LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
-
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
 
     return ntError;
 
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsCreateWriteContext(
+    OUT PPVFS_PENDING_WRITE *ppWriteContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_WRITE pWriteCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pWriteCtx,
+                  sizeof(PVFS_PENDING_WRITE));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pWriteCtx->pIrpContext = pIrpContext;
+    pWriteCtx->pCcb = pCcb;
+
+    *ppWriteContext = pWriteCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static VOID
+PvfsFreeWriteContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    if (!ppContext || !*ppContext) {
+        return;
+    }
+
+    PVFS_FREE(ppContext);
+
+    return;
+}
+
+
 
 
 /*
@@ -153,3 +276,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

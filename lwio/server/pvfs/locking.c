@@ -305,8 +305,10 @@ PvfsUnlockFile(
         {
             if (Key == pEntry->Key) {
                 if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
-                    RtlMoveMemory(pEntry, pEntry+1,
-                                  sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+                    RtlMoveMemory(
+                        pEntry, pEntry+1,
+                        sizeof(PVFS_LOCK_ENTRY)*
+                            ((pExclLocks->NumberOfLocks-i)-1));
                 }
                 pExclLocks->NumberOfLocks--;
 
@@ -320,8 +322,10 @@ PvfsUnlockFile(
                  (Key == pEntry->Key))
         {
             if (((pExclLocks->NumberOfLocks-i) - 1) > 0) {
-                RtlMoveMemory(pEntry, pEntry+1,
-                              sizeof(PVFS_LOCK_ENTRY)* ((pExclLocks->NumberOfLocks-i)-1));
+                RtlMoveMemory(
+                    pEntry, pEntry+1,
+                    sizeof(PVFS_LOCK_ENTRY)*
+                        ((pExclLocks->NumberOfLocks-i)-1));
             }
             pExclLocks->NumberOfLocks--;
 
@@ -707,6 +711,7 @@ InitLockEntry(
         return;
     }
 
+    pEntry->bFailImmediately = (Flags & PVFS_LOCK_BLOCK) ? FALSE : TRUE;
     pEntry->bExclusive = (Flags & PVFS_LOCK_EXCLUSIVE) ? TRUE : FALSE;
     pEntry->Key = Key;
     pEntry->Offset = Offset;
@@ -935,6 +940,85 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsCreateLockContext(
+    OUT PPVFS_PENDING_LOCK *ppLockContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb,
+    IN  ULONG Key,
+    IN  LONG64 Offset,
+    IN  ULONG Length,
+    IN  PVFS_LOCK_FLAGS Flags
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_LOCK pLockCtx;
+
+    ntError = PvfsAllocateMemory((PVOID*)&pLockCtx, sizeof(PVFS_PENDING_LOCK));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pLockCtx->pIrpContext = pIrpContext;
+    pLockCtx->pCcb = pCcb;
+    InitLockEntry(&pLockCtx->PendingLock, Key, Offset, Length, Flags);
+
+    *ppLockContext = pLockCtx;
+    pLockCtx = NULL;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+VOID
+PvfsFreeLockContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    PPVFS_PENDING_LOCK pLockCtx = (PPVFS_PENDING_LOCK)*ppContext;
+
+    PVFS_FREE(&pLockCtx);
+
+    return;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsLockFileWithContext(
+    PVOID pContext
+    )
+{
+    PPVFS_PENDING_LOCK pLockCtx = (PPVFS_PENDING_LOCK)pContext;
+    PVFS_LOCK_FLAGS Flags = 0;
+
+    if (pLockCtx->PendingLock.bExclusive) {
+        Flags |= PVFS_LOCK_EXCLUSIVE;
+    }
+
+    if (!pLockCtx->PendingLock.bFailImmediately) {
+        Flags |= PVFS_LOCK_BLOCK;
+    }
+
+    return PvfsLockFile(
+               pLockCtx->pIrpContext,
+               pLockCtx->pCcb,
+               pLockCtx->PendingLock.Key,
+               pLockCtx->PendingLock.Offset,
+               pLockCtx->PendingLock.Length,
+               Flags);
 }
 
 

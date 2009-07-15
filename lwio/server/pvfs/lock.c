@@ -87,6 +87,7 @@ PvfsLockControl(
     ULONG Key = Args.Key;
     PVFS_LOCK_FLAGS Flags = 0;
     PPVFS_CCB pCcb = NULL;
+    PPVFS_PENDING_LOCK pLockCtx = NULL;
 
     /* Sanity checks */
 
@@ -113,10 +114,43 @@ PvfsLockControl(
         Flags |= PVFS_LOCK_BLOCK;
     }
 
-    switch(Args.LockControl) {
+    switch(Args.LockControl)
+    {
     case IO_LOCK_CONTROL_LOCK:
-        ntError = PvfsLockFile(pIrpContext, pCcb, Key, Offset, Length, Flags);
-        break;
+        ntError = PvfsCreateLockContext(
+                      &pLockCtx,
+                      pIrpContext,
+                      pCcb,
+                      Key,
+                      Offset,
+                      Length,
+                      Flags);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+        switch (ntError)
+        {
+        case STATUS_SUCCESS:
+            ntError = PvfsLockFileWithContext(pLockCtx);
+            break;
+
+        case STATUS_PENDING:
+            ntError = PvfsAddItemPendingOplockBreakAck(
+                          pLockCtx->pCcb->pFcb,
+                          pIrpContext,
+                          PvfsLockFileWithContext,
+                          PvfsFreeLockContext,
+                          (PVOID)pLockCtx);
+            if (ntError == STATUS_SUCCESS) {
+                pLockCtx = NULL;
+                ntError = STATUS_PENDING;
+            }
+            break;
+
+        default:
+            BAIL_ON_NT_STATUS(ntError);
+            break;
+        }
 
     case IO_LOCK_CONTROL_UNLOCK:
         ntError = PvfsUnlockFile(pCcb, FALSE, Key, Offset, Length);
@@ -133,12 +167,11 @@ PvfsLockControl(
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
-
     }
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    /* Release the CCB unless this is a pending lock */
+    PvfsFreeLockContext((PVOID*)&pLockCtx);
 
     if (ntError != STATUS_PENDING && pCcb) {
         PvfsReleaseCCB(pCcb);

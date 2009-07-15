@@ -49,11 +49,6 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-PvfsSetFileAllocationInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
 
 /* File Globals */
 
@@ -61,6 +56,13 @@ PvfsSetFileAllocationInfo(
 
 /* Code */
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetFileAllocationInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 NTSTATUS
 PvfsFileAllocationInfo(
@@ -94,6 +96,26 @@ error:
 }
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetAllocationWithContext(
+    PVOID pContext
+    );
+
+static NTSTATUS
+PvfsCreateSetAllocationContext(
+    OUT PPVFS_PENDING_SET_ALLOCATION *ppSetAllocationContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+static VOID
+PvfsFreeSetAllocationContext(
+    IN OUT PVOID *ppContext
+    );
+
 static NTSTATUS
 PvfsSetFileAllocationInfo(
     PPVFS_IRP_CONTEXT pIrpContext
@@ -102,8 +124,12 @@ PvfsSetFileAllocationInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
+    PPVFS_PENDING_SET_ALLOCATION pSetAllocationCtx = NULL;
     PFILE_ALLOCATION_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+
+    Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    pFileInfo = (PFILE_ALLOCATION_INFORMATION)Args.FileInformation;
 
     /* Sanity checks */
 
@@ -112,27 +138,48 @@ PvfsSetFileAllocationInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
-    BAIL_ON_NT_STATUS(ntError);
-
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_ALLOCATION_INFORMATION)Args.FileInformation;
-
-    /* Real work starts here */
-
-    ntError = PvfsSysFtruncate(pCcb->fd, (off_t)pFileInfo->AllocationSize);
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsCreateSetAllocationContext(
+                  &pSetAllocationCtx,
+                  pIrpContext,
+                  pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = PvfsSetAllocationWithContext(pSetAllocationCtx);
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pSetAllocationCtx->pCcb->pFcb,
+                      pIrpContext,
+                      PvfsSetAllocationWithContext,
+                      PvfsFreeSetAllocationContext,
+                      (PVOID)pSetAllocationCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pSetAllocationCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    if (pCcb) {
+    PvfsFreeSetAllocationContext((PVOID*)&pSetAllocationCtx);
+
+    if ((ntError != STATUS_PENDING) && pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -141,6 +188,89 @@ cleanup:
 error:
     goto cleanup;
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetAllocationWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_ALLOCATION pSetAllocationCtx = (PPVFS_PENDING_SET_ALLOCATION)pContext;
+    PIRP pIrp = pSetAllocationCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pSetAllocationCtx->pCcb;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
+    PFILE_ALLOCATION_INFORMATION pFileInfo = NULL;
+
+    Args = pSetAllocationCtx->pIrpContext->pIrp->Args.QuerySetInformation;
+    pFileInfo = (PFILE_ALLOCATION_INFORMATION)Args.FileInformation;
+
+    ntError = PvfsSysFtruncate(pCcb->fd, (off_t)pFileInfo->AllocationSize);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsCreateSetAllocationContext(
+    OUT PPVFS_PENDING_SET_ALLOCATION *ppSetAllocationContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_ALLOCATION pSetAllocationCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pSetAllocationCtx,
+                  sizeof(PVFS_PENDING_READ));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pSetAllocationCtx->pIrpContext = pIrpContext;
+    pSetAllocationCtx->pCcb = pCcb;
+
+    *ppSetAllocationContext = pSetAllocationCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static VOID
+PvfsFreeSetAllocationContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    if (!ppContext || !*ppContext) {
+        return;
+    }
+
+    PVFS_FREE(ppContext);
+
+    return;
+}
+
 
 
 /*

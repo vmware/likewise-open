@@ -59,14 +59,14 @@
 #endif
 
 
-#include "lwiosys.h"
-#include "lwiofsctl.h"
-
 #include <lw/base.h>
 #include <lw/security-types.h>
 
+#include "lwiosys.h"
+#include "lwio/lwiofsctl.h"
 #include "iodriver.h"
 #include "lwioutils.h"
+#include "lwlist.h"
 
 #include "structs.h"
 #include "async_handler.h"
@@ -102,7 +102,8 @@
 
 /* Driver defines */
 
-#define PVFS_NUMBER_WORKER_THREADS      2
+#define PVFS_WORKERS_NUMBER_THREADS      4
+#define PVFS_WORKERS_MAX_WORK_ITEMS      10
 
 
 /* Top level APi functions */
@@ -120,12 +121,12 @@ PvfsAllocateCreateContext(
 
 VOID
 PvfsFreeCreateContext(
-    IN OUT PPVFS_PENDING_CREATE *ppCreate
+    IN OUT PVOID *ppContext
     );
 
 NTSTATUS
 PvfsCreateFileDoSysOpen(
-    IN PPVFS_PENDING_CREATE pCreateContext
+    IN PVOID pContext
     );
 
 NTSTATUS
@@ -353,6 +354,28 @@ PvfsCheckLockedRegion(
     IN ULONG Length
     );
 
+NTSTATUS
+PvfsCreateLockContext(
+    OUT PPVFS_PENDING_LOCK *ppLockContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb,
+    IN  ULONG Key,
+    IN  LONG64 Offset,
+    IN  ULONG Length,
+    IN  PVFS_LOCK_FLAGS Flags
+    );
+
+VOID
+PvfsFreeLockContext(
+    OUT PVOID *ppContext
+    );
+
+NTSTATUS
+PvfsLockFileWithContext(
+    PVOID pContext
+    );
+
+
 /* From oplock.c */
 
 NTSTATUS
@@ -375,8 +398,11 @@ PvfsOplockBreakAck(
 
 NTSTATUS
 PvfsOplockBreakIfLocked(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb,
     IN PPVFS_FCB pFcb
     );
+
 
 #endif /* __PVFS_H__ */
 

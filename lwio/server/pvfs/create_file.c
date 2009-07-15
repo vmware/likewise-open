@@ -249,31 +249,36 @@ PvfsCreateFileSupersede(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pIrpContext,
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
-
-        PvfsFreeCreateContext(&pCreateCtx);
         break;
 
     case STATUS_PENDING:
-        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
         if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
             ntError = STATUS_PENDING;
         }
-        break;
-
-    default:
-        BAIL_ON_NT_STATUS(ntError);
+        pCreateCtx = NULL;
         break;
     }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+
     RtlCStringFree(&pszDirname);
     RtlCStringFree(&pszRelativeFilename);
     RtlCStringFree(&pszDiskDirname);
@@ -363,9 +368,10 @@ PvfsCreateFileCreate(
     ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    PvfsFreeCreateContext(&pCreateCtx);
 
 cleanup:
+    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+
     RtlCStringFree(&pszDirname);
     RtlCStringFree(&pszRelativeFilename);
     RtlCStringFree(&pszDiskDirname);
@@ -428,31 +434,35 @@ PvfsCreateFileOpenOrOverwrite(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pIrpContext,
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
-
-        PvfsFreeCreateContext(&pCreateCtx);
         break;
 
     case STATUS_PENDING:
-        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
         if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
             ntError = STATUS_PENDING;
         }
         break;
-
-    default:
-        BAIL_ON_NT_STATUS(ntError);
-        break;
     }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+
     return ntError;
 
 error:
@@ -555,31 +565,35 @@ PvfsCreateFileOpenOrOverwriteIf(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(pCreateCtx->pFcb);
+    ntError = PvfsOplockBreakIfLocked(
+                  pCreateCtx->pIrpContext,
+                  pCreateCtx->pCcb,
+                  pCreateCtx->pFcb);
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
-
-        PvfsFreeCreateContext(&pCreateCtx);
         break;
 
     case STATUS_PENDING:
-        ntError = PvfsAddPendingCreate(pCreateCtx->pFcb, pCreateCtx);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
         if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
             ntError = STATUS_PENDING;
         }
         break;
-
-    default:
-        BAIL_ON_NT_STATUS(ntError);
-        break;
     }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
+
     RtlCStringFree(&pszDirname);
     RtlCStringFree(&pszRelativeFilename);
     RtlCStringFree(&pszDiskDirname);
@@ -602,10 +616,11 @@ error:
 
 NTSTATUS
 PvfsCreateFileDoSysOpen(
-    IN PPVFS_PENDING_CREATE pCreateContext
+    IN PVOID pContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_CREATE pCreateContext = (PPVFS_PENDING_CREATE)pContext;
     PIRP pIrp = pCreateContext->pIrpContext->pIrp;
     IRP_ARGS_CREATE Args = pIrp->Args.Create;
     int fd = -1;
@@ -832,16 +847,16 @@ error:
 
 VOID
 PvfsFreeCreateContext(
-    IN OUT PPVFS_PENDING_CREATE *ppCreate
+    IN OUT PVOID *ppContext
     )
 {
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
 
-    if (!ppCreate || !*ppCreate) {
+    if (!ppContext || !*ppContext) {
         return;
     }
 
-    pCreateCtx = (PPVFS_PENDING_CREATE)*ppCreate;
+    pCreateCtx = (PPVFS_PENDING_CREATE)*ppContext;
 
 
     RtlCStringFree(&pCreateCtx->pszDiskFilename);
@@ -899,11 +914,10 @@ PvfsAllocateCreateContext(
 
 
 cleanup:
-
     return ntError;
 
 error:
-    PvfsFreeCreateContext(&pCreateCtx);
+    PvfsFreeCreateContext((PVOID*)&pCreateCtx);
 
     goto cleanup;
 }
