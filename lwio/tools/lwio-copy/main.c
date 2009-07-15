@@ -47,56 +47,36 @@
 
 #define _POSIX_PTHREAD_SEMANTICS 1
 
-#include "lwiocopy.h"
+#include "includes.h"
 
-#define ACTION_NONE 0
-#define ACTION_FILE 1
-#define ACTION_DIR 2
-
-#define COPY_FROM_NT 1
-#define COPY_TO_NT   2
-
-#define MAX_ARGS	7
-
+static
 NTSTATUS
 ParseArgs(
-    int    argc,
-    char*  argv[],
-    PDWORD pdwFileOrDir,
-    PDWORD pdwToRFromNt,
-    PSTR*  ppszCachePath,
-    PSTR*  ppszSourcePath,
-    PSTR*  ppszTargetPath
+    int      argc,
+    char*    argv[],
+    PSTR*    ppszCachePath,
+    PSTR*    ppszSourcePath,
+    PSTR*    ppszTargetPath,
+    PBOOLEAN pbCopyRecursive
     );
 
-
+static
 VOID
-ShowUsage();
-
-DWORD
-MapErrorCode(
-    DWORD status
-    );
-
-BOOLEAN
-Krb5TicketHasExpired(
+ShowUsage(
     VOID
     );
 
+static
 NTSTATUS
-GetSystemName(
-    PSTR* ppszHostName
+GetKrb5PrincipalName(
+    PCSTR pszCachePath,
+    PSTR* ppszPrincipalName
     );
 
+static
 NTSTATUS
-GetDirectionToCopy(
-    PSTR pszSrcPath,
-    PDWORD pdwToRFromNt
-    );
-
-NTSTATUS
-GetCurrentDomain(
-    PSTR* ppszDomain
+MapErrorCode(
+    NTSTATUS status
     );
 
 int
@@ -107,107 +87,60 @@ main(
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bPrintOrigError = TRUE;
-    DWORD dwErrorBufferSize = 0;
+    ULONG   ulErrorBufferSize = 0;
     PSTR pszSourcePath = NULL;
     PSTR pszTargetPath = NULL;
     PSTR pszCachePath = NULL;
-    PSTR pszEnvString = NULL;
-
-    DWORD dwFileOrDir = ACTION_NONE;
-    DWORD dwToRFromNt = 0;
-    BOOLEAN bExists = 0;
+    PSTR pszPrincipal = NULL;
+    PIO_ACCESS_TOKEN pAccessToken = NULL;
+    BOOLEAN bRevertThreadAccessToken = FALSE;
+    BOOLEAN bCopyRecursive = FALSE;
 
     status = ParseArgs(
                 argc,
                 argv,
-                &dwFileOrDir,
-                &dwToRFromNt,
                 &pszCachePath,
                 &pszSourcePath,
-                &pszTargetPath);
+                &pszTargetPath,
+                &bCopyRecursive);
     BAIL_ON_NT_STATUS(status);
 
-    if(pszCachePath)
+    if (!IsNullOrEmptyString(pszCachePath))
     {
-        status = LwRtlCStringAllocatePrintf(
-                    &pszEnvString,
-                    "KRB5CCNAME=%s",
-                    pszCachePath);
+        status = GetKrb5PrincipalName(pszCachePath, &pszPrincipal);
         BAIL_ON_NT_STATUS(status);
 
-        if (putenv(pszEnvString) < 0)
-        {
-            status = UnixErrnoToNtStatus(errno);
-        }
+        status = LwIoCreateKrb5AccessTokenA(
+                        pszPrincipal,
+                        pszCachePath,
+                        &pAccessToken);
         BAIL_ON_NT_STATUS(status);
 
-        // The string is owned by the environ variable, and cannot be
-        // deleted.
-        pszEnvString = NULL;
+        status = LwIoSetThreadAccessToken(pAccessToken);
+        BAIL_ON_NT_STATUS(status);
+
+        bRevertThreadAccessToken = TRUE;
     }
 
-    if(dwToRFromNt == COPY_FROM_NT)
-    {
-        if(dwFileOrDir == ACTION_FILE)
-        {
-            status = LwioCopyFileFromRemote(
-                            pszSourcePath,
-                            pszTargetPath);
-            BAIL_ON_NT_STATUS(status);
-        }
-        else if(dwFileOrDir == ACTION_DIR)
-        {
-            status = LwioCopyDirFromRemote(
-                            pszSourcePath,
-                            pszTargetPath);
-            BAIL_ON_NT_STATUS(status);
-        }
-    }
-    else if(dwToRFromNt == COPY_TO_NT)
-    {
-        if(dwFileOrDir == ACTION_FILE)
-        {
-            status = LwioCheckFileExists(
-                            pszSourcePath,
-                            &bExists);
-            BAIL_ON_NT_STATUS(status);
-            if(!bExists)
-            {
-                printf("Source file doesn't exists, please check the path %s\n", pszSourcePath);
-                goto error;
-            }
-
-            status = LwioCopyFileToRemote(
-                            pszSourcePath,
-                            pszTargetPath);
-            BAIL_ON_NT_STATUS(status);
-        }
-        else if(dwFileOrDir == ACTION_DIR)
-        {
-            status = LwioCheckDirectoryExists(
-                            pszSourcePath,
-                            &bExists);
-            BAIL_ON_NT_STATUS(status);
-            if(!bExists)
-            {
-                printf("Source directory doesn't exists, please check the path %s\n", pszSourcePath);
-                goto error;
-            }
-
-            status = LwioCopyDirToRemote(
-                            pszSourcePath,
-                            pszTargetPath);
-            BAIL_ON_NT_STATUS(status);
-        }
-    }
-
+    status = CopyFile(pszSourcePath, pszTargetPath, bCopyRecursive);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
+
+    if (pAccessToken)
+    {
+        if (bRevertThreadAccessToken)
+        {
+            LwIoSetThreadAccessToken(NULL);
+        }
+
+        LwIoDeleteAccessToken(pAccessToken);
+    }
 
     LWIO_SAFE_FREE_STRING(pszTargetPath);
     LWIO_SAFE_FREE_STRING(pszSourcePath);
     LWIO_SAFE_FREE_STRING(pszCachePath);
-    LWIO_SAFE_FREE_STRING(pszEnvString);
+    LWIO_SAFE_FREE_STRING(pszPrincipal);
 
     return (status);
 
@@ -215,22 +148,21 @@ error:
 
     status = MapErrorCode(status);
 
-    dwErrorBufferSize = SMBStrError(status, NULL, 0);
+    ulErrorBufferSize = SMBStrError(status, NULL, 0);
 
-    if (dwErrorBufferSize > 0)
+    if (ulErrorBufferSize > 0)
     {
-        DWORD dwError2 = 0;
+        NTSTATUS status2 = 0;
         PSTR   pszErrorBuffer = NULL;
 
-        dwError2 = SMBAllocateMemory(
-                    dwErrorBufferSize,
-                    (PVOID*)&pszErrorBuffer);
+        status2 = SMBAllocateMemory(ulErrorBufferSize, (PVOID*)&pszErrorBuffer);
 
-        if (!dwError2)
+        if (status2 == STATUS_SUCCESS)
         {
-            DWORD dwLen = SMBStrError(status, pszErrorBuffer, dwErrorBufferSize);
+            ULONG ulLen = SMBStrError(status, pszErrorBuffer, ulErrorBufferSize);
 
-            if ((dwLen == dwErrorBufferSize) && !IsNullOrEmptyString(pszErrorBuffer))
+            if ((ulLen == ulErrorBufferSize) &&
+                !IsNullOrEmptyString(pszErrorBuffer))
             {
                 fprintf(stderr, "Failed to query status from SMB service.  %s\n", pszErrorBuffer);
                 bPrintOrigError = FALSE;
@@ -243,149 +175,99 @@ error:
     goto cleanup;
 }
 
-
+static
 NTSTATUS
 ParseArgs(
-    int    argc,
-    char*  argv[],
-    PDWORD pdwFileOrDir,
-    PDWORD pdwToRFromNt,
-    PSTR*  ppszCachePath,
-    PSTR*  ppszSourcePath,
-    PSTR*  ppszTargetPath
+    int      argc,
+    char*    argv[],
+    PSTR*    ppszCachePath,
+    PSTR*    ppszSourcePath,
+    PSTR*    ppszTargetPath,
+    PBOOLEAN pbCopyRecursive
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    typedef enum
+    {
+        PARSE_MODE_OPEN = 0,
+        PARSE_MODE_KRB5_CACHE_PATH
+    } ParseMode;
     int iArg = 1;
-    DWORD dwMaxIndex = argc - 1;
-    PSTR pszArg = NULL;
+    ParseMode parseMode = PARSE_MODE_OPEN;
     PSTR pszSourcePath = NULL;
-    PSTR pszSrcPath = NULL;
     PSTR pszTargetPath = NULL;
-    PSTR pszDestPath = NULL;
     PSTR pszCachePath = NULL;
-    DWORD dwFileOrDir = ACTION_NONE;
-    DWORD dwToRFromNt = 0;
-    PSTR pszSlash = NULL;
-    PSTR pszLast = NULL;
+    BOOLEAN bCopyRecursive = FALSE;
 
-    if( dwMaxIndex > MAX_ARGS)
+    for (iArg = 1; iArg < argc; iArg++)
     {
-        ShowUsage();
-        exit(0);
-    }
+        PSTR pszArg = argv[iArg];
 
-    pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
-        ShowUsage();
-        exit(0);
-    }
-    else if ((strcmp(pszArg, "--help") == 0) || (strcmp(pszArg, "-h") == 0))
-    {
-        ShowUsage();
-        exit(0);
-    }
-    else if ((strcmp(pszArg, "--file") == 0)|| (strcmp(pszArg, "-f") == 0))
-    {
-        dwFileOrDir = ACTION_FILE;
-    }
-    else if ((strcmp(pszArg, "--dir") == 0)|| (strcmp(pszArg, "-d") == 0))
-    {
-        dwFileOrDir = ACTION_DIR;
-    }
-    else
-    {
-        ShowUsage();
-        exit(0);
-    }
+        switch (parseMode)
+        {
+            case PARSE_MODE_OPEN:
 
-    pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
-        ShowUsage();
-        exit(0);
-    }
-    else if ((strcmp(pszArg, "--krb") == 0) || (strcmp(pszArg, "-k") == 0))
-    {
-        status = SMBAllocateString(
-                    argv[iArg++],
-                    &pszCachePath);
-        BAIL_ON_NT_STATUS(status);
+                if (!strcmp(pszArg, "-h"))
+                {
+                    ShowUsage();
+                    exit(0);
+                }
+                else if (!strcmp(pszArg, "-r"))
+                {
+                    bCopyRecursive = TRUE;
+                }
+                else if (!strcmp(pszArg, "-k"))
+                {
+                    parseMode = PARSE_MODE_KRB5_CACHE_PATH;
+                }
+                else if (IsNullOrEmptyString(pszSourcePath))
+                {
+                    status = SMBAllocateString(
+                                pszArg,
+                                &pszSourcePath);
+                    BAIL_ON_NT_STATUS(status);
+                }
+                else if (IsNullOrEmptyString(pszTargetPath))
+                {
+                    status = SMBAllocateString(
+                                pszArg,
+                                &pszTargetPath);
+                    BAIL_ON_NT_STATUS(status);
+                }
+                else
+                {
+                    ShowUsage();
+                    exit(0);
+                }
 
-        *ppszCachePath = pszCachePath;
-    }
-    else
-    {
-        iArg--;
-    }
+                break;
 
-    pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
-        ShowUsage();
-        exit(0);
-    }
-    else
-    {
-        status = SMBAllocateString(
-                    pszArg,
-                    &pszSourcePath);
-        BAIL_ON_NT_STATUS(status);
+            case PARSE_MODE_KRB5_CACHE_PATH:
 
-        status = GetDirectionToCopy(
-                    pszSourcePath,
-                    &dwToRFromNt);
-        BAIL_ON_NT_STATUS(status);
+                LWIO_SAFE_FREE_STRING(pszCachePath);
+
+                status = SMBAllocateString(
+                            pszArg,
+                            &pszCachePath);
+                BAIL_ON_NT_STATUS(status);
+
+                parseMode = PARSE_MODE_OPEN;
+
+                break;
+
+            default:
+
+                ShowUsage();
+                exit(0);
+
+                break;
+        }
     }
 
-    pszArg = argv[iArg++];
-    if (pszArg == NULL || *pszArg == '\0')
-    {
-        ShowUsage();
-        exit(0);
-    }
-    else
-    {
-        status = SMBAllocateString(
-                    pszArg,
-                    &pszTargetPath);
-        BAIL_ON_NT_STATUS(status);
-
-    }
-
-    //strip the hostname for the local host
-    if(dwToRFromNt == COPY_FROM_NT)
-    {
-        pszSlash = (char*)strtok_r (pszTargetPath,"/",&pszLast);
-        status = LwRtlCStringAllocatePrintf(
-                    &pszDestPath,
-                    "/%s",
-                    pszLast);
-        BAIL_ON_NT_STATUS(status);
-
-        *ppszSourcePath = pszSourcePath;
-        *ppszTargetPath = pszDestPath;
-
-        LWIO_SAFE_FREE_STRING(pszTargetPath);
-    }
-    else
-    {
-        pszSlash = (char*)strtok_r (pszSourcePath,"/",&pszLast);
-        status = LwRtlCStringAllocatePrintf(
-                    &pszSrcPath,
-                    "/%s",
-                    pszLast);
-        BAIL_ON_NT_STATUS(status);
-
-        *ppszSourcePath = pszSrcPath;
-        *ppszTargetPath = pszTargetPath;
-
-        LWIO_SAFE_FREE_STRING(pszSourcePath);
-    }
-
-    *pdwFileOrDir = dwFileOrDir;
-    *pdwToRFromNt = dwToRFromNt;
+    *ppszCachePath = pszCachePath;
+    *ppszSourcePath = pszSourcePath;
+    *ppszTargetPath = pszTargetPath;
+    *pbCopyRecursive = bCopyRecursive;
 
 cleanup:
 
@@ -396,144 +278,100 @@ error:
     *ppszCachePath = NULL;
     *ppszSourcePath = NULL;
     *ppszTargetPath = NULL;
+    *pbCopyRecursive = FALSE;
 
     LWIO_SAFE_FREE_STRING(pszTargetPath);
     LWIO_SAFE_FREE_STRING(pszSourcePath);
     LWIO_SAFE_FREE_STRING(pszCachePath);
-    LWIO_SAFE_FREE_STRING(pszSrcPath);
-    LWIO_SAFE_FREE_STRING(pszDestPath);
 
     goto cleanup;
 }
 
+static
 NTSTATUS
-GetDirectionToCopy(
-    PSTR pszSrcPath,
-    PDWORD pdwToRFromNt
+GetKrb5PrincipalName(
+    PCSTR pszCachePath,
+    PSTR* ppszPrincipalName
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PSTR pszSlash = NULL;
-    PSTR pszStart = NULL;
-    PSTR pszLast = NULL;
-    PSTR pszTmpPath = NULL;
-    PSTR pszHostname = NULL;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    krb5_error_code ret = 0;
+    krb5_context    ctx = NULL;
+    krb5_ccache     cc = NULL;
+    krb5_principal  pKrb5Principal = NULL;
+    PSTR  pszKrb5PrincipalName = NULL;
+    PSTR  pszPrincipalName = NULL;
 
-    *pdwToRFromNt = 0;
+    ret = krb5_init_context(&ctx);
+    BAIL_ON_KRB_ERROR(ctx, ret);
 
-    status = SMBAllocateString(
-                    pszSrcPath,
-                    &pszTmpPath);
-    BAIL_ON_NT_STATUS(status);
+    ret = krb5_cc_resolve(ctx, pszCachePath, &cc);
+    BAIL_ON_KRB_ERROR(ctx, ret);
 
-    pszStart = pszTmpPath;
+    ret = krb5_cc_get_principal(ctx, cc, &pKrb5Principal);
+    BAIL_ON_KRB_ERROR(ctx, ret);
 
-    // Skip optional initial decoration
-    if (!strncmp(pszStart, "//", sizeof("//") - 1) ||
-        !strncmp(pszStart, "\\\\", sizeof("\\\\") - 1))
-    {
-        pszStart += 2;
-    }
-    else
-    if (!strncmp(pszStart, "/", sizeof("/") - 1) ||
-        !strncmp(pszStart, "\\", sizeof("\\") - 1))
-    {
-        pszStart += 1;
-    }
+    ret = krb5_unparse_name(ctx, pKrb5Principal, &pszKrb5PrincipalName);
+    BAIL_ON_KRB_ERROR(ctx, ret);
 
-    status = GetSystemName(&pszHostname);
-    BAIL_ON_NT_STATUS(status);
+    ntStatus = SMBAllocateString(pszKrb5PrincipalName, &pszPrincipalName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    pszSlash = (char*)strtok_r (pszStart,"/",&pszLast);
-
-    if(pszSlash)
-    {
-        if(!strcmp(pszHostname,pszSlash))
-            *pdwToRFromNt = COPY_TO_NT;
-        else
-            *pdwToRFromNt = COPY_FROM_NT;
-    }
-
-
-error:
-
-    LWIO_SAFE_FREE_STRING(pszTmpPath);
-    LWIO_SAFE_FREE_STRING(pszHostname);
-
-    return status ;
-}
-
-NTSTATUS
-GetSystemName(
-    PSTR* ppszHostName
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    CHAR buffer[256];
-    PSTR pszLocal = NULL;
-    PSTR pszDot = NULL;
-    PSTR pszHostname = NULL;
-    int len = 0;
-
-    if ( gethostname(buffer, sizeof(buffer)) != 0 )
-    {
-        printf("gethostname failed\n");
-        status = LW_STATUS_UNSUCCESSFUL;
-        goto error;
-    }
-
-    len = strlen(buffer);
-    if ( len > strlen(".local") )
-    {
-        pszLocal = &buffer[len - strlen(".local")];
-        if ( !strcasecmp( pszLocal, ".local" ) )
-        {
-            pszLocal[0] = '\0';
-        }
-    }
-
-    pszDot = strchr(buffer, '.');
-    if ( pszDot )
-    {
-        pszDot[0] = '\0';
-    }
-
-    status = LwRtlCStringAllocatePrintf(
-                &pszHostname,
-                "%s",
-                buffer);
-    BAIL_ON_NT_STATUS(status);
-
-    *ppszHostName = pszHostname;
+    *ppszPrincipalName = pszPrincipalName;
 
 cleanup:
 
-    return status;
+    if (ctx)
+    {
+        if (pszKrb5PrincipalName)
+        {
+            krb5_free_unparsed_name(ctx, pszKrb5PrincipalName);
+        }
+        if (pKrb5Principal)
+        {
+            krb5_free_principal(ctx, pKrb5Principal);
+        }
+        if (cc)
+        {
+            krb5_cc_close(ctx, cc);
+        }
+        krb5_free_context(ctx);
+    }
+
+    return ntStatus;
 
 error:
 
-    LWIO_SAFE_FREE_STRING(pszHostname);
+    *ppszPrincipalName = NULL;
+
+    LWIO_SAFE_FREE_STRING(pszPrincipalName);
+
+    ntStatus = STATUS_INVALID_ACCOUNT_NAME;
 
     goto cleanup;
 }
 
-void
-ShowUsage()
-{
-    printf("Usage: lwio-copy --file|dir --setkrb <cache path> <source path> <target path>\n");
-    printf("\t--help      | -h    Show help\n");
-    printf("\t--file      | -f    Operate file\n");
-    printf("\t--dir       | -d    Operate directory\n");
-    printf("\t--setkrb    | -k    Set KRB5CCNAME env \n");
-    printf("Remote <source path>/<dest path> should be of the form '/<hostname>/<Sharename>/<path>'\n");
-}
-
-DWORD
-MapErrorCode(
-    DWORD status
+static
+VOID
+ShowUsage(
+    VOID
     )
 {
-    DWORD dwError2 = status;
+    // printf("Usage: lwio-copy [-h] [-r] [-k <path>] <source path> <target path>\n");
+    printf("Usage: lwio-copy [-h] [-k <path>] <source path> <target path>\n");
+    printf("\t-h Show help\n");
+    // printf("\t-r Recurse when copying a directory\n");
+    printf("\t-k kerberos cache path\n");
+    printf("Usage: lwio-copy -r //imgserver.abc.com/public/apple.jpg .\n");
+}
+
+static
+NTSTATUS
+MapErrorCode(
+    NTSTATUS status
+    )
+{
+    NTSTATUS status2 = status;
 
     switch (status)
     {
@@ -541,7 +379,7 @@ MapErrorCode(
         case ENETUNREACH:
         case ETIMEDOUT:
 
-            dwError2 = LWIO_ERROR_SERVER_UNREACHABLE;
+            status2 = LWIO_ERROR_SERVER_UNREACHABLE;
 
             break;
 
@@ -550,6 +388,6 @@ MapErrorCode(
             break;
     }
 
-    return dwError2;
+    return status2;
 }
 
