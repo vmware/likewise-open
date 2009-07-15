@@ -10,5 +10,5 @@ SUBDIRS = \
     Mpr        \
     krb5pac    \
     dssetup    \
-    NetLib     \
+    netlib     \
     TestRpc
