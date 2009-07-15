@@ -340,8 +340,12 @@ lwmsg_strerror(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
+#ifdef STRERROR_R_CHAR_P
+    while (strerror_r(err, my_message, capacity) != my_message)
+#else
     while (strerror_r(err, my_message, capacity) == -1 &&
            errno == ERANGE)
+#endif
     {
         capacity *= 2;
         temp = realloc(my_message, capacity);

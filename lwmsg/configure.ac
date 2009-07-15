@@ -96,7 +96,8 @@ CFLAGS="$saved_CFLAGS"
 
 # Checks for library functions.
 AC_HEADER_STDC
-AC_CHECK_FUNCS([memset strerror_r])
+AC_CHECK_FUNCS([memset])
+AC_FUNC_STRERROR_R
 
 # Check for eid method
 
