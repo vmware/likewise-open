@@ -82,8 +82,9 @@ PvfsInitWorkerThreads(
                                 &FreeWorkItem);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory((PVOID*)&gWorkPool.Workers,
-                                 PVFS_WORKERS_NUMBER_THREADS * sizeof(PVFS_WORKER));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&gWorkPool.Workers,
+                  PVFS_WORKERS_NUMBER_THREADS * sizeof(PVFS_WORKER));
     BAIL_ON_NT_STATUS(ntError);
 
     gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;

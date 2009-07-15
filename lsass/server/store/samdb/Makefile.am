@@ -21,16 +21,19 @@ libsamdb_la_SOURCES =     \
         samdbuser.c
 
 libsamdb_la_CPPFLAGS = \
-	-DLW_ENABLE_THREADS=1         \
-	-I@top_srcdir@/server/include \
-	-I@top_srcdir@/server/store/include \
-	@SQLITE_INCLUDES@
+        -DLW_ENABLE_THREADS=1         \
+        -I$(top_srcdir)/server/include \
+        -I$(top_srcdir)/server/store/include \
+        $(SQLITE_INCLUDES) \
+        $(CRYPTO_INCLUDES)
 
 libsamdb_la_LIBADD = \
-    @UUID_LIBS@ \
-    @top_builddir@/server/store/dsapi/libdsapi.la \
-    @SQLITE_LIBS@
+        $(UUID_LIBS) \
+        $(top_builddir)/server/store/dsapi/libdsapi.la \
+        $(SQLITE_LIBS) \
+        $(CRYPTO_LIBS)
 
 libsamdb_la_LDFLAGS = \
-	-module -avoid-version -export-dynamic -export-symbols=samdb.sym \
-	@SQLITE_LDFLAGS@
+        -module -avoid-version -export-dynamic -export-symbols=samdb.sym \
+        $(SQLITE_LDFLAGS) \
+        $(CRYPTO_LDFLAGS)

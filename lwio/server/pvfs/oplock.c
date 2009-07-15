@@ -145,7 +145,7 @@ PvfsOplockRequest(
     ntError = STATUS_PENDING;
 
 cleanup:
-    if (pCcb) {
+    if ((ntError != STATUS_PENDING) && pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -174,8 +174,22 @@ PvfsOplockBreakAck(
     PPVFS_OPLOCK_PENDING_OPERATION pPendingOp = NULL;
     PVOID pData = NULL;
     BOOLEAN bLocked = FALSE;
+    BOOLEAN bOplockGranted = FALSE;
+    PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER pOplockBreakResp = NULL;
+    BOOLEAN bCcbLocked = FALSE;
 
     /* Sanity checks */
+
+    BAIL_ON_INVALID_PTR(InputBuffer, ntError);
+
+    if ((InputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER)) ||
+        (OutputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER)))
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pOplockBreakResp = (PIO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER)InputBuffer;
 
     ntError =  PvfsAcquireCCB(pIrpContext->pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -189,6 +203,57 @@ PvfsOplockBreakAck(
         ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    /* Check to see if we need to re-register a level 2 oplock */
+
+    switch (pOplockBreakResp->Response)
+    {
+    case IO_OPLOCK_BREAK_ACKNOWLEDGE:
+        /* Only have work if we brok to a level2 oplock */
+        if (pCcb->OplockBreakResult == IO_OPLOCK_BROKEN_TO_LEVEL_2)
+        {
+            ntError = PvfsOplockGrantLevel2(pIrpContext, pCcb);
+
+            switch (ntError)
+            {
+            case STATUS_SUCCESS:
+                /* If we were successfully granted the oplock, then
+                   save that information for the return NTSTATUS value. */
+                bOplockGranted = TRUE;
+                break;
+
+            case STATUS_OPLOCK_NOT_GRANTED:
+                ntError = STATUS_SUCCESS;
+                break;
+
+            default:
+                /* We may not actually want to bail here.  Needs more
+                   testing */
+                BAIL_ON_NT_STATUS(ntError);
+            }
+
+        }
+        break;
+
+    case IO_OPLOCK_BREAK_ACK_NO_LEVEL_2:
+        if (pCcb->OplockBreakResult != IO_OPLOCK_BROKEN_TO_LEVEL_2) {
+            ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+        break;
+
+    case IO_OPLOCK_BREAK_CLOSE_PENDING:
+        /* TODO: Deal with an ACK_PENDING_CLOSE */
+    default:
+        break;
+
+    }
+
+    /* Reset oplock break state variables */
+    LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+    pCcb->bOplockBreakInProgress = FALSE;
+    pCcb->OplockBreakResult = 0;
+    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
     /* Process pending operations */
 
@@ -213,19 +278,30 @@ PvfsOplockBreakAck(
         }
 
         pIrp->IoStatusBlock.Status = ntError;
-
         IoIrpComplete(pIrp);
+
         PvfsFreeIrpContext(&pPendingOp->pIrpContext);
 
         pPendingOp->pfnFree(&pPendingOp->pCompletionContext);
         PVFS_FREE(&pPendingOp);
     }
 
-
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
-    if (pCcb) {
+    if (bOplockGranted)
+    {
+        /* Successful grant so pend the resulit now */
+
+        IoIrpMarkPending(
+            pIrpContext->pIrp,
+            PvfsCancelOplockRequestIrp,
+            pIrpContext);
+
+        ntError = STATUS_PENDING;
+    }
+
+    if ((ntError != STATUS_PENDING) && pCcb) {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -295,7 +371,6 @@ PvfsOplockBreakIfLocked(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     NTSTATUS ntBreakStatus = STATUS_SUCCESS;
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     BOOLEAN bFcbLocked = FALSE;
     PPVFS_OPLOCK_RECORD pOplock = NULL;
     PLW_LIST_LINKS pOplockLink = NULL;
@@ -318,11 +393,10 @@ PvfsOplockBreakIfLocked(
                       pOplockLink,
                       PVFS_OPLOCK_RECORD,
                       Oplocks);
-        pIrpCtx = pOplock->pIrpContext;
 
         /* Do we need to break? */
 
-        switch (pIrpCtx->pIrp->Type)
+        switch (pIrpContext->pIrp->Type)
         {
         case IRP_TYPE_CREATE:
             ntBreakStatus = PvfsOplockBreakOnCreate(
@@ -435,7 +509,7 @@ PvfsOplockBreakAllLevel2Oplocks(
 
         /* This should never fire */
 
-        if (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2) {
+        if (pOplock->OplockType != IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2) {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -444,6 +518,7 @@ PvfsOplockBreakAllLevel2Oplocks(
 
         pOutputBuffer->OplockBreakResult = IO_OPLOCK_BROKEN_TO_NONE;
 
+        pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
         IoIrpComplete(pIrpCtx->pIrp);
 
         PvfsFreeIrpContext(&pIrpCtx);
@@ -499,6 +574,7 @@ PvfsOplockBreakOnCreate(
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
         pOplock->pCcb->bOplockBreakInProgress = TRUE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
         ntError = STATUS_PENDING;
@@ -520,6 +596,7 @@ PvfsOplockBreakOnCreate(
 
         ntError = STATUS_SUCCESS;
         break;
+
     default:
         break;
     }
@@ -527,11 +604,13 @@ PvfsOplockBreakOnCreate(
     if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
-                        pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
 
-        IoIrpComplete(pIrpContext->pIrp);
-        PvfsFreeIrpContext(&pIrpContext);
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pOplock->pIrpContext->pIrp);
+
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
     }
 
 cleanup:
@@ -570,6 +649,7 @@ PvfsOplockBreakOnRead(
 
         LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
         pOplock->pCcb->bOplockBreakInProgress = TRUE;
+        pOplock->pCcb->OplockBreakResult = BreakResult;
         LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
         ntError = STATUS_PENDING;
@@ -577,6 +657,7 @@ PvfsOplockBreakOnRead(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_NOT_BROKEN;
+        ntError = STATUS_SUCCESS;
         break;
 
     default:
@@ -586,11 +667,13 @@ PvfsOplockBreakOnRead(
     if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
-                        pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
 
-        IoIrpComplete(pIrpContext->pIrp);
-        PvfsFreeIrpContext(&pIrpContext);
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pOplock->pIrpContext->pIrp);
+
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
     }
 
 cleanup:
@@ -626,6 +709,7 @@ PvfsOplockBreakOnWrite(
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
             pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
             ntError = STATUS_PENDING;
@@ -634,6 +718,7 @@ PvfsOplockBreakOnWrite(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+        ntError = STATUS_SUCCESS;
         break;
 
     default:
@@ -643,11 +728,13 @@ PvfsOplockBreakOnWrite(
     if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
-                        pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
 
-        IoIrpComplete(pIrpContext->pIrp);
-        PvfsFreeIrpContext(&pIrpContext);
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pOplock->pIrpContext->pIrp);
+
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
     }
 
     *pBreakResult = BreakResult;
@@ -682,6 +769,7 @@ PvfsOplockBreakOnLockControl(
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
             pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
             ntError = STATUS_PENDING;
@@ -690,6 +778,7 @@ PvfsOplockBreakOnLockControl(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+        ntError = STATUS_SUCCESS;
         break;
 
     default:
@@ -699,11 +788,13 @@ PvfsOplockBreakOnLockControl(
     if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
-                        pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
 
-        IoIrpComplete(pIrpContext->pIrp);
-        PvfsFreeIrpContext(&pIrpContext);
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pOplock->pIrpContext->pIrp);
+
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
     }
 
     *pBreakResult = BreakResult;
@@ -738,6 +829,7 @@ PvfsOplockBreakOnSetFileInformation(
 
             LWIO_LOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
             pOplock->pCcb->bOplockBreakInProgress = TRUE;
+            pOplock->pCcb->OplockBreakResult = BreakResult;
             LWIO_UNLOCK_MUTEX(bCcbLocked, &pOplock->pCcb->ControlBlock);
 
             ntError = STATUS_PENDING;
@@ -746,6 +838,7 @@ PvfsOplockBreakOnSetFileInformation(
 
     case IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2:
         BreakResult = IO_OPLOCK_BROKEN_TO_NONE;
+        ntError = STATUS_SUCCESS;
         break;
 
     default:
@@ -755,11 +848,13 @@ PvfsOplockBreakOnSetFileInformation(
     if (BreakResult != IO_OPLOCK_NOT_BROKEN)
     {
         pOutputBuffer = (PIO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER)
-                        pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
+                        pOplock->pIrpContext->pIrp->Args.IoFsControl.OutputBuffer;
         pOutputBuffer->OplockBreakResult = BreakResult;
 
-        IoIrpComplete(pIrpContext->pIrp);
-        PvfsFreeIrpContext(&pIrpContext);
+        pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pOplock->pIrpContext->pIrp);
+
+        PvfsFreeIrpContext(&pOplock->pIrpContext);
     }
 
     *pBreakResult = BreakResult;
@@ -860,7 +955,55 @@ PvfsOplockGrantLevel2(
     PPVFS_CCB pCcb
     )
 {
-    return STATUS_OPLOCK_NOT_GRANTED;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_FCB pFcb = NULL;
+    BOOLEAN bFcbControlLocked = FALSE;
+
+    BAIL_ON_INVALID_PTR(pCcb->pFcb, ntError);
+
+    pFcb = pCcb->pFcb;
+
+    LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+    /* Cannot grant a level2 on an existing exclusive oplock - FAIL*/
+
+    if (PvfsFileIsOplockedExclusive(pFcb))
+    {
+        ntError = STATUS_OPLOCK_NOT_GRANTED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Cannot grant a level2 if there are any open byte range
+       locks on the file */
+
+    if (PvfsFileHasOpenByteRangeLocks(pFcb))
+    {
+        ntError = STATUS_OPLOCK_NOT_GRANTED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Can have multiple level2 oplocks - GRANT */
+
+    if (!PvfsFileIsOplocked(pFcb) ||
+        PvfsFileIsOplockedShared(pFcb))
+    {
+        ntError = PvfsAddOplockRecord(
+                      pFcb,
+                      pIrpContext,
+                      pCcb,
+                      IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 

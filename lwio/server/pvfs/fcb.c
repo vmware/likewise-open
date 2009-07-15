@@ -616,7 +616,7 @@ PvfsAddItemPendingOplockBreakAck(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pPendingOp,
-                  sizeof(PPVFS_OPLOCK_PENDING_OPERATION));
+                  sizeof(PVFS_OPLOCK_PENDING_OPERATION));
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingOp->pIrpContext = pIrpContext;
@@ -681,7 +681,7 @@ PvfsFileIsOplocked(
     IN PPVFS_FCB pFcb
     )
 {
-    return LwListIsEmpty(&pFcb->OplockList);
+    return !LwListIsEmpty(&pFcb->OplockList);
 }
 
 /*****************************************************************************
@@ -790,6 +790,8 @@ PvfsFreeOplockRecord(
     if (!ppOplockRec || !*ppOplockRec) {
         return;
     }
+
+    PvfsReleaseCCB((*ppOplockRec)->pCcb);
 
     PVFS_FREE(ppOplockRec);
 

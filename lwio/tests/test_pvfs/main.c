@@ -190,7 +190,7 @@ CopyFileToPvfs(
                            &DstFilename,
                            NULL,
                            NULL,
-                           FILE_ALL_ACCESS,
+                           FILE_GENERIC_WRITE,
                            0,
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -294,7 +294,7 @@ CopyFileFromPvfs(
                            &SrcFilename,
                            NULL,
                            NULL,
-                           FILE_ALL_ACCESS,
+                           FILE_GENERIC_READ,
                            0,
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -798,7 +798,11 @@ RequestOplock(
     IO_FILE_NAME Filename = {0};
     IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK StatusBlock = {0};
-    IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER OplockInput = {0};
+    IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER OplockRequestInput = {0};
+    IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER OplockRequestOutput = {0};
+    IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER OplockBreakInput = {0};
+    IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER OplockBreakOutput = {0};
+    ULONG SleepCount = 5;
 
     if (argc != 1)
     {
@@ -824,7 +828,7 @@ RequestOplock(
                   GENERIC_READ,
                   0,
                   FILE_ATTRIBUTE_NORMAL,
-                  FILE_SHARE_READ,
+                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                   FILE_OPEN,
                   FILE_NON_DIRECTORY_FILE,
                   NULL,
@@ -832,31 +836,39 @@ RequestOplock(
                   NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    OplockInput.OplockRequestType = IO_OPLOCK_REQUEST_OPLOCK_BATCH;
+    OplockRequestInput.OplockRequestType = IO_OPLOCK_REQUEST_OPLOCK_BATCH;
 
     ntError = NtFsControlFile(
                   hFile,
                   NULL,
                   &StatusBlock,
                   IO_FSCTL_OPLOCK_REQUEST,
-                  (PVOID)&OplockInput,
-                  sizeof(OplockInput),
-                  NULL,
-                  0);
+                  (PVOID)&OplockRequestInput,
+                  sizeof(OplockRequestInput),
+                  (PVOID)&OplockRequestOutput,
+                  sizeof(OplockRequestOutput));
     BAIL_ON_NT_STATUS(ntError);
 
-    printf("Oplock broken!\n");
+    printf("Oplock broken! (%d)\n", OplockRequestOutput.OplockBreakResult);
+
+    OplockBreakInput.Response = IO_OPLOCK_BREAK_ACKNOWLEDGE;
 
     ntError = NtFsControlFile(
                   hFile,
                   NULL,
                   &StatusBlock,
                   IO_FSCTL_OPLOCK_BREAK_ACK,
-                  NULL, 0,
-                  NULL, 0);
-    sleep(5);
+                  (PVOID)&OplockBreakInput,
+                  sizeof(OplockBreakInput),
+                  (PVOID)&OplockBreakOutput,
+                  sizeof(OplockBreakOutput));
+    BAIL_ON_NT_STATUS(ntError);
 
+    printf("Oplock broken!\n");
 
+    printf("Sleeping for %d seconds...\n", SleepCount);
+    sleep(SleepCount);
+    printf("awake\n");
 
 cleanup:
     RtlWC16StringFree(&Filename.FileName);

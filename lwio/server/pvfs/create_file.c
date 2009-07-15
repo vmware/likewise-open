@@ -286,11 +286,14 @@ cleanup:
     return ntError;
 
 error:
-    pIrpContext->pIrp->IoStatusBlock.CreateResult =
-        PvfsSetCreateResult(
-            Args.CreateDisposition,
-            pCreateCtx->bFileExisted,
-            ntError);
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpContext->pIrp->IoStatusBlock.CreateResult =
+            PvfsSetCreateResult(
+                Args.CreateDisposition,
+                pCreateCtx->bFileExisted,
+                ntError);
+    }
 
     goto cleanup;
 }
@@ -379,11 +382,14 @@ cleanup:
     return ntError;
 
 error:
-    pIrpContext->pIrp->IoStatusBlock.CreateResult =
-        PvfsSetCreateResult(
-            Args.CreateDisposition,
-            pCreateCtx->bFileExisted,
-            ntError);
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpContext->pIrp->IoStatusBlock.CreateResult =
+            PvfsSetCreateResult(
+                Args.CreateDisposition,
+                pCreateCtx->bFileExisted,
+                ntError);
+    }
 
     goto cleanup;
 }
@@ -466,11 +472,14 @@ cleanup:
     return ntError;
 
 error:
-    pIrpContext->pIrp->IoStatusBlock.CreateResult =
-        PvfsSetCreateResult(
-            Args.CreateDisposition,
-            pCreateCtx->bFileExisted,
-            ntError);
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpContext->pIrp->IoStatusBlock.CreateResult =
+            PvfsSetCreateResult(
+                Args.CreateDisposition,
+                pCreateCtx->bFileExisted,
+                ntError);
+    }
 
     goto cleanup;
 }
@@ -601,11 +610,14 @@ cleanup:
     return ntError;
 
 error:
-    pIrpContext->pIrp->IoStatusBlock.CreateResult =
-        PvfsSetCreateResult(
-            Args.CreateDisposition,
-            pCreateCtx->bFileExisted,
-            ntError);
+    if (ntError != STATUS_PENDING)
+    {
+        pIrpContext->pIrp->IoStatusBlock.CreateResult =
+            PvfsSetCreateResult(
+                Args.CreateDisposition,
+                pCreateCtx->bFileExisted,
+                ntError);
+    }
 
     goto cleanup;
 }

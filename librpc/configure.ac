@@ -248,7 +248,7 @@ AC_OUTPUT(Makefile
           samr/Makefile
           lsa/Makefile
           krb5pac/Makefile
-          NetLib/Makefile
+          netlib/Makefile
           Mpr/Makefile
           netlogon/Makefile
           dssetup/Makefile

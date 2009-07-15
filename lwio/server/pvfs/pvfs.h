@@ -375,6 +375,11 @@ PvfsLockFileWithContext(
     PVOID pContext
     );
 
+BOOLEAN
+PvfsFileHasOpenByteRangeLocks(
+    PPVFS_FCB pFcb
+    );
+
 
 /* From oplock.c */
 

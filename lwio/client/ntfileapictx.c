@@ -533,6 +533,7 @@ LwNtCtxDeviceIoControlFile(
     request.FileHandle = FileHandle;
     request.ControlCode = IoControlCode;
     request.InputBuffer = InputBuffer;
+    request.OutputBuffer = OutputBuffer;
     request.InputBufferLength = InputBufferLength;
     request.OutputBufferLength = OutputBufferLength;
 

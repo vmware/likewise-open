@@ -5,12 +5,15 @@ liblwmapsecurity_lsass_la_SOURCES = \
 
 liblwmapsecurity_lsass_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	@LWBASE_INCLUDES@
+	$(LWBASE_INCLUDES) \
+	$(LWMAPSECURITY_INCLUDES)
 
 liblwmapsecurity_lsass_la_LIBADD = \
-	@top_builddir@/client/liblsaclient.la \
-	@LWBASE_NOTHR_LIBS@
+	$(top_builddir)/client/liblsaclient.la \
+	$(LWMAPSECURITY_LIBS) \
+	$(LWBASE_NOTHR_LIBS)
 
 liblwmapsecurity_lsass_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	$(LWMAPSECURITY_LDFLAGS) \
 	-module -avoid-version -export-dynamic

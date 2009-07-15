@@ -145,7 +145,7 @@ LwListTraverse(
     }
 
     if (Cursor == NULL) {
-        return Head;
+        return Head->Next;
     }
 
     if (Cursor->Next == Head) {
