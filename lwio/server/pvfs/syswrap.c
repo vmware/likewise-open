@@ -528,7 +528,16 @@ PvfsSysRead(
 
     if (pOffset)
     {
+        off_t offset = 0;
+
         bytesRead = pread(pCcb->fd, pBuffer, pBufLen, *pOffset);
+
+        if (bytesRead > 0)
+        {
+            /* pread() and pwrite() don't update the file offset */
+            ntError = PvfsSysLseek(pCcb->fd, bytesRead, SEEK_CUR, &offset);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
     else
     {
@@ -571,7 +580,16 @@ PvfsSysWrite(
 
     if (pOffset)
     {
+        off_t offset = 0;
+
         bytesWritten = pwrite(pCcb->fd, pBuffer, pBufLen, *pOffset);
+
+        if (bytesWritten > 0)
+        {
+            /* pread() and pwrite() don't update the file offset */
+            ntError = PvfsSysLseek(pCcb->fd, bytesWritten, SEEK_CUR, &offset);
+            BAIL_ON_NT_STATUS(ntError);
+        }
     }
     else
     {
