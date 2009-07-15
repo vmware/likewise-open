@@ -58,6 +58,7 @@ lwmsg_server_io_process_tasks(
     LWMsgRing* next = NULL;
     ServerTask* task = NULL;
 
+    /* Move tasks onto processing queue */
     lwmsg_ring_init(&processing);
     lwmsg_ring_move(tasks, &processing);
 
@@ -80,22 +81,36 @@ lwmsg_server_io_process_tasks(
 
             if (task)
             {
-                /* We were given a task back */
                 if (task->blocked)
                 {
+                    /* Task is blocked, put it back into thread task list */
                     lwmsg_ring_insert_before(tasks, &task->ring);
                 }
                 else
                 {
+                    /* Task can still run, put it back into processing queue */
                     lwmsg_ring_insert_after(&processing, &task->ring);
                 }
+                task = NULL;
             }
         }
     }
 
-error:
+done:
 
     return status;
+
+error:
+
+    /* Move all tasks back into the thread task list before propagating error */
+    lwmsg_ring_move(&processing, tasks);
+
+    if (task)
+    {
+        lwmsg_ring_insert_before(tasks, &task->ring);
+    }
+
+    goto done;
 }
 
 static
@@ -135,7 +150,7 @@ lwmsg_server_io_loop(
         next_deadline.seconds = -1;
         next_deadline.microseconds = -1;
 
-        /* Process unblocked tasks */
+        /* Process tasks */
         BAIL_ON_ERROR(status = lwmsg_server_io_process_tasks(
                           server,
                           thread,
@@ -235,17 +250,27 @@ lwmsg_server_io_loop(
                 count -= res;
             }
         }
+
+    error:
+
+        /* We should never bail out of an IO thread as it would silently leave
+           the IPC server in an unresponsive state.  Instead, log the error
+           and call any user exception callback.  The callback may choose to
+           cleanly shut down the server in response. */
+        if (status)
+        {
+            LWMSG_LOG_WARNING(server->context, "Caught exception %i", status);
+            if (server->except)
+            {
+                server->except(server, status, server->except_data);
+            }
+
+            status = LWMSG_STATUS_SUCCESS;
+        }
+
     }
 
-done:
-
     return status;
-
-error:
-
-    LWMSG_LOG_WARNING(server->context, "IO thread exiting with status %i\n", status);
-
-    goto done;
 }
 
 void*
@@ -253,16 +278,9 @@ lwmsg_server_io_thread(
     void* data
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ServerIoThread* thread = data;
 
-    BAIL_ON_ERROR(status = lwmsg_server_io_loop(thread));
-
-done:
+    lwmsg_server_io_loop(thread);
 
     return NULL;
-
-error:
-
-    goto done;
 }

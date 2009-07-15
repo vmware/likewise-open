@@ -160,9 +160,13 @@ struct LWMsgServer
         LWMsgTime idle;
     } timeout;
     void* dispatch_data;
+
     LWMsgSessionConstructor session_construct;
     LWMsgSessionDestructor session_destruct;
     void* session_construct_data;
+
+    LWMsgServerExceptionFunction except;
+    void* except_data;
 
     /* IO Block */
     struct

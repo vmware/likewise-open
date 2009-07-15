@@ -1042,3 +1042,29 @@ lwmsg_server_get_num_clients(
 
     return result;
 }
+
+LWMsgStatus
+lwmsg_server_set_exception_function(
+    LWMsgServer* server,
+    LWMsgServerExceptionFunction except,
+    void* except_data
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    lwmsg_server_lock(server);
+
+    if (server->state != SERVER_STATE_STOPPED)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+    }
+
+    server->except = except;
+    server->except_data = except_data;
+
+error:
+
+    lwmsg_server_unlock(server);
+
+    return status;
+}
