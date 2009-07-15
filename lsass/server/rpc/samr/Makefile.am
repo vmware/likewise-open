@@ -2,7 +2,8 @@ srv_srcdir = $(top_srcdir)/server
 rpc_srcdir = $(srv_srcdir)/rpc
 idl_srcdir = $(rpc_srcdir)/idl
 
-lib_LTLIBRARIES = libsamr_ss.la libsamr_srv.la
+lib_LTLIBRARIES = libsamr_srv.la
+noinst_LTLIBRARIES = libsamr_ss.la
 
 libsamr_srv_la_SOURCES = \
     globals.c \
