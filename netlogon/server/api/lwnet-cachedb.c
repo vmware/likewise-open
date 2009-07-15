@@ -45,11 +45,11 @@
  */
 #include "includes.h"
 
-#define LWNET_CACHE_DB_RETRY_WRITE_ATTEMPTS 20
-#define LWNET_CACHE_DB_RETRY_WRITE_WAIT_MILLISECONDS 500
+#define FILEDB_FORMAT_TYPE "LFLT"
+#define FILEDB_FORMAT_VERSION 1
 
 struct _LWNET_CACHE_DB_HANDLE_DATA {
-    sqlite3* SqlHandle;
+    PDLINKEDLIST pCacheList;
     // This RW lock helps us to ensure that we don't stomp
     // ourselves while giving up good parallel access.
     // Note, however, that SQLite might still return busy errors
@@ -61,6 +61,38 @@ struct _LWNET_CACHE_DB_HANDLE_DATA {
 };
 
 static LWNET_CACHE_DB_HANDLE gDbHandle;
+
+LWMsgTypeSpec gLWNetCacheEntrySpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LWNET_CACHE_DB_ENTRY),
+    LWMSG_MEMBER_PSTR(LWNET_CACHE_DB_ENTRY, pszDnsDomainName),
+    LWMSG_MEMBER_PSTR(LWNET_CACHE_DB_ENTRY, pszSiteName),
+    LWMSG_MEMBER_UINT32(LWNET_CACHE_DB_ENTRY, QueryType),
+    LWMSG_MEMBER_UINT64(LWNET_CACHE_DB_ENTRY, LastDiscovered),
+    LWMSG_MEMBER_UINT64(LWNET_CACHE_DB_ENTRY, LastPinged),
+    LWMSG_MEMBER_STRUCT_BEGIN(LWNET_CACHE_DB_ENTRY, DcInfo),
+    LWMSG_MEMBER_UINT32(LWNET_DC_INFO, dwPingTime),
+    LWMSG_MEMBER_UINT32(LWNET_DC_INFO, dwDomainControllerAddressType),
+    LWMSG_MEMBER_UINT32(LWNET_DC_INFO, dwFlags),
+    LWMSG_MEMBER_UINT16(LWNET_DC_INFO, wLMToken),
+    LWMSG_MEMBER_UINT16(LWNET_DC_INFO, wNTToken),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszDomainControllerName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszDomainControllerAddress),
+    LWMSG_MEMBER_ARRAY_BEGIN(LWNET_DC_INFO, pucDomainGUID),
+    LWMSG_UINT8(char),
+    LWMSG_ARRAY_END,
+    LWMSG_ATTR_LENGTH_STATIC(LWNET_GUID_SIZE),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszNetBIOSDomainName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszFullyQualifiedDomainName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszDnsForestName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszDCSiteName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszClientSiteName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszNetBIOSHostName),
+    LWMSG_MEMBER_PSTR(LWNET_DC_INFO, pszUserName),
+    LWMSG_STRUCT_END,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
 
 // ISSUE-2008/07/01-dalmeida -- For now, use exlusive locking as we need to
 // verify actual thread safety wrt things like error strings and such.
@@ -76,12 +108,42 @@ static LWNET_CACHE_DB_HANDLE gDbHandle;
 #define RW_LOCK_RELEASE_WRITE(Lock) \
     pthread_rwlock_unlock(Lock)
 
-#ifdef DEBUG
-#define LWNET_CACHE_DB_VERIFY_COLUMN_HEADER(Text, Table, ColumnCount, ColumnIndex) \
-    ((strcmp(Text, LWNetCacheDbGetTableElement(Table, ColumnCount, 0, ColumnIndex))) ? LWNET_ERROR_DATA_ERROR : 0)
-#else
-#define LWNET_CACHE_DB_VERIFY_COLUMN_HEADER(Text, Table, ColumnCount, ColumnIndex) 0
-#endif
+static
+DWORD
+LWNetCacheDbReadFromFile(
+    LWNET_CACHE_DB_HANDLE dbHandle
+    );
+
+static
+DWORD
+LWNetCacheDbWriteToFile(
+    PDLINKEDLIST pCacheList
+    );
+
+static
+VOID
+LWNetCacheDbForEachEntryDestroy(
+    IN PVOID pData,
+    IN PVOID pContext
+    );
+
+static
+VOID
+LWNetCacheDbEntryFree(
+    IN OUT PLWNET_CACHE_DB_ENTRY pEntry
+    );
+
+static
+DWORD
+LWNetCacheDbUpdate(
+    IN LWNET_CACHE_DB_HANDLE DbHandle,
+    IN PCSTR pszDnsDomainName,
+    IN OPTIONAL PCSTR pszSiteName,
+    IN LWNET_CACHE_DB_QUERY_TYPE QueryType,
+    IN OPTIONAL PLWNET_UNIX_TIME_T LastDiscovered,
+    IN OPTIONAL PLWNET_UNIX_TIME_T LastPinged,
+    IN PLWNET_DC_INFO pDcInfo
+    );
 
 DWORD
 LWNetCacheDbOpen(
@@ -102,22 +164,8 @@ LWNetCacheDbOpen(
 
     dbHandle->pLock = &dbHandle->Lock;
 
-    // Note that this will create the database if it does not already
-    // exist.
-
-    // TODO-dalmeida-2008/06/30 -- Convert error code
-    if (bIsWrite)
-    {
-        dwError = sqlite3_open(Path, &dbHandle->SqlHandle);
-        BAIL_ON_LWNET_ERROR(dwError);
-        dbHandle->CanWrite = TRUE;
-    }
-    else
-    {
-        dwError = sqlite3_open_v2(Path, &dbHandle->SqlHandle,
-                                  SQLITE_OPEN_READONLY, NULL);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
+    dwError = LWNetCacheDbReadFromFile(dbHandle);
+    BAIL_ON_LWNET_ERROR(dwError);
 
 error:
     if (dwError)
@@ -137,41 +185,367 @@ LWNetCacheDbClose(
 
     if (dbHandle)
     {
+        if (dbHandle->pCacheList)
+        {
+            LWNetCacheDbWriteToFile(dbHandle->pCacheList);
+
+            LWNetDLinkedListForEach(
+                dbHandle->pCacheList,
+                LWNetCacheDbForEachEntryDestroy,
+                NULL);
+            LWNetDLinkedListFree(dbHandle->pCacheList);
+        }
         if (dbHandle->pLock)
         {
             pthread_rwlock_destroy(dbHandle->pLock);
         }
-        if (dbHandle->SqlHandle)
-        {
-            sqlite3_close(dbHandle->SqlHandle);
-        }
+
+        LWNET_SAFE_FREE_MEMORY(dbHandle);
+
         *pDbHandle = NULL;
     }
 }
 
-DWORD
-LWNetCacheDbSetup(
-    IN LWNET_CACHE_DB_HANDLE DbHandle
+static
+VOID
+LWNetCacheDbForEachEntryDestroy(
+    IN PVOID pData,
+    IN PVOID pContext
     )
 {
-    DWORD dwError = 0;
-    PSTR pszError = NULL;
+    PLWNET_CACHE_DB_ENTRY pEntry = (PLWNET_CACHE_DB_ENTRY)pData;
+    LWNetCacheDbEntryFree(pEntry);
+}
 
-    dwError = sqlite3_exec(DbHandle->SqlHandle,
-                           LWNET_CACHEDB_SQL_SETUP,
-                           NULL,
-                           NULL,
-                           &pszError);
-    if (dwError)
+static
+VOID
+LWNetCacheDbEntryFree(
+    IN OUT PLWNET_CACHE_DB_ENTRY pEntry
+    )
+{
+    if (pEntry)
     {
-        LWNET_LOG_DEBUG("SQL failed: code = %d, message = '%s'\nSQL =\n%s",
-                        dwError, pszError, LWNET_CACHEDB_SQL_SETUP);
+        LWNET_SAFE_FREE_STRING(pEntry->pszDnsDomainName);
+        LWNET_SAFE_FREE_STRING(pEntry->pszSiteName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszDomainControllerName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszDomainControllerAddress);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszNetBIOSDomainName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszFullyQualifiedDomainName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszDnsForestName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszDCSiteName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszClientSiteName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszNetBIOSHostName);
+        LWNET_SAFE_FREE_STRING(pEntry->DcInfo.pszUserName);
+        LWNET_SAFE_FREE_MEMORY(pEntry);
+    }
+}
+
+static
+DWORD
+LWNetCacheDbReadFromFile(
+    LWNET_CACHE_DB_HANDLE dbHandle
+    )
+{
+    DWORD    dwError = 0;
+    BOOLEAN  bExists = FALSE;
+    FILE *   pFileDb = NULL;
+    size_t   Cnt = 0;
+    BYTE     FormatType[4];
+    DWORD    dwVersion = 0;
+    PVOID    pData = NULL;
+    size_t   DataMaxSize = 0;
+    size_t   DataSize = 0;
+    LWMsgContext * pContext = NULL;
+    LWMsgDataContext * pDataContext = NULL;
+    PLWNET_CACHE_DB_ENTRY pCacheEntry = NULL;
+
+    memset(FormatType, 0, sizeof(FormatType));
+
+    dwError = LWNetCheckFileExists(
+                  NETLOGON_DB,
+                  &bExists);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (!bExists)
+    {
+       goto cleanup;
+    }
+
+    pFileDb = fopen(NETLOGON_DB, "r");
+    if (pFileDb == NULL)
+    {
+        dwError = errno;
     }
     BAIL_ON_LWNET_ERROR(dwError);
 
-error:
-    SQLITE3_SAFE_FREE_STRING(pszError);
+    Cnt = fread(&FormatType, sizeof(FormatType), 1, pFileDb);
+    if (Cnt == 0)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    else if (Cnt != 1)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (memcmp(FormatType, FILEDB_FORMAT_TYPE, sizeof(FormatType)))
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pFileDb);
+    if (Cnt == 0)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    else if (Cnt != 1)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    while (1)
+    {
+        Cnt = fread(&DataSize, sizeof(DataSize), 1, pFileDb);
+        if (Cnt == 0)
+        {
+            break;
+        }
+        else if (Cnt != 1)
+        {
+            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        if (DataSize > DataMaxSize)
+        {
+            DataMaxSize = DataSize * 2;
+
+            dwError = LWNetReallocMemory(
+                          pData,
+                          (PVOID*)&pData,
+                          DataMaxSize);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+
+        Cnt = fread(pData, DataSize, 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                                  pDataContext,
+                                  gLWNetCacheEntrySpec,
+                                  pData,
+                                  DataSize,
+                                  (PVOID*)&pCacheEntry));
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        dwError = LWNetCacheDbUpdate(
+                      dbHandle,
+                      pCacheEntry->pszDnsDomainName,
+                      pCacheEntry->pszSiteName,
+                      pCacheEntry->QueryType,
+                      &pCacheEntry->LastDiscovered,
+                      &pCacheEntry->LastPinged,
+                      &pCacheEntry->DcInfo);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        lwmsg_data_free_graph(
+            pDataContext,
+            gLWNetCacheEntrySpec,
+            pCacheEntry);
+
+        pCacheEntry = NULL;
+    }
+
+cleanup:
+
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+    }
+
+    if (pCacheEntry)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            gLWNetCacheEntrySpec,
+            pCacheEntry);
+    }
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    LWNET_SAFE_FREE_MEMORY(pData);
+
     return dwError;
+
+error:
+
+    // So long as there is network connectivity, errors are not fatal.
+    LWNET_LOG_ERROR("Failed to read cache %s [%d]", NETLOGON_DB, dwError);
+    dwError = 0;
+
+    goto cleanup;
+}
+
+static
+DWORD
+LWNetCacheDbWriteToFile(
+    PDLINKEDLIST pCacheList
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bExists = FALSE;
+    FILE * pFileDb = NULL;
+    size_t Cnt = 0;
+    PCSTR FormatType = FILEDB_FORMAT_TYPE;
+    DWORD dwVersion = FILEDB_FORMAT_VERSION;
+    LWMsgContext * pContext = NULL;
+    LWMsgDataContext * pDataContext = NULL;
+    PVOID pData = NULL;
+    size_t DataSize = 0;
+
+    dwError = LWNetCheckDirectoryExists(
+                  NETLOGON_DB_DIR,
+                  &bExists);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    if (!bExists)
+    {
+        mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+
+        /* Allow go+rx to the base cache folder */
+        dwError = LWNetCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    /* restrict access to u+rwx to the db folder */
+    dwError = LWNetChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetCheckFileExists(
+                  NETLOGON_DB,
+                  &bExists);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    pFileDb = fopen(NETLOGON_DB, "w");
+    if (pFileDb == NULL)
+    {
+        dwError = errno;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    // Make sure that we are secured
+    dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    while (pCacheList)
+    {
+        dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                                  pDataContext,
+                                  gLWNetCacheEntrySpec,
+                                  pCacheList->pItem,
+                                  &pData,
+                                  &DataSize));
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        Cnt = fwrite(&DataSize, sizeof(DataSize), 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        Cnt = fwrite(pData, DataSize, 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LWNET_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        LWNET_SAFE_FREE_MEMORY(pData);
+
+        pCacheList = pCacheList->pNext;
+    }
+
+    fclose(pFileDb);
+    pFileDb = NULL;
+
+    if (!bExists)
+    {
+        dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+cleanup:
+
+    LWNET_SAFE_FREE_MEMORY(pData);
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+    }
+
+    return dwError;
+
+error:
+
+    LWNET_LOG_ERROR("Failed to save cache %s [%d]", NETLOGON_DB, dwError);
+
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+        pFileDb = NULL;
+    }
+    LWNetRemoveFile(NETLOGON_DB);
+
+    goto cleanup;
 }
 
 static
@@ -205,288 +579,138 @@ LWNetCacheDbQuery(
 {
     DWORD dwError = 0;
     LWNET_CACHE_DB_QUERY_TYPE queryType = 0;
-    PSTR pszSql = NULL;
-    PSTR* pszResultTable = NULL;
-    int rowCount = 0;
-    int columnCount = 0;
-    PSTR errorMessage = NULL;
     BOOLEAN isAcquired = FALSE;
-    int columnIndex = 0;
-    const int expectedColumns = 18;
     PLWNET_DC_INFO pDcInfo = NULL;
     LWNET_UNIX_TIME_T lastDiscovered = 0;
     LWNET_UNIX_TIME_T lastPinged = 0;
-    PCSTR valueString = NULL;
-    PSTR pszGuid = NULL;
-    PBYTE pGuidBytes = NULL;
-    DWORD dwGuidByteCount = 0;
+    PSTR pszDnsDomainNameLower = NULL;
+    PSTR pszSiteNameLower = NULL;
+    PLWNET_CACHE_DB_ENTRY pEntry = NULL;
+    PDLINKEDLIST pListEntry = NULL;
 
-    queryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
-
-    pszSql = sqlite3_mprintf("SELECT "
-                             "LastPinged, "
-                             "LastDiscovered, "
-                             "PingTime, "
-                             "DomainControllerAddressType, "
-                             "Flags, "
-                             "Version, "
-                             "LMToken, "
-                             "NTToken, "
-                             "DomainControllerName, "
-                             "DomainControllerAddress, "
-                             "DomainGUID, "
-                             "NetBIOSDomainName, "
-                             "FullyQualifiedDomainName, "
-                             "DnsForestName, "
-                             "DCSiteName, "
-                             "ClientSiteName, "
-                             "NetBIOSHostName, "
-                             "UserName "
-                             "FROM " NETLOGON_DB_TABLE_NAME " "
-                             "WHERE "
-                             "QueryDnsDomainName = trim(lower(%Q)) AND "
-                             "QuerySiteName = trim(lower(%Q)) AND "
-                             "QueryType = %d ",
-                             pszDnsDomainName,
-                             pszSiteName ? pszSiteName : "",
-                             queryType);
-    if (!pszSql)
+    if (pszDnsDomainName)
     {
-        // This must have been a memory issue -- note that we cannot query
-        // a handle since no handle is passed in sqlite3_mprintf.
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
+        dwError = LWNetAllocateString(
+                      pszDnsDomainName,
+                      &pszDnsDomainNameLower);
         BAIL_ON_LWNET_ERROR(dwError);
     }
+    else
+    {
+        LWNET_LOG_DEBUG("Cached entry not found: %s, %s, %u",
+                        "",
+                        pszSiteNameLower ? pszSiteNameLower : "",
+                        queryType);
+        goto error;
+    }
+
+    LWNetStrToLower(pszDnsDomainNameLower);
+
+    if (pszSiteName)
+    {
+        dwError = LWNetAllocateString(
+                      pszSiteName,
+                      &pszSiteNameLower);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        LWNetStrToLower(pszSiteNameLower);
+    }
+
+    queryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
 
     RW_LOCK_ACQUIRE_READ(DbHandle->pLock);
     isAcquired = TRUE;
 
-    // TODO-dalmeida-2008/07/01 -- Error code conversion
-    dwError = (DWORD)sqlite3_get_table(DbHandle->SqlHandle,
-                                       pszSql,
-                                       &pszResultTable,
-                                       &rowCount,
-                                       &columnCount,
-                                       &errorMessage);
-    BAIL_ON_SQLITE3_ERROR(dwError, errorMessage);
-
-    RW_LOCK_RELEASE_READ(DbHandle->pLock);
-    isAcquired = FALSE;
-
-    if (rowCount <= 0)
+    for (pListEntry = DbHandle->pCacheList ;
+         pListEntry ;
+         pListEntry = pListEntry->pNext)
     {
-        // Nothing found in the cache, so we return success, but no data.
-        dwError = 0;
+        pEntry = (PLWNET_CACHE_DB_ENTRY)pListEntry->pItem;
+
+        if ( pEntry->QueryType == queryType &&
+             !strcmp(pEntry->pszDnsDomainName, pszDnsDomainNameLower))
+        {
+            if (!pEntry->pszSiteName && !pszSiteNameLower)
+            {
+                break;
+            }
+            if (pEntry->pszSiteName && pszSiteNameLower &&
+                !strcmp(pEntry->pszSiteName, pszSiteNameLower))
+            {
+                break;
+            }
+        }
+    }
+
+    if (!pListEntry)
+    {
+        LWNET_LOG_DEBUG("Cached entry not found: %s, %s, %u",
+                        pszDnsDomainNameLower,
+                        pszSiteNameLower ? pszSiteNameLower : "",
+                        queryType);
         goto error;
     }
-
-    if (rowCount != 1)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    if (columnCount != expectedColumns)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    columnIndex = 0;
 
     dwError = LWNetAllocateMemory(sizeof(*pDcInfo), (PVOID*)&pDcInfo);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("LastPinged",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
+    lastDiscovered = pEntry->LastDiscovered;
+    lastPinged = pEntry->LastPinged;
+
+    pDcInfo->dwPingTime = pEntry->DcInfo.dwPingTime;
+    pDcInfo->dwDomainControllerAddressType = pEntry->DcInfo.dwDomainControllerAddressType;
+    pDcInfo->dwFlags = pEntry->DcInfo.dwFlags;
+    pDcInfo->dwVersion = pEntry->DcInfo.dwVersion;
+    pDcInfo->wLMToken = pEntry->DcInfo.wLMToken;
+    pDcInfo->wNTToken = pEntry->DcInfo.wNTToken;
+
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszDomainControllerName,
+                  &pDcInfo->pszDomainControllerName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteInt64(valueString, &lastPinged);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszDomainControllerAddress,
+                  &pDcInfo->pszDomainControllerAddress);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("LastDiscovered",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
+    memcpy(pDcInfo->pucDomainGUID,
+           pEntry->DcInfo.pucDomainGUID,
+           LWNET_GUID_SIZE);
+
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszNetBIOSDomainName,
+                  &pDcInfo->pszNetBIOSDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteInt64(valueString, &lastDiscovered);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszFullyQualifiedDomainName,
+                  &pDcInfo->pszFullyQualifiedDomainName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("PingTime",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszDnsForestName,
+                  &pDcInfo->pszDnsForestName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    // TODO -- handle negative caching -- also make sure callers handle it...
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt32(valueString, &pDcInfo->dwPingTime);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszDCSiteName,
+                  &pDcInfo->pszDCSiteName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DomainControllerAddressType",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszClientSiteName,
+                  &pDcInfo->pszClientSiteName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt32(valueString, &pDcInfo->dwDomainControllerAddressType);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszNetBIOSHostName,
+                  &pDcInfo->pszNetBIOSHostName);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("Flags",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt32(valueString, &pDcInfo->dwFlags);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("Version",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt32(valueString, &pDcInfo->dwVersion);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("LMToken",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt16(valueString, &pDcInfo->wLMToken);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("NTToken",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteUInt16(valueString, &pDcInfo->wNTToken);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DomainControllerName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszDomainControllerName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DomainControllerAddress",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszDomainControllerAddress);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DomainGUID",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pszGuid);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetHexStrToByteArray(pszGuid, &pGuidBytes, &dwGuidByteCount);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    if (sizeof(pDcInfo->pucDomainGUID) != dwGuidByteCount)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    memcpy(pDcInfo->pucDomainGUID, pGuidBytes, sizeof(pDcInfo->pucDomainGUID));
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("NetBIOSDomainName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszNetBIOSDomainName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("FullyQualifiedDomainName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszFullyQualifiedDomainName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DnsForestName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszDnsForestName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("DCSiteName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszDCSiteName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("ClientSiteName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszClientSiteName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("NetBIOSHostName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszNetBIOSHostName);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER("UserName",
-                                                  pszResultTable,
-                                                  columnCount,
-                                                  columnIndex);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, columnIndex++);
-    dwError = LWNetCacheDbReadSqliteString(valueString, &pDcInfo->pszUserName);
+    dwError = LWNetAllocateString(
+                  pEntry->DcInfo.pszUserName,
+                  &pDcInfo->pszUserName);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
@@ -500,14 +724,9 @@ error:
         lastPinged = 0;
         lastDiscovered = 0;
     }
-    SQLITE3_SAFE_FREE_STRING(pszSql);
-    SQLITE3_SAFE_FREE_STRING(errorMessage);
-    if (pszResultTable)
-    {
-        sqlite3_free_table(pszResultTable);
-    }
-    LWNET_SAFE_FREE_STRING(pszGuid);
-    LWNET_SAFE_FREE_MEMORY(pGuidBytes);
+
+    LWNET_SAFE_FREE_STRING(pszDnsDomainNameLower);
+    LWNET_SAFE_FREE_STRING(pszSiteNameLower);
 
     *ppDcInfo = pDcInfo;
     *LastDiscovered = lastDiscovered;
@@ -516,112 +735,155 @@ error:
     return dwError;
 }
 
+static
 DWORD
 LWNetCacheDbUpdate(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
-    IN DWORD dwDsFlags,
+    IN LWNET_CACHE_DB_QUERY_TYPE QueryType,
     IN OPTIONAL PLWNET_UNIX_TIME_T LastDiscovered,
+    IN OPTIONAL PLWNET_UNIX_TIME_T LastPinged,
     IN PLWNET_DC_INFO pDcInfo
     )
 {
     DWORD dwError = 0;
-    PSTR pszSql = NULL;
-    PSTR pszDomainGUIDOctetString = NULL;
     LWNET_UNIX_TIME_T now = 0;
-    LWNET_CACHE_DB_QUERY_TYPE queryType = 0;
+    PLWNET_CACHE_DB_ENTRY pNewEntry = NULL;
+    PLWNET_CACHE_DB_ENTRY pOldEntry = NULL;
+    PDLINKEDLIST pOldListEntry = NULL;
+    BOOLEAN isAcquired = FALSE;
 
-    dwError = LWNetByteArrayToHexStr(pDcInfo->pucDomainGUID,
-                                     sizeof(pDcInfo->pucDomainGUID),
-                                     &pszDomainGUIDOctetString);
+    dwError = LWNetAllocateMemory(sizeof(*pNewEntry), (PVOID *)&pNewEntry);
     BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pszDnsDomainName,
+                  &pNewEntry->pszDnsDomainName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    LWNetStrToLower(pNewEntry->pszDnsDomainName);
+
+    if (pszSiteName)
+    {
+        dwError = LWNetAllocateString(
+                      pszSiteName,
+                      &pNewEntry->pszSiteName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        LWNetStrToLower(pNewEntry->pszSiteName);
+    }
+
+    pNewEntry->QueryType = QueryType;
 
     dwError = LWNetGetSystemTime(&now);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    queryType = LWNetCacheDbQueryToQueryType(dwDsFlags);
+    pNewEntry->LastDiscovered = LastDiscovered ? *LastDiscovered : now;
+    pNewEntry->LastPinged = LastPinged ? *LastPinged : now;
+    pNewEntry->DcInfo.dwPingTime = pDcInfo->dwPingTime;
+    pNewEntry->DcInfo.dwDomainControllerAddressType = pDcInfo->dwDomainControllerAddressType;
+    pNewEntry->DcInfo.dwFlags = pDcInfo->dwFlags;
+    pNewEntry->DcInfo.dwVersion = pDcInfo->dwVersion;
+    pNewEntry->DcInfo.wLMToken = pDcInfo->wLMToken;
+    pNewEntry->DcInfo.wNTToken = pDcInfo->wNTToken;
 
-    pszSql = sqlite3_mprintf("REPLACE INTO " NETLOGON_DB_TABLE_NAME " ("
-                             "QueryDnsDomainName, "
-                             "QuerySiteName, "
-                             "QueryType, "
-                             "LastDiscovered, "
-                             "LastPinged, "
-                             "PingTime, "
-                             "DomainControllerAddressType, "
-                             "Flags, "
-                             "Version, "
-                             "LMToken, "
-                             "NTToken, "
-                             "DomainControllerName, "
-                             "DomainControllerAddress, "
-                             "DomainGUID, "
-                             "NetBIOSDomainName, "
-                             "FullyQualifiedDomainName, "
-                             "DnsForestName, "
-                             "DCSiteName, "
-                             "ClientSiteName, "
-                             "NetBIOSHostName, "
-                             "UserName"
-                             ") VALUES ("
-                             "trim(lower(%Q)), " // QueryDnsDomainName
-                             "trim(lower(%Q)), " // QuerySiteName
-                             "%u, " // QueryType
-                             "%lld, " // LastDiscovered
-                             "%lld, " // LastPinged
-                             "%u, " // PingTime
-                             "%u, " // DomainControllerAddressType
-                             "%u, " // Flags
-                             "%u, " // Version
-                             "%u, " // LMToken
-                             "%u, " // NTToken
-                             "%Q, " // DomainControllerName
-                             "%Q, " // DomainControllerAddress
-                             "%Q, " // DomainGUID
-                             "%Q, " // NetBIOSDomainName
-                             "%Q, " // FullyQualifiedDomainName
-                             "%Q, " // DnsForestName
-                             "%Q, " // DCSiteName
-                             "%Q, " // ClientSiteName
-                             "%Q, " // NetBIOSHostName
-                             "%Q" // UserName
-                             ");\n",
-                             pszDnsDomainName,
-                             pszSiteName ? pszSiteName : "",
-                             queryType,
-                             LastDiscovered ? *LastDiscovered : now,
-                             now,
-                             pDcInfo->dwPingTime,
-                             pDcInfo->dwDomainControllerAddressType,
-                             pDcInfo->dwFlags,
-                             pDcInfo->dwVersion,
-                             pDcInfo->wLMToken,
-                             pDcInfo->wNTToken,
-                             pDcInfo->pszDomainControllerName,
-                             pDcInfo->pszDomainControllerAddress,
-                             pszDomainGUIDOctetString,
-                             pDcInfo->pszNetBIOSDomainName,
-                             pDcInfo->pszFullyQualifiedDomainName,
-                             pDcInfo->pszDnsForestName,
-                             pDcInfo->pszDCSiteName,
-                             pDcInfo->pszClientSiteName,
-                             pDcInfo->pszNetBIOSHostName,
-                             pDcInfo->pszUserName);
-    if (!pszSql)
-    {
-        // This must have been a memory issue -- note that we cannot query
-        // a handle since no handle is passed in sqlite3_mprintf.
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetCacheDbExecWithRetry(DbHandle, pszSql);
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszDomainControllerName,
+                  &pNewEntry->DcInfo.pszDomainControllerName);
     BAIL_ON_LWNET_ERROR(dwError);
 
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszDomainControllerAddress,
+                  &pNewEntry->DcInfo.pszDomainControllerAddress);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    memcpy(pNewEntry->DcInfo.pucDomainGUID,
+           pDcInfo->pucDomainGUID,
+           LWNET_GUID_SIZE);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszNetBIOSDomainName,
+                  &pNewEntry->DcInfo.pszNetBIOSDomainName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszFullyQualifiedDomainName,
+                  &pNewEntry->DcInfo.pszFullyQualifiedDomainName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszDnsForestName,
+                  &pNewEntry->DcInfo.pszDnsForestName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszDCSiteName,
+                  &pNewEntry->DcInfo.pszDCSiteName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszClientSiteName,
+                  &pNewEntry->DcInfo.pszClientSiteName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszNetBIOSHostName,
+                  &pNewEntry->DcInfo.pszNetBIOSHostName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = LWNetAllocateString(
+                  pDcInfo->pszUserName,
+                  &pNewEntry->DcInfo.pszUserName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    RW_LOCK_ACQUIRE_WRITE(DbHandle->pLock);
+    isAcquired = TRUE;
+
+    for (pOldListEntry = DbHandle->pCacheList ;
+         pOldListEntry ;
+         pOldListEntry = pOldListEntry->pNext)
+    {
+        pOldEntry = (PLWNET_CACHE_DB_ENTRY)pOldListEntry->pItem;
+
+        if (pOldEntry->QueryType == pNewEntry->QueryType &&
+             !strcmp(pOldEntry->pszDnsDomainName, pNewEntry->pszDnsDomainName))
+        {
+            if (!pOldEntry->pszSiteName && !pNewEntry->pszSiteName)
+            {
+                break;
+            }
+            if (pOldEntry->pszSiteName && pNewEntry->pszSiteName &&
+                !strcmp(pOldEntry->pszSiteName, pNewEntry->pszSiteName))
+            {
+                break;
+            }
+        }
+    }
+
+    if (pOldListEntry)
+    {
+        LWNetDLinkedListDelete(
+            &DbHandle->pCacheList,
+            pOldEntry);
+
+        LWNetCacheDbEntryFree(pOldEntry);
+    }
+
+    dwError = LWNetDLinkedListAppend(
+                  &DbHandle->pCacheList,
+                  pNewEntry);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    pNewEntry = NULL;
+
 error:
-    SQLITE3_SAFE_FREE_STRING(pszSql);
-    LWNET_SAFE_FREE_STRING(pszDomainGUIDOctetString);
+    if (isAcquired)
+    {
+        RW_LOCK_RELEASE_WRITE(DbHandle->pLock);
+    }
+
+    LWNetCacheDbEntryFree(pNewEntry);
 
     return dwError;
 }
@@ -634,33 +896,42 @@ LWNetCacheDbScavenge(
     )
 {
     DWORD dwError = 0;
-    PSTR pszSql = NULL;
     LWNET_UNIX_TIME_T now = 0;
     LWNET_UNIX_TIME_T positiveTimeLimit = 0;
+    PLWNET_CACHE_DB_ENTRY pEntry = NULL;
+    PDLINKEDLIST pListEntry = NULL;
+    PDLINKEDLIST pNextListEntry = NULL;
+    BOOLEAN isAcquired = FALSE;
 
     dwError = LWNetGetSystemTime(&now);
     positiveTimeLimit = now + PositiveCacheAge;
 
-    // ISSUE-2008/07/01-dalmeida -- Add negative cache login when
-    // adding negative caching.
+    RW_LOCK_ACQUIRE_WRITE(DbHandle->pLock);
+    isAcquired = TRUE;
 
-    pszSql = sqlite3_mprintf("DELETE FROM " NETLOGON_DB_TABLE_NAME " "
-                             "WHERE "
-                             "LastPinged < %llu \n",
-                             positiveTimeLimit);
-    if (!pszSql)
+    pListEntry = DbHandle->pCacheList;
+    while(pListEntry)
     {
-        // This must have been a memory issue -- note that we cannot query
-        // a handle since no handle is passed in sqlite3_mprintf.
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LWNET_ERROR(dwError);
+        pNextListEntry = pListEntry->pNext;
+        pEntry = pListEntry->pItem;
+
+        if (pEntry->LastPinged < positiveTimeLimit)
+        {
+            LWNetDLinkedListDelete(
+                &DbHandle->pCacheList,
+                pEntry);
+
+            LWNetCacheDbEntryFree(pEntry);
+        }
+
+        pListEntry = pNextListEntry;
     }
 
-    dwError = LWNetCacheDbExecWithRetry(DbHandle, pszSql);
-    BAIL_ON_LWNET_ERROR(dwError);
+    if (isAcquired)
+    {
+        RW_LOCK_RELEASE_WRITE(DbHandle->pLock);
+    }
 
-error:
-    SQLITE3_SAFE_FREE_STRING(pszSql);
     return dwError;
 }
 
@@ -675,348 +946,12 @@ LWNetCacheDbExport(
 }
 
 DWORD
-LWNetCacheDbUpdateKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR* pServerAddressArray,
-    IN DWORD dwServerAddressCount
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszSql = NULL;
-    LWNET_UNIX_TIME_T now = 0;
-    DWORD i = 0;
-    DWORD dwSize = 0;
-    PSTR pszServerList = NULL;
-    PCSTR pszInput = NULL;
-    PSTR pszOutput = NULL;
-
-    dwError = LWNetGetSystemTime(&now);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwSize = 0;
-    for (i = 0; i < dwServerAddressCount; i++)
-    {
-        dwSize += strlen(pServerAddressArray[i]) + 1;
-    }
-
-    dwError = LWNetAllocateMemory(dwSize, (PVOID*)&pszServerList);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    pszOutput = pszServerList;
-    for (i = 0; i < dwServerAddressCount; i++)
-    {
-        pszInput = pServerAddressArray[i];
-        while (*pszInput)
-        {
-            if (' ' == *pszInput)
-            {
-                LWNET_LOG_ERROR("Unexpected space in krb5 server '%s' "
-                                "for domain '%s'", pServerAddressArray[i],
-                                pszDnsDomainName);
-                dwError = LWNET_ERROR_DATA_ERROR;
-                BAIL_ON_LWNET_ERROR(dwError);
-            }
-            pszOutput[0] = pszInput[0];
-            pszOutput++;
-            pszInput++;
-        }
-        pszOutput[0] = ' ';
-        pszOutput++;
-    }
-    pszOutput--;
-    pszOutput[0] = 0;
-
-    pszSql = sqlite3_mprintf("REPLACE INTO " NETLOGON_KRB5_DB_TABLE_NAME " ("
-                             "Realm, "
-                             "LastUpdated, "
-                             "ServerCount, "
-                             "ServerList"
-                             ") VALUES ("
-                             "trim(upper(%Q)), " // Realm
-                             "%lld, " // LastUpdated
-                             "%u, " // ServerCount
-                             "trim(%Q)" // ServerList
-                             ");\n",
-                             pszDnsDomainName,
-                             now,
-                             dwServerAddressCount,
-                             pszServerList);
-    if (!pszSql)
-    {
-        // This must have been a memory issue -- note that we cannot query
-        // a handle since no handle is passed in sqlite3_mprintf.
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetCacheDbExecWithRetry(DbHandle, pszSql);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-error:
-    SQLITE3_SAFE_FREE_STRING(pszSql);
-    LWNET_SAFE_FREE_STRING(pszServerList);
-
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbScavengeKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN LWNET_UNIX_TIME_T Age
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszSql = NULL;
-    LWNET_UNIX_TIME_T now = 0;
-    LWNET_UNIX_TIME_T timeLimit = 0;
-
-    dwError = LWNetGetSystemTime(&now);
-    timeLimit = now + Age;
-
-    pszSql = sqlite3_mprintf("DELETE FROM " NETLOGON_KRB5_DB_TABLE_NAME " "
-                             "WHERE "
-                             "LastUpdated < %llu \n",
-                             timeLimit);
-    if (!pszSql)
-    {
-        // This must have been a memory issue -- note that we cannot query
-        // a handle since no handle is passed in sqlite3_mprintf.
-        dwError = LWNET_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwError = LWNetCacheDbExecWithRetry(DbHandle, pszSql);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-error:
-    SQLITE3_SAFE_FREE_STRING(pszSql);
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbExportKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    OUT PLWNET_CACHE_DB_KRB5_ENTRY* ppEntries,
-    OUT PDWORD pdwCount
-    )
-{
-    DWORD dwError = 0;
-    PSTR* pszResultTable = NULL;
-    int rowCount = 0;
-    int columnCount = 0;
-    PSTR errorMessage = NULL;
-    BOOLEAN isAcquired = FALSE;
-    int rowIndex = 0;
-    int columnIndex = 0;
-    const int expectedColumns = 4;
-    PCSTR valueString = NULL;
-#ifdef DEBUG
-    PCSTR columnHeaders[] = { "Realm", "LastUpdated", "ServerCount", "ServerList" };
-#endif
-    DWORD dwEntryCount = 0;
-    DWORD dwServerCountTotal = 0;
-    DWORD dwMaxTotalStringSize = 0;
-    DWORD dwEntriesSize = 0;
-    DWORD dwServersSize = 0;
-    DWORD dwTotalSize = 0;
-    PSTR* ppStringPointers = NULL;
-    PSTR pszStrings = NULL;
-    PLWNET_CACHE_DB_KRB5_ENTRY pEntries = NULL;
-
-    RW_LOCK_ACQUIRE_READ(DbHandle->pLock);
-    isAcquired = TRUE;
-
-    dwError = LWNetCacheDbExecQueryCountExpression(DbHandle->SqlHandle,
-                                                   "SELECT count(*) FROM "
-                                                   NETLOGON_KRB5_DB_TABLE_NAME,
-                                                   &dwEntryCount);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetCacheDbExecQueryCountExpression(DbHandle->SqlHandle,
-                                                   "SELECT sum(ServerCount) FROM "
-                                                   NETLOGON_KRB5_DB_TABLE_NAME,
-                                                   &dwServerCountTotal);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetCacheDbExecQueryCountExpression(DbHandle->SqlHandle,
-                                                   "SELECT "
-                                                   "sum(length(Realm)) + count(Realm) "
-                                                   "+ "
-                                                   "sum(length(ServerList)) + count(ServerList) "
-                                                   "FROM "
-                                                   NETLOGON_KRB5_DB_TABLE_NAME,
-                                                   &dwMaxTotalStringSize);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    // TODO-dalmeida-2008/07/01 -- Error code conversion
-    dwError = (DWORD)sqlite3_get_table(DbHandle->SqlHandle,
-                                       LWNET_CACHEDB_SQL_DUMP_NETLOGON_KRB5_DB_TABLE,
-                                       &pszResultTable,
-                                       &rowCount,
-                                       &columnCount,
-                                       &errorMessage);
-    BAIL_ON_SQLITE3_ERROR(dwError, errorMessage);
-
-    RW_LOCK_RELEASE_READ(DbHandle->pLock);
-    isAcquired = FALSE;
-
-    if (rowCount <= 0)
-    {
-        // Nothing found in the cache, so we return success, but no data.
-        dwError = 0;
-        goto error;
-    }
-
-    if (columnCount != expectedColumns)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    for (columnIndex = 0; columnIndex < columnCount; columnIndex++)
-    {
-        dwError = LWNET_CACHE_DB_VERIFY_COLUMN_HEADER(columnHeaders[columnIndex],
-                                                      pszResultTable,
-                                                      columnCount,
-                                                      columnIndex++);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    dwEntriesSize = dwEntryCount * sizeof(pEntries[0]);
-    dwServersSize = dwServerCountTotal * sizeof(pEntries[0].ServerAddressArray[0]);
-    dwTotalSize = dwMaxTotalStringSize + dwEntriesSize + dwServersSize;
-
-    dwError = LWNetAllocateMemory(dwTotalSize, (PVOID*)&pEntries);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    ppStringPointers = (PSTR*) CT_PTR_ADD(pEntries, dwEntriesSize);
-    pszStrings = CT_PTR_ADD(pEntries, dwEntriesSize + dwServersSize);
-
-    for (rowIndex = 1; rowIndex <= rowCount; rowIndex++)
-    {
-        PLWNET_CACHE_DB_KRB5_ENTRY pEntry = &pEntries[rowIndex-1];
-
-        columnIndex = 0;
-
-        valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, rowIndex, columnIndex++);
-        dwError = LWNetCacheDbReadSqliteStringIntoBuffer(valueString,
-                                                         CT_PTR_OFFSET(pszStrings, CT_PTR_ADD(pEntries, dwTotalSize)),
-                                                         pszStrings,
-                                                         &pEntry->Realm,
-                                                         &pszStrings);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, rowIndex, columnIndex++);
-        dwError = LWNetCacheDbReadSqliteInt64(valueString, &pEntry->LastUpdated);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, rowIndex, columnIndex++);
-        dwError = LWNetCacheDbReadSqliteUInt32(valueString, &pEntry->ServerAddressCount);
-        BAIL_ON_LWNET_ERROR(dwError);
-
-        if (pEntry->ServerAddressCount > 0)
-        {
-            pEntry->ServerAddressArray = ppStringPointers;
-            ppStringPointers += pEntry->ServerAddressCount;
-
-            // First, read the server address into the first location.
-            valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, rowIndex, columnIndex++);
-            dwError = LWNetCacheDbReadSqliteStringIntoBuffer(valueString,
-                                                             CT_PTR_OFFSET(pszStrings, CT_PTR_ADD(pEntries, dwTotalSize)),
-                                                             pszStrings,
-                                                             &pEntry->ServerAddressArray[0],
-                                                             &pszStrings);
-            BAIL_ON_LWNET_ERROR(dwError);
-
-            if (pEntry->ServerAddressArray[0])
-            {
-                PSTR pszServerAddress = pEntry->ServerAddressArray[0];
-                DWORD dwServerIndex = 0;
-
-                while (pszServerAddress[0])
-                {
-                    if (' ' == pszServerAddress[0])
-                    {
-                        pszServerAddress[0] = 0;
-                        pEntry->ServerAddressArray[++dwServerIndex] = pszServerAddress + 1;
-                    }
-                    pszServerAddress++;
-                }
-            }
-        }
-    }
-
-    // ISSUE-2008/07/07-dalmeida -- Add proper ASSERT macros
-    if (ppStringPointers > (PSTR*)CT_PTR_ADD(pEntries, dwEntriesSize + dwServersSize))
-    {
-        LWNET_LOG_ALWAYS("Failed ASSERT at %s:%d", __FILE__, __LINE__);
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    if (pszStrings > CT_PTR_ADD(pEntries, dwTotalSize))
-    {
-        LWNET_LOG_ALWAYS("Failed ASSERT at %s:%d", __FILE__, __LINE__);
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-error:
-    if (isAcquired)
-    {
-        RW_LOCK_RELEASE_READ(DbHandle->pLock);
-    }
-    SQLITE3_SAFE_FREE_STRING(errorMessage);
-    if (pszResultTable)
-    {
-        sqlite3_free_table(pszResultTable);
-    }
-
-    if (dwError)
-    {
-        LWNET_SAFE_FREE_MEMORY(pEntries);
-        dwEntryCount = 0;
-    }
-
-    *ppEntries = pEntries;
-    *pdwCount = dwEntryCount;
-
-    return dwError;
-}
-
-DWORD
 LWNetCacheInitialize(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
-
-    dwError = LWNetCheckDirectoryExists(NETLOGON_DB_DIR, &bExists);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    // We are securing the cache dir and file to just root
-    if (!bExists)
-    {
-        mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
-
-        /* Allow go+rx to the base cache folder */
-        dwError = LWNetCreateDirectory(NETLOGON_DB_DIR, cacheDirMode);
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    /* restrict access to u+rwx to the db folder */
-    dwError = LWNetChangeOwnerAndPermissions(NETLOGON_DB_DIR, 0, 0, S_IRWXU);
-    BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetCacheDbOpen(NETLOGON_DB, TRUE, &gDbHandle);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    // Make sure that we are secured
-    dwError = LWNetChangePermissions(NETLOGON_DB, S_IRWXU);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = LWNetCacheDbSetup(gDbHandle);
     BAIL_ON_LWNET_ERROR(dwError);
 
 error:
@@ -1059,9 +994,14 @@ LWNetCacheUpdatePing(
     IN PLWNET_DC_INFO pDcInfo
     )
 {
-    return LWNetCacheDbUpdate(gDbHandle,
-                              pszDnsDomainName, pszSiteName, dwDsFlags,
-                              &LastDiscovered, pDcInfo);
+    return LWNetCacheDbUpdate(
+               gDbHandle,
+               pszDnsDomainName,
+               pszSiteName,
+               LWNetCacheDbQueryToQueryType(dwDsFlags),
+               &LastDiscovered,
+               NULL,
+               pDcInfo);
 }
 
 DWORD
@@ -1072,9 +1012,14 @@ LWNetCacheUpdateDiscover(
     IN PLWNET_DC_INFO pDcInfo
     )
 {
-    return LWNetCacheDbUpdate(gDbHandle,
-                              pszDnsDomainName, pszSiteName, dwDsFlags,
-                              NULL, pDcInfo);
+    return LWNetCacheDbUpdate(
+               gDbHandle,
+               pszDnsDomainName,
+               pszSiteName,
+               LWNetCacheDbQueryToQueryType(dwDsFlags),
+               NULL,
+               NULL,
+               pDcInfo);
 }
 
 DWORD
@@ -1085,411 +1030,3 @@ LWNetCacheScavenge(
 {
     return LWNetCacheDbScavenge(gDbHandle, PositiveCacheAge, NegativeCacheAge);
 }
-
-DWORD
-LWNetCacheUpdateKrb5(
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR* pServerAddressArray,
-    IN DWORD dwServerAddressCount
-    )
-{
-    return LWNetCacheDbUpdateKrb5(gDbHandle, pszDnsDomainName,
-                                  pServerAddressArray,
-                                  dwServerAddressCount);
-}
-
-DWORD
-LWNetCacheSavengeKrb5(
-    IN LWNET_UNIX_TIME_T Age
-    )
-{
-    return LWNetCacheDbScavengeKrb5(gDbHandle, Age);
-}
-
-DWORD
-LWNetCacheExportKrb5(
-    OUT PLWNET_CACHE_DB_KRB5_ENTRY* ppEntries,
-    OUT PDWORD pdwCount
-    )
-{
-    return LWNetCacheDbExportKrb5(gDbHandle, ppEntries, pdwCount);
-}
-
-DWORD
-LWNetCacheDbExecQueryCountExpression(
-    IN sqlite3* SqlHandle,
-    IN PCSTR pszSql,
-    OUT PDWORD pdwCount
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwCount = 0;
-    PSTR* pszResultTable = NULL;
-    int rowCount = 0;
-    int columnCount = 0;
-    PSTR errorMessage = NULL;
-    PCSTR valueString = NULL;
-
-    // NOTE: Caller must have already locked the handle.
-
-    // TODO-dalmeida-2008/07/01 -- Error code conversion
-    dwError = (DWORD)sqlite3_get_table(SqlHandle,
-                                       pszSql,
-                                       &pszResultTable,
-                                       &rowCount,
-                                       &columnCount,
-                                       &errorMessage);
-    BAIL_ON_SQLITE3_ERROR(dwError, errorMessage);
-
-    if (rowCount <= 0)
-    {
-        // Nothing found in the cache, so we return success, but no data.
-        dwError = 0;
-        goto error;
-    }
-
-    if (columnCount != 1)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    valueString = LWNetCacheDbGetTableElement(pszResultTable, columnCount, 1, 0);
-    dwError = LWNetCacheDbReadSqliteUInt32(valueString, &dwCount);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-error:
-    if (dwError)
-    {
-        dwCount = 0;
-    }
-
-    SQLITE3_SAFE_FREE_STRING(errorMessage);
-    if (pszResultTable)
-    {
-        sqlite3_free_table(pszResultTable);
-    }
-
-    *pdwCount = dwCount;
-
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbExecWithRetry(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN PCSTR pszSql
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PSTR pszError = NULL;
-    DWORD dwRetry = 0;
-    BOOLEAN isAcquired = FALSE;
-
-    for (dwRetry = 0; dwRetry < LWNET_CACHE_DB_RETRY_WRITE_ATTEMPTS; dwRetry++)
-    {
-        RW_LOCK_ACQUIRE_WRITE(DbHandle->pLock);
-        isAcquired = TRUE;
-
-        dwError = sqlite3_exec(DbHandle->SqlHandle,
-                               pszSql,
-                               NULL,
-                               NULL,
-                               &pszError);
-        if (dwError == SQLITE_BUSY)
-        {
-            SQLITE3_SAFE_FREE_STRING(pszError);
-
-            LWNET_LOG_ERROR("There is a conflict trying to access the "
-                            "cache database.  This would happen if another "
-                            "process is trying to access it.  Retrying...");
-
-            dwError = 0;
-            // sqlite3_exec runs pszSetFullEntry statement by statement. If
-            // it fails, it leaves the sqlite VM with half of the transaction
-            // finished. This rollsback the transaction so it can be retried
-            // in entirety.
-            sqlite3_exec(DbHandle->SqlHandle,
-                         "ROLLBACK",
-                         NULL,
-                         NULL,
-                         NULL);
-            // ISSUE-2008/07/01-dalmeida -- Do we need to check for rollback error?
-
-            RW_LOCK_RELEASE_WRITE(DbHandle->pLock);
-            isAcquired = FALSE;
-
-            dwError = LWNetSleepInMs(LWNET_CACHE_DB_RETRY_WRITE_WAIT_MILLISECONDS);
-            BAIL_ON_LWNET_ERROR(dwError);
-
-            continue;
-        }
-        BAIL_ON_SQLITE3_ERROR(dwError, pszError);
-        break;
-    }
-
-error:
-    if (isAcquired)
-    {
-        RW_LOCK_RELEASE_WRITE(DbHandle->pLock);
-    }
-    SQLITE3_SAFE_FREE_STRING(pszError);
-    return dwError;
-}
-
-
-PCSTR
-LWNetCacheDbGetTableElement(
-    IN PSTR* Table,
-    IN int Width,
-    IN int Row,
-    IN int Column
-    )
-{
-    return Column < Width ? Table[Row * Width + Column] : NULL;
-}
-
-DWORD
-LWNetCacheDbReadSqliteBoolean(
-    IN PCSTR pszValue,
-    OUT PBOOLEAN pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    DWORD dwValue = 0;
-
-    dwError = LWNetCacheDbReadSqliteUInt32(pszValue, &dwValue);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-error:
-    if (dwError)
-    {
-        dwValue = 0;
-    }
-    *pResult = (dwValue != 0) ? TRUE : FALSE;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteUInt16(
-    IN PCSTR pszValue,
-    OUT PWORD pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    DWORD dwValue = 0;
-
-    dwError = LWNetCacheDbReadSqliteUInt32(pszValue, &dwValue);
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    if (dwValue != (dwValue & 0xFFFF))
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-error:
-    if (dwError)
-    {
-        dwValue = 0;
-    }
-    *pResult = (WORD) dwValue;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteUInt32(
-    IN PCSTR pszValue,
-    OUT PDWORD pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PSTR pszEndPtr = NULL;
-    unsigned long int value = 0;
-    DWORD result = 0;
-
-    errno = 0;
-    value = strtoul(pszValue, &pszEndPtr, 10);
-    dwError = errno;
-    if (!pszEndPtr || pszEndPtr == pszValue || *pszEndPtr || dwError)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    if (value < 0 || value > DWORD_MAX)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    result = (DWORD)value;
-
-error:
-    if (dwError)
-    {
-        result = 0;
-    }
-    *pResult = result;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteUInt64(
-    IN PCSTR pszValue,
-    OUT uint64_t* pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PSTR pszEndPtr = NULL;
-    unsigned long long int value = 0;
-    uint64_t result = 0;
-
-    errno = 0;
-    value = strtoull(pszValue, &pszEndPtr, 10);
-    dwError = errno;
-    if (!pszEndPtr || pszEndPtr == pszValue || *pszEndPtr || dwError)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    if (value < 0 || value > (uint64_t) -1)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    result = (uint64_t)value;
-
-error:
-    if (dwError)
-    {
-        result = 0;
-    }
-    *pResult = result;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteInt32(
-    IN PCSTR pszValue,
-    OUT int32_t* pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PSTR pszEndPtr = NULL;
-    long int value = 0;
-    int32_t result = 0;
-
-    errno = 0;
-    value = strtol(pszValue, &pszEndPtr, 10);
-    dwError = errno;
-    if (!pszEndPtr || pszEndPtr == pszValue || *pszEndPtr || dwError)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-    // ISSUE-2008/07/01-dalmeida -- Add range checking
-    result = (int32_t)value;
-
-error:
-    if (dwError)
-    {
-        result = 0;
-    }
-    *pResult = result;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteInt64(
-    IN PCSTR pszValue,
-    OUT int64_t* pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    PSTR pszEndPtr = NULL;
-    long long int value = 0;
-    int64_t result = 0;
-
-    errno = 0;
-    value = strtoll(pszValue, &pszEndPtr, 10);
-    dwError = errno;
-    if (!pszEndPtr || pszEndPtr == pszValue || *pszEndPtr || dwError)
-    {
-        dwError = LWNET_ERROR_DATA_ERROR;
-        BAIL_ON_LWNET_ERROR(dwError);
-    }
-
-    // ISSUE-2008/07/01-dalmeida -- Add range checking
-    result = (int64_t)value;
-
-error:
-    if (dwError)
-    {
-        result = 0;
-    }
-    *pResult = result;
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteString(
-    IN PCSTR pszValue,
-    OUT PSTR* pResult
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-
-    dwError = LWNetStrDupOrNull(pszValue, pResult);
-
-    return dwError;
-}
-
-DWORD
-LWNetCacheDbReadSqliteStringIntoBuffer(
-    IN PCSTR pszValue,
-    IN DWORD dwResultSize,
-    OUT PSTR pResultBuffer,
-    OUT PSTR* pResultValue,
-    OUT OPTIONAL PSTR* pResultEnd
-    )
-{
-    DWORD dwError = LWNET_ERROR_SUCCESS;
-    size_t length = 0;
-    PSTR pStart = NULL;
-    PSTR pEnd = pResultBuffer;
-
-    if (!pszValue)
-    {
-        dwError = 0;
-        goto error;
-    }
-
-    length = strlen(pszValue);
-
-    // Need to make sure we have space for terminating NULL too.
-    if (dwResultSize < (length + 1))
-    {
-        dwError = LWNET_ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_LWNET_ERROR(dwError)
-    }
-
-    memcpy(pResultBuffer, pszValue, length + 1);
-
-    pStart = pResultBuffer;
-    pEnd = pResultBuffer + length + 1;
-
-error:
-    if (dwError)
-    {
-        pStart = NULL;
-        pEnd = pResultBuffer;
-    }
-
-    *pResultValue = pStart;
-    if (pResultEnd)
-    {
-        *pResultEnd = pEnd;
-    }
-
-    return dwError;
-}
-

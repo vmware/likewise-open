@@ -385,6 +385,8 @@ IopIrpCancel(
         GOTO_CLEANUP();
     }
 
+    IopIrpReference(pIrp);
+
     IopIrpAcquireCancelLock(pIrp);
     isAcquired = TRUE;
 
@@ -408,9 +410,15 @@ IopIrpCancel(
     }
 
 cleanup:
+
     if (isAcquired)
     {
         IopIrpReleaseCancelLock(pIrp);
+    }
+
+    if (pIrp)
+    {
+        IopIrpDereference(&pIrp);
     }
 
     return isCancellable;

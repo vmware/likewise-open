@@ -94,3 +94,69 @@ error:
     }
     goto cleanup;
 }
+
+
+LSASS_API
+DWORD
+LsaSetMachineSid(
+    HANDLE hLsaConnection,
+    PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    LSA_IPC_SET_MACHINE_SID SetMachineSid = {0};
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    SetMachineSid.pszSid = pszSid;
+
+    request.tag    = LSA_Q_SET_MACHINE_SID;
+    request.object = &SetMachineSid;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LSA_R_SET_MACHINE_SID_SUCCESS:
+        break;
+
+    case LSA_R_SET_MACHINE_SID_FAILURE:
+        pError = (PLSA_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

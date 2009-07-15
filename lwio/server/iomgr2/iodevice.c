@@ -82,7 +82,7 @@ IoDeviceCreate(
     IopDriverInsertDevice(pDeviceObject->Driver, &pDeviceObject->DriverLinks);
     IopRootInsertDevice(pDeviceObject->Driver->Root, &pDeviceObject->RootLinks);
 
-    status = LwRtlInitializeMutex(&pDeviceObject->CancelMutex, FALSE);
+    status = LwRtlInitializeMutex(&pDeviceObject->CancelMutex, TRUE);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:

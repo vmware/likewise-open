@@ -1433,6 +1433,12 @@ LsaRefreshConfiguration(
    LW_HANDLE hLsaConnection
    );
 
+LW_DWORD
+LsaSetMachineSid(
+   LW_IN LW_HANDLE hLsaConnection,
+   LW_IN LW_PCSTR pszSid
+   );
+
 LW_VOID
 LsaFreeStatus(
    PLSASTATUS pLsaStatus

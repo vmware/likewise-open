@@ -1,9 +1,5 @@
 SUBDIRS = .
 
-if HAVE_MOONUNIT
-SUBDIRS += test
-endif
-
 noinst_LTLIBRARIES = liblwioipc.la
 
 liblwioipc_la_SOURCES = \

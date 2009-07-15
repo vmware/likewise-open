@@ -242,15 +242,7 @@ lwmsg_connection_get_endpoint_owner(
 
     if (stat(endpoint, &endpoint_stat))
     {
-        switch (errno)
-        {
-        case ENOENT:
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_FILE_NOT_FOUND,
-                              "%s", strerror(errno));
-        default:
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                              "%s", strerror(errno));
-        }
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     if (!S_ISSOCK(endpoint_stat.st_mode))

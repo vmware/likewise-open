@@ -155,11 +155,11 @@ lwmsg_data_print_integer(
 
     if (iter->info.kind_integer.sign == LWMSG_SIGNED)
     {
-        BAIL_ON_ERROR(status = print(info, "%jd", (intmax_t) value));
+        BAIL_ON_ERROR(status = print(info, "%lld", (long long int) value));
     }
     else
     {
-        BAIL_ON_ERROR(status = print(info, "%ju", (uintmax_t) value));
+        BAIL_ON_ERROR(status = print(info, "%llu", (unsigned long long int) value));
     }
 
 error:

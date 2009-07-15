@@ -36,6 +36,8 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
+#include <config.h>
 #include "connection-private.h"
 #include "assoc-private.h"
 #include "util-private.h"
@@ -43,6 +45,9 @@
 #include "xnet-private.h"
 #include <lwmsg/data.h>
 
+#ifdef HAVE_SYS_SELECT_H
+#  include <sys/select.h>
+#endif
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
@@ -543,7 +548,7 @@ lwmsg_connection_transceive(
 
             if (ret == -1)
             {
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+                BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
             }
             else if (ret > 0)
             {
@@ -929,14 +934,13 @@ lwmsg_connection_begin_connect_local(
 
     if (priv->fd == -1)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     /* Get socket flags */
     if ((opts = fcntl(priv->fd, F_GETFL, 0)) < 0)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not get socket flags: %s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     /* Set non-blocking flag */
@@ -1054,7 +1058,7 @@ lwmsg_connection_finish_connect(
         if (err < 0)
         {
             /* Select failed for some reason */
-            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+            BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
         }
     }
 
@@ -1064,7 +1068,7 @@ lwmsg_connection_finish_connect(
     if (getsockopt(priv->fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
     {
         /* Getsockopt failed for some reason */
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     switch (err)
@@ -1122,8 +1126,7 @@ lwmsg_connection_connect_existing(
     /* Get socket flags */
     if ((opts = fcntl(priv->fd, F_GETFL, 0)) < 0)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not get socket flags: %s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
     /* Set non-blocking flag */
@@ -1132,8 +1135,7 @@ lwmsg_connection_connect_existing(
     /* Set socket flags */
     if (fcntl(priv->fd, F_SETFL, opts) < 0)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM,
-                          "Could not set socket flags: %s", strerror(errno));
+        BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
     }
 
 error:
@@ -1199,7 +1201,7 @@ lwmsg_connection_begin_send_handshake(
                 /* Send an auth fd */
                 if (pipe(fds) != 0)
                 {
-                    ASSOC_RAISE_ERROR(assoc, LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+                    BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
                 }
 
                 BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fds[0]));
@@ -1300,7 +1302,7 @@ lwmsg_connection_finish_recv_handshake(
             
             if (fstat(fd, &statbuf))
             {
-                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SYSTEM, "%s", strerror(errno));
+                BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
             }
             
             if (!S_ISFIFO(statbuf.st_mode) ||

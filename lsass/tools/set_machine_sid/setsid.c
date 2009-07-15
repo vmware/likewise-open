@@ -33,95 +33,119 @@
  *
  * Module Name:
  *
- *        ipc_config.c
+ *        setsid.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Inter-process communication (Server) API for Configuration
+ *        Driver for program to modify machine (local domain) SID
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Rafal Szczesniak (rafal@likewise.com)
+ * Authors:
+ *        Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "api.h"
+#include "includes.h"
 
-LWMsgStatus
-LsaSrvIpcRefreshConfiguration(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+
+DWORD
+ParseArgs(
+    int argc,
+    char *argv[],
+    PSTR *ppszSid
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
+    PSTR pszSid = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(assoc, (PVOID*) (PVOID) &Handle));
+    if (argc < 1) {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaAllocateString(argv[1], &pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvRefreshConfiguration((HANDLE)Handle);
+    *ppszSid = pszSid;
 
-    if (!dwError)
-    {
-        pResponse->tag = LSA_R_REFRESH_CONFIGURATION_SUCCESS;
-        pResponse->object = NULL;
+cleanup:
+    return dwError;
+
+error:
+    if (pszSid) {
+        LSA_SAFE_FREE_STRING(pszSid);
     }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
 
-        pResponse->tag = LSA_R_REFRESH_CONFIGURATION_FAILURE;
-        pResponse->object = pError;
+    *ppszSid = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+ValidateParameters(
+    PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSID pSid = NULL;
+
+    BAIL_ON_INVALID_STRING(pszSid);
+
+    ntStatus = RtlAllocateSidFromCString(&pSid,
+                                         pszSid);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (RtlValidSid(pSid) &&
+        pSid->SubAuthorityCount != 4)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
+    if (pSid)
+    {
+        RTL_FREE(&pSid);
+    }
+
+    return dwError;
 
 error:
     goto cleanup;
 }
 
 
-LWMsgStatus
-LsaSrvIpcSetMachineSid(
-    LWMsgAssoc *pAssoc,
-    const LWMsgMessage *pRequest,
-    LWMsgMessage *pResponse,
-    void *data
+DWORD
+SetMachineSid(
+    PSTR pszSid
     )
 {
     DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID Handle = NULL;
-    PLSA_IPC_SET_MACHINE_SID pReq = pRequest->object;
+    HANDLE hLsaConnection = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session_data(
-                                            pAssoc,
-                                            OUT_PPVOID(&Handle)));
+    BAIL_ON_INVALID_STRING(pszSid);
+
+    dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvSetMachineSid((HANDLE)Handle, pReq->pszSid);
-    if (!dwError)
-    {
-        pResponse->tag    = LSA_R_SET_MACHINE_SID_SUCCESS;
-        pResponse->object = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
+    dwError = LsaSetMachineSid(hLsaConnection,
+                               pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
 
-        pResponse->tag    = LSA_R_SET_MACHINE_SID_FAILURE;
-        pResponse->object = pError;
-    }
+    fprintf(stdout, "Successfully set machine SID to %s\n", pszSid);
 
 cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
+    if (hLsaConnection != (HANDLE)NULL) {
+        LsaCloseServer(hLsaConnection);
+    }
+
+    return dwError;
 
 error:
     goto cleanup;

@@ -97,6 +97,8 @@ NpfsAllocateIrpContext(
     ntStatus = IO_ALLOCATE(&pIrpContext, NPFS_IRP_CONTEXT, sizeof(*pIrpContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LwListInit(&pIrpContext->Link);
+
     pIrpContext->pIrp = pIrp;
 
     *ppIrpContext = pIrpContext;
@@ -124,9 +126,6 @@ NpfsFreeIrpContext(
 }
 
 
-
-
-
 NTSTATUS
 NpfsCommonCreate(
     PNPFS_IRP_CONTEXT pIrpContext,
@@ -139,6 +138,7 @@ NpfsCommonCreate(
     PNPFS_PIPE pPipe = NULL;
     PNPFS_CCB pCCB = NULL;
     BOOLEAN bReleaseLock = FALSE;
+    PNPFS_IRP_CONTEXT pConnectContext = NULL;
 
     ntStatus = NpfsValidateCreate(
                     pIrpContext,
@@ -174,7 +174,7 @@ NpfsCommonCreate(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pPipe->pCCB = pCCB;
-    pPipe->PipeClientState =  PIPE_CLIENT_CONNECTED;
+    pPipe->PipeClientState = PIPE_CLIENT_CONNECTED;
 
     //
     // This is the Add Reference for the Pipe for the CCB
@@ -189,10 +189,27 @@ NpfsCommonCreate(
         pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Wake up blocking pipe waiters */
     pthread_cond_signal(&pPipe->PipeCondition);
+
+    /* If there is a pending connect IRP, grab it
+       to complete once we leave the pipe mutex */
+    if (pPipe->pPendingServerConnect)
+    {
+        pConnectContext = pPipe->pPendingServerConnect;
+        pPipe->pPendingServerConnect = NULL;
+        pPipe->PipeServerState = PIPE_SERVER_CONNECTED;
+    }
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
     bReleaseLock = FALSE;
+
+    if (pConnectContext)
+    {
+        pConnectContext->pIrp->IoStatusBlock.Status = STATUS_SUCCESS;
+        IoIrpComplete(pConnectContext->pIrp);
+        IO_FREE(&pConnectContext);
+    }
 
     // Complete the transfer the pipe handle to the CCB
 

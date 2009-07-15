@@ -1,6 +1,7 @@
+
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -15,7 +16,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,42 +34,68 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        credentials.c
  *
  * Abstract:
  *
- *        Likewise Site Manager
- * 
- *        Private Header (Server API)
+ *        Likewise Security and Authentication Subsystem (LSASS)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- * 
+ *
+ *
+ * Authors:
  */
+#include "api.h"
 
-#include "config.h"
-#include "lwnet-system.h"
-#include "lwnet-def.h"
+DWORD
+LsaInitializeCredentialsDatabase()
+{
+    DWORD dwError = 0;
 
-#include <lwps/lwps.h>
-#include <lwldap.h>
-#include <lwerror.h>
-#include <lwmsg/lwmsg.h>
 
-#include "lwnet.h"
-#include "lwnet-utils.h"
-#include "lwnet-ipc.h"
+}
 
-#include "lwnet-server.h"
-#include "lwnet-server-api.h"
 
-#include "lwnet_p.h"
-#include "evtstruct.h"
-#include "event_p.h"
-#include "eventdlapi.h"
-#include "lwnet-cachedb.h"
-#include "lwnet-krb5_p.h"
-#include "lwnet-pstore_p.h"
-#include "lwnet-server-cfg_p.h"
-#include "state_p.h"
+DWORD
+LsaShutdownCredentialsDatabase()
+{
 
+
+}
+
+DWORD
+LsaAddCredential(
+    PWSTR pszUserName,
+    PWSTR pszPassword,
+    DWORD uid,
+    HANDLE * phCredential
+    )
+{
+    ENTER_CRITICAL_SECTION();
+
+
+    LEAVE_CRITICAL_SECTION();
+
+
+}
+
+
+DWORD
+LsaReleaseCredential(
+    HANDLE  hCredential
+    )
+{
+
+
+
+}
+
+
+DWORD
+LsaGetCredential(
+    DWORD uid,
+    HANDLE * phCredential
+    )
+{
+
+
+}

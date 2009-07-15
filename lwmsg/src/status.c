@@ -40,6 +40,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 static const char* default_message[] =
 {
@@ -70,6 +71,20 @@ static const char* default_message[] =
     [LWMSG_STATUS_BUSY] = "Conflicting operation already in progress",
     [LWMSG_STATUS_PENDING] = "Operating is pending"
 };
+
+LWMsgStatus
+lwmsg_error_map_errno(
+    int err
+    )
+{
+    switch (err)
+    {
+    case ENOENT:
+        return LWMSG_STATUS_FILE_NOT_FOUND;
+    default:
+        return LWMSG_STATUS_SYSTEM;
+    }
+}
 
 void
 lwmsg_error_clear(
@@ -108,6 +123,43 @@ lwmsg_error_raise_str(
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_error_raise_take_str(
+    LWMsgErrorContext* context,
+    LWMsgStatus status,
+    char* message
+    )
+{
+    lwmsg_error_clear(context);
+
+    context->status = status;
+    context->message = message;
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_error_raise_errno(
+    LWMsgErrorContext* context,
+    int err
+    )
+{
+    LWMsgStatus status = lwmsg_error_map_errno(err);
+    char* message = NULL;
+
+    if (lwmsg_strerror(err, &message) == LWMSG_STATUS_MEMORY)
+    {
+        lwmsg_error_clear(context);
+        status = context->status = LWMSG_STATUS_MEMORY;
+        return status;
+    }
+    else
+    {
+        return lwmsg_error_raise_take_str(context, status, message);
+    }
+}
+
                   
 LWMsgStatus
 lwmsg_error_raise_v(

@@ -241,6 +241,10 @@ cleanup:
             FileDB_GetMachineAcctInfoSpec(),
             pAcctData);
     }
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
     if (context)
     {
         lwmsg_context_delete(context);
@@ -535,6 +539,10 @@ cleanup:
     LWPS_SAFE_FREE_MEMORY(acctData.pwszMachineAccountPassword);
     LWPS_SAFE_FREE_MEMORY(pData);
 
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
     if (context)
     {
         lwmsg_context_delete(context);

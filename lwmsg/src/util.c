@@ -35,6 +35,7 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
 #include <config.h>
 #include "util-private.h"
 
@@ -319,3 +320,86 @@ error:
 
     return status;
 }
+
+#ifdef HAVE_STRERROR_R
+LWMsgStatus
+lwmsg_strerror(
+    int err,
+    char** message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    char* my_message = NULL;
+    char* temp = NULL;
+    size_t capacity = 128;
+
+    my_message = malloc(capacity);
+
+    if (!my_message)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    while (strerror_r(err, my_message, capacity) == -1 &&
+           errno == ERANGE)
+    {
+        capacity *= 2;
+        temp = realloc(my_message, capacity);
+        if (!temp)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+        }
+        my_message = temp;
+    }
+
+    my_message[capacity-1] = '\0';
+    *message = my_message;
+
+done:
+
+    return status;
+
+error:
+
+    if (my_message)
+    {
+        free(my_message);
+    }
+
+    goto done;
+}
+#else
+LWMsgStatus
+lwmsg_strerror(
+    int err,
+    char** message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    char* err_message = NULL;
+    char* my_message = NULL;
+
+    err_message = strerror(err);
+    my_message = strdup(err_message);
+
+    if (!my_message)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    *message = my_message;
+
+done:
+
+    return status;
+
+error:
+
+    if (my_message)
+    {
+        free(my_message);
+    }
+
+    goto done;
+}
+#endif

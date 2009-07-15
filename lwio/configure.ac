@@ -604,7 +604,6 @@ AC_CONFIG_FILES([Makefile
         utils/Makefile
         logging_r/Makefile
         ipc/Makefile
-        ipc/test/Makefile
         client/Makefile
         server/Makefile
         server/rdr/Makefile

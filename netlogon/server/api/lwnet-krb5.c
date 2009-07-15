@@ -48,6 +48,8 @@
 
 #define LWNET_KRB5_CONF_PATH_TEMP LWNET_KRB5_CONF_PATH ".temp"
 
+static pthread_mutex_t gLWNetKrb5AffinityLock      = PTHREAD_MUTEX_INITIALIZER;
+
 static
 PCSTR
 LWNetKrb5SelectAddress(
@@ -155,73 +157,134 @@ LWNetKrb5PrintfFile(
 
 static
 DWORD
-LWNetKrb5WriteAffinityFileFromCache(
-    IN PCSTR pszFileName
+LWNetKrb5WriteAffinityFile(
+    IN PCSTR pszOldFileName,
+    IN PCSTR pszNewFileName,
+    IN PCSTR pszDnsDomainName,
+    IN PCSTR* pServerAddressArray,
+    IN DWORD dwServerCount
     )
 {
     DWORD dwError = 0;
-    FILE* file = NULL;
-    PLWNET_CACHE_DB_KRB5_ENTRY pEntries = NULL;
-    DWORD dwCount = 0;
-    DWORD dwRealmIndex = 0;
+    FILE* newFile = NULL;
+    FILE* oldFile = NULL;
+    BOOLEAN bEndOfFile = FALSE;
+    BOOLEAN bFindNextRealm = TRUE;
+    PSTR pszLine = NULL;
+    PSTR pszCompareRealm = NULL;
 
-    dwError = LWNetCacheExportKrb5(&pEntries, &dwCount);
-    BAIL_ON_LWNET_ERROR(dwError);
+    pthread_mutex_lock(&gLWNetKrb5AffinityLock);
 
     // ISSUE-2008/07/03-dalmeida Technically, we should be setting the perms
     // on create, but whatever.
-    file = fopen(pszFileName, "w");
-    if (!file)
+    newFile = fopen(pszNewFileName, "w");
+    if (!newFile)
     { 
         dwError = LWNET_ERROR_KRB5_CONF_FILE_OPEN_FAILED;
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = LWNetChangePermissions(pszFileName, LWNET_MODE_BITS_URW_GR_OR);
+    dwError = LWNetChangePermissions(pszNewFileName, LWNET_MODE_BITS_URW_GR_OR);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetKrb5PrintfFile(file, "[realms]\n\n");
+    dwError = LWNetKrb5PrintfFile(newFile, "[realms]\n\n");
     BAIL_ON_LWNET_ERROR(dwError);
 
-    for (dwRealmIndex = 0; dwRealmIndex < dwCount; dwRealmIndex++)
+    if (dwServerCount > 0)
     {
-        PLWNET_CACHE_DB_KRB5_ENTRY pEntry = &pEntries[dwRealmIndex];
+        DWORD dwServerIndex = 0;
 
-        if (pEntry->ServerAddressCount > 0)
+        dwError = LWNetKrb5PrintfFile(newFile, "    %s = {\n", pszDnsDomainName);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        for (dwServerIndex = 0; dwServerIndex < dwServerCount; dwServerIndex++)
         {
-            DWORD dwServerIndex = 0;
+            PCSTR pszServerAddress = pServerAddressArray[dwServerIndex];
 
-            dwError = LWNetKrb5PrintfFile(file, "    %s = {\n", pEntry->Realm);
-            BAIL_ON_LWNET_ERROR(dwError);
-
-            for (dwServerIndex = 0; dwServerIndex < pEntry->ServerAddressCount; dwServerIndex++)
+            if (pszServerAddress)
             {
-                PCSTR pszServerAddress = pEntry->ServerAddressArray[dwServerIndex];
-
-                if (pszServerAddress)
-                {
-                    dwError = LWNetKrb5PrintfFile(file, "        kdc = %s\n", pszServerAddress);
-                    BAIL_ON_LWNET_ERROR(dwError);
-                }
+                dwError = LWNetKrb5PrintfFile(newFile, "        kdc = %s\n", pszServerAddress);
+                BAIL_ON_LWNET_ERROR(dwError);
             }
-
-            dwError = LWNetKrb5PrintfFile(file, "    }\n");
-            BAIL_ON_LWNET_ERROR(dwError);
         }
+
+        dwError = LWNetKrb5PrintfFile(newFile, "    }\n");
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
+
+    oldFile = fopen(pszOldFileName, "r");
+    if (!oldFile)
+    {
+        // there is no original file to copy data from
+        goto error;
+    }
+
+    dwError = LWNetAllocateStringPrintf(
+                  &pszCompareRealm,
+                  " %s ",
+                  pszDnsDomainName);
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    LWNetStrToUpper(pszCompareRealm);
+
+    bFindNextRealm = TRUE;
+
+    while (!bEndOfFile)
+    {
+        LWNET_SAFE_FREE_STRING(pszLine);
+
+        dwError = LWNetReadNextLine(
+                      oldFile,
+                      &pszLine,
+                      &bEndOfFile);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        if (bEndOfFile)
+        {
+            break;
+        }
+
+        if (strchr(pszLine, '{') != NULL)
+        {
+            if (strstr(pszLine, pszCompareRealm) != NULL)
+            {
+                bFindNextRealm = TRUE;
+                continue;
+            }
+            else
+            {
+                bFindNextRealm = FALSE;
+            }
+        }
+
+        if (bFindNextRealm)
+        {
+            continue;
+        }
+
+        dwError = LWNetKrb5PrintfFile(newFile, pszLine);
+        BAIL_ON_LWNET_ERROR(dwError);
     }
 
 error:
-    if (file)
+    if (newFile)
     {
-        fclose(file);
+        fclose(newFile);
     }
-
-    LWNET_SAFE_FREE_MEMORY(pEntries);
+    if (oldFile)
+    {
+        fclose(oldFile);
+    }
 
     if (dwError)
     {
-        LWNetRemoveFile(pszFileName);
+        LWNetRemoveFile(pszNewFileName);
     }
+
+    pthread_mutex_unlock(&gLWNetKrb5AffinityLock);
+
+    LWNET_SAFE_FREE_STRING(pszLine);
+    LWNET_SAFE_FREE_STRING(pszCompareRealm);
 
     return dwError;
 }
@@ -246,11 +309,6 @@ LWNetKrb5UpdateAffinity(
                                                dwServerCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = LWNetCacheUpdateKrb5(pszDnsDomainName,
-                                   pServerAddressArray,
-                                   dwServerAddressCount);
-    BAIL_ON_LWNET_ERROR(dwError);
-
     dwError = LWNetCheckDirectoryExists(LWNET_KRB5_CONF_DIRNAME, &bExists);
     BAIL_ON_LWNET_ERROR(dwError);
 
@@ -270,7 +328,12 @@ LWNetKrb5UpdateAffinity(
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    dwError = LWNetKrb5WriteAffinityFileFromCache(LWNET_KRB5_CONF_PATH_TEMP);
+    dwError = LWNetKrb5WriteAffinityFile(
+                  LWNET_KRB5_CONF_PATH,
+                  LWNET_KRB5_CONF_PATH_TEMP,
+                  pszDnsDomainName,
+                  pServerAddressArray,
+                  dwServerAddressCount);
     BAIL_ON_LWNET_ERROR(dwError);
 
     dwError = LWNetMoveFile(LWNET_KRB5_CONF_PATH_TEMP, LWNET_KRB5_CONF_PATH);

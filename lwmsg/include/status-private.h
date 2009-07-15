@@ -48,6 +48,11 @@ typedef struct LWMsgErrorContext
     char* message;
 } LWMsgErrorContext;
 
+LWMsgStatus
+lwmsg_error_map_errno(
+    int err
+    );
+
 void
 lwmsg_error_clear(
     LWMsgErrorContext* context
@@ -59,7 +64,20 @@ lwmsg_error_raise_str(
     LWMsgStatus status,
     const char* message
     );
-                  
+
+LWMsgStatus
+lwmsg_error_raise_take_str(
+    LWMsgErrorContext* context,
+    LWMsgStatus status,
+    char* message
+    );
+
+LWMsgStatus
+lwmsg_error_raise_errno(
+    LWMsgErrorContext* context,
+    int err
+    );
+
 LWMsgStatus
 lwmsg_error_raise_v(
     LWMsgErrorContext* context,

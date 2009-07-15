@@ -45,8 +45,283 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#include "lwiocopy.h"
+#include "includes.h"
 
+static
+BOOLEAN
+IsPathRemote(
+    PCSTR pszPath
+    );
+
+static
+NTSTATUS
+CopyFile_RemoteToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+static
+NTSTATUS
+CopyFile_RemoteToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+static
+NTSTATUS
+CopyFile_LocalToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+static
+NTSTATUS
+CopyFile_LocalToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+NTSTATUS
+CopyFile(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (IsPathRemote(pszSrcPath))
+    {
+        if (IsPathRemote(pszDestPath))
+        {
+            // Remote to Remote
+            ntStatus = CopyFile_RemoteToRemote(
+                            pszSrcPath,
+                            pszDestPath,
+                            bCopyRecursive);
+        }
+        else
+        {
+            // Remote to Local
+            ntStatus = CopyFile_RemoteToLocal(
+                            pszSrcPath,
+                            pszDestPath,
+                            bCopyRecursive);
+        }
+    }
+    else
+    {
+        if (IsPathRemote(pszDestPath))
+        {
+            // Local to Remote
+            ntStatus = CopyFile_LocalToRemote(
+                            pszSrcPath,
+                            pszDestPath,
+                            bCopyRecursive);
+        }
+        else
+        {
+            // Local to Local
+            ntStatus = CopyFile_LocalToLocal(
+                            pszSrcPath,
+                            pszDestPath,
+                            bCopyRecursive);
+        }
+    }
+
+    return ntStatus;
+}
+
+static
+BOOLEAN
+IsPathRemote(
+    PCSTR pszPath
+    )
+{
+    BOOLEAN bIsRemote = FALSE;
+
+    if (!strncmp(pszPath, "//", sizeof("//")-1) ||
+        !strncmp(pszPath, "\\\\", sizeof("\\\\")-1))
+    {
+        bIsRemote = TRUE;
+    }
+
+    return bIsRemote;
+}
+
+static
+NTSTATUS
+CopyFile_RemoteToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+static
+NTSTATUS
+CopyFile_RemoteToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bIsDirectory = FALSE;
+
+    ntStatus = LwioCheckRemotePathIsDirectory(pszSrcPath, &bIsDirectory);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bIsDirectory)
+    {
+        ntStatus = LwioCopyDirFromRemote(pszSrcPath, pszDestPath);
+    }
+    else
+    {
+        ntStatus = LwioCopyFileFromRemote(pszSrcPath, pszDestPath);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+CopyFile_LocalToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bExists = FALSE;
+
+    ntStatus = LwioCheckDirectoryExists(pszSrcPath, &bExists);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bExists)
+    {
+        ntStatus = LwioCopyDirToRemote(pszSrcPath, pszDestPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        goto done;
+    }
+
+    ntStatus = LwioCheckFileExists(pszSrcPath, &bExists);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bExists)
+    {
+        ntStatus = LwioCopyFileToRemote(pszSrcPath, pszDestPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ntStatus = STATUS_NO_SUCH_FILE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+done:
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+CopyFile_LocalToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+LwioCheckRemotePathIsDirectory(
+    IN     PCSTR    pszPath,
+    IN OUT PBOOLEAN pbIsDirectory
+    )
+{
+    NTSTATUS        ntStatus = STATUS_SUCCESS;
+    PSTR            pszRemoteFileName = NULL;
+    IO_FILE_NAME    filename = {0};
+    IO_FILE_HANDLE  hFile = NULL;
+    IO_STATUS_BLOCK ioStatusBlock;
+    FILE_STANDARD_INFORMATION fileStdInfo;
+
+    ntStatus = LwRtlCStringAllocatePrintf(
+                    &pszRemoteFileName,
+                    "/rdr%s/",
+                    pszPath+1);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlWC16StringAllocateFromCString(
+                    &filename.FileName,
+                    pszRemoteFileName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwNtCreateFile(
+                    &hFile,                /* File handle */
+                    NULL,                  /* Async control block */
+                    &ioStatusBlock,        /* IO status block */
+                    &filename,             /* Filename */
+                    NULL,                  /* Security descriptor */
+                    NULL,                  /* Security QOS */
+                    FILE_READ_ATTRIBUTES,  /* Desired access mask */
+                    0,                     /* Allocation size */
+                    0,                     /* File attributes */
+                    FILE_SHARE_READ,       /* Share access */
+                    FILE_OPEN,             /* Create disposition */
+                    0,                     /* Create options */
+                    NULL,                  /* EA buffer */
+                    0,                     /* EA length */
+                    NULL);                 /* ECP list */
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwNtQueryInformationFile(
+                    hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    (PVOID*)&fileStdInfo,
+                    sizeof(fileStdInfo),
+                    FileStandardInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pbIsDirectory = fileStdInfo.Directory;
+
+cleanup:
+
+    if (hFile)
+    {
+        LwNtCloseFile(hFile);
+    }
+
+    return ntStatus;
+
+error:
+
+    *pbIsDirectory = FALSE;
+
+    goto cleanup;
+}
 
 NTSTATUS
 LwioCopyFileFromRemote(
@@ -55,18 +330,14 @@ LwioCopyFileFromRemote(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    HANDLE hRemoteFile = (HANDLE)NULL;
+    IO_FILE_HANDLE hRemoteFile = NULL;
     int hLocalFile = -1;
 
     BAIL_ON_NULL_POINTER(pszSourcePath);
     BAIL_ON_NULL_POINTER(pszTargetPath);
 
-    hRemoteFile = LwioRemoteOpenFile( (PCSTR)pszSourcePath);
-    if (hRemoteFile == INVALID_HANDLE_VALUE)
-    {
-        status = INVALID_HANDLE_VALUE;
-        goto error;
-    }
+    status = LwioRemoteOpenFile(pszSourcePath, &hRemoteFile);
+    BAIL_ON_NT_STATUS(status);
 
     status = LwioLocalOpenFile(
                 (PCSTR)pszTargetPath,
@@ -145,7 +416,7 @@ LwioCopyDirFromRemote(
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
         "/rdr%s/",
-        pszSourcePath);
+        pszSourcePath+1);
     BAIL_ON_NT_STATUS(status);
 
     status = LwRtlWC16StringAllocateFromCString(
@@ -278,7 +549,7 @@ LwioCopyFileToRemote(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    HANDLE hRemoteFile = (HANDLE)NULL;
+    IO_FILE_HANDLE hRemoteFile = NULL;
     int hLocalFile = -1;
     DWORD dwBytesRead = 0;
     CHAR szBuf[BUFF_SIZE];
@@ -294,12 +565,8 @@ LwioCopyFileToRemote(
 
     BAIL_ON_NT_STATUS(status);
 
-    hRemoteFile = LwioRemoteCreateFile( (PCSTR)pszTargetPath);
-    if (hRemoteFile == INVALID_HANDLE_VALUE)
-    {
-        status = INVALID_HANDLE_VALUE;
-        goto error;
-    }
+    status = LwioRemoteCreateFile(pszTargetPath, &hRemoteFile);
+    BAIL_ON_NT_STATUS(status);
 
     do
     {
@@ -375,7 +642,7 @@ LwioCopyDirToRemote(
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
         "/rdr%s/",
-        pszTargetPath);
+        pszTargetPath+1);
     BAIL_ON_NT_STATUS(status);
 
     status = LwRtlWC16StringAllocateFromCString(
@@ -478,9 +745,10 @@ error:
 }
 
 
-HANDLE
+NTSTATUS
 LwioRemoteOpenFile(
-    IN PCSTR pszFileName
+    IN PCSTR        pszFileName,
+    PIO_FILE_HANDLE phFile
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -494,7 +762,7 @@ LwioRemoteOpenFile(
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
         "/rdr%s",
-        pszFileName);
+        pszFileName+1);
     BAIL_ON_NT_STATUS(status);
 
     status = LwRtlWC16StringAllocateFromCString(
@@ -522,13 +790,17 @@ LwioRemoteOpenFile(
         NULL);                 /* ECP list */
     BAIL_ON_NT_STATUS(status);
 
+    *phFile = handle;
 
 cleanup:
 
     RTL_FREE(&pszRemoteFileName);
-    return handle;
+
+    return status;
 
 error:
+
+    *phFile = NULL;
 
     goto cleanup;
 }
@@ -902,9 +1174,10 @@ error:
 }
 
 
-HANDLE
+NTSTATUS
 LwioRemoteCreateFile(
-    IN PCSTR pszFileName
+    IN PCSTR        pszFileName,
+    PIO_FILE_HANDLE phFile
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -918,7 +1191,7 @@ LwioRemoteCreateFile(
     status = LwRtlCStringAllocatePrintf(
         &pszRemoteFileName,
         "/rdr%s",
-        pszFileName);
+        pszFileName+1);
     BAIL_ON_NT_STATUS(status);
 
     status = LwRtlWC16StringAllocateFromCString(
@@ -946,13 +1219,16 @@ LwioRemoteCreateFile(
         NULL);                   /* ECP list */
     BAIL_ON_NT_STATUS(status);
 
+    *phFile = handle;
 
 cleanup:
 
     RTL_FREE(&pszRemoteFileName);
-    return handle;
+    return status;
 
 error:
+
+    *phFile = NULL;
 
     goto cleanup;
 }

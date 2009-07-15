@@ -46,6 +46,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define ABORT_ON_ERROR(_x_)                                     \
     do                                                          \
@@ -370,6 +371,12 @@ lwmsg_ring_is_empty(
 
     return ring->next == ring;
 }
+
+LWMsgStatus
+lwmsg_strerror(
+    int err,
+    char** message
+    );
 
 #define LWMSG_OBJECT_FROM_MEMBER(_ptr_, _type_, _field_) \
     ((_type_ *) ((unsigned char*) (_ptr_) - offsetof(_type_, _field_)))

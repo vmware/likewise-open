@@ -55,7 +55,7 @@
 //
 
 #define NETLOGON_DB_DIR LWNET_CACHE_DIR "/db"
-#define NETLOGON_DB     NETLOGON_DB_DIR "/netlogon-cache.db"
+#define NETLOGON_DB     NETLOGON_DB_DIR "/netlogon-cache.filedb"
 
 //
 // Types for low-level API
@@ -69,18 +69,13 @@ typedef DWORD LWNET_CACHE_DB_QUERY_TYPE;
 #define LWNET_CACHE_DB_QUERY_TYPE_PDC 2
 
 typedef struct _LWNET_CACHE_DB_ENTRY {
+    PSTR pszDnsDomainName;
+    PSTR pszSiteName;
     LWNET_CACHE_DB_QUERY_TYPE QueryType;
     LWNET_UNIX_TIME_T LastDiscovered;
     LWNET_UNIX_TIME_T LastPinged;
     LWNET_DC_INFO DcInfo;
 } LWNET_CACHE_DB_ENTRY, *PLWNET_CACHE_DB_ENTRY;
-
-typedef struct _LWNET_CACHE_DB_KRB5_ENTRY {
-    LWNET_UNIX_TIME_T LastUpdated;
-    PSTR Realm;
-    PSTR* ServerAddressArray;
-    DWORD ServerAddressCount;
-} LWNET_CACHE_DB_KRB5_ENTRY, *PLWNET_CACHE_DB_KRB5_ENTRY;
 
 // ISSUE-2008/07/01-dalmeida -- simplify declaraion of handle type
 typedef struct _LWNET_CACHE_DB_HANDLE_DATA  LWNET_CACHE_DB_HANDLE_DATA, *PLWNET_CACHE_DB_HANDLE_DATA;
@@ -119,16 +114,6 @@ LWNetCacheDbQuery(
     );
 
 DWORD
-LWNetCacheDbUpdate(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN PCSTR pszDnsDomainName,
-    IN OPTIONAL PCSTR pszSiteName,
-    IN DWORD dwDsFlags,
-    IN OPTIONAL PLWNET_UNIX_TIME_T LastDiscovered,
-    IN PLWNET_DC_INFO pDcInfo
-    );
-
-DWORD
 LWNetCacheDbScavenge(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
     IN LWNET_UNIX_TIME_T PositiveCacheAge,
@@ -139,27 +124,6 @@ DWORD
 LWNetCacheDbExport(
     IN LWNET_CACHE_DB_HANDLE DbHandle,
     OUT PLWNET_CACHE_DB_ENTRY* ppEntries,
-    OUT PDWORD pdwCount
-    );
-
-DWORD
-LWNetCacheDbUpdateKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR* pServerAddressArray,
-    IN DWORD dwServerAddressCount
-    );
-
-DWORD
-LWNetCacheDbScavengeKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    IN LWNET_UNIX_TIME_T Age
-    );
-
-DWORD
-LWNetCacheDbExportKrb5(
-    IN LWNET_CACHE_DB_HANDLE DbHandle,
-    OUT PLWNET_CACHE_DB_KRB5_ENTRY* ppEntries,
     OUT PDWORD pdwCount
     );
 
@@ -205,24 +169,6 @@ DWORD
 LWNetCacheScavenge(
     IN LWNET_UNIX_TIME_T PositiveCacheAge,
     IN LWNET_UNIX_TIME_T NegativeCacheAge
-    );
-
-DWORD
-LWNetCacheUpdateKrb5(
-    IN PCSTR pszDnsDomainName,
-    IN PCSTR* pServerAddressArray,
-    IN DWORD dwServerAddressCount
-    );
-
-DWORD
-LWNetCacheSavengeKrb5(
-    IN LWNET_UNIX_TIME_T Age
-    );
-
-DWORD
-LWNetCacheExportKrb5(
-    OUT PLWNET_CACHE_DB_KRB5_ENTRY* ppEntries,
-    OUT PDWORD pdwCount
     );
 
 #endif /* __CACHEDB_H__ */

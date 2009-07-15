@@ -3,9 +3,9 @@ noinst_LTLIBRARIES = liblwnetserverapi.la
 liblwnetserverapi_la_CPPFLAGS = \
 	-I@top_srcdir@/server/include \
 	@LIBUNISTR_INCLUDES@          \
-	@SQLITE_INCLUDES@             \
 	@PSTORE_INCLUDES@             \
-	$(LWADVAPI_INCLUDES)
+	@LWADVAPI_INCLUDES@           \
+	@LWMSG_INCLUDES@
 
 liblwnetserverapi_la_SOURCES = \
        globals.c          \
@@ -21,24 +21,21 @@ liblwnetserverapi_la_SOURCES = \
 
 liblwnetserverapi_la_LIBADD = \
 	@LIBUNISTR_LIBS@      \
-	@SQLITE_LIBS@         \
 	@PSTORE_LIBS@         \
-	$(LWADVAPI_LIBS)      \
-	@PTHREAD_LIBS@
+	@LWADVAPI_LIBS@       \
+	@PTHREAD_LIBS@        \
+	@LWMSG_LIBS@
 
 liblwnetserverapi_la_LDFLAGS = \
         @LIBUNISTR_LDFLAGS@    \
-        @SQLITE_LDFLAGS@       \
         @PSTORE_LDFLAGS@       \
-        $(LWADVAPI_LDFLAGS)
+        @LWADVAPI_LDFLAGS@
 
 noinst_HEADERS = \
 		eventdlapi.h           \
 		event_p.h              \
 		evtstruct.h            \
-		lwnet-cachedbcreate.h  \
 		lwnet-cachedb.h        \
-		lwnet-cachedb_p.h      \
 		lwnet-krb5_p.h         \
 		lwnet_p.h              \
 		lwnet-pstore_p.h       \

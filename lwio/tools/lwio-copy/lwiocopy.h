@@ -2,24 +2,12 @@
 #ifndef __LWIOCOPY_H__
 #define __LWIOCOPY_H__
 
-#include "config.h"
-#include "lwiosys.h"
-#include "lwio/lwio.h"
-#include "lwiodef.h"
-#include "lwioutils.h"
-#include "lwio/ntfileapi.h"
-#include <lwio/win32fileapi.h>
-#include <krb5/krb5.h>
-#include "lwnet.h"
-
-#define BUFF_SIZE 1024
-#define MAX_BUFFER 4096
-
-#define BAIL_ON_NULL_POINTER(p)                    \
-        if (NULL == p) {                          \
-           status = LWIO_ERROR_INVALID_PARAMETER; \
-           goto error;                            \
-        }
+NTSTATUS
+CopyFile(
+    IN PCSTR pSrc,
+    IN PCSTR pDest,
+    BOOLEAN  bCopyRecursive
+    );
 
 NTSTATUS
 LwioLocalOpenFile(
@@ -71,15 +59,17 @@ LwioLocalRemoveFile(
     );
 
 
-HANDLE
+NTSTATUS
 LwioRemoteCreateFile(
-    IN PCSTR pszFileName
+    IN  PCSTR pszFileName,
+    OUT PIO_FILE_HANDLE phFile
     );
 
 
-HANDLE
+NTSTATUS
 LwioRemoteOpenFile(
-    IN PCSTR pszFileName
+    IN  PCSTR           pszFileName,
+    OUT PIO_FILE_HANDLE phFile
     );
 
 
@@ -98,6 +88,12 @@ LwioRemoteReadFile(
     OUT PVOID pBuffer,
     IN DWORD dwNumberOfBytesToRead,
     OUT PDWORD pdwBytesRead
+    );
+
+NTSTATUS
+LwioCheckRemotePathIsDirectory(
+    IN     PCSTR    pszPath,
+    IN OUT PBOOLEAN pbIsDirectory
     );
 
 NTSTATUS

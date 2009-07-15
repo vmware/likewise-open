@@ -115,4 +115,11 @@ LsaSrvSetLogNetworkConnectionEvents(
     BOOLEAN bValue
     );
 
+DWORD
+LsaSrvSetMachineSid(
+    HANDLE hServer,
+    PCSTR pszSid
+    );
+
+
 #endif /* __CONFIG_P_H__ */

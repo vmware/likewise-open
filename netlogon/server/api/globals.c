@@ -76,6 +76,9 @@ LWNetSrvApiShutdown(
     )
 {
     LWNetCleanupPlugin();
+
+    LWNetCacheCleanup();
+
     LWNetSrvShutdownEventlogInterface();
     
     return 0;

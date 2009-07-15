@@ -299,16 +299,16 @@ WireUnmarshallTransactionSecondaryResponse(
                     pDataCursor,
                     ulNumBytesAvailable,
                     ulOffset,
-                    pHeader->parameterOffset,
-                    pHeader->dataOffset,
+                    SMB_LTOH16(pHeader->parameterOffset),
+                    SMB_LTOH16(pHeader->dataOffset),
                     &pSetup,
-                    pHeader->setupCount,
+                    SMB_LTOH8(pHeader->setupCount),
                     &pByteCount,
                     (ppwszName ? &pwszName : NULL),
                     &pParameters,
-                    pHeader->parameterCount,
+                    SMB_LTOH16(pHeader->parameterCount),
                     &pData,
-                    pHeader->dataCount);
+                    SMB_LTOH16(pHeader->dataCount));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppHeader = pHeader;
@@ -732,15 +732,22 @@ WireMarshallTransactionSetupData(
     uint32_t  bufferUsedData = 0;
     uint32_t  alignment = 0;
     uint32_t  wstrlen = 0;
-    uint16_t *pByteCount = NULL;
-    uint16_t  byteCount = 0;
+    uint8_t  *pByteCount = NULL;
+    uint8_t   i = 0;
+    PBYTE     pCursor = NULL;
 
-    if (setupLen && bufferUsed + setupLen <= bufferLen)
-        memcpy(pBuffer, pSetup, setupLen);
+    if (setupLen && bufferUsed + setupLen * sizeof(USHORT) <= bufferLen)
+    {
+        for (i = 0; i < setupLen; i++)
+        {
+            pCursor = pBuffer + i * sizeof(USHORT);
+            MarshalUshort(&pCursor, NULL, pSetup[i]);
+        }
+    }
     bufferUsed += setupLen * sizeof(USHORT);
 
     /* byteCount */
-    pByteCount = (uint16_t *) (pBuffer + bufferUsed);
+    pByteCount = pBuffer + bufferUsed;
     bufferUsed += sizeof(uint16_t);
 
     if (pwszName)
@@ -754,7 +761,7 @@ WireMarshallTransactionSetupData(
         }
         wstrlen = wc16oncpy((wchar16_t *) (pBuffer + bufferUsed), pwszName,
             bufferLen > bufferUsed ? bufferLen - bufferUsed : 0);
-        bufferUsed += wstrlen * sizeof(*pByteCount);
+        bufferUsed += wstrlen * sizeof(uint16_t);
     }
 
     ntStatus = WireMarshallTransactionParameterData(
@@ -782,9 +789,7 @@ WireMarshallTransactionSetupData(
     else
     {
         /* Fill in the byte count */
-        byteCount = (uint16_t) (pBuffer + bufferUsed - ((uint8_t *) pByteCount) - sizeof(*pByteCount));
-
-        memcpy(pByteCount, &byteCount, sizeof(byteCount));
+        MarshalUshort(&pByteCount, NULL, (USHORT) (pBuffer + bufferUsed - pByteCount - sizeof(USHORT)));
     }
 
     *pBufferUsed = bufferUsed;
@@ -861,7 +866,7 @@ WireMarshallTransaction2Response(
 {
     NTSTATUS ntStatus = 0;
     PTRANSACTION_SECONDARY_RESPONSE_HEADER pResponseHeader = NULL;
-    PUSHORT  pByteCount = NULL;
+    PBYTE    pByteCount = NULL;
     USHORT   usNumPackageBytesUsed = 0;
     USHORT   usNumBytesUsed = 0;
     PBYTE    pDataCursor = pBuffer;
@@ -905,7 +910,7 @@ WireMarshallTransaction2Response(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pByteCount = (PUSHORT)pDataCursor;
+    pByteCount = pDataCursor;
 
     pDataCursor += sizeof(USHORT);
     ulNumBytesAvailable -= sizeof(USHORT);
@@ -987,7 +992,7 @@ WireMarshallTransaction2Response(
         usNumPackageBytesUsed += usDataLen;
     }
 
-    memcpy(pByteCount, &usNumBytesUsed, sizeof(usNumBytesUsed));
+    MarshalUshort(&pByteCount, NULL, usNumBytesUsed);
 
     *pusDataOffset = pResponseHeader->dataOffset;
     *pusParameterOffset = pResponseHeader->parameterOffset;

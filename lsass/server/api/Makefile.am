@@ -54,6 +54,7 @@ liblsaserverapi_la_CPPFLAGS =         \
 liblsaserverapi_la_LIBADD = \
 	@top_builddir@/logging_r/liblsalog_r.la \
         @top_builddir@/gssntlm/server/libntlmserver.la \
+        @top_builddir@/server/store/dsapi/libdsapi.la \
 	@UUID_LIBS@ \
 	@PTHREAD_LIBS@\
 	$(ADDITIONAL_LIBS) \

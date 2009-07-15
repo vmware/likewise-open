@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -379,3 +379,379 @@ LsaSrvSetLogNetworkConnectionEvents(
 
     pthread_mutex_unlock(&gAPIConfigLock);
 }
+
+
+DWORD
+LsaSrvSetMachineSid(
+    HANDLE hServer,
+    PCSTR pszSID
+    )
+{
+    const wchar_t wszDomainFilterFmt[] = L"%ws=%d OR %ws=%d";
+    const wchar_t wszAccountFilterFmt[] = L"%ws='%ws' AND (%ws=%d OR %ws=%d)";
+    const DWORD dwInt32StrSize = 10;
+
+    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLSA_SRV_API_STATE pSrvState = (PLSA_SRV_API_STATE)hServer;
+    PWSTR pwszNewDomainSid = NULL;
+    PSID pNewDomainSid = NULL;
+    HANDLE hDirectory = (HANDLE)NULL;
+    PWSTR pwszDomainFilter = NULL;
+    DWORD dwDomainFilterLen = 0;
+    PWSTR pwszBase = NULL;
+    ULONG ulScope = 0;
+    ULONG ulAttributesOnly = 0;
+    PDIRECTORY_ENTRY pDomainEntries = NULL;
+    PDIRECTORY_ENTRY pDomainEntry = NULL;
+    DWORD dwNumDomainEntries = 0;
+    DWORD iEntry = 0;
+    DWORD dwObjectClass = DIR_OBJECT_CLASS_UNKNOWN;
+    PWSTR pwszDomainSid = NULL;
+    PSID pDomainSid = NULL;
+    PWSTR pwszDomainObjectDN = NULL;
+    PWSTR pwszDomainName = NULL;
+    PWSTR pwszAccountFilter = NULL;
+    DWORD dwAccountFilterLen = 0;
+    PDIRECTORY_ENTRY pAccountEntries = NULL;
+    PDIRECTORY_ENTRY pAccountEntry = NULL;
+    DWORD dwNumAccountEntries = 0;
+    PWSTR pwszAccountSid = NULL;
+    PSID pAccountSid = NULL;
+    PWSTR pwszAccountObjectDN = NULL;
+    ULONG ulSidLength = 0;
+    ULONG ulRid = 0;
+    PSID pNewAccountSid = NULL;
+    PWSTR pwszNewAccountSid = NULL;
+
+    WCHAR wszAttrObjectDN[] = DIRECTORY_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectClass[] = DIRECTORY_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectSID[] = DIRECTORY_ATTR_OBJECT_SID;
+    WCHAR wszAttrDomainName[] = DIRECTORY_ATTR_DOMAIN_NAME;
+
+    PWSTR wszAttributes[] = {
+        &wszAttrObjectClass[0],
+        &wszAttrObjectSID[0],
+        &wszAttrDomainName[0],
+        &wszAttrObjectDN[0],
+        NULL
+    };
+
+    enum AttrValueIndex {
+        ATTR_IDX_OBJECT_SID = 0,
+        ATTR_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        {
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        }
+    };
+
+    DIRECTORY_MOD modObjectSID = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrObjectSID[0],
+        1,
+        &AttrValues[ATTR_IDX_OBJECT_SID]
+    };
+
+    DIRECTORY_MOD mods[ATTR_IDX_SENTINEL + 1];
+
+    if (pSrvState->peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaMbsToWc16s(pszSID,
+                            &pwszNewDomainSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlAllocateSidFromWC16String(&pNewDomainSid,
+                                            pwszNewDomainSid);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = DirectoryOpen(&hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwDomainFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                         dwInt32StrSize +
+                         (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                         dwInt32StrSize +
+                         (sizeof(wszDomainFilterFmt)/
+                          sizeof(wszDomainFilterFmt[0])));
+    dwError = LsaAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
+                                (PVOID*)&pwszDomainFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszDomainFilter, dwDomainFilterLen, wszDomainFilterFmt,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_DOMAIN,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_BUILTIN_DOMAIN);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszDomainFilter,
+                              wszAttributes,
+                              ulAttributesOnly,
+                              &pDomainEntries,
+                              &dwNumDomainEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumDomainEntries != 2)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (iEntry = 0; iEntry < dwNumDomainEntries; iEntry++)
+    {
+        pDomainEntry = &(pDomainEntries[iEntry]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pDomainEntry,
+                                    wszAttrObjectClass,
+                                    DIRECTORY_ATTR_TYPE_INTEGER,
+                                    &dwObjectClass);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (dwObjectClass != DIR_OBJECT_CLASS_DOMAIN)
+        {
+            continue;
+        }
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pDomainEntry,
+                                    wszAttrObjectSID,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszDomainSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ntStatus = RtlAllocateSidFromWC16String(&pDomainSid,
+                                                pwszDomainSid);
+        if (ntStatus != STATUS_SUCCESS)
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pDomainEntry,
+                                    wszAttrObjectDN,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszDomainObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pDomainEntry,
+                                    wszAttrDomainName,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    memset(&mods[0], 0, sizeof(mods));
+
+    AttrValues[ATTR_IDX_OBJECT_SID].data.pwszStringValue = pwszNewDomainSid;
+    mods[0] = modObjectSID;
+
+    dwError = DirectoryModifyObject(hDirectory,
+                                    pwszDomainObjectDN,
+                                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwAccountFilterLen = ((sizeof(wszAttrDomainName)/sizeof(WCHAR) - 1) +
+                          wc16slen(pwszDomainName) +
+                          (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                          dwInt32StrSize +
+                          (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                          dwInt32StrSize +
+                          (sizeof(wszAccountFilterFmt)/
+                           sizeof(wszAccountFilterFmt[0])));
+    dwError = LsaAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
+                                (PVOID*)&pwszAccountFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszAccountFilter, dwAccountFilterLen, wszAccountFilterFmt,
+                &wszAttrDomainName[0],
+                pwszDomainName,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_USER,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_LOCAL_GROUP);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszAccountFilter,
+                              wszAttributes,
+                              ulAttributesOnly,
+                              &pAccountEntries,
+                              &dwNumAccountEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumAccountEntries == 0)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (iEntry = 0; iEntry < dwNumAccountEntries; iEntry++)
+    {
+        pAccountEntry = &(pAccountEntries[iEntry]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                     pAccountEntry,
+                                     wszAttrObjectSID,
+                                     DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                     &pwszAccountSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        /* Account SID has to be valid ... */
+        ntStatus = RtlAllocateSidFromWC16String(&pAccountSid,
+                                                pwszAccountSid);
+        if (ntStatus != STATUS_SUCCESS)
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        /* ... and it has to be in the same domain as machine SID */
+        if (!RtlIsPrefixSid(pDomainSid,
+                            pAccountSid))
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        ulSidLength = RtlLengthSid(pAccountSid);
+        dwError = LsaAllocateMemory(ulSidLength,
+                                    (PVOID*)&pNewAccountSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ntStatus = RtlCopySid(ulSidLength,
+                              pNewAccountSid,
+                              pNewDomainSid);
+        if (ntStatus)
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        ulRid = pAccountSid->SubAuthority[pAccountSid->SubAuthorityCount - 1];
+        ntStatus = RtlAppendRidSid(ulSidLength,
+                                   pNewAccountSid,
+                                   ulRid);
+        if (ntStatus)
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        ntStatus = RtlAllocateWC16StringFromSid(&pwszNewAccountSid,
+                                                pNewAccountSid);
+        if (ntStatus)
+        {
+            dwError = LW_ERROR_SAM_DATABASE_ERROR;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                     pAccountEntry,
+                                     wszAttrObjectDN,
+                                     DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                     &pwszAccountObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memset(&mods[0], 0, sizeof(mods));
+
+        AttrValues[ATTR_IDX_OBJECT_SID].data.pwszStringValue = pwszNewAccountSid;
+        mods[0] = modObjectSID;
+
+        dwError = DirectoryModifyObject(hDirectory,
+                                        pwszAccountObjectDN,
+                                        mods);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pAccountSid)
+        {
+            RTL_FREE(&pAccountSid);
+        }
+
+        if (pNewAccountSid)
+        {
+            RTL_FREE(&pNewAccountSid);
+        }
+
+        if (pwszNewAccountSid)
+        {
+            LSA_SAFE_FREE_MEMORY(pwszNewAccountSid);
+            pwszNewAccountSid = NULL;
+        }
+    }
+
+cleanup:
+    if (pDomainEntries)
+    {
+        DirectoryFreeEntries(pDomainEntries,
+                             dwNumDomainEntries);
+    }
+
+    if (pAccountEntries)
+    {
+        DirectoryFreeEntries(pAccountEntries,
+                             dwNumAccountEntries);
+    }
+
+    if (hDirectory)
+    {
+        DirectoryClose(hDirectory);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pwszDomainFilter);
+    LSA_SAFE_FREE_MEMORY(pwszAccountFilter);
+    LSA_SAFE_FREE_MEMORY(pwszNewDomainSid);
+    LSA_SAFE_FREE_MEMORY(pwszNewAccountSid);
+
+    if (pDomainSid)
+    {
+        RTL_FREE(&pDomainSid);
+    }
+
+    if (pNewDomainSid)
+    {
+        RTL_FREE(&pNewDomainSid);
+    }
+
+    if (pAccountSid)
+    {
+        RTL_FREE(&pAccountSid);
+    }
+
+    if (pNewAccountSid)
+    {
+        RTL_FREE(&pNewAccountSid);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
