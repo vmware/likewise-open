@@ -815,15 +815,17 @@ PvfsCheckLockedRegion(
         switch(Operation)
         {
         case PVFS_OPERATION_READ:
-            ntError = PvfsCheckLockedRegionCanRead(pCursor->pCcb,
-                                                   (pCcb == pCursor->pCcb) ? TRUE : FALSE,
-                                                   Key, Offset, Length);
+            ntError = PvfsCheckLockedRegionCanRead(
+                          pCursor->pCcb,
+                          (pCcb == pCursor->pCcb) ? TRUE : FALSE,
+                          Key, Offset, Length);
             break;
 
-         case PVFS_OPERATION_WRITE:
-            ntError = PvfsCheckLockedRegionCanWrite(pCursor->pCcb,
-                                                    (pCcb == pCursor->pCcb) ? TRUE : FALSE,
-                                                    Key, Offset, Length);
+        case PVFS_OPERATION_WRITE:
+            ntError = PvfsCheckLockedRegionCanWrite(
+                          pCursor->pCcb,
+                          (pCcb == pCursor->pCcb) ? TRUE : FALSE,
+                          Key, Offset, Length);
             break;
         }
         BAIL_ON_NT_STATUS(ntError);
@@ -837,7 +839,6 @@ cleanup:
 
 error:
     goto cleanup;
-
 }
 
 /**************************************************************
@@ -1020,6 +1021,68 @@ PvfsLockFileWithContext(
                pLockCtx->PendingLock.Length,
                Flags);
 }
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static BOOLEAN
+PvfsHandleHasOpenByteRangeLocks(
+    PPVFS_CCB pCcb
+    )
+{
+    BOOLEAN bHasLocks = FALSE;
+
+    if ((pCcb->LockTable.ExclusiveLocks.NumberOfLocks != 0) ||
+        (pCcb->LockTable.SharedLocks.NumberOfLocks != 0))
+    {
+        bHasLocks = TRUE;
+    }
+
+    return bHasLocks;
+}
+
+BOOLEAN
+PvfsFileHasOpenByteRangeLocks(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_CCB_LIST_NODE pCursor = NULL;
+    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bBrlLocked = FALSE;
+    BOOLEAN bFileIsLocked = FALSE;
+
+    /* Sanity checks */
+
+    BAIL_ON_INVALID_PTR(pFcb, ntError);
+
+    /* Read locks so no one can add a CCB to the list,
+       or add a new BRL. */
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bBrlLocked, &pFcb->rwBrlLock);
+
+    for (pCursor = PvfsNextCCBFromList(pFcb, pCursor);
+         pCursor;
+         pCursor = PvfsNextCCBFromList(pFcb, pCursor))
+    {
+        if (PvfsHandleHasOpenByteRangeLocks(pCursor->pCcb)) {
+            bFileIsLocked = TRUE;
+            break;
+        }
+    }
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bBrlLocked, &pFcb->rwBrlLock);
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwLock);
+
+    return bFileIsLocked;
+
+error:
+    goto cleanup;
+}
+
 
 
 /*

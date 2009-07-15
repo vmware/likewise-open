@@ -302,6 +302,7 @@ struct _PVFS_CCB
     PVFS_LOCK_TABLE LockTable;
 
     BOOLEAN bOplockBreakInProgress;
+    ULONG OplockBreakResult;
 
 };
 

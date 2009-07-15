@@ -681,7 +681,7 @@ PvfsFileIsOplocked(
     IN PPVFS_FCB pFcb
     )
 {
-    return LwListIsEmpty(&pFcb->OplockList);
+    return !LwListIsEmpty(&pFcb->OplockList);
 }
 
 /*****************************************************************************
@@ -790,6 +790,8 @@ PvfsFreeOplockRecord(
     if (!ppOplockRec || !*ppOplockRec) {
         return;
     }
+
+    PvfsReleaseCCB((*ppOplockRec)->pCcb);
 
     PVFS_FREE(ppOplockRec);
 
