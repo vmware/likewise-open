@@ -121,11 +121,12 @@ typedef struct _NT_IPC_MESSAGE_GENERIC_FILE {
 } NT_IPC_MESSAGE_GENERIC_FILE, *PNT_IPC_MESSAGE_GENERIC_FILE;
 
 typedef struct _NT_IPC_MESSAGE_GENERIC_CONTROL_FILE {
-    IN IO_FILE_HANDLE FileHandle;
-    IN ULONG ControlCode;
-    IN PVOID InputBuffer;
-    IN ULONG InputBufferLength;
-    IN ULONG OutputBufferLength;
+    IN  IO_FILE_HANDLE FileHandle;
+    IN  ULONG ControlCode;
+    IN  PVOID InputBuffer;
+    OUT PVOID OutputBuffer;
+    IN  ULONG InputBufferLength;
+    IN  ULONG OutputBufferLength;
 } NT_IPC_MESSAGE_GENERIC_CONTROL_FILE, *PNT_IPC_MESSAGE_GENERIC_CONTROL_FILE;
 
 typedef struct _NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT {

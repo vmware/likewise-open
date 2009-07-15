@@ -616,7 +616,7 @@ PvfsAddItemPendingOplockBreakAck(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pPendingOp,
-                  sizeof(PPVFS_OPLOCK_PENDING_OPERATION));
+                  sizeof(PVFS_OPLOCK_PENDING_OPERATION));
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingOp->pIrpContext = pIrpContext;

@@ -801,6 +801,7 @@ RequestOplock(
     IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER OplockRequestInput = {0};
     IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER OplockRequestOutput = {0};
     IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER OplockBreakInput = {0};
+    IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER OplockBreakOutput = {0};
     ULONG SleepCount = 5;
 
     if (argc != 1)
@@ -859,7 +860,8 @@ RequestOplock(
                   IO_FSCTL_OPLOCK_BREAK_ACK,
                   (PVOID)&OplockBreakInput,
                   sizeof(OplockBreakInput),
-                  NULL, 0);
+                  (PVOID)&OplockBreakOutput,
+                  sizeof(OplockBreakOutput));
     BAIL_ON_NT_STATUS(ntError);
 
     printf("Oplock broken!\n");

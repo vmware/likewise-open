@@ -182,7 +182,8 @@ PvfsOplockBreakAck(
 
     BAIL_ON_INVALID_PTR(InputBuffer, ntError);
 
-    if (InputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER))
+    if ((InputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER)) ||
+        (OutputBufferLength < sizeof(IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER)))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
@@ -217,7 +218,7 @@ PvfsOplockBreakAck(
             {
             case STATUS_SUCCESS:
                 /* If we were successfully granted the oplock, then
-                   save that information for the return NTSTATUS value */
+                   save that information for the return NTSTATUS value. */
                 bOplockGranted = TRUE;
                 break;
 
@@ -288,7 +289,15 @@ PvfsOplockBreakAck(
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
 
-    if (bOplockGranted) {
+    if (bOplockGranted)
+    {
+        /* Successful grant so pend the resulit now */
+
+        IoIrpMarkPending(
+            pIrpContext->pIrp,
+            PvfsCancelOplockRequestIrp,
+            pIrpContext);
+
         ntError = STATUS_PENDING;
     }
 
@@ -500,7 +509,7 @@ PvfsOplockBreakAllLevel2Oplocks(
 
         /* This should never fire */
 
-        if (pOplock->OplockType == IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2) {
+        if (pOplock->OplockType != IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2) {
             ntError = STATUS_INVALID_OPLOCK_PROTOCOL;
             BAIL_ON_NT_STATUS(ntError);
         }
