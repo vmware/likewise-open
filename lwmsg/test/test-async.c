@@ -87,6 +87,23 @@ typedef struct
     pthread_cond_t event;
 } AsyncRequest;
 
+static pthread_mutex_t async_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t async_event = PTHREAD_COND_INITIALIZER;
+static LWMsgBool async_cancelled = LWMSG_FALSE;
+
+static
+void
+async_wait_cancelled(
+    void
+    )
+{
+    pthread_mutex_lock(&async_lock);
+    while (!async_cancelled)
+    {
+        pthread_cond_wait(&async_event, &async_lock);
+    }
+}
+
 static
 void*
 async_response_thread(
@@ -113,6 +130,11 @@ async_response_thread(
     MU_INFO("Request interrupted");
 
     lwmsg_call_complete(request->call, LWMSG_STATUS_CANCELLED);
+
+    pthread_mutex_lock(&async_lock);
+    async_cancelled = LWMSG_TRUE;
+    pthread_cond_signal(&async_event);
+    pthread_mutex_unlock(&async_lock);
 
 done:
 
@@ -260,6 +282,8 @@ MU_TEST(async, nonblock_asynchronous_disconnect)
 
     MU_TRY(lwmsg_client_release_assoc(client, assoc));
 
+    async_wait_cancelled();
+
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
 
@@ -280,6 +304,8 @@ MU_TEST(async, nonblock_asynchronous_shutdown)
 
     MU_TRY(lwmsg_server_stop(server));
     lwmsg_server_delete(server);
+
+    async_wait_cancelled();
 
     MU_TRY(lwmsg_client_release_assoc(client, assoc));
 
@@ -344,6 +370,8 @@ MU_TEST(async, block_asynchronous_disconnect)
 
     MU_TRY(lwmsg_client_release_assoc(client, assoc));
 
+    async_wait_cancelled();
+
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
 
@@ -363,6 +391,9 @@ MU_TEST(async, block_asynchronous_shutdown)
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
 
     MU_TRY(lwmsg_server_stop(server));
+
+    async_wait_cancelled();
+
     lwmsg_server_delete(server);
 
     MU_TRY(lwmsg_client_release_assoc(client, assoc));

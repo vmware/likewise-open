@@ -220,12 +220,23 @@ lwmsg_server_call_init(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    pthread_mutexattr_t mutex_attr;
 
     memset(call, 0, sizeof(*call));
 
     call->base.vtbl = &server_call_class;
 
-    if (pthread_mutex_init(&call->lock, NULL) < 0)
+    if (pthread_mutexattr_init(&mutex_attr))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    if (pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    if (pthread_mutex_init(&call->lock, &mutex_attr) < 0)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
