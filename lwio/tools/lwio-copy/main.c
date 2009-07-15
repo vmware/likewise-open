@@ -264,6 +264,21 @@ ParseArgs(
         }
     }
 
+    if(!pszSourcePath)
+    {
+        fprintf(stderr, "Error: Source path is NULL \n");
+
+        status = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+    if(!pszTargetPath)
+    {
+        fprintf(stderr, "Error: Target path is NULL \n");
+
+        status = LWIO_ERROR_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(status);
+    }
+
     *ppszCachePath = pszCachePath;
     *ppszSourcePath = pszSourcePath;
     *ppszTargetPath = pszTargetPath;
