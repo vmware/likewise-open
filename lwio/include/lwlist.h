@@ -104,6 +104,13 @@ LwListRemoveBefore(
     IN LW_LIST_LINKS* Head
     );
 
+PLW_LIST_LINKS
+LwListTraverse(
+    IN PLW_LIST_LINKS Head,
+    IN PLW_LIST_LINKS Cursor
+    );
+
+
 #define LwListInsertHead LwListInsertAfter
 #define LwListInsertTail LwListInsertBefore
 
@@ -111,3 +118,12 @@ LwListRemoveBefore(
 #define LwListRemoveTail LwListRemoveBefore
 
 #endif /* __LWLIST_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

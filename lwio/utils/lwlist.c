@@ -127,3 +127,40 @@ LwListRemoveBefore(
     LwListRemove(element);
     return element;
 }
+
+/**
+ * Travserse a list.
+ * Return NULL when the end of the list has been reached
+ * or is empty
+ **/
+
+PLW_LIST_LINKS
+LwListTraverse(
+    IN PLW_LIST_LINKS Head,
+    IN PLW_LIST_LINKS Cursor
+    )
+{
+    if (LwListIsEmpty(Head)) {
+        return NULL;
+    }
+
+    if (Cursor == NULL) {
+        return Head;
+    }
+
+    if (Cursor->Next == Head) {
+        return NULL;
+    }
+
+    return Cursor->Next;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
