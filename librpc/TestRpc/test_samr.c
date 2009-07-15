@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,35 +28,8 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#if HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#include <dce/dce_error.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/samr.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/mpr.h>
-#include <md5.h>
-#include <rc4.h>
-#include <des.h>
-#include <crypto.h>
-
-#include "TestRpc.h"
-#include "Params.h"
+//#include <lwrpc/unicodestring.h>
+#include "includes.h"
 
 extern int verbose_mode;
 
@@ -142,7 +115,6 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
 
     wc16stombs(hostname, host, hostname_size);
 
-
     if (LwIoGetThreadAccessToken(&access_token) != STATUS_SUCCESS)
     {
         return NULL;
@@ -152,7 +124,7 @@ handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
-	
+
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
             printf("Error: %s\n", errmsg);
@@ -261,7 +233,7 @@ found:
 
 done:
     FreeSamrBinding(&samr_binding);
-    
+
     return status;
 }
 
@@ -318,7 +290,7 @@ done:
 NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
                            int *created)
 {
-    
+
     const uint32 account_flags = ACB_NORMAL;
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
@@ -345,7 +317,7 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
 
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status)
-    
+
     status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
     if (status != 0) rpc_fail(status);
 
@@ -355,7 +327,7 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
         if (created) *created = true;
 
         status = SamrClose(samr_b, &user_h);
-        if (status != 0) rpc_fail(status); 
+        if (status != 0) rpc_fail(status);
 
     } else if (status != 0 &&
                status != STATUS_USER_EXISTS) rpc_fail(status);
@@ -366,7 +338,7 @@ NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
     status = SamrClose(samr_b, &conn_h);
     if (status != 0) rpc_fail(status);
 
-done: 
+done:
     FreeSamrBinding(&samr_b);
     if (sid) MsRpcFreeSid(sid);
 
@@ -400,7 +372,7 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
 
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
-    
+
     status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
     if (status != 0) rpc_fail(status);
 
@@ -422,7 +394,7 @@ NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username)
 
     status = SamrDeleteUser(samr_b, &account_h);
     if (status != 0) rpc_fail(status);
-    
+
     status = SamrClose(samr_b, &domain_h);
     if (status != 0) rpc_fail(status);
 
@@ -436,7 +408,7 @@ done:
     if (types) SamrFreeMemory((void*)types);
 
     SAFE_FREE(sid);
-    
+
     return status;
 }
 
@@ -444,7 +416,7 @@ done:
 NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
                      int *created)
 {
-    
+
     const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
     const uint32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
@@ -472,7 +444,7 @@ NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
 
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
-    
+
     status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
     if (status != 0) return status;
 
@@ -528,7 +500,7 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
 
     status = SamrConnect2(samr_b, hostname, conn_access, &conn_h);
     if (status != 0) rpc_fail(status);
-    
+
     status = SamrOpenDomain(samr_b, &conn_h, domain_access, sid, &domain_h);
     if (status != 0) rpc_fail(status);
 
@@ -550,7 +522,7 @@ NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username)
 
     status = SamrDeleteDomAlias(samr_b, &alias_h);
     if (status != 0) rpc_fail(status);
-    
+
     status = SamrClose(samr_b, &domain_h);
     if (status != 0) rpc_fail(status);
 
@@ -564,7 +536,7 @@ done:
     if (types) SamrFreeMemory((void*)types);
 
     SAFE_FREE(sid);
-    
+
     return status;
 }
 
@@ -1707,7 +1679,7 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
 
     perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname, &testalias);
     if (!perr_is_ok(perr)) perr_fail(perr);
-    
+
     perr = fetch_value(options, optcount, "aliasdesc", pt_w16string, &aliasdesc, &testalias_desc);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
@@ -1717,12 +1689,12 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("aliasname", pt_w16string, aliasname);
     PARAM_INFO("aliasdesc", pt_w16string, aliasdesc);
     PARAM_INFO("username", pt_w16string, username);
-    
+
 
     /*
      * Creating and querying/setting alias (in the host domain)
      */
-    
+
     status = SamrConnect2(samr_binding, hostname, conn_access_mask, &conn_handle);
     if (status != 0) rpc_fail(status);
 
@@ -1960,7 +1932,7 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 
         } while (status == STATUS_MORE_ENTRIES);
 
-        status = SamrQueryDomainInfo(samr_binding, &builtin_dom_handle, 
+        status = SamrQueryDomainInfo(samr_binding, &builtin_dom_handle,
                                      (uint16)2, &dominfo);
 
         status = SamrClose(samr_binding, &builtin_dom_handle);
@@ -2092,7 +2064,7 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(&dom_handle);
         INPUT_ARG_INT(i);
         INPUT_ARG_PTR(dominfo);
-        
+
         CALL_MSRPC(status = SamrQueryDomainInfo(samr_binding, &dom_handle,
                                                 (uint16)i, &dominfo));
 
@@ -2102,10 +2074,10 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
             SamrFreeMemory((void*)dominfo);
         }
     }
-	
+
     status = SamrClose(samr_binding, &dom_handle);
     if (status != 0) rpc_fail(status);
-	
+
     status = SamrClose(samr_binding, &conn_handle);
     if (status != 0) rpc_fail(status);
 
@@ -2206,7 +2178,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
     /*
      * Enumerating domain users
      */
-	
+
     max_size = 128;
     resume = 0;
     account_flags = ACB_NORMAL;
@@ -2276,7 +2248,7 @@ int TestSamrEnumUsers(struct test *t, const wchar16_t *hostname,
 
     SamrClose(samr_binding, &dom_handle);
     if (status != 0) rpc_fail(status);
-	
+
     SamrClose(samr_binding, &conn_handle);
     if (status != 0) rpc_fail(status);
 
@@ -2606,7 +2578,7 @@ int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
     /*
      * Creating and deleting user account
      */
-	
+
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
     if (status != 0) rpc_fail(status);
@@ -2907,7 +2879,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     /*
      * Creating and deleting user account
      */
-	
+
     status = SamrConnect2(samr_binding, hostname, conn_access_mask,
                           &conn_handle);
     if (status != 0) rpc_fail(status);
@@ -2948,7 +2920,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
     info26->password_len = strlen(testpass);
 
     memset(initval, 0, sizeof(initval));
-    
+
     md5init(&ctx);
     md5update(&ctx, initval, 16);
     md5update(&ctx, sess_key, (unsigned int)sess_key_len);
@@ -2956,7 +2928,7 @@ int TestSamrSetUserPassword(struct test *t, const wchar16_t *hostname,
 
     rc4(info26->password.data, 516, digested_sess_key, 16);
     memcpy((void*)&info26->password.data, initval, 16);
-    
+
     status = SamrSetUserInfo(samr_binding, &account_handle, 26, &userinfo);
     if (status != 0) rpc_fail(status);
 
@@ -3185,7 +3157,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
     /*
      * Enumerating domain aliases
      */
-	
+
     max_size = 128;
     resume = 0;
     account_flags = ACB_NORMAL;
@@ -3209,7 +3181,7 @@ int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
 
     SamrClose(samr_binding, &dom_handle);
     if (status != 0) rpc_fail(status);
-	
+
     SamrClose(samr_binding, &conn_handle);
     if (status != 0) rpc_fail(status);
 
@@ -3220,7 +3192,7 @@ done:
 
     SAFE_FREE(domname);
     SAFE_FREE(domainname);
-    
+
     return true;
 }
 
@@ -3415,7 +3387,7 @@ done:
     if (types) SamrFreeMemory((void*)types);
     if (grp_rids) SamrFreeMemory((void*)grp_rids);
     if (grp_attrs) SamrFreeMemory((void*)grp_attrs);
-    
+
     if (trans_names) LsaRpcFreeMemory((void*)trans_names);
     if (domains) LsaRpcFreeMemory((void*)domains);
 

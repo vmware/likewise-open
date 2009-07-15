@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
 #include <lwrpc/errconv.h>
 #include <wc16str.h>
 #include <wc16printf.h>
-#include "Params.h"
+#include "params.h"
 
 #define goto_if_ntstatus_not_success(s, lbl) \
     if ((s) != STATUS_SUCCESS) {             \

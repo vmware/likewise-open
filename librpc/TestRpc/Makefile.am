@@ -5,14 +5,14 @@ libnetapi_builddir=$(top_builddir)/netlib
 bin_PROGRAMS = testrpc
 
 testrpc_SOURCES = \
-	TestRpc.c \
-	Params.c \
-	Lsa.c \
-	Samr.c \
-	Netlogon.c \
-	NetApi.c \
-        dssetup.c \
-	Mpr.c
+	testrpc.c        \
+	params.c         \
+	test_lsa.c       \
+	test_samr.c      \
+	test_netlogon.c  \
+	test_netapi.c    \
+        test_dssetup.c   \
+	test_mpr.c
 
 INCLUDES = -I$(librpc_srcdir)/include
 

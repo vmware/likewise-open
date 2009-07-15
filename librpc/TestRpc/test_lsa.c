@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,25 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/mpr.h>
-
-#include "TestRpc.h"
-#include "Params.h"
-#include "Util.h"
+#include "includes.h"
 
 
 BOOL
@@ -80,7 +62,7 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     if (status != RPC_S_OK) {
         int result;
         unsigned char errmsg[dce_c_error_string_len];
-	
+
         dce_error_inq_text(status, errmsg, &result);
         if (result == 0) {
             printf("Error: %s\n", errmsg);
@@ -183,7 +165,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
-    
+
     status = LsaOpenPolicy2(lsa_b, hostname, NULL, access_rights,
                             &lsa_policy);
     if (status != 0) rpc_fail(status);
@@ -199,7 +181,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
         names[i] = (wchar16_t*) wc16sdup(usernames[i]);
         test_fail_if_no_memory(names[i]);
     }
-    
+
     /* Lookup name to sid */
     level = 1;
 
@@ -357,7 +339,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
-    
+
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
@@ -699,7 +681,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
-    
+
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
@@ -806,7 +788,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
-    
+
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 
@@ -911,7 +893,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
 
     lsa_b = CreateLsaBinding(&lsa_b, hostname);
     if (lsa_b == NULL) test_fail(("Test failed: couldn't create lsa binding\n"));
-    
+
     status = GetSamDomainName(&domname, hostname);
     if (status != 0) rpc_fail(status);
 

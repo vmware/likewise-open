@@ -28,24 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/dssetup.h>
-
-#include "TestRpc.h"
-#include "Params.h"
-#include "Util.h"
+#include "includes.h"
 
 
 handle_t

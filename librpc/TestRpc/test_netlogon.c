@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -32,32 +32,7 @@
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <dce/rpc.h>
-#include <dce/dce_error.h>
-#include <dce/schannel.h>
-#include <lwio/lwio.h>
-#include <wc16str.h>
-#include <lwnet.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/netlogon.h>
-#include <lwrpc/mpr.h>
-#include <lwps/lwps.h>
-
-#include <md5.h>
-#include <hmac_md5.h>
-#include <crypto.h>
-
-#include "TestRpc.h"
-#include "Params.h"
+#include "includes.h"
 
 
 handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
@@ -244,15 +219,6 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                        &validation_level, &def_validation_level);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("computer", pt_w16string, computer);
-    PARAM_INFO("machpass", pt_w16string, machpass);
-    PARAM_INFO("server", pt_w16string, server);
-    PARAM_INFO("domain", pt_w16string, domain);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, &logon_level);
-    PARAM_INFO("validation_level", pt_int32, &validation_level);
-
     SET_SESSION_CREDS(pCreds);
 
     computer_name = awc16stombs(computer);
@@ -279,6 +245,16 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
         status = LwpsClosePasswordStore(store);
         if (status != STATUS_SUCCESS) return false;
     }
+
+    PARAM_INFO("computer", pt_w16string, computer);
+    PARAM_INFO("machpass", pt_w16string, machpass);
+    PARAM_INFO("server", pt_w16string, server);
+    PARAM_INFO("domain", pt_w16string, domain);
+    PARAM_INFO("username", pt_w16string, username);
+    PARAM_INFO("password", pt_w16string, password);
+    PARAM_INFO("logon_level", pt_int32, &logon_level);
+    PARAM_INFO("validation_level", pt_int32, &validation_level);
+
 
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
@@ -477,8 +453,10 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     rpc_schannel_auth_info_t schnauth_info = {0};
     NETRESOURCE schnr = {0};
     enum param_err perr = perr_success;
+    char *computer_name = NULL;
+    char *machine_pass = NULL;
     wchar16_t *computer = NULL;
-    wchar16_t *machine_acct = NULL;
+    wchar16_t *machacct = NULL;
     wchar16_t *machpass = NULL;
     wchar16_t *server = NULL;
     wchar16_t *domain = NULL;
@@ -489,6 +467,9 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     NetrCredentials creds = {0};
     NetrValidationInfo *validation_info = NULL;
     uint8 authoritative = 0;
+    HANDLE store = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pi = NULL;
+    char host[128] = {0};
 
     TESTINFO(t, hostname, user, pass);
 
@@ -526,6 +507,32 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                        &validation_level, &def_validation_level);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
+    computer_name = awc16stombs(computer);
+    machine_pass  = awc16stombs(machpass);
+
+    if (strcmp(computer_name, def_computer) == 0 &&
+        strcmp(machine_pass, def_machpass) == 0) {
+
+        SAFE_FREE(computer);
+        SAFE_FREE(machpass);
+
+        status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &store);
+        if (status != STATUS_SUCCESS) return false;
+
+        gethostname(host, sizeof(host));
+
+        status = LwpsGetPasswordByHostName(store, host, &pi);
+        if (status != STATUS_SUCCESS) return false;
+
+        machacct = wc16sdup(pi->pwszMachineAccount);
+        machpass = wc16sdup(pi->pwszMachinePassword);
+        computer = wc16sdup(pi->pwszHostname);
+
+        status = LwpsClosePasswordStore(store);
+        if (status != STATUS_SUCCESS) return false;
+    }
+
+
     PARAM_INFO("computer", pt_w16string, computer);
     PARAM_INFO("machpass", pt_w16string, machpass);
     PARAM_INFO("server", pt_w16string, server);
@@ -538,11 +545,9 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) goto cleanup;
 
-    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
-                          server, domain, computer, machpass,
-                          rpc_c_authn_level_pkt_integrity,
-                          &creds, &schnr);
-    if (schn_b == NULL) goto cleanup;
+    status = NetrOpenSchannel(netr_b, machacct, hostname, server, domain,
+                              computer, machpass, &creds, &schn_b);
+    if (status != STATUS_SUCCESS) goto close;
 
     CALL_MSRPC(status = NetrSamLogonEx(schn_b, server, domain, computer,
                                        username, password,
@@ -559,7 +564,7 @@ close:
 
 done:
 cleanup:
-    SAFE_FREE(machine_acct);
+    SAFE_FREE(machacct);
     SAFE_FREE(computer);
     SAFE_FREE(server);
     SAFE_FREE(schnr.RemoteName);
@@ -686,7 +691,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
                                   NETR_TRUST_FLAG_PRIMARY |
                                   NETR_TRUST_FLAG_NATIVE |
                                   NETR_TRUST_FLAG_INBOUND;
-    
+
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t netr_b = NULL;

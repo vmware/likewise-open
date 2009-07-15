@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,24 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <lwio/lwio.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/winerror.h>
-#include <lwrpc/allocate.h>
-
-#include "Params.h"
-#include "TestRpc.h"
+#include "includes.h"
 
 
 void AddTest(struct test *ft, const char *name, test_fn function)
@@ -147,7 +130,7 @@ int main(int argc, char *argv[])
     wchar16_t *password = NULL;
     size_t hostname_size;
     struct parameter *params = NULL;
-    int params_len;
+    int params_len = 0;
 
     verbose_mode = false;
 
@@ -300,7 +283,7 @@ int main(int argc, char *argv[])
     SetupNetApiTests(tests);
     SetupMprTests(tests);
     SetupDsrTests(tests);
-    
+
     for (i = 1; i < argc; i++) {
         testname = argv[i];
         runtest = FindTest(tests, testname);
@@ -319,7 +302,7 @@ int main(int argc, char *argv[])
         runtest = runtest->next;
     }
     printf("\n");
-    
+
 
 done:
     tfree(hostname);
