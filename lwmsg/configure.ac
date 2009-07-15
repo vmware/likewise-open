@@ -10,6 +10,9 @@ LWMSG_LDFLAGS=""
 MOD_EXT=".so"
 
 case "$host_os:$host_cpu" in
+        linux*:*)
+		LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112L"
+		;;
         solaris*:*)
                 LWMSG_CPPFLAGS="$LWMSG_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"
 		;;
@@ -36,9 +39,11 @@ AC_SUBST(LIB_ICONV)
 AC_SUBST(MOD_EXT)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
 
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS $LWMSG_CPPFLAGS"
+
 # Checks for programs.
 AC_PROG_CC
-AC_GNU_SOURCE
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 AC_PROG_LIBTOOL
@@ -56,7 +61,7 @@ AC_CHECK_LIB(iconv, iconv, [LIB_ICONV="-liconv"],
              AC_CHECK_LIB(iconv, libiconv, [LIB_ICONV="-liconv"], [LIB_ICONV=""]))
 
 # Checks for header files.
-AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h])
+AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h sys/select.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -91,7 +96,7 @@ CFLAGS="$saved_CFLAGS"
 
 # Checks for library functions.
 AC_HEADER_STDC
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([memset strerror_r])
 
 # Check for eid method
 
@@ -120,6 +125,8 @@ fi
 
 AC_SUBST(LIB_moonunit)
 AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
+
+CPPFLAGS="$saved_CPPFLAGS"
 
 AC_CONFIG_FILES([Makefile include/Makefile include/lwmsg/Makefile src/Makefile test/Makefile doc/Makefile doc/Doxyfile example/Makefile])
 
