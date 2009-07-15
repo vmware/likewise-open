@@ -49,11 +49,6 @@
 
 /* Forward declarations */
 
-static NTSTATUS
-PvfsSetFileEndOfFileInfo(
-    PPVFS_IRP_CONTEXT pIrpContext
-    );
-
 
 /* File Globals */
 
@@ -61,6 +56,13 @@ PvfsSetFileEndOfFileInfo(
 
 /* Code */
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetFileEndOfFileInfo(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
 
 NTSTATUS
 PvfsFileEndOfFileInfo(
@@ -94,6 +96,26 @@ error:
 }
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetEndOfFileWithContext(
+    PVOID pContext
+    );
+
+static NTSTATUS
+PvfsCreateSetEndOfFileContext(
+    OUT PPVFS_PENDING_SET_END_OF_FILE *ppSetEndOfFileContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+static VOID
+PvfsFreeSetEndOfFileContext(
+    IN OUT PVOID *ppContext
+    );
+
 static NTSTATUS
 PvfsSetFileEndOfFileInfo(
     PPVFS_IRP_CONTEXT pIrpContext
@@ -102,8 +124,12 @@ PvfsSetFileEndOfFileInfo(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
     PFILE_END_OF_FILE_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    PPVFS_PENDING_SET_END_OF_FILE pSetEoFCtx = NULL;
+
+    Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    pFileInfo = (PFILE_END_OF_FILE_INFORMATION)Args.FileInformation;
 
     /* Sanity checks */
 
@@ -112,18 +138,75 @@ PvfsSetFileEndOfFileInfo(
 
     BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
 
-    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
-    BAIL_ON_NT_STATUS(ntError);
-
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_END_OF_FILE_INFORMATION)Args.FileInformation;
+    ntError = PvfsAccessCheckFileHandle(pCcb, FILE_WRITE_DATA);
+    BAIL_ON_NT_STATUS(ntError);
 
-    /* Real work starts here */
+    ntError = PvfsCreateSetEndOfFileContext(
+                  &pSetEoFCtx,
+                  pIrpContext,
+                  pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = PvfsSetEndOfFileWithContext(pSetEoFCtx);
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pSetEoFCtx->pCcb->pFcb,
+                      pIrpContext,
+                      PvfsSetEndOfFileWithContext,
+                      PvfsFreeSetEndOfFileContext,
+                      (PVOID)pSetEoFCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pSetEoFCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsFreeSetEndOfFileContext((PVOID*)&pSetEoFCtx);
+
+    if ((ntError != STATUS_PENDING) && pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsSetEndOfFileWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_END_OF_FILE pSetEoFCtx = (PPVFS_PENDING_SET_END_OF_FILE)pContext;
+    PIRP pIrp = pSetEoFCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pSetEoFCtx->pCcb;
+    IRP_ARGS_QUERY_SET_INFORMATION Args = {0};
+    PFILE_END_OF_FILE_INFORMATION pFileInfo = NULL;
+
+    Args = pSetEoFCtx->pIrpContext->pIrp->Args.QuerySetInformation;
+    pFileInfo = (PFILE_END_OF_FILE_INFORMATION)Args.FileInformation;
 
     ntError = PvfsSysFtruncate(pCcb->fd, (off_t)pFileInfo->EndOfFile);
     BAIL_ON_NT_STATUS(ntError);
@@ -132,14 +215,60 @@ PvfsSetFileEndOfFileInfo(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
     return ntError;
 
 error:
     goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsCreateSetEndOfFileContext(
+    OUT PPVFS_PENDING_SET_END_OF_FILE *ppSetEndOfFileContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_SET_END_OF_FILE pSetEndOfFileCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pSetEndOfFileCtx,
+                  sizeof(PVFS_PENDING_READ));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pSetEndOfFileCtx->pIrpContext = pIrpContext;
+    pSetEndOfFileCtx->pCcb = pCcb;
+
+    *ppSetEndOfFileContext = pSetEndOfFileCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static VOID
+PvfsFreeSetEndOfFileContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    if (!ppContext || !*ppContext) {
+        return;
+    }
+
+    PVFS_FREE(ppContext);
+
+    return;
 }
 
 

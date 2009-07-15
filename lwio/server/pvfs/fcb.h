@@ -114,10 +114,47 @@ PvfsPreviousCCBFromList(
     PPVFS_CCB_LIST_NODE pCurrent
     );
 
+BOOLEAN
+PvfsFileHasOtherOpens(
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_CCB pCcb
+    );
+
+BOOLEAN
+PvfsFileIsOplocked(
+    IN PPVFS_FCB pFcb
+    );
+
+BOOLEAN
+PvfsFileIsOplockedExclusive(
+    IN PPVFS_FCB pFcb
+    );
+
+BOOLEAN
+PvfsFileIsOplockedShared(
+    IN PPVFS_FCB pFcb
+    );
+
 NTSTATUS
-PvfsAddPendingCreate(
-    PPVFS_FCB Pfcb,
-    PPVFS_PENDING_CREATE pCreateCtx
+PvfsAddItemPendingOplockBreakAck(
+    IN OUT PPVFS_FCB pFcb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree,
+    IN     PVOID pCompletionContext
+    );
+
+NTSTATUS
+PvfsAddOplockRecord(
+    IN OUT PPVFS_FCB pFcb,
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PPVFS_CCB pCcb,
+    IN     ULONG OplockType
+    );
+
+VOID
+PvfsFreeOplockRecord(
+    PPVFS_OPLOCK_RECORD *ppOplockRec
     );
 
 

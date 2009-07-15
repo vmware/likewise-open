@@ -139,6 +139,7 @@ typedef DWORD PVFS_OPERATION_TYPE;
 
 typedef struct _PVFS_LOCK_ENTRY
 {
+    BOOLEAN bFailImmediately;
     BOOLEAN bExclusive;
     ULONG Key;
     LONG64 Offset;
@@ -175,7 +176,58 @@ typedef struct _PVFS_PENDING_CREATE
 
 } PVFS_PENDING_CREATE, *PPVFS_PENDING_CREATE;
 
-#define PVFS_FCB_MAX_PENDING_LOCKS   50
+typedef struct _PVFS_PENDING_READ
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+
+} PVFS_PENDING_READ, *PPVFS_PENDING_READ;
+
+
+typedef struct _PVFS_PENDING_WRITE
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+
+} PVFS_PENDING_WRITE, *PPVFS_PENDING_WRITE;
+
+
+typedef struct _PVFS_PENDING_SET_END_OF_FILE
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+
+} PVFS_PENDING_SET_END_OF_FILE, *PPVFS_PENDING_SET_END_OF_FILE;
+
+
+typedef struct _PVFS_PENDING_SET_ALLOCATION
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+
+} PVFS_PENDING_SET_ALLOCATION, *PPVFS_PENDING_SET_ALLOCATION;
+
+
+typedef NTSTATUS (*PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK)(
+    IN PVOID pContext
+    );
+
+typedef VOID (*PPVFS_OPLOCK_PENDING_COMPLETION_FREE)(
+    IN PVOID *ppContext
+    );
+
+typedef struct _PVFS_OPLOCK_PENDING_OPERATION
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+
+    PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion;
+    PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree;
+    PVOID pCompletionContext;
+
+} PVFS_OPLOCK_PENDING_OPERATION, *PPVFS_OPLOCK_PENDING_OPERATION;
+
+#define PVFS_FCB_MAX_PENDING_LOCKS       50
+#define PVFS_FCB_MAX_PENDING_OPERATIONS  50
 
 struct _PVFS_FCB
 {
@@ -183,7 +235,8 @@ struct _PVFS_FCB
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
     pthread_rwlock_t rwLock;        /* For managing the CCB list */
-    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in the CCB list */
+    pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
+                                       the CCB list */
 
     PSTR pszFilename;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
@@ -192,13 +245,15 @@ struct _PVFS_FCB
     PPVFS_CCB_LIST_NODE pCcbList;
 
     PVFS_LOCK_ENTRY LastFailedLock;
-    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used to match pointer */
+    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used
+                                         to match pointer */
 
     /* File Object state information */
 
+    LW_LIST_LINKS OplockList;
+
     PLWRTL_QUEUE pPendingLockQueue;
-    PPVFS_OPLOCK_RECORD pOplockList;
-    PLWRTL_QUEUE pPendingCreateQueue;
+    PLWRTL_QUEUE pOplockPendingOpsQueue;
 
 };
 
@@ -267,11 +322,7 @@ struct _PVFS_IRP_CONTEXT
 
     /* Used to cancel a pending blocking lock */
     PPVFS_PENDING_LOCK pPendingLock;
-
-    /* Used to cancel a registered oplock */
-    PPVFS_OPLOCK_RECORD pOplock;
 };
-
 
 /* Used for Query/Set level handlers */
 
@@ -281,16 +332,10 @@ struct _InfoLevelDispatchEntry {
                    PPVFS_IRP_CONTEXT pIrpContext);
 };
 
-/* Registered oplock types
-   TODO -- Add Win 7 oplock types */
-
-#define PVFS_OPLOCK_TYPE_NONE       0x00
-#define PVFS_OPLOCK_TYPE_BATCH      0x01
-#define PVFS_OPLOCK_TYPE_LEVEL_1    0x02
-#define PVFS_OPLOCK_TYPE_LEVEL_2    0x03
-
 struct _PVFS_OPLOCK_RECORD
 {
+    LW_LIST_LINKS Oplocks;
+
     ULONG OplockType;
     PPVFS_CCB pCcb;
     PPVFS_IRP_CONTEXT pIrpContext;

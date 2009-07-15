@@ -53,8 +53,26 @@
 
 /* Code */
 
-/**************************************************************
- *************************************************************/
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsReadFileWithContext(
+    PVOID pContext
+    );
+
+static NTSTATUS
+PvfsCreateReadContext(
+    OUT PPVFS_PENDING_READ *ppReadContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+static VOID
+PvfsFreeReadContext(
+    IN OUT PVOID *ppContext
+    );
+
 
 NTSTATUS
 PvfsRead(
@@ -64,12 +82,8 @@ PvfsRead(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
     PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
-    ULONG bufLen = pIrp->Args.ReadWrite.Length;
-    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
     PPVFS_CCB pCcb = NULL;
-    size_t totalBytesRead = 0;
-    LONG64 Offset = 0;
-    BOOLEAN bMutexLocked = FALSE;
+    PPVFS_PENDING_READ pReadCtx = NULL;
 
     /* Sanity checks */
 
@@ -93,6 +107,65 @@ PvfsRead(
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_DATA);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsCreateReadContext(&pReadCtx, pIrpContext, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
+
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = PvfsReadFileWithContext(pReadCtx);
+        break;
+
+    case STATUS_PENDING:
+        ntError = PvfsAddItemPendingOplockBreakAck(
+                      pReadCtx->pCcb->pFcb,
+                      pIrpContext,
+                      PvfsReadFileWithContext,
+                      PvfsFreeReadContext,
+                      (PVOID)pReadCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pReadCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    PvfsFreeReadContext((PVOID*)&pReadCtx);
+
+    if ((ntError != STATUS_PENDING) && pCcb) {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsReadFileWithContext(
+    PVOID pContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_READ pReadCtx = (PPVFS_PENDING_READ)pContext;
+    PIRP pIrp = pReadCtx->pIrpContext->pIrp;
+    PPVFS_CCB pCcb = pReadCtx->pCcb;
+    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
+    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
+    size_t totalBytesRead = 0;
+    LONG64 Offset = 0;
+    BOOLEAN bMutexLocked = FALSE;
+
     /* Enter critical region - ReadFile() needs to fill
        the buffer atomically while it may take several read()
        calls */
@@ -110,8 +183,12 @@ PvfsRead(
         Offset = offset;
     }
 
-    ntError = PvfsCheckLockedRegion(pCcb, PVFS_OPERATION_READ,
-                                    Key, Offset, bufLen);
+    ntError = PvfsCheckLockedRegion(
+                  pCcb,
+                  PVFS_OPERATION_READ,
+                  Key,
+                  Offset,
+                  bufLen);
     BAIL_ON_NT_STATUS(ntError);
 
     while (totalBytesRead < bufLen)
@@ -137,8 +214,7 @@ PvfsRead(
         Offset += bytesRead;
     }
 
-    /* Can only get here is the loop was completed
-       successfully */
+    /* Can only get here is the loop was completed successfully */
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
 
@@ -149,14 +225,61 @@ PvfsRead(
 cleanup:
     LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
-    if (pCcb) {
-        PvfsReleaseCCB(pCcb);
-    }
-
     return ntError;
 
 error:
     goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsCreateReadContext(
+    OUT PPVFS_PENDING_READ *ppReadContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_READ pReadCtx = NULL;
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pReadCtx,
+                  sizeof(PVFS_PENDING_READ));
+    BAIL_ON_NT_STATUS(ntError);
+
+    pReadCtx->pIrpContext = pIrpContext;
+    pReadCtx->pCcb = pCcb;
+
+    *ppReadContext = pReadCtx;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static VOID
+PvfsFreeReadContext(
+    IN OUT PVOID *ppContext
+    )
+{
+    if (!ppContext || !*ppContext) {
+        return;
+    }
+
+    PVFS_FREE(ppContext);
+
+    return;
 }
 
 
