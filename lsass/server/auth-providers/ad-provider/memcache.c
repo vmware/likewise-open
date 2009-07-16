@@ -49,7 +49,7 @@
 
 void
 MemCacheFreeGuardian(
-    const LSA_HASH_ENTRY* pEntry
+    IN const LSA_HASH_ENTRY* pEntry
     )
 {
     if (pEntry->pKey)
@@ -194,8 +194,8 @@ error:
 
 VOID
 MemCacheFreeObjects(
-    PVOID pData,
-    PVOID pUnused
+    IN PVOID pData,
+    IN PVOID pUnused
     )
 {
     PLSA_SECURITY_OBJECT pObject = (PLSA_SECURITY_OBJECT)pData;
@@ -205,8 +205,8 @@ MemCacheFreeObjects(
 
 VOID
 MemCacheFreePasswordVerifiers(
-    PVOID pData,
-    PVOID pUnused
+    IN PVOID pData,
+    IN PVOID pUnused
     )
 {
     PLSA_PASSWORD_VERIFIER pPassword = (PLSA_PASSWORD_VERIFIER)pData;
@@ -216,8 +216,8 @@ MemCacheFreePasswordVerifiers(
 
 DWORD
 MemCacheRemoveMembership(
-    PMEM_DB_CONNECTION pConn,
-    PMEM_GROUP_MEMBERSHIP pMembership
+    IN PMEM_DB_CONNECTION pConn,
+    IN PMEM_GROUP_MEMBERSHIP pMembership
     )
 {
     DWORD dwError = 0;
@@ -257,7 +257,7 @@ error:
 
 void
 MemCacheSafeClose(
-    PLSA_DB_HANDLE phDb
+    IN OUT PLSA_DB_HANDLE phDb
     )
 {
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)*phDb;
@@ -344,9 +344,9 @@ MemCacheSafeClose(
 
 DWORD
 MemCacheFindUserByName(
-    LSA_DB_HANDLE hDb,
-    PLSA_LOGIN_NAME_INFO pUserNameInfo,
-    PLSA_SECURITY_OBJECT* ppObject
+    IN LSA_DB_HANDLE hDb,
+    IN PLSA_LOGIN_NAME_INFO pUserNameInfo,
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
@@ -436,9 +436,9 @@ error:
 // returns LW_ERROR_NOT_HANDLED if the user is not in the database
 DWORD
 MemCacheFindUserById(
-    LSA_DB_HANDLE hDb,
-    uid_t uid,
-    PLSA_SECURITY_OBJECT* ppObject
+    IN LSA_DB_HANDLE hDb,
+    IN uid_t uid,
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
@@ -491,9 +491,9 @@ error:
 
 DWORD
 MemCacheFindGroupByName(
-    LSA_DB_HANDLE hDb,
-    PLSA_LOGIN_NAME_INFO pGroupNameInfo,
-    PLSA_SECURITY_OBJECT* ppObject
+    IN LSA_DB_HANDLE hDb,
+    IN PLSA_LOGIN_NAME_INFO pGroupNameInfo,
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
@@ -572,9 +572,9 @@ error:
 
 DWORD
 MemCacheFindGroupById(
-    LSA_DB_HANDLE hDb,
-    gid_t gid,
-    PLSA_SECURITY_OBJECT* ppObject
+    IN LSA_DB_HANDLE hDb,
+    IN gid_t gid,
+    OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
     DWORD dwError = 0;
@@ -659,8 +659,8 @@ MemCacheEmptyCache(
 
 DWORD
 MemCacheStoreObjectEntry(
-    LSA_DB_HANDLE hDb,
-    PLSA_SECURITY_OBJECT pObject
+    IN LSA_DB_HANDLE hDb,
+    IN PLSA_SECURITY_OBJECT pObject
     )
 {
     return MemCacheStoreObjectEntries(
@@ -671,9 +671,9 @@ MemCacheStoreObjectEntry(
 
 DWORD
 MemCacheRemoveObjectByHashKey(
-    PMEM_DB_CONNECTION pConn,
-    PLSA_HASH_TABLE pTable,
-    PVOID pvKey
+    IN PMEM_DB_CONNECTION pConn,
+    IN OUT PLSA_HASH_TABLE pTable,
+    IN PVOID pvKey
     )
 {
     DWORD dwError = 0;
@@ -784,8 +784,8 @@ error:
 
 DWORD
 MemCacheClearExistingObjectKeys(
-    PMEM_DB_CONNECTION pConn,
-    PLSA_SECURITY_OBJECT pObject
+    IN PMEM_DB_CONNECTION pConn,
+    IN PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD dwError = 0;
@@ -861,8 +861,8 @@ error:
 
 DWORD
 MemCacheEnsureHashSpace(
-    PLSA_HASH_TABLE pTable,
-    size_t sNewEntries
+    IN OUT PLSA_HASH_TABLE pTable,
+    IN size_t sNewEntries
     )
 {
     DWORD dwError = 0;
@@ -884,9 +884,9 @@ error:
 
 DWORD
 MemCacheStoreObjectEntries(
-    LSA_DB_HANDLE hDb,
-    size_t  sObjectCount,
-    PLSA_SECURITY_OBJECT* ppObjects
+    IN LSA_DB_HANDLE hDb,
+    IN size_t  sObjectCount,
+    IN PLSA_SECURITY_OBJECT* ppObjects
     )
 {
     DWORD dwError = 0;
@@ -1069,7 +1069,7 @@ error:
 
 void
 MemCacheSafeFreeGroupMembership(
-    PMEM_GROUP_MEMBERSHIP* ppMembership
+    IN OUT PMEM_GROUP_MEMBERSHIP* ppMembership
     )
 {
     if (*ppMembership != NULL)
@@ -1081,7 +1081,7 @@ MemCacheSafeFreeGroupMembership(
 
 void
 MemCacheFreeMembershipValue(
-    const LSA_HASH_ENTRY* pEntry
+    IN const LSA_HASH_ENTRY* pEntry
     )
 {
     PMEM_GROUP_MEMBERSHIP pMembership = (PMEM_GROUP_MEMBERSHIP)pEntry->pValue;
@@ -1091,8 +1091,8 @@ MemCacheFreeMembershipValue(
 
 DWORD
 MemCacheDuplicateMembership(
-    PMEM_GROUP_MEMBERSHIP* ppDest,
-    PLSA_GROUP_MEMBERSHIP pSrc
+    OUT PMEM_GROUP_MEMBERSHIP* ppDest,
+    IN PLSA_GROUP_MEMBERSHIP pSrc
     )
 {
     DWORD dwError = 0;
@@ -1782,9 +1782,10 @@ MemCacheEnumGroupsCache(
 
 DWORD
 MemCacheFindObjectByDN(
-    LSA_DB_HANDLE hDb,
-    PCSTR pszDN,
-    PLSA_SECURITY_OBJECT *ppObject)
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszDN,
+    OUT PLSA_SECURITY_OBJECT *ppObject
+    )
 {
     DWORD dwError = 0;
     // Do not free
@@ -1872,9 +1873,9 @@ error:
 
 DWORD
 MemCacheFindObjectBySid(
-    LSA_DB_HANDLE hDb,
-    PCSTR pszSid,
-    PLSA_SECURITY_OBJECT *ppObject
+    IN LSA_DB_HANDLE hDb,
+    IN PCSTR pszSid,
+    OUT PLSA_SECURITY_OBJECT *ppObject
     )
 {
     DWORD dwError = 0;
@@ -2028,8 +2029,8 @@ error:
 
 DWORD
 MemCacheStorePasswordVerifier(
-    LSA_DB_HANDLE hDb,
-    PLSA_PASSWORD_VERIFIER pVerifier
+    IN LSA_DB_HANDLE hDb,
+    IN PLSA_PASSWORD_VERIFIER pVerifier
     )
 {
     DWORD dwError = 0;
@@ -2039,7 +2040,7 @@ MemCacheStorePasswordVerifier(
 
 void
 InitializeMemCacheProvider(
-    PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
+    OUT PADCACHE_PROVIDER_FUNCTION_TABLE pCacheTable
     )
 {
     pCacheTable->pfnOpenHandle               = MemCacheOpen;
