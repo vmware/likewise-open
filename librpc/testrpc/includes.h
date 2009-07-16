@@ -23,7 +23,6 @@
 #include <lwrpc/winerror.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/sidhelper.h>
-#include <lwrpc/mpr.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>

@@ -65,7 +65,6 @@
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
-#include <lwrpc/mpr.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
