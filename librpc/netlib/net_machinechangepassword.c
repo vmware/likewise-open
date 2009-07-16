@@ -101,8 +101,6 @@ NetMachineChangePassword(
         status = ErrnoToNtStatus(errno);
         BAIL_ON_NTSTATUS_ERROR(status);
     }
-    conn_err = WNetAddConnection2(&nr, oldpassword, username);
-    BAIL_ON_WINERR_ERROR(conn_err);
 
     err = NetUserChangePassword(domain_controller_name, username,
                                 oldpassword, newpassword);
@@ -131,10 +129,6 @@ NetMachineChangePassword(
         BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    /* release the domain controller connection creds */
-    conn_err = WNetCancelConnection2(nr.RemoteName, 0, 0);
-    BAIL_ON_WINERR_ERROR(conn_err);
-
 cleanup:
     if (nr.RemoteName) {
         NetFreeMemory((void*)nr.RemoteName);
@@ -156,11 +150,6 @@ cleanup:
     return err;
 
 error:
-    if (conn_err == ERROR_SUCCESS &&
-        nr.RemoteName != NULL) {
-        conn_err = WNetCancelConnection2(nr.RemoteName, 0, 0);
-    }
-
     if (pass_info) {
         LwpsFreePasswordInfo(hStore, pass_info);
     }

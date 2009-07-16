@@ -11,8 +11,7 @@ testrpc_SOURCES = \
 	test_samr.c      \
 	test_netlogon.c  \
 	test_netapi.c    \
-        test_dssetup.c   \
-	test_mpr.c
+        test_dssetup.c
 
 INCLUDES = -I$(librpc_srcdir)/include
 
