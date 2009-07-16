@@ -80,13 +80,12 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 
 
 handle_t TestOpenSchannel(handle_t netr_b,
-                      const wchar16_t *hostname,
-                      const wchar16_t *user, const wchar16_t *pass,
-                      wchar16_t *server, wchar16_t *domain,
-                      wchar16_t *computer, wchar16_t *machpass,
-                      uint32 protection_level,
-                      NetrCredentials *creds,
-                      NETRESOURCE *schnr)
+                          const wchar16_t *hostname,
+                          const wchar16_t *user, const wchar16_t *pass,
+                          wchar16_t *server, wchar16_t *domain,
+                          wchar16_t *computer, wchar16_t *machpass,
+                          uint32 protection_level,
+                          NetrCredentials *creds)
 {
     RPCSTATUS st = rpc_s_ok;
     NTSTATUS status = STATUS_SUCCESS;
@@ -135,13 +134,11 @@ error:
 }
 
 
-void TestCloseSchannel(handle_t schn_b, NETRESOURCE *schnr)
+void TestCloseSchannel(handle_t schn_b)
 {
     FreeNetlogonBinding(&schn_b);
 
     LwIoSetThreadAccessToken(NULL);
-
-    SAFE_FREE(schnr->RemoteName);
 }
 
 
@@ -162,7 +159,6 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
-    NETRESOURCE schnr = {0};
     enum param_err perr = perr_success;
     wchar16_t *computer = NULL;
     wchar16_t *machacct = NULL;
@@ -289,7 +285,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                                                 &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    TestCloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -326,7 +322,6 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
-    NETRESOURCE schnr = {0};
     enum param_err perr = perr_success;
     wchar16_t *computer = NULL;
     wchar16_t *machpass = NULL;
@@ -356,8 +351,6 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     }
 
     hostname_len = wc16slen(hostname);
-    schnr.RemoteName = (wchar16_t*) malloc((hostname_len + 8) * sizeof(wchar16_t));
-    if (schnr.RemoteName == NULL) goto cleanup;
 
     perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
                        &def_computer);
@@ -406,13 +399,13 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
                           server, domain, computer, machpass,
                           rpc_c_authn_level_pkt_privacy,
-                          &creds, &schnr);
+                          &creds);
 
     CALL_MSRPC(status = NetrSamLogoff(schn_b, &creds, server, domain, computer,
                                       username, password, (uint16)logon_level));
     if (status != STATUS_SUCCESS) goto close;
 
-    TestCloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -451,7 +444,6 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     handle_t netr_b = NULL;
     handle_t schn_b = NULL;
     rpc_schannel_auth_info_t schnauth_info = {0};
-    NETRESOURCE schnr = {0};
     enum param_err perr = perr_success;
     char *computer_name = NULL;
     char *machine_pass = NULL;
@@ -556,7 +548,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                                        &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
-    TestCloseSchannel(schn_b, &schnr);
+    TestCloseSchannel(schn_b);
 
 close:
     FreeNetlogonBinding(&netr_b);
@@ -567,7 +559,6 @@ cleanup:
     SAFE_FREE(machacct);
     SAFE_FREE(computer);
     SAFE_FREE(server);
-    SAFE_FREE(schnr.RemoteName);
     SAFE_FREE(schnauth_info.domain_name);
     SAFE_FREE(schnauth_info.machine_name);
 

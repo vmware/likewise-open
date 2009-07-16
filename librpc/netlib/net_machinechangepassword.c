@@ -40,7 +40,6 @@ NetMachineChangePassword(
     NET_API_STATUS err = ERROR_SUCCESS;
     WINERR conn_err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    NETRESOURCE nr;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pass_info = NULL;
     wchar16_t *username = NULL;
@@ -51,7 +50,6 @@ NetMachineChangePassword(
     char machine_pass[MACHPASS_LEN+1];
     char *localname = NULL;
 
-    memset((void*)&nr, 0, sizeof(nr));
     memset((void*)machine_pass, 0, sizeof(machine_pass));
 
     err = NetGetHostInfo(&localname);
@@ -86,22 +84,6 @@ NetMachineChangePassword(
 
     domain_controller_name_len = wc16slen(domain_controller_name);
 
-    status = NetAllocateMemory((void**)&nr.RemoteName,
-                               (domain_controller_name_len + 8) *
-                               sizeof(wchar16_t),
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    /* specify credentials for domain controller connection */
-    if (sw16printfw(nr.RemoteName,
-           domain_controller_name_len + 8,
-            L"\\\\%ws\\IPC$",
-            domain_controller_name) < 0)
-    {
-        status = ErrnoToNtStatus(errno);
-        BAIL_ON_NTSTATUS_ERROR(status);
-    }
-
     err = NetUserChangePassword(domain_controller_name, username,
                                 oldpassword, newpassword);
     BAIL_ON_WINERR_ERROR(err);
@@ -130,10 +112,6 @@ NetMachineChangePassword(
     }
 
 cleanup:
-    if (nr.RemoteName) {
-        NetFreeMemory((void*)nr.RemoteName);
-    }
-
     if (localname)
     {
         NetFreeMemory(localname);
