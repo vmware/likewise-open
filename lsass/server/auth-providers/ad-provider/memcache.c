@@ -1058,6 +1058,7 @@ MemCacheAddMembership(
     PMEM_LIST_NODE pGuardian = NULL;
     DWORD dwError = 0;
     PMEM_LIST_NODE pGuardianTemp = NULL;
+    PSTR pszSidCopy = NULL;
 
     dwError = LsaHashGetValue(
                     pConn->pParentSIDToMembershipList,
@@ -1076,9 +1077,14 @@ MemCacheAddMembership(
         pGuardianTemp->pNext = pGuardianTemp;
         pGuardianTemp->pPrev = pGuardianTemp;
 
+        dwError = LsaAllocateString(
+                        pMembership->membership.pszParentSid,
+                        &pszSidCopy);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = LsaHashSetValue(
                         pConn->pParentSIDToMembershipList,
-                        pMembership->membership.pszParentSid,
+                        pszSidCopy,
                         pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1086,6 +1092,7 @@ MemCacheAddMembership(
         // something goes wrong after this point.
         pGuardian = pGuardianTemp;
         pGuardianTemp = NULL;
+        pszSidCopy = NULL;
     }
     else
     {
@@ -1115,9 +1122,14 @@ MemCacheAddMembership(
         pGuardianTemp->pNext = pGuardianTemp;
         pGuardianTemp->pPrev = pGuardianTemp;
 
+        dwError = LsaAllocateString(
+                        pMembership->membership.pszChildSid,
+                        &pszSidCopy);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwError = LsaHashSetValue(
                         pConn->pChildSIDToMembershipList,
-                        pMembership->membership.pszChildSid,
+                        pszSidCopy,
                         pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1125,6 +1137,7 @@ MemCacheAddMembership(
         // something goes wrong after this point.
         pGuardian = pGuardianTemp;
         pGuardianTemp = NULL;
+        pszSidCopy = NULL;
     }
     else
     {
@@ -1139,6 +1152,7 @@ MemCacheAddMembership(
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pGuardianTemp);
+    LSA_SAFE_FREE_STRING(pszSidCopy);
     return dwError;
 
 error:
