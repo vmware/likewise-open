@@ -66,10 +66,6 @@ NtlmInitCredentials(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    memset((*ppNtlmCreds), 0, sizeof(NTLM_CREDENTIALS));
-
-    BAIL_ON_NTLM_ERROR(dwError);
-
 cleanup:
     return dwError;
 error:

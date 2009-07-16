@@ -66,10 +66,7 @@ NtlmInitContext(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    memset((*ppNtlmContext), 0, sizeof(NTLM_CONTEXT));
     (*ppNtlmContext)->NtlmState = NtlmStateBlank;
-
-    BAIL_ON_NTLM_ERROR(dwError);
 
 cleanup:
     return dwError;
@@ -368,8 +365,6 @@ NtlmCreateContextFromSecBufferDesc(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    memset(*ppNtlmContext, 0, sizeof(NTLM_CONTEXT));
-
     dwError = LwAllocateMemory(
         pSecBuffer->cbBuffer,
         &((*ppNtlmContext)->pMessage)
@@ -552,8 +547,6 @@ DWORD NtlmCreateNegotiateMessage(
     dwError = LwAllocateMemory(*pdwSize, (PVOID*)(PVOID)ppNegMsg);
     BAIL_ON_NTLM_ERROR(dwError);
 
-    memset(*ppNegMsg, 0, *pdwSize);
-
     // Data is checked and memory is allocated; fill in the structure
     //
     memcpy(&((*ppNegMsg)->NtlmSignature), NTLM_SIGNATURE, NTLM_SIGNATURE_SIZE);
@@ -723,8 +716,6 @@ NtlmCreateChallengeMessage(
 
     dwError = LwAllocateMemory(*pdwSize, (PVOID*)(PVOID)ppChlngMsg);
     BAIL_ON_NTLM_ERROR(dwError);
-
-    memset(*ppChlngMsg, 0, *pdwSize);
 
     // We need to build up the challenge options based on the negotiate options
     //
@@ -1061,8 +1052,6 @@ NtlmCreateResponseMessage(
 
     dwError = LwAllocateMemory(*pdwSize, (PVOID*)(PVOID)(ppRespMsg));
     BAIL_ON_NTLM_ERROR(dwError);
-
-    memset(*ppRespMsg, 0, *pdwSize);
 
     // Data is checked and memory is allocated; fill in the structure
     //

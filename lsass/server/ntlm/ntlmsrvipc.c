@@ -131,7 +131,7 @@ NtlmSrvIpcAcceptSecurityContext(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -196,7 +196,7 @@ NtlmSrvIpcAcquireCredentialsHandle(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ACQUIRE_CREDS_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -255,7 +255,7 @@ NtlmSrvIpcDecryptMessage(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_DECRYPT_MSG_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -355,7 +355,7 @@ NtlmSrvIpcEncryptMessage(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_ENCRYPT_MSG_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -413,7 +413,7 @@ NtlmSrvIpcExportSecurityContext(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_EXPORT_SEC_CTXT_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -511,7 +511,7 @@ NtlmSrvIpcImportSecurityContext(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_IMPORT_SEC_CTXT_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -567,7 +567,7 @@ NtlmSrvIpcInitializeSecurityContext(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_INIT_SEC_CTXT_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -634,7 +634,7 @@ NtlmSrvIpcMakeSignature(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_MAKE_SIGN_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -692,7 +692,7 @@ NtlmSrvIpcQueryCredentialsAttributes(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CREDS_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -751,7 +751,7 @@ NtlmSrvIpcQueryContextAttributes(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_QUERY_CTXT_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 
@@ -809,7 +809,7 @@ NtlmSrvIpcVerifySignature(
 
     dwError = LwAllocateMemory(
         sizeof(NTLM_IPC_VERIFY_SIGN_RESPONSE),
-        (PVOID*)(PVOID)pNtlmResp
+        (PVOID*)(PVOID)&pNtlmResp
         );
     BAIL_ON_LW_ERROR(dwError);
 

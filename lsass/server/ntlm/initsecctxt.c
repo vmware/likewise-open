@@ -67,12 +67,9 @@ NtlmServerInitializeSecurityContext(
     PNTLM_CONTEXT pNtlmContext = NULL;
     PNTLM_CONTEXT pNtlmContextIn = NULL;
     BOOLEAN bInLock = FALSE;
-
-    if(!phCredential)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_NTLM_ERROR(dwError);
-    }
+    CHAR Workstation[HOST_NAME_MAX + 1] = {0};
+    CHAR Domain[HOST_NAME_MAX + 1] = {0};
+    PCHAR pDot = NULL;
 
     if(phContext)
     {
@@ -85,8 +82,26 @@ NtlmServerInitializeSecurityContext(
 
     if(!pNtlmContext)
     {
+        dwError = gethostname(Domain, HOST_NAME_MAX);
+        dwError = LwMapErrnoToLwError(dwError);
+        BAIL_ON_NTLM_ERROR(dwError);
+
+        memcpy(Workstation, Domain, strlen(Domain));
+
+        pDot = strchr(Workstation, '.');
+        if(pDot)
+        {
+            pDot[0] = '\0';
+        }
+
         // If we start with a NULL context, create a negotiate message
-        dwError = NtlmCreateNegotiateContext(&pNtlmContext);
+        dwError = NtlmCreateNegotiateContext(
+            fContextReq,
+            Domain,
+            Workstation,
+            (PBYTE)&gXpSpoof,  //for now add OS ver info... config later
+            &pNtlmContext
+            );
         BAIL_ON_NTLM_ERROR(dwError);
     }
     else
@@ -117,10 +132,12 @@ NtlmServerInitializeSecurityContext(
     *phNewContext = pNtlmContext->ContextHandle;
 
     //copy message to the output parameter
+    dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
 
+    BAIL_ON_NTLM_ERROR(dwError);
 
 cleanup:
-    return(dwError);
+    return dwError;
 error:
     if( pNtlmContext->ContextHandle.dwLower ||
         pNtlmContext->ContextHandle.dwUpper )
@@ -135,11 +152,14 @@ error:
 
 DWORD
 NtlmCreateNegotiateContext(
+    IN DWORD dwOptions,
+    IN PCHAR pDomain,
+    IN PCHAR pWorkstation,
+    IN PBYTE pOsVersion,
     OUT PNTLM_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    CHAR HostName[HOST_NAME_MAX + 1];
 
     // this is paranoid, but we should make sure we're not writing over an
     // existing context (or at the very least, this is a check that we've
@@ -153,15 +173,11 @@ NtlmCreateNegotiateContext(
     dwError = NtlmInitContext(ppNtlmContext);
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = gethostname(HostName, HOST_NAME_MAX);
-    dwError = LwMapErrnoToLwError(dwError);
-    BAIL_ON_NTLM_ERROR(dwError);
-
     dwError = NtlmCreateNegotiateMessage(
-        0,
-        NULL,
-        HostName,
-        NULL,
+        dwOptions,
+        pDomain,
+        pWorkstation,
+        pOsVersion,
         &((*ppNtlmContext)->dwMessageSize),
         (PNTLM_NEGOTIATE_MESSAGE*)&((*ppNtlmContext)->pMessage)
         );
