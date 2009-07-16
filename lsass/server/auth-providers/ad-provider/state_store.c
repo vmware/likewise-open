@@ -44,34 +44,227 @@
  */
 
 #include "adprovider.h"
-#include "state_store_p.h"
+
+// The database consists of several tables.  Because we're
+// using a flat file and the amount of data is small, the
+// easiest way to update it is to replace the entire file.
+// However, we may be asked to write some of it before we
+// have been asked to read all of it.  The simplest solution
+// is to preload everything into memory and hold it until
+// either we're asked for it or we determine it isn't needed.
+typedef struct _ADSTATE_CONNECTION
+{
+    pthread_rwlock_t lock;
+} ADSTATE_CONNECTION, *PADSTATE_CONNECTION;
+
+// This is the maximum number of characters necessary to store a guid in
+// string form.
+#define UUID_STR_SIZE 37
+
+#define ADSTATE_DB       LSASS_DB_DIR "/lsass-adstate.filedb"
+#define ADSTATE_DB_TEMP  ADSTATE_DB ".temp"
+
+#define FILEDB_FORMAT_TYPE "LFLT"
+#define FILEDB_FORMAT_VERSION 1
+
+#define FILEDB_DATA_TYPE_PROVIDER    1
+#define FILEDB_DATA_TYPE_LINKEDCELL  2
+#define FILEDB_DATA_TYPE_DOMAINTRUST 3
+
+#define ENTER_ADSTATE_DB_RW_READER_LOCK(pLock, bInLock) \
+    if (!bInLock) {                                 \
+        pthread_rwlock_rdlock(pLock);               \
+        bInLock = TRUE;                             \
+    }
+#define LEAVE_ADSTATE_DB_RW_READER_LOCK(pLock, bInLock) \
+    if (bInLock) {                                  \
+        pthread_rwlock_unlock(pLock);               \
+        bInLock = FALSE;                            \
+    }
+
+#define ENTER_ADSTATE_DB_RW_WRITER_LOCK(pLock, bInLock) \
+    if (!bInLock) {                                 \
+        pthread_rwlock_wrlock(pLock);               \
+        bInLock = TRUE;                             \
+    }
+#define LEAVE_ADSTATE_DB_RW_WRITER_LOCK(pLock, bInLock) \
+    if (bInLock) {                                  \
+        pthread_rwlock_unlock(pLock);               \
+        bInLock = FALSE;                            \
+    }
+
+typedef struct _AD_FILEDB_PROVIDER_DATA
+{
+    DWORD dwDirectoryMode;
+    ADConfigurationMode adConfigurationMode;
+    UINT64 adMaxPwdAge;
+    PSTR  pszDomain;
+    PSTR  pszShortDomain;
+    PSTR  pszComputerDN;
+    PSTR  pszCellDN;
+} AD_FILEDB_PROVIDER_DATA, *PAD_FILEDB_PROVIDER_DATA;
+
+typedef struct _AD_FILEDB_DOMAIN_INFO
+{
+    PSTR pszDnsDomainName;
+    PSTR pszNetbiosDomainName;
+    PSTR pszSid;
+    PSTR pszGuid;
+    PSTR pszTrusteeDnsDomainName;
+    DWORD dwTrustFlags;
+    DWORD dwTrustType;
+    DWORD dwTrustAttributes;
+    LSA_TRUST_DIRECTION dwTrustDirection;
+    LSA_TRUST_MODE dwTrustMode;
+    // Can be NULL (e.g. external trust)
+    PSTR pszForestName;
+    PSTR pszClientSiteName;
+    LSA_DM_DOMAIN_FLAGS Flags;
+    PLSA_DM_DC_INFO DcInfo;
+    PLSA_DM_DC_INFO GcInfo;
+} AD_FILEDB_DOMAIN_INFO, *PAD_FILEDB_DOMAIN_INFO;
+
+LWMsgTypeSpec gADStateProviderDataCacheSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(AD_FILEDB_PROVIDER_DATA),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_PROVIDER_DATA, dwDirectoryMode),
+    LWMSG_MEMBER_UINT8(AD_FILEDB_PROVIDER_DATA, adConfigurationMode),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszDomain),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszShortDomain),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszComputerDN),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszCellDN),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeSpec gADStateLinkedCellCacheSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(AD_LINKED_CELL_INFO),
+    LWMSG_MEMBER_PSTR(AD_LINKED_CELL_INFO, pszCellDN),
+    LWMSG_MEMBER_PSTR(AD_LINKED_CELL_INFO, pszDomain),
+    LWMSG_MEMBER_UINT8(AD_LINKED_CELL_INFO, bIsForestCell),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeSpec gADStateDomainTrustCacheSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(AD_FILEDB_DOMAIN_INFO),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszDnsDomainName),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszNetbiosDomainName),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszSid),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszGuid),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszTrusteeDnsDomainName),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustFlags),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustType),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustAttributes),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustDirection),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustMode),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszForestName),
+    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszClientSiteName),
+    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, Flags),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
 
 static
 DWORD
-ADState_Setup(
-    IN sqlite3* pSqlHandle
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszError = NULL;
+ADState_ReadFromFile(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    OUT OPTIONAL PAD_PROVIDER_DATA* ppResult,
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
+    OUT OPTIONAL PDLINKEDLIST* ppDomainList
+    );
 
-    dwError = LsaSqliteExec(pSqlHandle,
-                                AD_STATE_CREATE_TABLES,
-                                &pszError);
-    if (dwError)
-    {
-        LSA_LOG_DEBUG("SQL failed: code = %d, message = '%s'\nSQL =\n%s",
-                      dwError, pszError, AD_STATE_CREATE_TABLES);
-    }
-    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+static
+DWORD
+ADState_UnmarshalProviderData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    OUT PAD_PROVIDER_DATA * ppProviderData
+    );
 
-cleanup:
-    SQLITE3_SAFE_FREE_STRING(pszError);
-    return dwError;
+static
+DWORD
+ADState_UnmarshalLinkedCellData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    IN OUT PDLINKEDLIST * ppCellList
+    );
 
-error:
-    goto cleanup;
-}
+static
+DWORD
+ADState_UnmarshalDomainTrustData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    IN OUT PDLINKEDLIST * ppDomainList
+    );
+
+static
+VOID
+ADState_FreeEnumDomainInfoCallback(
+    IN OUT PVOID pData,
+    IN PVOID pUserData
+    );
+
+VOID
+ADState_FreeEnumDomainInfo(
+    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
+    );
+
+static
+DWORD
+ADState_WriteToFile(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN OPTIONAL DWORD dwDomainInfoCount,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
+    );
+
+static
+DWORD
+ADState_WriteProviderData(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PAD_PROVIDER_DATA pProviderData
+    );
+
+static
+DWORD
+ADState_WriteCellEntry(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PAD_LINKED_CELL_INFO pCellEntry
+    );
+
+static
+DWORD
+ADState_WriteDomainEntry(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoEntry
+    );
+
+static
+DWORD
+ADState_CopyFromFile(
+    IN FILE * pFileDb,
+    IN BOOLEAN bCopyProviderData,
+    IN BOOLEAN bCopyDomainTrusts
+    );
+
+static
+DWORD
+ADState_WriteOneEntry(
+    IN FILE * pFileDb,
+    IN DWORD dwType,
+    IN size_t DataSize,
+    IN PVOID pData
+    );
 
 DWORD
 ADState_OpenDb(
@@ -82,6 +275,10 @@ ADState_OpenDb(
     BOOLEAN bLockCreated = FALSE;
     PADSTATE_CONNECTION pConn = NULL;
     BOOLEAN bExists = FALSE;
+    FILE * pFileDb = NULL;
+    size_t Cnt = 0;
+    PBYTE FormatType = (PBYTE)FILEDB_FORMAT_TYPE;
+    DWORD dwVersion = FILEDB_FORMAT_VERSION;
 
     dwError = LsaAllocateMemory(
                     sizeof(ADSTATE_CONNECTION),
@@ -97,7 +294,7 @@ ADState_OpenDb(
 
     if (!bExists)
     {
-        mode_t cacheDirMode = S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+        mode_t cacheDirMode = S_IRWXU;
 
         dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
         BAIL_ON_LSA_ERROR(dwError);
@@ -107,120 +304,62 @@ ADState_OpenDb(
     dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = sqlite3_open(ADSTATE_DB, &pConn->pDb);
+    dwError = LsaCheckFileExists(
+        ADSTATE_DB,
+        &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaChangeOwnerAndPermissions(ADSTATE_DB, 0, 0, S_IRWXU);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!bExists)
+    {
+        pFileDb = fopen(ADSTATE_DB, "w");
+        if (pFileDb == NULL)
+        {
+            dwError = errno;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADState_Setup(pConn->pDb);
-    BAIL_ON_LSA_ERROR(dwError);
+        Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = sqlite3_prepare_v2(
-            pConn->pDb,
-            "select "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".DirectoryMode, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ADConfigurationMode, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ADMaxPwdAge, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".Domain, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ShortDomain, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".ComputerDN, "
-            AD_STATE_TABLE_NAME_PROVIDER_DATA ".CellDN "
-            "from " AD_STATE_TABLE_NAME_PROVIDER_DATA " ",
-            -1, //search for null termination in szQuery to get length
-            &pConn->pstGetProviderData,
-            NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = sqlite3_prepare_v2(
-            pConn->pDb,
-            "select "
-            AD_STATE_TABLE_NAME_TRUSTS ".RowIndex, "
-            AD_STATE_TABLE_NAME_TRUSTS ".DnsDomainName, "
-            AD_STATE_TABLE_NAME_TRUSTS ".NetbiosDomainName, "
-            AD_STATE_TABLE_NAME_TRUSTS ".Sid, "
-            AD_STATE_TABLE_NAME_TRUSTS ".Guid, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrusteeDnsDomainName, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrustFlags, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrustType, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrustAttributes, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrustDirection, "
-            AD_STATE_TABLE_NAME_TRUSTS ".TrustMode, "
-            AD_STATE_TABLE_NAME_TRUSTS ".ForestName, "
-            AD_STATE_TABLE_NAME_TRUSTS ".Flags "
-            "from " AD_STATE_TABLE_NAME_TRUSTS " ORDER BY RowIndex ASC",
-            -1, //search for null termination in szQuery to get length
-            &pConn->pstGetDomainTrustList,
-            NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-
-    dwError = sqlite3_prepare_v2(
-            pConn->pDb,
-            "select "
-            AD_STATE_TABLE_NAME_LINKED_CELLS ".RowIndex, "
-            AD_STATE_TABLE_NAME_LINKED_CELLS ".CellDN, "
-            AD_STATE_TABLE_NAME_LINKED_CELLS ".Domain, "
-            AD_STATE_TABLE_NAME_LINKED_CELLS ".IsForestCell "
-            "from " AD_STATE_TABLE_NAME_LINKED_CELLS " ORDER BY RowIndex ASC",
-            -1, //search for null termination in szQuery to get length
-            &pConn->pstGetCellList,
-            NULL);
-    BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
+        dwError = LsaChangeOwnerAndPermissions(ADSTATE_DB, 0, 0, S_IRWXU);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     *phDb = pConn;
 
 cleanup:
 
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+    }
+
     return dwError;
 
 error:
+
     if (pConn != NULL)
     {
         if (bLockCreated)
         {
             pthread_rwlock_destroy(&pConn->lock);
         }
-        ADState_FreePreparedStatements(pConn);
 
-        if (pConn->pDb != NULL)
-        {
-            sqlite3_close(pConn->pDb);
-        }
         LSA_SAFE_FREE_MEMORY(pConn);
     }
     *phDb = NULL;
 
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_FreePreparedStatements(
-    IN OUT PADSTATE_CONNECTION pConn
-    )
-{
-    int i;
-    DWORD dwError = LW_ERROR_SUCCESS;
-    sqlite3_stmt * * const pppstFreeList[] = {
-        &pConn->pstGetProviderData,
-        &pConn->pstGetDomainTrustList,
-        &pConn->pstGetCellList,
-    };
-
-    for (i = 0; i < sizeof(pppstFreeList)/sizeof(pppstFreeList[0]); i++)
-    {
-        if (*pppstFreeList[i] != NULL)
-        {
-            dwError = sqlite3_finalize(*pppstFreeList[i]);
-            BAIL_ON_SQLITE3_ERROR(dwError, sqlite3_errmsg(pConn->pDb));
-            *pppstFreeList[i] = NULL;
-        }
-    }
-
-cleanup:
-    return dwError;
-
-error:
     goto cleanup;
 }
 
@@ -239,25 +378,13 @@ ADState_SafeCloseDb(
 
     hDb = *phDb;
 
-    dwError = ADState_FreePreparedStatements(hDb);
-    if (dwError != LW_ERROR_SUCCESS)
-    {
-        LSA_LOG_ERROR("Error freeing prepared statements [%d]", dwError);
-        dwError = LW_ERROR_SUCCESS;
-    }
-
-    if (hDb->pDb != NULL)
-    {
-        sqlite3_close(hDb->pDb);
-        hDb->pDb = NULL;
-    }
-
     dwError = pthread_rwlock_destroy(&hDb->lock);
     if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_ERROR("Error destroying lock [%d]", dwError);
         dwError = LW_ERROR_SUCCESS;
     }
+
     LSA_SAFE_FREE_MEMORY(hDb);
 
 cleanup:
@@ -270,147 +397,10 @@ ADState_GetProviderData(
     OUT PAD_PROVIDER_DATA* ppResult
     )
 {
-    DWORD dwError = 0;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-    BOOLEAN bInLock = FALSE;
-    // do not free
-    sqlite3_stmt *pstQuery = NULL;
-    const int nExpectedCols = 7;
-    int iColumnPos = 0;
-    int nGotColumns = 0;
-    PAD_PROVIDER_DATA pResult = NULL;
-    DWORD dwTemp = 0;
-
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    pstQuery = pConn->pstGetProviderData;
-
-    dwError = (DWORD)sqlite3_step(pstQuery);
-    if (dwError == SQLITE_DONE)
-    {
-        // No results found
-        dwError = ENOENT;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (dwError == SQLITE_ROW)
-    {
-        dwError = LW_ERROR_SUCCESS;
-    }
-    else
-    {
-        BAIL_ON_SQLITE3_ERROR(dwError,
-                sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-    }
-
-    nGotColumns = sqlite3_column_count(pstQuery);
-    if (nGotColumns != nExpectedCols)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaAllocateMemory(
-                    sizeof(AD_PROVIDER_DATA),
-                    (PVOID*)&pResult);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        &iColumnPos,
-        "DirectoryMode",
-        &pResult->dwDirectoryMode);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        &iColumnPos,
-        "ADConfigurationMode",
-        &dwTemp);
-    BAIL_ON_LSA_ERROR(dwError);
-    pResult->adConfigurationMode = dwTemp;
-
-    dwError = LsaSqliteReadUInt64(
-        pstQuery,
-        &iColumnPos,
-        "ADMaxPwdAge",
-        &pResult->adMaxPwdAge);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadStringInPlace(
-        pstQuery,
-        &iColumnPos,
-        "Domain",
-        pResult->szDomain,
-        sizeof(pResult->szDomain));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadStringInPlace(
-        pstQuery,
-        &iColumnPos,
-        "ShortDomain",
-        pResult->szShortDomain,
-        sizeof(pResult->szShortDomain));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadStringInPlace(
-        pstQuery,
-        &iColumnPos,
-        "ComputerDN",
-        pResult->szComputerDN,
-        sizeof(pResult->szComputerDN));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSqliteReadStringInPlace(
-        pstQuery,
-        &iColumnPos,
-        "CellDN",
-        pResult->cell.szCellDN,
-        sizeof(pResult->cell.szCellDN));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = (DWORD)sqlite3_step(pstQuery);
-    if (dwError == SQLITE_ROW)
-    {
-        dwError = LW_ERROR_DUPLICATE_DOMAINNAME;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (dwError == SQLITE_DONE)
-    {
-        dwError = LW_ERROR_SUCCESS;
-    }
-    else
-    {
-        BAIL_ON_SQLITE3_ERROR(dwError,
-                sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-    }
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR(dwError,
-            sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-
-    dwError = ADState_GetCellListNoLock(
-        hDb,
-        &pResult->pCellList
-        );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    *ppResult = pResult;
-
-cleanup:
-
-    return dwError;
-
-error:
-    *ppResult = NULL;
-    sqlite3_reset(pstQuery);
-    if (pResult)
-    {
-        ADProviderFreeProviderData(pResult);
-    }
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    goto cleanup;
+    return ADState_ReadFromFile(
+               hDb,
+               ppResult,
+               NULL);
 }
 
 DWORD
@@ -419,69 +409,12 @@ ADState_StoreProviderData(
     IN PAD_PROVIDER_DATA pProvider
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszSqlCommand = NULL;
-    PSTR pszCellCommand = NULL;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-
-    dwError = ADState_GetCacheCellListCommand(
-                hDb,
-                pProvider->pCellList,
-                &pszCellCommand);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pszSqlCommand = sqlite3_mprintf(
-        "begin;"
-            "replace into " AD_STATE_TABLE_NAME_PROVIDER_DATA " ("
-                "DirectoryMode, "
-                "ADConfigurationMode, "
-                "ADMaxPwdAge, "
-                "Domain, "
-                "ShortDomain, "
-                "ComputerDN, "
-                "CellDN "
-            ") values ("
-                "%d,"
-                "%d,"
-                "%lld,"
-                "%Q,"
-                "%Q,"
-                "%Q,"
-                "%Q"
-            ");\n"
-            "%s"
-        "end;",
-        pProvider->dwDirectoryMode,
-        pProvider->adConfigurationMode,
-        pProvider->adMaxPwdAge,
-        pProvider->szDomain,
-        pProvider->szShortDomain,
-        pProvider->szComputerDN,
-        pProvider->cell.szCellDN,
-        pszCellCommand
-    );
-
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSqliteExecWithRetry(
-        pConn->pDb,
-        &pConn->lock,
-        pszSqlCommand);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    SQLITE3_SAFE_FREE_STRING(pszCellCommand);
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
-    return dwError;
-
-error:
-
-    goto cleanup;
+    return ADState_WriteToFile(
+               hDb,
+               pProvider,
+               NULL,
+               0,
+               NULL);
 }
 
 DWORD
@@ -491,182 +424,10 @@ ADState_GetDomainTrustList(
     OUT PDLINKEDLIST* ppList
     )
 {
-    DWORD dwError = 0;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-    BOOLEAN bInLock = FALSE;
-    // do not free
-    sqlite3_stmt *pstQuery = NULL;
-    const int nExpectedCols = 13;
-    int iColumnPos = 0;
-    int nGotColumns = 0;
-    PDLINKEDLIST pList = NULL;
-    PLSA_DM_ENUM_DOMAIN_INFO pEntry = NULL;
-
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    pstQuery = pConn->pstGetDomainTrustList;
-
-    while (TRUE)
-    {
-        dwError = (DWORD)sqlite3_step(pstQuery);
-        if (dwError == SQLITE_DONE)
-        {
-            // No more results
-            dwError = LW_ERROR_SUCCESS;
-            break;
-        }
-        if (dwError == SQLITE_ROW)
-        {
-            dwError = LW_ERROR_SUCCESS;
-        }
-        else
-        {
-            BAIL_ON_SQLITE3_ERROR(dwError,
-                    sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-        }
-
-        nGotColumns = sqlite3_column_count(pstQuery);
-        if (nGotColumns != nExpectedCols)
-        {
-            dwError = LW_ERROR_DATA_ERROR;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        dwError = LsaAllocateMemory(
-                        sizeof(*pEntry),
-                        (PVOID*)&pEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        iColumnPos = 0;
-        dwError = ADState_UnpackDomainTrust(
-                    pstQuery,
-                    &iColumnPos,
-                    pEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaDLinkedListAppend(
-                    &pList,
-                    pEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        pEntry = NULL;
-    }
-
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR(dwError,
-            sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    *ppList = pList;
-
-cleanup:
-
-    return dwError;
-
-error:
-    *ppList = NULL;
-    sqlite3_reset(pstQuery);
-    if (pList)
-    {
-        ADState_FreeEnumDomainInfoList(pList);
-    }
-    if (pEntry)
-    {
-        ADState_FreeEnumDomainInfo(pEntry);
-    }
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_BuildInsertDomainTrust(
-    IN PLSA_DM_ENUM_DOMAIN_INFO pDomain,
-    IN OUT PSTR* ppszSqlCommand
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszSid = NULL;
-    char szGuid[UUID_STR_SIZE];
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
-
-    BAIL_ON_INVALID_POINTER(ppszSqlCommand);
-    BAIL_ON_INVALID_STRING(*ppszSqlCommand);
-
-    if (pDomain->pSid != NULL)
-    {
-        dwError = LsaAllocateCStringFromSid(
-                &pszSid,
-                pDomain->pSid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    // Writes into a 37-byte caller allocated string
-    uuid_unparse(*pDomain->pGuid, szGuid);
-
-    pszOldExpression = *ppszSqlCommand;
-    pszSqlCommand = sqlite3_mprintf(
-        "%s"
-        "insert into " AD_STATE_TABLE_NAME_TRUSTS " ("
-            "DnsDomainName, "
-            "NetbiosDomainName, "
-            "Sid, "
-            "Guid, "
-            "TrusteeDnsDomainName, "
-            "TrustFlags, "
-            "TrustType, "
-            "TrustAttributes, "
-            "TrustDirection, "
-            "TrustMode, "
-            "ForestName, "
-            "Flags "
-        ") values ("
-            "%Q, "
-            "%Q, "
-            "%Q, "
-            "%Q, "
-            "%Q, "
-            "%d, "
-            "%d, "
-            "%d, "
-            "%d, "
-            "%d, "
-            "%Q, "
-            "%d "
-        ");\n",
-        pszOldExpression,
-        pDomain->pszDnsDomainName,
-        pDomain->pszNetbiosDomainName,
-        pszSid,
-        szGuid,
-        pDomain->pszTrusteeDnsDomainName,
-        pDomain->dwTrustFlags,
-        pDomain->dwTrustType,
-        pDomain->dwTrustAttributes,
-        pDomain->dwTrustDirection,
-        pDomain->dwTrustMode,
-        pDomain->pszForestName,
-        pDomain->Flags);
-
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-    LSA_SAFE_FREE_STRING(pszSid);
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-
-    *ppszSqlCommand = pszSqlCommand;
-
-    return dwError;
-
-error:
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
-
-    goto cleanup;
+    return ADState_ReadFromFile(
+               hDb,
+               NULL,
+               ppList);
 }
 
 DWORD
@@ -675,51 +436,12 @@ ADState_AddDomainTrust(
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-
-    pszSqlCommand = sqlite3_mprintf(
-        "begin;\n");
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = ADState_BuildInsertDomainTrust(
-                      pDomainInfo,
-                      &pszSqlCommand);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    pszOldExpression = pszSqlCommand;
-    pszSqlCommand = sqlite3_mprintf(
-            "%s"
-        "end;",
-        pszOldExpression
-        );
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSqliteExecWithRetry(
-        pConn->pDb,
-        &pConn->lock,
-        pszSqlCommand);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
-    return dwError;
-
-error:
-
-    goto cleanup;
+    return ADState_WriteToFile(
+               hDb,
+               NULL,
+               NULL,
+               0,
+               pDomainInfo);
 }
 
 DWORD
@@ -729,217 +451,489 @@ ADState_StoreDomainTrustList(
     IN DWORD dwDomainInfoCount
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
-    DWORD dwIndex = 0;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-
-    pszSqlCommand = sqlite3_mprintf(
-        "begin;\n"
-            "delete from " AD_STATE_TABLE_NAME_TRUSTS ";\n");
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    for (dwIndex = 0; dwIndex < dwDomainInfoCount; dwIndex++)
-    {
-        dwError = ADState_BuildInsertDomainTrust(
-                          ppDomainInfo[dwIndex],
-                          &pszSqlCommand);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    pszOldExpression = pszSqlCommand;
-    pszSqlCommand = sqlite3_mprintf(
-            "%s"
-        "end;",
-        pszOldExpression
-        );
-    if (pszSqlCommand == NULL)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaSqliteExecWithRetry(
-        pConn->pDb,
-        &pConn->lock,
-        pszSqlCommand);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
-    return dwError;
-
-error:
-
-    goto cleanup;
+    return ADState_WriteToFile(
+               hDb,
+               NULL,
+               ppDomainInfo,
+               dwDomainInfoCount,
+               NULL);
 }
 
 static
 DWORD
-ADState_GetCellListNoLock(
+ADState_ReadFromFile(
     IN ADSTATE_CONNECTION_HANDLE hDb,
-    // Contains type PAD_LINKED_CELL_INFO
-    IN OUT PDLINKEDLIST* ppList
+    OUT OPTIONAL PAD_PROVIDER_DATA* ppProviderData,
+    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
+    OUT OPTIONAL PDLINKEDLIST* ppDomainList
     )
 {
     DWORD dwError = 0;
-    PADSTATE_CONNECTION pConn = (PADSTATE_CONNECTION)hDb;
-    // do not free
-    sqlite3_stmt *pstQuery = NULL;
-    const int nExpectedCols = 4;
-    int iColumnPos = 0;
-    int nGotColumns = 0;
-    PDLINKEDLIST pList = NULL;
-    PAD_LINKED_CELL_INFO pEntry = NULL;
+    BOOLEAN bInLock = FALSE;
+    FILE * pFileDb = NULL;
+    size_t Cnt = 0;
+    BYTE FormatType[4];
+    DWORD dwVersion = 0;
+    DWORD dwType = 0;
+    size_t DataMaxSize = 0;
+    size_t DataSize = 0;
+    PVOID pData = NULL;
+    LWMsgContext * pContext = NULL;
+    LWMsgDataContext * pDataContext = NULL;
+    PAD_PROVIDER_DATA pProviderData = NULL;
+    PDLINKEDLIST pCellList = NULL;
+    PDLINKEDLIST pDomainList = NULL;
 
-    pstQuery = pConn->pstGetCellList;
+    memset(FormatType, 0, sizeof(FormatType));
 
-    while (TRUE)
+    ENTER_ADSTATE_DB_RW_READER_LOCK(&hDb->lock, bInLock);
+
+    pFileDb = fopen(ADSTATE_DB, "r");
+    if (pFileDb == NULL)
     {
-        dwError = (DWORD)sqlite3_step(pstQuery);
-        if (dwError == SQLITE_DONE)
+        dwError = errno;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fread(&FormatType, sizeof(FormatType), 1, pFileDb);
+    if (Cnt == 0)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    else if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (1)
+    {
+        Cnt = fread(&dwType, sizeof(dwType), 1, pFileDb);
+        if (Cnt == 0)
         {
-            // No more results
-            dwError = LW_ERROR_SUCCESS;
             break;
         }
-        if (dwError == SQLITE_ROW)
+        else if (Cnt != 1)
         {
-            dwError = LW_ERROR_SUCCESS;
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
         }
-        else
-        {
-            BAIL_ON_SQLITE3_ERROR(dwError,
-                    sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
-        }
+        BAIL_ON_LSA_ERROR(dwError);
 
-        nGotColumns = sqlite3_column_count(pstQuery);
-        if (nGotColumns != nExpectedCols)
+        Cnt = fread(&DataSize, sizeof(DataSize), 1, pFileDb);
+        if (Cnt == 0)
         {
-            dwError = LW_ERROR_DATA_ERROR;
+            break;
+        }
+        else if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (DataSize > DataMaxSize)
+        {
+            DataMaxSize = DataSize * 2;
+
+            dwError = LsaReallocMemory(
+                          pData,
+                          (PVOID*)&pData,
+                          DataMaxSize);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateMemory(
-                        sizeof(*pEntry),
-                        (PVOID*)&pEntry);
+        Cnt = fread(pData, DataSize, 1, pFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
         BAIL_ON_LSA_ERROR(dwError);
 
-        iColumnPos = 0;
-        dwError = ADState_UnpackLinkedCellInfo(
-                    pstQuery,
-                    &iColumnPos,
-                    pEntry);
+        switch (dwType)
+        {
+            case FILEDB_DATA_TYPE_PROVIDER:
+                if (ppProviderData)
+                {
+                    if (pProviderData)
+                    {
+                        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+                    }
+                    else
+                    {
+                        dwError = ADState_UnmarshalProviderData(
+                                      pDataContext,
+                                      pData,
+                                      DataSize,
+                                      &pProviderData);
+                    }
+                }
+                break;
+            case FILEDB_DATA_TYPE_LINKEDCELL:
+                if (ppProviderData)
+                {
+                    dwError = ADState_UnmarshalLinkedCellData(
+                                  pDataContext,
+                                  pData,
+                                  DataSize,
+                                  &pCellList);
+                }
+                break;
+            case FILEDB_DATA_TYPE_DOMAINTRUST:
+                if (ppDomainList)
+                {
+                    dwError = ADState_UnmarshalDomainTrustData(
+                                  pDataContext,
+                                  pData,
+                                  DataSize,
+                                  &pDomainList);
+                }
+                break;
+            default:
+                dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+                break;
+        }
         BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LsaDLinkedListAppend(
-                    &pList,
-                    pEntry);
-        BAIL_ON_LSA_ERROR(dwError);
-        pEntry = NULL;
     }
 
-    dwError = (DWORD)sqlite3_reset(pstQuery);
-    BAIL_ON_SQLITE3_ERROR(dwError,
-            sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
+    if (ppProviderData)
+    {
+        if (pProviderData)
+        {
+            pProviderData->pCellList = pCellList;
+            pCellList = NULL;
+        }
+        *ppProviderData = pProviderData;
+        pProviderData = NULL;
+    }
 
-    *ppList = pList;
+    if (ppDomainList)
+    {
+        *ppDomainList = pDomainList;
+        pDomainList = NULL;
+    }
 
 cleanup:
+
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+    }
+
+    LEAVE_ADSTATE_DB_RW_READER_LOCK(&hDb->lock, bInLock);
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    LSA_SAFE_FREE_MEMORY(pData);
+
+    if (pProviderData)
+    {
+        ADProviderFreeProviderData(pProviderData);
+    }
+    if (pCellList)
+    {
+        ADProviderFreeCellList(pCellList);
+    }
+    if (pDomainList)
+    {
+        ADState_FreeEnumDomainInfoList(pDomainList);
+    }
 
     return dwError;
 
 error:
-    *ppList = NULL;
-    sqlite3_reset(pstQuery);
-    if (pList)
+
+    if (ppProviderData)
     {
-        ADProviderFreeCellList(pList);
+        *ppProviderData = NULL;
     }
-    if (pEntry)
+    if (ppDomainList)
     {
-        ADProviderFreeCellInfo(pEntry);
+        *ppDomainList = NULL;
     }
+
     goto cleanup;
 }
 
 static
 DWORD
-ADState_GetCacheCellListCommand(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    // Contains type PAD_LINKED_CELL_INFO
-    IN const DLINKEDLIST* pCellList,
-    OUT PSTR* ppszCommand
+ADState_UnmarshalProviderData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    OUT PAD_PROVIDER_DATA * ppProviderData
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszOldExpression = NULL;
-    PSTR pszSqlCommand = NULL;
-    const DLINKEDLIST* pPos = pCellList;
-    size_t sIndex = 0;
-    const AD_LINKED_CELL_INFO* pCell = NULL;
+    DWORD dwError = 0;
+    PAD_FILEDB_PROVIDER_DATA pFileDbData = NULL;
+    PAD_PROVIDER_DATA pProviderData = NULL;
 
-    pszSqlCommand = sqlite3_mprintf(
-        "delete from " AD_STATE_TABLE_NAME_LINKED_CELLS " ;\n");
-    if (pszSqlCommand == NULL)
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                  pDataContext,
+                  gADStateProviderDataCacheSpec,
+                  pData,
+                  DataSize,
+                  (PVOID*)&pFileDbData));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+                  sizeof(*pProviderData),
+                  (PVOID*)&pProviderData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pProviderData->dwDirectoryMode = pFileDbData->dwDirectoryMode;
+    pProviderData->adConfigurationMode = pFileDbData->adConfigurationMode;
+    pProviderData->adMaxPwdAge = pFileDbData->adMaxPwdAge;
+
+    if (pFileDbData->pszDomain)
     {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_LSA_ERROR(dwError);
+        strncpy(
+            pProviderData->szDomain,
+            pFileDbData->pszDomain,
+            sizeof(pProviderData->szDomain));
     }
 
-    while (pPos != NULL)
+    if (pFileDbData->pszShortDomain)
     {
-        pCell = (const PAD_LINKED_CELL_INFO)pPos->pItem;
-
-        SQLITE3_SAFE_FREE_STRING(pszOldExpression);
-        pszOldExpression = pszSqlCommand;
-        pszSqlCommand = sqlite3_mprintf(
-            "%s"
-            "replace into " AD_STATE_TABLE_NAME_LINKED_CELLS " ("
-                "RowIndex, "
-                "CellDN, "
-                "Domain, "
-                "IsForestCell "
-            ") values ("
-                "%lu, "
-                "%Q, "
-                "%Q, "
-                "%d "
-            ");\n",
-            pszOldExpression,
-            sIndex++,
-            pCell->pszCellDN,
-            pCell->pszDomain,
-            pCell->bIsForestCell
-            );
-
-        if (pszSqlCommand == NULL)
-        {
-            dwError = LW_ERROR_OUT_OF_MEMORY;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pPos = pPos->pNext;
+        strncpy(
+            pProviderData->szShortDomain,
+            pFileDbData->pszShortDomain,
+            sizeof(pProviderData->szShortDomain));
     }
 
-    *ppszCommand = pszSqlCommand;
+    if (pFileDbData->pszComputerDN)
+    {
+        strncpy(
+            pProviderData->szComputerDN,
+            pFileDbData->pszComputerDN,
+            sizeof(pProviderData->szComputerDN));
+    }
+
+    if (pFileDbData->pszCellDN)
+    {
+        strncpy(
+            pProviderData->cell.szCellDN,
+            pFileDbData->pszCellDN,
+            sizeof(pProviderData->cell.szCellDN));
+    }
+
+    *ppProviderData = pProviderData;
 
 cleanup:
 
-    SQLITE3_SAFE_FREE_STRING(pszOldExpression);
+    if (pFileDbData)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            gADStateProviderDataCacheSpec,
+            pFileDbData);
+    }
+
     return dwError;
 
 error:
 
-    *ppszCommand = NULL;
-    SQLITE3_SAFE_FREE_STRING(pszSqlCommand);
+    *ppProviderData = NULL;
+
+    LSA_SAFE_FREE_MEMORY(pProviderData);
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_UnmarshalLinkedCellData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    IN OUT PDLINKEDLIST * ppCellList
+    )
+{
+    DWORD dwError = 0;
+    PAD_LINKED_CELL_INFO pCellEntry = NULL;
+    PAD_LINKED_CELL_INFO pListEntry = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                  pDataContext,
+                  gADStateLinkedCellCacheSpec,
+                  pData,
+                  DataSize,
+                  (PVOID*)&pCellEntry));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+                  sizeof(*pListEntry),
+                  (PVOID*)&pListEntry);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pCellEntry->pszCellDN,
+                  &pListEntry->pszCellDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pCellEntry->pszDomain,
+                  &pListEntry->pszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pListEntry->bIsForestCell = pCellEntry->bIsForestCell;
+
+    dwError = LsaDLinkedListAppend(
+                  ppCellList,
+                  pListEntry);
+    BAIL_ON_LSA_ERROR(dwError);
+    pListEntry = NULL;
+
+cleanup:
+
+    if (pCellEntry)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            gADStateLinkedCellCacheSpec,
+            pCellEntry);
+    }
+
+    return dwError;
+
+error:
+
+    if (pListEntry)
+    {
+        ADProviderFreeCellInfo(pListEntry);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_UnmarshalDomainTrustData(
+    IN LWMsgDataContext * pDataContext,
+    IN PVOID pData,
+    IN size_t DataSize,
+    IN OUT PDLINKEDLIST * ppDomainList
+    )
+{
+    DWORD dwError = 0;
+    PAD_FILEDB_DOMAIN_INFO pDomainInfo = NULL;
+    PLSA_DM_ENUM_DOMAIN_INFO pListEntry = NULL;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
+                  pDataContext,
+                  gADStateDomainTrustCacheSpec,
+                  pData,
+                  DataSize,
+                  (PVOID*)&pDomainInfo));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateMemory(
+                  sizeof(*pListEntry),
+                  (PVOID*)&pListEntry);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pDomainInfo->pszDnsDomainName,
+                  &pListEntry->pszDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pDomainInfo->pszNetbiosDomainName,
+                  &pListEntry->pszNetbiosDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pDomainInfo->pszSid)
+    {
+        dwError = LsaAllocateSidFromCString(
+                      &pListEntry->pSid,
+                      pDomainInfo->pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pDomainInfo->pszGuid)
+    {
+        dwError = LsaAllocateMemory(
+                      UUID_STR_SIZE,
+                      (PVOID*)&pListEntry->pGuid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (uuid_parse(
+                pDomainInfo->pszGuid,
+                *pListEntry->pGuid) < 0)
+        {
+            // uuid_parse returns -1 on error, but does not set errno
+            dwError = LW_ERROR_INVALID_OBJECTGUID;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    dwError = LsaStrDupOrNull(
+                  pDomainInfo->pszTrusteeDnsDomainName,
+                  &pListEntry->pszTrusteeDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pListEntry->dwTrustFlags = pDomainInfo->dwTrustFlags;
+    pListEntry->dwTrustType = pDomainInfo->dwTrustType;
+    pListEntry->dwTrustAttributes = pDomainInfo->dwTrustAttributes;
+    pListEntry->dwTrustDirection = pDomainInfo->dwTrustDirection;
+
+    dwError = LsaStrDupOrNull(
+                  pDomainInfo->pszForestName,
+                  &pListEntry->pszForestName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pDomainInfo->pszClientSiteName,
+                  &pListEntry->pszClientSiteName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pListEntry->Flags = pDomainInfo->Flags;
+    pListEntry->DcInfo = NULL;
+    pListEntry->GcInfo = NULL;
+
+    dwError = LsaDLinkedListAppend(
+                  ppDomainList,
+                  pListEntry);
+    BAIL_ON_LSA_ERROR(dwError);
+    pListEntry = NULL;
+
+cleanup:
+
+    if (pDomainInfo)
+    {
+        lwmsg_data_free_graph(
+            pDataContext,
+            gADStateDomainTrustCacheSpec,
+            pDomainInfo);
+    }
+
+    return dwError;
+
+error:
+
+    if (pListEntry)
+    {
+        ADState_FreeEnumDomainInfo(pListEntry);
+    }
+
     goto cleanup;
 }
 
@@ -970,7 +964,6 @@ ADState_FreeEnumDomainInfoCallback(
     ADState_FreeEnumDomainInfo(pInfo);
 }
 
-static
 VOID
 ADState_FreeEnumDomainInfo(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
@@ -1001,143 +994,537 @@ ADState_FreeEnumDomainInfo(
 
 static
 DWORD
-ADState_UnpackDomainTrust(
-    IN sqlite3_stmt *pstQuery,
-    IN OUT int *piColumnPos,
-    IN OUT PLSA_DM_ENUM_DOMAIN_INFO pResult
+ADState_WriteToFile(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN OPTIONAL DWORD dwDomainInfoCount,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bExists = FALSE;
+    FILE * pFileDb = NULL;
+    size_t Cnt = 0;
+    PBYTE FormatType = (PBYTE)FILEDB_FORMAT_TYPE;
+    DWORD dwVersion = FILEDB_FORMAT_VERSION;
+    DWORD dwCount = 0;
+    LWMsgContext * pContext = NULL;
+    LWMsgDataContext * pDataContext = NULL;
 
-    //Skip the index
-    (*piColumnPos)++;
+    ENTER_ADSTATE_DB_RW_WRITER_LOCK(&hDb->lock, bInLock);
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "DnsDomainName",
-        (PSTR*)&pResult->pszDnsDomainName);
+    dwError = LsaCheckDirectoryExists(LSASS_DB_DIR, &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "NetbiosDomainName",
-        (PSTR*)&pResult->pszNetbiosDomainName);
+    if (!bExists)
+    {
+        mode_t cacheDirMode = S_IRWXU;
+
+        dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /* restrict access to u+rwx to the db folder */
+    dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadSid(
-        pstQuery,
-        piColumnPos,
-        "Sid",
-        &pResult->pSid);
+    dwError = LsaCheckFileExists(
+        ADSTATE_DB_TEMP,
+        &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadGuid(
-        pstQuery,
-        piColumnPos,
-        "Guid",
-        &pResult->pGuid);
+    if (bExists)
+    {
+        dwError = LsaRemoveFile(ADSTATE_DB_TEMP);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaCheckFileExists(
+        ADSTATE_DB,
+        &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "TrusteeDnsDomainName",
-        (PSTR*)&pResult->pszTrusteeDnsDomainName);
+    pFileDb = fopen(ADSTATE_DB_TEMP, "w");
+    if (pFileDb == NULL)
+    {
+        dwError = errno;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "TrustFlags",
-        &pResult->dwTrustFlags);
+    Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "TrustType",
-        &pResult->dwTrustType);
+    Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "TrustAttributes",
-        &pResult->dwTrustAttributes);
+    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "TrustDirection",
-        &pResult->dwTrustDirection);
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "TrustMode",
-        &pResult->dwTrustMode);
+    if (pProviderData)
+    {
+        PDLINKEDLIST pCellList = pProviderData->pCellList;
+
+        dwError = ADState_WriteProviderData(
+                      pFileDb,
+                      pDataContext,
+                      pProviderData);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        while (pCellList)
+        {
+            dwError = ADState_WriteCellEntry(
+                          pFileDb,
+                          pDataContext,
+                          pCellList->pItem);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pCellList = pCellList->pNext;
+        }
+    }
+    else
+    {
+        if (bExists)
+        {
+            dwError = ADState_CopyFromFile(
+                          pFileDb,
+                          TRUE,
+                          FALSE);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (ppDomainInfo)
+    {
+        for (dwCount = 0 ; dwCount < dwDomainInfoCount ; dwCount++)
+        {
+            dwError = ADState_WriteDomainEntry(
+                          pFileDb,
+                          pDataContext,
+                          ppDomainInfo[dwCount]);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+    else
+    {
+        if (bExists)
+        {
+            dwError = ADState_CopyFromFile(
+                          pFileDb,
+                          FALSE,
+                          TRUE);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pDomainInfoAppend)
+    {
+        dwError = ADState_WriteDomainEntry(
+                      pFileDb,
+                      pDataContext,
+                      pDomainInfoAppend);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+        pFileDb = NULL;
+    }
+
+    dwError = LsaChangeOwnerAndPermissions(ADSTATE_DB_TEMP, 0, 0, S_IRWXU);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "ForestName",
-        (PSTR*)&pResult->pszForestName);
+    dwError = LsaMoveFile(ADSTATE_DB_TEMP, ADSTATE_DB);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pResult->pszClientSiteName = NULL;
+cleanup:
 
-    dwError = LsaSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        "Flags",
-        &pResult->Flags);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pFileDb != NULL)
+    {
+        fclose(pFileDb);
+    }
 
-    pResult->DcInfo = NULL;
-    pResult->GcInfo = NULL;
+    LEAVE_ADSTATE_DB_RW_WRITER_LOCK(&hDb->lock, bInLock);
+
+    if (pDataContext)
+    {
+        lwmsg_data_context_delete(pDataContext);
+    }
+    if (pContext)
+    {
+        lwmsg_context_delete(pContext);
+    }
+
+    return dwError;
 
 error:
-    return dwError;
+
+    goto cleanup;
 }
 
 static
 DWORD
-ADState_UnpackLinkedCellInfo(
-    IN sqlite3_stmt *pstQuery,
-    IN OUT int *piColumnPos,
-    IN OUT PAD_LINKED_CELL_INFO pResult)
+ADState_WriteProviderData(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PAD_PROVIDER_DATA pProviderData
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwError = 0;
+    DWORD dwType = FILEDB_DATA_TYPE_PROVIDER;
+    PVOID pData = NULL;
+    size_t DataSize = 0;
+    AD_FILEDB_PROVIDER_DATA FileDbData;
 
-    //Skip the index
-    (*piColumnPos)++;
+    memset(&FileDbData, 0, sizeof(FileDbData));
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "CellDN",
-        (PSTR*)&pResult->pszCellDN);
+    FileDbData.dwDirectoryMode = pProviderData->dwDirectoryMode;
+    FileDbData.adConfigurationMode = pProviderData->adConfigurationMode;
+    FileDbData.adMaxPwdAge = pProviderData->adMaxPwdAge;
+
+    dwError = LsaStrDupOrNull(
+                  pProviderData->szDomain,
+                  &FileDbData.pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadString(
-        pstQuery,
-        piColumnPos,
-        "Domain",
-        (PSTR*)&pResult->pszDomain);
+    dwError = LsaStrDupOrNull(
+                  pProviderData->szShortDomain,
+                  &FileDbData.pszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSqliteReadBoolean(
-        pstQuery,
-        piColumnPos,
-        "IsForestCell",
-        &pResult->bIsForestCell);
+    dwError = LsaStrDupOrNull(
+                  pProviderData->szComputerDN,
+                  &FileDbData.pszComputerDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                  pProviderData->cell.szCellDN,
+                  &FileDbData.pszCellDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataContext,
+                              gADStateProviderDataCacheSpec,
+                              &FileDbData,
+                              &pData,
+                              &DataSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_WriteOneEntry(
+                  pFileDb,
+                  dwType,
+                  DataSize,
+                  pData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(FileDbData.pszDomain);
+    LSA_SAFE_FREE_STRING(FileDbData.pszShortDomain);
+    LSA_SAFE_FREE_STRING(FileDbData.pszComputerDN);
+    LSA_SAFE_FREE_STRING(FileDbData.pszCellDN);
+    LSA_SAFE_FREE_MEMORY(pData);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_WriteCellEntry(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PAD_LINKED_CELL_INFO pCellEntry
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwType = FILEDB_DATA_TYPE_LINKEDCELL;
+    PVOID pData = NULL;
+    size_t DataSize = 0;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataContext,
+                              gADStateLinkedCellCacheSpec,
+                              pCellEntry,
+                              &pData,
+                              &DataSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_WriteOneEntry(
+                  pFileDb,
+                  dwType,
+                  DataSize,
+                  pData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_MEMORY(pData);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_WriteDomainEntry(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoEntry
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwType = FILEDB_DATA_TYPE_DOMAINTRUST;
+    PVOID pData = NULL;
+    size_t DataSize = 0;
+    AD_FILEDB_DOMAIN_INFO FileDbData;
+    char szGuid[UUID_STR_SIZE];
+
+    memset(&FileDbData, 0, sizeof(FileDbData));
+
+    FileDbData.pszDnsDomainName = pDomainInfoEntry->pszDnsDomainName;
+    FileDbData.pszNetbiosDomainName = pDomainInfoEntry->pszNetbiosDomainName;
+
+    if (pDomainInfoEntry->pSid != NULL)
+    {
+        dwError = LsaAllocateCStringFromSid(
+                &FileDbData.pszSid,
+                pDomainInfoEntry->pSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pDomainInfoEntry->pGuid)
+    {
+        // Writes into a 37-byte caller allocated string
+        uuid_unparse(*pDomainInfoEntry->pGuid, szGuid);
+
+        FileDbData.pszGuid = szGuid;
+    }
+
+    FileDbData.pszTrusteeDnsDomainName = pDomainInfoEntry->pszTrusteeDnsDomainName;
+    FileDbData.dwTrustFlags = pDomainInfoEntry->dwTrustFlags;
+    FileDbData.dwTrustType = pDomainInfoEntry->dwTrustType;
+    FileDbData.dwTrustAttributes = pDomainInfoEntry->dwTrustAttributes;
+    FileDbData.dwTrustDirection = pDomainInfoEntry->dwTrustDirection;
+    FileDbData.pszForestName = pDomainInfoEntry->pszForestName;
+    FileDbData.pszClientSiteName = pDomainInfoEntry->pszClientSiteName;
+    FileDbData.Flags = pDomainInfoEntry->Flags;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
+                              pDataContext,
+                              gADStateDomainTrustCacheSpec,
+                              &FileDbData,
+                              &pData,
+                              &DataSize));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADState_WriteOneEntry(
+                  pFileDb,
+                  dwType,
+                  DataSize,
+                  pData);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LSA_SAFE_FREE_STRING(FileDbData.pszSid);
+    LSA_SAFE_FREE_MEMORY(pData);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_CopyFromFile(
+    IN FILE * pFileDb,
+    IN BOOLEAN bCopyProviderData,
+    IN BOOLEAN bCopyDomainTrusts
+    )
+{
+    DWORD dwError = 0;
+    FILE * pOldFileDb = NULL;
+    size_t Cnt = 0;
+    BYTE FormatType[4];
+    DWORD dwVersion = 0;
+    DWORD dwType = 0;
+    size_t DataMaxSize = 0;
+    size_t DataSize = 0;
+    PVOID pData = NULL;
+
+    memset(FormatType, 0, sizeof(FormatType));
+
+    pOldFileDb = fopen(ADSTATE_DB, "r");
+    if (pOldFileDb == NULL)
+    {
+        dwError = errno;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fread(&FormatType, sizeof(FormatType), 1, pOldFileDb);
+    if (Cnt == 0)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    else if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pOldFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (1)
+    {
+        Cnt = fread(&dwType, sizeof(dwType), 1, pOldFileDb);
+        if (Cnt == 0)
+        {
+            break;
+        }
+        else if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        Cnt = fread(&DataSize, sizeof(DataSize), 1, pOldFileDb);
+        if (Cnt == 0)
+        {
+            break;
+        }
+        else if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (DataSize > DataMaxSize)
+        {
+            DataMaxSize = DataSize * 2;
+
+            dwError = LsaReallocMemory(
+                          pData,
+                          (PVOID*)&pData,
+                          DataMaxSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        Cnt = fread(pData, DataSize, 1, pOldFileDb);
+        if (Cnt != 1)
+        {
+            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        switch (dwType)
+        {
+            case FILEDB_DATA_TYPE_PROVIDER:
+            case FILEDB_DATA_TYPE_LINKEDCELL:
+                if (bCopyProviderData)
+                {
+                    dwError = ADState_WriteOneEntry(
+                                  pFileDb,
+                                  dwType,
+                                  DataSize,
+                                  pData);
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+                break;
+            case FILEDB_DATA_TYPE_DOMAINTRUST:
+                if (bCopyDomainTrusts)
+                {
+                    dwError = ADState_WriteOneEntry(
+                                  pFileDb,
+                                  dwType,
+                                  DataSize,
+                                  pData);
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+                break;
+            default:
+                dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+                break;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    LSA_SAFE_FREE_MEMORY(pData);
+
+    if (pOldFileDb != NULL)
+    {
+        fclose(pOldFileDb);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+ADState_WriteOneEntry(
+    IN FILE * pFileDb,
+    IN DWORD dwType,
+    IN size_t DataSize,
+    IN PVOID pData
+    )
+{
+    DWORD dwError = 0;
+    size_t Cnt = 0;
+
+    Cnt = fwrite(&dwType, sizeof(dwType), 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fwrite(&DataSize, sizeof(DataSize), 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    Cnt = fwrite(pData, DataSize, 1, pFileDb);
+    if (Cnt != 1)
+    {
+        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
+
     return dwError;
 }
