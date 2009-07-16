@@ -14,7 +14,6 @@ include_HEADERS = \
 	hmac_md5.h \
 	des.h \
 	crypto.h \
-	lwrpc/mpr.h \
 	lwrpc/unicodestring.h \
 	lwrpc/rid.h \
 	lwrpc/allocate.h \
