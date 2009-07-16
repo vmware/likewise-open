@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -57,7 +57,7 @@ void EncodePassBufferW16(unsigned char buffer[516], const wchar16_t *pass)
 
     /* Set initial random bytes to enhance security */
     get_random_buffer((unsigned char*)buffer, 512 - pass_size);
-    
+
     /* set the password length - the last 4 bytes */
     buffer[512] = (unsigned char)((pass_size) & 0xff);
     buffer[513] = (unsigned char)((pass_size >> 8) & 0xff);

@@ -1,5 +1,5 @@
 librpc_srcdir=$(top_srcdir)
-libmsrpc_srcdir=$(top_srcdir)/MsRpc
+libmsrpc_srcdir=$(top_srcdir)/msrpc
 idl_srcdir=$(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libsamr_cs.la libsamr.la

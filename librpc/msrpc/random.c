@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -49,7 +49,7 @@ void get_random_buffer(unsigned char *out, size_t outlen)
     struct timeval tv;
     unsigned char hash[16];
     int len = 0;
-    
+
     if (out == NULL || outlen < 0) return;
 
     fd = open(RANDOMDEV, O_RDONLY);

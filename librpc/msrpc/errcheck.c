@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,55 +28,52 @@
  * license@likewisesoftware.com
  */
 
-#include <string.h>
+/*
+ * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ */
+
+#include <dce/rpcsts.h>
 #include <lwrpc/types.h>
-#include <md5.h>
-#include <hmac_md5.h>
+#include <lwrpc/errcheck.h>
 
 
-void hmac_md5_init(hmac_md5_ctx *ctx, unsigned char *key, size_t keylen)
+/* This isn't exactly the facility code, so let's call it error type */
+#define ERRTYPE_CODE(v)         ((v) & 0xffff0000)
+
+#define NTSTATUS_ERROR          (0xc0000000)
+#define DCERPC_EXCEPTION        (0x16c90000)
+
+
+int IsNtStatusError(uint32 v)
 {
-    unsigned char hmac_key[16];
-    size_t len = 0;
-    int i;
-
-    if (keylen > 64) {
-        md5(hmac_key, key, keylen);
-        len = sizeof(hmac_key);
-
-    } else {
-        memcpy(hmac_key, key, keylen);
-        len = keylen;
-    }
-
-    for (i = 0; i < 64; i++) {
-       ctx->ipad[i] = (i < len) ? hmac_key[i] : 0x0;
-       ctx->ipad[i] ^= 0x36;
-       ctx->opad[i] = (i < len) ? hmac_key[i] : 0x0;
-       ctx->opad[i] ^= 0x5c;
-    }
-
-    md5init(&ctx->ctx);
-    md5update(&ctx->ctx, ctx->ipad, 64);
+    return (ERRTYPE_CODE(v) == NTSTATUS_ERROR);
 }
 
 
-void hmac_md5_update(hmac_md5_ctx *ctx, unsigned char *msg, size_t msglen)
+int IsDceRpcException(uint32 v)
 {
-    md5update(&ctx->ctx, msg, msglen);
+    return (ERRTYPE_CODE(v) == DCERPC_EXCEPTION);
 }
 
 
-void hmac_md5_final(hmac_md5_ctx *ctx, unsigned char digest[16])
+int IsDceRpcConnError(uint32 v)
 {
-    struct md5context outer_ctx;
+    int conn_error = 0;
 
-    md5final(&ctx->ctx, digest);
+    if (!IsDceRpcException(v)) return 0;
 
-    md5init(&outer_ctx);
-    md5update(&outer_ctx, ctx->opad, 64);
-    md5update(&outer_ctx, digest, 16);
-    md5final(&outer_ctx, digest);
+    /* check if returned exception code is one of
+       connection related exceptions */
+    conn_error = (v == rpc_s_connection_closed ||
+                  v == rpc_s_connect_timed_out ||
+                  /* Invalid credentials is listed as a connection error
+                   * because it may be specific to a given domain controller.
+                   * That is, reconnecting to a different DC with the same
+                   * credentials may work. */
+                  v == rpc_s_invalid_credentials ||
+                  v == rpc_s_auth_skew ||
+                  v == rpc_s_cannot_connect);
+    return conn_error;
 }
 
 

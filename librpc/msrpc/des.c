@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -230,7 +230,7 @@ static uint8* ef(uint8 out[32], const uint8 in[32], const uint8 key[48])
     for (snum = 0; snum < sbox_count; snum++) {
 	uint8 sbox_in[6];
 	uint8 v[8] = {0};
-	
+
 	/* prepare sbox input (6 bits) */
 	memcpy(sbox_in, &expanded[snum*6], sizeof(sbox_in));
 	si = sbox_in[0]*2 + sbox_in[5];
@@ -311,7 +311,7 @@ int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
 
 	for (j = 1; j <= 16; j++) {
 	    uint8 cd[56];
-	    
+
 	    memcpy(cd, c[j], 28);
 	    memcpy(&cd[28], d[j], 28);
 	    permute(pkn[j-1], cd, pc2, 48);

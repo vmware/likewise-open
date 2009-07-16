@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,59 +28,63 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <random.h>
+#include "rc4.h"
 
 
-void printhex(unsigned char *m, size_t len)
+#define SWAP(a,b) { unsigned char temp; temp = (a); (a) = (b); (b) = temp; }
+
+void rc4init(struct rc4ctx *ctx, unsigned char *key, size_t keylen)
 {
-	int i;
-	printf("hash: ");
+    int i;
+    unsigned char j = 0;
 
-	for (i = 0; i < len; i++) {
-		printf("%02x", m[i]);
-	}
+    for (i = 0; i < sizeof(ctx->S); i++) {
+	ctx->S[i] = i;
+    }
 
-	printf("\n");
+    for (i = 0; i < sizeof(ctx->S); i++) {
+	j +=  (ctx->S[i] + key[i % keylen]);
+        // ctx->S[j] does not access S out of bounds because S has size 256,
+        // and j is an unsigned char (can only have values 0-255).
+	SWAP(ctx->S[i], ctx->S[j]);
+    }
 }
 
 
-int main(int argc, char *argv[])
+void rc4crypt(struct rc4ctx *ctx, unsigned char *data, size_t len)
 {
-	int count;
-	unsigned char *buf = NULL;
-	char *str = NULL;
+    unsigned int i;
 
-	if (argc < 2) {
-		printf("Error: No buffer length\n");
-		return -1;
-	}
+    ctx->i = 0;
+    ctx->j = 0;
 
-	count = atoi(argv[1]);
-	if (count <= 0) {
-		printf("Error: Invalid buffer length\n");
-		return -1;
-	}
+    for (i = 0; i < len; i++) {
+	unsigned char s;
 
-	buf = (unsigned char*) malloc(sizeof(unsigned char) * count);
-	if (buf == NULL) {
-		printf("Error: Memory allocation error\n");
-		return -1;
-	}
+	ctx->i++;
+	ctx->j += ctx->S[ctx->i];
 
-	get_random_buffer(buf, count);
-	printf("buffer length: %d\n", count);
-	printhex(buf, count);
+	SWAP(ctx->S[ctx->i], ctx->S[ctx->j]);
 
-	get_random_string(str, count);
-	printf("buffer length: %d\n", count);
-	printf("string: %s\n", str);
-
-	free(buf);
-	free(str);
-
-	return 0;
+	s = ctx->S[ctx->i] + ctx->S[ctx->j];
+	data[i] = data[i] ^ ctx->S[s];
+    }
 }
+
+
+void rc4(unsigned char *data, size_t dlen, unsigned char *key, size_t klen)
+{
+    struct rc4ctx ctx;
+    rc4init(&ctx, key, klen);
+    rc4crypt(&ctx, data, dlen);
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

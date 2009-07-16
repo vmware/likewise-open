@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,55 +28,39 @@
  * license@likewisesoftware.com
  */
 
-#include "rc4.h"
+#include <stdio.h>
+
+#include <lwrpc/types.h>
 
 
-#define SWAP(a,b) { unsigned char temp; temp = (a); (a) = (b); (b) = temp; }
-
-void rc4init(struct rc4ctx *ctx, unsigned char *key, size_t keylen)
+void printhex(const char* name, unsigned char *b, size_t len)
 {
-    int i;
-    unsigned char j = 0;
+	int i;
+	printf("%s: ", name);
 
-    for (i = 0; i < sizeof(ctx->S); i++) {
-	ctx->S[i] = i;
-    }
-    
-    for (i = 0; i < sizeof(ctx->S); i++) {
-	j +=  (ctx->S[i] + key[i % keylen]);
-        // ctx->S[j] does not access S out of bounds because S has size 256,
-        // and j is an unsigned char (can only have values 0-255).
-	SWAP(ctx->S[i], ctx->S[j]);
-    }
+	for (i = 0; i < len; i++) {
+		printf("%02x", b[i]);
+	}
+
+	printf("\n");
 }
 
-
-void rc4crypt(struct rc4ctx *ctx, unsigned char *data, size_t len)
+int main()
 {
-    unsigned int i;
+    uint8 key[8] = { 0x13, 0x34, 0x57, 0x79, 0x9B, 0xBC, 0xDF, 0xF1 };
+    uint8 in[8] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
+    uint8 out[8];
+    int count;
 
-    ctx->i = 0;
-    ctx->j = 0;
+    printhex("msg", in, sizeof(in));
+    printhex("key", key, sizeof(key));
 
-    for (i = 0; i < len; i++) {
-	unsigned char s;
+    count = des56(out, in, sizeof(in), key);
 
-	ctx->i++;
-	ctx->j += ctx->S[ctx->i];
+    printhex("out", out, sizeof(out));
+    printf("number of encrypted bytes: %d\n", count);
 
-	SWAP(ctx->S[ctx->i], ctx->S[ctx->j]);
-
-	s = ctx->S[ctx->i] + ctx->S[ctx->j];
-	data[i] = data[i] ^ ctx->S[s];
-    }
-}
-
-
-void rc4(unsigned char *data, size_t dlen, unsigned char *key, size_t klen)
-{
-    struct rc4ctx ctx;
-    rc4init(&ctx, key, klen);
-    rc4crypt(&ctx, data, dlen);
+    return 0;
 }
 
 

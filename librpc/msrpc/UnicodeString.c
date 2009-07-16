@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -51,7 +51,7 @@ NTSTATUS InitUnicodeString(UnicodeString *u, const wchar16_t *s)
 
     u->len  = (uint16) wc16slen(u->string) * sizeof(wchar16_t);
     u->size = (uint16) wc16slen(u->string) * sizeof(wchar16_t);
-    
+
     return STATUS_SUCCESS;
 }
 
@@ -106,7 +106,7 @@ UnicodeString* InitUnicodeStringArray(wchar16_t *sa[], size_t count)
 
     for (i = 0; i < count; i++) {
         wchar16_t *s = sa[i];
-		
+
         status = InitUnicodeString(&(ua[i]), s);
         if (status != 0) {
             /* memory allocation problem occured so rollback and

@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -45,7 +45,7 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-/* This code slightly modified to fit into Samba by 
+/* This code slightly modified to fit into Samba by
    abartlet@samba.org Jun 2001 */
 
 #include <string.h>
@@ -132,7 +132,7 @@ void md5update(struct md5context *ctx, unsigned char const *buf, unsigned len)
 }
 
 /*
- * Final wrapup - pad to 64-byte boundary with the bit pattern 
+ * Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void md5final(struct md5context *ctx, unsigned char digest[16])
