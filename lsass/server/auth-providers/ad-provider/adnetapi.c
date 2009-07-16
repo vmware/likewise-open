@@ -50,8 +50,6 @@
 
 static NetrCredentials gSchannelCreds = { 0 };
 static NetrCredentials* gpSchannelCreds = NULL;
-static NETRESOURCE gSchannelRes = { 0 };
-static NETRESOURCE* gpSchannelRes = NULL;
 static handle_t ghSchannelBinding = NULL;
 static pthread_mutex_t gSchannelLock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -1592,7 +1590,6 @@ AD_NetlogonAuthenticationUserEx(
         }
 
         gpSchannelCreds = &gSchannelCreds;
-        gpSchannelRes   = &gSchannelRes;
     }
 
     /* Time to do the authentication */
@@ -1713,9 +1710,6 @@ AD_ClearSchannelState(
 
         memset(&gSchannelCreds, 0, sizeof(gSchannelCreds));
         gpSchannelCreds = NULL;
-
-        memset(&gSchannelRes, 0, sizeof(gSchannelRes));
-        gpSchannelRes = NULL;
     }
 
     pthread_mutex_unlock(&gSchannelLock);
