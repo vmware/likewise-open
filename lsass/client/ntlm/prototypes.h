@@ -174,4 +174,16 @@ NtlmTransactVerifySignature(
     OUT PBOOL pbEncrypted
     );
 
+DWORD
+NtlmDuplicateSecBufferDesc(
+    OUT PSecBufferDesc pOut,
+    IN PSecBufferDesc pIn
+    );
+
+DWORD
+NtlmDuplicateSecBuffer(
+    OUT PSecBuffer pOut,
+    IN PSecBuffer pIn
+    );
+
 #endif // __PROTOTYPES_H__
