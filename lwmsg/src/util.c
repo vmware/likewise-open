@@ -322,6 +322,48 @@ error:
 }
 
 #ifdef HAVE_STRERROR_R
+#ifdef STRERROR_R_CHAR_P
+LWMsgStatus
+lwmsg_strerror(
+    int err,
+    char** message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    char* my_message = NULL;
+    char buffer[512];
+    const char* text = NULL;
+
+    text = strerror_r(err, buffer, sizeof(buffer));
+
+    if (!text)
+    {
+        text = "UNKNOWN";
+    }
+
+    my_message = strdup(text);
+
+    if (!my_message)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    *message = my_message;
+
+done:
+
+    return status;
+
+error:
+
+    if (my_message)
+    {
+        free(my_message);
+    }
+
+    goto done;
+}
+#else
 LWMsgStatus
 lwmsg_strerror(
     int err,
@@ -340,12 +382,9 @@ lwmsg_strerror(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
 
-#ifdef STRERROR_R_CHAR_P
-    while (strerror_r(err, my_message, capacity) != my_message)
-#else
+
     while (strerror_r(err, my_message, capacity) == -1 &&
            errno == ERANGE)
-#endif
     {
         capacity *= 2;
         temp = realloc(my_message, capacity);
@@ -372,6 +411,7 @@ error:
 
     goto done;
 }
+#endif
 #else
 LWMsgStatus
 lwmsg_strerror(
