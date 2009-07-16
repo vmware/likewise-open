@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 SUBDIRS = \
     include    \
     alloc      \
-    Error      \
+    error      \
     msrpc      \
     samr       \
     lsa        \

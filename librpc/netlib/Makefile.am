@@ -46,7 +46,7 @@ libnetapi_la_LIBADD = \
 	$(top_builddir)/lsa/liblsa.la \
 	$(top_builddir)/netlogon/libnetlogon.la \
 	$(top_builddir)/msrpc/libmsrpc.la \
-	$(top_builddir)/Error/liberror.la \
+	$(top_builddir)/error/liberror.la \
 	$(top_builddir)/krb5pac/libkrb5pac.la \
 	$(top_builddir)/dssetup/libdssetup.la \
 	@LWBASE_LIBS@

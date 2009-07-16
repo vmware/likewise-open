@@ -242,7 +242,7 @@ AM_CONDITIONAL(HAVE_MOONUNIT, $HAVE_MOONUNIT)
 
 AC_OUTPUT(Makefile
           include/Makefile
-          Error/Makefile
+          error/Makefile
           alloc/Makefile
           msrpc/Makefile
           samr/Makefile
