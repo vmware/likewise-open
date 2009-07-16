@@ -914,8 +914,19 @@ LsaHashCaselessStringCompare(
     );
 
 size_t
-LsaHashCaselessString(
+LsaHashCaselessStringHash(
     PCVOID str
+    );
+
+int
+LsaHashPVoidCompare(
+    IN PCVOID pvData1,
+    IN PCVOID pvData2
+    );
+
+size_t
+LsaHashPVoidHash(
+    IN PCVOID pvData
     );
 
 VOID

@@ -1416,7 +1416,7 @@ LocalDirGetGroupMembers(
     dwError = LsaHashCreate(
                     13,
                     LsaHashCaselessStringCompare,
-                    LsaHashCaselessString,
+                    LsaHashCaselessStringHash,
                     NULL,
                     NULL,
                     &pMemberships);

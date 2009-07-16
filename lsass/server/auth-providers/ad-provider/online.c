@@ -903,7 +903,7 @@ AD_PacMembershipFilterWithLdap(
     dwError = LsaHashCreate(
                     dwMembershipCount,
                     LsaHashCaselessStringCompare,
-                    LsaHashCaselessString,
+                    LsaHashCaselessStringHash,
                     NULL,
                     NULL,
                     &pMembershipHashTable);
@@ -3142,7 +3142,7 @@ size_t
 AD_HashObjectSid(
         PCVOID pObject)
 {
-    return LsaHashCaselessString(((PLSA_SECURITY_OBJECT)pObject)->pszObjectSid);
+    return LsaHashCaselessStringHash(((PLSA_SECURITY_OBJECT)pObject)->pszObjectSid);
 }
 
 void

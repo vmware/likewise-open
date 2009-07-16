@@ -285,6 +285,24 @@ ADCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
     );
 
+DWORD
+ADCacheDuplicateObject(
+    OUT PLSA_SECURITY_OBJECT* ppDest,
+    IN PLSA_SECURITY_OBJECT pSrc
+    );
+
+DWORD
+ADCacheDuplicateMembership(
+    PLSA_GROUP_MEMBERSHIP* ppDest,
+    PLSA_GROUP_MEMBERSHIP pSrc
+    );
+
+DWORD
+ADCacheDuplicateMembershipContents(
+    PLSA_GROUP_MEMBERSHIP pDest,
+    PLSA_GROUP_MEMBERSHIP pSrc
+    );
+
 void
 ADCacheSafeFreeObjectList(
         size_t sCount,
@@ -339,6 +357,10 @@ ADCacheGetGroupsForUser(
 void
 ADCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership);
+
+void
+ADCacheFreeGroupMembershipContents(
+        PLSA_GROUP_MEMBERSHIP pMembership);
 
 void
 ADCacheSafeFreeGroupMembershipList(

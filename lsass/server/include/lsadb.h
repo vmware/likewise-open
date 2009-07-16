@@ -341,6 +341,10 @@ LsaDbSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership);
 
 void
+LsaDbSafeFreeGroupMembershipContents(
+        PLSA_GROUP_MEMBERSHIP pMembership);
+
+void
 LsaDbSafeFreeGroupMembershipList(
         size_t sCount,
         PLSA_GROUP_MEMBERSHIP** pppMembershipList);

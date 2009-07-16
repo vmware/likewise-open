@@ -1781,7 +1781,7 @@ AD_AddAllowedMember(
         dwError = LsaHashCreate(
                         11,
                         LsaHashCaselessStringCompare,
-                        LsaHashCaselessString,
+                        LsaHashCaselessStringHash,
                         AD_FreeHashStringKey,
                         AD_CopyHashStringKey,
                         &gpAllowedSIDs);
@@ -1793,7 +1793,7 @@ AD_AddAllowedMember(
         dwError = LsaHashCreate(
                         11,
                         LsaHashCaselessStringCompare,
-                        LsaHashCaselessString,
+                        LsaHashCaselessStringHash,
                         AD_FreeHashStringKey,
                         AD_CopyHashStringKey,
                         &pAllowedMemberList);
