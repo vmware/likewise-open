@@ -252,4 +252,4 @@ AC_OUTPUT(Makefile
           Mpr/Makefile
           netlogon/Makefile
           dssetup/Makefile
-          TestRpc/Makefile)
+          testrpc/Makefile)
