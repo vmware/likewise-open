@@ -68,6 +68,7 @@ typedef unsigned int LWMsgCookie;
  *
  * A message with this tag is invalid and contains
  * no data.
+ * @hideinitializer
  */
 #define LWMSG_TAG_INVALID ((LWMsgTag) -1)
 
@@ -77,6 +78,7 @@ typedef unsigned int LWMsgCookie;
  * A message with this tag never contains data but
  * is still considered valid.  It may be used for
  * for sending control messages.
+ * @hideinitializer
  */
 #define LWMSG_TAG_CONTROL ((LWMsgTag) -2)
 
@@ -88,11 +90,26 @@ typedef unsigned int LWMsgCookie;
  */
 typedef struct LWMsgMessage
 {
-    /** @brief A status code, usable for any purpose */
+    /**
+     * @brief Status code
+     *
+     * Indicates the overall success of the message.
+     */
     LWMsgStatus status;
-    /** @brief A call ID number for correlating request-response message pairs */
+    /**
+     * @brief Cookie
+     *
+     * An arbitrary cookie value.  Primarily used for correlating
+     * request-response message pairs.
+     */
     LWMsgCookie cookie;
-    /** @brief The message tag, indicating the type and payload of the message */
+    /**
+     * @brief Tag
+     *
+     * Indicates the meaning and data type of the message.  A given
+     * tag is meaningful in the context of a given #LWMsgProtocol
+     *
+     */
     LWMsgTag tag;
 #ifdef LWMSG_DISABLE_DEPRECATED
     void* data;
@@ -103,10 +120,10 @@ typedef struct LWMsgMessage
         void* object;
 #endif
         /**
-         * @brief The message data payload.
+         * @brief Data payload
          *
-         * The type of the payload is determined by the tag and
-         * the protocol used to send or receive it
+         * The data content of the message.  Its type is determined
+         * by the tag and the associated #LWMsgProtocol.
          */
         void* data;
 #ifndef DOXYGEN
@@ -125,6 +142,7 @@ typedef struct LWMsgMessage
  * An #LWMsgMessage structure may be statically initialized
  * with this value in lieu of explicit initialization of the
  * various fields.
+ * @hideinitializer
  */
 #ifdef LWMSG_DISABLE_DEPRECATED
 #define LWMSG_MESSAGE_INITIALIZER \
@@ -134,6 +152,18 @@ typedef struct LWMsgMessage
     {LWMSG_STATUS_SUCCESS, 0, LWMSG_TAG_INVALID, {.data = NULL}, 0}
 #endif
 
+/**
+ * @brief Initialize an #LWMsgMessage
+ *
+ * Initializes an #LWMsgMessage structure to reasonable default values:
+ *
+ * - Status is #LWMSG_STATUS_SUCCESS
+ * - Cookie is 0
+ * - Tag is #LWMSG_TAG_INVALID
+ * - Data is NULL
+ *
+ * @param message the message to initialize
+ */
 void
 lwmsg_message_init(
     LWMsgMessage* message

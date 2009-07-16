@@ -43,6 +43,20 @@
 
 #include <sys/types.h>
 
+/**
+ * @file archive.h
+ * @brief Persistence API
+ */
+
+/**
+ * @defgroup archive Persistent archives
+ * @ingroup public
+ * @brief Serialize messages to permanent storage
+ *
+ */
+
+/*@{*/
+
 typedef struct LWMsgArchive LWMsgArchive;
 
 typedef enum LWMsgArchiveDisposition
@@ -110,5 +124,7 @@ LWMsgAssoc*
 lwmsg_archive_as_assoc(
     LWMsgArchive* archive
     );
+
+/*@}*/
 
 #endif

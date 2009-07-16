@@ -26,7 +26,9 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/lwmsg/session.h \
 	$(top_srcdir)/include/lwmsg/status.h \
 	$(top_srcdir)/include/lwmsg/time.h \
-	$(top_srcdir)/include/lwmsg/type.h
+	$(top_srcdir)/include/lwmsg/type.h \
+	$(top_srcdir)/include/lwmsg/archive.h \
+	$(top_srcdir)/include/lwmsg/message.h
 
 DOXYGEN_DEPS = \
 	Doxyfile.in \
