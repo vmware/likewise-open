@@ -55,13 +55,13 @@
 typedef signed int LWMsgTag;
 
 /**
- * @brief Message call identifier
+ * @brief Message cookie
  *
  * Allows "request" and "response" messages to be
  * correlated when multiple requests might be outstanding
  * simultaneously.
  */
-typedef unsigned int LWMsgCallId;
+typedef unsigned int LWMsgCookie;
 
 /**
  * @brief Invalid message tag
@@ -91,7 +91,7 @@ typedef struct LWMsgMessage
     /** @brief A status code, usable for any purpose */
     LWMsgStatus status;
     /** @brief A call ID number for correlating request-response message pairs */
-    LWMsgCallId id;
+    LWMsgCookie cookie;
     /** @brief The message tag, indicating the type and payload of the message */
     LWMsgTag tag;
 #ifdef LWMSG_DISABLE_DEPRECATED

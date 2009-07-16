@@ -16,4 +16,5 @@ noinst_HEADERS = \
 	session-private.h \
 	mt19937ar.h \
 	client-private.h \
-	server-private.h
+	server-private.h \
+	archive-private.h

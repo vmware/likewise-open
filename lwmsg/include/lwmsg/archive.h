@@ -26,28 +26,89 @@
 /*
  * Module Name:
  *
- *        message.c
+ *        archive.h
  *
  * Abstract:
  *
- *        Message structure
+ *        Archive file API (public header)
  *
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+#ifndef __LWMSG_ARCHIVE_H__
+#define __LWMSG_ARCHIVE_H__
 
-#include <config.h>
-#include <lwmsg/message.h>
-#include "util-private.h"
+#include <lwmsg/assoc.h>
+#include <lwmsg/protocol.h>
+
+#include <sys/types.h>
+
+typedef struct LWMsgArchive LWMsgArchive;
+
+typedef enum LWMsgArchiveDisposition
+{
+    LWMSG_ARCHIVE_READ = 0x1,
+    LWMSG_ARCHIVE_WRITE = 0x2
+} LWMsgArchiveDisposition;
+
+LWMsgStatus
+lwmsg_archive_new(
+    const LWMsgContext* context,
+    LWMsgProtocol* protocol,
+    LWMsgArchive** archive
+    );
+
+LWMsgStatus
+lwmsg_archive_set_file(
+    LWMsgArchive* archive,
+    const char* filename,
+    LWMsgArchiveDisposition disp,
+    mode_t mode
+    );
+
+LWMsgStatus
+lwmsg_archive_set_fd(
+    LWMsgArchive* archive,
+    int fd,
+    LWMsgArchiveDisposition dist
+    );
+
+LWMsgStatus
+lwmsg_archive_set_byte_order(
+    LWMsgArchive* archive,
+    LWMsgByteOrder order
+    );
+
+LWMsgStatus
+lwmsg_archive_open(
+    LWMsgArchive* archive
+    );
+
+LWMsgStatus
+lwmsg_archive_close(
+    LWMsgArchive* archive
+    );
+
+LWMsgStatus
+lwmsg_archive_write_message(
+    LWMsgArchive* archive,
+    LWMsgMessage* message
+    );
+
+LWMsgStatus
+lwmsg_archive_read_message(
+    LWMsgArchive* archive,
+    LWMsgMessage* message
+    );
 
 void
-lwmsg_message_init(
-    LWMsgMessage* message
-    )
-{
-    message->status = LWMSG_STATUS_SUCCESS;
-    message->tag = LWMSG_TAG_INVALID;
-    message->cookie = 0;
-    message->data = NULL;
-    message->reserved1 = 0;
-}
+lwmsg_archive_delete(
+    LWMsgArchive* archive
+    );
+
+LWMsgAssoc*
+lwmsg_archive_as_assoc(
+    LWMsgArchive* archive
+    );
+
+#endif
