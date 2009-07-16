@@ -360,7 +360,7 @@ MemCacheFindUserByName(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     switch (pUserNameInfo->nameType)
     {
@@ -422,7 +422,7 @@ MemCacheFindUserByName(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LSA_SAFE_FREE_STRING(pszKey);
 
     return dwError;
@@ -451,7 +451,7 @@ MemCacheFindUserById(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pUIDToSecurityObject;
 
@@ -479,7 +479,7 @@ MemCacheFindUserById(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 
@@ -507,7 +507,7 @@ MemCacheFindGroupByName(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     switch (pGroupNameInfo->nameType)
     {
@@ -559,7 +559,7 @@ MemCacheFindGroupByName(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LSA_SAFE_FREE_STRING(pszKey);
 
     return dwError;
@@ -587,7 +587,7 @@ MemCacheFindGroupById(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pGIDToSecurityObject;
 
@@ -615,7 +615,7 @@ MemCacheFindGroupById(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 
@@ -860,6 +860,29 @@ error:
 }
 
 DWORD
+MemCacheEnsureHashSpace(
+    PLSA_HASH_TABLE pTable,
+    size_t sNewEntries
+    )
+{
+    DWORD dwError = 0;
+
+    if ((pTable->sCount + sNewEntries) * 2 > pTable->sTableSize)
+    {
+        dwError = LsaHashResize(
+            pTable,
+            (pTable->sCount + sNewEntries + 10) * 3);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
 MemCacheStoreObjectEntries(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
@@ -880,7 +903,55 @@ MemCacheStoreObjectEntries(
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    // For simplicity, don't check whether keys exist for sure or whether the
+    // objects are users or groups. Just make sure there is enough space in all
+    // cases.
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pDNToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pNT4ToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pSIDToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pUIDToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pUserAliasToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pUPNToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pSIDToPasswordVerifier,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pGIDToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pGroupAliasToSecurityObject,
+                    sObjectCount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     for (sIndex = 0; sIndex < sObjectCount; sIndex++)
     {
@@ -986,7 +1057,7 @@ MemCacheStoreObjectEntries(
     }
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LSA_SAFE_FREE_STRING(pszKey);
 
     return dwError;
@@ -1077,7 +1148,7 @@ MemCacheAddMembership(
         pGuardianTemp->pNext = pGuardianTemp;
         pGuardianTemp->pPrev = pGuardianTemp;
 
-        dwError = LsaAllocateString(
+        dwError = LsaStrDupOrNull(
                         pMembership->membership.pszParentSid,
                         &pszSidCopy);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1122,7 +1193,7 @@ MemCacheAddMembership(
         pGuardianTemp->pNext = pGuardianTemp;
         pGuardianTemp->pPrev = pGuardianTemp;
 
-        dwError = LsaAllocateString(
+        dwError = LsaStrDupOrNull(
                         pMembership->membership.pszChildSid,
                         &pszSidCopy);
         BAIL_ON_LSA_ERROR(dwError);
@@ -1220,7 +1291,17 @@ MemCacheStoreGroupMembership(
         pMembership = NULL;
     }
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pParentSIDToMembershipList,
+                    sMemberCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pChildSIDToMembershipList,
+                    sMemberCount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     // Copy the existing pac and primary domain memberships to the temporary
     // hash table
@@ -1326,7 +1407,7 @@ MemCacheStoreGroupMembership(
     }
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -1398,7 +1479,17 @@ MemCacheStoreGroupsForUser(
         pMembership = NULL;
     }
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pParentSIDToMembershipList,
+                    sMemberCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MemCacheEnsureHashSpace(
+                    pConn->pChildSIDToMembershipList,
+                    sMemberCount);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaHashGetValue(
                     pConn->pParentSIDToMembershipList,
@@ -1501,7 +1592,7 @@ MemCacheStoreGroupsForUser(
     }
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -1536,7 +1627,7 @@ MemCacheGetMemberships(
     PMEM_GROUP_MEMBERSHIP pMembership = NULL;
     PLSA_GROUP_MEMBERSHIP* ppResults = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     if (bIsGroupMembers)
     {
@@ -1622,7 +1713,7 @@ MemCacheGetMemberships(
     *psCount = sCount;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 
@@ -1705,7 +1796,7 @@ MemCacheFindObjectByDN(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pDNToSecurityObject;
 
@@ -1727,7 +1818,7 @@ MemCacheFindObjectByDN(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 
@@ -1796,7 +1887,7 @@ MemCacheFindObjectBySid(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pSIDToSecurityObject;
 
@@ -1818,7 +1909,7 @@ MemCacheFindObjectBySid(
     *ppObject = pObject;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 
@@ -1890,7 +1981,7 @@ MemCacheGetPasswordVerifier(
     // Do not free
     PDLINKEDLIST pListEntry = NULL;
 
-    ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pSIDToPasswordVerifier;
 
@@ -1925,7 +2016,7 @@ MemCacheGetPasswordVerifier(
     *ppResult = pResult;
 
 cleanup:
-    LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
 

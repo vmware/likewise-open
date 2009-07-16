@@ -47,6 +47,24 @@
 #ifndef __MEMCACHE_P_H__
 #define __MEMCACHE_P_H__
 
+#define ENTER_READER_RW_LOCK(pLock, bInLock)\
+        if (!bInLock) {                                    \
+           pthread_rwlock_rdlock(pLock);            \
+           bInLock = TRUE;                                 \
+        }
+
+#define LEAVE_RW_LOCK(pLock, bInLock) \
+        if (bInLock) {                                     \
+           pthread_rwlock_unlock(pLock);            \
+           bInLock = FALSE;                                \
+        }
+
+#define ENTER_WRITER_RW_LOCK(pLock, bInLock) \
+        if (!bInLock) {                                    \
+           pthread_rwlock_wrlock(pLock);            \
+           bInLock = TRUE;                                 \
+        }
+
 typedef struct _MEM_LIST_NODE MEM_LIST_NODE, *PMEM_LIST_NODE;
 
 struct _MEM_LIST_NODE
