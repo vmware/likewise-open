@@ -52,9 +52,11 @@ const JoinModule *startList[] = {
     &DJDoJoinModule,
     &DJKrb5Module,
     &DJDoLeaveModule,
+    &DJCacheModule,
     NULL };
 
 const JoinModule *stopList[] = {
+    &DJCacheModule,
     &DJDoLeaveModule,
     &DJKrb5Module,
     &DJDoJoinModule,
@@ -69,6 +71,7 @@ const JoinModule *startList[] = {
     &DJKrb5Module,
     &DJDoLeaveModule,
     &DJNsswitchModule,
+    &DJCacheModule,
     &DJDaemonStartModule,
     &DJBashPrompt,
     &DJGdmPresession,
@@ -81,6 +84,7 @@ const JoinModule *startList[] = {
     NULL };
 
 const JoinModule *stopList[] = {
+    &DJDDNSModule,
     &DJDSPlugin,
     &DJSshModule,
     &DJLamAuth,
@@ -89,6 +93,7 @@ const JoinModule *stopList[] = {
     &DJGdmPresession,
     &DJBashPrompt,
     &DJDaemonStartModule,
+    &DJCacheModule,
     &DJNsswitchModule,
     &DJDaemonStopModule,
     &DJDoLeaveModule,
@@ -97,7 +102,6 @@ const JoinModule *stopList[] = {
     &DJKeytabModule,
     &DJFirewall,
     &DJSetHostname,
-    &DJDDNSModule,
     NULL };
 #endif
 
