@@ -31,9 +31,9 @@ const int DomainJoinWindow::JOIN_CMD_ID          = 'join';
 
 DomainJoinWindow::DomainJoinWindow(int inAppSignature)
 : TWindow( inAppSignature, CFSTR("Window"), CFSTR("Join") ),
+  _originalComputerName(""),
   _userName("Administrator"),
   _password(""),
-  _originalComputerName(""),
   _credentialsDialog(NULL)
 {
     SetRadioButton(DEFAULT_OU_RADIO_ID);

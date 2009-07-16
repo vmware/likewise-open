@@ -81,9 +81,9 @@ class DomainJoinException : public std::exception
 
     private:
     
+        int _errCode;
         std::string _shortErrorMsg;
         std::string _longErrorMsg;
-        int _errCode;
 
 };
 

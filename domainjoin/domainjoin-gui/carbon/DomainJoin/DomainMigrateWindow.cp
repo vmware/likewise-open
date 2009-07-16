@@ -585,8 +585,6 @@ DomainMigrateWindow::CallMigrateCommand(
         pszOutput = NULL;
     }
 
-exit:
-
     if (pszOutput)
     {
         free(pszOutput);
@@ -726,7 +724,6 @@ DomainMigrateWindow::HandleValidateUser()
                                  &pszHomeDir,
                                  &pszUID,
                                  &pszGID);
-        //if (macError) goto exit;
         if (macError)
         {
             std::string errMsg("User name not found!");
@@ -761,8 +758,6 @@ DomainMigrateWindow::HandleValidateUser()
                       NULL,
                       &outItemHit);
     }
-
-exit:
 
     if (pszRealName)
     {
