@@ -336,6 +336,26 @@ AD_GroupExpansionDataAddExpansionResults(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    if ((sMembersCount + pExpansionData->pUsers->sCount) * 2 >
+            pExpansionData->pUsers->sTableSize)
+    {
+        dwError = LsaHashResize(
+                        pExpansionData->pUsers,
+                        (sMembersCount +
+                             pExpansionData->pUsers->sCount + 10) * 3);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if ((sMembersCount + pExpansionData->pGroupsToExpand->sCount) * 2 >
+            pExpansionData->pGroupsToExpand->sTableSize)
+    {
+        dwError = LsaHashResize(
+                        pExpansionData->pGroupsToExpand,
+                        (sMembersCount +
+                             pExpansionData->pGroupsToExpand->sCount + 10) * 3);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     for (; sMembersCount > 0; sMembersCount--)
     {
         PLSA_SECURITY_OBJECT pCurrentMember = ppMembers[sMembersCount-1];
