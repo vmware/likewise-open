@@ -39,6 +39,8 @@
 #include <config.h>
 #include "server-private.h"
 
+#include <errno.h>
+
 static
 LWMsgStatus
 lwmsg_server_io_process_tasks(
@@ -190,15 +192,28 @@ lwmsg_server_io_loop(
         if (lwmsg_time_is_positive(&next_deadline))
         {
             /* We have a pending deadline, so set up a timeout for select() */
-            lwmsg_time_difference(&now, &next_deadline, &diff);
-            timeout.tv_sec = diff.seconds >= 0 ? diff.seconds : 0;
-            timeout.tv_usec = diff.microseconds >= 0 ? diff.microseconds : 0;
-            res = select(nfds, &readset, &writeset, NULL, &timeout);
+            do
+            {
+                lwmsg_time_difference(&now, &next_deadline, &diff);
+                timeout.tv_sec = diff.seconds >= 0 ? diff.seconds : 0;
+                timeout.tv_usec = diff.microseconds >= 0 ? diff.microseconds : 0;
+
+                res = select(nfds, &readset, &writeset, NULL, &timeout);
+
+                if (res < 0 && errno == EINTR)
+                {
+                    /* Update current time so the next timeout calculation is correct */
+                    BAIL_ON_ERROR(status = lwmsg_clock_get_monotonic_time(&clock, &now));
+                }
+            } while (res < 0 && errno == EINTR);
         }
         else
         {
             /* No deadline is pending, so select() indefinitely */
-            res = select(nfds, &readset, &writeset, NULL, NULL);
+            do
+            {
+                res = select(nfds, &readset, &writeset, NULL, NULL);
+            } while (res < 0 && errno == EINTR);
         }
 
         if (res < 0)
