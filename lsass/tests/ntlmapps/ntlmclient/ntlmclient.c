@@ -46,7 +46,7 @@ main(
 
     /* Parse arguments. */
     argc--; argv++;
-    while(argc)
+    while(argc > 3)
     {
 
         if(strcmp(*argv, "-port") == 0)

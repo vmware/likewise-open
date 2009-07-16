@@ -5,11 +5,12 @@ ntlm_client_CFLAGS =    \
     @LWBASE_INCLUDES@   \
     @LWMSG_INCLUDES@
 
-ntlm_client_SOURCES =                           \
+ntlm_client_SOURCES =   \
     ntlmclient.c
 
-ntlm_client_LDADD =                             \
-    @top_builddir@/ntlmclient/libntlmclient.la  \
-    @top_builddir@/ntlmipc/libntlmipc.la     \
-    @LWMSG_NOTHR_LIBS@                          \
+ntlm_client_LDADD =                                     \
+    @top_builddir@/ntlmclient/liblsaclient_ntlm.la      \
+    @top_builddir@/common/ipc/ntlm/liblsaipc_ntlm.la    \
+    @top_builddir@/common/utils/liblsautils.la          \
+    @LWMSG_NOTHR_LIBS@                                  \
     @SOCKET_LIBS@

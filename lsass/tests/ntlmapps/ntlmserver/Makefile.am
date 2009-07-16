@@ -8,10 +8,11 @@ ntlm_server_CFLAGS =        \
 ntlm_server_SOURCES =                           \
     ntlm-server.c
 
-ntlm_server_LDADD =                             \
-    @top_builddir@/ntlmclient/libntlmclient.la  \
-    @top_builddir@/ntlmipc/libntlmipc.la        \
-    @LIBUNISTR_LIBS@                            \
-    @LWMSG_NOTHR_LIBS@                          \
+ntlm_server_LDADD =                                     \
+    @top_builddir@/ntlmclient/liblsaclient_ntlm.la      \
+    @top_builddir@/common/ipc/ntlm/liblsaipc_ntlm.la    \
+    @top_builddir@/common/utils/liblsautils.la          \
+    @LIBUNISTR_LIBS@                                    \
+    @LWMSG_NOTHR_LIBS@                                  \
     @SOCKET_LIBS@
 
