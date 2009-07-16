@@ -921,15 +921,19 @@ lwmsg_server_signal_io_thread(
 {
     char c = 0;
     int res = 0;
+    int old_events = thread->num_events;
 
     thread->num_events++;
 
-    do
+    if (old_events == 0)
     {
-        res = write(thread->event[1], &c, sizeof(c));
-    } while (res == -1 && errno == EINTR);
+        do
+        {
+            res = write(thread->event[1], &c, sizeof(c));
+        } while (res == -1 && errno == EINTR);
 
-    ABORT_IF_FALSE(res == sizeof(c));
+        ABORT_IF_FALSE(res == sizeof(c));
+    }
 }
 
 void
