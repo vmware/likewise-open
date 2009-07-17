@@ -25,9 +25,9 @@ MODE_NAMES = \
 	set-machine-sid \
 	trace-info
 
-bin_PROGRAMS = lsa
+bin_PROGRAMS = lw-lsa
 
-lsa_SOURCES = \
+lw_lsa_SOURCES = \
 	ad_cache_main.c \
 	add_group_add_group.c \
 	add_group_main.c \
@@ -35,7 +35,6 @@ lsa_SOURCES = \
 	add_user_main.c \
 	del_group_del_group.c \
 	del_group_main.c \
-	del_user_del_user.c \
 	del_user_main.c \
 	enum_groups_main.c \
 	enum_users_main.c \
@@ -52,21 +51,18 @@ lsa_SOURCES = \
 	lw_ypmatch_main.c \
 	migrator_main.c \
 	mod_group_main.c \
-	mod_group_modgroup.c \
 	mod_user_main.c \
-	mod_user_moduser.c \
 	refresh_configuration_main.c \
 	set_log_level_main.c \
 	set_machine_sid_main.c \
-	set_machine_sid_setsid.c \
 	trace_info_main.c \
 	main.c
 
-lsa_LDADD = @top_builddir@/client/liblsaclient.la
+lw_lsa_LDADD = @top_builddir@/client/liblsaclient.la
 
 install-exec-hook:
 	cd $(DESTDIR)$(bindir) && \
 	    for name in $(MODE_NAMES); \
 	    do \
-	        $(LN_S) lsa$(EXEEXT) lw-$${name}$(EXEEXT) || return $$?; \
+	        $(LN_S) lw-lsa$(EXEEXT) lw-$${name}$(EXEEXT) || return $$?; \
 	    done

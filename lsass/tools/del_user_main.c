@@ -46,7 +46,13 @@
  *        Sriram Nambakam (snambakam@likewisesoftware.com)
  *
  */
-#include "del_user_del_user.h"
+
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lsaclient.h"
+#include "lsaipc.h"
 
 static
 DWORD

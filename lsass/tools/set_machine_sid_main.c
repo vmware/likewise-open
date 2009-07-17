@@ -45,7 +45,13 @@
  *        Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "set_machine_sid_includes.h"
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lsaclient.h"
+#include "lsaipc.h"
+#include <lw/base.h>
 
 static
 DWORD

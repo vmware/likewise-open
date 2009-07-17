@@ -1,6 +1,7 @@
 #include "config.h"
 #include "lsasystem.h"
 
+
 typedef int (*main_function) (int argc, char* argv[]);
 
 typedef struct
