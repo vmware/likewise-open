@@ -256,8 +256,8 @@ ParseArgs(
     } ParseMode;
     typedef enum
     {
-        LWIO_COPY_KRB5_NO_SPEC,
-        LWIO_COPY_KRB5_CACHE_SPECIFIED = 0,
+        LWIO_COPY_KRB5_NO_SPEC = 0,
+        LWIO_COPY_KRB5_CACHE_SPECIFIED,
         LWIO_COPY_KRB5_UPN_SPECIFIED
     } LwioCopyKrb5Spec;
     int iArg = 1;
@@ -278,7 +278,7 @@ ParseArgs(
         {
             case PARSE_MODE_OPEN:
 
-                if (!strcmp(pszArg, "-h"))
+                if (!strcmp(pszArg, "-h") || !strcmp(pszArg, "--help"))
                 {
                     ShowUsage();
                     exit(0);
