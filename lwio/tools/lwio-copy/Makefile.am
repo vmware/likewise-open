@@ -1,6 +1,7 @@
 bin_PROGRAMS = lwio-copy
 
 lwio_copy_SOURCES = \
+    globals.c \
     main.c \
     lwiocopy.c
 
