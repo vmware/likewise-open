@@ -51,13 +51,6 @@
  */
 
 /**
- * @defgroup ext Extension APIs
- *
- * These APIs allow client applications to extend or customize the behavior
- * of LWMsg
- */
-
-/**
  * @defgroup common Common definitions
  * @ingroup public
  * @brief Definitions of common types

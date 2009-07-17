@@ -233,7 +233,9 @@ lwmsg_local_token_get_eid(
     gid_t *out_egid
     );
 
+#ifndef DOXYGEN
 extern LWMsgCustomTypeClass lwmsg_fd_type_class;
+#endif
 
 /**
  * @brief Define a file descriptor

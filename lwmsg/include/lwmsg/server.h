@@ -67,6 +67,8 @@
  *
  */
 
+/*@{*/
+
 #ifndef DOXYGEN
 typedef enum LWMsgDispatchType
 {
@@ -77,13 +79,22 @@ typedef enum LWMsgDispatchType
 } LWMsgDispatchType;
 #endif
 
+/**
+ * @brief Get session for current call
+ *
+ * Retrieves the session for the given call.
+ * This function may only be used with calls
+ * passed to a #LWMsgServerCallFunction.
+ *
+ * @param call the call handle
+ * @return a session
+ */
 LWMsgSession*
 lwmsg_server_call_get_session(
     LWMsgCall* call
     );
 
 /**
- * @ingroup server
  * @brief Dispatch specification
  *
  * This structure defines a table of dispatch functions
@@ -102,8 +113,7 @@ typedef struct LWMsgDispatchSpec
 const LWMsgDispatchSpec;
 
 /**
- * @ingroup server
- * @brief Define message handle in a dispatch table <b>(DEPRECATED)</b>
+ * @brief Define message handler in a dispatch table <b>(DEPRECATED)</b>
  *
  * This macro is used in dispatch table construction to
  * define the handler for a particular message type.
@@ -115,14 +125,39 @@ const LWMsgDispatchSpec;
 #define LWMSG_DISPATCH(tag, func) \
     {LWMSG_DISPATCH_TYPE_OLD, (tag), (void*) (LWMsgAssocDispatchFunction) (func)}
 
+/**
+ * @brief Define blocking message handler
+ *
+ * Defines a message handler function for the given message tag
+ * within a dispatch specification.  The provided callback function
+ * may block indefinitely in the process of servicing the request.
+ * It may also opt to complete the request asynchronously with
+ * #lwmsg_call_pend() and #lwmsg_call_complete().
+ *
+ * @param tag the message tag
+ * @param func an #LWMsgServerCallFunction
+ * @hideinitializer
+ */
 #define LWMSG_DISPATCH_BLOCK(tag, func) \
     {LWMSG_DISPATCH_TYPE_BLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
 
+/**
+ * @brief Define non-blocking message handler
+ *
+ * Defines a message handler function for the given message tag
+ * within a dispatch specification.  The provided callback function
+ * must not block indefinitely in the process of servicing the request.
+ * If the request cannot be completed immediately, it must complete
+ * it asynchronously.
+ *
+ * @param tag the message tag
+ * @param func an #LWMsgServerCallFunction
+ * @hideinitializer
+ */
 #define LWMSG_DISPATCH_NONBLOCK(tag, func) \
     {LWMSG_DISPATCH_TYPE_NONBLOCK, (tag), (void*) (LWMsgServerCallFunction) (func)}
 
 /**
- * @ingroup server
  * @brief Terminate dispatch table
  *
  * This macro is used in dispatch table construction to
@@ -133,7 +168,6 @@ const LWMsgDispatchSpec;
 
 
 /**
- * @ingroup server
  * @brief Opaque server object
  *
  * Opqaue server object which can be used to start a listening message server.
@@ -141,7 +175,6 @@ const LWMsgDispatchSpec;
 typedef struct LWMsgServer LWMsgServer;
 
 /**
- * @ingroup server
  * @brief Server listening mode
  *
  * Specifies whether a server should listen on a local or remote socket
@@ -156,6 +189,37 @@ typedef enum LWMsgServerMode
     LWMSG_SERVER_MODE_REMOTE
 } LWMsgServerMode;
 
+/**
+ * @brief Call handler function
+ *
+ * A callback function which handles an incoming call request.  The function
+ * may complete the call immediately by filling in the response structure
+ * and returning #LWMSG_STATUS_SUCCESS, or asynchronously by invoking
+ * #lwmsg_call_pend() on the call handle, returning #LWMSG_STATUS_PENDING,
+ * and completing the call later with #lwmsg_call_complete().  Returning
+ * and other status code will cause the client connection to be unceremoniously
+ * terminated, and the status code will be propgated to the handler registered
+ * on the server with #lwmsg_server_set_exception_function().
+ *
+ * Regardless of the status code returned, the data payloads in the
+ * request and response structures will be automatically freed by
+ * the server as long as the tags are set to valid values.  This means
+ * that data in the request must not be referenced after the function returns,
+ * Data in the response must be allocated with the same memory allocator
+ * as used by the server -- by default, plain malloc().
+ *
+ * @param call the call handle
+ * @param request the request parameters
+ * @param response the response parameters
+ * @param data the data pointer set by #lwmsg_server_set_dispatch_data()
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{PENDING, the request will be completed asynchronously}
+ * @lwmsg_etc{call-specific failure}
+ * @lwmsg_endstatus
+ * @see #lwmsg_context_set_memory_functions()
+ * @see #lwmsg_server_new()
+ */
 typedef
 LWMsgStatus
 (*LWMsgServerCallFunction) (
@@ -165,6 +229,16 @@ LWMsgStatus
     void* data
     );
 
+/**
+ * @brief Exception handler function
+ *
+ * A callback function which is invoked when an exception occurs within
+ * the server.
+ *
+ * @param server the server handle
+ * @param status the status code of the error
+ * @param data a user data pointer
+ */
 typedef
 void
 (*LWMsgServerExceptionFunction) (
@@ -174,7 +248,6 @@ void
     );
 
 /**
- * @ingroup server
  * @brief Create a new server object
  *
  * Creates a new server object
@@ -196,7 +269,6 @@ lwmsg_server_new(
     );
 
 /**
- * @ingroup server
  * @brief Delete a server object
  *
  * Deletes a server object.
@@ -212,7 +284,6 @@ lwmsg_server_delete(
     );
 
 /**
- * @ingroup server
  * @brief Set timeout
  *
  * Sets the specified timeout to the specified value.
@@ -235,7 +306,6 @@ lwmsg_server_set_timeout(
     );
 
 /**
- * @ingroup server
  * @brief Set maximum number of simultaneous active connections
  *
  * Sets the maximum numbers of connections which the server will track
@@ -257,7 +327,6 @@ lwmsg_server_set_max_clients(
 
 
 /**
- * @ingroup server
  * @brief Set maximum number of simultaneous dispatched messages
  *
  * Sets the maximum numbers of simultaneous messages which will be
@@ -278,7 +347,6 @@ lwmsg_server_set_max_dispatch(
     );
 
 /**
- * @ingroup server
  * @brief Set maximum number of simultaneous IO operations
  *
  * Sets the maximum numbers of simultaneous IO operations which will be
@@ -298,7 +366,6 @@ lwmsg_server_set_max_io(
     );
 
 /**
- * @ingroup server
  * @brief Set maximum number of backlogged connections
  *
  * Sets the maximum numbers of pending connections which the server will keep
@@ -319,7 +386,6 @@ lwmsg_server_set_max_backlog(
     );
 
 /**
- * @ingroup server
  * @brief Add a message dispatch specification
  *
  * Adds a set of message dispatch functions to the specified
@@ -339,7 +405,6 @@ lwmsg_server_add_dispatch_spec(
     );
 
 /**
- * @ingroup server
  * @brief Set listening socket
  *
  * Sets the socket on which the server will listen for connections.
@@ -364,7 +429,6 @@ lwmsg_server_set_fd(
     );
     
 /**
- * @ingroup server
  * @brief Set listening endpoint
  *
  * Sets the endpoint on which the server will listen for connections.
@@ -389,6 +453,23 @@ lwmsg_server_set_endpoint(
     mode_t      permissions
     );
 
+/**
+ * @brief Set session construct and destruct functions
+ *
+ * Sets functions which will be called when a new session
+ * is established with a client.  The constructor function
+ * may set up a session context which the destructor function
+ * should clean up when the session is terminated.
+ *
+ * @param server the server handle
+ * @param construct a session constructor function
+ * @param destruct a session destructor function
+ * @param data a user data pointer to be passed to both functions
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the server is already active}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_server_set_session_functions(
     LWMsgServer* server,
@@ -398,7 +479,6 @@ lwmsg_server_set_session_functions(
     );
 
 /**
- * @ingroup server
  * @brief Set dispatch data pointer
  *
  * Sets the user data pointer which is passed to dispatch functions.
@@ -418,7 +498,6 @@ lwmsg_server_set_dispatch_data(
     );
 
 /**
- * @ingroup server
  * @brief Get dispatch data pointer
  *
  * Gets the user data pointer which is passed to dispatch functions.
@@ -433,7 +512,6 @@ lwmsg_server_get_dispatch_data(
     );
 
 /**
- * @ingroup server
  * @brief Start accepting connections
  *
  * Starts listening for and servicing connections in a separate thread.
@@ -450,7 +528,6 @@ lwmsg_server_start(
     );
 
 /**
- * @ingroup server
  * @brief Aggressively stop server
  *
  * Stops the specified server accepting new connections and aggressively
@@ -466,11 +543,30 @@ lwmsg_server_stop(
     LWMsgServer* server
     );
 
+/**
+ * @brief Set exception handler
+ *
+ * Sets a callback function which will be invoked when an error occurs
+ * within the running server.  The function may take appropriate action depending
+ * on the error, such as logging a warning or instructing the main application
+ * thread to shut down.
+ *
+ * @warning Do not call #lwmsg_server_stop() from an exception handler
+ *
+ * @param server the server handle
+ * @param except the handler function
+ * @param except_data a user data pointer to pass to the handler function
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_server_set_exception_function(
     LWMsgServer* server,
     LWMsgServerExceptionFunction except,
     void* except_data
     );
+
+/*@}*/
 
 #endif

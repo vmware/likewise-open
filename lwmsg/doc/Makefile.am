@@ -43,12 +43,14 @@ DOXYGEN_DEPS = \
 	$(DOXYGEN_HEADER_DEPS)
 
 doxygen-html: $(DOXYGEN_DEPS)
-	$(MKDIR_P) doxygen-html
-	( cat Doxyfile; echo GENERATE_HTML=yes ) | $(DOXYGEN) -
+	$(MKDIR_P) doxygen-html && \
+	( cat Doxyfile; echo GENERATE_HTML=yes ) | $(DOXYGEN) - && \
+	touch doxygen-html
 
 doxygen-latex: $(DOXYGEN_DEPS)
-	$(MKDIR_P) doxygen-latex
-	( cat Doxyfile; echo GENERATE_LATEX=yes ) | $(DOXYGEN) -
+	$(MKDIR_P) doxygen-latex && \
+	( cat Doxyfile; echo GENERATE_LATEX=yes ) | $(DOXYGEN) - && \
+	touch doxygen-latex
 
 lwmsg.pdf: doxygen-latex
 	$(MAKE) -C doxygen-latex pdf
@@ -66,7 +68,7 @@ doxygen-pdf-install: lwmsg.pdf
 
 all-local: doxygen-html $(DOXYGEN_PDF_TARGET)
 
-install-data-local: doxygen-html-install $(DOXYGEN_PDF_INSTALL)
+install-data-local: doxygen-html-install doxygen-pdf-install
 
 .PHONY: doxygen-pdf doxygen-html-install doxygen-pdf-install
 
