@@ -692,6 +692,43 @@ error:
     goto cleanup;
 }
 
+DWORD
+ADCacheDuplicatePasswordVerifier(
+    PLSA_PASSWORD_VERIFIER* ppDest,
+    PLSA_PASSWORD_VERIFIER pSrc
+    )
+{
+    DWORD dwError = 0;
+    PLSA_PASSWORD_VERIFIER pDest = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*pDest),
+                    (PVOID*)&pDest);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->version = pSrc->version;
+
+    dwError = LsaAllocateString(
+                    pSrc->pszObjectSid,
+                    &pDest->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    pSrc->pszPasswordVerifier,
+                    &pDest->pszPasswordVerifier);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppDest = pDest;
+
+cleanup:
+    return dwError;
+
+error:
+    LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pDest);
+    *ppDest = NULL;
+    goto cleanup;
+}
+
 void
 ADCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership)

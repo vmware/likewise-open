@@ -62,6 +62,17 @@ MemCacheFreeGuardian(
     }
 }
 
+void
+MemCacheFreePasswordVerifier(
+    IN const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        ADCacheFreePasswordVerifier((PLSA_PASSWORD_VERIFIER)pEntry->pValue);
+    }
+}
+
 DWORD
 MemCacheOpen(
     IN PCSTR pszDbPath,
@@ -139,7 +150,7 @@ MemCacheOpen(
                     100,
                     LsaHashCaselessStringCompare,
                     LsaHashCaselessStringHash,
-                    NULL,
+                    MemCacheFreePasswordVerifier,
                     NULL,
                     &pConn->pSIDToPasswordVerifier);
     BAIL_ON_LSA_ERROR(dwError);
@@ -201,17 +212,6 @@ MemCacheFreeObjects(
     PLSA_SECURITY_OBJECT pObject = (PLSA_SECURITY_OBJECT)pData;
 
     ADCacheSafeFreeObject(&pObject);
-}
-
-VOID
-MemCacheFreePasswordVerifiers(
-    IN PVOID pData,
-    IN PVOID pUnused
-    )
-{
-    PLSA_PASSWORD_VERIFIER pPassword = (PLSA_PASSWORD_VERIFIER)pData;
-
-    ADCacheFreePasswordVerifier(pPassword);
 }
 
 DWORD
@@ -325,14 +325,6 @@ MemCacheSafeClose(
             NULL);
         LsaDLinkedListFree(pConn->pObjects);
         pConn->pObjects = NULL;
-
-        LsaDLinkedListForEach(
-            pConn->pPasswordVerifiers,
-            MemCacheFreePasswordVerifiers,
-            NULL);
-        LsaDLinkedListFree(pConn->pPasswordVerifiers);
-        pConn->pPasswordVerifiers = NULL;
-
 
         if (pConn->bLockCreated)
         {
@@ -1978,9 +1970,9 @@ MemCacheGetPasswordVerifier(
     BOOLEAN bInLock = FALSE;
     PLSA_PASSWORD_VERIFIER pResult = NULL;
     // Do not free
-    PLSA_HASH_TABLE pIndex = NULL;
+    PLSA_PASSWORD_VERIFIER pFromHash = NULL;
     // Do not free
-    PDLINKEDLIST pListEntry = NULL;
+    PLSA_HASH_TABLE pIndex = NULL;
 
     ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
@@ -1989,29 +1981,16 @@ MemCacheGetPasswordVerifier(
     dwError = LsaHashGetValue(
                     pIndex,
                     pszUserSid,
-                    (PVOID*)&pListEntry);
+                    (PVOID*)&pFromHash);
     if (dwError == ENOENT)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaAllocateMemory(
-                    sizeof(*pResult),
-                    (PVOID*)&pResult);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pResult->version = ((PLSA_PASSWORD_VERIFIER)pListEntry->pItem)->version;
-
-    dwError = LsaAllocateString(
-                    ((PLSA_PASSWORD_VERIFIER)pListEntry->pItem)->pszObjectSid,
-                    &pResult->pszObjectSid);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaAllocateString(
-                    ((PLSA_PASSWORD_VERIFIER)pListEntry->pItem)->
-                        pszPasswordVerifier,
-                    &pResult->pszPasswordVerifier);
+    dwError = ADCacheDuplicatePasswordVerifier(
+                    &pResult,
+                    pFromHash);
     BAIL_ON_LSA_ERROR(dwError);
 
     *ppResult = pResult;
@@ -2034,8 +2013,38 @@ MemCacheStorePasswordVerifier(
     )
 {
     DWORD dwError = 0;
+    // Do not free
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
+    PLSA_PASSWORD_VERIFIER pCopy = NULL;
+    // Do not free
+    PLSA_HASH_TABLE pIndex = NULL;
+
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    pIndex = pConn->pSIDToPasswordVerifier;
+
+    dwError = ADCacheDuplicatePasswordVerifier(
+                    &pCopy,
+                    pVerifier);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaHashSetValue(
+                    pIndex,
+                    pCopy->pszObjectSid,
+                    pCopy);
+    BAIL_ON_LSA_ERROR(dwError);
+    // This is now owned by the hash
+    pCopy = NULL;
+
+cleanup:
+    LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pCopy);
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 void
@@ -2064,7 +2073,7 @@ InitializeMemCacheProvider(
     pCacheTable->pfnFindObjectByDN           = MemCacheFindObjectByDN;
     pCacheTable->pfnFindObjectsByDNList      = MemCacheFindObjectsByDNList;
     pCacheTable->pfnFindObjectBySid          = MemCacheFindObjectBySid;
-    pCacheTable->pfnFindObjectsBySidList      = MemCacheFindObjectsBySidList;
+    pCacheTable->pfnFindObjectsBySidList     = MemCacheFindObjectsBySidList;
     pCacheTable->pfnGetPasswordVerifier      = MemCacheGetPasswordVerifier;
     pCacheTable->pfnStorePasswordVerifier    = MemCacheStorePasswordVerifier;
 }

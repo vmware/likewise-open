@@ -131,6 +131,11 @@ MemCacheFreeGuardian(
     const LSA_HASH_ENTRY* pEntry
     );
 
+void
+MemCacheFreePasswordVerifier(
+    IN const LSA_HASH_ENTRY* pEntry
+    );
+
 DWORD
 MemCacheOpen(
     IN PCSTR pszDbPath,
@@ -139,12 +144,6 @@ MemCacheOpen(
 
 VOID
 MemCacheFreeObjects(
-    IN PVOID pData,
-    IN PVOID pUnused
-    );
-
-VOID
-MemCacheFreePasswordVerifiers(
     IN PVOID pData,
     IN PVOID pUnused
     );

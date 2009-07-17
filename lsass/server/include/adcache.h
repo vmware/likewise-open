@@ -303,6 +303,12 @@ ADCacheDuplicateMembershipContents(
     PLSA_GROUP_MEMBERSHIP pSrc
     );
 
+DWORD
+ADCacheDuplicatePasswordVerifier(
+    PLSA_PASSWORD_VERIFIER* ppDest,
+    PLSA_PASSWORD_VERIFIER pSrc
+    );
+
 void
 ADCacheSafeFreeObjectList(
         size_t sCount,
