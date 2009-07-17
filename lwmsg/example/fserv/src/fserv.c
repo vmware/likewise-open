@@ -43,7 +43,7 @@ fserv_connect(
     }
 
     /* Create connection object */
-    status = lwmsg_connection_new(protocol, &fserv->assoc);
+    status = lwmsg_connection_new(NULL, protocol, &fserv->assoc);
     if (status)
     {
         ret = -1;
@@ -128,23 +128,25 @@ fserv_open(
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     OpenRequest request;
-    LWMsgMessageTag reply_type;
-    void* reply_object = NULL;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     FServFile* file = NULL;
 
     /* Set up request parameters */
     request.mode = mode;
     request.path = (char*) path;   
+    request_msg.tag = FSERV_OPEN;
+    request_msg.data = &request;
     
     /* Send message and receive reply */
-    status = lwmsg_assoc_send_transact(fserv->assoc, FSERV_OPEN, &request, &reply_type, &reply_object);
+    status = lwmsg_assoc_send_message_transact(fserv->assoc, &request_msg, &reply_msg);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_type)
+    switch (reply_msg.tag)
     {
     case FSERV_OPEN_SUCCESS:
         /* Open succeeded -- create the client handle */
@@ -156,13 +158,13 @@ fserv_open(
         }
 
         file->fserv = fserv;
-        file->handle = (FileHandle*) reply_object;
-        reply_object = NULL;
+        file->handle = (FileHandle*) reply_msg.data;
+        reply_msg.data = NULL;
         *out_file = file;
         break;
     case FSERV_OPEN_FAILED:
         /* Open failed -- extract the error code */
-        ret = ((StatusReply*) reply_object)->err;
+        ret = ((StatusReply*) reply_msg.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -170,11 +172,9 @@ fserv_open(
     }
 
 done:
+
     /* Ask the association to free the reply */
-    if (reply_object)
-    {
-        lwmsg_assoc_free_graph(fserv->assoc, reply_type, reply_object);
-    }
+    lwmsg_assoc_destroy_message(fserv->assoc, &reply_msg);
 
     return ret;
 
@@ -200,33 +200,35 @@ fserv_read(
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ReadRequest request;
-    LWMsgMessageTag reply_type;
-    void* reply_object = NULL;
-    ReadReply* reply = NULL;
+    ReadReply* reply;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
 
     /* Set up request parameters */
     request.handle = file->handle;
     request.size = size;
+    request_msg.tag = FSERV_READ;
+    request_msg.data = &request;
     
     /* Send message and receive reply */
-    status = lwmsg_assoc_send_transact(file->fserv->assoc, FSERV_READ, &request, &reply_type, &reply_object);
+    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_type)
+    switch (reply_msg.tag)
     {
     case FSERV_READ_SUCCESS:
         /* Read succeeded -- copy the data into the buffer */
-        reply = (ReadReply*) reply_object;
+        reply = (ReadReply*) reply_msg.data;
         memcpy(buffer, reply->data, reply->size);
         *size_read = reply->size;
         break;
     case FSERV_READ_FAILED:
         /* Read failed -- extract the error code */
-        ret = ((StatusReply*) reply_object)->err;
+        ret = ((StatusReply*) reply_msg.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -234,11 +236,9 @@ fserv_read(
     }
 
 done:
+
     /* Ask the association to free the reply */
-    if (reply_object)
-    {
-        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
-    }
+    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
 
     return ret;
 
@@ -258,30 +258,32 @@ fserv_write(
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     WriteRequest request;
-    LWMsgMessageTag reply_type;
-    void* reply_object = NULL;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
 
     /* Set up request parameters */
     request.handle = file->handle;   
     request.size = size;
     request.data = (char*) buffer;
+    request_msg.tag = FSERV_WRITE;
+    request_msg.data = &request;
     
     /* Send message and receive reply */
-    status = lwmsg_assoc_send_transact(file->fserv->assoc, FSERV_WRITE, &request, &reply_type, &reply_object);
+    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_type)
+    switch (reply_msg.tag)
     {
     case FSERV_WRITE_SUCCESS:
         /* Write succeeded -- don't bother to look at reply message */
         break;
     case FSERV_WRITE_FAILED:
         /* Write failed -- extract the error code */
-        ret = ((StatusReply*) reply_object)->err;
+        ret = ((StatusReply*) reply_msg.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -289,11 +291,9 @@ fserv_write(
     }
 
 done:
+
     /* Ask the association to free the reply */
-    if (reply_object)
-    {
-        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
-    }
+    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
 
     return ret;
 
@@ -310,18 +310,21 @@ fserv_close(
 {
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMessageTag reply_type;
-    void* reply_object = NULL;
+    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+
+    request_msg.tag = FSERV_CLOSE;
+    request_msg.data = file->handle;
 
     /* Send message and receive reply */
-    status = lwmsg_assoc_send_transact(file->fserv->assoc, FSERV_CLOSE, file->handle, &reply_type, &reply_object);
+    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_type)
+    switch (reply_msg.tag)
     {
     case FSERV_CLOSE_SUCCESS:
         /* Release the handle */
@@ -331,9 +334,11 @@ fserv_close(
             ret = -1;
             goto error;
         }
+        file->handle = NULL;
+        break;
     case FSERV_CLOSE_FAILED:
         /* In either case, extract the status code and get out of here */
-        ret = ((StatusReply*) reply_object)->err;
+        ret = ((StatusReply*) reply_msg.data)->err;
         if (ret)
         {
             goto error;
@@ -345,11 +350,9 @@ fserv_close(
     }
 
 error:
+
     /* Ask the association to free the reply */
-    if (reply_object)
-    {
-        lwmsg_assoc_free_graph(file->fserv->assoc, reply_type, reply_object);
-    }
+    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
 
     /* Always free the file, even if there was a problem */
     free(file);
