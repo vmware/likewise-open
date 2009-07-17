@@ -1,6 +1,6 @@
-liblsaclient_includedir = $(includedir)/lsa
+lsaincludedir = $(includedir)/lsa
 
-liblsaclient_include_HEADERS = lsa/lsa.h lsa/join.h
+lsainclude_HEADERS = lsa/lsa.h lsa/join.h
 
 noinst_HEADERS = \
 	lsaclient.h \
