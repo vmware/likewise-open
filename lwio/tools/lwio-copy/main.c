@@ -107,6 +107,12 @@ LwIoExitHandler(
     VOID
     );
 
+static
+NTSTATUS
+LwIoDestroyKrb5Cache(
+    PCSTR pszCachePath
+    );
+
 int
 main(
     int argc,
@@ -123,6 +129,7 @@ main(
     PSTR pszPassword = NULL;
     PIO_ACCESS_TOKEN pAccessToken = NULL;
     BOOLEAN bRevertThreadAccessToken = FALSE;
+    BOOLEAN bDestroyKrb5Cache = FALSE;
     BOOLEAN bCopyRecursive = FALSE;
 
     if (atexit(LwIoExitHandler) < 0)
@@ -158,8 +165,12 @@ main(
                         &pszCachePath);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        bDestroyKrb5Cache = TRUE;
+
         ntStatus = SMBAllocateString(pszCachePath, &gpszLwioCopyKrb5CachePath);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        bDestroyKrb5Cache = FALSE;
     }
 
     if (!IsNullOrEmptyString(pszCachePath))
@@ -192,6 +203,11 @@ cleanup:
         }
 
         LwIoDeleteAccessToken(pAccessToken);
+    }
+
+    if (bDestroyKrb5Cache)
+    {
+        LwIoDestroyKrb5Cache(pszCachePath);
     }
 
     LWIO_SAFE_FREE_STRING(pszTargetPath);
@@ -749,10 +765,19 @@ LwIoExitHandler(
 {
     if (!IsNullOrEmptyString(gpszLwioCopyKrb5CachePath))
     {
-        // TODO: Should we use krb5 apis to delete this file?
-        SMBRemoveFile(gpszLwioCopyKrb5CachePath);
-
+        LwIoDestroyKrb5Cache(gpszLwioCopyKrb5CachePath);
         LWIO_SAFE_FREE_STRING(gpszLwioCopyKrb5CachePath);
     }
 }
+
+static
+NTSTATUS
+LwIoDestroyKrb5Cache(
+    PCSTR pszCachePath
+    )
+{
+    // TODO: Should we use krb5 apis to delete this file?
+    return SMBRemoveFile(gpszLwioCopyKrb5CachePath);
+}
+
 
