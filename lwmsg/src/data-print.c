@@ -272,61 +272,24 @@ lwmsg_data_print_graph_visit(
     PrintInfo* info = (PrintInfo*) data;
     const char* prefix = NULL;
 
-    switch (iter->kind)
+    if (iter->attrs.sensitive)
     {
-    case LWMSG_KIND_UNION:
-    case LWMSG_KIND_STRUCT:
-        if (iter->meta.type_name)
+        BAIL_ON_ERROR(status = print(info, "<sensitive>"));
+    }
+    else
+    {
+        switch (iter->kind)
         {
-            BAIL_ON_ERROR(status = print(info, "<%s>", iter->meta.type_name));
-        }
-        else
-        {
-            BAIL_ON_ERROR(status = print(info, iter->kind == LWMSG_KIND_STRUCT ? "<struct>" : "<union>"));
-        }
-        BAIL_ON_ERROR(status = newline(info));
-        BAIL_ON_ERROR(status = print(info, "{"));
-        BAIL_ON_ERROR(status = newline(info));
-        info->depth++;
-        BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
-                          iter,
-                          object,
-                          lwmsg_data_print_graph_visit_member,
-                          data));
-        info->depth--;
-        BAIL_ON_ERROR(status = print(info, "}"));
-        break;
-    case LWMSG_KIND_ARRAY:
-    case LWMSG_KIND_POINTER:
-        prefix = iter->kind == LWMSG_KIND_ARRAY ? "<array>" : "<pointer> ->";
-
-        /* NULL case */
-        if (iter->kind == LWMSG_KIND_POINTER && *(void**) object == NULL)
-        {
-            BAIL_ON_ERROR(status = print(info, "<null>"));
-        }
-        /* String case */
-        else if (iter->info.kind_indirect.encoding != NULL)
-        {
-            BAIL_ON_ERROR(status = print(info, "%s \"", prefix));
-            BAIL_ON_ERROR(status = lwmsg_data_print_string(iter, object, info));
-            BAIL_ON_ERROR(status = print(info, "\"", prefix));
-        }
-        /* Singleton case */
-        else if (iter->info.kind_indirect.term == LWMSG_TERM_STATIC &&
-                 iter->info.kind_indirect.term_info.static_length == 1)
-        {
-            BAIL_ON_ERROR(status = print(info, "%s ", prefix));
-            BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
-                              iter,
-                              object,
-                              lwmsg_data_print_graph_visit,
-                              data));
-        }
-        /* General case */
-        else
-        {
-            BAIL_ON_ERROR(status = print(info, prefix));
+        case LWMSG_KIND_UNION:
+        case LWMSG_KIND_STRUCT:
+            if (iter->meta.type_name)
+            {
+                BAIL_ON_ERROR(status = print(info, "<%s>", iter->meta.type_name));
+            }
+            else
+            {
+                BAIL_ON_ERROR(status = print(info, iter->kind == LWMSG_KIND_STRUCT ? "<struct>" : "<union>"));
+            }
             BAIL_ON_ERROR(status = newline(info));
             BAIL_ON_ERROR(status = print(info, "{"));
             BAIL_ON_ERROR(status = newline(info));
@@ -338,33 +301,77 @@ lwmsg_data_print_graph_visit(
                               data));
             info->depth--;
             BAIL_ON_ERROR(status = print(info, "}"));
-        }
-        break;
-    case LWMSG_KIND_INTEGER:
-        BAIL_ON_ERROR(status = lwmsg_data_print_integer(
-                          iter,
-                          object,
-                          info));
-        break;
-    case LWMSG_KIND_CUSTOM:
-        if (iter->info.kind_custom.typeclass->print)
-        {
-            BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->print(
-                              info->context,
-                              iter->size,
+            break;
+        case LWMSG_KIND_ARRAY:
+        case LWMSG_KIND_POINTER:
+            prefix = iter->kind == LWMSG_KIND_ARRAY ? "<array>" : "<pointer> ->";
+
+            /* NULL case */
+            if (iter->kind == LWMSG_KIND_POINTER && *(void**) object == NULL)
+            {
+                BAIL_ON_ERROR(status = print(info, "<null>"));
+            }
+            /* String case */
+            else if (iter->info.kind_indirect.encoding != NULL)
+            {
+                BAIL_ON_ERROR(status = print(info, "%s \"", prefix));
+                BAIL_ON_ERROR(status = lwmsg_data_print_string(iter, object, info));
+                BAIL_ON_ERROR(status = print(info, "\"", prefix));
+            }
+            /* Singleton case */
+            else if (iter->info.kind_indirect.term == LWMSG_TERM_STATIC &&
+                     iter->info.kind_indirect.term_info.static_length == 1)
+            {
+                BAIL_ON_ERROR(status = print(info, "%s ", prefix));
+                BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
+                                  iter,
+                                  object,
+                                  lwmsg_data_print_graph_visit,
+                                  data));
+            }
+            /* General case */
+            else
+            {
+                BAIL_ON_ERROR(status = print(info, prefix));
+                BAIL_ON_ERROR(status = newline(info));
+                BAIL_ON_ERROR(status = print(info, "{"));
+                BAIL_ON_ERROR(status = newline(info));
+                info->depth++;
+                BAIL_ON_ERROR(status = lwmsg_data_visit_graph_children(
+                                  iter,
+                                  object,
+                                  lwmsg_data_print_graph_visit_member,
+                                  data));
+                info->depth--;
+                BAIL_ON_ERROR(status = print(info, "}"));
+            }
+            break;
+        case LWMSG_KIND_INTEGER:
+            BAIL_ON_ERROR(status = lwmsg_data_print_integer(
+                              iter,
                               object,
-                              &iter->attrs,
-                              iter->info.kind_custom.typedata,
-                              print_wrap,
                               info));
+            break;
+        case LWMSG_KIND_CUSTOM:
+            if (iter->info.kind_custom.typeclass->print)
+            {
+                BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->print(
+                                  info->context,
+                                  iter->size,
+                                  object,
+                                  &iter->attrs,
+                                  iter->info.kind_custom.typedata,
+                                  print_wrap,
+                                  info));
+            }
+            else
+            {
+                BAIL_ON_ERROR(status = print(info, "<custom>"));
+            }
+        case LWMSG_KIND_NONE:
+        case LWMSG_KIND_VOID:
+            break;
         }
-        else
-        {
-            BAIL_ON_ERROR(status = print(info, "<custom>"));
-        }
-    case LWMSG_KIND_NONE:
-    case LWMSG_KIND_VOID:
-        break;
     }
 
 error:

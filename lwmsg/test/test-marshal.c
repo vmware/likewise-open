@@ -35,6 +35,7 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
 #include <lwmsg/lwmsg.h>
 #include <moonunit/interface.h>
 #include <config.h>
@@ -263,6 +264,7 @@ static LWMsgTypeSpec string_spec[] =
     LWMSG_STRUCT_BEGIN(string_struct),
     LWMSG_MEMBER_PSTR(string_struct, foo),
     LWMSG_MEMBER_PSTR(string_struct, bar),
+    LWMSG_ATTR_SENSITIVE,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -289,6 +291,7 @@ MU_TEST(marshal, string)
     LWMsgBuffer buffer;
     string_struct strings;
     string_struct* out;
+    char* text = NULL;
 
     strings.foo = "foo";
     strings.bar = "bar";
@@ -302,6 +305,10 @@ MU_TEST(marshal, string)
     rewind_buffer(&buffer);
 
     MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal(dcontext, type, &buffer, (void**) (void*) &out));
+
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_print_graph_alloc(dcontext, type, out, &text));
+
+    MU_DEBUG("%s", text);
 
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.foo, out->foo);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, strings.bar, out->bar);
