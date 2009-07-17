@@ -1202,7 +1202,7 @@ LsaDeleteUserByName(
  * @param[in] dwUserInfoLevel the desired info level for the returned user info structure
  * @param[out] ppGroupInfo a heap-allocated group info structure for the found group
  * @retval LW_ERROR_SUCCESS success
- * @retval LW_ERROR_NO_SUCH_GROUP the specified name did not match any known group
+ * @retval LW_ERROR_NO_SUCH_USER the specified name did not match any known user
  */
 LW_DWORD
 LsaFindUserByName(
