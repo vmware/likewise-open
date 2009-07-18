@@ -58,20 +58,15 @@ LwioLocalRemoveFile(
     IN PCSTR pszPath
     );
 
-
-NTSTATUS
-LwioRemoteCreateFile(
-    IN  PCSTR pszFileName,
-    OUT PIO_FILE_HANDLE phFile
-    );
-
-
 NTSTATUS
 LwioRemoteOpenFile(
     IN  PCSTR           pszFileName,
+    IN  ULONG           ulDesiredAccess,
+    IN  ULONG           ulShareAccess,
+    IN  ULONG           ulCreateDisposition,
+    IN  ULONG           ulCreateOptions,
     OUT PIO_FILE_HANDLE phFile
     );
-
 
 NTSTATUS
 LwioRemoteWriteFile(

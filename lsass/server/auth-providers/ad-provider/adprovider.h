@@ -45,6 +45,8 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
+//#define AD_CACHE_IN_MEMORY
+
 #include "config.h"
 #include "lsasystem.h"
 #include "lsadef.h"
@@ -116,4 +118,5 @@
 
 #include "sqlcache_create.h"
 #include "sqlcache_p.h"
+#include "memcache_p.h"
 #include "lsasqlite.h"

@@ -42,6 +42,7 @@
 
 #define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
 #define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
+//#define SAMR_DEFAULT_ENDPOINT   ""
 
 
 RPCSTATUS

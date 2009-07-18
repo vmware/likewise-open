@@ -487,8 +487,6 @@ ADCacheStorePasswordVerifier(
 
 }
 
-
-
 void
 ADCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
@@ -525,16 +523,229 @@ ADCacheSafeFreeObject(
     }
 }
 
+DWORD
+ADCacheDuplicateObject(
+    OUT PLSA_SECURITY_OBJECT* ppDest,
+    IN PLSA_SECURITY_OBJECT pSrc
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT pDest = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*pDest),
+                    (PVOID*)&pDest);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->version = pSrc->version;
+
+    dwError = LsaAllocateString(
+                    pSrc->pszObjectSid,
+                    &pDest->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->enabled = pSrc->enabled;
+
+    dwError = LsaAllocateString(
+                    pSrc->pszNetbiosDomainName,
+                    &pDest->pszNetbiosDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    pSrc->pszSamAccountName,
+                    &pDest->pszSamAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    pSrc->pszDN,
+                    &pDest->pszDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->type = pSrc->type;
+
+    if (pDest->type == AccountType_User)
+    {
+        pDest->userInfo.uid = pSrc->userInfo.uid;
+        pDest->userInfo.gid = pSrc->userInfo.gid;
+
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszUPN,
+                        &pDest->userInfo.pszUPN);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszAliasName,
+                        &pDest->userInfo.pszAliasName);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszPasswd,
+                        &pDest->userInfo.pszPasswd);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszGecos,
+                        &pDest->userInfo.pszGecos);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszShell,
+                        &pDest->userInfo.pszShell);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->userInfo.pszHomedir,
+                        &pDest->userInfo.pszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pDest->userInfo.qwPwdLastSet = pSrc->userInfo.qwPwdLastSet;
+        pDest->userInfo.qwAccountExpires = pSrc->userInfo.qwAccountExpires;
+
+        pDest->userInfo.bIsGeneratedUPN = pSrc->userInfo.bIsGeneratedUPN;
+        pDest->userInfo.bIsAccountInfoKnown = pSrc->userInfo.bIsAccountInfoKnown;
+        pDest->userInfo.bPasswordExpired = pSrc->userInfo.bPasswordExpired;
+        pDest->userInfo.bPasswordNeverExpires = pSrc->userInfo.bPasswordNeverExpires;
+        pDest->userInfo.bPromptPasswordChange = pSrc->userInfo.bPromptPasswordChange;
+        pDest->userInfo.bUserCanChangePassword = pSrc->userInfo.bUserCanChangePassword;
+        pDest->userInfo.bAccountDisabled = pSrc->userInfo.bAccountDisabled;
+        pDest->userInfo.bAccountExpired = pSrc->userInfo.bAccountExpired;
+        pDest->userInfo.bAccountLocked = pSrc->userInfo.bAccountLocked;
+    }
+    else if (pDest->type == AccountType_Group)
+    {
+        pDest->groupInfo.gid = pSrc->groupInfo.gid;
+
+        dwError = LsaStrDupOrNull(
+                        pSrc->groupInfo.pszAliasName,
+                        &pDest->groupInfo.pszAliasName);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaStrDupOrNull(
+                        pSrc->groupInfo.pszPasswd,
+                        &pDest->groupInfo.pszPasswd);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppDest = pDest;
+
+cleanup:
+    return dwError;
+
+error:
+    ADCacheSafeFreeObject(&pDest);
+    *ppDest = NULL;
+    goto cleanup;
+}
+
+DWORD
+ADCacheDuplicateMembership(
+    PLSA_GROUP_MEMBERSHIP* ppDest,
+    PLSA_GROUP_MEMBERSHIP pSrc
+    )
+{
+    DWORD dwError = 0;
+    PLSA_GROUP_MEMBERSHIP pDest = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*pDest),
+                    (PVOID*)&pDest);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheDuplicateMembershipContents(
+                    pDest,
+                    pSrc);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppDest = pDest;
+
+cleanup:
+    return dwError;
+
+error:
+    ADCacheSafeFreeGroupMembership(&pDest);
+    *ppDest = NULL;
+    goto cleanup;
+}
+
+DWORD
+ADCacheDuplicateMembershipContents(
+    PLSA_GROUP_MEMBERSHIP pDest,
+    PLSA_GROUP_MEMBERSHIP pSrc
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LsaStrDupOrNull(
+                    pSrc->pszParentSid,
+                    &pDest->pszParentSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaStrDupOrNull(
+                    pSrc->pszChildSid,
+                    &pDest->pszChildSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->version = pSrc->version;
+    pDest->bIsInPac = pSrc->bIsInPac;
+    pDest->bIsInPacOnly = pSrc->bIsInPacOnly;
+    pDest->bIsInLdap = pSrc->bIsInLdap;
+    pDest->bIsDomainPrimaryGroup = pSrc->bIsDomainPrimaryGroup;
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+DWORD
+ADCacheDuplicatePasswordVerifier(
+    PLSA_PASSWORD_VERIFIER* ppDest,
+    PLSA_PASSWORD_VERIFIER pSrc
+    )
+{
+    DWORD dwError = 0;
+    PLSA_PASSWORD_VERIFIER pDest = NULL;
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*pDest),
+                    (PVOID*)&pDest);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pDest->version = pSrc->version;
+
+    dwError = LsaAllocateString(
+                    pSrc->pszObjectSid,
+                    &pDest->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaAllocateString(
+                    pSrc->pszPasswordVerifier,
+                    &pDest->pszPasswordVerifier);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppDest = pDest;
+
+cleanup:
+    return dwError;
+
+error:
+    LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pDest);
+    *ppDest = NULL;
+    goto cleanup;
+}
+
 void
 ADCacheSafeFreeGroupMembership(
         PLSA_GROUP_MEMBERSHIP* ppMembership)
 {
-    if (*ppMembership != NULL)
-    {
-        LSA_SAFE_FREE_STRING((*ppMembership)->pszParentSid);
-        LSA_SAFE_FREE_STRING((*ppMembership)->pszChildSid);
-    }
+    ADCacheFreeGroupMembershipContents(*ppMembership);
     LSA_SAFE_FREE_MEMORY(*ppMembership);
+}
+
+void
+ADCacheFreeGroupMembershipContents(
+        PLSA_GROUP_MEMBERSHIP pMembership)
+{
+    if (pMembership != NULL)
+    {
+        LSA_SAFE_FREE_STRING(pMembership->pszParentSid);
+        LSA_SAFE_FREE_STRING(pMembership->pszChildSid);
+    }
 }
 
 void

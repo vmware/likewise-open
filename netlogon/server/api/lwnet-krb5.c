@@ -172,6 +172,7 @@ LWNetKrb5WriteAffinityFile(
     BOOLEAN bFindNextRealm = TRUE;
     PSTR pszLine = NULL;
     PSTR pszCompareRealm = NULL;
+    PSTR pszDnsDomainNameUpper = NULL;
 
     pthread_mutex_lock(&gLWNetKrb5AffinityLock);
 
@@ -194,7 +195,14 @@ LWNetKrb5WriteAffinityFile(
     {
         DWORD dwServerIndex = 0;
 
-        dwError = LWNetKrb5PrintfFile(newFile, "    %s = {\n", pszDnsDomainName);
+        dwError = LWNetAllocateString(
+                      pszDnsDomainName,
+                      &pszDnsDomainNameUpper);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        LWNetStrToUpper(pszDnsDomainNameUpper);
+
+        dwError = LWNetKrb5PrintfFile(newFile, "    %s = {\n", pszDnsDomainNameUpper);
         BAIL_ON_LWNET_ERROR(dwError);
 
         for (dwServerIndex = 0; dwServerIndex < dwServerCount; dwServerIndex++)
@@ -285,6 +293,7 @@ error:
 
     LWNET_SAFE_FREE_STRING(pszLine);
     LWNET_SAFE_FREE_STRING(pszCompareRealm);
+    LWNET_SAFE_FREE_STRING(pszDnsDomainNameUpper);
 
     return dwError;
 }

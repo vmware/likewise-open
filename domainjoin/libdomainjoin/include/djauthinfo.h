@@ -31,9 +31,6 @@
 #ifndef __DJ_AUTHINFO_H__
 #define __DJ_AUTHINFO_H__
 
-CENTERROR
-DJRemoveCacheFiles();
-
 //The answer is non-authoritative
 void
 DJGetDomainDC(PCSTR domain, PSTR *dc, LWException **exc);
@@ -62,6 +59,7 @@ void DJGuessShortDomainName(PCSTR longName,
 
 extern const JoinModule DJDoJoinModule;
 extern const JoinModule DJDoLeaveModule;
+extern const JoinModule DJCacheModule;
 
 void
 DJGetConfiguredDnsDomain(

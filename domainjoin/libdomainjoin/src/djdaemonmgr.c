@@ -177,8 +177,6 @@ cleanup:
 
 static void StartDaemons(JoinProcessOptions *options, LWException **exc)
 {
-    LW_CLEANUP_CTERR(exc, DJRemoveCacheFiles());
-
     LW_TRY(exc, DJManageDaemons(TRUE, &LW_EXC));
 cleanup:
     ;

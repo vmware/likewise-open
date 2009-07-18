@@ -38,6 +38,8 @@
 #ifndef __LWMSG_H__
 #define __LWMSG_H__
 
+#define __LWMSG_INCLUDE_ENABLE__
+
 #include <lwmsg/data.h>
 #include <lwmsg/buffer.h>
 #include <lwmsg/context.h>
@@ -49,10 +51,13 @@
 #include <lwmsg/time.h>
 #include <lwmsg/security.h>
 #include <lwmsg/common.h>
+#include <lwmsg/archive.h>
 
 #ifndef LWMSG_NO_THREADS
 #include <lwmsg/server.h>
 #include <lwmsg/client.h>
 #endif
+
+#undef __LWMSG_INCLUDE_ENABLE__
 
 #endif

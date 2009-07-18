@@ -11,7 +11,7 @@
 
 static
 int
-fserv_check_permissions(LWMsgAssoc* assoc, const char* path, OpenMode mode)
+fserv_check_permissions(LWMsgSession* session, const char* path, OpenMode mode)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     int ret = 0;
@@ -20,17 +20,18 @@ fserv_check_permissions(LWMsgAssoc* assoc, const char* path, OpenMode mode)
     gid_t egid;
     struct stat statbuf;
 
-    status = lwmsg_assoc_get_peer_security_token(assoc, &token);
-    if (status)
+    token = lwmsg_session_get_peer_security_token(session);
+
+    if (!token)
     {
-        LOG("Failed to get auth info for association %p\n", assoc);
+        LOG("Failed to get auth info for session %p\n", session);
         ret = -1;
         goto error;
     }
 
     if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
     {
-        LOG("Unsupported authentication type on association %p\n", assoc);
+        LOG("Unsupported authentication type on session %p\n", session);
         ret = -1;
         goto error;
     }
@@ -112,7 +113,7 @@ fserv_free_handle(
 
 static LWMsgStatus
 fserv_open_srv(
-    LWMsgAssoc* assoc,
+    LWMsgCall* call,
     const LWMsgMessage* in,
     LWMsgMessage* out,
     void* data
@@ -122,13 +123,14 @@ fserv_open_srv(
     OpenRequest* req = (OpenRequest*) in->object;
     FileHandle* handle = NULL;
     StatusReply* sreply = NULL;
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
     int flags = 0;
     int fd = -1;
     int ret;
     
-    LOG("fserv_open() of %s on association %p\n", req->path, assoc);
+    LOG("fserv_open() of %s on session %p\n", req->path, session);
 
-    ret = fserv_check_permissions(assoc, req->path, req->mode);
+    ret = fserv_check_permissions(session, req->path, req->mode);
 
     if (ret)
     {
@@ -182,7 +184,7 @@ fserv_open_srv(
             handle->fd = fd;
             handle->mode = req->mode;
             
-            status = lwmsg_assoc_register_handle(assoc, "FileHandle", handle, fserv_free_handle);
+            status = lwmsg_session_register_handle(session, "FileHandle", handle, fserv_free_handle);
             if (status)
             {
                 goto error;
@@ -192,14 +194,14 @@ fserv_open_srv(
             out->object = (void*) handle;
             handle = NULL;
 
-            status = lwmsg_assoc_retain_handle(assoc, out->object);
+            status = lwmsg_session_retain_handle(session, out->object);
             if (status)
             {
                 goto error;
             }
 
-            LOG("Successfully opened %s as fd %i for association %p\n",
-                req->path, fd, assoc);
+            LOG("Successfully opened %s as fd %i for session %p\n",
+                req->path, fd, session);
         }
         else
         {
@@ -229,7 +231,7 @@ error:
 
 static LWMsgStatus
 fserv_write_srv(
-    LWMsgAssoc* assoc,
+    LWMsgCall* call,
     const LWMsgMessage* in,
     LWMsgMessage* out,
     void* data
@@ -239,9 +241,10 @@ fserv_write_srv(
     WriteRequest* req = (WriteRequest*) in->object;
     StatusReply* sreply = NULL;
     int fd = req->handle->fd;
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
     
-    LOG("fserv_write() of %lu bytes to fd %i on association %p\n",
-        (unsigned long) req->size, fd, assoc);
+    LOG("fserv_write() of %lu bytes to fd %i on session %p\n",
+        (unsigned long) req->size, fd, session);
 
     sreply = malloc(sizeof(*sreply));
 
@@ -271,7 +274,7 @@ error:
 
 static LWMsgStatus
 fserv_read_srv(
-    LWMsgAssoc* assoc,
+    LWMsgCall* call,
     const LWMsgMessage* in,
     LWMsgMessage* out,
     void* data
@@ -283,9 +286,10 @@ fserv_read_srv(
     ReadReply* rreply = NULL;
     int fd = req->handle->fd;
     int ret = 0;
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
     
-    LOG("fserv_read() of %lu bytes from fd %i on association %p\n",
-        (unsigned long) req->size, fd, assoc);
+    LOG("fserv_read() of %lu bytes from fd %i on session %p\n",
+        (unsigned long) req->size, fd, session);
 
     rreply = malloc(sizeof(*rreply));
 
@@ -346,17 +350,18 @@ error:
 
 static LWMsgStatus
 fserv_close_srv(
-    LWMsgAssoc* assoc,
+    LWMsgCall* call,
     const LWMsgMessage* in,
     LWMsgMessage* out,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSession* session = lwmsg_server_call_get_session(call);
     FileHandle* handle = (FileHandle*) in->object;
     StatusReply* sreply = NULL;
 
-    LOG("fserv_close() on fd %i for association %p\n", handle->fd, assoc);
+    LOG("fserv_close() on fd %i for session %p\n", handle->fd, session);
 
     sreply = malloc(sizeof(*sreply));
     
@@ -367,7 +372,7 @@ fserv_close_srv(
     }
 
     /* Unregister the handle no matter what */
-    status = lwmsg_assoc_release_handle(assoc, handle);
+    status = lwmsg_session_release_handle(session, handle);
     if (status)
     {
         goto error;
@@ -393,10 +398,10 @@ error:
 
 static LWMsgDispatchSpec fserv_dispatch[] =
 {
-    LWMSG_DISPATCH(FSERV_OPEN, fserv_open_srv),
-    LWMSG_DISPATCH(FSERV_WRITE, fserv_write_srv),
-    LWMSG_DISPATCH(FSERV_READ, fserv_read_srv),
-    LWMSG_DISPATCH(FSERV_CLOSE, fserv_close_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_OPEN, fserv_open_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_WRITE, fserv_write_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_READ, fserv_read_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_CLOSE, fserv_close_srv),
     LWMSG_DISPATCH_END
 };
 

@@ -122,6 +122,7 @@ lwmsg_type_find_end(
         case LWMSG_CMD_ENCODING:
             spec += 1;
             break;
+        case LWMSG_CMD_SENSITIVE:
         case LWMSG_CMD_NOT_NULL:
             break;
         default:
@@ -321,6 +322,9 @@ lwmsg_type_iterate_inner(
             break;
         case LWMSG_CMD_ENCODING:
             iter->info.kind_indirect.encoding = (const char*) *(spec++);
+            break;
+        case LWMSG_CMD_SENSITIVE:
+            iter->attrs.sensitive = LWMSG_TRUE;
             break;
         case LWMSG_CMD_CUSTOM_ATTR:
             iter->attrs.custom |= (size_t) *(spec++);

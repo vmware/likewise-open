@@ -56,7 +56,6 @@
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
 #include <lwrpc/samr.h>
-#include <lwrpc/mpr.h>
 #include <lwrpc/security.h>
 #include <lwrpc/lsabinding.h>
 #include <lwrpc/netlogonbinding.h>

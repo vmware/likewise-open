@@ -41,6 +41,7 @@
 #include "connection-private.h"
 #include "util-private.h"
 #include "assoc-private.h"
+#include "security-private.h"
 
 #include <string.h>
 #include <sys/types.h>

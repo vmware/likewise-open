@@ -10,7 +10,8 @@ TEST_SOURCES = \
 	test-assoc.c \
 	test-session.c \
 	test-client-server.c \
-	test-async.c
+	test-async.c \
+	test-archive.c
 
 BUILT_SOURCES = stub.c
 

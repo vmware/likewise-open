@@ -948,31 +948,6 @@ AC_CONFIG_FILES([Makefile
                  interop/wbclient/Makefile
                  interop/lwicompat/Makefile
                  tools/Makefile
-                 tools/add_user/Makefile
-                 tools/mod_user/Makefile
-                 tools/del_user/Makefile
-                 tools/add_group/Makefile
-                 tools/mod_group/Makefile
-                 tools/del_group/Makefile
-                 tools/enum_groups/Makefile
-                 tools/lw-ypcat/Makefile
-                 tools/lw-ypmatch/Makefile
-                 tools/enum_users/Makefile
-                 tools/find_group_by_id/Makefile
-                 tools/find_group_by_name/Makefile
-                 tools/find_user_by_id/Makefile
-                 tools/find_user_by_name/Makefile
-                 tools/find_by_sid/Makefile
-                 tools/list_groups_for_user/Makefile
-                 tools/migrator/Makefile
-                 tools/get_log_info/Makefile
-                 tools/set_log_level/Makefile
-                 tools/get_metrics/Makefile
-                 tools/get_status/Makefile
-                 tools/refresh_configuration/Makefile
-                 tools/trace_info/Makefile
-                 tools/ad_cache/Makefile
-                 tools/set_machine_sid/Makefile
                  etc/Makefile
                  etc/lsassd.conf
                  include/Makefile

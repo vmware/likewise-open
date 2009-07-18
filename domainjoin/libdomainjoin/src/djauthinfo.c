@@ -80,6 +80,30 @@ extern char** environ;
 
 #define HPUX_SYSTEM_RPCD_PATH "/sbin/init.d/Rpcd"
 
+static
+QueryResult QueryCache(
+    const JoinProcessOptions *options,
+    LWException **ppException
+    );
+
+static
+VOID
+DoCache(
+    JoinProcessOptions * pJoinOptions,
+    LWException** ppException
+    );
+
+static
+PSTR
+GetCacheDescription(
+    const JoinProcessOptions *pJoinOptions,
+    LWException** ppException
+    );
+
+static
+CENTERROR
+RemoveCacheFiles();
+
 void
 LWRaiseLsassError(
     LWException** dest,
@@ -142,8 +166,79 @@ FixCfgString(
     }
 }
 
+const JoinModule DJCacheModule =
+{
+    TRUE,
+    "cache",
+    "manage caches for this host",
+    QueryCache,
+    DoCache,
+    GetCacheDescription
+};
+
+static
+QueryResult QueryCache(
+    const JoinProcessOptions *options,
+    LWException **ppException
+    )
+{
+    ModuleState *state = DJGetModuleStateByName(options, "cache");
+
+    if(!options->joiningDomain)
+        return NotApplicable;
+
+    //This module sets its moduleData after it is finished making changes. By
+    //reading it we can tell if this module has already been run.
+    if(state != NULL && state->moduleData == (void *)1)
+    {
+        return FullyConfigured;
+    }
+    return NotConfigured;
+}
+
+static
+VOID
+DoCache(
+    JoinProcessOptions * options,
+    LWException** ppException
+    )
+{
+    ModuleState *state = DJGetModuleStateByName(options, "cache");
+
+    LW_CLEANUP_CTERR(ppException, RemoveCacheFiles());
+
+    //Indicate that the operation was successful incase QueryCache is called later
+    state->moduleData = (void *)1;
+
+cleanup:
+
+    return;
+
+}
+
+static
+PSTR
+GetCacheDescription(
+    const JoinProcessOptions *pJoinOptions,
+    LWException** ppException
+    )
+{
+    PSTR pszDescription = NULL;
+
+    LW_CLEANUP_CTERR(ppException,
+                     CTAllocateString(
+                         "Manages caches for this host",
+                         &pszDescription));
+
+cleanup:
+
+    return pszDescription;
+
+}
+
+static
 CENTERROR
-DJRemoveCacheFiles()
+RemoveCacheFiles()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     BOOLEAN bFileExists = FALSE;
@@ -154,7 +249,7 @@ DJRemoveCacheFiles()
     int i = 0;
     PSTR file = NULL;
     PSTR pszCachePath = NULL;
-    PSTR lsassFilePaths[3] = { NULL, NULL, NULL };
+    PSTR lsassFilePaths[4] = { NULL, NULL, NULL, NULL };
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -184,11 +279,13 @@ DJRemoveCacheFiles()
     {
         lsassFilePaths[0] = LOCALSTATEDIR "/db/lsass-adcache.db";
         lsassFilePaths[1] = LOCALSTATEDIR "/db/lsass-adstate.db";
+        lsassFilePaths[2] = LOCALSTATEDIR "/db/lsass-adstate.filedb";
     }
     else
     {
         lsassFilePaths[0] = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
         lsassFilePaths[1] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db";
+        lsassFilePaths[2] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.filedb";
     }
 
     for (i = 0; lsassFilePaths[i] != NULL; i++)

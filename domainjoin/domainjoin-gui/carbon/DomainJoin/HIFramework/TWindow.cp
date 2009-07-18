@@ -741,7 +741,7 @@ OSStatus
 TWindow::ShowView(
 	ControlID				inID )
 {
-	OSStatus				err;
+	OSStatus				err = noErr;
 	HIViewRef				view;
 
 	view = GetView( inID );
@@ -779,7 +779,7 @@ TWindow::HideView(
 	ControlID				inID )
 {
 	HIViewRef				view;
-	OSStatus				err;
+	OSStatus				err = noErr;
 
 	view = GetView( inID );
 	require_action( view != NULL, CantGetView, err = errUnknownControl );

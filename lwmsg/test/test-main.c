@@ -49,6 +49,7 @@
 MU_LIBRARY_DESTRUCT()
 {
     unlink(TEST_ENDPOINT);
+    unlink(TEST_ARCHIVE);
 }
 
 MU_LIBRARY_SETUP()

@@ -41,6 +41,5 @@
         goto error;                                                   \
     }
 
-
 #endif /* __DEFS_H__ */
 

@@ -47,7 +47,7 @@ lwmsg_message_init(
 {
     message->status = LWMSG_STATUS_SUCCESS;
     message->tag = LWMSG_TAG_INVALID;
-    message->id = 0;
+    message->cookie = 0;
     message->data = NULL;
     message->reserved1 = 0;
 }

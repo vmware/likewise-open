@@ -19,10 +19,10 @@
 const int DomainJoinApp::ApplicationSignature = 'CnTs';
 
 DomainJoinApp::DomainJoinApp()
-: _joinWindow(0),
+: _mainWindow(0),
+  _joinWindow(0),
   _leaveWindow(0),
   _migrateWindow(0),
-  _mainWindow(0),
   _envPath(NULL)
 {
     // Create a new window. A full-fledged application would do this from an AppleEvent handler

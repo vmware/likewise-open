@@ -214,7 +214,11 @@ NtlmBuildAnonymousResponse(
 
 DWORD
 NtlmCreateNegotiateContext(
-    IN OUT PNTLM_CONTEXT *ppNtlmContext
+    IN DWORD dwOptions,
+    IN PCHAR pDomain,
+    IN PCHAR pWorkstation,
+    IN PBYTE pOsVersion,
+    OUT PNTLM_CONTEXT *ppNtlmContext
     );
 
 DWORD

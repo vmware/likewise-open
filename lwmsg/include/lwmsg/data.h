@@ -96,7 +96,7 @@ typedef struct LWMsgDataContext LWMsgDataContext;
  * the context's memory management functions.
  *
  * @param[in] context an optional context
- * @param[out] context the created data context
+ * @param[out] dcontext the created data context
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory

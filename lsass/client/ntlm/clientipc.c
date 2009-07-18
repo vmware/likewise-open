@@ -200,7 +200,7 @@ NtlmTransactAcceptSecurityContext(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -226,7 +226,16 @@ NtlmTransactAcceptSecurityContext(
     switch(response.tag)
     {
         case NTLM_R_ACCEPT_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_ACCEPT_SEC_CTXT_RESPONSE)response.object;
+
+            dwError = NtlmDuplicateSecBufferDesc(pOutput, &pResultList->Output);
+            BAIL_ON_NTLM_ERROR(dwError);
+
+            memcpy(phContext, &pResultList->hContext, sizeof(CtxtHandle));
+            memcpy(phNewContext, &pResultList->hNewContext, sizeof(CtxtHandle));
+            memcpy(pfContextAttr, &pResultList->fContextAttr, sizeof(DWORD));
+            memcpy(ptsTimeStamp, &pResultList->tsTimeStamp, sizeof(TimeStamp));
+
             break;
         case NTLM_R_ACCEPT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -271,7 +280,7 @@ NtlmTransactAcquireCredentialsHandle(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ACQUIRE_CREDS_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -295,7 +304,11 @@ NtlmTransactAcquireCredentialsHandle(
     switch(response.tag)
     {
         case NTLM_R_ACQUIRE_CREDS_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_ACQUIRE_CREDS_RESPONSE)response.object;
+
+            memcpy(phCredential, &pResultList->hCredential, sizeof(CredHandle));
+            memcpy(ptsExpiry, &pResultList->tsExpiry, sizeof(TimeStamp));
+
             break;
         case NTLM_R_ACQUIRE_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -337,7 +350,7 @@ NtlmTransactDecryptMessage(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_DECRYPT_MSG_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -359,7 +372,16 @@ NtlmTransactDecryptMessage(
     switch(response.tag)
     {
         case NTLM_R_DECRYPT_MSG_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_DECRYPT_MSG_RESPONSE)response.object;
+
+            dwError = NtlmDuplicateSecBufferDesc(
+                pMessage,
+                &pResultList->Message
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+
+            memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
+
             break;
         case NTLM_R_DECRYPT_MSG_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -398,7 +420,6 @@ NtlmTransactDeleteSecurityContext(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -418,7 +439,6 @@ NtlmTransactDeleteSecurityContext(
     switch(response.tag)
     {
         case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
             break;
         case NTLM_R_DELETE_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -460,7 +480,7 @@ NtlmTransactEncryptMessage(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_ENCRYPT_MSG_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -483,7 +503,14 @@ NtlmTransactEncryptMessage(
     switch(response.tag)
     {
         case NTLM_R_ENCRYPT_MSG_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_ENCRYPT_MSG_RESPONSE)response.object;
+
+            dwError = NtlmDuplicateSecBufferDesc(
+                pMessage,
+                &pResultList->Message
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+
             break;
         case NTLM_R_ENCRYPT_MSG_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -525,7 +552,7 @@ NtlmTransactExportSecurityContext(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -546,7 +573,19 @@ NtlmTransactExportSecurityContext(
     switch(response.tag)
     {
         case NTLM_R_EXPORT_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_EXPORT_SEC_CTXT_RESPONSE)response.object;
+
+            dwError = NtlmDuplicateSecBuffer(
+                pPackedContext,
+                &pResultList->PackedContext
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+
+            if(pToken)
+            {
+                memcpy(pToken, &pResultList->hToken, sizeof(HANDLE));
+            }
+
             break;
         case NTLM_R_EXPORT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -585,7 +624,6 @@ NtlmTransactFreeCredentialsHandle(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -605,7 +643,6 @@ NtlmTransactFreeCredentialsHandle(
     switch(response.tag)
     {
         case NTLM_R_FREE_CREDS_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
             break;
         case NTLM_R_FREE_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -647,7 +684,7 @@ NtlmTransactImportSecurityContext(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -669,7 +706,10 @@ NtlmTransactImportSecurityContext(
     switch(response.tag)
     {
         case NTLM_R_IMPORT_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE)response.object;
+
+            memcpy(phContext, &pResultList->hContext, sizeof(CtxtHandle));
+
             break;
         case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -719,7 +759,7 @@ NtlmTransactInitializeSecurityContext(
 
     // Do not free pResult and pError
     // change this one to the corret results list when ready
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_INIT_SEC_CTXT_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -749,7 +789,33 @@ NtlmTransactInitializeSecurityContext(
     switch(response.tag)
     {
         case NTLM_R_INIT_SEC_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_INIT_SEC_CTXT_RESPONSE)response.object;
+
+            if(pOutput)
+            {
+                dwError = NtlmDuplicateSecBufferDesc(
+                    pOutput,
+                    &pResultList->Output
+                    );
+                BAIL_ON_NTLM_ERROR(dwError);
+            }
+
+            if(phNewContext)
+            {
+                memcpy(
+                    phNewContext,
+                    &pResultList->hNewContext,
+                    sizeof(CtxtHandle)
+                    );
+            }
+
+            memcpy(pfContextAttr, &pResultList->fContextAttr, sizeof(DWORD));
+
+            if(ptsExpiry)
+            {
+               memcpy(ptsExpiry, &pResultList->tsExpiry, sizeof(TimeStamp));
+            }
+
             break;
         case NTLM_R_INIT_SEC_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -797,7 +863,7 @@ NtlmTransactMakeSignature(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_MAKE_SIGN_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -820,7 +886,14 @@ NtlmTransactMakeSignature(
     switch(response.tag)
     {
         case NTLM_R_MAKE_SIGN_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_MAKE_SIGN_RESPONSE)response.object;
+
+            dwError = NtlmDuplicateSecBufferDesc(
+                pMessage,
+                &pResultList->Message
+                );
+            BAIL_ON_NTLM_ERROR(dwError);
+
             break;
         case NTLM_R_MAKE_SIGN_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -861,7 +934,7 @@ NtlmTransactQueryContextAttributes(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_QUERY_CTXT_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -882,7 +955,12 @@ NtlmTransactQueryContextAttributes(
     switch(response.tag)
     {
         case NTLM_R_QUERY_CTXT_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_QUERY_CTXT_RESPONSE)response.object;
+
+            // for now, the only result we query for is a size structure
+            // which doesn't need a deep copy
+            memcpy(pBuffer, pResultList->pBuffer, pResultList->dwBufferSize);
+
             break;
         case NTLM_R_QUERY_CTXT_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -923,7 +1001,7 @@ NtlmTransactQueryCredentialsAttributes(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_QUERY_CREDS_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -944,7 +1022,12 @@ NtlmTransactQueryCredentialsAttributes(
     switch(response.tag)
     {
         case NTLM_R_QUERY_CREDS_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_QUERY_CREDS_RESPONSE)response.object;
+
+            // This should be a name of a user we're getting back, so this copy
+            // should be sufficient
+            memcpy(pBuffer, pResultList->pBuffer, pResultList->dwBufferSize);
+
             break;
         case NTLM_R_QUERY_CREDS_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -987,7 +1070,7 @@ NtlmTransactVerifySignature(
 
     // Do not free pResult and pError
     // Change this to the correct result list when ready.
-    PNTLM_IPC_ERROR pResultList = NULL;
+    PNTLM_IPC_VERIFY_SIGN_RESPONSE pResultList = NULL;
     PNTLM_IPC_ERROR pError = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
@@ -1009,7 +1092,11 @@ NtlmTransactVerifySignature(
     switch(response.tag)
     {
         case NTLM_R_VERIFY_SIGN_SUCCESS:
-            pResultList = (PNTLM_IPC_ERROR)response.object;
+            pResultList = (PNTLM_IPC_VERIFY_SIGN_RESPONSE)response.object;
+
+            memcpy(pbVerified, &pResultList->bVerified, sizeof(BOOL));
+            memcpy(pbEncrypted, &pResultList->bEncrypted, sizeof(BOOL));
+
             break;
         case NTLM_R_VERIFY_SIGN_FAILURE:
             pError = (PNTLM_IPC_ERROR) response.object;
@@ -1029,4 +1116,60 @@ cleanup:
     return dwError;
 error:
     goto cleanup;
+}
+
+DWORD
+NtlmDuplicateSecBufferDesc(
+    OUT PSecBufferDesc pOut,
+    IN PSecBufferDesc pIn
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD nIndex = 0;
+
+    dwError = LwAllocateMemory(
+        pIn->cBuffers * sizeof(SecBuffer),
+        (PVOID*)(PVOID)&pOut->pBuffers
+        );
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    for(nIndex= 0; nIndex < pIn->cBuffers; nIndex++)
+    {
+        dwError = NtlmDuplicateSecBuffer(
+            &pOut->pBuffers[nIndex],
+            &pIn->pBuffers[nIndex]
+            );
+        BAIL_ON_NTLM_ERROR(dwError);
+    }
+
+    pOut->cBuffers = pIn->cBuffers;
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+
+}
+
+DWORD
+NtlmDuplicateSecBuffer(
+    OUT PSecBuffer pOut,
+    IN PSecBuffer pIn
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+
+    dwError = LwAllocateMemory(pIn->cbBuffer, &pOut->pvBuffer);
+    BAIL_ON_NTLM_ERROR(dwError);
+
+    memcpy(pOut->pvBuffer, pIn->pvBuffer, pIn->cbBuffer);
+
+    pOut->BufferType = pIn->BufferType;
+    pOut->cbBuffer = pIn->cbBuffer;
+
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+
 }

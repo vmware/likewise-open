@@ -118,5 +118,15 @@ lwmsg_session_get_data
 lwmsg_session_get_peer_security_token
 lwmsg_session_get_id
 lwmsg_message_init
+lwmsg_archive_new
+lwmsg_archive_set_file
+lwmsg_archive_set_fd
+lwmsg_archive_set_byte_order
+lwmsg_archive_as_assoc
+lwmsg_archive_delete
+lwmsg_archive_open
+lwmsg_archive_close
+lwmsg_archive_write_message
+lwmsg_archive_read_message
 lwmsg_fd_type_class
 lwmsg_handle_type_class

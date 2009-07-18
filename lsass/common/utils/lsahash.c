@@ -422,16 +422,36 @@ LsaHashCaselessStringCompare(
         PCVOID str1,
         PCVOID str2)
 {
+    if (str1 == NULL)
+    {
+        if (str2 == NULL)
+        {
+            return 0;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    if (str2 == NULL)
+    {
+        return 1;
+    }
     return strcasecmp((PCSTR)str1, (PCSTR)str2);
 }
 
 size_t
-LsaHashCaselessString(
+LsaHashCaselessStringHash(
         PCVOID str)
 {
     size_t result = 0;
     PCSTR pos = (PCSTR)str;
     int lowerChar;
+
+    if (!str)
+    {
+        return 0;
+    }
 
     while (*pos != '\0')
     {
@@ -456,6 +476,34 @@ LsaHashFreeStringKey(
     {
         LsaFreeString(pEntry->pKey);
     }
+}
+
+int
+LsaHashPVoidCompare(
+    IN PCVOID pvData1,
+    IN PCVOID pvData2
+    )
+{
+    if (pvData1 > pvData2)
+    {
+        return 1;
+    }
+    else if (pvData1 == pvData2)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+size_t
+LsaHashPVoidHash(
+    IN PCVOID pvData
+    )
+{
+    return (size_t)pvData;
 }
 
 /*

@@ -107,7 +107,7 @@ int main(int argc, char** argv)
         goto error;
     }
 
-    status = lwmsg_server_new(protocol, &server);
+    status = lwmsg_server_new(NULL, protocol, &server);
     if (status)
     {
         goto error;

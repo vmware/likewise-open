@@ -1,6 +1,8 @@
 
 #include "config.h"
 #include "lwiosys.h"
+#include "termios.h"
+#include "unistd.h"
 #include "lwio/lwio.h"
 #include "lwiodef.h"
 #include "lwioutils.h"
@@ -10,5 +12,7 @@
 #include "lwnet.h"
 #include "lwiocopy.h"
 #include "defs.h"
+#include "externs.h"
+
 
 

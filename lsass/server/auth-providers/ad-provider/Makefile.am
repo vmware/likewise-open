@@ -43,6 +43,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        batch_gather.c            \
        batch_marshal.c           \
        batch_enum.c              \
+       memcache.c              \
        unprov.c
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
@@ -53,7 +54,7 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
 	@NETLOGON_INCLUDES@           \
 	@SQLITE_INCLUDES@
 
-liblsass_auth_provider_ad_la_CFLAGS = $(PROVIDER_CFLAGS)
+liblsass_auth_provider_ad_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 
 # NOTE: Need to remove LSA client dependency.
 liblsass_auth_provider_ad_la_LIBADD = \

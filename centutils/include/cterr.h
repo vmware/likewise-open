@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -38,7 +38,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -264,6 +264,11 @@ typedef uint32_t CENTERROR;
 #define CENTERROR_GP_EVENT_LOG_NOT_AVAILABLE    CENTERROR_GP(0x00000047)      // 327745
 #define CENTERROR_GP_NO_SUCH_PROVIDER           CENTERROR_GP(0x00000048)      // 327746
 #define CENTERROR_GP_STRING_CONVERSION_FAILED   CENTERROR_GP(0x00000049)      // 327747
+#define CENTERROR_GP_CREATE_FAILED              CENTERROR_GP(0x0000004A)      // 327748
+#define CENTERROR_GP_WRITE_FAILED               CENTERROR_GP(0x0000004B)      // 327749
+#define CENTERROR_GP_READ_FAILED                CENTERROR_GP(0x0000004C)      // 327750
+#define CENTERROR_GP_QUERY_DIRECTORY            CENTERROR_GP(0x0000004D)      // 327751
+
 
 #define CENTERROR_REGISTRY_OPEN_KEYDB_FAILED     CENTERROR_REGISTRY(0x00000001) // 458753
 #define CENTERROR_REGISTRY_NO_SUCH_KEY           CENTERROR_REGISTRY(0x00000002) // 458754

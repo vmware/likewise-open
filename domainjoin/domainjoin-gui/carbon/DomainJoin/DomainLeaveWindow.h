@@ -43,6 +43,8 @@
 #include <Carbon/Carbon.h>
 #include <string>
 
+#include "TWindow.h"
+
 class DomainLeaveWindow : public TWindow
 {
     public:

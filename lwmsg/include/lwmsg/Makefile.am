@@ -17,4 +17,5 @@ lwmsg_include_HEADERS = \
 	security.h \
 	common.h \
 	session.h \
-	client.h
+	client.h \
+	archive.h

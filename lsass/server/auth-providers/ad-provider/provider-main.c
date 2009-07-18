@@ -2018,7 +2018,7 @@ AD_GetGroupsForUser(
     dwError = LsaHashCreate(
                     13,
                     LsaHashCaselessStringCompare,
-                    LsaHashCaselessString,
+                    LsaHashCaselessStringHash,
                     NULL,
                     NULL,
                     &pUserMemberships);
@@ -4606,9 +4606,15 @@ InitADCacheFunctionTable(
     PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
     )
 {
+#ifdef AD_CACHE_IN_MEMORY
+    InitializeMemCacheProvider(
+        pCacheProviderTable
+        );
+#else
     InitializeDbCacheProvider(
         pCacheProviderTable
         );
+#endif
     return;
 }
 

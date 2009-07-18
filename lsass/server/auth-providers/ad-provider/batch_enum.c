@@ -804,7 +804,7 @@ LsaAdBatchEnumObjects(
             dwError = LsaHashCreate(
                             10 * 1024,
                             LsaHashCaselessStringCompare,
-                            LsaHashCaselessString,
+                            LsaHashCaselessStringHash,
                             LsaHashFreeStringKey,
                             NULL,
                             &pCookieData->pEnumeratedSids);

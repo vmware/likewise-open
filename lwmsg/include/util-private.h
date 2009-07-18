@@ -381,4 +381,33 @@ lwmsg_strerror(
 #define LWMSG_OBJECT_FROM_MEMBER(_ptr_, _type_, _field_) \
     ((_type_ *) ((unsigned char*) (_ptr_) - offsetof(_type_, _field_)))
 
+#define _LWMSG_SWAP16(val)                   \
+    ((((uint16_t)(val) & 0xFF00) >> 8) |     \
+     (((uint16_t)(val) & 0x00FF) << 8))
+
+#define _LWMSG_SWAP32(val)                         \
+        ((((uint32_t)(val) & 0xFF000000L) >> 24) | \
+         (((uint32_t)(val) & 0x00FF0000L) >>  8) | \
+         (((uint32_t)(val) & 0x0000FF00L) <<  8) | \
+         (((uint32_t)(val) & 0x000000FFL) << 24))
+
+#define _LWMSG_SWAP64(val)                                              \
+    (((uint64_t)(_SMB_ENDIAN_SWAP32(((uint64_t)(val) & 0xFFFFFFFF00000000LL) >> 32))) | \
+   (((uint64_t)_SMB_ENDIAN_SWAP32(((uint64_t)(val) & 0x00000000FFFFFFFFLL))) << 32))
+
+#define LWMSG_SWAP16(val, src_order, dst_order) \
+    ((src_order) == (dst_order) ?               \
+     (val) :                                    \
+     _LWMSG_SWAP16((val)))
+
+#define LWMSG_SWAP32(val, src_order, dst_order) \
+    ((src_order) == (dst_order) ?               \
+     (val) :                                    \
+     _LWMSG_SWAP32((val)))
+
+#define LWMSG_SWAP64(val, src_order, dst_order) \
+    ((src_order) == (dst_order) ?               \
+     (val) :                                    \
+     _LWMSG_SWAP64((val)))
+
 #endif

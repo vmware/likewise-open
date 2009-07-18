@@ -31,7 +31,7 @@ libntlmserver_la_LDFLAGS =  \
     @CRYPTO_LDFLAGS@
 
 libntlmserver_la_LIBADD =                   \
-    @top_builddir@/ntlmipc/libntlmipc.la    \
+    @top_builddir@/common/liblsacommon.la   \
     $(LWADVAPI_LIBS)                        \
     @LWMSG_NOTHR_LIBS@                      \
     @CRYPTO_LIBS@                           \

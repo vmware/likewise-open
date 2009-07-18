@@ -74,11 +74,11 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_MEMORY = 3,
-    /** Malformed type or message
+    /** Malformed data detected
      * @hideinitializer
      */
     LWMSG_STATUS_MALFORMED = 4,
-    /** End of file or stream, connection closed
+    /** End of file or stream
      * @hideinitializer
      */
     LWMSG_STATUS_EOF = 5,
@@ -90,7 +90,7 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_UNIMPLEMENTED = 7,
-    /** Invalid parameter or invalid state detected
+    /** Invalid parameter
      * @hideinitializer
      */
     LWMSG_STATUS_INVALID_PARAMETER = 8,
@@ -129,7 +129,7 @@ typedef enum
      */
     LWMSG_STATUS_CONNECTION_REFUSED = 16,
     /**
-     * Invalid state detected
+     * The requested operation is undefined in the current state
      * @hideinitializer
      */
     LWMSG_STATUS_INVALID_STATE = 17,
@@ -163,11 +163,23 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_INVALID_HANDLE = 23,
+    /**
+     * A conflicting operation is already in progress
+     * @hideinitializer
+     */
     LWMSG_STATUS_BUSY = 24,
+    /**
+     * Operation is pending completion
+     * @hideinitializer
+     */
     LWMSG_STATUS_PENDING = 25,
+    /**
+     * Internal error
+     * @hideinitializer
+     */
     LWMSG_STATUS_INTERNAL = 26,
 } LWMsgStatus;
 
-#define LWMSG_STATUS_COUNT (22)
+#define LWMSG_STATUS_COUNT (27)
 
 #endif
