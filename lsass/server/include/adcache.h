@@ -113,6 +113,11 @@ typedef struct __LSA_DB_SECURITY_OBJECT
     {
         LSA_SECURITY_OBJECT_USER_INFO userInfo;
         LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        union
+        {
+            LSA_SECURITY_OBJECT_USER_INFO userInfo;
+            LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        } typeInfo;
     };
 } LSA_SECURITY_OBJECT, *PLSA_SECURITY_OBJECT;
 
@@ -218,6 +223,11 @@ ADCacheOpen(
 void
 ADCacheSafeClose(
     PLSA_DB_HANDLE phDb
+    );
+
+DWORD
+ADCacheFlushToDisk(
+    IN LSA_DB_HANDLE hDb
     );
 
 // returns LW_ERROR_NOT_HANDLED if the user is not in the database

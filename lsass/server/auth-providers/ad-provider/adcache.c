@@ -72,6 +72,19 @@ ADCacheSafeClose(
 }
 
 DWORD
+ADCacheFlushToDisk(
+    IN LSA_DB_HANDLE hDb
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFlushToDisk)(
+                        hDb
+                        );
+    return dwError;
+}
+
+DWORD
 ADCacheFindUserByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,

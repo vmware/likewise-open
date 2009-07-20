@@ -113,6 +113,13 @@ typedef struct __LSA_DB_SECURITY_OBJECT
     {
         LSA_SECURITY_OBJECT_USER_INFO userInfo;
         LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        // This is a named union that refers to the same fields as its parent
+        // union
+        union
+        {
+            LSA_SECURITY_OBJECT_USER_INFO userInfo;
+            LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        } typeInfo;
     };
 } LSA_SECURITY_OBJECT, *PLSA_SECURITY_OBJECT;
 
@@ -407,6 +414,11 @@ DWORD
 LsaDbStorePasswordVerifier(
     IN LSA_DB_HANDLE hDb,
     IN PLSA_PASSWORD_VERIFIER pVerifier
+    );
+
+DWORD
+LsaDbFlushNOP(
+    LSA_DB_HANDLE hDb
     );
 
 #endif /* __LSADB_H__ */

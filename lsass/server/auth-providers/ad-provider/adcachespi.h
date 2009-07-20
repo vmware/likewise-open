@@ -61,6 +61,12 @@ void
 
 typedef
 DWORD
+(*PFNFlushToDisk)(
+    LSA_DB_HANDLE hDb
+    );
+
+typedef
+DWORD
 (*PFNFindUserByName)(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
@@ -243,6 +249,7 @@ typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
 {
     PFNOpenHandle               pfnOpenHandle;
     PFNSafeClose                pfnSafeClose;
+    PFNFlushToDisk              pfnFlushToDisk;
     PFNFindUserByName           pfnFindUserByName;
     PFNFindUserById             pfnFindUserById;
     PFNFindGroupByName          pfnFindGroupByName;

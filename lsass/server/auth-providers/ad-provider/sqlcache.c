@@ -3225,6 +3225,13 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaDbFlushNOP(
+    LSA_DB_HANDLE hDb
+    )
+{
+    return 0;
+}
 
 void
 InitializeDbCacheProvider(
@@ -3233,6 +3240,7 @@ InitializeDbCacheProvider(
 {
     pCacheTable->pfnOpenHandle               = LsaDbOpen;
     pCacheTable->pfnSafeClose                = LsaDbSafeClose;
+    pCacheTable->pfnFlushToDisk              = LsaDbFlushNOP;
     pCacheTable->pfnFindUserByName           = LsaDbFindUserByName;
     pCacheTable->pfnFindUserById             = LsaDbFindUserById;
     pCacheTable->pfnFindGroupByName          = LsaDbFindGroupByName;
