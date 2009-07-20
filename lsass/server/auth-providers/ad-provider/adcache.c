@@ -202,14 +202,11 @@ ADCacheStoreObjectEntry(
     PLSA_SECURITY_OBJECT pObject
     )
 {
-    DWORD dwError = 0;
-
-    dwError = (*gpCacheProvider->pfnStoreObjectEntry)(
-                        hDb,
-                        pObject
-                        );
-    return dwError;
-
+    return ADCacheStoreObjectEntries(
+            hDb,
+            1,
+            &pObject
+            );
 }
 
 DWORD
@@ -305,9 +302,10 @@ ADCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = (*gpCacheProvider->pfnGetGroupMembers)(
+    dwError = ADCacheGetMemberships(
                         hDb,
                         pszSid,
+                        TRUE,
                         bFilterNotInPacNorLdap,
                         psCount,
                         pppResults
@@ -326,9 +324,10 @@ ADCacheGetGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = (*gpCacheProvider->pfnGetGroupsForUser)(
+    dwError = ADCacheGetMemberships(
                         hDb,
                         pszSid,
+                        FALSE,
                         bFilterNotInPacNorLdap,
                         psCount,
                         pppResults

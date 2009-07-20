@@ -1000,18 +1000,6 @@ MemCacheEmptyCache(
 }
 
 DWORD
-MemCacheStoreObjectEntry(
-    IN LSA_DB_HANDLE hDb,
-    IN PLSA_SECURITY_OBJECT pObject
-    )
-{
-    return MemCacheStoreObjectEntries(
-            hDb,
-            1,
-            &pObject);
-}
-
-DWORD
 MemCacheRemoveObjectByHashKey(
     IN PMEM_DB_CONNECTION pConn,
     IN OUT PLSA_HASH_TABLE pTable,
@@ -2087,34 +2075,6 @@ error:
 }
 
 DWORD
-MemCacheGetGroupMembers(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    )
-{
-    return MemCacheGetMemberships(hDb, pszSid, TRUE,
-                                    bFilterNotInPacNorLdap,
-                                    psCount, pppResults);
-}
-
-DWORD
-MemCacheGetGroupsForUser(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    )
-{
-    return MemCacheGetMemberships(hDb, pszSid, FALSE,
-                                    bFilterNotInPacNorLdap,
-                                    psCount, pppResults);
-}
-
-DWORD
 MemCacheEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
@@ -2432,13 +2392,10 @@ InitializeMemCacheProvider(
     pCacheTable->pfnRemoveUserBySid          = MemCacheRemoveUserBySid;
     pCacheTable->pfnRemoveGroupBySid         = MemCacheRemoveGroupBySid;
     pCacheTable->pfnEmptyCache               = MemCacheEmptyCache;
-    pCacheTable->pfnStoreObjectEntry         = MemCacheStoreObjectEntry;
     pCacheTable->pfnStoreObjectEntries       = MemCacheStoreObjectEntries;
     pCacheTable->pfnStoreGroupMembership     = MemCacheStoreGroupMembership;
     pCacheTable->pfnStoreGroupsForUser       = MemCacheStoreGroupsForUser;
     pCacheTable->pfnGetMemberships           = MemCacheGetMemberships;
-    pCacheTable->pfnGetGroupMembers          = MemCacheGetGroupMembers;
-    pCacheTable->pfnGetGroupsForUser         = MemCacheGetGroupsForUser;
     pCacheTable->pfnEnumUsersCache           = MemCacheEnumUsersCache;
     pCacheTable->pfnEnumGroupsCache          = MemCacheEnumGroupsCache;
     pCacheTable->pfnFindObjectByDN           = MemCacheFindObjectByDN;

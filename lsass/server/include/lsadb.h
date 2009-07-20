@@ -275,12 +275,6 @@ LsaDbEmptyCache(
     );
 
 DWORD
-LsaDbStoreObjectEntry(
-    LSA_DB_HANDLE hDb,
-    PLSA_SECURITY_OBJECT pObject
-    );
-
-DWORD
 LsaDbStoreObjectEntries(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
@@ -326,18 +320,10 @@ LsaDbStoreGroupsForUser(
     );
 
 DWORD
-LsaDbGetGroupMembers(
+LsaDbGetMemberships(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-DWORD
-LsaDbGetGroupsForUser(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
+    IN BOOLEAN bIsGroupMembers,
     IN BOOLEAN bFilterNotInPacNorLdap,
     OUT size_t* psCount,
     OUT PLSA_GROUP_MEMBERSHIP** pppResults

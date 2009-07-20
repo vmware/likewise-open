@@ -215,12 +215,6 @@ MemCacheEmptyCache(
     );
 
 DWORD
-MemCacheStoreObjectEntry(
-    IN LSA_DB_HANDLE hDb,
-    IN PLSA_SECURITY_OBJECT pObject
-    );
-
-DWORD
 MemCacheRemoveObjectByHashKey(
     IN PMEM_DB_CONNECTION pConn,
     IN OUT PLSA_HASH_TABLE pTable,
@@ -296,24 +290,6 @@ MemCacheGetMemberships(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bIsGroupMembers,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-DWORD
-MemCacheGetGroupMembers(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-DWORD
-MemCacheGetGroupsForUser(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
     OUT size_t* psCount,
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
