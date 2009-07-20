@@ -45,11 +45,11 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerFreeCredentialsHandle(
-    IN PCredHandle phCredential
+    IN PLSA_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = 0;

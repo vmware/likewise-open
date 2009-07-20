@@ -55,6 +55,9 @@
 #include <openssl/md5.h>
 #include <openssl/md4.h>
 
+#include <lsasrvcred.h>
+#include <lwio/lwlist.h>
+
 #include "defines.h"
 #include "structs.h"
 #include "externs.h"

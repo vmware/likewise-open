@@ -45,11 +45,11 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerEncryptMessage(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo

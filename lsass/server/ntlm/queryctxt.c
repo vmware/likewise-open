@@ -45,11 +45,11 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerQueryContextAttributes(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )

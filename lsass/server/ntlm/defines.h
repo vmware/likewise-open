@@ -47,61 +47,49 @@
 
 // Locking macros
 
-#define ENTER_NTLM_CONTEXT_LIST_READER_LOCK(bInLock)        \
-    if (!bInLock)                                           \
-    {                                                       \
-        pthread_rwlock_rdlock(&gpNtlmContextList_rwlock);   \
-        bInLock = TRUE;                                     \
-    }
+#define ENTER_CONTEXT_LIST_READER(bInLock)                              \
+    do                                                                  \
+    {                                                                   \
+        if (!bInLock)                                                   \
+        {                                                               \
+            pthread_rwlock_rdlock(&gContextState.LsaContextListLock);   \
+            bInLock = TRUE;                                             \
+        }                                                               \
+    } while(0)
 
-#define LEAVE_NTLM_CONTEXT_LIST_READER_LOCK(bReleaseLock)   \
-    if (bReleaseLock)                                       \
-    {                                                       \
-        pthread_rwlock_unlock(&gpNtlmContextList_rwlock);   \
-        bReleaseLock = FALSE;                               \
-    }
+#define LEAVE_CONTEXT_LIST_READER(bReleaseLock)                         \
+    do                                                                  \
+    {                                                                   \
+        if (bReleaseLock)                                               \
+        {                                                               \
+            pthread_rwlock_unlock(&gContextState.LsaContextListLock);   \
+            bReleaseLock = FALSE;                                       \
+        }                                                               \
+    } while(0)
 
-#define ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock)        \
-    if (!bInLock)                                           \
-    {                                                       \
-        pthread_rwlock_wrlock(&gpNtlmContextList_rwlock);   \
-        bInLock = TRUE;                                     \
-    }
+#define ENTER_CONTEXT_LIST_WRITER(bInLock)                              \
+    do                                                                  \
+    {                                                                   \
+        if (!bInLock)                                                   \
+        {                                                               \
+            pthread_rwlock_wrlock(&gContextState.LsaContextListLock);   \
+            bInLock = TRUE;                                             \
+        }                                                               \
+    } while(0)
 
-#define LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bReleaseLock)   \
-    if (bReleaseLock)                                       \
-    {                                                       \
-        pthread_rwlock_unlock(&gpNtlmContextList_rwlock);   \
-        bReleaseLock = FALSE;                               \
-    }
+#define LEAVE_CONTEXT_LIST_WRITER(bReleaseLock)                         \
+    do                                                                  \
+    {                                                                   \
+        if (bReleaseLock)                                               \
+        {                                                               \
+            pthread_rwlock_unlock(&gContextState.LsaContextListLock);   \
+            bReleaseLock = FALSE;                                       \
+        }                                                               \
+    } while(0)
 
-#define ENTER_NTLM_CREDS_LIST_READER_LOCK(bInLock)          \
-    if (!bInLock)                                           \
-    {                                                       \
-        pthread_rwlock_rdlock(&gpNtlmCredsList_rwlock);     \
-        bInLock = TRUE;                                     \
-    }
 
-#define LEAVE_NTLM_CREDS_LIST_READER_LOCK(bReleaseLock)     \
-    if (bReleaseLock)                                       \
-    {                                                       \
-        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);     \
-        bReleaseLock = FALSE;                               \
-    }
-
-#define ENTER_NTLM_CREDS_LIST_WRITER_LOCK(bInLock)          \
-    if (!bInLock)                                           \
-    {                                                       \
-        pthread_rwlock_wrlock(&gpNtlmCredsList_rwlock);     \
-        bInLock = TRUE;                                     \
-    }
-
-#define LEAVE_NTLM_CREDS_LIST_WRITER_LOCK(bReleaseLock)     \
-    if (bReleaseLock)                                       \
-    {                                                       \
-        pthread_rwlock_unlock(&gpNtlmCredsList_rwlock);     \
-        bReleaseLock = FALSE;                               \
-    }
+#define MAP_LWMSG_ERROR(_e_) ((_e_) ? LwMapLwmsgStatusToLwError(_e_) : 0)
+#define MAP_LWNET_ERROR(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 // Message signature and sizes
 

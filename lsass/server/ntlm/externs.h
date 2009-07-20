@@ -47,10 +47,12 @@
 #define __NTLM_EXTERNS_H__
 
 extern pthread_rwlock_t gpNtlmContextList_rwlock;
-extern PNTLM_CONTEXT gpNtlmContextList;
+extern PLSA_CONTEXT gpNtlmContextList;
 
+#if 0
 extern pthread_rwlock_t gpNtlmCredsList_rwlock;
 extern PNTLM_CREDENTIALS gpNtlmCredsList;
+#endif
 
 extern WIN_VERSION_INFO gXpSpoof;
 
