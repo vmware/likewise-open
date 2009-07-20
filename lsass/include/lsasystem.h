@@ -170,4 +170,8 @@
 #include <sys/user.h>
 #endif
 
+#if HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
+
 #endif

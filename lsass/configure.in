@@ -725,7 +725,7 @@ AC_CHECK_HEADERS([proc/readproc.h procfs.h sys/procfs.h kvm.h sys/utsname.h])
 AC_CHECK_HEADERS([time.h sys/time.h sys/varargs.h sys/systeminfo.h])
 AC_CHECK_HEADERS([nss.h nss_common.h nsswitch.h])
 AC_CHECK_HEADERS([synch.h pthread.h wc16str.h wc16printf.h sys/param.h])
-AC_CHECK_HEADERS([sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h])
+AC_CHECK_HEADERS([sys/sysctl.h sys/user.h pwd.h stdio.h grp.h sys/wait.h libgen.h])
 
 AC_CHECK_HEADERS([security/pam_appl.h], ,
     [AC_CHECK_HEADERS([pam/pam_appl.h], ,
