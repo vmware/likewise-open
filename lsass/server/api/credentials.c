@@ -46,23 +46,29 @@
  */
 #include "api.h"
 
-DWORD
-LsaInitializeCredentialsDatabase()
+static LSA_CREDENTIALS_STATE gCredState;
+
+VOID
+LsaInitializeCredentialsDatabase(
+    VOID
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    //pthread_mutexattr_t MutexAttribs;
+    //pthread_mutexattr_settype(&MutexAttribs, PTHREAD_MUTEX_RECURSIVE);
+    //pthread_mutex_init(gCredState.LsaCredsListLock);
 
-    LwListInit(&gLsaCredsList);
+    gCredState.LsaCredsListLock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
+    LwListInit(&gCredState.LsaCredsList);
+
+    return;
 }
 
-DWORD
-LsaShutdownCredentialsDatabase()
+VOID
+LsaShutdownCredentialsDatabase(
+    VOID
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
     BOOL bInLock = FALSE;
     PLSA_CREDENTIALS pCred = NULL;
     PLW_LIST_LINKS pCredListEntry = NULL;
@@ -70,9 +76,9 @@ LsaShutdownCredentialsDatabase()
     ENTER_CREDS_LIST(bInLock);
 
         // sweep the credentials list
-        while(!LwListIsEmpty(gLsaCredsList))
+        while(!LwListIsEmpty(&gCredState.LsaCredsList))
         {
-            pCredListEntry = LwListRemoveHead(gLsaCredsList);
+            pCredListEntry = LwListRemoveHead(&gCredState.LsaCredsList);
             pCred = LW_STRUCT_FROM_FIELD(
                 pCredListEntry,
                 LSA_CREDENTIALS,
@@ -86,38 +92,38 @@ LsaShutdownCredentialsDatabase()
 
     LEAVE_CREDS_LIST(bInLock);
 
+    // Only needed if we call pthread_mutex_init
+    //dwError = pthread_mutex_destroy(&gCredState.LsaCredsListLock);
+    //if(dwError)
+    //{
+    //    dwError = LwMapErrnoToLwError(errno);
+    //    BAIL_ON_LW_ERROR(dwError);
+    //}
 
-    dwError = pthread_mutex_destroy(&gLsaCredsListLock);
-    if (LW_ERROR_SUCCESS != dwError)
-    {
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_NTLM_ERROR(dwError);
-    }
-
-    gpLsaCredsList = NULL;
-
-cleanup:
-    return dwError;
-error:
-    goto cleanup;
+    return;
 }
 
 DWORD
 LsaAddCredential(
-    IN PWSTR pszUserName,
-    IN PWSTR pszPassword,
-    IN OPTIONAL PDWORD pdwUid,
-    OUT LSA_CRED_HANDLE* phCredential
+    IN PCSTR pszUserName,
+    IN PCSTR pszPassword,
+    IN OPTIONAL const PDWORD pdwUid,
+    OUT PLSA_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     BOOL bInLock = FALSE;
     PLW_LIST_LINKS pCredListEntry = NULL;
     PLSA_CREDENTIALS pCred = NULL;
+    LSA_CRED_HANDLE CredHandle = NULL;
 
     *phCredential = NULL;
 
-    if (!pszUserName || !pszPassword || !*pszUserName || !*pszPassword)
+    if (!pszUserName  ||
+        !pszPassword  ||
+        !*pszUserName ||
+        !*pszPassword ||
+        !*pdwUid)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LW_ERROR(dwError);
@@ -128,8 +134,8 @@ LsaAddCredential(
         //try to find the user. If he exists, just bump the ref and return
         if (pdwUid)
         {
-            for (pCredListEntry = gLsaCredsList->Next;
-                 pCredListEntry != gLsaCredsList;
+            for (pCredListEntry = gCredState.LsaCredsList.Next;
+                 pCredListEntry != &gCredState.LsaCredsList;
                  pCredListEntry = pCredListEntry->Next)
             {
                 pCred = LW_STRUCT_FROM_FIELD(
@@ -139,14 +145,14 @@ LsaAddCredential(
 
                 if (pCred->dwUserId == *pdwUid)
                 {
-                    *phCredentail = pCred;
-                    pCred->dwRefCount++;
+                    CredHandle = pCred;
+                    pCred->nRefCount++;
                     break;
                 }
             }
         }
 
-        if (!(*phCredentail))
+        if (!(CredHandle))
         {
             dwError = LwAllocateMemory(
                 sizeof(LSA_CREDENTIALS),
@@ -154,55 +160,63 @@ LsaAddCredential(
             BAIL_ON_LW_ERROR(dwError);
 
             dwError = LwAllocateMemory(
-                (wc16slen(pszUserName) + 1) * sizeof(WCHAR),
+                strlen(pszUserName) + 1,
                 (PVOID*)(PVOID)&pCred->pUserName);
             BAIL_ON_LW_ERROR(dwError);
 
-            wc16scpy(pCred->pUserName, pszUserName);
+            strcpy(pCred->pUserName, pszUserName);
 
             dwError = LwAllocateMemory(
-                (wc16slen(pszPassword) + 1) * sizeof(WCHAR),
+                strlen(pszPassword) + 1,
                 (PVOID*)(PVOID)&pCred->pPassword);
             BAIL_ON_LW_ERROR(dwError);
 
-            wc16scpy(pCred->pPassword, pszPassword);
+            strcpy(pCred->pPassword, pszPassword);
 
-            pCred->dwRefCount = 1;
+            pCred->nRefCount = 1;
 
             if (pdwUid)
             {
                 pCred->dwUserId = *pdwUid;
             }
 
-            LwListInsertHead(&pCred->ListEntry);
+            CredHandle = pCred;
+
+            LwListInsertHead(&gCredState.LsaCredsList, &pCred->ListEntry);
         }
 
-    LEAVE_CREDS_LIST(bInLock);
+    *phCredential = CredHandle;
 
 cleanup:
-    return dwError;
-error:
+
     if (bInLock)
     {
         LEAVE_CREDS_LIST(bInLock);
     }
+
+    return dwError;
+error:
+
+    *phCredential = NULL;
+
     goto cleanup;
 }
 
-DWORD
+VOID
 LsaReleaseCredential(
     IN LSA_CRED_HANDLE hCredential
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
     BOOL bInLock = FALSE;
-    PLSA_CREDENTIALS pCred = hCredential;
+    PLSA_CREDENTIALS pCred = (PLSA_CREDENTIALS)hCredential;
 
     ENTER_CREDS_LIST(bInLock);
 
-        pCred->dwRefCount--;
+        pCred->nRefCount--;
 
-        if (!(pCred->dwRefCount))
+        LW_ASSERT(pCred->nRefCount >= 0);
+
+        if (!(pCred->nRefCount))
         {
             LwListRemove(&pCred->ListEntry);
 
@@ -213,15 +227,7 @@ LsaReleaseCredential(
         }
 
     LEAVE_CREDS_LIST(bInLock);
-
-cleanup:
-    return dwError;
-error:
-    if (bInLock)
-    {
-        LEAVE_CREDS_LIST(bInLock);
-    }
-    goto cleanup;
+    return;
 }
 
 DWORD
@@ -234,13 +240,14 @@ LsaGetCredential(
     BOOL bInLock = FALSE;
     PLSA_CREDENTIALS pCred = NULL;
     PLW_LIST_LINKS pCredListEntry = NULL;
+    LSA_CRED_HANDLE CredHandle = NULL;
 
     *phCredential = NULL;
 
     ENTER_CREDS_LIST(bInLock);
 
-        for (pCredListEntry = gLsaCredsList->Next;
-             pCredListEntry != gLsaCredsList;
+        for (pCredListEntry = gCredState.LsaCredsList.Next;
+             pCredListEntry != &gCredState.LsaCredsList;
              pCredListEntry = pCredListEntry->Next)
         {
             pCred = LW_STRUCT_FROM_FIELD(
@@ -250,44 +257,129 @@ LsaGetCredential(
 
             if (dwUid == pCred->dwUserId)
             {
-                *phCredential = pCred;
+                pCred->nRefCount++;
+                CredHandle = pCred;
             }
         }
 
-        if (!*phCredential)
+        if (!CredHandle)
         {
             dwError = LW_ERROR_NO_CRED;
             BAIL_ON_LW_ERROR(dwError);
         }
 
-    LEAVE_CREDS_LIST(bInLock);
+        *phCredential = CredHandle;
 
 cleanup:
-    return dwError;
-error:
+
     if (bInLock)
     {
         LEAVE_CREDS_LIST(bInLock);
     }
+
+    return dwError;
+
+error:
+
+    *phCredential = NULL;
+
     goto cleanup;
 }
 
-DWORD
+VOID
 LsaGetCredentialInfo(
-    IN LSA_CRED_HANDLE,
-    OUT PWSTR* pszUserName,
-    OUT PWSTR* pszPassword,
-    OUT PDWORD pUid
+    IN LSA_CRED_HANDLE CredHandle,
+    OUT OPTIONAL PSTR* pszUserName,
+    OUT OPTIONAL PSTR* pszPassword,
+    OUT OPTIONAL PDWORD pUid
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_CREDENTIALS pCred = LSA_CRED_HANDLE;
+    PLSA_CREDENTIALS pCred = (PLSA_CREDENTIALS)CredHandle;
+    BOOL bInLock = FALSE;
 
     ENTER_CREDS_LIST(bInLock);
 
-        *pszUserName = pCred->pUserName;
-        *pszPassword = pCred->pPassword;
-        *pUid = pCred->dwUserId;
+        if(pszUserName)
+        {
+            *pszUserName = pCred->pUserName;
+        }
+
+        if(pszPassword)
+        {
+            *pszPassword = pCred->pPassword;
+        }
+
+        if(pUid)
+        {
+            *pUid = pCred->dwUserId;
+        }
+
+    LEAVE_CREDS_LIST(bInLock);
+
+    return;
+}
+
+DWORD
+LsaModifyCredential(
+    IN LSA_CRED_HANDLE CredHandle,
+    OUT OPTIONAL PCSTR pszUserName,
+    OUT OPTIONAL PCSTR pszPassword,
+    OUT OPTIONAL const PDWORD pUid
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PLSA_CREDENTIALS pCred = CredHandle;
+    BOOL bInLock = FALSE;
+    PSTR pUserName = NULL;
+    PSTR pPassword = NULL;
+
+    if(!pCred)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    ENTER_CREDS_LIST(bInLock);
+
+        if(pszUserName)
+        {
+            dwError = LwAllocateMemory(
+                strlen(pszUserName) + 1,
+                (PVOID*)(PVOID)pUserName);
+            BAIL_ON_LW_ERROR(dwError);
+
+            if(pCred->pUserName)
+            {
+                LW_SAFE_FREE_STRING(pCred->pUserName);
+            }
+
+            memcpy(pUserName, pszUserName, strlen(pszUserName));
+
+            pCred->pUserName = pUserName;
+        }
+
+        if(pszPassword)
+        {
+            dwError = LwAllocateMemory(
+                strlen(pszPassword) + 1,
+                (PVOID*)(PVOID)pPassword);
+            BAIL_ON_LW_ERROR(dwError);
+
+            if(pCred->pPassword)
+            {
+                memset(pCred->pPassword, 0, strlen(pCred->pPassword));
+                LW_SAFE_FREE_STRING(pCred->pPassword);
+            }
+
+            memcpy(pPassword, pszPassword, strlen(pszPassword));
+
+            pCred->pPassword = pPassword;
+        }
+
+        if(pUid)
+        {
+            pCred->dwUserId = *pUid;
+        }
 
     LEAVE_CREDS_LIST(bInLock);
 

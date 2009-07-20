@@ -46,35 +46,44 @@
 #ifndef __CREDENTIALS_P_H__
 #define __CREDENTIALS_P_H__
 
-#define ENTER_CREDS_LIST(bInLock)                       \
-    do                                                  \
-    {                                                   \
-        if (!bInLock)                                   \
-        {                                               \
-            pthread_mutex_lock(&gLsaCredsListLock);     \
-            bInLock = TRUE;                             \
-        }                                               \
-    } while (0);
+#include <lwdef.h>
+#include <lwerror.h>
+#include <lwsecurityidentifier.h>
+#include <lwio/lwlist.h>
 
-#define LEAVE_CREDS_LIST(bReleaseLock)                  \
-    do                                                  \
-    {                                                   \
-        if (bReleaseLock)                               \
-        {                                               \
-            pthread_mutex_unlock(&gLsaCredsListLock);   \
-            bReleaseLock = FALSE;                       \
-        }                                               \
-    } while (0);
+#define ENTER_CREDS_LIST(bInLock)                               \
+    do                                                          \
+    {                                                           \
+        if (!bInLock)                                           \
+        {                                                       \
+            pthread_mutex_lock(&gCredState.LsaCredsListLock);   \
+            bInLock = TRUE;                                     \
+        }                                                       \
+    } while (0)
+
+#define LEAVE_CREDS_LIST(bReleaseLock)                          \
+    do                                                          \
+    {                                                           \
+        if (bReleaseLock)                                       \
+        {                                                       \
+            pthread_mutex_unlock(&gCredState.LsaCredsListLock); \
+            bReleaseLock = FALSE;                               \
+        }                                                       \
+    } while (0)
 
 typedef struct _LSA_CREDENTIALS
 {
-    PWSTR           pUserName;
-    PWSTR           pPassword;
+    PSTR            pUserName;
+    PSTR            pPassword;
     DWORD           dwUserId;
-    DWORD           dwRefCount;
+    LONG            nRefCount;
     LW_LIST_LINKS   ListEntry;
-} LSA_CREDENTIALS, *PLSA_CREDENTIALS;
+} LSA_CREDENTIALS,  *PLSA_CREDENTIALS;
 
-typedef struct _LSA_CREDENTIALS *LSA_CRED_HANDLE, **PLSA_CRED_HANDLE;
+typedef struct _LSA_CREDENTIALS_STATE
+{
+    LW_LIST_LINKS LsaCredsList;
+    pthread_mutex_t LsaCredsListLock;
+} LSA_CREDENTIALS_STATE, *PLSA_CREDENTIALS_STATE;
 
 #endif /* __CREDENTIALS_P_H__ */
