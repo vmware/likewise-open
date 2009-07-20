@@ -24,8 +24,8 @@
 
 INT
 main(
-    IN INT argc,
-    IN PCHAR* argv
+    IN INT      argc,
+    IN PCHAR*   argv
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -36,24 +36,13 @@ main(
     PCHAR pServiceName = NULL;
     PCHAR pServicePassword = NULL;
     PCHAR pServiceRealm = NULL;
-    CredHandle ServerCreds;
+    LSA_CRED_HANDLE ServerCreds;
     INT nServerCredsAcquired = 0;
     DWORD AscFlags = 0; //ASC_REQ_ALLOCATE_MEMORY | ASC_REQ_MUTUAL_AUTH;
     PCHAR pSecPkgName = "NTLM";
     BOOL bFound = FALSE;
 
-    /*
-    FLAGMAPPING FlagMappings[] = {
-        DUPE( CONFIDENTIALITY ),
-        DUPE( DELEGATE ),
-        DUPE( INTEGRITY ),
-        DUPE( USE_SESSION_KEY ),
-        DUPE( REPLAY_DETECT ),
-        DUPE( SEQUENCE_DETECT )
-    };
-    */
-
-    memset(&ServerCreds, 0, sizeof(CredHandle));
+    ServerCreds = NULL;
 
     argc--; argv++;
 
@@ -175,7 +164,9 @@ error:
 }
 
 DWORD
-Usage(VOID)
+Usage(
+    VOID
+    )
 {
     fprintf(stderr, "Usage: sspi-server [-port port] [-k]\n");
     fprintf(stderr, "       [service_name] [service_password] [service_realm]\n");
@@ -185,33 +176,28 @@ Usage(VOID)
 
 DWORD
 ServerAcquireCreds(
-    IN PCHAR pServiceName,
-    IN PCHAR pServicePassword,
-    IN PCHAR pServiceRealm,
-    IN PCHAR pSecPkgName,
-    OUT CredHandle *pServerCreds
+    IN PCHAR                pServiceName,
+    IN PCHAR                pServicePassword,
+    IN PCHAR                pServiceRealm,
+    IN PCHAR                pSecPkgName,
+    OUT PLSA_CRED_HANDLE    pServerCreds
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     TimeStamp Expiry;
-    WCHAR wcPassword[100] = {0};
-    WCHAR wcRealm[100] = {0};
 
-    // This is defined as if it were Wide...
     SEC_WINNT_AUTH_IDENTITY AuthIdentity;
 
     memset(&Expiry, 0, sizeof(TimeStamp));
     memset(&AuthIdentity, 0, sizeof(SEC_WINNT_AUTH_IDENTITY));
 
-    memset(pServerCreds, 0, sizeof(CredHandle));
+    pServerCreds = NULL;
 
-    mbstowc16s(wcPassword, pServicePassword, sizeof(wcPassword) / sizeof(WCHAR));
-    AuthIdentity.Password = wcPassword;
-    AuthIdentity.PasswordLength = (DWORD)wc16slen(wcPassword);
+    AuthIdentity.Password = pServicePassword;
+    AuthIdentity.PasswordLength = (DWORD)strlen(pServicePassword);
 
-    mbstowc16s(wcRealm, pServiceRealm, sizeof(wcRealm) / sizeof(WCHAR));
-    AuthIdentity.Domain = wcRealm;
-    AuthIdentity.DomainLength = (DWORD)wc16slen(wcRealm);
+    AuthIdentity.Domain = pServiceRealm;
+    AuthIdentity.DomainLength = (DWORD)strlen(pServiceRealm);
     //AuthIdentity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
 
 
@@ -233,8 +219,8 @@ error:
 
 DWORD
 CreateSocket(
-    IN USHORT uPort,
-    OUT PINT pSocket
+    IN USHORT   uPort,
+    OUT PINT    pSocket
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -306,9 +292,9 @@ error:
 
 DWORD
 SignServer(
-    IN INT nSocket,
-    IN CredHandle *pServerCreds,
-    IN DWORD AscFlags
+    IN INT              nSocket,
+    IN PLSA_CRED_HANDLE pServerCreds,
+    IN DWORD            AscFlags
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -318,14 +304,13 @@ SignServer(
     SecBuffer MsgBuffer;
     SecBuffer WrapBuffers[2];
     SecBufferDesc WrapBufferDesc;
-    CtxtHandle Context;
+    LSA_CONTEXT_HANDLE Context = NULL;
     SecPkgContext_Sizes Sizes;
 
     memset(&TransmitBuffer, 0, sizeof(SecBuffer));
     memset(&MsgBuffer, 0, sizeof(SecBuffer));
     memset(WrapBuffers, 0, sizeof(SecBuffer) * 2);
     memset(&WrapBufferDesc, 0, sizeof(SecBufferDesc));
-    memset(&Context, 0, sizeof(CtxtHandle));
     memset(&Sizes, 0, sizeof(SecPkgContext_Sizes));
 
     /* Establish a context with the client */
@@ -456,10 +441,10 @@ FreeContextBuffer(
 
 DWORD
 ServerEstablishContext(
-    IN INT nSocket,
-    IN CredHandle *pServerCreds,
-    OUT CtxtHandle *pContext,
-    IN DWORD AscFlags
+    IN INT                  nSocket,
+    IN PLSA_CRED_HANDLE     pServerCreds,
+    OUT PLSA_CONTEXT_HANDLE pContext,
+    IN DWORD                AscFlags
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -470,7 +455,7 @@ ServerEstablishContext(
     SecBuffer SendTokenBuffer;
     SecBuffer RecvTokenBuffer;
     TimeStamp Expiry;
-    PCtxtHandle pContextHandle = NULL;
+    PLSA_CONTEXT_HANDLE pContextHandle = NULL;
     INT nContextAcquired = 0;
 
     memset(&InputDesc, 0, sizeof(SecBufferDesc));
@@ -478,8 +463,6 @@ ServerEstablishContext(
     memset(&SendTokenBuffer, 0, sizeof(SecBuffer));
     memset(&RecvTokenBuffer, 0, sizeof(SecBuffer));
     memset(&Expiry, 0, sizeof(TimeStamp));
-
-    memset(pContext, 0, sizeof(CtxtHandle));
 
     InputDesc.cBuffers = 1;
     //InputDesc.ulVersion = SECBUFFER_VERSION;
@@ -561,8 +544,8 @@ error:
 
 DWORD
 SendToken(
-    IN INT nSocket,
-    IN PSecBuffer pToken
+    IN INT          nSocket,
+    IN PSecBuffer   pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -607,10 +590,10 @@ error:
 
 DWORD
 WriteAll(
-    IN INT nSocket,
-    IN PCHAR pBuffer,
-    IN UINT nBytes,
-    OUT PINT nBytesWritten
+    IN INT      nSocket,
+    IN PCHAR    pBuffer,
+    IN UINT     nBytes,
+    OUT PINT    nBytesWritten
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -643,8 +626,8 @@ error:
 
 DWORD
 RecvToken(
-    IN INT nSocket,
-    OUT PSecBuffer pToken
+    IN INT          nSocket,
+    OUT PSecBuffer  pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -703,10 +686,10 @@ error:
 
 DWORD
 ReadAll(
-    IN INT nSocket,
-    OUT PCHAR pBuffer,
-    IN UINT nBytes,
-    OUT PINT nBytesRead
+    IN INT      nSocket,
+    OUT PCHAR   pBuffer,
+    IN UINT     nBytes,
+    OUT PINT    nBytesRead
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
