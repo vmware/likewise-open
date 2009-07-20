@@ -49,15 +49,15 @@
 
 DWORD
 NtlmClientInitializeSecurityContext(
-    IN OPTIONAL PCredHandle phCredential,
-    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry

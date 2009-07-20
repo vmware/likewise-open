@@ -49,7 +49,7 @@
 
 DWORD
 NtlmClientEncryptMessage(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
