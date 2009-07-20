@@ -8,6 +8,15 @@ PROVIDER_CFLAGS = -shared
 PROVIDER_LDFLAGS = -shared -module -avoid-version
 endif
 
+if ENABLE_MEMCACHE
+PROVIDER_CPPFLAGS = -DAD_CACHE_IN_MEMORY=1
+PROVIDER_LIBADD =
+else
+PROVIDER_CPPFLAGS = @SQLITE_INCLUDES@
+PROVIDER_LIBADD = @SQLITE_LIBS@
+PROVIDER_LDFLAGS += @SQLITE_LDFLAGS@
+endif
+
 liblsass_auth_provider_ad_la_SOURCES = \
        adcache.c                 \
        adcfg.c                   \
@@ -49,10 +58,10 @@ liblsass_auth_provider_ad_la_SOURCES = \
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
+        $(PROVIDER_CPPFLAGS)          \
 	@PSTORE_INCLUDES@             \
 	@NETAPI_INCLUDES@             \
-	@NETLOGON_INCLUDES@           \
-	@SQLITE_INCLUDES@
+	@NETLOGON_INCLUDES@
 
 liblsass_auth_provider_ad_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 
@@ -68,8 +77,8 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@PROC_LIBS@ \
 	@KVM_LIBS@  \
 	@UUID_LIBS@ \
-        @SQLITE_LIBS@ \
-	@CRYPTO_LIBS@
+	@CRYPTO_LIBS@ \
+        $(PROVIDER_LIBADD)
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
 	$(PROVIDER_LDFLAGS) \
@@ -78,5 +87,4 @@ liblsass_auth_provider_ad_la_LDFLAGS = \
 	@NETLOGON_LDFLAGS@ \
 	@CF_FRAMEWORK_LDFLAGS@ \
 	@SC_FRAMEWORK_LDFLAGS@ \
-	@CRYPTO_LDFLAGS@  \
-        @SQLITE_LDFLAGS@
+	@CRYPTO_LDFLAGS@
