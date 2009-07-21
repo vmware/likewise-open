@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,50 +28,74 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef _PARAMS_H_
+#define _PARAMS_H_
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+struct parameter {
+    char *key;
+    char *val;
+};
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+enum param_type {
+    pt_string = 1,
+    pt_w16string,
+    pt_w16string_list,
+    pt_char,
+    pt_int32,
+    pt_uint32,
+    pt_sid,
+    pt_sid_list
+};
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+enum param_err {
+    perr_not_found = 1,
+    perr_invalid_out_param = 2,
+    perr_unknown_type = 3,
+    perr_nullptr_passed = 4,
+
+    perr_success = 0,
+    perr_unknown = -1
+};
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+struct param_errstr_map {
+    enum param_err perr;
+    const char* desc;
+};
+
+static const
+struct param_errstr_map param_errstr_maps[] = {
+    { perr_not_found, "parameter not found" },
+    { perr_invalid_out_param, "invalid output parameter" },
+    { perr_unknown_type, "unknown parameter type" },
+    { perr_nullptr_passed, "null pointer passed" },
+    { perr_success, "success" },
+    { perr_unknown, "unknown error" }
+};
+
+const char *param_errstr(enum param_err perr);
 
 
-#endif /* _SAMR_BINDING_H_ */
+#define perr_is_ok(perr_code)  ((perr_code) == perr_success)
+#define perr_fail(perr_code) { \
+	printf("Parameter error: %s\n", param_errstr(perr_code)); \
+	return false; \
+    }
+
+
+struct parameter* get_optional_params(char *opt, int *count);
+const char* find_value(struct parameter *params, int count, const char *key);
+enum param_err fetch_value(struct parameter *params, int count,
+			   const char *key, enum param_type type, void *val,
+			   const void *def);
+
+void ParamInfo(const char* name, enum param_type type, void *value);
+
+
+
+#endif /* _PARAMS_H_ */
 
 
 /*

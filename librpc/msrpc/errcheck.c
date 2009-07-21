@@ -29,49 +29,52 @@
  */
 
 /*
- * Abstract: Samr interface binding (rpc client library)
- *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
+#include <dce/rpcsts.h>
 #include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <lwrpc/errcheck.h>
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+/* This isn't exactly the facility code, so let's call it error type */
+#define ERRTYPE_CODE(v)         ((v) & 0xffff0000)
+
+#define NTSTATUS_ERROR          (0xc0000000)
+#define DCERPC_EXCEPTION        (0x16c90000)
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+int IsNtStatusError(uint32 v)
+{
+    return (ERRTYPE_CODE(v) == NTSTATUS_ERROR);
+}
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+int IsDceRpcException(uint32 v)
+{
+    return (ERRTYPE_CODE(v) == DCERPC_EXCEPTION);
+}
 
 
-#endif /* _SAMR_BINDING_H_ */
+int IsDceRpcConnError(uint32 v)
+{
+    int conn_error = 0;
+
+    if (!IsDceRpcException(v)) return 0;
+
+    /* check if returned exception code is one of
+       connection related exceptions */
+    conn_error = (v == rpc_s_connection_closed ||
+                  v == rpc_s_connect_timed_out ||
+                  /* Invalid credentials is listed as a connection error
+                   * because it may be specific to a given domain controller.
+                   * That is, reconnecting to a different DC with the same
+                   * credentials may work. */
+                  v == rpc_s_invalid_credentials ||
+                  v == rpc_s_auth_skew ||
+                  v == rpc_s_cannot_connect);
+    return conn_error;
+}
 
 
 /*

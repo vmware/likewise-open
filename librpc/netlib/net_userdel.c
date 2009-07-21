@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,50 +28,55 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include "includes.h"
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+NET_API_STATUS
+NetUserDel(
+    const wchar16_t *hostname,
+    const wchar16_t *username
+    )
+{
+    const uint32 user_access = DELETE;
 
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *conn = NULL;
+    handle_t samr_b = NULL;
+    PolicyHandle user_h;
+    uint32 user_rid = 0;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
+    status = NetConnectSamr(&conn, hostname, 0, 0, access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+    samr_b = conn->samr.bind;
 
+    status = NetOpenUser(conn, username, user_access, &user_h, &user_rid);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-#endif /* _SAMR_BINDING_H_ */
+    status = SamrDeleteUser(samr_b, &user_h);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    goto cleanup;
+}
 
 
 /*

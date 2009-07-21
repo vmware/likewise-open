@@ -4,23 +4,23 @@ idl_srcdir=$(top_srcdir)/idl
 noinst_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 
 libnetlogon_la_SOURCES = \
-    globals.c \
-    NetlogonBinding.c \
-    NetrMemory.c \
-    NetrStubMemory.c \
-    NetrCredentials.c \
-    NetrServerReqChallenge.c \
-    NetrServerAuthenticate.c \
-    NetrServerAuthenticate2.c \
-    NetrServerAuthenticate3.c \
-    NetrSchannel.c \
-    NetrSamLogon.c \
-    NetrSamLogoff.c \
-    NetrSamLogonEx.c \
-    NetrEnumerateTrustedDomainsEx.c \
-    NetrGetDomainInfo.c \
-    DsrEnumerateDomainTrusts.c \
-    DsrGetDcName.c
+    globals.c                         \
+    netr_binding.c                    \
+    netr_memory.c                     \
+    netr_stubmemory.c                 \
+    netr_credentials.c                \
+    netr_serverreqchallenge.c         \
+    netr_serverauthenticate.c         \
+    netr_serverauthenticate2.c        \
+    netr_serverauthenticate3.c        \
+    netr_schannel.c                   \
+    netr_samlogon.c                   \
+    netr_samlogoff.c                  \
+    netr_samlogonex.c                 \
+    netr_enumeratetrusteddomainsex.c  \
+    netr_getdomaininfo.c              \
+    dsr_enumeratedomaintrusts.c       \
+    dsr_getdcname.c
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
 

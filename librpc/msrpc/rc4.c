@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,50 +28,56 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include "rc4.h"
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+#define SWAP(a,b) { unsigned char temp; temp = (a); (a) = (b); (b) = temp; }
+
+void rc4init(struct rc4ctx *ctx, unsigned char *key, size_t keylen)
+{
+    int i;
+    unsigned char j = 0;
+
+    for (i = 0; i < sizeof(ctx->S); i++) {
+	ctx->S[i] = i;
+    }
+
+    for (i = 0; i < sizeof(ctx->S); i++) {
+	j +=  (ctx->S[i] + key[i % keylen]);
+        // ctx->S[j] does not access S out of bounds because S has size 256,
+        // and j is an unsigned char (can only have values 0-255).
+	SWAP(ctx->S[i], ctx->S[j]);
+    }
+}
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+void rc4crypt(struct rc4ctx *ctx, unsigned char *data, size_t len)
+{
+    unsigned int i;
+
+    ctx->i = 0;
+    ctx->j = 0;
+
+    for (i = 0; i < len; i++) {
+	unsigned char s;
+
+	ctx->i++;
+	ctx->j += ctx->S[ctx->i];
+
+	SWAP(ctx->S[ctx->i], ctx->S[ctx->j]);
+
+	s = ctx->S[ctx->i] + ctx->S[ctx->j];
+	data[i] = data[i] ^ ctx->S[s];
+    }
+}
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
-
-
-#endif /* _SAMR_BINDING_H_ */
+void rc4(unsigned char *data, size_t dlen, unsigned char *key, size_t klen)
+{
+    struct rc4ctx ctx;
+    rc4init(&ctx, key, klen);
+    rc4crypt(&ctx, data, dlen);
+}
 
 
 /*

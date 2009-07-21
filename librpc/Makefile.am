@@ -2,13 +2,13 @@ AUTOMAKE_OPTIONS=foreign
 SUBDIRS = \
     include    \
     alloc      \
-    Error      \
-    MsRpc      \
+    error      \
+    msrpc      \
     samr       \
     lsa        \
     netlogon   \
     Mpr        \
     krb5pac    \
     dssetup    \
-    NetLib     \
-    TestRpc
+    netlib     \
+    testrpc

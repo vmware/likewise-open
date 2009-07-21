@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,49 +29,79 @@
  */
 
 /*
- * Abstract: Samr interface binding (rpc client library)
+ * Abstract: Network Management API, aka LanMan API (rpc client library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+#include <wchar.h>
+#include <time.h>
+#include <pthread.h>
+#include <errno.h>
+#include <sys/utsname.h>
 
-#include <lwio/lwio.h>
+#include <wc16str.h>
+#include <wc16printf.h>
+#include <gssapi/gssapi.h>
+#include <keytab.h>
+#include <secdesc/secapi.h>
+#include <dce/rpc.h>
+#include <dce/smb.h>
+#include <lw/ntstatus.h>
+#include <openssl/md5.h>
+#include <openssl/rc4.h>
+#include <lwps/lwps.h>
+
 #include <lwrpc/types.h>
+#include <lwrpc/winerror.h>
+#include <lwrpc/errconv.h>
+#include <lwrpc/unicodestring.h>
+#include <lwrpc/samr.h>
+#include <lwrpc/lsa.h>
+#include <lwrpc/netlogon.h>
+#include <lwrpc/mpr.h>
+#include <lwrpc/allocate.h>
+#include <lwrpc/memptr.h>
+#include <lwrpc/sidhelper.h>
+#include <lwrpc/LM.h>
 
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <random.h>
+#include <crypto.h>
+#include <md5.h>
+#include <rc4.h>
+#include <des.h>
+
+#include "net_connection.h"
+#include "net_user.h"
+#include "net_util.h"
+#include "net_memory.h"
+#include "net_hostinfo.h"
+#include "net_info.h"
+#include "net_userinfo.h"
+#include "net_groupinfo.h"
+#include "net_getdcname.h"
+#include "ldaputil.h"
+#include "joinlocal.h"
+#include "unjoinlocal.h"
+#include "machinepassword.h"
+#include "externs.h"
+
+#define BAIL_ON_NT_STATUS(s) \
+    do                       \
+    {                        \
+        if ((s)) goto error; \
+    } while (0)
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
-
-
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
-
-
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
-
-
-#endif /* _SAMR_BINDING_H_ */
+#if !defined(MACHPASS_LEN)
+#define MACHPASS_LEN  (16)
+#endif
 
 
 /*

@@ -29,49 +29,30 @@
  */
 
 /*
- * Abstract: Samr interface binding (rpc client library)
- *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
+#include "includes.h"
 
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+/* The first connection node on the list */
+NetConn *first = NULL;
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+/* This is a pointer to list of allocated pointers.
+   The list enables freeing a pointer and dependant pointers */
+void *netapi_ptr_list = NULL;
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+/* Library initialisation guard */
+pthread_mutex_t g_netapi_data_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int bNetApiInitialised = 0;
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+const wchar16_t null_char = 0;
+const wchar16_t *null_string = &null_char;
 
-
-#endif /* _SAMR_BINDING_H_ */
+NetConnList *conn_list = NULL;
 
 
 /*

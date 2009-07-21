@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,50 +28,56 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
+#include <string.h>
 #include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <md5.h>
+#include <hmac_md5.h>
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+void hmac_md5_init(hmac_md5_ctx *ctx, unsigned char *key, size_t keylen)
+{
+    unsigned char hmac_key[16];
+    size_t len = 0;
+    int i;
+
+    if (keylen > 64) {
+        md5(hmac_key, key, keylen);
+        len = sizeof(hmac_key);
+
+    } else {
+        memcpy(hmac_key, key, keylen);
+        len = keylen;
+    }
+
+    for (i = 0; i < 64; i++) {
+       ctx->ipad[i] = (i < len) ? hmac_key[i] : 0x0;
+       ctx->ipad[i] ^= 0x36;
+       ctx->opad[i] = (i < len) ? hmac_key[i] : 0x0;
+       ctx->opad[i] ^= 0x5c;
+    }
+
+    md5init(&ctx->ctx);
+    md5update(&ctx->ctx, ctx->ipad, 64);
+}
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+void hmac_md5_update(hmac_md5_ctx *ctx, unsigned char *msg, size_t msglen)
+{
+    md5update(&ctx->ctx, msg, msglen);
+}
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+void hmac_md5_final(hmac_md5_ctx *ctx, unsigned char digest[16])
+{
+    struct md5context outer_ctx;
 
+    md5final(&ctx->ctx, digest);
 
-#endif /* _SAMR_BINDING_H_ */
+    md5init(&outer_ctx);
+    md5update(&outer_ctx, ctx->opad, 64);
+    md5update(&outer_ctx, digest, 16);
+    md5final(&outer_ctx, digest);
+}
 
 
 /*

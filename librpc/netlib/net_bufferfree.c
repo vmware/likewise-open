@@ -28,50 +28,27 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include "includes.h"
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+NET_API_STATUS
+NetApiBufferFree(
+   void *buffer
+   )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
 
+    BAIL_ON_INVALID_PTR(buffer);
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+    NetFreeMemory(buffer);
 
+cleanup:
+    return status;
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
-
-
-#endif /* _SAMR_BINDING_H_ */
+error:
+    goto cleanup;
+}
 
 
 /*

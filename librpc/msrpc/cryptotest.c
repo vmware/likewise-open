@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,57 +28,54 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#include <stdio.h>
+#include <string.h>
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <md5.h>
+#include <crypto.h>
+#include <rc4.h>
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+void printdigest(char *printed, unsigned char *d, size_t dlen)
+{
+	int i;
+
+	for (i = 0; i < dlen; i++) {
+		snprintf(&printed[2*i], 3, "%02x", d[i]);
+	}
+}
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+int main()
+{
+	const char *pass = "TestPassword";
 
+	struct md5context ctx;
+	unsigned char passbuf[532] = {0};
+	unsigned char printedbuf[1065];  /* 2*532 + 1 */
+	unsigned char initval[16], digested_sess_key[16];
+	size_t sess_key_len = 16;
+	unsigned char sess_key[16] = {
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0
+	};
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+	EncodePassBuffer(passbuf, pass);
 
+	memset(initval, 0, sizeof(initval));
 
-#endif /* _SAMR_BINDING_H_ */
+	md5init(&ctx);
+	md5update(&ctx, initval, 16);
+	md5update(&ctx, sess_key, sess_key_len);
+	md5final(&ctx, digested_sess_key);
 
+	rc4(passbuf, 516, digested_sess_key, 16);
+	memcpy(&passbuf[516], initval, 16);
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+	printdigest((char*)printedbuf, passbuf, sizeof(passbuf));
+	printedbuf[1064] = 0;
+
+	printf("rc4: %s\n", printedbuf);
+
+	return 0;
+}

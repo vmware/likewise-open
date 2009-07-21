@@ -28,50 +28,51 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#ifndef _GROUP_INFO_H_
+#define _GROUP_INFO_H_
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
+NTSTATUS
+PullLocalGroupInfo0(
+    void **buffer,
+    AliasInfo *ai,
+    int num
     );
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
+NTSTATUS
+PullLocalGroupInfo1(
+    void **buffer,
+    AliasInfo *ai,
+    int num
     );
 
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
+NTSTATUS
+PushLocalGroupInfo0(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_0 *ninfo
     );
 
 
-#endif /* _SAMR_BINDING_H_ */
+NTSTATUS
+PushLocalGroupInfo1(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1 *ninfo
+    );
+
+
+NTSTATUS
+PushLocalGroupInfo1002(
+    AliasInfo **sinfo,
+    uint32 *slevel,
+    LOCALGROUP_INFO_1002 *ninfo
+    );
+
+
+#endif /* _GROUP_INFO_H_ */
 
 
 /*

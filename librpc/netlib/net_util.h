@@ -28,50 +28,55 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#ifndef _NET_UTIL_H_
+#define _NET_UTIL_H_
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <lw/ntstatus.h>
+#include <lwrpc/winerror.h>
+#include <ldap.h>
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+#define BAIL_ON_NTSTATUS_ERROR(s)            \
+    if ((s) != STATUS_SUCCESS) {             \
+        status = (s);                        \
+        err = NtStatusToWin32Error((s));     \
+        goto error;                          \
+    }
+
+#define BAIL_ON_WINERR_ERROR(e)              \
+    if ((e) != ERROR_SUCCESS) {              \
+        err = (e);                           \
+        goto error;                          \
+    }
+
+#define BAIL_ON_LDERR_ERROR(e)               \
+    if ((e) != LDAP_SUCCESS) {               \
+        lderr = (e);                         \
+        goto error;                          \
+    }
+
+#define BAIL_ON_NO_MEMORY(p)                 \
+    if ((p) == NULL) {                       \
+        err = ERROR_OUTOFMEMORY;             \
+        goto error;                          \
+    }
+
+#define goto_if_no_memory_lderr(p, lbl) \
+    if ((p) == NULL) {                  \
+        lderr = LDAP_NO_MEMORY;         \
+        err = ERROR_OUTOFMEMORY;        \
+        goto lbl;                       \
+    }
+
+#define BAIL_ON_INVALID_PTR(p)                 \
+    if ((p) == NULL) {                         \
+        status = STATUS_INVALID_PARAMETER;     \
+        err = ERROR_INVALID_PARAMETER;         \
+        goto error;                            \
+    }
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
-
-
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
-
-
-#endif /* _SAMR_BINDING_H_ */
+#endif /* _NET_UTIL_H_ */
 
 
 /*

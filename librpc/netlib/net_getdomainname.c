@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,50 +28,59 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include "includes.h"
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+NET_API_STATUS
+NetGetDomainName(
+    const wchar16_t *hostname,
+    wchar16_t **domname
+    )
+{
+    const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
+                               SAMR_ACCESS_ENUM_DOMAINS;
 
+    NTSTATUS status = STATUS_SUCCESS;
+    WINERR err = ERROR_SUCCESS;
+    NetConn *cn = NULL;
+    wchar16_t *domain_name = NULL;
+    PIO_ACCESS_TOKEN access_token = NULL;
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(domname);
 
+    status = LwIoGetThreadAccessToken(&access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+    status = NetConnectSamr(&cn, hostname, conn_access, 0, access_token);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
+    domain_name = wc16sdup(cn->samr.dom_name);
+    BAIL_ON_NO_MEMORY(domain_name);
 
-#endif /* _SAMR_BINDING_H_ */
+    status = NetDisconnectSamr(cn);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *domname = domain_name;
+
+cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS) {
+        err = NtStatusToWin32Error(status);
+    }
+
+    return err;
+
+error:
+    *domname = NULL;
+
+    if (access_token)
+    {
+        LwIoDeleteAccessToken(access_token);
+    }
+
+    goto cleanup;
+}
 
 
 /*

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,51 +28,52 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#include "includes.h"
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
+#include <lwnet.h>
 
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
+NTSTATUS
+NetpGetDcName(
+    const wchar16_t *DnsDomainName,
+    BOOLEAN Force,
+    wchar16_t** DomainControllerName
+    )
+{
+    DWORD dwError = 0;
+    wchar16_t *domain_controller_name = NULL;
+    char *dns_domain_name_mbs = NULL;
+    DWORD get_dc_name_flags = Force ? DS_FORCE_REDISCOVERY : 0;
+    PLWNET_DC_INFO pDC = NULL;
 
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+    dns_domain_name_mbs = awc16stombs(DnsDomainName);
+    if (!dns_domain_name_mbs)
+    {
+        dwError = LWNET_ERROR_OUT_OF_MEMORY;
+        goto cleanup;
+    }
 
+    dwError = LWNetGetDCName(NULL, dns_domain_name_mbs, NULL, get_dc_name_flags, &pDC);
+    if (dwError)
+    {
+        goto cleanup;
+    }
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+    domain_controller_name = ambstowc16s(pDC->pszDomainControllerName);
 
+ cleanup:
+    SAFE_FREE(dns_domain_name_mbs);
+    LWNET_SAFE_FREE_DC_INFO(pDC);
+    if (dwError)
+    {
+        SAFE_FREE(domain_controller_name);
+    }
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+    *DomainControllerName = domain_controller_name;
 
+    // ISSUE-2008/07/14-dalmeida -- Need to do error code conversion
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
-
-
-#endif /* _SAMR_BINDING_H_ */
-
+    return dwError;
+}
 
 /*
 local variables:

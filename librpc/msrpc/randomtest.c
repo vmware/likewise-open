@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,57 +28,59 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Samr interface binding (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#ifndef _SAMR_BINDING_H_
-#define _SAMR_BINDING_H_
-
-#include <lwio/lwio.h>
-#include <lwrpc/types.h>
-
-#define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
-//#define SAMR_DEFAULT_ENDPOINT   ""
+#include <random.h>
 
 
-RPCSTATUS
-InitSamrBindingDefault(
-    handle_t         *phSamrBinding,
-    PCSTR             pszHostname,
-    PIO_ACCESS_TOKEN  pAccessToken
-    );
+void printhex(unsigned char *m, size_t len)
+{
+	int i;
+	printf("hash: ");
+
+	for (i = 0; i < len; i++) {
+		printf("%02x", m[i]);
+	}
+
+	printf("\n");
+}
 
 
-RPCSTATUS
-InitSamrBindingFull(
-    handle_t *phSamrBinding,
-    PCSTR pszProtSeq,
-    PCSTR pszHostname,
-    PCSTR pszEndpoint,
-    PCSTR pszUuid,
-    PCSTR pszOptions,
-    PIO_ACCESS_TOKEN pAccessToken
-    );
+int main(int argc, char *argv[])
+{
+	int count;
+	unsigned char *buf = NULL;
+	char *str = NULL;
 
+	if (argc < 2) {
+		printf("Error: No buffer length\n");
+		return -1;
+	}
 
-RPCSTATUS
-FreeSamrBinding(
-    IN  handle_t *phSamrBinding
-    );
+	count = atoi(argv[1]);
+	if (count <= 0) {
+		printf("Error: Invalid buffer length\n");
+		return -1;
+	}
 
+	buf = (unsigned char*) malloc(sizeof(unsigned char) * count);
+	if (buf == NULL) {
+		printf("Error: Memory allocation error\n");
+		return -1;
+	}
 
-#endif /* _SAMR_BINDING_H_ */
+	get_random_buffer(buf, count);
+	printf("buffer length: %d\n", count);
+	printhex(buf, count);
 
+	get_random_string(str, count);
+	printf("buffer length: %d\n", count);
+	printf("string: %s\n", str);
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+	free(buf);
+	free(str);
+
+	return 0;
+}
