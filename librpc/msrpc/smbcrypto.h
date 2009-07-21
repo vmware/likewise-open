@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,47 +28,13 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
+#ifndef _SMBCRYPTO_H_
+#define _SMBCRYPTO_H_
 
-#include <lwrpc/types.h>
+#include <stdlib.h>
 
-
-void printhex(const char* name, unsigned char *b, size_t len)
-{
-	int i;
-	printf("%s: ", name);
-
-	for (i = 0; i < len; i++) {
-		printf("%02x", b[i]);
-	}
-
-	printf("\n");
-}
-
-int main()
-{
-    uint8 key[8] = { 0x13, 0x34, 0x57, 0x79, 0x9B, 0xBC, 0xDF, 0xF1 };
-    uint8 in[8] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
-    uint8 out[8];
-    int count;
-
-    printhex("msg", in, sizeof(in));
-    printhex("key", key, sizeof(key));
-
-    count = des56(out, in, sizeof(in), key);
-
-    printhex("out", out, sizeof(out));
-    printf("number of encrypted bytes: %d\n", count);
-
-    return 0;
-}
+void md4hash(unsigned char hash[16], const unsigned char *pass);
+void EncodePassBuffer(unsigned char buffer[516], const unsigned char* pass);
 
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+#endif /* _SMBCRYPTO_H_ */

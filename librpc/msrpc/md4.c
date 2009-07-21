@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -59,7 +59,7 @@ static void enc(unsigned char *out, unsigned int *in, size_t len)
 static void dec(unsigned int *out, unsigned char *in, size_t len)
 {
     int i, j;
-    
+
     for (i = 0, j = 0; j < len; i++, j+=4) {
 	out[i] = (unsigned int)in[j] |
 	         ((unsigned int)in[j+1]) << 8 |
@@ -96,7 +96,7 @@ void md4update(struct md4context *ctx, const unsigned char *buf,
     ctx->count[1] += len >> (32-8);
 
     block_len = 64 - index;
-    
+
     if (len >= block_len) {
 	memcpy(&ctx->block[index], buf, block_len);
 	md4transform(ctx);
@@ -136,7 +136,7 @@ static void md4transform(struct md4context *ctx)
     /* Round 1 */
 #define F(x, y, z)         (((x)&(y)) | ((~x)&(z)))
 #define Fx(a,b,c,d, k,s)   ((a) = LROT(((a) + F((b),(c),(d)) + X[k]), s))
-    
+
     Fx(A,B,C,D,  0, 3);
     Fx(D,A,B,C,  1, 7);
     Fx(C,D,A,B,  2,11);
@@ -163,7 +163,7 @@ static void md4transform(struct md4context *ctx)
     Gx(C,D,A,B,  8, 9);
     Gx(B,C,D,A, 12,13);
     Gx(A,B,C,D,  1, 3);
-    Gx(D,A,B,C,  5, 5); 
+    Gx(D,A,B,C,  5, 5);
     Gx(C,D,A,B,  9, 9);
     Gx(B,C,D,A, 13,13);
     Gx(A,B,C,D,  2, 3);
@@ -184,11 +184,11 @@ static void md4transform(struct md4context *ctx)
     Hx(C,D,A,B,  4,11);
     Hx(B,C,D,A, 12,15);
     Hx(A,B,C,D,  2, 3);
-    Hx(D,A,B,C, 10, 9); 
+    Hx(D,A,B,C, 10, 9);
     Hx(C,D,A,B,  6,11);
     Hx(B,C,D,A, 14,15);
-    Hx(A,B,C,D,  1, 3); 
-    Hx(D,A,B,C,  9, 9); 
+    Hx(A,B,C,D,  1, 3);
+    Hx(D,A,B,C,  9, 9);
     Hx(C,D,A,B,  5,11);
     Hx(B,C,D,A, 13,15);
     Hx(A,B,C,D,  3, 3);

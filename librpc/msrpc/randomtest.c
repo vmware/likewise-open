@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,13 +28,59 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _SMBCRYPTO_H_
-#define _SMBCRYPTO_H_
-
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-void md4hash(unsigned char hash[16], const unsigned char *pass);
-void EncodePassBuffer(unsigned char buffer[516], const unsigned char* pass);
+#include <random.h>
 
 
-#endif /* _SMBCRYPTO_H_ */
+void printhex(unsigned char *m, size_t len)
+{
+	int i;
+	printf("hash: ");
+
+	for (i = 0; i < len; i++) {
+		printf("%02x", m[i]);
+	}
+
+	printf("\n");
+}
+
+
+int main(int argc, char *argv[])
+{
+	int count;
+	unsigned char *buf = NULL;
+	char *str = NULL;
+
+	if (argc < 2) {
+		printf("Error: No buffer length\n");
+		return -1;
+	}
+
+	count = atoi(argv[1]);
+	if (count <= 0) {
+		printf("Error: Invalid buffer length\n");
+		return -1;
+	}
+
+	buf = (unsigned char*) malloc(sizeof(unsigned char) * count);
+	if (buf == NULL) {
+		printf("Error: Memory allocation error\n");
+		return -1;
+	}
+
+	get_random_buffer(buf, count);
+	printf("buffer length: %d\n", count);
+	printhex(buf, count);
+
+	get_random_string(str, count);
+	printf("buffer length: %d\n", count);
+	printf("string: %s\n", str);
+
+	free(buf);
+	free(str);
+
+	return 0;
+}

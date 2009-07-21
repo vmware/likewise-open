@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -31,51 +31,28 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <md5.h>
-#include <crypto.h>
-#include <rc4.h>
-
-
-void printdigest(char *printed, unsigned char *d, size_t dlen)
+void printdigest(unsigned char m[16])
 {
 	int i;
+	printf("md4: ");
 
-	for (i = 0; i < dlen; i++) {
-		snprintf(&printed[2*i], 3, "%02x", d[i]);
+	for (i = 0; i < 16; i++) {
+		printf("%02x", m[i]);
 	}
-}
 
+	printf("\n");
+}
 
 int main()
 {
-	const char *pass = "TestPassword";
+	const char *sample = "message digest";
+	unsigned char md[16];
+	size_t len;
 
-	struct md5context ctx;
-	unsigned char passbuf[532] = {0};
-	unsigned char printedbuf[1065];  /* 2*532 + 1 */
-	unsigned char initval[16], digested_sess_key[16];
-	size_t sess_key_len = 16;
-	unsigned char sess_key[16] = {
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0
-	};
+	len = strlen(sample);
+	md5(md, sample, len);
 
-	EncodePassBuffer(passbuf, pass);
-
-	memset(initval, 0, sizeof(initval));
-
-	md5init(&ctx);
-	md5update(&ctx, initval, 16);
-	md5update(&ctx, sess_key, sess_key_len);
-	md5final(&ctx, digested_sess_key);
-
-	rc4(passbuf, 516, digested_sess_key, 16);
-	memcpy(&passbuf[516], initval, 16);
-
-	printdigest((char*)printedbuf, passbuf, sizeof(passbuf));
-	printedbuf[1064] = 0;
-
-	printf("rc4: %s\n", printedbuf);
+	printdigest(md);
 
 	return 0;
 }
