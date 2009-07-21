@@ -249,15 +249,35 @@ PvfsCreateFileSupersede(
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pIrpContext,
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = STATUS_SUCCESS;
+    if (pCreateCtx->bFileExisted &&
+        (pCreateCtx->GrantedAccess &
+         ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)))
+    {
+        ntError = PvfsOplockBreakIfLocked(
+                      pCreateCtx->pIrpContext,
+                      pCreateCtx->pCcb,
+                      pCreateCtx->pFcb);
+    }
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+        break;
+
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      pCreateCtx->pCcb,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
         break;
 
     case STATUS_PENDING:
@@ -271,7 +291,6 @@ PvfsCreateFileSupersede(
             pCreateCtx = NULL;
             ntError = STATUS_PENDING;
         }
-        pCreateCtx = NULL;
         break;
     }
     BAIL_ON_NT_STATUS(ntError);
@@ -440,15 +459,34 @@ PvfsCreateFileOpenOrOverwrite(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pIrpContext,
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = STATUS_SUCCESS;
+    if (pCreateCtx->GrantedAccess &
+        ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE))
+    {
+        ntError = PvfsOplockBreakIfLocked(
+                      pCreateCtx->pIrpContext,
+                      pCreateCtx->pCcb,
+                      pCreateCtx->pFcb);
+    }
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+        break;
+
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      pCreateCtx->pCcb,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
         break;
 
     case STATUS_PENDING:
@@ -574,15 +612,35 @@ PvfsCreateFileOpenOrOverwriteIf(
                                        PVFS_SET_PROP_ATTRIB;
     }
 
-    ntError = PvfsOplockBreakIfLocked(
-                  pCreateCtx->pIrpContext,
-                  pCreateCtx->pCcb,
-                  pCreateCtx->pFcb);
+    ntError = STATUS_SUCCESS;
+    if (pCreateCtx->bFileExisted &&
+        (pCreateCtx->GrantedAccess &
+         ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)))
+    {
+        ntError = PvfsOplockBreakIfLocked(
+                      pCreateCtx->pIrpContext,
+                      pCreateCtx->pCcb,
+                      pCreateCtx->pFcb);
+    }
 
     switch (ntError)
     {
     case STATUS_SUCCESS:
         ntError = PvfsCreateFileDoSysOpen(pCreateCtx);
+        break;
+
+    case STATUS_OPLOCK_BREAK_IN_PROGRESS:
+        ntError = PvfsPendOplockBreakTest(
+                      pCreateCtx->pFcb,
+                      pIrpContext,
+                      pCreateCtx->pCcb,
+                      PvfsCreateFileDoSysOpen,
+                      PvfsFreeCreateContext,
+                      (PVOID)pCreateCtx);
+        if (ntError == STATUS_SUCCESS) {
+            pCreateCtx = NULL;
+            ntError = STATUS_PENDING;
+        }
         break;
 
     case STATUS_PENDING:

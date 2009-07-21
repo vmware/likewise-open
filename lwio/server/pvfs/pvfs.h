@@ -408,6 +408,28 @@ PvfsOplockBreakIfLocked(
     IN PPVFS_FCB pFcb
     );
 
+NTSTATUS
+PvfsOplockPendingBreakIfLocked(
+    IN PPVFS_PENDING_OPLOCK_BREAK_TEST pTestContext
+    );
+
+NTSTATUS
+PvfsCreateOplockBreakTestContext(
+    OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppTestContext,
+    IN  PPVFS_FCB pFcb,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb,
+    IN  PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN  PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
+    IN  PVOID pCompletionContext
+    );
+
+VOID
+PvfsFreeOplockBreakTestContext(
+    IN OUT PPVFS_PENDING_OPLOCK_BREAK_TEST *ppContext
+    );
+
+
 
 #endif /* __PVFS_H__ */
 

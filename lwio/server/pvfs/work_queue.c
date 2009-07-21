@@ -171,6 +171,30 @@ error:
 }
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsNextGlobalWorkItem(
+    OUT PVOID *ppData
+    )
+{
+    return PvfsNextWorkItem(gpPvfsIoWorkQueue, ppData);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsAddGlobalWorkItem(
+    IN PVOID pData
+    )
+{
+    return PvfsAddWorkItem(gpPvfsIoWorkQueue, pData);
+}
+
+
+
 
 /*
 local variables:
