@@ -11,4 +11,4 @@ SUBDIRS = \
     krb5pac    \
     dssetup    \
     netlib     \
-    TestRpc
+    testrpc
