@@ -56,6 +56,7 @@
 #include <lw/ntstatus.h>
 #include <openssl/md5.h>
 #include <openssl/rc4.h>
+#include <lwps/lwps.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/winerror.h>
@@ -64,6 +65,7 @@
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
 #include <lwrpc/netlogon.h>
+#include <lwrpc/mpr.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
 #include <lwrpc/sidhelper.h>
@@ -75,19 +77,19 @@
 #include <rc4.h>
 #include <des.h>
 
-#include "NetConnection.h"
-#include "NetUser.h"
-#include "NetUtil.h"
-#include "NetMemory.h"
-#include "NetHostInfo.h"
-#include "NetInfo.h"
-#include "NetLibUserInfo.h"
-#include "GroupInfo.h"
-#include "NetGetDcName.h"
-#include "LdapUtil.h"
-#include "JoinLocal.h"
-#include "UnjoinLocal.h"
-#include "MachinePassword.h"
+#include "net_connection.h"
+#include "net_user.h"
+#include "net_util.h"
+#include "net_memory.h"
+#include "net_hostinfo.h"
+#include "net_info.h"
+#include "net_userinfo.h"
+#include "net_groupinfo.h"
+#include "net_getdcname.h"
+#include "ldaputil.h"
+#include "joinlocal.h"
+#include "unjoinlocal.h"
+#include "machinepassword.h"
 #include "externs.h"
 
 #define BAIL_ON_NT_STATUS(s) \
@@ -96,6 +98,10 @@
         if ((s)) goto error; \
     } while (0)
 
+
+#if !defined(MACHPASS_LEN)
+#define MACHPASS_LEN  (16)
+#endif
 
 
 /*
