@@ -1,4 +1,0 @@
-LIBRARY	"centNetApi32"
-
-EXPORTS
-NetUserEnum
