@@ -610,12 +610,13 @@ MemCacheSafeClose(
     )
 {
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)*phDb;
-    LSA_HASH_ITERATOR iterator = {0};
-    LSA_HASH_ENTRY *pEntry = NULL;
     DWORD dwError = 0;
 
     if (pConn)
     {
+        dwError = MemCacheEmptyCache(*phDb);
+        LSA_ASSERT(dwError == 0);
+
         LsaHashSafeFree(&pConn->pDNToSecurityObject);
         LsaHashSafeFree(&pConn->pNT4ToSecurityObject);
         LsaHashSafeFree(&pConn->pSIDToSecurityObject);
@@ -630,51 +631,8 @@ MemCacheSafeClose(
         LsaHashSafeFree(&pConn->pGroupAliasToSecurityObject);
         LSA_SAFE_FREE_STRING(pConn->pszFilename);
 
-        // Remove all of the group memberships. Either table may be iterated,
-        // so the parentsid list was chosen.
-        dwError = LsaHashGetIterator(
-                        pConn->pParentSIDToMembershipList,
-                        &iterator);
-        LSA_ASSERT(dwError == 0);
-
-        while ((pEntry = LsaHashNext(&iterator)) != NULL)
-        {
-            PMEM_LIST_NODE pGuardian = (PMEM_LIST_NODE)pEntry->pValue;
-            // Since the hash entry exists, the list must be non-empty
-            BOOLEAN bListNonempty = TRUE;
-
-            while (bListNonempty)
-            {
-                LSA_ASSERT(pGuardian->pNext != pGuardian);
-                if (pGuardian->pNext->pNext == pGuardian)
-                {
-                    // At this point, there is a guardian node plus one other
-                    // entry. MemCacheRemoveMembership will remove the last
-                    // entry and the guardian node in the next call. Since the
-                    // entry hash entry will have been deleted, the loop can
-                    // then exit. The pGuardian pointer will be invalid, so
-                    // this condition has to be checked before the last
-                    // membership is removed.
-                    bListNonempty = FALSE;
-                }
-                dwError = MemCacheRemoveMembership(
-                                pConn,
-                                PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
-                LSA_ASSERT(dwError == 0);
-            }
-        }
-
-        LSA_ASSERT(pConn->pParentSIDToMembershipList->sCount == 0);
         LsaHashSafeFree(&pConn->pParentSIDToMembershipList);
-        LSA_ASSERT(pConn->pChildSIDToMembershipList->sCount == 0);
         LsaHashSafeFree(&pConn->pChildSIDToMembershipList);
-
-        LsaDLinkedListForEach(
-            pConn->pObjects,
-            MemCacheFreeObjects,
-            NULL);
-        LsaDLinkedListFree(pConn->pObjects);
-        pConn->pObjects = NULL;
 
         if (pConn->bLockCreated)
         {
@@ -974,8 +932,23 @@ MemCacheRemoveUserBySid(
     )
 {
     DWORD dwError = 0;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
 
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    dwError = MemCacheRemoveObjectByHashKey(
+                    pConn,
+                    pConn->pSIDToSecurityObject,
+                    pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -985,8 +958,23 @@ MemCacheRemoveGroupBySid(
     )
 {
     DWORD dwError = 0;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
 
+    ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+
+    dwError = MemCacheRemoveObjectByHashKey(
+                    pConn,
+                    pConn->pSIDToSecurityObject,
+                    pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
@@ -994,16 +982,115 @@ MemCacheEmptyCache(
     IN LSA_DB_HANDLE hDb
     )
 {
+    BOOLEAN bInLock = FALSE;
+    PMEM_DB_CONNECTION pConn = NULL;
     DWORD dwError = 0;
+    LSA_HASH_ITERATOR iterator = {0};
+    // Do not free
+    LSA_HASH_ENTRY *pEntry = NULL;
 
+    if (pConn->bLockCreated)
+    {
+        ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
+    }
+
+    if (pConn->pDNToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pDNToSecurityObject);
+    }
+    if (pConn->pNT4ToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pNT4ToSecurityObject);
+    }
+    if (pConn->pSIDToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pSIDToSecurityObject);
+    }
+
+    if (pConn->pUIDToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pUIDToSecurityObject);
+    }
+    if (pConn->pUserAliasToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pUserAliasToSecurityObject);
+    }
+    if (pConn->pUPNToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pUPNToSecurityObject);
+    }
+
+    if (pConn->pSIDToPasswordVerifier)
+    {
+        LsaHashRemoveAll(pConn->pSIDToPasswordVerifier);
+    }
+
+    if (pConn->pGIDToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pGIDToSecurityObject);
+    }
+    if (pConn->pGroupAliasToSecurityObject)
+    {
+        LsaHashRemoveAll(pConn->pGroupAliasToSecurityObject);
+    }
+
+    // Remove all of the group memberships. Either table may be iterated,
+    // so the parentsid list was chosen.
+    dwError = LsaHashGetIterator(
+                    pConn->pParentSIDToMembershipList,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        PMEM_LIST_NODE pGuardian = (PMEM_LIST_NODE)pEntry->pValue;
+        // Since the hash entry exists, the list must be non-empty
+        BOOLEAN bListNonempty = TRUE;
+
+        while (bListNonempty)
+        {
+            LSA_ASSERT(pGuardian->pNext != pGuardian);
+            if (pGuardian->pNext->pNext == pGuardian)
+            {
+                // At this point, there is a guardian node plus one other
+                // entry. MemCacheRemoveMembership will remove the last
+                // entry and the guardian node in the next call. Since the
+                // entry hash entry will have been deleted, the loop can
+                // then exit. The pGuardian pointer will be invalid, so
+                // this condition has to be checked before the last
+                // membership is removed.
+                bListNonempty = FALSE;
+            }
+            dwError = MemCacheRemoveMembership(
+                            pConn,
+                            PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    LSA_ASSERT(pConn->pParentSIDToMembershipList->sCount == 0);
+    LSA_ASSERT(pConn->pChildSIDToMembershipList->sCount == 0);
+
+    LsaDLinkedListForEach(
+        pConn->pObjects,
+        MemCacheFreeObjects,
+        NULL);
+    LsaDLinkedListFree(pConn->pObjects);
+    pConn->pObjects = NULL;
+
+cleanup:
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
     return dwError;
+
+error:
+    goto cleanup;
 }
 
 DWORD
 MemCacheRemoveObjectByHashKey(
     IN PMEM_DB_CONNECTION pConn,
     IN OUT PLSA_HASH_TABLE pTable,
-    IN PVOID pvKey
+    IN const void* pvKey
     )
 {
     DWORD dwError = 0;

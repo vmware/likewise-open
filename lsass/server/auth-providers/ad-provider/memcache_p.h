@@ -218,7 +218,7 @@ DWORD
 MemCacheRemoveObjectByHashKey(
     IN PMEM_DB_CONNECTION pConn,
     IN OUT PLSA_HASH_TABLE pTable,
-    IN PVOID pvKey
+    IN const void* pvKey
     );
 
 DWORD

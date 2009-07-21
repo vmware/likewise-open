@@ -92,38 +92,37 @@ LsaHashFree(
 }
 
 void
+LsaHashRemoveAll(
+        LSA_HASH_TABLE* pResult)
+{
+    size_t sBucket = 0;
+    LSA_HASH_ENTRY *pEntry = NULL;
+
+    for (sBucket = 0; pResult->sCount; sBucket++)
+    {
+        LSA_ASSERT(sBucket < pResult->sTableSize);
+        while ( (pEntry = pResult->ppEntries[sBucket]) != NULL)
+        {
+            if (pResult->fnFree != NULL)
+            {
+                pResult->fnFree(pEntry);
+            }
+            pResult->ppEntries[sBucket] = pEntry->pNext;
+            pResult->sCount--;
+            LSA_SAFE_FREE_MEMORY(pEntry);
+        }
+    }
+}
+
+void
 LsaHashSafeFree(
         LSA_HASH_TABLE** ppResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-    LSA_HASH_ITERATOR iterator;
-    LSA_HASH_ENTRY *pEntry = NULL;
-
-    if(*ppResult == NULL)
+    if (*ppResult != NULL)
     {
-        goto cleanup;
+        LsaHashRemoveAll(*ppResult);
+        *ppResult = NULL;
     }
-
-    dwError = LsaHashGetIterator(*ppResult, &iterator);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    while ((pEntry = LsaHashNext(&iterator)) != NULL)
-    {
-        if ((*ppResult)->fnFree != NULL)
-        {
-            (*ppResult)->fnFree(pEntry);
-        }
-        LSA_SAFE_FREE_MEMORY(pEntry);
-    }
-
-    LSA_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
-    LsaFreeMemory(*ppResult);
-
-    *ppResult = NULL;
-
-cleanup:
-error:
-    ;
 }
 
 DWORD

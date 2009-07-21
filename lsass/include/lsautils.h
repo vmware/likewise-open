@@ -851,6 +851,10 @@ LsaHashCreate(
     );
 
 void
+LsaHashRemoveAll(
+        LSA_HASH_TABLE* pResult);
+
+void
 LsaHashSafeFree(
     LSA_HASH_TABLE** ppResult
     );
