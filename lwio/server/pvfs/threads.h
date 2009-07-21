@@ -106,6 +106,17 @@ PvfsNextWorkItem(
     PVOID *ppItem
     );
 
+NTSTATUS
+PvfsAddGlobalWorkItem(
+    IN PVOID pItem
+    );
+
+NTSTATUS
+PvfsNextGlobalWorkItem(
+    OUT PVOID *ppData
+    );
+
+
 
 #endif    /* __PVFS_THREADS_H__ */
 

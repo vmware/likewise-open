@@ -45,11 +45,11 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerDeleteSecurityContext(
-    IN PCtxtHandle phContext
+    IN PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = 0;

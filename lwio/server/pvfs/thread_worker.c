@@ -52,11 +52,6 @@ static PVFS_WORKER_POOL gWorkPool;
 
 /* Forward declarations */
 
-static VOID
-FreeWorkItem(
-    PVOID *ppItem
-    );
-
 static PVOID
 PvfsWorkerDoWork(
     PVOID pArgs
@@ -79,7 +74,7 @@ PvfsInitWorkerThreads(
 
     ntError = PvfsInitWorkQueue(&gpPvfsIoWorkQueue,
                                 PVFS_WORKERS_MAX_WORK_ITEMS,
-                                &FreeWorkItem);
+                                (PLWRTL_QUEUE_FREE_DATA_FN)PvfsFreeWorkContext);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory(
@@ -109,26 +104,6 @@ error:
     goto cleanup;
 }
 
-/************************************************************
-  **********************************************************/
-
-static VOID
-FreeWorkItem(
-    PVOID *ppItem
-    )
-{
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
-
-    if ((ppItem == NULL) || (*ppItem == NULL)) {
-        return;
-    }
-
-    pIrpCtx = (PPVFS_IRP_CONTEXT)(*ppItem);
-
-    PvfsFreeIrpContext(&pIrpCtx);
-
-    return;
-}
 
 /************************************************************
   **********************************************************/
@@ -140,6 +115,7 @@ PvfsWorkerDoWork(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
     PVOID pData = NULL;
     BOOL bInLock = FALSE;
 
@@ -148,36 +124,54 @@ PvfsWorkerDoWork(
         bInLock = FALSE;
         pData = NULL;
         pIrpCtx = NULL;
+        pWorkCtx = NULL;
 
         /* Failing to get the next work item is really bad.
            Should not happen */
 
-        ntError = PvfsNextWorkItem(gpPvfsIoWorkQueue, &pData);
+        ntError = PvfsNextGlobalWorkItem(&pData);
         BAIL_ON_NT_STATUS(ntError);
 
-        pIrpCtx = (PPVFS_IRP_CONTEXT)pData;
+        pWorkCtx = (PPVFS_WORK_CONTEXT)pData;
 
-        LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
+        /* Deal with IRPs slightly differently than non IRP work items */
 
-        if (pIrpCtx->bIsCancelled) {
-            ntError = STATUS_CANCELLED;
-        } else {
-            ntError = pIrpCtx->pfnWorkCallback(pIrpCtx);
-        }
-
-        LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
-
-        /* Check to to see if the request was requeued */
-
-        if (ntError != STATUS_PENDING)
+        if (pWorkCtx->pIrpContext)
         {
-            pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
-            IoIrpComplete(pIrpCtx->pIrp);
+            pIrpCtx = pWorkCtx->pIrpContext;
 
-            PvfsFreeIrpContext(&pIrpCtx);
+            LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
 
+            if (pIrpCtx->bIsCancelled) {
+                ntError = STATUS_CANCELLED;
+            } else {
+                ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
+            }
 
+            LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
+
+            /* Check to to see if the request was requeued */
+
+            if (ntError != STATUS_PENDING)
+            {
+                pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
+                IoIrpComplete(pIrpCtx->pIrp);
+
+                PvfsFreeIrpContext(&pIrpCtx);
+            }
         }
+        else
+        {
+            ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
+        }
+
+        /* Free the work item and context */
+
+        if (pWorkCtx->pfnFreeContext) {
+            pWorkCtx->pfnFreeContext(&pWorkCtx->pContext);
+        }
+
+        PvfsFreeWorkContext(&pWorkCtx);
     }
 
 cleanup:

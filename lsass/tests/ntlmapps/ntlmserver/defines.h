@@ -23,8 +23,6 @@
 #ifndef _NTLM_SERVER_DEFINES_H_
 #define _NTLM_SERVER_DEFINES_H_
 
-#define DUPE( x ) { "-" #x, ASC_REQ_ ## x }
-
 #define BAIL_ON_ERROR(dwError) \
     if (dwError)               \
     {                          \

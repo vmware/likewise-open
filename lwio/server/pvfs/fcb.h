@@ -59,6 +59,11 @@ PvfsAllocateFCB(
     PPVFS_FCB *ppFcb
     );
 
+ULONG
+PvfsReferenceFCB(
+    IN PPVFS_FCB pFcb
+    );
+
 VOID
 PvfsReleaseFCB(
     PPVFS_FCB pFcb
@@ -136,11 +141,21 @@ PvfsFileIsOplockedShared(
     );
 
 NTSTATUS
+PvfsPendOplockBreakTest(
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
+    IN PVOID pCompletionContext
+    );
+
+NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
     IN OUT PPVFS_FCB pFcb,
     IN     PPVFS_IRP_CONTEXT pIrpContext,
     IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
-    IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree,
+    IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
     IN     PVOID pCompletionContext
     );
 

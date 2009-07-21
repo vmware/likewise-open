@@ -48,6 +48,20 @@
 #define _PVFS_ASYNC_HANDLER_H_
 
 NTSTATUS
+PvfsCreateWorkContext(
+    OUT PPVFS_WORK_CONTEXT *ppWorkContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PVOID pContext,
+    IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
+    IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
+    );
+
+VOID
+PvfsFreeWorkContext(
+    IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
+    );
+
+NTSTATUS
 PvfsAsyncCreate(
     PPVFS_IRP_CONTEXT  pIrpContext
     );

@@ -45,26 +45,26 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerAcceptSecurityContext(
-    IN PCredHandle phCredential,
-    IN OUT PCtxtHandle phContext,
+    IN PLSA_CRED_HANDLE phCredential,
+    IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PCtxtHandle phNewContext,
+    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CONTEXT pNtlmCtxtOut = NULL;
-    PNTLM_CONTEXT pNtlmCtxtIn = NULL;
-    PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
-    BOOLEAN bInLock = FALSE;
+    PLSA_CONTEXT pNtlmCtxtOut = NULL;
+    PLSA_CONTEXT pNtlmCtxtIn = NULL;
+    PLSA_CONTEXT pNtlmCtxtChlng = NULL;
+    LSA_CONTEXT_HANDLE ContextHandle = NULL;
 
     if(ptsTimeStamp)
     {
@@ -85,11 +85,7 @@ NtlmServerAcceptSecurityContext(
         // The only time we should get a context handle passed in is when
         // we are validating a challenge and we need to look up the original
         // challenge sent
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-            dwError = NtlmFindContext(phContext, &pNtlmCtxtChlng);
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-
-        BAIL_ON_NTLM_ERROR(dwError);
+        pNtlmCtxtChlng = *phContext;
 
         // In this case we need to build up a temp context for the response
         // message sent in
@@ -117,8 +113,7 @@ NtlmServerAcceptSecurityContext(
             dwError = NtlmValidateResponse(pNtlmCtxtIn, pNtlmCtxtChlng);
             BAIL_ON_NTLM_ERROR(dwError);
 
-            dwError = NtlmFreeContext(pNtlmCtxtChlng);
-            BAIL_ON_NTLM_ERROR(dwError);
+            NtlmFreeContext(pNtlmCtxtChlng);
 
             pNtlmCtxtChlng = NULL;
         }
@@ -133,44 +128,32 @@ NtlmServerAcceptSecurityContext(
         dwError = NtlmCopyContextToSecBufferDesc(pNtlmCtxtOut, pOutput);
         BAIL_ON_LW_ERROR(dwError);
 
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-        //
-            dwError = NtlmInsertContext(
-                pNtlmCtxtOut
-                );
-        //
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-
-        BAIL_ON_NTLM_ERROR(dwError);
-
-        *phNewContext = pNtlmCtxtOut->ContextHandle;
+        NtlmAddContext(pNtlmCtxtOut, &ContextHandle);
 
         dwError = LW_WARNING_CONTINUE_NEEDED;
     }
 
 cleanup:
+    *phNewContext = ContextHandle;
+
     return(dwError);
 error:
-    if(phNewContext)
+    if(ContextHandle)
     {
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-            NtlmRemoveContext(phNewContext);
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-        memset(phNewContext, 0 , sizeof(CtxtHandle));
+        NtlmReleaseContext(ContextHandle);
+        ContextHandle = NULL;
     }
     if(pNtlmCtxtChlng)
     {
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-            NtlmRemoveContext(&pNtlmCtxtChlng->ContextHandle);
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+        NtlmReleaseContext(pNtlmCtxtChlng);
     }
     goto cleanup;
 }
 
 DWORD
 NtlmCreateChallengeContext(
-    IN PNTLM_CONTEXT pNtlmNegCtxt,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    IN PLSA_CONTEXT pNtlmNegCtxt,
+    OUT PLSA_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -208,8 +191,8 @@ error:
 
 DWORD
 NtlmValidateResponse(
-    PNTLM_CONTEXT pRespCtxt,
-    PNTLM_CONTEXT pChlngCtxt
+    PLSA_CONTEXT pRespCtxt,
+    PLSA_CONTEXT pChlngCtxt
     )
 {
     return LW_ERROR_SUCCESS;

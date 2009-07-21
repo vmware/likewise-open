@@ -54,14 +54,14 @@ NtlmClientAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PCredHandle phCredential,
+    OUT PLSA_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
-    memset(phCredential, 0, sizeof(CredHandle));
+    memset(phCredential, 0, sizeof(LSA_CRED_HANDLE));
     memset(ptsExpiry, 0, sizeof(TimeStamp));
 
     dwError = NtlmOpenServer(&hServer);
@@ -74,8 +74,6 @@ NtlmClientAcquireCredentialsHandle(
         fCredentialUse,
         pvLogonID,
         pAuthData,
-        //pGetKeyFn,
-        //pvGetKeyArgument,
         phCredential,
         ptsExpiry
         );
@@ -87,7 +85,7 @@ cleanup:
     }
     return(dwError);
 error:
-    memset(phCredential, 0, sizeof(CredHandle));
+    memset(phCredential, 0, sizeof(LSA_CRED_HANDLE));
     memset(ptsExpiry, 0, sizeof(TimeStamp));
     goto cleanup;
 }

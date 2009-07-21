@@ -58,12 +58,14 @@
 #include <lwerror.h>
 #include <lwmem.h>
 #include <lwsecurityidentifier.h>
+#include <lsasrvcred.h>
 
 //******************************************************************************
 //
 // S T R U C T S
 //
 
+#if 0
 typedef struct _SecHandle
 {
     DWORD       dwLower;
@@ -75,11 +77,10 @@ typedef PSecHandle   PCredHandle;
 
 typedef SecHandle    CtxtHandle;
 typedef PSecHandle   PCtxtHandle;
+#endif
 
 typedef CHAR SEC_CHAR;
 
-// Again, under windows, these are ULONG values, which would be equivalent to
-// DWORD values here.  Just noting the structure "change".
 typedef struct _SecBuffer
 {
     DWORD cbBuffer;
@@ -103,22 +104,19 @@ typedef struct _SecPkgContext_Sizes
   DWORD cbSecurityTrailer;
 }SecPkgContext_Sizes, *PSecPkgContext_Sizes;
 
-// Again, under windows, HighPart would be a long which is 32 bit; here we have
-// to adjust the size accordingly.
 typedef struct _LUID
 {
     DWORD LowPart;
     INT  HighPart;
 }LUID, *PLUID;
 
-// Again... windows... 32 bits
 typedef struct _SEC_WINNT_AUTH_IDENTITY
 {
-  USHORT *User;
+  PCHAR User;
   DWORD UserLength;
-  USHORT *Domain;
+  PCHAR Domain;
   DWORD DomainLength;
-  USHORT *Password;
+  PCHAR Password;
   DWORD PasswordLength;
   DWORD Flags;
 }SEC_WINNT_AUTH_IDENTITY, *PSEC_WINNT_AUTH_IDENTITY;
@@ -161,6 +159,9 @@ typedef struct _WIN_VERSION_INFO
     DWORD   dwReserved;
 } WIN_VERSION_INFO, *PWIN_VERSION_INFO;
 
+struct _LSA_CONTEXT;
+typedef struct _LSA_CONTEXT *LSA_CONTEXT_HANDLE, **PLSA_CONTEXT_HANDLE;
+
 //******************************************************************************
 //
 // D E F I N E S
@@ -187,6 +188,9 @@ typedef struct _WIN_VERSION_INFO
 #define SECBUFFER_PADDING 1
 #define SECBUFFER_TOKEN   2
 #define SECBUFFER_STREAM  3
+
+#define LW_STRING_TYPE_UNICODE  0
+#define LW_STRING_TYPE_ANSI     1
 
 //  NTLM FLAGS
 //
@@ -255,12 +259,12 @@ typedef struct _WIN_VERSION_INFO
 
 DWORD
 NtlmClientAcceptSecurityContext(
-    IN PCredHandle phCredential,
-    IN OUT PCtxtHandle phContext,
+    IN PLSA_CRED_HANDLE phCredential,
+    IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PCtxtHandle phNewContext,
+    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -273,13 +277,13 @@ NtlmClientAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PCredHandle phCredential,
+    OUT PLSA_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     );
 
 DWORD
 NtlmClientDecryptMessage(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbEncrypted
@@ -287,12 +291,12 @@ NtlmClientDecryptMessage(
 
 DWORD
 NtlmClientDeleteSecurityContext(
-    IN PCtxtHandle phContext
+    IN PLSA_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientEncryptMessage(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
@@ -300,7 +304,7 @@ NtlmClientEncryptMessage(
 
 DWORD
 NtlmClientExportSecurityContext(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -308,7 +312,7 @@ NtlmClientExportSecurityContext(
 
 DWORD
 NtlmClientFreeCredentialsHandle(
-    IN PCredHandle phCredential
+    IN PLSA_CRED_HANDLE phCredential
     );
 
 DWORD
@@ -316,20 +320,20 @@ NtlmClientImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PCtxtHandle phContext
+    OUT PLSA_CONTEXT_HANDLE phContext
     );
 
 DWORD
 NtlmClientInitializeSecurityContext(
-    IN OPTIONAL PCredHandle phCredential,
-    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
@@ -337,7 +341,7 @@ NtlmClientInitializeSecurityContext(
 
 DWORD
 NtlmClientMakeSignature(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
@@ -345,134 +349,21 @@ NtlmClientMakeSignature(
 
 DWORD
 NtlmClientQueryCredentialsAttributes(
-    IN PCredHandle phCredential,
+    IN PLSA_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
 NtlmClientQueryContextAttributes(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     );
 
 DWORD
 NtlmClientVerifySignature(
-    IN PCtxtHandle phContext,
-    IN PSecBufferDesc pMessage,
-    IN DWORD MessageSeqNo,
-    OUT PBOOL pbVerified,
-    OUT PBOOL pbEncryted
-    );
-
-DWORD
-NtlmServerAcceptSecurityContext(
-    IN PCredHandle phCredential,
-    IN OUT PCtxtHandle phContext,
-    IN PSecBufferDesc pInput,
-    IN DWORD fContextReq,
-    IN DWORD TargetDataRep,
-    IN OUT PCtxtHandle phNewContext,
-    IN OUT PSecBufferDesc pOutput,
-    OUT PDWORD  pfContextAttr,
-    OUT PTimeStamp ptsTimeStamp
-    );
-
-DWORD
-NtlmServerAcquireCredentialsHandle(
-    IN SEC_CHAR *pszPrincipal,
-    IN SEC_CHAR *pszPackage,
-    IN DWORD fCredentialUse,
-    IN PLUID pvLogonID,
-    IN PVOID pAuthData,
-    OUT PCredHandle phCredential,
-    OUT PTimeStamp ptsExpiry
-    );
-
-DWORD
-NtlmServerDecryptMessage(
-    IN PCtxtHandle phContext,
-    IN OUT PSecBufferDesc pMessage,
-    IN DWORD MessageSeqNo,
-    OUT PBOOL pbEncrypted
-    );
-
-DWORD
-NtlmServerDeleteSecurityContext(
-    IN PCtxtHandle phContext
-    );
-
-DWORD
-NtlmServerEncryptMessage(
-    IN PCtxtHandle phContext,
-    IN BOOL bEncrypt,
-    IN OUT PSecBufferDesc pMessage,
-    IN DWORD MessageSeqNo
-    );
-
-DWORD
-NtlmServerExportSecurityContext(
-    IN PCtxtHandle phContext,
-    IN DWORD fFlags,
-    OUT PSecBuffer pPackedContext,
-    OUT OPTIONAL HANDLE *pToken
-    );
-
-DWORD
-NtlmServerFreeCredentialsHandle(
-    IN PCredHandle phCredential
-    );
-
-DWORD
-NtlmServerImportSecurityContext(
-    IN PSECURITY_STRING *pszPackage,
-    IN PSecBuffer pPackedContext,
-    IN OPTIONAL HANDLE pToken,
-    OUT PCtxtHandle phContext
-    );
-
-DWORD
-NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PCredHandle phCredential,
-    IN OPTIONAL PCtxtHandle phContext,
-    IN OPTIONAL SEC_CHAR * pszTargetName,
-    IN DWORD fContextReq,
-    IN DWORD Reserved1,
-    IN DWORD TargetDataRep,
-    IN OPTIONAL PSecBufferDesc pInput,
-    IN DWORD Reserved2,
-    IN OUT OPTIONAL PCtxtHandle phNewContext,
-    IN OUT OPTIONAL PSecBufferDesc pOutput,
-    OUT PDWORD pfContextAttr,
-    OUT OPTIONAL PTimeStamp ptsExpiry
-    );
-
-DWORD
-NtlmServerMakeSignature(
-    IN PCtxtHandle phContext,
-    IN BOOL bEncrypt,
-    IN OUT PSecBufferDesc pMessage,
-    IN DWORD MessageSeqNo
-    );
-
-DWORD
-NtlmServerQueryCredentialsAttributes(
-    IN PCredHandle phCredential,
-    IN DWORD ulAttribute,
-    OUT PVOID pBuffer
-    );
-
-DWORD
-NtlmServerQueryContextAttributes(
-    IN PCtxtHandle phContext,
-    IN DWORD ulAttribute,
-    OUT PVOID pBuffer
-    );
-
-DWORD
-NtlmServerVerifySignature(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbVerified,

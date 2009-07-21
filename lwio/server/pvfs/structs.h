@@ -107,13 +107,6 @@ typedef struct _PVFS_DIRECTORY_CONTEXT
 
 } PVFS_DIRECTORY_CONTEXT, *PPVFS_DIRECTORY_CONTEXT;
 
-typedef struct _PVFS_INTERLOCKED_ULONG
-{
-    ULONG           ulCounter;
-    pthread_mutex_t CounterMutex;
-
-} PVFS_INTERLOCKED_ULONG, *PPVFS_INTERLOCKED_ULONG;
-
 typedef struct _PVFS_CCB PVFS_CCB, *PPVFS_CCB;
 typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
@@ -212,16 +205,28 @@ typedef NTSTATUS (*PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK)(
     IN PVOID pContext
     );
 
-typedef VOID (*PPVFS_OPLOCK_PENDING_COMPLETION_FREE)(
+typedef VOID (*PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX)(
     IN PVOID *ppContext
     );
+
+typedef struct _PVFS_PENDING_OPLOCK_BREAK_TEST
+{
+    PPVFS_FCB pFcb;
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PPVFS_CCB pCcb;
+    PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion;
+    PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext;
+    PVOID pCompletionContext;
+
+} PVFS_PENDING_OPLOCK_BREAK_TEST, *PPVFS_PENDING_OPLOCK_BREAK_TEST;
+
 
 typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 {
     PPVFS_IRP_CONTEXT pIrpContext;
 
     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion;
-    PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree;
+    PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext;
     PVOID pCompletionContext;
 
 } PVFS_OPLOCK_PENDING_OPERATION, *PPVFS_OPLOCK_PENDING_OPERATION;
@@ -251,9 +256,11 @@ struct _PVFS_FCB
     /* File Object state information */
 
     LW_LIST_LINKS OplockList;
+    BOOLEAN bOplockBreakInProgress;
 
     PLWRTL_QUEUE pPendingLockQueue;
     PLWRTL_QUEUE pOplockPendingOpsQueue;
+    PLWRTL_QUEUE pOplockReadyOpsQueue;
 
 };
 
@@ -306,10 +313,6 @@ struct _PVFS_CCB
 
 };
 
-typedef NTSTATUS (*PPVFS_WORK_CALLBACK)(
-    IN PPVFS_IRP_CONTEXT pIrpCtx
-    );
-
 struct _PVFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
@@ -318,8 +321,6 @@ struct _PVFS_IRP_CONTEXT
     BOOLEAN bIsCancelled;
 
     PIRP pIrp;
-
-    PPVFS_WORK_CALLBACK pfnWorkCallback;
 
     /* Used to cancel a pending blocking lock */
     PPVFS_PENDING_LOCK pPendingLock;
@@ -342,6 +343,26 @@ struct _PVFS_OPLOCK_RECORD
     PPVFS_IRP_CONTEXT pIrpContext;
 
 };
+
+
+typedef NTSTATUS (*PPVFS_WORK_CONTEXT_CALLBACK)(
+    IN PVOID pContext
+    );
+
+typedef VOID (*PPVFS_WORK_CONTEXT_FREE_CTX)(
+    IN PVOID *ppContext
+    );
+
+typedef struct _PVFS_WORK_CONTEXT
+{
+    PPVFS_IRP_CONTEXT pIrpContext;
+    PVOID pContext;
+
+    PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion;
+    PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext;
+
+} PVFS_WORK_CONTEXT, *PPVFS_WORK_CONTEXT;
+
 
 #endif    /* _PVFS_STRUCTS_H */
 

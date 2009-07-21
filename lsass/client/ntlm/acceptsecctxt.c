@@ -49,12 +49,12 @@
 
 DWORD
 NtlmClientAcceptSecurityContext(
-    IN PCredHandle phCredential,
-    IN OUT PCtxtHandle phContext,
+    IN PLSA_CRED_HANDLE phCredential,
+    IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PCtxtHandle phNewContext,
+    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -92,8 +92,8 @@ cleanup:
     return(dwError);
 error:
     // we may not want to clear the IN OUT params on error
-    memset(phContext, 0, sizeof(CtxtHandle));
-    memset(phNewContext, 0, sizeof(CtxtHandle));
+    memset(phContext, 0, sizeof(LSA_CONTEXT_HANDLE));
+    memset(phNewContext, 0, sizeof(LSA_CONTEXT_HANDLE));
     memset(pOutput, 0, sizeof(SecBufferDesc));
     memset(ptsTimeStamp, 0, sizeof(TimeStamp));
     *pfContextAttr = 0;

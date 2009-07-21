@@ -178,12 +178,12 @@ NtlmCloseServer(
 DWORD
 NtlmTransactAcceptSecurityContext(
     IN HANDLE hServer,
-    IN PCredHandle phCredential,
-    IN OUT PCtxtHandle phContext,
+    IN PLSA_CRED_HANDLE phCredential,
+    IN OUT PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pInput,
     IN DWORD fContextReq,
     IN DWORD TargetDataRep,
-    IN OUT PCtxtHandle phNewContext,
+    IN OUT PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT PSecBufferDesc pOutput,
     OUT PDWORD  pfContextAttr,
     OUT PTimeStamp ptsTimeStamp
@@ -231,8 +231,8 @@ NtlmTransactAcceptSecurityContext(
             dwError = NtlmDuplicateSecBufferDesc(pOutput, &pResultList->Output);
             BAIL_ON_NTLM_ERROR(dwError);
 
-            memcpy(phContext, &pResultList->hContext, sizeof(CtxtHandle));
-            memcpy(phNewContext, &pResultList->hNewContext, sizeof(CtxtHandle));
+            memcpy(phContext, &pResultList->hContext, sizeof(LSA_CONTEXT_HANDLE));
+            memcpy(phNewContext, &pResultList->hNewContext, sizeof(LSA_CONTEXT_HANDLE));
             memcpy(pfContextAttr, &pResultList->fContextAttr, sizeof(DWORD));
             memcpy(ptsTimeStamp, &pResultList->tsTimeStamp, sizeof(TimeStamp));
 
@@ -265,7 +265,7 @@ NtlmTransactAcquireCredentialsHandle(
     IN DWORD fCredentialUse,
     IN PLUID pvLogonID,
     IN PVOID pAuthData,
-    OUT PCredHandle phCredential,
+    OUT PLSA_CRED_HANDLE phCredential,
     OUT PTimeStamp ptsExpiry
     )
 {
@@ -306,7 +306,11 @@ NtlmTransactAcquireCredentialsHandle(
         case NTLM_R_ACQUIRE_CREDS_SUCCESS:
             pResultList = (PNTLM_IPC_ACQUIRE_CREDS_RESPONSE)response.object;
 
-            memcpy(phCredential, &pResultList->hCredential, sizeof(CredHandle));
+            memcpy(
+                phCredential,
+                &pResultList->hCredential,
+                sizeof(LSA_CRED_HANDLE));
+
             memcpy(ptsExpiry, &pResultList->tsExpiry, sizeof(TimeStamp));
 
             break;
@@ -333,7 +337,7 @@ error:
 DWORD
 NtlmTransactDecryptMessage(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbEncrypted
@@ -406,7 +410,7 @@ error:
 DWORD
 NtlmTransactDeleteSecurityContext(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext
+    IN PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -463,7 +467,7 @@ error:
 DWORD
 NtlmTransactEncryptMessage(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
@@ -535,7 +539,7 @@ error:
 DWORD
 NtlmTransactExportSecurityContext(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD fFlags,
     OUT PSecBuffer pPackedContext,
     OUT OPTIONAL HANDLE *pToken
@@ -610,7 +614,7 @@ error:
 DWORD
 NtlmTransactFreeCredentialsHandle(
     IN HANDLE hServer,
-    IN PCredHandle phCredential
+    IN PLSA_CRED_HANDLE phCredential
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -670,7 +674,7 @@ NtlmTransactImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PCtxtHandle phContext
+    OUT PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -708,7 +712,7 @@ NtlmTransactImportSecurityContext(
         case NTLM_R_IMPORT_SEC_CTXT_SUCCESS:
             pResultList = (PNTLM_IPC_IMPORT_SEC_CTXT_RESPONSE)response.object;
 
-            memcpy(phContext, &pResultList->hContext, sizeof(CtxtHandle));
+            memcpy(phContext, &pResultList->hContext, sizeof(LSA_CONTEXT_HANDLE));
 
             break;
         case NTLM_R_IMPORT_SEC_CTXT_FAILURE:
@@ -734,15 +738,15 @@ error:
 DWORD
 NtlmTransactInitializeSecurityContext(
     IN HANDLE hServer,
-    IN OPTIONAL PCredHandle phCredential,
-    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
@@ -805,7 +809,7 @@ NtlmTransactInitializeSecurityContext(
                 memcpy(
                     phNewContext,
                     &pResultList->hNewContext,
-                    sizeof(CtxtHandle)
+                    sizeof(LSA_CONTEXT_HANDLE)
                     );
             }
 
@@ -836,7 +840,7 @@ cleanup:
     return dwError;
 
 error:
-    memset(phNewContext, 0, sizeof(CtxtHandle));
+    memset(phNewContext, 0, sizeof(LSA_CONTEXT_HANDLE));
     pfContextAttr = 0;
     memset(ptsExpiry, 0, sizeof(TimeStamp));
     memset(pOutput, 0, sizeof(SecBufferDesc));
@@ -846,7 +850,7 @@ error:
 DWORD
 NtlmTransactMakeSignature(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN BOOL bEncrypt,
     IN OUT PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo
@@ -918,7 +922,7 @@ error:
 DWORD
 NtlmTransactQueryContextAttributes(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
@@ -985,7 +989,7 @@ error:
 DWORD
 NtlmTransactQueryCredentialsAttributes(
     IN HANDLE hServer,
-    IN PCredHandle phCredential,
+    IN PLSA_CRED_HANDLE phCredential,
     IN DWORD ulAttribute,
     OUT PVOID pBuffer
     )
@@ -1052,7 +1056,7 @@ error:
 DWORD
 NtlmTransactVerifySignature(
     IN HANDLE hServer,
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbVerified,

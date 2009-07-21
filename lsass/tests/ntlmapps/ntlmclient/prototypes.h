@@ -49,7 +49,7 @@ ClientEstablishContext(
     IN INT nSocket,
     IN PCHAR pServiceName,
     IN DWORD DelegFlag,
-    OUT CtxtHandle *pSspiContext,
+    OUT LSA_CONTEXT_HANDLE *pSspiContext,
     IN PCHAR pSecPkgName,
     OUT DWORD *pRetFlags
     );

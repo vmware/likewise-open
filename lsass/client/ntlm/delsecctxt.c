@@ -49,7 +49,7 @@
 
 DWORD
 NtlmClientDeleteSecurityContext(
-    IN PCtxtHandle phContext
+    IN PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;

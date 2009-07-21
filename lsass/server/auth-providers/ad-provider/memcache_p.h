@@ -91,11 +91,11 @@ typedef struct _MEM_DB_CONNECTION
     BOOLEAN bLockCreated;
     pthread_rwlock_t lock;
 
+    PSTR pszFilename;
+
     //linked lists
     // pItem is of type PLSA_SECURITY_OBJECT
     PDLINKEDLIST pObjects;
-    // pItem is of type PLSA_PASSWORD_VERIFIER
-    PDLINKEDLIST pPasswordVerifiers;
 
     //indexes
     PLSA_HASH_TABLE pDNToSecurityObject;
@@ -140,6 +140,16 @@ DWORD
 MemCacheOpen(
     IN PCSTR pszDbPath,
     OUT PLSA_DB_HANDLE phDb
+    );
+
+DWORD
+MemCacheLoadFile(
+    IN LSA_DB_HANDLE hDb
+    );
+
+DWORD
+MemCacheStoreFile(
+    IN LSA_DB_HANDLE hDb
     );
 
 VOID
@@ -205,16 +215,10 @@ MemCacheEmptyCache(
     );
 
 DWORD
-MemCacheStoreObjectEntry(
-    IN LSA_DB_HANDLE hDb,
-    IN PLSA_SECURITY_OBJECT pObject
-    );
-
-DWORD
 MemCacheRemoveObjectByHashKey(
     IN PMEM_DB_CONNECTION pConn,
     IN OUT PLSA_HASH_TABLE pTable,
-    IN PVOID pvKey
+    IN const void* pvKey
     );
 
 DWORD
@@ -234,6 +238,12 @@ MemCacheStoreObjectEntries(
     IN LSA_DB_HANDLE hDb,
     IN size_t  sObjectCount,
     IN PLSA_SECURITY_OBJECT* ppObjects
+    );
+
+DWORD
+MemCacheStoreObjectEntryInLock(
+    IN PMEM_DB_CONNECTION pConn,
+    IN PLSA_SECURITY_OBJECT pObject
     );
 
 void
@@ -280,24 +290,6 @@ MemCacheGetMemberships(
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bIsGroupMembers,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-DWORD
-MemCacheGetGroupMembers(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-DWORD
-MemCacheGetGroupsForUser(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
     OUT size_t* psCount,
     OUT PLSA_GROUP_MEMBERSHIP** pppResults

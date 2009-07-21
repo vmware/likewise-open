@@ -33,65 +33,72 @@
  *
  * Module Name:
  *
- *        initsecctxt.c
+ *        lsasrvcred.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        InitializeSecurityContext client wrapper API
+ * Authors:
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include "client.h"
+#ifndef __LSASRVCRED_H__
+#define __LSASRVCRED_H__
+
+#include <lw/base.h>
+
+struct _LSA_CREDENTIALS;
+typedef struct _LSA_CREDENTIALS *LSA_CRED_HANDLE, **PLSA_CRED_HANDLE;
+
+VOID
+LsaInitializeCredentialsDatabase(
+    VOID
+    );
+
+VOID
+LsaShutdownCredentialsDatabase(
+    VOID
+    );
 
 DWORD
-NtlmClientInitializeSecurityContext(
-    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
-    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
-    IN OPTIONAL SEC_CHAR * pszTargetName,
-    IN DWORD fContextReq,
-    IN DWORD Reserved1,
-    IN DWORD TargetDataRep,
-    IN OPTIONAL PSecBufferDesc pInput,
-    IN DWORD Reserved2,
-    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
-    IN OUT OPTIONAL PSecBufferDesc pOutput,
-    OUT PDWORD pfContextAttr,
-    OUT OPTIONAL PTimeStamp ptsExpiry
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    HANDLE hServer = INVALID_HANDLE;
+LsaAddCredential(
+    IN PCSTR pszUserName,
+    IN PCSTR pszPassword,
+    IN OPTIONAL const PDWORD pUid,
+    OUT PLSA_CRED_HANDLE phCredential
+    );
 
-    dwError = NtlmOpenServer(&hServer);
-    BAIL_ON_NTLM_ERROR(dwError);
+VOID
+LsaReleaseCredential(
+    IN LSA_CRED_HANDLE hCredential
+    );
 
-    dwError = NtlmTransactInitializeSecurityContext(
-        hServer,
-        phCredential,
-        phContext,
-        pszTargetName,
-        fContextReq,
-        Reserved1,
-        TargetDataRep,
-        pInput,
-        Reserved2,
-        phNewContext,
-        pOutput,
-        pfContextAttr,
-        ptsExpiry
-        );
+DWORD
+LsaLookupCredential(
+    IN DWORD uid,
+    OUT PLSA_CRED_HANDLE phCredential
+    );
 
-cleanup:
-    if(INVALID_HANDLE != hServer)
-    {
-        NtlmCloseServer(hServer);
-    }
-    return(dwError);
-error:
-    // we may not want to clear the IN OUT params on error
-    goto cleanup;
-}
+DWORD
+LsaGetCredential(
+    IN DWORD dwUid,
+    OUT PLSA_CRED_HANDLE phCredential
+    );
+
+VOID
+LsaGetCredentialInfo(
+    IN LSA_CRED_HANDLE CredHandle,
+    OUT OPTIONAL PSTR* pszUserName,
+    OUT OPTIONAL PSTR* pszPassword,
+    OUT OPTIONAL PDWORD pUid
+    );
+
+DWORD
+LsaModifyCredential(
+    IN LSA_CRED_HANDLE CredHandle,
+    OUT OPTIONAL PCSTR pszUserName,
+    OUT OPTIONAL PCSTR pszPassword,
+    OUT OPTIONAL const PDWORD pUid
+    );
+
+#endif /* __LSASRVCRED_H__ */

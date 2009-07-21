@@ -45,14 +45,14 @@
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PCtxtHandle phContext
+    OUT PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = 0;

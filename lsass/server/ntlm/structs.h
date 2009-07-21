@@ -99,26 +99,34 @@ typedef enum
     NtlmStateNegotiate,
     NtlmStateChallenge,
     NtlmStateResponse
-} NTLM_STATE;
+} NTLM_STATE, *PNTLM_STATE;
 
+// We've switched to the more generic LSA_CRED_HANDLE now
+#if 0
 typedef struct _NTLM_CREDENTIALS
 {
     PCHAR                       pUserName;
     PCHAR                       pPassword;
-    CredHandle                  CredHandle;
+    LSA_CRED_HANDLE             CredHandle;
     DWORD                       dwRefCount;
     struct _NTLM_CREDENTIALS    *pNext;
 } NTLM_CREDENTIALS, *PNTLM_CREDENTIALS;
+#endif
 
-typedef struct _NTLM_CONTEXT
+typedef struct _LSA_CONTEXT
 {
     NTLM_STATE              NtlmState;
     DWORD                   dwMessageSize;
     PVOID                   pMessage;
-    CtxtHandle              ContextHandle;
-    CredHandle              CredHandle;
-    DWORD                   dwRefCount;
-    struct _NTLM_CONTEXT    *pNext;
-} NTLM_CONTEXT, *PNTLM_CONTEXT;
+    LSA_CRED_HANDLE         CredHandle;
+    LONG                    nRefCount;
+    LW_LIST_LINKS           ListEntry;
+} LSA_CONTEXT, *PLSA_CONTEXT;
+
+typedef struct _LSA_CONTEXT_STATE
+{
+    LW_LIST_LINKS LsaContextList;
+    pthread_rwlock_t LsaContextListLock;
+} LSA_CONTEXT_STATE, *PLSA_CONTEXT_STATE;
 
 #endif /* __STRUCTS_H__ */

@@ -23,8 +23,6 @@
 #ifndef _NTLM_CLIENT_DEFINES_H_
 #define _NTLM_CLIENT_DEFINES_H_
 
-#define DUPE( x ) { "-" #x, ISC_REQ_ ## x, "ISC_REQ_"#x }
-
 #define BAIL_ON_ERROR(dwError) \
     if (dwError)               \
     {                          \

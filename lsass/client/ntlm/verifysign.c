@@ -49,7 +49,7 @@
 
 DWORD
 NtlmClientVerifySignature(
-    IN PCtxtHandle phContext,
+    IN PLSA_CONTEXT_HANDLE phContext,
     IN PSecBufferDesc pMessage,
     IN DWORD MessageSeqNo,
     OUT PBOOL pbVerified,

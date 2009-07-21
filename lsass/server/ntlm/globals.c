@@ -66,11 +66,4 @@ LWMsgDispatchSpec gNtlmMessageHandlers[] =
 
 pthread_t gRpcSrvWorker;
 
-PNTLM_CONTEXT gpNtlmContextList = NULL;
-pthread_rwlock_t gpNtlmContextList_rwlock;
-
-PNTLM_CREDENTIALS gpNtlmCredsList = NULL;
-pthread_rwlock_t gpNtlmCredsList_rwlock;
-
-
 WIN_VERSION_INFO gXpSpoof = {5, 1, 0x280a, 0xf};

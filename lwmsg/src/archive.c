@@ -240,7 +240,7 @@ lwmsg_archive_open_fd(
         {
             archive->fd = open(
                 archive->file,
-                (archive->disp == LWMSG_ARCHIVE_READ ? O_RDONLY : O_WRONLY) | O_CREAT,
+                (archive->disp == LWMSG_ARCHIVE_READ ? O_RDONLY : (O_WRONLY | O_CREAT)),
                 archive->mode);
             if (archive->fd < 0)
             {

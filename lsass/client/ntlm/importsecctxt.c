@@ -52,13 +52,13 @@ NtlmClientImportSecurityContext(
     IN PSECURITY_STRING *pszPackage,
     IN PSecBuffer pPackedContext,
     IN OPTIONAL HANDLE pToken,
-    OUT PCtxtHandle phContext
+    OUT PLSA_CONTEXT_HANDLE phContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     HANDLE hServer = INVALID_HANDLE;
 
-    memset(phContext, 0, sizeof(CtxtHandle));
+    memset(phContext, 0, sizeof(LSA_CONTEXT_HANDLE));
 
     dwError = NtlmOpenServer(&hServer);
     BAIL_ON_NTLM_ERROR(dwError);
@@ -80,6 +80,6 @@ cleanup:
     }
     return(dwError);
 error:
-    memset(phContext, 0, sizeof(CtxtHandle));
+    memset(phContext, 0, sizeof(LSA_CONTEXT_HANDLE));
     goto cleanup;
 }

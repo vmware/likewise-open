@@ -1399,18 +1399,6 @@ error:
 }
 
 DWORD
-LsaDbStoreObjectEntry(
-    LSA_DB_HANDLE hDb,
-    PLSA_SECURITY_OBJECT pObject
-    )
-{
-    return LsaDbStoreObjectEntries(
-            hDb,
-            1,
-            &pObject);
-}
-
-DWORD
 LsaDbStoreObjectEntries(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
@@ -2432,34 +2420,6 @@ error:
 }
 
 DWORD
-LsaDbGetGroupMembers(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    )
-{
-    return LsaDbGetMemberships(hDb, pszSid, TRUE,
-                                    bFilterNotInPacNorLdap,
-                                    psCount, pppResults);
-}
-
-DWORD
-LsaDbGetGroupsForUser(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    )
-{
-    return LsaDbGetMemberships(hDb, pszSid, FALSE,
-                                    bFilterNotInPacNorLdap,
-                                    psCount, pppResults);
-}
-
-DWORD
 LsaDbQueryObjectMulti(
     IN sqlite3_stmt* pstQuery,
     OUT PLSA_SECURITY_OBJECT* ppObject
@@ -3225,6 +3185,13 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaDbFlushNOP(
+    LSA_DB_HANDLE hDb
+    )
+{
+    return 0;
+}
 
 void
 InitializeDbCacheProvider(
@@ -3233,6 +3200,7 @@ InitializeDbCacheProvider(
 {
     pCacheTable->pfnOpenHandle               = LsaDbOpen;
     pCacheTable->pfnSafeClose                = LsaDbSafeClose;
+    pCacheTable->pfnFlushToDisk              = LsaDbFlushNOP;
     pCacheTable->pfnFindUserByName           = LsaDbFindUserByName;
     pCacheTable->pfnFindUserById             = LsaDbFindUserById;
     pCacheTable->pfnFindGroupByName          = LsaDbFindGroupByName;
@@ -3240,13 +3208,10 @@ InitializeDbCacheProvider(
     pCacheTable->pfnRemoveUserBySid          = LsaDbRemoveUserBySid;
     pCacheTable->pfnRemoveGroupBySid         = LsaDbRemoveGroupBySid;
     pCacheTable->pfnEmptyCache               = LsaDbEmptyCache;
-    pCacheTable->pfnStoreObjectEntry         = LsaDbStoreObjectEntry;
     pCacheTable->pfnStoreObjectEntries       = LsaDbStoreObjectEntries;
     pCacheTable->pfnStoreGroupMembership     = LsaDbStoreGroupMembership;
     pCacheTable->pfnStoreGroupsForUser       = LsaDbStoreGroupsForUser;
     pCacheTable->pfnGetMemberships           = LsaDbGetMemberships;
-    pCacheTable->pfnGetGroupMembers          = LsaDbGetGroupMembers;
-    pCacheTable->pfnGetGroupsForUser         = LsaDbGetGroupsForUser;
     pCacheTable->pfnEnumUsersCache           = LsaDbEnumUsersCache;
     pCacheTable->pfnEnumGroupsCache          = LsaDbEnumGroupsCache;
     pCacheTable->pfnFindObjectByDN           = LsaDbFindObjectByDN;

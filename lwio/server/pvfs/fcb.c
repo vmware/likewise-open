@@ -80,12 +80,14 @@ PvfsFreeFCB(
     }
 
     RtlCStringFree(&pFcb->pszFilename);
+
     pthread_mutex_destroy(&pFcb->ControlBlock);
     pthread_rwlock_destroy(&pFcb->rwLock);
     pthread_rwlock_destroy(&pFcb->rwBrlLock);
 
     LwRtlQueueDestroy(&pFcb->pPendingLockQueue);
     LwRtlQueueDestroy(&pFcb->pOplockPendingOpsQueue);
+    LwRtlQueueDestroy(&pFcb->pOplockReadyOpsQueue);
 
     while (!LwListIsEmpty(&pFcb->OplockList))
     {
@@ -144,14 +146,22 @@ PvfsAllocateFCB(
                              PvfsFreePendingLock);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Pending create queue */
+    /* Oplock pending ops queue */
 
     ntError = LwRtlQueueInit(&pFcb->pOplockPendingOpsQueue,
                              PVFS_FCB_MAX_PENDING_OPERATIONS,
-                             PvfsFreeCreateContext);
+                             NULL /* TODO - generic free function */);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = LwRtlQueueInit(&pFcb->pOplockReadyOpsQueue,
+                             PVFS_FCB_MAX_PENDING_OPERATIONS,
+                             NULL /* TODO - generic free function */);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Oplock list and state */
+
     LwListInit(&pFcb->OplockList);
+    pFcb->bOplockBreakInProgress = FALSE;
 
     /* Initialize mutexes and refcounts */
 
@@ -162,7 +172,7 @@ PvfsAllocateFCB(
     /* Add initial ref count */
 
     pFcb->RefCount = 0;
-    NewRefCount = InterlockedIncrement(&pFcb->RefCount);
+    NewRefCount = PvfsReferenceFCB(pFcb);
 
     *ppFcb = pFcb;
     pFcb = NULL;
@@ -203,6 +213,17 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+/*******************************************************
+ ******************************************************/
+
+ULONG
+PvfsReferenceFCB(
+    IN PPVFS_FCB pFcb
+    )
+{
+    return InterlockedIncrement(&pFcb->RefCount);
 }
 
 /*******************************************************
@@ -347,7 +368,7 @@ _PvfsFindFCB(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    NewRefCount = InterlockedIncrement(&pFcb->RefCount);
+    NewRefCount = PvfsReferenceFCB(pFcb);
 
     *ppFcb = pFcb;
     ntError = STATUS_SUCCESS;
@@ -599,12 +620,55 @@ PvfsPreviousCCBFromList(
  ****************************************************************************/
 
 NTSTATUS
+PvfsPendOplockBreakTest(
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
+    IN PVOID pCompletionContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PPVFS_PENDING_OPLOCK_BREAK_TEST pTestCtx = NULL;
+
+    ntError = PvfsCreateOplockBreakTestContext(
+                  &pTestCtx,
+                  pFcb,
+                  pIrpContext,
+                  pCcb,
+                  pfnCompletion,
+                  pfnFreeContext,
+                  pCompletionContext);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAddItemPendingOplockBreakAck(
+                  pFcb,
+                  pIrpContext,
+                  (PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK)PvfsOplockPendingBreakIfLocked,
+                  (PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX)PvfsFreeOplockBreakTestContext,
+                  (PVOID)pTestCtx);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    PvfsFreeOplockBreakTestContext(&pTestCtx);
+
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
 PvfsAddItemPendingOplockBreakAck(
-    IN OUT PPVFS_FCB pFcb,
-    IN     PPVFS_IRP_CONTEXT pIrpContext,
-    IN     PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
-    IN     PPVFS_OPLOCK_PENDING_COMPLETION_FREE pfnFree,
-    IN     PVOID pCompletionContext
+    IN PPVFS_FCB pFcb,
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_CALLBACK pfnCompletion,
+    IN PPVFS_OPLOCK_PENDING_COMPLETION_FREE_CTX pfnFreeContext,
+    IN PVOID pCompletionContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -621,7 +685,7 @@ PvfsAddItemPendingOplockBreakAck(
 
     pPendingOp->pIrpContext = pIrpContext;
     pPendingOp->pfnCompletion = pfnCompletion;
-    pPendingOp->pfnFree = pfnFree;
+    pPendingOp->pfnFreeContext = pfnFreeContext;
     pPendingOp->pCompletionContext = pCompletionContext;
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);

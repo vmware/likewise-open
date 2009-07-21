@@ -94,6 +94,7 @@ typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 // Success status codes
 #define LW_STATUS_SUCCESS                                         ((LW_NTSTATUS) 0x00000000)
+#define LW_STATUS_OPLOCK_BREAK_IN_PROGRESS                        ((LW_NTSTATUS) 0x00000100)
 #define LW_STATUS_PENDING                                         ((LW_NTSTATUS) 0x00000103)
 #define LW_STATUS_MORE_ENTRIES                                    ((LW_NTSTATUS) 0x00000105)
 #define LW_STATUS_SOME_UNMAPPED                                   ((LW_NTSTATUS) 0x00000107)
@@ -732,6 +733,7 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #define STATUS_PENDING                                     LW_STATUS_PENDING
 #define STATUS_MORE_ENTRIES                                LW_STATUS_MORE_ENTRIES
 #define STATUS_SOME_UNMAPPED                               LW_STATUS_SOME_UNMAPPED
+#define STATUS_OPLOCK_BREAK_IN_PROGRESS                    LW_STATUS_OPLOCK_BREAK_IN_PROGRESS
 #define STATUS_NO_MORE_ENTRIES                             LW_STATUS_NO_MORE_ENTRIES
 #define STATUS_BUFFER_OVERFLOW                             LW_STATUS_BUFFER_OVERFLOW
 #define STATUS_UNSUCCESSFUL                                LW_STATUS_UNSUCCESSFUL

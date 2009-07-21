@@ -61,6 +61,12 @@ void
 
 typedef
 DWORD
+(*PFNFlushToDisk)(
+    LSA_DB_HANDLE hDb
+    );
+
+typedef
+DWORD
 (*PFNFindUserByName)(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
@@ -108,12 +114,6 @@ DWORD
 
 typedef
 DWORD
-(*PFNStoreObjectEntry)(
-    LSA_DB_HANDLE hDb,
-    PLSA_SECURITY_OBJECT pObject
-    );
-typedef
-DWORD
 (*PFNStoreObjectEntries)(
     LSA_DB_HANDLE hDb,
     size_t  sObjectCount,
@@ -144,26 +144,6 @@ DWORD
     IN LSA_DB_HANDLE hDb,
     IN PCSTR pszSid,
     IN BOOLEAN bIsGroupMembers,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-typedef
-DWORD
-(*PFNGetGroupMembers)(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
-    IN BOOLEAN bFilterNotInPacNorLdap,
-    OUT size_t* psCount,
-    OUT PLSA_GROUP_MEMBERSHIP** pppResults
-    );
-
-typedef
-DWORD
-(*PFNGetGroupsForUser)(
-    IN LSA_DB_HANDLE hDb,
-    IN PCSTR pszSid,
     IN BOOLEAN bFilterNotInPacNorLdap,
     OUT size_t* psCount,
     OUT PLSA_GROUP_MEMBERSHIP** pppResults
@@ -243,6 +223,7 @@ typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
 {
     PFNOpenHandle               pfnOpenHandle;
     PFNSafeClose                pfnSafeClose;
+    PFNFlushToDisk              pfnFlushToDisk;
     PFNFindUserByName           pfnFindUserByName;
     PFNFindUserById             pfnFindUserById;
     PFNFindGroupByName          pfnFindGroupByName;
@@ -250,13 +231,10 @@ typedef struct __ADCACHE_PROVIDER_FUNCTION_TABLE
     PFNRemoveUserBySid          pfnRemoveUserBySid;
     PFNRemoveGroupBySid         pfnRemoveGroupBySid;
     PFNEmptyCache               pfnEmptyCache;
-    PFNStoreObjectEntry         pfnStoreObjectEntry;
     PFNStoreObjectEntries       pfnStoreObjectEntries;
     PFNStoreGroupMembership     pfnStoreGroupMembership;
     PFNStoreGroupsForUser       pfnStoreGroupsForUser;
     PFNGetMemberships           pfnGetMemberships;
-    PFNGetGroupMembers          pfnGetGroupMembers;
-    PFNGetGroupsForUser         pfnGetGroupsForUser;
     PFNEnumUsersCache           pfnEnumUsersCache;
     PFNEnumGroupsCache          pfnEnumGroupsCache;
     PFNFindObjectByDN           pfnFindObjectByDN;

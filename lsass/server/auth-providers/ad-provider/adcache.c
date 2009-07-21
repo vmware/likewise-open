@@ -72,6 +72,19 @@ ADCacheSafeClose(
 }
 
 DWORD
+ADCacheFlushToDisk(
+    IN LSA_DB_HANDLE hDb
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = (*gpCacheProvider->pfnFlushToDisk)(
+                        hDb
+                        );
+    return dwError;
+}
+
+DWORD
 ADCacheFindUserByName(
     LSA_DB_HANDLE hDb,
     PLSA_LOGIN_NAME_INFO pUserNameInfo,
@@ -189,14 +202,11 @@ ADCacheStoreObjectEntry(
     PLSA_SECURITY_OBJECT pObject
     )
 {
-    DWORD dwError = 0;
-
-    dwError = (*gpCacheProvider->pfnStoreObjectEntry)(
-                        hDb,
-                        pObject
-                        );
-    return dwError;
-
+    return ADCacheStoreObjectEntries(
+            hDb,
+            1,
+            &pObject
+            );
 }
 
 DWORD
@@ -292,9 +302,10 @@ ADCacheGetGroupMembers(
 {
     DWORD dwError = 0;
 
-    dwError = (*gpCacheProvider->pfnGetGroupMembers)(
+    dwError = ADCacheGetMemberships(
                         hDb,
                         pszSid,
+                        TRUE,
                         bFilterNotInPacNorLdap,
                         psCount,
                         pppResults
@@ -313,9 +324,10 @@ ADCacheGetGroupsForUser(
 {
     DWORD dwError = 0;
 
-    dwError = (*gpCacheProvider->pfnGetGroupsForUser)(
+    dwError = ADCacheGetMemberships(
                         hDb,
                         pszSid,
+                        FALSE,
                         bFilterNotInPacNorLdap,
                         psCount,
                         pppResults

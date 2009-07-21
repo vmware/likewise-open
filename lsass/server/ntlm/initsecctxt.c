@@ -45,39 +45,35 @@
  *          Marc Guy (mguy@likewisesoftware.com
  */
 
-#include <ntlmsrvapi.h>
+#include "ntlmsrvapi.h"
 
 DWORD
 NtlmServerInitializeSecurityContext(
-    IN OPTIONAL PCredHandle phCredential,
-    IN OPTIONAL PCtxtHandle phContext,
+    IN OPTIONAL PLSA_CRED_HANDLE phCredential,
+    IN OPTIONAL PLSA_CONTEXT_HANDLE phContext,
     IN OPTIONAL SEC_CHAR * pszTargetName,
     IN DWORD fContextReq,
     IN DWORD Reserved1,
     IN DWORD TargetDataRep,
     IN OPTIONAL PSecBufferDesc pInput,
     IN DWORD Reserved2,
-    IN OUT OPTIONAL PCtxtHandle phNewContext,
+    IN OUT OPTIONAL PLSA_CONTEXT_HANDLE phNewContext,
     IN OUT OPTIONAL PSecBufferDesc pOutput,
     OUT PDWORD pfContextAttr,
     OUT OPTIONAL PTimeStamp ptsExpiry
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CONTEXT pNtlmContext = NULL;
-    PNTLM_CONTEXT pNtlmContextIn = NULL;
-    BOOLEAN bInLock = FALSE;
+    PLSA_CONTEXT pNtlmContext = NULL;
+    PLSA_CONTEXT pNtlmContextIn = NULL;
+    LSA_CONTEXT_HANDLE NtlmContextHandle = NULL;
     CHAR Workstation[HOST_NAME_MAX + 1] = {0};
     CHAR Domain[HOST_NAME_MAX + 1] = {0};
     PCHAR pDot = NULL;
 
     if(phContext)
     {
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-            dwError = NtlmFindContext(phContext, &pNtlmContext);
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-
-        BAIL_ON_NTLM_ERROR(dwError);
+        pNtlmContext = *phContext;
     }
 
     if(!pNtlmContext)
@@ -117,19 +113,11 @@ NtlmServerInitializeSecurityContext(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-    //
-        dwError = NtlmInsertContext(
-            pNtlmContext
-            );
-    //
-    LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-
-    BAIL_ON_NTLM_ERROR(dwError);
+    NtlmAddContext(pNtlmContext, &NtlmContextHandle);
 
     pNtlmContext->CredHandle = *phCredential;
 
-    *phNewContext = pNtlmContext->ContextHandle;
+    *phNewContext = NtlmContextHandle;
 
     //copy message to the output parameter
     dwError = NtlmCopyContextToSecBufferDesc(pNtlmContext, pOutput);
@@ -139,14 +127,11 @@ NtlmServerInitializeSecurityContext(
 cleanup:
     return dwError;
 error:
-    if( pNtlmContext->ContextHandle.dwLower ||
-        pNtlmContext->ContextHandle.dwUpper )
+    if( pNtlmContext )
     {
-        ENTER_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
-            NtlmRemoveContext(&(pNtlmContext->ContextHandle));
-        LEAVE_NTLM_CONTEXT_LIST_WRITER_LOCK(bInLock);
+        NtlmReleaseContext(pNtlmContext);
     }
-    memset(phNewContext, 0, sizeof(CtxtHandle));
+    phNewContext = NULL;
     goto cleanup;
 }
 
@@ -156,7 +141,7 @@ NtlmCreateNegotiateContext(
     IN PCHAR pDomain,
     IN PCHAR pWorkstation,
     IN PBYTE pOsVersion,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    OUT PLSA_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -202,13 +187,13 @@ error:
 
 DWORD
 NtlmCreateResponseContext(
-    IN PNTLM_CONTEXT pChlngCtxt,
-    OUT PNTLM_CONTEXT *ppNtlmContext
+    IN PLSA_CONTEXT pChlngCtxt,
+    OUT PLSA_CONTEXT *ppNtlmContext
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_CREDENTIALS pNtlmCreds = NULL;
-    BOOLEAN bInLock = FALSE;
+    PCHAR pUserName = NULL;
+    PCHAR pPassword = NULL;
 
     if(!pChlngCtxt)
     {
@@ -216,14 +201,12 @@ NtlmCreateResponseContext(
         BAIL_ON_NTLM_ERROR(dwError);
     }
 
-    ENTER_NTLM_CREDS_LIST_READER_LOCK(bInLock)
-        dwError = NtlmFindCredentials(&(pChlngCtxt->CredHandle), &pNtlmCreds);
-    LEAVE_NTLM_CREDS_LIST_READER_LOCK(bInLock)
+    LsaGetCredentialInfo(pChlngCtxt->CredHandle, &pUserName, &pPassword, NULL);
 
     BAIL_ON_NTLM_ERROR(dwError);
 
     dwError = LwAllocateMemory(
-        sizeof(NTLM_CONTEXT),
+        sizeof(LSA_CONTEXT),
         (PVOID*)(PVOID)ppNtlmContext
         );
 
@@ -232,10 +215,10 @@ NtlmCreateResponseContext(
     dwError = NtlmCreateResponseMessage(
         pChlngCtxt->pMessage,
         NULL,
-        pNtlmCreds->pUserName,
+        pUserName,
         NULL,
         NULL,
-        pNtlmCreds->pPassword,
+        pPassword,
         NTLM_RESPONSE_TYPE_NTLM,
         NTLM_RESPONSE_TYPE_LM,
         &((*ppNtlmContext)->dwMessageSize),
@@ -247,10 +230,6 @@ NtlmCreateResponseContext(
     (*ppNtlmContext)->NtlmState = NtlmStateResponse;
 
 cleanup:
-    if(pNtlmCreds)
-    {
-        NtlmFreeCredentials(pNtlmCreds);
-    }
     return dwError;
 error:
     if(*ppNtlmContext)
