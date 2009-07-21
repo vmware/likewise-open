@@ -369,7 +369,7 @@ MemCacheLoadFile(
 
     while (1)
     {
-        //TODO: free message data
+        lwmsg_archive_destroy_message(pArchive, &message);
         status = lwmsg_archive_read_message(pArchive, &message);
         if (status == LWMSG_STATUS_EOF)
         {
@@ -388,6 +388,7 @@ MemCacheLoadFile(
                                 (PLSA_SECURITY_OBJECT)message.data);
                 // It is now owned by the global datastructures
                 message.data = NULL;
+                message.tag = -1;
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
             case MEM_CACHE_MEMBERSHIP:
@@ -410,6 +411,7 @@ MemCacheLoadFile(
                 BAIL_ON_LSA_ERROR(dwError);
                 // It is now owned by the global datastructures
                 message.data = NULL;
+                message.tag = -1;
                 break;
         }
     }
@@ -419,9 +421,9 @@ MemCacheLoadFile(
 
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
-    //TODO: free message data
     if (pArchive)
     {
+        lwmsg_archive_destroy_message(pArchive, &message);
         lwmsg_archive_delete(pArchive);
     }
 
