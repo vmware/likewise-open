@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,31 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/security.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/samr.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/samrbinding.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/LM.h>
-#include <md5.h>
-#include <lwrpc/mpr.h>
-#include <lwps/lwps.h>
-
-#include "TestRpc.h"
-#include "Params.h"
-#include "Util.h"
+#include "includes.h"
 
 
 int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
@@ -67,7 +43,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
     int i = 0;
 
     grpinfo = NULL;
-    *entries = total = parm_err = 0;    
+    *entries = total = parm_err = 0;
 
     INPUT_ARG_WSTR(hostname);
     INPUT_ARG_WSTR(username);
@@ -75,7 +51,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
     INPUT_ARG_UINT(flags);
     INPUT_ARG_PTR(grpinfo);
     INPUT_ARG_UINT(pref_maxlen);
-    
+
     CALL_NETAPI(err = NetUserGetLocalGroups(hostname, username, level, flags,
                                             (void*)&grpinfo, pref_maxlen,
                                             entries, &total));
@@ -86,15 +62,15 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
 
     if (grpinfo != NULL && *entries > 0 && total > 0) {
         VERBOSE(printf("\tGroups found:\n"));
-	
+
         for (i = 0; i < *entries; i++) {
 
             wchar16_t *name;
 
             name = grpinfo[i].lgrui0_name;
-	     
+
             if (name != NULL) {
-		
+
                 if(((uint16) name[0]) == 0) {
                     w16printfw(L"\tERROR: LOCALGROUP_USERS_INFO_0[%2d]"
                               L".lgrui0_name = \"\" (empty string)\n", i);
@@ -108,7 +84,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
                 printf("\tERROR: LOCALGROUP_USERS_INFO_0[%2d].lgrui0_name = NULL\n", i);
                 return -1;
             }
-	   
+
 
         }
     } else if (grpinfo != NULL && (*entries == 0 || total == 0)) {
@@ -123,7 +99,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
                "buffer pointer is null\n");
         return -1;
     }
- 
+
     return err;
 }
 
@@ -145,7 +121,7 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
     INPUT_ARG_UINT(level);
     INPUT_ARG_PTR(info);
     INPUT_ARG_UINT(prefmaxlen);
-    
+
     CALL_NETAPI(err = NetLocalGroupGetMembers(hostname, aliasname, level,
                                               (void*) &info,
                                               prefmaxlen, entries,
@@ -155,7 +131,7 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
     OUTPUT_ARG_UINT(*entries);
     OUTPUT_ARG_UINT(total);
     OUTPUT_ARG_UINT(resume);
-    
+
     if (info != NULL && entries > 0 && total > 0) {
         VERBOSE(printf("\tMembers found:\n"));
 
@@ -164,7 +140,7 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
 
             name = info[i].lgrmi3_domainandname;
             if (name != NULL) {
-                
+
                 if(((uint16) name[0]) == 0) {
                     w16printfw(L"\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
                               L".lgrmi3_domainandname = \"\"  (empty string)\n", i);
@@ -174,12 +150,12 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
                 else if(name[wc16slen(name) - 1] == (wchar16_t)'\\') {
                     //this is a ghost entry from a user which has been removed.  Ignore it.
                 }
-		
+
                 else {
                     VERBOSE(w16printfw(L"\tLOCALGROUP_MEMBERS_INFO_3[%2d]"
                                       L".lgrmi3_domainandname = \"%ws\"\n", i, name));
                 }
-            } 
+            }
             else {
                 w16printfw(L"\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
                           L".lgrmi3_domainandname = NULL\n", i);
@@ -219,7 +195,7 @@ int AddUser(const wchar16_t *hostname, const wchar16_t *username)
     comment_len = strlen(comment);
     info1->usri1_comment = (wchar16_t*) malloc((comment_len + 1) * sizeof(wchar16_t));
     mbstowc16s(info1->usri1_comment, comment, comment_len + 1);
-    
+
     home_directory_len = strlen(home_directory);
     info1->usri1_home_dir = (wchar16_t*) malloc((home_directory_len + 1) * sizeof(wchar16_t));
     mbstowc16s(info1->usri1_home_dir, home_directory, home_directory_len);
@@ -227,7 +203,7 @@ int AddUser(const wchar16_t *hostname, const wchar16_t *username)
     script_path_len = strlen(script_path);
     info1->usri1_script_path = (wchar16_t*) malloc((script_path_len + 1) * sizeof(wchar16_t));
     mbstowc16s(info1->usri1_script_path, script_path, script_path_len + 1);
-    
+
     password_len = strlen(password);
     info1->usri1_password = (wchar16_t*) malloc((password_len + 1) * sizeof(wchar16_t));
     mbstowc16s(info1->usri1_password, password, password_len + 1);
@@ -236,12 +212,12 @@ int AddUser(const wchar16_t *hostname, const wchar16_t *username)
     info1->usri1_priv = USER_PRIV_USER;
 
     CALL_NETAPI(err = NetUserAdd(hostname, level, (void*)info1, &parm_err));
-        
+
     SAFE_FREE(info1->usri1_comment);
     SAFE_FREE(info1->usri1_home_dir);
     SAFE_FREE(info1->usri1_script_path);
     SAFE_FREE(info1->usri1_password);
-    SAFE_FREE(info1->usri1_name); 
+    SAFE_FREE(info1->usri1_name);
     SAFE_FREE(info1);
 
     return err;
@@ -343,7 +319,7 @@ int DelLocalGroupMember(const wchar16_t *hostname,
             domname,
             member);
     memberinfo.lgrmi3_domainandname = host_member;
-	
+
     CALL_NETAPI(err = NetLocalGroupDelMembers(hostname, aliasname, 3,
                                               &memberinfo, 1));
 
@@ -493,7 +469,7 @@ int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
     void *info;
     int created = false;
     uint32 level = 20;
-	
+
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(pCreds);
@@ -595,7 +571,7 @@ int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
 
         level = 1008;
         info1008.usri1008_flags = info20->usri20_flags | UF_ACCOUNTDISABLE;
-	
+
         CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
                                          (void*)&info1008, &parm_err));
         if (err != 0) netapi_fail(err);
@@ -781,7 +757,7 @@ int TestNetMachineChangePassword(struct test *t, const wchar16_t *hostname,
     CALL_NETAPI(err = NetMachineChangePassword());
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
-done:   
+done:
     return (err == ERROR_SUCCESS &&
             status == STATUS_SUCCESS);
 }
@@ -917,8 +893,8 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
      */
     status = EnsureUserAccount(hostname, username, &created);
     if (status != 0) rpc_fail(status);
-    
-    
+
+
     err = GetUserLocalGroups(hostname, username, (void*)&grpinfo, &entries);
     if (err != 0) netapi_fail(err);
 
@@ -958,7 +934,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
 
     err = AddLocalGroupMember(hostname, aliasname, domname, admin_user);
     if (err != 0) netapi_fail(err);
-        
+
     err = AddLocalGroupMember(hostname, aliasname, domname, guest_user);
     if (err != 0) netapi_fail(err);
 
@@ -1051,7 +1027,7 @@ int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
 
         CALL_NETAPI(err = NetLocalGroupEnum(hostname, 1, &info, maxlen,
                                             &entries, &total, &resume));
-	
+
         OUTPUT_ARG_UINT(entries);
         OUTPUT_ARG_UINT(total);
 
@@ -1190,7 +1166,7 @@ int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
         VERBOSE(printf("\tReceived info:\n"));
         VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_name = \"%ws\"\n", grpi->lgrpi1_name));
         VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_comment = \"%ws\"\n", grpi->lgrpi1_comment));
- 
+
     } else {
         printf("\tERROR: Inconsistency found. Function succeeded while the returned"
                " buffer is NULL\n");
@@ -1259,7 +1235,7 @@ done:
 
     SAFE_FREE(comment);
     SAFE_FREE(aliasname);
-  
+
     return (err == ERROR_SUCCESS &&
             status == STATUS_SUCCESS);
 }
@@ -1337,7 +1313,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
                 L"%ws%ls",
                 username,
                 padding));
-    
+
     /*
      * Test 1a: Get members of an existing and known to be non-empty group.
      */
@@ -1367,7 +1343,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
 
     err = AddLocalGroupMember(hostname, aliasname, domname, admin_user);
     if (err != 0) netapi_fail(err);
-	   
+
     err = AddLocalGroupMember(hostname, aliasname, domname, guest_user);
     if (err != 0) netapi_fail(err);
 
@@ -1378,7 +1354,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
     if (entries != 2) {
         printf("Total number of members is %d and should be 2\n", entries);
         return false;
-    } 
+    }
 
     /*
      * Test 3: Create a new user, add it to three groups, and then get the members
@@ -1418,7 +1394,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
 
     err = AddLocalGroupMember(hostname, paddeduser, domname, username);
     if (err != 0) netapi_fail(err);
-	   
+
     err = GetLocalGroupMembers(hostname, paddeduser, (void*)&grpmembers_info,
                                &entries);
     if (err != 0) netapi_fail(err);
@@ -1427,7 +1403,7 @@ int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
         printf("Inconsistency found: "
                "Total number of members is %d and should be 1\n", entries);
         return false;
-    } 
+    }
 
     err = DelLocalGroupMember(hostname, domname, admins_group, username);
     if (err != 0) netapi_fail(err);

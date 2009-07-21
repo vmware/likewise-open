@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -28,24 +28,7 @@
  * license@likewisesoftware.com
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <dce/dce_error.h>
-#include <wc16str.h>
-#include <secdesc/secapi.h>
-#include <lw/ntstatus.h>
-
-#include <lwrpc/types.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/samr.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/mpr.h>
-#include <md5.h>
-
-#include "TestRpc.h"
-#include "Params.h"
+#include "includes.h"
 
 
 int TestMprIncorrectAuthSession(struct test *t, const wchar16_t *hostname,
