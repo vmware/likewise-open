@@ -292,9 +292,9 @@ LsaDbOpen(
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
         LSA_DB_TABLE_NAME_OBJECTS ".Type = 2 and " LSA_DB_TABLE_NAME_OBJECTS
-            ".SamAccountName > ?1 order by "
+            ".ObjectSid > ?1 order by "
             LSA_DB_TABLE_NAME_OBJECTS
-            ".SamAccountName limit ?2");
+            ".ObjectSid limit ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -311,8 +311,8 @@ LsaDbOpen(
         pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
         LSA_DB_TABLE_NAME_OBJECTS ".Type = 1 and " LSA_DB_TABLE_NAME_OBJECTS
-             ".SamAccountName > ?1 order by " LSA_DB_TABLE_NAME_OBJECTS
-             ".SamAccountName limit ?2");
+             ".ObjectSid > ?1 order by " LSA_DB_TABLE_NAME_OBJECTS
+             ".ObjectSid limit ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
