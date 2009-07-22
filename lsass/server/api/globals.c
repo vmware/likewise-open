@@ -106,7 +106,7 @@ cleanup:
 
     LsaSrvApiFreeConfigContents(&apiConfig);
 
-    return 0;
+    return dwError;
 
 error:
 
