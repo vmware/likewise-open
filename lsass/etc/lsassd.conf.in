@@ -166,6 +166,12 @@
     # Default: 1h
     # domain-manager-unknown-domain-cache-timeout = 1h
 
+    # The cache backend to use
+    # Values: sqlite memory
+    # Default: sqlite
+    #
+    # cache-type = memory
+
 [auth provider:lsa-local-provider]
 
     path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@

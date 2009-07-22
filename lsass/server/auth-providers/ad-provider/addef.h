@@ -138,8 +138,16 @@ typedef enum
     AD_CELL_SUPPORT_DEFAULT_SCHEMA = 4,
 } AD_CELL_SUPPORT;
 
+typedef enum
+{
+    AD_CACHE_UNINITIALIZED = 0, //not used
+    AD_CACHE_SQLITE        = 1,
+    AD_CACHE_IN_MEMORY     = 2,
+} AD_CACHE_BACKEND;
+
 #define LSASS_DB_DIR CACHEDIR "/db"
-#define LSASS_AD_CACHE     LSASS_DB_DIR "/lsass-adcache.db"
+#define LSASS_AD_SQLITE_CACHE_DB     LSASS_DB_DIR "/lsass-adcache.db"
+#define LSASS_AD_MEMORY_CACHE_DB     LSASS_DB_DIR "/lsass-adcache.filedb"
 
 #endif /* __AD_DEF_H__ */
 
