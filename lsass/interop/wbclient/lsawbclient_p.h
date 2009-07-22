@@ -61,6 +61,14 @@
 
 /* Common macros */
 
+#ifndef IN
+#define IN
+#endif
+
+#ifndef OUT
+#define OUT
+#endif
+
 #define _WBC_FREE(x)                \
     do {                    \
         _wbc_free((void *)x);            \

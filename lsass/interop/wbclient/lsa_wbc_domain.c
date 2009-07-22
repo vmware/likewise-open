@@ -47,31 +47,44 @@
 #include "lsawbclient_p.h"
 #include "lsaclient.h"
 
+static int
+FreeWbcDomainInfo(
+    IN OUT void* p
+    );
 
-/********************************************************
- *******************************************************/
+static int
+FreeWbcDomainInfoArray(
+    IN OUT void* p
+    );
 
 static DWORD
 FillDomainInfo(
-    PCSTR pszDomain,
-    struct wbcDomainInfo **ppDomInfo,
-    PLSASTATUS pStatus
+    OUT struct wbcDomainInfo *pWbcDomInfo,
+    IN  PLSA_TRUSTED_DOMAIN_INFO pLsaDomInfo
     );
+
+/*****************************************************************************
+ ****************************************************************************/
 
 wbcErr
 wbcDomainInfo(
-    const char *domain,
-    struct wbcDomainInfo **info
+    IN const char *domain,
+    OUT struct wbcDomainInfo **info
     )
 {
     wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
     DWORD dwErr = LW_ERROR_INTERNAL;
     HANDLE hLsa = (HANDLE)NULL;
     PLSASTATUS pLsaStatus = NULL;
+    struct wbcDomainInfo *pWbcDomInfo = NULL;
+    PLSA_TRUSTED_DOMAIN_INFO pLsaDomInfo = NULL;
+    PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
+    int i = 0;
 
     /* Sanity check */
 
     BAIL_ON_NULL_PTR_PARAM(domain, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(info, dwErr);
 
     /* Work */
 
@@ -81,13 +94,64 @@ wbcDomainInfo(
     dwErr = LsaGetStatus(hLsa, &pLsaStatus);
     BAIL_ON_LSA_ERR(dwErr);
 
-    dwErr = FillDomainInfo(domain, info, pLsaStatus);
+    /* Find the AD provider entry */
+
+    for (i=0; i<pLsaStatus->dwCount; i++)
+    {
+        if (strcmp(pLsaStatus->pAuthProviderStatusList[i].pszId,
+                   "lsa-activedirectory-provider") == 0)
+        {
+            pADProvStatus = &pLsaStatus->pAuthProviderStatusList[i];
+            break;
+        }
+    }
+
+    if (pADProvStatus == NULL)
+    {
+        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
+
+    /* Find the requested domain */
+
+    for (i=0; i<pADProvStatus->dwNumTrustedDomains; i++)
+    {
+        PLSA_TRUSTED_DOMAIN_INFO pCursorDomInfo = NULL;
+
+        pCursorDomInfo = &pADProvStatus->pTrustedDomainInfoArray[i];
+        if (StrEqual(pCursorDomInfo->pszDnsDomain, domain) ||
+            StrEqual(pCursorDomInfo->pszNetbiosDomain, domain))
+        {
+            pLsaDomInfo = pCursorDomInfo;
+            break;
+        }
+    }
+
+    if (pLsaDomInfo == NULL)
+    {
+        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
+
+    /* Fill in the domain info */
+
+    pWbcDomInfo = _wbc_malloc_zero(
+                      sizeof(struct wbcDomainInfo),
+                      FreeWbcDomainInfo);
+    BAIL_ON_NULL_PTR(pWbcDomInfo, dwErr);
+
+    dwErr = FillDomainInfo(pWbcDomInfo, pLsaDomInfo);
     BAIL_ON_LSA_ERR(dwErr);
+
+    *info = pWbcDomInfo;
+    pWbcDomInfo = NULL;
 
 done:
     if (hLsa != (HANDLE)NULL) {
         LsaCloseServer(hLsa);
     }
+
+    _WBC_FREE(pWbcDomInfo);
 
     wbc_status = map_error_to_wbc_status(dwErr);
 
@@ -95,12 +159,108 @@ done:
 }
 
 
-/********************************************************
- *******************************************************/
+/*****************************************************************************
+ ****************************************************************************/
+
+wbcErr
+wbcListTrusts(
+    OUT struct wbcDomainInfo **domains,
+    OUT size_t *num_domains
+    )
+{
+    wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+    DWORD dwErr = LW_ERROR_INTERNAL;
+    HANDLE hLsa = (HANDLE)NULL;
+    PLSASTATUS pLsaStatus = NULL;
+    struct wbcDomainInfo *pWbcDomInfoArray = NULL;
+    PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
+    size_t NumDomains = 0;
+    int i = 0;
+
+    /* Sanity check */
+
+    BAIL_ON_NULL_PTR_PARAM(domains, dwErr);
+    BAIL_ON_NULL_PTR_PARAM(num_domains, dwErr);
+
+    /* Work */
+
+    dwErr = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    dwErr = LsaGetStatus(hLsa, &pLsaStatus);
+    BAIL_ON_LSA_ERR(dwErr);
+
+    /* Find the AD provider entry */
+
+    for (i=0; i<pLsaStatus->dwCount; i++)
+    {
+        if (strcmp(pLsaStatus->pAuthProviderStatusList[i].pszId,
+                   "lsa-activedirectory-provider") == 0)
+        {
+            pADProvStatus = &pLsaStatus->pAuthProviderStatusList[i];
+            break;
+        }
+    }
+
+    if (pADProvStatus == NULL)
+    {
+        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
+        BAIL_ON_LSA_ERR(dwErr);
+    }
+
+    /* Fill in the domain info */
+
+    NumDomains = pADProvStatus->dwNumTrustedDomains;
+    pWbcDomInfoArray = _wbc_malloc_zero(
+                           sizeof(struct wbcDomainInfo)*(NumDomains+1),
+                           FreeWbcDomainInfoArray);
+    BAIL_ON_NULL_PTR(pWbcDomInfoArray, dwErr);
+
+    for (i=0; i<NumDomains; i++)
+    {
+        dwErr = FillDomainInfo(
+                    &pWbcDomInfoArray[i],
+                    &pADProvStatus->pTrustedDomainInfoArray[i]);
+        BAIL_ON_LSA_ERR(dwErr);
+    }
+
+    *domains = pWbcDomInfoArray;
+    pWbcDomInfoArray = NULL;
+
+    *num_domains = NumDomains;
+
+done:
+    if (hLsa != (HANDLE)NULL) {
+        LsaCloseServer(hLsa);
+    }
+
+    _WBC_FREE(pWbcDomInfoArray);
+
+    wbc_status = map_error_to_wbc_status(dwErr);
+
+    return wbc_status;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+wbcErr
+wbcCheckTrustCredentials(
+    IN  const char *domain,
+    OUT struct wbcAuthErrorInfo **error
+    )
+{
+    return WBC_ERR_NOT_IMPLEMENTED;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
 
 static int
 FreeWbcDomainInfo(
-    void* p
+    IN OUT void* p
     )
 {
     struct wbcDomainInfo *pDomain = (struct wbcDomainInfo*)p;
@@ -115,90 +275,88 @@ FreeWbcDomainInfo(
     return 0;
 }
 
+static int
+FreeWbcDomainInfoArray(
+    IN OUT void* p
+    )
+{
+    struct wbcDomainInfo *pDomains = (struct wbcDomainInfo*)p;
+
+    if (!pDomains) {
+        return 0;
+    }
+
+    while (pDomains->short_name)
+    {
+        FreeWbcDomainInfo(pDomains);
+        pDomains++;
+    }
+
+    return 0;
+}
+
 static DWORD
 FillDomainInfo(
-    PCSTR pszDomain,
-    struct wbcDomainInfo **ppDomInfo,
-    PLSASTATUS pStatus
+    OUT struct wbcDomainInfo *pWbcDomInfo,
+    IN  PLSA_TRUSTED_DOMAIN_INFO pLsaDomInfo
     )
 {
     DWORD dwErr = LW_ERROR_INTERNAL;
-    PLSA_AUTH_PROVIDER_STATUS pADProvStatus = NULL;
-    PLSA_TRUSTED_DOMAIN_INFO pLsaDomInfo = NULL;
-    struct wbcDomainInfo *pWbcDomInfo = NULL;
-    int i;
 
-    /* Find the AD provider entry */
-
-    for (i=0; i<pStatus->dwCount; i++)
+    if (pLsaDomInfo->pszDnsDomain)
     {
-        if (strcmp(pStatus->pAuthProviderStatusList[i].pszId,
-                   "lsa-activedirectory-provider") == 0)
-        {
-            pADProvStatus = &pStatus->pAuthProviderStatusList[i];
-            break;
-        }
-    }
-
-    if (pADProvStatus == NULL) {
-        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
-        BAIL_ON_LSA_ERR(dwErr);
-    }
-
-    /* Find the requested domain */
-
-    for (i=0; i<pADProvStatus->dwNumTrustedDomains; i++)
-    {
-        PLSA_TRUSTED_DOMAIN_INFO pCursorDomInfo = NULL;
-
-        pCursorDomInfo = &pADProvStatus->pTrustedDomainInfoArray[i];
-        if (StrEqual(pCursorDomInfo->pszDnsDomain, pszDomain) ||
-            StrEqual(pCursorDomInfo->pszNetbiosDomain, pszDomain))
-        {
-            pLsaDomInfo = pCursorDomInfo;
-            break;
-        }
-    }
-
-    if (pLsaDomInfo == NULL) {
-        dwErr = LW_ERROR_NO_SUCH_DOMAIN;
-        BAIL_ON_LSA_ERR(dwErr);
-    }
-
-    /* Fill in the domain info */
-
-    pWbcDomInfo = _wbc_malloc_zero(sizeof(struct wbcDomainInfo),
-                                   FreeWbcDomainInfo);
-
-    if (pLsaDomInfo->pszDnsDomain) {
         pWbcDomInfo->dns_name = _wbc_strdup(pLsaDomInfo->pszDnsDomain);
         BAIL_ON_NULL_PTR(pLsaDomInfo->pszDnsDomain, dwErr);
     }
 
-    if (pLsaDomInfo->pszNetbiosDomain) {
+    if (pLsaDomInfo->pszNetbiosDomain)
+    {
         pWbcDomInfo->short_name = _wbc_strdup(pLsaDomInfo->pszNetbiosDomain);
         BAIL_ON_NULL_PTR(pLsaDomInfo->pszNetbiosDomain, dwErr);
     }
 
-    if (pLsaDomInfo->pszDomainSID) {
+    if (pLsaDomInfo->pszDomainSID)
+    {
         dwErr = wbcStringToSid(pLsaDomInfo->pszDomainSID, &pWbcDomInfo->sid);
         BAIL_ON_LSA_ERR(dwErr);
     }
 
     /* Domain flags */
-    if (pLsaDomInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_PRIMARY) {
+
+    pWbcDomInfo->domain_flags = WBC_DOMINFO_DOMAIN_AD;
+
+    if (pLsaDomInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_PRIMARY)
+    {
         pWbcDomInfo->domain_flags |= WBC_DOMINFO_DOMAIN_PRIMARY;
+        pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_INCOMING;
+        pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_OUTGOING;
+        pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_TRANSITIVE;
+    }
+
+    if ((pLsaDomInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_OFFLINE) ||
+        (pLsaDomInfo->dwDomainFlags & LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE))
+    {
+        pWbcDomInfo->domain_flags |= WBC_DOMINFO_DOMAIN_OFFLINE;
     }
 
     /* Trust Flags */
+
     if (pLsaDomInfo->dwTrustFlags & LSA_TRUST_FLAG_INBOUND) {
         pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_INCOMING;
     }
     if (pLsaDomInfo->dwTrustFlags & LSA_TRUST_FLAG_OUTBOUND) {
         pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_OUTGOING;
     }
+    if ((pLsaDomInfo->dwTrustAttributes &
+        (LSA_TRUST_ATTRIBUTE_WITHIN_FOREST|
+         LSA_TRUST_ATTRIBUTE_FOREST_TRANSITIVE)) ||
+        (pLsaDomInfo->dwTrustFlags & LSA_TRUST_FLAG_IN_FOREST))
+    {
+        pWbcDomInfo->trust_flags |= WBC_DOMINFO_TRUST_TRANSITIVE;
+    }
 
     /* Trust Type */
+
     if (pLsaDomInfo->dwTrustAttributes & LSA_TRUST_ATTRIBUTE_WITHIN_FOREST) {
         pWbcDomInfo->trust_type |= WBC_DOMINFO_TRUSTTYPE_IN_FOREST;
     }
@@ -209,39 +367,25 @@ FillDomainInfo(
         pWbcDomInfo->trust_type |= WBC_DOMINFO_TRUSTTYPE_EXTERNAL;
     }
 
-    *ppDomInfo = pWbcDomInfo;
-    pWbcDomInfo = NULL;
+    switch (pLsaDomInfo->dwTrustMode)
+    {
+    case LSA_TRUST_MODE_MY_FOREST:
+        pWbcDomInfo->trust_type = WBC_DOMINFO_TRUSTTYPE_IN_FOREST;
+        pWbcDomInfo->trust_flags |= (WBC_DOMINFO_TRUST_INCOMING|
+                                     WBC_DOMINFO_TRUST_OUTGOING);
+        break;
+
+    case LSA_TRUST_MODE_OTHER_FOREST:
+        pWbcDomInfo->trust_type = WBC_DOMINFO_TRUSTTYPE_FOREST;
+        break;
+
+    case LSA_TRUST_MODE_EXTERNAL:
+        pWbcDomInfo->trust_type = WBC_DOMINFO_TRUSTTYPE_EXTERNAL;
+        break;
+    }
 
 done:
-    _WBC_FREE(pWbcDomInfo);
-
     return dwErr;
-}
-
-
-/********************************************************
- *******************************************************/
-
-wbcErr
-wbcListTrusts(
-    struct wbcDomainInfo **domains,
-    size_t *num_domains
-    )
-{
-    return WBC_ERR_NOT_IMPLEMENTED;
-}
-
-
-/********************************************************
- *******************************************************/
-
-wbcErr
-wbcCheckTrustCredentials(
-    const char *domain,
-    struct wbcAuthErrorInfo **error
-    )
-{
-    return WBC_ERR_NOT_IMPLEMENTED;
 }
 
 
