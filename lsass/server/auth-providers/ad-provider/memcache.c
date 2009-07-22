@@ -985,7 +985,7 @@ MemCacheEmptyCache(
     )
 {
     BOOLEAN bInLock = FALSE;
-    PMEM_DB_CONNECTION pConn = NULL;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     DWORD dwError = 0;
     LSA_HASH_ITERATOR iterator = {0};
     // Do not free
