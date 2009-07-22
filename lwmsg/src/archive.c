@@ -499,3 +499,30 @@ error:
 
     return status;
 }
+
+LWMsgStatus
+lwmsg_archive_destroy_message(
+    LWMsgArchive* archive,
+    LWMsgMessage* message
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeSpec* type = NULL;
+
+    if (message->tag >= 0)
+    {
+        BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(archive->base.prot, message->tag, &type));
+
+        if (type != NULL)
+        {
+            BAIL_ON_ERROR(status = lwmsg_data_free_graph(archive->data_context, type, message->data));
+        }
+
+        message->tag = -1;
+        message->data = NULL;
+    }
+
+error:
+
+    return status;
+}

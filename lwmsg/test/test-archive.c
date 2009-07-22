@@ -81,31 +81,34 @@ MU_TEST(archive, write_read)
     LWMsgArchive* archive = NULL;
     message_struct payload;
     message_struct *result = NULL;
-    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage in = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage out = LWMSG_MESSAGE_INITIALIZER;
 
     payload.number = 42;
     payload.string = (char*) "Hello, world!";
-    message.tag = MESSAGE_NORMAL;
-    message.data = &payload;
+    in.tag = MESSAGE_NORMAL;
+    in.data = &payload;
 
     MU_TRY(lwmsg_archive_new(NULL, archive_protocol, &archive));
 
     /* Open, write message, close */
     MU_TRY(lwmsg_archive_set_file(archive, TEST_ARCHIVE, LWMSG_ARCHIVE_WRITE, 0600));
     MU_TRY(lwmsg_archive_open(archive));
-    MU_TRY(lwmsg_archive_write_message(archive, &message));
+    MU_TRY(lwmsg_archive_write_message(archive, &in));
     MU_TRY(lwmsg_archive_close(archive));
 
     /* Open, read message, close, delete */
     MU_TRY(lwmsg_archive_set_file(archive, TEST_ARCHIVE, LWMSG_ARCHIVE_READ, 0));
     MU_TRY(lwmsg_archive_open(archive));
-    MU_TRY(lwmsg_archive_read_message(archive, &message));
+    MU_TRY(lwmsg_archive_read_message(archive, &out));
     MU_TRY(lwmsg_archive_close(archive));
-    lwmsg_archive_delete(archive);
 
     /* Compare written and read messages */
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, message.tag, MESSAGE_NORMAL);
-    result = message.data;
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, out.tag, MESSAGE_NORMAL);
+    result = out.data;
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, result->number, payload.number);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, result->string, payload.string);
+
+    MU_TRY(lwmsg_archive_destroy_message(archive, &out));
+    lwmsg_archive_delete(archive);
 }

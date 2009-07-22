@@ -369,7 +369,7 @@ MemCacheLoadFile(
 
     while (1)
     {
-        //TODO: free message data
+        lwmsg_archive_destroy_message(pArchive, &message);
         status = lwmsg_archive_read_message(pArchive, &message);
         if (status == LWMSG_STATUS_EOF)
         {
@@ -388,6 +388,7 @@ MemCacheLoadFile(
                                 (PLSA_SECURITY_OBJECT)message.data);
                 // It is now owned by the global datastructures
                 message.data = NULL;
+                message.tag = -1;
                 BAIL_ON_LSA_ERROR(dwError);
                 break;
             case MEM_CACHE_MEMBERSHIP:
@@ -410,6 +411,7 @@ MemCacheLoadFile(
                 BAIL_ON_LSA_ERROR(dwError);
                 // It is now owned by the global datastructures
                 message.data = NULL;
+                message.tag = -1;
                 break;
         }
     }
@@ -419,9 +421,9 @@ MemCacheLoadFile(
 
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
-    //TODO: free message data
     if (pArchive)
     {
+        lwmsg_archive_destroy_message(pArchive, &message);
         lwmsg_archive_delete(pArchive);
     }
 
@@ -983,7 +985,7 @@ MemCacheEmptyCache(
     )
 {
     BOOLEAN bInLock = FALSE;
-    PMEM_DB_CONNECTION pConn = NULL;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     DWORD dwError = 0;
     LSA_HASH_ITERATOR iterator = {0};
     // Do not free
@@ -2166,11 +2168,89 @@ MemCacheEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
     IN PCSTR                   pszResume,
-    OUT DWORD*                 dwNumUsersFound,
+    OUT DWORD*                 pdwNumUsersFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
-    return 0;
+    DWORD dwError = 0;
+    // Do not free
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    // Do not free
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    // Do not free
+    PLSA_HASH_TABLE pIndex = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+    DWORD dwOut = 0;
+
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
+
+    pIndex = pConn->pSIDToSecurityObject;
+
+    dwMaxNumUsers = LW_MIN(dwMaxNumUsers, pIndex->sCount);
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppObjects) * dwMaxNumUsers,
+                    (PVOID*)&ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszResume)
+    {
+        // Start at one after the resume SID
+        dwError = LsaHashGetValue(
+                        pIndex,
+                        pszResume,
+                        (PVOID*)&pListEntry);
+        if (dwError == ENOENT)
+        {
+            dwError = LW_ERROR_NOT_HANDLED;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+        pListEntry = pListEntry->pNext;
+    }
+    else
+    {
+        // Start at the beginning of the list
+        pListEntry = pConn->pObjects;
+    }
+
+    for (dwOut = 0;
+        pListEntry != NULL && dwOut < dwMaxNumUsers;
+        pListEntry = pListEntry->pNext)
+    {
+        pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+        if (pObject->type == AccountType_User)
+        {
+            dwError = ADCacheDuplicateObject(
+                            &ppObjects[dwOut],
+                            pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwOut++;
+        }
+    }
+    if (dwOut == 0)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppObjects = ppObjects;
+    *pdwNumUsersFound = dwOut;
+
+cleanup:
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
+
+    return dwError;
+
+error:
+    *pppObjects = NULL;
+    *pdwNumUsersFound = 0;
+    ADCacheSafeFreeObjectList(
+            dwOut,
+            &ppObjects);
+    goto cleanup;
 }
 
 DWORD
@@ -2178,14 +2258,89 @@ MemCacheEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumGroups,
     IN PCSTR                   pszResume,
-    OUT DWORD*                 dwNumGroupsFound,
+    OUT DWORD*                 pdwNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
+    // Do not free
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
+    BOOLEAN bInLock = FALSE;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    // Do not free
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    // Do not free
+    PLSA_HASH_TABLE pIndex = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+    DWORD dwOut = 0;
 
+    ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
+
+    pIndex = pConn->pSIDToSecurityObject;
+
+    dwMaxNumGroups = LW_MIN(dwMaxNumGroups, pIndex->sCount);
+
+    dwError = LsaAllocateMemory(
+                    sizeof(*ppObjects) * dwMaxNumGroups,
+                    (PVOID*)&ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pszResume)
+    {
+        // Start at one after the resume SID
+        dwError = LsaHashGetValue(
+                        pIndex,
+                        pszResume,
+                        (PVOID*)&pListEntry);
+        if (dwError == ENOENT)
+        {
+            dwError = LW_ERROR_NOT_HANDLED;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+        pListEntry = pListEntry->pNext;
+    }
+    else
+    {
+        // Start at the beginning of the list
+        pListEntry = pConn->pObjects;
+    }
+
+    for (dwOut = 0;
+        pListEntry != NULL && dwOut < dwMaxNumGroups;
+        pListEntry = pListEntry->pNext)
+    {
+        pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+        if (pObject->type == AccountType_Group)
+        {
+            dwError = ADCacheDuplicateObject(
+                            &ppObjects[dwOut],
+                            pObject);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwOut++;
+        }
+    }
+    if (dwOut == 0)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *pppObjects = ppObjects;
+    *pdwNumGroupsFound = dwOut;
+
+cleanup:
+    LEAVE_RW_LOCK(&pConn->lock, bInLock);
 
     return dwError;
+
+error:
+    *pppObjects = NULL;
+    *pdwNumGroupsFound = 0;
+    ADCacheSafeFreeObjectList(
+            dwOut,
+            &ppObjects);
+    goto cleanup;
 }
 
 

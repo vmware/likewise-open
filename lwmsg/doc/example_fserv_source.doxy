@@ -151,6 +151,10 @@ First, it creates a new connection object:
 @skip Create connection
 @until ;
 
+Connections are merely a type of association, so "association"
+and "connection" will be used interchangably for the remainder of this
+document.
+
 Next, it sets the connection mode and endpoint:
 
 @skip Set connection endpoint
@@ -159,13 +163,10 @@ Next, it sets the connection mode and endpoint:
 The connection mode, #LWMSG_CONNECTION_MODE_LOCAL, indicates a UNIX domain
 socket connection.  The endpoint is the path of the special socket file.
 
-Note that connections are lazy -- that is, they are established on
-demand when a message operation is performed and not when the endpoint
-is set.
+After the endpoint is set, the association with the server can be established:
 
-Connections are simply a concrete variety of association, so "association"
-and "connection" will be used interchangably for the remainder of this
-document.
+@skip Establish session
+@until ;
 
 @subsection discon Disconnecting
 
@@ -198,6 +199,8 @@ structure that it will send:
 @skip Set up
 @until ;
 @until ;
+@until ;
+@until ;
 
 The function then sends the message and receives a reply in a single
 transact operation:
@@ -205,8 +208,8 @@ transact operation:
 @skip Send message
 @until ;
 
-If the transaction succeeds, <tt>reply_type</tt> is set to the tag
-of the reply message and <tt>reply_object</tt> is set to the unmarshalled
+If the transaction succeeds, <tt>reply_msg.tag</tt> is set to the tag
+of the reply message and <tt>reply_msg.data</tt> is set to the unmarshalled
 message payload.  The function then checks what kind of reply it received.
 If it received a success message, it allocates a wrapper around the
 handle it received and returns that to the caller.  If it received a failure

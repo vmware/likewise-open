@@ -241,6 +241,25 @@ lwmsg_archive_read_message(
     );
 
 /**
+ * @brief Destroy a message
+ *
+ * Frees all memory allocated for a message previously read
+ * from the given archive.
+ *
+ * @param[in] archive the archive handle
+ * @param[in,out] message the message to destroy
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{MALFORMED, the message was malformed}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_archive_destroy_message(
+    LWMsgArchive* archive,
+    LWMsgMessage* message
+    );
+
+/**
  * @brief Delete archive handle
  *
  * Deletes the given archive handle.

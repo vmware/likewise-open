@@ -292,9 +292,9 @@ LsaDbOpen(
         pszUserQueryFormat,
         LsaDbGetObjectFieldList(),
         LSA_DB_TABLE_NAME_OBJECTS ".Type = 2 and " LSA_DB_TABLE_NAME_OBJECTS
-            ".SamAccountName > ?1 order by "
+            ".ObjectSid > ?1 order by "
             LSA_DB_TABLE_NAME_OBJECTS
-            ".SamAccountName limit ?2");
+            ".ObjectSid limit ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -311,8 +311,8 @@ LsaDbOpen(
         pszGroupQueryFormat,
         LsaDbGetObjectFieldList(),
         LSA_DB_TABLE_NAME_OBJECTS ".Type = 1 and " LSA_DB_TABLE_NAME_OBJECTS
-             ".SamAccountName > ?1 order by " LSA_DB_TABLE_NAME_OBJECTS
-             ".SamAccountName limit ?2");
+             ".ObjectSid > ?1 order by " LSA_DB_TABLE_NAME_OBJECTS
+             ".ObjectSid limit ?2");
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = sqlite3_prepare_v2(
@@ -2511,7 +2511,7 @@ LsaDbEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
     IN PCSTR                   pszResume,
-    OUT DWORD*                 dwNumUsersFound,
+    OUT DWORD*                 pdwNumUsersFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
@@ -2567,7 +2567,7 @@ LsaDbEnumUsersCache(
     BAIL_ON_SQLITE3_ERROR(dwError,
             sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
 
-    *dwNumUsersFound = dwUserCount;
+    *pdwNumUsersFound = dwUserCount;
     *pppObjects = ppObjectsLocal;
 
 cleanup:
@@ -2578,7 +2578,7 @@ cleanup:
 
 error:
 
-    *dwNumUsersFound = 0;
+    *pdwNumUsersFound = 0;
     *pppObjects = NULL;
 
     ADCacheSafeFreeObjectList(dwUserCount, &ppObjectsLocal);
@@ -2593,7 +2593,7 @@ LsaDbEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumGroups,
     IN PCSTR                   pszResume,
-    OUT DWORD*                 dwNumGroupsFound,
+    OUT DWORD*                 pdwNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
@@ -2649,7 +2649,7 @@ LsaDbEnumGroupsCache(
     BAIL_ON_SQLITE3_ERROR(dwError,
             sqlite3_errmsg(sqlite3_db_handle(pstQuery)));
 
-    *dwNumGroupsFound = dwGroupCount;
+    *pdwNumGroupsFound = dwGroupCount;
     *pppObjects = ppObjectsLocal;
 
 cleanup:
@@ -2660,7 +2660,7 @@ cleanup:
 
 error:
 
-    *dwNumGroupsFound = 0;
+    *pdwNumGroupsFound = 0;
     *pppObjects = NULL;
 
     ADCacheSafeFreeObjectList(dwGroupCount, &ppObjectsLocal);

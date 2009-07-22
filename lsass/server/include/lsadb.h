@@ -375,7 +375,7 @@ LsaDbEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumUsers,
     IN PCSTR                   pszResume,
-    OUT DWORD*                 dwNumUsersFound,
+    OUT DWORD*                 pdwNumUsersFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
@@ -384,7 +384,7 @@ LsaDbEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
     IN DWORD                   dwMaxNumGroups,
     IN PCSTR                   pszResume,
-    OUT DWORD *                dwNumGroupsFound,
+    OUT DWORD *                pdwNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 

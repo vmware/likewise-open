@@ -1035,7 +1035,7 @@ AD_EnumUsersFromCache(
     if ( dwObjectCount == request->dwMaxNumUsers )
     {
         dwError = LsaAllocateString(
-                      ppUserObjectList[dwObjectCount - 1]->pszSamAccountName,
+                      ppUserObjectList[dwObjectCount - 1]->pszObjectSid,
                       &response.pszResume);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -1654,7 +1654,7 @@ AD_EnumGroupsFromCache(
     if ( dwObjectCount == request->dwMaxNumGroups )
     {
         dwError = LsaAllocateString(
-                      ppGroupObjectList[dwObjectCount - 1]->pszSamAccountName,
+                      ppGroupObjectList[dwObjectCount - 1]->pszObjectSid,
                       &response.pszResume);
         BAIL_ON_LSA_ERROR(dwError);
     }

@@ -957,6 +957,7 @@ AC_CONFIG_FILES([Makefile
                  interop/wbclient/Makefile
                  interop/lwicompat/Makefile
                  tools/Makefile
+                 tools/lw-lsa/Makefile
                  etc/Makefile
                  etc/lsassd.conf
                  include/Makefile
