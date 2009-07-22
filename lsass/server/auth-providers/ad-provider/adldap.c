@@ -116,13 +116,18 @@ ADGetLDAPUPNString(
 
             if (!index(pszUPN, '@'))
             {
+                // Some domain users might have invalid UPNs in AD.
+                // Fix it for them.
+                LSA_SAFE_FREE_STRING(pszUPN);
                 dwError = LW_ERROR_DATA_ERROR;
                 BAIL_ON_LSA_ERROR(dwError);
             }
-
-            // Do not touch the non-realm part, just the realm part
-            // to make sure the realm conforms to spec.
-            LsaPrincipalRealmToUpper(pszUPN);
+            else
+            {
+                // Do not touch the non-realm part, just the realm part
+                // to make sure the realm conforms to spec.
+                LsaPrincipalRealmToUpper(pszUPN);
+            }
         }
     }
 
