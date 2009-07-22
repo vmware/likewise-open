@@ -183,7 +183,7 @@ wbcStringToSid(
     /* Id Auth */
 
     pszStrToken = pszStrNextToken + 1;
-    dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
+    dwX = (DWORD)strtoul(pszStrToken, &pszStrNextToken, 10);
     if ((dwX == 0) || !pszStrNextToken || (pszStrNextToken[0] != '-')) {
         dwErr = LW_ERROR_INVALID_SID;
         BAIL_ON_LSA_ERR(dwErr);
@@ -202,8 +202,9 @@ wbcStringToSid(
     do {
         pszStrToken = pszStrNextToken + 1;
 
-        dwX = (DWORD)strtol(pszStrToken, &pszStrNextToken, 10);
-        if (dwX == 0) {
+        errno = 0;
+        dwX = (DWORD)strtoul(pszStrToken, &pszStrNextToken, 10);
+        if (errno || pszStrToken == pszStrNextToken) {
             break;
         }
 
