@@ -1023,8 +1023,7 @@ unsigned32              *status;
     if (gethostbyname_r((char *)netaddr, &hbuf, &hdbuf) != 0)
 #else
     /* As a last resort, fall back on gethostbyname */
-    he = gethostbyname((char *)netaddr);
-    if (he != NULL)
+    if((he = gethostbyname((char *)netaddr)) == NULL)
 #endif /* GETHOSTBYNAME_R_ARGS */
     {
         *status = rpc_s_inval_net_addr;
