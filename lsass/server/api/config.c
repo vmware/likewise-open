@@ -252,6 +252,7 @@ LsaSrvApiConfigNameValuePair(
 {
     DWORD dwError = 0;
     PLSA_SRV_API_CONFIG pConfig = (PLSA_SRV_API_CONFIG)pData;
+    LSA_LOG_INFO LogInfo = {};
 
     BAIL_ON_INVALID_POINTER(pConfig);
     BAIL_ON_INVALID_STRING(pszName);
@@ -285,6 +286,29 @@ LsaSrvApiConfigNameValuePair(
         {
             pConfig->bLogNetworkConnectionEvents = TRUE;
         }
+    }
+    else if (!strcasecmp(pszName, "log-level"))
+    {
+        if (!strcasecmp(pszValue, "error"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_ERROR;
+        else if (!strcasecmp(pszValue, "warning"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_WARNING;
+        else if (!strcasecmp(pszValue, "info"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_INFO;
+        else if (!strcasecmp(pszValue, "verbose"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_VERBOSE;
+        else if (!strcasecmp(pszValue, "debug"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_DEBUG;
+        else if (!strcasecmp(pszValue, "trace"))
+            LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
+        else
+        {
+            dwError = LSA_ERROR_INVALID_LOG_LEVEL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LsaLogSetInfo_r(&LogInfo);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *pbContinue = TRUE;
