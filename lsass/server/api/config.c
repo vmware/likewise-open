@@ -303,7 +303,7 @@ LsaSrvApiConfigNameValuePair(
             LogInfo.maxAllowedLogLevel = LSA_LOG_LEVEL_TRACE;
         else
         {
-            dwError = LSA_ERROR_INVALID_LOG_LEVEL;
+            dwError = LW_ERROR_INVALID_LOG_LEVEL;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
