@@ -28,6 +28,20 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        externs.h
+ *
+ * Abstract:
+ *
+ *        Externs
+ *
+ * Authors: Gerald Carter <gcarter@likewise.com>
+ */
+
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
