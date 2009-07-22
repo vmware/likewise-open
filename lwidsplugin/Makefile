@@ -22,8 +22,9 @@ SOURCES=\
 	ServerModuleLib.c \
 	Utilities.cpp
 
-FRAMEWORKS=CoreFoundation DirectoryService
+FRAMEWORKS=CoreFoundation
 
-LOCAL_CFLAGS=-Wno-unknown-pragmas
+LOCAL_CFLAGS=-Wno-unknown-pragmas $(_CPPFLAGS) $(_CFLAGS)
+LOCAL_LDFLAGS=$(_LDFLAGS) -bundle_loader /usr/sbin/DirectoryService
 
 include Makefile.inc
