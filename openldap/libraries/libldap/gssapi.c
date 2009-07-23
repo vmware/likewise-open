@@ -1,7 +1,7 @@
-/* $OpenLDAP$ */
+/* $OpenLDAP: pkg/ldap/libraries/libldap/gssapi.c,v 1.1.2.3 2009/02/17 21:02:51 quanah Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Author: Stefan Metzmacher <metze@sernet.de>
@@ -72,11 +72,11 @@ gsserrstr(
 			   mech, &msg_ctx, &minor_msg);
 
 	snprintf(buf, buf_len, "gss_rc[%d:%*s] mech[%*s] minor[%u:%*s]",
-		 gss_rc, gss_msg.length,
+		 gss_rc, (int)gss_msg.length,
 		 (const char *)(gss_msg.value?gss_msg.value:""),
-		 mech_msg.length,
+		 (int)mech_msg.length,
 		 (const char *)(mech_msg.value?mech_msg.value:""),
-		 minor_status, minor_msg.length,
+		 minor_status, (int)minor_msg.length,
 		 (const char *)(minor_msg.value?minor_msg.value:""));
 
 	gss_release_buffer(&min2, &mech_msg);
@@ -209,7 +209,7 @@ sb_sasl_gssapi_encode(
 		ber_pvt_sb_grow_buffer( dst, pkt_len ) < 0 )
 	{
 		ber_log_printf( LDAP_DEBUG_ANY, p->sbiod->sbiod_sb->sb_debug,
-				"sb_sasl_gssapi_encode: failed to grow the buffer to %u bytes\n",
+				"sb_sasl_gssapi_encode: failed to grow the buffer to %lu bytes\n",
 				pkt_len );
 		return -1;
 	}
@@ -287,7 +287,7 @@ sb_sasl_gssapi_decode(
 		ber_pvt_sb_grow_buffer( dst, unwrapped.length ) < 0 )
 	{
 		ber_log_printf( LDAP_DEBUG_ANY, p->sbiod->sbiod_sb->sb_debug,
-				"sb_sasl_gssapi_decode: failed to grow the buffer to %u bytes\n",
+				"sb_sasl_gssapi_decode: failed to grow the buffer to %lu bytes\n",
 				pkt_len );
 		return -1;
 	}
@@ -351,8 +351,6 @@ map_gsserr2ldap(
 	int gss_rc,
 	OM_uint32 minor_status )
 {
-	OM_uint32 min2;
-	OM_uint32 msg_ctx = 0;
 	char msg[256];
 
 	Debug( LDAP_DEBUG_ANY, "%s\n",
@@ -515,28 +513,15 @@ guess_service_principal(
 	int gss_rc;
 	int ret;
 	size_t svc_principal_size;
-	size_t dns_domain_name_size;
 	char *svc_principal = NULL;
 	const char *principal_fmt = NULL;
+	const char *str = NULL;
 	const char *givenstr = NULL;
-	char *dns_domain_name = NULL;
-	char *name = NULL;
 	const char *ignore = "not_defined_in_RFC4178@please_ignore";
 	int allow_remote = 0;
 
 	if (ldapServiceName) {
 		givenstr = strchr(ldapServiceName, ':');
-
-		dns_domain_name_size = (size_t)((givenstr - ldapServiceName) + 1);
-		dns_domain_name = (char*) ldap_memalloc(dns_domain_name_size * sizeof(char));
-		if (!dns_domain_name) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return ld->ld_errno;
-		}
-
-		strncpy(dns_domain_name, ldapServiceName, (dns_domain_name_size - 1));
-		dns_domain_name[dns_domain_name_size - 1] = '\0';
-
 		if (givenstr && givenstr[1]) {
 			givenstr++;
 			if (strcmp(givenstr, ignore) == 0) {
@@ -551,53 +536,30 @@ guess_service_principal(
 		allow_remote = 1;
 	}
 
-	/* Try to figure out correct service principal from given
-	   available information */
 	if (allow_remote && givenstr) {
 		principal_fmt = "%s";
 		svc_principal_size = strlen(givenstr) + 1;
-		name = strdup(givenstr);
-		if (!name) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return ld->ld_errno;
-		}
+		str = givenstr;
 
-
-	} else if (dnsHostName) {
+	} else if (allow_remote && dnsHostName) {
 		principal_fmt = "ldap/%s";
-		svc_principal_size = strlen(dnsHostName) + strlen(dns_domain_name) +
-                                     strlen(principal_fmt);
-
-		/* svc_principal_size is actually a bit more than really needed, but
-		   let's use it to avoid calculating yet another size */
-		name = (char*) ldap_memalloc(svc_principal_size * sizeof(char));
-		if (!name) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return ld->ld_errno;
-		}
-
-		snprintf(name, svc_principal_size, "%s/%s",
-			 dnsHostName, dns_domain_name);
+		svc_principal_size = strlen(dnsHostName) + strlen(principal_fmt);
+		str = dnsHostName;
 
 	} else {
 		principal_fmt = "ldap/%s";
-		svc_principal_size = strlen(dns_domain_name) + strlen(principal_fmt);
-		name = strdup(dns_domain_name);
-		if (!name) {
-			ld->ld_errno = LDAP_NO_MEMORY;
-			return ld->ld_errno;
-		}
-
+		svc_principal_size = strlen(host) + strlen(principal_fmt);
+		str = host;
 	}
 
 	svc_principal = (char*) ldap_memalloc(svc_principal_size * sizeof(char));
-	if (!svc_principal ) {
+	if ( ret < 0 ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return ld->ld_errno;
 	}
 
-	ret = snprintf(svc_principal, svc_principal_size, principal_fmt, name);
-	if (ret < 0 || ret >= svc_principal_size) {
+	ret = snprintf( svc_principal, svc_principal_size - 1, principal_fmt, str);
+	if (ret < 0 || (size_t)ret + 1 >= svc_principal_size) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
@@ -609,11 +571,7 @@ guess_service_principal(
 	input_name.length = strlen( svc_principal );
 
 	gss_rc = gss_import_name( &minor_status, &input_name, &nt_principal, principal );
-
-	ldap_memfree(svc_principal);
-	ldap_memfree(dns_domain_name);
-	ldap_memfree(name);
-
+	ldap_memfree( svc_principal );
 	if ( gss_rc != GSS_S_COMPLETE ) {
 		return map_gsserr2ldap( ld, GSS_C_NO_OID, gss_rc, minor_status );
 	}
@@ -715,7 +673,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	rc = ldap_gssapi_get_rootdse_infos ( ld, &mechlist,
 					     &ldapServiceName, &dnsHostName);
 	if ( rc != LDAP_SUCCESS ) {
-		goto rc_error;
+		return rc;
 	}
 
 	/* check that the server supports GSS-SPNEGO */
@@ -1036,7 +994,9 @@ ldap_gssapi_bind(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *creds )
-{ return LDAP_NOT_SUPPORTED; }
+{
+	return LDAP_NOT_SUPPORTED;
+}
 
 int
 ldap_gssapi_bind_s(

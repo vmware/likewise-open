@@ -32,7 +32,12 @@ CREATE TABLE phones (
 	pers_id int NOT NULL 
 );
 
-
+drop table if exists certs;
+CREATE TABLE certs (
+	id int NOT NULL ,
+	cert LONGBLOB NOT NULL,
+	pers_id int NOT NULL
+);
 
 ALTER TABLE authors_docs  ADD 
 	CONSTRAINT PK_authors_docs PRIMARY KEY  
@@ -65,6 +70,12 @@ ALTER TABLE phones  ADD
 	(
 		id
 	); 
+
+ALTER TABLE certs  ADD
+	CONSTRAINT PK_certs PRIMARY KEY
+	(
+		id
+	);
 
 drop table if exists referrals;
 CREATE TABLE referrals (

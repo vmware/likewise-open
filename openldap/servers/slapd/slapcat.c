@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/servers/slapd/slapcat.c,v 1.2.2.4 2006/01/03 22:16:16 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/slapcat.c,v 1.7.2.8 2009/01/22 00:01:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -32,7 +32,7 @@
 #include "slapcommon.h"
 #include "ldif.h"
 
-static int gotsig;
+static volatile sig_atomic_t gotsig;
 
 static RETSIGTYPE
 slapcat_sig( int sig )
@@ -123,12 +123,18 @@ slapcat( int argc, char **argv )
 			break;
 		}
 
-		fputs( data, ldiffp->fp );
-		fputs( "\n", ldiffp->fp );
+		if ( fputs( data, ldiffp->fp ) == EOF ||
+			fputs( "\n", ldiffp->fp ) == EOF ) {
+			fprintf(stderr, "%s: error writing output.\n",
+				progname);
+			rc = EXIT_FAILURE;
+			break;
+		}
 	}
 
 	be->be_entry_close( be );
 
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 	return rc;
 }

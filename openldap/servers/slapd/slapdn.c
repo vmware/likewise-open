@@ -1,6 +1,7 @@
+/* $OpenLDAP: pkg/ldap/servers/slapd/slapdn.c,v 1.8.2.4 2009/01/22 00:01:03 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2006 The OpenLDAP Foundation.
+ * Copyright 2004-2009 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -46,12 +47,26 @@ slapdn( int argc, char **argv )
 	argc -= optind;
 
 	for ( ; argc--; argv++ ) {
-		struct berval	dn, pdn, ndn;
+		struct berval	dn,
+				pdn = BER_BVNULL,
+				ndn = BER_BVNULL;
 
 		ber_str2bv( argv[ 0 ], 0, 0, &dn );
 
-		rc = dnPrettyNormal( NULL, &dn,
-					&pdn, &ndn, NULL );
+		switch ( dn_mode ) {
+		case SLAP_TOOL_LDAPDN_PRETTY:
+			rc = dnPretty( NULL, &dn, &pdn, NULL );
+			break;
+
+		case SLAP_TOOL_LDAPDN_NORMAL:
+			rc = dnNormalize( 0, NULL, NULL, &dn, &ndn, NULL );
+			break;
+
+		default:
+			rc = dnPrettyNormal( NULL, &dn, &pdn, &ndn, NULL );
+			break;
+		}
+
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "DN: <%s> check failed %d (%s)\n",
 					dn.bv_val, rc,
@@ -85,7 +100,8 @@ slapdn( int argc, char **argv )
 		}
 	}
 	
-	slap_tool_destroy();
+	if ( slap_tool_destroy())
+		rc = EXIT_FAILURE;
 
 	return rc;
 }

@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-sql/schema-map.c,v 1.44.2.10 2006/08/17 17:53:17 ando Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-sql/schema-map.c,v 1.59.2.9 2009/01/22 00:01:11 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2006 The OpenLDAP Foundation.
+ * Copyright 1999-2009 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * Portions Copyright 2004 Mark Adamson.
@@ -74,6 +74,14 @@ backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 	const backsql_at_map_rec	*m1 = v_m1,
 					*m2 = v_m2;
 
+	if ( slap_ad_is_binary( m1->bam_ad ) || slap_ad_is_binary( m2->bam_ad ) ) {
+#ifdef BACKSQL_USE_PTR_CMP
+		return SLAP_PTRCMP( m1->bam_ad->ad_type, m2->bam_ad->ad_type );
+#else /* ! BACKSQL_USE_PTR_CMP */
+		return ber_bvcmp( &m1->bam_ad->ad_type->sat_cname, &m2->bam_ad->ad_type->sat_cname );
+#endif /* ! BACKSQL_USE_PTR_CMP */
+	}
+
 #ifdef BACKSQL_USE_PTR_CMP
 	return SLAP_PTRCMP( m1->bam_ad, m2->bam_ad );
 #else /* ! BACKSQL_USE_PTR_CMP */
@@ -87,12 +95,26 @@ backsql_dup_attr( void *v_m1, void *v_m2 )
 	backsql_at_map_rec		*m1 = v_m1,
 					*m2 = v_m2;
 
-	assert( m1->bam_ad == m2->bam_ad );
+	if ( slap_ad_is_binary( m1->bam_ad ) || slap_ad_is_binary( m2->bam_ad ) ) {
+#ifdef BACKSQL_USE_PTR_CMP
+		assert( m1->bam_ad->ad_type == m2->bam_ad->ad_type );
+#else /* ! BACKSQL_USE_PTR_CMP */
+		assert( ber_bvcmp( &m1->bam_ad->ad_type->sat_cname, &m2->bam_ad->ad_type->sat_cname ) == 0 );
+#endif /* ! BACKSQL_USE_PTR_CMP */
+
+	} else {
+#ifdef BACKSQL_USE_PTR_CMP
+		assert( m1->bam_ad == m2->bam_ad );
+#else /* ! BACKSQL_USE_PTR_CMP */
+		assert( ber_bvcmp( &m1->bam_ad->ad_cname, &m2->bam_ad->ad_cname ) == 0 );
+#endif /* ! BACKSQL_USE_PTR_CMP */
+	}
 
 	/* duplicate definitions of attributeTypes are appended;
 	 * this allows to define multiple rules for the same 
 	 * attributeType.  Use with care! */
 	for ( ; m1->bam_next ; m1 = m1->bam_next );
+
 	m1->bam_next = m2;
 	m2->bam_next = NULL;
 
@@ -167,7 +189,7 @@ static int
 backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 {
 	backsql_at_map_rec	*at_map;
-	char			s[] = "+9223372036854775807L";
+	char			s[LDAP_PVT_INTTYPE_CHARS(long)];
 	struct berval		sbv;
 	struct berbuf		bb;
 	
@@ -178,6 +200,7 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 	at_map = (backsql_at_map_rec *)ch_calloc(1, 
 			sizeof( backsql_at_map_rec ) );
 	at_map->bam_ad = slap_schema.si_ad_objectClass;
+	at_map->bam_true_ad = slap_schema.si_ad_objectClass;
 	ber_str2bv( "ldap_entry_objclasses.oc_name", 0, 1,
 			&at_map->bam_sel_expr );
 	ber_str2bv( "ldap_entry_objclasses,ldap_entries", 0, 1, 
@@ -205,13 +228,11 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 
 	at_map->bam_add_proc = NULL;
 	{
-		char	tmp[] =
-			"INSERT INTO ldap_entry_objclasses "
+		char	tmp[STRLENOF("INSERT INTO ldap_entry_objclasses "
 			"(entry_id,oc_name) VALUES "
 			"((SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?),?)";
+			"WHERE oc_map_id= "
+			"AND keyval=?),?)") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 		snprintf( tmp, sizeof(tmp), 
 			"INSERT INTO ldap_entry_objclasses "
 			"(entry_id,oc_name) VALUES "
@@ -223,12 +244,10 @@ backsql_add_sysmaps( backsql_info *bi, backsql_oc_map_rec *oc_map )
 
 	at_map->bam_delete_proc = NULL;
 	{
-		char	tmp[] =
-			"DELETE FROM ldap_entry_objclasses "
+		char	tmp[STRLENOF("DELETE FROM ldap_entry_objclasses "
 			"WHERE entry_id=(SELECT id FROM ldap_entries "
-			"WHERE oc_map_id="
-			"18446744073709551615UL "	/* 64 bit ULONG */
-			"AND keyval=?) AND oc_name=?";
+			"WHERE oc_map_id= "
+			"AND keyval=?) AND oc_name=?") + LDAP_PVT_INTTYPE_CHARS(unsigned long)];
 		snprintf( tmp, sizeof(tmp), 
 			"DELETE FROM ldap_entry_objclasses "
 			"WHERE entry_id=(SELECT id FROM ldap_entries "
@@ -321,22 +340,52 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		struct berbuf	bb = BB_NULL;
 		AttributeDescription *ad = NULL;
 
-		Debug( LDAP_DEBUG_TRACE, 
-			"attributeType:\n"
-			"\tname=\"%s\"\n"
-			"\tsel_expr=\"%s\"\n"
-			"\tfrom=\"%s\"\n",
-			at_row.cols[ 0 ], at_row.cols[ 1 ],
-			at_row.cols[ 2 ] );
-		Debug( LDAP_DEBUG_TRACE, 
-			"\tjoin_where=\"%s\"\n"
-			"\tadd_proc=\"%s\"\n"
-			"\tdelete_proc=\"%s\"\n",
-			at_row.cols[ 3 ], at_row.cols[ 4 ],
-			at_row.cols[ 5 ]);
-		/* TimesTen */
-		Debug( LDAP_DEBUG_TRACE, "\tsel_expr_u=\"%s\"\n",
-				at_row.cols[ 8 ], 0, 0 );
+		{
+			struct {
+				int idx;
+				char *name;
+			} required[] = {
+				{ 0, "name" },
+				{ 1, "sel_expr" },
+				{ 2, "from" },
+				{ -1, NULL },
+			};
+			int i;
+
+			for ( i = 0; required[ i ].name != NULL; i++ ) {
+				if ( at_row.value_len[ i ] <= 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"backsql_oc_get_attr_mapping(): "
+						"required column #%d \"%s\" is empty\n",
+						required[ i ].idx, required[ i ].name, 0 );
+					bas->bas_rc = LDAP_OTHER;
+					return BACKSQL_AVL_STOP;
+				}
+			}
+		}
+
+		{
+			char		buf[ SLAP_TEXT_BUFLEN ];
+
+			snprintf( buf, sizeof( buf ),
+				"attributeType: "
+				"name=\"%s\" "
+				"sel_expr=\"%s\" "
+				"from=\"%s\" "
+				"join_where=\"%s\" "
+				"add_proc=\"%s\" "
+				"delete_proc=\"%s\" "
+				"sel_expr_u=\"%s\"",
+				at_row.cols[ 0 ],
+				at_row.cols[ 1 ],
+				at_row.cols[ 2 ],
+				at_row.cols[ 3 ] ? at_row.cols[ 3 ] : "",
+				at_row.cols[ 4 ] ? at_row.cols[ 4 ] : "",
+				at_row.cols[ 5 ] ? at_row.cols[ 5 ] : "",
+				at_row.cols[ 8 ] ? at_row.cols[ 8 ] : "");
+			Debug( LDAP_DEBUG_TRACE, "%s\n", buf, 0, 0 );
+		}
+
 		rc = slap_str2ad( at_row.cols[ 0 ], &ad, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_attr_mapping(): "
@@ -350,9 +399,29 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		at_map = (backsql_at_map_rec *)ch_calloc( 1,
 				sizeof( backsql_at_map_rec ) );
 		at_map->bam_ad = ad;
+		at_map->bam_true_ad = ad;
+		if ( slap_syntax_is_binary( ad->ad_type->sat_syntax )
+			&& !slap_ad_is_binary( ad ) )
+		{
+			char		buf[ SLAP_TEXT_BUFLEN ];
+			struct berval	bv;
+			const char	*text = NULL;
+
+			bv.bv_val = buf;
+			bv.bv_len = snprintf( buf, sizeof( buf ), "%s;binary",
+				ad->ad_cname.bv_val );
+			at_map->bam_true_ad = NULL;
+			bas->bas_rc = slap_bv2ad( &bv, &at_map->bam_true_ad, &text );
+			if ( bas->bas_rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_attr_mapping(): "
+					"unable to fetch attribute \"%s\": %s (%d)\n",
+					buf, text, rc );
+				return BACKSQL_AVL_STOP;
+			}
+		}
 
 		ber_str2bv( at_row.cols[ 1 ], 0, 1, &at_map->bam_sel_expr );
-		if ( at_row.value_len[ 8 ] < 0 ) {
+		if ( at_row.value_len[ 8 ] <= 0 ) {
 			BER_BVZERO( &at_map->bam_sel_expr_u );
 
 		} else {
@@ -363,7 +432,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		ber_str2bv( at_row.cols[ 2 ], 0, 0, &bv );
 		backsql_merge_from_clause( bas->bas_bi, &bb, &bv );
 		at_map->bam_from_tbls = bb.bb_val;
-		if ( at_row.value_len[ 3 ] < 0 ) {
+		if ( at_row.value_len[ 3 ] <= 0 ) {
 			BER_BVZERO( &at_map->bam_join_where );
 
 		} else {
@@ -372,7 +441,7 @@ backsql_oc_get_attr_mapping( void *v_oc, void *v_bas )
 		}
 		at_map->bam_add_proc = NULL;
 		if ( at_row.value_len[ 4 ] > 0 ) {
-			at_map->bam_add_proc = ch_strdup( at_row.cols[4] );
+			at_map->bam_add_proc = ch_strdup( at_row.cols[ 4 ] );
 		}
 		at_map->bam_delete_proc = NULL;
 		if ( at_row.value_len[ 5 ] > 0 ) {
@@ -433,6 +502,9 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 	backsql_oc_map_rec		*oc_map;
 	struct backsql_attr_schema_info	bas;
 
+	int				delete_proc_idx = 5;
+	int				create_hint_idx = delete_proc_idx + 2;
+
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_load_schema_map()\n", 0, 0, 0 );
 
 	/* 
@@ -476,8 +548,63 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 
 	backsql_BindRowAsStrings( sth, &oc_row );
 	rc = SQLFetch( sth );
+
+	if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
+		delete_proc_idx++;
+		create_hint_idx++;
+	}
+
 	for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( sth ) ) {
-		int	colnum;
+		{
+			struct {
+				int idx;
+				char *name;
+			} required[] = {
+				{ 0, "id" },
+				{ 1, "name" },
+				{ 2, "keytbl" },
+				{ 3, "keycol" },
+				{ delete_proc_idx + 1, "expect_return" },
+				{ -1, NULL },
+			};
+			int i;
+
+			for ( i = 0; required[ i ].name != NULL; i++ ) {
+				if ( oc_row.value_len[ required[ i ].idx ] <= 0 ) {
+					Debug( LDAP_DEBUG_ANY,
+						"backsql_load_schema_map(): "
+						"required column #%d \"%s\" is empty\n",
+						required[ i ].idx, required[ i ].name, 0 );
+					return LDAP_OTHER;
+				}
+			}
+		}
+
+		{
+			char		buf[ SLAP_TEXT_BUFLEN ];
+
+			snprintf( buf, sizeof( buf ),
+				"objectClass: "
+				"id=\"%s\" "
+				"name=\"%s\" "
+				"keytbl=\"%s\" "
+				"keycol=\"%s\" "
+				"create_proc=\"%s\" "
+				"create_keyval=\"%s\" "
+				"delete_proc=\"%s\" "
+				"expect_return=\"%s\""
+				"create_hint=\"%s\" ",
+				oc_row.cols[ 0 ],
+				oc_row.cols[ 1 ],
+				oc_row.cols[ 2 ],
+				oc_row.cols[ 3 ],
+				oc_row.cols[ 4 ] ? oc_row.cols[ 4 ] : "",
+				( BACKSQL_CREATE_NEEDS_SELECT( bi ) && oc_row.cols[ 5 ] ) ? oc_row.cols[ 5 ] : "",
+				oc_row.cols[ delete_proc_idx ] ? oc_row.cols[ delete_proc_idx ] : "",
+				oc_row.cols[ delete_proc_idx + 1 ],
+				( ( oc_row.ncols > create_hint_idx ) && oc_row.cols[ create_hint_idx ] ) ? oc_row.cols[ create_hint_idx ] : "" );
+			Debug( LDAP_DEBUG_TRACE, "%s\n", buf, 0, 0 );
+		}
 
 		oc_map = (backsql_oc_map_rec *)ch_calloc( 1,
 				sizeof( backsql_oc_map_rec ) );
@@ -499,39 +626,36 @@ backsql_load_schema_map( backsql_info *bi, SQLHDBC dbh )
 		
 		ber_str2bv( oc_row.cols[ 2 ], 0, 1, &oc_map->bom_keytbl );
 		ber_str2bv( oc_row.cols[ 3 ], 0, 1, &oc_map->bom_keycol );
-		oc_map->bom_create_proc = ( oc_row.value_len[ 4 ] < 0 ) ? NULL 
+		oc_map->bom_create_proc = ( oc_row.value_len[ 4 ] <= 0 ) ? NULL
 			: ch_strdup( oc_row.cols[ 4 ] );
 
-		colnum = 5;
 		if ( BACKSQL_CREATE_NEEDS_SELECT( bi ) ) {
-			colnum = 6;
-			oc_map->bom_create_keyval = ( oc_row.value_len[ 5 ] < 0 ) 
+			oc_map->bom_create_keyval = ( oc_row.value_len[ 5 ] <= 0 )
 				? NULL : ch_strdup( oc_row.cols[ 5 ] );
 		}
-		oc_map->bom_delete_proc = ( oc_row.value_len[ colnum ] < 0 ) ? NULL 
-			: ch_strdup( oc_row.cols[ colnum ] );
-		if ( lutil_atoix( &oc_map->bom_expect_return, oc_row.cols[ colnum + 1 ], 0 ) != 0 ) {
+		oc_map->bom_delete_proc = ( oc_row.value_len[ delete_proc_idx ] <= 0 ) ? NULL
+			: ch_strdup( oc_row.cols[ delete_proc_idx ] );
+		if ( lutil_atoix( &oc_map->bom_expect_return, oc_row.cols[ delete_proc_idx + 1 ], 0 ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
 				"unable to parse expect_return=\"%s\" for objectClass \"%s\"\n", 
-				oc_row.cols[ colnum + 1 ], oc_row.cols[ 1 ], 0 );
+				oc_row.cols[ delete_proc_idx + 1 ], oc_row.cols[ 1 ], 0 );
 			return LDAP_OTHER;
 		}
 
-		colnum += 2;
-		if ( ( oc_row.ncols > colnum ) &&
-				( oc_row.value_len[ colnum ] > 0 ) )
+		if ( ( oc_row.ncols > create_hint_idx ) &&
+				( oc_row.value_len[ create_hint_idx ] > 0 ) )
 		{
 			const char	*text;
 
 			oc_map->bom_create_hint = NULL;
-			rc = slap_str2ad( oc_row.cols[ colnum ],
+			rc = slap_str2ad( oc_row.cols[ create_hint_idx ],
 					&oc_map->bom_create_hint, &text );
 			if ( rc != SQL_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 						"error matching "
 						"AttributeDescription %s "
 						"in create_hint: %s (%d)\n",
-						oc_row.cols[ colnum ],
+						oc_row.cols[ create_hint_idx ],
 						text, rc );
 				backsql_PrintErrors( bi->sql_db_env, dbh,
 						sth, rc );
@@ -717,7 +841,7 @@ backsql_id2oc( backsql_info *bi, unsigned long id )
 backsql_at_map_rec *
 backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 {
-	backsql_at_map_rec	tmp, *res;
+	backsql_at_map_rec	tmp = { 0 }, *res;
  
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_ad2at(): "

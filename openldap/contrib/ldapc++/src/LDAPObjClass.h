@@ -1,3 +1,4 @@
+// $OpenLDAP: pkg/ldap/contrib/ldapc++/src/LDAPObjClass.h,v 1.3.6.3 2008/09/02 23:58:15 quanah Exp $
 /*
  * Copyright 2003, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -10,9 +11,6 @@
 #include <string>
 
 #include "StringList.h"
-
-#define SCHEMA_PARSE_FLAG    0x03
-
 
 using namespace std;
 
@@ -35,7 +33,7 @@ class LDAPObjClass{
         /**
          * Copy constructor
 	 */   
-	LDAPObjClass (const LDAPObjClass& oc);
+	LDAPObjClass( const LDAPObjClass& oc );
 
         /**
 	 * Constructs new object and fills the data structure by parsing the
@@ -45,7 +43,8 @@ class LDAPObjClass{
 	 * "( SuSE.YaST.OC:5 NAME 'userTemplate' SUP objectTemplate STRUCTURAL
 	 *    DESC 'User object template' MUST ( cn ) MAY ( secondaryGroup ))"
          */   
-        LDAPObjClass (string oc_item);
+        LDAPObjClass (string oc_item, int flags = LDAP_SCHEMA_ALLOW_NO_OID |
+                      LDAP_SCHEMA_ALLOW_QUOTED);
 
         /**
          * Destructor
@@ -55,42 +54,42 @@ class LDAPObjClass{
 	/**
 	 * Returns object class description
 	 */
-	string getDesc ();
+	string getDesc() const;
 	
 	/**
 	 * Returns object class oid
 	 */
-	string getOid ();
+	string getOid() const;
 
 	/**
 	 * Returns object class name (first one if there are more of them)
 	 */
-	string getName ();
+	string getName() const;
 
 	/**
 	 * Returns object class kind: 0=ABSTRACT, 1=STRUCTURAL, 2=AUXILIARY
 	 */
-	int getKind ();
+	int getKind() const;
 
 	/**
 	 * Returns all object class names
 	 */
-	StringList getNames();
+	StringList getNames() const;
 	
 	/**
 	 * Returns list of required attributes
 	 */
-	StringList getMust();
+	StringList getMust() const;
 	
 	/**
 	 * Returns list of allowed (and not required) attributes
 	 */
-	StringList getMay();
+	StringList getMay() const;
 	
         /**
 	 * Returns list of the OIDs of the superior ObjectClasses
 	 */
-	StringList getSup();
+	StringList getSup() const;
 
 	void setNames (char **oc_names);
 	void setMay (char **oc_may);

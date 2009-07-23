@@ -1,6 +1,7 @@
+/* $OpenLDAP: pkg/ldap/libraries/libldap/pagectrl.c,v 1.5.2.6 2009/01/22 00:00:55 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2008 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * Copyright 2006 Hans Leidekker
  * All rights reserved.
  *
@@ -62,16 +63,16 @@ ldap_create_page_control_value(
 	if ( ld == NULL || value == NULL ||
 		pagesize < 1 || pagesize > LDAP_MAXINT )
 	{
-		if ( ld ) {
-                   ld->ld_errno = LDAP_PARAM_ERROR;
-                }
-                return LDAP_PARAM_ERROR;
+		if ( ld )
+			ld->ld_errno = LDAP_PARAM_ERROR;
+		return LDAP_PARAM_ERROR;
 	}
 
 	assert( LDAP_VALID( ld ) );
 
 	value->bv_val = NULL;
 	value->bv_len = 0;
+	ld->ld_errno = LDAP_SUCCESS;
 
 	if ( cookie == NULL ) {
 		cookie = &null_cookie;
@@ -80,7 +81,7 @@ ldap_create_page_control_value(
 	ber = ldap_alloc_ber_with_options( ld );
 	if ( ber == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
-		goto done;
+		return ld->ld_errno;
 	}
 
 	tag = ber_printf( ber, "{iO}", pagesize, cookie );
@@ -91,10 +92,7 @@ ldap_create_page_control_value(
 
 	if ( ber_flatten2( ber, value, 1 ) == -1 ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
-                goto done;
 	}
-
-        ld->ld_errno = LDAP_SUCCESS;
 
 done:;
 	if ( ber != NULL ) {
@@ -211,7 +209,7 @@ ldap_parse_pageresponse_control(
 		ld->ld_errno = LDAP_SUCCESS;
 
 		if ( countp != NULL ) {
-			*countp = count;
+			*countp = (unsigned long)count;
 		}
 	}
 
@@ -251,7 +249,7 @@ ldap_parse_page_control(
 		return ld->ld_errno;
 	}
 
-	c = ldap_find_control( LDAP_CONTROL_PAGEDRESULTS, ctrls);
+	c = ldap_control_find( LDAP_CONTROL_PAGEDRESULTS, ctrls, NULL );
 	if ( c == NULL ) {
 		/* No page control was found. */
 		ld->ld_errno = LDAP_CONTROL_NOT_FOUND;

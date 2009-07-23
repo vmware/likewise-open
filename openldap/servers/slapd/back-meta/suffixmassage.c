@@ -1,8 +1,8 @@
 /* suffixmassage.c - massages ldap backend dns */
-/* $OpenLDAP: pkg/ldap/servers/slapd/back-meta/suffixmassage.c,v 1.1.2.6 2006/01/03 22:16:20 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/back-meta/suffixmassage.c,v 1.7.2.4 2009/01/22 00:01:08 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

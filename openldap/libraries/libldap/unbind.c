@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/libraries/libldap/unbind.c,v 1.48.2.7 2006/04/03 19:49:55 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/libraries/libldap/unbind.c,v 1.56.2.6 2009/01/22 00:00:56 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -15,16 +15,6 @@
 /* Portions Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
-/* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
- */
-
-/* An Unbind Request looks like this:
- *
- *	UnbindRequest ::= NULL
- *
- * and has no response.
- */
 
 #include "portable.h"
 
@@ -36,6 +26,13 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+/* An Unbind Request looks like this:
+ *
+ *	UnbindRequest ::= [APPLICATION 2] NULL
+ *
+ * and has no response.  (Source: RFC 4511)
+ */
 
 int
 ldap_unbind_ext(
@@ -115,6 +112,18 @@ ldap_ld_free(
 	ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
 #endif
 
+	/* final close callbacks */
+	{
+		ldaplist *ll, *next;
+
+		for ( ll = ld->ld_options.ldo_conn_cbs; ll; ll = next ) {
+			ldap_conncb *cb = ll->ll_data;
+			next = ll->ll_next;
+			cb->lc_del( ld, NULL, cb );
+			LDAP_FREE( ll );
+		}
+	}
+
 	if ( ld->ld_error != NULL ) {
 		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
@@ -145,22 +154,7 @@ ldap_ld_free(
 		LDAP_FREE( ld->ld_options.ldo_peer );
 		ld->ld_options.ldo_peer = NULL;
 	}
-
-	if ( ld->ld_options.ldo_cldapdn != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_cldapdn );
-		ld->ld_options.ldo_cldapdn = NULL;
-	}
 #endif
-
-	if ( ld->ld_options.ldo_tm_api != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_api );
-		ld->ld_options.ldo_tm_api = NULL;
-	}
-
-	if ( ld->ld_options.ldo_tm_net != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_tm_net );
-		ld->ld_options.ldo_tm_net = NULL;
-	}
 
 #ifdef HAVE_CYRUS_SASL
 	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {
@@ -182,6 +176,10 @@ ldap_ld_free(
 		LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
 		ld->ld_options.ldo_def_sasl_authzid = NULL;
 	}
+#endif
+
+#ifdef HAVE_TLS
+	ldap_int_tls_destroy( &ld->ld_options );
 #endif
 
 	if ( ld->ld_options.ldo_sctrls != NULL ) {
@@ -262,9 +260,8 @@ ldap_send_unbind(
 
 	ld->ld_errno = LDAP_SUCCESS;
 	/* send the message */
-	if ( ber_flush( sb, ber, 1 ) == -1 ) {
+	if ( ber_flush2( sb, ber, LBER_FLUSH_FREE_ALWAYS ) == -1 ) {
 		ld->ld_errno = LDAP_SERVER_DOWN;
-		ber_free( ber, 1 );
 	}
 
 	return( ld->ld_errno );

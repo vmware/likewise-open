@@ -6191,7 +6191,7 @@ EOF
 	  _LT_AC_TAGVAR(archive_cmds, $1)='$CC -shared ${wl}+h ${wl}$soname -o $lib $libobjs $deplibs $compiler_flags'
 	  ;;
 	*)
-	  _LT_AC_TAGVAR(archive_cmds, $1)='$CC -shared -fPIC ${wl}+s ${wl}+h ${wl}$soname ${wl}+b ${wl}$install_libdir ${wl}+cdp ${wl}${PWD}/../../libraries/liblber/.libs:$install_dir -o $lib $libobjs $deplibs $compiler_flags'
+	  _LT_AC_TAGVAR(archive_cmds, $1)='$CC -shared -fPIC ${wl}+h ${wl}$soname ${wl}+b ${wl}$install_libdir -o $lib $libobjs $deplibs $compiler_flags'
 	  ;;
 	esac
       else

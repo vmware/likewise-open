@@ -1,8 +1,8 @@
 /* rwm.c - rewrite/remap operations */
-/* $OpenLDAP: pkg/ldap/servers/slapd/overlays/rwm.c,v 1.37.2.15 2006/01/03 22:16:25 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/overlays/rwm.c,v 1.70.2.24 2009/02/20 00:14:30 quanah Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2009 The OpenLDAP Foundation.
  * Portions Copyright 2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -24,10 +24,159 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "config.h"
+#include "lutil.h"
 #include "rwm.h"
 
+typedef struct rwm_op_state {
+	ber_tag_t r_tag;
+	struct berval ro_dn;
+	struct berval ro_ndn;
+	struct berval r_dn;
+	struct berval r_ndn;
+	AttributeName *mapped_attrs;
+	OpRequest o_request;
+} rwm_op_state;
+
+typedef struct rwm_op_cb {
+	slap_callback cb;
+	rwm_op_state ros;
+} rwm_op_cb;
+
 static int
-rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
+rwm_db_destroy( BackendDB *be, ConfigReply *cr );
+
+static int
+rwm_send_entry( Operation *op, SlapReply *rs );
+
+static void
+rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
+{
+	if ( !BER_BVISNULL( &ros->ro_dn ) ) {
+		op->o_req_dn = ros->ro_dn;
+	}
+	if ( !BER_BVISNULL( &ros->ro_ndn ) ) {
+		op->o_req_ndn = ros->ro_ndn;
+	}
+
+	if ( !BER_BVISNULL( &ros->r_dn )
+		&& ros->r_dn.bv_val != ros->ro_dn.bv_val )
+	{
+		assert( ros->r_dn.bv_val != ros->r_ndn.bv_val );
+		ch_free( ros->r_dn.bv_val );
+		BER_BVZERO( &ros->r_dn );
+	}
+
+	if ( !BER_BVISNULL( &ros->r_ndn )
+		&& ros->r_ndn.bv_val != ros->ro_ndn.bv_val )
+	{
+		ch_free( ros->r_ndn.bv_val );
+		BER_BVZERO( &ros->r_ndn );
+	}
+
+	BER_BVZERO( &ros->ro_dn );
+	BER_BVZERO( &ros->ro_ndn );
+
+	switch( ros->r_tag ) {
+	case LDAP_REQ_COMPARE:
+		if ( op->orc_ava->aa_value.bv_val != ros->orc_ava->aa_value.bv_val )
+			op->o_tmpfree( op->orc_ava->aa_value.bv_val, op->o_tmpmemctx );
+		op->orc_ava = ros->orc_ava;
+		break;
+	case LDAP_REQ_MODIFY:
+		slap_mods_free( op->orm_modlist, 1 );
+		op->orm_modlist = ros->orm_modlist;
+		break;
+	case LDAP_REQ_MODRDN:
+		if ( op->orr_newSup != ros->orr_newSup ) {
+			ch_free( op->orr_newSup->bv_val );
+			ch_free( op->orr_nnewSup->bv_val );
+			op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
+			op->orr_newSup = ros->orr_newSup;
+			op->orr_nnewSup = ros->orr_nnewSup;
+		}
+		if ( op->orr_newrdn.bv_val != ros->orr_newrdn.bv_val ) {
+			ch_free( op->orr_newrdn.bv_val );
+			ch_free( op->orr_nnewrdn.bv_val );
+			op->orr_newrdn = ros->orr_newrdn;
+			op->orr_nnewrdn = ros->orr_nnewrdn;
+		}
+		break;
+	case LDAP_REQ_SEARCH:
+		ch_free( ros->mapped_attrs );
+		filter_free_x( op, op->ors_filter, 1 );
+		ch_free( op->ors_filterstr.bv_val );
+		op->ors_attrs = ros->ors_attrs;
+		op->ors_filter = ros->ors_filter;
+		op->ors_filterstr = ros->ors_filterstr;
+		break;
+	case LDAP_REQ_EXTENDED:
+		if ( op->ore_reqdata != ros->ore_reqdata ) {
+			ber_bvfree( op->ore_reqdata );
+			op->ore_reqdata = ros->ore_reqdata;
+		}
+		break;
+	case LDAP_REQ_BIND:
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+#if 0
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+			/* too late, c_mutex released */
+			fprintf( stderr, "*** DN: \"%s\" => \"%s\"\n",
+				op->o_conn->c_ndn.bv_val,
+				op->o_req_ndn.bv_val );
+			ber_bvreplace( &op->o_conn->c_ndn,
+				&op->o_req_ndn );
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+#endif
+		}
+		break;
+	default:	break;
+	}
+}
+
+static int
+rwm_op_cleanup( Operation *op, SlapReply *rs )
+{
+	slap_callback	*cb = op->o_callback;
+	rwm_op_state *ros = cb->sc_private;
+
+	if ( rs->sr_type == REP_RESULT || rs->sr_type == REP_EXTENDED ||
+		op->o_abandon || rs->sr_err == SLAPD_ABANDON )
+	{
+		rwm_op_rollback( op, rs, ros );
+
+		op->o_callback = op->o_callback->sc_next;
+		op->o_tmpfree( cb, op->o_tmpmemctx );
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static rwm_op_cb *
+rwm_callback_get( Operation *op, SlapReply *rs )
+{
+	rwm_op_cb	*roc = NULL;
+
+	roc = op->o_tmpalloc( sizeof( struct rwm_op_cb ), op->o_tmpmemctx );
+	roc->cb.sc_cleanup = rwm_op_cleanup;
+	roc->cb.sc_response = NULL;
+	roc->cb.sc_next = op->o_callback;
+	roc->cb.sc_private = &roc->ros;
+	roc->ros.r_tag = op->o_tag;
+	roc->ros.ro_dn = op->o_req_dn;
+	roc->ros.ro_ndn = op->o_req_ndn;
+	roc->ros.o_request = op->o_request;
+	BER_BVZERO( &roc->ros.r_dn );
+	BER_BVZERO( &roc->ros.r_ndn );
+
+	return roc;
+}
+
+
+static int
+rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie,
+	rwm_op_state *ros )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -42,14 +191,9 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = (char *)cookie;
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = ((int *)cookie)[0];
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	/* NOTE: in those cases where only the ndn is available,
 	 * and the caller sets op->o_req_dn = op->o_req_ndn,
@@ -74,13 +218,15 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	}
 
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
-		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn = dn;
+		assert( BER_BVISNULL( &ros->r_dn ) );
+		ros->r_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
-	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 	op->o_req_ndn = ndn;
+	assert( BER_BVISNULL( &ros->r_ndn ) );
+	ros->r_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
@@ -98,12 +244,9 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	char			*olddn = op->o_req_dn.bv_val;
 	int			isupdate;
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "addDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "addDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "addDN massage error" );
@@ -125,9 +268,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 		{
 			int		j, last;
 
-			for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[ last ] ); last++ )
-					/* count values */ ;
-			last--;
+			last = (*ap)->a_numvals - 1;
 			for ( j = 0; !BER_BVISNULL( &(*ap)->a_vals[ j ] ); j++ ) {
 				struct ldapmapping	*mapping = NULL;
 
@@ -144,6 +285,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 							(*ap)->a_vals[ j ] = (*ap)->a_vals[ last ];
 						}
 						BER_BVZERO( &(*ap)->a_vals[ last ] );
+						(*ap)->a_numvals--;
 						last--;
 						j--;
 					}
@@ -154,7 +296,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 				}
 			}
 
-		} else if ( !isupdate && !get_manageDIT( op ) && (*ap)->a_desc->ad_type->sat_no_user_mod )
+		} else if ( !isupdate && !get_relax( op ) && (*ap)->a_desc->ad_type->sat_no_user_mod )
 		{
 			goto next_attr;
 
@@ -176,29 +318,17 @@ rwm_op_add( Operation *op, SlapReply *rs )
 				 * FIXME: rewrite could fail; in this case
 				 * the operation should give up, right?
 				 */
-#ifdef ENABLE_REWRITE
 				rc = rwm_dnattr_rewrite( op, rs, "addAttrDN",
 						(*ap)->a_vals,
 						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#else /* ! ENABLE_REWRITE */
-				rc = 1;
-				rc = rwm_dnattr_rewrite( op, rs, &rc, (*ap)->a_vals,
-						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#endif /* ! ENABLE_REWRITE */
 				if ( rc ) {
 					goto cleanup_attr;
 				}
 
 			} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
-#ifdef ENABLE_REWRITE
 				rc = rwm_referral_rewrite( op, rs, "referralAttrDN",
 						(*ap)->a_vals,
 						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#else /* ! ENABLE_REWRITE */
-				rc = 1;
-				rc = rwm_referral_rewrite( op, rs, &rc, (*ap)->a_vals,
-						(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
-#endif /* ! ENABLE_REWRITE */
 				if ( rc != LDAP_SUCCESS ) {
 					goto cleanup_attr;
 				}
@@ -222,11 +352,11 @@ cleanup_attr:;
 		attr_free( a );
 	}
 
-	/* TODO: map attribute types, values of DN-valued attributes ... */
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
-#ifdef ENABLE_REWRITE
 static int
 rwm_conn_init( BackendDB *be, Connection *conn )
 {
@@ -250,7 +380,6 @@ rwm_conn_destroy( BackendDB *be, Connection *conn )
 
 	return SLAP_CB_CONTINUE;
 }
-#endif /* ENABLE_REWRITE */
 
 static int
 rwm_op_bind( Operation *op, SlapReply *rs )
@@ -258,17 +387,16 @@ rwm_op_bind( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "bindDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "bindDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "bindDN massage error" );
 		return -1;
 	}
+
+	overlay_callback_after_backover( op, &roc->cb, 1 );
 
 	return SLAP_CB_CONTINUE;
 }
@@ -280,9 +408,7 @@ rwm_op_unbind( Operation *op, SlapReply *rs )
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-#ifdef ENABLE_REWRITE
 	rewrite_session_delete( rwmap->rwm_rw, op->o_conn );
-#endif /* ENABLE_REWRITE */
 
 	return SLAP_CB_CONTINUE;
 }
@@ -295,15 +421,11 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	int			rc;
-	struct berval		mapped_at = BER_BVNULL,
-				mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
+	struct berval		mapped_vals[2] = { BER_BVNULL, BER_BVNULL };
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "compareDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "compareDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "compareDN massage error" );
@@ -323,9 +445,9 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 			return -1;
 
 		} else if ( mapped_vals[0].bv_val != op->orc_ava->aa_value.bv_val ) {
-			ber_bvreplace_x( &op->orc_ava->aa_value, &mapped_vals[0], op->o_tmpmemctx );
+			ber_dupbv_x( &op->orc_ava->aa_value, &mapped_vals[0],
+				op->o_tmpmemctx );
 		}
-		mapped_at = op->orc_ava->aa_desc->ad_cname;
 
 	} else {
 		struct ldapmapping	*mapping = NULL;
@@ -355,12 +477,7 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 
 			mapped_vals[0] = op->orc_ava->aa_value;
 
-#ifdef ENABLE_REWRITE
 			rc = rwm_dnattr_rewrite( op, rs, "compareAttrDN", NULL, mapped_valsp );
-#else /* ! ENABLE_REWRITE */
-			rc = 1;
-			rc = rwm_dnattr_rewrite( op, rs, &rc, NULL, mapped_valsp );
-#endif /* ! ENABLE_REWRITE */
 
 			if ( rc != LDAP_SUCCESS ) {
 				op->o_bd->bd_info = (BackendInfo *)on->on_info;
@@ -373,12 +490,14 @@ rwm_op_compare( Operation *op, SlapReply *rs )
 				 * already freed the old value, so now 
 				 * it's invalid */
 				ber_dupbv_x( &op->orc_ava->aa_value, &mapped_vals[0],
-						op->o_tmpmemctx );
+					op->o_tmpmemctx );
 				ber_memfree_x( mapped_vals[ 0 ].bv_val, NULL );
 			}
 		}
 		op->orc_ava->aa_desc = ad;
 	}
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -389,17 +508,16 @@ rwm_op_delete( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "deleteDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "deleteDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "deleteDN massage error" );
 		return -1;
 	}
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -415,12 +533,9 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	Modifications		**mlp;
 	int			rc;
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "modifyDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "modifyDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "modifyDN massage error" );
@@ -428,25 +543,35 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	}
 
 	isupdate = be_shadow_update( op );
-	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
+	for ( mlp = &op->orm_modlist; *mlp; ) {
 		int			is_oc = 0;
-		Modifications		*ml;
+		Modifications		*ml = *mlp;
 		struct ldapmapping	*mapping = NULL;
 
-		if ( (*mlp)->sml_desc == slap_schema.si_ad_objectClass 
-				|| (*mlp)->sml_desc == slap_schema.si_ad_structuralObjectClass )
+		/* ml points to a temporary mod until needs duplication */
+		if ( ml->sml_desc == slap_schema.si_ad_objectClass
+				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
 		{
 			is_oc = 1;
 
-		} else if ( !isupdate && !get_manageDIT( op ) && (*mlp)->sml_desc->ad_type->sat_no_user_mod  )
+		} else if ( !isupdate && !get_relax( op ) && ml->sml_desc->ad_type->sat_no_user_mod  )
 		{
+			ml = ch_malloc( sizeof( Modifications ) );
+			*ml = **mlp;
+			if ( (*mlp)->sml_values ) {
+				ber_bvarray_dup_x( &ml->sml_values, (*mlp)->sml_values, NULL );
+				if ( (*mlp)->sml_nvalues ) {
+					ber_bvarray_dup_x( &ml->sml_nvalues, (*mlp)->sml_nvalues, NULL );
+				}
+			}
+			*mlp = ml;
 			goto next_mod;
 
 		} else {
 			int			drop_missing;
 
 			drop_missing = rwm_mapping( &rwmap->rwm_at,
-					&(*mlp)->sml_desc->ad_cname,
+					&ml->sml_desc->ad_cname,
 					&mapping, RWM_MAP );
 			if ( drop_missing || ( mapping != NULL && BER_BVISNULL( &mapping->m_dst ) ) )
 			{
@@ -454,18 +579,41 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 			}
 		}
 
-		if ( (*mlp)->sml_values != NULL ) {
+		/* duplicate the modlist */
+		ml = ch_malloc( sizeof( Modifications ));
+		*ml = **mlp;
+		*mlp = ml;
+
+		if ( ml->sml_values != NULL ) {
+			int i, num;
+			struct berval *bva;
+
+			for ( num = 0; !BER_BVISNULL( &ml->sml_values[ num ] ); num++ )
+				/* count values */ ;
+
+			bva = ch_malloc( (num+1) * sizeof( struct berval ));
+			for (i=0; i<num; i++)
+				ber_dupbv( &bva[i], &ml->sml_values[i] );
+			BER_BVZERO( &bva[i] );
+			ml->sml_values = bva;
+
+			if ( ml->sml_nvalues ) {
+				bva = ch_malloc( (num+1) * sizeof( struct berval ));
+				for (i=0; i<num; i++)
+					ber_dupbv( &bva[i], &ml->sml_nvalues[i] );
+				BER_BVZERO( &bva[i] );
+				ml->sml_nvalues = bva;
+			}
+
 			if ( is_oc ) {
 				int	last, j;
 
-				for ( last = 0; !BER_BVISNULL( &(*mlp)->sml_values[ last ] ); last++ )
-					/* count values */ ;
-				last--;
+				last = num-1;
 
-				for ( j = 0; !BER_BVISNULL( &(*mlp)->sml_values[ j ] ); j++ ) {
+				for ( j = 0; !BER_BVISNULL( &ml->sml_values[ j ] ); j++ ) {
 					struct ldapmapping	*oc_mapping = NULL;
 		
-					( void )rwm_mapping( &rwmap->rwm_oc, &(*mlp)->sml_values[ j ],
+					( void )rwm_mapping( &rwmap->rwm_oc, &ml->sml_values[ j ],
 							&oc_mapping, RWM_MAP );
 					if ( oc_mapping == NULL ) {
 						if ( rwmap->rwm_at.drop_missing ) {
@@ -473,48 +621,34 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 							 * if the resulting entry is inconsistent, that's
 							 * the relayed database's business...
 							 */
-							ch_free( (*mlp)->sml_values[ j ].bv_val );
 							if ( last > j ) {
-								(*mlp)->sml_values[ j ] = (*mlp)->sml_values[ last ];
+								ch_free( ml->sml_values[ j ].bv_val );
+								ml->sml_values[ j ] = ml->sml_values[ last ];
 							}
-							BER_BVZERO( &(*mlp)->sml_values[ last ] );
+							BER_BVZERO( &ml->sml_values[ last ] );
 							last--;
 							j--;
 						}
 	
 					} else {
-						ch_free( (*mlp)->sml_values[ j ].bv_val );
-						ber_dupbv( &(*mlp)->sml_values[ j ], &oc_mapping->m_dst );
+						ch_free( ml->sml_values[ j ].bv_val );
+						ber_dupbv( &ml->sml_values[ j ], &oc_mapping->m_dst );
 					}
 				}
 
 			} else {
-				if ( (*mlp)->sml_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
+				if ( ml->sml_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
 						|| ( mapping != NULL && mapping->m_dst_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 				{
-#ifdef ENABLE_REWRITE
 					rc = rwm_dnattr_rewrite( op, rs, "modifyAttrDN",
-							(*mlp)->sml_values,
-							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
-#else /* ! ENABLE_REWRITE */
-					rc = 1;
-					rc = rwm_dnattr_rewrite( op, rs, &rc, 
-							(*mlp)->sml_values,
-							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
-#endif /* ! ENABLE_REWRITE */
+							ml->sml_values,
+							ml->sml_nvalues ? &ml->sml_nvalues : NULL );
 
-				} else if ( (*mlp)->sml_desc == slap_schema.si_ad_ref ) {
-#ifdef ENABLE_REWRITE
+				} else if ( ml->sml_desc == slap_schema.si_ad_ref ) {
 					rc = rwm_referral_rewrite( op, rs,
 							"referralAttrDN",
-							(*mlp)->sml_values,
-							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
-#else /* ! ENABLE_REWRITE */
-					rc = 1;
-					rc = rwm_referral_rewrite( op, rs, &rc,
-							(*mlp)->sml_values,
-							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
-#endif /* ! ENABLE_REWRITE */
+							ml->sml_values,
+							ml->sml_nvalues ? &ml->sml_nvalues : NULL );
 					if ( rc != LDAP_SUCCESS ) {
 						goto cleanup_mod;
 					}
@@ -530,10 +664,10 @@ next_mod:;
 		if ( mapping != NULL ) {
 			/* use new attribute description */
 			assert( mapping->m_dst_ad != NULL );
-			(*mlp)->sml_desc = mapping->m_dst_ad;
+			ml->sml_desc = mapping->m_dst_ad;
 		}
 
-		mlp = &(*mlp)->sml_next;
+		mlp = &ml->sml_next;
 		continue;
 
 cleanup_mod:;
@@ -542,6 +676,8 @@ cleanup_mod:;
 		slap_mod_free( &ml->sml_mod, 0 );
 		free( ml );
 	}
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 }
@@ -554,9 +690,11 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 	
 	int			rc;
+	dncookie		dc;
+
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
 
 	if ( op->orr_newSup ) {
-		dncookie	dc;
 		struct berval	nnewSup = BER_BVNULL;
 		struct berval	newSup = BER_BVNULL;
 
@@ -564,14 +702,9 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		 * Rewrite the new superior, if defined and required
 	 	 */
 		dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 		dc.conn = op->o_conn;
 		dc.rs = rs;
 		dc.ctx = "newSuperiorDN";
-#else /* ! ENABLE_REWRITE */
-		dc.tofrom = 0;
-		dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 		newSup = *op->orr_newSup;
 		nnewSup = *op->orr_nnewSup;
 		rc = rwm_dn_massage_pretty_normalize( &dc, op->orr_newSup, &newSup, &nnewSup );
@@ -582,72 +715,183 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		}
 
 		if ( op->orr_newSup->bv_val != newSup.bv_val ) {
-			op->o_tmpfree( op->orr_newSup->bv_val, op->o_tmpmemctx );
-			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
+			op->orr_newSup = op->o_tmpalloc( sizeof( struct berval ),
+				op->o_tmpmemctx );
+			op->orr_nnewSup = op->o_tmpalloc( sizeof( struct berval ),
+				op->o_tmpmemctx );
 			*op->orr_newSup = newSup;
 			*op->orr_nnewSup = nnewSup;
 		}
 	}
 
 	/*
+	 * Rewrite the newRDN, if needed
+	 */
+	{
+		struct berval	newrdn = BER_BVNULL;
+		struct berval	nnewrdn = BER_BVNULL;
+
+		dc.rwmap = rwmap;
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "newRDN";
+		newrdn = op->orr_newrdn;
+		nnewrdn = op->orr_nnewrdn;
+		rc = rwm_dn_massage_pretty_normalize( &dc, &op->orr_newrdn, &newrdn, &nnewrdn );
+		if ( rc != LDAP_SUCCESS ) {
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			send_ldap_error( op, rs, rc, "newRDN massage error" );
+			goto err;
+		}
+
+		if ( op->orr_newrdn.bv_val != newrdn.bv_val ) {
+			op->orr_newrdn = newrdn;
+			op->orr_nnewrdn = nnewrdn;
+		}
+	}
+
+	/*
 	 * Rewrite the dn, if needed
  	 */
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "renameDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	rc = rwm_op_dn_massage( op, rs, "renameDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "renameDN massage error" );
-		return -1;
+		goto err;
 	}
 
-	/* TODO: rewrite newRDN, attribute types, 
-	 * values of DN-valued attributes ... */
-	return SLAP_CB_CONTINUE;
-}
+	op->o_callback = &roc->cb;
 
-static slap_callback	rwm_cb;
+	rc = SLAP_CB_CONTINUE;
 
-static void
-rwm_keyfree(
-	void		*key,
-	void		*data )
-{
-	ber_memfree_x( data, NULL );
-}
+	if ( 0 ) {
+err:;
+		if ( op->orr_newSup != roc->ros.orr_newSup ) {
+			ch_free( op->orr_newSup->bv_val );
+			ch_free( op->orr_nnewSup->bv_val );
+			op->o_tmpfree( op->orr_newSup, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
+			op->orr_newSup = roc->ros.orr_newSup;
+			op->orr_nnewSup = roc->ros.orr_nnewSup;
+		}
 
-static slap_callback *
-rwm_callback_get( Operation *op )
-{
-	void		*data = NULL;
-
-	if ( op->o_threadctx == NULL ) {
-		return &rwm_cb;
+		if ( op->orr_newrdn.bv_val != roc->ros.orr_newrdn.bv_val ) {
+			ch_free( op->orr_newrdn.bv_val );
+			ch_free( op->orr_nnewrdn.bv_val );
+			op->orr_newrdn = roc->ros.orr_newrdn;
+			op->orr_nnewrdn = roc->ros.orr_nnewrdn;
+		}
 	}
 
-	ldap_pvt_thread_pool_getkey( op->o_threadctx,
-			rwm_keyfree, &data, NULL );
-	if ( data == NULL ) {
-		data = ch_calloc( sizeof( slap_callback ), 1 );
-		ldap_pvt_thread_pool_setkey( op->o_threadctx,
-				rwm_keyfree, data, rwm_keyfree );
-	}
-
-	return (slap_callback *)data;
+	return rc;
 }
+
 
 static int
 rwm_swap_attrs( Operation *op, SlapReply *rs )
 {
 	slap_callback	*cb = op->o_callback;
-	AttributeName	*an = (AttributeName *)cb->sc_private;
+	rwm_op_state *ros = cb->sc_private;
 
-	rs->sr_attrs = an;
-	
+	rs->sr_attrs = ros->ors_attrs;
+
+	/* other overlays might have touched op->ors_attrs,
+	 * so we restore the original version here, otherwise
+	 * attribute-mapping might fail */
+	op->ors_attrs = ros->mapped_attrs;
+
 	return SLAP_CB_CONTINUE;
+}
+
+/*
+ * NOTE: this implementation of get/release entry is probably far from
+ * optimal.  The rationale consists in intercepting the request directed
+ * to the underlying database, in order to rewrite/remap the request,
+ * perform it using the modified data, duplicate the resulting entry
+ * and finally free it when release is called.
+ * This implies that subsequent overlays are not called, as the request
+ * is directly shunted to the underlying database.
+ */
+static int
+rwm_entry_release_rw( Operation *op, Entry *e, int rw )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+
+	/* can't be ours */
+	if ( ((BackendInfo *)on->on_info->oi_orig)->bi_entry_get_rw == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* just free entry if (probably) ours */
+	if ( e->e_private == NULL ) {
+		entry_free( e );
+		return LDAP_SUCCESS;
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+rwm_entry_get_rw( Operation *op, struct berval *ndn,
+	ObjectClass *oc, AttributeDescription *at, int rw, Entry **ep )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap =
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	int			rc;
+	dncookie		dc;
+
+	BackendDB		db;
+	Operation		op2;
+	SlapReply		rs = { REP_SEARCH };
+
+	rwm_op_state		ros = { 0 };
+
+	if ( ((BackendInfo *)on->on_info->oi_orig)->bi_entry_get_rw == NULL ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	/* massage DN */
+	op2.o_tag = LDAP_REQ_SEARCH;
+	op2 = *op;
+	op2.o_req_dn = *ndn;
+	op2.o_req_ndn = *ndn;
+	rc = rwm_op_dn_massage( &op2, &rs, "searchDN", &ros );
+	if ( rc != LDAP_SUCCESS ) {
+		return LDAP_OTHER;
+	}
+
+	/* map attribute & objectClass */
+	if ( at != NULL ) {
+	}
+
+	if ( oc != NULL ) {
+	}
+
+	/* fetch entry */
+	db = *op->o_bd;
+	op2.o_bd = &db;
+	op2.o_bd->bd_info = (BackendInfo *)on->on_info->oi_orig;
+	op2.ors_attrs = slap_anlist_all_attributes;
+	rc = op2.o_bd->bd_info->bi_entry_get_rw( &op2, &ros.r_ndn, oc, at, rw, ep );
+	if ( rc == LDAP_SUCCESS && *ep != NULL ) {
+		rs.sr_entry = *ep;
+
+		/* duplicate & release */
+		op2.o_bd->bd_info = (BackendInfo *)on;
+		rc = rwm_send_entry( &op2, &rs );
+		if ( rc == SLAP_CB_CONTINUE ) {
+			*ep = rs.sr_entry;
+			rc = LDAP_SUCCESS;
+		}
+	}
+
+	if ( ros.r_ndn.bv_val != ndn->bv_val ) {
+		op->o_tmpfree( ros.r_ndn.bv_val, op->o_tmpmemctx );
+	}
+
+	return rc;
 }
 
 static int
@@ -663,20 +907,16 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	struct berval		fstr = BER_BVNULL;
 	Filter			*f = NULL;
 
-	slap_callback		*cb = NULL;
 	AttributeName		*an = NULL;
 
 	char			*text = NULL;
 
-#ifdef ENABLE_REWRITE
+	rwm_op_cb		*roc = rwm_callback_get( op, rs );
+
 	rc = rewrite_session_var_set( rwmap->rwm_rw, op->o_conn,
 		"searchFilter", op->ors_filterstr.bv_val );
 	if ( rc == LDAP_SUCCESS )
-		rc = rwm_op_dn_massage( op, rs, "searchDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+		rc = rwm_op_dn_massage( op, rs, "searchDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		text = "searchDN massage error";
 		goto error_return;
@@ -686,14 +926,9 @@ rwm_op_search( Operation *op, SlapReply *rs )
 	 * Rewrite the dn if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "searchFilterAttrDN";
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = 0;
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	rc = rwm_filter_map_rewrite( op, &dc, op->ors_filter, &fstr );
 	if ( rc != LDAP_SUCCESS ) {
@@ -708,14 +943,6 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
-		ch_free( op->ors_filterstr.bv_val );
-	}
-
-	if( op->ors_filter ) {
-		filter_free_x( op, op->ors_filter );
-	}
-
 	op->ors_filter = f;
 	op->ors_filterstr = fstr;
 
@@ -726,15 +953,13 @@ rwm_op_search( Operation *op, SlapReply *rs )
 		goto error_return;
 	}
 
-	cb = rwm_callback_get( op );
-
-	cb->sc_response = rwm_swap_attrs;
-	cb->sc_cleanup = NULL;
-	cb->sc_private = (void *)op->ors_attrs;
-	cb->sc_next = op->o_callback;
-
-	op->o_callback = cb;
 	op->ors_attrs = an;
+	/* store the mapped Attributes for later usage, in
+	 * the case that other overlays change op->ors_attrs */
+	roc->ros.mapped_attrs = an;
+	roc->cb.sc_response = rwm_swap_attrs;
+
+	op->o_callback = &roc->cb;
 
 	return SLAP_CB_CONTINUE;
 
@@ -744,12 +969,16 @@ error_return:;
 	}
 
 	if ( f != NULL ) {
-		filter_free_x( op, f );
+		filter_free_x( op, f, 1 );
 	}
 
 	if ( !BER_BVISNULL( &fstr ) ) {
 		ch_free( fstr.bv_val );
 	}
+
+	rwm_op_rollback( op, rs, &roc->ros );
+	op->oq_search = roc->ros.oq_search;
+	op->o_tmpfree( roc, op->o_tmpmemctx );
 
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	send_ldap_error( op, rs, rc, text );
@@ -759,17 +988,123 @@ error_return:;
 }
 
 static int
+rwm_exop_passwd( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	int			rc;
+	rwm_op_cb *roc;
+
+	struct berval	id = BER_BVNULL,
+			pwold = BER_BVNULL,
+			pwnew = BER_BVNULL;
+	BerElement *ber = NULL;
+
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( !SLAP_ISGLOBALOVERLAY( op->o_bd ) ) {
+		rs->sr_err = LDAP_OTHER;
+		return rs->sr_err;
+	}
+
+	rs->sr_err = slap_passwd_parse( op->ore_reqdata, &id,
+		&pwold, &pwnew, &rs->sr_text );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		return rs->sr_err;
+	}
+
+	if ( !BER_BVISNULL( &id ) ) {
+		char idNul = id.bv_val[id.bv_len];
+		id.bv_val[id.bv_len] = '\0';
+		rs->sr_err = dnPrettyNormal( NULL, &id, &op->o_req_dn,
+				&op->o_req_ndn, op->o_tmpmemctx );
+		id.bv_val[id.bv_len] = idNul;
+		if ( rs->sr_err != LDAP_SUCCESS ) {
+			rs->sr_text = "Invalid DN";
+			return rs->sr_err;
+		}
+
+	} else {
+		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
+	}
+
+	roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
+	if ( rc != LDAP_SUCCESS ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		send_ldap_error( op, rs, rc, "extendedDN massage error" );
+		return -1;
+	}
+
+	ber = ber_alloc_t( LBER_USE_DER );
+	if ( !ber ) {
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "No memory";
+		return rs->sr_err;
+	}
+	ber_printf( ber, "{" );
+	if ( !BER_BVISNULL( &id )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_ID,
+			&op->o_req_dn );
+	}
+	if ( !BER_BVISNULL( &pwold )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, &pwold );
+	}
+	if ( !BER_BVISNULL( &pwnew )) {
+		ber_printf( ber, "tO", LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, &pwnew );
+	}
+	ber_printf( ber, "N}" );
+	ber_flatten( ber, &op->ore_reqdata );
+	ber_free( ber, 1 );
+
+	op->o_callback = &roc->cb;
+
+	return SLAP_CB_CONTINUE;
+}
+
+static struct exop {
+	struct berval	oid;
+	BI_op_extended	*extended;
+} exop_table[] = {
+	{ BER_BVC(LDAP_EXOP_MODIFY_PASSWD),	rwm_exop_passwd },
+	{ BER_BVNULL, NULL }
+};
+
+static int
 rwm_extended( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
+	rwm_op_cb *roc;
 
-#ifdef ENABLE_REWRITE
-	rc = rwm_op_dn_massage( op, rs, "extendedDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
+	int	i;
+
+	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
+		if ( bvmatch( &exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
+		{
+			rc = exop_table[i].extended( op, rs );
+			switch ( rc ) {
+			case LDAP_SUCCESS:
+				break;
+
+			case SLAP_CB_CONTINUE:
+			case SLAPD_ABANDON:
+				return rc;
+
+			default:
+				send_ldap_result( op, rs );
+				return rc;
+			}
+			break;
+		}
+	}
+
+	roc = rwm_callback_get( op, rs );
+
+	rc = rwm_op_dn_massage( op, rs, "extendedDN", &roc->ros );
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "extendedDN massage error" );
@@ -777,6 +1112,8 @@ rwm_extended( Operation *op, SlapReply *rs )
 	}
 
 	/* TODO: rewrite/map extended data ? ... */
+	op->o_callback = &roc->cb;
+
 	return SLAP_CB_CONTINUE;
 }
 
@@ -796,14 +1133,9 @@ rwm_matched( Operation *op, SlapReply *rs )
 	}
 
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "matchedDN";
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = 0;
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 	ber_str2bv( rs->sr_matched, 0, 0, &dn );
 	mdn = dn;
 	rc = rwm_dn_massage_pretty( &dc, &dn, &mdn );
@@ -837,18 +1169,14 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 	int			rc;
 	Attribute		**ap;
 	int			isupdate;
+	int			check_duplicate_attrs = 0;
 
 	/*
 	 * Rewrite the dn attrs, if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = 0;
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	/* FIXME: the entries are in the remote mapping form;
 	 * so we need to select those attributes we are willing
@@ -866,31 +1194,73 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 	for ( ap = a_first; *ap; ) {
 		struct ldapmapping	*mapping = NULL;
 		int			drop_missing;
-		int			last;
+		int			last = -1;
 		Attribute		*a;
 
-		if ( SLAP_OPATTRS( rs->sr_attr_flags ) && is_at_operational( (*ap)->a_desc->ad_type ) )
+		if ( op->ors_attrs != NULL &&
+				!SLAP_USERATTRS( rs->sr_attr_flags ) &&
+				!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
 		{
-			/* go on */ ;
-			
-		} else {
-			if ( op->ors_attrs != NULL && 
-					!SLAP_USERATTRS( rs->sr_attr_flags ) &&
-					!ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
+			goto cleanup_attr;
+		}
+
+		drop_missing = rwm_mapping( &rwmap->rwm_at,
+				&(*ap)->a_desc->ad_cname, &mapping, RWM_REMAP );
+		if ( drop_missing || ( mapping != NULL && BER_BVISEMPTY( &mapping->m_dst ) ) )
+		{
+			goto cleanup_attr;
+		}
+		if ( mapping != NULL ) {
+			assert( mapping->m_dst_ad != NULL );
+
+			/* try to normalize mapped Attributes if the original
+			 * AttributeType was not normalized */
+			if ( (!(*ap)->a_desc->ad_type->sat_equality ||
+				!(*ap)->a_desc->ad_type->sat_equality->smr_normalize) &&
+				mapping->m_dst_ad->ad_type->sat_equality &&
+				mapping->m_dst_ad->ad_type->sat_equality->smr_normalize )
 			{
-				goto cleanup_attr;
+				if ((rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS))
+				{
+					int i = 0;
+
+					last = (*ap)->a_numvals;
+					if ( last )
+					{
+						(*ap)->a_nvals = ch_malloc( (last+1) * sizeof(struct berval) );
+
+						for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[i]); i++ ) {
+							int		rc;
+							/*
+							 * check that each value is valid per syntax
+							 * and pretty if appropriate
+							 */
+							rc = mapping->m_dst_ad->ad_type->sat_equality->smr_normalize(
+								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+								mapping->m_dst_ad->ad_type->sat_syntax,
+								mapping->m_dst_ad->ad_type->sat_equality,
+								&(*ap)->a_vals[i], &(*ap)->a_nvals[i],
+								NULL );
+
+							if ( rc != LDAP_SUCCESS ) {
+								BER_BVZERO( &(*ap)->a_nvals[i] );
+							}
+						}
+						BER_BVZERO( &(*ap)->a_nvals[i] );
+					}
+
+				} else {
+					assert( (*ap)->a_nvals == (*ap)->a_vals );
+					(*ap)->a_nvals = NULL;
+					ber_bvarray_dup_x( &(*ap)->a_nvals, (*ap)->a_vals, NULL );
+				}
 			}
 
-			drop_missing = rwm_mapping( &rwmap->rwm_at,
-					&(*ap)->a_desc->ad_cname, &mapping, RWM_REMAP );
-			if ( drop_missing || ( mapping != NULL && BER_BVISEMPTY( &mapping->m_dst ) ) )
-			{
-				goto cleanup_attr;
-			}
+			/* rewrite the attribute description */
+			(*ap)->a_desc = mapping->m_dst_ad;
 
-			if ( mapping != NULL ) {
-				(*ap)->a_desc = mapping->m_dst_ad;
-			}
+			/* will need to check for duplicate attrs */
+			check_duplicate_attrs++;
 		}
 
 		if ( (*ap)->a_desc == slap_schema.si_ad_entryDN ) {
@@ -900,15 +1270,16 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 			}
 			
 		} else if ( !isupdate
-			&& !get_manageDIT( op )
+			&& !get_relax( op )
 			&& (*ap)->a_desc->ad_type->sat_no_user_mod 
 			&& (*ap)->a_desc->ad_type != slap_schema.si_at_undefined )
 		{
 			goto next_attr;
 		}
 
-		for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
-			/* just count */ ;
+		if ( last == -1 ) { /* not yet counted */
+			last = (*ap)->a_numvals;
+		}
 
 		if ( last == 0 ) {
 			/* empty? leave it in place because of attrsonly and vlv */
@@ -926,6 +1297,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 
 				rwm_map( &rwmap->rwm_oc, &bv[0], &mapped, RWM_REMAP );
 				if ( BER_BVISNULL( &mapped ) || BER_BVISEMPTY( &mapped ) ) {
+remove_oc:;
 					ch_free( bv[0].bv_val );
 					BER_BVZERO( &bv[0] );
 					if ( &(*ap)->a_vals[last] > &bv[0] ) {
@@ -935,13 +1307,35 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 					last--;
 					bv--;
 
-				} else if ( mapped.bv_val != bv[0].bv_val ) {
+				} else if ( mapped.bv_val != bv[0].bv_val
+					&& ber_bvstrcasecmp( &mapped, &bv[0] ) != 0 )
+				{
+					int	i;
+
+					for ( i = 0; !BER_BVISNULL( &(*ap)->a_vals[ i ] ); i++ ) {
+						if ( &(*ap)->a_vals[ i ] == bv ) {
+							continue;
+						}
+
+						if ( ber_bvstrcasecmp( &mapped, &(*ap)->a_vals[ i ] ) == 0 ) {
+							break;
+						}
+					}
+
+					if ( !BER_BVISNULL( &(*ap)->a_vals[ i ] ) ) {
+						goto remove_oc;
+					}
+
 					/*
 					 * FIXME: after LBER_FREEing
 					 * the value is replaced by
 					 * ch_alloc'ed memory
 					 */
 					ber_bvreplace( &bv[0], &mapped );
+
+					/* FIXME: will need to check
+					 * if the structuralObjectClass
+					 * changed */
 				}
 			}
 
@@ -960,29 +1354,20 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first, int stripEntryDN )
 		} else if ( (*ap)->a_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName
 				|| ( mapping != NULL && mapping->m_src_ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) )
 		{
-#ifdef ENABLE_REWRITE
 			dc.ctx = "searchAttrDN";
-#endif /* ENABLE_REWRITE */
-			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals );
+			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals, (*ap)->a_nvals );
 			if ( rc != LDAP_SUCCESS ) {
 				goto cleanup_attr;
 			}
 
 		} else if ( (*ap)->a_desc == slap_schema.si_ad_ref ) {
-#ifdef ENABLE_REWRITE
 			dc.ctx = "searchAttrDN";
-#endif /* ENABLE_REWRITE */
 			rc = rwm_referral_result_rewrite( &dc, (*ap)->a_vals );
 			if ( rc != LDAP_SUCCESS ) {
 				goto cleanup_attr;
 			}
 		}
 
-		if ( mapping != NULL ) {
-			/* rewrite the attribute description */
-			assert( mapping->m_dst_ad != NULL );
-			(*ap)->a_desc = mapping->m_dst_ad;
-		}
 
 next_attr:;
 		ap = &(*ap)->a_next;
@@ -993,6 +1378,48 @@ cleanup_attr:;
 		*ap = (*ap)->a_next;
 
 		attr_free( a );
+	}
+
+	/* only check if some mapping occurred */
+	if ( check_duplicate_attrs ) {
+		for ( ap = a_first; *ap != NULL; ap = &(*ap)->a_next ) {
+			Attribute	**tap;
+
+			for ( tap = &(*ap)->a_next; *tap != NULL; ) {
+				if ( (*tap)->a_desc == (*ap)->a_desc ) {
+					Entry		e = { 0 };
+					Modification	mod = { 0 };
+					const char	*text = NULL;
+					char		textbuf[ SLAP_TEXT_BUFLEN ];
+					Attribute	*next = (*tap)->a_next;
+
+					BER_BVSTR( &e.e_name, "" );
+					BER_BVSTR( &e.e_nname, "" );
+					e.e_attrs = *ap;
+					mod.sm_op = LDAP_MOD_ADD;
+					mod.sm_desc = (*ap)->a_desc;
+					mod.sm_type = mod.sm_desc->ad_cname;
+					mod.sm_numvals = (*tap)->a_numvals;
+					mod.sm_values = (*tap)->a_vals;
+					if ( (*tap)->a_nvals != (*tap)->a_vals ) {
+						mod.sm_nvalues = (*tap)->a_nvals;
+					}
+
+					(void)modify_add_values( &e, &mod,
+						/* permissive */ 1,
+						&text, textbuf, sizeof( textbuf ) );
+
+					/* should not insert new attrs! */
+					assert( e.e_attrs == *ap );
+
+					attr_free( *tap );
+					*tap = next;
+
+				} else {
+					tap = &(*tap)->a_next;
+				}
+			}
+		}
 	}
 
 	return 0;
@@ -1018,14 +1445,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * Rewrite the dn of the result, if needed
 	 */
 	dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
 	dc.ctx = "searchEntryDN";
-#else /* ! ENABLE_REWRITE */
-	dc.tofrom = 0;
-	dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 	e = rs->sr_entry;
 	flags = rs->sr_flags;
@@ -1077,7 +1499,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
 	if ( rs->sr_flags & REP_ENTRY_MUSTRELEASE ) {
-		be_entry_release_rw( op, rs->sr_entry, 0 );
+		overlay_entry_release_ov( op, rs->sr_entry, 0, on );
 	}
 
 	rs->sr_entry = e;
@@ -1132,12 +1554,7 @@ rwm_chk_referrals( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
 
-#ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "referralCheckDN" );
-#else /* ! ENABLE_REWRITE */
-	rc = 1;
-	rc = rwm_op_dn_massage( op, rs, &rc );
-#endif /* ! ENABLE_REWRITE */
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "referralCheckDN massage error" );
@@ -1150,14 +1567,12 @@ rwm_chk_referrals( Operation *op, SlapReply *rs )
 
 static int
 rwm_rw_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
-#ifdef ENABLE_REWRITE
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
@@ -1165,22 +1580,16 @@ rwm_rw_config(
 	return rewrite_parse( rwmap->rwm_rw,
 				fname, lineno, argc, argv );
 
-#else /* !ENABLE_REWRITE */
-	fprintf( stderr, "%s: line %d: rewrite capabilities "
-			"are not enabled\n", fname, lineno );
-#endif /* !ENABLE_REWRITE */
-		
 	return 0;
 }
 
 static int
 rwm_suffixmassage_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1188,9 +1597,7 @@ rwm_suffixmassage_config(
 
 	struct berval		bvnc, nvnc, pvnc, brnc, nrnc, prnc;
 	int			massaged;
-#ifdef ENABLE_REWRITE
 	int			rc;
-#endif /* ENABLE_REWRITE */
 		
 	/*
 	 * syntax:
@@ -1242,7 +1649,6 @@ rwm_suffixmassage_config(
 		return 1;
 	}
 
-#ifdef ENABLE_REWRITE
 	/*
 	 * The suffix massaging is emulated 
 	 * by means of the rewrite capabilities
@@ -1254,27 +1660,16 @@ rwm_suffixmassage_config(
 	free( nrnc.bv_val );
 	free( prnc.bv_val );
 
-	return( rc );
-
-#else /* !ENABLE_REWRITE */
-	ber_bvarray_add( &rwmap->rwm_suffix_massage, &pvnc );
-	ber_bvarray_add( &rwmap->rwm_suffix_massage, &nvnc );
-		
-	ber_bvarray_add( &rwmap->rwm_suffix_massage, &prnc );
-	ber_bvarray_add( &rwmap->rwm_suffix_massage, &nrnc );
-#endif /* !ENABLE_REWRITE */
-
-	return 0;
+	return rc;
 }
 
 static int
 rwm_m_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1301,16 +1696,6 @@ rwm_response( Operation *op, SlapReply *rs )
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_SEARCH:
-		/* Note: the operation attrs are remapped */
-		if ( rs->sr_type == REP_RESULT
-				&& op->ors_attrs != NULL
-				&& op->ors_attrs != rs->sr_attrs )
-		{
-			ch_free( op->ors_attrs );
-			op->ors_attrs = rs->sr_attrs;
-		}
-		/* fall thru */
-
 	case LDAP_REQ_BIND:
 	case LDAP_REQ_ADD:
 	case LDAP_REQ_DELETE:
@@ -1325,14 +1710,9 @@ rwm_response( Operation *op, SlapReply *rs )
 			 * Rewrite the dn of the referrals, if needed
 			 */
 			dc.rwmap = rwmap;
-#ifdef ENABLE_REWRITE
 			dc.conn = op->o_conn;
 			dc.rs = NULL; 
 			dc.ctx = "referralDN";
-#else /* ! ENABLE_REWRITE */
-			dc.tofrom = 0;
-			dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 			rc = rwm_referral_result_rewrite( &dc, rs->sr_ref );
 			if ( rc != LDAP_SUCCESS ) {
 				rc = 1;
@@ -1352,12 +1732,11 @@ rwm_response( Operation *op, SlapReply *rs )
 
 static int
 rwm_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -1389,7 +1768,7 @@ rwm_db_config(
 		}
 
 		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
-			rwmap->rwm_flags &= ~(RWM_F_SUPPORT_T_F|RWM_F_SUPPORT_T_F_DISCOVER);
+			rwmap->rwm_flags &= ~(RWM_F_SUPPORT_T_F_MASK2);
 
 		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F;
@@ -1412,6 +1791,21 @@ rwm_db_config(
 			return 1;
 		}
 
+	} else if ( strcasecmp( argv[0], "normalize-mapped-attrs" ) ==  0 ) {
+		if ( argc !=2 ) {
+			fprintf( stderr,
+		"%s: line %d: \"normalize-mapped-attrs {no|yes}\" needs 1 argument.\n",
+					fname, lineno );
+			return( 1 );
+		}
+
+		if ( strcasecmp( argv[ 1 ], "no" ) == 0 ) {
+			rwmap->rwm_flags &= ~(RWM_F_NORMALIZE_MAPPED_ATTRS);
+
+		} else if ( strcasecmp( argv[ 1 ], "yes" ) == 0 ) {
+			rwmap->rwm_flags |= RWM_F_NORMALIZE_MAPPED_ATTRS;
+		}
+
 	} else {
 		rc = SLAP_CONF_UNKNOWN;
 	}
@@ -1423,24 +1817,166 @@ rwm_db_config(
 	return rc;
 }
 
-static int
-rwm_db_init(
-	BackendDB *be
-)
+/*
+ * dynamic configuration...
+ */
+
+enum {
+	/* rewrite */
+	RWM_CF_REWRITE = 1,
+
+	/* map */
+	RWM_CF_MAP,
+	RWM_CF_T_F_SUPPORT,
+	RWM_CF_NORMALIZE_MAPPED,
+
+	RWM_CF_LAST
+};
+
+static slap_verbmasks t_f_mode[] = {
+	{ BER_BVC( "true" ),		RWM_F_SUPPORT_T_F },
+	{ BER_BVC( "yes" ),		RWM_F_SUPPORT_T_F },
+	{ BER_BVC( "discover" ),	RWM_F_SUPPORT_T_F_DISCOVER },
+	{ BER_BVC( "false" ),		RWM_F_NONE },
+	{ BER_BVC( "no" ),		RWM_F_NONE },
+	{ BER_BVNULL,			0 }
+};
+
+static ConfigDriver rwm_cf_gen;
+
+static ConfigTable rwmcfg[] = {
+	{ "rwm-rewrite", "rewrite",
+		2, 0, STRLENOF("rwm-rewrite"),
+		ARG_MAGIC|RWM_CF_REWRITE, rwm_cf_gen,
+		"( OLcfgOvAt:16.1 NAME 'olcRwmRewrite' "
+			"DESC 'Rewrites strings' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString "
+			"X-ORDERED 'VALUES' )",
+		NULL, NULL },
+
+	{ "rwm-suffixmassage", "[virtual]> <real",
+		2, 3, 0, ARG_MAGIC|RWM_CF_REWRITE, rwm_cf_gen,
+		NULL, NULL, NULL },
+
+	{ "rwm-t-f-support", "true|false|discover",
+		2, 2, 0, ARG_MAGIC|RWM_CF_T_F_SUPPORT, rwm_cf_gen,
+		"( OLcfgOvAt:16.2 NAME 'olcRwmTFSupport' "
+			"DESC 'Absolute filters support' "
+			"SYNTAX OMsDirectoryString "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+
+	{ "rwm-map", "{objectClass|attribute}",
+		2, 4, 0, ARG_MAGIC|RWM_CF_MAP, rwm_cf_gen,
+		"( OLcfgOvAt:16.3 NAME 'olcRwmMap' "
+			"DESC 'maps attributes/objectClasses' "
+			"SYNTAX OMsDirectoryString "
+			"X-ORDERED 'VALUES' )",
+		NULL, NULL },
+
+	{ "rwm-normalize-mapped-attrs", "true|false",
+		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|RWM_CF_NORMALIZE_MAPPED, rwm_cf_gen,
+		"( OLcfgOvAt:16.4 NAME 'olcRwmNormalizeMapped' "
+			"DESC 'Normalize mapped attributes/objectClasses' "
+			"SYNTAX OMsBoolean "
+			"SINGLE-VALUE )",
+		NULL, NULL },
+
+	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
+};
+
+static ConfigOCs rwmocs[] = {
+	{ "( OLcfgOvOc:16.1 "
+		"NAME 'olcRwmConfig' "
+		"DESC 'Rewrite/remap configuration' "
+		"SUP olcOverlayConfig "
+		"MAY ( "
+			"olcRwmRewrite $ "
+			"olcRwmTFSupport $ "
+			"olcRwmMap $ "
+			"olcRwmNormalizeMapped "
+			") )",
+		Cft_Overlay, rwmcfg, NULL, NULL },
+	{ NULL, 0, NULL }
+};
+
+static void
+slap_rewrite_unparse( BerVarray in, BerVarray *out )
 {
-	slap_overinst		*on = (slap_overinst *) be->bd_info;
-	struct ldapmapping	*mapping = NULL;
-	struct ldaprwmap	*rwmap;
-#ifdef ENABLE_REWRITE
+	int		i;
+	BerVarray	bva = NULL;
+	char		ibuf[32], *ptr;
+	struct berval	idx;
+
+	assert( in != NULL );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ )
+		/* count'em */ ;
+
+	if ( i == 0 ) {
+		return;
+	}
+
+	idx.bv_val = ibuf;
+
+	bva = ch_malloc( ( i + 1 ) * sizeof(struct berval) );
+	BER_BVZERO( &bva[ 0 ] );
+
+	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
+		idx.bv_len = snprintf( idx.bv_val, sizeof( ibuf ), "{%d}", i );
+		if ( idx.bv_len >= sizeof( ibuf ) ) {
+			ber_bvarray_free( bva );
+			return;
+		}
+
+		bva[i].bv_len = idx.bv_len + in[i].bv_len;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+		ptr = lutil_strcopy( bva[i].bv_val, ibuf );
+		ptr = lutil_strcopy( ptr, in[i].bv_val );
+		*ptr = '\0';
+		BER_BVZERO( &bva[ i + 1 ] );
+	}
+
+	*out = bva;
+}
+
+static int
+rwm_bva_rewrite_add(
+	struct ldaprwmap	*rwmap,
+	int			idx,
+	char			**argv )
+{
+	char		*line;
+	struct berval	bv;
+
+	line = ldap_charray2str( argv, "\" \"" );
+	if ( line != NULL ) {
+		int	len = strlen( argv[ 0 ] );
+
+		ber_str2bv( line, 0, 0, &bv );
+		AC_MEMCPY( &bv.bv_val[ len ], &bv.bv_val[ len + 1 ],
+			bv.bv_len - ( len + 1 ) );
+		bv.bv_val[ bv.bv_len - 1 ] = '"';
+
+		if ( idx == -1 ) {
+			ber_bvarray_add( &rwmap->rwm_bva_rewrite, &bv );
+
+		} else {
+			rwmap->rwm_bva_rewrite[ idx ] = bv;
+		}
+	}
+
+	return 0;
+}
+
+static int
+rwm_info_init( struct rewrite_info ** rwm_rw )
+{
 	char			*rargv[ 3 ];
-#endif /* ENABLE_REWRITE */
 
-	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
-
-#ifdef ENABLE_REWRITE
- 	rwmap->rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( rwmap->rwm_rw == NULL ) {
- 		ch_free( rwmap );
+	*rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( *rwm_rw == NULL ) {
  		return -1;
  	}
 
@@ -1449,29 +1985,381 @@ rwm_db_init(
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "searchFilter";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 1, 2, rargv );
+	rewrite_parse( *rwm_rw, "<suffix massage>", 1, 2, rargv );
 
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "default";
 	rargv[ 2 ] = NULL;
-	rewrite_parse( rwmap->rwm_rw, "<suffix massage>", 2, 2, rargv );
-#endif /* ENABLE_REWRITE */
-
-	if ( rwm_map_init( &rwmap->rwm_oc, &mapping ) != LDAP_SUCCESS ||
-			rwm_map_init( &rwmap->rwm_at, &mapping ) != LDAP_SUCCESS )
-	{
-		return 1;
-	}
-
-	on->on_bi.bi_private = (void *)rwmap;
+	rewrite_parse( *rwm_rw, "<suffix massage>", 2, 2, rargv );
 
 	return 0;
 }
 
 static int
+rwm_cf_gen( ConfigArgs *c )
+{
+	slap_overinst		*on = (slap_overinst *)c->bi;
+	struct ldaprwmap	*rwmap =
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	BackendDB		db;
+	char			*argv0;
+	int			idx0 = 0;
+	int			rc = 0;
+
+	db = *c->be;
+	db.bd_info = c->bi;
+
+	if ( c->op == SLAP_CONFIG_EMIT ) {
+		struct berval	bv = BER_BVNULL;
+
+		switch ( c->type ) {
+		case RWM_CF_REWRITE:
+			if ( rwmap->rwm_bva_rewrite == NULL ) {
+				rc = 1;
+
+			} else {
+				slap_rewrite_unparse( rwmap->rwm_bva_rewrite, &c->rvalue_vals );
+				if ( !c->rvalue_vals ) {
+					rc = 1;
+				}
+			}
+			break;
+
+		case RWM_CF_T_F_SUPPORT:
+			enum_to_verb( t_f_mode, (rwmap->rwm_flags & RWM_F_SUPPORT_T_F_MASK2), &bv );
+			if ( BER_BVISNULL( &bv ) ) {
+				/* there's something wrong... */
+				assert( 0 );
+				rc = 1;
+
+			} else {
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			break;
+
+		case RWM_CF_MAP:
+			if ( rwmap->rwm_bva_map == NULL ) {
+				rc = 1;
+
+			} else {
+				value_add( &c->rvalue_vals, rwmap->rwm_bva_map );
+			}
+			break;
+
+		case RWM_CF_NORMALIZE_MAPPED:
+			c->value_int = ( rwmap->rwm_flags & RWM_F_NORMALIZE_MAPPED_ATTRS );
+			break;
+
+		default:
+			assert( 0 );
+			rc = 1;
+		}
+
+		return rc;
+
+	} else if ( c->op == LDAP_MOD_DELETE ) {
+		switch ( c->type ) {
+		case RWM_CF_REWRITE:
+			if ( c->valx >= 0 ) {
+				ConfigArgs ca = { 0 };
+				int i;
+
+				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+					/* count'em */ ;
+
+				if ( i >= c->valx ) {
+					rc = 1;
+					break;
+				}
+
+				ber_memfree( rwmap->rwm_bva_rewrite[ c->valx ].bv_val );
+				for ( i = c->valx; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i + 1 ] ); i++ )
+				{
+					rwmap->rwm_bva_rewrite[ i ] = rwmap->rwm_bva_rewrite[ i + 1 ];
+				}
+				BER_BVZERO( &rwmap->rwm_bva_rewrite[ i ] );
+
+				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
+
+				rc = rwm_info_init( &rwmap->rwm_rw );
+
+				for ( i = 0; !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+				{
+					ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+					ca.argc = 0;
+					config_fp_parse_line( &ca );
+
+					if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+						rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+							ca.argc, ca.argv );
+
+					} else {
+						rc = rwm_rw_config( &db, c->fname, c->lineno,
+							ca.argc, ca.argv );
+					}
+
+					ch_free( ca.tline );
+
+					assert( rc == 0 );
+				}
+
+			} else if ( rwmap->rwm_rw != NULL ) {
+				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
+
+				ber_bvarray_free( rwmap->rwm_bva_rewrite );
+				rwmap->rwm_bva_rewrite = NULL;
+
+				rc = rwm_info_init( &rwmap->rwm_rw );
+			}
+			break;
+
+		case RWM_CF_T_F_SUPPORT:
+			rwmap->rwm_flags &= ~RWM_F_SUPPORT_T_F_MASK2;
+			break;
+
+		case RWM_CF_MAP:
+			if ( c->valx >= 0 ) {
+				/* single modification is not allowed */
+				rc = 1;
+
+			} else {
+				avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
+				avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
+				avl_free( rwmap->rwm_at.remap, rwm_mapping_dst_free );
+				avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+
+				rwmap->rwm_oc.remap = NULL;
+				rwmap->rwm_oc.map = NULL;
+				rwmap->rwm_at.remap = NULL;
+				rwmap->rwm_at.map = NULL;
+
+				ber_bvarray_free( rwmap->rwm_bva_map );
+				rwmap->rwm_bva_map = NULL;
+			}
+			break;
+
+		case RWM_CF_NORMALIZE_MAPPED:
+			rwmap->rwm_flags &= ~RWM_F_NORMALIZE_MAPPED_ATTRS;
+			break;
+
+		default:
+			return 1;
+		}
+		return rc;
+	}
+
+	if ( strncasecmp( c->argv[ 0 ], "olcRwm", STRLENOF( "olcRwm" ) ) == 0 ) {
+		idx0 = 1;
+	}
+
+	switch ( c->type ) {
+	case RWM_CF_REWRITE:
+		if ( c->valx >= 0 ) {
+			struct rewrite_info *rwm_rw = rwmap->rwm_rw;
+			ConfigArgs ca = { 0 };
+			int i, last;
+
+			for ( last = 0; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ last ] ); last++ )
+				/* count'em */ ;
+
+			if ( c->valx > last ) {
+				c->valx = last;
+			}
+
+			rwmap->rwm_rw = NULL;
+			rc = rwm_info_init( &rwmap->rwm_rw );
+
+			for ( i = 0; i < c->valx; i++ ) {
+				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv0 = ca.argv[ 0 ];
+				ca.argv[ 0 ] += STRLENOF( "rwm-" );
+
+				if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+					rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+
+				} else {
+					rc = rwm_rw_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+				}
+
+				ca.argv[ 0 ] = argv0;
+
+				ch_free( ca.tline );
+
+				assert( rc == 0 );
+			}
+
+			argv0 = c->argv[ idx0 ];
+			if ( strncasecmp( argv0, "rwm-", STRLENOF( "rwm-" ) ) != 0 ) {
+				return 1;
+			}
+			c->argv[ idx0 ] += STRLENOF( "rwm-" );
+			if ( strcasecmp( c->argv[ idx0 ], "suffixmassage" ) == 0 ) {
+				rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+					c->argc - idx0, &c->argv[ idx0 ] );
+
+			} else {
+				rc = rwm_rw_config( &db, c->fname, c->lineno,
+					c->argc - idx0, &c->argv[ idx0 ] );
+			}
+			c->argv[ idx0 ] = argv0;
+			if ( rc != 0 ) {
+				rewrite_info_delete( &rwmap->rwm_rw );
+				assert( rwmap->rwm_rw == NULL );
+
+				rwmap->rwm_rw = rwm_rw;
+				return 1;
+			}
+
+			for ( i = c->valx; rwmap->rwm_bva_rewrite && !BER_BVISNULL( &rwmap->rwm_bva_rewrite[ i ] ); i++ )
+			{
+				ca.line = rwmap->rwm_bva_rewrite[ i ].bv_val;
+				ca.argc = 0;
+				config_fp_parse_line( &ca );
+
+				argv0 = ca.argv[ 0 ];
+				ca.argv[ 0 ] += STRLENOF( "rwm-" );
+
+				if ( strcasecmp( ca.argv[ 0 ], "suffixmassage" ) == 0 ) {
+					rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+
+				} else {
+					rc = rwm_rw_config( &db, c->fname, c->lineno,
+						ca.argc, ca.argv );
+				}
+
+				ca.argv[ 0 ] = argv0;
+
+				ch_free( ca.tline );
+
+				assert( rc == 0 );
+			}
+
+			rwmap->rwm_bva_rewrite = ch_realloc( rwmap->rwm_bva_rewrite,
+				( last + 2 )*sizeof( struct berval ) );
+			BER_BVZERO( &rwmap->rwm_bva_rewrite[last+1] );
+
+			for ( i = last - 1; i >= c->valx; i-- )
+			{
+				rwmap->rwm_bva_rewrite[ i + 1 ] = rwmap->rwm_bva_rewrite[ i ];
+			}
+
+			rwm_bva_rewrite_add( rwmap, c->valx, &c->argv[ idx0 ] );
+
+			rewrite_info_delete( &rwm_rw );
+			assert( rwm_rw == NULL );
+
+			break;
+		}
+
+		argv0 = c->argv[ idx0 ];
+		if ( strncasecmp( argv0, "rwm-", STRLENOF( "rwm-" ) ) != 0 ) {
+			return 1;
+		}
+		c->argv[ idx0 ] += STRLENOF( "rwm-" );
+		if ( strcasecmp( c->argv[ idx0 ], "suffixmassage" ) == 0 ) {
+			rc = rwm_suffixmassage_config( &db, c->fname, c->lineno,
+				c->argc - idx0, &c->argv[ idx0 ] );
+
+		} else {
+			rc = rwm_rw_config( &db, c->fname, c->lineno,
+				c->argc - idx0, &c->argv[ idx0 ] );
+		}
+		c->argv[ idx0 ] = argv0;
+		if ( rc ) {
+			return 1;
+
+		} else {
+			rwm_bva_rewrite_add( rwmap, -1, &c->argv[ idx0 ] );
+		}
+		break;
+
+	case RWM_CF_T_F_SUPPORT:
+		rc = verb_to_mask( c->argv[ 1 ], t_f_mode );
+		if ( BER_BVISNULL( &t_f_mode[ rc ].word ) ) {
+			return 1;
+		}
+
+		rwmap->rwm_flags &= ~RWM_F_SUPPORT_T_F_MASK2;
+		rwmap->rwm_flags |= t_f_mode[ rc ].mask;
+		rc = 0;
+		break;
+
+	case RWM_CF_MAP:
+		if ( c->valx >= 0 ) {
+			return 1;
+		}
+
+		argv0 = c->argv[ 0 ];
+		c->argv[ 0 ] += STRLENOF( "rwm-" );
+		rc = rwm_m_config( &db, c->fname, c->lineno, c->argc, c->argv );
+		c->argv[ 0 ] = argv0;
+		if ( rc ) {
+			return 1;
+
+		} else {
+			char		*line;
+			struct berval	bv;
+
+			line = ldap_charray2str( &c->argv[ 1 ], " " );
+			if ( line != NULL ) {
+				ber_str2bv( line, 0, 0, &bv );
+				ber_bvarray_add( &rwmap->rwm_bva_map, &bv );
+			}
+		}
+		break;
+
+	case RWM_CF_NORMALIZE_MAPPED:
+		if ( c->value_int ) {
+			rwmap->rwm_flags |= RWM_F_NORMALIZE_MAPPED_ATTRS;
+		} else {
+			rwmap->rwm_flags &= ~RWM_F_NORMALIZE_MAPPED_ATTRS;
+		}
+		break;
+
+	default:
+		assert( 0 );
+		return 1;
+	}
+
+	return rc;
+}
+
+static int
+rwm_db_init(
+	BackendDB	*be,
+	ConfigReply	*cr )
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	struct ldaprwmap	*rwmap;
+	int			rc = 0;
+
+	rwmap = (struct ldaprwmap *)ch_calloc( 1, sizeof( struct ldaprwmap ) );
+
+	rc = rwm_info_init( &rwmap->rwm_rw );
+
+error_return:;
+	on->on_bi.bi_private = (void *)rwmap;
+
+	if ( rc ) {
+		(void)rwm_db_destroy( be, NULL );
+	}
+
+	return rc;
+}
+
+static int
 rwm_db_destroy(
-	BackendDB *be
-)
+	BackendDB	*be,
+	ConfigReply	*cr )
 {
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 	int		rc = 0;
@@ -1480,20 +2368,17 @@ rwm_db_destroy(
 		struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-#ifdef ENABLE_REWRITE
 		if ( rwmap->rwm_rw ) {
 			rewrite_info_delete( &rwmap->rwm_rw );
+			if ( rwmap->rwm_bva_rewrite )
+				ber_bvarray_free( rwmap->rwm_bva_rewrite );
 		}
-#else /* !ENABLE_REWRITE */
-		if ( rwmap->rwm_suffix_massage ) {
-  			ber_bvarray_free( rwmap->rwm_suffix_massage );
- 		}
-#endif /* !ENABLE_REWRITE */
 
 		avl_free( rwmap->rwm_oc.remap, rwm_mapping_dst_free );
 		avl_free( rwmap->rwm_oc.map, rwm_mapping_free );
 		avl_free( rwmap->rwm_at.remap, rwm_mapping_dst_free );
 		avl_free( rwmap->rwm_at.map, rwm_mapping_free );
+		ber_bvarray_free( rwmap->rwm_bva_map );
 
 		ch_free( rwmap );
 	}
@@ -1503,12 +2388,23 @@ rwm_db_destroy(
 
 static slap_overinst rwm = { { NULL } };
 
+#if SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC
+static
+#endif /* SLAPD_OVER_RWM == SLAPD_MOD_DYNAMIC */
 int
-rwm_initialize(void)
+rwm_initialize( void )
 {
+	int		rc;
+
+	/* Make sure we don't exceed the bits reserved for userland */
+	config_check_userland( RWM_CF_LAST );
+
 	memset( &rwm, 0, sizeof( slap_overinst ) );
 
 	rwm.on_bi.bi_type = "rwm";
+	rwm.on_bi.bi_flags =
+		SLAPO_BFLAG_SINGLE |
+		0;
 
 	rwm.on_bi.bi_db_init = rwm_db_init;
 	rwm.on_bi.bi_db_config = rwm_db_config;
@@ -1523,16 +2419,25 @@ rwm_initialize(void)
 	rwm.on_bi.bi_op_delete = rwm_op_delete;
 	rwm.on_bi.bi_op_unbind = rwm_op_unbind;
 	rwm.on_bi.bi_extended = rwm_extended;
+#if 1 /* TODO */
+	rwm.on_bi.bi_entry_release_rw = rwm_entry_release_rw;
+	rwm.on_bi.bi_entry_get_rw = rwm_entry_get_rw;
+#endif
 
 	rwm.on_bi.bi_operational = rwm_operational;
 	rwm.on_bi.bi_chk_referrals = 0 /* rwm_chk_referrals */ ;
 
-#ifdef ENABLE_REWRITE
 	rwm.on_bi.bi_connection_init = rwm_conn_init;
 	rwm.on_bi.bi_connection_destroy = rwm_conn_destroy;
-#endif /* ENABLE_REWRITE */
 
 	rwm.on_response = rwm_response;
+
+	rwm.on_bi.bi_cf_ocs = rwmocs;
+
+	rc = config_register_schema( rwmcfg, rwmocs );
+	if ( rc ) {
+		return rc;
+	}
 
 	return overlay_register( &rwm );
 }

@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/servers/slapd/slapi/slapi_ops.c,v 1.70.2.9 2006/01/08 16:50:46 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/slapi/slapi_ops.c,v 1.111.2.6 2009/01/22 00:01:15 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2006 The OpenLDAP Foundation.
+ * Copyright 2002-2009 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -187,9 +187,9 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 
 	LDAP_STAILQ_INIT( &conn->c_pending_ops );
 
-	op = (Operation *) slapi_ch_calloc( 1, OPERATION_BUFFER_SIZE );
-	op->o_hdr = (Opheader *)(op + 1);
-	op->o_controls = (void **)(op->o_hdr + 1);
+	op = (Operation *) slapi_ch_calloc( 1, sizeof(OperationBuffer) );
+	op->o_hdr = &((OperationBuffer *) op)->ob_hdr;
+	op->o_controls = ((OperationBuffer *) op)->ob_controls;
 
 	op->o_callback = (slap_callback *) slapi_ch_calloc( 1, sizeof(slap_callback) );
 	op->o_callback->sc_response = slapi_int_response;
@@ -224,8 +224,10 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 
 	/* should check status of thread calls */
 	ldap_pvt_thread_mutex_init( &conn->c_mutex );
-	ldap_pvt_thread_mutex_init( &conn->c_write_mutex );
-	ldap_pvt_thread_cond_init( &conn->c_write_cv );
+	ldap_pvt_thread_mutex_init( &conn->c_write1_mutex );
+	ldap_pvt_thread_mutex_init( &conn->c_write2_mutex );
+	ldap_pvt_thread_cond_init( &conn->c_write1_cv );
+	ldap_pvt_thread_cond_init( &conn->c_write2_cv );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
@@ -296,7 +298,7 @@ slapi_int_set_operation_dn( Slapi_PBlock *pb )
 
 	if ( BER_BVISNULL( &op->o_ndn ) ) {
 		/* set to root DN */
-		be = select_backend( &op->o_req_ndn, get_manageDSAit( op ), 1 );
+		be = select_backend( &op->o_req_ndn, 1 );
 		if ( be != NULL ) {
 			ber_dupbv( &op->o_dn, &be->be_rootdn );
 			ber_dupbv( &op->o_ndn, &be->be_rootndn );
@@ -342,6 +344,7 @@ slapi_int_connection_done_pb( Slapi_PBlock *pb )
 			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
 			op->o_tmpfree( op->orr_nnewSup, op->o_tmpmemctx );
 		}
+		slap_mods_free( op->orr_modlist, 1 );
 		break;
 	case LDAP_REQ_ADD:
 		slap_mods_free( op->ora_modlist, 0 );
@@ -418,6 +421,8 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 {
 	SlapReply		*rs;
 	Slapi_Entry		*entry_orig = NULL;
+	OpExtraDB oex;
+	int rc;
 
 	if ( pb == NULL ) {
 		return -1;
@@ -464,7 +469,7 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		assert( pb->pb_op->ora_modlist != NULL );
 	}
 
-	rs->sr_err = slap_mods_check( pb->pb_op->ora_modlist, &rs->sr_text,
+	rs->sr_err = slap_mods_check( pb->pb_op, pb->pb_op->ora_modlist, &rs->sr_text,
 		pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;
@@ -477,16 +482,20 @@ slapi_add_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	if ( slapi_int_func_internal_pb( pb, op_add ) == 0 ) {
-		if ( pb->pb_op->ora_e != NULL && pb->pb_op->o_private != NULL ) {
+	oex.oe.oe_key = (void *)do_add;
+	oex.oe_db = NULL;
+	LDAP_SLIST_INSERT_HEAD(&pb->pb_op->o_extra, &oex.oe, oe_next);
+	rc = slapi_int_func_internal_pb( pb, op_add );
+	LDAP_SLIST_REMOVE(&pb->pb_op->o_extra, &oex.oe, OpExtra, oe_next);
+
+	if ( !rc ) {
+		if ( pb->pb_op->ora_e != NULL && oex.oe_db != NULL ) {
 			BackendDB	*bd = pb->pb_op->o_bd;
 
-			pb->pb_op->o_bd = (BackendDB *)pb->pb_op->o_private;
-			pb->pb_op->o_private = NULL;
+			pb->pb_op->o_bd = oex.oe_db;
 			be_entry_release_w( pb->pb_op, pb->pb_op->ora_e );
 			pb->pb_op->ora_e = NULL;
 			pb->pb_op->o_bd = bd;
-			pb->pb_op->o_private = NULL;
 		}
 	}
 
@@ -549,7 +558,7 @@ slapi_modify_internal_pb( Slapi_PBlock *pb )
 		goto cleanup;
 	}
 
-	rs->sr_err = slap_mods_check( pb->pb_op->orm_modlist,
+	rs->sr_err = slap_mods_check( pb->pb_op, pb->pb_op->orm_modlist,
 		&rs->sr_text, pb->pb_textbuf, sizeof( pb->pb_textbuf ), NULL );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
                 goto cleanup;
@@ -863,6 +872,7 @@ slapi_rename_internal_set_pb( Slapi_PBlock *pb,
 	slapi_pblock_set( pb, SLAPI_TARGET_UNIQUEID,    (void *)uniqueid );
 	slapi_pblock_set( pb, SLAPI_PLUGIN_IDENTITY,    (void *)plugin_identity );
 	slapi_pblock_set( pb, SLAPI_X_INTOP_FLAGS,      (void *)&operation_flags );
+	slap_modrdn2mods( pb->pb_op, pb->pb_rs );
 	slapi_int_set_operation_dn( pb );
 }
 

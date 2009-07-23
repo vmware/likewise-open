@@ -1,3 +1,4 @@
+// $OpenLDAP: pkg/ldap/contrib/ldapc++/src/LDAPObjClass.cpp,v 1.3.6.3 2008/09/02 23:58:15 quanah Exp $
 /*
  * Copyright 2003, OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -32,7 +33,7 @@ LDAPObjClass::LDAPObjClass (const LDAPObjClass &oc){
     sup = oc.sup;
 }
 
-LDAPObjClass::LDAPObjClass (string oc_item) { 
+LDAPObjClass::LDAPObjClass (string oc_item, int flags ) {
 
     DEBUG(LDAP_DEBUG_CONSTRUCT,
             "LDAPObjClass::LDAPObjClass( )" << endl);
@@ -40,7 +41,7 @@ LDAPObjClass::LDAPObjClass (string oc_item) {
     LDAPObjectClass *o;
     int ret;
     const char *errp;
-    o = ldap_str2objectclass ( oc_item.c_str(), &ret, &errp, SCHEMA_PARSE_FLAG);
+    o = ldap_str2objectclass ( oc_item.c_str(), &ret, &errp, flags );
 
     if (o) {
         this->setNames (o->oc_names);
@@ -90,31 +91,31 @@ void LDAPObjClass::setOid (char *oc_oid) {
 	oid = oc_oid;
 }
 
-string LDAPObjClass::getOid () {
+string LDAPObjClass::getOid() const {
     return oid;
 }
 
-string LDAPObjClass::getDesc () {
+string LDAPObjClass::getDesc() const {
     return desc;
 }
 
-StringList LDAPObjClass::getNames () {
+StringList LDAPObjClass::getNames() const {
     return names;
 }
 
-StringList LDAPObjClass::getMust () {
+StringList LDAPObjClass::getMust() const {
     return must;
 }
 
-StringList LDAPObjClass::getMay () {
+StringList LDAPObjClass::getMay() const {
     return may;
 }
 
-StringList LDAPObjClass::getSup () {
+StringList LDAPObjClass::getSup() const {
     return sup;
 }
 
-string LDAPObjClass::getName () {
+string LDAPObjClass::getName() const {
 
     if (names.empty())
 	return "";
@@ -122,7 +123,7 @@ string LDAPObjClass::getName () {
 	return *(names.begin());
 }
 
-int LDAPObjClass::getKind () {
+int LDAPObjClass::getKind() const {
      return kind;
 }
 
