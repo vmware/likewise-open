@@ -171,6 +171,7 @@ typedef struct LWMsgTypeAttrs
     size_t range_high;
     unsigned nonnull:1;
     unsigned aliasable:1;
+    unsigned sensitive:1;
 } LWMsgTypeAttrs;
 
 /**
@@ -369,6 +370,7 @@ typedef enum LWMsgTypeDirective
         LWMSG_CMD_CUSTOM_ATTR,
         LWMSG_CMD_VOID,
         LWMSG_CMD_ENCODING,
+        LWMSG_CMD_SENSITIVE,
         LWMSG_FLAG_MEMBER = 0x10000,
         LWMSG_FLAG_META = 0x20000,
         LWMSG_FLAG_DEBUG = 0x40000
@@ -645,6 +647,17 @@ typedef enum LWMsgTypeDirective
 #define LWMSG_ATTR_ENCODING(enc)                \
     _TYPECMD(LWMSG_CMD_ENCODING),               \
         _TYPEARG((enc))
+
+/**
+ * @brief Indicate sensitive information
+ *
+ * Indicates that the immediately previous type or member
+ * contains sensitive information (e.g. a password) and should
+ * not be displayed when printed with lwmsg_data_print_graph().
+ * @hideinitializer
+ */
+#define LWMSG_ATTR_SENSITIVE                    \
+    _TYPECMD(LWMSG_CMD_SENSITIVE)
 
 /**
  * @brief Indicate C string

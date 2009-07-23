@@ -56,6 +56,7 @@
     LWMSG_MEMBER_POINTER_BEGIN(Type, BufferField), \
     LWMSG_UINT8(BYTE), \
     LWMSG_POINTER_END, \
+    LWMSG_ATTR_SENSITIVE, \
     LWMSG_ATTR_LENGTH_MEMBER(Type, LengthField)
 
 #define _LWMSG_MEMBER_OPTIONAL_ARRAY(Type, PointerField, CountField, ElementSpec) \
