@@ -33,7 +33,8 @@
 
 struct __LW_IO_CONTEXT
 {
-    LWMsgAssoc* pAssoc;
+    PIO_ACCESS_TOKEN pAccessToken;
+    LWMsgClient* pClient;
 };
 
 typedef struct __LW_IO_THREAD_STATE

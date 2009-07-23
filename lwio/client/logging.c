@@ -48,7 +48,7 @@
 #include "includes.h"
 
 SMB_API
-DWORD
+NTSTATUS
 SMBSetLogLevel(
     HANDLE      hSMBConnection,
     SMBLogLevel logLevel
@@ -64,57 +64,52 @@ SMBSetLogLevel(
 }
 
 SMB_API
-DWORD
+NTSTATUS
 SMBSetLogInfo(
     HANDLE hSMBConnection,
     PLWIO_LOG_INFO pLogInfo
     )
 {
-    DWORD dwError = 0;
-    LWMsgTag replyType;
-    PVOID pResponse = NULL;
+    NTSTATUS status = 0;
     PIO_CONTEXT pConnection = NULL;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
     pConnection = (PIO_CONTEXT)hSMBConnection;
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(
-                    pConnection->pAssoc,
-                    SMB_SET_LOG_INFO,
-                    pLogInfo,
-                    &replyType,
-                    &pResponse));
-    BAIL_ON_LWIO_ERROR(dwError);
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
-    switch (replyType)
+    in.tag = SMB_SET_LOG_INFO;
+    in.data = NULL;
+
+    status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+
+    switch (out.tag)
     {
         case SMB_SET_LOG_INFO_SUCCESS:
-
             break;
 
         case SMB_SET_LOG_INFO_FAILED:
-
-            BAIL_ON_INVALID_POINTER(pResponse);
-
-            dwError = ((PSMB_STATUS_REPLY)pResponse)->dwError;
-
+            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:
-
-            dwError = EINVAL;
-
+            status = EINVAL;
             break;
     }
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(status);
 
 cleanup:
 
-    if (pResponse)
+    if (pCall)
     {
-        lwmsg_assoc_free_graph(pConnection->pAssoc, replyType, pResponse);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
 
@@ -122,64 +117,61 @@ error:
 }
 
 SMB_API
-DWORD
+NTSTATUS
 SMBGetLogInfo(
     HANDLE         hSMBConnection,
     PLWIO_LOG_INFO* ppLogInfo
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     SMB_REQUEST request = {0};
-    LWMsgTag replyType;
     PVOID pResponse = NULL;
     PIO_CONTEXT pConnection = NULL;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
     pConnection = (PIO_CONTEXT)hSMBConnection;
 
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
+
+    /* FIXME: what is this for? */
     request.dwCurTime = time(NULL);
+    in.tag = SMB_GET_LOG_INFO;
+    in.data = &request;
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(
-                    pConnection->pAssoc,
-                    SMB_GET_LOG_INFO,
-                    &request,
-                    &replyType,
-                    &pResponse));
-    BAIL_ON_LWIO_ERROR(dwError);
+    status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
-    switch (replyType)
+    switch (out.tag)
     {
         case SMB_GET_LOG_INFO_SUCCESS:
-
             break;
 
         case SMB_GET_LOG_INFO_FAILED:
-
-            BAIL_ON_INVALID_POINTER(pResponse);
-
-            dwError = ((PSMB_STATUS_REPLY)pResponse)->dwError;
-
+            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:
-
-            dwError = EINVAL;
-
+            status = STATUS_INTERNAL_ERROR;
             break;
     }
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(status);
 
     *ppLogInfo = (PLWIO_LOG_INFO)pResponse;
 
 cleanup:
 
-    return dwError;
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return status;
 
 error:
-
-    if (pResponse)
-    {
-        lwmsg_assoc_free_graph(pConnection->pAssoc, replyType, pResponse);
-    }
 
     goto cleanup;
 }

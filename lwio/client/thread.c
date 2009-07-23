@@ -310,18 +310,18 @@ LwIoAcquireContext(
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
+    PIO_THREAD_STATE pState = NULL;
 
     LwIoThreadInit();
 
-    pContext->pAssoc = NULL;
-
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_client_acquire_assoc(
-            gpClient,
-            &pContext->pAssoc));
+    Status = LwIoGetThreadState(&pState);
     BAIL_ON_NT_STATUS(Status);
 
+    pContext->pAccessToken = pState->pAccessToken;
+    pContext->pClient = gpClient;
+
 error:
+
     return Status;
 }
 
@@ -331,21 +331,9 @@ LwIoReleaseContext(
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    
-    LwIoThreadInit();
 
-    if (pContext->pAssoc)
-    {
-        Status = NtIpcLWMsgStatusToNtStatus(
-            lwmsg_client_release_assoc(
-                gpClient,
-                pContext->pAssoc));
-        BAIL_ON_NT_STATUS(Status);
-        pContext->pAssoc = NULL;
-    }
-    
-error:
-    
+    memset(pContext, 0, sizeof(*pContext));
+
     return Status;
 }
 
@@ -364,15 +352,7 @@ LwIoOpenContextShared(
         OUT_PPVOID(&pContext));
     BAIL_ON_NT_STATUS(Status);
 
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_client_create_assoc(
-            gpClient,
-            &pContext->pAssoc));
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_NT_STATUS(Status);
+    pContext->pClient = gpClient;
 
     *ppContext = pContext;
 

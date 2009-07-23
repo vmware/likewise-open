@@ -30,61 +30,54 @@
 
 #include "includes.h"
 
-DWORD
+NTSTATUS
 SMBRefreshConfiguration(
     HANDLE hConnection
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     SMB_REQUEST request = {0};
-    LWMsgTag replyType;
-    PVOID pResponse = NULL;
     PIO_CONTEXT pConnection = NULL;
+    LWMsgCall* pCall = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
     pConnection = (PIO_CONTEXT)hConnection;
 
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
+
     request.dwCurTime = time(NULL);
+    in.tag = SMB_REFRESH_CONFIG;
+    in.data = &request;
 
-    dwError = MAP_LWMSG_STATUS(lwmsg_assoc_send_transact(
-                    pConnection->pAssoc,
-                    SMB_REFRESH_CONFIG,
-                    &request,
-                    &replyType,
-                    &pResponse));
-    BAIL_ON_LWIO_ERROR(dwError);
+    status = MAP_LWMSG_STATUS(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
-    switch (replyType)
+    switch (out.tag)
     {
         case SMB_REFRESH_CONFIG_SUCCESS:
-
             LWIO_LOG_INFO("Configuration refresh succeeded");
-
             break;
-
         case SMB_REFRESH_CONFIG_FAILED:
-
-            BAIL_ON_INVALID_POINTER(pResponse);
-
-            dwError = ((PSMB_STATUS_REPLY)pResponse)->dwError;
-
+            status = ((PSMB_STATUS_REPLY) out.data)->dwError;
             break;
 
         default:
-
-            dwError = EINVAL;
-
+            status = STATUS_INTERNAL_ERROR;
             break;
     }
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(status);
 
 cleanup:
 
-    if (pResponse)
+    if (pCall)
     {
-        lwmsg_assoc_free_graph(pConnection->pAssoc, replyType, pResponse);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
 

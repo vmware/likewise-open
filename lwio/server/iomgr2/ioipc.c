@@ -339,28 +339,25 @@ cleanup:
 
 LWMsgStatus
 IopIpcCloseFile(
-    IN LWMsgAssoc* pAssoc,
-    IN const LWMsgMessage* pRequest,
-    OUT LWMsgMessage* pResponse,
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
     IN void* pData
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
-    const LWMsgTag messageType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE;
-    const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
-    PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pRequest->object;
+    static const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
+    PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pIn->data;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
-
-    assert(messageType == pRequest->tag);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    pResponse->tag = replyType;
-    pResponse->object = pReply;
+    pOut->tag = replyType;
+    pOut->data = pReply;
 
-    pReply->Status = NtIpcUnregisterFileHandle(pAssoc, pMessage->FileHandle);
+    pReply->Status = NtIpcUnregisterFileHandle(pCall, pMessage->FileHandle);
 
 cleanup:
     LOG_LEAVE_IF_STATUS_EE(status, EE);
@@ -937,7 +934,7 @@ static
 LWMsgDispatchSpec gIopIpcDispatchSpec[] =
 {
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_CREATE_FILE,        IopIpcCreateFile),
-    LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_CLOSE_FILE,         IopIpcCloseFile),
+    LWMSG_DISPATCH_BLOCK(NT_IPC_MESSAGE_TYPE_CLOSE_FILE,         IopIpcCloseFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_READ_FILE,          IopIpcReadFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_WRITE_FILE,         IopIpcWriteFile),
     LWMSG_DISPATCH(NT_IPC_MESSAGE_TYPE_DEVICE_IO_CONTROL_FILE, IopIpcDeviceIoControlFile),

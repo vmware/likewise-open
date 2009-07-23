@@ -47,21 +47,25 @@
 static
 VOID
 NtpCtxFreeResponse(
-    IN PIO_CONTEXT pConnection,
-    IN LWMsgTag ReponseType,
+    IN LWMsgCall* pCall,
+    IN LWMsgTag ResponseType,
     IN PVOID pResponse
     )
 {
-    if (pResponse)
-    {
-        lwmsg_assoc_free_graph(pConnection->pAssoc, ReponseType, pResponse);
-    }
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgParams params = LWMSG_PARAMS_INITIALIZER;
+
+    params.tag = ResponseType;
+    params.data = pResponse;
+
+    status = lwmsg_call_destroy_params(pCall, &params);
+    LW_ASSERT(status == LWMSG_STATUS_SUCCESS);
 }
 
 static
 NTSTATUS
 NtpCtxCall(
-    IN PIO_CONTEXT pConnection,
+    IN LWMsgCall* pCall,
     IN LWMsgTag RequestType,
     IN PVOID pRequest,
     IN LWMsgTag ResponseType,
@@ -69,36 +73,34 @@ NtpCtxCall(
     )
 {
     NTSTATUS status = 0;
-    int EE = 0;
-    LWMsgTag actualResponseType = (LWMsgTag) -1;
-    PVOID pResponse = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
 
-    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_send_transact(
-                pConnection->pAssoc,
-                RequestType,
-                pRequest,
-                &actualResponseType,
-                &pResponse));
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    in.tag = RequestType;
+    in.data = pRequest;
 
-    if (actualResponseType != ResponseType)
+    status = NtIpcLWMsgStatusToNtStatus(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
+
+    if (out.tag != ResponseType)
     {
-        assert(FALSE);
         status = STATUS_INTERNAL_ERROR;
-        GOTO_CLEANUP_EE(EE);
+        BAIL_ON_NT_STATUS(status);
     }
+
+    *ppResponse = out.data;
 
 cleanup:
-    if (status)
-    {
-        NtpCtxFreeResponse(pConnection, actualResponseType, pResponse);
-        pResponse = NULL;
-    }
 
-    *ppResponse = pResponse;
-
-    LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
+
+error:
+
+    *ppResponse = NULL;
+
+    NtpCtxFreeResponse(pCall, out.tag, out.data);
+
+    goto cleanup;
 }
 
 static
@@ -218,6 +220,7 @@ LwNtCtxCreateNamedPipeFile(
                     0,
                     ecpList);
 cleanup:
+
     IoRtlEcpListFree(&ecpList);
 
     *FileHandle = fileHandle;
@@ -250,6 +253,7 @@ LwNtCtxCreateFile(
 {
     NTSTATUS status = 0;
     int EE = 0;
+    LWMsgCall* pCall = NULL;
     const LWMsgTag requestType = NT_IPC_MESSAGE_TYPE_CREATE_FILE;
     const LWMsgTag responseType = NT_IPC_MESSAGE_TYPE_CREATE_FILE_RESULT;
     NT_IPC_MESSAGE_CREATE_FILE request = { 0 };
@@ -266,6 +270,9 @@ LwNtCtxCreateFile(
     }
 
     status = LwIoResolveAccessToken(pSecurityToken, &pResolvedSecurityToken);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     request.pSecurityToken = pResolvedSecurityToken;
@@ -308,7 +315,7 @@ LwNtCtxCreateFile(
         status = STATUS_SUCCESS;
     }
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -328,6 +335,7 @@ LwNtCtxCreateFile(
     pResponse->FileHandle = NULL;
 
 cleanup:
+
     if (pResolvedSecurityToken)
     {
         LwIoDeleteAccessToken(pResolvedSecurityToken);
@@ -341,7 +349,12 @@ cleanup:
     }
 
     RTL_FREE(&request.EcpList);
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *FileHandle = fileHandle;
     *IoStatusBlock = ioStatusBlock;
@@ -366,10 +379,14 @@ LwNtCtxCloseFile(
     PVOID pReply = NULL;
     // In case we add IO_STATUS_BLOCK to close later, which we may want/need.
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     request.FileHandle = FileHandle;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -383,10 +400,15 @@ LwNtCtxCloseFile(
     assert(0 == ioStatusBlock.BytesTransferred);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcUnregisterFileHandle(pConnection->pAssoc, FileHandle);
+    status = NtIpcUnregisterFileHandle(pCall, FileHandle);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return status;
@@ -412,6 +434,10 @@ LwNtCtxReadFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -424,7 +450,7 @@ LwNtCtxReadFile(
     request.ByteOffset = ByteOffset;
     request.Key = Key;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -438,7 +464,12 @@ LwNtCtxReadFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -466,6 +497,10 @@ LwNtCtxWriteFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -479,7 +514,7 @@ LwNtCtxWriteFile(
     request.ByteOffset = ByteOffset;
     request.Key = Key;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -494,7 +529,12 @@ LwNtCtxWriteFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -523,6 +563,10 @@ LwNtCtxDeviceIoControlFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -537,7 +581,7 @@ LwNtCtxDeviceIoControlFile(
     request.InputBufferLength = InputBufferLength;
     request.OutputBufferLength = OutputBufferLength;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -551,7 +595,12 @@ LwNtCtxDeviceIoControlFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -580,6 +629,10 @@ LwNtCtxFsControlFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -593,7 +646,7 @@ LwNtCtxFsControlFile(
     request.InputBufferLength = InputBufferLength;
     request.OutputBufferLength = OutputBufferLength;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -607,7 +660,12 @@ LwNtCtxFsControlFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -631,6 +689,10 @@ LwNtCtxFlushBuffersFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -640,7 +702,7 @@ LwNtCtxFlushBuffersFile(
 
     request.FileHandle = FileHandle;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -654,7 +716,12 @@ LwNtCtxFlushBuffersFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -681,6 +748,10 @@ LwNtCtxQueryInformationFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -692,7 +763,7 @@ LwNtCtxQueryInformationFile(
     request.Length = Length;
     request.FileInformationClass = FileInformationClass;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -706,7 +777,12 @@ LwNtCtxQueryInformationFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -733,6 +809,10 @@ LwNtCtxSetInformationFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -745,7 +825,7 @@ LwNtCtxSetInformationFile(
     request.Length = Length;
     request.FileInformationClass = FileInformationClass;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -759,7 +839,12 @@ LwNtCtxSetInformationFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -804,6 +889,10 @@ LwNtCtxQueryDirectoryFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -818,7 +907,7 @@ LwNtCtxQueryDirectoryFile(
     request.FileSpec = FileSpec;
     request.RestartScan = RestartScan;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -832,7 +921,12 @@ LwNtCtxQueryDirectoryFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -860,6 +954,10 @@ LwNtCtxQueryVolumeInformationFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -871,7 +969,7 @@ LwNtCtxQueryVolumeInformationFile(
     request.Length = Length;
     request.FsInformationClass = FsInformationClass;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -885,7 +983,12 @@ LwNtCtxQueryVolumeInformationFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -925,6 +1028,10 @@ LwNtCtxLockFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -939,7 +1046,7 @@ LwNtCtxLockFile(
     request.FailImmediately = FailImmediately;
     request.ExclusiveLock = ExclusiveLock;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -953,7 +1060,12 @@ LwNtCtxLockFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -981,6 +1093,10 @@ LwNtCtxUnlockFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -993,7 +1109,7 @@ LwNtCtxUnlockFile(
     request.Length = Length;
     request.Key = Key;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -1007,7 +1123,12 @@ LwNtCtxUnlockFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -1114,6 +1235,10 @@ LwNtCtxQuerySecurityFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -1125,7 +1250,7 @@ LwNtCtxQuerySecurityFile(
     request.SecurityInformation = SecurityInformation;
     request.Length = Length;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -1139,7 +1264,12 @@ LwNtCtxQuerySecurityFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 
@@ -1166,6 +1296,10 @@ LwNtCtxSetSecurityFile(
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pResponse = NULL;
     PVOID pReply = NULL;
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    LWMsgCall* pCall = NULL;
+
+    status = LwIoContextAcquireCall(pConnection, &pCall);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     if (AsyncControlBlock)
     {
@@ -1178,7 +1312,7 @@ LwNtCtxSetSecurityFile(
     request.SecurityDescriptor = SecurityDescriptor;
     request.Length = Length;
 
-    status = NtpCtxCall(pConnection,
+    status = NtpCtxCall(pCall,
                         requestType,
                         &request,
                         responseType,
@@ -1192,7 +1326,12 @@ LwNtCtxSetSecurityFile(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
-    NtpCtxFreeResponse(pConnection, responseType, pResponse);
+
+    if (pCall)
+    {
+        NtpCtxFreeResponse(pCall, responseType, pResponse);
+        lwmsg_call_release(pCall);
+    }
 
     *IoStatusBlock = ioStatusBlock;
 

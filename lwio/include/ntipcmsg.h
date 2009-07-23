@@ -404,7 +404,7 @@ NtIpcAddProtocolSpecEx(
 
 NTSTATUS
 NtIpcUnregisterFileHandle(
-    IN LWMsgAssoc* pAssoc,
+    IN LWMsgCall* pCall,
     IN IO_FILE_HANDLE FileHandle
     );
 

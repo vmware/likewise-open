@@ -49,6 +49,12 @@ LwIoReleaseContext(
     );
 
 NTSTATUS
+LwIoContextAcquireCall(
+    IN PIO_CONTEXT pConnection,
+    OUT LWMsgCall** ppCall
+    );
+
+NTSTATUS
 LwIoResolveAccessToken(
     PIO_ACCESS_TOKEN pBaseToken,
     PIO_ACCESS_TOKEN* ppResolvedToken
