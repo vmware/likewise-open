@@ -20,7 +20,7 @@ VERSION= @VERSION@
 RELEASEDATE= @OPENLDAP_RELEASE_DATE@
 
 @SET_MAKE@
-SHELL = /bin/sh
+SHELL = @SHELL@
 
 top_builddir = @top_builddir@
 
