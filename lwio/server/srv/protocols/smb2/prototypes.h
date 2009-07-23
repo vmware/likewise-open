@@ -55,91 +55,123 @@
 
 NTSTATUS
 SrvProcessClose_SMB_V2(
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
+// connection.c
+
+NTSTATUS
+SrvConnection2FindSession_SMB_V2(
+    PSMB2_CONTEXT        pContext,
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullUid,
+    PLWIO_SRV_SESSION_2* ppSession
+    );
+
+// context.c
+
+NTSTATUS
+SrvInitContextContents_SMB_V2(
     IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT        pContext
+    );
+
+VOID
+SrvFreeContextContents_SMB_V2(
+    IN  PSMB2_CONTEXT pContext
     );
 
 // create.c
 
 NTSTATUS
 SrvProcessCreate_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // echo.c
 
 NTSTATUS
 SrvProcessEcho_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // find.c
 
 NTSTATUS
 SrvProcessFind_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // flush.c
 
 NTSTATUS
 SrvProcessFlush_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // getinfo.c
 NTSTATUS
 SrvProcessGetInfo_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // ioctl.c
 
 NTSTATUS
 SrvProcessIOCTL_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // lock.c
 
 NTSTATUS
 SrvProcessLock_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // logoff.c
 
 NTSTATUS
 SrvProcessLogoff_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
+// session.c
+
+NTSTATUS
+SrvSession2FindTree_SMB_V2(
+    PSMB2_CONTEXT       pContext,
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG               ulTid,
+    PLWIO_SRV_TREE_2*   ppTree
     );
 
 // session_setup.c
 
 NTSTATUS
 SrvProcessSessionSetup_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
-
 
 // error.c
 
@@ -157,27 +189,37 @@ SrvBuildErrorResponse_SMB_V2(
 
 NTSTATUS
 SrvProcessRead_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
+// tree.c
+
+NTSTATUS
+SrvTree2FindFile_SMB_V2(
+    PSMB2_CONTEXT     pContext,
+    PLWIO_SRV_TREE_2  pTree,
+    PSMB2_FID         pFid,
+    PLWIO_SRV_FILE_2* ppFile
     );
 
 // tree_connect.c
 
 NTSTATUS
 SrvProcessTreeConnect_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // tree_disconnect.c
 
 NTSTATUS
 SrvProcessTreeDisconnect_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 // wire.c
@@ -413,9 +455,9 @@ SMB2MarshalFooter(
 
 NTSTATUS
 SrvProcessWrite_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     );
 
 #endif /* __PROTOTYPES_H__ */

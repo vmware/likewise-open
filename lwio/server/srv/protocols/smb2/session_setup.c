@@ -50,12 +50,13 @@
 
 NTSTATUS
 SrvProcessSessionSetup_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB2_HEADER                       pSMB2Header = NULL; // Do not free
     PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
     PBYTE       pSecurityBlob = NULL; // Do not free
@@ -70,6 +71,12 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
+
+    if (pContext->pSession)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SMB2UnmarshallSessionSetup(
                     pSmbRequest,
@@ -154,6 +161,9 @@ SrvProcessSessionSetup_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSMB2Header->ullSessionId = pSession->ullUid;
+
+        pContext->pSession = pSession;
+        InterlockedIncrement(&pContext->pSession->refcount);
 
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }

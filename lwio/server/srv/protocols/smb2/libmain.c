@@ -77,6 +77,7 @@ SrvProtocolExecute_SMB_V2(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SMB2_REQUEST request = {0};
     ULONG        iRequest = 0;
+    SMB2_CONTEXT context = {0};
 
     ntStatus = SrvBuildRequestChain_SMB_V2(
                     pConnection,
@@ -97,6 +98,9 @@ SrvProtocolExecute_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2InitPacket(request.pResponse, TRUE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvInitContextContents_SMB_V2(pConnection, &context);
     BAIL_ON_NT_STATUS(ntStatus);
 
     for (; iRequest < request.ulNumChainedRequests; iRequest++)
@@ -170,7 +174,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_SESSION_SETUP:
 
                 ntStatus = SrvProcessSessionSetup_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -179,7 +183,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_LOGOFF:
 
                 ntStatus = SrvProcessLogoff_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -188,7 +192,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_TREE_CONNECT:
 
                 ntStatus = SrvProcessTreeConnect_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -197,7 +201,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_TREE_DISCONNECT:
 
                 ntStatus = SrvProcessTreeDisconnect_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -206,7 +210,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_CREATE:
 
                 ntStatus = SrvProcessCreate_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -215,7 +219,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_CLOSE:
 
                 ntStatus = SrvProcessClose_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -224,7 +228,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_FLUSH:
 
                 ntStatus = SrvProcessFlush_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -233,7 +237,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_READ:
 
                 ntStatus = SrvProcessRead_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -242,7 +246,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_WRITE:
 
                 ntStatus = SrvProcessWrite_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -251,7 +255,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_LOCK:
 
                 ntStatus = SrvProcessLock_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -260,7 +264,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_IOCTL:
 
                 ntStatus = SrvProcessIOCTL_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -269,7 +273,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_ECHO:
 
                 ntStatus = SrvProcessEcho_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -278,7 +282,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_FIND:
 
                 ntStatus = SrvProcessFind_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -287,7 +291,7 @@ SrvProtocolExecute_SMB_V2(
             case COM2_GETINFO:
 
                 ntStatus = SrvProcessGetInfo_SMB_V2(
-                                pConnection,
+                                &context,
                                 pRequest,
                                 request.pResponse);
 
@@ -331,6 +335,8 @@ SrvProtocolExecute_SMB_V2(
     request.pResponse = NULL;
 
 cleanup:
+
+    SrvFreeContextContents_SMB_V2(&context);
 
     SRV_SAFE_FREE_MEMORY(request.pChainedRequests);
     SRV_SAFE_FREE_MEMORY(request.pChainedResponses);

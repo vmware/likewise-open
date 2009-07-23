@@ -53,9 +53,9 @@
 
 NTSTATUS
 SrvProcessEcho_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

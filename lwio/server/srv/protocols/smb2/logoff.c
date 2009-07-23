@@ -61,15 +61,17 @@ SrvBuildLogoffResponse_SMB_V2(
 
 NTSTATUS
 SrvProcessLogoff_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PLWIO_SRV_SESSION_2 pSession = NULL;
 
-    ntStatus = SrvConnection2FindSession(
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                    pContext,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
@@ -85,6 +87,12 @@ SrvProcessLogoff_SMB_V2(
                     pSmbRequest,
                     pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pContext->pSession)
+    {
+        SrvSession2Release(pContext->pSession);
+        pContext->pSession = NULL;
+    }
 
 cleanup:
 
