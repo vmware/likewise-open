@@ -519,7 +519,13 @@ ber_get_stringbv( BerElement *ber, struct berval *bv, int option )
 		bv->bv_val = ber->ber_ptr;
 		ber->ber_ptr += bv->bv_len;
 	}
-	ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+
+	if (ber->ber_ptr < ber->ber_end) {
+		ber->ber_tag = *(unsigned char *)ber->ber_ptr;
+	} else {
+		ber->ber_tag = LBER_DEFAULT;
+	}
+
 	if ( !( option & LBER_BV_NOTERM ))
 		bv->bv_val[bv->bv_len] = '\0';
 
