@@ -29,6 +29,8 @@
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
  * Module Name:
  *
  *        structs.h
@@ -38,7 +40,6 @@
  *        Pvfs Driver internal structures
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
- *
  */
 
 #ifndef _PVFS_STRUCTS_H

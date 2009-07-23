@@ -219,6 +219,14 @@ AD_SetConfig_CellSupport(
 
 static
 DWORD
+AD_SetConfig_CacheType(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
+DWORD
 AD_SetConfig_TrimUserMembershipEnabled(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
@@ -293,6 +301,7 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"nss-enumeration-enabled",              &AD_SetConfig_NssEnumerationEnabled},
     {"domain-manager-check-domain-online-interval", &AD_SetConfig_DomainManagerCheckDomainOnlineSeconds},
     {"domain-manager-unknown-domain-cache-timeout", &AD_SetConfig_DomainManagerUnknownDomainCacheTimeoutSeconds},
+    {"cache-type",                    &AD_SetConfig_CacheType},
 };
 
 DWORD
@@ -341,6 +350,7 @@ AD_InitializeConfig(
     pConfig->bShouldLogNetworkConnectionEvents = TRUE;
     pConfig->bRefreshUserCreds = TRUE;
     pConfig->CellSupport = AD_CELL_SUPPORT_FULL;
+    pConfig->CacheBackend = AD_CACHE_SQLITE;
     pConfig->bTrimUserMembershipEnabled = TRUE;
     pConfig->bNssGroupMembersCacheOnlyEnabled = TRUE;
     pConfig->bNssUserMembershipCacheOnlyEnabled = FALSE;
@@ -1253,6 +1263,40 @@ AD_SetConfig_NssEnumerationEnabled(
 
 static
 DWORD
+AD_SetConfig_CacheType(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+
+    if (!strcasecmp(pszValue, "sqlite"))
+    {
+        pConfig->CacheBackend = AD_CACHE_SQLITE;
+    }
+    else if (!strcasecmp(pszValue, "memory"))
+    {
+        pConfig->CacheBackend = AD_CACHE_IN_MEMORY;
+    }
+    else
+    {
+        LSA_LOG_ERROR("Invalid value for cache-type parameter");
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 AD_SetConfig_DomainManagerCheckDomainOnlineSeconds(
     IN PLSA_AD_CONFIG pConfig,
     IN PCSTR pszName,
@@ -2147,6 +2191,22 @@ AD_GetCellSupport(
     return result;
 }
 
+AD_CACHE_BACKEND
+AD_GetCacheBackend(
+    VOID
+    )
+{
+    AD_CACHE_BACKEND result = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    result = gpLsaAdProviderState->config.CacheBackend;
+
+    LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
+
+    return result;
+}
 
 BOOLEAN
 AD_GetTrimUserMembershipEnabled(

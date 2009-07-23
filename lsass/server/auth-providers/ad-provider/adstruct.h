@@ -108,6 +108,7 @@ typedef struct _LSA_AD_CONFIG {
     PSTR                pszSkelDirs;
     PDLINKEDLIST        pUnresolvedMemberList;
     AD_CELL_SUPPORT     CellSupport;
+    AD_CACHE_BACKEND    CacheBackend;
     BOOLEAN             bTrimUserMembershipEnabled;
     BOOLEAN             bNssGroupMembersCacheOnlyEnabled;
     BOOLEAN             bNssUserMembershipCacheOnlyEnabled;

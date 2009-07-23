@@ -63,24 +63,27 @@ SrvBuildReadResponse_SMB_V2(
 
 NTSTATUS
 SrvProcessRead_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PLWIO_SRV_TREE_2    pTree = NULL;
     PLWIO_SRV_FILE_2    pFile = NULL;
     PSMB2_READ_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
-    ntStatus = SrvConnection2FindSession(
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                    pContext,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindTree(
+    ntStatus = SrvSession2FindTree_SMB_V2(
+                    pContext,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
@@ -91,9 +94,10 @@ SrvProcessRead_SMB_V2(
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTree2FindFile(
+    ntStatus = SrvTree2FindFile_SMB_V2(
+                    pContext,
                     pTree,
-                    pRequestHeader->fid.ullVolatileId,
+                    &pRequestHeader->fid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 

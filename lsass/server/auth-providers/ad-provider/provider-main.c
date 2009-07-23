@@ -190,8 +190,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
 
     pthread_rwlock_init(&gADGlobalDataLock, NULL);
 
-    InitADCacheFunctionTable(gpCacheProvider);
-
     dwError = LsaAdProviderStateCreate(&gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -227,6 +225,8 @@ LSA_INITIALIZE_PROVIDER(ad)(
 
         LsaAdProviderLogConfigReloadEvent();
     }
+
+    InitADCacheFunctionTable(gpCacheProvider);
 
     dwError = ADInitMachinePasswordSync();
     BAIL_ON_LSA_ERROR(dwError);
@@ -291,10 +291,24 @@ LSA_INITIALIZE_PROVIDER(ad)(
                 &gpLsaAdProviderState->hStateConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADCacheOpen(
-                LSASS_AD_CACHE,
-                &gpLsaAdProviderState->hCacheConnection);
-    BAIL_ON_LSA_ERROR(dwError);
+    switch (gpLsaAdProviderState->config.CacheBackend)
+    {
+        default:
+#ifdef AD_CACHE_ENABLE_SQLITE
+        case AD_CACHE_SQLITE:
+            dwError = ADCacheOpen(
+                        LSASS_AD_SQLITE_CACHE_DB,
+                        &gpLsaAdProviderState->hCacheConnection);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+#endif
+        case AD_CACHE_IN_MEMORY:
+            dwError = ADCacheOpen(
+                        LSASS_AD_MEMORY_CACHE_DB,
+                        &gpLsaAdProviderState->hCacheConnection);
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+    }
 
     dwError = AD_InitializeOperatingMode(
                 pszDomainDnsName,
@@ -4616,16 +4630,23 @@ InitADCacheFunctionTable(
     PADCACHE_PROVIDER_FUNCTION_TABLE pCacheProviderTable
     )
 {
-#ifdef AD_CACHE_IN_MEMORY
-    InitializeMemCacheProvider(
-        pCacheProviderTable
-        );
-#else
-    InitializeDbCacheProvider(
-        pCacheProviderTable
-        );
+    switch (gpLsaAdProviderState->config.CacheBackend)
+    {
+        default:
+            LSA_LOG_DEBUG("Unknown cache backend. Switching to default");
+#ifdef AD_CACHE_ENABLE_SQLITE
+        case AD_CACHE_SQLITE:
+            InitializeDbCacheProvider(
+                pCacheProviderTable
+                );
+            break;
 #endif
-    return;
+        case AD_CACHE_IN_MEMORY:
+            InitializeMemCacheProvider(
+                pCacheProviderTable
+                );
+            break;
+    }
 }
 
 

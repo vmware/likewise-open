@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -33,81 +33,65 @@
  *
  * Module Name:
  *
- *        attrib.h
+ *        context.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Supporting DOS Attribute routines
+ *        Protocols API - SMBV2
  *
- * Authors: Gerald Carter <gcarter@likewise.com>
+ *        Context to hold items corresponding to the current state
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef _PVFS_ATTRIB_H_
-#define _PVFS_ATTRIB_H_
+#include "includes.h"
 
 NTSTATUS
-PvfsGetFileAttributes(
-    IN PPVFS_CCB pCcb,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
+SrvInitContextContents_SMB_V2(
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN OUT PSMB2_CONTEXT        pContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-NTSTATUS
-PvfsGetFilenameAttributes(
-    IN PSTR pszPath,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
+    if (!pConnection || !pContext)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-/* Used for SetFileBasicInformation(), et. al. */
+    memset(pContext, 0, sizeof(SMB2_CONTEXT));
 
-NTSTATUS
-PvfsSetFileAttributes(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
+    pContext->pConnection = pConnection;
+    InterlockedIncrement(&pContext->pConnection->refCount);
 
-/* Use by DeviceIoControl() */
+error:
 
-NTSTATUS
-PvfsSetFileAttributesEx(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
+    return ntStatus;
+}
 
-#ifdef HAVE_EA_SUPPORT
-
-/* From  attrib_xattr.c */
-
-NTSTATUS
-PvfsGetFileAttributesXattr(
-    IN PPVFS_CCB pCcb,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
-
-NTSTATUS
-PvfsGetFilenameAttributesXattr(
-    IN PSTR pszPath,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
-
-NTSTATUS
-PvfsSetFileAttributesXattr(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
-
-#endif   /* HAVE_EA_SUPPORT */
-
-#endif     /* _PVFS_ATTRIB_H_ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
-
+VOID
+SrvFreeContextContents_SMB_V2(
+    IN  PSMB2_CONTEXT pContext
+    )
+{
+    if (pContext->pFile)
+    {
+        SrvFile2Release(pContext->pFile);
+    }
+    if (pContext->pTree)
+    {
+        SrvTree2Release(pContext->pTree);
+    }
+    if (pContext->pSession)
+    {
+        SrvSession2Release(pContext->pSession);
+    }
+    if (pContext->pConnection)
+    {
+        SrvConnectionRelease(pContext->pConnection);
+    }
+}

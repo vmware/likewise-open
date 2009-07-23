@@ -52,12 +52,13 @@
 
 NTSTATUS
 SrvProcessTreeConnect_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader = NULL;// Do not free
     UNICODE_STRING    wszPath = {0}; // Do not free
     PLWIO_SRV_SESSION_2 pSession = NULL;
@@ -74,7 +75,14 @@ SrvProcessTreeConnect_SMB_V2(
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    ntStatus = SrvConnection2FindSession(
+    if (pContext->pTree)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                    pContext,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
@@ -159,6 +167,9 @@ SrvProcessTreeConnect_SMB_V2(
     // ulBytesAvailable -= ulBytesUsed;
 
     pSmbResponse->bufferUsed += ulTotalBytesUsed;
+
+    pContext->pTree = pTree;
+    InterlockedIncrement(&pContext->pTree->refcount);
 
 cleanup:
 

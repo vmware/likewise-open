@@ -259,6 +259,11 @@ AD_GetCellSupport(
     VOID
     );
 
+AD_CACHE_BACKEND
+AD_GetCacheBackend(
+    VOID
+    );
+
 BOOLEAN
 AD_GetTrimUserMembershipEnabled(
     VOID

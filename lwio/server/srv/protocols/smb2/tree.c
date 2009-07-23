@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -33,81 +33,61 @@
  *
  * Module Name:
  *
- *        attrib.h
+ *        context.c
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (PVFS)
+ *        Likewise IO (LWIO) - SRV
  *
- *        Supporting DOS Attribute routines
+ *        Protocols API - SMBV2
  *
- * Authors: Gerald Carter <gcarter@likewise.com>
+ *        Tree
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef _PVFS_ATTRIB_H_
-#define _PVFS_ATTRIB_H_
+#include "includes.h"
 
 NTSTATUS
-PvfsGetFileAttributes(
-    IN PPVFS_CCB pCcb,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
+SrvTree2FindFile_SMB_V2(
+    PSMB2_CONTEXT     pContext,
+    PLWIO_SRV_TREE_2  pTree,
+    PSMB2_FID         pFid,
+    PLWIO_SRV_FILE_2* ppFile
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_FILE_2 pFile = NULL;
 
-NTSTATUS
-PvfsGetFilenameAttributes(
-    IN PSTR pszPath,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
+    if (pFid && !(pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL &&
+                  pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
+    {
+        ntStatus = SrvTree2FindFile(
+                        pTree,
+                        pFid->ullVolatileId,
+                        &pFile);
+    }
+    else if (pContext->pFile)
+    {
+        pFile = pContext->pFile;
+        InterlockedIncrement(&pFile->refcount);
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-/* Used for SetFileBasicInformation(), et. al. */
+    *ppFile = pFile;
 
-NTSTATUS
-PvfsSetFileAttributes(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
+cleanup:
 
-/* Use by DeviceIoControl() */
+    return ntStatus;
 
-NTSTATUS
-PvfsSetFileAttributesEx(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
+error:
 
-#ifdef HAVE_EA_SUPPORT
+    *ppFile = NULL;
 
-/* From  attrib_xattr.c */
-
-NTSTATUS
-PvfsGetFileAttributesXattr(
-    IN PPVFS_CCB pCcb,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
-
-NTSTATUS
-PvfsGetFilenameAttributesXattr(
-    IN PSTR pszPath,
-    OUT PFILE_ATTRIBUTES pAttributes
-    );
-
-NTSTATUS
-PvfsSetFileAttributesXattr(
-    IN PPVFS_CCB pCcb,
-    IN FILE_ATTRIBUTES Attributes
-    );
-
-#endif   /* HAVE_EA_SUPPORT */
-
-#endif     /* _PVFS_ATTRIB_H_ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
-
+    goto cleanup;
+}

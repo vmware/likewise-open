@@ -199,7 +199,8 @@ SetupClearCache(
                     "/var/lib/lwidentity/idmap_cache.tdb "
                     "/var/lib/lwidentity/netsamlogon_cache.tdb "
                     "/var/lib/lwidentity/winbindd_cache.tdb "
-                    "/var/lib/likewise/db/lsass-adcache.db");
+                    "/var/lib/likewise/db/lsass-adcache.db "
+                    "/var/lib/likewise/db/lsass-adcache.filedb");
     if (WEXITSTATUS(status) != 0)
     {
         printf("Unable to clear caches\n");

@@ -121,7 +121,8 @@ LsaHashSafeFree(
     if (*ppResult != NULL)
     {
         LsaHashRemoveAll(*ppResult);
-        *ppResult = NULL;
+        LSA_SAFE_FREE_MEMORY((*ppResult)->ppEntries);
+        LSA_SAFE_FREE_MEMORY(*ppResult);
     }
 }
 

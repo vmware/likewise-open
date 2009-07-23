@@ -1,20 +1,17 @@
 if ENABLE_STATIC_PROVIDERS
 noinst_LTLIBRARIES = liblsass_auth_provider_ad.la
-PROVIDER_CFLAGS =
-PROVIDER_LDFLAGS =
 else
 provider_LTLIBRARIES = liblsass_auth_provider_ad.la
-PROVIDER_CFLAGS = -shared
-PROVIDER_LDFLAGS = -shared -module -avoid-version
 endif
 
-if ENABLE_MEMCACHE
-PROVIDER_CPPFLAGS = -DAD_CACHE_IN_MEMORY=1
+PROVIDER_CPPFLAGS = $(AM_CPPFLAGS)
 PROVIDER_LIBADD =
-else
-PROVIDER_CPPFLAGS = @SQLITE_INCLUDES@
-PROVIDER_LIBADD = @SQLITE_LIBS@
-PROVIDER_LDFLAGS += @SQLITE_LDFLAGS@
+PROVIDER_LDFLAGS =
+PROVIDER_CFLAGS = $(AM_CFLAGS)
+
+if !ENABLE_STATIC_PROVIDERS
+PROVIDER_CFLAGS += -shared
+PROVIDER_LDFLAGS += -shared -module -avoid-version
 endif
 
 liblsass_auth_provider_ad_la_SOURCES = \
@@ -28,7 +25,6 @@ liblsass_auth_provider_ad_la_SOURCES = \
        state_store.c             \
        cache.c                   \
        cellldap.c                \
-       sqlcache.c                \
        defldap.c                 \
        enumstate.c               \
        globals.c                 \
@@ -42,7 +38,6 @@ liblsass_auth_provider_ad_la_SOURCES = \
        lsadm_p.c                 \
        lsadmengine.c             \
        lsadmwrap.c               \
-       lsasqlite.c               \
        media-sense.c             \
        batch.c                   \
        lsaum.c                   \
@@ -52,8 +47,17 @@ liblsass_auth_provider_ad_la_SOURCES = \
        batch_gather.c            \
        batch_marshal.c           \
        batch_enum.c              \
-       memcache.c              \
+       memcache.c                \
        unprov.c
+
+if !ENABLE_MINIMAL
+PROVIDER_CPPFLAGS += -DAD_CACHE_ENABLE_SQLITE @SQLITE_INCLUDES@
+PROVIDER_LIBADD += @SQLITE_LIBS@
+PROVIDER_LDFLAGS += @SQLITE_LDFLAGS@
+liblsass_auth_provider_ad_la_SOURCES += \
+       sqlcache.c                \
+       lsasqlite.c
+endif
 
 liblsass_auth_provider_ad_la_CPPFLAGS = \
 	-DLW_ENABLE_THREADS=1         \

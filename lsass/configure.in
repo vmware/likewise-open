@@ -547,15 +547,6 @@ then
         AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal lsass])
 fi
 
-# memory cache
-
-AC_ARG_ENABLE([memcache], [AC_HELP_STRING([--enable-memcache], [build in memory cache])])
-AM_CONDITIONAL(ENABLE_MEMCACHE, test x"$enable_memcache" = x"yes")
-if test x"$enable_memcache" = x"yes"
-then
-        AC_DEFINE([ENABLE_MEMCACHE], [], [Define if should build in memory cache])
-fi
-
 # compat
 
 ENABLE_COMPAT=false

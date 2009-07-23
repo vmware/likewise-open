@@ -52,23 +52,25 @@
 
 NTSTATUS
 SrvProcessTreeDisconnect_SMB_V2(
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PSMB2_MESSAGE        pSmbRequest,
-    IN OUT PSMB_PACKET          pSmbResponse
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
-    PLWIO_SRV_TREE_2    pTree = NULL;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_SRV_SESSION_2  pSession = NULL;
+    PLWIO_SRV_TREE_2     pTree = NULL;
     PSMB2_TREE_DISCONNECT_REQUEST_HEADER pTreeDisconnectHeader = NULL; // Do not free
     PBYTE pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
-    PBYTE pOutBuffer = pOutBufferRef;
+    PBYTE pOutBuffer       = pOutBufferRef;
     ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
-    ULONG ulOffset    = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
-    ULONG ulBytesUsed = 0;
+    ULONG ulOffset         = pSmbResponse->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    ntStatus = SrvConnection2FindSession(
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                    pContext,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
@@ -79,7 +81,8 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &pTreeDisconnectHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindTree(
+    ntStatus = SrvSession2FindTree_SMB_V2(
+                    pContext,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
@@ -125,6 +128,12 @@ SrvProcessTreeDisconnect_SMB_V2(
     // ulBytesAvailable -= ulBytesUsed;
 
     pSmbResponse->bufferUsed += ulTotalBytesUsed;
+
+    if (pContext->pTree)
+    {
+        SrvTree2Release(pContext->pTree);
+        pContext->pTree = NULL;
+    }
 
 cleanup:
 

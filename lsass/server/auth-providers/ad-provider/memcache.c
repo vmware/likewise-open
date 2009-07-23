@@ -45,8 +45,6 @@
 #include "adprovider.h"
 
 
-#ifdef AD_CACHE_IN_MEMORY
-
 typedef enum __MemCachePersistTag
 {
     MEM_CACHE_OBJECT,
@@ -2647,5 +2645,3 @@ InitializeMemCacheProvider(
     pCacheTable->pfnGetPasswordVerifier      = MemCacheGetPasswordVerifier;
     pCacheTable->pfnStorePasswordVerifier    = MemCacheStorePasswordVerifier;
 }
-
-#endif

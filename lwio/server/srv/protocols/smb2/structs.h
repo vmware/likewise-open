@@ -510,4 +510,13 @@ typedef struct __SMB2_REQUEST
 
 } SMB2_REQUEST, *PSMB2_REQUEST;
 
+typedef struct __SMB2_CONTEXT
+{
+    PLWIO_SRV_CONNECTION pConnection;
+    PLWIO_SRV_SESSION_2  pSession;
+    PLWIO_SRV_TREE_2     pTree;
+    PLWIO_SRV_FILE_2     pFile;
+
+} SMB2_CONTEXT, *PSMB2_CONTEXT;
+
 #endif /* __STRUCTS_H__ */

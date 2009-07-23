@@ -249,7 +249,7 @@ RemoveCacheFiles()
     int i = 0;
     PSTR file = NULL;
     PSTR pszCachePath = NULL;
-    PSTR lsassFilePaths[4] = { NULL, NULL, NULL, NULL };
+    PSTR lsassFilePaths[5] = { NULL, NULL, NULL, NULL, NULL };
 
     PSTR filePaths[] = {
         /* Likewise 4.X cache location files ... */
@@ -278,14 +278,16 @@ RemoveCacheFiles()
     if (strcmp(LOCALSTATEDIR,"/var"))
     {
         lsassFilePaths[0] = LOCALSTATEDIR "/db/lsass-adcache.db";
-        lsassFilePaths[1] = LOCALSTATEDIR "/db/lsass-adstate.db";
-        lsassFilePaths[2] = LOCALSTATEDIR "/db/lsass-adstate.filedb";
+        lsassFilePaths[1] = LOCALSTATEDIR "/db/lsass-adcache.filedb";
+        lsassFilePaths[2] = LOCALSTATEDIR "/db/lsass-adstate.db";
+        lsassFilePaths[3] = LOCALSTATEDIR "/db/lsass-adstate.filedb";
     }
     else
     {
         lsassFilePaths[0] = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.db";
-        lsassFilePaths[1] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db";
-        lsassFilePaths[2] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.filedb";
+        lsassFilePaths[1] = LOCALSTATEDIR "/lib/likewise/db/lsass-adcache.filedb";
+        lsassFilePaths[2] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.db";
+        lsassFilePaths[3] = LOCALSTATEDIR "/lib/likewise/db/lsass-adstate.filedb";
     }
 
     for (i = 0; lsassFilePaths[i] != NULL; i++)
