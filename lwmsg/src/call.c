@@ -41,13 +41,15 @@
 #include "util-private.h"
 
 LWMsgStatus
-lwmsg_call_transact(
+lwmsg_call_dispatch(
     LWMsgCall* call,
+    const LWMsgParams* in,
+    LWMsgParams* out,
     LWMsgCompleteFunction complete,
     void* data
     )
 {
-    return call->vtbl->transact(call, complete, data);
+    return call->vtbl->dispatch(call, in, out, complete, data);
 }
 
 void
@@ -84,3 +86,21 @@ lwmsg_call_release(
 {
     call->vtbl->release(call);
 }
+
+LWMsgStatus
+lwmsg_call_destroy_params(
+    LWMsgCall* call,
+    LWMsgParams* params
+    )
+{
+    return call->vtbl->destroy_params(call, params);
+}
+
+LWMsgSession*
+lwmsg_call_get_session(
+    LWMsgCall* call
+    )
+{
+    return call->vtbl->get_session(call);
+}
+

@@ -41,6 +41,7 @@
 #include <lwmsg/assoc.h>
 #include "session-private.h"
 #include "context-private.h"
+#include "call-private.h"
 
 /**
  * @ingroup assoc_impl
@@ -225,6 +226,12 @@ typedef struct LWMsgAssocClass
         );
 } LWMsgAssocClass;
 
+typedef struct AssocCall
+{
+    LWMsgCall base;
+    LWMsgBool in_use;
+} AssocCall;
+
 struct LWMsgAssoc
 {
     LWMsgContext context;
@@ -235,6 +242,7 @@ struct LWMsgAssoc
     LWMsgSessionConstructor construct;
     LWMsgSessionDestructor destruct;
     void* construct_data;
+    AssocCall call;
 
     unsigned manager_is_private:1;
 };
@@ -264,6 +272,11 @@ lwmsg_assoc_new(
     LWMsgAssocClass* aclass,
     size_t size,
     LWMsgAssoc** assoc
+    );
+
+LWMsgStatus
+lwmsg_assoc_call_init(
+    AssocCall* call
     );
 
 #endif

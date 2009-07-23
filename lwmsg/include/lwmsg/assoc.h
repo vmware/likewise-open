@@ -45,6 +45,7 @@
 #include <lwmsg/time.h>
 #include <lwmsg/security.h>
 #include <lwmsg/session.h>
+#include <lwmsg/call.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -836,6 +837,12 @@ lwmsg_assoc_print_message_alloc(
     LWMsgAssoc* assoc,
     LWMsgMessage* message,
     char** result
+    );
+
+LWMsgStatus
+lwmsg_assoc_acquire_call(
+    LWMsgAssoc* assoc,
+    LWMsgCall** call
     );
 
 #ifndef DOXYGEN

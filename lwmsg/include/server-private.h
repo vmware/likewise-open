@@ -92,6 +92,8 @@ typedef struct ServerCall
     LWMsgSession* session;
     LWMsgDispatchSpec* spec;
     void* dispatch_data;
+    LWMsgParams in;
+    LWMsgParams out;
     LWMsgMessage incoming;
     LWMsgMessage outgoing;
 } ServerCall;
@@ -337,6 +339,11 @@ lwmsg_server_call_setup(
     ServerIoThread* owner,
     LWMsgDispatchSpec* spec,
     void* dispatch_data
+    );
+
+LWMsgStatus
+lwmsg_server_call_dispatch(
+    ServerCall* scall
     );
 
 #endif

@@ -58,16 +58,12 @@ lwmsg_server_call_setup(
     call->cancel = NULL;
 }
 
-static
 LWMsgStatus
-lwmsg_server_call_transact(
-    LWMsgCall* call,
-    LWMsgCompleteFunction complete,
-    void* data
+lwmsg_server_call_dispatch(
+    ServerCall* scall
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ServerCall* scall = SERVER_CALL(call);
 
     if (!scall->spec->data)
     {
@@ -85,11 +81,20 @@ lwmsg_server_call_transact(
         break;
     case LWMSG_DISPATCH_TYPE_BLOCK:
     case LWMSG_DISPATCH_TYPE_NONBLOCK:
+        scall->in.tag = scall->incoming.tag;
+        scall->in.data = scall->incoming.data;
+        scall->out.tag = LWMSG_TAG_INVALID;
+        scall->out.data = NULL;
         status = ((LWMsgServerCallFunction) scall->spec->data) (
-            call,
-            &scall->incoming,
-            &scall->outgoing,
+            LWMSG_CALL(scall),
+            &scall->in,
+            &scall->out,
             scall->dispatch_data);
+        if (status != LWMSG_STATUS_PENDING)
+        {
+            scall->outgoing.tag = scall->out.tag;
+            scall->outgoing.data = scall->out.data;
+        }
         break;
     default:
         status = LWMSG_STATUS_INTERNAL;
@@ -103,7 +108,7 @@ lwmsg_server_call_transact(
         (scall->state & SERVER_CALL_PENDED) &&
         !(scall->state & SERVER_CALL_COMPLETED))
     {
-        scall->cancel(call, scall->cancel_data);
+        scall->cancel(LWMSG_CALL(scall), scall->cancel_data);
     }
 
     pthread_mutex_unlock(&scall->lock);
@@ -147,6 +152,12 @@ lwmsg_server_call_complete(
 
     pthread_mutex_lock(&scall->lock);
 
+    if (scall->spec->type != LWMSG_DISPATCH_TYPE_OLD)
+    {
+        scall->outgoing.tag = scall->out.tag;
+        scall->outgoing.data = scall->out.data;
+    }
+
     scall->state |= SERVER_CALL_COMPLETED;
     scall->status = call_status;
 
@@ -178,7 +189,7 @@ lwmsg_server_call_cancel(
 
     /* If the dispatch function is not finished running,
        we don't call the cancel callback right now --
-       lwmsg_server_call_transact() will handle it.
+       lwmsg_server_call_dispatch() will handle it.
 
        If the call is already completed, we silently
        ignore the cancel request and return success */
@@ -205,13 +216,24 @@ lwmsg_server_call_release(
     return;
 }
 
+static
+LWMsgSession*
+lwmsg_server_call_get_session(
+    LWMsgCall* call
+    )
+{
+    ServerCall* my_call = SERVER_CALL(call);
+
+    return my_call->session;
+}
+
 static LWMsgCallClass server_call_class =
 {
     .release = lwmsg_server_call_release,
-    .transact = lwmsg_server_call_transact,
     .pend = lwmsg_server_call_pend,
     .complete = lwmsg_server_call_complete,
-    .cancel = lwmsg_server_call_cancel
+    .cancel = lwmsg_server_call_cancel,
+    .get_session = lwmsg_server_call_get_session
 };
 
 LWMsgStatus
@@ -256,14 +278,4 @@ lwmsg_server_call_destroy(
     )
 {
     pthread_mutex_destroy(&call->lock);
-}
-
-LWMsgSession*
-lwmsg_server_call_get_session(
-    LWMsgCall* call
-    )
-{
-    ServerCall* my_call = SERVER_CALL(call);
-
-    return my_call->session;
 }

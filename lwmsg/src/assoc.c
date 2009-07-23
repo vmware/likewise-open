@@ -249,8 +249,9 @@ lwmsg_assoc_new(
     assoc->aclass = aclass;
 
     lwmsg_context_setup(&assoc->context, context);
-
     lwmsg_context_set_data_function(&assoc->context, lwmsg_assoc_context_get_data, assoc);
+
+    BAIL_ON_ERROR(status = lwmsg_assoc_call_init(&assoc->call));
 
     if (aclass->construct)
     {
@@ -847,3 +848,27 @@ error:
 
     goto cleanup;
 }
+
+LWMsgStatus
+lwmsg_assoc_acquire_call(
+    LWMsgAssoc* assoc,
+    LWMsgCall** call
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    if (assoc->call.in_use)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUSY);
+    }
+    else
+    {
+        assoc->call.in_use = LWMSG_TRUE;
+        *call = LWMSG_CALL(&assoc->call);
+    }
+
+error:
+
+    return status;
+}
+

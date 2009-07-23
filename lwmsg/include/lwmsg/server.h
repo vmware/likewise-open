@@ -80,21 +80,6 @@ typedef enum LWMsgDispatchType
 #endif
 
 /**
- * @brief Get session for current call
- *
- * Retrieves the session for the given call.
- * This function may only be used with calls
- * passed to a #LWMsgServerCallFunction.
- *
- * @param call the call handle
- * @return a session
- */
-LWMsgSession*
-lwmsg_server_call_get_session(
-    LWMsgCall* call
-    );
-
-/**
  * @brief Dispatch specification
  *
  * This structure defines a table of dispatch functions
@@ -209,8 +194,8 @@ typedef enum LWMsgServerMode
  * as used by the server -- by default, plain malloc().
  *
  * @param call the call handle
- * @param request the request parameters
- * @param response the response parameters
+ * @param[in] in the input parameters
+ * @param[out] out the output parameters
  * @param data the data pointer set by #lwmsg_server_set_dispatch_data()
  * @lwmsg_status
  * @lwmsg_success
@@ -224,8 +209,8 @@ typedef
 LWMsgStatus
 (*LWMsgServerCallFunction) (
     LWMsgCall* call,
-    LWMsgMessage* request,
-    LWMsgMessage* response,
+    LWMsgParams* in,
+    LWMsgParams* out,
     void* data
     );
 

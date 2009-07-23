@@ -781,7 +781,7 @@ lwmsg_server_task_perform_call(
         (*task)->type = SERVER_TASK_FINISH_CALL;
         break;
     case LWMSG_DISPATCH_TYPE_NONBLOCK:
-        status = lwmsg_call_transact(LWMSG_CALL(&(*task)->info.call), NULL, NULL);
+        status = lwmsg_server_call_dispatch(&(*task)->info.call);
         switch (status)
         {
         case LWMSG_STATUS_SUCCESS:

@@ -107,12 +107,12 @@ lwmsg_client_new(
 
     client->context = context;
     client->protocol = protocol;
-    client->assoc_pool_capacity = 4;
-    client->assoc_pool_created = 0;
-    client->assoc_pool_available = 0;
-    client->assoc_pool = calloc(client->assoc_pool_capacity, sizeof(*client->assoc_pool));
+    client->call_pool_capacity = 4;
+    client->call_pool_created = 0;
+    client->call_pool_available = 0;
+    client->call_pool = calloc(client->call_pool_capacity, sizeof(*client->call_pool));
 
-    if (!client->assoc_pool)
+    if (!client->call_pool)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
     }
@@ -132,9 +132,9 @@ error:
             lwmsg_session_manager_delete(client->manager);
         }
 
-        if (client->assoc_pool)
+        if (client->call_pool)
         {
-            free(client->assoc_pool);
+            free(client->call_pool);
         }
 
         free(client);
@@ -154,7 +154,7 @@ lwmsg_client_set_endpoint(
 
     lwmsg_client_lock(client);
 
-    if (client->assoc_pool_created)
+    if (client->call_pool_created)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
     }
@@ -175,48 +175,67 @@ error:
     return status;
 }
 
+static
 LWMsgStatus
-lwmsg_client_acquire_assoc(
-    LWMsgClient* client,
-    LWMsgAssoc** out_assoc
+lwmsg_client_call_establish_assoc(
+    ClientCall* call
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc* assoc = NULL;
+
+    if (!call->assoc)
+    {
+        BAIL_ON_ERROR(status = lwmsg_connection_new(call->client->context, call->client->protocol, &call->assoc));
+        BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(call->assoc, call->client->manager));
+        BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(call->assoc, call->client->mode, call->client->endpoint));
+        BAIL_ON_ERROR(status = lwmsg_assoc_establish(call->assoc));
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_client_acquire_call(
+    LWMsgClient* client,
+    LWMsgCall** out_call
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ClientCall* call = NULL;
     size_t i;
 
     lwmsg_client_lock(client);
 
-    while (!client->assoc_pool_available && client->assoc_pool_created == client->assoc_pool_capacity)
+    while (!client->call_pool_available && client->call_pool_created == client->call_pool_capacity)
     {
         lwmsg_client_wait(client);
     }
 
-    if (client->assoc_pool_available)
+    if (client->call_pool_available)
     {
-        for (i = 0; i < client->assoc_pool_capacity; i++)
+        for (i = 0; i < client->call_pool_capacity; i++)
         {
-            if (client->assoc_pool[i])
+            if (client->call_pool[i])
             {
-                assoc = client->assoc_pool[i];
-                client->assoc_pool[i] = 0;
-                client->assoc_pool_available--;
+                call = client->call_pool[i];
+                client->call_pool[i] = NULL;
+                client->call_pool_available--;
                 break;
             }
         }
     }
-    else if (client->assoc_pool_created < client->assoc_pool_capacity)
+    else if (client->call_pool_created < client->call_pool_capacity)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_new(client->context, client->protocol, &assoc));
+        BAIL_ON_ERROR(status = lwmsg_client_call_new(client, &call));
 
-        BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
-        BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
-        BAIL_ON_ERROR(status = lwmsg_assoc_establish(assoc));
-
-        client->assoc_pool_created++;
+        client->call_pool_created++;
     }
 
-    *out_assoc = assoc;
+    BAIL_ON_ERROR(status = lwmsg_client_call_establish_assoc(call));
+
+    *out_call = LWMSG_CALL(call);
 
 done:
 
@@ -226,58 +245,39 @@ done:
 
 error:
 
-    if (assoc)
+    if (call)
     {
-        lwmsg_assoc_delete(assoc);
+        lwmsg_call_release(LWMSG_CALL(call));
     }
 
     goto done;
 }
 
-LWMsgStatus
-lwmsg_client_create_assoc(
-    LWMsgClient* client,
-    LWMsgAssoc** out_assoc
+static
+void
+lwmsg_client_call_release(
+    LWMsgCall* call
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_connection_new(client->context, client->protocol, &assoc));
-    BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, client->manager));
-    BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(assoc, client->mode, client->endpoint));
-
-    *out_assoc = assoc;
-
-error:
-
-    return status;
-}
-    
-
-LWMsgStatus
-lwmsg_client_release_assoc(
-    LWMsgClient* client,
-    LWMsgAssoc* assoc
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ClientCall* my_call = (ClientCall*) call;
+    LWMsgClient* client = my_call->client;
     size_t i;
+
+    if (my_call->destroy_assoc && my_call->assoc)
+    {
+        lwmsg_assoc_delete(my_call->assoc);
+        my_call->assoc = NULL;
+        my_call->destroy_assoc = LWMSG_FALSE;
+    }
 
     lwmsg_client_lock(client);
 
-    if (!(client->assoc_pool_available < client->assoc_pool_created))
+    for (i = 0; i < client->call_pool_capacity; i++)
     {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-
-    for (i = 0; i < client->assoc_pool_capacity; i++)
-    {
-        if (!client->assoc_pool[i])
+        if (!client->call_pool[i])
         {
-            client->assoc_pool[i] = assoc;
-            client->assoc_pool_available++;
-            assoc = NULL;
+            client->call_pool[i] = my_call;
+            client->call_pool_available++;
 
             lwmsg_client_signal(client);
 
@@ -285,84 +285,7 @@ lwmsg_client_release_assoc(
         }
     }
 
-error:
-
     lwmsg_client_unlock(client);
-
-    if (assoc)
-    {
-        lwmsg_assoc_close(assoc);
-        lwmsg_assoc_delete(assoc);
-    }
-
-    return status;
-}
-
-LWMsgStatus
-lwmsg_client_send_message(
-    LWMsgClient* client,
-    LWMsgMessage* message
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_client_acquire_assoc(client, &assoc));
-    BAIL_ON_ERROR(status = lwmsg_assoc_send_message(assoc, message));
-
-error:
-
-    if (assoc)
-    {
-        lwmsg_client_release_assoc(client, assoc);
-    }
-    
-    return status;
-}
-
-LWMsgStatus
-lwmsg_client_recv_message(
-    LWMsgClient* client,
-    LWMsgMessage* message
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_client_acquire_assoc(client, &assoc));
-    BAIL_ON_ERROR(status = lwmsg_assoc_recv_message(assoc, message));
-
-error:
-
-    if (assoc)
-    {
-        lwmsg_client_release_assoc(client, assoc);
-    }
-    
-    return status;
-}
-
-LWMsgStatus
-lwmsg_client_send_message_transact(
-    LWMsgClient* client,
-    LWMsgMessage* send_msg,
-    LWMsgMessage* recv_msg
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc* assoc = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_client_acquire_assoc(client, &assoc));
-    BAIL_ON_ERROR(status = lwmsg_assoc_send_message_transact(assoc, send_msg, recv_msg));
-
-error:
-
-    if (assoc)
-    {
-        lwmsg_client_release_assoc(client, assoc);
-    }
-    
-    return status;
 }
 
 LWMsgStatus
@@ -372,27 +295,26 @@ lwmsg_client_set_max_concurrent(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgAssoc** pool_new = NULL;
+    ClientCall** pool_new = NULL;
     size_t i;
 
     lwmsg_client_lock(client);
 
     /* If we are decreasing the number of connections */
-    if (max < client->assoc_pool_capacity)
+    if (max < client->call_pool_capacity)
     {
         /* Close any idle connections in the slots we will be removing */
-        for (i = max; i < client->assoc_pool_capacity; i++)
+        for (i = max; i < client->call_pool_capacity; i++)
         {
-            if (client->assoc_pool[i])
+            if (client->call_pool[i])
             {
-                BAIL_ON_ERROR(status = lwmsg_assoc_close(client->assoc_pool[i]));
-                lwmsg_assoc_delete(client->assoc_pool[i]);
-                client->assoc_pool[i] = NULL;
+                lwmsg_client_call_delete(client->call_pool[i]);
+                client->call_pool[i] = NULL;
             }
         }
     }
 
-    pool_new = realloc(client->assoc_pool, max * sizeof(*pool_new));
+    pool_new = realloc(client->call_pool, max * sizeof(*pool_new));
 
     if (!pool_new)
     {
@@ -400,15 +322,15 @@ lwmsg_client_set_max_concurrent(
     }
 
     /* If we are increasing the number of connections */
-    if (max > client->assoc_pool_capacity)
+    if (max > client->call_pool_capacity)
     {
         /* Zero out any new slots and notify waiting threads that slots are available */
-        memset(pool_new + client->assoc_pool_capacity, 0, (max - client->assoc_pool_capacity) * sizeof(*pool_new));
+        memset(pool_new + client->call_pool_capacity, 0, (max - client->call_pool_capacity) * sizeof(*pool_new));
         lwmsg_client_signal(client);
     }
 
-    client->assoc_pool = pool_new;
-    client->assoc_pool_capacity = max;
+    client->call_pool = pool_new;
+    client->call_pool_capacity = max;
 
 error:
 
@@ -427,19 +349,18 @@ lwmsg_client_shutdown(
 
     lwmsg_client_lock(client);
 
-    while (client->assoc_pool_available < client->assoc_pool_created)
+    while (client->call_pool_available < client->call_pool_created)
     {
         lwmsg_client_wait(client);
     }
 
-    for (i = 0; i < client->assoc_pool_capacity; i++)
+    for (i = 0; i < client->call_pool_capacity; i++)
     {
-        if (client->assoc_pool[i])
+        if (client->call_pool[i])
         {
-            lwmsg_assoc_close(client->assoc_pool[i]);
-            lwmsg_assoc_delete(client->assoc_pool[i]);
-            client->assoc_pool[i] = NULL;
-            client->assoc_pool_created--;
+            lwmsg_client_call_delete(client->call_pool[i]);
+            client->call_pool[i] = NULL;
+            client->call_pool_created--;
         }
     }
 
@@ -455,11 +376,11 @@ lwmsg_client_delete(
 {
     size_t i;
 
-    for (i = 0; i < client->assoc_pool_capacity; i++)
+    for (i = 0; i < client->call_pool_capacity; i++)
     {
-        if (client->assoc_pool[i])
+        if (client->call_pool[i])
         {
-            lwmsg_assoc_delete(client->assoc_pool[i]);
+            lwmsg_client_call_delete(client->call_pool[i]);
         }
     }
 
@@ -469,6 +390,159 @@ lwmsg_client_delete(
     lwmsg_session_manager_delete(client->manager);
 
     free(client->endpoint);
-    free(client->assoc_pool);
+    free(client->call_pool);
     free(client);
+}
+
+static
+LWMsgStatus
+lwmsg_client_call_dispatch(
+    LWMsgCall* call,
+    const LWMsgParams* in,
+    LWMsgParams* out,
+    LWMsgCompleteFunction complete,
+    void* data
+    )
+{
+    ClientCall* my_call = (ClientCall*) call;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgBool retry = LWMSG_FALSE;
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    if (complete)
+    {
+        /* Async completion not yet supported */
+        BAIL_ON_ERROR(status = LWMSG_STATUS_UNIMPLEMENTED);
+    }
+
+    request.tag = in->tag;
+    request.data = in->data;
+
+    do
+    {
+        status = lwmsg_assoc_send_message_transact(my_call->assoc, &request, &response);
+
+        if (!retry &&
+            (status == LWMSG_STATUS_PEER_RESET ||
+             status == LWMSG_STATUS_PEER_CLOSE))
+        {
+            BAIL_ON_ERROR(status = lwmsg_assoc_reset(my_call->assoc));
+            BAIL_ON_ERROR(status = lwmsg_assoc_establish(my_call->assoc));
+            status = LWMSG_STATUS_AGAIN;
+            retry = LWMSG_TRUE;
+        }
+    } while (status == LWMSG_STATUS_AGAIN);
+
+    BAIL_ON_ERROR(status);
+    BAIL_ON_ERROR(status = response.status);
+
+    out->tag = response.tag;
+    out->data = response.data;
+
+done:
+
+    return status;
+
+error:
+
+    my_call->destroy_assoc = LWMSG_TRUE;
+
+    goto done;
+}
+
+static
+LWMsgStatus
+lwmsg_client_call_destroy_params(
+    LWMsgCall* call,
+    LWMsgParams* params
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ClientCall* my_call = (ClientCall*) call;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
+
+    message.tag = params->tag;
+    message.data = params->data;
+
+    BAIL_ON_ERROR(status = lwmsg_assoc_destroy_message(my_call->assoc, &message));
+
+    params->tag = message.tag;
+    params->data = message.data;
+
+error:
+
+    return status;
+}
+
+static
+LWMsgSession*
+lwmsg_client_call_get_session(
+    LWMsgCall* call
+    )
+{
+    ClientCall* my_call = (ClientCall*) call;
+    LWMsgSession* session = NULL;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    status = lwmsg_assoc_get_session(my_call->assoc, &session);
+    ABORT_IF_FALSE(status);
+
+    return session;
+}
+
+static LWMsgCallClass client_call_vtbl =
+{
+    .release = lwmsg_client_call_release,
+    .dispatch = lwmsg_client_call_dispatch,
+    .destroy_params = lwmsg_client_call_destroy_params,
+    .get_session = lwmsg_client_call_get_session
+};
+
+LWMsgStatus
+lwmsg_client_call_new(
+    LWMsgClient* client,
+    ClientCall** call
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ClientCall* my_call = NULL;
+
+    BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_call));
+
+    my_call->base.vtbl = &client_call_vtbl;
+    my_call->client = client;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_new(client->context, client->protocol, &my_call->assoc));
+    BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(my_call->assoc, client->manager));
+    BAIL_ON_ERROR(status = lwmsg_connection_set_endpoint(my_call->assoc, client->mode, client->endpoint));
+    BAIL_ON_ERROR(status = lwmsg_assoc_establish(my_call->assoc));
+
+    *call = my_call;
+
+done:
+
+    return status;
+
+error:
+
+    if (my_call)
+    {
+        lwmsg_client_call_delete(my_call);
+    }
+
+    goto done;
+}
+
+void
+lwmsg_client_call_delete(
+    ClientCall* call
+    )
+{
+    if (call->assoc)
+    {
+        lwmsg_assoc_delete(call->assoc);
+    }
+
+    free(call);
 }

@@ -61,18 +61,18 @@
 
 typedef enum AsyncTag
 {
-    BLOCK_REQUEST_SYNCHROUNOUS,
+    BLOCK_REQUEST_SYNCHRONOUS,
     BLOCK_REQUEST_ASYNCHRONOUS,
-    NONBLOCK_REQUEST_SYNCHROUNOUS,
+    NONBLOCK_REQUEST_SYNCHRONOUS,
     NONBLOCK_REQUEST_ASYNCHRONOUS,
     GENERIC_RESPONSE
 } AsyncTag;
 
 LWMsgProtocolSpec async_protocol_spec[] =
 {
-    LWMSG_MESSAGE(BLOCK_REQUEST_SYNCHROUNOUS, NULL),
+    LWMSG_MESSAGE(BLOCK_REQUEST_SYNCHRONOUS, NULL),
     LWMSG_MESSAGE(BLOCK_REQUEST_ASYNCHRONOUS, NULL),
-    LWMSG_MESSAGE(NONBLOCK_REQUEST_SYNCHROUNOUS, NULL),
+    LWMSG_MESSAGE(NONBLOCK_REQUEST_SYNCHRONOUS, NULL),
     LWMSG_MESSAGE(NONBLOCK_REQUEST_ASYNCHRONOUS, NULL),
     LWMSG_MESSAGE(GENERIC_RESPONSE, NULL),
     LWMSG_PROTOCOL_END
@@ -81,7 +81,7 @@ LWMsgProtocolSpec async_protocol_spec[] =
 typedef struct
 {
     LWMsgCall* call;
-    LWMsgMessage* response;
+    LWMsgParams* response;
     LWMsgBool interrupt;
     pthread_mutex_t lock;
     pthread_cond_t event;
@@ -164,8 +164,8 @@ static
 LWMsgStatus
 async_request(
     LWMsgCall* call,
-    LWMsgMessage* request,
-    LWMsgMessage* response
+    const LWMsgParams* request,
+    LWMsgParams* response
     )
 {
     AsyncRequest* req = NULL;
@@ -188,8 +188,8 @@ async_request(
         pthread_create(&thread, NULL, async_response_thread, req);
         pthread_detach(thread);
         return LWMSG_STATUS_PENDING;
-    case BLOCK_REQUEST_SYNCHROUNOUS:
-    case NONBLOCK_REQUEST_SYNCHROUNOUS:
+    case BLOCK_REQUEST_SYNCHRONOUS:
+    case NONBLOCK_REQUEST_SYNCHRONOUS:
         response->tag = GENERIC_RESPONSE;
         return LWMSG_STATUS_SUCCESS;
     default:
@@ -199,9 +199,9 @@ async_request(
 
 LWMsgDispatchSpec async_dispatch_spec[] =
 {
-    LWMSG_DISPATCH_BLOCK(BLOCK_REQUEST_SYNCHROUNOUS, async_request),
+    LWMSG_DISPATCH_BLOCK(BLOCK_REQUEST_SYNCHRONOUS, async_request),
     LWMSG_DISPATCH_BLOCK(BLOCK_REQUEST_ASYNCHRONOUS, async_request),
-    LWMSG_DISPATCH_NONBLOCK(NONBLOCK_REQUEST_SYNCHROUNOUS, async_request),
+    LWMSG_DISPATCH_NONBLOCK(NONBLOCK_REQUEST_SYNCHRONOUS, async_request),
     LWMSG_DISPATCH_NONBLOCK(NONBLOCK_REQUEST_ASYNCHRONOUS, async_request),
     LWMSG_DISPATCH_END
 };
@@ -227,17 +227,19 @@ MU_FIXTURE_SETUP(async)
 /* Nonblocking function returning result sychronously */
 MU_TEST(async, nonblock_synchrounous)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    request_msg.tag = NONBLOCK_REQUEST_SYNCHROUNOUS;
+    in.tag = NONBLOCK_REQUEST_SYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_send_message_transact(
-               client,
-               &request_msg,
-               &reply_msg));
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_call_dispatch(call, &in, &out, NULL, NULL));
 
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, GENERIC_RESPONSE);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, out.tag, GENERIC_RESPONSE);
+
+    lwmsg_call_destroy_params(call, &out);
+    lwmsg_call_release(call);
 
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
@@ -248,17 +250,19 @@ MU_TEST(async, nonblock_synchrounous)
 
 MU_TEST(async, nonblock_asynchronous)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_send_message_transact(
-               client,
-               &request_msg,
-               &reply_msg));
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_call_dispatch(call, &in, &out, NULL, NULL));
 
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, GENERIC_RESPONSE);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, out.tag, GENERIC_RESPONSE);
+
+    lwmsg_call_destroy_params(call, &out);
+    lwmsg_call_release(call);
 
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
@@ -274,17 +278,15 @@ MU_TEST(async, nonblock_asynchronous_disconnect)
 
     request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_acquire_assoc(client, &assoc));
-
+    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
-
-    MU_TRY(lwmsg_client_release_assoc(client, assoc));
+    lwmsg_assoc_delete(assoc);
 
     async_wait_cancelled();
 
-    MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
 
     MU_TRY(lwmsg_server_stop(server));
@@ -298,34 +300,35 @@ MU_TEST(async, nonblock_asynchronous_shutdown)
 
     request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_acquire_assoc(client, &assoc));
-
+    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
 
     MU_TRY(lwmsg_server_stop(server));
-    lwmsg_server_delete(server);
 
     async_wait_cancelled();
 
-    MU_TRY(lwmsg_client_release_assoc(client, assoc));
-
-    MU_TRY(lwmsg_client_shutdown(client));
+    lwmsg_assoc_delete(assoc);
     lwmsg_client_delete(client);
+    lwmsg_server_delete(server);
 }
 
 MU_TEST(async, block_synchrounous)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    request_msg.tag = BLOCK_REQUEST_SYNCHROUNOUS;
+    in.tag = BLOCK_REQUEST_SYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_send_message_transact(
-               client,
-               &request_msg,
-               &reply_msg));
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_call_dispatch(call, &in, &out, NULL, NULL));
 
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, GENERIC_RESPONSE);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, out.tag, GENERIC_RESPONSE);
+
+    lwmsg_call_destroy_params(call, &out);
+    lwmsg_call_release(call);
 
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
@@ -336,17 +339,19 @@ MU_TEST(async, block_synchrounous)
 
 MU_TEST(async, block_asynchronous)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_send_message_transact(
-               client,
-               &request_msg,
-               &reply_msg));
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_call_dispatch(call, &in, &out, NULL, NULL));
 
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, GENERIC_RESPONSE);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, out.tag, GENERIC_RESPONSE);
+
+    lwmsg_call_destroy_params(call, &out);
+    lwmsg_call_release(call);
 
     MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
@@ -362,13 +367,12 @@ MU_TEST(async, block_asynchronous_disconnect)
 
     request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_acquire_assoc(client, &assoc));
-
+    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
-
-    MU_TRY(lwmsg_client_release_assoc(client, assoc));
+    lwmsg_assoc_delete(assoc);
 
     async_wait_cancelled();
 
@@ -386,18 +390,16 @@ MU_TEST(async, block_asynchronous_shutdown)
 
     request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_client_acquire_assoc(client, &assoc));
-
+    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
 
     MU_TRY(lwmsg_server_stop(server));
 
     async_wait_cancelled();
 
-    lwmsg_server_delete(server);
-
-    MU_TRY(lwmsg_client_release_assoc(client, assoc));
-
-    MU_TRY(lwmsg_client_shutdown(client));
+    lwmsg_assoc_delete(assoc);
     lwmsg_client_delete(client);
+    lwmsg_server_delete(server);
 }
