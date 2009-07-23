@@ -1207,6 +1207,16 @@ ldap_parse_sasl_bind_result LDAP_P((
 	struct berval	**servercredp,
 	int				freeit ));
 
+/*
+ * in gssapi.c:
+ */
+LDAP_F( int )
+ldap_gssapi_bind_s LDAP_P((
+	LDAP  *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *creds));
+
+
 #if LDAP_DEPRECATED
 /*
  * in bind.c:

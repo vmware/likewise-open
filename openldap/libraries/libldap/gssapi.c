@@ -513,15 +513,28 @@ guess_service_principal(
 	int gss_rc;
 	int ret;
 	size_t svc_principal_size;
+	size_t dns_domain_name_size;
 	char *svc_principal = NULL;
 	const char *principal_fmt = NULL;
-	const char *str = NULL;
 	const char *givenstr = NULL;
+	char *dns_domain_name = NULL;
+	char *name = NULL;
 	const char *ignore = "not_defined_in_RFC4178@please_ignore";
 	int allow_remote = 0;
 
 	if (ldapServiceName) {
 		givenstr = strchr(ldapServiceName, ':');
+
+		dns_domain_name_size = (size_t)((givenstr - ldapServiceName) + 1);
+		dns_domain_name = (char*) ldap_memalloc(dns_domain_name_size * sizeof(char));
+		if (!dns_domain_name) {
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return ld->ld_errno;
+		}
+
+		strncpy(dns_domain_name, ldapServiceName, (dns_domain_name_size - 1));
+		dns_domain_name[dns_domain_name_size - 1] = '\0';
+
 		if (givenstr && givenstr[1]) {
 			givenstr++;
 			if (strcmp(givenstr, ignore) == 0) {
@@ -536,30 +549,53 @@ guess_service_principal(
 		allow_remote = 1;
 	}
 
+	/* Try to figure out correct service principal form given
+	   available information */
 	if (allow_remote && givenstr) {
 		principal_fmt = "%s";
 		svc_principal_size = strlen(givenstr) + 1;
-		str = givenstr;
+		name = strdup(givenstr);
+		if (!name) {
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return ld->ld_errno;
+		}
 
-	} else if (allow_remote && dnsHostName) {
+
+	} else if (dnsHostName) {
 		principal_fmt = "ldap/%s";
-		svc_principal_size = strlen(dnsHostName) + strlen(principal_fmt);
-		str = dnsHostName;
+		svc_principal_size = strlen(dnsHostName) + strlen(dns_domain_name) +
+                                     strlen(principal_fmt);
+
+		/* svc_principal_size is actually a bit more than really needed, but
+		   let's use it to avoid calculating yet another size */
+		name = (char*) ldap_memalloc(svc_principal_size * sizeof(char));
+		if (!name) {
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return ld->ld_errno;
+		}
+
+		snprintf(name, svc_principal_size, "%s/%s",
+			 dnsHostName, dns_domain_name);
 
 	} else {
 		principal_fmt = "ldap/%s";
-		svc_principal_size = strlen(host) + strlen(principal_fmt);
-		str = host;
+		svc_principal_size = strlen(dns_domain_name) + strlen(principal_fmt);
+		name = strdup(dns_domain_name);
+		if (!name) {
+			ld->ld_errno = LDAP_NO_MEMORY;
+			return ld->ld_errno;
+		}
+
 	}
 
 	svc_principal = (char*) ldap_memalloc(svc_principal_size * sizeof(char));
-	if ( ret < 0 ) {
+	if (!svc_principal ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return ld->ld_errno;
 	}
 
-	ret = snprintf( svc_principal, svc_principal_size - 1, principal_fmt, str);
-	if (ret < 0 || (size_t)ret + 1 >= svc_principal_size) {
+	ret = snprintf(svc_principal, svc_principal_size, principal_fmt, name);
+	if (ret < 0 || (size_t)(ret+1) > svc_principal_size) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
@@ -571,7 +607,11 @@ guess_service_principal(
 	input_name.length = strlen( svc_principal );
 
 	gss_rc = gss_import_name( &minor_status, &input_name, &nt_principal, principal );
-	ldap_memfree( svc_principal );
+
+	ldap_memfree(svc_principal);
+	ldap_memfree(dns_domain_name);
+	ldap_memfree(name);
+
 	if ( gss_rc != GSS_S_COMPLETE ) {
 		return map_gsserr2ldap( ld, GSS_C_NO_OID, gss_rc, minor_status );
 	}
@@ -673,7 +713,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	rc = ldap_gssapi_get_rootdse_infos ( ld, &mechlist,
 					     &ldapServiceName, &dnsHostName);
 	if ( rc != LDAP_SUCCESS ) {
-		return rc;
+		goto rc_error;
 	}
 
 	/* check that the server supports GSS-SPNEGO */
