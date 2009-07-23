@@ -346,6 +346,8 @@ unsigned32        *status;
     CODING_ERROR (status);
     RPC_VERIFY_INIT ();
 
+    id_size = 0;
+
     /* 
      * make sure we have a pointer to some data structure
      */
