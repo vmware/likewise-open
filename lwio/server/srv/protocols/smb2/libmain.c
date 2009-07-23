@@ -57,6 +57,12 @@ SrvBuildRequestChain_SMB_V2(
     PSMB2_REQUEST        pRequest
     );
 
+static
+PCSTR
+SrvGetCommandDescription_SMB_V2(
+    ULONG ulCommand
+    );
+
 NTSTATUS
 SrvProtocolInit_SMB_V2(
     VOID
@@ -134,12 +140,26 @@ SrvProtocolExecute_SMB_V2(
         pResponse->pHeader = (PSMB2_HEADER)(request.pResponse->pRawBuffer +
                                             request.pResponse->bufferUsed);
 
+        LWIO_LOG_VERBOSE("Executing command [%s:%d]",
+                         SrvGetCommandDescription_SMB_V2(pRequest->pHeader->command),
+                         pRequest->pHeader->command);
+
         switch (pRequest->pHeader->command)
         {
             case COM2_NEGOTIATE:
 
-                // Handled at a higher layer
-                ntStatus = STATUS_INTERNAL_ERROR;
+                ntStatus = SrvProcessNegotiate_SMB_V2(
+                                &context,
+                                pRequest,
+                                request.pResponse);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvConnectionSetProtocolVersion(
+                                pConnection,
+                                SMB_PROTOCOL_VERSION_2);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_NEGOTIATE);
 
                 break;
 
@@ -153,6 +173,7 @@ SrvProtocolExecute_SMB_V2(
                         (connState != LWIO_SRV_CONN_STATE_READY))
                     {
                         ntStatus = STATUS_INVALID_SERVER_STATE;
+                        BAIL_ON_NT_STATUS(ntStatus);
                     }
                 }
 
@@ -163,11 +184,11 @@ SrvProtocolExecute_SMB_V2(
                 if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_READY)
                 {
                     ntStatus = STATUS_INVALID_SERVER_STATE;
+                    BAIL_ON_NT_STATUS(ntStatus);
                 }
 
                 break;
         }
-        BAIL_ON_NT_STATUS(ntStatus);
 
         switch (pRequest->pHeader->command)
         {
@@ -500,5 +521,109 @@ SrvProtocolShutdown_SMB_V2(
     NTSTATUS status = STATUS_SUCCESS;
 
     return status;
+}
+
+static
+PCSTR
+SrvGetCommandDescription_SMB_V2(
+    ULONG ulCommand
+    )
+{
+    static struct
+    {
+        ULONG ulCommand;
+        PCSTR pszDescription;
+    } commandLookup[] =
+    {
+        {
+            COM2_NEGOTIATE,
+            COM2_NEGOTIATE_DESC
+        },
+        {
+            COM2_SESSION_SETUP,
+            COM2_SESSION_SETUP_DESC
+        },
+        {
+            COM2_LOGOFF,
+            COM2_LOGOFF_DESC
+        },
+        {
+            COM2_TREE_CONNECT,
+            COM2_TREE_CONNECT_DESC
+        },
+        {
+            COM2_TREE_DISCONNECT,
+            COM2_TREE_DISCONNECT_DESC
+        },
+        {
+            COM2_CREATE,
+            COM2_CREATE_DESC
+        },
+        {
+            COM2_CLOSE,
+            COM2_CLOSE_DESC
+        },
+        {
+            COM2_FLUSH,
+            COM2_FLUSH_DESC
+        },
+        {
+            COM2_READ,
+            COM2_READ_DESC
+        },
+        {
+            COM2_WRITE,
+            COM2_WRITE_DESC
+        },
+        {
+            COM2_LOCK,
+            COM2_LOCK_DESC
+        },
+        {
+            COM2_IOCTL,
+            COM2_IOCTL_DESC
+        },
+        {
+            COM2_CANCEL,
+            COM2_CANCEL_DESC
+        },
+        {
+            COM2_ECHO,
+            COM2_ECHO_DESC
+        },
+        {
+            COM2_FIND,
+            COM2_FIND_DESC
+        },
+        {
+            COM2_NOTIFY,
+            COM2_NOTIFY_DESC
+        },
+        {
+            COM2_GETINFO,
+            COM2_GETINFO_DESC
+        },
+        {
+            COM2_SETINFO,
+            COM2_SETINFO_DESC
+        },
+        {
+            COM2_BREAK,
+            COM2_BREAK_DESC
+        }
+    };
+    PCSTR pszDescription = NULL;
+    ULONG iDesc = 0;
+
+    for (; iDesc < sizeof(commandLookup)/sizeof(commandLookup[0]); iDesc++)
+    {
+        if (commandLookup[iDesc].ulCommand == ulCommand)
+        {
+            pszDescription = commandLookup[iDesc].pszDescription;
+            break;
+        }
+    }
+
+    return (pszDescription ? pszDescription : "SMB2_UNKNOWN_COMMAND");
 }
 

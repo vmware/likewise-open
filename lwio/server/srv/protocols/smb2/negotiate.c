@@ -48,6 +48,102 @@
  */
 #include "includes.h"
 
+static
+NTSTATUS
+SrvMarshalNegotiateResponse_SMB_V2(
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PBYTE                pSessionKey,
+    IN     ULONG                ulSessionKeyLength,
+    IN OUT PSMB_PACKET          pSmbResponse
+    );
+
+NTSTATUS
+SrvProcessNegotiate_SMB_V2(
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PSMB2_NEGOTIATE_REQUEST_HEADER pNegotiateRequestHeader = NULL;// Do not free
+    PUSHORT pusDialects = NULL; // Do not free
+    USHORT  iDialect = 0;
+    PBYTE   pSessionKey = NULL;
+    ULONG   ulSessionKeyLength = 0;
+
+    ntStatus = SMB2UnmarshalNegotiateRequest(
+                        pSmbRequest,
+                        &pNegotiateRequestHeader,
+                        &pusDialects);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pNegotiateRequestHeader->usDialectCount)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    for (; iDialect < pNegotiateRequestHeader->usDialectCount; iDialect++)
+    {
+        USHORT usDialect = pusDialects[iDialect];
+
+        if (usDialect == 0x0202)
+        {
+            break;
+        }
+    }
+
+    if (iDialect < pNegotiateRequestHeader->usDialectCount)
+    {
+        ntStatus = SrvGssBeginNegotiate(
+                        pConnection->hGssContext,
+                        &pConnection->hGssNegotiate);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvGssNegotiate(
+                        pConnection->hGssContext,
+                        pConnection->hGssNegotiate,
+                        NULL,
+                        0,
+                        &pSessionKey,
+                        &ulSessionKeyLength);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!ulSessionKeyLength)
+        {
+            ntStatus = STATUS_NOT_SUPPORTED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
+                        pConnection,
+                        pSessionKey,
+                        ulSessionKeyLength,
+                        pSmbResponse);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        // TODO: Figure out the right response here
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    if (pSessionKey)
+    {
+        SrvFreeMemory(pSessionKey);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 NTSTATUS
 SrvBuildNegotiateResponse_SMB_V2(
     IN  PLWIO_SRV_CONNECTION pConnection,
@@ -57,20 +153,8 @@ SrvBuildNegotiateResponse_SMB_V2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_PACKET pSmbResponse = NULL;
-    PSMB2_NEGOTIATE_HEADER pNegotiateHeader = NULL;
-    USHORT usAlign = 0;
-    PBYTE  pDataCursor = NULL;
     PBYTE  pSessionKey = NULL;
     ULONG  ulSessionKeyLength = 0;
-    LONG64 llCurTime = 0LL;
-    time_t curTime = 0;
-    PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
-    PBYTE pOutBufferRef = NULL;
-    PBYTE pOutBuffer = NULL;
-    ULONG ulBytesAvailable = 0;
-    ULONG ulOffset    = 0;
-    ULONG ulBytesUsed = 0;
-    ULONG ulTotalBytesUsed = 0;
 
     ntStatus = SMBPacketAllocate(
                     pConnection->hPacketAllocator,
@@ -86,6 +170,82 @@ SrvBuildNegotiateResponse_SMB_V2(
 
     ntStatus = SMB2InitPacket(pSmbResponse, FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGssBeginNegotiate(
+                    pConnection->hGssContext,
+                    &pConnection->hGssNegotiate);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvGssNegotiate(
+                    pConnection->hGssContext,
+                    pConnection->hGssNegotiate,
+                    NULL,
+                    0,
+                    &pSessionKey,
+                    &ulSessionKeyLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!ulSessionKeyLength)
+    {
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvMarshalNegotiateResponse_SMB_V2(
+                    pConnection,
+                    pSessionKey,
+                    ulSessionKeyLength,
+                    pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalFooter(pSmbResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSmbResponse = pSmbResponse;
+
+cleanup:
+
+    if (pSessionKey)
+    {
+        SrvFreeMemory(pSessionKey);
+    }
+
+    return ntStatus;
+
+error:
+
+    *ppSmbResponse = NULL;
+
+    if (pSmbResponse)
+    {
+        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvMarshalNegotiateResponse_SMB_V2(
+    IN     PLWIO_SRV_CONNECTION pConnection,
+    IN     PBYTE                pSessionKey,
+    IN     ULONG                ulSessionKeyLength,
+    IN OUT PSMB_PACKET          pSmbResponse
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_NEGOTIATE_RESPONSE_HEADER pNegotiateHeader = NULL;
+    USHORT usAlign = 0;
+    PBYTE  pDataCursor = NULL;
+    PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
+    PBYTE pOutBufferRef = NULL;
+    PBYTE pOutBuffer = NULL;
+    ULONG ulBytesAvailable = 0;
+    ULONG ulOffset    = 0;
+    ULONG ulBytesUsed = 0;
+    ULONG ulTotalBytesUsed = 0;
+    LONG64 llCurTime = 0LL;
+    time_t curTime = 0;
 
     pOutBufferRef = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
     pOutBuffer = pOutBufferRef;
@@ -114,19 +274,19 @@ SrvBuildNegotiateResponse_SMB_V2(
     ulOffset += ulBytesUsed;
     ulBytesAvailable -= ulBytesUsed;
 
-    if (ulBytesAvailable < sizeof(SMB2_NEGOTIATE_HEADER))
+    if (ulBytesAvailable < sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER))
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pNegotiateHeader = (PSMB2_NEGOTIATE_HEADER)pOutBuffer;
+    pNegotiateHeader = (PSMB2_NEGOTIATE_RESPONSE_HEADER)pOutBuffer;
 
-    ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_HEADER);
-    ulBytesUsed      = sizeof(SMB2_NEGOTIATE_HEADER);
-    pOutBuffer += sizeof(SMB2_NEGOTIATE_HEADER);
-    ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_HEADER);
-    ulOffset += sizeof(SMB2_NEGOTIATE_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulBytesUsed      = sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    pOutBuffer += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
+    ulOffset += sizeof(SMB2_NEGOTIATE_RESPONSE_HEADER);
 
     pNegotiateHeader->usDialect = 0x0202;
 
@@ -159,26 +319,6 @@ SrvBuildNegotiateResponse_SMB_V2(
     memcpy(&pNegotiateHeader->serverGUID[0],
             pServerProperties->GUID,
             sizeof(pServerProperties->GUID));
-
-    ntStatus = SrvGssBeginNegotiate(
-                    pConnection->hGssContext,
-                    &pConnection->hGssNegotiate);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvGssNegotiate(
-                    pConnection->hGssContext,
-                    pConnection->hGssNegotiate,
-                    NULL,
-                    0,
-                    &pSessionKey,
-                    &ulSessionKeyLength);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!ulSessionKeyLength)
-    {
-        ntStatus = STATUS_NOT_SUPPORTED;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     usAlign = ulOffset % 8;
     if (ulBytesAvailable < usAlign)
@@ -213,27 +353,15 @@ SrvBuildNegotiateResponse_SMB_V2(
 
     pSmbResponse->bufferUsed += ulTotalBytesUsed;
 
-    ntStatus = SMB2MarshalFooter(pSmbResponse);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppSmbResponse = pSmbResponse;
-
 cleanup:
-
-    if (pSessionKey)
-    {
-        SrvFreeMemory(pSessionKey);
-    }
 
     return ntStatus;
 
 error:
 
-    *ppSmbResponse = NULL;
-
-    if (pSmbResponse)
+    if (ulTotalBytesUsed)
     {
-        SMBPacketFree(pConnection->hPacketAllocator, pSmbResponse);
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
     }
 
     goto cleanup;

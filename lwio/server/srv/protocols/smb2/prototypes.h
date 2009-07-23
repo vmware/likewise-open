@@ -154,6 +154,15 @@ SrvProcessLogoff_SMB_V2(
     IN OUT PSMB_PACKET   pSmbResponse
     );
 
+// negotiate.c
+
+NTSTATUS
+SrvProcessNegotiate_SMB_V2(
+    IN OUT PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
 // session.c
 
 NTSTATUS
@@ -246,6 +255,13 @@ SMB2MarshalHeader(
     IN              BOOLEAN       bIsResponse,
     IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
     IN OUT          PULONG        pulBytesUsed
+    );
+
+NTSTATUS
+SMB2UnmarshalNegotiateRequest(
+    PSMB2_MESSAGE                   pRequest,
+    PSMB2_NEGOTIATE_REQUEST_HEADER* ppHeader,
+    PUSHORT*                        ppusDialects
     );
 
 NTSTATUS

@@ -166,6 +166,65 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalNegotiateRequest(
+    PSMB2_MESSAGE                   pRequest,
+    PSMB2_NEGOTIATE_REQUEST_HEADER* ppHeader,
+    PUSHORT*                        ppusDialects
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pDataCursor = (PBYTE)pRequest->pHeader;
+    ULONG ulBytesAvailable = pRequest->ulSize;
+    ULONG ulOffset = 0;
+    PSMB2_NEGOTIATE_REQUEST_HEADER pHeader = NULL; // Do not free
+    PUSHORT pusDialects = NULL;
+
+    if (ulBytesAvailable < sizeof(SMB2_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pDataCursor += sizeof(SMB2_HEADER);
+    ulOffset += sizeof(SMB2_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_NEGOTIATE_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_NEGOTIATE_REQUEST_HEADER)pDataCursor;
+
+    pDataCursor += sizeof(SMB2_NEGOTIATE_REQUEST_HEADER);
+    ulOffset += sizeof(SMB2_NEGOTIATE_REQUEST_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_NEGOTIATE_REQUEST_HEADER);
+
+    if (ulBytesAvailable < sizeof(USHORT) * pHeader->usDialectCount)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pusDialects = (PUSHORT)pDataCursor;
+
+    *ppHeader = pHeader;
+    *ppusDialects = pusDialects;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppusDialects = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2UnmarshallSessionSetup(
     PSMB2_MESSAGE                       pRequest,
     PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,

@@ -50,5 +50,24 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
+#define COM2_NEGOTIATE_DESC       "SMB2_NEGOTIATE"
+#define COM2_SESSION_SETUP_DESC   "SMB2_SESSION_SETUP"
+#define COM2_LOGOFF_DESC          "SMB2_LOGOFF"
+#define COM2_TREE_CONNECT_DESC    "SMB2_TREE_CONNECT"
+#define COM2_TREE_DISCONNECT_DESC "SMB2_TREE_DISCONNECT"
+#define COM2_CREATE_DESC          "SMB2_CREATE"
+#define COM2_CLOSE_DESC           "SMB2_CLOSE"
+#define COM2_FLUSH_DESC           "SMB2_FLUSH"
+#define COM2_READ_DESC            "SMB2_READ"
+#define COM2_WRITE_DESC           "SMB2_WRITE"
+#define COM2_LOCK_DESC            "SMB2_LOCK"
+#define COM2_IOCTL_DESC           "SMB2_IOCTL"
+#define COM2_CANCEL_DESC          "SMB2_CANCEL"
+#define COM2_ECHO_DESC            "SMB2_ECHO"
+#define COM2_FIND_DESC            "SMB2_FIND"
+#define COM2_NOTIFY_DESC          "SMB2_NOTIFY"
+#define COM2_GETINFO_DESC         "SMB2_GETINFO"
+#define COM2_SETINFO_DESC         "SMB2_SETINFO"
+#define COM2_BREAK_DESC           "SMB2_BREAK"
 
 #endif /* __DEFS_H__ */
