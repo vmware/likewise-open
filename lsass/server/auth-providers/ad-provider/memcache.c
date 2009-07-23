@@ -757,7 +757,7 @@ MemCacheFindUserById(
 
     dwError = LsaHashGetValue(
                     pIndex,
-                    (PVOID)uid,
+                    (PVOID)(size_t)uid,
                     (PVOID*)&pListEntry);
     if (dwError == ENOENT)
     {
@@ -893,7 +893,7 @@ MemCacheFindGroupById(
 
     dwError = LsaHashGetValue(
                     pIndex,
-                    (PVOID)gid,
+                    (PVOID)(size_t)gid,
                     (PVOID *)&pListEntry);
     if (dwError == ENOENT)
     {
@@ -1139,7 +1139,7 @@ MemCacheRemoveObjectByHashKey(
     {
         dwError = LsaHashRemoveKey(
                         pConn->pUIDToSecurityObject,
-                        (PVOID)pObject->userInfo.uid);
+                        (PVOID)(size_t)pObject->userInfo.uid);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pObject->userInfo.pszAliasName != NULL)
@@ -1162,7 +1162,7 @@ MemCacheRemoveObjectByHashKey(
     {
         dwError = LsaHashRemoveKey(
                         pConn->pGIDToSecurityObject,
-                        (PVOID)pObject->groupInfo.gid);
+                        (PVOID)(size_t)pObject->groupInfo.gid);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pObject->groupInfo.pszAliasName != NULL)
@@ -1238,7 +1238,7 @@ MemCacheClearExistingObjectKeys(
         dwError = MemCacheRemoveObjectByHashKey(
                         pConn,
                         pConn->pUIDToSecurityObject,
-                        (PVOID)pObject->userInfo.uid);
+                        (PVOID)(size_t)pObject->userInfo.uid);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = MemCacheRemoveObjectByHashKey(
@@ -1258,7 +1258,7 @@ MemCacheClearExistingObjectKeys(
         dwError = MemCacheRemoveObjectByHashKey(
                         pConn,
                         pConn->pGIDToSecurityObject,
-                        (PVOID)pObject->groupInfo.gid);
+                        (PVOID)(size_t)pObject->groupInfo.gid);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = MemCacheRemoveObjectByHashKey(
@@ -1455,7 +1455,7 @@ MemCacheStoreObjectEntryInLock(
         case AccountType_Group:
             dwError = LsaHashSetValue(
                             pConn->pGIDToSecurityObject,
-                            (PVOID)pObject->groupInfo.gid,
+                            (PVOID)(size_t)pObject->groupInfo.gid,
                             pConn->pObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -1471,7 +1471,7 @@ MemCacheStoreObjectEntryInLock(
         case AccountType_User:
             dwError = LsaHashSetValue(
                             pConn->pUIDToSecurityObject,
-                            (PVOID)pObject->userInfo.uid,
+                            (PVOID)(size_t)pObject->userInfo.uid,
                             pConn->pObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
