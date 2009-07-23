@@ -214,6 +214,23 @@ error:
 }
 
 void
+LwFreeNullTerminatedStringArray(
+    PSTR * ppStringArray
+    )
+{
+    PSTR* ppTmp = ppStringArray;
+
+    while (ppTmp && *ppTmp) {
+
+          LwFreeString(*ppTmp);
+
+          ppTmp++;
+    }
+
+    LwFreeMemory(ppStringArray);
+}
+
+void
 LwStripLeadingWhitespace(
     PSTR pszString
 )

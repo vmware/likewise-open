@@ -97,20 +97,3 @@ LwFreeMemory(
 {
     free(pMemory);
 }
-
-void
-LwFreeNullTerminatedStringArray(
-    PSTR * ppStringArray
-    )
-{
-    PSTR* ppTmp = ppStringArray;
-
-    while (ppTmp && *ppTmp) {
-
-          LwFreeString(*ppTmp);
-
-          ppTmp++;
-    }
-
-    LwFreeMemory(ppStringArray);
-}
