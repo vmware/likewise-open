@@ -352,8 +352,6 @@ cleanup:
         LwIoCloseContext(pContext);
     }
 
-    LwIoShutdown();
-
     return dwError;
 
 error:
