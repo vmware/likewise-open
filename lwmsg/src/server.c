@@ -932,7 +932,7 @@ lwmsg_server_signal_io_thread(
             res = write(thread->event[1], &c, sizeof(c));
         } while (res == -1 && errno == EINTR);
 
-        ABORT_IF_FALSE(res == sizeof(c));
+        LWMSG_ASSERT(res == sizeof(c));
     }
 }
 

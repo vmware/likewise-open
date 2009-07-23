@@ -483,10 +483,8 @@ lwmsg_client_call_get_session(
 {
     ClientCall* my_call = (ClientCall*) call;
     LWMsgSession* session = NULL;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    status = lwmsg_assoc_get_session(my_call->assoc, &session);
-    ABORT_IF_FALSE(status == LWMSG_STATUS_SUCCESS);
+    LWMSG_ASSERT_SUCCESS(lwmsg_assoc_get_session(my_call->assoc, &session));
 
     return session;
 }
