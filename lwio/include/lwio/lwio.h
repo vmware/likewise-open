@@ -144,24 +144,24 @@ LwIoOpenContext(
     LW_PIO_CONTEXT* ppContext
     );
 
-DWORD
+LW_NTSTATUS
 SMBRefreshConfiguration(
     HANDLE hConnection
     );
 
-DWORD
+LW_NTSTATUS
 SMBSetLogLevel(
     HANDLE      hSMBConnection,
     SMBLogLevel logLevel
     );
 
-DWORD
+LW_NTSTATUS
 SMBGetLogInfo(
     HANDLE         hSMBConnection,
     PLWIO_LOG_INFO* ppLogInfo
     );
 
-DWORD
+LW_NTSTATUS
 SMBSetLogInfo(
     HANDLE        hSMBConnection,
     PLWIO_LOG_INFO pLogInfo

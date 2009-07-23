@@ -73,7 +73,7 @@ lwmsg_server_dispatch_loop(
         pthread_mutex_unlock(&server->dispatch.lock);
         in_lock = LWMSG_FALSE;
 
-        status = lwmsg_call_transact(LWMSG_CALL(call), NULL, NULL);
+        status = lwmsg_server_call_dispatch(call);
 
         switch (status)
         {

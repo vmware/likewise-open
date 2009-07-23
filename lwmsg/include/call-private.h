@@ -47,8 +47,10 @@ typedef struct LWMsgCallClass
     void (*release)(
         LWMsgCall* call
         );
-    LWMsgStatus (*transact)(
+    LWMsgStatus (*dispatch)(
         LWMsgCall* call,
+        const LWMsgParams* in,
+        LWMsgParams* out,
         LWMsgCompleteFunction complete,
         void* data
         );
@@ -62,6 +64,13 @@ typedef struct LWMsgCallClass
         LWMsgStatus status
         );
     LWMsgStatus (*cancel)(
+        LWMsgCall* call
+        );
+    LWMsgStatus (*destroy_params)(
+        LWMsgCall* call,
+        LWMsgParams* params
+        );
+    LWMsgSession* (*get_session)(
         LWMsgCall* call
         );
 } LWMsgCallClass;

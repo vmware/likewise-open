@@ -6,6 +6,7 @@ AM_CPPFLAGS = @LWMSG_CPPFLAGS@
 liblwmsg_nothr_la_SOURCES = \
 	assoc.c \
 	assoc-marshal.c \
+	assoc-call.c \
 	call.c \
 	convert.c \
 	connection.c \

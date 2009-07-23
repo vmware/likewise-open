@@ -42,6 +42,7 @@
 #include <lwmsg/message.h>
 #include <lwmsg/status.h>
 #include <lwmsg/context.h>
+#include <lwmsg/session.h>
 
 /**
  * @file call.h
@@ -55,6 +56,27 @@
  */
 
 /*@{*/
+
+/**
+ * @brief Call parameters
+ *
+ * Represents the parameters or return values of a call
+ */
+typedef struct LWMsgParams
+{
+    /**
+     * @brief Data tag
+     *
+     * Indicates type of call/return data according to call protocol
+     */
+    LWMsgTag tag;
+    /**
+     * @brief Data values
+     *
+     * Contains actual call/return data
+     */
+    void* data;
+} LWMsgParams;
 
 /**
  * @brief Call handle
@@ -91,15 +113,33 @@ typedef void
     );
 
 /**
+ * @brief Destroy parameters
+ *
+ * Destroys the contents of a parameters structure that was
+ * previously filled in by the given call handle.
+ *
+ * @param call the call handle
+ * @param params the parameters structure
+ * @return the output parameters structure
+ */
+LWMsgStatus
+lwmsg_call_destroy_params(
+    LWMsgCall* call,
+    LWMsgParams* params
+    );
+
+/**
  * @brief Dispatch call
  *
  * Dispatches a call.  If complete is provided, the callee may opt
  * to complete the call asynchronously, in which case it will be
  * invoked at completion time in an arbitrary thread.
  *
- * @param call the call handle
- * @param complete an optional completion callback
- * @param data a data pointer to be passed to the completion callback
+ * @param[in,out] call the call handle
+ * @param[in] input the input parameters
+ * @param[out] output the output parameters
+ * @param[in] complete an optional completion callback
+ * @param[in] data a user data pointer to be passed to the completion callback
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{PENDING, the call will be completed asynchronously by
@@ -108,8 +148,10 @@ typedef void
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_call_transact(
+lwmsg_call_dispatch(
     LWMsgCall* call,
+    const LWMsgParams* input,
+    LWMsgParams* output,
     LWMsgCompleteFunction complete,
     void* data
     );
@@ -177,6 +219,16 @@ void
 lwmsg_call_release(
     LWMsgCall* call
     );
+
+LWMsgSession*
+lwmsg_call_get_session(
+    LWMsgCall* call
+    );
+
+/**
+ * @hideinitializer
+ */
+#define LWMSG_PARAMS_INITIALIZER { LWMSG_TAG_INVALID, NULL }
 
 /*@}*/
 

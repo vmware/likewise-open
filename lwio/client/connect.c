@@ -35,59 +35,7 @@ LwIoOpenContext(
     PIO_CONTEXT* ppContext
     )
 {
-    PIO_CONTEXT pContext = NULL;
-    NTSTATUS Status = STATUS_SUCCESS;
-    static LWMsgTime connectTimeout = {2, 0};
-
-    Status = LwIoAllocateMemory(
-        sizeof(*pContext),
-        OUT_PPVOID(&pContext));
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_connection_new(
-            NULL,
-            gpLwIoProtocol,
-            &pContext->pAssoc));
-    BAIL_ON_NT_STATUS(Status);
-    
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_connection_set_endpoint(
-            pContext->pAssoc,
-            LWMSG_CONNECTION_MODE_LOCAL,
-            LWIO_SERVER_FILENAME));
-    BAIL_ON_NT_STATUS(Status);
-
-    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
-    {
-        Status = NtIpcLWMsgStatusToNtStatus(
-            lwmsg_assoc_set_timeout(
-                pContext->pAssoc,
-                LWMSG_TIMEOUT_ESTABLISH,
-                &connectTimeout));
-        BAIL_ON_NT_STATUS(Status);
-    }
-
-    Status = NtIpcLWMsgStatusToNtStatus(
-        lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_NT_STATUS(Status);
-
-    *ppContext = pContext;
-
-cleanup:
-
-    return Status;
-
-error:
-
-    if (pContext)
-    {
-        LwIoCloseContext(pContext);
-    }
-
-    *ppContext = NULL;
-
-    goto cleanup;
+    return LwIoOpenContextShared(ppContext);
 }
 
 NTSTATUS
@@ -99,19 +47,27 @@ LwIoCloseContext(
 
     if (pContext)
     {
-        if (pContext->pAssoc)
-        {
-            LWMsgStatus status = lwmsg_assoc_close(pContext->pAssoc);
-            if (status)
-            {
-                LWIO_LOG_ERROR("Failed to close association [Error code:%d]", status);
-            }
-
-            lwmsg_assoc_delete(pContext->pAssoc);
-        }
-
         LwIoFreeMemory(pContext);
     }
 
     return Status;
+}
+
+NTSTATUS
+LwIoContextAcquireCall(
+    IN PIO_CONTEXT pConnection,
+    OUT LWMsgCall** ppCall
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_client_acquire_call(
+            pConnection->pClient,
+            ppCall));
+    BAIL_ON_NT_STATUS(status);
+
+error:
+
+    return status;
 }

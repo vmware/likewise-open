@@ -55,8 +55,14 @@
 typedef struct __LWNET_CLIENT_CONNECTION_CONTEXT
 {
     LWMsgProtocol* pProtocol;
-    LWMsgAssoc* pAssoc;
+    LWMsgClient* pClient;
 } LWNET_CLIENT_CONNECTION_CONTEXT, *PLWNET_CLIENT_CONNECTION_CONTEXT;
+
+DWORD
+LWNetAcquireCall(
+    HANDLE hConnection,
+    LWMsgCall** ppCall
+    );
 
 DWORD
 LWNetOpenServer(

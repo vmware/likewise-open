@@ -50,7 +50,21 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct __SMB2_NEGOTIATE_HEADER
+typedef struct __SMB2_NEGOTIATE_REQUEST_HEADER
+{
+    USHORT  usLength;
+    USHORT  usDialectCount;
+    USHORT  usSecurityMode;
+    USHORT  usPad;
+    ULONG   ulCapabilities;
+    UCHAR   clientGUID[16];
+    ULONG64 ulStartTime;
+
+    // List of dialects follow immediately
+} __attribute__((__packed__)) SMB2_NEGOTIATE_REQUEST_HEADER,
+                             *PSMB2_NEGOTIATE_REQUEST_HEADER;
+
+typedef struct __SMB2_NEGOTIATE_RESPONSE_HEADER
 {
     USHORT  usLength;
     BYTE    ucFlags;
@@ -69,7 +83,8 @@ typedef struct __SMB2_NEGOTIATE_HEADER
 
     /* GSS Blob follows immediately */
 
-} __attribute__((__packed__)) SMB2_NEGOTIATE_HEADER, *PSMB2_NEGOTIATE_HEADER;
+} __attribute__((__packed__)) SMB2_NEGOTIATE_RESPONSE_HEADER,
+                             *PSMB2_NEGOTIATE_RESPONSE_HEADER;
 
 typedef struct __SMB2_SESSION_SETUP_REQUEST_HEADER
 {

@@ -30,6 +30,7 @@ lwmsg_assoc_finish
 lwmsg_assoc_set_nonblock
 lwmsg_assoc_set_session_functions
 lwmsg_assoc_print_message_alloc
+lwmsg_assoc_acquire_call
 lwmsg_connection_new
 lwmsg_connection_set_packet_size
 lwmsg_connection_set_fd
@@ -37,11 +38,13 @@ lwmsg_connection_set_endpoint
 lwmsg_local_token_get_eid
 lwmsg_error_message
 lwmsg_error_clear
-lwmsg_call_transact
+lwmsg_call_dispatch
 lwmsg_call_pend
 lwmsg_call_complete
 lwmsg_call_cancel
 lwmsg_call_release
+lwmsg_call_destroy_params
+lwmsg_call_get_session
 lwmsg_context_new
 lwmsg_context_delete
 lwmsg_context_set_memory_functions

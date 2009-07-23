@@ -507,14 +507,18 @@ cleanup:
 
 NTSTATUS
 NtIpcUnregisterFileHandle(
-    IN LWMsgAssoc* pAssoc,
+    IN LWMsgCall* pCall,
     IN IO_FILE_HANDLE FileHandle
     )
 {
     NTSTATUS status = 0;
+    LWMsgSession* pSession = NULL;
 
-    status = NtIpcLWMsgStatusToNtStatus(lwmsg_assoc_unregister_handle(
-                                    pAssoc,
-                                    FileHandle));
+    pSession = lwmsg_call_get_session(pCall);
+
+    status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_session_unregister_handle(
+            pSession,
+            FileHandle));
     return status;
 }

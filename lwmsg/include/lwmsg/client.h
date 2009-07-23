@@ -47,6 +47,7 @@
 #include <lwmsg/status.h>
 #include <lwmsg/common.h>
 #include <lwmsg/connection.h>
+#include <lwmsg/call.h>
 
 /**
  * @defgroup client Client
@@ -125,17 +126,12 @@ lwmsg_client_set_endpoint(
 /**
  * @brief Acquire association for messaging
  *
- * Acquires an association suitable for exchanging messages
- * with the server.  The association is guaranteed to not
- * be in use by any other thread.  If multiple messages
- * are going to be exchanged in a row, acquiring an association
- * first is more efficient than multiple calls to lwmsg_client_send_transact().
- * If the maximum number of concurrent connections set by
- * lwmsg_client_set_max_concurrent() have already been acquired,
- * this function will block until an association becomes available.
+ * Acquires a call handle suitable for making
+ * a call to the server.  The handle should be
+ * released with #lwmsg_call_release() when done.
  *
  * @param client the client object
- * @param out_assoc the acquired association
+ * @param call the acquired call handle
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -143,121 +139,9 @@ lwmsg_client_set_endpoint(
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_client_acquire_assoc(
+lwmsg_client_acquire_call(
     LWMsgClient* client,
-    LWMsgAssoc** out_assoc
-    );
-
-/**
- * @brief Release association
- *
- * Releases an association that was previously acquired by
- * lwmsg_client_acquire_assoc().
- *
- * @warning releasing an association that is in a non-ready state
- * has undefined behavior
- * @warning releasing an association that was not acquired by
- * lwmsg_client_acquire_assoc() has undefined behavior
- *
- * @param client the client object
- * @param assoc the association
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_release_assoc(
-    LWMsgClient* client,
-    LWMsgAssoc* assoc
-    );
-
-/**
- * @brief Create detached association
- *
- * Creates a fresh association suitable for
- * exchanging messages with the server that does not
- * count against the maximum number of concurrent connections
- * set with lwmsg_client_set_max_concurrent().  This association
- * does not need to be (and should not be) released with
- * lwmsg_client_release_assoc().  Unlike lwmsg_client_acquire_assoc(),
- * this function will never block.
- *
- * @param client the client object
- * @param out_assoc the created association
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_create_assoc(
-    LWMsgClient* client,
-    LWMsgAssoc** out_assoc
-    );
-
-/**
- * @brief Send a message
- *
- * Sends a message to the server.  This function implicitly
- * acquires and releases an association in order to send the
- * message and may block for the same reasons as
- * lwmsg_client_acquire_assoc().
- * 
- * @param client the client object
- * @param message the message to send
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_send_message()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_send_message(
-    LWMsgClient* client,
-    LWMsgMessage* message
-    );
-
-/**
- * @brief Receive a message
- *
- * Receives a message from the server.  This function implicitly
- * acquires and releases an association in order to receive the
- * message and may block for the same reasons as
- * lwmsg_client_acquire_assoc().
- * 
- * @param client the client object
- * @param message where the received message will be stored
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_recv_message()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_recv_message(
-    LWMsgClient* client,
-    LWMsgMessage* message
-    );
-
-/**
- * @brief Send a message and receive a reply
- *
- * Sends a message to the server and receives a reply.
- * This function implicitly acquires and releases an
- * association and may block for the same reasons as
- * lwmsg_client_acquire_assoc().
- * 
- * @param client the client object
- * @param send_msg the message to send
- * @param recv_msg where the reply will be stored
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_etc{this function may fail with the same errors as lwmsg_assoc_transact_message()}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_client_send_message_transact(
-    LWMsgClient* client,
-    LWMsgMessage* send_msg,
-    LWMsgMessage* recv_msg
+    LWMsgCall** call
     );
 
 /**

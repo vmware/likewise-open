@@ -1,8 +1,6 @@
 lib_LTLIBRARIES = liblwioclient.la
 
-noinst_LTLIBRARIES = liblwioclient_nothr.la
-
-liblwioclient_nothr_la_SOURCES = \
+liblwioclient_la_SOURCES = \
     access.c               \
     config.c               \
     connect.c              \
@@ -10,32 +8,24 @@ liblwioclient_nothr_la_SOURCES = \
     libmain.c              \
     logging.c              \
     ntfileapictx.c         \
-    smbfileapictx.c
-
-liblwioclient_nothr_la_CPPFLAGS = \
-    $(AM_CPPFLAGS) \
-    -DLWIO_NO_THREADS \
-    -I@top_srcdir@/include  \
-    @LWMSG_INCLUDES@
-
-liblwioclient_nothr_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    -Wmissing-prototypes
-
-liblwioclient_nothr_la_LIBADD = \
-    @top_builddir@/ipc/liblwioipc.la \
-    @top_builddir@/utils/liblwioutils.la
-
-liblwioclient_la_SOURCES = \
+    smbfileapictx.c        \
     thread.c               \
     ntfileapi.c            \
     smbfileapi.c           \
     win32.c
 
 liblwioclient_la_CPPFLAGS = \
-    -I@top_srcdir@/include
+    $(AM_CPPFLAGS) \
+    -DLWIO_NO_THREADS \
+    -I@top_srcdir@/include \
+    @LWMSG_INCLUDES@
+
+liblwioclient_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    -Wmissing-prototypes
 
 liblwioclient_la_LIBADD = \
-    liblwioclient_nothr.la \
+    @top_builddir@/ipc/liblwioipc.la \
+    @top_builddir@/utils/liblwioutils.la \
     @LWMSG_LIBS@ \
     -lkrb5

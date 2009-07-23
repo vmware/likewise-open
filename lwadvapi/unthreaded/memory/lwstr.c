@@ -102,6 +102,30 @@ LwFreeString(
     LwFreeMemory(pszString);
 }
 
+void
+LwFreeStringArray(
+    PSTR * ppStringArray,
+    DWORD dwCount
+    )
+{
+    DWORD i;
+
+    if ( ppStringArray )
+    {
+        for(i = 0; i < dwCount; i++)
+        {
+            if (ppStringArray[i])
+            {
+                LwFreeMemory(ppStringArray[i]);
+            }
+        }
+
+        LwFreeMemory(ppStringArray);
+    }
+
+    return;
+}
+
 DWORD
 LwAllocateStringPrintf(
     PSTR* ppszOutputString,

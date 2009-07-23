@@ -36,9 +36,9 @@
 static
 LWMsgStatus
 LwIoDaemonIpcRefreshConfiguration(
-    IN LWMsgAssoc* pAssoc,
-    IN const LWMsgMessage* pRequest,
-    OUT LWMsgMessage* pResponse,
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
     IN void* pData
     )
 {
@@ -58,15 +58,15 @@ LwIoDaemonIpcRefreshConfiguration(
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pResponse->tag = SMB_REFRESH_CONFIG_FAILED;
-        pResponse->object = (PVOID) pStatusResponse;
+        pOut->tag = SMB_REFRESH_CONFIG_FAILED;
+        pOut->data = (PVOID) pStatusResponse;
 
         dwError = 0;
         goto cleanup;
     }
 
-    pResponse->tag = SMB_REFRESH_CONFIG_SUCCESS;
-    pResponse->object = (PVOID) pStatusResponse;
+    pOut->tag = SMB_REFRESH_CONFIG_SUCCESS;
+    pOut->data = (PVOID) pStatusResponse;
 
 cleanup:
 
@@ -80,9 +80,9 @@ error:
 static
 LWMsgStatus
 LwIoDaemonIpcSetLogInfo(
-    IN LWMsgAssoc* pAssoc,
-    IN const LWMsgMessage* pRequest,
-    OUT LWMsgMessage* pResponse,
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
     IN void* pData
     )
 {
@@ -95,23 +95,23 @@ LwIoDaemonIpcSetLogInfo(
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    BAIL_ON_INVALID_POINTER(pRequest->object);
+    BAIL_ON_INVALID_POINTER(pIn->data);
 
-    dwError = SMBLogSetInfo_r((PLWIO_LOG_INFO)pRequest->object);
+    dwError = SMBLogSetInfo_r((PLWIO_LOG_INFO)pIn->data);
 
     /* Transmit failure to client but do not bail out of dispatch loop */
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pResponse->tag = SMB_SET_LOG_INFO_FAILED;
-        pResponse->object = pStatusResponse;
+        pOut->tag = SMB_SET_LOG_INFO_FAILED;
+        pOut->data = pStatusResponse;
 
         dwError = 0;
         goto cleanup;
     }
 
-    pResponse->tag = SMB_SET_LOG_INFO_SUCCESS;
-    pResponse->object = pStatusResponse;
+    pOut->tag = SMB_SET_LOG_INFO_SUCCESS;
+    pOut->data = pStatusResponse;
 
 cleanup:
 
@@ -125,9 +125,9 @@ error:
 static
 LWMsgStatus
 LwIoDaemonIpcGetLogInfo(
-    IN LWMsgAssoc* pAssoc,
-    IN const LWMsgMessage* pRequest,
-    OUT LWMsgMessage* pResponse,
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
     IN void* pData
     )
 {
@@ -146,16 +146,16 @@ LwIoDaemonIpcGetLogInfo(
     if (dwError)
     {
         pStatusResponse->dwError = dwError;
-        pResponse->tag = SMB_GET_LOG_INFO_FAILED;
-        pResponse->object = pStatusResponse;
+        pOut->tag = SMB_GET_LOG_INFO_FAILED;
+        pOut->data = pStatusResponse;
         pStatusResponse = NULL;
 
         dwError = 0;
         goto cleanup;
     }
 
-    pResponse->tag = SMB_GET_LOG_INFO_SUCCESS;
-    pResponse->object = pLogInfo;
+    pOut->tag = SMB_GET_LOG_INFO_SUCCESS;
+    pOut->data = pLogInfo;
 
 cleanup:
 
@@ -170,9 +170,9 @@ error:
 
 static LWMsgDispatchSpec gLwIoDaemonIpcDispatchSpec[] =
 {
-    LWMSG_DISPATCH(SMB_REFRESH_CONFIG, LwIoDaemonIpcRefreshConfiguration),
-    LWMSG_DISPATCH(SMB_SET_LOG_INFO,   LwIoDaemonIpcSetLogInfo),
-    LWMSG_DISPATCH(SMB_GET_LOG_INFO,   LwIoDaemonIpcGetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(SMB_REFRESH_CONFIG, LwIoDaemonIpcRefreshConfiguration),
+    LWMSG_DISPATCH_NONBLOCK(SMB_SET_LOG_INFO,   LwIoDaemonIpcSetLogInfo),
+    LWMSG_DISPATCH_NONBLOCK(SMB_GET_LOG_INFO,   LwIoDaemonIpcGetLogInfo),
     LWMSG_DISPATCH_END
 };
 

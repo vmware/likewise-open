@@ -40,6 +40,15 @@
 #include <pthread.h>
 
 #include "context-private.h"
+#include "call-private.h"
+
+typedef struct ClientCall
+{
+    LWMsgCall base;
+    LWMsgClient* client;
+    LWMsgAssoc* assoc;
+    LWMsgBool destroy_assoc;
+} ClientCall;
 
 struct LWMsgClient
 {
@@ -47,10 +56,10 @@ struct LWMsgClient
     char* endpoint;
     LWMsgProtocol* protocol;
     LWMsgSessionManager* manager;
-    LWMsgAssoc** assoc_pool;
-    size_t volatile assoc_pool_capacity;
-    size_t volatile assoc_pool_created;
-    size_t volatile assoc_pool_available;
+    ClientCall** call_pool;
+    size_t volatile call_pool_capacity;
+    size_t volatile call_pool_created;
+    size_t volatile call_pool_available;
 
     pthread_mutex_t lock;
     pthread_cond_t event;
@@ -58,3 +67,14 @@ struct LWMsgClient
     const LWMsgContext* context;
     LWMsgErrorContext error;
 };
+
+LWMsgStatus
+lwmsg_client_call_new(
+    LWMsgClient* client,
+    ClientCall** call
+    );
+
+void
+lwmsg_client_call_delete(
+    ClientCall* call
+    );
