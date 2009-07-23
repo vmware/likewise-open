@@ -49,41 +49,41 @@
 
 DWORD
 LWNetSrvIpcGetDCName(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pRequest,
+    LWMsgParams* pResponse,
     void* data
     );
 
 LWMsgStatus
 LWNetSrvIpcGetDCList(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pRequest,
+    LWMsgParams* pResponse,
     void* data
     );
 
 DWORD
 LWNetSrvIpcGetDCTime(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pRequest,
+    LWMsgParams* pResponse,
     void* data
     );
 
 DWORD
 LWNetSrvIpcGetDomainController(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pRequest,
+    LWMsgParams* pResponse,
     void* data
     );
 
 DWORD
 LWNetSrvIpcGetCurrentDomain(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pRequest,
+    LWMsgParams* pResponse,
     void* data
     );
 

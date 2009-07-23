@@ -76,15 +76,15 @@ error:
 
 LWMsgStatus
 LWNetSrvIpcGetDCName(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     void* data
     )
 {
     DWORD dwError = 0;
     PLWNET_DC_INFO pDCInfo = NULL;
-    PLWNET_IPC_DCNAME_REQ pReq = pRequest->object;
+    PLWNET_IPC_DCNAME_REQ pReq = pIn->data;
     PLWNET_IPC_ERROR pError = NULL;
 
     dwError = LWNetSrvGetDCName(
@@ -98,16 +98,16 @@ LWNetSrvIpcGetDCName(
 
     if (!dwError)
     {
-        pResponse->tag = LWNET_R_DCINFO_SUCCESS;
-        pResponse->object = pDCInfo;
+        pOut->tag = LWNET_R_DCINFO_SUCCESS;
+        pOut->data = pDCInfo;
     }
     else
     {
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pResponse->tag = LWNET_R_DCINFO_FAILURE;;
-        pResponse->object = pError;
+        pOut->tag = LWNET_R_DCINFO_FAILURE;;
+        pOut->data = pError;
     }
     
 cleanup:
@@ -126,16 +126,16 @@ error:
 
 LWMsgStatus
 LWNetSrvIpcGetDCList(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     void* data
     )
 {
     DWORD dwError = 0;
     PLWNET_DC_ADDRESS pDcList = NULL;
     DWORD dwDcCount = 0;
-    PLWNET_IPC_DCNAME_REQ pReq = pRequest->object;
+    PLWNET_IPC_DCNAME_REQ pReq = pIn->data;
 
     dwError = LWNetSrvGetDCList(
                     pReq->pszDomainFQDN,
@@ -150,8 +150,8 @@ LWNetSrvIpcGetDCList(
         dwError = LWNetAllocateMemory(sizeof(*pRes), (PVOID*)&pRes);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        pResponse->tag = LWNET_R_DCLIST_SUCCESS;
-        pResponse->object = pRes;
+        pOut->tag = LWNET_R_DCLIST_SUCCESS;
+        pOut->data = pRes;
         pRes->pDcList = pDcList;
         pDcList = NULL;
         pRes->dwDcCount = dwDcCount;
@@ -163,8 +163,8 @@ LWNetSrvIpcGetDCList(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
 
-        pResponse->tag = LWNET_R_DCLIST_FAILURE;;
-        pResponse->object = pError;
+        pOut->tag = LWNET_R_DCLIST_FAILURE;;
+        pOut->data = pError;
     }
 
 cleanup:
@@ -183,14 +183,14 @@ error:
 
 DWORD
 LWNetSrvIpcGetDCTime(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     void* data
     )
 {
     DWORD dwError = 0;
-    PLWNET_IPC_DCTIME_REQ pReq = pRequest->object;
+    PLWNET_IPC_DCTIME_REQ pReq = pIn->data;
     PLWNET_IPC_DCTIME_RES pRes = NULL;
     PLWNET_IPC_ERROR pError = NULL;
 
@@ -203,16 +203,16 @@ LWNetSrvIpcGetDCTime(
 
     if (!dwError)
     {
-        pResponse->tag = LWNET_R_DCTIME_SUCCESS;
-        pResponse->object = pRes;
+        pOut->tag = LWNET_R_DCTIME_SUCCESS;
+        pOut->data = pRes;
     }
     else
     {
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pResponse->tag = LWNET_R_DCTIME_FAILURE;
-        pResponse->object = pError;
+        pOut->tag = LWNET_R_DCTIME_FAILURE;
+        pOut->data = pError;
     }
 
 cleanup:
@@ -232,14 +232,14 @@ error:
 
 DWORD
 LWNetSrvIpcGetDomainController(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     void* data
     )
 {
     DWORD dwError = 0;
-    PLWNET_IPC_DC_REQ pReq = pRequest->object;
+    PLWNET_IPC_DC_REQ pReq = pIn->data;
     PLWNET_IPC_DC_RES pRes = NULL;
     PLWNET_IPC_ERROR pError = NULL;
     
@@ -253,8 +253,8 @@ LWNetSrvIpcGetDomainController(
     
     if (!dwError)
     {
-        pResponse->tag = LWNET_R_DC_SUCCESS;
-        pResponse->object = pRes;
+        pOut->tag = LWNET_R_DC_SUCCESS;
+        pOut->data = pRes;
         
     }
     else
@@ -262,8 +262,8 @@ LWNetSrvIpcGetDomainController(
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pResponse->tag = LWNET_R_DC_FAILURE;
-        pResponse->object = pError;
+        pOut->tag = LWNET_R_DC_FAILURE;
+        pOut->data = pError;
     }
 
 cleanup:
@@ -285,9 +285,9 @@ error:
 
 DWORD
 LWNetSrvIpcGetCurrentDomain(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
     void* data
     )
 {
@@ -304,16 +304,16 @@ LWNetSrvIpcGetCurrentDomain(
     
     if (!dwError)
     {
-        pResponse->tag = LWNET_R_CURRENT_DOMAIN_SUCCESS;
-        pResponse->object = pRes;
+        pOut->tag = LWNET_R_CURRENT_DOMAIN_SUCCESS;
+        pOut->data = pRes;
     }
     else
     {
         dwError = LWNetSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LWNET_ERROR(dwError);
         
-        pResponse->tag = LWNET_R_CURRENT_DOMAIN_FAILURE;
-        pResponse->object = pError;
+        pOut->tag = LWNET_R_CURRENT_DOMAIN_FAILURE;
+        pOut->data = pError;
     }
     
 cleanup:
