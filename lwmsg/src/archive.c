@@ -466,7 +466,7 @@ lwmsg_archive_write_message(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    if (!archive->disp & LWMSG_ARCHIVE_WRITE)
+    if (!(archive->disp & LWMSG_ARCHIVE_WRITE))
     {
         ARCHIVE_RAISE_ERROR(archive, status = LWMSG_STATUS_INVALID_STATE,
                             "Archive not open for writing");
