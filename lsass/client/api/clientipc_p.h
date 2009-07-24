@@ -51,17 +51,23 @@
 
 #include <lwmsg/lwmsg.h>
 
-#if 0
-typedef struct __LSA_CLIENT_CONNECTION_CONTEXT {
-    int    fd;
-} LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
-#endif
-
 typedef struct __LSA_CLIENT_CONNECTION_CONTEXT
 {
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
 } LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
+
+DWORD
+LsaIpcAcquireCall(
+    HANDLE hServer,
+    LWMsgCall** ppCall
+    );
+
+DWORD
+LsaIpcUnregisterHandle(
+    LWMsgCall* pCall,
+    PVOID pHandle
+    );
 
 DWORD
 LsaTransactFindGroupByName(
