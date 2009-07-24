@@ -265,6 +265,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 0, /* ullSessionId */
                 0, /* status       */
                 TRUE, /* response */
+                FALSE,
                 NULL,
                 &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);

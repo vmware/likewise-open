@@ -240,6 +240,8 @@ SrvBuildLockRequest_SMB_V2(
     pLockRequest->ullCommandSequence = pSmbRequest->pHeader->ullCommandSequence;
     pLockRequest->ullSessionId = pSmbRequest->pHeader->ullSessionId;
     pLockRequest->ulPid = pSmbRequest->pHeader->ulPid;
+    pLockRequest->bIsPartOfCompoundRequest =
+                   pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_SMB2_LOCK_CONTEXT) * pRequestHeader->usLockCount,
@@ -674,6 +676,7 @@ SrvBuildLockResponse_SMB_V2(
                 pLockRequest->ullSessionId,
                 STATUS_SUCCESS,
                 TRUE,
+                pLockRequest->bIsPartOfCompoundRequest,
                 NULL,
                 &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);

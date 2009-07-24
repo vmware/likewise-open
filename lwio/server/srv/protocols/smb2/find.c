@@ -89,6 +89,7 @@ SrvProcessFind_SMB_V2(
     PLWIO_SRV_FILE_2    pFile        = NULL;
     PSMB2_FIND_REQUEST_HEADER  pRequestHeader  = NULL; // Do not free
     PSMB2_FIND_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    PSMB2_HEADER               pResponseSMBHeader = NULL; // Do not free
     UNICODE_STRING             wszFilename     = {0};
     PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
@@ -201,7 +202,8 @@ SrvProcessFind_SMB_V2(
                     pSession->ullUid,
                     STATUS_SUCCESS,
                     TRUE,
-                    NULL,
+                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    &pResponseSMBHeader,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -252,19 +254,62 @@ SrvProcessFind_SMB_V2(
 
             break;
     }
-    BAIL_ON_NT_STATUS(ntStatus);
 
-    pResponseHeader->usOutBufferOffset = ulDataOffset;
-    pResponseHeader->ulOutBufferLength = ulDataLength;
-    if (pResponseHeader->ulOutBufferLength)
+    switch (ntStatus)
     {
-        pResponseHeader->usLength++;
-    }
+        case STATUS_NO_MORE_MATCHES:
 
-    ulTotalBytesUsed += ulDataLength;
-    pOutBuffer += ulDataLength;
-    ulOffset += ulDataLength;
-    ulBytesAvailable -= ulDataLength;
+            pResponseSMBHeader->error = STATUS_NO_MORE_FILES;
+            pResponseHeader->usOutBufferOffset = 0;
+            pResponseHeader->ulOutBufferLength = 0;
+
+            if (ulBytesAvailable < 1)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulDataLength = 1;
+
+            *pData = 0xFF;
+
+            if (ulDataLength % 8)
+            {
+                USHORT usAlign = 8 - (ulDataLength % 8);
+
+                if (ulBytesAvailable < usAlign)
+                {
+                    ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                ulTotalBytesUsed += usAlign;
+                ulDataLength += usAlign;
+                ulOffset += usAlign;
+                ulBytesAvailable -= usAlign;
+            }
+
+            ntStatus = STATUS_SUCCESS;
+
+            break;
+
+        case STATUS_SUCCESS:
+
+            ulTotalBytesUsed += ulDataLength;
+            pOutBuffer += ulDataLength;
+            ulOffset += ulDataLength;
+            ulBytesAvailable -= ulDataLength;
+
+            pResponseHeader->usOutBufferOffset = ulDataOffset;
+            pResponseHeader->ulOutBufferLength = ulDataLength;
+
+            break;
+
+        default:
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSmbResponse->bufferUsed += ulTotalBytesUsed;
 

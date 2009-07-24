@@ -464,6 +464,7 @@ typedef struct _SRV_SMB2_LOCK_REQUEST
     LONG                   lPendingContexts;
 
     BOOLEAN                bResponseSent;
+    BOOLEAN                bIsPartOfCompoundRequest;
 
 } SRV_SMB2_LOCK_REQUEST;
 

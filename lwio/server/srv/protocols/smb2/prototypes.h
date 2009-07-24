@@ -253,6 +253,7 @@ SMB2MarshalHeader(
     IN              ULONG64       ullSessionId,
     IN              NTSTATUS      status,
     IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bIsPartOfCompoundMessage,
     IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
     IN OUT          PULONG        pulBytesUsed
     );

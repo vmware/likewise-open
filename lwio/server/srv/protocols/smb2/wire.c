@@ -100,6 +100,7 @@ SMB2MarshalHeader(
     IN              ULONG64       ullSessionId,
     IN              NTSTATUS      status,
     IN              BOOLEAN       bIsResponse,
+    IN              BOOLEAN       bIsPartOfCompoundMessage,
     IN OUT OPTIONAL PSMB2_HEADER* ppSMB2Header,
     IN OUT          PULONG        pulBytesUsed
     )
@@ -137,6 +138,10 @@ SMB2MarshalHeader(
     if (bIsResponse)
     {
         pSMB2Header->ulFlags |= SMB2_FLAGS_SERVER_TO_REDIR;
+    }
+    if (bIsPartOfCompoundMessage)
+    {
+        pSMB2Header->ulFlags |= SMB2_FLAGS_RELATED_OPERATION;
     }
 
     *pulBytesUsed = ulBytesUsed;
@@ -1762,7 +1767,7 @@ SMB2MarshalFindResponse(
     ulBytesAvailable -= sizeof(SMB2_FIND_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_FIND_RESPONSE_HEADER);
 
-    pResponseHeader->usLength = sizeof(SMB2_FIND_RESPONSE_HEADER);
+    pResponseHeader->usLength = sizeof(SMB2_FIND_RESPONSE_HEADER) + 1;
 
     if (ulDataOffset % 8)
     {
