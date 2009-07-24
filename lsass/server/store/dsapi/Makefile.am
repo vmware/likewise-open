@@ -1,4 +1,8 @@
+if ENABLE_MINIMAL
+noinst_LTLIBRARIES = libdsapi.la
+else
 provider_LTLIBRARIES = libdsapi.la
+endif
 
 libdsapi_la_SOURCES = \
         diradd.c      \

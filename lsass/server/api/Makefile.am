@@ -1,12 +1,12 @@
 if ENABLE_MINIMAL
+noinst_LTLIBRARIES = liblsaserverapi.la
 ADDITIONAL_CPPFLAGS = "-DMINIMAL_LSASS=1"
 ADDITIONAL_LIBS =
 else
+lib_LTLIBRARIES = liblsaserverapi.la
 ADDITIONAL_CPPFLAGS =
 ADDITIONAL_LIBS = @EVENTLOG_LIBS@
 endif
-
-lib_LTLIBRARIES = liblsaserverapi.la
 
 liblsaserverapi_la_SOURCES = \
        artefacts.c     \
