@@ -547,14 +547,6 @@ SrvMarshalBothDirInfoSearchResults(
     {
         ULONG ulInfoBytesRequired = 0;
 
-        if (ulDataOffset % 8)
-        {
-            USHORT usAlignment = (8 - (ulDataOffset % 8));
-
-            ulInfoBytesRequired += usAlignment;
-            ulDataOffset += usAlignment;
-        }
-
         ulInfoBytesRequired = sizeof(SMB2_FILE_BOTH_DIR_INFO_HEADER);
         ulDataOffset += sizeof(SMB2_FILE_BOTH_DIR_INFO_HEADER);
 
@@ -568,6 +560,14 @@ SrvMarshalBothDirInfoSearchResults(
         {
             ulInfoBytesRequired += sizeof(wchar16_t);
             ulDataOffset += sizeof(wchar16_t);
+        }
+
+        if (ulDataOffset % 8)
+        {
+            USHORT usAlignment = (8 - (ulDataOffset % 8));
+
+            ulInfoBytesRequired += usAlignment;
+            ulDataOffset += usAlignment;
         }
 
         if (ulBytesAvailable < ulInfoBytesRequired)
@@ -601,15 +601,6 @@ SrvMarshalBothDirInfoSearchResults(
         pInfoHeader = (PSMB2_FILE_BOTH_DIR_INFO_HEADER)pDataCursor;
 
         ulDataOffset = 0;
-
-        if (ulOffset % 8)
-        {
-            USHORT usAlignment = (8 - (ulOffset % 8));
-
-            pDataCursor += usAlignment;
-            ulOffset += usAlignment;
-            ulDataOffset += usAlignment;
-        }
 
         pInfoHeader->ulFileIndex = pFileInfoCursor->FileIndex;
         pInfoHeader->ulEaSize = pFileInfoCursor->EaSize;
@@ -657,6 +648,15 @@ SrvMarshalBothDirInfoSearchResults(
             pDataCursor += sizeof(wchar16_t);
             ulOffset += sizeof(wchar16_t);
             ulDataOffset += sizeof(wchar16_t);
+        }
+
+        if (ulOffset % 8)
+        {
+            USHORT usAlignment = (8 - (ulOffset % 8));
+
+            pDataCursor += usAlignment;
+            ulOffset += usAlignment;
+            ulDataOffset += usAlignment;
         }
 
         if (pFileInfoCursor->NextEntryOffset)

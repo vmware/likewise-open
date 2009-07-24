@@ -519,7 +519,7 @@ typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
     ULONG           ulEaSize;
     USHORT          usShortNameLength;
     WCHAR           wszShortName[12];
-    WCHAR           wszFileName[1];
+    // WCHAR           wszFileName[1];
 
 } __attribute__((__packed__)) SMB2_FILE_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_BOTH_DIR_INFO_HEADER;
