@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblwadvapi_memory.la
 
 liblwadvapi_memory_la_SOURCES = \
@@ -5,7 +7,8 @@ liblwadvapi_memory_la_SOURCES = \
        lwstr.c
 
 
-liblwadvapi_memory_la_CPPFLAGS =              \
+liblwadvapi_memory_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I@top_srcdir@/include
 
 
