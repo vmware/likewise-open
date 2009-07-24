@@ -125,7 +125,6 @@ SMBGetLogInfo(
 {
     NTSTATUS status = 0;
     SMB_REQUEST request = {0};
-    PVOID pResponse = NULL;
     PIO_CONTEXT pConnection = NULL;
     LWMsgCall* pCall = NULL;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
@@ -147,6 +146,8 @@ SMBGetLogInfo(
     switch (out.tag)
     {
         case SMB_GET_LOG_INFO_SUCCESS:
+            *ppLogInfo = out.data;
+            out.data = NULL;
             break;
 
         case SMB_GET_LOG_INFO_FAILED:
@@ -158,8 +159,6 @@ SMBGetLogInfo(
             break;
     }
     BAIL_ON_LWIO_ERROR(status);
-
-    *ppLogInfo = (PLWIO_LOG_INFO)pResponse;
 
 cleanup:
 
