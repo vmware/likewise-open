@@ -215,7 +215,7 @@ SrvDeleteFiles(
     PWSTR     pwszFilesystemPath2 = NULL;
     PWSTR     pwszSearchPattern2 = NULL;
 
-    ntStatus = SrvBuildSearchPath(
+    ntStatus = SrvFinderBuildSearchPath(
                     pwszFilesystemPath,
                     pwszSearchPattern,
                     &pwszFilesystemPath2,

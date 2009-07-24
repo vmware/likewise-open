@@ -88,6 +88,7 @@ SrvProcessCreate_SMB_V2(
     UNICODE_STRING              wszFileName = {0}; // Do not free
     PSRV_CREATE_CONTEXT         pCreateContexts = NULL;
     ULONG                       ulNumContexts = 0;
+    BOOLEAN bTreeInLock = FALSE;
 
     if (pContext->pFile)
     {
@@ -141,11 +142,15 @@ SrvProcessCreate_SMB_V2(
                     (PVOID*)&pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+
     ntStatus = SrvBuildFilePath(
                     pTree->pShareInfo->pwszPath,
                     pwszFilename,
                     &pFilename->FileName);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
 
     /* For named pipes, we need to pipe some extra data into the npfs driver
      *  - Session key
@@ -231,6 +236,8 @@ cleanup:
 
     if (pTree)
     {
+        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
         SrvTree2Release(pTree);
     }
 

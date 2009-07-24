@@ -503,6 +503,26 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
 
+typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    LONG64          ullCreationTime;
+    LONG64          ullLastAccessTime;
+    LONG64          ullLastWriteTime;
+    LONG64          ullChangeTime;
+    LONG64          ullEndOfFile;
+    LONG64          ullAllocationSize;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulFileNameLength;
+    ULONG           ulEaSize;
+    USHORT          usShortNameLength;
+    WCHAR           wszShortName[12];
+    WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_BOTH_DIR_INFO_HEADER,
+                             *PSMB2_FILE_BOTH_DIR_INFO_HEADER;
+
 typedef struct __SMB2_MESSAGE
 {
     PSMB2_HEADER pHeader;

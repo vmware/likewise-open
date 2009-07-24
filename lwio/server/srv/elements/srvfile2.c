@@ -176,5 +176,15 @@ SrvFile2Free(
         SrvFreeMemory(pFile->pwszFilename);
     }
 
+    if (pFile->searchSpace.pwszSearchPattern)
+    {
+        SrvFreeMemory(pFile->searchSpace.pwszSearchPattern);
+    }
+
+    if (pFile->searchSpace.pFileInfo)
+    {
+        SrvFreeMemory(pFile->searchSpace.pFileInfo);
+    }
+
     SrvFreeMemory(pFile);
 }

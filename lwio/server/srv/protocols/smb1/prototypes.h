@@ -112,14 +112,6 @@ SrvProcessTrans2FindFirst2(
     );
 
 NTSTATUS
-SrvBuildSearchPath(
-    IN  PWSTR  pwszPath,
-    IN  PWSTR  pwszSearchPattern,
-    OUT PWSTR* ppwszFilesystemPath,
-    OUT PWSTR* ppwszSearchPattern
-    );
-
-NTSTATUS
 SrvProcessTrans2FindNext2(
     IN  PLWIO_SRV_CONNECTION         pConnection,
     IN  PSMB_PACKET                 pSmbRequest,
