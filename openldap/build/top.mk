@@ -1,7 +1,7 @@
-# $OpenLDAP: pkg/ldap/build/top.mk,v 1.93.2.8 2006/01/03 22:16:01 kurt Exp $
+# $OpenLDAP: pkg/ldap/build/top.mk,v 1.103.2.9 2009/01/26 21:24:56 quanah Exp $
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2009 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ exec_prefix = @exec_prefix@
 ldap_subdir = @ldap_subdir@
 
 bindir = @bindir@
+datarootdir = @datarootdir@
 datadir = @datadir@$(ldap_subdir)
 includedir = @includedir@
 infodir = @infodir@
@@ -149,13 +150,17 @@ SUBST = $(SHTOOL) subst
 MANCOMPRESS=$(CAT)
 MANCOMPRESSSUFFIX=
 
+SOELIM=soelim
+
 INCLUDEDIR= $(top_srcdir)/include
 LDAP_INCPATH= -I$(LDAP_INCDIR) -I$(INCLUDEDIR)
 LDAP_LIBDIR= $(top_builddir)/libraries
 
 LUTIL_LIBS = @LUTIL_LIBS@
-LDBM_LIBS = @LDBM_LIBS@
 LTHREAD_LIBS = @LTHREAD_LIBS@
+
+BDB_LIBS = @BDB_LIBS@
+SLAPD_NDB_LIBS = @SLAPD_NDB_LIBS@
 
 LDAP_LIBLBER_LA = $(LDAP_LIBDIR)/liblber/liblber.la
 LDAP_LIBLDAP_LA = $(LDAP_LIBDIR)/libldap/libldap.la
@@ -167,10 +172,8 @@ LDAP_LIBLUTIL_A = $(LDAP_LIBDIR)/liblutil/liblutil.a
 
 LDAP_L = $(LDAP_LIBLUTIL_A) \
 	$(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA)
-SLURPD_L = $(LDAP_LIBLUTIL_A) \
-	$(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
 SLAPD_L = $(LDAP_LIBLUNICODE_A) $(LDAP_LIBREWRITE_A) \
-	$(SLURPD_L)
+	$(LDAP_LIBLUTIL_A) $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
 
 WRAP_LIBS = @WRAP_LIBS@
 # AutoConfig generated 
@@ -188,6 +191,7 @@ GSSAPI_LIBS = @GSSAPI_LIBS@
 TLS_LIBS = @TLS_LIBS@
 AUTH_LIBS = @AUTH_LIBS@
 SECURITY_LIBS = $(SASL_LIBS) $(KRB_LIBS) $(GSSAPI_LIBS) $(TLS_LIBS) $(AUTH_LIBS)
+ICU_LIBS = @ICU_LIBS@
 
 MODULES_CPPFLAGS = @SLAPD_MODULES_CPPFLAGS@
 MODULES_LDFLAGS = @SLAPD_MODULES_LDFLAGS@
@@ -198,8 +202,7 @@ SLAPD_SQL_LDFLAGS = @SLAPD_SQL_LDFLAGS@
 SLAPD_SQL_INCLUDES = @SLAPD_SQL_INCLUDES@
 SLAPD_SQL_LIBS = @SLAPD_SQL_LIBS@
 
-SLAPD_LIBS = @SLAPD_LIBS@ @SLAPD_PERL_LDFLAGS@ @SLAPD_SQL_LDFLAGS@ @SLAPD_SQL_LIBS@ @SLAPD_SLP_LIBS@ @SLAPD_GMP_LIBS@
-SLURPD_LIBS = @SLURPD_LIBS@
+SLAPD_LIBS = @SLAPD_LIBS@ @SLAPD_PERL_LDFLAGS@ @SLAPD_SQL_LDFLAGS@ @SLAPD_SQL_LIBS@ @SLAPD_SLP_LIBS@ @SLAPD_GMP_LIBS@ $(ICU_LIBS)
 
 # Our Defaults
 CC = $(AC_CC)

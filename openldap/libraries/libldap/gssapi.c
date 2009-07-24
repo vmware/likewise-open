@@ -1,7 +1,7 @@
-/* $OpenLDAP$ */
+/* $OpenLDAP: pkg/ldap/libraries/libldap/gssapi.c,v 1.1.2.3 2009/02/17 21:02:51 quanah Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2007 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Author: Stefan Metzmacher <metze@sernet.de>
@@ -72,11 +72,11 @@ gsserrstr(
 			   mech, &msg_ctx, &minor_msg);
 
 	snprintf(buf, buf_len, "gss_rc[%d:%*s] mech[%*s] minor[%u:%*s]",
-		 gss_rc, gss_msg.length,
+		 gss_rc, (int)gss_msg.length,
 		 (const char *)(gss_msg.value?gss_msg.value:""),
-		 mech_msg.length,
+		 (int)mech_msg.length,
 		 (const char *)(mech_msg.value?mech_msg.value:""),
-		 minor_status, minor_msg.length,
+		 minor_status, (int)minor_msg.length,
 		 (const char *)(minor_msg.value?minor_msg.value:""));
 
 	gss_release_buffer(&min2, &mech_msg);
@@ -209,7 +209,7 @@ sb_sasl_gssapi_encode(
 		ber_pvt_sb_grow_buffer( dst, pkt_len ) < 0 )
 	{
 		ber_log_printf( LDAP_DEBUG_ANY, p->sbiod->sbiod_sb->sb_debug,
-				"sb_sasl_gssapi_encode: failed to grow the buffer to %u bytes\n",
+				"sb_sasl_gssapi_encode: failed to grow the buffer to %lu bytes\n",
 				pkt_len );
 		return -1;
 	}
@@ -287,7 +287,7 @@ sb_sasl_gssapi_decode(
 		ber_pvt_sb_grow_buffer( dst, unwrapped.length ) < 0 )
 	{
 		ber_log_printf( LDAP_DEBUG_ANY, p->sbiod->sbiod_sb->sb_debug,
-				"sb_sasl_gssapi_decode: failed to grow the buffer to %u bytes\n",
+				"sb_sasl_gssapi_decode: failed to grow the buffer to %lu bytes\n",
 				pkt_len );
 		return -1;
 	}
@@ -351,8 +351,6 @@ map_gsserr2ldap(
 	int gss_rc,
 	OM_uint32 minor_status )
 {
-	OM_uint32 min2;
-	OM_uint32 msg_ctx = 0;
 	char msg[256];
 
 	Debug( LDAP_DEBUG_ANY, "%s\n",
@@ -551,7 +549,7 @@ guess_service_principal(
 		allow_remote = 1;
 	}
 
-	/* Try to figure out correct service principal from given
+	/* Try to figure out correct service principal form given
 	   available information */
 	if (allow_remote && givenstr) {
 		principal_fmt = "%s";
@@ -597,7 +595,7 @@ guess_service_principal(
 	}
 
 	ret = snprintf(svc_principal, svc_principal_size, principal_fmt, name);
-	if (ret < 0 || ret >= svc_principal_size) {
+	if (ret < 0 || (size_t)(ret+1) > svc_principal_size) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		return ld->ld_errno;
 	}
@@ -1036,7 +1034,9 @@ ldap_gssapi_bind(
 	LDAP *ld,
 	LDAP_CONST char *dn,
 	LDAP_CONST char *creds )
-{ return LDAP_NOT_SUPPORTED; }
+{
+	return LDAP_NOT_SUPPORTED;
+}
 
 int
 ldap_gssapi_bind_s(

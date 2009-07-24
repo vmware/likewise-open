@@ -1,8 +1,8 @@
 /* component.c -- Component Filter Match Routines */
-/* $OpenLDAP: pkg/ldap/servers/slapd/component.c,v 1.13.2.6 2006/01/03 22:16:13 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/servers/slapd/component.c,v 1.31.2.6 2009/01/22 00:01:00 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2006 The OpenLDAP Foundation.
+ * Copyright 2003-2009 The OpenLDAP Foundation.
  * Portions Copyright 2004 by IBM Corporation.
  * All rights reserved.
  *
@@ -179,7 +179,7 @@ dup_comp_ref ( Operation* op, ComponentReference* cr )
 		ci_curr = ci_curr->ci_next, ci_temp = &(*ci_temp)->ci_next )
 	{
 		*ci_temp = op->o_tmpalloc( sizeof( ComponentId ), op->o_tmpmemctx );
-		if ( !ci_temp ) return NULL;
+		if ( !*ci_temp ) return NULL;
 		**ci_temp = *ci_curr;
 	}
 
@@ -212,7 +212,7 @@ dup_comp_filter_list (
 int
 get_len_of_next_assert_value ( struct berval* bv, char separator )
 {
-	int i = 0;
+	ber_len_t i = 0;
 	while (1) {
 		if ( (bv->bv_val[ i ] == separator) || ( i >= bv->bv_len) )
 			break;
@@ -491,7 +491,10 @@ get_componentId( Operation *op, ComponentAssertionValue* cav,
 	if ( op ) {
 		*cid = op->o_tmpalloc( sizeof( ComponentId ), op->o_tmpmemctx );
 	} else {
-		*cid = malloc( sizeof( ComponentId ) );
+		*cid = SLAP_MALLOC( sizeof( ComponentId ) );
+	}
+	if (*cid == NULL) {
+		return LDAP_NO_MEMORY;
 	}
 	**cid = _cid;
 	return LDAP_SUCCESS;
@@ -564,7 +567,7 @@ get_component_reference(
 		ca_comp_ref = op->o_tmpalloc( sizeof( ComponentReference ),
 			op->o_tmpmemctx );
 	} else {
-		ca_comp_ref = malloc( sizeof( ComponentReference ) );
+		ca_comp_ref = SLAP_MALLOC( sizeof( ComponentReference ) );
 	}
 
 	if ( !ca_comp_ref ) return LDAP_NO_MEMORY;
@@ -580,6 +583,11 @@ get_component_reference(
 			cr_list = &(*cr_list)->ci_next;
 
 		} else if ( rc == LDAP_COMPREF_UNDEFINED ) {
+			if ( op ) {
+				op->o_tmpfree( ca_comp_ref , op->o_tmpmemctx );
+			} else {
+				free( ca_comp_ref );
+			}
 			return rc;
 		}
 	}
@@ -594,16 +602,8 @@ get_component_reference(
 		return rc;
 	}
 
-	if ( rc == LDAP_SUCCESS ) {	
-		*cr = ca_comp_ref;
-		**cr = *ca_comp_ref;	
-
-	} else if ( op ) {
-		 op->o_tmpfree( ca_comp_ref , op->o_tmpmemctx );
-
-	} else {
-		 free( ca_comp_ref ) ;
-	}
+	*cr = ca_comp_ref;
+	**cr = *ca_comp_ref;
 
 	(*cr)->cr_string.bv_val = start;
 	(*cr)->cr_string.bv_len = end - start + 1;
@@ -954,7 +954,7 @@ get_item( Operation *op, ComponentAssertionValue* cav, ComponentAssertion** ca,
 	if ( op )
 		_ca = op->o_tmpalloc( sizeof( ComponentAssertion ), op->o_tmpmemctx );
 	else
-		_ca = malloc( sizeof( ComponentAssertion ) );
+		_ca = SLAP_MALLOC( sizeof( ComponentAssertion ) );
 
 	if ( !_ca ) return LDAP_NO_MEMORY;
 
@@ -1076,7 +1076,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 	ber_tag_t	tag;
 	int		err;
 	ComponentFilter	f;
-	/* TAG : item, and, or, not in RFC 2254 */
+	/* TAG : item, and, or, not in RFC 4515 */
 	tag = strip_cav_tag( cav );
 
 	if ( tag == LBER_ERROR ) {
@@ -1173,7 +1173,10 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		if ( op ) {
 			*filt = op->o_tmpalloc( sizeof(f), op->o_tmpmemctx );
 		} else {
-			*filt = malloc( sizeof(f) );
+			*filt = SLAP_MALLOC( sizeof(f) );
+		}
+		if ( *filt == NULL ) {
+			return LDAP_NO_MEMORY;
 		}
 		**filt = f;
 	}

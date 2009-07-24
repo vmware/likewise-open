@@ -48,22 +48,27 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define ABORT_ON_ERROR(_x_)                                     \
-    do                                                          \
-    {                                                           \
-        if ((_x_))                                              \
-        {                                                       \
-            fprintf(stderr, "Expression failed: %s\n", #_x_);   \
-            abort();                                            \
-        }                                                       \
+#define LWMSG_ASSERT_SUCCESS(_x_)                                       \
+    do                                                                  \
+    {                                                                   \
+        LWMsgStatus __status__ = (_x_);                                 \
+        if (__status__)                                                 \
+        {                                                               \
+            fprintf(stderr,                                             \
+                    "%s:%i: Assertion failed with status %i: %s\n",     \
+                    __FILE__, __LINE__, __status__, #_x_);              \
+            abort();                                                    \
+        }                                                               \
     } while (0)
 
-#define ABORT_IF_FALSE(_x_)                                             \
+#define LWMSG_ASSERT(_x_)                                               \
     do                                                                  \
     {                                                                   \
         if (!(_x_))                                                     \
         {                                                               \
-            fprintf(stderr, "Expression was false: %s\n", #_x_);        \
+            fprintf(stderr,                                             \
+                    "%s:%i: Assertion failed: %s\n",                    \
+                    __FILE__, __LINE__, #_x_);                          \
             abort();                                                    \
         }                                                               \
     } while (0)
@@ -245,7 +250,7 @@ lwmsg_ring_sanity(
     LWMsgRing* ring
     )
 {
-    ABORT_IF_FALSE(ring->prev->next == ring && ring->next->prev == ring);
+    LWMSG_ASSERT(ring->prev->next == ring && ring->next->prev == ring);
 }
 
 static inline
@@ -257,7 +262,7 @@ lwmsg_ring_insert_after(
 {
     lwmsg_ring_sanity(anchor);
     lwmsg_ring_sanity(element);
-    ABORT_IF_FALSE(element->prev == element->next && element->prev == element);
+    LWMSG_ASSERT(element->prev == element->next && element->prev == element);
 
     element->next = anchor->next;
     element->prev = anchor;
@@ -275,7 +280,7 @@ lwmsg_ring_insert_before(
 {
     lwmsg_ring_sanity(anchor);
     lwmsg_ring_sanity(element);
-    ABORT_IF_FALSE(element->prev == element->next && element->prev == element);
+    LWMSG_ASSERT(element->prev == element->next && element->prev == element);
 
     element->next = anchor;
     element->prev = anchor->prev;

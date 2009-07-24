@@ -1,8 +1,8 @@
 dnl OpenLDAP Autoconf Macros
-dnl $OpenLDAP: pkg/ldap/build/openldap.m4,v 1.140.2.10 2006/01/03 22:16:01 kurt Exp $
+dnl $OpenLDAP: pkg/ldap/build/openldap.m4,v 1.157.2.9 2009/01/22 00:00:41 kurt Exp $
 dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
 dnl
-dnl Copyright 1998-2006 The OpenLDAP Foundation.
+dnl Copyright 1998-2009 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
 dnl Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,7 @@ EOF
 			done
 			rm -f conftest*
 		])
+		test "$ol_cv_mkdep" = no && OL_MKDEP=":"
 	else
 		cc_cv_mkdep=yes
 		OL_MKDEP_FLAGS="${MKDEP_FLAGS}"
@@ -118,6 +119,17 @@ if test $ol_cv_cpp_ebcdic = yes ; then
 fi
 ])
 dnl
+dnl --------------------------------------------------------------------
+dnl Check for MSVC
+AC_DEFUN([OL_MSVC],
+[AC_REQUIRE_CPP()dnl
+AC_CACHE_CHECK([whether we are using MS Visual C++], ol_cv_msvc,
+[AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#ifndef _MSC_VER
+#include <__FOO__/generate_error.h>
+#endif
+]])],[ol_cv_msvc=yes],[ol_cv_msvc=no])])])
+
 dnl --------------------------------------------------------------------
 dnl OpenLDAP version of STDC header check w/ EBCDIC support
 AC_DEFUN([OL_HEADER_STDC],
@@ -287,24 +299,6 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #define NULL ((void*)0)
 #endif
 ]], [[
-#if DB_VERSION_MAJOR > 1
-	{
-		char *version;
-		int major, minor, patch;
-
-		version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor < DB_VERSION_MINOR )
-		{
-			printf("Berkeley DB version mismatch\n"
-				"\theader: %s\n\tlibrary: %s\n",
-				DB_VERSION_STRING, version);
-			return 1;
-		}
-	}
-#endif
-
 #if DB_VERSION_MAJOR > 2
 	db_env_create( NULL, 0 );
 #elif DB_VERSION_MAJOR > 1
@@ -324,204 +318,53 @@ fi
 ])
 dnl
 dnl --------------------------------------------------------------------
+dnl Get major and minor version from <db.h>
+AC_DEFUN([OL_BDB_HEADER_VERSION],
+[AC_CACHE_CHECK([for Berkeley DB major version in db.h], [ol_cv_bdb_major],[
+	AC_LANG_CONFTEST([
+#include <db.h>
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+__db_version DB_VERSION_MAJOR
+])
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_major=${3}
+])
+case $ol_cv_bdb_major in [[1-9]]*) : ;; *)
+	AC_MSG_ERROR([Unknown Berkeley DB major version in db.h]) ;;
+esac
+
+dnl Determine minor version
+AC_CACHE_CHECK([for Berkeley DB minor version in db.h], [ol_cv_bdb_minor],[
+	AC_LANG_CONFTEST([
+#include <db.h>
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
+__db_version DB_VERSION_MINOR
+])
+	set X `eval "$ac_cpp conftest.$ac_ext" | $EGREP __db_version` none none
+	ol_cv_bdb_minor=${3}
+])
+case $ol_cv_bdb_minor in [[0-9]]*) : ;; *)
+	AC_MSG_ERROR([Unknown Berkeley DB minor version in db.h]) ;;
+esac
+])
+dnl
+dnl --------------------------------------------------------------------
 dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 
-dnl Determine major version
-AC_CACHE_CHECK([for Berkeley DB major version], [ol_cv_bdb_major],[
-	ol_cv_bdb_major=0
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 4
-__db_version
-#endif
-		], [ol_cv_bdb_major=4], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 3
-__db_version
-#endif
-		], [ol_cv_bdb_major=3], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 2
-__db_version
-#endif
-		], [ol_cv_bdb_major=2], [:])
-	fi
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-#if DB_VERSION_MAJOR == 1
-__db_version
-#endif
-		], [ol_cv_bdb_major=1], [:])
-	fi
-
-	if test $ol_cv_bdb_major = 0 ; then
-		AC_MSG_ERROR([Unknown Berkeley DB major version])
-	fi
-])
-
-dnl Determine minor version
-AC_CACHE_CHECK([for Berkeley DB minor version], [ol_cv_bdb_minor],[
-	ol_cv_bdb_minor=0
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 9
-__db_version
-#endif
-		], [ol_cv_bdb_minor=9], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 8
-__db_version
-#endif
-		], [ol_cv_bdb_minor=8], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 7
-__db_version
-#endif
-		], [ol_cv_bdb_minor=7], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 6
-__db_version
-#endif
-		], [ol_cv_bdb_minor=6], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 5
-__db_version
-#endif
-		], [ol_cv_bdb_minor=5], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 4
-__db_version
-#endif
-		], [ol_cv_bdb_minor=4], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 3
-__db_version
-#endif
-		], [ol_cv_bdb_minor=3], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 2
-__db_version
-#endif
-		], [ol_cv_bdb_minor=2], [:])
-	fi
-	if test $ol_cv_bdb_minor = 0 ; then
-		AC_EGREP_CPP(__db_version, [
-#include <db.h>
-#ifndef DB_VERSION_MINOR
-#	define DB_VERSION_MINOR 0
-#endif
-#if DB_VERSION_MINOR == 1
-__db_version
-#endif
-		], [ol_cv_bdb_minor=1], [:])
-	fi
-])
-
 if test $ol_cv_bdb_major = 4 ; then
-	if test $ol_cv_bdb_minor = 4 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db44,[-ldb44])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_44,[-ldb-44])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_4,[-ldb-4.4])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_4,[-ldb-4-4])
-	elif test $ol_cv_bdb_minor = 3 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db43,[-ldb43])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_43,[-ldb-43])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_3,[-ldb-4.3])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_3,[-ldb-4-3])
-	elif test $ol_cv_bdb_minor = 2 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db42,[-ldb42])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_42,[-ldb-42])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_2,[-ldb-4.2])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_2,[-ldb-4-2])
-	elif test $ol_cv_bdb_minor = 1 ; then
-		OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_1,[-ldb-4.1])
-		OL_BERKELEY_DB_TRY(ol_cv_db_db_4_1,[-ldb-4-1])
-	fi
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4_dot_m,[-ldb-4.$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db4m,[-ldb4$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4m,[-ldb-4$ol_cv_bdb_minor])
+	OL_BERKELEY_DB_TRY(ol_cv_db_db_4_m,[-ldb-4-$ol_cv_bdb_minor])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 	OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
-
-elif test $ol_cv_bdb_major = 3 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_3,[-ldb-3])
-
-elif test $ol_cv_bdb_major = 2 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_2,[-ldb-2])
-
-elif test $ol_cv_bdb_major = 1 ; then
-	OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
-	OL_BERKELEY_DB_TRY(ol_cv_db_db_1,[-ldb-1])
 fi
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
 ])
@@ -529,7 +372,7 @@ dnl
 dnl --------------------------------------------------------------------
 dnl Check if Berkeley DB version
 AC_DEFUN([OL_BERKELEY_DB_VERSION],
-[AC_CACHE_CHECK([for Berkeley DB version match], [ol_cv_berkeley_db_version], [
+[AC_CACHE_CHECK([for Berkeley DB library and header version match], [ol_cv_berkeley_db_version], [
 	ol_LIBS="$LIBS"
 	LIBS="$LTHREAD_LIBS $LIBS"
 	if test $ol_cv_lib_db != yes ; then
@@ -622,9 +465,9 @@ main()
 	}
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-	rc = env->open( env, NULL, flags, 0 );
+	rc = (env->open)( env, NULL, flags, 0 );
 #else
-	rc = env->open( env, NULL, NULL, flags, 0 );
+	rc = (env->open)( env, NULL, NULL, flags, 0 );
 #endif
 
 	if ( rc == 0 ) {
@@ -668,6 +511,13 @@ AC_DEFUN([OL_BERKELEY_DB],
 [ol_cv_berkeley_db=no
 AC_CHECK_HEADERS(db.h)
 if test $ac_cv_header_db_h = yes; then
+	OL_BDB_HEADER_VERSION
+	OL_BDB_COMPAT
+
+	if test $ol_cv_bdb_compat != yes ; then
+		AC_MSG_ERROR([BerkeleyDB version incompatible with BDB/HDB backends])
+	fi
+
 	OL_BERKELEY_DB_LINK
 	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
@@ -679,7 +529,7 @@ fi
 dnl --------------------------------------------------------------------
 dnl Check for version compatility with back-bdb
 AC_DEFUN([OL_BDB_COMPAT],
-[AC_CACHE_CHECK([Berkeley DB version for BDB/HDB backends], [ol_cv_bdb_compat],[
+[AC_CACHE_CHECK([if Berkeley DB version supported by BDB/HDB backends], [ol_cv_bdb_compat],[
 	AC_EGREP_CPP(__db_version_compat,[
 #include <db.h>
 
@@ -691,190 +541,15 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MINOR 0
 #endif
 
-/* require 4.2 or later */
-#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 2)
+#define DB_VERSION_MM	((DB_VERSION_MAJOR<<8)|DB_VERSION_MINOR)
+
+/* require 4.4 or later */
+#if DB_VERSION_MM >= 0x0404
 	__db_version_compat
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
 ])
 
-dnl --------------------------------------------------------------------
-dnl Find old Berkeley DB 1.85/1.86
-AC_DEFUN([OL_BERKELEY_COMPAT_DB],
-[AC_CHECK_HEADERS(db_185.h db.h)
-if test $ac_cv_header_db_185_h = yes || test $ac_cv_header_db_h = yes; then
-	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
-		AC_EGREP_CPP(__db_version_1,[
-#if HAVE_DB_185_H
-#	include <db_185.h>
-#else
-#	include <db.h>
-#endif
-
- /* this check could be improved */
-#ifndef DB_VERSION_MAJOR
-#	define DB_VERSION_MAJOR 1
-#endif
-
-#if DB_VERSION_MAJOR == 1 
-	__db_version_1
-#endif
-],	[ol_cv_header_db1=yes], [ol_cv_header_db1=no])])
-
-	if test $ol_cv_header_db1 = yes ; then
-		OL_BERKELEY_DB_LINK
-		if test "$ol_cv_lib_db" != no ; then
-			ol_cv_berkeley_db=yes
-		fi
-	fi
-fi
-])
-dnl
-dnl ====================================================================
-dnl Check if GDBM library exists
-dnl Check for gdbm_open in standard libraries or -lgdbm
-dnl
-dnl defines ol_cv_lib_gdbm to 'yes' or '-lgdbm' or 'no'
-dnl		'yes' implies gdbm_open is in $LIBS
-dnl
-dnl uses:
-dnl		AC_CHECK_FUNC(gdbm_open)
-dnl		AC_CHECK_LIB(gdbm,gdbm_open)
-dnl
-AC_DEFUN([OL_LIB_GDBM],
-[AC_CACHE_CHECK(for GDBM library, [ol_cv_lib_gdbm],
-[	ol_LIBS="$LIBS"
-	AC_CHECK_FUNC(gdbm_open,[ol_cv_lib_gdbm=yes], [
-		AC_CHECK_LIB(gdbm,gdbm_open,[ol_cv_lib_gdbm=-lgdbm],[ol_cv_lib_gdbm=no])
-	])
-	LIBS="$ol_LIBS"
-])
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if GDBM exists
-dnl
-dnl defines ol_cv_gdbm to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_GDBM
-dnl		AC_CHECK_HEADERS(gdbm.h)
-dnl
-AC_DEFUN([OL_GDBM],
-[AC_REQUIRE([OL_LIB_GDBM])
- AC_CHECK_HEADERS(gdbm.h)
- AC_CACHE_CHECK(for db, [ol_cv_gdbm], [
-	if test $ol_cv_lib_gdbm = no || test $ac_cv_header_gdbm_h = no ; then
-		ol_cv_gdbm=no
-	else
-		ol_cv_gdbm=yes
-	fi
-])
- if test $ol_cv_gdbm = yes ; then
-	AC_DEFINE(HAVE_GDBM,1, [define if GNU DBM is available])
- fi
-])dnl
-dnl
-dnl ====================================================================
-dnl Check if MDBM library exists
-dnl Check for mdbm_open in standard libraries or -lmdbm
-dnl
-dnl defines ol_cv_lib_mdbm to 'yes' or '-lmdbm' or 'no'
-dnl		'yes' implies mdbm_open is in $LIBS
-dnl
-dnl uses:
-dnl		AC_CHECK_FUNC(mdbm_set_chain)
-dnl		AC_CHECK_LIB(mdbm,mdbm_set_chain)
-dnl
-AC_DEFUN([OL_LIB_MDBM],
-[AC_CACHE_CHECK(for MDBM library, [ol_cv_lib_mdbm],
-[	ol_LIBS="$LIBS"
-	AC_CHECK_FUNC(mdbm_set_chain,[ol_cv_lib_mdbm=yes], [
-		AC_CHECK_LIB(mdbm,mdbm_set_chain,[ol_cv_lib_mdbm=-lmdbm],[ol_cv_lib_mdbm=no])
-	])
-	LIBS="$ol_LIBS"
-])
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if MDBM exists
-dnl
-dnl defines ol_cv_mdbm to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_MDBM
-dnl		AC_CHECK_HEADERS(mdbm.h)
-dnl
-AC_DEFUN([OL_MDBM],
-[AC_REQUIRE([OL_LIB_MDBM])
- AC_CHECK_HEADERS(mdbm.h)
- AC_CACHE_CHECK(for db, [ol_cv_mdbm], [
-	if test $ol_cv_lib_mdbm = no || test $ac_cv_header_mdbm_h = no ; then
-		ol_cv_mdbm=no
-	else
-		ol_cv_mdbm=yes
-	fi
-])
- if test $ol_cv_mdbm = yes ; then
-	AC_DEFINE(HAVE_MDBM,1, [define if MDBM is available])
- fi
-])dnl
-dnl
-dnl ====================================================================
-dnl Check if NDBM library exists
-dnl Check for dbm_open in standard libraries or -lndbm or -ldbm
-dnl
-dnl defines ol_cv_lib_ndbm to 'yes' or '-lndbm' or -ldbm or 'no'
-dnl		'yes' implies ndbm_open is in $LIBS
-dnl
-dnl uses:
-dnl		AC_CHECK_FUNC(dbm_open)
-dnl		AC_CHECK_LIB(ndbm,dbm_open)
-dnl		AC_CHECK_LIB(dbm,dbm_open)
-dnl
-dnl restrictions:
-dnl		should also check SVR4 case: dbm_open() in -lucb but that
-dnl		would requiring dealing with -L/usr/ucblib
-dnl
-AC_DEFUN([OL_LIB_NDBM],
-[AC_CACHE_CHECK(for NDBM library, [ol_cv_lib_ndbm],
-[	ol_LIBS="$LIBS"
-	AC_CHECK_FUNC(dbm_open,[ol_cv_lib_ndbm=yes], [
-		AC_CHECK_LIB(ndbm,dbm_open,[ol_cv_lib_ndbm=-lndbm], [
-			AC_CHECK_LIB(dbm,dbm_open,[ol_cv_lib_ndbm=-ldbm],
-				[ol_cv_lib_ndbm=no])dnl
-		])
-	])
-	LIBS="$ol_LIBS"
-])
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if NDBM exists
-dnl
-dnl defines ol_cv_ndbm to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_NDBM
-dnl		AC_CHECK_HEADERS(ndbm.h)
-dnl
-dnl restrictions:
-dnl		Doesn't handle SVR4 case (see above)
-dnl
-AC_DEFUN([OL_NDBM],
-[AC_REQUIRE([OL_LIB_NDBM])
- AC_CHECK_HEADERS(ndbm.h)
- AC_CACHE_CHECK(for db, [ol_cv_ndbm], [
-	if test $ol_cv_lib_ndbm = no || test $ac_cv_header_ndbm_h = no ; then
-		ol_cv_ndbm=no
-	else
-		ol_cv_ndbm=yes
-	fi
-])
- if test $ol_cv_ndbm = yes ; then
-	AC_DEFINE(HAVE_NDBM,1, [define if NDBM is available])
- fi
-])dnl
 dnl
 dnl ====================================================================
 dnl Check POSIX Thread version 
@@ -1167,7 +842,7 @@ AC_DEFUN([OL_SYS_ERRLIST],
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
-#ifdef WINNT
+#ifdef _WIN32
 #include <stdlib.h>
 #endif ]], [[char *c = (char *) *sys_errlist]])],[ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes],[ol_cv_dcl_sys_errlist=no])])
@@ -1246,7 +921,9 @@ AC_DEFUN([OL_LIB_FETCH],
 LIBS="-lfetch -lcom_err $LIBS"
 AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include <stdio.h>
 #include <fetch.h>]], [[struct url *u = fetchParseURL("file:///"); ]])],[ol_cv_lib_fetch=yes],[ol_cv_lib_fetch=no])])
 LIBS=$ol_LIBS
@@ -1439,17 +1116,16 @@ AC_DEFUN([OL_SASL_COMPAT],
 dnl ====================================================================
 dnl check for SSL compatibility
 AC_DEFUN([OL_SSL_COMPAT],
-[AC_CACHE_CHECK([OpenSSL library version (CRL checking capability)], [ol_cv_ssl_crl_compat],[
-	AC_EGREP_CPP(__ssl_compat,[
+[AC_CACHE_CHECK([OpenSSL library version (CRL checking capability)],
+	[ol_cv_ssl_crl_compat],[
+		AC_EGREP_CPP(__ssl_compat,[
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
-#else
-#include <ssl.h>
 #endif
 
 /* Require 0.9.7d+ */
 #if OPENSSL_VERSION_NUMBER >= 0x0090704fL
 	char *__ssl_compat = "0.9.7d";
 #endif
-	],	[ol_cv_ssl_crl_compat=yes], [ol_cv_ssl_crl_compat=no])])
+	], [ol_cv_ssl_crl_compat=yes], [ol_cv_ssl_crl_compat=no])])
 ])

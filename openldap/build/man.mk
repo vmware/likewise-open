@@ -1,7 +1,7 @@
-# $OpenLDAP: pkg/ldap/build/man.mk,v 1.27.2.5 2006/01/03 22:16:01 kurt Exp $
+# $OpenLDAP: pkg/ldap/build/man.mk,v 1.32.2.5 2009/01/22 00:00:41 kurt Exp $
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2009 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@ all-common:
 	PAGES=`cd $(srcdir); echo *.$(MANSECT)`; \
 	for page in $$PAGES; do \
 		$(SED) -e "s%LDVERSION%$(VERSION)%" \
-			-e 's%ETCDIR%$(sysconfdir)%' \
+			-e 's%ETCDIR%$(sysconfdir)%g' \
 			-e 's%LOCALSTATEDIR%$(localstatedir)%' \
 			-e 's%SYSCONFDIR%$(sysconfdir)%' \
 			-e 's%DATADIR%$(datadir)%' \
@@ -32,7 +32,8 @@ all-common:
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
 			-e 's%RELEASEDATE%$(RELEASEDATE)%' \
-			$(srcdir)/$$page > $$page.$(TMP_SUFFIX); \
+				$(srcdir)/$$page \
+			| (cd $(srcdir); $(SOELIM) -) > $$page.$(TMP_SUFFIX); \
 	done
 
 install-common:

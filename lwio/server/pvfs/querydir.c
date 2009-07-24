@@ -55,7 +55,7 @@
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileBothDirectoryInformation,     &PvfsFileBothDirInfo },
     { FileDirectoryInformation,         &PvfsFileDirInfo },
-    { FileFullDirectoryInformation,     NULL },
+    { FileFullDirectoryInformation,     &PvfsFileFullDirInfo },
     { FileIdBothDirectoryInformation,   NULL },
     { FileIdFullDirectoryInformation,   NULL },
     { FileNamesInformation,             NULL },

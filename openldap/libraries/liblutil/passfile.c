@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/libraries/liblutil/passfile.c,v 1.6.2.2 2006/01/03 22:16:11 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/libraries/liblutil/passfile.c,v 1.8.2.5 2009/03/09 23:16:48 quanah Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2006 The OpenLDAP Foundation.
+ * Copyright 1998-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ lutil_get_filed_password(
 	}
 
 	passwd->bv_val = NULL;
-	passwd->bv_len = 4196;
+	passwd->bv_len = 4096;
 
 #ifdef HAVE_FSTAT
 	{
@@ -56,12 +56,13 @@ lutil_get_filed_password(
 					filename );
 			}
 
-			passwd->bv_len = sb.st_size;
+			if ( sb.st_size )
+				passwd->bv_len = sb.st_size;
 		}
 	}
 #endif /* HAVE_FSTAT */
 
-	passwd->bv_val = (char *) malloc( passwd->bv_len + 1 );
+	passwd->bv_val = (char *) ber_memalloc( passwd->bv_len + 1 );
 	if( passwd->bv_val == NULL ) {
 		perror( filename );
 		return -1;
@@ -72,10 +73,10 @@ lutil_get_filed_password(
 	do {
 		if( nleft == 0 ) {
 			/* double the buffer size */
-			char *p = (char *) realloc( passwd->bv_val,
+			char *p = (char *) ber_memrealloc( passwd->bv_val,
 				2 * passwd->bv_len + 1 );
 			if( p == NULL ) {
-				free( passwd->bv_val );
+				ber_memfree( passwd->bv_val );
 				passwd->bv_val = NULL;
 				passwd->bv_len = 0;
 				return -1;
@@ -88,7 +89,7 @@ lutil_get_filed_password(
 		nr = fread( &passwd->bv_val[nread], 1, nleft, f );
 
 		if( nr < nleft && ferror( f ) ) {
-			free( passwd->bv_val );
+			ber_memfree( passwd->bv_val );
 			passwd->bv_val = NULL;
 			passwd->bv_len = 0;
 			return -1;

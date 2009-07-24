@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/libraries/librewrite/rewrite-int.h,v 1.15.2.5 2006/01/03 22:16:11 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/libraries/librewrite/rewrite-int.h,v 1.20.2.5 2009/03/09 23:16:48 quanah Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,13 @@
 #include <avl.h>
 
 #include <rewrite.h>
+
+#define malloc(x)	ber_memalloc(x)
+#define calloc(x,y)	ber_memcalloc(x,y)
+#define realloc(x,y)	ber_memrealloc(x,y)
+#define free(x)	ber_memfree(x)
+#undef strdup
+#define	strdup(x)	ber_strdup(x)
 
 /* Uncomment to use ldap pvt threads */
 #define USE_REWRITE_LDAP_PVT_THREADS
@@ -157,10 +164,11 @@ struct rewrite_map {
  * Builtin maps
  */
 struct rewrite_builtin_map {
-#define REWRITE_BUILTIN_MAP_LDAP	0x0201
+#define REWRITE_BUILTIN_MAP	0x0200
 	int                             lb_type;
 	char                           *lb_name;
 	void                           *lb_private;
+	const rewrite_mapper		   *lb_mapper;
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_mutex_t         lb_mutex;

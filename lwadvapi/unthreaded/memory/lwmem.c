@@ -43,10 +43,10 @@
  */
 #include "includes.h"
 
-DWORD
+LW_DWORD
 LwAllocateMemory(
-    DWORD dwSize,
-    PVOID * ppMemory
+    LW_IN LW_DWORD dwSize,
+    LW_OUT LW_PVOID* ppMemory
     )
 {
     DWORD dwError = 0;
@@ -64,11 +64,11 @@ LwAllocateMemory(
     return dwError;
 }
 
-DWORD
+LW_DWORD
 LwReallocMemory(
-    PVOID  pMemory,
-    PVOID * ppNewMemory,
-    DWORD dwSize
+    LW_IN LW_PVOID pMemory,
+    LW_OUT LW_PVOID* ppNewMemory,
+    LW_IN LW_DWORD dwSize
     )
 {
     DWORD dwError = 0;
@@ -90,9 +90,9 @@ LwReallocMemory(
     return dwError;
 }
 
-void
+LW_VOID
 LwFreeMemory(
-    PVOID pMemory
+    LW_IN LW_OUT LW_PVOID pMemory
     )
 {
     free(pMemory);

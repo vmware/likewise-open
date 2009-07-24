@@ -137,10 +137,8 @@ lwmsg_assoc_call_get_session(
 {
     LWMsgAssoc* assoc = LWMSG_OBJECT_FROM_MEMBER(call, LWMsgAssoc, call);
     LWMsgSession* session = NULL;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    status = lwmsg_assoc_get_session(assoc, &session);
-    ABORT_IF_FALSE(status);
+    LWMSG_ASSERT_SUCCESS(lwmsg_assoc_get_session(assoc, &session));
 
     return session;
 }

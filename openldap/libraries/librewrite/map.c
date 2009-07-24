@@ -1,7 +1,7 @@
-/* $OpenLDAP: pkg/ldap/libraries/librewrite/map.c,v 1.18.2.3 2006/01/03 22:16:11 kurt Exp $ */
+/* $OpenLDAP: pkg/ldap/libraries/librewrite/map.c,v 1.21.2.6 2009/01/22 00:00:58 kurt Exp $ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2006 The OpenLDAP Foundation.
+ * Copyright 2000-2009 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,10 @@
 
 #include "rewrite-int.h"
 #include "rewrite-map.h"
+
+static int num_mappers;
+static const rewrite_mapper **mappers;
+#define	MAPPER_ALLOC	8
 
 struct rewrite_map *
 rewrite_map_parse(
@@ -84,6 +88,9 @@ rewrite_map_parse(
 	 */
 	l = p - string - 1;
 	s = calloc( sizeof( char ), l + 1 );
+	if ( s == NULL ) {
+		return NULL;
+	}
 	AC_MEMCPY( s, string, l );
 	s[ l ] = 0;
 
@@ -227,6 +234,10 @@ rewrite_map_parse(
 		 */
 		map->lm_type = REWRITE_MAP_SUBCONTEXT;
 		map->lm_name = strdup( s + 1 );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		map->lm_data = rewrite_context_find( info, s + 1 );
 		if ( map->lm_data == NULL ) {
 			rc = -1;
@@ -262,6 +273,10 @@ rewrite_map_parse(
 				map->lm_name = strdup( s + 1 );
 			}
 		}
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -275,6 +290,10 @@ rewrite_map_parse(
 			map->lm_type = REWRITE_MAP_GET_OP_VAR;
 			map->lm_name = strdup( s + 1 );
 		}
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -283,6 +302,10 @@ rewrite_map_parse(
 	case REWRITE_OPERATOR_PARAM_GET:		/* '$' */
 		map->lm_type = REWRITE_MAP_GET_PARAM;
 		map->lm_name = strdup( s + 1 );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		break;
 	
 	/*
@@ -291,6 +314,10 @@ rewrite_map_parse(
 	default:
 		map->lm_type = REWRITE_MAP_BUILTIN;
 		map->lm_name = strdup( s );
+		if ( map->lm_name == NULL ) {
+			rc = -1;
+			goto cleanup;
+		}
 		map->lm_data = rewrite_builtin_map_find( info, s );
 		if ( map->lm_data == NULL ) {
 			rc = -1;
@@ -354,7 +381,12 @@ rewrite_map_apply(
 				( struct rewrite_context * )map->lm_data,
 				key->bv_val, &val->bv_val );
 		if ( val->bv_val != NULL ) {
-			val->bv_len = strlen( val->bv_val );
+			if ( val->bv_val == key->bv_val ) {
+				val->bv_len = key->bv_len;
+				key->bv_val = NULL;
+			} else {
+				val->bv_len = strlen( val->bv_val );
+			}
 		}
 		break;
 
@@ -363,11 +395,16 @@ rewrite_map_apply(
 		rc = rewrite_var_set( &op->lo_vars, map->lm_name,
 				key->bv_val, 1 )
 			? REWRITE_SUCCESS : REWRITE_ERR;
-		if ( map->lm_type == REWRITE_MAP_SET_OP_VAR ) {
-			val->bv_val = strdup( "" );
-		} else {
-			val->bv_val = strdup( key->bv_val );
-			val->bv_len = key->bv_len;
+		if ( rc == REWRITE_SUCCESS ) {
+			if ( map->lm_type == REWRITE_MAP_SET_OP_VAR ) {
+				val->bv_val = strdup( "" );
+			} else {
+				val->bv_val = strdup( key->bv_val );
+				val->bv_len = key->bv_len;
+			}
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;
 	
@@ -380,6 +417,9 @@ rewrite_map_apply(
 		} else {
 			val->bv_val = strdup( var->lv_value.bv_val );
 			val->bv_len = var->lv_value.bv_len;
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;	
 	}
@@ -392,11 +432,16 @@ rewrite_map_apply(
 		}
 		rc = rewrite_session_var_set( info, op->lo_cookie, 
 				map->lm_name, key->bv_val );
-		if ( map->lm_type == REWRITE_MAP_SET_SESN_VAR ) {
-			val->bv_val = strdup( "" );
-		} else {
-			val->bv_val = strdup( key->bv_val );
-			val->bv_len = key->bv_len;
+		if ( rc == REWRITE_SUCCESS ) {
+			if ( map->lm_type == REWRITE_MAP_SET_SESN_VAR ) {
+				val->bv_val = strdup( "" );
+			} else {
+				val->bv_val = strdup( key->bv_val );
+				val->bv_len = key->bv_len;
+			}
+			if ( val->bv_val == NULL ) {
+				rc = REWRITE_ERR;
+			}
 		}
 		break;
 
@@ -412,14 +457,12 @@ rewrite_map_apply(
 	case REWRITE_MAP_BUILTIN: {
 		struct rewrite_builtin_map *bmap = map->lm_data;
 
-		switch ( bmap->lb_type ) {
-		case REWRITE_BUILTIN_MAP_LDAP:
-			rc = map_ldap_apply( bmap, key->bv_val, val );
-			break;
-		default:
+		if ( bmap->lb_mapper && bmap->lb_mapper->rm_apply )
+			rc = bmap->lb_mapper->rm_apply( bmap->lb_private, key->bv_val,
+				val );
+		else
 			rc = REWRITE_ERR;
 			break;
-		}
 		break;
 	}
 
@@ -440,15 +483,8 @@ rewrite_builtin_map_free(
 
 	assert( map != NULL );
 
-	switch ( map->lb_type ) {
-	case REWRITE_BUILTIN_MAP_LDAP:
-		map_ldap_destroy( &map );
-		break;
-
-	default:
-		assert(0);
-		break;
-	}
+	if ( map->lb_mapper && map->lb_mapper->rm_destroy )
+		map->lb_mapper->rm_destroy( map->lb_private );
 
 	free( map->lb_name );
 	free( map );
@@ -490,3 +526,58 @@ rewrite_map_destroy(
 	return 0;
 }
 
+/* ldapmap.c */
+extern const rewrite_mapper rewrite_ldap_mapper;
+
+const rewrite_mapper *
+rewrite_mapper_find(
+	const char *name
+)
+{
+	int i;
+
+	if ( !strcasecmp( name, "ldap" ))
+		return &rewrite_ldap_mapper;
+
+	for (i=0; i<num_mappers; i++)
+		if ( !strcasecmp( name, mappers[i]->rm_name ))
+			return mappers[i];
+	return NULL;
+}
+
+int
+rewrite_mapper_register(
+	const rewrite_mapper *map
+)
+{
+	if ( num_mappers % MAPPER_ALLOC == 0 ) {
+		const rewrite_mapper **mnew;
+		mnew = realloc( mappers, (num_mappers + MAPPER_ALLOC) *
+			sizeof( rewrite_mapper * ));
+		if ( mnew )
+			mappers = mnew;
+		else
+			return -1;
+	}
+	mappers[num_mappers++] = map;
+	return 0;
+}
+
+int
+rewrite_mapper_unregister(
+	const rewrite_mapper *map
+)
+{
+	int i;
+
+	for (i = 0; i<num_mappers; i++) {
+		if ( mappers[i] == map ) {
+			num_mappers--;
+			mappers[i] = mappers[num_mappers];
+			mappers[num_mappers] = NULL;
+			return 0;
+		}
+	}
+	/* not found */
+	return -1;
+}

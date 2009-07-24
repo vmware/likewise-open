@@ -105,6 +105,12 @@ PvfsFileAllocationInfo(
 /* QueryDirectoryInformation */
 
 NTSTATUS
+PvfsFileFullDirInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsFileBothDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
@@ -115,6 +121,7 @@ PvfsFileDirInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
     );
+
 
 
 /* QueryVolumeInformation */

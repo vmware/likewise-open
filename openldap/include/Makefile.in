@@ -1,8 +1,8 @@
 # include Makefile.in for OpenLDAP
-# $OpenLDAP: pkg/ldap/include/Makefile.in,v 1.30.2.3 2006/01/03 22:16:06 kurt Exp $
+# $OpenLDAP: pkg/ldap/include/Makefile.in,v 1.33.2.4 2009/01/22 00:00:51 kurt Exp $
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2006 The OpenLDAP Foundation.
+## Copyright 1998-2009 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    libexecdir=`cygpath -w $(libexecdir) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
+	    moduledir=`cygpath -w $(moduledir) | \
+		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	    localstatedir=`cygpath -w $(localstatedir) | \
 		$(SED) -e 's/\\\\/\\\\\\\\\\\\\\\\/g'`; \
 	else \
@@ -58,6 +60,7 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 	    bindir=$(bindir); \
 	    sbindir=$(sbindir); \
 	    libexecdir=$(libexecdir); \
+	    moduledir=$(moduledir); \
 	    localstatedir=$(localstatedir); \
 	    localedir=$(localedir); \
 	fi; \
@@ -67,6 +70,7 @@ ldap_config.h: $(LDAP_CONFIG) Makefile
 			-e "s;%BINDIR%;$$bindir;" \
 			-e "s;%SBINDIR%;$$sbindir;" \
 			-e "s;%LIBEXECDIR%;$$libexecdir;" \
+			-e "s;%MODULEDIR%;$$moduledir;" \
 			-e "s;%RUNDIR%;$$localstatedir;" \
 			-e "s;%LOCALEDIR%;$$localedir;" \
 			 $(LDAP_CONFIG) >> $@; \
