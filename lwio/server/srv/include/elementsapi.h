@@ -344,6 +344,18 @@ typedef struct _SMB_FS_INFO_VOLUME_HEADER
 } __attribute__((__packed__)) SMB_FS_INFO_VOLUME_HEADER,
                              *PSMB_FS_INFO_VOLUME_HEADER;
 
+typedef struct _SMB_FS_FULL_INFO_HEADER
+{
+    ULONG64 ullAllocationSize;
+    ULONG64 ullTotalAllocationUnits;
+    ULONG64 ullAvailableAllocationUnits;
+    ULONG   ulSectorsPerAllocationUnit;
+    ULONG   ulBytesPerSector;
+
+} __attribute__((__packed__)) SMB_FS_FULL_INFO_HEADER,
+                             *PSMB_FS_FULL_INFO_HEADER;
+
+
 NTSTATUS
 SrvElementsInit(
     VOID
