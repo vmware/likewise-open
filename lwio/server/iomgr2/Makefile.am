@@ -1,4 +1,8 @@
+if ENABLE_STATIC_DRIVERS
+noinst_LTLIBRARIES = libiomgr2.la
+else
 lib_LTLIBRARIES = libiomgr2.la
+endif
 
 libiomgr2_la_SOURCES = \
     ioinit.c \
