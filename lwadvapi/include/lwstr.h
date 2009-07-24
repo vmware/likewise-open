@@ -111,7 +111,7 @@ LwStripLeadingWhitespace(
     );
 
 LW_DWORD
-LW_LwStrIsAllSpace(
+LwStrIsAllSpace(
     LW_PCSTR pszString,
     LW_PBOOLEAN pbIsAllSpace
     );
