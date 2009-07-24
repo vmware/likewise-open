@@ -234,12 +234,19 @@ static CENTERROR WriteNsswitchConfiguration(const char *rootPrefix, NsswitchConf
     int i;
     char *tempName = NULL;
     char *finalName = NULL;
+    char *prefixedPath = NULL;
     FILE *file = NULL;
     memset(&printedLine, 0, sizeof(printedLine));
 
-    DJ_LOG_INFO("Writing nsswitch configuration for %s", conf->filename);
+    GCE(ceError = CTAllocateStringPrintf(&prefixedPath, "%s%s", rootPrefix, conf->filename));
 
-    GCE(ceError = CTAllocateStringPrintf(&tempName, "%s%s.new", rootPrefix, conf->filename));
+    GCE(ceError = CTGetFileTempPath(
+                        prefixedPath,
+                        &finalName,
+                        &tempName));
+
+    DJ_LOG_INFO("Writing nsswitch configuration for %s", finalName);
+
     ceError = CTOpenFile(tempName, "w", &file);
     if(!CENTERROR_IS_OK(ceError))
     {
@@ -256,13 +263,9 @@ static CENTERROR WriteNsswitchConfiguration(const char *rootPrefix, NsswitchConf
     GCE(ceError = CTCloseFile(file));
     file = NULL;
 
-    /* Make sure to set perms */
-
-    GCE(ceError = CTChangePermissions(tempName, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH));
-
-    GCE(ceError = CTAllocateStringPrintf(&finalName, "%s%s", rootPrefix, conf->filename));
-    GCE(ceError = CTBackupFile(finalName));
-    GCE(ceError = CTMoveFile(tempName, finalName));
+    GCE(ceError = CTSafeReplaceFile(
+            finalName,
+            tempName));
     DJ_LOG_INFO("File moved into place");
 
 cleanup:
@@ -271,6 +274,7 @@ cleanup:
     CTArrayFree(&printedLine);
     CT_SAFE_FREE_STRING(tempName);
     CT_SAFE_FREE_STRING(finalName);
+    CT_SAFE_FREE_STRING(prefixedPath);
     return ceError;
 }
 
@@ -1029,6 +1033,8 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
     PCSTR addString;
     PSTR restartPath = NULL;
     PSTR restartCommand = NULL;
+    char *tempName = NULL;
+    char *finalName = NULL;
 
     LW_CLEANUP_CTERR(exc, IsApparmorConfigured(&configured));
     if(configured == enable)
@@ -1039,7 +1045,12 @@ static void ConfigureApparmor(BOOLEAN enable, LWException **exc)
     if(!hasApparmor)
         goto cleanup;
 
-    LW_CLEANUP_CTERR(exc, CTCheckFileHoldsPattern(APPARMOR_NSSWITCH,
+    GCE(ceError = CTGetFileTempPath(
+                        APPARMOR_NSSWITCH,
+                        &finalName,
+                        &tempName));
+
+    LW_CLEANUP_CTERR(exc, CTCheckFileHoldsPattern(finalName,
                 "mr,", &usingMr));
 
     if(usingMr)
@@ -1060,19 +1071,19 @@ LOCALSTATEDIR "/tmp/.lsaclient_*              rw,\n";
 
     if(enable)
     {
-        LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
-        LW_CLEANUP_CTERR(exc, CTOpenFile(APPARMOR_NSSWITCH ".new", "a", &file));
+        LW_CLEANUP_CTERR(exc, CTCopyFileWithOriginalPerms(finalName, tempName));
+        LW_CLEANUP_CTERR(exc, CTOpenFile(tempName, "a", &file));
         LW_CLEANUP_CTERR(exc, CTFilePrintf(file, "# likewise\n%s# end likewise\n",
                     addString));
 
         CTSafeCloseFile(&file);
 
-        LW_CLEANUP_CTERR(exc, CTSafeReplaceFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH ".new"));
+        LW_CLEANUP_CTERR(exc, CTSafeReplaceFile(finalName, tempName));
     }
     else
     {
-        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*likewise[ \t]*$/,/^[ \t]*#[ \t]*end likewise[ \t]*$/d"));
-        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(APPARMOR_NSSWITCH, APPARMOR_NSSWITCH, FALSE, "/^[ \t]*#[ \t]*centeris[ \t]*$/,/^[ \t]*#[ \t]*end centeris[ \t]*$/d"));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(finalName, finalName, FALSE, "/^[ \t]*#[ \t]*likewise[ \t]*$/,/^[ \t]*#[ \t]*end likewise[ \t]*$/d"));
+        LW_CLEANUP_CTERR(exc, CTRunSedOnFile(finalName, finalName, FALSE, "/^[ \t]*#[ \t]*centeris[ \t]*$/,/^[ \t]*#[ \t]*end centeris[ \t]*$/d"));
     }
 
 
@@ -1098,10 +1109,12 @@ cleanup:
     if(file != NULL)
     {
         CTCloseFile(file);
-        CTRemoveFile(APPARMOR_NSSWITCH ".new");
+        CTRemoveFile(tempName);
     }
     CT_SAFE_FREE_STRING(restartPath);
     CT_SAFE_FREE_STRING(restartCommand);
+    CT_SAFE_FREE_STRING(tempName);
+    CT_SAFE_FREE_STRING(finalName);
 }
 
 static CENTERROR UnsuportedSeLinuxEnabled(BOOLEAN *hasBadSeLinux)

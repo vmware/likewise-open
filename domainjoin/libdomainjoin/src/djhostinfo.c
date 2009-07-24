@@ -400,36 +400,6 @@ error:
 }
 
 static
-CENTERROR
-GetTmpPath(
-    PCSTR pszOriginalPath,
-    PSTR* ppszTmpPath
-    )
-{
-    CENTERROR ceError = CENTERROR_SUCCESS;
-    PCSTR pszSuffix = ".domainjoin";
-    PSTR pszTmpPath = NULL;
-
-    ceError = CTAllocateMemory(strlen(pszOriginalPath)+strlen(pszSuffix)+1,
-                               PPCAST(&pszTmpPath));
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    strcpy(pszTmpPath, pszOriginalPath);
-    strcat(pszTmpPath, pszSuffix);
-
-    *ppszTmpPath = pszTmpPath;
-
-    return ceError;
-
-error:
-
-    if (pszTmpPath)
-        CTFreeString(pszTmpPath);
-
-    return ceError;
-}
-
-static
 BOOLEAN
 IsComment(
     PSTR pszLine
@@ -456,6 +426,7 @@ DJReplaceNameValuePair(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pszTmpPath = NULL;
+    PSTR pszFinalPath = NULL;
     FILE* fpSrc = NULL;
     FILE* fpDst = NULL;
     regex_t rx;
@@ -465,7 +436,10 @@ DJReplaceNameValuePair(
 
     memset(&rx, 0, sizeof(rx));
 
-    ceError = GetTmpPath(pszFilePath, &pszTmpPath);
+    ceError = CTGetFileTempPath(
+                        pszFilePath,
+                        &pszFinalPath,
+                        &pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     sprintf(szRegExp, "^[[:space:]]*%s[[:space:]]*=.*$", pszName);
@@ -475,7 +449,7 @@ DJReplaceNameValuePair(
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
-    if ((fpSrc = fopen(pszFilePath, "r")) == NULL) {
+    if ((fpSrc = fopen(pszFinalPath, "r")) == NULL) {
         ceError = CTMapSystemError(errno);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
@@ -520,10 +494,7 @@ DJReplaceNameValuePair(
     fclose(fpSrc); fpSrc = NULL;
     fclose(fpDst); fpDst = NULL;
 
-    ceError = CTBackupFile(pszFilePath);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTMoveFile(pszTmpPath, pszFilePath);
+    ceError = CTSafeReplaceFile(pszFinalPath, pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     bRemoveFile = FALSE;
@@ -541,8 +512,8 @@ error:
     if (bRemoveFile)
         CTRemoveFile(pszTmpPath);
 
-    if (pszTmpPath)
-        CTFreeString(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszFinalPath);
 
     return ceError;
 }
@@ -688,7 +659,6 @@ DJRestartDHCPService(
     int EE = 0;
     BOOLEAN bFileExists = FALSE;
     PSTR dhcpFilePath = "/etc/sysconfig/network/dhcp";
-    PSTR dhcpFilePathNew = "/etc/sysconfig/network/dhcp.new";
     PSTR  ppszArgs[] =
         { "/bin/sed",
           "s/^.*\\(DHCLIENT_SET_HOSTNAME\\).*=.*$/\\1=\\\"no\\\"/",
@@ -707,16 +677,22 @@ DJRestartDHCPService(
         };
     PPROCINFO pProcInfo = NULL;
     LONG status = 0;
+    PSTR pszFinalPath = NULL;
+    PSTR pszTmpPath = NULL;
 
     ceError = CTCheckFileExists(dhcpFilePath, &bFileExists);
     CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
-    if (bFileExists) {
-
-        ceError = CTBackupFile(dhcpFilePath);
+    if (bFileExists)
+    {
+        ceError = CTGetFileTempPath(
+                            dhcpFilePath,
+                            &pszFinalPath,
+                            &pszTmpPath);
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
-        ceError = DJSpawnProcessOutputToFile(ppszArgs[0], ppszArgs, dhcpFilePathNew, &pProcInfo);
+        ppszArgs[2] = pszFinalPath;
+        ceError = DJSpawnProcessOutputToFile(ppszArgs[0], ppszArgs, pszTmpPath, &pProcInfo);
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
 
         ceError = DJGetProcessStatus(pProcInfo, &status);
@@ -727,8 +703,7 @@ DJRestartDHCPService(
             CLEANUP_ON_CENTERROR_EE(ceError, EE);
         }
 
-        // Now move temp file into place
-        ceError = CTMoveFile(dhcpFilePathNew, dhcpFilePath);
+        ceError = CTSafeReplaceFile(pszFinalPath, pszTmpPath);
         CLEANUP_ON_CENTERROR_EE(ceError, EE);
     }
 
@@ -759,6 +734,9 @@ cleanup:
         FreeProcInfo(pProcInfo);
 
     DJ_LOG_VERBOSE("DJRestartDHCPService LEAVE -> 0x%08x (EE = %d)", ceError, EE);
+
+    CT_SAFE_FREE_STRING(pszFinalPath);
+    CT_SAFE_FREE_STRING(pszTmpPath);
 
     return ceError;
 }

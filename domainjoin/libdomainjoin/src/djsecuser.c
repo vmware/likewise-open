@@ -61,6 +61,7 @@ UnconfigureUserSecurity(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PCSTR pszFilePath = NULL;
+    PSTR pszFinalPath = NULL;
     PSTR pszTmpPath = NULL;
     BOOLEAN bFileExists = FALSE;
     FILE* fp = NULL;
@@ -82,7 +83,13 @@ UnconfigureUserSecurity(
     if (!bFileExists)
         goto cleanup;
 
-    GCE(ceError = CTOpenFile(pszFilePath, "r", &fp));
+    ceError = CTGetFileTempPath(
+                        pszFilePath,
+                        &pszFinalPath,
+                        &pszTmpPath);
+    GCE(ceError);
+
+    GCE(ceError = CTOpenFile(pszFinalPath, "r", &fp));
     GCE(ceError = CTReadLines(fp, &lines));
     GCE(ceError = CTSafeCloseFile(&fp));
 
@@ -104,20 +111,18 @@ UnconfigureUserSecurity(
     GCE(ceError = CTAllocateStringPrintf(&newSystem, "%s%s", currentSystem, afterLwi));
     GCE(ceError = SetAuthSystem(&lines, newSystem));
 
-    GCE(ceError = CTAllocateStringPrintf(&pszTmpPath, "%s.new", pszFilePath));
-
     GCE(ceError = CTOpenFile(pszTmpPath, "w", &fp_new));
     GCE(ceError = CTWriteLines(fp_new, &lines));
     GCE(ceError = CTSafeCloseFile(&fp_new));
-    GCE(ceError = CTCloneFilePerms(pszFilePath, pszTmpPath));
-    GCE(ceError = CTBackupFile(pszFilePath));
-    GCE(ceError = CTMoveFile(pszTmpPath, pszFilePath));
+
+    GCE(ceError = CTSafeReplaceFile(pszFinalPath, pszTmpPath));
 
 cleanup:
     CTSafeCloseFile(&fp);
     CTSafeCloseFile(&fp_new);
 
     CT_SAFE_FREE_STRING(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszFinalPath);
     CT_SAFE_FREE_STRING(currentSystem);
     CT_SAFE_FREE_STRING(newSystem);
     CTFreeLines(&lines);
@@ -139,6 +144,7 @@ ConfigureUserSecurity(
     DynamicArray lines;
     PSTR currentSystem = NULL;
     PSTR newSystem = NULL;
+    PSTR pszFinalPath = NULL;
 
     memset(&lines, 0, sizeof(lines));
     if (IsNullOrEmptyString(pszConfigFilePath))
@@ -150,6 +156,12 @@ ConfigureUserSecurity(
 
     if (!bFileExists)
         goto cleanup;
+
+    ceError = CTGetFileTempPath(
+                        pszFilePath,
+                        &pszFinalPath,
+                        &pszTmpPath);
+    GCE(ceError);
 
     GCE(ceError = CTOpenFile(pszFilePath, "r", &fp));
     GCE(ceError = CTReadLines(fp, &lines));
@@ -170,14 +182,14 @@ ConfigureUserSecurity(
     GCE(ceError = CTOpenFile(pszTmpPath, "w", &fp_new));
     GCE(ceError = CTWriteLines(fp_new, &lines));
     GCE(ceError = CTSafeCloseFile(&fp_new));
-    GCE(ceError = CTCloneFilePerms(pszFilePath, pszTmpPath));
-    GCE(ceError = CTBackupFile(pszFilePath));
-    GCE(ceError = CTMoveFile(pszTmpPath, pszFilePath));
+
+    GCE(ceError = CTSafeReplaceFile(pszFilePath, pszTmpPath));
 
 cleanup:
     CTSafeCloseFile(&fp);
     CTSafeCloseFile(&fp_new);
 
+    CT_SAFE_FREE_STRING(pszFinalPath);
     CT_SAFE_FREE_STRING(pszTmpPath);
     CT_SAFE_FREE_STRING(currentSystem);
     CT_SAFE_FREE_STRING(newSystem);

@@ -390,12 +390,20 @@ static CENTERROR WriteSshConfiguration(const char *rootPrefix, struct SshConf *c
     int i;
     char *tempName = NULL;
     char *finalName = NULL;
+    char *prefixedPath = NULL;
     FILE *file = NULL;
     memset(&printedLine, 0, sizeof(printedLine));
 
     DJ_LOG_INFO("Writing ssh configuration for %s", conf->filename);
 
-    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&tempName, "%s%s.new", rootPrefix, conf->filename));
+    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&prefixedPath, "%s%s", rootPrefix, conf->filename));
+
+    ceError = CTGetFileTempPath(
+                        prefixedPath,
+                        &finalName,
+                        &tempName);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
     ceError = CTOpenFile(tempName, "w", &file);
     if(!CENTERROR_IS_OK(ceError))
     {
@@ -411,15 +419,14 @@ static CENTERROR WriteSshConfiguration(const char *rootPrefix, struct SshConf *c
 
     BAIL_ON_CENTERIS_ERROR(ceError = CTCloseFile(file));
     file = NULL;
-    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&finalName, "%s%s", rootPrefix, conf->filename));
-    BAIL_ON_CENTERIS_ERROR(ceError = CTBackupFile(finalName));
-    BAIL_ON_CENTERIS_ERROR(ceError = CTMoveFile(tempName, finalName));
+    BAIL_ON_CENTERIS_ERROR(ceError = CTSafeReplaceFile(finalName, tempName));
     DJ_LOG_INFO("File moved into place");
 
 error:
     if(file != NULL)
         CTCloseFile(file);
     CTArrayFree(&printedLine);
+    CT_SAFE_FREE_STRING(prefixedPath);
     CT_SAFE_FREE_STRING(tempName);
     CT_SAFE_FREE_STRING(finalName);
     return ceError;

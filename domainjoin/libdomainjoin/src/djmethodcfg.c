@@ -100,6 +100,7 @@ DJFixMethodsConfigFile()
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     PSTR pszTmpPath = NULL;
+    PSTR pszFinalPath = NULL;
     BOOLEAN bRemoveFile = FALSE;
     BOOLEAN isConfigured = FALSE;
     FILE* fp = NULL;
@@ -109,14 +110,13 @@ DJFixMethodsConfigFile()
     if(isConfigured)
         goto done;
 
-    ceError = CTAllocateMemory(strlen(methodsPath)+sizeof(".domainjoin"),
-                               (PVOID*)&pszTmpPath);
+    ceError = CTGetFileTempPath(
+                        methodsPath,
+                        &pszFinalPath,
+                        &pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    strcpy(pszTmpPath, methodsPath);
-    strcat(pszTmpPath, ".domainjoin");
-
-    ceError = CTCopyFileWithOriginalPerms(methodsPath, pszTmpPath);
+    ceError = CTCopyFileWithOriginalPerms(pszFinalPath, pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     bRemoveFile = TRUE;
@@ -130,10 +130,7 @@ DJFixMethodsConfigFile()
     fprintf(fp, "\tprogram = /usr/lib/security/LSASS\n");
     fclose(fp); fp = NULL;
 
-    ceError = CTBackupFile(methodsPath);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    ceError = CTMoveFile(pszTmpPath, methodsPath);
+    ceError = CTSafeReplaceFile(pszFinalPath, pszTmpPath);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     bRemoveFile = FALSE;
@@ -147,8 +144,8 @@ error:
     if (bRemoveFile)
         CTRemoveFile(pszTmpPath);
 
-    if (pszTmpPath)
-        CTFreeString(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszFinalPath);
 
     return ceError;
 }
