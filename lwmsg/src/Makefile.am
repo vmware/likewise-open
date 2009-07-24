@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = liblwmsg_nothr.la liblwmsg.la
 
 AM_CFLAGS = @LWMSG_CFLAGS@
-AM_CPPFLAGS = @LWMSG_CPPFLAGS@
+AM_CPPFLAGS = @LWMSG_CPPFLAGS@ -I$(top_srcdir)/include
 
 liblwmsg_nothr_la_SOURCES = \
 	assoc.c \
@@ -37,7 +37,7 @@ liblwmsg_nothr_la_SOURCES = \
 	archive-format.c
 
 liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@
-liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg_nothr.sym
+liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(srcdir)/liblwmsg_nothr.sym
 
 liblwmsg_la_SOURCES = \
 	server.c \
@@ -49,4 +49,4 @@ liblwmsg_la_SOURCES = \
 	session-shared.c
 
 liblwmsg_la_LIBADD = liblwmsg_nothr.la @LIB_PTHREAD@
-liblwmsg_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols liblwmsg.sym
+liblwmsg_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(srcdir)/liblwmsg.sym
