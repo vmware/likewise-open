@@ -23,7 +23,6 @@ liblsass_auth_provider_ad_la_SOURCES = \
        ad_marshal_nss_artefact.c \
        adnetapi.c                \
        state_store.c             \
-       cache.c                   \
        cellldap.c                \
        defldap.c                 \
        enumstate.c               \

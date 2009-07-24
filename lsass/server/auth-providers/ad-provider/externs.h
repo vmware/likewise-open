@@ -83,11 +83,6 @@ extern BOOLEAN gbShutdownProvider;
 
 extern PAD_PROVIDER_DATA  gpADProviderData;
 
-extern pthread_t       gCacheReaperThread;
-extern pthread_mutex_t gCacheReaperThreadLock;
-extern pthread_cond_t  gCacheReaperThreadCondition;
-extern pthread_t*      gpCacheReaperThread;
-
 extern DWORD gdwMachinePasswordSyncThreadWaitSecs;
 
 extern pthread_t       gMachinePasswordSyncThread;

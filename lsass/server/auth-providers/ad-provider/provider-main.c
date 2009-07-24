@@ -319,9 +319,6 @@ LSA_INITIALIZE_PROVIDER(ad)(
     dwError = LsaUmInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADInitCacheReaper();
-    BAIL_ON_LSA_ERROR(dwError);
-
     dwError = ADStartMachinePasswordSync();
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -377,7 +374,6 @@ error:
                            dwError);
     }
 
-    ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
 
     // This will clean up media sense too.
@@ -411,7 +407,6 @@ LSA_SHUTDOWN_PROVIDER(ad)(
 
     ADUnprovPlugin_Cleanup();
 
-    ADShutdownCacheReaper();
     ADShutdownMachinePasswordSync();
 
     dwError = AD_NetShutdownMemory();

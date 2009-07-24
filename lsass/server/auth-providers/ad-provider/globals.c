@@ -58,11 +58,6 @@ BOOLEAN gbShutdownProvider = FALSE;
 
 PAD_PROVIDER_DATA gpADProviderData = NULL;
 
-pthread_t       gCacheReaperThread;
-pthread_mutex_t gCacheReaperThreadLock      = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  gCacheReaperThreadCondition = PTHREAD_COND_INITIALIZER;
-pthread_t*      gpCacheReaperThread = NULL;
-
 /*
  * Machine Password
  */
