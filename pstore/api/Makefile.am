@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblwpsapi.la
 
 liblwpsapi_la_SOURCES =  \

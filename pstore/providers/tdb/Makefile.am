@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 if ENABLE_STATIC_PROVIDERS
 noinst_LTLIBRARIES = liblwps-tdb.la
 PROVIDER_CFLAGS =
