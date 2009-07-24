@@ -527,7 +527,7 @@ SMBSocketReceiveAndUnmarshall(
 
     pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
     pPacket->pData = NULL;
-    pPacket->bufferUsed = bufferUsed;
+    pPacket->bufferUsed = pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER);
 
 error:
 

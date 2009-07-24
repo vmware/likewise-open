@@ -63,6 +63,7 @@ RdrTransactFindNext2(
     PSMB_FIND_NEXT2_RESPONSE_PARAMETERS pReplyParameters = NULL;
     PBYTE pReplyData = NULL;
     USHORT usReplyByteCount = 0;
+    USHORT usReplyDataCount = 0;
 
     ntStatus = SMBPacketBufferAllocate(
         pTree->pSession->pSocket->hPacketAllocator,
@@ -191,13 +192,16 @@ RdrTransactFindNext2(
     ntStatus = UnmarshalUshort((PBYTE*) &pusReplyByteCount, NULL, &usReplyByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (usReplyByteCount > (pResponsePacket->bufferUsed - ((PBYTE) pReplyData - (PBYTE) pResponsePacket->pSMBHeader)))
+    usReplyDataCount = SMB_LTOH16(pResponseHeader->dataCount);
+
+    if (usReplyByteCount > (pResponsePacket->bufferUsed - ((PBYTE) pusReplyByteCount  - (PBYTE) pResponsePacket->pRawBuffer) - sizeof(USHORT)) ||
+        usReplyDataCount > (pResponsePacket->bufferUsed - ((PBYTE) pReplyData - (PBYTE) pResponsePacket->pRawBuffer)))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (usReplyByteCount > ulResultLength)
+    if (usReplyDataCount > ulResultLength)
     {
         ntStatus = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntStatus);
