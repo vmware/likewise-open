@@ -527,30 +527,6 @@ error:
 }
 
 static
-BOOLEAN
-LsaDmEnginepIsSpecialDomainName(
-    IN PCSTR pszDomainName
-    )
-{
-    return (!strcasecmp(pszDomainName, "BUILTIN") ||
-            !strcasecmp(pszDomainName, "NT AUTHORITY"));
-}
-
-// Prefix for standard (not system, built-in, etc) accounts.
-#define NT_NON_UNIQUE_SID_PREFIX "S-1-5-21-"
-
-static
-BOOLEAN
-LsaDmEnginepIsSpecialSidPrefix(
-    IN PCSTR pszObjectSid
-    )
-{
-    // The NT non-unique SID prefix (S-1-5-21) is the prefix used
-    // for standard accounts.
-    return !strncasecmp(pszObjectSid, NT_NON_UNIQUE_SID_PREFIX, sizeof(NT_NON_UNIQUE_SID_PREFIX)-1) ? FALSE : TRUE;
-}
-
-static
 DWORD
 LsaDmEnginepGetDomainSidFromObjectSidString(
     OUT PSID* ppDomainSid,
@@ -649,7 +625,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
     ADAccountType accountType = AccountType_NotFound;
 
     if (IsNullOrEmptyString(pszDomainName) ||
-        LsaDmEnginepIsSpecialDomainName(pszDomainName))
+        AdIsSpecialDomainName(pszDomainName))
     {
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
@@ -762,7 +738,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     PSID pDomainSid = NULL;
 
     if (IsNullOrEmptyString(pszObjectSid) ||
-        LsaDmEnginepIsSpecialSidPrefix(pszObjectSid))
+        AdIsSpecialDomainSidPrefix(pszObjectSid))
     {
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);

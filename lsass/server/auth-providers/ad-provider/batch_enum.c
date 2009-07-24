@@ -275,6 +275,7 @@ LsaAdBatchEnumProcessRealMessages(
     LDAP* pLd = LwLdapGetSession(hDirectory);
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD dwObjectsCount = 0;
+    LSA_AD_BATCH_ITEM batchItem = { { 0 }, 0 };
 
     dwError = LsaAllocateMemory(
                     dwCount * sizeof(*ppObjects),
@@ -284,8 +285,6 @@ LsaAdBatchEnumProcessRealMessages(
     pCurrentMessage = ldap_first_entry(pLd, pMessages);
     while (pCurrentMessage)
     {
-        LSA_AD_BATCH_ITEM batchItem = { { 0 }, 0 };
-
         dwError = LsaAdBatchGatherRealObjectInternal(
                         &batchItem,
                         &dwDirectoryMode,
@@ -296,19 +295,30 @@ LsaAdBatchEnumProcessRealMessages(
                         pCurrentMessage);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaAdBatchMarshal(
-                        pszDnsDomainName,
-                        pszNetbiosDomainName,
-                        &batchItem,
-                        &ppObjects[dwObjectsCount]);
-        BAIL_ON_LSA_ERROR(dwError);
+        //
+        // Need to discard special groups (such as BUILTIN)
+        // that can show up in domain group enumeration.
+        //
+        if (!AdIsSpecialDomainSidPrefix(batchItem.pszSid))
+        {
+            dwError = LsaAdBatchMarshal(
+                            pszDnsDomainName,
+                            pszNetbiosDomainName,
+                            &batchItem,
+                            &ppObjects[dwObjectsCount]);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        dwObjectsCount++;
+            dwObjectsCount++;
+        }
+
+        LsaAdBatchDestroyBatchItemContents(&batchItem);
 
         pCurrentMessage = ldap_next_entry(pLd, pCurrentMessage);
     }
 
 cleanup:
+    LsaAdBatchDestroyBatchItemContents(&batchItem);
+
     *pdwObjectsCount = dwObjectsCount;
     *pppObjects = ppObjects;
 
@@ -373,11 +383,22 @@ LsaAdBatchEnumProcessPseudoMessages(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = LsaAllocateString(pszSidFromKeywords,
-                                    &ppszSids[dwSidsCount]);
-        BAIL_ON_LSA_ERROR(dwError);
+        //
+        // There should never be any special groups (such as BUILTIN)
+        // that were provisioned in the domain.
+        //
+        if (!AdIsSpecialDomainSidPrefix(pszSidFromKeywords))
+        {
+            dwError = LsaAllocateString(pszSidFromKeywords,
+                                        &ppszSids[dwSidsCount]);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        dwSidsCount++;
+            dwSidsCount++;
+        }
+        else
+        {
+            LSA_LOG_WARNING("Got unexpected special domain SID in enumeration of pseudo-objects: '%s'", pszSidFromKeywords);
+        }
 
         LsaFreeStringArray(ppszKeywordValues, dwKeywordValuesCount);
         ppszKeywordValues = NULL;
