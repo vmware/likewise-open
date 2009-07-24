@@ -201,7 +201,7 @@ PvfsCreateFileSupersede(
         ntError = PvfsCheckShareMode(
                       pCreateCtx->pszDiskFilename,
                       Args.ShareAccess,
-                      Args.DesiredAccess,
+                      pCreateCtx->GrantedAccess,
                       &pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
@@ -233,7 +233,7 @@ PvfsCreateFileSupersede(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->GrantedAccess = FILE_ALL_ACCESS;
+    pCreateCtx->GrantedAccess = Args.DesiredAccess;
 
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
@@ -243,7 +243,7 @@ PvfsCreateFileSupersede(
     ntError = PvfsCheckShareMode(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
-                  Args.DesiredAccess,
+                  pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -369,7 +369,7 @@ PvfsCreateFileCreate(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->GrantedAccess = FILE_ALL_ACCESS;
+    pCreateCtx->GrantedAccess = Args.DesiredAccess;
 
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
@@ -379,7 +379,7 @@ PvfsCreateFileCreate(
     ntError = PvfsCheckShareMode(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
-                  Args.DesiredAccess,
+                  pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -450,7 +450,7 @@ PvfsCreateFileOpenOrOverwrite(
     ntError = PvfsCheckShareMode(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
-                  Args.DesiredAccess,
+                  pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
@@ -583,7 +583,7 @@ PvfsCreateFileOpenOrOverwriteIf(
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
-        pCreateCtx->GrantedAccess = FILE_ALL_ACCESS;
+        pCreateCtx->GrantedAccess = Args.DesiredAccess;
 
         ntError = RtlCStringAllocatePrintf(
                       &pCreateCtx->pszDiskFilename,
@@ -601,7 +601,7 @@ PvfsCreateFileOpenOrOverwriteIf(
     ntError = PvfsCheckShareMode(
                   pCreateCtx->pszDiskFilename,
                   Args.ShareAccess,
-                  Args.DesiredAccess,
+                  pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
