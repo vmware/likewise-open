@@ -75,28 +75,6 @@ LsaOpenServer(
                                   CACHEDIR "/" LSA_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Attempt to automatically restore the connection if the server closes it.
-       This allows us to transparently recover from lsassd being restarted
-       as long as:
-
-       1. No operation is attempted during the window that lsassd is down
-       2. The shutdown did not wipe out any state such as enumeration handles
-
-       lwmsg will handle reconnecting for us if these conditions are met.
-    */
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_RESET,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_CLOSE,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_LSA_ERROR(dwError);
-
     if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
