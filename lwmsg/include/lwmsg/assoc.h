@@ -120,26 +120,6 @@ typedef enum LWMsgAssocState
 
 /**
  * @ingroup assoc
- * @brief Recovery action
- *
- * Represents a possible action to take as passed to
- * lwmsg_assoc_set_action().
- */
-typedef enum LWMsgAssocAction
-{
-    /** @brief Do not take any action */
-    LWMSG_ASSOC_ACTION_NONE,
-    /** @brief Retry the operation immediately */
-    LWMSG_ASSOC_ACTION_RETRY,
-    /** @brief Attempt to reset the connection and then retry the operation */
-    LWMSG_ASSOC_ACTION_RESET_AND_RETRY,
-#ifndef DOXYGEN
-    LWMSG_ASSOC_ACTION_COUNT
-#endif
-} LWMsgAssocAction;
-
-/**
- * @ingroup assoc
  * @brief Timeout classification
  *
  * Represents a class of timeout which may be set
@@ -734,33 +714,6 @@ lwmsg_assoc_get_session(
 LWMsgAssocState
 lwmsg_assoc_get_state(
     LWMsgAssoc* assoc
-    );
-
-/**
- * @ingroup assoc
- * @brief Configure automatic error handling
- *
- * This function allows the user to configure an association to
- * respond automatically to certain non-success status codes that
- * occur during use.  For example, setting up the action
- * #LWMSG_ASSOC_ACTION_RESET_AND_RETRY for the status code
- * #LWMSG_STATUS_PEER_CLOSE will cause the association to transparently
- * attempt to restablish its session with the peer and resume the current
- * operation should the peer close its end.
- *
- * @param[in] assoc the association
- * @param[in] condition the status code for which the action will be set
- * @param[in] action that action to take when the specified status code occurs
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_PARAMETER, the specified status code\, action\, or combination thereof was invalid}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_set_action(
-    LWMsgAssoc* assoc,
-    LWMsgStatus condition,
-    LWMsgAssocAction action
     );
 
 /**
