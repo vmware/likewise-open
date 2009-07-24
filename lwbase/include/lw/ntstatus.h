@@ -7,7 +7,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -101,6 +101,7 @@ typedef LW_LONG LW_NTSTATUS, *LW_PNTSTATUS;
 
 // Warning status codes
 #define LW_STATUS_BUFFER_OVERFLOW                                 ((LW_NTSTATUS) 0x80000005)
+#define LW_STATUS_NO_MORE_FILES                                   ((LW_NTSTATUS) 0x80000006)
 #define LW_STATUS_NO_MORE_ENTRIES                                 ((LW_NTSTATUS) 0x8000001a)
 
 // Error status codes
@@ -734,6 +735,7 @@ typedef LW_PNTSTATUS PNTSTATUS;
 #define STATUS_MORE_ENTRIES                                LW_STATUS_MORE_ENTRIES
 #define STATUS_SOME_UNMAPPED                               LW_STATUS_SOME_UNMAPPED
 #define STATUS_OPLOCK_BREAK_IN_PROGRESS                    LW_STATUS_OPLOCK_BREAK_IN_PROGRESS
+#define STATUS_NO_MORE_FILES                               LW_STATUS_NO_MORE_FILES
 #define STATUS_NO_MORE_ENTRIES                             LW_STATUS_NO_MORE_ENTRIES
 #define STATUS_BUFFER_OVERFLOW                             LW_STATUS_BUFFER_OVERFLOW
 #define STATUS_UNSUCCESSFUL                                LW_STATUS_UNSUCCESSFUL
