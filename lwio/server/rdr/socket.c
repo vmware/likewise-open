@@ -500,7 +500,13 @@ SMBSocketReceiveAndUnmarshall(
     pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
     bufferUsed += len;
 
-    pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
+    pPacket->pNetBIOSHeader->len = SMB_LTOH32(pPacket->pNetBIOSHeader->len);
+
+    if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) bufferUsed > (uint64_t) pPacket->bufferLen)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SMBSocketRead(
                     pSocket,
