@@ -78,11 +78,11 @@ StoreLock(
 
 static VOID
 InitLockEntry(
-    PPVFS_LOCK_ENTRY pEntry,
-    ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
-    PVFS_LOCK_FLAGS Flags
+    OUT PPVFS_LOCK_ENTRY pEntry,
+    IN  ULONG Key,
+    IN  LONG64 Offset,
+    IN  LONG64 Length,
+    IN  PVFS_LOCK_FLAGS Flags
     );
 
 static BOOLEAN
@@ -697,11 +697,11 @@ error:
 
 static VOID
 InitLockEntry(
-    PPVFS_LOCK_ENTRY pEntry,
-    ULONG Key,
-    LONG64 Offset,
-    LONG64 Length,
-    PVFS_LOCK_FLAGS Flags
+    OUT PPVFS_LOCK_ENTRY pEntry,
+    IN  ULONG Key,
+    IN  LONG64 Offset,
+    IN  LONG64 Length,
+    IN  PVFS_LOCK_FLAGS Flags
     )
 {
     /* Should never happen, but don't crash if it does */
@@ -953,7 +953,7 @@ PvfsCreateLockContext(
     IN  PPVFS_CCB pCcb,
     IN  ULONG Key,
     IN  LONG64 Offset,
-    IN  ULONG Length,
+    IN  LONG64 Length,
     IN  PVFS_LOCK_FLAGS Flags
     )
 {
