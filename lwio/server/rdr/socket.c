@@ -500,7 +500,7 @@ SMBSocketReceiveAndUnmarshall(
     pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
     bufferUsed += len;
 
-    pPacket->pNetBIOSHeader->len = SMB_LTOH32(pPacket->pNetBIOSHeader->len);
+    pPacket->pNetBIOSHeader->len = htonl(pPacket->pNetBIOSHeader->len);
 
     if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) bufferUsed > (uint64_t) pPacket->bufferLen)
     {
