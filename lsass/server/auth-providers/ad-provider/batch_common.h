@@ -169,6 +169,11 @@ typedef struct _LSA_AD_BATCH_ITEM {
     };
 } LSA_AD_BATCH_ITEM, *PLSA_AD_BATCH_ITEM;
 
+VOID
+LsaAdBatchDestroyBatchItemContents(
+    IN OUT PLSA_AD_BATCH_ITEM pItem
+    );
+
 BOOLEAN
 LsaAdBatchIsDefaultSchemaMode(
     VOID

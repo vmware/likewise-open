@@ -48,6 +48,7 @@ liblsass_auth_provider_ad_la_SOURCES = \
        batch_marshal.c           \
        batch_enum.c              \
        memcache.c                \
+       specialdomain.c           \
        unprov.c
 
 if !ENABLE_MINIMAL

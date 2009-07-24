@@ -75,28 +75,6 @@ LsaOpenServer(
                                   CACHEDIR "/" LSA_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
-    /* Attempt to automatically restore the connection if the server closes it.
-       This allows us to transparently recover from lsassd being restarted
-       as long as:
-
-       1. No operation is attempted during the window that lsassd is down
-       2. The shutdown did not wipe out any state such as enumeration handles
-
-       lwmsg will handle reconnecting for us if these conditions are met.
-    */
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_RESET,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_action(
-                                  pContext->pAssoc,
-                                  LWMSG_STATUS_PEER_CLOSE,
-                                  LWMSG_ASSOC_ACTION_RESET_AND_RETRY));
-    BAIL_ON_LSA_ERROR(dwError);
-
     if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
@@ -166,6 +144,40 @@ LsaCloseServer(
 }
 
 DWORD
+LsaIpcAcquireCall(
+    HANDLE hServer,
+    LWMsgCall** ppCall
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext = hServer;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_acquire_call(pContext->pAssoc, ppCall));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+DWORD
+LsaIpcUnregisterHandle(
+    LWMsgCall* pCall,
+    PVOID pHandle
+    )
+{
+    DWORD dwError = 0;
+    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+DWORD
 LsaTransactFindGroupByName(
    HANDLE hServer,
    PCSTR pszGroupName,
@@ -175,33 +187,32 @@ LsaTransactFindGroupByName(
    )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_FIND_OBJECT_BY_NAME_REQ findObjectByNameReq;
     // Do not free pResult and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     findObjectByNameReq.FindFlags = FindFlags;
     findObjectByNameReq.dwInfoLevel = dwGroupInfoLevel;
     findObjectByNameReq.pszName = pszGroupName;
 
-    request.tag = LSA_Q_GROUP_BY_NAME;
-    request.object = &findObjectByNameReq;
+    in.tag = LSA_Q_GROUP_BY_NAME;
+    in.data = &findObjectByNameReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_GROUP_BY_NAME_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)response.object;
+            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
 
             if (pResultList->dwNumGroups != 1)
             {
@@ -227,24 +238,27 @@ LsaTransactFindGroupByName(
             }
             break;
         case LSA_R_GROUP_BY_NAME_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
 
 error:
+
     *ppGroupInfo = NULL;
 
     goto cleanup;
@@ -260,33 +274,32 @@ LsaTransactFindGroupById(
    )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_FIND_OBJECT_BY_ID_REQ findObjectByIdReq;
     // Do not free pResult and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     findObjectByIdReq.FindFlags = FindFlags;
     findObjectByIdReq.dwInfoLevel = dwGroupInfoLevel;
     findObjectByIdReq.id = id;
 
-    request.tag = LSA_Q_GROUP_BY_ID;
-    request.object = &findObjectByIdReq;
+    in.tag = LSA_Q_GROUP_BY_ID;
+    in.data = &findObjectByIdReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_GROUP_BY_ID_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)response.object;
+            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
             switch (pResultList->dwGroupInfoLevel)
             {
                 case 0:
@@ -305,24 +318,27 @@ LsaTransactFindGroupById(
             }
             break;
         case LSA_R_GROUP_BY_ID_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
 
 error:
+
     *ppGroupInfo = NULL;
 
     goto cleanup;
@@ -339,53 +355,56 @@ LsaTransactBeginEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_BEGIN_ENUM_GROUPS_REQ beginGroupEnumReq;
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
     beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
     beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
     beginGroupEnumReq.FindFlags = FindFlags;
 
-    request.tag = LSA_Q_BEGIN_ENUM_GROUPS;
-    request.object = &beginGroupEnumReq;
+    in.tag = LSA_Q_BEGIN_ENUM_GROUPS;
+    in.data = &beginGroupEnumReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
-        case LSA_R_BEGIN_ENUM_GROUPS_SUCCESS:
-            *phResume = (HANDLE)response.object;
-            break;
-        case LSA_R_BEGIN_ENUM_GROUPS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = EINVAL;
-            BAIL_ON_LSA_ERROR(dwError);
+    case LSA_R_BEGIN_ENUM_GROUPS_SUCCESS:
+        *phResume = out.data;
+        out.data = NULL;
+        break;
+    case LSA_R_BEGIN_ENUM_GROUPS_FAILURE:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
+
     *phResume = (HANDLE)NULL;
 
     goto cleanup;
@@ -401,29 +420,27 @@ LsaTransactEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-
     // Do not free pResultList and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_ENUM_GROUPS;
-    request.object = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_ENUM_GROUPS;
+    in.data = hResume;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_ENUM_GROUPS_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)response.object;
+            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
             *pdwNumGroupsFound = pResultList->dwNumGroups;
             switch (pResultList->dwGroupInfoLevel)
             {
@@ -443,19 +460,21 @@ LsaTransactEnumGroups(
             }
             break;
         case LSA_R_ENUM_GROUPS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
@@ -474,49 +493,48 @@ LsaTransactEndEnumGroups(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_END_ENUM_GROUPS;
-    request.object = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_END_ENUM_GROUPS;
+    in.data = hResume;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_END_ENUM_GROUPS_SUCCESS:
-            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(
-                                          pContext->pAssoc,
-                                          hResume));
+            dwError = LsaIpcUnregisterHandle(pCall, hResume);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_GROUPS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -529,13 +547,15 @@ LsaTransactAddGroup(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
     LSA_GROUP_INFO_LIST addGroupInfoReq;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     addGroupInfoReq.dwGroupInfoLevel = dwGroupInfoLevel;
     addGroupInfoReq.dwNumGroups = 1;
@@ -553,38 +573,37 @@ LsaTransactAddGroup(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    request.tag = LSA_Q_ADD_GROUP;
-    request.object = &addGroupInfoReq;
+    in.tag = LSA_Q_ADD_GROUP;
+    in.data = &addGroupInfoReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_ADD_GROUP_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_ADD_GROUP_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -596,45 +615,46 @@ LsaTransactDeleteGroupById(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_DELETE_GROUP;
-    request.object = &gid;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_DELETE_GROUP;
+    in.data = &gid;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_DELETE_GROUP_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_DELETE_GROUP_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -651,16 +671,17 @@ LsaTransactGetGroupsForUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-
     LSA_IPC_FIND_OBJECT_REQ userGroupsReq;
     // Do not free pResultList and pError
     PLSA_GROUP_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     userGroupsReq.FindFlags = FindFlags;
     userGroupsReq.dwInfoLevel = dwGroupInfoLevel;
@@ -676,19 +697,16 @@ LsaTransactGetGroupsForUser(
         userGroupsReq.ByData.dwId = uid;
     }
 
-    request.tag = LSA_Q_GROUPS_FOR_USER;
-    request.object = &userGroupsReq;
+    in.tag = LSA_Q_GROUPS_FOR_USER;
+    in.data = &userGroupsReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_GROUPS_FOR_USER_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)response.object;
+            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
             *pdwGroupsFound = pResultList->dwNumGroups;
             switch (pResultList->dwGroupInfoLevel)
             {
@@ -708,19 +726,21 @@ LsaTransactGetGroupsForUser(
             }
             break;
         case LSA_R_GROUPS_FOR_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
@@ -741,33 +761,32 @@ LsaTransactFindUserByName(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_FIND_OBJECT_BY_NAME_REQ findObjectByNameReq;
     // Do not free pResultList and pError
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     findObjectByNameReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByNameReq.pszName = pszName;
     findObjectByNameReq.FindFlags = 0;
 
-    request.tag = LSA_Q_USER_BY_NAME;
-    request.object = &findObjectByNameReq;
+    in.tag = LSA_Q_USER_BY_NAME;
+    in.data = &findObjectByNameReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_USER_BY_NAME_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)response.object;
+            pResultList = (PLSA_USER_INFO_LIST)out.data;
 
             if (pResultList->dwNumUsers != 1)
             {
@@ -798,19 +817,21 @@ LsaTransactFindUserByName(
             }
             break;
         case LSA_R_USER_BY_NAME_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
@@ -830,32 +851,31 @@ LsaTransactFindUserById(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_FIND_OBJECT_BY_ID_REQ findObjectByIdReq;
     // Do not free pResultList and pError
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     findObjectByIdReq.dwInfoLevel = dwUserInfoLevel;
     findObjectByIdReq.id = uid;
 
-    request.tag = LSA_Q_USER_BY_ID;
-    request.object = &findObjectByIdReq;
+    in.tag = LSA_Q_USER_BY_ID;
+    in.data = &findObjectByIdReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_USER_BY_ID_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)response.object;
+            pResultList = (PLSA_USER_INFO_LIST)out.data;
 
             if (pResultList->dwNumUsers != 1)
             {
@@ -886,19 +906,21 @@ LsaTransactFindUserById(
             }
             break;
         case LSA_R_USER_BY_ID_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
@@ -919,52 +941,55 @@ LsaTransactBeginEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_BEGIN_ENUM_USERS_REQ beginUserEnumReq;
     // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
     beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
     beginUserEnumReq.FindFlags = FindFlags;
 
-    request.tag = LSA_Q_BEGIN_ENUM_USERS;
-    request.object = &beginUserEnumReq;
+    in.tag = LSA_Q_BEGIN_ENUM_USERS;
+    in.data = &beginUserEnumReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_BEGIN_ENUM_USERS_SUCCESS:
-            *phResume = response.object;
+            *phResume = out.data;
+            out.data = NULL;
             break;
         case LSA_R_BEGIN_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
+
     *phResume = (HANDLE)NULL;
 
     goto cleanup;
@@ -980,29 +1005,27 @@ LsaTransactEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
-
     // Do not free pResultList and pError
     PLSA_USER_INFO_LIST pResultList = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_ENUM_USERS;
-    request.object = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_ENUM_USERS;
+    in.data = hResume;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_ENUM_USERS_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)response.object;
+            pResultList = (PLSA_USER_INFO_LIST)out.data;
             *pdwNumUsersFound = pResultList->dwNumUsers;
             switch (pResultList->dwUserInfoLevel)
             {
@@ -1027,19 +1050,21 @@ LsaTransactEnumUsers(
             }
             break;
         case LSA_R_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;
@@ -1058,49 +1083,48 @@ LsaTransactEndEnumUsers(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_END_ENUM_USERS;
-    request.object = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_END_ENUM_USERS;
+    in.data = hResume;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_END_ENUM_USERS_SUCCESS:
-            dwError = MAP_LWMSG_ERROR(lwmsg_assoc_release_handle(
-                                          pContext->pAssoc,
-                                          hResume));
+            dwError = LsaIpcUnregisterHandle(pCall, hResume);
             BAIL_ON_LSA_ERROR(dwError);
             break;
         case LSA_R_END_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1113,13 +1137,15 @@ LsaTransactAddUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_USER_INFO_LIST addUserInfoReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     addUserInfoReq.dwUserInfoLevel = dwUserInfoLevel;
     addUserInfoReq.dwNumUsers = 1;
@@ -1140,38 +1166,37 @@ LsaTransactAddUser(
             BAIL_ON_LSA_ERROR(dwError);
     }
 
-    request.tag = LSA_Q_ADD_USER;
-    request.object = &addUserInfoReq;
+    in.tag = LSA_Q_ADD_USER;
+    in.data = &addUserInfoReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_ADD_USER_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_ADD_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1183,45 +1208,46 @@ LsaTransactDeleteUserById(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_DELETE_USER;
-    request.object = &uid;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_DELETE_USER;
+    in.data = &uid;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_DELETE_USER_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_DELETE_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1234,49 +1260,50 @@ LsaTransactAuthenticateUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_AUTH_USER_REQ authUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     authUserReq.pszLoginName = pszLoginName;
     authUserReq.pszPassword = pszPassword;
 
-    request.tag = LSA_Q_AUTH_USER;
-    request.object = &authUserReq;
+    in.tag = LSA_Q_AUTH_USER;
+    in.data = &authUserReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_AUTH_USER_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_AUTH_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1289,13 +1316,15 @@ LsaTransactAuthenticateUserEx(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_AUTH_USER_PARAMS authUserExReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     authUserExReq.AuthType = pParams->AuthType;
     authUserExReq.pass = pParams->pass;
@@ -1303,39 +1332,39 @@ LsaTransactAuthenticateUserEx(
     authUserExReq.pszDomain = pParams->pszDomain;
     authUserExReq.pszWorkstation = pParams->pszWorkstation;
 
-    request.tag = LSA_Q_AUTH_USER_EX;
-    request.object = &authUserExReq;
+    in.tag = LSA_Q_AUTH_USER_EX;
+    in.data = &authUserExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_AUTH_USER_EX_SUCCESS:
-            *ppUserInfo = (PLSA_AUTH_USER_INFO) response.object;
+            *ppUserInfo = (PLSA_AUTH_USER_INFO) out.data;
+            out.data = NULL;
             break;
-
         case LSA_R_AUTH_USER_EX_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1348,49 +1377,50 @@ LsaTransactValidateUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_AUTH_USER_REQ validateUserReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     validateUserReq.pszLoginName = pszLoginName;
     validateUserReq.pszPassword = pszPassword;
 
-    request.tag = LSA_Q_VALIDATE_USER;
-    request.object = &validateUserReq;
+    in.tag = LSA_Q_VALIDATE_USER;
+    in.data = &validateUserReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_VALIDATE_USER_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_VALIDATE_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1404,50 +1434,51 @@ LsaTransactChangePassword(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_CHANGE_PASSWORD_REQ changePasswordReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     changePasswordReq.pszLoginName = pszLoginName;
     changePasswordReq.pszOldPassword = pszOldPassword;
     changePasswordReq.pszNewPassword = pszNewPassword;
 
-    request.tag = LSA_Q_CHANGE_PASSWORD;
-    request.object = &changePasswordReq;
+    in.tag = LSA_Q_CHANGE_PASSWORD;
+    in.data = &changePasswordReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_CHANGE_PASSWORD_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_CHANGE_PASSWORD_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1460,49 +1491,50 @@ LsaTransactSetPassword(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_SET_PASSWORD_REQ setPasswordReq;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     setPasswordReq.pszLoginName   = pszLoginName;
     setPasswordReq.pszNewPassword = pszNewPassword;
 
-    request.tag    = LSA_Q_SET_PASSWORD;
-    request.object = &setPasswordReq;
+    in.tag    = LSA_Q_SET_PASSWORD;
+    in.data = &setPasswordReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_SET_PASSWORD_SUCCESS:
             break;
-
         case LSA_R_SET_PASSWORD_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1514,45 +1546,46 @@ LsaTransactModifyUser(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag = LSA_Q_MODIFY_USER;
-    request.object = pUserModInfo;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    in.tag = LSA_Q_MODIFY_USER;
+    in.data = pUserModInfo;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
     {
         case LSA_R_MODIFY_USER_SUCCESS:
-            // response.object == NULL
             break;
         case LSA_R_MODIFY_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object)
-    {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1567,31 +1600,30 @@ LsaTransactGetNamesBySidList(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_NAMES_BY_SIDS_REQ getNamesBySidsReq;
     PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     getNamesBySidsReq.sCount = sCount;
     getNamesBySidsReq.ppszSidList = ppszSidList;
 
-    request.tag = LSA_Q_NAMES_BY_SID_LIST;
-    request.object = &getNamesBySidsReq;
+    in.tag = LSA_Q_NAMES_BY_SID_LIST;
+    in.data = &getNamesBySidsReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_NAMES_BY_SID_LIST_SUCCESS:
-            pResult = (PLSA_FIND_NAMES_BY_SIDS)response.object;
+            pResult = (PLSA_FIND_NAMES_BY_SIDS)out.data;
             *ppSIDInfoList = pResult->pSIDInfoList;
             pResult->pSIDInfoList = NULL;
             if (pchDomainSeparator)
@@ -1601,23 +1633,27 @@ LsaTransactGetNamesBySidList(
 
             break;
         case LSA_R_NAMES_BY_SID_LIST_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
-    if (response.object)
+
+    if (pCall)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
+
     return dwError;
 
 error:
+
     goto cleanup;
 }
 
@@ -1628,43 +1664,45 @@ LsaTransactModifyGroup(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
 
-    request.tag    = LSA_Q_MODIFY_GROUP;
-    request.object = pGroupModInfo;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag) {
+    in.tag    = LSA_Q_MODIFY_GROUP;
+    in.data = pGroupModInfo;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag) {
     case LSA_R_MODIFY_GROUP_SUCCESS:
         break;
-
     case LSA_R_MODIFY_GROUP_FAILURE:
-        pError = (PLSA_IPC_ERROR)response.object;
+        pError = (PLSA_IPC_ERROR)out.data;
         dwError = pError->dwError;
         BAIL_ON_LSA_ERROR(dwError);
         break;
     default:
-        dwError = EINVAL;
+        dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
     return dwError;
 
 error:
-    if (response.object) {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
-    }
 
     goto cleanup;
 }
@@ -1681,59 +1719,57 @@ LsaTransactProviderIoControl(
     )
 {
     DWORD dwError = 0;
-    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
-        (PLSA_CLIENT_CONNECTION_CONTEXT)hServer;
     LSA_IPC_PROVIDER_IO_CONTROL_REQ providerIoControlReq;
     // Do not free pResultBuffer and pError
     PLSA_DATA_BLOB pResultBuffer = NULL;
     PLSA_IPC_ERROR pError = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
 
     providerIoControlReq.pszProvider = pszProvider;
     providerIoControlReq.dwIoControlCode = dwIoControlCode;
     providerIoControlReq.dwDataLen = dwInputBufferSize;
     providerIoControlReq.pData = pInputBuffer;
 
-    request.tag = LSA_Q_PROVIDER_IO_CONTROL;
-    request.object = &providerIoControlReq;
+    in.tag = LSA_Q_PROVIDER_IO_CONTROL;
+    in.data = &providerIoControlReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case LSA_R_PROVIDER_IO_CONTROL_SUCCESS:
             *pdwOutputBufferSize = 0;
             *ppOutputBuffer = NULL;
             break;
         case LSA_R_PROVIDER_IO_CONTROL_SUCCESS_DATA:
-            pResultBuffer = (PLSA_DATA_BLOB)response.object;
+            pResultBuffer = (PLSA_DATA_BLOB)out.data;
             *pdwOutputBufferSize = pResultBuffer->dwLen;
             *ppOutputBuffer = (PVOID)(pResultBuffer->pData);
             pResultBuffer->pData = NULL;
             break;
         case LSA_R_PROVIDER_IO_CONTROL_FAILURE:
-            pError = (PLSA_IPC_ERROR) response.object;
+            pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
 
-    if ( response.object )
+    if (pCall)
     {
-        lwmsg_assoc_free_message(
-            pContext->pAssoc,
-            &response);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
     }
 
     return dwError;

@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,35 +24,43 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
-/*
+/**
  * Copyright (C) Likewise Software. All rights reserved.
  *
- * Module Name:
+ * @file
  *
- *        ipc_metrics_p.h
+ *     lsadmengine.c
  *
- * Abstract:
+ * @brief
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *     LSASS Special Domain Name/SID Utilities
  *
- *        Inter-process communication (Server) API for Metrics
+ * @details
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *     This module has some helper routines for dealing with
+ *     special domain names and SIDs.
+ *
+ * @author Danilo Almeida (dalmeida@likewise.com)
+ *
  */
-#ifndef __IPC_METRICS_H__
-#define __IPC_METRICS_H__
 
-LWMsgStatus
-LsaSrvIpcGetMetrics(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
+#ifndef __SPECIAL_DOMAIN_H__
+#define __SPECIAL_DOMAIN_H__
+
+#include <lw/types.h>
+#include <lw/attrs.h>
+
+BOOLEAN
+AdIsSpecialDomainName(
+    IN PCSTR pszDomainName
     );
 
-#endif /* __IPC_METRICS_H__ */
+BOOLEAN
+AdIsSpecialDomainSidPrefix(
+    IN PCSTR pszObjectSid
+    );
 
+#endif /* __SPECIAL_DOMAIN_H__ */

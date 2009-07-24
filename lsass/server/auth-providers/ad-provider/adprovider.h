@@ -119,3 +119,4 @@
 #include "sqlcache_create.h"
 #include "sqlcache_p.h"
 #include "memcache_p.h"
+#include "specialdomain.h"

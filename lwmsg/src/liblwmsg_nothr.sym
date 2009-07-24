@@ -24,7 +24,6 @@ lwmsg_assoc_get_peer_session_id
 lwmsg_assoc_get_state
 lwmsg_assoc_get_session_data
 lwmsg_assoc_get_session
-lwmsg_assoc_set_action
 lwmsg_assoc_establish
 lwmsg_assoc_finish
 lwmsg_assoc_set_nonblock

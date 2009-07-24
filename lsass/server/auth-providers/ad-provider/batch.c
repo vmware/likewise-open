@@ -577,30 +577,38 @@ LsaAdBatchDestroyBatchItem(
     PLSA_AD_BATCH_ITEM pItem = *ppItem;
     if (pItem)
     {
-        if (IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
-        {
-            LSA_SAFE_FREE_STRING(pItem->pszQueryMatchTerm);
-        }
-        LSA_SAFE_FREE_STRING(pItem->pszSid);
-        LSA_SAFE_FREE_STRING(pItem->pszSamAccountName);
-        LSA_SAFE_FREE_STRING(pItem->pszDn);
-        switch (pItem->ObjectType)
-        {
-            case LSA_AD_BATCH_OBJECT_TYPE_USER:
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszAlias);
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszPasswd);
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszGecos);
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszHomeDirectory);
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszShell);
-                LSA_SAFE_FREE_STRING(pItem->UserInfo.pszUserPrincipalName);
-                break;
-            case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
-                LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszAlias);
-                LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszPasswd);
-                break;
-        }
+        LsaAdBatchDestroyBatchItemContents(pItem);
         LsaFreeMemory(pItem);
         *ppItem = NULL;
+    }
+}
+
+VOID
+LsaAdBatchDestroyBatchItemContents(
+    IN OUT PLSA_AD_BATCH_ITEM pItem
+    )
+{
+    if (IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_ALLOCATED_MATCH_TERM))
+    {
+        LSA_SAFE_FREE_STRING(pItem->pszQueryMatchTerm);
+    }
+    LSA_SAFE_FREE_STRING(pItem->pszSid);
+    LSA_SAFE_FREE_STRING(pItem->pszSamAccountName);
+    LSA_SAFE_FREE_STRING(pItem->pszDn);
+    switch (pItem->ObjectType)
+    {
+        case LSA_AD_BATCH_OBJECT_TYPE_USER:
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszAlias);
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszPasswd);
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszGecos);
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszHomeDirectory);
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszShell);
+            LSA_SAFE_FREE_STRING(pItem->UserInfo.pszUserPrincipalName);
+            break;
+        case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
+            LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszAlias);
+            LSA_SAFE_FREE_STRING(pItem->GroupInfo.pszPasswd);
+            break;
     }
 }
 

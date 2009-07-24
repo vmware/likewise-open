@@ -3,8 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,35 +24,50 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
-/*
+/**
  * Copyright (C) Likewise Software. All rights reserved.
  *
- * Module Name:
+ * @file
  *
- *        ipc_provider_p.h
+ *     lsadmengine.c
  *
- * Abstract:
+ * @brief
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *     LSASS Special Domain Name/SID Utilities
  *
- *        Inter-process communication (Server) API for Users
+ * @details
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *     This module has some helper routines for dealing with
+ *     special domain names and SIDs.
+ *
+ * @author Danilo Almeida (dalmeida@likewise.com)
+ *
  */
-#ifndef __IPC_PROVIDER_P_H__
-#define __IPC_PROVIDER_P_H__
 
-LWMsgStatus
-LsaSrvIpcProviderIoControl(
-    LWMsgAssoc* assoc,
-    const LWMsgMessage* pRequest,
-    LWMsgMessage* pResponse,
-    void* data
-    );
+#include "specialdomain.h"
+#include <strings.h>
 
-#endif /* __IPC_PROVIDER_P_H__ */
+BOOLEAN
+AdIsSpecialDomainName(
+    IN PCSTR pszDomainName
+    )
+{
+    return (!strcasecmp(pszDomainName, "BUILTIN") ||
+            !strcasecmp(pszDomainName, "NT AUTHORITY"));
+}
 
+// Prefix for standard (not system, built-in, etc) accounts.
+#define NT_NON_UNIQUE_SID_PREFIX "S-1-5-21-"
+
+BOOLEAN
+AdIsSpecialDomainSidPrefix(
+    IN PCSTR pszObjectSid
+    )
+{
+    // The NT non-unique SID prefix (S-1-5-21) is the prefix used
+    // for standard accounts.
+    return !strncasecmp(pszObjectSid, NT_NON_UNIQUE_SID_PREFIX, sizeof(NT_NON_UNIQUE_SID_PREFIX)-1) ? FALSE : TRUE;
+}
