@@ -370,7 +370,7 @@ MemCacheOpen(
     BAIL_ON_LSA_ERROR(dwError);
     pConn->bBackupMutexCreated = TRUE;
 
-    pConn->dwBackupDelay = 1 * 60;
+    pConn->dwBackupDelay = 5 * 60;
 
     pConn->bNeedBackup = FALSE;
     dwError = pthread_cond_init(
@@ -549,6 +549,7 @@ MemCacheStoreFile(
     PMEM_LIST_NODE pMemPos = NULL;
     // do not free
     PDLINKEDLIST pPos = NULL;
+    PSTR pszTempFile = NULL;
 
     ENTER_READER_RW_LOCK(&pConn->lock, bInLock);
 
@@ -561,6 +562,11 @@ MemCacheStoreFile(
                     gMemCachePersistence));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaAllocateStringPrintf(
+                    &pszTempFile,
+                    "%s.new",
+                    pConn->pszFilename);
+    BAIL_ON_LSA_ERROR(dwError);
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_new(
                     NULL,
                     pArchiveProtocol,
@@ -568,7 +574,7 @@ MemCacheStoreFile(
     BAIL_ON_LSA_ERROR(dwError);
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_set_file(
                     pArchive,
-                    pConn->pszFilename,
+                    pszTempFile,
                     LWMSG_ARCHIVE_WRITE,
                     0600));
     BAIL_ON_LSA_ERROR(dwError);
@@ -627,6 +633,9 @@ MemCacheStoreFile(
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_close(pArchive));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaMoveFile(pszTempFile, pConn->pszFilename);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
     if (pArchive)
@@ -638,6 +647,8 @@ cleanup:
     {
         lwmsg_protocol_delete(pArchiveProtocol);
     }
+
+    LSA_SAFE_FREE_STRING(pszTempFile);
 
     return dwError;
 
