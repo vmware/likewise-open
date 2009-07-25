@@ -326,6 +326,13 @@ typedef struct __SMB2_SET_INFO_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_SET_INFO_REQUEST_HEADER,
                              *PSMB2_SET_INFO_REQUEST_HEADER;
 
+typedef struct __SMB2_SET_INFO_RESPONSE_HEADER
+{
+    USHORT usLength;
+
+} __attribute__((__packed__)) SMB2_SET_INFO_RESPONSE_HEADER,
+                             *PSMB2_SET_INFO_RESPONSE_HEADER;
+
 typedef struct __SMB2_WRITE_REQUEST_HEADER
 {
     USHORT   usLength;

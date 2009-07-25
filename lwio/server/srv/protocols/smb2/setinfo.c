@@ -472,7 +472,85 @@ SrvSetFileAllocationInfo_SMB_V2(
     PSMB_PACKET                   pSmbResponse
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = 0;
+    PFILE_ALLOCATION_INFORMATION pFileAllocationInfo = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    PBYTE pOutBufferRef   = pSmbResponse->pRawBuffer + pSmbResponse->bufferUsed;
+    PBYTE pOutBuffer       = pOutBufferRef;
+    ULONG ulBytesAvailable = pSmbResponse->bufferLen - pSmbResponse->bufferUsed;
+    ULONG ulOffset         = 0;
+    ULONG ulBytesUsed      = 0;
+    ULONG ulTotalBytesUsed = 0;
+    PSMB2_SET_INFO_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+
+    if (pRequestHeader->ulInputBufferLen < sizeof(FILE_ALLOCATION_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pFileAllocationInfo = (PFILE_ALLOCATION_INFORMATION)pData;
+
+    ntStatus = IoSetInformationFile(
+                    pFile->hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    pFileAllocationInfo,
+                    sizeof(FILE_ALLOCATION_INFORMATION),
+                    FileAllocationInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2MarshalHeader(
+                    pOutBuffer,
+                    ulOffset,
+                    ulBytesAvailable,
+                    COM2_SETINFO,
+                    0,
+                    1,
+                    pSmbRequest->pHeader->ulPid,
+                    pSmbRequest->pHeader->ullCommandSequence,
+                    pSmbRequest->pHeader->ulTid,
+                    pSmbRequest->pHeader->ullSessionId,
+                    STATUS_SUCCESS,
+                    TRUE,
+                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    NULL,
+                    &ulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += ulBytesUsed;
+    pOutBuffer += ulBytesUsed;
+    ulOffset += ulBytesUsed;
+    ulBytesAvailable -= ulBytesUsed;
+
+    if (ulBytesAvailable < sizeof(SMB2_SET_INFO_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSMB2_SET_INFO_RESPONSE_HEADER)pOutBuffer;
+    pResponseHeader->usLength = sizeof(SMB2_SET_INFO_RESPONSE_HEADER);
+
+    ulTotalBytesUsed += sizeof(SMB2_SET_INFO_RESPONSE_HEADER);
+    // pOutBuffer += sizeof(SMB2_SET_INFO_RESPONSE_HEADER);
+    // ulOffset += sizeof(SMB2_SET_INFO_RESPONSE_HEADER);
+    // ulBytesAvailable -= sizeof(SMB2_SET_INFO_RESPONSE_HEADER);
+
+    pSmbResponse->bufferUsed += ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        memset(pOutBufferRef, 0, ulTotalBytesUsed);
+    }
+
+    goto cleanup;
 }
 
 NTSTATUS
