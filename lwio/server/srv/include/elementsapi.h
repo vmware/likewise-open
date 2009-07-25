@@ -355,6 +355,13 @@ typedef struct _SMB_FS_FULL_INFO_HEADER
 } __attribute__((__packed__)) SMB_FS_FULL_INFO_HEADER,
                              *PSMB_FS_FULL_INFO_HEADER;
 
+typedef struct _SMB_FILE_INTERNAL_INFO_HEADER
+{
+    ULONG64 ullIndex;
+
+} __attribute__((__packed__)) SMB_FILE_INTERNAL_INFO_HEADER,
+                             *PSMB_FILE_INTERNAL_INFO_HEADER;
+
 
 NTSTATUS
 SrvElementsInit(
