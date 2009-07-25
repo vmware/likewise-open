@@ -180,6 +180,64 @@ MemCacheFreePasswordVerifier(
     }
 }
 
+void *
+MemCacheBackupRoutine(
+    void* pDb
+    )
+{
+    DWORD dwError = 0;
+    PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)pDb;
+    struct timespec timeout = {0, 0};
+    BOOLEAN bMutexLocked = FALSE;
+
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
+
+    while (!pConn->bNeedShutdown)
+    {
+        while (!pConn->bNeedBackup && !pConn->bNeedShutdown)
+        {
+            dwError = pthread_cond_wait(
+                            &pConn->signalBackup,
+                            &pConn->backupMutex);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        if (!pConn->bNeedBackup)
+        {
+            break;
+        }
+        LSA_LOG_INFO("Delayed backup scheduled");
+
+        timeout.tv_sec = time(NULL) + pConn->dwBackupDelay;
+        timeout.tv_nsec = 0;
+        while (!pConn->bNeedShutdown && time(NULL) < timeout.tv_sec)
+        {
+            dwError = pthread_cond_timedwait(
+                            &pConn->signalShutdown,
+                            &pConn->backupMutex,
+                            &timeout);
+            if (dwError == ETIMEDOUT)
+            {
+                dwError = 0;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        LSA_LOG_INFO("Performing backup");
+        dwError = MemCacheStoreFile((LSA_DB_HANDLE)pConn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pConn->bNeedBackup = FALSE;
+    }
+
+cleanup:
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
+    return (void *)(size_t)dwError;
+
+error:
+    LSA_LOG_INFO("The in-memory backup thread is exiting with error code %d\n", dwError);
+    goto cleanup;
+}
+
 DWORD
 MemCacheOpen(
     IN PCSTR pszDbPath,
@@ -306,6 +364,34 @@ MemCacheOpen(
     dwError = MemCacheLoadFile((LSA_DB_HANDLE)pConn);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = pthread_mutex_init(
+            &pConn->backupMutex,
+            NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+    pConn->bBackupMutexCreated = TRUE;
+
+    pConn->dwBackupDelay = 1 * 60;
+
+    pConn->bNeedBackup = FALSE;
+    dwError = pthread_cond_init(
+                    &pConn->signalBackup,
+                    NULL);
+    pConn->bSignalBackupCreated = TRUE;
+
+    pConn->bNeedShutdown = FALSE;
+    dwError = pthread_cond_init(
+                    &pConn->signalShutdown,
+                    NULL);
+    pConn->bSignalShutdownCreated = TRUE;
+
+    dwError = pthread_create(
+                    &pConn->backupThread,
+                    NULL,
+                    MemCacheBackupRoutine,
+                    pConn);
+    BAIL_ON_LSA_ERROR(dwError);
+    pConn->bBackupThreadCreated = TRUE;
+
     *phDb = (LSA_DB_HANDLE)pConn;
 
 cleanup:
@@ -331,7 +417,9 @@ MemCacheLoadFile(
     DWORD dwError = 0;
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
     PMEM_GROUP_MEMBERSHIP pMemCacheMembership = NULL;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(
@@ -417,8 +505,13 @@ MemCacheLoadFile(
     dwError = MAP_LWMSG_ERROR(lwmsg_archive_close(pArchive));
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     if (pArchive)
     {
         lwmsg_archive_destroy_message(pArchive, &message);
@@ -611,9 +704,30 @@ MemCacheSafeClose(
 {
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)*phDb;
     DWORD dwError = 0;
+    void* pError = NULL;
 
     if (pConn)
     {
+        if (pConn->bBackupThreadCreated)
+        {
+            // Notify the backup thread that it needs to shutdown. It will
+            // backup one last time if necessary.
+            dwError = pthread_mutex_lock(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+            pConn->bNeedShutdown = TRUE;
+            dwError = pthread_cond_signal(&pConn->signalBackup);
+            LSA_ASSERT(dwError == 0);
+            dwError = pthread_cond_signal(&pConn->signalShutdown);
+            LSA_ASSERT(dwError == 0);
+            dwError = pthread_mutex_unlock(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+
+            // Wait for the thread to exit
+            dwError = pthread_join(pConn->backupThread, &pError);
+            LSA_ASSERT(dwError == 0);
+            LSA_ASSERT(pError == NULL);
+        }
+
         dwError = MemCacheEmptyCache(*phDb);
         LSA_ASSERT(dwError == 0);
 
@@ -638,6 +752,22 @@ MemCacheSafeClose(
         {
             pthread_rwlock_destroy(&pConn->lock);
         }
+        if (pConn->bBackupMutexCreated)
+        {
+            dwError = pthread_mutex_destroy(&pConn->backupMutex);
+            LSA_ASSERT(dwError == 0);
+        }
+        if (pConn->bSignalBackupCreated)
+        {
+            dwError = pthread_cond_destroy(&pConn->signalBackup);
+            LSA_ASSERT(dwError == 0);
+        }
+        if (pConn->bSignalShutdownCreated)
+        {
+            dwError = pthread_cond_destroy(&pConn->signalShutdown);
+            LSA_ASSERT(dwError == 0);
+        }
+
         LSA_SAFE_FREE_MEMORY(*phDb);
     }
 }
@@ -934,7 +1064,9 @@ MemCacheRemoveUserBySid(
     DWORD dwError = 0;
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheRemoveObjectByHashKey(
@@ -943,8 +1075,13 @@ MemCacheRemoveUserBySid(
                     pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -960,7 +1097,9 @@ MemCacheRemoveGroupBySid(
     DWORD dwError = 0;
     PMEM_DB_CONNECTION pConn = (PMEM_DB_CONNECTION)hDb;
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheRemoveObjectByHashKey(
@@ -969,8 +1108,13 @@ MemCacheRemoveGroupBySid(
                     pszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -988,6 +1132,12 @@ MemCacheEmptyCache(
     LSA_HASH_ITERATOR iterator = {0};
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
+    BOOLEAN bMutexLocked = FALSE;
+
+    if (pConn->bBackupMutexCreated)
+    {
+        ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
+    }
 
     if (pConn->bLockCreated)
     {
@@ -1078,8 +1228,16 @@ MemCacheEmptyCache(
     LsaDLinkedListFree(pConn->pObjects);
     pConn->pObjects = NULL;
 
+    if (bMutexLocked)
+    {
+        pConn->bNeedBackup = TRUE;
+        dwError = pthread_cond_signal(&pConn->signalBackup);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     return dwError;
 
 error:
@@ -1315,10 +1473,12 @@ MemCacheStoreObjectEntries(
     PLSA_SECURITY_OBJECT pObject = NULL;
     PSTR pszKey = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     // For simplicity, don't check whether keys exist for sure or whether the
@@ -1386,9 +1546,14 @@ MemCacheStoreObjectEntries(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LSA_SAFE_FREE_STRING(pszKey);
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
 
     return dwError;
 
@@ -1693,6 +1858,7 @@ MemCacheStoreGroupMembership(
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1728,6 +1894,7 @@ MemCacheStoreGroupMembership(
         pMembership = NULL;
     }
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheEnsureHashSpace(
@@ -1843,8 +2010,13 @@ MemCacheStoreGroupMembership(
         pEntry->pValue = NULL;
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -1881,6 +2053,7 @@ MemCacheStoreGroupsForUser(
     // Do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     time_t now = 0;
+    BOOLEAN bMutexLocked = FALSE;
 
     dwError = LsaGetCurrentTimeSeconds(&now);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1916,6 +2089,7 @@ MemCacheStoreGroupsForUser(
         pMembership = NULL;
     }
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     dwError = MemCacheEnsureHashSpace(
@@ -2028,8 +2202,13 @@ MemCacheStoreGroupsForUser(
         pEntry->pValue = NULL;
     }
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
     LsaHashSafeFree(&pCombined);
 
     return dwError;
@@ -2589,7 +2768,9 @@ MemCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pCopy = NULL;
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
+    BOOLEAN bMutexLocked = FALSE;
 
+    ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pSIDToPasswordVerifier;
@@ -2607,9 +2788,14 @@ MemCacheStorePasswordVerifier(
     // This is now owned by the hash
     pCopy = NULL;
 
+    pConn->bNeedBackup = TRUE;
+    dwError = pthread_cond_signal(&pConn->signalBackup);
+    BAIL_ON_LSA_ERROR(dwError);
+
 cleanup:
     LSA_DB_SAFE_FREE_PASSWORD_VERIFIER(pCopy);
     LEAVE_RW_LOCK(&pConn->lock, bInLock);
+    LEAVE_MUTEX(&pConn->backupMutex, bMutexLocked);
 
     return dwError;
 

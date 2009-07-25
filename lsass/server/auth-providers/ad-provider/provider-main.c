@@ -431,16 +431,6 @@ LSA_SHUTDOWN_PROVIDER(ad)(
         dwError = 0;
     }
 
-    if (gpLsaAdProviderState && gpLsaAdProviderState->hCacheConnection)
-    {
-        dwError = ADCacheFlushToDisk(gpLsaAdProviderState->hCacheConnection);
-        if (dwError)
-        {
-            LSA_LOG_DEBUG("AD Provider Shutdown: unable to persist in memory cache (error = %d)", dwError);
-            dwError = 0;
-        }
-    }
-
     AD_FreeAllowedSIDs_InLock();
 
     LSA_SAFE_FREE_STRING(gpszADConfigFilePath);

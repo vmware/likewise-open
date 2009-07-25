@@ -65,6 +65,18 @@
            bInLock = TRUE;                                 \
         }
 
+#define ENTER_MUTEX(pMutex, bInLock) \
+        if (!bInLock) {                                    \
+           pthread_mutex_lock(pMutex);            \
+           bInLock = TRUE;                                 \
+        }
+
+#define LEAVE_MUTEX(pMutex, bInLock) \
+        if (bInLock) {                                     \
+           pthread_mutex_unlock(pMutex);            \
+           bInLock = FALSE;                                \
+        }
+
 typedef struct _MEM_LIST_NODE MEM_LIST_NODE, *PMEM_LIST_NODE;
 
 struct _MEM_LIST_NODE
@@ -90,6 +102,18 @@ typedef struct _MEM_DB_CONNECTION
 {
     BOOLEAN bLockCreated;
     pthread_rwlock_t lock;
+
+    pthread_mutex_t backupMutex;
+    BOOLEAN bBackupMutexCreated;
+    pthread_t backupThread;
+    BOOLEAN bBackupThreadCreated;
+    DWORD dwBackupDelay;
+    BOOLEAN bNeedBackup;
+    pthread_cond_t signalBackup;
+    BOOLEAN bSignalBackupCreated;
+    BOOLEAN bNeedShutdown;
+    pthread_cond_t signalShutdown;
+    BOOLEAN bSignalShutdownCreated;
 
     PSTR pszFilename;
 
