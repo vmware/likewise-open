@@ -67,12 +67,13 @@ SrvFindBothDirInformation(
 static
 NTSTATUS
 SrvMarshalBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace,
-    PBYTE                    pBuffer,
-    ULONG                    ulBytesAvailable,
-    ULONG                    ulOffset,
-    PULONG                   pulBytesUsed,
-    PULONG                   pulSearchCount
+    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+    PBYTE                            pBuffer,
+    ULONG                            ulBytesAvailable,
+    ULONG                            ulOffset,
+    PULONG                           pulBytesUsed,
+    PULONG                           pulSearchCount,
+    PSMB2_FILE_BOTH_DIR_INFO_HEADER* ppLastInfoHeader
     );
 
 NTSTATUS
@@ -385,6 +386,7 @@ SrvFindBothDirInformation(
     BOOLEAN  bRestartScan = (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN);
     BOOLEAN  bReturnSingleEntry = (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
+    PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
@@ -481,7 +483,8 @@ SrvFindBothDirInformation(
                             ulBytesAvailable,
                             ulOffset,
                             &ulBytesUsed,
-                            &ulIterSearchCount);
+                            &ulIterSearchCount,
+                            &pLastInfoHeader);
             BAIL_ON_NT_STATUS(ntStatus);
 
             if (!ulIterSearchCount)
@@ -506,6 +509,11 @@ SrvFindBothDirInformation(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (pLastInfoHeader)
+    {
+        pLastInfoHeader->ulNextEntryOffset = 0;
+    }
+
     *pulDataLength = ulDataLength;
 
 cleanup:
@@ -524,16 +532,17 @@ error:
 static
 NTSTATUS
 SrvMarshalBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace,
-    PBYTE                    pBuffer,
-    ULONG                    ulBytesAvailable,
-    ULONG                    ulOffset,
-    PULONG                   pulBytesUsed,
-    PULONG                   pulSearchCount
+    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+    PBYTE                            pBuffer,
+    ULONG                            ulBytesAvailable,
+    ULONG                            ulOffset,
+    PULONG                           pulBytesUsed,
+    PULONG                           pulSearchCount,
+    PSMB2_FILE_BOTH_DIR_INFO_HEADER* ppLastInfoHeader
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB2_FILE_BOTH_DIR_INFO_HEADER pInfoHeader = NULL;
+    PSMB2_FILE_BOTH_DIR_INFO_HEADER pInfoHeader = *ppLastInfoHeader;
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PBYTE pDataCursor = pBuffer;
     ULONG ulBytesUsed = 0;
@@ -587,6 +596,11 @@ SrvMarshalBothDirInfoSearchResults(
         {
             pFileInfoCursor = NULL;
         }
+    }
+
+    if (pInfoHeader)
+    {
+        ulDataOffset = pBuffer - (PBYTE)pInfoHeader;
     }
 
     for (; iSearchCount < ulSearchCount; iSearchCount++)
@@ -669,13 +683,9 @@ SrvMarshalBothDirInfoSearchResults(
         }
     }
 
-    if (pInfoHeader)
-    {
-        pInfoHeader->ulNextEntryOffset = 0;
-    }
-
     *pulSearchCount = ulSearchCount;
     *pulBytesUsed = ulBytesUsed;
+    *ppLastInfoHeader = pInfoHeader;
 
     return ntStatus;
 }
