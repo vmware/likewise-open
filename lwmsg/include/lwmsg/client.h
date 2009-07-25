@@ -124,7 +124,7 @@ lwmsg_client_set_endpoint(
     );
 
 /**
- * @brief Acquire association for messaging
+ * @brief Acquire call handle
  *
  * Acquires a call handle suitable for making
  * a call to the server.  The handle should be

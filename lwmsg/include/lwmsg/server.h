@@ -178,32 +178,34 @@ typedef enum LWMsgServerMode
  * @brief Call handler function
  *
  * A callback function which handles an incoming call request.  The function
- * may complete the call immediately by filling in the response structure
+ * may complete the call immediately by filling in the out params structure
  * and returning #LWMSG_STATUS_SUCCESS, or asynchronously by invoking
  * #lwmsg_call_pend() on the call handle, returning #LWMSG_STATUS_PENDING,
  * and completing the call later with #lwmsg_call_complete().  Returning
- * and other status code will cause the client connection to be unceremoniously
+ * any other status code will cause the client session to be unceremoniously
  * terminated, and the status code will be propgated to the handler registered
  * on the server with #lwmsg_server_set_exception_function().
  *
- * Regardless of the status code returned, the data payloads in the
- * request and response structures will be automatically freed by
- * the server as long as the tags are set to valid values.  This means
- * that data in the request must not be referenced after the function returns,
- * Data in the response must be allocated with the same memory allocator
- * as used by the server -- by default, plain malloc().
+ * The contents of the in params structure is defined only for the duration
+ * of the function call and must not be referenced after the function returns.
  *
- * @param call the call handle
+ * Data inserted into the out params structure must be allocated with the
+ * same memory manager as the server -- by default, plain malloc().
+ * Regardless of the status code returned, all such data will be automatically
+ * freed by the server as long as the tag is set to a valid value
+ * (i.e. not #LWMSG_TAG_INVALID).
+ *
+ * @param[in,out] call the call handle
  * @param[in] in the input parameters
  * @param[out] out the output parameters
- * @param data the data pointer set by #lwmsg_server_set_dispatch_data()
+ * @param[in] data the data pointer set by #lwmsg_server_set_dispatch_data()
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{PENDING, the request will be completed asynchronously}
  * @lwmsg_etc{call-specific failure}
  * @lwmsg_endstatus
- * @see #lwmsg_context_set_memory_functions()
- * @see #lwmsg_server_new()
+ * @see #lwmsg_context_set_memory_functions() and #lwmsg_server_new() for
+ * customizing the server's memory manager.
  */
 typedef
 LWMsgStatus

@@ -39,6 +39,16 @@ AC_SUBST(LIB_ICONV)
 AC_SUBST(MOD_EXT)
 AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of dynamic shared modules])
 
+AC_ARG_ENABLE([internal-docs], [AC_HELP_STRING([--enable-internal-docs], [enable documentation of LWMsg internals])])
+if test x"$enable_internal_docs" = x"yes"
+then
+	ENABLE_INTERNAL_DOCS="YES"
+else
+	ENABLE_INTERNAL_DOCS="NO"
+fi
+
+AC_SUBST(ENABLE_INTERNAL_DOCS)
+
 saved_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $LWMSG_CPPFLAGS"
 

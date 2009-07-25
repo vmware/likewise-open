@@ -28,7 +28,25 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/lwmsg/time.h \
 	$(top_srcdir)/include/lwmsg/type.h \
 	$(top_srcdir)/include/lwmsg/archive.h \
-	$(top_srcdir)/include/lwmsg/message.h
+	$(top_srcdir)/include/lwmsg/message.h \
+	$(top_srcdir)/include/archive-private.h \
+	$(top_srcdir)/include/assoc-private.h \
+	$(top_srcdir)/include/call-private.h \
+	$(top_srcdir)/include/client-private.h \
+	$(top_srcdir)/include/connection-private.h \
+	$(top_srcdir)/include/context-private.h \
+	$(top_srcdir)/include/convert.h \
+	$(top_srcdir)/include/data-private.h \
+	$(top_srcdir)/include/mt19937ar.h \
+	$(top_srcdir)/include/protocol-private.h \
+	$(top_srcdir)/include/security-private.h \
+	$(top_srcdir)/include/server-private.h \
+	$(top_srcdir)/include/session-private.h \
+	$(top_srcdir)/include/status-private.h \
+	$(top_srcdir)/include/test-private.h \
+	$(top_srcdir)/include/type-private.h \
+	$(top_srcdir)/include/util-private.h \
+	$(top_srcdir)/include/xnet-private.h
 
 DOXYGEN_DEPS = \
 	Doxyfile.in \

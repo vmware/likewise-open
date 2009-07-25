@@ -278,4 +278,10 @@ lwmsg_assoc_call_init(
     AssocCall* call
     );
 
+LWMsgStatus
+lwmsg_assoc_get_session_manager(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager** manager
+    );
+
 #endif

@@ -42,11 +42,47 @@
 #include <lwmsg/call.h>
 #include <stdlib.h>
 
+/**
+ * @file call-private.h
+ * @brief Call API (INTERNAL)
+ */
+
+/**
+ * @internal
+ * @defgroup call_private Call handles
+ * @ingroup private
+ * @brief Call handle implementation
+ */
+
+/*@{*/
+
+/**
+ * @brief Call handle vtable
+ *
+ * Virtual function table for #LWMsgCall structures.
+ *
+ */
 typedef struct LWMsgCallClass
 {
+    /**
+     * @brief Release call handle (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_release().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callees.
+     */
     void (*release)(
         LWMsgCall* call
         );
+    /**
+     * @brief Dispatch call (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_dispatch().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callees.
+     */
     LWMsgStatus (*dispatch)(
         LWMsgCall* call,
         const LWMsgParams* in,
@@ -54,32 +90,91 @@ typedef struct LWMsgCallClass
         LWMsgCompleteFunction complete,
         void* data
         );
+    /**
+     * @brief Mark call as pending (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_pend().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callers.
+     */
     LWMsgStatus (*pend)(
         LWMsgCall* call,
         LWMsgCancelFunction cancel,
         void* data
         );
+    /**
+     * @brief Mark call as complete (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_complete().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callers.
+     */
     LWMsgStatus (*complete)(
         LWMsgCall* call,
         LWMsgStatus status
         );
+    /**
+     * @brief Cancel call (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_cancel().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callees.
+     */
     LWMsgStatus (*cancel)(
         LWMsgCall* call
         );
+    /**
+     * @brief Destroy call parameters (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_destroy_params().
+     *
+     * This function may be NULL for call handles only intended
+     * for use by callees.
+     */
     LWMsgStatus (*destroy_params)(
         LWMsgCall* call,
         LWMsgParams* params
         );
+    /**
+     * @brief Get session for call (virtual)
+     *
+     * Implements the exact semantics of #lwmsg_call_get_session().
+     *
+     * This function must be present for all call handles
+     */
     LWMsgSession* (*get_session)(
         LWMsgCall* call
         );
 } LWMsgCallClass;
 
+/**
+ * @brief Call handle representation
+ *
+ * The internal representation of a call handle.  To implement
+ * a new type of call handle, create a call handle structure with
+ * a #LWMsgCall as the first member and fill in its vtbl field.
+ */
 struct LWMsgCall
 {
+    /**
+     * @brief Virtual function table pointer
+     *
+     * A pointer to the virtual function table that implements
+     * the call handle operations
+     */
     LWMsgCallClass* vtbl;
 };
 
+/**
+ * @brief Cast to call handle
+ *
+ * Convenience macro to cast to #LWMsgCall *
+ */
 #define LWMSG_CALL(obj) ((LWMsgCall*) (obj))
+
+/*@}*/
 
 #endif
