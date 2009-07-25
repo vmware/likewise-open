@@ -242,7 +242,15 @@ PvfsWildcardMatch(
     }
 
 cleanup:
-    bMatched = pszString && *pszString ? FALSE : TRUE;
+    /* We matched if pszString is empty AND either pszMatch is empty
+       OR only contains wildcard characters */
+
+    if (!PVFS_CSTRING_NON_NULL(pszString) &&
+        (!PVFS_CSTRING_NON_NULL(pszMatch) ||
+         (!strchr(pszPattern, '?') && !strchr(pszPattern, '*'))))
+    {
+        bMatched = TRUE;
+    }
 
     if (!bCaseSensitive)
     {
