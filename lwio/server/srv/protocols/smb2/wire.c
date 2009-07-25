@@ -1182,6 +1182,64 @@ error:
 }
 
 NTSTATUS
+SMB2UnmarshalSetInfoRequest(
+    IN     PSMB2_MESSAGE                  pSmbRequest,
+    IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
+    IN OUT PBYTE*                         ppData
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG ulOffset = 0;
+    PBYTE pDataCursor = (PBYTE)pSmbRequest->pHeader;
+    ULONG ulBytesAvailable = pSmbRequest->ulSize;
+    ULONG ulPacketSize = pSmbRequest->ulSize;
+    PSMB2_SET_INFO_REQUEST_HEADER pHeader = NULL; // Do not free
+    PBYTE pData = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ulBytesAvailable -= sizeof(SMB2_HEADER);
+    ulOffset += sizeof(SMB2_HEADER);
+    pDataCursor += sizeof(SMB2_HEADER);
+
+    if (ulBytesAvailable < sizeof(SMB2_SET_INFO_REQUEST_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pHeader = (PSMB2_SET_INFO_REQUEST_HEADER)pDataCursor;
+
+    if ((pHeader->usInputBufferOffset > ulPacketSize) ||
+        ((pHeader->usInputBufferOffset + pHeader->ulInputBufferLen) > ulPacketSize))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pData = (PBYTE)pSmbRequest->pHeader + pHeader->usInputBufferOffset;
+
+    *ppHeader = pHeader;
+    *ppData = pData;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppHeader = NULL;
+    *ppData = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
 SMB2UnmarshalReadRequest(
     IN     PSMB2_MESSAGE              pSmbRequest,
     IN OUT PSMB2_READ_REQUEST_HEADER* ppRequestHeader

@@ -310,7 +310,21 @@ typedef struct __SMB2_GET_INFO_RESPONSE_HEADER
     ULONG  ulOutBufferLength;
 
 } __attribute__((__packed__)) SMB2_GET_INFO_RESPONSE_HEADER,
-                             *PSMB2_GET_INFO_RESPONSE_HEADER;;
+                             *PSMB2_GET_INFO_RESPONSE_HEADER;
+
+typedef struct __SMB2_SET_INFO_REQUEST_HEADER
+{
+    USHORT   usLength;
+    UCHAR    ucInfoType;
+    UCHAR    ucInfoClass;
+    ULONG    ulInputBufferLen;
+    USHORT   usInputBufferOffset;
+    USHORT   usReserved;
+    ULONG    ulAdditionalInfo;
+    SMB2_FID fid;
+
+} __attribute__((__packed__)) SMB2_SET_INFO_REQUEST_HEADER,
+                             *PSMB2_SET_INFO_REQUEST_HEADER;
 
 typedef struct __SMB2_WRITE_REQUEST_HEADER
 {

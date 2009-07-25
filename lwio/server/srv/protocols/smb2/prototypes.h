@@ -388,6 +388,13 @@ SMB2UnmarshalGetInfoRequest(
     );
 
 NTSTATUS
+SMB2UnmarshalSetInfoRequest(
+    IN     PSMB2_MESSAGE                  pSmbRequest,
+    IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
+    IN OUT PBYTE*                         ppData
+    );
+
+NTSTATUS
 SMB2UnmarshalReadRequest(
     IN     PSMB2_MESSAGE              pSmbRequest,
     IN OUT PSMB2_READ_REQUEST_HEADER* ppRequestHeader
