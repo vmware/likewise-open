@@ -454,6 +454,7 @@ DJUpdateServicesFile(
     CENTERROR ceError = CENTERROR_SUCCESS;
 #if HAVE_LIBXML2
     PSTR tempFilename = NULL;
+    PSTR finalName = NULL;
     BOOLEAN same;
 
     xmlDocPtr doc = NULL;
@@ -464,8 +465,13 @@ DJUpdateServicesFile(
 
     LIBXML_TEST_VERSION;
 
-    DJ_LOG_INFO("Reading %s", filename);
-    doc = xmlReadFile(filename, NULL, XML_PARSE_NONET);
+    GCE(ceError = CTGetFileTempPath(
+                        filename,
+                        &finalName,
+                        &tempFilename));
+
+    DJ_LOG_INFO("Reading %s", finalName);
+    doc = xmlReadFile(finalName, NULL, XML_PARSE_NONET);
     if(doc == NULL)
         GCE(ceError = CENTERROR_DOMAINJOIN_INVALID_FIREWALLCFG);
     root = xmlDocGetRootElement(doc);
@@ -512,8 +518,6 @@ DJUpdateServicesFile(
         addNode = NULL;
     }
 
-    GCE(ceError = CTAllocateStringPrintf(&tempFilename,
-                "%s.new", filename));
     saveContext = xmlSaveToFilename(tempFilename, NULL, 0);
     if(saveContext == NULL)
         GCE(ceError = CENTERROR_OUT_OF_MEMORY);
@@ -529,18 +533,16 @@ DJUpdateServicesFile(
     }
     saveContext = NULL;
 
-    GCE(ceError = CTFileContentsSame(filename, tempFilename, &same));
+    GCE(ceError = CTFileContentsSame(finalName, tempFilename, &same));
     if(same)
     {
-        DJ_LOG_INFO("File %s unmodified", filename);
+        DJ_LOG_INFO("File %s unmodified", finalName);
         GCE(ceError = CTRemoveFile(tempFilename));
     }
     else
     {
-        DJ_LOG_INFO("File %s modified", filename);
-        GCE(ceError = CTCloneFilePerms(filename, tempFilename));
-        GCE(ceError = CTBackupFile(filename));
-        GCE(ceError = CTMoveFile(tempFilename, filename));
+        DJ_LOG_INFO("File %s modified", finalName);
+        GCE(ceError = CTSafeReplaceFile(finalName, tempFilename));
     }
     if(modified != NULL)
         *modified = !same;
@@ -553,6 +555,7 @@ cleanup:
     if(saveContext != NULL)
         xmlSaveClose(saveContext);
     CT_SAFE_FREE_STRING(tempFilename);
+    CT_SAFE_FREE_STRING(finalName);
 #else // HAVE_LIBXML2
     *modified = 0;
 #endif // HAVE_LIBXML2

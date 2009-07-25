@@ -65,6 +65,7 @@ DJFixLoginConfigFile(
     CENTERROR ceError = CENTERROR_SUCCESS;
     PCSTR pszFilePath = NULL;
     PSTR pszTmpPath = NULL;
+    PSTR pszFinalPath = NULL;
     BOOLEAN bFileExists = FALSE;
     FILE* fp = NULL;
     FILE* fp_new = NULL;
@@ -77,12 +78,17 @@ DJFixLoginConfigFile(
     else
         pszFilePath = pszPath;
 
-    GCE(ceError = CTCheckFileExists(pszFilePath, &bFileExists));
+    GCE(ceError = CTGetFileTempPath(
+                        pszFilePath,
+                        &pszFinalPath,
+                        &pszTmpPath));
+
+    GCE(ceError = CTCheckFileExists(pszFinalPath, &bFileExists));
 
     if (!bFileExists)
         goto cleanup;
 
-    GCE(ceError = CTOpenFile(pszFilePath, "r", &fp));
+    GCE(ceError = CTOpenFile(pszFinalPath, "r", &fp));
     GCE(ceError = CTReadLines(fp, &lines));
     GCE(ceError = CTSafeCloseFile(&fp));
 
@@ -92,14 +98,11 @@ DJFixLoginConfigFile(
 
     GCE(ceError = SetAuthType(&lines, "PAM_AUTH"));
 
-    GCE(ceError = CTAllocateStringPrintf(&pszTmpPath, "%s.new", pszFilePath));
-
     GCE(ceError = CTOpenFile(pszTmpPath, "w", &fp_new));
     GCE(ceError = CTWriteLines(fp_new, &lines));
     GCE(ceError = CTSafeCloseFile(&fp_new));
-    GCE(ceError = CTCloneFilePerms(pszFilePath, pszTmpPath));
-    GCE(ceError = CTBackupFile(pszFilePath));
-    GCE(ceError = CTMoveFile(pszTmpPath, pszFilePath));
+
+    GCE(ceError = CTSafeReplaceFile(pszFilePath, pszTmpPath));
 
 cleanup:
     CTSafeCloseFile(&fp);
@@ -107,6 +110,7 @@ cleanup:
 
     CT_SAFE_FREE_STRING(currentSystem);
     CT_SAFE_FREE_STRING(pszTmpPath);
+    CT_SAFE_FREE_STRING(pszFinalPath);
     CTFreeLines(&lines);
 
     return ceError;
