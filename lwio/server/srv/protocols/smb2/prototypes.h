@@ -182,6 +182,15 @@ SrvProcessSessionSetup_SMB_V2(
     IN OUT PSMB_PACKET   pSmbResponse
     );
 
+// setinfo.c
+
+NTSTATUS
+SrvProcessSetInfo_SMB_V2(
+    IN     PSMB2_CONTEXT pContext,
+    IN     PSMB2_MESSAGE pSmbRequest,
+    IN OUT PSMB_PACKET   pSmbResponse
+    );
+
 // error.c
 
 NTSTATUS
