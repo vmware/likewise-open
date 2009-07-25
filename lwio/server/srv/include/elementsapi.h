@@ -362,6 +362,12 @@ typedef struct _SMB_FILE_INTERNAL_INFO_HEADER
 } __attribute__((__packed__)) SMB_FILE_INTERNAL_INFO_HEADER,
                              *PSMB_FILE_INTERNAL_INFO_HEADER;
 
+typedef struct _SMB_FILE_EA_INFO_HEADER
+{
+    ULONG ulEaSize;
+
+} __attribute__((__packed__)) SMB_FILE_EA_INFO_HEADER,
+                             *PSMB_FILE_EA_INFO_HEADER;
 
 NTSTATUS
 SrvElementsInit(
