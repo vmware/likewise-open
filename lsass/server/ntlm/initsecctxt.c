@@ -79,8 +79,11 @@ NtlmServerInitializeSecurityContext(
     if(!pNtlmContext)
     {
         dwError = gethostname(Domain, HOST_NAME_MAX);
-        dwError = LwMapErrnoToLwError(dwError);
-        BAIL_ON_NTLM_ERROR(dwError);
+        if(dwError != LW_ERROR_SUCCESS)
+        {
+            dwError = LW_ERROR_INTERNAL; //LwMapErrnoToLwError(errno);
+            BAIL_ON_NTLM_ERROR(dwError);
+        }
 
         memcpy(Workstation, Domain, strlen(Domain));
 
@@ -178,9 +181,9 @@ error:
     {
         if((*ppNtlmContext)->pMessage)
         {
-            LwFreeMemory((*ppNtlmContext)->pMessage);
+            LsaFreeMemory((*ppNtlmContext)->pMessage);
         }
-        LwFreeMemory(*ppNtlmContext);
+        LsaFreeMemory(*ppNtlmContext);
     }
     goto cleanup;
 }
@@ -192,8 +195,8 @@ NtlmCreateResponseContext(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PCHAR pUserName = NULL;
-    PCHAR pPassword = NULL;
+    PCSTR pUserName = NULL;
+    PCSTR pPassword = NULL;
 
     if(!pChlngCtxt)
     {
@@ -205,7 +208,7 @@ NtlmCreateResponseContext(
 
     BAIL_ON_NTLM_ERROR(dwError);
 
-    dwError = LwAllocateMemory(
+    dwError = LsaAllocateMemory(
         sizeof(LSA_CONTEXT),
         (PVOID*)(PVOID)ppNtlmContext
         );
@@ -236,9 +239,9 @@ error:
     {
         if((*ppNtlmContext)->pMessage)
         {
-            LwFreeMemory((*ppNtlmContext)->pMessage);
+            LsaFreeMemory((*ppNtlmContext)->pMessage);
         }
-        LwFreeMemory(*ppNtlmContext);
+        LsaFreeMemory(*ppNtlmContext);
     }
     goto cleanup;
 }

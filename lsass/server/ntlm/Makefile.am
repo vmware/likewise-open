@@ -26,12 +26,10 @@ libntlmserver_new_la_CFLAGS =   \
 
 libntlmserver_new_la_LDFLAGS =  \
     $(AM_LDFLAGS)               \
-    $(LWADVAPI_LDFLAGS)         \
     @CRYPTO_LDFLAGS@
 
 libntlmserver_new_la_LIBADD =               \
     @top_builddir@/common/liblsacommon.la   \
-    $(LWADVAPI_LIBS)                        \
     @LWMSG_NOTHR_LIBS@                      \
     @CRYPTO_LIBS@                           \
     @SOCKET_LIBS@

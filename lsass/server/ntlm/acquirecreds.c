@@ -87,12 +87,17 @@ NtlmServerAcquireCredentialsHandle(
 
     if(!pSecWinAuthData)
     {
-        dwError = LsaGetCredential(Uid, &CredHandle);
-        BAIL_ON_LW_ERROR(dwError);
+        CredHandle = LsaGetCredential(Uid);
+
+        if(!CredHandle)
+        {
+            dwError = LW_ERROR_NO_CRED;
+            BAIL_ON_LW_ERROR(dwError);
+        }
     }
     else
     {
-        dwError = LwAllocateMemory(
+        dwError = LsaAllocateMemory(
             pSecWinAuthData->PasswordLength + 1,
             (PVOID*)(PVOID)&pPassword);
         BAIL_ON_LW_ERROR(dwError);
@@ -109,7 +114,7 @@ NtlmServerAcquireCredentialsHandle(
 cleanup:
     if(pPassword)
     {
-        LwFreeMemory(pPassword);
+        LsaFreeMemory(pPassword);
     }
 
     *phCredential = CredHandle;

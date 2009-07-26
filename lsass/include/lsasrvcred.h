@@ -73,32 +73,17 @@ LsaReleaseCredential(
     IN LSA_CRED_HANDLE hCredential
     );
 
-DWORD
-LsaLookupCredential(
-    IN DWORD uid,
-    OUT PLSA_CRED_HANDLE phCredential
-    );
-
-DWORD
+LSA_CRED_HANDLE
 LsaGetCredential(
-    IN DWORD dwUid,
-    OUT PLSA_CRED_HANDLE phCredential
+    IN DWORD dwUid
     );
 
 VOID
 LsaGetCredentialInfo(
     IN LSA_CRED_HANDLE CredHandle,
-    OUT OPTIONAL PSTR* pszUserName,
-    OUT OPTIONAL PSTR* pszPassword,
+    OUT OPTIONAL PCSTR* pszUserName,
+    OUT OPTIONAL PCSTR* pszPassword,
     OUT OPTIONAL PDWORD pUid
-    );
-
-DWORD
-LsaModifyCredential(
-    IN LSA_CRED_HANDLE CredHandle,
-    OUT OPTIONAL PCSTR pszUserName,
-    OUT OPTIONAL PCSTR pszPassword,
-    OUT OPTIONAL const PDWORD pUid
     );
 
 #endif /* __LSASRVCRED_H__ */
