@@ -77,6 +77,9 @@ SMB2InitPacket(
 
     pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
     pSmbPacket->bufferUsed += sizeof(NETBIOS_HEADER);
+    pBuffer += sizeof(NETBIOS_HEADER);
+
+    pSmbPacket->pSMB2Header = (PSMB2_HEADER)pBuffer;
 
     pSmbPacket->protocolVer = SMB_PROTOCOL_VERSION_2;
     pSmbPacket->allowSignature = bAllowSignature;

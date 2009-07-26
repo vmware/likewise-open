@@ -293,7 +293,6 @@ SrvMarshalNegotiateResponse_SMB_V2(
 
     pNegotiateHeader->ucFlags = 0;
 
-#if 0
     if (pServerProperties->bEnableSecuritySignatures)
     {
         pNegotiateHeader->ucFlags |= 0x1;
@@ -302,7 +301,6 @@ SrvMarshalNegotiateResponse_SMB_V2(
     {
         pNegotiateHeader->ucFlags |= 0x2;
     }
-#endif
 
     pNegotiateHeader->ulMaxReadSize = pServerProperties->MaxBufferSize;
     pNegotiateHeader->ulMaxWriteSize = pServerProperties->MaxBufferSize;
