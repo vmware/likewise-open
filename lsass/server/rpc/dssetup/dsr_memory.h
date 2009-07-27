@@ -49,18 +49,6 @@
 
 
 NTSTATUS
-DsrSrvInitMemory(
-    void
-    );
-
-
-NTSTATUS
-DsrSrvDestroyMemory(
-    void
-    );
-
-
-NTSTATUS
 DsrSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize

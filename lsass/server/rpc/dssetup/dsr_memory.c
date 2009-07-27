@@ -48,49 +48,6 @@
 
 
 NTSTATUS
-DsrSrvInitMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (!bDsrSrvInitialised && !pDsrSrvMemRoot) {
-        pDsrSrvMemRoot = talloc(NULL, 0, NULL);
-        BAIL_ON_NO_MEMORY(pDsrSrvMemRoot);
-    }
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
-
-
-NTSTATUS
-DsrSrvDestroyMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bDsrSrvInitialised && pDsrSrvMemRoot) {
-        tfree(pDsrSrvMemRoot);
-    }
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
-
-
-NTSTATUS
 DsrSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize
