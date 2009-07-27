@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = libktkrb5.la
 
 libktkrb5_la_CFLAGS = \
