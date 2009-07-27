@@ -63,23 +63,7 @@ LsaSrvDestroyMemory(
 NTSTATUS
 LsaSrvAllocateMemory(
     void **ppOut,
-    DWORD dwSize,
-    void *pDep
-    );
-
-
-NTSTATUS
-LsaSrvReallocMemory(
-    void **ppOut,
-    DWORD dwNewSize,
-    void *pIn
-    );
-
-
-NTSTATUS
-LsaSrvAddDepMemory(
-    void *pIn,
-    void *pDep
+    DWORD dwSize
     );
 
 
@@ -92,72 +76,63 @@ LsaSrvFreeMemory(
 NTSTATUS
 LsaSrvAllocateSidFromWC16String(
     PSID *ppSid,
-    PCWSTR pwszSidStr,
-    void *pParent
+    PCWSTR pwszSidStr
     );
 
 
 NTSTATUS
 LsaSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID pSidIn,
-    void *pParent
+    PSID pSidIn
     );
 
 
 NTSTATUS
 LsaSrvDuplicateWC16String(
     PWSTR *ppwszOut,
-    PWSTR pwszIn,
-    void *pParent
+    PWSTR pwszIn
     );
 
 
 NTSTATUS
 LsaSrvDuplicateWC16String(
     PWSTR *ppwszOut,
-    PWSTR pwszIn,
-    void *pParent
+    PWSTR pwszIn
     );
 
 
 NTSTATUS
 LsaSrvGetFromUnicodeString(
     PWSTR *ppwszOut,
-    UnicodeString *pIn,
-    void *pParent
+    UnicodeString *pIn
     );
 
 
 NTSTATUS
 LsaSrvGetFromUnicodeStringEx(
     PWSTR *ppwszOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     );
 
 
 NTSTATUS
 LsaSrvInitUnicodeString(
     UnicodeString *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     );
 
 
 NTSTATUS
 LsaSrvInitUnicodeStringEx(
     UnicodeStringEx *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     );
 
 
 NTSTATUS
 LsaSrvDuplicateUnicodeStringEx(
     UnicodeStringEx *pOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     );
 
 
@@ -165,8 +140,7 @@ NTSTATUS
 LsaSrvSidAppendRid(
     PSID *ppOutSid,
     PSID pInSid,
-    DWORD dwRid,
-    void *pParent
+    DWORD dwRid
     );
 
 
