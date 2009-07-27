@@ -104,14 +104,12 @@ SamrSrvOpenAccount(
     pDomainSid = pDomCtx->pDomainSid;
 
     status = SamrSrvAllocateMemory((void**)&pAcctCtx,
-                                   sizeof(*pAcctCtx),
-                                   NULL);
+                                   sizeof(*pAcctCtx));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
     status = SamrSrvAllocateMemory((void**)&pAccountSid,
-                                   ulSidLength,
-                                   pAcctCtx);
+                                   ulSidLength);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidLength, pAccountSid, pDomainSid);
@@ -131,8 +129,7 @@ SamrSrvOpenAccount(
                   (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR),
-                                   pAcctCtx);
+                                   dwFilterLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -175,19 +172,18 @@ SamrSrvOpenAccount(
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
 
                 status = SamrSrvAllocateMemory((void**)&pwszName,
-                                               (dwNameLen + 1) * sizeof(WCHAR),
-                                               pAcctCtx);
+                                               (dwNameLen + 1) * sizeof(WCHAR));
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszName, pAttrVal->data.pwszStringValue, dwNameLen);
 
-
             } else if (!wc16scmp(pAttr->pwszName, wszAttrObjectSid) &&
                        pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-                status = SamrSrvAllocateSidFromWC16String(&pSid,
-                                                          pAttrVal->data.pwszStringValue,
-                                                          pAcctCtx);
+                status = SamrSrvAllocateSidFromWC16String(
+                                            &pSid,
+                                            pAttrVal->data.pwszStringValue);
+
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 if (!RtlEqualSid(pSid, pAccountSid)) {
@@ -203,8 +199,7 @@ SamrSrvOpenAccount(
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
 
                 status = SamrSrvAllocateMemory((void**)&pwszAccountDn,
-                                               (dwDnLen + 1) * sizeof(WCHAR),
-                                               pAcctCtx);
+                                               (dwDnLen + 1) * sizeof(WCHAR));
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 wc16sncpy(pwszAccountDn, pAttrVal->data.pwszStringValue, dwDnLen);

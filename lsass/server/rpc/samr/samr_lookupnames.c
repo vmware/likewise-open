@@ -101,33 +101,28 @@ SamrSrvLookupNames(
     pwszDn     = pDomCtx->pwszDn;
 
     status = SamrSrvAllocateMemory((void**)&pIds,
-                                   sizeof(*pIds),
-                                   pDomCtx);
+                                   sizeof(*pIds));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pIds->count = num_names;
     status = SamrSrvAllocateMemory((void**)&(pIds->ids),
-                                   pIds->count * sizeof(uint32),
-                                   pDomCtx);
+                                   pIds->count * sizeof(uint32));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvAllocateMemory((void**)&pTypes,
-                                   sizeof(*pTypes),
-                                   pDomCtx);
+                                   sizeof(*pTypes));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pTypes->count = num_names;
     status = SamrSrvAllocateMemory((void**)&(pTypes->ids),
-                                   pTypes->count * sizeof(uint32),
-                                   pDomCtx);
+                                   pTypes->count * sizeof(uint32));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num_names; i++) {
         UnicodeString *name = &(names[i]);
 
         status = SamrSrvGetFromUnicodeString(&pwszName,
-                                             name,
-                                             pDomCtx);
+                                             name);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
@@ -141,8 +136,7 @@ SamrSrvLookupNames(
                       (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
         status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                       dwFilterLen * sizeof(WCHAR),
-                                       NULL);
+                                       dwFilterLen * sizeof(WCHAR));
         BAIL_ON_NTSTATUS_ERROR(status);
 
         sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,

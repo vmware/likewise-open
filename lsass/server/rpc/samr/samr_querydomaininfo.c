@@ -323,8 +323,7 @@ SamrSrvQueryDomainInfo(
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR),
-                                   pDomCtx);
+                                   dwFilterLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -346,8 +345,7 @@ SamrSrvQueryDomainInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     status = SamrSrvAllocateMemory((void**)&pInfo,
-                                   sizeof(*pInfo),
-                                   pDomCtx);
+                                   sizeof(*pInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -572,19 +570,16 @@ SamrSrvFillDomainInfo2(
 
     /* comment */
     status = SamrSrvInitUnicodeString(&pInfo2->comment,
-                                      pwszComment,
-                                      pInfo);
+                                      pwszComment);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* domain_name */
     status = SamrSrvInitUnicodeString(&pInfo2->domain_name,
-                                      pwszDomainName,
-                                      pInfo);
+                                      pwszDomainName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* primary */
-    status = SamrSrvInitUnicodeString(&pInfo2->primary, NULL,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo2->primary, NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* sequence_num */
@@ -660,8 +655,7 @@ SamrSrvFillDomainInfo4(
     pInfo4 = &pInfo->info4;
 
     status = SamrSrvInitUnicodeString(&pInfo4->comment,
-                                      pwszComment,
-                                      pInfo);
+                                      pwszComment);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -695,8 +689,7 @@ SamrSrvFillDomainInfo5(
     pInfo5 = &pInfo->info5;
 
     status = SamrSrvInitUnicodeString(&pInfo5->domain_name,
-                                      pwszDomainName,
-                                      pInfo);
+                                      pwszDomainName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -721,8 +714,7 @@ SamrSrvFillDomainInfo6(
     pInfo6 = &pInfo->info6;
 
     status = SamrSrvInitUnicodeString(&pInfo6->primary,
-                                      NULL,
-                                      pInfo);
+                                      NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

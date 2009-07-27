@@ -224,8 +224,7 @@ SamrSrvQueryUserInfo(
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
     status = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR),
-                                   pAcctCtx);
+                                   dwFilterLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
@@ -251,8 +250,7 @@ SamrSrvQueryUserInfo(
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvAllocateMemory((void**)&pUserInfo,
-                                   sizeof(*pUserInfo),
-                                   pAcctCtx);
+                                   sizeof(*pUserInfo));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     switch (level) {
@@ -381,8 +379,7 @@ SamrFillUserInfo1(
                                                &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo1->account_name, pwszUsername,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo1->account_name, pwszUsername);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -393,8 +390,7 @@ SamrFillUserInfo1(
                                                &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo1->full_name, pwszFullName,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo1->full_name, pwszFullName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -407,13 +403,12 @@ SamrFillUserInfo1(
                                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
                                                &pwszDescription);
     BAIL_ON_LSA_ERROR(dwError);
-    status = SamrSrvInitUnicodeString(&pInfo1->description, pwszDescription,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo1->description, pwszDescription);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
     /* comment */
-    status = SamrSrvInitUnicodeString(&pInfo1->comment, pwszComment, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo1->comment, pwszComment);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -441,11 +436,11 @@ SamrFillUserInfo2(
     pInfo2 = &(pInfo->info2);
 
     /* comment */
-    status = SamrSrvInitUnicodeString(&pInfo2->comment, pwszComment, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo2->comment, pwszComment);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* unknown1 */
-    status = SamrSrvInitUnicodeString(&pInfo2->unknown1, pwszUnknown1, pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo2->unknown1, pwszUnknown1);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* country_code */
@@ -497,8 +492,7 @@ SamrFillUserInfo3(
                                                &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo3->account_name, pwszUsername,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->account_name, pwszUsername);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* full_name */
@@ -508,8 +502,7 @@ SamrFillUserInfo3(
                                                &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo3->full_name, pwszFullName,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->full_name, pwszFullName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* rid */
@@ -519,7 +512,7 @@ SamrFillUserInfo3(
                                                &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid, pInfo);
+    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pInfo3->rid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
@@ -535,29 +528,24 @@ SamrFillUserInfo3(
                                                &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo3->home_directory, pwszHomeDirectory,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->home_directory, pwszHomeDirectory);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo3->home_drive, pwszHomeDrive,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->home_drive, pwszHomeDrive);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo3->logon_script, pwszLogonScript,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->logon_script, pwszLogonScript);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* profile_path */
-    status = SamrSrvInitUnicodeString(&pInfo3->profile_path, pwszProfilePath,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->profile_path, pwszProfilePath);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo3->workstations, pwszWorkstations,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo3->workstations, pwszWorkstations);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* last_logon */
@@ -639,8 +627,7 @@ SamrFillUserInfo5(
                                                &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo5->account_name, pwszUsername,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->account_name, pwszUsername);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -651,8 +638,7 @@ SamrFillUserInfo5(
                                                &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo5->full_name, pwszFullName,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->full_name, pwszFullName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
@@ -663,7 +649,7 @@ SamrFillUserInfo5(
                                                &pwszSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid, pInfo);
+    status = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     pInfo5->rid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
@@ -680,34 +666,28 @@ SamrFillUserInfo5(
                                                &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo5->home_directory, pwszHomeDirectory,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->home_directory, pwszHomeDirectory);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo5->home_drive, pwszHomeDrive,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->home_drive, pwszHomeDrive);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo5->logon_script, pwszLogonScript,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->logon_script, pwszLogonScript);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* profile_path */
-    status = SamrSrvInitUnicodeString(&pInfo5->profile_path, pwszProfilePath,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->profile_path, pwszProfilePath);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* description */
-    status = SamrSrvInitUnicodeString(&pInfo5->description, pwszDescription,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->description, pwszDescription);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo5->workstations, pwszWorkstations,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo5->workstations, pwszWorkstations);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* last_logon */
@@ -762,8 +742,7 @@ SamrFillUserInfo6(
                                                &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo6->account_name, pwszUsername,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo6->account_name, pwszUsername);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* full_name */
@@ -773,8 +752,7 @@ SamrFillUserInfo6(
                                                &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo6->full_name, pwszFullName,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo6->full_name, pwszFullName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -808,8 +786,7 @@ SamrFillUserInfo7(
                                                &pwszUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo7->account_name, pwszUsername,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo7->account_name, pwszUsername);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -843,8 +820,7 @@ SamrFillUserInfo8(
                                                &pwszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo8->full_name, pwszFullName,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo8->full_name, pwszFullName);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -899,13 +875,11 @@ SamrFillUserInfo10(
                                                &pwszHomeDirectory);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvInitUnicodeString(&pInfo10->home_directory, pwszHomeDirectory,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo10->home_directory, pwszHomeDirectory);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     /* home_drive */
-    status = SamrSrvInitUnicodeString(&pInfo10->home_drive, pwszHomeDrive,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo10->home_drive, pwszHomeDrive);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -931,8 +905,7 @@ SamrFillUserInfo11(
     pInfo11 = &(pInfo->info11);
 
     /* logon_script */
-    status = SamrSrvInitUnicodeString(&pInfo11->logon_script, pwszLogonScript,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo11->logon_script, pwszLogonScript);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -958,8 +931,7 @@ SamrFillUserInfo12(
     pInfo12 = &(pInfo->info12);
 
     /* profile_path */
-    status = SamrSrvInitUnicodeString(&pInfo12->profile_path, pwszProfilePath,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo12->profile_path, pwszProfilePath);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -985,8 +957,7 @@ SamrFillUserInfo13(
     pInfo13 = &(pInfo->info13);
 
     /* description */
-    status = SamrSrvInitUnicodeString(&pInfo13->description, pwszDescription,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo13->description, pwszDescription);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -1012,8 +983,7 @@ SamrFillUserInfo14(
     pInfo14 = &(pInfo->info14);
 
     /* workstations */
-    status = SamrSrvInitUnicodeString(&pInfo14->workstations, pwszWorkstations,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo14->workstations, pwszWorkstations);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
@@ -1077,8 +1047,7 @@ SamrFillUserInfo20(
     pInfo20 = &(pInfo->info20);
 
     /* parameters */
-    status = SamrSrvInitUnicodeString(&pInfo20->parameters, pwszParameters,
-                                      pInfo);
+    status = SamrSrvInitUnicodeString(&pInfo20->parameters, pwszParameters);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

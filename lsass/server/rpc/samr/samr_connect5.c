@@ -68,8 +68,7 @@ SamrSrvConnect5(
     DWORD dwLevel = 0;
 
     status = SamrSrvAllocateMemory((void**)&pConn,
-                                   sizeof(*pConn),
-                                   NULL);
+                                   sizeof(*pConn));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     dwError = DirectoryOpen(&pConn->hDirectory);
