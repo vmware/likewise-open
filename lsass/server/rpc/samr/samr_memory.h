@@ -49,18 +49,6 @@
 
 
 NTSTATUS
-SamrSrvInitMemory(
-    void
-    );
-
-
-NTSTATUS
-SamrSrvDestroyMemory(
-    void
-    );
-
-
-NTSTATUS
 SamrSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize

@@ -48,55 +48,6 @@
 
 
 NTSTATUS
-SamrSrvInitMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (!bSamrSrvInitialised && !pSamrSrvMemRoot) {
-        pSamrSrvMemRoot = talloc(NULL, 0, NULL);
-        BAIL_ON_NO_MEMORY(pSamrSrvMemRoot);
-    }
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-
-NTSTATUS
-SamrSrvDestroyMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bSamrSrvInitialised && pSamrSrvMemRoot) {
-        tfree(pSamrSrvMemRoot);
-    }
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-
-NTSTATUS
 SamrSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize
