@@ -120,10 +120,10 @@ noinst_HEADERS+=ep.h
 sec_id.c: pickle.h
 
 pickle.h pickle_cstub.c: pickle.idl
-	$(IDL) -keep c_source -no_cpp -v -no_mepv -I../include -server none $<
+	$(IDL) -keep c_source -no_cpp -v -no_mepv -I$(top_srcdir)/include -server none $<
 
 ep.h ep_cstub.c: $(IDL_INCLUDE_DIR)/ep.idl
-	$(IDL) -keep c_source -no_cpp -v -no_mepv -I../include -cepv -server none $<
+	$(IDL) -keep c_source -no_cpp -v -no_mepv -I$(top_srcdir)/include -cepv -server none $<
 
 # Unused: id_base.h (the copy here came from some IDL w/MS PAC format info?)
 
@@ -193,7 +193,7 @@ libmgmt_stubs_la_CPPFLAGS=-I. $(BASE_CPPFLAGS) $(IDL_CPPFLAGS)
 libmgmt_stubs_la_CFLAGS=$(BASE_CFLAGS)
 
 mgmt_cstub.c mgmt_sstub.c mgmt.h: $(IDL_INCLUDE_DIR)/mgmt.idl
-	$(IDL) -keep c_source -no_cpp -v -no_mepv -I../include -cepv $<
+	$(IDL) -keep c_source -no_cpp -v -no_mepv -I$(top_srcdir)/include -cepv $<
 
 # Unused: comfork_cma.c
 # Unused: dgauth.c ("obsolete")
