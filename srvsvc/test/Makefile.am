@@ -1,3 +1,4 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
 
 bin_PROGRAMS=testsrvsvc
 
@@ -17,4 +18,4 @@ testsrvsvc_LDFLAGS= \
 testsrvsvc_LDADD= \
     @DCERPC_LIBS@ \
     @LIBUNISTR_LIBS@ \
-    $(top_srcdir)/client/libsrvsvc.la
+    $(top_builddir)/client/libsrvsvc.la

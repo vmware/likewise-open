@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = libsrvsvcutils.la
 
 libsrvsvcutils_la_SOURCES = \
@@ -18,6 +20,7 @@ libsrvsvcutils_la_LIBADD = \
 
 libsrvsvcutils_la_CFLAGS = $(INCLUDES) -DSRVSVC_BUILD $(AM_CFLAGS)
 libsrvsvcutils_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@
 

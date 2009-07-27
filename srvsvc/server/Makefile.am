@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 sbin_PROGRAMS = srvsvcd
 
 lib_LTLIBRARIES = libsrvsvc_ss.la libwkssvc_ss.la
@@ -30,6 +32,7 @@ libwkssvc_ss_la_SOURCES = wkssvc_sstub.c
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libsrvsvc_ss_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@
 
@@ -39,6 +42,7 @@ libwkssvc_ss_la_CFLAGS = \
     @DCERPC_INCLUDES@
 
 libwkssvc_ss_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     $(FEATURETEST_FLAGS) \
     @DCERPC_INCLUDES@
 
@@ -48,6 +52,7 @@ libsrvsvc_ss_la_CFLAGS = \
 
 srvsvcd_CFLAGS = -g $(INCLUDES) -DSRVSVC_BUILD
 srvsvcd_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     @DCERPC_INCLUDES@   \
     @LIBUNISTR_INCLUDES@ \
     @LWIO_INCLUDES@
@@ -66,8 +71,10 @@ BUILT_SOURCES = srvsvc_h.h srvsvc_cstub.c \
                 wkssvc_h.h wkssvc_cstub.c
 
 srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl
-	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h -I$(idl_srcdir) -I$(include_srcdir) $<
+	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \
+		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
 
 wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c: $(idl_srcdir)/wkssvc.idl
-	$(IDL) $(IDLFLAGS) -keep c_source -header wkssvc_h.h -I$(idl_srcdir) -I$(include_srcdir) $<
+	$(IDL) $(IDLFLAGS) -keep c_source -header wkssvc_h.h \
+		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
 
