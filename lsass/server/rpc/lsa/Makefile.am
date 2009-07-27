@@ -2,22 +2,27 @@ srv_srcdir = $(top_srcdir)/server
 rpc_srcdir = $(srv_srcdir)/rpc
 idl_srcdir = $(rpc_srcdir)/idl
 
-lib_LTLIBRARIES = liblsa_ss.la liblsa_srv.la
+if ENABLE_STATIC_RPCSERVERS
+noinst_LTLIBRARIES = liblsa_srv.la
+else
+rpcserver_LTLIBRARIES = liblsa_srv.la
+noinst_LTLIBRARIES = liblsa_ss.la liblsa.la
+endif
 
-liblsa_srv_la_SOURCES = \
-    globals.c \
-    lsa.c \
-    lsa_cfg.c \
-    lsa_srv.c \
-    lsa_memory.c \
-    lsa_openpolicy2.c \
-    lsa_close.c \
-    lsa_lookupnames.c \
-    lsa_lookupsids.c \
-    lsa_lookupnames2.c \
-    lsa_lookupnames3.c \
-    lsa_queryinfopolicy.c \
-    lsa_queryinfopolicy2.c \
+liblsa_la_SOURCES = \
+    globals.c                   \
+    lsa.c                       \
+    lsa_cfg.c                   \
+    lsa_srv.c                   \
+    lsa_memory.c                \
+    lsa_openpolicy2.c           \
+    lsa_close.c                 \
+    lsa_lookupnames.c           \
+    lsa_lookupsids.c            \
+    lsa_lookupnames2.c          \
+    lsa_lookupnames3.c          \
+    lsa_queryinfopolicy.c       \
+    lsa_queryinfopolicy2.c      \
     lsa_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
@@ -27,7 +32,7 @@ DCEIDL_PASS_INCLUDES = \
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
-liblsa_srv_la_CFLAGS = \
+liblsa_la_CFLAGS = \
     -DLIBRPC_BUILD \
     $(FEATURETEST_FLAGS) \
     -I$(srv_srcdir)/include \
@@ -39,17 +44,18 @@ liblsa_srv_la_CFLAGS = \
     @LWBASE_INCLUDES@ \
     @NETLOGON_INCLUDES@
 
-liblsa_srv_la_LIBADD = \
+liblsa_la_LIBADD = \
     @DCERPC_LIBS@ \
     @NETAPI_LIBS@ \
     @LIBUNISTR_LIBS@ \
     @LWBASE_LIBS@ \
     @NETLOGON_LIBS@ \
     $(srv_srcdir)/api/liblsaserverapi.la \
-    $(srv_srcdir)/store/dsapi/libdsapi.la \
-    liblsa_ss.la
+    $(srv_srcdir)/store/dsapi/libdsapi.la
 
-liblsa_ss_la_SOURCES = lsa_sstub.c
+
+liblsa_ss_la_SOURCES = \
+    lsa_sstub.c
 
 liblsa_ss_la_CFLAGS = \
     -DDCERPC_STUB_BUILD \
@@ -58,9 +64,19 @@ liblsa_ss_la_CFLAGS = \
     @LIBUNISTR_INCLUDES@ \
     @LWBASE_INCLUDES@
 
+liblsa_ss_la_LIBADD = \
+    liblsa.la
+
+
+liblsa_srv_la_SOURCES =
+liblsa_srv_la_CFLAGS =
+liblsa_srv_la_LIBADD = \
+    liblsa_ss.la
+
+
 CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
-BUILT_SOURCES = lsa_h.h
+BUILT_SOURCES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
 lsa_sstub.c lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h -I$(idl_srcdir) \
