@@ -77,19 +77,11 @@
            bInLock = FALSE;                                \
         }
 
-typedef struct _MEM_LIST_NODE MEM_LIST_NODE, *PMEM_LIST_NODE;
-
-struct _MEM_LIST_NODE
-{
-    PMEM_LIST_NODE pNext;
-    PMEM_LIST_NODE pPrev;
-};
-
 typedef struct _MEM_GROUP_MEMBERSHIP
 {
     LSA_GROUP_MEMBERSHIP membership;
-    MEM_LIST_NODE parentListNode;
-    MEM_LIST_NODE childListNode;
+    LSA_LIST_LINKS parentListNode;
+    LSA_LIST_LINKS childListNode;
 } MEM_GROUP_MEMBERSHIP, *PMEM_GROUP_MEMBERSHIP;
 
 #define PARENT_NODE_TO_MEMBERSHIP(x) (PMEM_GROUP_MEMBERSHIP) \
@@ -135,12 +127,12 @@ typedef struct _MEM_DB_CONNECTION
     PLSA_HASH_TABLE pGIDToSecurityObject;
     PLSA_HASH_TABLE pGroupAliasToSecurityObject;
 
-    // Points to a guardian MEM_LIST_NODE. The rest of the linked list points
-    // to MEM_LIST_NODEs from the parentListNode field in MEM_GROUP_MEMBERSHIP
+    // Points to a guardian LSA_LIST_LINKS. The rest of the linked list points
+    // to LSA_LIST_LINKS from the parentListNode field in MEM_GROUP_MEMBERSHIP
     // objects.
     PLSA_HASH_TABLE pParentSIDToMembershipList;
-    // Points to a guardian MEM_LIST_NODE. The rest of the linked list points
-    // to MEM_LIST_NODEs from the childListNode field in MEM_GROUP_MEMBERSHIP
+    // Points to a guardian LSA_LIST_LINKS. The rest of the linked list points
+    // to LSA_LIST_LINKS from the childListNode field in MEM_GROUP_MEMBERSHIP
     // objects.
     PLSA_HASH_TABLE pChildSIDToMembershipList;
 } MEM_DB_CONNECTION, *PMEM_DB_CONNECTION;

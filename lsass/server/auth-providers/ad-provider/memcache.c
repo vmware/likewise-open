@@ -544,9 +544,9 @@ MemCacheStoreFile(
     // do not free
     LSA_HASH_ENTRY *pEntry = NULL;
     // do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // do not free
-    PMEM_LIST_NODE pMemPos = NULL;
+    PLSA_LIST_LINKS pMemPos = NULL;
     // do not free
     PDLINKEDLIST pPos = NULL;
     PSTR pszTempFile = NULL;
@@ -602,8 +602,8 @@ MemCacheStoreFile(
     BAIL_ON_LSA_ERROR(dwError);
     while ((pEntry = LsaHashNext(&iterator)) != NULL)
     {
-        pGuardian = (PMEM_LIST_NODE) pEntry->pValue;
-        pMemPos = pGuardian->pNext;
+        pGuardian = (PLSA_LIST_LINKS) pEntry->pValue;
+        pMemPos = pGuardian->Next;
         while (pMemPos != pGuardian)
         {
             message.data = PARENT_NODE_TO_MEMBERSHIP(pMemPos);
@@ -612,7 +612,7 @@ MemCacheStoreFile(
                             &message));
             BAIL_ON_LSA_ERROR(dwError);
 
-            pMemPos = pMemPos->pNext;
+            pMemPos = pMemPos->Next;
         }
     }
 
@@ -675,10 +675,10 @@ MemCacheRemoveMembership(
 {
     DWORD dwError = 0;
 
-    pMembership->parentListNode.pPrev->pNext = pMembership->parentListNode.pNext;
-    pMembership->parentListNode.pNext->pPrev = pMembership->parentListNode.pPrev;
+    pMembership->parentListNode.Prev->Next = pMembership->parentListNode.Next;
+    pMembership->parentListNode.Next->Prev = pMembership->parentListNode.Prev;
 
-    if (pMembership->parentListNode.pPrev->pPrev == pMembership->parentListNode.pPrev)
+    if (pMembership->parentListNode.Prev->Prev == pMembership->parentListNode.Prev)
     {
         // Only the guardian is left, so remove the hash entry
         dwError = LsaHashRemoveKey(
@@ -687,10 +687,10 @@ MemCacheRemoveMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.pPrev->pNext = pMembership->childListNode.pNext;
-    pMembership->childListNode.pNext->pPrev = pMembership->childListNode.pPrev;
+    pMembership->childListNode.Prev->Next = pMembership->childListNode.Next;
+    pMembership->childListNode.Next->Prev = pMembership->childListNode.Prev;
 
-    if (pMembership->childListNode.pPrev->pPrev == pMembership->childListNode.pPrev)
+    if (pMembership->childListNode.Prev->Prev == pMembership->childListNode.Prev)
     {
         // Only the guardian is left, so remove the hash entry
         dwError = LsaHashRemoveKey(
@@ -1204,14 +1204,14 @@ MemCacheEmptyCache(
 
     while ((pEntry = LsaHashNext(&iterator)) != NULL)
     {
-        PMEM_LIST_NODE pGuardian = (PMEM_LIST_NODE)pEntry->pValue;
+        PLSA_LIST_LINKS pGuardian = (PLSA_LIST_LINKS)pEntry->pValue;
         // Since the hash entry exists, the list must be non-empty
         BOOLEAN bListNonempty = TRUE;
 
         while (bListNonempty)
         {
-            LSA_ASSERT(pGuardian->pNext != pGuardian);
-            if (pGuardian->pNext->pNext == pGuardian)
+            LSA_ASSERT(pGuardian->Next != pGuardian);
+            if (pGuardian->Next->Next == pGuardian)
             {
                 // At this point, there is a guardian node plus one other
                 // entry. MemCacheRemoveMembership will remove the last
@@ -1224,7 +1224,7 @@ MemCacheEmptyCache(
             }
             dwError = MemCacheRemoveMembership(
                             pConn,
-                            PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                            PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next));
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -1739,9 +1739,9 @@ MemCacheAddMembership(
     )
 {
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     DWORD dwError = 0;
-    PMEM_LIST_NODE pGuardianTemp = NULL;
+    PLSA_LIST_LINKS pGuardianTemp = NULL;
     PSTR pszSidCopy = NULL;
 
     dwError = LsaHashGetValue(
@@ -1758,8 +1758,8 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->pNext = pGuardianTemp;
-        pGuardianTemp->pPrev = pGuardianTemp;
+        pGuardianTemp->Next = pGuardianTemp;
+        pGuardianTemp->Prev = pGuardianTemp;
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszParentSid,
@@ -1783,11 +1783,11 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->parentListNode.pNext = pGuardian->pNext;
-    pMembership->parentListNode.pPrev = pGuardian;
+    pMembership->parentListNode.Next = pGuardian->Next;
+    pMembership->parentListNode.Prev = pGuardian;
 
-    pGuardian->pNext->pPrev = &pMembership->parentListNode;
-    pGuardian->pNext = &pMembership->parentListNode;
+    pGuardian->Next->Prev = &pMembership->parentListNode;
+    pGuardian->Next = &pMembership->parentListNode;
 
     dwError = LsaHashGetValue(
                     pConn->pChildSIDToMembershipList,
@@ -1803,8 +1803,8 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->pNext = pGuardianTemp;
-        pGuardianTemp->pPrev = pGuardianTemp;
+        pGuardianTemp->Next = pGuardianTemp;
+        pGuardianTemp->Prev = pGuardianTemp;
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszChildSid,
@@ -1828,11 +1828,11 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.pNext = pGuardian->pNext;
-    pMembership->childListNode.pPrev = pGuardian;
+    pMembership->childListNode.Next = pGuardian->Next;
+    pMembership->childListNode.Prev = pGuardian;
 
-    pGuardian->pNext->pPrev = &pMembership->childListNode;
-    pGuardian->pNext = &pMembership->childListNode;
+    pGuardian->Next->Prev = &pMembership->childListNode;
+    pGuardian->Next = &pMembership->childListNode;
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pGuardianTemp);
@@ -1858,9 +1858,9 @@ MemCacheStoreGroupMembership(
     // Do not free
     PMEM_GROUP_MEMBERSHIP pExistingMembership = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
@@ -1932,7 +1932,7 @@ MemCacheStoreGroupMembership(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -1975,7 +1975,7 @@ MemCacheStoreGroupMembership(
             // it from getting double freed.
             pMembership = NULL;
         }
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     // Remove all of the existing memberships in the child hash and parent hash
@@ -1987,8 +1987,8 @@ MemCacheStoreGroupMembership(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->pNext != pGuardian);
-        if (pGuardian->pNext->pNext == pGuardian)
+        LSA_ASSERT(pGuardian->Next != pGuardian);
+        if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
             // entry. MemCacheRemoveMembership will remove the last
@@ -2001,7 +2001,7 @@ MemCacheStoreGroupMembership(
         }
         dwError = MemCacheRemoveMembership(
                         pConn,
-                        PARENT_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                        PARENT_NODE_TO_MEMBERSHIP(pGuardian->Next));
         LSA_ASSERT(dwError == 0);
     }
 
@@ -2053,9 +2053,9 @@ MemCacheStoreGroupsForUser(
     // Do not free
     PMEM_GROUP_MEMBERSHIP pExistingMembership = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     BOOLEAN bListNonempty = FALSE;
     LSA_HASH_ITERATOR iterator = {0};
     size_t sIndex = 0;
@@ -2127,7 +2127,7 @@ MemCacheStoreGroupsForUser(
     {
         // Copy the existing pac and primary domain memberships to the
         // temporary hash table
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
 
         while(pPos != pGuardian)
         {
@@ -2166,7 +2166,7 @@ MemCacheStoreGroupsForUser(
                 // it from getting double freed.
                 pMembership = NULL;
             }
-            pPos = pPos->pNext;
+            pPos = pPos->Next;
         }
     }
 
@@ -2179,8 +2179,8 @@ MemCacheStoreGroupsForUser(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->pNext != pGuardian);
-        if (pGuardian->pNext->pNext == pGuardian)
+        LSA_ASSERT(pGuardian->Next != pGuardian);
+        if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
             // entry. MemCacheRemoveMembership will remove the last
@@ -2193,7 +2193,7 @@ MemCacheStoreGroupsForUser(
         }
         dwError = MemCacheRemoveMembership(
                         pConn,
-                        CHILD_NODE_TO_MEMBERSHIP(pGuardian->pNext));
+                        CHILD_NODE_TO_MEMBERSHIP(pGuardian->Next));
         LSA_ASSERT(dwError == 0);
     }
 
@@ -2246,9 +2246,9 @@ MemCacheGetMemberships(
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
     // Do not free
-    PMEM_LIST_NODE pGuardian = NULL;
+    PLSA_LIST_LINKS pGuardian = NULL;
     // Do not free
-    PMEM_LIST_NODE pPos = NULL;
+    PLSA_LIST_LINKS pPos = NULL;
     size_t sCount = 0;
     // Do not free
     PMEM_GROUP_MEMBERSHIP pMembership = NULL;
@@ -2279,7 +2279,7 @@ MemCacheGetMemberships(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -2288,7 +2288,7 @@ MemCacheGetMemberships(
     while (pPos != pGuardian)
     {
         sCount++;
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     dwError = LsaAllocateMemory(
@@ -2298,7 +2298,7 @@ MemCacheGetMemberships(
 
     if (pGuardian)
     {
-        pPos = pGuardian->pNext;
+        pPos = pGuardian->Next;
     }
     else
     {
@@ -2333,7 +2333,7 @@ MemCacheGetMemberships(
             sCount++;
         }
 
-        pPos = pPos->pNext;
+        pPos = pPos->Next;
     }
 
     *pppResults = ppResults;

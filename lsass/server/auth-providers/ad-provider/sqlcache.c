@@ -1928,7 +1928,7 @@ LsaDbStoreGroupMembershipCallback(
         // ISSUE-2008/11/03-dalmeida -- Do we want to set update time here?
         "    update OR IGNORE " LSA_DB_TABLE_NAME_MEMBERSHIP " set\n"
         "        IsInLdap = 0\n"
-        "        where ParentSid = %Q;\n"
+        "        where ParentSid = %Q AND IsDomainPrimaryGroup = 0;\n"
         "",
         pszParentSid,
         pszParentSid);
