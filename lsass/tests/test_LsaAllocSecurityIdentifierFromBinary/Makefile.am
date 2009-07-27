@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_PROGRAMS = test_LsaAllocSecurityIdentifierFromBinary
 
 test_LsaAllocSecurityIdentifierFromBinary_SOURCES = main.c

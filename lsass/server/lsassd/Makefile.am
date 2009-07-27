@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 sbin_PROGRAMS = lsassd
 
 lsassd_SOURCES = \
@@ -7,6 +9,7 @@ lsassd_SOURCES = \
         sighandler.c
 
 lsassd_CPPFLAGS =                     \
+	$(AM_CPPFLAGS)                \
         -DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include
 

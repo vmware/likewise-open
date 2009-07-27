@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include -I$(top_srcdir)/gssntlm/include
+
 lib_LTLIBRARIES = libgssntlm.la
 
 libgssntlm_la_SOURCES = \
@@ -9,9 +11,6 @@ libgssntlm_la_SOURCES = \
        sign.c \
        gssutil.c \
        translate.c
-
-libgssntlm_la_CPPFLAGS = \
-	-I@top_srcdir@/gssntlm/include
 
 libgssntlm_la_LIBADD = \
 	@top_builddir@/gssntlm/common/libntlmcommon.la \

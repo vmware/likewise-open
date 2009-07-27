@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblsaaccess.la
 
 liblsaaccess_la_SOURCES = \

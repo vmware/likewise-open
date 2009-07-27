@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblsalog_r.la
 
 liblsalog_r_la_SOURCES = \
@@ -6,6 +8,7 @@ liblsalog_r_la_SOURCES = \
 	tracing.c
 
 liblsalog_r_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
         -DLW_ENABLE_THREADS=1
 
 liblsalog_r_la_LIBADD = \

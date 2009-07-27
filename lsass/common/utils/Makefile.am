@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblsautils.la
 
 liblsautils_la_SOURCES =       \

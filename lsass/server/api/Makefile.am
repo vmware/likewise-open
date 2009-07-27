@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 if ENABLE_MINIMAL
 noinst_LTLIBRARIES = liblsaserverapi.la
 ADDITIONAL_CPPFLAGS = "-DMINIMAL_LSASS=1"
@@ -36,6 +38,7 @@ liblsaserverapi_la_SOURCES = \
        svc_listen.c
 
 liblsaserverapi_la_CPPFLAGS =         \
+	$(AM_CPPFLAGS)                \
 	-DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
 	$(ADDITIONAL_CPPFLAGS)

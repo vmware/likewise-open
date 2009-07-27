@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 if ENABLE_STATIC_PROVIDERS
 noinst_LTLIBRARIES = liblsass_auth_provider_ad.la
 else

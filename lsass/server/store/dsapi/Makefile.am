@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 if ENABLE_MINIMAL
 noinst_LTLIBRARIES = libdsapi.la
 else
@@ -20,6 +22,7 @@ libdsapi_la_SOURCES = \
         diruser.c
 
 libdsapi_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
         -DLW_ENABLE_THREADS=1 \
         -I@top_srcdir@/server/include \
         -I@top_srcdir@/server/store/include

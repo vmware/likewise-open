@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+
 noinst_PROGRAMS = test_memcache
 
 test_memcache_SOURCES = main.c

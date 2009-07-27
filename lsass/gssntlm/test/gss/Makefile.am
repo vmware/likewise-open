@@ -1,8 +1,8 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include -I$(top_srcdir)/gssntlm/include
+
 noinst_PROGRAMS = gss
 
-gss_CPPFLAGS = \
-	-I@top_srcdir@/gssntlm/include \
-	-I@top_srcdir@/gssntlm/server
+gss_CPPFLAGS = $(AM_CPPFLAGS) -I@top_srcdir@/gssntlm/server
 
 gss_LDFLAGS = -static
 gss_LDADD = \

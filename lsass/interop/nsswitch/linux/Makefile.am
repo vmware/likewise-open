@@ -1,3 +1,5 @@
+AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include -I$(srcdir)/../include
+
 nsslib_LTLIBRARIES = libnss_lsass.la
 
 libnss_lsass_la_SOURCES = \
@@ -5,9 +7,6 @@ libnss_lsass_la_SOURCES = \
 	nss-user.c \
 	nss-netgrp.c \
 	globals.c
-
-libnss_lsass_la_CPPFLAGS = \
-	-I@srcdir@/../include
 
 libnss_lsass_la_LIBADD = \
 	@builddir@/../common/libnsscommon.la \
