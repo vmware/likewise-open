@@ -133,7 +133,7 @@ SamrSrvCreateAccount(
 
     status = SamrSrvInitUnicodeString(&AccountName,
                                       pwszAccountName);
-    BAIL_ON_NTSTATUS(status);
+    BAIL_ON_NTSTATUS_ERROR(status);
 
     status = SamrSrvLookupNames(hBinding,
                                 hDomain,

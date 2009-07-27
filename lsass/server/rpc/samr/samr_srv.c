@@ -85,8 +85,6 @@ cleanup:
     return dwError;
 
 error:
-    SamrSrvDestroyMemory();
-
     goto cleanup;
 }
 
