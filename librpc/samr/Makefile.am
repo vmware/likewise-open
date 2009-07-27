@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/msrpc
 idl_srcdir=$(top_srcdir)/idl
@@ -54,7 +56,7 @@ INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
-libsamr_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libsamr_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
 libsamr_cs_la_CFLAGS = \
     -DDCERPC_STUB_BUILD \
     $(FEATURETEST_FLAGS)
@@ -70,5 +72,5 @@ CLEANFILES = samr_h.h samr_cstub.c samr_sstub.c
 BUILT_SOURCES = samr_h.h
 
 samr_h.h samr_cstub.c: $(idl_srcdir)/samr.idl samr.acf
-	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \
-		$(LIBRPC_INCLUDES) $<
+	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h \
+		-I$(idl_srcdir) -I$(srcdir) $(LIBRPC_INCLUDES) $<

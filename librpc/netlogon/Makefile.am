@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 librpc_srcdir=$(top_srcdir)
 idl_srcdir=$(top_srcdir)/idl
 
@@ -30,7 +32,7 @@ INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
-libnetlogon_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libnetlogon_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
 libnetlogon_cs_la_CFLAGS = \
     -DDCERPC_STUB_BUILD \
     $(FEATURETEST_FLAGS)
@@ -46,5 +48,5 @@ CLEANFILES = netlogon_h.h netlogon_cstub.c netlogon_sstub.c
 BUILT_SOURCES = netlogon_h.h
 
 netlogon_cstub.c netlogon_h.h: $(idl_srcdir)/netlogon.idl
-	$(IDL) $(IDLFLAGS) -keep c_source -header netlogon_h.h -I$(idl_srcdir) \
-		$(LIBRPC_INCLUDES) $<
+	$(IDL) $(IDLFLAGS) -keep c_source -header netlogon_h.h \
+		-I$(idl_srcdir) -I$(srcdir) $(LIBRPC_INCLUDES) $<

@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 librpc_srcdir=$(top_srcdir)
 libmsrpc_srcdir=$(top_srcdir)/msrpc
 idl_srcdir=$(top_srcdir)/idl
@@ -18,7 +20,7 @@ INCLUDES = $(DCERPC_INCLUDES) $(UNISTR_INCLUDES) $(LIBRPC_INCLUDES)
 
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
-libdssetup_cs_la_CPPFLAGS = $(FEATURETEST_FLAGS)
+libdssetup_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
 libdssetup_cs_la_CFLAGS = \
     -DDCERPC_STUB_BUILD \
     $(FEATURETEST_FLAGS)
@@ -34,5 +36,5 @@ CLEANFILES = dssetup_h.h dssetup_cstub.c dssetup_sstub.c
 BUILT_SOURCES = dssetup_h.h
 
 dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl
-	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(idl_srcdir) \
-		$(LIBRPC_INCLUDES) $<
+	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h \
+		-I$(idl_srcdir) -I$(srcdir) $(LIBRPC_INCLUDES) $<
