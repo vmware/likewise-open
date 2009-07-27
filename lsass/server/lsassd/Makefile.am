@@ -27,6 +27,14 @@ lsassd_LDADD += $(top_builddir)/server/auth-providers/local-provider/liblsass_au
 endif
 endif
 
+if ENABLE_STATIC_RPCSERVERS
+if ENABLE_RPCSERVER
+lsassd_LDADD += $(top_builddir)/server/rpc/lsa/liblsa_srv.la
+lsassd_LDADD += $(top_builddir)/server/rpc/samr/libsamr_srv.la
+lsassd_LDADD += $(top_builddir)/server/rpc/dssetup/libdssetup_srv.la
+endif
+endif
+
 lsassd_LDFLAGS = \
 	@NETLOGON_LDFLAGS@ \
 	@LWIO_LDFLAGS@
