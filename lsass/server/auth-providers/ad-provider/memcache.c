@@ -1756,7 +1756,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaListInit(&pGuardianTemp);
+        LsaListInit(pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszParentSid,
@@ -1781,7 +1781,7 @@ MemCacheAddMembership(
     }
 
     LsaListInsertAfter(
-        &pGuardian->parentListNode,
+        pGuardian,
         &pMembership->parentListNode);
 
     dwError = LsaHashGetValue(
@@ -1798,7 +1798,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LsaListInit(&pGuardianTemp);
+        LsaListInit(pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszChildSid,
@@ -1823,7 +1823,7 @@ MemCacheAddMembership(
     }
 
     LsaListInsertAfter(
-            &pGuardian->childListNode,
+            pGuardian,
             &pMembership->childListNode);
 
 cleanup:
