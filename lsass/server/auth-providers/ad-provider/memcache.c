@@ -675,8 +675,7 @@ MemCacheRemoveMembership(
 {
     DWORD dwError = 0;
 
-    pMembership->parentListNode.Prev->Next = pMembership->parentListNode.Next;
-    pMembership->parentListNode.Next->Prev = pMembership->parentListNode.Prev;
+    LsaListRemove(&pMembership->parentListNode);
 
     if (pMembership->parentListNode.Prev->Prev == pMembership->parentListNode.Prev)
     {
@@ -687,8 +686,7 @@ MemCacheRemoveMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.Prev->Next = pMembership->childListNode.Next;
-    pMembership->childListNode.Next->Prev = pMembership->childListNode.Prev;
+    LsaListRemove(&pMembership->childListNode);
 
     if (pMembership->childListNode.Prev->Prev == pMembership->childListNode.Prev)
     {
@@ -1210,7 +1208,7 @@ MemCacheEmptyCache(
 
         while (bListNonempty)
         {
-            LSA_ASSERT(pGuardian->Next != pGuardian);
+            LSA_ASSERT(!LsaListIsEmpty(pGuardian));
             if (pGuardian->Next->Next == pGuardian)
             {
                 // At this point, there is a guardian node plus one other
@@ -1758,8 +1756,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->Next = pGuardianTemp;
-        pGuardianTemp->Prev = pGuardianTemp;
+        LsaListInit(&pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszParentSid,
@@ -1783,11 +1780,9 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->parentListNode.Next = pGuardian->Next;
-    pMembership->parentListNode.Prev = pGuardian;
-
-    pGuardian->Next->Prev = &pMembership->parentListNode;
-    pGuardian->Next = &pMembership->parentListNode;
+    LsaListInsertAfter(
+        &pGuardian->parentListNode,
+        &pMembership->parentListNode);
 
     dwError = LsaHashGetValue(
                     pConn->pChildSIDToMembershipList,
@@ -1803,8 +1798,7 @@ MemCacheAddMembership(
                         (PVOID*)&pGuardianTemp);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pGuardianTemp->Next = pGuardianTemp;
-        pGuardianTemp->Prev = pGuardianTemp;
+        LsaListInit(&pGuardianTemp);
 
         dwError = LsaStrDupOrNull(
                         pMembership->membership.pszChildSid,
@@ -1828,11 +1822,9 @@ MemCacheAddMembership(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    pMembership->childListNode.Next = pGuardian->Next;
-    pMembership->childListNode.Prev = pGuardian;
-
-    pGuardian->Next->Prev = &pMembership->childListNode;
-    pGuardian->Next = &pMembership->childListNode;
+    LsaListInsertAfter(
+            &pGuardian->childListNode,
+            &pMembership->childListNode);
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pGuardianTemp);
@@ -1987,7 +1979,7 @@ MemCacheStoreGroupMembership(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->Next != pGuardian);
+        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
         if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
@@ -2179,7 +2171,7 @@ MemCacheStoreGroupsForUser(
 
     while (bListNonempty)
     {
-        LSA_ASSERT(pGuardian->Next != pGuardian);
+        LSA_ASSERT(!LsaListIsEmpty(pGuardian));
         if (pGuardian->Next->Next == pGuardian)
         {
             // At this point, there is a guardian node plus one other
