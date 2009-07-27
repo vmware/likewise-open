@@ -63,8 +63,7 @@ DsrSrvDestroyMemory(
 NTSTATUS
 DsrSrvAllocateMemory(
     void **ppOut,
-    DWORD dwSize,
-    void *pDep
+    DWORD dwSize
     );
 
 
@@ -77,16 +76,14 @@ DsrSrvFreeMemory(
 NTSTATUS
 DsrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID pSidIn,
-    void *pParent
+    PSID pSidIn
     );
 
 
 NTSTATUS
 DsrSrvGetFromUnicodeStringEx(
     PWSTR *ppwszOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     );
 
 
