@@ -478,15 +478,27 @@ cleanup:
     {
        *ppAnswersList = pAnswersList;
     }
+    else
+    {
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAnswersList);
+    }
 
     if (ppAuthsList)
     {
        *ppAuthsList = pAuthsList;
     }
+    else
+    {
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAuthsList);
+    }
 
     if (ppAdditionalsList)
     {
        *ppAdditionalsList = pAdditionalsList;
+    }
+    else
+    {
+        LWNET_SAFE_FREE_DNS_RECORD_LINKED_LIST(pAdditionalsList);
     }
 
     return dwError;
