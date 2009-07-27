@@ -57,6 +57,8 @@ static LWMsgTypeSpec gLsaSecurityObjectVersionSpec[] =
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT_VERSION_INFO),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, qwDbId),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, tLastUpdated),
+    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwObjectSize),
+    LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_VERSION_INFO, dwWeight),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -495,6 +497,8 @@ MemCacheLoadFile(
                                 ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
                                 message.data);
                 BAIL_ON_LSA_ERROR(dwError);
+                pConn->sCacheSize += ((PLSA_PASSWORD_VERIFIER)message.data)->
+                                        version.dwObjectSize;
                 // It is now owned by the global datastructures
                 message.data = NULL;
                 message.tag = -1;
@@ -674,6 +678,8 @@ MemCacheRemoveMembership(
     )
 {
     DWORD dwError = 0;
+
+    pConn->sCacheSize -= pMembership->membership.version.dwObjectSize;
 
     LsaListRemove(&pMembership->parentListNode);
 
@@ -1237,6 +1243,8 @@ MemCacheEmptyCache(
     LsaDLinkedListFree(pConn->pObjects);
     pConn->pObjects = NULL;
 
+    pConn->sCacheSize = 0;
+
     if (bMutexLocked)
     {
         pConn->bNeedBackup = TRUE;
@@ -1356,6 +1364,8 @@ MemCacheRemoveObjectByHashKey(
         pListEntry->pNext->pPrev = pListEntry->pPrev;
     }
     LSA_SAFE_FREE_MEMORY(pListEntry);
+    pConn->sCacheSize -= pObject->version.dwObjectSize;
+
     ADCacheSafeFreeObject(&pObject);
 
 cleanup:
@@ -1571,6 +1581,21 @@ error:
     goto cleanup;
 }
 
+size_t
+MemCacheGetStringSpace(
+    IN PCSTR pszStr
+    )
+{
+    if (pszStr)
+    {
+        return strlen(pszStr) + HEAP_HEADER_SIZE;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 DWORD
 MemCacheStoreObjectEntryInLock(
     IN PMEM_DB_CONNECTION pConn,
@@ -1579,6 +1604,9 @@ MemCacheStoreObjectEntryInLock(
 {
     DWORD dwError = 0;
     PSTR pszKey = NULL;
+    // Keep track of how much space is used to store the object (including hash
+    // space)
+    size_t sObjectSize = sizeof(*pObject) + HEAP_HEADER_SIZE;
 
     dwError = MemCacheClearExistingObjectKeys(
                     pConn,
@@ -1592,8 +1620,13 @@ MemCacheStoreObjectEntryInLock(
                     pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
+    sObjectSize += sizeof(*pConn->pObjects) + HEAP_HEADER_SIZE;
+
     if (pObject->pszDN != NULL)
     {
+        sObjectSize += MemCacheGetStringSpace(pObject->pszDN);
+
+        sObjectSize += HASH_ENTRY_SPACE;
         dwError = LsaHashSetValue(
                         pConn->pDNToSecurityObject,
                         pObject->pszDN,
@@ -1601,14 +1634,28 @@ MemCacheStoreObjectEntryInLock(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    LSA_ASSERT(pObject->pszObjectSid);
+    sObjectSize += MemCacheGetStringSpace(pObject->pszObjectSid);
+    sObjectSize += HASH_ENTRY_SPACE;
+    dwError = LsaHashSetValue(
+                    pConn->pSIDToSecurityObject,
+                    pObject->pszObjectSid,
+                    pConn->pObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sObjectSize += MemCacheGetStringSpace(pObject->pszNetbiosDomainName);
+    sObjectSize += MemCacheGetStringSpace(pObject->pszSamAccountName);
+
     dwError = LsaAllocateStringPrintf(
                     &pszKey,
                     "%s\\%s",
                     pObject->pszNetbiosDomainName,
                     pObject->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
+    sObjectSize += MemCacheGetStringSpace(pszKey);
 
     LSA_ASSERT(pszKey != NULL);
+    sObjectSize += HASH_ENTRY_SPACE;
     dwError = LsaHashSetValue(
                     pConn->pNT4ToSecurityObject,
                     pszKey,
@@ -1617,16 +1664,10 @@ MemCacheStoreObjectEntryInLock(
     // The key is now owned by the hash table
     pszKey = NULL;
 
-    LSA_ASSERT(pObject->pszObjectSid);
-    dwError = LsaHashSetValue(
-                    pConn->pSIDToSecurityObject,
-                    pObject->pszObjectSid,
-                    pConn->pObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
     switch(pObject->type)
     {
         case AccountType_Group:
+            sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pGIDToSecurityObject,
                             (PVOID)(size_t)pObject->groupInfo.gid,
@@ -1635,22 +1676,41 @@ MemCacheStoreObjectEntryInLock(
 
             if (pObject->groupInfo.pszAliasName)
             {
+                sObjectSize += HASH_ENTRY_SPACE;
                 dwError = LsaHashSetValue(
                                 pConn->pGroupAliasToSecurityObject,
                                 pObject->groupInfo.pszAliasName,
                                 pConn->pObjects);
                 BAIL_ON_LSA_ERROR(dwError);
+
+                sObjectSize += MemCacheGetStringSpace(pObject->groupInfo.pszAliasName);
             }
+
+            sObjectSize += MemCacheGetStringSpace(pObject->groupInfo.pszPasswd);
             break;
         case AccountType_User:
+            sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pUIDToSecurityObject,
                             (PVOID)(size_t)pObject->userInfo.uid,
                             pConn->pObjects);
             BAIL_ON_LSA_ERROR(dwError);
 
+            if (pObject->userInfo.pszUPN)
+            {
+                sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszUPN);
+                sObjectSize += HASH_ENTRY_SPACE;
+                dwError = LsaHashSetValue(
+                                pConn->pUPNToSecurityObject,
+                                pObject->userInfo.pszUPN,
+                                pConn->pObjects);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
             if (pObject->userInfo.pszAliasName)
             {
+                sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszAliasName);
+                sObjectSize += HASH_ENTRY_SPACE;
                 dwError = LsaHashSetValue(
                                 pConn->pUserAliasToSecurityObject,
                                 pObject->userInfo.pszAliasName,
@@ -1658,16 +1718,17 @@ MemCacheStoreObjectEntryInLock(
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
-            if (pObject->userInfo.pszUPN)
-            {
-                dwError = LsaHashSetValue(
-                                pConn->pUPNToSecurityObject,
-                                pObject->userInfo.pszUPN,
-                                pConn->pObjects);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszPasswd);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszGecos);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszShell);
+            sObjectSize += MemCacheGetStringSpace(pObject->userInfo.pszHomedir);
             break;
     }
+
+    pObject = (PLSA_SECURITY_OBJECT)pConn->pObjects->pItem;
+    pObject->version.dwObjectSize = sObjectSize;
+
+    pConn->sCacheSize += sObjectSize;
 
 cleanup:
     LSA_SAFE_FREE_STRING(pszKey);
@@ -1741,6 +1802,19 @@ MemCacheAddMembership(
     DWORD dwError = 0;
     PLSA_LIST_LINKS pGuardianTemp = NULL;
     PSTR pszSidCopy = NULL;
+    size_t sObjectSize = sizeof(*pMembership) + HEAP_HEADER_SIZE;
+
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszParentSid);
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszChildSid);
+
+    // For simplicity assume we always add a guardian node with regards to
+    // space calculations
+    sObjectSize += HASH_ENTRY_SPACE;
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszParentSid);
+    sObjectSize += HASH_ENTRY_SPACE;
+    sObjectSize += MemCacheGetStringSpace(pMembership->membership.pszChildSid);
+
+    pMembership->membership.version.dwObjectSize = sObjectSize;
 
     dwError = LsaHashGetValue(
                     pConn->pParentSIDToMembershipList,
@@ -1825,6 +1899,8 @@ MemCacheAddMembership(
     LsaListInsertAfter(
             pGuardian,
             &pMembership->childListNode);
+
+    pConn->sCacheSize += sObjectSize;
 
 cleanup:
     LSA_SAFE_FREE_MEMORY(pGuardianTemp);
@@ -2772,6 +2848,7 @@ MemCacheStorePasswordVerifier(
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
     BOOLEAN bMutexLocked = FALSE;
+    size_t sObjectSize = sizeof(*pVerifier) + HEAP_HEADER_SIZE;
 
     ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
@@ -2783,6 +2860,12 @@ MemCacheStorePasswordVerifier(
                     pVerifier);
     BAIL_ON_LSA_ERROR(dwError);
 
+    sObjectSize += MemCacheGetStringSpace(pVerifier->pszObjectSid);
+    sObjectSize += MemCacheGetStringSpace(pVerifier->pszPasswordVerifier);
+    sObjectSize += HASH_ENTRY_SPACE;
+
+    pCopy->version.dwObjectSize = sObjectSize;
+
     dwError = LsaHashSetValue(
                     pIndex,
                     pCopy->pszObjectSid,
@@ -2790,6 +2873,8 @@ MemCacheStorePasswordVerifier(
     BAIL_ON_LSA_ERROR(dwError);
     // This is now owned by the hash
     pCopy = NULL;
+
+    pConn->sCacheSize += sObjectSize;
 
     pConn->bNeedBackup = TRUE;
     dwError = pthread_cond_signal(&pConn->signalBackup);

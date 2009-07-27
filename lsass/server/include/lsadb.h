@@ -59,6 +59,11 @@ typedef struct __LSA_SECURITY_OBJECT_VERSION_INFO
     // the database.
     int64_t qwDbId;
     time_t tLastUpdated;
+    // Sum of the size of all objects that use this version info (only used by
+    // memory backend)
+    DWORD dwObjectSize;
+    // Importance of this object (for internal use by the memory backend)
+    DWORD dwWeight;
 } LSA_SECURITY_OBJECT_VERSION_INFO, *PLSA_SECURITY_OBJECT_VERSION_INFO;
 
 typedef struct _LSA_SECURITY_OBJECT_USER_INFO
