@@ -76,19 +76,14 @@ LsaSrvLookupNames(
     }
 
     status = LsaSrvAllocateMemory((void**)pNames,
-                                  sizeof(*pNames) * num_names,
-                                  pPolCtx);
+                                  sizeof(*pNames) * num_names);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < num_names; i++) {
         pwszName = GetFromUnicodeString(&(names[i]));
         BAIL_ON_NO_MEMORY(pwszName);
 
-        status = InitUnicodeStringEx(&(pNames[i]), pwszName);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = LsaSrvAddDepMemory(pNames[i].string,
-                                    pNames);
+        status = LsaSrvInitUnicodeStringEx(&(pNames[i]), pwszName);
         BAIL_ON_NTSTATUS_ERROR(status);
 
         if (pwszName) {
@@ -114,8 +109,7 @@ LsaSrvLookupNames(
     sids->count = pSidArray->count;
 
     status = LsaSrvAllocateMemory((void**)&(sids->sids),
-                                  sizeof(sids->sids[0]) * sids->count,
-                                  pPolCtx);
+                                  sizeof(sids->sids[0]) * sids->count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < sids->count; i++) {

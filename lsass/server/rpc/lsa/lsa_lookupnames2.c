@@ -82,8 +82,7 @@ LsaSrvLookupNames2(
 
     Sids2.count = Sids3.count;
     status = LsaSrvAllocateMemory((void**)&Sids2.sids,
-                                  sizeof(*Sids2.sids) * Sids2.count,
-                                  hPolicy);
+                                  sizeof(*Sids2.sids) * Sids2.count);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     for (i = 0; i < Sids2.count; i++) {
