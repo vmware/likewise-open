@@ -2,13 +2,14 @@ bin_PROGRAMS = lwio-copy
 
 lwio_copy_SOURCES = \
     globals.c \
-    main.c \
+    main.c\
+    copyutil.c\
     lwiocopy.c
 
 lwio_copy_CPPFLAGS =  \
     @KRB5_INCLUDES@   \
-    @NETLOGON_INCLUDES@ \
-    -I@top_srcdir@         \
+    @NETLOGON_INCLUDES@\
+    -I@top_srcdir@ \
     -I@top_srcdir@/include
 
 lwio_copy_LDADD = \

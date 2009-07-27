@@ -96,8 +96,8 @@ GetKrb5PrincipalName(
     );
 
 static
-NTSTATUS
-MapErrorCode(
+VOID
+MapErrorCodes(
     NTSTATUS ntStatus
     );
 
@@ -120,8 +120,6 @@ main(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bPrintOrigError = TRUE;
-    ULONG   ulErrorBufferSize = 0;
     PSTR pszSourcePath = NULL;
     PSTR pszTargetPath = NULL;
     PSTR pszCachePath = NULL;
@@ -176,8 +174,12 @@ main(
     if (!IsNullOrEmptyString(pszCachePath))
     {
         ntStatus = GetKrb5PrincipalName(pszCachePath, &pszPrincipal);
-        BAIL_ON_NT_STATUS(ntStatus);
-
+        if (IsNullOrEmptyString(pszPrincipal))
+        {
+            fprintf(stderr,"Error: Invalid cache path passed\n");
+            ntStatus = LWIO_ERROR_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
         ntStatus = LwIoCreateKrb5AccessTokenA(
                         pszPrincipal,
                         pszCachePath,
@@ -220,31 +222,7 @@ cleanup:
 
 error:
 
-    ntStatus = MapErrorCode(ntStatus);
-
-    ulErrorBufferSize = SMBStrError(ntStatus, NULL, 0);
-
-    if (ulErrorBufferSize > 0)
-    {
-        NTSTATUS ntStatus2 = 0;
-        PSTR   pszErrorBuffer = NULL;
-
-        ntStatus2 = SMBAllocateMemory(ulErrorBufferSize, (PVOID*)&pszErrorBuffer);
-
-        if (ntStatus2 == STATUS_SUCCESS)
-        {
-            ULONG ulLen = SMBStrError(ntStatus, pszErrorBuffer, ulErrorBufferSize);
-
-            if ((ulLen == ulErrorBufferSize) &&
-                !IsNullOrEmptyString(pszErrorBuffer))
-            {
-                fprintf(stderr, "Failed to query ntStatus from SMB service.  %s\n", pszErrorBuffer);
-                bPrintOrigError = FALSE;
-            }
-        }
-
-        LWIO_SAFE_FREE_STRING(pszErrorBuffer);
-    }
+    MapErrorCodes(ntStatus);
 
     goto cleanup;
 }
@@ -731,31 +709,6 @@ ShowUsage(
     printf("Usage: lwio-copy -r //imgserver.abc.com/public/apple.jpg .\n");
 }
 
-static
-NTSTATUS
-MapErrorCode(
-    NTSTATUS ntStatus
-    )
-{
-    NTSTATUS ntStatus2 = ntStatus;
-
-    switch (ntStatus)
-    {
-        case ECONNREFUSED:
-        case ENETUNREACH:
-        case ETIMEDOUT:
-
-            ntStatus2 = LWIO_ERROR_SERVER_UNREACHABLE;
-
-            break;
-
-        default:
-
-            break;
-    }
-
-    return ntStatus2;
-}
 
 static
 VOID
@@ -781,3 +734,43 @@ LwIoDestroyKrb5Cache(
 }
 
 
+static
+VOID
+MapErrorCodes(
+    NTSTATUS ntStatus
+    )
+{
+    switch (ntStatus)
+    {
+        case LWIO_ERROR_INVALID_PARAMETER:
+            fprintf(stderr,"Error: Invalid parameter passed\n");
+            break;
+        case LWIO_ERROR_MALFORMED_REQUEST:
+            fprintf(stderr,"Error: malformed request\n");
+            break;
+        case LWIO_ERROR_SYSTEM:
+            fprintf(stderr,"Error: system error\n");
+            break;
+        case LWIO_ERROR_SERVER_UNREACHABLE:
+            fprintf(stderr,"Error: server is not reachable\n");
+            break;
+        case LWIO_ERROR_PASSWORD_EXPIRED:
+            fprintf(stderr,"Error: password expired\n");
+            break;
+        case LWIO_ERROR_PASSWORD_MISMATCH:
+            fprintf(stderr,"Error: password mismatch\n");
+            break;
+        case LWIO_ERROR_CLOCK_SKEW:
+            fprintf(stderr,"Error: clock skew detected\n");
+            break;
+        case LWIO_ERROR_INVALID_HANDLE:
+            fprintf(stderr,"Error: Invalid handle\n");
+            break;
+        case LWIO_ERROR_HOST_NOT_FOUND:
+            fprintf(stderr,"Error: host is not available\n");
+            break;
+        case LWIO_ERROR_DATA_ERROR:
+            fprintf(stderr,"Error: data error\n");
+            break;
+    }
+}

@@ -10,88 +10,6 @@ CopyFile(
     );
 
 NTSTATUS
-LwioLocalOpenFile(
-    IN PCSTR pszFileName,
-    IN INT dwMode,
-    IN INT dwPerms,
-    OUT INT *dwHandle
-    );
-
-
-NTSTATUS
-LwioLocalCreateDir(
-    IN PCSTR pszPath,
-    IN mode_t dwFileMode
-    );
-
-
-NTSTATUS
-LwioLocalCreateDirInternal(
-    IN PSTR pszPath,
-    IN PSTR pszLastSlash,
-    IN mode_t dwFileMode
-    );
-
-
-NTSTATUS
-LwioLocalChangePermissions(
-    IN PCSTR pszPath,
-    IN mode_t dwFileMode
-    );
-
-
-NTSTATUS
-LwioLocalCheckDirExists(
-    IN PCSTR pszPath,
-    IN PBOOLEAN pbDirExists
-    );
-
-
-NTSTATUS
-LwioLocalRemoveDir(
-    IN PCSTR pszPath
-    );
-
-
-NTSTATUS
-LwioLocalRemoveFile(
-    IN PCSTR pszPath
-    );
-
-NTSTATUS
-LwioRemoteOpenFile(
-    IN  PCSTR           pszFileName,
-    IN  ULONG           ulDesiredAccess,
-    IN  ULONG           ulShareAccess,
-    IN  ULONG           ulCreateDisposition,
-    IN  ULONG           ulCreateOptions,
-    OUT PIO_FILE_HANDLE phFile
-    );
-
-NTSTATUS
-LwioRemoteWriteFile(
-    IN HANDLE hFile,
-    IN PVOID pBuffer,
-    IN DWORD dwNumBytesToWrite,
-    OUT PDWORD pdwNumBytesWritten
-    );
-
-
-NTSTATUS
-LwioRemoteReadFile(
-    IN HANDLE hFile,
-    OUT PVOID pBuffer,
-    IN DWORD dwNumberOfBytesToRead,
-    OUT PDWORD pdwBytesRead
-    );
-
-NTSTATUS
-LwioCheckRemotePathIsDirectory(
-    IN     PCSTR    pszPath,
-    IN OUT PBOOLEAN pbIsDirectory
-    );
-
-NTSTATUS
 LwioCopyFileFromRemote(
     IN PCSTR pszSourcePath,
     IN PCSTR pszTargetPath
@@ -116,15 +34,55 @@ LwioCopyDirToRemote(
     );
 
 NTSTATUS
-LwioCheckFileExists(
-    PCSTR pszPath,
-    PBOOLEAN pbFileExists
+CopyFile_RemoteToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
     );
 
 NTSTATUS
-LwioCheckDirectoryExists(
-    PCSTR pszPath,
-    PBOOLEAN pbDirExists
+CopyFile_RemoteToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+NTSTATUS
+CopyFile_LocalToRemote(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+NTSTATUS
+CopyFile_LocalToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath,
+    BOOLEAN bCopyRecursive
+    );
+
+NTSTATUS
+LwioCopyFileFromLocalToLocal(
+    PCSTR   pszSrcPath,
+    PCSTR   pszDestPath
+    );
+
+NTSTATUS
+LwioCopyDirFromLocalToLocal(
+    IN PCSTR pszSourcePath,
+    IN PCSTR pszTargetPath
+    );
+
+NTSTATUS
+LwioCopyDirFromRemoteToRemote(
+    IN PCSTR pszSourcePath,
+    IN PCSTR pszTargetPath
+    );
+
+NTSTATUS
+LwioCopyFileFromRemoteToRemote(
+    IN PCSTR pszSourcePath,
+    IN PCSTR pszTargetPath
     );
 
 #endif
