@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblwdns.la
 
 liblwdns_la_SOURCES =  \
@@ -21,6 +23,7 @@ liblwdns_la_SOURCES =  \
     libmain.c
 
 liblwdns_la_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     @KRB5_INCLUDES@
 
 liblwdns_la_LIBADD = \
