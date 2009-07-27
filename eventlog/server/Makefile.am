@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 sbin_PROGRAMS = eventlogd
 
 idl_srcdir=$(top_srcdir)/idl
@@ -12,6 +14,7 @@ eventlogd_SOURCES = \
     server.c
 
 eventlogd_CPPFLAGS = \
+    $(AM_CPPFLAGS) \
     @GSSAPI_INCLUDES@ \
     @DCERPC_INCLUDES@ \
     @LIBUNISTR_INCLUDES@
@@ -24,7 +27,7 @@ eventlogd_LDADD = \
 eventlogd_LDFLAGS = \
     @GSSAPI_LDFLAGS@ \
     @SQLITE_LDFLAGS@
-    
+
 CLEANFILES = \
     eventlog_h.h \
     eventlog_cstub.c \
