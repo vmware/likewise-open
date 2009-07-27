@@ -93,20 +93,13 @@ error:
 NTSTATUS
 DsrSrvAllocateMemory(
     void **ppOut,
-    DWORD dwSize,
-    void *pDep
+    DWORD dwSize
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     void *pOut = NULL;
-    void *pParent = NULL;
-    int locked = 0;
 
-    pParent = (pDep) ? pDep : pDsrSrvMemRoot;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    pOut = talloc(pParent, dwSize, NULL);
+    pOut = rpc_ss_allocate(dwSize);
     BAIL_ON_NO_MEMORY(pOut);
 
     memset(pOut, 0, dwSize);
@@ -114,67 +107,10 @@ DsrSrvAllocateMemory(
     *ppOut = pOut;
 
 cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
     return status;
 
 error:
     *ppOut = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-DsrSrvReallocMemory(
-    void **ppOut,
-    DWORD dwNewSize,
-    void *pIn
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    void *pOut = NULL;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    pOut = trealloc(pIn, dwNewSize);
-    BAIL_ON_NO_MEMORY(pOut);
-
-    *ppOut = pOut;
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
-    *ppOut = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-DsrSrvAddDepMemory(
-    void *pIn,
-    void *pDep
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    void *pParent = NULL;
-    int locked = 0;
-
-    pParent = (pDep) ? pDep : pDsrSrvMemRoot;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    tlink(pParent, pIn);
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-
-error:
     goto cleanup;
 }
 
@@ -184,23 +120,14 @@ DsrSrvFreeMemory(
     void *pPtr
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    tfree(pPtr);
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
+    rpc_ss_free(pPtr);
 }
 
 
 NTSTATUS
 DsrSrvAllocateSidFromWC16String(
     PSID *ppSid,
-    PCWSTR pwszSidStr,
-    void *pParent
+    PCWSTR pwszSidStr
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -214,8 +141,7 @@ DsrSrvAllocateSidFromWC16String(
 
     ulSidSize = RtlLengthSid(pSid);
     status = DsrSrvAllocateMemory((void**)&pSidCopy,
-                                  ulSidSize,
-                                  pParent);
+                                  ulSidSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidSize, pSidCopy, pSid);
@@ -232,7 +158,7 @@ cleanup:
 
 error:
     if (pSidCopy) {
-        RTL_FREE(&pSidCopy);
+        DsrSrvFreeMemory(pSidCopy);
     }
 
     *ppSid = NULL;
@@ -243,8 +169,7 @@ error:
 NTSTATUS
 DsrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID pSidIn,
-    void *pParent
+    PSID pSidIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -253,8 +178,7 @@ DsrSrvDuplicateSid(
 
     ulSidSize = RtlLengthSid(pSidIn);
     status = DsrSrvAllocateMemory((void**)&pSid,
-                                  ulSidSize,
-                                  pParent);
+                                  ulSidSize);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     status = RtlCopySid(ulSidSize, pSid, pSidIn);
@@ -267,7 +191,7 @@ cleanup:
 
 error:
     if (pSid) {
-        RTL_FREE(&pSid);
+        DsrSrvFreeMemory(pSid);
     }
 
     *ppSidOut = NULL;
@@ -278,16 +202,14 @@ error:
 NTSTATUS
 DsrSrvGetFromUnicodeStringEx(
     PWSTR *ppwszOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PWSTR pwszStr = NULL;
 
     status = DsrSrvAllocateMemory((void**)&pwszStr,
-                                  (pIn->size) * sizeof(WCHAR),
-                                  pParent);
+                                  (pIn->size) * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(status);
 
     wc16sncpy(pwszStr, pIn->string, (pIn->len / sizeof(WCHAR)));
