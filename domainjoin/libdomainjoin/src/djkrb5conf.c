@@ -1438,7 +1438,12 @@ static CENTERROR WriteKrb5Configuration(const char *rootPrefix, const char *file
             finalName = symtarget;
             symtarget = NULL;
         }
+#if defined(MINIMAL_JOIN)
+        GCE(ceError = CTCloneFilePerms(finalName, tempName));
+        GCE(ceError = CTMoveFile(tempName, finalName));
+#else
         GCE(ceError = CTSafeReplaceFile(finalName, tempName));
+#endif
     }
 
 cleanup:
