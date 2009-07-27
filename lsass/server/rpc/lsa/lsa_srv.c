@@ -59,9 +59,6 @@ LsaInitializeRpcSrv(
 
     pthread_mutex_init(&gLsaSrvDataMutex, NULL);
 
-    status = LsaSrvInitMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
-
     dwError = RpcSvcRegisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -99,9 +96,6 @@ LsaShutdownRpcSrv(
 
     dwError = RpcSvcUnregisterRpcInterface(lsa_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
-
-    status = LsaSrvDestroyMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
 
     pthread_mutex_destroy(&gLsaSrvDataMutex);
 

@@ -49,18 +49,6 @@
 
 
 NTSTATUS
-LsaSrvInitMemory(
-    void
-    );
-
-
-NTSTATUS
-LsaSrvDestroyMemory(
-    void
-    );
-
-
-NTSTATUS
 LsaSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize

@@ -48,49 +48,6 @@
 
 
 NTSTATUS
-LsaSrvInitMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (!bLsaSrvInitialised && !pLsaSrvMemRoot) {
-        pLsaSrvMemRoot = talloc(NULL, 0, NULL);
-        BAIL_ON_NO_MEMORY(pLsaSrvMemRoot);
-    }
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
-
-
-NTSTATUS
-LsaSrvDestroyMemory(
-    void
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bLsaSrvInitialised && pLsaSrvMemRoot) {
-        tfree(pLsaSrvMemRoot);
-    }
-
-error:
-    GLOBAL_DATA_UNLOCK(locked);
-
-    return status;
-}
-
-
-NTSTATUS
 LsaSrvAllocateMemory(
     void **ppOut,
     DWORD dwSize
