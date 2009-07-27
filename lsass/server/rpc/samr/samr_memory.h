@@ -63,23 +63,7 @@ SamrSrvDestroyMemory(
 NTSTATUS
 SamrSrvAllocateMemory(
     void **ppOut,
-    DWORD dwSize,
-    void *pDep
-    );
-
-
-NTSTATUS
-SamrSrvReallocMemory(
-    void **ppOut,
-    DWORD dwNewSize,
-    void *pIn
-    );
-
-
-NTSTATUS
-SamrSrvAddDepMemory(
-    void *pIn,
-    void *pDep
+    DWORD dwSize
     );
 
 
@@ -92,48 +76,42 @@ SamrSrvFreeMemory(
 NTSTATUS
 SamrSrvAllocateSidFromWC16String(
     PSID *ppSid,
-    PCWSTR pwszSidStr,
-    void *pParent
+    PCWSTR pwszSidStr
     );
 
 
 NTSTATUS
 SamrSrvDuplicateSid(
     PSID *ppSidOut,
-    PSID pSidIn,
-    void *pParent
+    PSID pSidIn
     );
 
 
 NTSTATUS
 SamrSrvGetFromUnicodeString(
     PWSTR *ppwszOut,
-    UnicodeString *pIn,
-    void *pParent
+    UnicodeString *pIn
     );
 
 
 NTSTATUS
 SamrSrvGetFromUnicodeStringEx(
     PWSTR *ppwszOut,
-    UnicodeStringEx *pIn,
-    void *pParent
+    UnicodeStringEx *pIn
     );
 
 
 NTSTATUS
 SamrSrvInitUnicodeString(
     UnicodeString *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     );
 
 
 NTSTATUS
 SamrSrvInitUnicodeStringEx(
     UnicodeStringEx *pOut,
-    PCWSTR pwszIn,
-    void *pParent
+    PCWSTR pwszIn
     );
 
 
