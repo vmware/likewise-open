@@ -796,13 +796,13 @@ static CENTERROR ReadPamFile(struct PamConf *conf, const char *rootPrefix, const
     BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(
             &fullPath, "%s%s", rootPrefix, filename));
     DJ_LOG_INFO("Reading pam file %s", fullPath);
-    if(stat(fullPath, &statbuf) < 0)
+    if (stat(fullPath, &statbuf) < 0)
     {
         DJ_LOG_INFO("File %s does not exist", fullPath);
         ceError = CENTERROR_INVALID_FILENAME;
         goto error;
     }
-    if(!S_ISREG(statbuf.st_mode))
+    if (!S_ISREG(statbuf.st_mode))
     {
         DJ_LOG_INFO("File %s is not a regular file", fullPath);
         ceError = CENTERROR_INVALID_FILENAME;
@@ -925,7 +925,9 @@ error:
 struct OpenFile
 {
     const char *name;
+    char *tempPath;
     FILE *file;
+    BOOLEAN followSymlinks;
 };
 
 static CENTERROR FindFile(const char *rootPrefix, const char *filename, DynamicArray *openFiles, int *lastIndexed, FILE **file)
@@ -934,14 +936,16 @@ static CENTERROR FindFile(const char *rootPrefix, const char *filename, DynamicA
     struct OpenFile *files = (struct OpenFile *)openFiles->data;
     int i;
     struct OpenFile newFile;
-    char *fullPath = NULL;
+    char *tempPath = NULL;
+    char *prefixedPath = NULL;
     memset(&newFile, 0, sizeof(newFile));
+    BOOLEAN followSymlinks = TRUE;
 
     if(*lastIndexed < openFiles->size &&
             !strcmp(filename, files[*lastIndexed].name))
     {
         *file = files[*lastIndexed].file;
-        return ceError;
+        goto cleanup;
     }
 
     for(i = 0; i < openFiles->size; i++)
@@ -950,17 +954,43 @@ static CENTERROR FindFile(const char *rootPrefix, const char *filename, DynamicA
         {
             *lastIndexed = i;
             *file = files[*lastIndexed].file;
-            return ceError;
+            goto cleanup;
         }
+    }
+
+    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&prefixedPath, "%s%s", rootPrefix, filename));
+    ceError = CTGetFileTempPath(
+                        prefixedPath,
+                        NULL,
+                        &tempPath);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    for (i = 0; i < openFiles->size; i++)
+    {
+        if (!strcmp(tempPath, files[i].tempPath))
+        {
+            DJ_LOG_INFO("%s conflicts with %s - breaking symlinks to solve conflict", filename, files[i].name);
+            followSymlinks = FALSE;
+            files[i].followSymlinks = FALSE;
+            break;
+        }
+    }
+    if (!followSymlinks)
+    {
+        CT_SAFE_FREE_STRING(tempPath);
+        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&tempPath, "%s.lwidentity.new.conflicted", prefixedPath));
     }
 
     /* The file hasn't been opened yet. */
     newFile.name = filename;
-    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&fullPath, "%s%s.new", rootPrefix, filename));
-    ceError = CTOpenFile(fullPath, "w", &newFile.file);
+    newFile.tempPath = tempPath;
+    tempPath = NULL;
+    newFile.followSymlinks = followSymlinks;
+
+    ceError = CTOpenFile(newFile.tempPath, "w", &newFile.file);
     if(!CENTERROR_IS_OK(ceError))
     {
-        DJ_LOG_ERROR("Unable to open '%s' for writing", fullPath);
+        DJ_LOG_ERROR("Unable to open '%s' for writing", tempPath);
         BAIL_ON_CENTERIS_ERROR(ceError);
     }
     BAIL_ON_CENTERIS_ERROR(ceError = CTArrayAppend(openFiles, sizeof(struct OpenFile), &newFile, 1));
@@ -970,10 +1000,13 @@ static CENTERROR FindFile(const char *rootPrefix, const char *filename, DynamicA
     *lastIndexed = openFiles->size - 1;
     *file = files[*lastIndexed].file;
 
+cleanup:
 error:
     if(newFile.file != NULL)
         CTCloseFile(newFile.file);
-    CT_SAFE_FREE_STRING(fullPath);
+    CT_SAFE_FREE_STRING(tempPath);
+    CT_SAFE_FREE_STRING(newFile.tempPath);
+    CT_SAFE_FREE_STRING(prefixedPath);
     return ceError;
 }
 
@@ -981,22 +1014,27 @@ static CENTERROR MoveFiles(const char *rootPrefix, DynamicArray *openFiles, PSTR
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     int i;
-    char *tempName = NULL;
     char *finalName = NULL;
+    char *prefixedPath = NULL;
     PSTR oldDiff = NULL;
     PSTR fileDiff = NULL;
     BOOLEAN same;
     struct OpenFile *files = (struct OpenFile *)openFiles->data;
+
     for(i = 0; i < openFiles->size; i++)
     {
-        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&tempName, "%s%s.new", rootPrefix, files[i].name));
-        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&finalName, "%s%s", rootPrefix, files[i].name));
+        BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&prefixedPath, "%s%s", rootPrefix, files[i].name));
+        ceError = CTGetFileTempPath(
+                            prefixedPath,
+                            &finalName,
+                            NULL);
+        BAIL_ON_CENTERIS_ERROR(ceError);
 
-        BAIL_ON_CENTERIS_ERROR(ceError = CTFileContentsSame(tempName, finalName, &same));
+        BAIL_ON_CENTERIS_ERROR(ceError = CTFileContentsSame(files[i].tempPath, finalName, &same));
         if(same)
         {
             DJ_LOG_INFO("Pam file %s unmodified", finalName);
-            BAIL_ON_CENTERIS_ERROR(ceError = CTRemoveFile(tempName));
+            BAIL_ON_CENTERIS_ERROR(ceError = CTRemoveFile(files[i].tempPath));
         }
         else
         {
@@ -1010,20 +1048,26 @@ static CENTERROR MoveFiles(const char *rootPrefix, DynamicArray *openFiles, PSTR
                     BAIL_ON_CENTERIS_ERROR(ceError = CTStrdup("", &oldDiff));
                 else
                     *diff = NULL;
-                BAIL_ON_CENTERIS_ERROR(ceError = CTGetFileDiff(finalName, tempName, &fileDiff, FALSE));
+                BAIL_ON_CENTERIS_ERROR(ceError = CTGetFileDiff(finalName, files[i].tempPath, &fileDiff, FALSE));
                 BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(diff, "%sChanges to %s:\n%s", oldDiff, files[i].name, fileDiff));
             }
-            BAIL_ON_CENTERIS_ERROR(ceError = CTCloneFilePerms(finalName, tempName));
-            BAIL_ON_CENTERIS_ERROR(ceError = CTBackupFile(finalName));
-            BAIL_ON_CENTERIS_ERROR(ceError = CTMoveFile(tempName, finalName));
+            if (files[i].followSymlinks)
+            {
+                ceError = CTSafeReplaceFile(finalName, files[i].tempPath);
+            }
+            else
+            {
+                ceError = CTSafeReplaceFile(prefixedPath, files[i].tempPath);
+            }
+            BAIL_ON_CENTERIS_ERROR(ceError);
         }
-        CT_SAFE_FREE_STRING(tempName);
         CT_SAFE_FREE_STRING(finalName);
+        CT_SAFE_FREE_STRING(prefixedPath);
     }
 
 error:
-    CT_SAFE_FREE_STRING(tempName);
     CT_SAFE_FREE_STRING(finalName);
+    CT_SAFE_FREE_STRING(prefixedPath);
     CT_SAFE_FREE_STRING(oldDiff);
     CT_SAFE_FREE_STRING(fileDiff);
     return ceError;
@@ -1093,6 +1137,7 @@ static CENTERROR WritePamConfiguration(const char *rootPrefix, struct PamConf *c
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     DynamicArray openFiles;
+    struct OpenFile *files = NULL;
     int lastIndexedFile = 0;
     int i = 0;
     StringBuffer buffer;
@@ -1115,6 +1160,11 @@ static CENTERROR WritePamConfiguration(const char *rootPrefix, struct PamConf *c
     BAIL_ON_CENTERIS_ERROR(ceError = MoveFiles(rootPrefix, &openFiles, diff));
 
 error:
+    files = (struct OpenFile *)openFiles.data;
+    for (i = 0; i < openFiles.size; i++)
+    {
+        CT_SAFE_FREE_STRING(files[i].tempPath);
+    }
     CloseFiles(rootPrefix, &openFiles);
     CTArrayFree(&openFiles);
     CTStringBufferDestroy(&buffer);

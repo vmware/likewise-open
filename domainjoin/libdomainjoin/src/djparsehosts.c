@@ -495,11 +495,19 @@ DJWriteHostsFileIfModified(
     FILE* fp = NULL;
     PHOSTFILEALIAS pAlias = NULL;
     BOOLEAN bRemoveFile = FALSE;
+    char *tempName = NULL;
+    char *finalName = NULL;
 
-    if (DJHostsFileWasModified(pHostFileLineList)) {
+    ceError = CTGetFileTempPath(
+                        filename,
+                        &finalName,
+                        &tempName);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
-        DJ_LOG_INFO("Writing out updated %s file", filename);
-        fp = fopen("/etc/hosts.domainjoin", "w");
+    if (DJHostsFileWasModified(pHostFileLineList))
+    {
+        DJ_LOG_INFO("Writing out updated %s file", finalName);
+        fp = fopen(tempName, "w");
         if (fp == NULL) {
             ceError = CTMapSystemError(errno);
             BAIL_ON_CENTERIS_ERROR(ceError);
@@ -544,13 +552,7 @@ DJWriteHostsFileIfModified(
             fp = NULL;
         }
 
-        ceError = CTCloneFilePerms(filename, "/etc/hosts.domainjoin");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTBackupFile(filename);
-        BAIL_ON_CENTERIS_ERROR(ceError);
-
-        ceError = CTMoveFile("/etc/hosts.domainjoin", filename);
+        ceError = CTSafeReplaceFile(finalName, tempName);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
 #if defined(__LWI_MACOSX__)
@@ -562,7 +564,7 @@ DJWriteHostsFileIfModified(
         bRemoveFile = FALSE;
     }
     else
-        DJ_LOG_INFO("%s file was not modified; not rewriting", filename);
+        DJ_LOG_INFO("%s file was not modified; not rewriting", finalName);
 
 error:
 
@@ -570,7 +572,10 @@ error:
         fclose(fp);
 
     if (bRemoveFile)
-        CTRemoveFile("/etc/hosts.domainjoin");
+        CTRemoveFile(tempName);
+
+    CT_SAFE_FREE_STRING(finalName);
+    CT_SAFE_FREE_STRING(tempName);
 
     return ceError;
 }
