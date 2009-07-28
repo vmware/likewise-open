@@ -29,7 +29,7 @@
  */
 
 /*
- * Abstract: Dsr interface (rpc server library)
+ * Abstract: DsSetup interface (rpc server library)
  *
  * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
  */
@@ -39,11 +39,9 @@
 
 extern pthread_mutex_t gDsrSrvDataMutex;
 
-extern void *pDsrSrvMemRoot;
 extern int bDsrSrvInitialised;
 
-
-extern PCSTR gpszRpcSrvName;
+extern PCSTR gpszDsrRpcSrvName;
 
 extern LSA_RPCSRV_FUNCTION_TABLE gDsrRpcFuncTable;
 

@@ -40,10 +40,9 @@
 /* Library initialisation guard */
 extern pthread_mutex_t gSamrSrvDataMutex;
 
-extern void *pSamrSrvMemRoot;
 extern int bSamrSrvInitialised;
 
-extern PCSTR gpszRpcSrvName;
+extern PCSTR gpszSamrRpcSrvName;
 extern LSA_RPCSRV_FUNCTION_TABLE gSamrRpcFuncTable;
 
 extern rpc_binding_vector_p_t gpSamrSrvBinding;

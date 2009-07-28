@@ -61,7 +61,7 @@ LsaInitializeRpcSrv(
     dwError = RpcSvcRegisterRpcInterface(dssetup_v0_0_s_ifspec);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppszRpcSrvName = (PSTR)gpszRpcSrvName;
+    *ppszRpcSrvName = (PSTR)gpszDsrRpcSrvName;
     *ppFnTable      = &gDsrRpcFuncTable;
 
     if (!IsNullOrEmptyString(pszConfigFilePath)) {

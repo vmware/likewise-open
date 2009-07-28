@@ -39,11 +39,9 @@
 
 extern pthread_mutex_t gLsaSrvDataMutex;
 
-extern void *pLsaSrvMemRoot;
 extern int bLsaSrvInitialised;
 
-
-extern PCSTR gpszRpcSrvName;
+extern PCSTR gpszLsaRpcSrvName;
 
 extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
 
