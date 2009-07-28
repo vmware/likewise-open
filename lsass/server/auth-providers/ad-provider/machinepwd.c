@@ -241,6 +241,16 @@ ADSyncMachinePasswordThreadRoutine(
         if (dwCurrentPasswordAge >= dwReapingAge)
         {
             LSA_LOG_VERBOSE("Changing machine password");
+
+            dwError = AD_SetSystemAccess(NULL);
+            if (dwError)
+            {
+                LSA_LOG_ERROR("Error: Failed to acquire credentials, error = %u", dwError);
+
+                dwError = 0;
+                goto lsa_wait_resync;
+            }
+
             dwError = NetMachineChangePassword();
             if (dwError)
             {
