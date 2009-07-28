@@ -172,6 +172,13 @@
     #
     # cache-type = memory
 
+    # The maximum bytes to use for the in-memory cache. Old data will be purged
+    # if the total cache size exceeds this limit. A value of 0 indicates no
+    # limit.
+    # Default: 0
+    #
+    # memory-cache-size-cap = 10000
+
 [auth provider:lsa-local-provider]
 
     path = @providerdir@/liblsass_auth_provider_local@MOD_EXT@

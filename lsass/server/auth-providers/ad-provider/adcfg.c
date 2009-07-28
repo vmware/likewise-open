@@ -123,6 +123,14 @@ AD_SetConfig_CacheEntryExpiry(
 
 static
 DWORD
+AD_SetConfig_CacheSizeCap(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    );
+
+static
+DWORD
 AD_SetConfig_LDAPSignAndSeal(
     PLSA_AD_CONFIG pConfig,
     PCSTR          pszName,
@@ -283,6 +291,7 @@ static AD_CONFIG_HANDLER gADConfigHandlers[] =
     {"cache-purge-timeout",           &AD_SetConfig_CachePurgeTimeout},
     {"machine-password-lifespan",     &AD_SetConfig_MachinePasswordLifespan},
     {"cache-entry-expiry",            &AD_SetConfig_CacheEntryExpiry},
+    {"memory-cache-size-cap",         &AD_SetConfig_CacheSizeCap},
     {"ldap-sign-and-seal",            &AD_SetConfig_LDAPSignAndSeal},
     {"require-membership-of",         &AD_SetConfig_RequireMembershipOf},
     {"assume-default-domain",         &AD_SetConfig_AssumeDefaultDomain},
@@ -343,6 +352,7 @@ AD_InitializeConfig(
      */
     pConfig->dwCacheReaperTimeoutSecs = AD_CACHE_REAPER_TIMEOUT_DEFAULT_SECS;
     pConfig->dwCacheEntryExpirySecs   = AD_CACHE_ENTRY_EXPIRY_DEFAULT_SECS;
+    pConfig->dwCacheSizeCap           = 0;
     pConfig->dwMachinePasswordSyncLifetime = AD_MACHINE_PASSWORD_SYNC_DEFAULT_SECS;
     pConfig->dwUmask          = AD_DEFAULT_UMASK;
 
@@ -875,6 +885,27 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+DWORD
+AD_SetConfig_CacheSizeCap(
+    PLSA_AD_CONFIG pConfig,
+    PCSTR          pszName,
+    PCSTR          pszValue
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwValue = 0;
+
+    if (!IsNullOrEmptyString(pszValue))
+    {
+        dwValue = (DWORD) atoi(pszValue);
+    }
+
+    pConfig->dwCacheSizeCap = dwValue;
+
+    return dwError;
 }
 
 static
@@ -2191,6 +2222,23 @@ AD_GetCacheBackend(
     LEAVE_AD_GLOBAL_DATA_RW_WRITER_LOCK(bInLock);
 
     return result;
+}
+
+DWORD
+AD_GetCacheSizeCap(
+    VOID
+    )
+{
+    DWORD dwResult = 0;
+    BOOLEAN bInLock = FALSE;
+
+    ENTER_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    dwResult = gpLsaAdProviderState->config.dwCacheSizeCap;
+
+    LEAVE_AD_GLOBAL_DATA_RW_READER_LOCK(bInLock);
+
+    return dwResult;
 }
 
 BOOLEAN

@@ -259,6 +259,11 @@ AD_GetCacheBackend(
     VOID
     );
 
+DWORD
+AD_GetCacheSizeCap(
+    VOID
+    );
+
 BOOLEAN
 AD_GetTrimUserMembershipEnabled(
     VOID
