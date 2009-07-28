@@ -238,7 +238,7 @@ ADSyncMachinePasswordThreadRoutine(
             goto lsa_wait_resync;
         }
 
-        if (dwCurrentPasswordAge >= dwReapingAge)
+        if ((dwReapingAge > 0) && (dwCurrentPasswordAge >= dwReapingAge))
         {
             LSA_LOG_VERBOSE("Changing machine password");
 

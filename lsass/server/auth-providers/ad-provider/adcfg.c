@@ -810,7 +810,8 @@ AD_SetConfig_MachinePasswordLifespan(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (dwMachinePasswordSyncPwdLifetime < AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS)
+    if ((dwMachinePasswordSyncPwdLifetime != 0) &&
+        (dwMachinePasswordSyncPwdLifetime < AD_MACHINE_PASSWORD_SYNC_MINIMUM_SECS))
     {
         LSA_LOG_ERROR("Failed to set MachinePasswordSyncPwdLifetime to %u.  Minimum is %u.",
                         dwMachinePasswordSyncPwdLifetime,
