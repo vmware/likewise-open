@@ -71,6 +71,19 @@ typedef struct _LWIO_SRV_FILE
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
+typedef struct _LWIO_SRV_SEARCH_SPACE_2
+{
+    UCHAR                  ucInfoClass;
+    UCHAR                  ucSearchFlags;
+    ULONG                  ulFileIndex;
+    PWSTR                  pwszSearchPattern;
+    PBYTE                  pFileInfo;
+    PBYTE                  pFileInfoCursor;
+    USHORT                 usFileInfoLen;
+    BOOLEAN                bUseLongFilenames;
+
+} LWIO_SRV_SEARCH_SPACE_2, *PLWIO_SRV_SEARCH_SPACE_2;
+
 typedef struct _LWIO_SRV_FILE_2
 {
     pthread_rwlock_t        mutex;
@@ -90,6 +103,9 @@ typedef struct _LWIO_SRV_FILE_2
     FILE_SHARE_FLAGS        shareAccess;
     FILE_CREATE_DISPOSITION createDisposition;
     FILE_CREATE_OPTIONS     createOptions;
+
+    LWIO_SRV_SEARCH_SPACE_2  searchSpace;
+    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace;
 
 } LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
 
@@ -701,6 +717,14 @@ SrvFile2Release(
 NTSTATUS
 SrvFinderCreateRepository(
     OUT PHANDLE phFinderRepository
+    );
+
+NTSTATUS
+SrvFinderBuildSearchPath(
+    IN  PWSTR  pwszPath,
+    IN  PWSTR  pwszSearchPattern,
+    OUT PWSTR* ppwszFilesystemPath,
+    OUT PWSTR* ppwszSearchPattern
     );
 
 NTSTATUS

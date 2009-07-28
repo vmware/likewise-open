@@ -1,7 +1,10 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblwnetserveripc.la
 
 liblwnetserveripc_la_CPPFLAGS = \
-	-I@top_srcdir@/server/include
+	-I@top_srcdir@/server/include \
+	$(AM_CPPFLAGS)
 
 liblwnetserveripc_la_SOURCES = \
 	ipc_dcinfo.c    \

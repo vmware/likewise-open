@@ -1732,6 +1732,93 @@ error:
 }
 
 NTSTATUS
+SMB2MarshalFindResponse(
+    IN OUT PBYTE                       pBuffer,
+    IN     ULONG                       ulOffset,
+    IN     ULONG                       ulBytesAvailable,
+    IN OUT PBYTE                       pData,
+    IN     ULONG                       ulDataLength,
+    IN OUT PULONG                      pulDataOffset,
+    IN OUT PSMB2_FIND_RESPONSE_HEADER* ppHeader,
+    IN OUT PULONG                      pulBytesUsed
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_FIND_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    ULONG  ulBytesUsed = 0;
+    ULONG  ulDataOffset = ulOffset;
+    PBYTE  pOutBufferRef = pBuffer;
+    PBYTE  pDataCursor = pBuffer;
+
+    if (ulBytesAvailable < sizeof(SMB2_FIND_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSMB2_FIND_RESPONSE_HEADER)pDataCursor;
+    ulBytesUsed += sizeof(SMB2_FIND_RESPONSE_HEADER);
+    ulDataOffset += sizeof(SMB2_FIND_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_FIND_RESPONSE_HEADER);
+    pDataCursor += sizeof(SMB2_FIND_RESPONSE_HEADER);
+
+    pResponseHeader->usLength = sizeof(SMB2_FIND_RESPONSE_HEADER);
+
+    if (ulDataOffset % 8)
+    {
+        USHORT usAlign =  8 - (ulDataOffset % 8);
+
+        if (ulBytesAvailable < ulDataLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulBytesUsed += usAlign;
+        ulDataOffset += usAlign;
+        ulBytesAvailable -= usAlign;
+        pDataCursor += usAlign;
+    }
+
+    // TODO: Check against max buffer size
+    if (pData)
+    {
+        if (ulBytesAvailable < ulDataLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pData, ulDataLength);
+
+        ulBytesUsed += ulDataLength;
+        // ulBytesAvailable -= ulDataLength;
+        // pDataCursor += ulDataLength;
+    }
+
+    *pulDataOffset = ulDataOffset;
+    *ppHeader = pResponseHeader;
+    *pulBytesUsed = ulBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulDataOffset = 0;
+    *ppHeader = NULL;
+    *pulBytesUsed = 0;
+
+    if (ulBytesUsed)
+    {
+        memset(pOutBufferRef, 0, ulBytesUsed);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2MarshalError(
     IN OUT PBYTE    pBuffer,
     IN     ULONG    ulOffset,

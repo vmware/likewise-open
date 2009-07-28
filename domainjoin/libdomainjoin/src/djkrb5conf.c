@@ -1386,6 +1386,7 @@ static CENTERROR WriteKrb5Configuration(const char *rootPrefix, const char *file
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     FILE *file = NULL;
+    char *prefixedPath = NULL;
     char *tempName = NULL;
     char *finalName = NULL;
     char *symtarget = NULL;
@@ -1395,8 +1396,13 @@ static CENTERROR WriteKrb5Configuration(const char *rootPrefix, const char *file
     if(rootPrefix == NULL)
         rootPrefix = "";
 
-    GCE(ceError = CTAllocateStringPrintf(&tempName, "%s%s.new", rootPrefix, filename));
-    GCE(ceError = CTAllocateStringPrintf(&finalName, "%s%s", rootPrefix, filename));
+    GCE(ceError = CTAllocateStringPrintf(&prefixedPath, "%s%s", rootPrefix, filename));
+
+    ceError = CTGetFileTempPath(
+                        prefixedPath,
+                        &finalName,
+                        &tempName);
+    GCE(ceError);
 
     DJ_LOG_INFO("Writing krb5 file %s", finalName);
 
@@ -1432,14 +1438,13 @@ static CENTERROR WriteKrb5Configuration(const char *rootPrefix, const char *file
             finalName = symtarget;
             symtarget = NULL;
         }
-        GCE(ceError = CTCloneFilePerms(finalName, tempName));
-        GCE(ceError = CTBackupFile(finalName));
-        GCE(ceError = CTMoveFile(tempName, finalName));
+        GCE(ceError = CTSafeReplaceFile(finalName, tempName));
     }
 
 cleanup:
     if(file != NULL)
         CTCloseFile(file);
+    CT_SAFE_FREE_STRING(prefixedPath);
     CT_SAFE_FREE_STRING(tempName);
     CT_SAFE_FREE_STRING(finalName);
     CT_SAFE_FREE_STRING(symtarget);

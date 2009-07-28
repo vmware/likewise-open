@@ -403,16 +403,18 @@ SrvBuildRequestChain_SMB_V2(
 
         if (pHeader->ulChainOffset)
         {
+            ULONG ulCurOffset = 0;
             ULONG ulBytesAvailable = 0;
 
-            if ((pHeader->ulChainOffset < ulPrevOffset) ||
-                (pHeader->ulChainOffset > ulPacketSize))
+            ulCurOffset = ulPrevOffset + pHeader->ulChainOffset;
+
+            if ((ulCurOffset < ulPrevOffset) || (ulCurOffset > ulPacketSize))
             {
                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ulBytesAvailable = ulPacketSize - pHeader->ulChainOffset;
+            ulBytesAvailable = ulPacketSize - ulCurOffset;
 
             if (ulBytesAvailable < sizeof(SMB2_HEADER))
             {
@@ -420,10 +422,10 @@ SrvBuildRequestChain_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ulPrevOffset = pHeader->ulChainOffset;
+            ulPrevOffset = ulCurOffset;
 
             pHeader = (PSMB2_HEADER)((PBYTE)pSmbRequest->pSMB2Header +
-                                      pHeader->ulChainOffset);
+                                      ulCurOffset);
 
             if (memcmp(&smb2magic[0], &pHeader->smb[0], sizeof(smb2magic)))
             {
@@ -460,7 +462,7 @@ SrvBuildRequestChain_SMB_V2(
         }
         else
         {
-            pMessage->pHeader = (PSMB2_HEADER)(((PBYTE)pSmbRequest->pSMB2Header)
+            pMessage->pHeader = (PSMB2_HEADER)(((PBYTE)pPrevHeader)
                                                + pPrevHeader->ulChainOffset);
             if (pMessage->pHeader->ulChainOffset)
             {

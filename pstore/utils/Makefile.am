@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES=liblwps-utils.la
 
 liblwps_utils_la_SOURCES = \
@@ -14,7 +16,7 @@ liblwps_utils_la_SOURCES = \
        lwps-strerror.c \
        lwps-sysfuncs.c
 
-liblwps_utils_la_CPPFLAGS = @LIBUNISTR_INCLUDES@
+liblwps_utils_la_CPPFLAGS = @LIBUNISTR_INCLUDES@ $(AM_CPPFLAGS)
 liblwps_utils_la_LDFLAGS = @LIBUNISTR_LDFLAGS@
 liblwps_utils_la_LIBADD = @LIBUNISTR_LIBS@
 

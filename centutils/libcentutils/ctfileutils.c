@@ -1641,6 +1641,7 @@ CTRunSedOnFile(
     mode_t mode;
     PSTR sedPath = NULL;
     BOOLEAN isSame;
+    PSTR pszFinalPath = NULL;
 
     BAIL_ON_CENTERIS_ERROR(ceError = CTFindSed(&sedPath));
     ppszArgs[argPos++] = sedPath;
@@ -1649,7 +1650,11 @@ CTRunSedOnFile(
         ppszArgs[argPos++] = "-n";
     ppszArgs[argPos++] = pszExpression;
 
-    BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(&tempPath, "%s.lwidentity.temp", pszDstPath));
+    ceError = CTGetFileTempPath(
+                        pszDstPath,
+                        &pszFinalPath,
+                        &tempPath);
+    BAIL_ON_CENTERIS_ERROR(ceError);
 
     dwFdIn = open(pszSrcPath, O_RDONLY);
     if (dwFdIn < 0)
@@ -1678,15 +1683,15 @@ CTRunSedOnFile(
         BAIL_ON_CENTERIS_ERROR(ceError = CENTERROR_COMMAND_FAILED);
     }
 
-    BAIL_ON_CENTERIS_ERROR(ceError = CTFileContentsSame(tempPath, pszDstPath, &isSame));
+    BAIL_ON_CENTERIS_ERROR(ceError = CTFileContentsSame(tempPath, pszFinalPath, &isSame));
     if (isSame)
     {
         BAIL_ON_CENTERIS_ERROR(ceError = CTRemoveFile(tempPath));
     }
     else
     {
-        BAIL_ON_CENTERIS_ERROR(ceError = CTBackupFile(pszDstPath));
-        BAIL_ON_CENTERIS_ERROR(ceError = CTMoveFile(tempPath, pszDstPath));
+        ceError = CTSafeReplaceFile(pszFinalPath, tempPath);
+        BAIL_ON_CENTERIS_ERROR(ceError);
     }
 
 error:
@@ -1703,6 +1708,7 @@ error:
     if (pProcInfo)
         CTFreeProcInfo(pProcInfo);
     CT_SAFE_FREE_STRING(tempPath);
+    CT_SAFE_FREE_STRING(pszFinalPath);
     CT_SAFE_FREE_STRING(sedPath);
 
     return ceError;
@@ -1827,6 +1833,91 @@ CTGetFileDiff(
 
 cleanup:
     CT_SAFE_FREE_STRING(diffPath);
+    return ceError;
+}
+
+CENTERROR
+CTGetFileTempPath(
+        PCSTR unresolvedSrcPath,
+        PSTR* resolvedSrcPath,
+        PSTR* tempPath)
+{
+    PSTR symTarget = NULL;
+    PSTR newPath = NULL;
+    PSTR currentPath = NULL;
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    // do not free
+    PSTR separator = NULL;
+
+    if (resolvedSrcPath)
+    {
+        *resolvedSrcPath = NULL;
+    }
+    if (tempPath)
+    {
+        *tempPath = NULL;
+    }
+
+    ceError = CTAllocateString(unresolvedSrcPath, &currentPath);
+    GCE(ceError);
+
+    while (1)
+    {
+        ceError = CTGetSymLinkTarget(
+                        currentPath,
+                        &symTarget);
+        if (ceError == CTMapSystemError(EINVAL))
+        {
+            // The last symlink component was resolved
+            ceError = 0;
+            break;
+        }
+        else if (ceError == CTMapSystemError(ENOENT))
+        {
+            // The target does not exist yet. The caller should create this path
+            ceError = 0;
+            break;
+        }
+        GCE(ceError);
+
+        // Strip off the file component
+        separator = strrchr(currentPath, '/');
+        if (separator != NULL)
+        {
+            separator[1] = 0;
+        }
+
+        if (symTarget[0] == '/')
+        {
+            GCE(ceError = CTAllocateStringPrintf(&newPath, "%s", symTarget));
+        }
+        else
+        {
+            GCE(ceError = CTAllocateStringPrintf(&newPath, "%s%s", currentPath,
+                        symTarget));
+        }
+
+        CT_SAFE_FREE_STRING(currentPath);
+        CT_SAFE_FREE_STRING(symTarget);
+        currentPath = newPath;
+        newPath = NULL;
+    }
+
+    if (tempPath)
+    {
+        GCE(ceError = CTAllocateStringPrintf(tempPath, "%s.lwidentity.new", currentPath));
+    }
+
+    if (resolvedSrcPath)
+    {
+        *resolvedSrcPath = currentPath;
+        currentPath = NULL;
+    }
+
+cleanup:
+    CT_SAFE_FREE_STRING(currentPath);
+    CT_SAFE_FREE_STRING(newPath);
+    CT_SAFE_FREE_STRING(symTarget);
     return ceError;
 }
 

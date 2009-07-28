@@ -1285,12 +1285,17 @@ LsaBeginEnumUsers(
 
 /**
  * @ingroup user
- * @brief End user enumeration
+ * @brief Retrieve next list of users during enumeration
  *
- * Ends a user enumeration, releasing any associated resources.
+ * Retrieves the next list of users for an in-progress enumeration.
  *
  * @param[in] hLsaConnection the connection handle
  * @param[in,out] hResume the enumeration handle
+ * @param[out] pdwNumUsers the number of users returned
+ * @param[out] pppUserInfoList a heap-allocated list of user info structures
+ * of the level specified in the call to #LsaBeginEnumUsers(). It should be
+ * freed with #LsaFreeUserInfoList().
+ *
  * @retval #LW_ERROR_SUCCESS success
  */
 LW_DWORD

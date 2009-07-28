@@ -124,7 +124,10 @@ SrvSelectTransportGetRequest(
                     &gSrvSelectTransport.workQueue,
                     pTimespec,
                     (PVOID*)&pContext);
-    BAIL_ON_NT_STATUS(status);
+    if (status != STATUS_SUCCESS)
+    {
+        goto error;
+    }
 
     *ppConnection = pContext->pConnection;
     pContext->pConnection = NULL;

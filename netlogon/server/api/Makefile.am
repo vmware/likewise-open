@@ -1,6 +1,9 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblwnetserverapi.la
 
 liblwnetserverapi_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I@top_srcdir@/server/include \
 	@LIBUNISTR_INCLUDES@          \
 	@PSTORE_INCLUDES@             \

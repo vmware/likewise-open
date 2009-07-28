@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES = liblwnetipc.la
 
 liblwnetipc_la_LIBADD = -llwmsg_nothr

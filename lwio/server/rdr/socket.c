@@ -500,7 +500,13 @@ SMBSocketReceiveAndUnmarshall(
     pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
     bufferUsed += len;
 
-    pPacket->pNetBIOSHeader->len = ntohl(pPacket->pNetBIOSHeader->len);
+    pPacket->pNetBIOSHeader->len = htonl(pPacket->pNetBIOSHeader->len);
+
+    if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) bufferUsed > (uint64_t) pPacket->bufferLen)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SMBSocketRead(
                     pSocket,
@@ -527,7 +533,7 @@ SMBSocketReceiveAndUnmarshall(
 
     pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
     pPacket->pData = NULL;
-    pPacket->bufferUsed = bufferUsed;
+    pPacket->bufferUsed = pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER);
 
 error:
 

@@ -387,6 +387,13 @@ CTFindInPath(
     );
 
 CENTERROR
+CTGetFileTempPath(
+    PCSTR unresolvedSrcPath,
+    PSTR* resolvedSrcPath,
+    PSTR* tempPath
+    );
+
+CENTERROR
 CTGetFileDiff(
     PCSTR first,
     PCSTR second,

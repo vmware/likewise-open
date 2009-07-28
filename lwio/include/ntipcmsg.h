@@ -54,7 +54,7 @@
 
 // TODO-Add check in lwmsg to check for protocol tags > 16 bits.
 // Apparently, the server crashed if you do that.
-#define _NT_IPC_MESSAGE_TYPE_BASE 10000
+#define _NT_IPC_MESSAGE_TYPE_BASE 20
 
 //
 // Protocol Message Types

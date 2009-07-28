@@ -453,6 +453,18 @@ SMB2UnmarshalFindRequest(
     );
 
 NTSTATUS
+SMB2MarshalFindResponse(
+    IN OUT PBYTE                       pBuffer,
+    IN     ULONG                       ulOffset,
+    IN     ULONG                       ulBytesAvailable,
+    IN OUT PBYTE                       pData,
+    IN     ULONG                       ulDataLength,
+    IN OUT PULONG                      pulDataOffset,
+    IN OUT PSMB2_FIND_RESPONSE_HEADER* ppHeader,
+    IN OUT PULONG                      pulBytesUsed
+    );
+
+NTSTATUS
 SMB2MarshalError(
     IN OUT PBYTE    pBuffer,
     IN     ULONG    ulOffset,

@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 noinst_LTLIBRARIES=liblwnetutils.la
 
 liblwnetutils_la_SOURCES = \

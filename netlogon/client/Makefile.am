@@ -1,7 +1,10 @@
+AM_CPPFLAGS = -I$(top_srcdir)/include
+
 lib_LTLIBRARIES = liblwnetclientapi.la
 
 liblwnetclientapi_la_CPPFLAGS = \
-    $(LWADVAPI_INCLUDES)
+    $(LWADVAPI_INCLUDES) \
+    $(AM_CPPFLAGS)
 
 liblwnetclientapi_la_LIBADD =   \
     $(LWMSG_LIBS)               \
