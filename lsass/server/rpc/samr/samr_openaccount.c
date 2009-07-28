@@ -103,14 +103,12 @@ SamrSrvOpenAccount(
     pwszBaseDn = pDomCtx->pwszDn;
     pDomainSid = pDomCtx->pDomainSid;
 
-    status = SamrSrvAllocateMemory((void**)&pAcctCtx,
-                                   sizeof(*pAcctCtx));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    RTL_ALLOCATE(&pAcctCtx, ACCOUNT_CONTEXT, sizeof(*pAcctCtx));
+    BAIL_ON_NO_MEMORY(pAcctCtx);
 
     ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
-    status = SamrSrvAllocateMemory((void**)&pAccountSid,
-                                   ulSidLength);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    RTL_ALLOCATE(&pAccountSid, SID, ulSidLength);
+    BAIL_ON_NO_MEMORY(pAccountSid);
 
     status = RtlCopySid(ulSidLength, pAccountSid, pDomainSid);
     BAIL_ON_NTSTATUS_ERROR(status);
@@ -171,19 +169,17 @@ SamrSrvOpenAccount(
 
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
 
-                status = SamrSrvAllocateMemory((void**)&pwszName,
-                                               (dwNameLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                RTL_ALLOCATE(&pwszName, WCHAR, (dwNameLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NO_MEMORY(pwszName);
 
                 wc16sncpy(pwszName, pAttrVal->data.pwszStringValue, dwNameLen);
 
             } else if (!wc16scmp(pAttr->pwszName, wszAttrObjectSid) &&
                        pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-                status = SamrSrvAllocateSidFromWC16String(
+                status = RtlAllocateSidFromWC16String(
                                             &pSid,
                                             pAttrVal->data.pwszStringValue);
-
                 BAIL_ON_NTSTATUS_ERROR(status);
 
                 if (!RtlEqualSid(pSid, pAccountSid)) {
@@ -198,9 +194,10 @@ SamrSrvOpenAccount(
 
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
 
-                status = SamrSrvAllocateMemory((void**)&pwszAccountDn,
-                                               (dwDnLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                RTL_ALLOCATE(&pwszAccountDn,
+                             WCHAR,
+                             (dwDnLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NO_MEMORY(pwszAccountDn);
 
                 wc16sncpy(pwszAccountDn, pAttrVal->data.pwszStringValue, dwDnLen);
             }
@@ -235,7 +232,7 @@ cleanup:
     }
 
     if (pAccountSid) {
-        SamrSrvFreeMemory(pAccountSid);
+        RTL_FREE(&pAccountSid);
     }
 
     if (pwszAccountSid) {

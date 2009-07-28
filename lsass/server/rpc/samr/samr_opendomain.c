@@ -135,9 +135,8 @@ SamrSrvOpenDomain(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    status = SamrSrvAllocateMemory((void**)&pDomCtx,
-                                   sizeof(*pDomCtx));
-    BAIL_ON_NTSTATUS_ERROR(status);
+    RTL_ALLOCATE(&pDomCtx, DOMAIN_CONTEXT, sizeof(*pDomCtx));
+    BAIL_ON_NO_MEMORY(pDomCtx);
 
     for (i = 0; i < dwEntriesNum; i++) {
         pEntry = &(pEntries[i]);
@@ -153,7 +152,7 @@ SamrSrvOpenDomain(
         if (pAttrVal &&
             pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-            status = SamrSrvAllocateSidFromWC16String(
+            status = RtlAllocateSidFromWC16String(
                                      &pDomainSid,
                                      pAttrVal->data.pwszStringValue);
             BAIL_ON_NTSTATUS_ERROR(status);
@@ -179,10 +178,10 @@ SamrSrvOpenDomain(
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
-                status = SamrSrvAllocateMemory(
-                                       (void**)&pwszDomainName,
-                                       (dwNameLen + 1) * sizeof(wchar16_t));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                RTL_ALLOCATE(&pwszDomainName,
+                             WCHAR,
+                             (dwNameLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NO_MEMORY(pwszDomainName);
 
                 wc16sncpy(pwszDomainName, pAttrVal->data.pwszStringValue, dwNameLen);
 
@@ -204,10 +203,10 @@ SamrSrvOpenDomain(
                 pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
                 dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
-                status = SamrSrvAllocateMemory(
-                                       (void**)&pwszDn,
-                                       (dwDnLen + 1) * sizeof(wchar16_t));
-                BAIL_ON_NTSTATUS_ERROR(status);
+                RTL_ALLOCATE(&pwszDn,
+                             WCHAR,
+                             (dwDnLen + 1) * sizeof(WCHAR));
+                BAIL_ON_NO_MEMORY(pwszDomainName);
 
                 wc16sncpy(pwszDn, pAttrVal->data.pwszStringValue, dwDnLen);
 
