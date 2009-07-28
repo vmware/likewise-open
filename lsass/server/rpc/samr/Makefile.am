@@ -91,6 +91,6 @@ CLEAN_FILES = samr_cstub.c samr_sstub.c samr_h.h
 
 BUILT_SOURCES = samr_cstub.c samr_sstub.c samr_h.h
 
-samr_sstub.c samr_cstub.c samr_h.h: $(idl_srcdir)/samr.idl
+samr_sstub.c samr_cstub.c samr_h.h: $(idl_srcdir)/samr.idl samr.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h -I$(idl_srcdir) \
                 $(DCEIDL_PASS_INCLUDES) $<
