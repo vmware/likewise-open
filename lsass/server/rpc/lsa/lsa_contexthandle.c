@@ -65,7 +65,7 @@ POLICY_HANDLE_rundown(
       free access token
     */
 
-    LsaSrvFreeMemory(pPolCtx);
+    RTL_FREE(&pPolCtx);
 }
 
 
