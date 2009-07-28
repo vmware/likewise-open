@@ -67,6 +67,6 @@ CLEAN_FILES = dssetup_cstub.c dssetup_sstub.c dssetup_h.h
 
 BUILT_SOURCES = dssetup_cstub.c dssetup_sstub.c dssetup_h.h
 
-dssetup_sstub.c dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl
+dssetup_sstub.c dssetup_cstub.c dssetup_h.h: $(idl_srcdir)/dssetup.idl dssetup.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header dssetup_h.h -I$(idl_srcdir) \
 		$(DCEIDL_PASS_INCLUDES) $<
